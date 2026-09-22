@@ -30,6 +30,8 @@ Tests use xunit v3 on Microsoft.Testing.Platform (`UseMicrosoftTestingPlatformRu
 
 Android/iOS/Browser heads exist but are not part of the day-to-day loop; build them only when asked. Hot reload does not support WebAssembly.
 
+**Implementation workflow:** `.claude/workflows/implement-plan.js` implements a plan end to end (decompose → implement item by item with a concision review after each → whole-diff review → full test run with fix rounds → tick the PLAN.md checklist). Run it with `Workflow({ name: "implement-plan", args: "Phase 1" })` (or a plan file path / plan text) once a plan is agreed; it never commits.
+
 ## Dev loop: DevTools and Hot Reload
 
 **Developer Tools** (`AvaloniaUI.DiagnosticsSupport` 2.2.x) is enabled in `samples/PrestoSample/App.axaml.cs` via `this.AttachDeveloperTools()` under `#if DEBUG`. With the sample running, press F12 to launch the `avdt` tool, or use the `avalonia_devtools` MCP server (`avdt mcp`) from Claude Code to inspect the tree, read/set properties, take screenshots and send input. Prefer `attach-to-app` against the running Desktop sample.
