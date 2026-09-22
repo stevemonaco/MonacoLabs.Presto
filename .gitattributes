@@ -2,3 +2,7 @@
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
 * text=auto
+
+# Workflow scripts are read verbatim by the Claude Code Workflow tool, which rejects CR characters.
+*.js text eol=lf
+

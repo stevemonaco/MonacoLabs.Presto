@@ -60,7 +60,7 @@ The DevTools MCP server separately reads `AVALONIA_TOOLS_LICENSE_KEY`. Never com
 - **Single-threaded by design**, exactly like anime.js. Everything runs on the UI thread; the core has no locks. The bridge guarantees ticks happen on `Dispatcher.UIThread`.
 - **Time is `double` milliseconds** (anime.js `timeUnit: 'ms'` default). Seconds mode is a scale factor on the engine, not a second code path.
 - **Port behaviour faithfully first, idiomatically second.** anime.js's tick/loop/alternate/seek math is subtle and well tested; keep its structure (Clock → Timer → Animation/Timeline, linked-list children, `tick()` in render) so the upstream tests can be ported one-to-one. Rename to C# conventions, but do not "improve" semantics until parity tests pass.
-- **Reference source is anime.js 4.5.0** (`src/` on GitHub). When porting a module, read the upstream file and its test suite in `tests/suites/` first.
+- **Reference source is anime.js 4.5.0.** A git-ignored checkout lives at `tools/anime/` (`src/`, `tests/suites/`); recreate it with `git clone --depth 1 --branch v4.5.0 https://github.com/juliangarnier/anime tools/anime` if missing. When porting a module, read the upstream file and its test suite first.
 
 ## API conventions
 

@@ -456,3 +456,7 @@ $RECYCLE.BIN/
 # Machine-local MSBuild overrides (license keys etc.)
 Directory.Build.local.props
 *.local.props
+
+# Local anime.js reference checkout (see CLAUDE.md)
+tools/anime/
+
