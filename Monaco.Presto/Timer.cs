@@ -4,7 +4,7 @@ using Monaco.Presto.Core;
 namespace Monaco.Presto;
 
 /// <summary>Base class of timers, animations and timelines: delay/duration/loop state machine, callbacks and playback controls.</summary>
-public class Timer : Clock
+public class Timer : Clock, IRevertible
 {
     private static int s_timerId;
 
@@ -33,6 +33,8 @@ public class Timer : Clock
     internal Timer(TimerParams parameters, Timer? parent, double parentPosition) : base(0)
     {
         ++s_timerId;
+
+        Globals.CurrentScope?.Register(this);
 
         var engine = Presto.Engine;
         var timerInitTime = parent != null ? 0 : engine._lastTickTime;
@@ -353,6 +355,8 @@ public class Timer : Clock
         Renderer.Tick(this, 0, true, false, TickMode.Auto);
         return Cancel();
     }
+
+    void IRevertible.Revert() => Revert();
 
     /// <summary>Seeks to the end, firing <see cref="OnComplete"/> unless muted, then cancels.</summary>
     public Timer Complete(bool muteCallbacks = false) => Seek(Duration, muteCallbacks).Cancel();

@@ -24,6 +24,12 @@ public static class Presto
 
     public static Timeline CreateTimeline(TimelineParams? parameters = null) => new Timeline(parameters ?? new()).Init();
 
+    /// <summary>Creates the paused per-property animations that <see cref="Animatable.Set(string, double, double?, EaseValue?)"/> drives.</summary>
+    public static Animatable CreateAnimatable(object? targets, AnimatableParams parameters) => new(targets, parameters);
+
+    /// <summary>Creates a lifetime that everything constructed inside it registers with, so one <see cref="Scope.Revert"/> undoes it all.</summary>
+    public static Scope CreateScope(ScopeParams? parameters = null) => new(parameters);
+
     /// <summary>
     /// Spaces <paramref name="value"/> across the targets: a step added per target, or a <c>[from, to]</c> range
     /// distributed evenly between them.

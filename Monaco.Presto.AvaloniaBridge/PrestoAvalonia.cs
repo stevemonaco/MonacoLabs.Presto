@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Targets;
@@ -42,6 +43,59 @@ public static class PrestoAvalonia
             static v => [v.X, v.Y],
             static n => new Vector(n[0], n[1]));
         Presto.Codecs[typeof(RelativePoint)] = new RelativePointCodec();
+    }
+
+    /// <summary>
+    /// <see cref="Presto.Get(object?, string)"/> with the bridge installed first. Every <c>Get</c>, <c>Set</c> and
+    /// <c>Remove</c> below exists for that reason alone: until the Avalonia adapter and codecs are registered, the core
+    /// resolves an <see cref="AvaloniaObject"/> through its reflection adapter, which knows nothing of <c>"X"</c> or <c>"Opacity"</c>.
+    /// </summary>
+    public static object? Get(object? targets, string property)
+    {
+        EnsureInitialized();
+        return Presto.Get(targets, property);
+    }
+
+    /// <inheritdoc cref="Presto.Get(object?, string, string)"/>
+    public static string? Get(object? targets, string property, string unit)
+    {
+        EnsureInitialized();
+        return Presto.Get(targets, property, unit);
+    }
+
+    /// <inheritdoc cref="Presto.Get(object?, string)"/>
+    public static object? Get(object? targets, AvaloniaProperty property)
+    {
+        EnsureInitialized();
+        return Presto.Get(targets, AvaloniaObjectTargetAdapter.Encode(property));
+    }
+
+    /// <inheritdoc cref="Presto.Set"/>
+    public static Animation Set(object? targets, AvaloniaAnimationParams parameters)
+    {
+        EnsureInitialized();
+        return Presto.Set(targets, parameters);
+    }
+
+    /// <inheritdoc cref="Presto.Remove"/>
+    public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
+    {
+        EnsureInitialized();
+        return Presto.Remove(targets, renderable, property);
+    }
+
+    /// <inheritdoc cref="Presto.Remove"/>
+    public static IReadOnlyList<object> Remove(object? targets, AvaloniaProperty property, Timer? renderable = null)
+    {
+        EnsureInitialized();
+        return Presto.Remove(targets, renderable, AvaloniaObjectTargetAdapter.Encode(property));
+    }
+
+    /// <summary><see cref="Presto.CreateScope"/> rooted on a control, so everything created inside reverts when <paramref name="root"/> leaves the visual tree.</summary>
+    public static ControlScope CreateScope(Control root, ScopeParams? parameters = null)
+    {
+        EnsureInitialized();
+        return new ControlScope(root, parameters);
     }
 
     /// <summary>

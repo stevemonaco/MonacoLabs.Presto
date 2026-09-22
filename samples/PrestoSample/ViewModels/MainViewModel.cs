@@ -29,6 +29,8 @@ public partial class MainViewModel : ObservableObject
             () => new StaggerPage()),
         new("Eases", "Every ease plotted from its delegate next to a dot moving through it: the power, back and elastic families, cubic bezier, steps, irregular, linear stops, springs and the string parser.",
             () => new EasesPage()),
+        new("Animatable", "createAnimatable: a grid of dots following the pointer, each property registered with its own duration — X and Y from a centre-out stagger, Rotate written through with none — beside a single dot easing after it, both created in a scope that reverts them when you navigate away.",
+            () => new AnimatablePage()),
     ];
 
     [ObservableProperty]
