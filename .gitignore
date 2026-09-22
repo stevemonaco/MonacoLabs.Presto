@@ -452,3 +452,7 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Machine-local MSBuild overrides (license keys etc.)
+Directory.Build.local.props
+*.local.props

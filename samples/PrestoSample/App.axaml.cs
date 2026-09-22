@@ -14,6 +14,10 @@ public partial class App : Application
 #if DEBUG
         this.AttachDeveloperTools();
 #endif
+#if PRESTO_HOTRELOAD
+        AvaloniaUI.DiagnosticsSupport.HotReload.HotReloadDiagnostics.EntryLogged +=
+            entry => Console.WriteLine($"[HotReload:{entry.Level}] {entry.Message}");
+#endif
     }
 
     public override void OnFrameworkInitializationCompleted()

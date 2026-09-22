@@ -6,6 +6,16 @@
     <Project Path="samples/PrestoSample.iOS/PrestoSample.iOS.csproj" />
     <Project Path="samples/PrestoSample/PrestoSample.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Monaco.Presto.Tests/Monaco.Presto.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="docs/PLAN.md" />
+  </Folder>
   <Project Path="Monaco.Presto.AvaloniaBridge/Monaco.Presto.AvaloniaBridge.csproj" />
   <Project Path="Monaco.Presto/Monaco.Presto.csproj" />
 </Solution>

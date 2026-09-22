@@ -1,9 +1,23 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <RootNamespace>Monaco.Presto.AvaloniaBridge</RootNamespace>
+    <Description>Avalonia bindings for Monaco.Presto: frame pump, AvaloniaProperty targets, transforms, colors and control helpers.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Monaco.Presto\Monaco.Presto.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.Tests" />
+  </ItemGroup>
 
 </Project>
