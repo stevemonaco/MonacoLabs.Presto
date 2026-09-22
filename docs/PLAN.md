@@ -64,10 +64,10 @@ IValueCodec                Decode(object) → channels (double[] or single doubl
 
 Key ports, kept structurally identical to upstream for testability:
 
-- **Linked lists** (`_head/_tail/_prev/_next`) for engine children, timeline children and animation tweens. Zero-allocation ticking.
+- **Linked lists** (`_head/_tail/_prev/_next`) for engine children and timeline children. Tweens hang off `Timer` itself (`_headTween`/`_tailTween`), mirroring upstream where `JSAnimation` reuses the renderable's list, so `Renderer` and the additive animation work on any timer. Zero-allocation ticking.
 - **`tick()` in `render.js`** — the single function that turns absolute time into iteration time, handles loop/alternate/reverse/delay/loopDelay, fires callbacks and decides whether to render. This is the highest-value port; do it first and port `timings`, `controls`, `callbacks`, `directions` tests against it before any tweens exist.
 - **Composition** (`replace` | `none` | `blend`): per (target, property) sibling tween registry (`ConditionalWeakTable<object, …>`), so a new animation on the same property cancels/blends the old one as in anime.js. `blend` uses additive animations (`additive.js`).
-- **Function-based values** everywhere a number is accepted: `FunctionValue` delegate receiving `(Target, Index, Total, Timeline)`.
+- **Function-based values** everywhere a number is accepted: `FunctionValue` is `(object target, int index, int total) => TweenValue`. Upstream's fourth argument is the timeline a value is resolved in, which only stagger positions use; here it lives on `Stagger` instead, which `Timeline.Add` invokes with `this` and `Animation` with `null`, leaving `FunctionValue` at three arguments. Its `prevTween` argument belongs to the Phase 7 WAAPI/draggable work.
 - **Values**: `ValueKind.Number | Unit | Color | Complex`. Colors are parsed by the core (`PrestoColor` from `#rgb`, `#rrggbb(aa)`, `rgb()`, `rgba()`, `hsl()`, `hsla()`), so `colors.test.js` is portable. `Complex` covers typed structs that decompose into several numeric channels (Thickness, Point…) via the target's `IValueCodec`.
 - **Time** is `double` milliseconds; `Engine.TimeUnit = Seconds` scales defaults and speed exactly as upstream.
 - **Thread model**: single-threaded, no locks. The engine records the thread it was first ticked on and asserts in Debug if touched from another thread.
@@ -79,7 +79,7 @@ Key ports, kept structurally identical to upstream for testability:
   - typed: `AvaloniaProperty` instances (`Canvas.LeftProperty`, `Visual.OpacityProperty`);
   - by name: `"Opacity"`, `"Width"`, `"Canvas.Left"`, `"Margin"` through `AvaloniaPropertyRegistry` (owner type + attached);
   - transform shorthands `X`, `Y` (`TranslateX/Y`), `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `SkewX`, `SkewY` — composed into a `TransformGroup` that the bridge owns on `Visual.RenderTransform` (mirrors `transforms.js`, which manages the CSS transform string). Values in DIPs / degrees; `"1turn"`, `"0.5rad"` accepted like upstream.
-  - Value codecs: `double/float/int`, `Color`, `SolidColorBrush` (animates the brush's color, creating a local brush if the current one is frozen/shared), `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint`, `Matrix` (decomposed), and an `Easing` ↔ `Ease` adapter (`PrestoEasing : Avalonia.Animation.Easings.Easing`) so Presto eases can be used in Avalonia `Transitions` and vice versa.
+  - Value codecs: `double/float/int`, `Color`, `SolidColorBrush` (animates the brush's color, creating a local brush if the current one is frozen/shared), `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint`, and an `Easing` ↔ `Ease` adapter (`PrestoEasing : Avalonia.Animation.Easings.Easing`) so Presto eases can be used in Avalonia `Transitions` and vice versa. A decomposed `Matrix` codec is deferred until a property needs one — the transform shorthands go through the bridge's own `TransformGroup`.
   - Writes use `SetValue(..., BindingPriority.Animation)` so animated values sit above local values and are cleanly removed by `Revert()` (`ClearValue` at animation priority).
 - **Control helpers**: `control.Animate(...)`, `Presto.Get(control, "X")`, `Presto.Set(control, …)`, `Presto.Remove(control)`, `ControlScope` that reverts everything created inside it when the control is unloaded.
 - Later: `Draggable`, `ScrollObserver`, shape helpers (`Geometry.ContourLength`, `TryGetPointAndTangentAtDistance` for drawable strokes and motion paths), text splitting, XAML attached properties/behaviors.
@@ -109,7 +109,7 @@ var anim = square.Animate(new()
     [Visual.OpacityProperty] = 0.5,               // typed AvaloniaProperty
     ["Background"] = "#ff6b6b",                   // brush/color by name, string parsed by core
     Duration = 1250,
-    Delay = Presto.Stagger(65, from: StaggerFrom.Center),
+    Delay = Presto.Stagger(65, new() { From = StaggerFrom.Center }),
     Ease = Eases.InOutQuint,
     Loop = true,
     Alternate = true,
@@ -122,7 +122,7 @@ Presto.Animate(viewModel, new() { ["Progress"] = 100, Duration = 500, Ease = Eas
 // Keyframes
 Presto.Animate(box, new()
 {
-    ["X"] = Tween.Keyframes(new() { To = 100, Duration = 400 }, new() { To = 0, Ease = Eases.InQuad }),
+    ["X"] = TweenValue.Keyframes(new TweenParams { To = 100, Duration = 400 }, new TweenParams { To = 0, Ease = Eases.InQuad }),
 });
 
 // Timeline (anime.js createTimeline)
@@ -154,10 +154,14 @@ Presto.Engine.Precision = 4;
 
 Design notes behind the sketch:
 
-- Parameter objects (`TimerParams`, `AnimationParams`, `TimelineParams`, `TweenParams`) are plain `init`-only classes; `AnimationParams` exposes a `string` indexer (and, in the bridge, an `AvaloniaProperty` indexer via a derived params type) so property tweens and settings can mix in a single initializer. Indexer initializers are the only C# syntax that allows this mix, which is why a collection-initializer/`Add` design was rejected.
+- Parameter objects are `init`-only: `TimerParams`, `AnimationParams` and `TimelineParams` are records so `Timeline.Set` can override a few members with `with`; `TweenParams` is a plain class. `AnimationParams` exposes a `string` indexer (and, in the bridge, an `AvaloniaProperty` indexer via a derived params type) so property tweens and settings can mix in a single initializer. Indexer initializers are the only C# syntax that allows this mix, which is why a collection-initializer/`Add` design was rejected.
 - `TweenValue` is a small struct with implicit conversions from `double`, `int`, `string` (`"+=50"`, `"#ff0000"`, `"1turn"`, `"50%"`), `TweenParams`, `FunctionValue` and typed values (`object`). It carries the raw value; adapters decode it against the property's current value, mirroring `values.js`.
 - `LoopCount` has implicit conversions from `int` and `bool` (`Loop = true` ⇒ infinite).
-- Every `Timer` is awaitable (`GetAwaiter`) as well as exposing `Then()` for parity.
+- Every `Timer` is awaitable (`GetAwaiter`) as well as exposing `Then()` for parity; `Animation` narrows both to itself.
+- `Timeline.Add(TimerParams, position)` and `Add(targets, AnimationParams, position)` are ambiguous when the first argument is a target-typed `new() { … }`, so a positioned timer child must name its type: `Add(new TimerParams { … }, 20)`.
+- C# does not apply user-defined implicit conversions to lambda literals, so a delegate written inline needs its type named: `Ease = (Ease)(t => t)`, `["X"] = new FunctionValue((t, i, n) => i * 10)`. Values that already carry their own type (`Eases.*`, `Presto.Stagger(...)`) convert implicitly as the sketch shows.
+- `utils.set()` is `Presto.Set(targets, parameters)`. It landed in Phase 3 rather than with the other target utils because it is the animation constructor's `fastSet` path; `Presto.Get`/`Presto.Remove` follow in Phase 4.
+- `persist` exists only on anime.js 4.5.0's WAAPI path, so the core does not port it.
 
 ## 5. Phases
 
@@ -166,19 +170,19 @@ Phase order follows dependencies; each phase ends green on its ported test suite
 - [x] **Phase 0 — Solution setup.** Root `Directory.Build.props`/`Directory.Packages.props`, `.editorconfig`, project references, core test project, DevTools + Hot Reload wiring, `CLAUDE.md`, this plan.
 - [x] **Phase 1 — Timing engine.** `Constants`, `PrestoDefaults`, `Clock`, `Engine` (+ `IFrameSource`, `ManualFrameSource`, `StopwatchFrameSource`), `Timer`, `Renderer.Tick` (with a no-tween render path), callbacks, controls (`Play/Pause/Resume/Restart/Reverse/Alternate/Seek/Stretch/Complete/Cancel/Revert/Reset`), `Then()`/awaitable. Tests: `engine`, `timings`, `controls`, `callbacks` (timer subset), `directions`, `promises`, `seconds`.
 - [x] **Phase 2 — Easings.** All built-in eases, `in/out/inOut/outIn` composition with parameters (`Back`, `Elastic`, power), `Linear` (with stops), `Steps`, `Irregular`, `CubicBezier`, `Spring` (with computed duration), `EaseParser`. Tests: `eases` plus generated parity fixtures (see §6).
-- [ ] **Phase 3 — Values, targets and animations.** `TweenValue`, value parsing (numbers, relative `+=/-=/*=`, units, colors), `PrestoColor`, `FunctionValue`, `ITargetAdapter`/`IPropertyAccessor`/`IValueCodec`, `ObjectTargetAdapter` (reflection with cached delegates), `Tween`, `Animation` (from/to, per-property params, keyframes duration- and percentage-based, `playbackEase`, `persist`, `modifier`), composition (`replace/none/blend`) and additive. Tests: `tweens`, `values`, `colors`, `units` (core subset), `keyframes`, `function-based-values`, `parameters`, `targets`, `animations`, `callbacks` (animation subset), `leaks`.
-- [ ] **Phase 4 — Timeline, stagger, utils.** `TimelinePosition` parsing (`"+=100"`, `"<"`, `"<<"`, labels), `Timeline.Add/Set/Sync/Label/Call/Remove/Init/Refresh`, timeline defaults, `Stagger` (time/value/range, `from`, `reversed`, `ease`, `grid`, `axis`, `modifier`, `use`, `total`, `jitter`), `Utils` (numeric, random, time, chainable). Tests: `timelines`, `stagger`, `utils`.
-- [ ] **Phase 5 — Avalonia bridge MVP + sample gallery.** `AvaloniaFrameSource`, `AvaloniaObjectTargetAdapter` (typed + named properties, transform shorthands via `TransformGroup`, codecs for double/Color/Brush/Thickness/CornerRadius/Point/Size/Rect/Vector), `BindingPriority.Animation` writes and revert, `control.Animate(...)` extensions, `PrestoEasing` adapter. Sample: gallery shell (nav + page host) and pages for Timer, Animation basics, Value types, Keyframes, Playback settings, Callbacks, Controls, Timeline, Stagger, Eases visualizer. Bridge tests project on `Avalonia.Headless`. Tests: `transforms` (adapted), bridge codec tests.
+- [x] **Phase 3 — Values, targets and animations.** `TweenValue`, value parsing (numbers, relative `+=/-=/*=`, units, colors), `PrestoColor`, `FunctionValue`, `ITargetAdapter`/`IPropertyAccessor`/`IValueCodec`, `ObjectTargetAdapter` (reflection with cached delegates), `Tween`, `Animation` (from/to, per-property params, keyframes duration- and percentage-based, `playbackEase`, `persist`, `modifier`), composition (`replace/none/blend`) and additive. Tests: `tweens`, `values`, `colors`, `units` (core subset), `keyframes`, `function-based-values`, `parameters`, `targets`, `animations`, `callbacks` (animation subset), `leaks`.
+- [x] **Phase 4 — Timeline, stagger, utils.** `TimelinePosition` parsing (`"+=100"`, `"<"`, `"<<"`, labels), `Timeline.Add/Set/Sync/Label/Call/Remove/Init/Refresh`, timeline defaults, `Stagger` (time/value/range, `from`, `reversed`, `ease`, `grid`, `axis`, `modifier`, `use`, `total`, `jitter`), `Utils` (numeric, random, time, chainable). Tests: `timelines`, `stagger`, `utils`, plus the two composition cases Phase 3 could not reach without a timeline (`tweens`: "Properly override timeline tweens", "Do not pause timeline with partially overriden tweens").
+- [x] **Phase 5 — Avalonia bridge MVP + sample gallery.** `AvaloniaFrameSource`, `AvaloniaObjectTargetAdapter` (typed + named properties, transform shorthands via `TransformGroup`, codecs for double/Color/Brush/Thickness/CornerRadius/Point/Size/Rect/Vector/RelativePoint), `BindingPriority.Animation` writes and revert, `control.Animate(...)` extensions, `AvaloniaAnimationParams`' typed `AvaloniaProperty` indexer, `PrestoEasing` adapter. Sample: gallery shell (nav + page host) and pages for Timer, Animation basics, Value types, Keyframes, Playback settings, Callbacks, Controls, Timeline, Stagger, Eases visualizer. Bridge tests project on `Avalonia.Headless`. Also closes the two Phase 4 items that need real layout: `Stagger` auto-grid from measured control positions (`stagger` "Computes auto grid from DOM element positions"), which the core opens up through a `StaggerParams.Coordinates` provider, and `PrestoAvalonia.Stagger(...)`, the bridge overload that fills it by measuring each `Visual`. Tests: `transforms` (adapted), bridge codec tests.
 - [ ] **Phase 6 — Animatable, Scope, target utils.** `Animatable` (getter/setter API with per-property duration/ease), `Scope` + `ControlScope` (revert on unload), `Presto.Get/Set/Remove` for controls. Tests: `animatables`, `scope`. Sample: follow-cursor page.
 - [ ] **Phase 7 — Extras (each independently shippable).** `Draggable` (pointer capture, axes, snap, container, release physics), `ScrollObserver` (ScrollViewer thresholds/sync modes), shape helpers (`CreateDrawable`, `CreateMotionPath`, `MorphTo`), `SplitText`/`ScrambleText`, XAML attached properties for declarative use. Tests: `draggables`, `scroll`, `svg`, `text` (adapted). Sample pages per feature.
-- [ ] **Phase 8 — Polish and packaging.** XML docs, README with anime.js → Presto cheat sheet, NuGet metadata for both packages, consider `net8.0` multi-targeting for the core, Browser/Android/iOS smoke runs, perf pass on the tick loop (allocation-free under `dotnet-counters`).
+- [ ] **Phase 8 — Polish and packaging.** XML docs, README with anime.js → Presto cheat sheet, NuGet metadata for both packages, consider `net8.0` multi-targeting for the core, Browser/Android/iOS smoke runs, perf pass on the tick loop (allocation-free under `dotnet-counters`; `BrushCodec.Encode` allocates a `SolidColorBrush` per frame because the source brush is often immutable or shared).
 
 ## 6. Testing strategy
 
 - **Core**: xunit v3, no Avalonia. Tests drive `Engine.Update(now)` directly through `ManualFrameSource.Advance(ms)`, giving deterministic timing identical to how upstream tests use `engine.update()`/fake timers.
 - **Upstream parity**: port suites from `tests/suites/*.test.js` one per phase; keep test names close to the Mocha `it()` descriptions so gaps are easy to audit. Suites that are DOM-only (`waapi`, `threejs`, `node`, `build`) are skipped.
 - **Generated fixtures**: `tools/anime-fixtures/` (Node, `npm i animejs@4.5.0`) dumps JSON for easing curves (101 samples each), spring durations, stagger outputs and timeline positions; the C# tests assert within `1e-6`. Regenerate only when bumping the upstream reference version.
-- **Bridge**: `tests/Monaco.Presto.AvaloniaBridge.Tests` on `Avalonia.Headless` with a `ManualFrameSource` substituted for the RAF pump; codec round-trips, transform composition, animation-priority revert, scope lifetime.
+- **Bridge**: `tests/Monaco.Presto.AvaloniaBridge.Tests` on `Avalonia.Headless` with `[AvaloniaFact]`/`[AvaloniaTheory]` from `Avalonia.Headless.XUnit`. That package targets `xunit.v3.extensibility.core` 3.2.2, so `xunit.v3` is pinned to 3.2.x repo-wide (on 4.x, discovery throws `MissingMethodException`). It is also why `AssemblyInfo.cs` uses `CollectionBehavior(DisableTestParallelization = true)` rather than the 4.x `Parallelization` attribute. Tests run with a `ManualFrameSource` substituted for the RAF pump: codec round-trips, transform composition, animation-priority revert, scope lifetime.
 - **Visual**: the sample gallery is the manual acceptance surface; DevTools screenshots/property reads via MCP can be used to confirm end states.
 
 ## 7. Decisions and open questions
@@ -194,6 +198,8 @@ Decided (change here if reconsidered):
 
 Open (confirm before the relevant phase):
 
+- Direct properties (`AvaloniaProperty.IsDirect`) animate but do not revert: `SetValue` returns no disposable for them, so `Revert()` leaves the last animated value in place., so a stagger cannot position a setter group as it can upstream; add the overload if a sample needs it.
+- Function-based `composition` (upstream runs `composition` through `getFunctionValue`): `TweenParams.Composition`/`AnimationParams.Composition` are plain enums, so a per-target delegate is not expressible. No ported test needs it; decide whether parity is worth making the property function-capable.
 - Rotation unit for the bare `Rotate` shorthand: degrees (Avalonia `RotateTransform.Angle`) is the natural default; upstream defaults to `deg` too, so parity holds. Confirm we do not want radians anywhere by default.
 - Whether `Animate` on a `Control` should auto-scope to the control lifetime (revert on unload) or require an explicit `ControlScope`. Leaning explicit, with an `AutoRevert` option.
 - Core target frameworks for NuGet: `net10.0` only for now; decide on `net8.0` at phase 8.

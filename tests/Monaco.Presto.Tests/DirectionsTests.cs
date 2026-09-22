@@ -1,54 +1,59 @@
 namespace Monaco.Presto.Tests;
 
-/// <summary>Port of anime.js directions.test.js; transform expectations become IterationProgress on a timer.</summary>
+/// <summary>Port of anime.js directions.test.js; the suite's transform string is a plain double member here.</summary>
 public sealed class DirectionsTests : EngineTestBase
 {
     [Fact]
     public void DirectionNormalShouldUpdateFrom0To1()
     {
-        double? completedProgress = null;
-        var timer = Presto.CreateTimer(new()
+        var target = new StyleTarget();
+        double? completedValue = null;
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Duration = 10,
-            OnComplete = self => completedProgress = self.IterationProgress,
+            OnComplete = _ => completedValue = target.X,
         });
-        timer.Seek(0);
-        Assert.Equal(0, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(0, target.X);
 
-        RunUntil(() => completedProgress != null);
+        RunUntil(() => completedValue != null);
 
-        Assert.Equal(1, completedProgress);
+        Assert.Equal(100, completedValue);
     }
 
     [Fact]
     public void DirectionReverseShouldUpdateFrom1To0()
     {
-        double? completedProgress = null;
+        var target = new StyleTarget();
+        double? completedValue = null;
         bool? backwardsWhilePlaying = null;
-        var timer = Presto.CreateTimer(new()
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Reversed = true,
             Duration = 10,
             OnUpdate = self => backwardsWhilePlaying = self.Backwards,
-            OnComplete = self => completedProgress = self.IterationProgress,
+            OnComplete = _ => completedValue = target.X,
         });
-        timer.Seek(0);
-        Assert.Equal(1, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(100, target.X);
 
-        RunUntil(() => completedProgress != null);
+        RunUntil(() => completedValue != null);
 
-        Assert.Equal(0, completedProgress);
+        Assert.Equal(0, completedValue);
         Assert.True(backwardsWhilePlaying);
     }
 
     [Fact]
-    public void ManuallyReversedInfiniteTimerShouldUpdate()
+    public void ManuallyReversedInfiniteAnimationShouldUpdate()
     {
         var loopCounts = 0;
         double? currentTimeAtSecondLoop = null;
         bool? pausedAtSecondLoop = null;
-        var timer = Presto.CreateTimer(new()
+        var animation = Presto.Animate(new StyleTarget(), new()
         {
+            ["X"] = 100,
             Reversed = false,
             Loop = true,
             Duration = 20,
@@ -63,7 +68,7 @@ public sealed class DirectionsTests : EngineTestBase
                 }
             },
         });
-        timer.Reverse();
+        animation.Reverse();
 
         RunUntil(() => loopCounts >= 2);
 
@@ -75,114 +80,127 @@ public sealed class DirectionsTests : EngineTestBase
     [Fact]
     public void DirectionAlternateShouldUpdateFrom0To1WhenNoLoopParameterIsSpecified()
     {
-        double? completedProgress = null;
-        var timer = Presto.CreateTimer(new()
+        var target = new StyleTarget();
+        double? completedValue = null;
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Alternate = true,
             Duration = 10,
-            OnComplete = self => completedProgress = self.IterationProgress,
+            OnComplete = _ => completedValue = target.X,
         });
-        timer.Seek(0);
-        Assert.Equal(0, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(0, target.X);
 
-        RunUntil(() => completedProgress != null);
+        RunUntil(() => completedValue != null);
 
-        Assert.Equal(1, completedProgress);
+        Assert.Equal(100, completedValue);
     }
 
     [Fact]
     public void DirectionAlternateShouldUpdateFrom0To1Then1To0WhenALoopParameterIsSpecified()
     {
-        double? completedProgress = null;
-        var timer = Presto.CreateTimer(new()
+        var target = new StyleTarget();
+        double? completedValue = null;
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Alternate = true,
             Duration = 10,
             Loop = 3,
-            OnComplete = self => completedProgress = self.IterationProgress,
+            OnComplete = _ => completedValue = target.X,
         });
-        timer.Seek(0);
-        Assert.Equal(0, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(0, target.X);
 
-        RunUntil(() => completedProgress != null);
+        RunUntil(() => completedValue != null);
 
-        Assert.Equal(0, completedProgress);
+        Assert.Equal(0, completedValue);
     }
 
     [Fact]
     public void InfiniteLoopWithDirectionAlternateShouldUpdateFrom0To1Then1To0()
     {
+        var target = new StyleTarget();
         var loopCounts = 0;
-        double? progressAtFourthLoop = null;
-        var timer = Presto.CreateTimer(new()
+        double? valueAtFourthLoop = null;
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Alternate = true,
             Duration = 50,
+            Ease = "linear",
             Loop = LoopCount.Infinite,
             OnLoop = self =>
             {
                 loopCounts++;
                 if (loopCounts == 4)
                 {
-                    progressAtFourthLoop = self.IterationProgress;
+                    valueAtFourthLoop = target.X;
                     self.Pause();
                 }
             },
         });
-        timer.Seek(0);
-        Assert.Equal(0, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(0, target.X);
 
-        RunUntil(() => progressAtFourthLoop != null);
+        RunUntil(() => valueAtFourthLoop != null);
 
-        Assert.True(progressAtFourthLoop < .5);
+        Assert.True(valueAtFourthLoop < 50);
     }
 
     [Fact]
     public void DirectionAlternateReverseShouldUpdateFrom1To0WhenNoLoopParameterIsSpecified()
     {
-        double? completedProgress = null;
-        var timer = Presto.CreateTimer(new()
+        var target = new StyleTarget();
+        double? completedValue = null;
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Alternate = true,
             Reversed = true,
             Duration = 10,
-            OnComplete = self => completedProgress = self.IterationProgress,
+            OnComplete = _ => completedValue = target.X,
         });
-        timer.Seek(0);
-        Assert.Equal(1, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(100, target.X);
 
-        RunUntil(() => completedProgress != null);
+        RunUntil(() => completedValue != null);
 
-        Assert.Equal(0, completedProgress);
+        Assert.Equal(0, completedValue);
     }
 
     [Fact]
     public void DirectionAlternateReverseShouldUpdateFrom1To0Then0To1WhenALoopParameterIsSpecified()
     {
-        double? completedProgress = null;
-        var timer = Presto.CreateTimer(new()
+        var target = new StyleTarget();
+        double? completedValue = null;
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Alternate = true,
             Reversed = true,
             Duration = 10,
             Loop = 3,
-            OnComplete = self => completedProgress = self.IterationProgress,
+            OnComplete = _ => completedValue = target.X,
         });
-        timer.Seek(0);
-        Assert.Equal(1, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(100, target.X);
 
-        RunUntil(() => completedProgress != null);
+        RunUntil(() => completedValue != null);
 
-        Assert.Equal(1, completedProgress);
+        Assert.Equal(100, completedValue);
     }
 
     [Fact]
     public void InfiniteLoopWithDirectionAlternateReverseShouldUpdateFrom1To0Then0To1()
     {
+        var target = new StyleTarget();
         var loopCounts = 0;
-        double? progressAtFourthLoop = null;
-        var timer = Presto.CreateTimer(new()
+        double? valueAtFourthLoop = null;
+        var animation = Presto.Animate(target, new()
         {
+            ["X"] = 100,
             Alternate = true,
             Reversed = true,
             Duration = 50,
@@ -192,16 +210,16 @@ public sealed class DirectionsTests : EngineTestBase
                 loopCounts++;
                 if (loopCounts == 4)
                 {
-                    progressAtFourthLoop = self.IterationProgress;
+                    valueAtFourthLoop = target.X;
                     self.Pause();
                 }
             },
         });
-        timer.Seek(0);
-        Assert.Equal(1, timer.IterationProgress);
+        animation.Seek(0);
+        Assert.Equal(100, target.X);
 
-        RunUntil(() => progressAtFourthLoop != null);
+        RunUntil(() => valueAtFourthLoop != null);
 
-        Assert.True(progressAtFourthLoop > .5);
+        Assert.True(valueAtFourthLoop > 50);
     }
 }

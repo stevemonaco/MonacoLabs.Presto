@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
+             x:Class="PrestoSample.Pages.TimerPage">
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                <TextBlock Classes="caption" Text="current time (ms)" HorizontalAlignment="Center" />
+                <TextBlock x:Name="CurrentTimeText" Classes="readout" Text="0" HorizontalAlignment="Center" />
+                <TextBlock Classes="caption" Text="loops" HorizontalAlignment="Center" Margin="0,16,0,0" />
+                <TextBlock x:Name="LoopsText" Classes="readout" Text="0" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Play" Click="Play" />
+            <Button Content="Pause" Click="Pause" />
+            <Button Content="Restart" Click="Restart" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

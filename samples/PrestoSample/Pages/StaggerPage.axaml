@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+             x:Class="PrestoSample.Pages.StaggerPage">
+    <UserControl.Styles>
+        <Style Selector="Border.demo">
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Padding" Value="8,0" />
+        </Style>
+
+        <Style Selector="Border.tile">
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="#304c8dff" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="14">
+            <Grid ColumnDefinitions="272,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+                <TextBlock Grid.Row="0" Grid.Column="0" Classes="code" Text="[&quot;X&quot;] = Stagger(6)&#10;value stagger" />
+                <Border Grid.Row="0" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="ValueStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Classes="code" Text="Delay = Stagger(60)&#10;time stagger" />
+                <Border Grid.Row="1" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="TimeStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Classes="code" Text="Delay = Stagger([0, 700])&#10;the range is spread over the targets" />
+                <Border Grid.Row="2" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="RangeStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Classes="code" Text="Stagger([0, 700], new() {&#10;    Ease = &quot;inOutQuad&quot; })" />
+                <Border Grid.Row="3" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="EaseStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Classes="code" Text="Stagger(50, new() { Start = 400 })" />
+                <Border Grid.Row="4" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="StartStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Classes="code" Text="Stagger(50, new() {&#10;    From = Center, Total = 24 })" />
+                <Border Grid.Row="5" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="TotalStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="6" Grid.Column="0" Classes="code" Text="Stagger(50, new() {&#10;    Jitter = [70], Seed = 7 })" />
+                <Border Grid.Row="6" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="JitterStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="7" Grid.Column="0" Classes="code" Text="[&quot;X&quot;] = Stagger(1.6, new() {&#10;    Modifier = x =&gt; x * x })" />
+                <Border Grid.Row="7" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="ModifierStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="8" Grid.Column="0" Classes="code" Text=".Add(dots, …, Stagger(60))&#10;one timeline child per target" />
+                <Border Grid.Row="8" Grid.Column="1" Classes="demo">
+                    <StackPanel x:Name="TimelineStrip" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" />
+                </Border>
+            </Grid>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The left grid names its own Grid = [7, 4]; the right one measures the tiles where they were laid out through PrestoAvalonia.Stagger(…, AutoGrid = true). The measured grid scales its distances by the smallest one it finds, so the two ripple identically whenever the origin sits on a tile — From = Center over an even number of rows lands between two and halves the step. From = Random shuffles each grid separately." />
+
+            <StackPanel Orientation="Horizontal" Spacing="28">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="code" Text="Grid = [7, 4]" />
+                    <UniformGrid x:Name="ExplicitTiles" Columns="7" Rows="4" Width="252" Height="144" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="code" Text="AutoGrid = true" />
+                    <UniformGrid x:Name="AutoTiles" Columns="7" Rows="4" Width="252" Height="144" />
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="From" />
+                    <ComboBox x:Name="FromBox" Width="150" SelectedIndex="0" SelectionChanged="OriginChanged">
+                        <ComboBoxItem>First</ComboBoxItem>
+                        <ComboBoxItem>Center</ComboBoxItem>
+                        <ComboBoxItem>Last</ComboBoxItem>
+                        <ComboBoxItem>Index 10</ComboBoxItem>
+                        <ComboBoxItem>Random</ComboBoxItem>
+                        <ComboBoxItem>At(1, 0)</ComboBoxItem>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="Axis" />
+                    <ComboBox x:Name="AxisBox" Width="130" SelectedIndex="0" SelectionChanged="OriginChanged">
+                        <ComboBoxItem>Distance</ComboBoxItem>
+                        <ComboBoxItem>X</ComboBoxItem>
+                        <ComboBoxItem>Y</ComboBoxItem>
+                    </ComboBox>
+                </StackPanel>
+
+                <CheckBox x:Name="ReversedCheck" Content="Reversed" VerticalAlignment="Bottom" IsCheckedChanged="ToggleChanged" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,56 +1,19 @@
 namespace Monaco.Presto.Tests;
 
-/// <summary>Port of anime.js timings.test.js; tween-specific expectations are asserted through IterationProgress on a single timer.</summary>
+/// <summary>Port of anime.js timings.test.js.</summary>
 public sealed class TimingsTests : EngineTestBase
 {
-    private static TimerParams ComplexTimingsParams => new()
+    private static AnimationParams ComplexAnimationParams => new()
     {
-        Delay = 10,
-        Duration = 55,
+        ["TranslateX"] = new TweenParams { To = 50, Delay = new FunctionValue((_, _, _) => 15), Duration = new FunctionValue((_, _, _) => 10) },
+        ["TranslateY"] = new TweenParams { To = 35, Delay = 10, Duration = 10 },
+        ["TranslateZ"] = new TweenParams { To = 20, Delay = 35, Duration = 30 },
+        Delay = new FunctionValue((_, _, _) => 10),
+        Duration = new FunctionValue((_, _, _) => 10),
         LoopDelay = 10,
         Loop = 1,
         Autoplay = false,
     };
-
-    [Fact]
-    public void SpecifiedTimingsParameters()
-    {
-        double? completedAt = null;
-        Presto.CreateTimer(new()
-        {
-            Delay = 10,
-            Duration = 20,
-            Loop = 1,
-            LoopDelay = 10,
-            OnComplete = t => completedAt = t.CurrentTime,
-        });
-
-        RunUntil(() => completedAt != null);
-
-        Assert.Equal(20 + 10 + 20, completedAt);
-    }
-
-    [Fact]
-    public void IterationCurrentTimeShouldBeNegativeWhenADelayIsDefined()
-    {
-        var timer = Presto.CreateTimer(ComplexTimingsParams);
-        Assert.Equal(-10, timer.CurrentTime);
-
-        timer.Seek(5);
-        Assert.Equal(5, timer.CurrentTime);
-
-        timer.Seek(timer.Duration);
-        Assert.Equal(timer.Duration, timer.CurrentTime);
-    }
-
-    [Fact]
-    public void DurationEqualsTheLoopedIterationSpan()
-    {
-        var timer = Presto.CreateTimer(ComplexTimingsParams);
-
-        Assert.Equal(55 + 10 + 55, timer.Duration);
-        Assert.Equal(55, timer.IterationDuration);
-    }
 
     [Fact]
     public void DelayShouldDelayTheStart()
@@ -82,19 +45,82 @@ public sealed class TimingsTests : EngineTestBase
     }
 
     [Fact]
-    public void DelayedAlternateLoopedTimersShouldStartCorrectly()
+    public void SpecifiedTimingsParametersOnAnimation()
     {
-        var timer = Presto.CreateTimer(new()
+        double? completedAt = null;
+        Presto.Animate(new StyleTarget(), new()
         {
+            ["TranslateX"] = 100,
+            Delay = 10,
+            Duration = 20,
+            Loop = 1,
+            LoopDelay = 10,
+            OnComplete = a => completedAt = a.CurrentTime,
+        });
+
+        RunUntil(() => completedAt != null);
+
+        Assert.Equal(20 + 10 + 20, completedAt);
+    }
+
+    [Fact]
+    public void AnimationIterationCurrentTimeShouldBeNegativeWhenADelayIsDefined()
+    {
+        var animation = Presto.Animate(new Dictionary<string, object?>(), ComplexAnimationParams);
+        Assert.Equal(-10, animation.CurrentTime);
+
+        animation.Seek(5);
+        Assert.Equal(5, animation.CurrentTime);
+
+        animation.Seek(animation.Duration);
+        Assert.Equal(animation.Duration, animation.CurrentTime);
+    }
+
+    [Fact]
+    public void AnimationDurationMustEqualTheHighestTweenEndValueMinusTheDelay()
+    {
+        var animation = Presto.Animate(new Dictionary<string, object?>(), ComplexAnimationParams);
+
+        Assert.Equal(55 + 10 + 55, animation.Duration);
+    }
+
+    [Fact]
+    public void AnimationIterationDurationMustEqualTheLongestTweenChangeEndTimeMinusTheDelay()
+    {
+        var animation = Presto.Animate(new Dictionary<string, object?>(), ComplexAnimationParams);
+
+        Assert.Equal(65 - 10, animation.IterationDuration);
+    }
+
+    [Fact]
+    public void DelayedAlternateLoopedAnimationsShouldStartCorrectly()
+    {
+        var target = new StyleTarget();
+
+        var animation = Presto.Animate(target, new() { ["Y"] = -100, Loop = 2, Delay = 1000, Alternate = true, Autoplay = false });
+
+        Assert.Equal(0, target.Y);
+        Assert.False(animation.Began);
+    }
+
+    [Fact]
+    public void NegativeDelayOnAlternateLoopedAnimationsShouldRenderTheValueInAdvance()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["Scale"] = TweenValue.FromTo(0, 1),
+            Ease = "linear",
+            Loop = true,
             Duration = 1000,
-            Loop = 2,
-            Delay = 1000,
+            Delay = -5250,
             Alternate = true,
             Autoplay = false,
         });
 
-        Assert.Equal(0, timer.IterationProgress);
-        Assert.False(timer.Began);
+        animation.Seek(0);
+
+        Assert.Equal(.75, target.Scale);
     }
 
     [Fact]

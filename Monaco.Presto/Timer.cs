@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Monaco.Presto.Core;
 
 namespace Monaco.Presto;
@@ -24,6 +24,10 @@ public class Timer : Clock
     internal bool _autoplay;
     internal Timer? _prev;
     internal Timer? _next;
+    internal Tween? _headTween;
+    internal Tween? _tailTween;
+    internal Ease? _ease;
+    internal Action<Timer>? _onRender;
     internal int _priority;
 
     internal Timer(TimerParams parameters, Timer? parent, double parentPosition) : base(0)
@@ -32,8 +36,9 @@ public class Timer : Clock
 
         var engine = Presto.Engine;
         var timerInitTime = parent != null ? 0 : engine._lastTickTime;
-        var timerDefaults = Globals.Defaults;
-        var timerDelay = parameters.Delay ?? timerDefaults.Delay;
+        var timerDefaults = parent?.ChildDefaults ?? Globals.Defaults;
+        // A function based default delay is meaningless without targets, so a plain timer falls back to 0.
+        var timerDelay = parameters.Delay ?? timerDefaults.Delay.AsDouble ?? 0;
         var timerDuration = parameters.Duration ?? double.PositiveInfinity;
         var timerLoop = parameters.Loop ?? timerDefaults.Loop;
         var timerLoopDelay = parameters.LoopDelay ?? timerDefaults.LoopDelay;
@@ -80,9 +85,12 @@ public class Timer : Clock
         _priority = parameters.Priority;
     }
 
-    public string Id { get; }
+    public string Id { get; internal set; }
 
     public Timer? Parent { get; }
+
+    /// <summary>The defaults the children of this timer inherit; a timeline overrides it with its own.</summary>
+    internal virtual PrestoDefaults ChildDefaults => Globals.Defaults;
 
     /// <summary>Total duration including every iteration and loop delay.</summary>
     public double Duration { get; internal set; }
@@ -189,7 +197,17 @@ public class Timer : Clock
     private static void ReviveTimer(Timer timer)
     {
         if (!timer._cancelled) return;
-        if (timer._hasChildren) Helpers.ForEachChildren(timer, ReviveTimer);
+        if (timer._hasChildren)
+        {
+            Helpers.ForEachChildren(timer, ReviveTimer);
+        }
+        else
+        {
+            TweenList.ForEachChildren(timer, static tween =>
+            {
+                if (tween._composition != Composition.None) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property));
+            });
+        }
         timer._cancelled = false;
     }
 
@@ -207,7 +225,7 @@ public class Timer : Clock
         return this;
     }
 
-    public Timer Init(bool internalRender = false)
+    public virtual Timer Init(bool internalRender = false)
     {
         Fps = _fps;
         Speed = _speed;
@@ -308,12 +326,13 @@ public class Timer : Clock
     public Timer Cancel()
     {
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
+        else TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
         _cancelled = true;
         return Pause();
     }
 
     /// <summary>Rescales the total duration to <paramref name="newDuration"/>, scaling the iteration duration, delay and loop delay proportionally.</summary>
-    public Timer Stretch(double newDuration)
+    public virtual Timer Stretch(double newDuration)
     {
         var currentDuration = Duration;
         var normalizedDuration = Helpers.NormalizeTime(newDuration);
@@ -329,7 +348,7 @@ public class Timer : Clock
     }
 
     /// <summary>Seeks back to 0 without callbacks, then cancels.</summary>
-    public Timer Revert()
+    public virtual Timer Revert()
     {
         Renderer.Tick(this, 0, true, false, TickMode.Auto);
         return Cancel();

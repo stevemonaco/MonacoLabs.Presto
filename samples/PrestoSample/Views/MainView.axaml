@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:PrestoSample.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
              x:Class="PrestoSample.Views.MainView"
              x:DataType="vm:MainViewModel">
     <Design.DataContext>
@@ -12,7 +12,23 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+    <Grid ColumnDefinitions="220,*">
+        <Border Grid.Column="0" BorderBrush="#40808080" BorderThickness="0,0,1,0">
+            <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:GalleryPage">
+                        <TextBlock Text="{Binding Title}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="24">
+            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+                <TextBlock Text="{Binding SelectedPage.Title}" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding SelectedPage.Description}" Classes="caption" TextWrapping="Wrap" />
+            </StackPanel>
+            <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" />
+        </Grid>
+    </Grid>
 </UserControl>

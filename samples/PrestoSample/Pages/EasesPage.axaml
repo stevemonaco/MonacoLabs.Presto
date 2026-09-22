@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+             x:Class="PrestoSample.Pages.EasesPage">
+    <UserControl.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <Border Classes="stage">
+                    <Canvas x:Name="PlotCanvas" Width="380" Height="220">
+                        <Line x:Name="ZeroLine" Stroke="#60808080" StrokeThickness="1" StrokeDashArray="4,4" />
+                        <Line x:Name="OneLine" Stroke="#60808080" StrokeThickness="1" StrokeDashArray="4,4" />
+                        <Polyline x:Name="Curve" Stroke="#4c8dff" StrokeThickness="2" />
+                    </Canvas>
+                </Border>
+
+                <Border Classes="stage" Width="110" Height="244">
+                    <Border x:Name="Dot" Classes="swatch" Width="28" Height="28"
+                            HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="Eases catalogue" />
+                    <ComboBox x:Name="EaseBox" Width="300" SelectionChanged="EaseSelected" />
+                </StackPanel>
+
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="EaseParser.Parse(…) — overrides the picker while it has text" />
+                    <TextBox x:Name="EaseNameBox" Width="280" TextChanged="EaseTyped"
+                             PlaceholderText="inOutQuint, out(2), outElastic(1.2, .4)" />
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock x:Name="StatusText" Classes="caption" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

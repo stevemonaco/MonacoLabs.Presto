@@ -5,9 +5,9 @@ namespace Monaco.Presto.Tests;
 
 /// <summary>
 /// Ports tests/suites/eases.test.js by evaluating the ease functions directly, rounding to 2 decimals like the
-/// suite's <c>getOpacityValue()</c>. The suite drives eases through <c>animate</c>; that form returns in Phase 3.
+/// suite's <c>getOpacityValue()</c>; <see cref="AnAnimationAppliesItsEase"/> covers the suite's animate-driven form.
 /// </summary>
-public sealed class EasesTests
+public sealed class EasesTests : EngineTestBase
 {
     private static double Sample(Ease ease, double t) => Helpers.Round(ease(t), 2);
 
@@ -34,6 +34,26 @@ public sealed class EasesTests
         Assert.True(Sample(easeOut, .5) > .5);
         Assert.Equal(.5, Sample(easeInOut, .5));
         Assert.Equal(.5, Sample(easeOutIn, .5));
+    }
+
+    public static TheoryData<Ease> AnimatedEases => new(Eases.None, Eases.InQuad, Eases.OutQuad, Eases.InOutQuad, Eases.OutElastic());
+
+    [Theory]
+    [MemberData(nameof(AnimatedEases))]
+    public void AnAnimationAppliesItsEase(Ease ease)
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["Opacity"] = TweenValue.FromTo(0, 1),
+            Duration = 100,
+            Ease = ease,
+            Autoplay = false,
+        });
+
+        animation.Seek(50);
+
+        Assert.Equal(Sample(ease, .5), Helpers.Round(target.Opacity, 2));
     }
 
     [Fact]
@@ -66,7 +86,7 @@ public sealed class EasesTests
     public void DefaultEaseIsOutTwo()
     {
         var expected = Eases.Out(2);
-        var actual = new PrestoDefaults().Ease;
+        var actual = new PrestoDefaults().Ease.Resolve(new object(), 0, 1, out _);
 
         foreach (var t in new[] { 0, .25, .5, .75, 1 })
         {

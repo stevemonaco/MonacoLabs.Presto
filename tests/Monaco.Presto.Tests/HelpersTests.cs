@@ -4,6 +4,12 @@ namespace Monaco.Presto.Tests;
 
 public sealed class HelpersTests
 {
+    private sealed class TestClock : Clock;
+
+    private static Timer Child(string id, int priority = 1) => new(new TimerParams { Id = id, Priority = priority }, null, 0);
+
+    private static bool SortByPriority(Timer prev, Timer child) => prev._priority > child._priority;
+
     [Theory]
     [InlineData(2.5, 3)]
     [InlineData(-2.5, -2)]
@@ -45,4 +51,100 @@ public sealed class HelpersTests
     [Fact]
     public void NormalizeTimeRoundsToElevenDecimals() =>
         Assert.Equal(1.12345678901, Helpers.NormalizeTime(1.123456789012345));
+
+    [Fact]
+    public void AddChildAppendsToTheLinkedList()
+    {
+        var parent = new TestClock();
+        var child1 = Child("1");
+        var child2 = Child("2");
+        var child3 = Child("3");
+
+        Helpers.AddChild(parent, child1);
+
+        Assert.Equal("1", parent._head!.Id);
+        Assert.Equal("1", parent._tail!.Id);
+
+        Helpers.AddChild(parent, child2);
+
+        Assert.Equal("1", parent._head!.Id);
+        Assert.Equal("2", parent._tail!.Id);
+        Assert.Null(child1._prev);
+        Assert.Equal("2", child1._next!.Id);
+        Assert.Equal("1", child2._prev!.Id);
+        Assert.Null(child2._next);
+
+        Helpers.AddChild(parent, child3);
+
+        Assert.Equal("1", parent._head!.Id);
+        Assert.Equal("3", parent._tail!.Id);
+        Assert.Equal("3", child2._next!.Id);
+        Assert.Equal("2", child3._prev!.Id);
+        Assert.Null(child3._next);
+    }
+
+    [Fact]
+    public void AddChildInsertsByPriorityWhenSorted()
+    {
+        var parent = new TestClock();
+        var child1 = Child("1", 999);
+        var child2 = Child("2", 42);
+        var child3 = Child("3", 100);
+
+        Helpers.AddChild(parent, child1, SortByPriority);
+
+        Assert.Equal("1", parent._head!.Id);
+        Assert.Equal("1", parent._tail!.Id);
+
+        Helpers.AddChild(parent, child2, SortByPriority);
+
+        Assert.Equal("2", parent._head!.Id);
+        Assert.Equal("1", parent._tail!.Id);
+        Assert.Null(child2._prev);
+        Assert.Equal("1", child2._next!.Id);
+        Assert.Equal("2", child1._prev!.Id);
+        Assert.Null(child1._next);
+
+        Helpers.AddChild(parent, child3, SortByPriority);
+
+        Assert.Equal("2", parent._head!.Id);
+        Assert.Equal("1", parent._tail!.Id);
+        Assert.Equal("3", child2._next!.Id);
+        Assert.Equal("2", child3._prev!.Id);
+        Assert.Equal("1", child3._next!.Id);
+        Assert.Equal("3", child1._prev!.Id);
+        Assert.Null(child1._next);
+    }
+
+    [Fact]
+    public void RemoveChildUnlinksAndKeepsTheListIntact()
+    {
+        var parent = new TestClock();
+        var child1 = Child("1");
+        var child2 = Child("2");
+        var child3 = Child("3");
+        Helpers.AddChild(parent, child1);
+        Helpers.AddChild(parent, child2);
+        Helpers.AddChild(parent, child3);
+
+        Helpers.RemoveChild(parent, child1);
+
+        Assert.Null(child1._prev);
+        Assert.Null(child1._next);
+        Assert.Equal("2", parent._head!.Id);
+        Assert.Equal("3", parent._tail!.Id);
+        Assert.Null(child2._prev);
+        Assert.Equal("3", child2._next!.Id);
+        Assert.Equal("2", child3._prev!.Id);
+        Assert.Null(child3._next);
+
+        Helpers.RemoveChild(parent, child3);
+
+        Assert.Null(child3._prev);
+        Assert.Null(child3._next);
+        Assert.Equal("2", parent._head!.Id);
+        Assert.Equal("2", parent._tail!.Id);
+        Assert.Null(child2._prev);
+        Assert.Null(child2._next);
+    }
 }

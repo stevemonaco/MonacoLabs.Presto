@@ -18,6 +18,11 @@ internal static class Helpers
     public static double NormalizeTime(double v) =>
         v <= Constants.MinValue ? Constants.MinValue : ClampInfinity(Round(v, 11));
 
+    public static double Lerp(double start, double end, double factor) =>
+        factor == 1 ? end : factor == 0 ? start : start + (end - start) * factor;
+
+    public static double[] CloneNumbers(double[]? numbers) => numbers is null or { Length: 0 } ? [] : (double[])numbers.Clone();
+
     // JavaScript Math.round: ties go toward +Infinity. .NET's MidpointRounding.ToPositiveInfinity is a ceiling, not this.
     private static double RoundHalfUp(double v)
     {

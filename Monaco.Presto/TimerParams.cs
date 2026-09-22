@@ -1,7 +1,7 @@
 namespace Monaco.Presto;
 
 /// <summary>Parameters for <see cref="Presto.CreateTimer"/>. <c>null</c> falls back to <see cref="Presto.Defaults"/>; a <c>null</c> <see cref="Duration"/> makes the timer infinite.</summary>
-public class TimerParams
+public record TimerParams
 {
     public string? Id { get; init; }
     public double? Duration { get; init; }

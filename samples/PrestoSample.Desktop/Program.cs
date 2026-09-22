@@ -1,5 +1,6 @@
 ﻿using System;
 using Avalonia;
+using Monaco.Presto.AvaloniaBridge;
 
 namespace PrestoSample.Desktop;
 
@@ -16,6 +17,7 @@ sealed class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            .UsePresto()
             .WithInterFont()
             .LogToTrace();
 }

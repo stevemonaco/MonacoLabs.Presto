@@ -1,13 +1,91 @@
 using Monaco.Presto.Core;
+using Monaco.Presto.Targets;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto;
 
 /// <summary>Entry point mirroring the anime.js module exports: the engine singleton, global defaults and factory methods.</summary>
 public static class Presto
 {
+    private static readonly ObjectTargetAdapter s_objectAdapter = new();
+    private static readonly DecomposedValue s_getValue = new();
+
     public static Engine Engine { get; } = new(new StopwatchFrameSource());
 
     public static PrestoDefaults Defaults => Globals.Defaults;
 
+    /// <summary>Target adapters consulted in order; the built-in object and reflection adapter handles whatever none of them claims.</summary>
+    public static IList<ITargetAdapter> Adapters { get; } = new List<ITargetAdapter>();
+
+    /// <summary>Codecs for property types the built-in adapter cannot tween natively, keyed by the property type.</summary>
+    public static IDictionary<Type, IValueCodec> Codecs { get; } = new Dictionary<Type, IValueCodec>();
+
     public static Timer CreateTimer(TimerParams? parameters = null) => new Timer(parameters ?? new(), null, 0).Init();
+
+    public static Timeline CreateTimeline(TimelineParams? parameters = null) => new Timeline(parameters ?? new()).Init();
+
+    /// <summary>
+    /// Spaces <paramref name="value"/> across the targets: a step added per target, or a <c>[from, to]</c> range
+    /// distributed evenly between them.
+    /// </summary>
+    public static Stagger Stagger(TweenValue value, StaggerParams? parameters = null) => new(value, parameters ?? new());
+
+    public static Animation Animate(object? targets, AnimationParams parameters) =>
+        (Animation)new Animation(targets, parameters, null, 0).Init();
+
+    /// <summary>Writes values to targets immediately; returns the zero duration animation that wrote them, as upstream <c>utils.set()</c> does.</summary>
+    public static Animation Set(object? targets, AnimationParams parameters) =>
+        (Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume();
+
+    /// <summary>Reads <paramref name="property"/> from the first of <paramref name="targets"/>, or null when none resolve.</summary>
+    public static object? Get(object? targets, string property)
+    {
+        var parsed = TargetParser.Parse(targets);
+        return parsed.Count == 0 ? null : ResolveAccessor(parsed[0], property).GetValue(parsed[0]);
+    }
+
+    /// <summary>Reads <paramref name="property"/>, dropping the unit it is stored with unless <paramref name="withUnit"/> is true.</summary>
+    public static object? Get(object? targets, string property, bool withUnit)
+    {
+        if (withUnit) return Get(targets, property);
+        return Decompose(targets, property) is { Kind: ValueKind.Number or ValueKind.Unit } value ? value.Number : null;
+    }
+
+    /// <summary>Reads <paramref name="property"/> converted to <paramref name="unit"/>, or null when it holds no single number.</summary>
+    public static string? Get(object? targets, string property, string unit)
+    {
+        if (Decompose(targets, property) is not { Kind: ValueKind.Number or ValueKind.Unit } value) return null;
+        UnitConverter.Convert(value, unit);
+        return JsNumber.Format(Helpers.Round(value.Number, Globals.Precision)) + value.Unit;
+    }
+
+    /// <summary>
+    /// Stops <paramref name="renderable"/>, or every running animation, from animating <paramref name="targets"/> — only their
+    /// <paramref name="property"/> tweens when one is named — cancelling the animations left with no tweens.
+    /// </summary>
+    /// <returns>The parsed targets.</returns>
+    public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
+    {
+        var parsed = TargetParser.Parse(targets);
+        Composer.RemoveTargetsFromRenderable(parsed, (Clock?)renderable ?? Engine, property);
+        return parsed;
+    }
+
+    private static DecomposedValue? Decompose(object? targets, string property)
+    {
+        var parsed = TargetParser.Parse(targets);
+        if (parsed.Count == 0) return null;
+        var accessor = ResolveAccessor(parsed[0], property);
+        ValueParser.Decompose(accessor.GetValue(parsed[0]), s_getValue, accessor.Codec);
+        return s_getValue;
+    }
+
+    internal static IPropertyAccessor ResolveAccessor(object target, string property)
+    {
+        for (var i = 0; i < Adapters.Count; i++)
+        {
+            if (Adapters[i].Resolve(target, property) is { } accessor) return accessor;
+        }
+        return s_objectAdapter.Resolve(target, property);
+    }
 }

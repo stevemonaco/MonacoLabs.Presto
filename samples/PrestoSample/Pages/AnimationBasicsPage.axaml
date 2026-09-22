@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
+             x:Class="PrestoSample.Pages.AnimationBasicsPage">
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <Border x:Name="Square" Width="72" Height="72" CornerRadius="8"
+                    Background="#4c8dff"
+                    HorizontalAlignment="Left" VerticalAlignment="Center" />
+        </Border>
+
+        <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
+    </StackPanel>
+</UserControl>

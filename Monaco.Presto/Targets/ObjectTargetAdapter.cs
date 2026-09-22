@@ -1,0 +1,126 @@
+using System.Linq.Expressions;
+using System.Reflection;
+using Monaco.Presto.Core;
+using Monaco.Presto.Values;
+
+namespace Monaco.Presto.Targets;
+
+/// <summary>
+/// The built-in fallback adapter. <see cref="IDictionary{TKey,TValue}"/> targets behave like JavaScript objects (a missing
+/// key reads as null, a write creates it); any other target is reached through its public properties and fields, written in
+/// their own type and cached per (type, property) as compiled delegates.
+/// </summary>
+public sealed class ObjectTargetAdapter : ITargetAdapter
+{
+    private static readonly Dictionary<(Type Type, string Property), IPropertyAccessor> s_accessors = [];
+
+    public IPropertyAccessor Resolve(object target, string property)
+    {
+        if (target is IDictionary<string, object?>) return new DictionaryAccessor(property);
+        var type = target.GetType();
+        if (!s_accessors.TryGetValue((type, property), out var accessor))
+        {
+            s_accessors[(type, property)] = accessor = MemberAccessor.Create(type, property);
+        }
+        return accessor;
+    }
+
+    private sealed class DictionaryAccessor(string property) : IPropertyAccessor
+    {
+        public IValueCodec? Codec => null;
+
+        public object? GetValue(object target) => Entries(target).TryGetValue(property, out var value) ? value : null;
+
+        public void SetValue(object target, double number, Tween tween) => Entries(target)[property] = tween.ComposeValue(number);
+
+        public void Revert(object target, object? originalValue) => Entries(target)[property] = originalValue;
+
+        private static IDictionary<string, object?> Entries(object target) => (IDictionary<string, object?>)target;
+    }
+
+    private enum MemberWrite
+    {
+        Number,
+        String,
+        Color,
+        Object,
+        Codec,
+    }
+
+    private sealed class MemberAccessor(
+        Func<object, object?> get,
+        Action<object, object?> set,
+        Action<object, double>? setNumber,
+        MemberWrite write,
+        IValueCodec? codec) : IPropertyAccessor
+    {
+        public static MemberAccessor Create(Type type, string name)
+        {
+            MemberInfo? member = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance) is { CanRead: true, CanWrite: true } property
+                ? property
+                : type.GetField(name, BindingFlags.Public | BindingFlags.Instance);
+            if (member is null) throw new ArgumentException($"{type} has no public readable and writable property or field named '{name}'.", nameof(name));
+
+            var memberType = member is PropertyInfo info ? info.PropertyType : ((FieldInfo)member).FieldType;
+            var memberWrite =
+                memberType == typeof(string) ? MemberWrite.String :
+                memberType == typeof(PrestoColor) ? MemberWrite.Color :
+                memberType == typeof(object) ? MemberWrite.Object :
+                IsNumeric(memberType) ? MemberWrite.Number :
+                MemberWrite.Codec;
+
+            IValueCodec? memberCodec = null;
+            if (memberWrite == MemberWrite.Codec && !Presto.Codecs.TryGetValue(memberType, out memberCodec))
+            {
+                throw new NotSupportedException($"{type}.{name} is a {memberType}, which has no codec registered in Presto.Codecs.");
+            }
+
+            var target = Expression.Parameter(typeof(object), "target");
+            var access = Expression.MakeMemberAccess(Expression.Convert(target, type), member);
+            var value = Expression.Parameter(typeof(object), "value");
+            var number = Expression.Parameter(typeof(double), "number");
+
+            Action<object, double>? setNumber = null;
+            if (memberWrite == MemberWrite.Number)
+            {
+                Expression source = IsIntegral(memberType)
+                    ? Expression.Call(typeof(Helpers).GetMethod(nameof(Helpers.Round))!, number, Expression.Constant(0))
+                    : number;
+                setNumber = Expression.Lambda<Action<object, double>>(Expression.Assign(access, Expression.Convert(source, memberType)), target, number).Compile();
+            }
+
+            return new MemberAccessor(
+                Expression.Lambda<Func<object, object?>>(Expression.Convert(access, typeof(object)), target).Compile(),
+                Expression.Lambda<Action<object, object?>>(Expression.Assign(access, Expression.Convert(value, memberType)), target, value).Compile(),
+                setNumber,
+                memberWrite,
+                memberCodec);
+        }
+
+        public IValueCodec? Codec => codec;
+
+        public object? GetValue(object target) => get(target);
+
+        public void SetValue(object target, double number, Tween tween)
+        {
+            if (setNumber != null) setNumber(target, number);
+            else set(target, Compose(number, tween));
+        }
+
+        public void Revert(object target, object? originalValue) => set(target, originalValue);
+
+        private static bool IsNumeric(Type type) =>
+            type == typeof(double) || type == typeof(float) || type == typeof(decimal) || IsIntegral(type);
+
+        private static bool IsIntegral(Type type) =>
+            type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte);
+
+        private object? Compose(double number, Tween tween) => write switch
+        {
+            MemberWrite.String => tween.ComposeString(number),
+            MemberWrite.Color => PrestoColor.FromChannels(tween._numbers),
+            MemberWrite.Codec => codec!.Encode(number, tween),
+            _ => tween.ComposeValue(number),
+        };
+    }
+}

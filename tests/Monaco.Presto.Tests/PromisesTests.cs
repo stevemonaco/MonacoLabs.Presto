@@ -1,6 +1,6 @@
 namespace Monaco.Presto.Tests;
 
-/// <summary>Port of anime.js promises.test.js (timer subset) plus the C# awaitable.</summary>
+/// <summary>Port of anime.js promises.test.js plus the C# awaitable.</summary>
 public sealed class PromisesTests : EngineTestBase
 {
     [Fact]
@@ -21,6 +21,50 @@ public sealed class PromisesTests : EngineTestBase
         Assert.Equal(30, timer.CurrentTime);
         Assert.Equal(30, currentTimeInCallback);
         Assert.Equal(1, callbacks);
+    }
+
+    [Fact]
+    public async Task ThenOnAnimation()
+    {
+        double? currentTimeInCallback = null;
+        var animation = Presto.Animate(new StyleTarget(), new() { ["Y"] = 100, Duration = 30 });
+        var task = animation.Then(self => currentTimeInCallback = self.CurrentTime);
+
+        RunUntil(() => currentTimeInCallback != null);
+
+        Assert.Same(animation, await task);
+        Assert.Equal(30, currentTimeInCallback);
+    }
+
+    [Fact]
+    public async Task ThenOnTimeline()
+    {
+        var target = new StyleTarget();
+        double? currentTimeInCallback = null;
+        var tl = Presto.CreateTimeline(new())
+            .Add(target, new() { ["X"] = 100, Duration = 15 })
+            .Add(target, new() { ["Y"] = 100, Duration = 15 });
+        var task = tl.Then(self => currentTimeInCallback = self.CurrentTime);
+
+        RunUntil(() => task.IsCompleted);
+
+        Assert.Same(tl, await task);
+        Assert.Equal(30, currentTimeInCallback);
+    }
+
+    [Fact]
+    public async Task AwaitAnAnimation()
+    {
+        static async Task<Animation> Await(Animation animation) => await animation;
+
+        var animation = Presto.Animate(new StyleTarget(), new() { ["Y"] = 100, Duration = 30 });
+        var pending = Await(animation);
+        Assert.False(pending.IsCompleted);
+
+        RunUntil(() => animation.Completed);
+
+        Assert.Same(animation, await pending);
+        Assert.Equal(30, animation.CurrentTime);
     }
 
     [Fact]

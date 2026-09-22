@@ -1,12 +1,40 @@
 namespace Monaco.Presto.Tests;
 
-/// <summary>
-/// Ports the spring section of tests/suites/eases.test.js by constructing springs directly and reading
-/// <see cref="Spring.SettlingDuration"/> where the suite reads <c>animation.duration</c>. The two
-/// "Spring ease overrides ... duration parameter" tests need <c>animate</c> and return in Phase 3.
-/// </summary>
+/// <summary>Ports the spring section of tests/suites/eases.test.js, both by constructing springs directly and through the duration they give an animation.</summary>
 public sealed class SpringTests : EngineTestBase
 {
+    private static AnimationParams EasingParams(Spring spring) =>
+        new() { ["Opacity"] = TweenValue.FromTo(0, 1), Ease = spring, Duration = 100, Autoplay = false };
+
+    [Fact]
+    public void SpringEaseOverridesTheAnimationDurationParameter() =>
+        Assert.True(Presto.Animate(new StyleTarget(), EasingParams(Eases.Spring())).Duration > 1000);
+
+    [Fact]
+    public void SpringEaseOverridesTheTweenDurationParameter()
+    {
+        var animation = Presto.Animate(new StyleTarget(), new()
+        {
+            ["Opacity"] = TweenValue.FromTo(0, 1),
+            ["TranslateX"] = new TweenParams { To = 100, Ease = Eases.Spring(), Duration = 500 },
+            Duration = 400,
+            Autoplay = false,
+        });
+
+        Assert.True(animation.Duration > 1000);
+    }
+
+    [Fact]
+    public void SpringEaseParametersAffectTheAnimationDuration()
+    {
+        var target = new StyleTarget();
+        Assert.Equal(1760, Presto.Animate(target, EasingParams(Eases.Spring())).Duration);
+        Assert.Equal(13700, Presto.Animate(target, EasingParams(Eases.Spring(mass: 10))).Duration);
+        Assert.Equal(1760, Presto.Animate(target, EasingParams(Eases.Spring(stiffness: 50))).Duration);
+        Assert.Equal(3880, Presto.Animate(target, EasingParams(Eases.Spring(damping: 50))).Duration);
+        Assert.Equal(1700, Presto.Animate(target, EasingParams(Eases.Spring(velocity: 10))).Duration);
+    }
+
     [Fact]
     public void SpringEaseParametersAffectSettlingDuration()
     {

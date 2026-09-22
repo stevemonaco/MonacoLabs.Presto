@@ -1,0 +1,51 @@
+using Monaco.Presto.Values;
+
+namespace Monaco.Presto.Core;
+
+/// <summary>Port of anime.js <c>additive.js</c>: sums the blended tweens of each property into their lookup tween and renders it.</summary>
+internal static class Additive
+{
+    /// <summary>Owns the additive lookup tweens; never added to the engine and only rendered by <see cref="Update"/>.</summary>
+    public static Timer? Animation { get; private set; }
+
+    public static Timer GetOrCreate() =>
+        Animation ??= new Timer(new TimerParams { Duration = Constants.MinValue, Delay = 0, Loop = 0, Autoplay = false }, null, 0) { _offset = 0 };
+
+    public static void Update()
+    {
+        var animation = Animation;
+        if (animation == null) return;
+
+        foreach (var properties in Composer.AdditiveLookups.Values)
+        {
+            foreach (var siblings in properties.Values)
+            {
+                var lookupTween = siblings._head;
+                if (lookupTween == null) continue;
+
+                var valueType = lookupTween._valueType;
+                var additiveNumbers = valueType is ValueKind.Complex or ValueKind.Color ? Helpers.CloneNumbers(lookupTween._fromNumbers) : null;
+                var additiveNumber = lookupTween._fromNumber;
+
+                var tween = siblings._tail;
+                while (tween != null && tween != lookupTween)
+                {
+                    if (additiveNumbers != null)
+                    {
+                        for (var i = 0; i < tween._numbers.Length; i++) additiveNumbers[i] += tween._numbers[i];
+                    }
+                    else
+                    {
+                        additiveNumber += tween._number;
+                    }
+                    tween = tween._prevAdd;
+                }
+
+                lookupTween._toNumber = additiveNumber;
+                lookupTween._toNumbers = additiveNumbers ?? [];
+            }
+        }
+
+        Renderer.Render(animation, 1, true, false, TickMode.Force);
+    }
+}

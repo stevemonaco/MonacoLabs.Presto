@@ -11,6 +11,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Monaco.Presto.Tests" />
     <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge" />
+    <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.Tests" />
   </ItemGroup>
 
 </Project>

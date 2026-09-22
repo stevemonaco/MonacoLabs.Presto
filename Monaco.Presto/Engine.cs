@@ -74,6 +74,7 @@ public sealed class Engine : Clock
             }
             activeTickable = nextTickable;
         }
+        Additive.Update();
     }
 
     public Engine Wake()
@@ -145,8 +146,9 @@ public sealed class Engine : Clock
             var newScale = isSecond ? secondsScale : 1;
             if (Globals.TimeScale == newScale) return;
             Globals.TimeScale = newScale;
+            Globals.TickThreshold = 200 * newScale;
             var scaleFactor = isSecond ? secondsScale : Constants.K;
-            Defaults.Duration *= scaleFactor;
+            if (Defaults.Duration.AsDouble is { } defaultDuration) Defaults.Duration = defaultDuration * scaleFactor;
             _speed *= scaleFactor;
         }
     }

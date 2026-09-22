@@ -107,7 +107,7 @@ public sealed class EngineTests : EngineTestBase
     public void ChangingTheTimeUnitShouldAffectDurationValues()
     {
         Presto.Engine.TimeUnit = TimeUnit.Seconds;
-        Assert.Equal(1, Presto.Defaults.Duration);
+        Assert.Equal(1, Presto.Defaults.Duration.AsDouble);
 
         var timer = Presto.CreateTimer(new() { Duration = .75 });
         Frames.Advance(150, 16);
@@ -116,7 +116,29 @@ public sealed class EngineTests : EngineTestBase
         Assert.True(timer.CurrentTime < .75);
 
         Presto.Engine.TimeUnit = TimeUnit.Milliseconds;
-        Assert.Equal(1000, Presto.Defaults.Duration);
+        Assert.Equal(1000, Presto.Defaults.Duration.AsDouble);
+    }
+
+    [Theory]
+    [InlineData(4, "1.1235px")]
+    [InlineData(1, "1.1px")]
+    public void PrecisionRoundsOnlyTheInBetweenFrames(int precision, string midValue)
+    {
+        Presto.Engine.Precision = precision;
+        var target = new StyleTarget { TranslateX = "0.12345px" };
+        var animation = Presto.Animate(target, new()
+        {
+            ["TranslateX"] = 2.12345,
+            Ease = "linear",
+            Autoplay = false,
+            Duration = 500,
+        });
+
+        Assert.Equal("0.12345px", target.TranslateX);
+        animation.Seek(250);
+        Assert.Equal(midValue, target.TranslateX);
+        animation.Seek(500);
+        Assert.Equal("2.12345px", target.TranslateX);
     }
 
     [Fact]
