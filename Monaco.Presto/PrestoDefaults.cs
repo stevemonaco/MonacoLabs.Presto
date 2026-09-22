@@ -14,6 +14,7 @@ public sealed class PrestoDefaults
     public double Duration { get; set; } = Constants.K;
     public double Delay { get; set; }
     public double LoopDelay { get; set; }
+    public Ease Ease { get; set; } = Eases.Out(2);
     public Action<Timer>? OnBegin { get; set; }
     public Action<Timer>? OnBeforeUpdate { get; set; }
     public Action<Timer>? OnUpdate { get; set; }

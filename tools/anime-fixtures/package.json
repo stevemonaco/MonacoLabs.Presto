@@ -1,0 +1,11 @@
+{
+  "name": "anime-fixtures",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.js"
+  },
+  "dependencies": {
+    "animejs": "4.5.0"
+  }
+}
