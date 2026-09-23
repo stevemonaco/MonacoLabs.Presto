@@ -14,6 +14,9 @@ public abstract class EngineTestBase
         Helpers.ForEachChildren(engine, static child => child.Cancel());
         engine._head = engine._tail = null;
         engine._hasChildren = false;
+        // The additive registries are static, so a blend tween left by an earlier test would keep rendering into this one.
+        Composer.AdditiveLookups.Clear();
+        if (Additive.Animation is { } additive) additive._headTween = additive._tailTween = null;
         engine.Pause();
         engine.Paused = true;
         engine._currentTime = engine._lastTickTime = engine._startTime = engine._lastTime = Frames.Now;
@@ -30,5 +33,15 @@ public abstract class EngineTestBase
     {
         var limit = Frames.Now + max;
         while (!condition() && Frames.Now < limit) Frames.Advance(step);
+    }
+
+    /// <summary>Bytes allocated per 16 ms frame over 200 frames, measured once the tick path is warm.</summary>
+    protected double BytesPerTick()
+    {
+        const int measured = 200;
+        for (var i = 0; i < 10; i++) Frames.Advance(16);
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < measured; i++) Frames.Advance(16);
+        return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;
     }
 }

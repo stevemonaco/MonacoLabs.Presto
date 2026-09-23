@@ -14,6 +14,8 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
 {
     private static readonly Dictionary<(Type Type, string Property), IPropertyAccessor> s_accessors = [];
 
+    /// <summary>Private, static and write-only members are not reached.</summary>
+    /// <exception cref="NotSupportedException">The member's type is not numeric, <see cref="string"/>, <see cref="object"/> or <see cref="PrestoColor"/>, and no codec is registered for it in <see cref="Presto.Codecs"/>.</exception>
     public IPropertyAccessor Resolve(object target, string property)
     {
         if (target is IDictionary<string, object?>) return new DictionaryAccessor(property);
@@ -51,6 +53,7 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
         Func<object, object?> get,
         Action<object, object?> set,
         Action<object, double>? setNumber,
+        Action<object, PrestoColor>? setColor,
         MemberWrite write,
         IValueCodec? codec) : IPropertyAccessor
     {
@@ -89,10 +92,18 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
                 setNumber = Expression.Lambda<Action<object, double>>(Expression.Assign(access, Expression.Convert(source, memberType)), target, number).Compile();
             }
 
+            Action<object, PrestoColor>? setColor = null;
+            if (memberWrite == MemberWrite.Color)
+            {
+                var color = Expression.Parameter(typeof(PrestoColor), "color");
+                setColor = Expression.Lambda<Action<object, PrestoColor>>(Expression.Assign(access, color), target, color).Compile();
+            }
+
             return new MemberAccessor(
                 Expression.Lambda<Func<object, object?>>(Expression.Convert(access, typeof(object)), target).Compile(),
                 Expression.Lambda<Action<object, object?>>(Expression.Assign(access, Expression.Convert(value, memberType)), target, value).Compile(),
                 setNumber,
+                setColor,
                 memberWrite,
                 memberCodec);
         }
@@ -104,6 +115,7 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
         public void SetValue(object target, double number, Tween tween)
         {
             if (setNumber != null) setNumber(target, number);
+            else if (setColor != null) setColor(target, PrestoColor.FromChannels(tween._numbers));
             else set(target, Compose(number, tween));
         }
 
@@ -118,7 +130,6 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
         private object? Compose(double number, Tween tween) => write switch
         {
             MemberWrite.String => tween.ComposeString(number),
-            MemberWrite.Color => PrestoColor.FromChannels(tween._numbers),
             MemberWrite.Codec => codec!.Encode(number, tween),
             _ => tween.ComposeValue(number),
         };

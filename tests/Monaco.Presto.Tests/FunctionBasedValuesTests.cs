@@ -122,4 +122,59 @@ public sealed class FunctionBasedValuesTests : EngineTestBase
             Assert.Equal(3 - i, tween._toNumber);
         }
     }
+
+    [Fact]
+    public void ChainedFunctionValuesInKeyframesReadThePreviousKeyframeEndValue()
+    {
+        var animation = Presto.Animate(new TestObject(), new()
+        {
+            ["PlainValue"] = new TweenParams[]
+            {
+                new() { To = 50 },
+                new() { To = new ChainedFunctionValue((_, _, _, previous) => (double)previous!._value! * 2) },
+            },
+            Duration = 100,
+            Autoplay = false,
+        });
+
+        Assert.Equal(50, TestHelpers.GetTweenAtIndex(animation, 0)!._toNumber);
+        Assert.Equal(100, TestHelpers.GetTweenAtIndex(animation, 1)!._toNumber);
+    }
+
+    [Fact]
+    public void ChainedFunctionValuesOnTimelineChildrenReadThePreviousChildEndValue()
+    {
+        var target = new TestObject();
+        var timeline = Presto.CreateTimeline(new() { Autoplay = false });
+        timeline.Add(target, new() { ["PlainValue"] = 50, Duration = 100 });
+        timeline.Add(target, new()
+        {
+            ["PlainValue"] = new ChainedFunctionValue((_, _, _, previous) => (double)previous!._value! * 2),
+            Duration = 100,
+        });
+
+        var child = TestHelpers.GetChildAtIndex(timeline, 1)!;
+        Assert.Equal(100, TestHelpers.GetTweenAtIndex(child, 0)!._toNumber);
+    }
+
+    [Fact]
+    public void TextModifiersWriteStringsAndSettleOnTheValueAtOne()
+    {
+        const string text = "presto";
+        var target = new TextTarget();
+        var written = new List<string>();
+        var animation = Presto.Animate(target, new()
+        {
+            ["Text"] = new TweenParams { From = 0, To = 1, TextModifier = v => text[..(int)(v * text.Length)] },
+            Duration = 100,
+            Ease = Eases.None,
+            OnUpdate = _ => written.Add(target.Text),
+        });
+
+        RunUntil(() => animation.Completed);
+
+        Assert.NotEmpty(written);
+        Assert.All(written, value => Assert.Equal(text[..value.Length], value));
+        Assert.Equal(text, target.Text);
+    }
 }

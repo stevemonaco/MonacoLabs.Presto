@@ -65,6 +65,28 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
         Assert.True(frames > 0, "no frame arrived after the restart");
     }
 
+    /// <summary>The Android path: the lifetime hands out no view, so the top level can only come from an animated visual.</summary>
+    [AvaloniaFact]
+    public async Task TheFallbackTimerHandsThePumpOverOnceAnAnimatedVisualHasATopLevel()
+    {
+        AvaloniaFrameSource.Seed(new Border()); // an unparented visual, so no earlier test's window is found
+
+        var source = new AvaloniaFrameSource();
+        var frames = 0;
+        source.Start(() => frames++);
+        Assert.True(source.IsUsingFallbackTimer);
+
+        var border = new Border();
+        new Window { Content = border, Width = 100, Height = 100 }.Show();
+        _ = border.Animate(new() { ["Opacity"] = 0, Duration = 100, Autoplay = false }); // seeds the source with a visual inside the window
+
+        Assert.True(await Pump(() => !source.IsUsingFallbackTimer), "the pump stayed on the fallback timer");
+
+        var delivered = frames;
+        Assert.True(await Pump(() => frames > delivered), "no frame arrived after the handover");
+        source.Stop();
+    }
+
     [AvaloniaFact]
     public async Task StartFallsBackToADispatcherTimerWhenNoTopLevelExists()
     {
@@ -83,5 +105,59 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
 
         Assert.False(source.IsUsingFallbackTimer);
         Assert.Equal(delivered, frames);
+    }
+
+    [AvaloniaFact]
+    public async Task AThrowingFrameCallbackDoesNotRetireTheTopLevelPump()
+    {
+        var border = new Border();
+        new Window { Content = border, Width = 100, Height = 100 }.Show();
+        _ = border.Animate(new() { ["Opacity"] = 0, Duration = 100, Autoplay = false }); // seeds the source with a visual inside the window
+
+        var source = new AvaloniaFrameSource();
+        var frames = 0;
+        source.Start(() =>
+        {
+            if (++frames == 1) throw new InvalidOperationException("the first frame faults");
+        });
+
+        Assert.False(source.IsUsingFallbackTimer);
+        Assert.True(await PumpThroughFaults(() => frames > 1), "the pump never recovered from the faulted frame");
+        source.Stop();
+    }
+
+    [AvaloniaFact]
+    public async Task AThrowingFrameCallbackDoesNotRetireTheFallbackTimer()
+    {
+        AvaloniaFrameSource.Seed(new Border()); // an unparented visual, so no earlier test's window is found
+
+        var source = new AvaloniaFrameSource();
+        var frames = 0;
+        source.Start(() =>
+        {
+            if (++frames == 1) throw new InvalidOperationException("the first frame faults");
+        });
+
+        Assert.True(source.IsUsingFallbackTimer);
+        Assert.True(await PumpThroughFaults(() => frames > 1), "the pump never recovered from the faulted frame");
+        source.Stop();
+    }
+
+    /// <summary>Pumps as <see cref="Pump"/> does, swallowing the fault a frame callback deliberately throws through the tick.</summary>
+    private static async Task<bool> PumpThroughFaults(Func<bool> until, int rounds = 120)
+    {
+        for (var i = 0; i < rounds && !until(); i++)
+        {
+            try
+            {
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+            }
+            catch (InvalidOperationException)
+            {
+            }
+            await Task.Delay(16);
+        }
+        return until();
     }
 }

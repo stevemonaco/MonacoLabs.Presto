@@ -12,11 +12,13 @@ public static class Utils
 {
     private static int s_seed;
 
+    /// <summary>Constrains <paramref name="v"/> to the range [<paramref name="min"/>, <paramref name="max"/>].</summary>
     public static double Clamp(double v, double min, double max) => Helpers.Clamp(v, min, max);
 
     /// <inheritdoc cref="Clamp(double, double, double)"/>
     public static ChainedUtil Clamp(double min, double max) => new(v => Helpers.Clamp(v, min, max));
 
+    /// <summary>Rounds <paramref name="v"/> to <paramref name="decimals"/> decimal places.</summary>
     public static double Round(double v, int decimals) => Helpers.Round(v, decimals);
 
     /// <inheritdoc cref="Round(double, int)"/>
@@ -43,6 +45,7 @@ public static class Utils
     /// <inheritdoc cref="Snap(double, double[])"/>
     public static ChainedUtil Snap(double[] points) => new(v => Snap(v, points));
 
+    /// <summary>Wraps <paramref name="v"/> into [<paramref name="min"/>, <paramref name="max"/>), cycling past either end instead of clamping.</summary>
     public static double Wrap(double v, double min, double max)
     {
         var range = max - min;
@@ -52,6 +55,7 @@ public static class Utils
     /// <inheritdoc cref="Wrap(double, double, double)"/>
     public static ChainedUtil Wrap(double min, double max) => new(v => Wrap(v, min, max));
 
+    /// <summary>Re-maps <paramref name="value"/> from the input range onto the output range, extrapolating outside it.</summary>
     public static double MapRange(double value, double inLow, double inHigh, double outLow, double outHigh) =>
         outLow + (value - inLow) / (inHigh - inLow) * (outHigh - outLow);
 
@@ -59,6 +63,7 @@ public static class Utils
     public static ChainedUtil MapRange(double inLow, double inHigh, double outLow, double outHigh) =>
         new(v => MapRange(v, inLow, inHigh, outLow, outHigh));
 
+    /// <summary>Interpolates between <paramref name="start"/> and <paramref name="end"/> by <paramref name="factor"/>, which is not clamped.</summary>
     public static double Lerp(double start, double end, double factor) => Helpers.Lerp(start, end, factor);
 
     /// <summary>Chainable <see cref="Lerp(double, double, double)"/>: the chained value becomes the factor.</summary>
@@ -71,11 +76,13 @@ public static class Utils
     /// <summary>Chainable <see cref="Damp(double, double, double, double)"/>: the chained value becomes the factor.</summary>
     public static ChainedUtil Damp(double start, double end, double deltaTime) => new(v => Damp(start, end, deltaTime, v));
 
+    /// <summary>Converts <paramref name="degrees"/> to radians.</summary>
     public static double DegToRad(double degrees) => degrees * Math.PI / 180;
 
     /// <inheritdoc cref="DegToRad(double)"/>
     public static ChainedUtil DegToRad() => new(DegToRad);
 
+    /// <summary>Converts <paramref name="radians"/> to degrees.</summary>
     public static double RadToDeg(double radians) => radians * 180 / Math.PI;
 
     /// <inheritdoc cref="RadToDeg(double)"/>
@@ -113,6 +120,7 @@ public static class Utils
         };
     }
 
+    /// <summary>Returns one element of <paramref name="items"/> at random, every element equally likely.</summary>
     public static T RandomPick<T>(IReadOnlyList<T> items) => items[(int)Random(0, items.Count - 1)];
 
     /// <summary>Shuffles <paramref name="items"/> in place with Fisher-Yates and returns it.</summary>

@@ -1,0 +1,261 @@
+using System.Globalization;
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Layout;
+using Monaco.Presto.Core;
+
+namespace Monaco.Presto.AvaloniaBridge.Text;
+
+/// <summary>
+/// Port of anime.js <c>splitText</c>: a <see cref="TextBlock"/>'s text taken apart into per-line, per-word and
+/// per-character pieces that are animated individually. The pieces are <see cref="Control"/>s laid out inside the block
+/// itself, one row per wrapped line, and the split is redone whenever the block's width changes.
+/// </summary>
+/// <remarks>
+/// Upstream's <c>clone</c> and <c>debug</c> options and its HTML templates are not ported; the piece tree is built from
+/// <see cref="SplitPieceParams"/> instead. Only the block's plain text is split, so inline formatting is not preserved,
+/// and the text is left to automation through <see cref="AutomationProperties.NameProperty"/> on the block where
+/// upstream leaves a visually hidden copy.
+/// </remarks>
+public sealed class TextSplitter : IRevertible
+{
+    private const double ResizeDebounce = 150;
+    private const string Nbsp = " ";
+
+    private readonly TextBlock _host;
+    private readonly SplitTextParams _parameters;
+    private readonly string _text;
+    private readonly Timer _resize;
+    // An effect returns either an Action to undo it or a Timer that keeps running, as upstream's effectsCleanups holds both.
+    private readonly List<Func<TextSplitter, object?>> _effects = [];
+    private readonly List<object?> _cleanups = [];
+    private readonly List<Control> _lines = [];
+    private readonly List<Control> _words = [];
+    private readonly List<Control> _chars = [];
+    private double _width;
+    private bool _ready;
+
+    internal TextSplitter(TextBlock host, SplitTextParams parameters)
+    {
+        Globals.CurrentScope?.Register(this);
+        _host = host;
+        _parameters = parameters;
+        _text = host.Text ?? "";
+        _resize = Presto.CreateTimer(new TimerParams
+        {
+            Duration = ResizeDebounce,
+            Autoplay = false,
+            OnComplete = _ =>
+            {
+                if (_host.Bounds.Width != _width) Split();
+            },
+        });
+
+        host.SizeChanged += HandleSizeChanged;
+        if (host.Bounds.Width > 0) Split();
+    }
+
+    /// <summary>The line pieces, empty unless <see cref="SplitTextParams.Lines"/> is set.</summary>
+    public IReadOnlyList<Control> Lines => _lines;
+
+    /// <summary>The word pieces, empty unless <see cref="SplitTextParams.Words"/> is set.</summary>
+    public IReadOnlyList<Control> Words => _words;
+
+    /// <summary>The character pieces, empty unless <see cref="SplitTextParams.Chars"/> is set.</summary>
+    public IReadOnlyList<Control> Chars => _chars;
+
+    /// <summary>
+    /// Registers <paramref name="effect"/> over the pieces, running it at once when they already exist and again after
+    /// every re-split.
+    /// </summary>
+    /// <param name="effect">Returns what to undo before the next run, or null when there is nothing to undo.</param>
+    public TextSplitter AddEffect(Func<TextSplitter, Action?> effect) => Register(split => effect(split));
+
+    /// <summary>
+    /// Registers <paramref name="effect"/> the same way, handing the playback position of the timer it returns to the one
+    /// the next re-split creates and reverting the last of them with the splitter.
+    /// </summary>
+    public TextSplitter AddEffect(Func<TextSplitter, Timer> effect)
+    {
+        var refreshable = Utils.KeepTime(effect);
+        return Register(split => refreshable(split));
+    }
+
+    /// <summary>Splits the text again at the current width, running the effect cleanups first and the effects after.</summary>
+    public TextSplitter Refresh()
+    {
+        Split();
+        return this;
+    }
+
+    /// <summary>Runs the effect cleanups and puts the original text back, leaving the block as it was found.</summary>
+    public TextSplitter Revert()
+    {
+        _host.SizeChanged -= HandleSizeChanged;
+        _resize.Revert();
+        RunCleanups(true);
+        _lines.Clear();
+        _words.Clear();
+        _chars.Clear();
+        _host.Inlines = null;
+        _host.Text = _text;
+        _host.ClearValue(AutomationProperties.NameProperty);
+        _width = 0;
+        _ready = false;
+        return this;
+    }
+
+    void IRevertible.Revert() => Revert();
+
+    private void HandleSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        if (e.NewSize.Width == _width) return;
+        if (_ready) _resize.Restart(); else Split();
+    }
+
+    private TextSplitter Register(Func<TextSplitter, object?> effect)
+    {
+        _effects.Add(effect);
+        _cleanups.Add(_ready ? effect(this) : null);
+        return this;
+    }
+
+    private void Split()
+    {
+        RunCleanups(false);
+        _lines.Clear();
+        _words.Clear();
+        _chars.Clear();
+
+        _width = _host.Bounds.Width;
+        // Without this every piece is snapped to a whole pixel and a line ends up wider than the text it was measured from.
+        var root = new StackPanel { UseLayoutRounding = false };
+        foreach (var line in MeasureLines()) root.Children.Add(BuildLine(line.TrimEnd()));
+
+        _host.Text = null;
+        _host.Inlines = [new InlineUIContainer(root)];
+        AutomationProperties.SetName(_host, _text);
+        _ready = true;
+
+        for (var i = 0; i < _effects.Count; i++) _cleanups[i] = _effects[i](this);
+    }
+
+    private IEnumerable<string> MeasureLines()
+    {
+        // Measured on a copy: the host's own layout holds the pieces by the time of a re-split.
+        var measure = new TextBlock
+        {
+            Text = _text,
+            FontFamily = _host.FontFamily,
+            FontSize = _host.FontSize,
+            FontStyle = _host.FontStyle,
+            FontWeight = _host.FontWeight,
+            FontStretch = _host.FontStretch,
+            LetterSpacing = _host.LetterSpacing,
+            TextWrapping = _host.TextWrapping,
+        };
+        measure.Measure(new Size(_width, double.PositiveInfinity));
+
+        foreach (var line in measure.TextLayout.TextLines)
+        {
+            var start = line.FirstTextSourceIndex;
+            // The last line's Length counts the layout's paragraph terminator, which is not part of the text.
+            if (start < _text.Length) yield return _text.Substring(start, Math.Min(line.Length, _text.Length - start));
+        }
+    }
+
+    private Control BuildLine(string text)
+    {
+        var line = _parameters.Words == null && _parameters.Chars == null ? Piece(text) : BuildWords(text);
+        return _parameters.Lines is { } parameters ? Decorate(line, parameters, _lines) : line;
+    }
+
+    private Control BuildWords(string text)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        var tokens = Tokenize(text);
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+            if (char.IsWhiteSpace(token[0]))
+            {
+                if (!_parameters.IncludeSpaces) row.Children.Add(Piece(token));
+                continue;
+            }
+            // The line is trimmed, so anything after a word is the space before the next one.
+            row.Children.Add(BuildWord(token, _parameters.IncludeSpaces && i + 1 < tokens.Count ? Nbsp : ""));
+        }
+        return row;
+    }
+
+    private Control BuildWord(string text, string trailing)
+    {
+        Control word;
+        if (_parameters.Chars is { } charParams)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Horizontal };
+            var graphemes = Graphemes(text);
+            for (var i = 0; i < graphemes.Count; i++)
+            {
+                var grapheme = i == graphemes.Count - 1 ? graphemes[i] + trailing : graphemes[i];
+                panel.Children.Add(Decorate(Piece(grapheme), charParams, _chars));
+            }
+            word = panel;
+        }
+        else
+        {
+            word = Piece(text + trailing);
+        }
+        return _parameters.Words is { } wordParams ? Decorate(word, wordParams, _words) : word;
+    }
+
+    private static Control Decorate(Control piece, SplitPieceParams parameters, List<Control> pieces)
+    {
+        if (parameters.Class is { } className) piece.Classes.Add(className);
+        pieces.Add(piece);
+        return parameters.Wrap ? new Border { ClipToBounds = true, Child = piece } : piece;
+    }
+
+    private static TextBlock Piece(string text)
+    {
+        var piece = new TextBlock { Text = text };
+        AutomationProperties.SetAccessibilityView(piece, AccessibilityView.Raw);
+        return piece;
+    }
+
+    private static List<string> Tokenize(string text)
+    {
+        var tokens = new List<string>();
+        var start = 0;
+        while (start < text.Length)
+        {
+            var whitespace = char.IsWhiteSpace(text[start]);
+            var end = start + 1;
+            while (end < text.Length && char.IsWhiteSpace(text[end]) == whitespace) end++;
+            tokens.Add(text[start..end]);
+            start = end;
+        }
+        return tokens;
+    }
+
+    private static List<string> Graphemes(string text)
+    {
+        var graphemes = new List<string>();
+        var enumerator = StringInfo.GetTextElementEnumerator(text);
+        while (enumerator.MoveNext()) graphemes.Add((string)enumerator.Current);
+        return graphemes;
+    }
+
+    private void RunCleanups(bool reverting)
+    {
+        for (var i = 0; i < _cleanups.Count; i++)
+        {
+            // A timer is reverted and re-timed by KeepTime on the next run, so only a full revert ends it here.
+            if (_cleanups[i] is Action cleanup) cleanup();
+            else if (reverting && _cleanups[i] is Timer timer) timer.Revert();
+            _cleanups[i] = null;
+        }
+    }
+}

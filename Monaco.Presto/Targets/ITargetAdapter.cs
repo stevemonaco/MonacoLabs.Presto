@@ -8,4 +8,11 @@ public interface ITargetAdapter
 {
     /// <summary>Returns the accessor for <paramref name="property"/>, or null to let the next adapter try.</summary>
     IPropertyAccessor? Resolve(object target, string property);
+
+    /// <summary>
+    /// Returns the one name every spelling of <paramref name="property"/> shares on this target, or null when the adapter
+    /// does not handle it. Tweens are keyed by this name, so two spellings of one property compose against each other.
+    /// </summary>
+    /// <remarks>Must not throw for a name it does not recognise: unlike <see cref="Resolve"/> this is asked speculatively.</remarks>
+    string? Canonicalise(object target, string property) => null;
 }

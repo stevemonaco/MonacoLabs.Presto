@@ -11,7 +11,10 @@ public sealed class Spring
     private const double MaxSpringParamValue = Constants.K * 10;
     private const double TimeStep = .02;
     private const double RestThreshold = .0005;
-    private const double RestDuration = 200;
+
+    /// <summary>Time the solver watches the spring sit still before calling it settled, included in <see cref="SettlingDuration"/>.</summary>
+    internal const double RestDuration = 200;
+
     private const double MaxDuration = 60000;
     private const double MaxRestSteps = RestDuration / TimeStep / Constants.K;
     private const double MaxIterations = MaxDuration / TimeStep / Constants.K;
@@ -27,6 +30,11 @@ public sealed class Spring
     private double _wd;
     private double _b;
 
+    /// <summary>
+    /// Creates a spring, each parameter falling back to its upstream default when null. Supplying
+    /// <paramref name="bounce"/> or <paramref name="duration"/> derives <see cref="Stiffness"/> and
+    /// <see cref="Damping"/> rather than taking them from the arguments.
+    /// </summary>
     public Spring(
         double? mass = null,
         double? stiffness = null,
@@ -72,13 +80,16 @@ public sealed class Spring
     /// <summary>Unscaled solver time at which the spring is at rest.</summary>
     public double SolverDuration { get; private set; }
 
+    /// <summary>Whether the ease has been sampled past <see cref="Duration"/>; sampling it before that again clears the flag.</summary>
     public bool Completed { get; private set; }
 
     /// <summary>The animation driving this spring, passed to <see cref="OnComplete"/>.</summary>
     public Timer? Parent { get; internal set; }
 
+    /// <summary>Raised when the spring reaches <see cref="Duration"/>, before it has finished settling.</summary>
     public Action<Timer?>? OnComplete { get; set; }
 
+    /// <summary>Mass of the weight on the spring, clamped to [1, 10000]; a heavier weight takes longer to settle. Defaults to 1.</summary>
     public double Mass
     {
         get => _mass;
@@ -89,6 +100,7 @@ public sealed class Spring
         }
     }
 
+    /// <summary>Stiffness of the spring, clamped to (0, 10000]; a stiffer spring snaps back harder. Defaults to 100.</summary>
     public double Stiffness
     {
         get => _stiffness;
@@ -100,6 +112,7 @@ public sealed class Spring
         }
     }
 
+    /// <summary>Friction opposing the motion, clamped to (0, 10000]; more damping means fewer oscillations. Defaults to 10.</summary>
     public double Damping
     {
         get => _damping;
@@ -111,6 +124,7 @@ public sealed class Spring
         }
     }
 
+    /// <summary>Speed the weight starts with, clamped to [-10000, 10000]; a negative one launches it backwards. Defaults to 0.</summary>
     public double Velocity
     {
         get => _velocity;
@@ -145,6 +159,7 @@ public sealed class Spring
         }
     }
 
+    /// <summary>Passes the spring where a bare <see cref="Ease"/> is expected, which drops its <see cref="SettlingDuration"/>.</summary>
     public static implicit operator Ease(Spring spring) => spring.Ease;
 
     internal double Solve(double time)

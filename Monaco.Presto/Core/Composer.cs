@@ -124,7 +124,7 @@ internal static class Composer
         TweenList.ForEachChildren(animation, tween =>
         {
             if (!Contains(targets, tween.Target)) return;
-            if (!string.IsNullOrEmpty(property) && property != tween.Property) return;
+            if (!string.IsNullOrEmpty(property) && Presto.Canonicalise(tween.Target, property) != tween.Property) return;
             TweenList.RemoveChild(animation, tween);
             RemoveTweenSiblings(tween);
             matched = true;

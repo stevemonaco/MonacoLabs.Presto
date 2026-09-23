@@ -11,6 +11,7 @@ public static class ColorExtensions
     public static Color ToAvalonia(this PrestoColor color) =>
         Color.FromArgb(Channel(color.A * 255), Channel(color.R), Channel(color.G), Channel(color.B));
 
+    /// <summary>Widens the byte channels to Presto's 0-255 numbers, and the byte alpha to its 0-1 one.</summary>
     public static PrestoColor ToPresto(this Color color) => new(color.R, color.G, color.B, color.A / 255d);
 
     private static byte Channel(double value) => (byte)Helpers.Clamp(Helpers.Round(value, 0), 0, 255);

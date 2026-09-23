@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+             x:Class="PrestoSample.Pages.DraggablePage">
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Width" Value="90" />
+            <Setter Property="Height" Value="90" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="Border.card > TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="#101010" />
+        </Style>
+
+        <Style Selector="TextBlock.readout">
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <TextBlock Classes="code" Text="PrestoAvalonia.CreateDraggable(SpringCard, new() { Container = Stage, ReleaseStiffness = 40, ReleaseDamping = 8, OnGrab = …, OnSnap = …, OnRelease = …, OnSettle = … })" />
+
+            <Border Classes="stage" Padding="0" Height="300">
+                <Canvas x:Name="Stage">
+                    <Border x:Name="SpringCard" Classes="card" Canvas.Left="20" Canvas.Top="20" Background="#4c8dff">
+                        <TextBlock Text="spring" />
+                    </Border>
+
+                    <Border x:Name="SnapCard" Classes="card" Canvas.Left="140" Canvas.Top="20" Background="#f5c542">
+                        <TextBlock Text="snap 40" />
+                    </Border>
+
+                    <Border x:Name="Rail" Width="260" Height="44" CornerRadius="8" Background="#304c8dff"
+                            Canvas.Left="20" Canvas.Top="180">
+                        <DockPanel>
+                            <Border x:Name="Handle" DockPanel.Dock="Left" Width="30" Background="#804c8dff"
+                                    CornerRadius="8,0,0,8" />
+                            <TextBlock Text="x only, drag the handle" VerticalAlignment="Center" Margin="10,0,0,0" />
+                        </DockPanel>
+                    </Border>
+                </Canvas>
+            </Border>
+
+            <Grid ColumnDefinitions="Auto,70,Auto,70,Auto,70,Auto,70" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Classes="code" Text="X" />
+                <TextBlock Grid.Column="1" x:Name="XText" Classes="readout" />
+                <TextBlock Grid.Column="2" Classes="code" Text="Y" />
+                <TextBlock Grid.Column="3" x:Name="YText" Classes="readout" />
+                <TextBlock Grid.Column="4" Classes="code" Text="ProgressX" />
+                <TextBlock Grid.Column="5" x:Name="ProgressXText" Classes="readout" />
+                <TextBlock Grid.Column="6" Classes="code" Text="ProgressY" />
+                <TextBlock Grid.Column="7" x:Name="ProgressYText" Classes="readout" />
+            </Grid>
+
+            <TextBlock x:Name="CountsText" Classes="code" />
+
+            <Border Background="#18808080" CornerRadius="6" Padding="10" Height="120">
+                <TextBlock x:Name="LogText" Classes="code" VerticalAlignment="Top" />
+            </Border>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The blue card is bounded by the stage and thrown on release by a soft spring, so flicking it at an edge lets it push past the bound and settle back on it — the readout and the log above follow that one. The yellow card snaps to a 40 unit grid, reporting every step it crosses through OnSnap. The rail only moves along x and is grabbed by its handle rather than by itself. All three take the grab and grabbing cursors and are created in a scope, so leaving the page reverts them." />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

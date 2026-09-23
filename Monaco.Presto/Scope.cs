@@ -20,6 +20,9 @@ public class Scope : IRevertible
     private bool _once;
     private int _onceIndex;
 
+    /// <summary>
+    /// Creates a scope, taking a copy of the global defaults as its own and registering with whichever scope is current.
+    /// </summary>
     public Scope(ScopeParams? parameters = null)
     {
         Globals.CurrentScope?.Register(this);
@@ -33,6 +36,7 @@ public class Scope : IRevertible
         Defaults = defaults;
     }
 
+    /// <inheritdoc cref="ScopeParams.Root"/>
     public object? Root { get; }
 
     /// <summary>The defaults in force while the scope executes; a copy of the globals as they stood when it was created.</summary>

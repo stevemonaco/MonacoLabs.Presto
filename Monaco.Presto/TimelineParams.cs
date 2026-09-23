@@ -12,7 +12,9 @@ public record TimelineParams : TimerParams
     /// </summary>
     public bool? Composition { get; init; }
 
+    /// <summary>An ease applied to the timeline's playhead, so every child is driven through the eased time rather than the raw one.</summary>
     public EaseValue? PlaybackEase { get; init; }
 
+    /// <summary>Called after the children have been rendered each frame.</summary>
     public Action<Timer>? OnRender { get; init; }
 }

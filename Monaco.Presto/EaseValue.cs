@@ -10,9 +10,16 @@ public readonly struct EaseValue
 
     private EaseValue(object raw) => Raw = raw;
 
+    /// <summary>An easing function, either one of the <see cref="Eases"/> or any <c>double -> double</c> of your own.</summary>
     public static implicit operator EaseValue(Ease ease) => new(ease);
+
+    /// <summary>A spring, whose computed <see cref="Spring.SettlingDuration"/> also becomes the tween's duration.</summary>
     public static implicit operator EaseValue(Spring spring) => new(spring);
+
+    /// <summary>An ease name in the <see cref="EaseParser"/> grammar, such as <c>"inOutQuad"</c> or <c>"out(2)"</c>.</summary>
     public static implicit operator EaseValue(string name) => new(name);
+
+    /// <summary>A delegate evaluated once per target, for animations whose targets ease differently.</summary>
     public static implicit operator EaseValue(FunctionValue function) => new(function);
 
     /// <summary>Resolves the ease for one target; <paramref name="spring"/> is set when it is a <see cref="Spring"/>, whose settling duration then drives the tween.</summary>

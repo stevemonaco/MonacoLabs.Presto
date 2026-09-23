@@ -51,28 +51,33 @@ public sealed class Animatable : IRevertible
                 OnComplete = HandlePause,
                 OnPause = HandlePause,
             });
-            _animations[property] = animation;
             if (_targets.Count == 0) _targets.AddRange(animation.Targets);
+            _animations[Key(property)] = animation;
         }
     }
 
+    /// <summary>The canonical name of <paramref name="property"/>, so a property declared by one spelling is read and set by any.</summary>
+    private string Key(string property) => _targets.Count == 0 ? property : Presto.Canonicalise(_targets[0], property);
+
+    /// <summary>The targets every property animation shares, empty once <see cref="Revert"/> has run.</summary>
     public IReadOnlyList<object> Targets => _targets;
 
+    /// <summary>The paused animation behind each property, keyed by the property's canonical name.</summary>
     public IReadOnlyDictionary<string, Animation> Animations => _animations;
 
     /// <summary>The property's current value, or 0 once <see cref="Revert"/> has run.</summary>
     public double Get(string property) =>
-        _animations.TryGetValue(property, out var animation) && animation._headTween is { } tween ? tween._modifier(tween._number) : 0;
+        _animations.TryGetValue(Key(property), out var animation) && animation._headTween is { } tween ? tween._modifier(tween._number) : 0;
 
     /// <summary>The channels of a colour or complex property, empty for a scalar one.</summary>
     public double[] GetChannels(string property) =>
-        _animations.TryGetValue(property, out var animation) && animation._headTween is { } tween ? tween._numbers : [];
+        _animations.TryGetValue(Key(property), out var animation) && animation._headTween is { } tween ? tween._numbers : [];
 
     /// <summary>Animates the property from where it is now to <paramref name="to"/>; a no-op after <see cref="Revert"/>.</summary>
     /// <returns>This animatable, so calls chain.</returns>
     public Animatable Set(string property, double to, double? duration = null, EaseValue? ease = null)
     {
-        if (!_animations.TryGetValue(property, out var animation)) return this;
+        if (!_animations.TryGetValue(Key(property), out var animation)) return this;
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             tween._fromNumber = tween._modifier(tween._number);
@@ -87,7 +92,7 @@ public sealed class Animatable : IRevertible
     /// <remarks>The channel form, for the colour and complex properties <see cref="GetChannels"/> reads.</remarks>
     public Animatable Set(string property, IReadOnlyList<double> to, double? duration = null, EaseValue? ease = null)
     {
-        if (!_animations.TryGetValue(property, out var animation)) return this;
+        if (!_animations.TryGetValue(Key(property), out var animation)) return this;
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             for (var i = 0; i < to.Count && i < tween._numbers.Length; i++)

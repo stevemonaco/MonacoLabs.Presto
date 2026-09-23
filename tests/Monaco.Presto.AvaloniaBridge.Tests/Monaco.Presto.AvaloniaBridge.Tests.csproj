@@ -11,6 +11,10 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
+    <!-- Real geometry measurement: the headless drawing stub reports a ContourLength of 0. -->
+    <PackageReference Include="Avalonia.Skia" />
+    <!-- ScrollViewer needs a real template for its Extent and Viewport to be measured. -->
+    <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="xunit.v3" />

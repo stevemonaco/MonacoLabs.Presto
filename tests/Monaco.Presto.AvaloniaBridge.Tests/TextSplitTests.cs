@@ -1,0 +1,341 @@
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Headless.XUnit;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Text;
+
+namespace Monaco.Presto.AvaloniaBridge.Tests;
+
+/// <summary>Covers <c>PrestoAvalonia.SplitText</c>: the <c>splitText</c> half of tests/suites/text.test.js, adapted to a laid-out <see cref="TextBlock"/>.</summary>
+public sealed class TextSplitTests : BridgeTestBase
+{
+    private const string Sentence = "The quick brown fox jumps over the lazy dog near the river bank at dawn";
+    private static readonly string[] SentenceWords = Sentence.Split(' ');
+
+    /// <summary>Line splitting reads real text metrics, so the block has to be in a shown window and laid out first.</summary>
+    private static TextBlock ShowText(double width = 260)
+    {
+        var block = new TextBlock { Text = Sentence, TextWrapping = TextWrapping.Wrap, FontSize = 20 };
+        new Window { Content = new Decorator { Child = block }, Width = width, Height = 400 }.Show();
+        Dispatcher.UIThread.RunJobs();
+        return block;
+    }
+
+    private static StackPanel Root(TextBlock block) =>
+        Assert.IsType<StackPanel>(Assert.IsType<InlineUIContainer>(block.Inlines![0]).Child);
+
+    private static string TextOf(Control piece) => piece switch
+    {
+        TextBlock text => text.Text ?? "",
+        Border border => TextOf((Control)border.Child!),
+        Panel panel => string.Concat(panel.Children.Select(TextOf)),
+        _ => "",
+    };
+
+    [AvaloniaFact]
+    public void DefaultsToWordsOnly()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText());
+
+        Assert.Empty(split.Lines);
+        Assert.Empty(split.Chars);
+        Assert.Equal(SentenceWords, split.Words.Select(TextOf));
+    }
+
+    [AvaloniaFact]
+    public void SplitsCharsOnly()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(), new() { Words = null, Chars = new() });
+
+        Assert.Empty(split.Lines);
+        Assert.Empty(split.Words);
+        Assert.Equal(Sentence.Replace(" ", ""), string.Concat(split.Chars.Select(TextOf)));
+    }
+
+    [AvaloniaFact]
+    public void SplitsLinesOnly()
+    {
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Words = null });
+
+        Assert.True(split.Lines.Count > 1);
+        Assert.Equal(split.Lines.Count, Root(block).Children.Count);
+        Assert.Empty(split.Words);
+        Assert.Empty(split.Chars);
+        Assert.Equal(Sentence, string.Join(" ", split.Lines.Select(TextOf)));
+    }
+
+    [AvaloniaFact]
+    public void SplitsWordsAndChars()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(), new() { Chars = new() });
+
+        Assert.Empty(split.Lines);
+        Assert.Equal(SentenceWords, split.Words.Select(TextOf));
+        Assert.Equal(Sentence.Replace(" ", ""), string.Concat(split.Chars.Select(TextOf)));
+    }
+
+    [AvaloniaFact]
+    public void SplitsWordsAndLines()
+    {
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new() });
+
+        Assert.True(split.Lines.Count > 1);
+        Assert.Equal(split.Lines.Count, Root(block).Children.Count);
+        Assert.Equal(SentenceWords, split.Words.Select(TextOf));
+        Assert.Empty(split.Chars);
+    }
+
+    [AvaloniaFact]
+    public void SplitsLinesAndChars()
+    {
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Words = null, Chars = new() });
+
+        Assert.True(split.Lines.Count > 1);
+        Assert.Equal(split.Lines.Count, Root(block).Children.Count);
+        Assert.Empty(split.Words);
+        Assert.Equal(Sentence.Replace(" ", ""), string.Concat(split.Chars.Select(TextOf)));
+    }
+
+    [AvaloniaFact]
+    public void SplitsLinesWordsAndChars()
+    {
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new() });
+
+        Assert.True(split.Lines.Count > 1);
+        Assert.Equal(split.Lines.Count, Root(block).Children.Count);
+        Assert.Equal(SentenceWords, split.Words.Select(TextOf));
+        Assert.Equal(Sentence.Replace(" ", ""), string.Concat(split.Chars.Select(TextOf)));
+        Assert.Equal(Sentence, string.Join(" ", split.Lines.Select(TextOf)));
+    }
+
+    [AvaloniaFact]
+    public void IncludeSpacesKeepsTheFollowingSpaceInsideThePiece()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(), new() { Lines = new(), Chars = new(), IncludeSpaces = true });
+
+        // Every space but the ones a line break swallowed is now the last character of the piece in front of it.
+        Assert.Equal(Sentence.Replace(' ', ' '), string.Join(' ', split.Lines.Select(TextOf)));
+        Assert.Equal(SentenceWords.Length, split.Words.Count);
+        Assert.Equal(Sentence.Replace(" ", "").Length, split.Chars.Count);
+    }
+
+    [AvaloniaFact]
+    public void AppliesTheCustomStyleClasses()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(), new()
+        {
+            Lines = new() { Class = "split-line" },
+            Words = new() { Class = "split-word" },
+            Chars = new() { Class = "split-char" },
+        });
+
+        Assert.All(split.Lines, line => Assert.Contains("split-line", line.Classes));
+        Assert.All(split.Words, word => Assert.Contains("split-word", word.Classes));
+        Assert.All(split.Chars, character => Assert.Contains("split-char", character.Classes));
+    }
+
+    [AvaloniaFact]
+    public void WrapsEachPieceInAClippingContainer()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(), new()
+        {
+            Lines = new() { Wrap = true },
+            Words = new() { Wrap = true },
+            Chars = new() { Wrap = true },
+        });
+
+        foreach (var piece in split.Lines.Concat(split.Words).Concat(split.Chars))
+        {
+            Assert.True(Assert.IsType<Border>(piece.Parent).ClipToBounds);
+        }
+    }
+
+    [AvaloniaFact]
+    public void EffectRunsOnceAfterTheSplit()
+    {
+        var calls = 0;
+        var cleanups = 0;
+
+        PrestoAvalonia.SplitText(ShowText(), new() { Lines = new() }).AddEffect(_ =>
+        {
+            calls++;
+            return () => cleanups++;
+        });
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(1, calls);
+        Assert.Equal(0, cleanups);
+    }
+
+    [AvaloniaFact]
+    public void EffectRunsAgainWhenTheWidthChanges()
+    {
+        var block = ShowText();
+        var calls = 0;
+        var cleanups = 0;
+
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new() }).AddEffect(_ =>
+        {
+            calls++;
+            return () => cleanups++;
+        });
+        var lines = split.Lines.Count;
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(2, calls);
+        Assert.Equal(1, cleanups);
+        Assert.True(split.Lines.Count > lines);
+
+        block.Width = 400;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(3, calls);
+        Assert.Equal(2, cleanups);
+        Assert.True(split.Lines.Count < lines);
+    }
+
+    [AvaloniaFact]
+    public void CleanupSeesThePiecesItsEffectWasGiven()
+    {
+        var block = ShowText();
+        TextSplitter? splitter = null;
+        var cleanups = 0;
+
+        splitter = PrestoAvalonia.SplitText(block, new() { Lines = new() }).AddEffect(split =>
+        {
+            var pieces = split.Words.ToArray();
+            return () =>
+            {
+                Assert.Equal(pieces, splitter!.Words);
+                cleanups++;
+            };
+        });
+
+        Assert.Equal(0, cleanups);
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(1, cleanups);
+    }
+
+    [AvaloniaFact]
+    public void RefreshRunsTheCleanupsAndTheEffectsAgain()
+    {
+        var calls = 0;
+        var cleanups = 0;
+
+        var split = PrestoAvalonia.SplitText(ShowText(), new() { Lines = new() }).AddEffect(_ =>
+        {
+            calls++;
+            return () => cleanups++;
+        });
+        split.Refresh();
+
+        Assert.Equal(2, calls);
+        Assert.Equal(1, cleanups);
+    }
+
+    [AvaloniaFact]
+    public void RevertRunsTheCleanupsAndStopsRespondingToResizes()
+    {
+        var block = ShowText();
+        var calls = 0;
+        var cleanups = 0;
+
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new() }).AddEffect(_ =>
+        {
+            calls++;
+            return () => cleanups++;
+        });
+        split.Revert();
+
+        Assert.Equal(1, calls);
+        Assert.Equal(1, cleanups);
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(1, calls);
+        Assert.Equal(1, cleanups);
+    }
+
+    /// <summary>Upstream "addEffect() should properly track the time of an animation".</summary>
+    [AvaloniaFact]
+    public void TheAnimationAnEffectReturnsKeepsItsTimeAcrossARespilt()
+    {
+        var block = ShowText();
+        Animation? animation = null;
+
+        PrestoAvalonia.SplitText(block, new() { Lines = new() }).AddEffect(split =>
+        {
+            var created = Presto.Animate(split.Lines, new AnimationParams { ["Opacity"] = 0, Duration = 2000 });
+            animation = created;
+            return created;
+        });
+
+        Frames.Advance(500, 50);
+        var first = animation!;
+        var elapsed = first.CurrentTime;
+        Assert.True(elapsed > 0);
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.NotSame(first, animation);
+        Assert.True(animation!.CurrentTime > elapsed);
+    }
+
+    /// <summary>An effect's animation is reverted with the splitter, where a re-split leaves it to the next run.</summary>
+    [AvaloniaFact]
+    public void RevertRevertsTheAnimationAnEffectReturned()
+    {
+        var block = ShowText();
+        Animation? animation = null;
+
+        var split = PrestoAvalonia.SplitText(block, new() { Chars = new() }).AddEffect(s =>
+        {
+            var created = Presto.Animate(s.Chars, new AnimationParams { ["Opacity"] = 0, Duration = 200 });
+            animation = created;
+            return created;
+        });
+
+        Frames.Advance(100, 16);
+        Assert.False(animation!.Paused);
+
+        split.Revert();
+        Assert.True(animation.Cancelled);
+    }
+
+    [AvaloniaFact]
+    public void RevertRestoresTheOriginalTextBlock()
+    {
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new() });
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotEmpty(block.GetVisualChildren());
+
+        split.Revert();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(Sentence, block.Text);
+        Assert.Empty(block.GetVisualChildren());
+        Assert.Empty(split.Lines);
+        Assert.Empty(split.Words);
+        Assert.Empty(split.Chars);
+    }
+}

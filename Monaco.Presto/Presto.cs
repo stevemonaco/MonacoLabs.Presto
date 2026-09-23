@@ -10,8 +10,10 @@ public static class Presto
     private static readonly ObjectTargetAdapter s_objectAdapter = new();
     private static readonly DecomposedValue s_getValue = new();
 
+    /// <summary>The single engine every timer runs on (upstream <c>engine</c>); its <see cref="Engine.FrameSource"/> is what a host such as the Avalonia bridge replaces.</summary>
     public static Engine Engine { get; } = new(new StopwatchFrameSource());
 
+    /// <summary>The global defaults new timers inherit, mirroring the upstream <c>defaults</c> object.</summary>
     public static PrestoDefaults Defaults => Globals.Defaults;
 
     /// <summary>Target adapters consulted in order; the built-in object and reflection adapter handles whatever none of them claims.</summary>
@@ -20,8 +22,10 @@ public static class Presto
     /// <summary>Codecs for property types the built-in adapter cannot tween natively, keyed by the property type.</summary>
     public static IDictionary<Type, IValueCodec> Codecs { get; } = new Dictionary<Type, IValueCodec>();
 
+    /// <summary>Creates a timer that fires callbacks over time without animating anything (upstream <c>createTimer()</c>).</summary>
     public static Timer CreateTimer(TimerParams? parameters = null) => new Timer(parameters ?? new(), null, 0).Init();
 
+    /// <summary>Creates a timeline that sequences animations, timers and callbacks on a shared playhead (upstream <c>createTimeline()</c>).</summary>
     public static Timeline CreateTimeline(TimelineParams? parameters = null) => new Timeline(parameters ?? new()).Init();
 
     /// <summary>Creates the paused per-property animations that <see cref="Animatable.Set(string, double, double?, EaseValue?)"/> drives.</summary>
@@ -36,6 +40,7 @@ public static class Presto
     /// </summary>
     public static Stagger Stagger(TweenValue value, StaggerParams? parameters = null) => new(value, parameters ?? new());
 
+    /// <summary>Animates the properties named in <paramref name="parameters"/> on every one of <paramref name="targets"/> (upstream <c>animate()</c>).</summary>
     public static Animation Animate(object? targets, AnimationParams parameters) =>
         (Animation)new Animation(targets, parameters, null, 0).Init();
 
@@ -93,5 +98,18 @@ public static class Presto
             if (Adapters[i].Resolve(target, property) is { } accessor) return accessor;
         }
         return s_objectAdapter.Resolve(target, property);
+    }
+
+    /// <summary>
+    /// The name a tween on <paramref name="property"/> is keyed by, so that every spelling an adapter accepts for one
+    /// property — a bare name, a qualified name, a typed handle — composes against the others.
+    /// </summary>
+    internal static string Canonicalise(object target, string property)
+    {
+        for (var i = 0; i < Adapters.Count; i++)
+        {
+            if (Adapters[i].Canonicalise(target, property) is { } canonical) return canonical;
+        }
+        return property;
     }
 }

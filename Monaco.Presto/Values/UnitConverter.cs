@@ -6,6 +6,7 @@ namespace Monaco.Presto.Values;
 /// </summary>
 public static class UnitConverter
 {
+    /// <summary>Rewrites <paramref name="value"/> in <paramref name="unit"/>, scaling its number only when both units are angles.</summary>
     public static void Convert(DecomposedValue value, string unit)
     {
         if (value.Kind == ValueKind.Unit && value.Unit == unit) return;

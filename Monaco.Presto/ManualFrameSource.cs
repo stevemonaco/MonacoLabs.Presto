@@ -5,12 +5,16 @@ public sealed class ManualFrameSource : IFrameSource
 {
     private Action? _onFrame;
 
+    /// <inheritdoc/>
     public double Now { get; private set; }
 
+    /// <summary>True between <see cref="Start"/> and <see cref="Stop"/>, when <see cref="Advance(double)"/> delivers frames.</summary>
     public bool IsRunning => _onFrame is not null;
 
+    /// <inheritdoc/>
     public void Start(Action onFrame) => _onFrame ??= onFrame;
 
+    /// <inheritdoc/>
     public void Stop() => _onFrame = null;
 
     /// <summary>Adds <paramref name="ms"/> to <see cref="Now"/> and invokes the frame callback once if running.</summary>

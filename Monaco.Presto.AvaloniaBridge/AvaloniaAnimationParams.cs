@@ -12,6 +12,7 @@ public sealed record AvaloniaAnimationParams : AnimationParams
     /// <summary>Installs the bridge, so <c>Presto.Animate(targets, new AvaloniaAnimationParams { … })</c> works without a prior <c>UsePresto()</c>.</summary>
     public AvaloniaAnimationParams() => PrestoAvalonia.EnsureInitialized();
 
+    /// <summary>The values one property is animated through, named by its <see cref="AvaloniaProperty"/> instead of by string.</summary>
     public TweenValue this[AvaloniaProperty property]
     {
         get => Properties[AvaloniaObjectTargetAdapter.Encode(property)];

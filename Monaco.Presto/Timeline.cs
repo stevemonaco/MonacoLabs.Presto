@@ -32,6 +32,7 @@ public sealed class Timeline : Timer
 
     internal override PrestoDefaults ChildDefaults => _defaults;
 
+    /// <summary>Adds an animation of <paramref name="targets"/> at <paramref name="position"/>, which defaults to the end of the timeline.</summary>
     public Timeline Add(object? targets, AnimationParams parameters, TimelinePosition position = default)
     {
         _hasChildren = true;
@@ -61,6 +62,10 @@ public sealed class Timeline : Timer
         return this;
     }
 
+    /// <summary>
+    /// Adds a plain timer at <paramref name="position"/>. The parameters must be written as <c>new TimerParams { … }</c>,
+    /// since a bare <c>new() { … }</c> is ambiguous with the targets overload.
+    /// </summary>
     public Timeline Add(TimerParams parameters, TimelinePosition position = default)
     {
         _hasChildren = true;
@@ -106,6 +111,7 @@ public sealed class Timeline : Timer
         return this;
     }
 
+    /// <inheritdoc cref="Timer.Init"/>
     public override Timeline Init(bool internalRender = false)
     {
         base.Init(internalRender);

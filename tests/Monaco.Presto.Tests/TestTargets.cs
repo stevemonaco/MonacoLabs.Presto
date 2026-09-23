@@ -52,6 +52,12 @@ internal sealed class CubeTarget
     public double Val { get; set; }
 }
 
+/// <summary>Stands in for the suites' <c>#scramble-text</c> element, whose property receives whole strings from a text modifier.</summary>
+internal sealed class TextTarget
+{
+    public string Text { get; set; } = "";
+}
+
 /// <summary>Stands in for the suites' DOM color properties with a typed member instead of a CSS color string.</summary>
 internal sealed class ColorTarget
 {

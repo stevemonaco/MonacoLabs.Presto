@@ -8,8 +8,10 @@ namespace Monaco.Presto;
 /// </summary>
 public readonly record struct LinearStop(double Value, double? Position = null)
 {
+    /// <summary>A stop at this value, reached at its evenly spaced position among the other stops.</summary>
     public static implicit operator LinearStop(double value) => new(value);
 
+    /// <summary>A stop written as <c>"value"</c> or <c>"value percent"</c>, the percent placing it at its own progress.</summary>
     public static implicit operator LinearStop(string s)
     {
         var parts = s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);

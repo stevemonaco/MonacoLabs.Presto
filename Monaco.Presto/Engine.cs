@@ -33,11 +33,13 @@ public sealed class Engine : Clock
     /// <summary>When false, the engine never starts its frame source and must be driven through <see cref="Update()"/>.</summary>
     public bool UseDefaultMainLoop { get; set; } = true;
 
+    /// <summary>Whether <see cref="Pause"/> has stopped the engine; like upstream <c>engine.paused</c> it also reads true before the first <see cref="Resume"/>.</summary>
     public bool Paused { get; internal set; } = true;
 
     /// <summary>True while the frame source is pumping frames.</summary>
     public bool IsRunning { get; private set; }
 
+    /// <summary>The global defaults, the same instance as <see cref="Presto.Defaults"/>.</summary>
     public PrestoDefaults Defaults => Globals.Defaults;
 
     /// <summary>Ticks every running child at the frame source's current time and drops the paused ones.</summary>
@@ -77,6 +79,7 @@ public sealed class Engine : Clock
         Additive.Update();
     }
 
+    /// <summary>Starts the frame source unless it is already pumping or <see cref="UseDefaultMainLoop"/> is off; resuming a timer calls it (upstream <c>engine.wake()</c>).</summary>
     public Engine Wake()
     {
         if (UseDefaultMainLoop && !IsRunning)
@@ -102,6 +105,7 @@ public sealed class Engine : Clock
         }
     }
 
+    /// <summary>Stops the frame source, freezing every timer where it stands (upstream <c>engine.pause()</c>).</summary>
     public Engine Pause()
     {
         AssertThreadAffinity();
@@ -112,6 +116,7 @@ public sealed class Engine : Clock
         return this;
     }
 
+    /// <summary>Restarts the frame source and rebases every timer's start time, so the paused interval does not count as elapsed (upstream <c>engine.resume()</c>).</summary>
     public Engine Resume()
     {
         AssertThreadAffinity();
@@ -121,6 +126,7 @@ public sealed class Engine : Clock
         return Wake();
     }
 
+    /// <summary>Global playback rate multiplied into every timer's own (upstream <c>engine.speed</c>); setting it rebases the running timers so they do not jump.</summary>
     public override double Speed
     {
         get => _speed * (Globals.TimeScale == 1 ? 1 : Constants.K);
@@ -134,7 +140,10 @@ public sealed class Engine : Clock
         }
     }
 
-    /// <summary>Unit of every duration, delay and time value; switching rescales the defaults and the engine speed.</summary>
+    /// <summary>
+    /// Unit every duration, delay and time value in the API is expressed in (upstream <c>engine.timeUnit</c>): milliseconds unless this is
+    /// <see cref="TimeUnit.Seconds"/>. Switching rescales the default duration and the engine speed, so set it before creating timers.
+    /// </summary>
     public TimeUnit TimeUnit
     {
         get => Globals.TimeScale == 1 ? TimeUnit.Milliseconds : TimeUnit.Seconds;

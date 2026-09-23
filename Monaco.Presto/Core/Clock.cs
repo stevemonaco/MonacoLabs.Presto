@@ -14,6 +14,7 @@ public abstract class Clock
     internal Timer? _head;
     internal Timer? _tail;
 
+    /// <summary>Starts the clock at <paramref name="initTime"/>, the frame source time its first tick is measured from.</summary>
     protected Clock(double initTime = 0)
     {
         _currentTime = initTime;
@@ -25,6 +26,7 @@ public abstract class Clock
     /// <summary>Time in milliseconds elapsed since the previous tick.</summary>
     public double DeltaTime { get; internal set; }
 
+    /// <summary>Cap on how often this clock renders, in frames per second (upstream <c>frameRate</c>); raising it past <see cref="PrestoDefaults.FrameRate"/> raises that default too, as upstream does.</summary>
     public double Fps
     {
         get => _fps;
@@ -37,6 +39,7 @@ public abstract class Clock
         }
     }
 
+    /// <summary>Multiplier on how fast this clock's time advances (upstream <c>playbackRate</c>); clamped to a tiny positive value, so it never stops.</summary>
     public virtual double Speed
     {
         get => _speed;

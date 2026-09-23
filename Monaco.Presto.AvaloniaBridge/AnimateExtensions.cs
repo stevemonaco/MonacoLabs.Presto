@@ -3,6 +3,10 @@ using Monaco.Presto.AvaloniaBridge.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
+/// <summary>
+/// The <see cref="Presto"/> factories as extension methods on an <see cref="AvaloniaObject"/>, and the typed
+/// <see cref="AvaloniaProperty"/> forms of the <see cref="Animatable"/> accessors.
+/// </summary>
 public static class AnimateExtensions
 {
     /// <summary>Animates this object's properties, installing the bridge first when nothing else has.</summary>

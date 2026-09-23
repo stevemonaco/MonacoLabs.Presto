@@ -12,8 +12,10 @@ public sealed class StopwatchFrameSource : IFrameSource
     private readonly long _origin = Stopwatch.GetTimestamp();
     private volatile Pump? _pump;
 
+    /// <inheritdoc/>
     public double Now => Stopwatch.GetElapsedTime(_origin).TotalMilliseconds;
 
+    /// <inheritdoc/>
     public void Start(Action onFrame)
     {
         if (_pump is not null) return;
@@ -22,6 +24,7 @@ public sealed class StopwatchFrameSource : IFrameSource
         pump.Start();
     }
 
+    /// <inheritdoc/>
     public void Stop()
     {
         var pump = _pump;

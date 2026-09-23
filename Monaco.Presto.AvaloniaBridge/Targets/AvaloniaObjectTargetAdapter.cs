@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using Avalonia;
+using Avalonia.Controls.Shapes;
 using Avalonia.Data;
+using Monaco.Presto.AvaloniaBridge.Shapes;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
 using Monaco.Presto.Targets;
@@ -9,24 +11,31 @@ using Monaco.Presto.Values;
 namespace Monaco.Presto.AvaloniaBridge.Targets;
 
 /// <summary>
-/// Resolves the properties of an <see cref="AvaloniaObject"/>: the transform shorthands ("X", "Rotate", "ScaleX"), plain
-/// names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
+/// Resolves the properties of an <see cref="AvaloniaObject"/>: the transform shorthands ("X", "Rotate", "ScaleX"), a
+/// <see cref="Shape"/>'s "Draw", plain names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
 /// instances <see cref="AvaloniaAnimationParams"/> encodes. Any other target is left to the next adapter.
 /// </summary>
 /// <remarks>
-/// Every frame is written at <see cref="BindingPriority.Animation"/> and the entry that write returns is kept per target, so
-/// the next frame replaces it instead of stacking a new one and a revert removes it, uncovering whatever value the property
-/// had underneath. A direct property has no such entry, so the value it held before the first frame is captured and written
-/// back on revert instead.
+/// A target's property is bound once at <see cref="BindingPriority.Animation"/> and every frame is pushed through that one
+/// binding, so a frame costs no value entry of its own and a revert disposes the binding, uncovering whatever value the
+/// property had underneath. A direct property binding ignores the priority and writes through the setter, so the value the
+/// property held before the first frame is captured and written back on revert instead.
 /// </remarks>
 public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
 {
     private static readonly Dictionary<(Type Type, string Name), AvaloniaProperty> s_resolved = [];
     private static readonly Dictionary<AvaloniaProperty, IPropertyAccessor> s_accessors = [];
     private static readonly IPropertyAccessor?[] s_transforms = new IPropertyAccessor?[Enum.GetValues<TransformShorthand>().Length];
+    private static IPropertyAccessor? s_draw;
 
     internal static string Encode(AvaloniaProperty property) => $"{property.OwnerType.Name}.{property.Name}";
 
+    /// <summary>
+    /// A shorthand moves the visual in device independent pixels and turns it in degrees, unless the value carries a unit of
+    /// its own (<c>"1turn"</c>, <c>".5rad"</c>); every other name is looked up in the <see cref="AvaloniaPropertyRegistry"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="target"/>'s type has no Avalonia property registered under <paramref name="property"/>.</exception>
+    /// <exception cref="NotSupportedException">That property's type has no codec registered in <see cref="Presto.Codecs"/>.</exception>
     public IPropertyAccessor? Resolve(object target, string property)
     {
         if (target is not AvaloniaObject) return null;
@@ -38,6 +47,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             {
                 return s_transforms[(int)shorthand] ??= new TransformAccessor(shorthand);
             }
+            if (visual is Shape && property == "Draw") return s_draw ??= new DrawAccessor();
         }
 
         var type = target.GetType();
@@ -51,6 +61,17 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             s_accessors[resolved] = accessor = new AvaloniaPropertyAccessor(resolved);
         }
         return accessor;
+    }
+
+    /// <summary>
+    /// Every spelling of one property — <c>"Opacity"</c>, <c>"Visual.Opacity"</c>, <see cref="Visual.OpacityProperty"/> — resolves
+    /// to the same <see cref="AvaloniaProperty"/> and so shares its encoded name, which is what tweens are keyed by.
+    /// </summary>
+    public string? Canonicalise(object target, string property)
+    {
+        if (target is not AvaloniaObject) return null;
+        if (target is Visual && (TransformShorthands.Parse(property) != null || (target is Shape && property == "Draw"))) return property;
+        return ResolveProperty(target.GetType(), property) is { } resolved ? Encode(resolved) : null;
     }
 
     private static AvaloniaProperty? ResolveProperty(Type targetType, string name)
@@ -116,7 +137,8 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     {
         private readonly AvaloniaProperty _property;
         private readonly Func<double, object>? _number;
-        private readonly ConditionalWeakTable<AvaloniaObject, IDisposable> _written = new();
+        private readonly bool _isString;
+        private readonly ConditionalWeakTable<AvaloniaObject, AnimatedValue> _animated = new();
         private readonly ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>? _original;
 
         public AvaloniaPropertyAccessor(AvaloniaProperty property)
@@ -128,6 +150,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             if (type == typeof(double)) _number = static n => n;
             else if (type == typeof(float)) _number = static n => (float)n;
             else if (type == typeof(int)) _number = static n => (int)Helpers.Round(n, 0);
+            else if (type == typeof(string)) _isString = true;
             else if (Presto.Codecs.TryGetValue(type, out var codec)) Codec = codec;
             else throw new NotSupportedException($"{property.OwnerType}.{property.Name} is a {type}, which has no codec registered in Presto.Codecs.");
         }
@@ -139,27 +162,50 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         public void SetValue(object target, double number, Tween tween)
         {
             var animated = (AvaloniaObject)target;
-            _written.TryGetValue(animated, out var previous);
             if (_original != null && !_original.TryGetValue(animated, out _)) _original.Add(animated, new StrongBox<object?>(animated.GetValue(_property)));
-            var value = _number != null ? _number(number) : Codec!.Encode(number, tween);
-            if (animated.SetValue(_property, value, BindingPriority.Animation) is { } written) _written.AddOrUpdate(animated, written);
-            // Disposed only once the new value is in place, so the property never drops back to its base value in between.
-            previous?.Dispose();
+            var value = _isString ? tween.ComposeString(number) : _number != null ? _number(number) : Codec!.Encode(number, tween);
+            if (!_animated.TryGetValue(animated, out var source)) _animated.Add(animated, source = new AnimatedValue(animated, _property));
+            source.Push(value);
         }
 
         public void Revert(object target, object? originalValue)
         {
             var animated = (AvaloniaObject)target;
-            if (_original != null)
+            if (_animated.TryGetValue(animated, out var source))
             {
-                if (!_original.TryGetValue(animated, out var original)) return;
-                _original.Remove(animated);
-                animated.SetValue(_property, original.Value);
-                return;
+                _animated.Remove(animated);
+                source.Dispose();
             }
-            if (!_written.TryGetValue(animated, out var written)) return;
-            _written.Remove(animated);
-            written.Dispose();
+            if (_original == null || !_original.TryGetValue(animated, out var original)) return;
+            _original.Remove(animated);
+            animated.SetValue(_property, original.Value);
+        }
+    }
+
+    // Serves as its own subscription token, so disposing it tears down the animation priority binding.
+    private sealed class AnimatedValue : IObservable<object?>, IDisposable
+    {
+        private IObserver<object?>? _observer;
+        private IDisposable? _binding;
+
+        public AnimatedValue(AvaloniaObject target, AvaloniaProperty property) =>
+            _binding = target.Bind(property, this, BindingPriority.Animation);
+
+        public IDisposable Subscribe(IObserver<object?> observer)
+        {
+            _observer = observer;
+            return this;
+        }
+
+        public void Push(object? value) => _observer?.OnNext(value);
+
+        public void Dispose()
+        {
+            _observer = null;
+            // Cleared first: disposing the binding disposes this subscription token in turn.
+            var binding = _binding;
+            _binding = null;
+            binding?.Dispose();
         }
     }
 }

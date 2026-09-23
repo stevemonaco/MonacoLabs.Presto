@@ -30,6 +30,7 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
     /// <summary>Parses a color string; anything unrecognised is opaque black, as upstream.</summary>
     public static PrestoColor Parse(string s) => TryParse(s, out var color) ? color : new(0, 0, 0);
 
+    /// <summary>Parses a color string, returning false for anything that is not one of the recognised hex, <c>rgb</c> or <c>hsl</c> forms.</summary>
     public static bool TryParse(string s, out PrestoColor color)
     {
         if (s.StartsWith("rgb", StringComparison.Ordinal)) return TryParseRgb(s, out color);
@@ -43,14 +44,17 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
         return false;
     }
 
+    /// <summary>Rebuilds a color from the four channels a color tween interpolates.</summary>
     public static PrestoColor FromChannels(ReadOnlySpan<double> channels) => new(channels[0], channels[1], channels[2], channels[3]);
 
+    /// <summary>The four channels in the order a color tween interpolates them.</summary>
     public double[] ToChannels() => [R, G, B, A];
 
     /// <summary>The <c>rgba(r,g,b,a)</c> string upstream writes to non-DOM targets: channels rounded, alpha as is, no spaces.</summary>
     public static string FormatRgba(ReadOnlySpan<double> channels) =>
         $"rgba({JsNumber.Format(Helpers.Round(channels[0], 0))},{JsNumber.Format(Helpers.Round(channels[1], 0))},{JsNumber.Format(Helpers.Round(channels[2], 0))},{JsNumber.Format(channels[3])})";
 
+    /// <summary>The color in the <see cref="FormatRgba"/> form, which is also what a color tween writes.</summary>
     public override string ToString() => FormatRgba([R, G, B, A]);
 
     private static bool TryParseRgb(string s, out PrestoColor color)

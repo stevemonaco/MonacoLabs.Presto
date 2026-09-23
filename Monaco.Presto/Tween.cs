@@ -27,6 +27,7 @@ public sealed class Tween
     internal double _number;
     internal string? _unit;
     internal Func<double, double> _modifier = static v => v;
+    internal Func<double, string>? _textModifier;
     internal double _currentTime;
     internal double _startTime;
     internal double _delay;
@@ -57,14 +58,19 @@ public sealed class Tween
         Accessor = accessor;
     }
 
+    /// <summary>Process-wide sequence number, assigned in creation order.</summary>
     public int Id { get; }
 
+    /// <summary>The animation this tween belongs to.</summary>
     public Timer Parent { get; }
 
+    /// <summary>The name of the property being animated.</summary>
     public string Property { get; }
 
+    /// <summary>The object whose property is being animated.</summary>
     public object Target { get; }
 
+    /// <summary>The accessor that reads and writes <see cref="Property"/> on <see cref="Target"/>.</summary>
     public IPropertyAccessor Accessor { get; }
 
     /// <summary>Lerps every channel of a complex value into <c>_numbers</c>, the numeric half of upstream <c>composeComplexValue</c>.</summary>
@@ -88,11 +94,11 @@ public sealed class Tween
         return composed.ToString();
     }
 
-    /// <summary>Builds the value a target receives for the current <c>_number</c>/<c>_numbers</c>: a string for every kind but <see cref="ValueKind.Number"/>.</summary>
-    internal object ComposeValue(double number) => _valueType == ValueKind.Number ? number : ComposeString(number);
+    /// <summary>Builds the value a target receives for the current <c>_number</c>/<c>_numbers</c>: a plain number only when the tween is numeric and has no text modifier.</summary>
+    internal object ComposeValue(double number) => _valueType == ValueKind.Number && _textModifier == null ? number : ComposeString(number);
 
     /// <summary>The always-string form of <see cref="ComposeValue"/>, for targets whose property is typed as a string.</summary>
-    internal string ComposeString(double number) => _valueType switch
+    internal string ComposeString(double number) => _textModifier != null ? _textModifier(number) : _valueType switch
     {
         ValueKind.Unit => JsNumber.Format(number) + _unit,
         ValueKind.Color => PrestoColor.FormatRgba(_numbers),

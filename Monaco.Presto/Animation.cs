@@ -75,7 +75,9 @@ public sealed class Animation : Timer
 
             for (var propertyIndex = 0; propertyIndex < properties.Count; propertyIndex++)
             {
-                var (propertyName, propertyValue) = properties[propertyIndex];
+                var (declaredName, propertyValue) = properties[propertyIndex];
+                // Keyed by the canonical name so the other spellings of this property compose against these tweens.
+                var propertyName = Presto.Canonicalise(target, declaredName);
                 var accessor = Presto.ResolveAccessor(target, propertyName);
                 var codec = accessor.Codec;
                 var frames = NormalizeKeyframes(propertyValue, fastSet);
@@ -104,8 +106,11 @@ public sealed class Animation : Timer
 
                     var tweenComposition = key?.Composition ?? tComposition;
                     if (siblings == null && tweenComposition != Composition.None) siblings = Composer.GetTweenSiblings(target, propertyName);
+                    // A timeline child chains off the tail sibling of the same timeline; anything else off its own previous keyframe.
+                    var tailTween = siblings?._tail;
+                    var chainedTween = parent != null && tailTween != null && tailTween.Parent.Parent == parent ? tailTween : prevTween;
 
-                    var computedToValue = GetFunctionValue(key != null ? key.To : frame, target, ti, groupTargets, ref toFunc);
+                    var computedToValue = GetFunctionValue(key != null ? key.To : frame, target, ti, groupTargets, chainedTween, ref toFunc);
                     TweenValue? tweenToValue;
                     // Allows function based values to return an object syntax value.
                     if (computedToValue?.Raw is TweenParams { To: not null } computedKey)
@@ -118,21 +123,22 @@ public sealed class Animation : Timer
                         tweenToValue = computedToValue;
                     }
 
-                    var tweenFromValue = GetFunctionValue(key?.From, target, ti, groupTargets, ref fromFunc);
+                    var tweenFromValue = GetFunctionValue(key?.From, target, ti, groupTargets, chainedTween, ref fromFunc);
                     var tweenEase = (key?.Ease ?? tEasing).Resolve(target, ti, total, out var keySpring);
 
                     TweenValue tweenDurationValue;
                     if (key?.Duration is { } keyDuration) tweenDurationValue = keyDuration;
                     // Keyframes split the animation duration between them.
-                    else if (frames.Length > 1) tweenDurationValue = JsNumber.ToNumber(GetFunctionValue(tDuration, target, ti, groupTargets)?.Raw, 0) / frames.Length;
+                    else if (frames.Length > 1) tweenDurationValue = JsNumber.ToNumber(GetFunctionValue(tDuration, target, ti, groupTargets, chainedTween)?.Raw, 0) / frames.Length;
                     else tweenDurationValue = tDuration;
 
                     var tweenDuration = keySpring != null
                         ? keySpring.SettlingDuration
-                        : JsNumber.ToNumber(GetFunctionValue(tweenDurationValue, target, ti, groupTargets)?.Raw, 0);
+                        : JsNumber.ToNumber(GetFunctionValue(tweenDurationValue, target, ti, groupTargets, chainedTween)?.Raw, 0);
                     // The animation delay only applies to the first keyframe.
-                    var tweenDelay = JsNumber.ToNumber(GetFunctionValue(key?.Delay ?? (tweenIndex == 0 ? tDelay : (TweenValue)0), target, ti, groupTargets)?.Raw, 0);
+                    var tweenDelay = JsNumber.ToNumber(GetFunctionValue(key?.Delay ?? (tweenIndex == 0 ? tDelay : (TweenValue)0), target, ti, groupTargets, chainedTween)?.Raw, 0);
                     var tweenModifier = key?.Modifier ?? tModifier;
+                    var tweenTextModifier = key?.TextModifier;
 
                     var hasFromValue = tweenFromValue != null;
                     var isFromToArray = tweenToValue?.IsArray == true;
@@ -171,11 +177,11 @@ public sealed class Animation : Timer
                     if (isFromToValue)
                     {
                         ValueParser.Decompose(
-                            isFromToArray ? GetFunctionValue(ArrayItem(tweenToValue!.Value, 0), target, ti, groupTargets, ref fromFunc)?.Raw : tweenFromValue?.Raw,
+                            isFromToArray ? GetFunctionValue(ArrayItem(tweenToValue!.Value, 0), target, ti, groupTargets, chainedTween, ref fromFunc)?.Raw : tweenFromValue?.Raw,
                             s_fromValue,
                             codec);
                         ValueParser.Decompose(
-                            isFromToArray ? GetFunctionValue(ArrayItem(tweenToValue!.Value, 1), target, ti, groupTargets, ref toFunc)?.Raw : tweenToValue?.Raw,
+                            isFromToArray ? GetFunctionValue(ArrayItem(tweenToValue!.Value, 1), target, ti, groupTargets, chainedTween, ref toFunc)?.Raw : tweenToValue?.Raw,
                             s_toValue,
                             codec);
                         var originalValue = ReadOriginalValue();
@@ -263,6 +269,7 @@ public sealed class Animation : Timer
                         _number = s_fromValue.Number,
                         _unit = s_toValue.Unit,
                         _modifier = tweenModifier,
+                        _textModifier = tweenTextModifier,
                         _startTime = tweenStartTime,
                         _delay = tweenDelay,
                         _updateDuration = tweenUpdateDuration,
@@ -280,21 +287,28 @@ public sealed class Animation : Timer
                     if (tweenComposition != Composition.None) Composer.ComposeTween(tween, siblings!);
 
                     // Pre-computed so a later function based value can chain off this tween's end value.
-                    switch (tween._valueType)
+                    if (tweenTextModifier != null)
                     {
-                        case ValueKind.Complex:
-                            for (var i = 0; i < tween._numbers.Length; i++) tween._numbers[i] = tweenModifier(tween._toNumbers[i]);
-                            tween._value = tween.ComposeComplexString();
-                            break;
-                        case ValueKind.Unit:
-                            tween._value = JsNumber.Format(tweenModifier(tween._toNumber)) + tween._unit;
-                            break;
-                        case ValueKind.Color:
-                            tween._value = PrestoColor.FormatRgba(s_toValue.Numbers!);
-                            break;
-                        default:
-                            tween._value = tweenModifier(tween._toNumber);
-                            break;
+                        tween._value = tweenTextModifier(tween._toNumber);
+                    }
+                    else
+                    {
+                        switch (tween._valueType)
+                        {
+                            case ValueKind.Complex:
+                                for (var i = 0; i < tween._numbers.Length; i++) tween._numbers[i] = tweenModifier(tween._toNumbers[i]);
+                                tween._value = tween.ComposeComplexString();
+                                break;
+                            case ValueKind.Unit:
+                                tween._value = JsNumber.Format(tweenModifier(tween._toNumber)) + tween._unit;
+                                break;
+                            case ValueKind.Color:
+                                tween._value = PrestoColor.FormatRgba(s_toValue.Numbers!);
+                                break;
+                            default:
+                                tween._value = tweenModifier(tween._toNumber);
+                                break;
+                        }
                     }
 
                     if (double.IsNaN(firstTweenChangeStartTime)) firstTweenChangeStartTime = tween._startTime;
@@ -342,6 +356,7 @@ public sealed class Animation : Timer
         if (!_autoplay && shouldTriggerRender) _onRender?.Invoke(this);
     }
 
+    /// <summary>The targets this animation tweens, flattened out of the targets parameter with duplicates dropped.</summary>
     public IReadOnlyList<object> Targets { get; }
 
     /// <inheritdoc cref="Timer.Stretch"/>
@@ -424,6 +439,7 @@ public sealed class Animation : Timer
         return this;
     }
 
+    /// <inheritdoc cref="Timer.GetAwaiter"/>
     public new TaskAwaiter<Animation> GetAwaiter() => Then().GetAwaiter();
 
     // [x,y] -> one from/to frame; [x,y,z] -> [[x,y], z]
@@ -447,19 +463,20 @@ public sealed class Animation : Timer
         return index < items.Length ? items[index] : (TweenValue?)null;
     }
 
-    private static TweenValue? GetFunctionValue(TweenValue? value, object target, int index, IReadOnlyList<object> targets) =>
-        ValueFunction(value, target, index, targets) is { } function ? function() : value;
+    private static TweenValue? GetFunctionValue(TweenValue? value, object target, int index, IReadOnlyList<object> targets, Tween? chained) =>
+        ValueFunction(value, target, index, targets, chained) is { } function ? function() : value;
 
-    private static TweenValue? GetFunctionValue(TweenValue? value, object target, int index, IReadOnlyList<object> targets, ref Func<TweenValue>? store)
+    private static TweenValue? GetFunctionValue(TweenValue? value, object target, int index, IReadOnlyList<object> targets, Tween? chained, ref Func<TweenValue>? store)
     {
-        if (ValueFunction(value, target, index, targets) is not { } function) return value;
+        if (ValueFunction(value, target, index, targets, chained) is not { } function) return value;
         store = function;
         return function();
     }
 
-    private static Func<TweenValue>? ValueFunction(TweenValue? value, object target, int index, IReadOnlyList<object> targets) => value?.Raw switch
+    private static Func<TweenValue>? ValueFunction(TweenValue? value, object target, int index, IReadOnlyList<object> targets, Tween? chained) => value?.Raw switch
     {
         FunctionValue function => () => function(target, index, targets.Count).Coerce(),
+        ChainedFunctionValue function => () => function(target, index, targets.Count, chained).Coerce(),
         Stagger stagger => () => stagger.Invoke(target, index, targets, null).Coerce(),
         _ => null,
     };

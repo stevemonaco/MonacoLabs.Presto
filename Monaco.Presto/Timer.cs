@@ -28,6 +28,8 @@ public class Timer : Clock, IRevertible
     internal Tween? _tailTween;
     internal Ease? _ease;
     internal Action<Timer>? _onRender;
+    // Upstream reverts the ScrollObserver passed as `autoplay` from revert(); Presto's observer hooks itself here instead.
+    internal Action<Timer>? _onRevert;
     internal int _priority;
 
     internal Timer(TimerParams parameters, Timer? parent, double parentPosition) : base(0)
@@ -87,8 +89,10 @@ public class Timer : Clock, IRevertible
         _priority = parameters.Priority;
     }
 
+    /// <inheritdoc cref="TimerParams.Id"/>
     public string Id { get; internal set; }
 
+    /// <summary>The timeline this timer was added to, or null when it runs directly on the engine.</summary>
     public Timer? Parent { get; }
 
     /// <summary>The defaults the children of this timer inherit; a timeline overrides it with its own.</summary>
@@ -103,26 +107,37 @@ public class Timer : Clock, IRevertible
     /// <summary>Number of iterations; <see cref="double.PositiveInfinity"/> when looping forever.</summary>
     public double IterationCount { get; internal set; }
 
+    /// <summary>True while the playhead is moving towards 0, combining <see cref="Reversed"/>, alternating iterations and the parent's direction.</summary>
     public bool Backwards { get; internal set; }
 
+    /// <summary>True while the timer is not being advanced; it keeps its position until <see cref="Resume"/>.</summary>
     public bool Paused { get; internal set; }
 
+    /// <summary>True once the playhead has moved past the delay and <see cref="OnBegin"/> has fired.</summary>
     public bool Began { get; internal set; }
 
+    /// <summary>True once the last iteration has finished and <see cref="OnComplete"/> has fired; an infinite timer never sets it.</summary>
     public bool Completed { get; internal set; }
 
+    /// <summary>Called once when the timer passes its delay and starts playing (upstream <c>onBegin</c>).</summary>
     public Action<Timer>? OnBegin { get; internal set; }
 
+    /// <summary>Called every frame before the tweens are rendered (upstream <c>onBeforeUpdate</c>).</summary>
     public Action<Timer>? OnBeforeUpdate { get; internal set; }
 
+    /// <summary>Called every frame after the tweens are rendered (upstream <c>onUpdate</c>).</summary>
     public Action<Timer>? OnUpdate { get; internal set; }
 
+    /// <summary>Called each time an iteration ends and the next one begins (upstream <c>onLoop</c>).</summary>
     public Action<Timer>? OnLoop { get; internal set; }
 
+    /// <summary>Called when <see cref="Pause"/> pauses a running timer; reaching the end does not fire it (upstream <c>onPause</c>).</summary>
     public Action<Timer>? OnPause { get; internal set; }
 
+    /// <summary>Called once when the last iteration finishes; an infinite timer never fires it (upstream <c>onComplete</c>).</summary>
     public Action<Timer>? OnComplete { get; internal set; }
 
+    /// <summary>True once <see cref="Cancel"/> has detached the timer; setting it false revives it and plays it from the start.</summary>
     public bool Cancelled
     {
         get => _cancelled;
@@ -132,6 +147,7 @@ public class Timer : Clock, IRevertible
         }
     }
 
+    /// <summary>Position of the playhead across every iteration, from minus the delay to <see cref="Duration"/>; setting it seeks without changing whether the timer is playing.</summary>
     public double CurrentTime
     {
         get => Helpers.Clamp(Helpers.Round(_currentTime, Globals.Precision), -_delay, Duration);
@@ -143,18 +159,21 @@ public class Timer : Clock, IRevertible
         }
     }
 
+    /// <summary>Position of the playhead inside the current iteration, from 0 to <see cref="IterationDuration"/>; setting it seeks.</summary>
     public double IterationCurrentTime
     {
         get => Helpers.Clamp(Helpers.Round(_iterationTime, Globals.Precision), 0, IterationDuration);
         set => CurrentTime = (IterationDuration * _currentIteration) + value;
     }
 
+    /// <summary>Position of the playhead across every iteration, from 0 to 1; setting it seeks.</summary>
     public double Progress
     {
         get => Helpers.Clamp(Helpers.Round(_currentTime / Duration, 10), 0, 1);
         set => CurrentTime = Duration * value;
     }
 
+    /// <summary>Position of the playhead inside the current iteration, from 0 to 1; setting it seeks.</summary>
     public double IterationProgress
     {
         get => Helpers.Clamp(Helpers.Round(_iterationTime / IterationDuration, 10), 0, 1);
@@ -165,12 +184,14 @@ public class Timer : Clock, IRevertible
         }
     }
 
+    /// <summary>Zero based index of the iteration being played; setting it seeks to the start of that iteration.</summary>
     public int CurrentIteration
     {
         get => _currentIteration;
         set => CurrentTime = IterationDuration * Helpers.Clamp(value, 0, IterationCount - 1);
     }
 
+    /// <summary>Whether the playhead runs towards 0; setting it calls <see cref="Reverse"/> or <see cref="Play"/>, so it also resumes the timer.</summary>
     public bool Reversed
     {
         get => _reversed;
@@ -180,6 +201,7 @@ public class Timer : Clock, IRevertible
         }
     }
 
+    /// <summary>This timer's playback rate, multiplied by <see cref="Engine.Speed"/> (upstream <c>playbackRate</c>); setting it rebases the start time so the playhead does not jump.</summary>
     public override double Speed
     {
         set
@@ -215,6 +237,8 @@ public class Timer : Clock, IRevertible
 
     private static bool SortByPriority(Timer prev, Timer child) => prev._priority > child._priority;
 
+    /// <summary>Rewinds to 0 and clears the began, completed and cancelled state, leaving the timer paused (upstream <c>timer.reset()</c>).</summary>
+    /// <param name="softReset">Rewinds the timing state without writing the start values back to the targets.</param>
     public Timer Reset(bool softReset = false)
     {
         Presto.Engine.AssertThreadAffinity();
@@ -227,6 +251,8 @@ public class Timer : Clock, IRevertible
         return this;
     }
 
+    /// <summary>Applies the frame and playback rates, renders the initial state and starts playing when autoplay is on; the <see cref="Presto"/> factories call it (upstream <c>timer.init()</c>).</summary>
+    /// <param name="internalRender">Skips the one-off render of a timeline's children at their end state and leaves the targets untouched.</param>
     public virtual Timer Init(bool internalRender = false)
     {
         Fps = _fps;
@@ -237,6 +263,7 @@ public class Timer : Clock, IRevertible
         return this;
     }
 
+    /// <summary>Rebases the start time against the engine clock so the timer carries on from <see cref="CurrentTime"/> instead of jumping (upstream <c>timer.resetTime()</c>).</summary>
     public Timer ResetTime()
     {
         var engine = Presto.Engine;
@@ -245,6 +272,7 @@ public class Timer : Clock, IRevertible
         return this;
     }
 
+    /// <summary>Stops advancing the timer where it stands and fires <see cref="OnPause"/> (upstream <c>timer.pause()</c>).</summary>
     public Timer Pause()
     {
         Presto.Engine.AssertThreadAffinity();
@@ -254,6 +282,7 @@ public class Timer : Clock, IRevertible
         return this;
     }
 
+    /// <summary>Carries on from the current position in the current direction, re-registering with the engine (upstream <c>timer.resume()</c>).</summary>
     public Timer Resume()
     {
         Presto.Engine.AssertThreadAffinity();
@@ -280,8 +309,13 @@ public class Timer : Clock, IRevertible
         return this;
     }
 
+    /// <summary>Rewinds to 0 and plays from there (upstream <c>timer.restart()</c>).</summary>
     public Timer Restart() => Reset().Resume();
 
+    /// <summary>Moves the playhead and renders there, leaving the timer paused or playing as it was (upstream <c>timer.seek()</c>).</summary>
+    /// <param name="time">Position to move to, measured from the end of the delay.</param>
+    /// <param name="muteCallbacks">Suppresses the callbacks the jump would otherwise fire, including those of the iterations skipped over.</param>
+    /// <param name="internalRender">Updates the timing state without writing values to the targets.</param>
     public Timer Seek(double time, bool muteCallbacks = false, bool internalRender = false)
     {
         Presto.Engine.AssertThreadAffinity();
@@ -313,18 +347,21 @@ public class Timer : Clock, IRevertible
         return this;
     }
 
+    /// <summary>Resumes playing forwards, flipping the direction first when the timer was reversed (upstream <c>timer.play()</c>).</summary>
     public Timer Play()
     {
         if (_reversed) Alternate();
         return Resume();
     }
 
+    /// <summary>Resumes playing backwards, flipping the direction first when the timer was not already reversed (upstream <c>timer.reverse()</c>).</summary>
     public Timer Reverse()
     {
         if (!_reversed) Alternate();
         return Resume();
     }
 
+    /// <summary>Pauses and detaches the tweens from their targets, leaving the animated values where they stand; <see cref="Reset"/> and <see cref="Seek"/> revive it (upstream <c>timer.cancel()</c>).</summary>
     public Timer Cancel()
     {
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
@@ -353,6 +390,7 @@ public class Timer : Clock, IRevertible
     public virtual Timer Revert()
     {
         Renderer.Tick(this, 0, true, false, TickMode.Auto);
+        _onRevert?.Invoke(this);
         return Cancel();
     }
 
@@ -376,6 +414,7 @@ public class Timer : Clock, IRevertible
         return _completion.Task;
     }
 
+    /// <summary>Makes the timer directly awaitable, so <c>await timer</c> stands in for upstream's <c>await timer.then()</c>.</summary>
     public TaskAwaiter<Timer> GetAwaiter() => Then().GetAwaiter();
 
     internal void Resolve()

@@ -123,6 +123,17 @@ public static partial class ValueParser
         return true;
     }
 
+    /// <summary>Upstream <c>relativeValuesExecRgx</c>: the index of the first <c>*=</c>, <c>+=</c> or <c>-=</c>, or -1.</summary>
+    public static int IndexOfRelativeOperator(string text)
+    {
+        for (var i = 0; i < text.Length - 1; i++)
+        {
+            if (text[i + 1] == '=' && text[i] is '*' or '+' or '-') return i;
+        }
+        return -1;
+    }
+
+    /// <summary>Applies a relative value's <paramref name="op"/> (<c>'+'</c>, <c>'-'</c> or anything else for multiply) to the value it is relative to.</summary>
     public static double GetRelativeValue(double x, double y, char op) =>
         op == '-' ? x - y :
         op == '+' ? x + y :

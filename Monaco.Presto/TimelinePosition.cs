@@ -14,7 +14,10 @@ public readonly struct TimelinePosition
 
     private TimelinePosition(object raw) => _raw = raw;
 
+    /// <summary>An absolute time on the timeline, in milliseconds from its start.</summary>
     public static implicit operator TimelinePosition(double value) => new(value);
+
+    /// <summary>The string forms listed on <see cref="TimelinePosition"/>; an unknown label falls back to the end of the timeline.</summary>
     public static implicit operator TimelinePosition(string value) => new(value);
 
     internal double Parse(Timeline timeline)
@@ -28,7 +31,7 @@ public readonly struct TimelinePosition
         if (!double.IsNaN(asNumber)) return asNumber;
 
         var prevOffset = PreviousChildOffset(timeline, text);
-        var operatorIndex = IndexOfOperator(text);
+        var operatorIndex = ValueParser.IndexOfRelativeOperator(text);
         var name = operatorIndex < 0 ? text : text[..operatorIndex];
         // Upstream resolves an unknown label before an operator to NaN; the duration fallback matches its bare label branch.
         var offset = prevOffset ?? (timeline.Labels.TryGetValue(name, out var labelOffset) ? labelOffset : tlDuration);
@@ -44,15 +47,5 @@ public readonly struct TimelinePosition
         if (previous == null) return 0;
         var start = previous._offset + previous._delay;
         return text.Length > 1 && text[1] == '<' ? start : start + previous.Duration;
-    }
-
-    // Upstream relativeValuesExecRgx: the first *=, += or -= in the string.
-    private static int IndexOfOperator(string text)
-    {
-        for (var i = 0; i < text.Length - 1; i++)
-        {
-            if (text[i + 1] == '=' && text[i] is '*' or '+' or '-') return i;
-        }
-        return -1;
     }
 }

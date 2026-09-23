@@ -16,7 +16,9 @@ public sealed class Keyframes
 
     internal Dictionary<string, Keyframe>? PercentageBased { get; }
 
+    /// <summary>The duration-based form: the frames run in order, each taking its own <see cref="Keyframe.Duration"/> or an equal share of the animation's.</summary>
     public static implicit operator Keyframes(Keyframe[] frames) => new(frames, null);
 
+    /// <summary>The percentage-based form: each key places its frame at that fraction of the animation's duration, and the frames are sorted by offset.</summary>
     public static implicit operator Keyframes(Dictionary<string, Keyframe> frames) => new(null, frames);
 }
