@@ -1,6 +1,4 @@
-using Monaco.Presto.Core;
-
-namespace Monaco.Presto;
+﻿namespace Monaco.Presto;
 
 /// <summary>
 /// Port of anime.js <c>createScope</c>: a lifetime for everything created inside it. Timers, animations, animatables and
@@ -17,17 +15,20 @@ public class Scope : IRevertible
     private readonly List<Delegate> _constructorsOnce = [];
     private readonly List<Action> _revertConstructorsOnce = [];
     private readonly List<IRevertible> _revertiblesOnce = [];
+    private readonly Engine _engine;
     private bool _once;
     private int _onceIndex;
 
     /// <summary>
-    /// Creates a scope, taking a copy of the global defaults as its own and registering with whichever scope is current.
+    /// Creates a scope on the current engine, taking a copy of that engine's defaults as its own and registering with
+    /// whichever scope is current.
     /// </summary>
     public Scope(ScopeParams? parameters = null)
     {
-        Globals.CurrentScope?.Register(this);
+        _engine = Engine.Current;
+        _engine.CurrentScope?.Register(this);
         Root = parameters?.Root;
-        var defaults = Globals.Defaults;
+        var defaults = _engine.Defaults;
         if (parameters?.Defaults is { } configure)
         {
             defaults = defaults with { };
@@ -39,7 +40,7 @@ public class Scope : IRevertible
     /// <inheritdoc cref="ScopeParams.Root"/>
     public object? Root { get; }
 
-    /// <summary>The defaults in force while the scope executes; a copy of the globals as they stood when it was created.</summary>
+    /// <summary>The defaults in force while the scope executes; a copy of its engine's as they stood when it was created.</summary>
     public PrestoDefaults Defaults { get; }
 
     /// <summary>Scratch storage keyed by name, cleared by <see cref="Revert"/>.</summary>
@@ -51,22 +52,22 @@ public class Scope : IRevertible
     /// <summary>Records <paramref name="revertible"/> so <see cref="Revert"/> undoes it.</summary>
     public void Register(IRevertible revertible) => (_once ? _revertiblesOnce : _revertibles).Add(revertible);
 
-    /// <summary>Runs <paramref name="callback"/> with this scope current and its defaults in force.</summary>
-    /// <remarks>Both are restored in a <c>finally</c>, where upstream restores them only when the callback returns.</remarks>
+    /// <summary>Runs <paramref name="callback"/> with this scope current, its defaults in force and its engine ambient.</summary>
+    /// <remarks>All three are restored in a <c>finally</c>, where upstream restores them only when the callback returns.</remarks>
     public T Execute<T>(Func<Scope, T> callback)
     {
-        var activeScope = Globals.CurrentScope;
-        var activeDefaults = Globals.Defaults;
-        Globals.CurrentScope = this;
-        Globals.Defaults = Defaults;
+        var activeScope = _engine.CurrentScope;
+        var activeDefaults = _engine.Defaults;
+        _engine.CurrentScope = this;
+        _engine.Defaults = Defaults;
         try
         {
-            return callback(this);
+            using (_engine.MakeCurrent()) return callback(this);
         }
         finally
         {
-            Globals.CurrentScope = activeScope;
-            Globals.Defaults = activeDefaults;
+            _engine.CurrentScope = activeScope;
+            _engine.Defaults = activeDefaults;
         }
     }
 

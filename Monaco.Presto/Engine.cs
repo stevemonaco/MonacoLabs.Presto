@@ -1,18 +1,45 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Monaco.Presto.Core;
 
 namespace Monaco.Presto;
 
-/// <summary>Root clock driving every running timer from a single <see cref="IFrameSource"/>; use the singleton at <see cref="Presto.Engine"/>.</summary>
+/// <summary>Root clock driving every running timer from a single <see cref="IFrameSource"/>; the main engine is <see cref="Presto.Engine"/>.</summary>
 public sealed class Engine : Clock
 {
+    [ThreadStatic]
+    private static Engine? s_current;
+
     private IFrameSource _frameSource;
     private int _threadId;
 
-    internal Engine(IFrameSource frameSource) : base(frameSource.Now)
+    /// <summary>Creates an independent engine driven by its own frame source, starting from a copy of <see cref="Presto.Defaults"/>; the main engine is <see cref="Presto.Engine"/>.</summary>
+    public Engine(IFrameSource frameSource) : this(frameSource, Presto.Defaults with { })
     {
-        _frameSource = frameSource;
     }
+
+    // The main engine cannot snapshot Presto.Defaults: it is the engine that owns them.
+    internal Engine(IFrameSource frameSource, PrestoDefaults defaults) : base(frameSource.Now)
+    {
+        _engine = this;
+        // Globals.TimeScale is process-wide, so an engine created in seconds mode must start out scaled like the main one.
+        _speed = Globals.TimeScale;
+        _frameSource = frameSource;
+        Defaults = defaults;
+        Additive = new(this);
+    }
+
+    /// <summary>The engine timers created on this thread run on: the one <see cref="MakeCurrent"/> installed here, or <see cref="Presto.Engine"/>.</summary>
+    public static Engine Current => s_current ?? Presto.Engine;
+
+    /// <summary>Makes this the <see cref="Current"/> engine on the calling thread until the returned handle is disposed, which restores the previous one.</summary>
+    public EngineScope MakeCurrent()
+    {
+        var previous = s_current;
+        s_current = this;
+        return new EngineScope(previous);
+    }
+
+    internal static void RestoreCurrent(Engine? previous) => s_current = previous;
 
     /// <summary>Clock and frame pump; swapping it while running restarts the pump on the new source.</summary>
     public IFrameSource FrameSource
@@ -39,8 +66,12 @@ public sealed class Engine : Clock
     /// <summary>True while the frame source is pumping frames.</summary>
     public bool IsRunning { get; private set; }
 
-    /// <summary>The global defaults, the same instance as <see cref="Presto.Defaults"/>.</summary>
-    public PrestoDefaults Defaults => Globals.Defaults;
+    /// <summary>The defaults every timer created on this engine inherits; <see cref="Scope.Execute{T}"/> swaps in the scope's own while it runs.</summary>
+    public PrestoDefaults Defaults { get; internal set; }
+
+    internal Scope? CurrentScope { get; set; }
+
+    internal Additive Additive { get; }
 
     /// <summary>Ticks every running child at the frame source's current time and drops the paused ones.</summary>
     public void Update()
@@ -116,6 +147,20 @@ public sealed class Engine : Clock
         return this;
     }
 
+    /// <summary>Unlinks every child, the way <see cref="Update"/> prunes the paused ones; for an engine that is retired for good and will never tick again.</summary>
+    internal void DropChildren()
+    {
+        var child = _head;
+        while (child != null)
+        {
+            var next = child._next;
+            Helpers.RemoveChild(this, child);
+            child._running = false;
+            child = next;
+        }
+        _hasChildren = false;
+    }
+
     /// <summary>Restarts the frame source and rebases every timer's start time, so the paused interval does not count as elapsed (upstream <c>engine.resume()</c>).</summary>
     public Engine Resume()
     {
@@ -179,5 +224,5 @@ public sealed class Engine : Clock
     /// <summary>Debug-only guard for the single-threaded model: once the engine has ticked, it and its timers must only be touched from that thread.</summary>
     [Conditional("DEBUG")]
     internal void AssertThreadAffinity() =>
-        Debug.Assert(_threadId == 0 || _threadId == Environment.CurrentManagedThreadId, "Presto.Engine and its timers must only be used from the thread that ticks the engine.");
+        Debug.Assert(_threadId == 0 || _threadId == Environment.CurrentManagedThreadId, "An engine and its timers must only be used from the thread that ticks the engine.");
 }

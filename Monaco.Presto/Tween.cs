@@ -51,7 +51,7 @@ public sealed class Tween
 
     internal Tween(Timer parent, string property, object target, IPropertyAccessor accessor)
     {
-        Id = ++s_tweenId;
+        Id = Interlocked.Increment(ref s_tweenId);
         Parent = parent;
         Property = property;
         Target = target;

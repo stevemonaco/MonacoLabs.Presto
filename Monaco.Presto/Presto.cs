@@ -8,18 +8,21 @@ namespace Monaco.Presto;
 public static class Presto
 {
     private static readonly ObjectTargetAdapter s_objectAdapter = new();
-    private static readonly DecomposedValue s_getValue = new();
 
-    /// <summary>The single engine every timer runs on (upstream <c>engine</c>); its <see cref="Engine.FrameSource"/> is what a host such as the Avalonia bridge replaces.</summary>
-    public static Engine Engine { get; } = new(new StopwatchFrameSource());
+    [ThreadStatic] private static DecomposedValue? s_getValue;
 
-    /// <summary>The global defaults new timers inherit, mirroring the upstream <c>defaults</c> object.</summary>
-    public static PrestoDefaults Defaults => Globals.Defaults;
+    /// <summary>The main engine, which timers run on unless <see cref="Engine.MakeCurrent"/> installed another (upstream <c>engine</c>); its <see cref="Engine.FrameSource"/> is what a host such as the Avalonia bridge replaces.</summary>
+    public static Engine Engine { get; } = new(new StopwatchFrameSource(), new PrestoDefaults());
+
+    /// <summary>The main engine's defaults, which new timers inherit and further engines start from, mirroring the upstream <c>defaults</c> object.</summary>
+    public static PrestoDefaults Defaults => Engine.Defaults;
 
     /// <summary>Target adapters consulted in order; the built-in object and reflection adapter handles whatever none of them claims.</summary>
+    /// <remarks>Read from every engine's thread, so populate it before any animation starts — the Avalonia bridge registers its adapters from <c>PrestoAvalonia.EnsureInitialized</c>.</remarks>
     public static IList<ITargetAdapter> Adapters { get; } = new List<ITargetAdapter>();
 
     /// <summary>Codecs for property types the built-in adapter cannot tween natively, keyed by the property type.</summary>
+    /// <remarks>Read from every engine's thread, so populate it before any animation starts — the Avalonia bridge registers its codecs from <c>PrestoAvalonia.EnsureInitialized</c>.</remarks>
     public static IDictionary<Type, IValueCodec> Codecs { get; } = new Dictionary<Type, IValueCodec>();
 
     /// <summary>Creates a timer that fires callbacks over time without animating anything (upstream <c>createTimer()</c>).</summary>
@@ -78,7 +81,7 @@ public static class Presto
     public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
     {
         var parsed = TargetParser.Parse(targets);
-        Composer.RemoveTargetsFromRenderable(parsed, (Clock?)renderable ?? Engine, property);
+        Composer.RemoveTargetsFromRenderable(parsed, (Clock?)renderable ?? Engine.Current, property);
         return parsed;
     }
 
@@ -87,8 +90,9 @@ public static class Presto
         var parsed = TargetParser.Parse(targets);
         if (parsed.Count == 0) return null;
         var accessor = ResolveAccessor(parsed[0], property);
-        ValueParser.Decompose(accessor.GetValue(parsed[0]), s_getValue, accessor.Codec);
-        return s_getValue;
+        var value = s_getValue ??= new();
+        ValueParser.Decompose(accessor.GetValue(parsed[0]), value, accessor.Codec);
+        return value;
     }
 
     internal static IPropertyAccessor ResolveAccessor(object target, string property)

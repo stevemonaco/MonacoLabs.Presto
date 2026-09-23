@@ -53,7 +53,7 @@ public sealed class ScrollObserver : IRevertible
 
     internal ScrollObserver(ScrollObserverParams parameters)
     {
-        Globals.CurrentScope?.Register(this);
+        Engine.Current.CurrentScope?.Register(this);
         _parameters = parameters;
 
         var mode = parameters.Sync?.Raw ?? DefaultSync;

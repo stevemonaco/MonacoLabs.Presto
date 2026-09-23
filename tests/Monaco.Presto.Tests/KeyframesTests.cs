@@ -379,4 +379,16 @@ public sealed class KeyframesTests : EngineTestBase
         Assert.Equal(0d, target["X"]);
         Assert.Equal(0d, target["Y"]);
     }
+
+    [Fact]
+    public void PercentageKeyframesSpanTheEngineDefaultDurationAndNotTheParentTimelines()
+    {
+        var tl = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { Duration = 2000 } })
+            .Add(new StyleTarget(), new()
+            {
+                Keyframes = new Dictionary<string, Keyframe> { ["0%"] = new() { ["X"] = 0 }, ["100%"] = new() { ["X"] = 100 } },
+            });
+
+        Assert.Equal(1000, TestHelpers.GetChildAtIndex(tl, 0)!.Duration);
+    }
 }

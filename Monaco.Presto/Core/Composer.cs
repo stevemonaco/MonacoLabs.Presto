@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Monaco.Presto.Core;
 
@@ -8,16 +8,16 @@ namespace Monaco.Presto.Core;
 /// </summary>
 internal static class Composer
 {
-    internal static readonly Dictionary<object, Dictionary<string, TweenSiblings>> AdditiveLookups = new(ReferenceEqualityComparer.Instance);
-
+    // Keyed by target and never iterated, so unlike the additive lookups it can stay process-wide (COMPOSITOR-PLAN §4.1).
     private static readonly ConditionalWeakTable<object, Dictionary<string, TweenSiblings>> s_replaceLookups = new();
 
-    public static TweenSiblings GetTweenSiblings(object target, string property, bool additive = false)
+    public static TweenSiblings GetTweenSiblings(object target, string property, Additive? additive = null)
     {
         Dictionary<string, TweenSiblings>? targetLookup;
-        if (additive)
+        if (additive != null)
         {
-            if (!AdditiveLookups.TryGetValue(target, out targetLookup)) AdditiveLookups[target] = targetLookup = [];
+            var lookups = additive.Lookups;
+            if (!lookups.TryGetValue(target, out targetLookup)) lookups[target] = targetLookup = [];
         }
         else
         {
@@ -54,7 +54,8 @@ internal static class Composer
 
         if (composition != Composition.Blend) return;
 
-        if (!AdditiveLookups.TryGetValue(tween.Target, out var additiveProperties) ||
+        var additive = tween.Parent.OwnerEngine.Additive;
+        if (!additive.Lookups.TryGetValue(tween.Target, out var additiveProperties) ||
             !additiveProperties.TryGetValue(tween.Property, out var additiveSiblings)) return;
 
         TweenList.RemoveChild(additiveSiblings, tween, TweenLink.Additive);
@@ -64,14 +65,13 @@ internal static class Composer
         if (lookupTween == null || lookupTween != additiveSiblings._tail) return;
 
         TweenList.RemoveChild(additiveSiblings, lookupTween, TweenLink.Additive);
-        var additiveAnimation = Additive.Animation;
-        if (additiveAnimation != null) TweenList.RemoveChild(additiveAnimation, lookupTween);
+        if (additive.Animation is { } additiveAnimation) TweenList.RemoveChild(additiveAnimation, lookupTween);
 
         foreach (var properties in additiveProperties.Values)
         {
             if (properties._head != null) return;
         }
-        AdditiveLookups.Remove(tween.Target);
+        additive.Lookups.Remove(tween.Target);
     }
 
     /// <summary>
@@ -202,8 +202,9 @@ internal static class Composer
 
     private static void ComposeBlendedTween(Tween tween)
     {
-        var additiveSiblings = GetTweenSiblings(tween.Target, tween.Property, true);
-        var additiveAnimation = Additive.GetOrCreate();
+        var additive = tween.Parent.OwnerEngine.Additive;
+        var additiveSiblings = GetTweenSiblings(tween.Target, tween.Property, additive);
+        var additiveAnimation = additive.GetOrCreate();
         var lookupTween = additiveSiblings._head;
 
         if (lookupTween == null)

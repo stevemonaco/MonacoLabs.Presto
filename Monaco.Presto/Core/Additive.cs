@@ -2,21 +2,24 @@ using Monaco.Presto.Values;
 
 namespace Monaco.Presto.Core;
 
-/// <summary>Port of anime.js <c>additive.js</c>: sums the blended tweens of each property into their lookup tween and renders it.</summary>
-internal static class Additive
+/// <summary>Port of anime.js <c>additive.js</c>: one engine's blended tweens, summed into their lookup tween and rendered.</summary>
+internal sealed class Additive(Engine engine)
 {
+    /// <summary>The blended tween siblings of the targets animated on this engine, keyed by target then property.</summary>
+    public Dictionary<object, Dictionary<string, TweenSiblings>> Lookups { get; } = new(ReferenceEqualityComparer.Instance);
+
     /// <summary>Owns the additive lookup tweens; never added to the engine and only rendered by <see cref="Update"/>.</summary>
-    public static Timer? Animation { get; private set; }
+    public Timer? Animation { get; private set; }
 
-    public static Timer GetOrCreate() =>
-        Animation ??= new Timer(new TimerParams { Duration = Constants.MinValue, Delay = 0, Loop = 0, Autoplay = false }, null, 0) { _offset = 0 };
+    public Timer GetOrCreate() =>
+        Animation ??= new Timer(new TimerParams { Duration = Constants.MinValue, Delay = 0, Loop = 0, Autoplay = false }, null, 0, engine) { _offset = 0 };
 
-    public static void Update()
+    public void Update()
     {
         var animation = Animation;
         if (animation == null) return;
 
-        foreach (var properties in Composer.AdditiveLookups.Values)
+        foreach (var properties in Lookups.Values)
         {
             foreach (var siblings in properties.Values)
             {

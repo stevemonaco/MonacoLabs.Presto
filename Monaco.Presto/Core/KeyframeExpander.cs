@@ -8,12 +8,13 @@ internal static class KeyframeExpander
     /// <summary>
     /// Expands <paramref name="keyframes"/> into property tweens, followed by the properties of <paramref name="parameters"/>
     /// whose names the keyframes did not produce (upstream <c>mergeObjects(generateKeyframes(...), parameters)</c>).
+    /// Percentage based keyframes are spread over <paramref name="defaultDuration"/> when <paramref name="parameters"/> declares no duration.
     /// </summary>
-    public static IReadOnlyList<KeyValuePair<string, TweenValue>> Expand(Keyframes keyframes, AnimationParams parameters)
+    public static IReadOnlyList<KeyValuePair<string, TweenValue>> Expand(Keyframes keyframes, AnimationParams parameters, double defaultDuration)
     {
         var properties = keyframes.DurationBased is { } frames
             ? ExpandDurations(frames)
-            : ExpandPercentages(keyframes.PercentageBased!, parameters.Duration?.AsDouble ?? Globals.Defaults.Duration.AsDouble ?? 0);
+            : ExpandPercentages(keyframes.PercentageBased!, parameters.Duration?.AsDouble ?? defaultDuration);
         foreach (var (name, value) in parameters.Properties) properties.TryAdd(name, value);
         return properties;
     }

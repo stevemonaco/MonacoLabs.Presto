@@ -52,19 +52,19 @@ public sealed class ScopeTests : EngineTestBase
 
         Assert.Equal(500, inside.Duration);
         Assert.Equal(Constants.K, outside.Duration);
-        Assert.Equal(Constants.K, Globals.Defaults.Duration.AsDouble);
+        Assert.Equal(Constants.K, Presto.Engine.Defaults.Duration.AsDouble);
     }
 
     [Fact]
     public void RestoresTheGlobalsWhenTheCallbackThrows()
     {
-        var defaults = Globals.Defaults;
+        var defaults = Presto.Engine.Defaults;
         var scope = Presto.CreateScope(new() { Defaults = scoped => scoped.Duration = 500 });
 
         Assert.Throws<InvalidOperationException>(() => scope.Execute(_ => { throw new InvalidOperationException(); }));
 
-        Assert.Same(defaults, Globals.Defaults);
-        Assert.Null(Globals.CurrentScope);
+        Assert.Same(defaults, Presto.Engine.Defaults);
+        Assert.Null(Presto.Engine.CurrentScope);
     }
 
     [Fact]

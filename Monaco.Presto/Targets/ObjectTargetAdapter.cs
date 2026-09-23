@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 using Monaco.Presto.Core;
@@ -12,19 +13,14 @@ namespace Monaco.Presto.Targets;
 /// </summary>
 public sealed class ObjectTargetAdapter : ITargetAdapter
 {
-    private static readonly Dictionary<(Type Type, string Property), IPropertyAccessor> s_accessors = [];
+    private static readonly ConcurrentDictionary<(Type Type, string Property), IPropertyAccessor> s_accessors = new();
 
     /// <summary>Private, static and write-only members are not reached.</summary>
     /// <exception cref="NotSupportedException">The member's type is not numeric, <see cref="string"/>, <see cref="object"/> or <see cref="PrestoColor"/>, and no codec is registered for it in <see cref="Presto.Codecs"/>.</exception>
     public IPropertyAccessor Resolve(object target, string property)
     {
         if (target is IDictionary<string, object?>) return new DictionaryAccessor(property);
-        var type = target.GetType();
-        if (!s_accessors.TryGetValue((type, property), out var accessor))
-        {
-            s_accessors[(type, property)] = accessor = MemberAccessor.Create(type, property);
-        }
-        return accessor;
+        return s_accessors.GetOrAdd((target.GetType(), property), static key => MemberAccessor.Create(key.Type, key.Property));
     }
 
     private sealed class DictionaryAccessor(string property) : IPropertyAccessor

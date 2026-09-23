@@ -13,6 +13,7 @@ public abstract class Clock
     internal bool _hasChildren;
     internal Timer? _head;
     internal Timer? _tail;
+    internal Engine? _engine;
 
     /// <summary>Starts the clock at <paramref name="initTime"/>, the frame source time its first tick is measured from.</summary>
     protected Clock(double initTime = 0)
@@ -22,6 +23,9 @@ public abstract class Clock
         _startTime = initTime;
         _lastTime = initTime;
     }
+
+    /// <summary>The engine this clock belongs to; a clock that belongs to none falls back to the ambient engine.</summary>
+    internal Engine OwnerEngine => _engine ?? Engine.Current;
 
     /// <summary>Time in milliseconds elapsed since the previous tick.</summary>
     public double DeltaTime { get; internal set; }
@@ -33,7 +37,8 @@ public abstract class Clock
         set
         {
             var fps = value < Constants.MinValue ? Constants.MinValue : value;
-            if (fps > Globals.Defaults.FrameRate) Globals.Defaults.FrameRate = fps;
+            var defaults = OwnerEngine.Defaults;
+            if (fps > defaults.FrameRate) defaults.FrameRate = fps;
             _fps = fps;
             _frameDuration = Constants.K / fps;
         }

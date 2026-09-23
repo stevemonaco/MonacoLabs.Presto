@@ -24,6 +24,8 @@ public sealed class Draggable : IRevertible
     private static readonly Cursor s_grab = new(StandardCursorType.Hand);
     private static readonly Cursor s_grabbing = new(StandardCursorType.SizeAll);
 
+    // Pointer events arrive long after construction, when the ambient engine may be another one.
+    private readonly Engine _engine;
     private readonly Control _target;
     private readonly Control _trigger;
     private readonly DraggableParams _parameters;
@@ -93,7 +95,8 @@ public sealed class Draggable : IRevertible
 
     internal Draggable(Control target, DraggableParams parameters)
     {
-        Globals.CurrentScope?.Register(this);
+        _engine = Engine.Current;
+        _engine.CurrentScope?.Register(this);
         _target = target;
         _trigger = parameters.Trigger ?? target;
         _parameters = parameters;
@@ -112,7 +115,7 @@ public sealed class Draggable : IRevertible
         _releaseSpringX = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseSpringY = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseEase = parameters.ReleaseEase is { } releaseEase ? releaseEase.Resolve(target, 0, 1, out _) : Eases.OutQuint;
-        _velocityTime = Presto.Engine.FrameSource.Now;
+        _velocityTime = _engine.FrameSource.Now;
 
         Animate = target.CreateAnimatable(new AvaloniaAnimatableParams
         {
@@ -168,14 +171,14 @@ public sealed class Draggable : IRevertible
     /// <summary>The target's position along that axis, in the unit of the property the axis maps to.</summary>
     public double X
     {
-        get => Utils.Round(Animate.Get(_xProp), Presto.Engine.Precision);
+        get => Utils.Round(Animate.Get(_xProp), _engine.Precision);
         set => SetX(value, false);
     }
 
     /// <inheritdoc cref="X"/>
     public double Y
     {
-        get => Utils.Round(Animate.Get(_yProp), Presto.Engine.Precision);
+        get => Utils.Round(Animate.Get(_yProp), _engine.Precision);
         set => SetY(value, false);
     }
 
@@ -422,7 +425,7 @@ public sealed class Draggable : IRevertible
 
     private double ComputeVelocity(double dx, double dy)
     {
-        var time = Presto.Engine.FrameSource.Now;
+        var time = _engine.FrameSource.Now;
         var elapsed = time - _velocityTime;
         if (elapsed < VelocityInterval) return Velocity;
         _velocityTime = time;

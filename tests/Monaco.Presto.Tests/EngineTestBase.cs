@@ -12,16 +12,15 @@ public abstract class EngineTestBase
         var engine = Presto.Engine;
         engine.FrameSource = Frames = new ManualFrameSource();
         Helpers.ForEachChildren(engine, static child => child.Cancel());
-        engine._head = engine._tail = null;
-        engine._hasChildren = false;
-        // The additive registries are static, so a blend tween left by an earlier test would keep rendering into this one.
-        Composer.AdditiveLookups.Clear();
-        if (Additive.Animation is { } additive) additive._headTween = additive._tailTween = null;
+        engine.DropChildren();
+        // The engine is reused across tests, so a blend tween left by an earlier one would keep rendering into this one.
+        engine.Additive.Lookups.Clear();
+        if (engine.Additive.Animation is { } additive) additive._headTween = additive._tailTween = null;
         engine.Pause();
         engine.Paused = true;
         engine._currentTime = engine._lastTickTime = engine._startTime = engine._lastTime = Frames.Now;
         engine.TimeUnit = TimeUnit.Milliseconds;
-        Globals.Defaults = new();
+        engine.Defaults = new();
         engine.Speed = 1;
         engine.Fps = 240;
         engine.Precision = 4;

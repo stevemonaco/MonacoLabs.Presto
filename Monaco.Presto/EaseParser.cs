@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 
 namespace Monaco.Presto;
@@ -8,7 +9,7 @@ namespace Monaco.Presto;
 /// </summary>
 public static class EaseParser
 {
-    private static readonly Dictionary<string, Ease> _cache = new();
+    private static readonly ConcurrentDictionary<string, Ease> _cache = new();
 
     private static readonly string[] _deprecated = ["steps(", "irregular(", "linear(", "cubicBezier("];
 
@@ -51,11 +52,7 @@ public static class EaseParser
     /// defaults rather than coercing to 0, and arguments on a fixed ease, unparsable arguments or unbalanced parentheses throw
     /// <see cref="FormatException"/> instead of caching a broken ease.
     /// </remarks>
-    public static Ease Parse(string ease)
-    {
-        var key = ease.Trim();
-        return _cache.TryGetValue(key, out var cached) ? cached : _cache[key] = Create(key);
-    }
+    public static Ease Parse(string ease) => _cache.GetOrAdd(ease.Trim(), Create);
 
     private static Ease Create(string input)
     {

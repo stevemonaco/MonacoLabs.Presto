@@ -6,7 +6,7 @@ namespace Monaco.Presto.Tests;
 public sealed class KeyframeExpanderTests
 {
     private static IReadOnlyList<KeyValuePair<string, TweenValue>> Expand(AnimationParams parameters) =>
-        KeyframeExpander.Expand(parameters.Keyframes!, parameters);
+        KeyframeExpander.Expand(parameters.Keyframes!, parameters, Presto.Defaults.Duration.AsDouble ?? 0);
 
     private static TweenParams[] Entries(IReadOnlyList<KeyValuePair<string, TweenValue>> properties, int index, string name)
     {

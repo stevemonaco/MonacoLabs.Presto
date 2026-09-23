@@ -21,14 +21,14 @@ public sealed class ClockTests
         try
         {
             var clock = new TestClock { Fps = 60 };
-            Assert.Equal(Constants.MaxFps, Globals.Defaults.FrameRate);
+            Assert.Equal(Constants.MaxFps, Presto.Engine.Defaults.FrameRate);
 
             clock.Fps = 300;
-            Assert.Equal(300, Globals.Defaults.FrameRate);
+            Assert.Equal(300, Presto.Engine.Defaults.FrameRate);
         }
         finally
         {
-            Globals.Defaults = new PrestoDefaults();
+            Presto.Engine.Defaults = new PrestoDefaults();
         }
     }
 

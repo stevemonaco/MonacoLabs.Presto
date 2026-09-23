@@ -39,6 +39,8 @@ public partial class MainViewModel : ObservableObject
             () => new ScrollPage()),
         new("Animatable", "createAnimatable: a grid of dots following the pointer, each property registered with its own duration — X and Y from a centre-out stagger, Rotate written through with none — beside a single dot easing after it, both created in a scope that reverts them when you navigate away.",
             () => new AnimatablePage()),
+        new("Compositor", "CompositorCanvas: a ring of dots rippling out from the centre, drawn and ticked by its own engine on Avalonia's render thread, beside the identical animation over real controls on the UI thread and a button that freezes the dispatcher for two seconds so you can watch which one keeps moving.",
+            () => new CompositorPage()),
     ];
 
     [ObservableProperty]

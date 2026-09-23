@@ -105,7 +105,7 @@ public static class Utils
     /// <remarks>Upstream's <c>seededMin</c>/<c>seededMax</c>/<c>seededDecimalLength</c> are omitted: C# optional arguments must be constants, so they could never be reached.</remarks>
     public static RandomGenerator CreateSeededRandom(int? seed = null)
     {
-        var t = seed ?? s_seed++;
+        var t = seed ?? (Interlocked.Increment(ref s_seed) - 1);
         return (min, max, decimals) =>
         {
             unchecked

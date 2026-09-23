@@ -243,7 +243,9 @@ scene case to the bridge `AllocationTests` (headless, Skia).
 Sample page "Compositor": a ring of dots with a centre-out opacity stagger looping forever (the anime.js "staggering"
 example rendered as a busy indicator) beside the identical animation on the UI-thread path, a `PathIcon` spun through
 §4.3, a `ProgressBar IsIndeterminate` for reference, and a **"Freeze UI thread for 2 s"** button (`Thread.Sleep` on the
-dispatcher). Expected: the compositor items keep moving, the UI-thread ones stop.
+dispatcher). Expected: the compositor items keep moving, the UI-thread ones stop — including the indeterminate
+`ProgressBar`, whose Fluent-theme animation runs on the UI-thread clock (measured in Phase 10: zero changed pixels
+across the freeze), so it is the reference for what freezing looks like, not a second survivor.
 
 Tests (`tests/Monaco.Presto.AvaloniaBridge.Tests`, headless + Skia, `ForceRenderTimerTick()` drives frames
 synchronously): attach creates the child visual and runs `OnAttached` with `Engine.Current` being the scene engine;

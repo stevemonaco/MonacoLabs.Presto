@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Monaco.Presto.Core;
 using Monaco.Presto.Targets;
 using Monaco.Presto.Values;
@@ -12,11 +12,15 @@ namespace Monaco.Presto;
 public sealed class Animation : Timer
 {
     // Mutated in place and read back immediately, as upstream does, so building tweens allocates nothing extra.
-    private static readonly DecomposedValue s_fromValue = new();
-    private static readonly DecomposedValue s_toValue = new();
-    private static readonly DecomposedValue s_originalValue = new();
+    [ThreadStatic] private static DecomposedValue? s_fromValue;
+    [ThreadStatic] private static DecomposedValue? s_toValue;
+    [ThreadStatic] private static DecomposedValue? s_originalValue;
 
     private static int s_animationId;
+
+    private static DecomposedValue ScratchFrom => s_fromValue ??= new();
+    private static DecomposedValue ScratchTo => s_toValue ??= new();
+    private static DecomposedValue ScratchOriginal => s_originalValue ??= new();
 
     internal Animation(
         object? targets,
@@ -28,15 +32,17 @@ public sealed class Animation : Timer
         IReadOnlyList<object>? allTargets = null)
         : base(parameters, parent, parentPosition)
     {
-        ++s_animationId;
+        var animationId = Interlocked.Increment(ref s_animationId);
 
         Targets = TargetParser.Parse(targets);
 
+        var animDefaults = parent?.ChildDefaults ?? OwnerEngine.Defaults;
+
         var properties = parameters.Keyframes is { } keyframes
-            ? KeyframeExpander.Expand(keyframes, parameters)
+            // Upstream's generateKeyframes reads the engine defaults, not the parent timeline's.
+            ? KeyframeExpander.Expand(keyframes, parameters, OwnerEngine.Defaults.Duration.AsDouble ?? 0)
             : (IReadOnlyList<KeyValuePair<string, TweenValue>>)parameters.Properties;
 
-        var animDefaults = parent?.ChildDefaults ?? Globals.Defaults;
         var animSpring = (parameters.Ease ?? animDefaults.Ease).Raw as Spring;
         var animPlaybackEase = parameters.PlaybackEase ?? animDefaults.PlaybackEase;
         var playbackEase = animPlaybackEase is { } value ? value.Resolve(this, 0, 1, out _) : null;
@@ -178,30 +184,30 @@ public sealed class Animation : Timer
                     {
                         ValueParser.Decompose(
                             isFromToArray ? GetFunctionValue(ArrayItem(tweenToValue!.Value, 0), target, ti, groupTargets, chainedTween, ref fromFunc)?.Raw : tweenFromValue?.Raw,
-                            s_fromValue,
+                            ScratchFrom,
                             codec);
                         ValueParser.Decompose(
                             isFromToArray ? GetFunctionValue(ArrayItem(tweenToValue!.Value, 1), target, ti, groupTargets, chainedTween, ref toFunc)?.Raw : tweenToValue?.Raw,
-                            s_toValue,
+                            ScratchTo,
                             codec);
                         var originalValue = ReadOriginalValue();
-                        if (s_fromValue.Kind == ValueKind.Number)
+                        if (ScratchFrom.Kind == ValueKind.Number)
                         {
                             if (prevSibling != null)
                             {
                                 if (prevSibling._valueType == ValueKind.Unit)
                                 {
-                                    s_fromValue.Kind = ValueKind.Unit;
-                                    s_fromValue.Unit = prevSibling._unit;
+                                    ScratchFrom.Kind = ValueKind.Unit;
+                                    ScratchFrom.Unit = prevSibling._unit;
                                 }
                             }
                             else
                             {
-                                ValueParser.Decompose(originalValue, s_originalValue, codec);
-                                if (s_originalValue.Kind == ValueKind.Unit)
+                                ValueParser.Decompose(originalValue, ScratchOriginal, codec);
+                                if (ScratchOriginal.Kind == ValueKind.Unit)
                                 {
-                                    s_fromValue.Kind = ValueKind.Unit;
-                                    s_fromValue.Unit = s_originalValue.Unit;
+                                    ScratchFrom.Kind = ValueKind.Unit;
+                                    ScratchFrom.Unit = ScratchOriginal.Unit;
                                 }
                             }
                         }
@@ -210,16 +216,16 @@ public sealed class Animation : Timer
                     {
                         // A tween whose previous sibling belongs to the same timeline continues from that sibling's end value.
                         var inheritsFromSibling = parent != null && prevSibling != null && prevSibling.Parent.Parent == parent;
-                        if (tweenToValue != null) ValueParser.Decompose(tweenToValue.Value.Raw, s_toValue, codec);
-                        else if (prevTween != null) ValueParser.DecomposeTween(prevTween, s_toValue);
-                        else ValueParser.Decompose(inheritsFromSibling ? prevSibling!._value : ReadOriginalValue(), s_toValue, codec);
+                        if (tweenToValue != null) ValueParser.Decompose(tweenToValue.Value.Raw, ScratchTo, codec);
+                        else if (prevTween != null) ValueParser.DecomposeTween(prevTween, ScratchTo);
+                        else ValueParser.Decompose(inheritsFromSibling ? prevSibling!._value : ReadOriginalValue(), ScratchTo, codec);
 
-                        if (hasFromValue) ValueParser.Decompose(tweenFromValue!.Value.Raw, s_fromValue, codec);
-                        else if (prevTween != null) ValueParser.DecomposeTween(prevTween, s_fromValue);
-                        else ValueParser.Decompose(inheritsFromSibling ? prevSibling!._value : ReadOriginalValue(), s_fromValue, codec);
+                        if (hasFromValue) ValueParser.Decompose(tweenFromValue!.Value.Raw, ScratchFrom, codec);
+                        else if (prevTween != null) ValueParser.DecomposeTween(prevTween, ScratchFrom);
+                        else ValueParser.Decompose(inheritsFromSibling ? prevSibling!._value : ReadOriginalValue(), ScratchFrom, codec);
                     }
 
-                    if (s_fromValue.Operator != '\0')
+                    if (ScratchFrom.Operator != '\0')
                     {
                         double relativeTo;
                         if (prevSibling != null)
@@ -228,27 +234,27 @@ public sealed class Animation : Timer
                         }
                         else
                         {
-                            ValueParser.Decompose(ReadOriginalValue(), s_originalValue, codec);
-                            relativeTo = s_originalValue.Number;
+                            ValueParser.Decompose(ReadOriginalValue(), ScratchOriginal, codec);
+                            relativeTo = ScratchOriginal.Number;
                         }
-                        s_fromValue.Number = ValueParser.GetRelativeValue(relativeTo, s_fromValue.Number, s_fromValue.Operator);
+                        ScratchFrom.Number = ValueParser.GetRelativeValue(relativeTo, ScratchFrom.Number, ScratchFrom.Operator);
                     }
 
-                    if (s_toValue.Operator != '\0')
+                    if (ScratchTo.Operator != '\0')
                     {
-                        s_toValue.Number = ValueParser.GetRelativeValue(s_fromValue.Number, s_toValue.Number, s_toValue.Operator);
+                        ScratchTo.Number = ValueParser.GetRelativeValue(ScratchFrom.Number, ScratchTo.Number, ScratchTo.Operator);
                     }
 
-                    if (s_fromValue.Kind != s_toValue.Kind) Homogenise(s_fromValue, s_toValue);
+                    if (ScratchFrom.Kind != ScratchTo.Kind) Homogenise(ScratchFrom, ScratchTo);
 
-                    if (s_fromValue.Unit != s_toValue.Unit)
+                    if (ScratchFrom.Unit != ScratchTo.Unit)
                     {
-                        UnitConverter.Convert(s_toValue.Unit != null ? s_fromValue : s_toValue, s_toValue.Unit ?? s_fromValue.Unit!);
+                        UnitConverter.Convert(ScratchTo.Unit != null ? ScratchFrom : ScratchTo, ScratchTo.Unit ?? ScratchFrom.Unit!);
                     }
 
-                    if (s_toValue.Numbers != null && s_fromValue.Numbers != null && s_toValue.Numbers.Length != s_fromValue.Numbers.Length)
+                    if (ScratchTo.Numbers != null && ScratchFrom.Numbers != null && ScratchTo.Numbers.Length != ScratchFrom.Numbers.Length)
                     {
-                        PadShorterValue(s_fromValue, s_toValue);
+                        PadShorterValue(ScratchFrom, ScratchTo);
                     }
 
                     // Rounding minimises the floating point errors of working in seconds.
@@ -260,14 +266,14 @@ public sealed class Animation : Timer
                         _toFunc = toFunc,
                         _fromFunc = fromFunc,
                         _ease = tweenEase,
-                        _fromNumbers = Helpers.CloneNumbers(s_fromValue.Numbers),
-                        _toNumbers = Helpers.CloneNumbers(s_toValue.Numbers),
-                        _strings = s_toValue.Strings is { } strings ? (string[])strings.Clone() : [],
-                        _fromNumber = s_fromValue.Number,
-                        _toNumber = s_toValue.Number,
-                        _numbers = Helpers.CloneNumbers(s_fromValue.Numbers),
-                        _number = s_fromValue.Number,
-                        _unit = s_toValue.Unit,
+                        _fromNumbers = Helpers.CloneNumbers(ScratchFrom.Numbers),
+                        _toNumbers = Helpers.CloneNumbers(ScratchTo.Numbers),
+                        _strings = ScratchTo.Strings is { } strings ? (string[])strings.Clone() : [],
+                        _fromNumber = ScratchFrom.Number,
+                        _toNumber = ScratchTo.Number,
+                        _numbers = Helpers.CloneNumbers(ScratchFrom.Numbers),
+                        _number = ScratchFrom.Number,
+                        _unit = ScratchTo.Unit,
                         _modifier = tweenModifier,
                         _textModifier = tweenTextModifier,
                         _startTime = tweenStartTime,
@@ -278,7 +284,7 @@ public sealed class Animation : Timer
                         _absoluteUpdateStartTime = absoluteUpdateStartTime,
                         _absoluteEndTime = Helpers.Round(absoluteOffsetTime + lastTweenChangeEndTime, 12),
                         _hasFromValue = hasFromValue || isFromToArray,
-                        _valueType = s_toValue.Kind,
+                        _valueType = ScratchTo.Kind,
                         _composition = tweenComposition,
                         _inlineValue = inlineValue,
                     };
@@ -303,7 +309,7 @@ public sealed class Animation : Timer
                                 tween._value = JsNumber.Format(tweenModifier(tween._toNumber)) + tween._unit;
                                 break;
                             case ValueKind.Color:
-                                tween._value = PrestoColor.FormatRgba(s_toValue.Numbers!);
+                                tween._value = PrestoColor.FormatRgba(ScratchTo.Numbers!);
                                 break;
                             default:
                                 tween._value = tweenModifier(tween._toNumber);
@@ -346,7 +352,7 @@ public sealed class Animation : Timer
 
         var duration = Helpers.ClampInfinity(((iterationDuration + _loopDelay) * IterationCount) - _loopDelay);
 
-        Id = parameters.Id ?? s_animationId.ToString();
+        Id = parameters.Id ?? animationId.ToString();
         Duration = iterationDuration == Constants.MinValue || duration == 0 || double.IsNaN(duration) ? Constants.MinValue : duration;
         IterationDuration = iterationDuration;
         _onRender = parameters.OnRender ?? animDefaults.OnRender;
@@ -392,27 +398,27 @@ public sealed class Animation : Timer
             var codec = tween.Accessor.Codec;
             if (fromFunc != null)
             {
-                ValueParser.Decompose(fromFunc().Raw, s_fromValue, codec);
-                if (tween._unit is { } unit && s_fromValue.Unit != unit) UnitConverter.Convert(s_fromValue, unit);
-                tween._fromNumbers = Helpers.CloneNumbers(s_fromValue.Numbers);
-                tween._fromNumber = s_fromValue.Number;
+                ValueParser.Decompose(fromFunc().Raw, ScratchFrom, codec);
+                if (tween._unit is { } unit && ScratchFrom.Unit != unit) UnitConverter.Convert(ScratchFrom, unit);
+                tween._fromNumbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
+                tween._fromNumber = ScratchFrom.Number;
             }
             else
             {
-                ValueParser.Decompose(tween.Accessor.GetValue(tween.Target), s_originalValue, codec);
-                tween._fromNumbers = Helpers.CloneNumbers(s_originalValue.Numbers);
-                tween._fromNumber = s_originalValue.Number;
+                ValueParser.Decompose(tween.Accessor.GetValue(tween.Target), ScratchOriginal, codec);
+                tween._fromNumbers = Helpers.CloneNumbers(ScratchOriginal.Numbers);
+                tween._fromNumber = ScratchOriginal.Number;
             }
 
             if (toFunc != null)
             {
-                ValueParser.Decompose(toFunc().Raw, s_toValue, codec);
-                tween._toNumbers = Helpers.CloneNumbers(s_toValue.Numbers);
-                tween._strings = s_toValue.Strings is { } strings ? (string[])strings.Clone() : [];
+                ValueParser.Decompose(toFunc().Raw, ScratchTo, codec);
+                tween._toNumbers = Helpers.CloneNumbers(ScratchTo.Numbers);
+                tween._strings = ScratchTo.Strings is { } strings ? (string[])strings.Clone() : [];
                 // Re-applied against the refreshed from value, see anime issue #1025.
-                tween._toNumber = s_toValue.Operator != '\0'
-                    ? ValueParser.GetRelativeValue(tween._fromNumber, s_toValue.Number, s_toValue.Operator)
-                    : s_toValue.Number;
+                tween._toNumber = ScratchTo.Operator != '\0'
+                    ? ValueParser.GetRelativeValue(tween._fromNumber, ScratchTo.Number, ScratchTo.Operator)
+                    : ScratchTo.Number;
             }
         }
         // Forces setter animations to render the refreshed values once.

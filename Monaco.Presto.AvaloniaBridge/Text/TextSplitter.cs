@@ -4,7 +4,6 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
-using Monaco.Presto.Core;
 
 namespace Monaco.Presto.AvaloniaBridge.Text;
 
@@ -39,7 +38,7 @@ public sealed class TextSplitter : IRevertible
 
     internal TextSplitter(TextBlock host, SplitTextParams parameters)
     {
-        Globals.CurrentScope?.Register(this);
+        Engine.Current.CurrentScope?.Register(this);
         _host = host;
         _parameters = parameters;
         _text = host.Text ?? "";

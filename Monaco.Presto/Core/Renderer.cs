@@ -1,4 +1,4 @@
-using Monaco.Presto.Values;
+﻿using Monaco.Presto.Values;
 
 namespace Monaco.Presto.Core;
 
@@ -256,7 +256,7 @@ internal static class Renderer
         {
             var tlIsRunningBackwards = tickable.Backwards;
             var tlChildrenTime = internalRender ? time : tickable._iterationTime;
-            var tlChildrenTickTime = Presto.Engine.Now;
+            var tlChildrenTickTime = tickable.OwnerEngine.Now;
 
             var tlChildrenHasRendered = false;
             var tlChildrenHaveCompleted = true;

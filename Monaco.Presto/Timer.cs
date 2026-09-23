@@ -32,15 +32,15 @@ public class Timer : Clock, IRevertible
     internal Action<Timer>? _onRevert;
     internal int _priority;
 
-    internal Timer(TimerParams parameters, Timer? parent, double parentPosition) : base(0)
+    internal Timer(TimerParams parameters, Timer? parent, double parentPosition, Engine? engine = null) : base(0)
     {
-        ++s_timerId;
+        var timerId = Interlocked.Increment(ref s_timerId);
 
-        Globals.CurrentScope?.Register(this);
+        engine = _engine = engine ?? parent?.OwnerEngine ?? Engine.Current;
+        engine.CurrentScope?.Register(this);
 
-        var engine = Presto.Engine;
         var timerInitTime = parent != null ? 0 : engine._lastTickTime;
-        var timerDefaults = parent?.ChildDefaults ?? Globals.Defaults;
+        var timerDefaults = parent?.ChildDefaults ?? engine.Defaults;
         // A function based default delay is meaningless without targets, so a plain timer falls back to 0.
         var timerDelay = parameters.Delay ?? timerDefaults.Delay.AsDouble ?? 0;
         var timerDuration = parameters.Duration ?? double.PositiveInfinity;
@@ -61,7 +61,7 @@ public class Timer : Clock, IRevertible
 
         var duration = Helpers.ClampInfinity(((timerDuration + timerLoopDelay) * timerIterationCount) - timerLoopDelay);
 
-        Id = parameters.Id ?? s_timerId.ToString();
+        Id = parameters.Id ?? timerId.ToString();
         Parent = parent;
         Duration = duration == 0 || double.IsNaN(duration) ? Constants.MinValue : duration;
         Paused = true;
@@ -96,7 +96,7 @@ public class Timer : Clock, IRevertible
     public Timer? Parent { get; }
 
     /// <summary>The defaults the children of this timer inherit; a timeline overrides it with its own.</summary>
-    internal virtual PrestoDefaults ChildDefaults => Globals.Defaults;
+    internal virtual PrestoDefaults ChildDefaults => OwnerEngine.Defaults;
 
     /// <summary>Total duration including every iteration and loop delay.</summary>
     public double Duration { get; internal set; }
@@ -241,7 +241,7 @@ public class Timer : Clock, IRevertible
     /// <param name="softReset">Rewinds the timing state without writing the start values back to the targets.</param>
     public Timer Reset(bool softReset = false)
     {
-        Presto.Engine.AssertThreadAffinity();
+        OwnerEngine.AssertThreadAffinity();
         ReviveTimer(this);
         if (_reversed && !_reverse) Reversed = false;
         _iterationTime = IterationDuration;
@@ -266,7 +266,7 @@ public class Timer : Clock, IRevertible
     /// <summary>Rebases the start time against the engine clock so the timer carries on from <see cref="CurrentTime"/> instead of jumping (upstream <c>timer.resetTime()</c>).</summary>
     public Timer ResetTime()
     {
-        var engine = Presto.Engine;
+        var engine = OwnerEngine;
         var timeScale = 1 / (_speed * engine._speed);
         _startTime = engine.Now - (_currentTime + _delay) * timeScale;
         return this;
@@ -275,7 +275,7 @@ public class Timer : Clock, IRevertible
     /// <summary>Stops advancing the timer where it stands and fires <see cref="OnPause"/> (upstream <c>timer.pause()</c>).</summary>
     public Timer Pause()
     {
-        Presto.Engine.AssertThreadAffinity();
+        OwnerEngine.AssertThreadAffinity();
         if (Paused) return this;
         Paused = true;
         OnPause?.Invoke(this);
@@ -285,7 +285,7 @@ public class Timer : Clock, IRevertible
     /// <summary>Carries on from the current position in the current direction, re-registering with the engine (upstream <c>timer.resume()</c>).</summary>
     public Timer Resume()
     {
-        Presto.Engine.AssertThreadAffinity();
+        OwnerEngine.AssertThreadAffinity();
         if (!Paused) return this;
         Paused = false;
         if (Duration <= Constants.MinValue && !_hasChildren)
@@ -294,7 +294,7 @@ public class Timer : Clock, IRevertible
         }
         else
         {
-            var engine = Presto.Engine;
+            var engine = OwnerEngine;
             if (!_running)
             {
                 Helpers.AddChild(engine, this, SortByPriority);
@@ -318,7 +318,7 @@ public class Timer : Clock, IRevertible
     /// <param name="internalRender">Updates the timing state without writing values to the targets.</param>
     public Timer Seek(double time, bool muteCallbacks = false, bool internalRender = false)
     {
-        Presto.Engine.AssertThreadAffinity();
+        OwnerEngine.AssertThreadAffinity();
         ReviveTimer(this);
         Completed = false;
         var isPaused = Paused;

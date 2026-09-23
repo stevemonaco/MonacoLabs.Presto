@@ -42,7 +42,7 @@ Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/`
 | `svg/*` (`morphTo`, `createDrawable`, `createMotionPath`) | `Monaco.Presto.AvaloniaBridge.Shapes` (Path/Geometry based) | Bridge | 7 |
 | `text/*` (`splitText`, `scrambleText`) | `Monaco.Presto.AvaloniaBridge.Text` | Bridge | 7 |
 | `layout/*` | `PrestoAvalonia.AnimateLayout`: compositor implicit animations on `Offset` (see [COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4.4) | Bridge | 12 |
-| `waapi/*` | `Monaco.Presto.AvaloniaBridge.Compositor.CompositorAnimation`, server-side `KeyFrameAnimation`s compiled from Presto params (see [COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4.3); `CompositorCanvas`/`CompositorScene` have no upstream counterpart | Bridge | 11 |
+| `waapi/*` | `Monaco.Presto.AvaloniaBridge.Compositor`. Shipped: `CompositorCanvas`/`CompositorScene`, a whole engine on the render thread ([COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4.2), which has no upstream counterpart. Planned: `CompositorAnimation` for existing controls, server-side `KeyFrameAnimation`s compiled from Presto params (§4.3) | Bridge | 10, 11 |
 | `adapters/three.js` | not ported | — | — |
 
 ## 3. Architecture
@@ -51,7 +51,7 @@ Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/`
 
 ```
 Clock                      framerate + playback-rate bookkeeping (base of Engine, Timer)
-└─ Engine                  singleton root clock; owns the linked list of running Tickables; Update(now)
+└─ Engine                  root clock, one per ticking thread; owns the linked list of running Tickables; Update(now)
 └─ Timer                   delay/duration/loop/alternate/reverse state machine, callbacks, controls
    ├─ Animation            Timer + linked list of Tweens over resolved targets
    └─ Timeline             Timer + linked list of child Timers/Animations, labels, positions
@@ -71,7 +71,10 @@ Key ports, kept structurally identical to upstream for testability:
 - **Function-based values** everywhere a number is accepted: `FunctionValue` is `(object target, int index, int total) => TweenValue`. Upstream's fourth argument is the timeline a value is resolved in, which only stagger positions use; here it lives on `Stagger` instead, which `Timeline.Add` invokes with `this` and `Animation` with `null`, leaving `FunctionValue` at three arguments. Its `prevTween` argument belongs to the Phase 7 WAAPI/draggable work.
 - **Values**: `ValueKind.Number | Unit | Color | Complex`. Colors are parsed by the core (`PrestoColor` from `#rgb`, `#rrggbb(aa)`, `rgb()`, `rgba()`, `hsl()`, `hsla()`), so `colors.test.js` is portable. `Complex` covers typed structs that decompose into several numeric channels (Thickness, Point…) via the target's `IValueCodec`.
 - **Time** is `double` milliseconds; `Engine.TimeUnit = Seconds` scales defaults and speed exactly as upstream.
-- **Thread model**: single-threaded, no locks. The engine records the thread it was first ticked on and asserts in Debug if touched from another thread.
+- **Thread model** (Phase 9, [COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4.1): one engine per thread that ticks it, no locks; the remaining shared statics (scratch values, ids, parser/accessor caches) are thread-safe — §4.1 has the inventory. `Presto.Engine` is the main (UI) engine and the ambient default; `Engine.Current` is a `[ThreadStatic]` that falls back to it, and `Engine.MakeCurrent()` installs another for a block — whoever owns a thread sets the engine, exactly as `Scope.Execute` installs defaults, so the factories keep the anime.js call shape instead of taking an `engine` parameter. Every `Timer` captures its engine at construction — its parent's, otherwise the ambient one — into `Timer.Engine` and resolves through it afterwards, so a UI-thread call on another engine's timer reaches that engine's clock — and trips *its* thread pin, which each engine arms in Debug on its first `Update()`.
+  - Per engine: `Defaults`, `CurrentScope`, the children list, and the additive lookup table with its lookup animation (`Core.Additive`, driven from `Engine.Update()`).
+  - Process-wide, so set before a second engine exists: `Globals.TimeScale` (written through `Engine.TimeUnit`, which only the main engine sets), `Globals.Precision` (exposed as `Engine.Precision`), `Globals.TickThreshold`, `Composer`'s replace lookups (keyed by target) and `Presto.Adapters`/`Presto.Codecs` — written once during initialisation, read from every engine's thread, documented rather than locked.
+  - `Then()` completes with `RunContinuationsAsynchronously`, so awaiting a non-UI engine's timer resumes off the tick, on the thread pool.
 
 ### 3.2 Avalonia bridge (`Monaco.Presto.AvaloniaBridge`)
 
@@ -83,7 +86,9 @@ Key ports, kept structurally identical to upstream for testability:
   - Value codecs: `double/float/int`, `Color`, `SolidColorBrush` (animates the brush's color, creating a local brush if the current one is frozen/shared), `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint`, and an `Easing` ↔ `Ease` adapter (`PrestoEasing : Avalonia.Animation.Easings.Easing`) so Presto eases can be used in Avalonia `Transitions` and vice versa. A decomposed `Matrix` codec is deferred until a property needs one — the transform shorthands go through the bridge's own `TransformGroup`.
   - Writes use `SetValue(..., BindingPriority.Animation)` so animated values sit above local values and are cleanly removed by `Revert()` (`ClearValue` at animation priority).
 - **Control helpers**: `control.Animate(...)`, `Presto.Get(control, "X")`, `Presto.Set(control, …)`, `Presto.Remove(control)`, `ControlScope` that reverts everything created inside it when the control is unloaded.
-- Later: `Draggable`, `ScrollObserver`, shape helpers (`Geometry.ContourLength`, `TryGetPointAndTangentAtDistance` for drawable strokes and motion paths), text splitting, XAML attached properties/behaviors.
+- **Feature modules** (Phase 7): `Draggable`, `ScrollObserver`, shape helpers (`Geometry.ContourLength`, `TryGetPointAndTangentAtDistance` for drawable strokes and motion paths), text splitting and scrambling.
+- **`Compositor` namespace** (Phase 10, [COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4.2) — a Presto engine on the render thread, so a scene keeps animating while the UI thread is blocked. `CompositorCanvas` is the UI-thread `Control` that hosts a scene and marshals `Post`/`Invoke` to it; `CompositorScene` is what a user derives from, with an `Engine` and `Scope` of its own, `OnAttached`, `OnMessage`, `OnRender(ImmediateDrawingContext, Size)` and `PostToUI`. From attach on the scene belongs to the render thread, and `PostToUI` is the only way back to a control.
+- Later: XAML attached properties/behaviors.
 
 ## 4. Public API sketch
 
@@ -180,8 +185,8 @@ Phase order follows dependencies; each phase ends green on its ported test suite
 
 Phases 9–12 are the compositor work; [docs/COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4 and §6 hold the design and the acceptance criteria for each.
 
-- [ ] **Phase 9 — Engine instancing (core).** `Engine` constructor, ambient `Engine.Current`/`MakeCurrent`, `Clock.Engine`, per-engine `Defaults`/`CurrentScope`/additive state, thread-safe statics and thread-static scratch, `Interlocked` ids; bridge helpers switch to `Engine.Current`. Tests: all existing suites unchanged, new `EnginesTests`.
-- [ ] **Phase 10 — Compositor scenes (bridge + sample).** `CompositorCanvas`, `CompositorScene`, `CompositorSceneHandler` (a `CompositionCustomVisualHandler` that is the scene engine's `IFrameSource`), sample page with a freeze-the-UI-thread button, headless pixel and allocation tests, README section.
+- [x] **Phase 9 — Engine instancing (core).** `Engine` constructor, ambient `Engine.Current`/`MakeCurrent`, `Timer.Engine`, per-engine `Defaults`/`CurrentScope`/additive state, thread-safe statics and thread-static scratch, `Interlocked` ids; bridge helpers switch to `Engine.Current`. Tests: all existing suites unchanged, new `EnginesTests`.
+- [x] **Phase 10 — Compositor scenes (bridge + sample).** `CompositorCanvas`, `CompositorScene`, `CompositorSceneHandler` (a `CompositionCustomVisualHandler` that is the scene engine's `IFrameSource`), sample page with a freeze-the-UI-thread button, headless pixel and allocation tests, README section.
 - [ ] **Phase 11a — Compositor animations, fire-and-forget (bridge).** `CompositorAnimation`/`CompositorAnimationParams`: mirror animation sampled into `KeyFrameAnimation`s on `Translation`/`Scale`/`RotationAngle`/`Opacity`, `CenterPoint` expression, `Opacity` ownership, compositor-only registry, `Cancel`/`Revert`/`Then`. Pixel tests including the invalidate-mid-fade guard.
 - [ ] **Phase 11b — Compositor animations, playback control (bridge).** `Pause`/`Resume`/`Seek`/`Reverse`/`PlaybackRate` by recompiling from the mirror's position; phase rotation for infinite loops.
 - [ ] **Phase 12 — Layout transitions (bridge).** `PrestoAvalonia.AnimateLayout` through `ImplicitAnimations["Offset"]`, sample and test.

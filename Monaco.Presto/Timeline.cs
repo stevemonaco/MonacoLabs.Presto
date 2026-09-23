@@ -1,4 +1,4 @@
-using Monaco.Presto.Core;
+﻿using Monaco.Presto.Core;
 using Monaco.Presto.Targets;
 
 namespace Monaco.Presto;
@@ -13,14 +13,14 @@ public sealed class Timeline : Timer
 
     internal Timeline(TimelineParams parameters) : base(parameters, null, 0)
     {
-        var globals = Globals.Defaults;
-        var playbackEase = parameters.PlaybackEase ?? globals.PlaybackEase;
+        var engineDefaults = OwnerEngine.Defaults;
+        var playbackEase = parameters.PlaybackEase ?? engineDefaults.PlaybackEase;
         Duration = 0;
         IterationDuration = 0;
         Labels = new();
-        _defaults = parameters.Defaults?.Merge(globals) ?? globals;
+        _defaults = parameters.Defaults?.Merge(engineDefaults) ?? engineDefaults;
         Composition = parameters.Composition ?? true;
-        _onRender = parameters.OnRender ?? globals.OnRender;
+        _onRender = parameters.OnRender ?? engineDefaults.OnRender;
         _ease = playbackEase is { } ease ? ease.Resolve(this, 0, 1, out _) : null;
     }
 

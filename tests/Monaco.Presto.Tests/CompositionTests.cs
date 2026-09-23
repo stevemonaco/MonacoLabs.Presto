@@ -146,7 +146,7 @@ public sealed class CompositionTests : EngineTestBase
         var target = CreateTarget();
         var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
 
-        var siblings = Composer.GetTweenSiblings(target, "x", true);
+        var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive);
         var lookupTween = siblings._head;
         Assert.NotNull(lookupTween);
         Assert.NotSame(first, lookupTween);
@@ -173,9 +173,9 @@ public sealed class CompositionTests : EngineTestBase
         first._number = 10;
         second._number = 5;
 
-        Additive.Update();
+        Presto.Engine.Additive.Update();
 
-        var lookupTween = Composer.GetTweenSiblings(target, "x", true)._head!;
+        var lookupTween = Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive)._head!;
         Assert.Equal(lookupTween._fromNumber + 15, lookupTween._toNumber);
     }
 
@@ -185,7 +185,7 @@ public sealed class CompositionTests : EngineTestBase
         var target = CreateTarget();
         var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
         var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 50);
-        var siblings = Composer.GetTweenSiblings(target, "x", true);
+        var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive);
         var lookupTween = siblings._head!;
 
         Composer.RemoveTweenSiblings(first);
@@ -197,10 +197,10 @@ public sealed class CompositionTests : EngineTestBase
 
         Assert.Null(siblings._head);
         Assert.Null(siblings._tail);
-        Assert.NotSame(siblings, Composer.GetTweenSiblings(target, "x", true));
+        Assert.NotSame(siblings, Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive));
 
         var stillOwnedByTheAdditiveAnimation = false;
-        TweenList.ForEachChildren(Additive.Animation!, tween => stillOwnedByTheAdditiveAnimation |= ReferenceEquals(tween, lookupTween));
+        TweenList.ForEachChildren(Presto.Engine.Additive.Animation!, tween => stillOwnedByTheAdditiveAnimation |= ReferenceEquals(tween, lookupTween));
         Assert.False(stillOwnedByTheAdditiveAnimation);
     }
 

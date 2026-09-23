@@ -1,5 +1,3 @@
-using Monaco.Presto.Core;
-
 namespace Monaco.Presto;
 
 /// <summary>
@@ -16,7 +14,7 @@ public sealed class Animatable : IRevertible
 
     internal Animatable(object? targets, AnimatableParams parameters)
     {
-        Globals.CurrentScope?.Register(this);
+        Engine.Current.CurrentScope?.Register(this);
 
         _callbacks = Presto.Animate(new CallbacksTarget(), new AnimationParams
         {

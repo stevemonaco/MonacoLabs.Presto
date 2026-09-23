@@ -11,7 +11,7 @@ the anime.js names in PascalCase.
 | Package | What it is |
 |---|---|
 | `Monaco.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
-| `Monaco.Presto.AvaloniaBridge` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, colour/brush/struct codecs, draggable, scroll observer, shapes, text. |
+| `Monaco.Presto.AvaloniaBridge` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, colour/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
 
 ## Install
 
@@ -344,6 +344,80 @@ Transmission.Animate(new()
 });
 ```
 
+### Render thread
+
+Everything above runs on the UI thread, which means everything above stops when the UI thread does. A `CompositorScene`
+does not: it is a world of its own — its own `Engine`, its own `Scope`, its own drawing — animated and drawn by
+Avalonia's compositor. That makes it the one place in Presto where a busy indicator keeps turning through a synchronous
+load.
+
+```csharp
+using Avalonia;
+using Avalonia.Media;
+using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge.Compositor;
+
+public sealed class SpinnerScene : CompositorScene
+{
+    private readonly Dot[] _dots = [.. Enumerable.Range(0, 12).Select(_ => new Dot())];
+
+    protected override void OnAttached() =>
+        Presto.Animate(_dots, new()                             // registers with this scene's engine
+        {
+            ["Opacity"] = new double[] { 1, 0.15 },
+            Duration = 900,
+            Delay = Presto.Stagger(75, new() { From = StaggerFrom.Center }),
+            Ease = Eases.InOutSine,
+            Loop = true,
+        });
+
+    protected override void OnRender(ImmediateDrawingContext context, Size size)
+    {
+        for (var i = 0; i < _dots.Length; i++)
+        {
+            var angle = i * Math.Tau / _dots.Length - Math.PI / 2;
+            var center = new Point(
+                size.Width / 2 + Math.Cos(angle) * 22,
+                size.Height / 2 + Math.Sin(angle) * 22);
+            context.DrawEllipse(Brush(Colors.SteelBlue, _dots[i].Opacity), null, center, 4, 4);
+        }
+    }
+
+    private sealed class Dot { public double Opacity { get; set; } = 1; }
+}
+```
+
+A `CompositorCanvas` hosts it. The scene goes to the render thread when the canvas enters the visual tree, and its scope
+is reverted when the canvas leaves:
+
+```csharp
+var spinner = new CompositorCanvas { Width = 64, Height = 64, Scene = new SpinnerScene() };
+
+spinner.Post("pulse");                                  // → OnMessage("pulse"), on the render thread
+spinner.Invoke<SpinnerScene>(s => s.Engine.Speed = 2);  // ditto, against the live scene
+```
+
+The rules that come with the thread:
+
+- **From attach on, the scene belongs to the render thread.** `OnAttached`, `OnMessage`, `OnRender` and the callbacks of
+  everything they create run there. In Debug the engine's thread pin catches UI-thread code that reaches into a live
+  scene.
+- **The UI thread talks to it through `Post` and `Invoke<TScene>` only.** Both go through the compositor's batch queue
+  and arrive in order; messages posted before the canvas is shown are queued behind the attach.
+- **Scene callbacks must not touch controls.** `OnUpdate`, `OnComplete` and the rest fire off the UI thread;
+  `PostToUI(Action)` is the way back. `Then()` and `await` on a scene timer complete on the thread pool, because the
+  render thread has no synchronization context.
+- **Drawing is `ImmediateDrawingContext`**: bitmaps, lines, rectangles, ellipses and glyph runs, with immutable brushes
+  and pens. `Brush(color, opacity)` caches them per scene, so drawing from a tween does not allocate a brush per frame. There is no path or geometry drawing — reach for the Skia lease feature if you
+  need one.
+- **The scene's `Engine` is its own.** It starts from a copy of `Presto.Defaults`, and after that `Presto.Engine`'s
+  speed, fps and pause state do not apply to it.
+
+Only what the scene draws itself runs on the render thread. Animating an *existing* control there — its transform or its
+opacity through the composition visual Avalonia already gives it — is designed
+([COMPOSITOR-PLAN.md](docs/COMPOSITOR-PLAN.md) §4.3) but not in this release: animation of controls is UI-thread work,
+and stops with the UI thread. WebAssembly has a caveat of its own, in [Platforms and status](#platforms-and-status).
+
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:
@@ -368,15 +442,16 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `engine` | `Presto.Engine` (`Speed`, `Fps`, `Precision`, `TimeUnit`, `Pause()`, `Resume()`, `FrameSource`) |
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
-| `waapi.*` | **Not ported.** There is no Web Animations API here; everything is UI-thread property animation. Avalonia's composition API is a possible future route. |
+| `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `CompositorCanvas` / `CompositorScene` run a whole engine on Avalonia's render thread, which upstream has no counterpart for; `waapi.animate` itself — an existing control driven by the compositor — is **not ported**, so control animation is still UI-thread property animation. |
 | `createLayout` / `AutoLayout` (`layout/`) | **Not ported.** FLIP layout animation needs a port over measured bounds rather than the DOM box model; deferred past 0.1. |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
 | `core/*`, `types/*` | Internal (`Clock`, `Renderer`, `Composer`, value parsing) or TypeScript declarations with no C# counterpart. |
 
-There is no XAML surface yet — no attached properties, no markup extension. It is deliberately deferred until the C#
-API has settled, so it is not built against something about to change. Animate from code-behind or a view model for now.
+There is no XAML surface for animations yet — no attached properties, no markup extension. It is deliberately deferred
+until the C# API has settled, so it is not built against something about to change. Animate from code-behind or a view
+model for now.
 
 ### Parameter names
 
@@ -435,12 +510,17 @@ build; what has actually been *run* differs, and the table says so rather than i
 | Head | Verified |
 |------|----------|
 | **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. |
-| **Browser** — `net10.0-browser`, WebAssembly | Runs. All 15 gallery pages were stepped through in Chrome: the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. |
+| **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. |
 | **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. The gallery has not been driven on a device, so touch input and per-page rendering are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
 
-Two platform notes:
+Three platform notes:
 
+- **On WebAssembly the render loop is not a thread.** `BrowserRenderTimer` drives the compositor from the single WASM
+  thread that also runs the UI, so a `CompositorScene` runs and draws there but does **not** survive a blocked UI
+  thread — the busy-indicator guarantee is a desktop and mobile one. The same goes for any platform that opts into
+  `ShouldRenderOnUIThread` (a Win32 and X11 option). Everywhere else the render loop has a thread of its own: Windows,
+  macOS, Linux X11, Android (`ChoreographerTimer`) and iOS (`DisplayLinkTimer`).
 - **Hot reload does not work on WebAssembly.** The file watcher cannot start there, and the browser head logs that at
   startup; `.axaml` edits need a rebuild.
 - **On Android the frame pump starts on a dispatcher timer.** Avalonia's Android lifetime exposes only a factory for its
@@ -449,7 +529,8 @@ Two platform notes:
 
 ## Running the sample and the tests
 
-The sample gallery has 15 pages, one per anime.js documentation area, and doubles as the manual acceptance surface.
+The sample gallery has 16 pages — one per anime.js documentation area, plus the render-thread one — and doubles as the
+manual acceptance surface.
 
 ```powershell
 dotnet build Monaco.Presto.slnx
