@@ -1,5 +1,3 @@
-// Kept out of the build as the spec for a re-implementation: the Phase 12 FLIP API these drive was dropped (COMPOSITOR-PLAN §4.4).
-#if LAYOUT_TRANSITION
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
@@ -275,4 +273,3 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     private static Rect Box(Visual bar) =>
         Extent(bar, Colors.Red) ?? throw new InvalidOperationException("The bar is not in the rendered frame.");
 }
-#endif

@@ -101,6 +101,39 @@ public static class PrestoAvalonia
         return new CompositorAnimation(targets, parameters);
     }
 
+    /// <summary>
+    /// Upstream <c>createLayout</c>: eases <paramref name="control"/> into its new place over <paramref name="duration"/>
+    /// milliseconds whenever layout moves it, on the render thread (COMPOSITOR-PLAN §4.4).
+    /// </summary>
+    /// <remarks>
+    /// The move is inverted onto the composition transform, so <see cref="Visual.Bounds"/> is still right in the layout pass
+    /// that moved it and only the pixels lag behind. A control outside the visual tree starts when it is attached to one, and
+    /// its first laid-out pass records where it is without easing, which is why a control appearing is not a layout move.
+    /// </remarks>
+    public static LayoutTransition AnimateLayout(
+        Control control,
+        double duration,
+        EaseValue? ease = null,
+        LayoutAnimateMode mode = LayoutAnimateMode.Position)
+    {
+        EnsureInitialized();
+        return new LayoutTransition(control, first: null, duration, ease, mode, once: false);
+    }
+
+    /// <summary>
+    /// Eases <paramref name="target"/> from where <paramref name="source"/> stands right now into the slot layout gives it
+    /// next, which is how an item moves between two containers (COMPOSITOR-PLAN §4.4 step 6).
+    /// </summary>
+    /// <remarks>
+    /// A one-shot: the two are measured in their window's coordinates, so they have to share one, and the transition is off
+    /// again once the move is under way. Passing the same control twice reparents it.
+    /// </remarks>
+    public static LayoutTransition AnimateSharedElement(Control source, Control target, double duration, EaseValue? ease = null)
+    {
+        EnsureInitialized();
+        return new LayoutTransition(target, LayoutTransition.Measure(source), duration, ease, LayoutAnimateMode.PositionAndSize, once: true);
+    }
+
     /// <inheritdoc cref="Presto.Remove"/>
     public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
     {

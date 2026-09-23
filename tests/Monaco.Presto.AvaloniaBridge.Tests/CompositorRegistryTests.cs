@@ -70,8 +70,6 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         Assert.InRange(Extent(bar, Colors.Red)!.Value.Center.X, stopped - 1, stopped + 1);
     }
 
-// The layout-transition half of the registry, kept as spec alongside LayoutTransitionTests.
-#if LAYOUT_TRANSITION
     /// <summary>
     /// COMPOSITOR-PLAN §4.4: a layout transition and a compositor animation drive the same server property, so they replace
     /// each other through the registry whichever starts second.
@@ -122,7 +120,6 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         Assert.InRange(frozen!.Value.Top, 41, 79);
         Assert.False(await Pump(() => Extent(bar, Colors.Red) != frozen, rounds: 8), "the removed transition kept moving the control");
     }
-#endif
 
 #if DEBUG
     [AvaloniaFact]
@@ -145,7 +142,6 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         Assert.Equal(2, warnings.Messages.Count);
     }
 
-#if LAYOUT_TRANSITION
     /// <summary>The transition keeps the translation across later layout passes, so taking it over — and warning — happens once.</summary>
     [AvaloniaFact]
     public void MixingAShorthandAndALayoutTransitionWarnsOnceHoweverOftenLayoutMoves()
@@ -164,7 +160,6 @@ public sealed class CompositorRegistryTests : CompositorTestBase
 
         Assert.Single(warnings.Messages);
     }
-#endif
 #endif
 
     private sealed class WarningSink : ILogSink, IDisposable

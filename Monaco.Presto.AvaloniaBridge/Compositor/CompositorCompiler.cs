@@ -125,6 +125,23 @@ internal static class CompositorCompiler
         return compiled;
     }
 
+    /// <summary>
+    /// The one exact segment a layout transition plays (COMPOSITOR-PLAN §4.4 step 4): <paramref name="from"/> to
+    /// <paramref name="to"/> over <paramref name="mirror"/>'s iteration, eased by <paramref name="ease"/> itself rather
+    /// than by samples of it, since a FLIP move is always a single two-value tween.
+    /// </summary>
+    public static CompiledTrack Segment(CompositorTrackKind kind, double[] from, double[] to, Animation mirror, Ease ease) =>
+        new(
+            kind,
+            [0, 1],
+            [from, to],
+            [s_linear, new PrestoEasing(ease)],
+            TimeSpan.FromMilliseconds(mirror.IterationDuration * WallClock(mirror)),
+            TimeSpan.Zero,
+            1,
+            false,
+            PlaybackDirection.Normal);
+
     // Wall-clock ms per mirror ms, the scale Timer.ResetTime rebases on; the engine's own rate already carries the time unit.
     private static double WallClock(Animation mirror) => 1 / (mirror._speed * mirror.OwnerEngine._speed);
 

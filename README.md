@@ -430,8 +430,19 @@ stands, so the two are a frame apart until the next call. `Cancel`, `Revert` and
 else about a control is an `AvaloniaProperty` write, which is UI-thread work and stops with the UI thread. WebAssembly
 has a caveat of its own, in [Platforms and status](#platforms-and-status).
 
-Easing a control into its new place when layout moves it is not shipped. It was built as FLIP on the compositor and
-then dropped; the design and the preserved spec tests are in [docs/COMPOSITOR-PLAN.md](docs/COMPOSITOR-PLAN.md) §4.4.
+The same composition transform eases a control into its new place whenever layout moves it, as FLIP:
+
+```csharp
+PrestoAvalonia.AnimateLayout(card, duration: 300, ease: Eases.OutQuint);   // or card.AnimateLayout(300, Eases.OutQuint)
+PrestoAvalonia.AnimateSharedElement(thumbnail, heroImage, duration: 400, ease: Eases.OutQuint);
+```
+
+Where the control was and where layout has just put it are measured on the UI thread, the move is inverted onto the
+composition `Translation`, and the render thread eases that back to identity, so the move survives a blocked UI thread.
+`LayoutAnimateMode.PositionAndSize` inverts a resize onto the composition scale as well, about the control's top left
+corner, which scales its content with it. Layout itself is unchanged: `Bounds` is right in the same pass and only the
+pixels lag behind, so a control is hit where layout put it while it is still drawn on the way there. `Revert()` takes it
+off again.
 
 ## anime.js → Presto
 
@@ -458,7 +469,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
 | `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
-| `createLayout` / `AutoLayout` (`layout/`) | **Not shipped.** Built as FLIP played on the compositor — measure, invert onto `Translation`, ease to identity on the render thread — and then dropped; the design and the preserved spec tests are in [docs/COMPOSITOR-PLAN.md](docs/COMPOSITOR-PLAN.md) §4.4. Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) stay out either way: a control that appears or disappears is not a layout move. |
+| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are out: a control that appears or disappears is not a layout move. |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
@@ -544,7 +555,7 @@ Three platform notes:
 
 ## Running the sample and the tests
 
-The sample gallery has 16 pages — one per anime.js documentation area, plus the render-thread one — and doubles as the
+The sample gallery has 17 pages — one per anime.js documentation area, plus the render-thread and layout ones — and doubles as the
 manual acceptance surface.
 
 ```powershell

@@ -435,7 +435,7 @@ Checklist entries live in `docs/PLAN.md` §5 (Phases 9–12) so `implement-plan`
   README: anime.js → Presto table row for `waapi.animate`.
 - [x] **Phase 11b — Compositor animations, playback control (bridge).** §4.3 step 6: `Pause`/`Resume`/`Seek`/
   `Reverse`/`PlaybackRate` by recompilation, sample controls page variant, tests for phase rotation of infinite loops.
-- [ ] **Phase 12 — FLIP layout transitions (bridge).** §4.4: measure First/Last on the UI thread, invert onto
+- [x] **Phase 12 — FLIP layout transitions (bridge).** §4.4: measure First/Last on the UI thread, invert onto
   `Translation` (and `Scale` in `.PositionAndSize`), play to identity on the compositor through §4.3's easing path;
   `AnimateLayout`, `AnimateSharedElement`, the mirror for interruption and `Then()`; sample (cards, growing panel,
   shared-element move) watched under the freeze button; tests that assert interpolation rather than late arrival.

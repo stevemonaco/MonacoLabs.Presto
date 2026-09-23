@@ -15,7 +15,7 @@ namespace Monaco.Presto.AvaloniaBridge.Compositor;
 /// timing and the callbacks are anime.js's own. It is a model rather than the animation itself: while the UI thread is
 /// blocked it falls behind what the render thread draws, and catches up once the thread is free again.
 /// </remarks>
-public sealed class CompositorAnimation : IRevertible
+public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
 {
     private readonly TargetAnimation[] _targets;
     private readonly Animation? _control;
@@ -162,7 +162,7 @@ public sealed class CompositorAnimation : IRevertible
     /// upstream's <c>_completed</c> counter reaching <c>animations.length</c> does; being replaced is a cancellation rather
     /// than a completion, so <see cref="Then"/> stays unresolved.
     /// </summary>
-    internal void Release(Visual visual, CompositorTrackKind kind)
+    void ICompositorTrackOwner.Release(Visual visual, CompositorTrackKind kind)
     {
         foreach (var target in _targets) target.Release(visual, kind);
         foreach (var target in _targets)

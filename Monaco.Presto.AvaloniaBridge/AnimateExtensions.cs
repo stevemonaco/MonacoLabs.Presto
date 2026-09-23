@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Targets;
 
@@ -20,6 +21,14 @@ public static class AnimateExtensions
     /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor"/>
     public static CompositorAnimation AnimateOnCompositor(this Visual target, CompositorAnimationParams parameters) =>
         PrestoAvalonia.AnimateOnCompositor(target, parameters);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateLayout"/>
+    public static LayoutTransition AnimateLayout(
+        this Control target,
+        double duration,
+        EaseValue? ease = null,
+        LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
+        PrestoAvalonia.AnimateLayout(target, duration, ease, mode);
 
     /// <summary>Creates an animatable over this object's properties, installing the bridge first when nothing else has.</summary>
     public static Animatable CreateAnimatable(this AvaloniaObject target, AvaloniaAnimatableParams parameters)

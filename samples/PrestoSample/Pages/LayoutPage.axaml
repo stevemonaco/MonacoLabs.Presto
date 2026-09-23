@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
+             x:Class="PrestoSample.Pages.LayoutPage">
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Width" Value="56" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColorLight1}" />
+        </Style>
+        <Style Selector="Border.card > TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <StackPanel Spacing="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <WrapPanel x:Name="Cards" Width="420" ItemWidth="68" ItemHeight="68" />
+
+                <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
+                    <Border x:Name="GrowBox" Width="120" Height="56" CornerRadius="6"
+                            Background="{DynamicResource SystemAccentColorDark1}" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Border x:Name="SlotA" Width="76" Height="76" CornerRadius="6" BorderThickness="1"
+                                BorderBrush="{DynamicResource SystemAccentColorLight2}" />
+                        <Border x:Name="SlotB" Width="76" Height="76" CornerRadius="6" BorderThickness="1"
+                                BorderBrush="{DynamicResource SystemAccentColorLight2}" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+            <Button Content="Shuffle" Click="Shuffle" />
+            <Button Content="Add" Click="Add" />
+            <Button Content="Remove" Click="RemoveCard" />
+            <Button Content="Grow panel" Click="Grow" />
+            <Button Content="Move between containers" Click="MoveShared" />
+            <Button Content="Freeze UI thread for 2 s" Click="Freeze" />
+            <TextBlock Classes="caption" Text="slow" VerticalAlignment="Center" />
+            <ToggleSwitch x:Name="Slow" VerticalAlignment="Center" IsCheckedChanged="SpeedChanged" />
+        </StackPanel>
+
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Every card was handed to AnimateLayout when it was created, so a Shuffle, an Add or a Remove moves it in one layout pass and the pixels ease after it. This is FLIP played on the compositor: where the card was and where layout has just put it are measured on the UI thread, the difference is written to the composition Translation so the frame still renders it where it was, and the render thread eases that back to zero. Bounds is already right throughout, which is why a card is clicked where layout put it rather than where it is drawn. The panel grows under LayoutAnimateMode.PositionAndSize, which inverts the size onto the composition scale about the top left corner — its content scales with it. Moving between containers is AnimateSharedElement: the square is measured in the window before it is reparented and eased from there into whatever slot its new parent gives it. Freezing sleeps the dispatcher for two seconds; start a slow move first and it keeps easing throughout, because nothing but the first measurement needs the UI thread." />
+    </StackPanel>
+</UserControl>

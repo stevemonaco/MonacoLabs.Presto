@@ -41,6 +41,8 @@ public partial class MainViewModel : ObservableObject
             () => new AnimatablePage()),
         new("Compositor", "CompositorCanvas and AnimateOnCompositor: a ring of dots rippling out from the centre, drawn and ticked by its own engine on Avalonia's render thread, and a gear whose Rotate was compiled into a composition key frame animation, beside the identical ring over real controls on the UI thread and a button that freezes the dispatcher for two seconds so you can watch which ones keep moving.",
             () => new CompositorPage()),
+        new("Layout", "AnimateLayout and AnimateSharedElement: a grid of numbered cards that shuffles, gains and loses cards, each easing into its new cell as FLIP inverted onto the composition transform and played by the render thread, beside a panel that grows under PositionAndSize and a square that moves between two containers.",
+            () => new LayoutPage()),
     ];
 
     [ObservableProperty]

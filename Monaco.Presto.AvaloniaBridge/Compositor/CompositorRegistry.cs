@@ -7,7 +7,7 @@ using Monaco.Presto.AvaloniaBridge.Transforms;
 namespace Monaco.Presto.AvaloniaBridge.Compositor;
 
 /// <summary>
-/// Upstream's <c>WAAPIAnimationsLookups</c>: which <see cref="CompositorAnimation"/> drives each composition property of
+/// Upstream's <c>WAAPIAnimationsLookups</c>: which <see cref="ICompositorTrackOwner"/> drives each composition property of
 /// each visual. Starting a track takes the property over from whoever held it, exactly as <c>addWAAPIAnimation</c> removes
 /// the animation it replaces, and an animation left with no tracks cancels.
 /// </summary>
@@ -19,20 +19,21 @@ namespace Monaco.Presto.AvaloniaBridge.Compositor;
 internal static class CompositorRegistry
 {
     private static readonly int s_kinds = Enum.GetValues<CompositorTrackKind>().Length;
-    private static readonly ConditionalWeakTable<Visual, CompositorAnimation?[]> s_held = new();
+    private static readonly ConditionalWeakTable<Visual, ICompositorTrackOwner?[]> s_held = new();
 
-    /// <summary>Hands <paramref name="kind"/> on <paramref name="visual"/> to <paramref name="animation"/>, releasing whoever held it.</summary>
-    public static void Take(Visual visual, CompositorTrackKind kind, CompositorAnimation animation)
+    /// <summary>Hands <paramref name="kind"/> on <paramref name="visual"/> to <paramref name="owner"/>, releasing whoever held it.</summary>
+    public static void Take(Visual visual, CompositorTrackKind kind, ICompositorTrackOwner owner)
     {
-        var held = s_held.GetValue(visual, static _ => new CompositorAnimation?[s_kinds]);
-        held[(int)kind]?.Release(visual, kind);
-        held[(int)kind] = animation;
+        var held = s_held.GetValue(visual, static _ => new ICompositorTrackOwner?[s_kinds]);
+        // A layout transition retakes the property it already holds on every layout pass, which must not release itself.
+        if (!ReferenceEquals(held[(int)kind], owner)) held[(int)kind]?.Release(visual, kind);
+        held[(int)kind] = owner;
     }
 
-    /// <summary>Drops <paramref name="animation"/>'s claim on <paramref name="kind"/>, if it still holds it.</summary>
-    public static void Drop(Visual visual, CompositorTrackKind kind, CompositorAnimation animation)
+    /// <summary>Drops <paramref name="owner"/>'s claim on <paramref name="kind"/>, if it still holds it.</summary>
+    public static void Drop(Visual visual, CompositorTrackKind kind, ICompositorTrackOwner owner)
     {
-        if (s_held.TryGetValue(visual, out var held) && held[(int)kind] == animation) held[(int)kind] = null;
+        if (s_held.TryGetValue(visual, out var held) && held[(int)kind] == owner) held[(int)kind] = null;
     }
 
     /// <summary>Releases every compositor animation driving <paramref name="visual"/>, or only <paramref name="kind"/> when one is named.</summary>
