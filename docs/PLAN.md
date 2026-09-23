@@ -15,7 +15,7 @@ Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/`
 
 **Non-goals (for now)**
 
-- WAAPI / composition-thread animations. Everything is UI-thread property animation; GPU-side animations can be explored later via Avalonia's composition API.
+- WAAPI-style compositor animation was a non-goal through Phase 8. It is now planned as Phases 9–12: the scope study, the verified Avalonia behaviour and the design live in [docs/COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md).
 - CSS-specific value handling (unit conversion between px/em/rem, CSS variables, DOM attribute animation). Only what maps to Avalonia survives: numbers, degrees/turns/radians for rotation, percentages where Avalonia uses `RelativePoint`/`RelativeRect`.
 - Three.js-style adapters. The adapter interface is designed so that one could be written, but none ships.
 
@@ -41,8 +41,9 @@ Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/`
 | `events/scroll.js` | `Monaco.Presto.AvaloniaBridge.ScrollObserver` (ScrollViewer) | Bridge | 7 |
 | `svg/*` (`morphTo`, `createDrawable`, `createMotionPath`) | `Monaco.Presto.AvaloniaBridge.Shapes` (Path/Geometry based) | Bridge | 7 |
 | `text/*` (`splitText`, `scrambleText`) | `Monaco.Presto.AvaloniaBridge.Text` | Bridge | 7 |
-| `layout/*` | maybe later (FLIP via `TransformedBounds`) | Bridge | — |
-| `waapi/*`, `adapters/three.js` | not ported | — | — |
+| `layout/*` | `PrestoAvalonia.AnimateLayout`: compositor implicit animations on `Offset` (see [COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4.4) | Bridge | 12 |
+| `waapi/*` | `Monaco.Presto.AvaloniaBridge.Compositor.CompositorAnimation`, server-side `KeyFrameAnimation`s compiled from Presto params (see [COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4.3); `CompositorCanvas`/`CompositorScene` have no upstream counterpart | Bridge | 11 |
+| `adapters/three.js` | not ported | — | — |
 
 ## 3. Architecture
 
@@ -176,6 +177,14 @@ Phase order follows dependencies; each phase ends green on its ported test suite
 - [x] **Phase 6 — Animatable, Scope, target utils.** `Animatable` (getter/setter API with per-property duration/ease), `Scope` + `ControlScope` (revert on unload), `Presto.Get/Set/Remove` for controls. Tests: `animatables`, `scope`. Sample: follow-cursor page.
 - [x] **Phase 7 — Extras (each independently shippable).** `Draggable` (pointer capture, axes, snap, container, release physics), `ScrollObserver` (ScrollViewer thresholds/sync modes), shape helpers (`CreateDrawable`, `CreateMotionPath`, `MorphTo`), `SplitText`/`ScrambleText`. No XAML surface: the declarative layer is deferred until after the post-Phase-8 API pass (string properties, possible fluent builder), so it is not built against an API that is about to change. Tests: `draggables`, `scroll`, `svg`, `text` (adapted). Sample pages per feature.
 - [x] **Phase 8 — Polish and packaging.** XML docs, README with anime.js → Presto cheat sheet, NuGet metadata for both packages, Browser/Android/iOS smoke runs to the level each head allows (Browser: all 15 gallery pages driven in Chrome; Android: builds, installs and launches on a device, but the gallery was not driven on it; iOS: compiles for `iossimulator-x64` only, as running it needs a macOS build host — the README's Platforms table is the shipped record of this), perf pass on the tick loop (the core tick path is allocation-free and both test projects hold it there with an `AllocationTests` budget; `BrushCodec.Encode` already reuses one `SolidColorBrush` per tween, and what the bridge still allocates per frame is decision 9 in §7).
+
+Phases 9–12 are the compositor work; [docs/COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md) §4 and §6 hold the design and the acceptance criteria for each.
+
+- [ ] **Phase 9 — Engine instancing (core).** `Engine` constructor, ambient `Engine.Current`/`MakeCurrent`, `Clock.Engine`, per-engine `Defaults`/`CurrentScope`/additive state, thread-safe statics and thread-static scratch, `Interlocked` ids; bridge helpers switch to `Engine.Current`. Tests: all existing suites unchanged, new `EnginesTests`.
+- [ ] **Phase 10 — Compositor scenes (bridge + sample).** `CompositorCanvas`, `CompositorScene`, `CompositorSceneHandler` (a `CompositionCustomVisualHandler` that is the scene engine's `IFrameSource`), sample page with a freeze-the-UI-thread button, headless pixel and allocation tests, README section.
+- [ ] **Phase 11a — Compositor animations, fire-and-forget (bridge).** `CompositorAnimation`/`CompositorAnimationParams`: mirror animation sampled into `KeyFrameAnimation`s on `Translation`/`Scale`/`RotationAngle`/`Opacity`, `CenterPoint` expression, `Opacity` ownership, compositor-only registry, `Cancel`/`Revert`/`Then`. Pixel tests including the invalidate-mid-fade guard.
+- [ ] **Phase 11b — Compositor animations, playback control (bridge).** `Pause`/`Resume`/`Seek`/`Reverse`/`PlaybackRate` by recompiling from the mirror's position; phase rotation for infinite loops.
+- [ ] **Phase 12 — Layout transitions (bridge).** `PrestoAvalonia.AnimateLayout` through `ImplicitAnimations["Offset"]`, sample and test.
 
 ## 6. Testing strategy
 

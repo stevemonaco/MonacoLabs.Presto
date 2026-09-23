@@ -459,4 +459,5 @@ Directory.Build.local.props
 
 # Local anime.js reference checkout (see CLAUDE.md)
 tools/anime/
+tools/avalonia/
 

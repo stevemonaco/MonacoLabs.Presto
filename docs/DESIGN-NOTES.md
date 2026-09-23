@@ -82,6 +82,13 @@ Open question for the pass: whether the builder replaces the indexer or sits bes
 
 ## 3. Compositor vs `RequestAnimationFrame`
 
+> **Superseded** by [COMPOSITOR-PLAN.md](COMPOSITOR-PLAN.md), which re-checked this section against the 12.1.2 source and
+> plans the work. Two corrections: a direct write to an *animated* composition property does remove a running server
+> animation (the non-removing `SetValue` path quoted below is only used for non-animated properties), and `Opacity`
+> animations survive Avalonia's per-frame sync because the generated client setter skips unchanged values, not because the
+> write is harmless. `Translation`, `Scale`, `RotationAngle` and `CenterPoint` are never synchronised at all, which is
+> what the plan builds on. The history below is kept for the rationale.
+
 Today every animation ticks on the UI thread from `TopLevel.RequestAnimationFrame` and writes `AvaloniaProperty` values at `BindingPriority.Animation`. That matches PLAN §1, which lists composition-thread animation as a non-goal. What follows is what it would actually take to change that.
 
 ### What the compositor can animate
