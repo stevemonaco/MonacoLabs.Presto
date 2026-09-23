@@ -82,6 +82,11 @@ public static class Presto
     {
         var parsed = TargetParser.Parse(targets);
         Composer.RemoveTargetsFromRenderable(parsed, (Clock?)renderable ?? Engine.Current, property);
+        // Naming a renderable removes that one timer's tweens, which is no reason to stop what an adapter drives elsewhere.
+        if (renderable == null)
+        {
+            for (var i = 0; i < Adapters.Count; i++) Adapters[i].Removed(parsed, property);
+        }
         return parsed;
     }
 

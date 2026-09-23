@@ -25,6 +25,14 @@
 
                 <StackPanel Spacing="10">
                     <Panel Height="64">
+                        <PathIcon x:Name="SpinIcon" Width="44" Height="44" VerticalAlignment="Center"
+                                  Data="M 12,4 A 8,8 0 1 1 4,12 L 6.5,12 A 5.5,5.5 0 1 0 12,6.5 Z M 10.5,1.5 L 15,4 L 10.5,6.5 Z" />
+                    </Panel>
+                    <TextBlock Classes="caption" Text="compositor animation" HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Spacing="10">
+                    <Panel Height="64">
                         <ProgressBar IsIndeterminate="True" Width="80" VerticalAlignment="Center" />
                     </Panel>
                     <TextBlock Classes="caption" Text="ProgressBar" HorizontalAlignment="Center" />
@@ -32,9 +40,17 @@
             </StackPanel>
         </Border>
 
-        <Button Content="Freeze UI thread for 2 s" Click="Freeze" HorizontalAlignment="Left" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+            <Button Content="Freeze UI thread for 2 s" Click="Freeze" />
+            <Button Content="Pause" Click="PauseSpin" />
+            <Button Content="Resume" Click="ResumeSpin" />
+            <Button Content="Reverse" Click="ReverseSpin" />
+            <TextBlock Classes="caption" Text="spin speed" VerticalAlignment="Center" />
+            <Slider x:Name="SpinSpeed" Width="120" Minimum="0.25" Maximum="3" Value="1"
+                    VerticalAlignment="Center" ValueChanged="SpinSpeedChanged" />
+        </StackPanel>
 
         <TextBlock Classes="caption" TextWrapping="Wrap"
-                   Text="Both rings run the same animation — twelve dots, Opacity from 1 to 0.15, a centre-out Stagger(75) and InOutSine, looping — but the left one is a CompositorScene with an Engine of its own, ticked and drawn by the render loop, while the right one animates real Borders from Presto.Engine on the UI thread. Freezing sleeps the dispatcher for two seconds: the render-thread ring keeps turning throughout, while the UI-thread ring, Avalonia's own indeterminate ProgressBar and the rest of the window stop dead. Both rings read the same wall clock, so they are back in step when the dispatcher wakes." />
+                   Text="Both rings run the same animation — twelve dots, Opacity from 1 to 0.15, a centre-out Stagger(75) and InOutSine, looping — but the left one is a CompositorScene with an Engine of its own, ticked and drawn by the render loop, while the right one animates real Borders from Presto.Engine on the UI thread. The arrow is neither: it is an ordinary PathIcon whose Rotate was compiled into a composition key frame animation by AnimateOnCompositor. Freezing sleeps the dispatcher for two seconds: the scene and the arrow keep turning throughout, while the UI-thread ring, Avalonia's own indeterminate ProgressBar and the rest of the window stop dead. Both rings read the same wall clock, so they are back in step when the dispatcher wakes. Pause, Resume, Reverse and the speed slider drive the arrow: a composition key frame animation has none of those, so each of them stops the running one and starts a freshly compiled one from wherever the mirror timer stands." />
     </StackPanel>
 </UserControl>

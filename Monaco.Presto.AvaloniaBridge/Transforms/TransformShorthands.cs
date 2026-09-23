@@ -1,3 +1,5 @@
+using Monaco.Presto.Values;
+
 namespace Monaco.Presto.AvaloniaBridge.Transforms;
 
 /// <summary>
@@ -18,6 +20,24 @@ internal enum TransformShorthand
 
 internal static class TransformShorthands
 {
+    [ThreadStatic] private static DecomposedValue? s_angle;
+
+    /// <summary>Whether <paramref name="shorthand"/> is turned in degrees rather than moved in pixels or multiplied.</summary>
+    public static bool IsAngle(TransformShorthand shorthand) =>
+        shorthand is TransformShorthand.Rotate or TransformShorthand.SkewX or TransformShorthand.SkewY;
+
+    /// <summary>Converts an angle carrying a unit of its own (<c>"1turn"</c>, <c>".5rad"</c>) into the degrees a transform holds.</summary>
+    public static double ToDegrees(double number, string? unit)
+    {
+        if (unit is null or "deg") return number;
+        var angle = s_angle ??= new DecomposedValue();
+        angle.Kind = ValueKind.Unit;
+        angle.Number = number;
+        angle.Unit = unit;
+        UnitConverter.Convert(angle, "deg");
+        return angle.Number;
+    }
+
     public static TransformShorthand? Parse(string name) => name switch
     {
         "X" => TransformShorthand.X,

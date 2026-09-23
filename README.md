@@ -348,8 +348,7 @@ Transmission.Animate(new()
 
 Everything above runs on the UI thread, which means everything above stops when the UI thread does. A `CompositorScene`
 does not: it is a world of its own — its own `Engine`, its own `Scope`, its own drawing — animated and drawn by
-Avalonia's compositor. That makes it the one place in Presto where a busy indicator keeps turning through a synchronous
-load.
+Avalonia's compositor.
 
 ```csharp
 using Avalonia;
@@ -413,10 +412,26 @@ The rules that come with the thread:
 - **The scene's `Engine` is its own.** It starts from a copy of `Presto.Defaults`, and after that `Presto.Engine`'s
   speed, fps and pause state do not apply to it.
 
-Only what the scene draws itself runs on the render thread. Animating an *existing* control there — its transform or its
-opacity through the composition visual Avalonia already gives it — is designed
-([COMPOSITOR-PLAN.md](docs/COMPOSITOR-PLAN.md) §4.3) but not in this release: animation of controls is UI-thread work,
-and stops with the UI thread. WebAssembly has a caveat of its own, in [Platforms and status](#platforms-and-status).
+A scene only draws itself. To move an *existing* control on the render thread — through the composition visual Avalonia
+already gives it — there is `AnimateOnCompositor`, the anime.js `waapi.animate` analogue:
+
+```csharp
+var spin = icon.AnimateOnCompositor(new() { ["Rotate"] = 360, Duration = 1200, Ease = Eases.None, Loop = true });
+await busyWork;                 // the icon keeps turning even while this blocks the UI thread
+spin.Revert();
+```
+
+It is a reduced model, not a second `Animate`. It animates `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY` and
+`Opacity` and throws for anything else; the animation is compiled up front into composition key frames, so there are no
+per-frame callbacks, no `Blend` composition and no timelines. `Pause`, `Resume`, `Play`, `Reverse`, `Alternate`,
+`Seek`, `Restart`, `Complete`, `Progress` and `Speed` are there, but a composition key frame animation has none of
+them of its own: each one stops what is running and starts a freshly compiled animation from where the UI-side model
+stands, so the two are a frame apart until the next call. `Cancel`, `Revert` and `Then` finish the surface. Everything
+else about a control is an `AvaloniaProperty` write, which is UI-thread work and stops with the UI thread. WebAssembly
+has a caveat of its own, in [Platforms and status](#platforms-and-status).
+
+Easing a control into its new place when layout moves it is not shipped. It was built as FLIP on the compositor and
+then dropped; the design and the preserved spec tests are in [docs/COMPOSITOR-PLAN.md](docs/COMPOSITOR-PLAN.md) §4.4.
 
 ## anime.js → Presto
 
@@ -442,8 +457,8 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `engine` | `Presto.Engine` (`Speed`, `Fps`, `Precision`, `TimeUnit`, `Pause()`, `Resume()`, `FrameSource`) |
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
-| `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `CompositorCanvas` / `CompositorScene` run a whole engine on Avalonia's render thread, which upstream has no counterpart for; `waapi.animate` itself — an existing control driven by the compositor — is **not ported**, so control animation is still UI-thread property animation. |
-| `createLayout` / `AutoLayout` (`layout/`) | **Not ported.** FLIP layout animation needs a port over measured bounds rather than the DOM box model; deferred past 0.1. |
+| `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
+| `createLayout` / `AutoLayout` (`layout/`) | **Not shipped.** Built as FLIP played on the compositor — measure, invert onto `Translation`, ease to identity on the render thread — and then dropped; the design and the preserved spec tests are in [docs/COMPOSITOR-PLAN.md](docs/COMPOSITOR-PLAN.md) §4.4. Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) stay out either way: a control that appears or disappears is not a layout move. |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |

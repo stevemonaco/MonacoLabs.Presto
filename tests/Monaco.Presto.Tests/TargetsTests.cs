@@ -74,4 +74,55 @@ public sealed class TargetsTests : EngineTestBase
 
     [Fact]
     public void AnimatingNullHasNoTargets() => Assert.Empty(Presto.Animate(null, new() { Duration = 10 }).Targets);
+
+    [Fact]
+    public void RemovingEverythingTellsTheAdapters()
+    {
+        var target = new TestObject();
+        var adapter = new RecordingAdapter();
+        Presto.Adapters.Add(adapter);
+        try
+        {
+            Presto.Animate(target, new() { ["PlainValue"] = 200, Duration = 100 });
+
+            Presto.Remove(target, property: "PlainValue");
+
+            var (targets, property) = Assert.Single(adapter.Calls);
+            Assert.Equal([target], targets);
+            Assert.Equal("PlainValue", property);
+        }
+        finally
+        {
+            Presto.Adapters.Remove(adapter);
+        }
+    }
+
+    [Fact]
+    public void RemovingOneRenderableLeavesTheAdaptersAlone()
+    {
+        var target = new TestObject();
+        var adapter = new RecordingAdapter();
+        Presto.Adapters.Add(adapter);
+        try
+        {
+            var animation = Presto.Animate(target, new() { ["PlainValue"] = 200, Duration = 100 });
+
+            Presto.Remove(target, animation);
+
+            Assert.Empty(adapter.Calls);
+        }
+        finally
+        {
+            Presto.Adapters.Remove(adapter);
+        }
+    }
+
+    private sealed class RecordingAdapter : ITargetAdapter
+    {
+        public List<(IReadOnlyList<object> Targets, string? Property)> Calls { get; } = [];
+
+        public IPropertyAccessor? Resolve(object target, string property) => null;
+
+        public void Removed(IReadOnlyList<object> targets, string? property) => Calls.Add((targets, property));
+    }
 }

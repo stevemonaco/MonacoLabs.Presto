@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Data;
 using Avalonia.Media;
+using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Transforms;
 
@@ -47,12 +48,16 @@ internal sealed class RenderTransformComposer
     public static double Get(Visual visual, TransformShorthand shorthand) =>
         (s_composers.TryGetValue(visual, out var composer) ? composer._values : s_identities)[(int)shorthand];
 
+    /// <summary>Whether a shorthand currently drives <paramref name="visual"/>'s render transform.</summary>
+    public static bool Animates(Visual visual) => s_composers.TryGetValue(visual, out var composer) && composer._animated != 0;
+
     public static void Set(Visual visual, TransformShorthand shorthand, double value)
     {
         var composer = s_composers.GetValue(visual, static v => new RenderTransformComposer(v));
         composer._values[(int)shorthand] = value;
         if (!composer.Animates(shorthand))
         {
+            CompositorRegistry.WarnIfCompositorDrives(visual, shorthand);
             composer._animated |= 1 << (int)shorthand;
             composer.Rebuild();
         }

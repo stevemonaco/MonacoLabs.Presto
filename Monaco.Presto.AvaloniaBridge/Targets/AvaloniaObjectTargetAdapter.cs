@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Data;
+using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Shapes;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
@@ -74,6 +75,22 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         return ResolveProperty(target.GetType(), property) is { } resolved ? Encode(resolved) : null;
     }
 
+    /// <summary>Cancels the compositor animations of <paramref name="targets"/>, which no tween removal reaches.</summary>
+    public void Removed(IReadOnlyList<object> targets, string? property)
+    {
+        CompositorTrackKind? kind = null;
+        if (property != null)
+        {
+            if (CompositorProperty.Find(property) is not { } resolved) return;
+            kind = resolved.Kind;
+        }
+
+        for (var i = 0; i < targets.Count; i++)
+        {
+            if (targets[i] is Visual visual) CompositorRegistry.Release(visual, kind);
+        }
+    }
+
     private static AvaloniaProperty? ResolveProperty(Type targetType, string name)
     {
         if (s_resolved.TryGetValue((targetType, name), out var cached)) return cached;
@@ -105,8 +122,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
 
     private sealed class TransformAccessor(TransformShorthand shorthand) : IPropertyAccessor
     {
-        private readonly bool _isAngle = shorthand is TransformShorthand.Rotate or TransformShorthand.SkewX or TransformShorthand.SkewY;
-        private readonly DecomposedValue _angle = new();
+        private readonly bool _isAngle = TransformShorthands.IsAngle(shorthand);
 
         public IValueCodec? Codec => null;
 
@@ -118,19 +134,9 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         }
 
         public void SetValue(object target, double number, Tween tween) =>
-            RenderTransformComposer.Set((Visual)target, shorthand, _isAngle ? ToDegrees(number, tween._unit) : number);
+            RenderTransformComposer.Set((Visual)target, shorthand, _isAngle ? TransformShorthands.ToDegrees(number, tween._unit) : number);
 
         public void Revert(object target, object? originalValue) => RenderTransformComposer.Revert((Visual)target, shorthand);
-
-        private double ToDegrees(double number, string? unit)
-        {
-            if (unit is null or "deg") return number;
-            _angle.Kind = ValueKind.Unit;
-            _angle.Number = number;
-            _angle.Unit = unit;
-            UnitConverter.Convert(_angle, "deg");
-            return _angle.Number;
-        }
     }
 
     private sealed class AvaloniaPropertyAccessor : IPropertyAccessor
@@ -179,33 +185,6 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             if (_original == null || !_original.TryGetValue(animated, out var original)) return;
             _original.Remove(animated);
             animated.SetValue(_property, original.Value);
-        }
-    }
-
-    // Serves as its own subscription token, so disposing it tears down the animation priority binding.
-    private sealed class AnimatedValue : IObservable<object?>, IDisposable
-    {
-        private IObserver<object?>? _observer;
-        private IDisposable? _binding;
-
-        public AnimatedValue(AvaloniaObject target, AvaloniaProperty property) =>
-            _binding = target.Bind(property, this, BindingPriority.Animation);
-
-        public IDisposable Subscribe(IObserver<object?> observer)
-        {
-            _observer = observer;
-            return this;
-        }
-
-        public void Push(object? value) => _observer?.OnNext(value);
-
-        public void Dispose()
-        {
-            _observer = null;
-            // Cleared first: disposing the binding disposes this subscription token in turn.
-            var binding = _binding;
-            _binding = null;
-            binding?.Dispose();
         }
     }
 }

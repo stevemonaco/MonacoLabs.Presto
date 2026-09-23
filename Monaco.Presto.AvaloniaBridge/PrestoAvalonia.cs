@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Draggables;
 using Monaco.Presto.AvaloniaBridge.Events;
 using Monaco.Presto.AvaloniaBridge.Shapes;
@@ -25,6 +26,7 @@ public static class PrestoAvalonia
         Initialized = true;
         Presto.Engine.FrameSource = new AvaloniaFrameSource();
         Presto.Adapters.Add(new AvaloniaObjectTargetAdapter());
+        Presto.Adapters.Add(new CompositorScratch.Adapter());
 
         Presto.Codecs[typeof(Color)] = new ColorCodec();
 
@@ -83,6 +85,20 @@ public static class PrestoAvalonia
     {
         EnsureInitialized();
         return Presto.Set(targets, parameters);
+    }
+
+    /// <summary>
+    /// Upstream <c>waapi.animate</c>: animates the transform and opacity of <paramref name="targets"/> on the render thread,
+    /// so the animation carries on while the UI thread is busy.
+    /// </summary>
+    /// <remarks>
+    /// Only "X", "Y", "Rotate", "Scale", "ScaleX", "ScaleY" and "Opacity" have composition counterparts; anything else throws.
+    /// Every target has to be a <see cref="Visual"/>, and one outside the visual tree starts when it is attached to one.
+    /// </remarks>
+    public static CompositorAnimation AnimateOnCompositor(object? targets, CompositorAnimationParams parameters)
+    {
+        EnsureInitialized();
+        return new CompositorAnimation(targets, parameters);
     }
 
     /// <inheritdoc cref="Presto.Remove"/>

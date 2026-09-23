@@ -469,7 +469,7 @@ public sealed class Animation : Timer
         return index < items.Length ? items[index] : (TweenValue?)null;
     }
 
-    private static TweenValue? GetFunctionValue(TweenValue? value, object target, int index, IReadOnlyList<object> targets, Tween? chained) =>
+    internal static TweenValue? GetFunctionValue(TweenValue? value, object target, int index, IReadOnlyList<object> targets, Tween? chained) =>
         ValueFunction(value, target, index, targets, chained) is { } function ? function() : value;
 
     private static TweenValue? GetFunctionValue(TweenValue? value, object target, int index, IReadOnlyList<object> targets, Tween? chained, ref Func<TweenValue>? store)

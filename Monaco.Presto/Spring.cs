@@ -53,6 +53,7 @@ public sealed class Spring
         OnComplete = onComplete;
         if (bounce != null || duration != null) CalculateSDFromBD();
         Compute();
+        PureEase = t => t == 0 || t == 1 ? t : Solve(t * SolverDuration);
         Ease = t =>
         {
             var currentTime = t * SettlingDuration;
@@ -67,12 +68,15 @@ public sealed class Spring
             {
                 Completed = false;
             }
-            return t == 0 || t == 1 ? t : Solve(t * SolverDuration);
+            return PureEase(t);
         };
     }
 
     /// <summary>The easing function; sampling it past <see cref="Duration"/> raises <see cref="OnComplete"/> once.</summary>
     public Ease Ease { get; }
+
+    /// <summary>The same curve without the <see cref="Completed"/> bookkeeping, for samplers that must not raise <see cref="OnComplete"/>.</summary>
+    public Ease PureEase { get; }
 
     /// <summary>Time in the engine's unit for the spring to come to rest; animations use it as their duration.</summary>
     public double SettlingDuration { get; private set; }

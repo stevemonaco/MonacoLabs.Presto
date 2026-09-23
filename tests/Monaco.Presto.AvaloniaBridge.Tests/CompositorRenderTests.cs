@@ -1,7 +1,4 @@
-using System.Runtime.InteropServices;
 using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
@@ -68,16 +65,6 @@ public sealed class CompositorRenderTests : CompositorTestBase
         Assert.True(Contains(first, Colors.Lime), "the scene never drew its rectangle");
         Assert.Equal(first, unredrawn);
         Assert.NotEqual(first, Capture(canvas));
-    }
-
-    private static byte[] Capture(Visual visual)
-    {
-        var window = TopLevel.GetTopLevel(visual)!;
-        using var frame = window.GetLastRenderedFrame() ?? throw new InvalidOperationException("The window has not rendered yet.");
-        using var locked = frame.Lock();
-        var pixels = new byte[locked.RowBytes * locked.Size.Height];
-        Marshal.Copy(locked.Address, pixels, 0, pixels.Length);
-        return pixels;
     }
 
     private static bool Contains(byte[] pixels, Color color)

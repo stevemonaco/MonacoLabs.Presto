@@ -27,9 +27,10 @@ Three things are realistic, in this order of value:
    `Rotate`, `Scale*` and `Opacity` into server-side `KeyFrameAnimation`s. It is the anime.js `waapi.animate()` story:
    a separate, reduced object (`CompositorAnimation`) with its own registry, not a flag on `Animate`. Playback control is
    emulated by recompiling from a UI-side mirror timer; per-frame callbacks and blend composition are not available.
-3. **Layout transitions for free.** An `ImplicitAnimationCollection` on an element visual animates `Offset` whenever
-   layout moves the element, on the render thread, with a Presto ease. That is the unported anime.js `layout/*` (FLIP)
-   niche.
+3. **Layout transitions.** Upstream's unported `layout/*` module, and Motion's `layout` prop: a control eases into its
+   new place on the render thread whenever layout moves it. Attempted twice and **not shipped** — an implicit animation
+   on the element visual's `Offset`, which snaps on the Win32 backend (evidence in §4.4), and then FLIP inverted onto
+   `Translation`, which was built and removed at the user's request (§6). §4.4 keeps the design, §6 the status.
 
 Not realistic: anything that is an `AvaloniaProperty` write. Layout properties, brushes and colours of controls, text,
 `Draw`, `MorphTo`, split/scramble text, `Draggable`, `ScrollObserver`, view-model targets and `Blend` composition all
@@ -89,7 +90,7 @@ So the durability rule is: **a server animation lives until the UI-side value of
 | `RotationAngle` (float, **radians**) | never | yes | `Rotate` (degrees → radians) |
 | `CenterPoint` (Vector3D) | never | yes | transform origin; set via an `ExpressionAnimation` on `this.Target.Size` so it follows resizes |
 | `Opacity` (float) | every dirty pass, but only re-sent when `Visual.Opacity` changes | yes, while Presto owns `Visual.Opacity` | `Opacity` |
-| `Offset` | every layout change | no (killed by layout) | implicit layout animation only |
+| `Offset` | every layout change | no (killed by layout) | none: FLIP inverts onto `Translation` instead (§4.4) |
 | `Size`, `Visible`, clips, effects, `TransformMatrix` | yes | no | none |
 
 The server composes `TransformMatrix`, the anchor, `Scale` and `RotationAngle` about `CenterPoint`, `Orientation`, then
@@ -303,13 +304,78 @@ stop the fade, which is the test that pins the Avalonia semantics §2.2 relies o
 about the centre after a resize; `Cancel` freezes, `Revert` restores; `Then()` completes; two compositor animations on
 one property replace; an unsupported property throws.
 
-### 4.4 Bridge: layout transitions via implicit animations
+### 4.4 Bridge: FLIP layout transitions played on the compositor
 
-`PrestoAvalonia.AnimateLayout(control, duration, ease)` sets `ImplicitAnimations["Offset"]` on the element visual
-(`Vector3DKeyFrameAnimation`, `this.FinalValue`, `PrestoEasing`), optionally `Size` too. Every layout move then eases on
-the render thread with no per-frame UI work: reordering items, expanding panels. It is the closest Presto can get to the
-unported anime.js `layout` module and it is a dozen lines once §4.3's easing adapter exists. Caveat: `Offset` is
-re-sent only on real change (§2.2), so the implicit animation retargets exactly once per layout change.
+**Status: not shipped.** This was implemented on the compositor and then removed at the user's request; the section is
+kept as the design and `LayoutTransitionTests.cs` as the spec, should it be taken up again (§6).
+
+Motion's `layout` prop, done the Avalonia way: **F**irst and **L**ast are measured on the UI thread, the **I**nvert is a
+write to the element visual's `Translation` (and `Scale`), and the **P**lay is a server `KeyFrameAnimation` on those same
+properties, so the transition runs on the render thread and survives a blocked UI thread.
+
+**Why not `ImplicitAnimations["Offset"]`.** That was the original design here, and on paper it is strictly less work: the
+server already holds both ends, so nothing needs measuring or inverting (`Generator.cs:392` passes the newly assigned
+value in as `FinalValue`; `ServerObjectAnimations.OnSetAnimatedValue` initialises `StartingValue` from the backing
+field, so even an interrupted move resumes from its current visual position). It was built, and **it does not animate on
+the Windows desktop backend**: with a 10 s transition, every captured frame after a shuffle shows the cards already on
+their new cells. The implicit collection is installed, `ElementComposition.GetElementVisual` is non-null, and the client
+`Offset` really does change (176,64 → 8,8 was logged across a shuffle) — but a hand-written Avalonia implicit animation,
+bare and wrapped in `CreateAnimationGroup()` as ControlCatalog's `CompositionPage` does it, snaps exactly the same way.
+Explicit server animations work in the same process and the same frame loop: with the UI thread held for 2 s, the
+`AnimateOnCompositor` gear keeps turning and the `CompositorScene` ring keeps advancing. And it is not that the code was
+never proven to move: headless, `LayoutTransitionTests.ALayoutMoveEasesIntoPlaceInsteadOfJumping` probes the *rendered
+frame* for the red bar and asserts its halfway sample lands between 30% and 70% of the move, and that passes. So implicit
+`Offset` animations interpolate under the headless render timer and snap under Win32 — a platform divergence in Avalonia
+12.1.2, not Presto misusing the API, and `Offset` is declared `Animated="true"` in `composition-schema.xml:24`, so the
+generated setter's implicit branch does fire. Worth an upstream issue; not worth blocking on. Inverting onto `Translation` uses the explicit `StartAnimation` path that is
+already proven here, and it buys size changes and reparenting as well.
+
+The cycle, per animated element:
+
+1. **First.** Keep the element's last known bounds in `TopLevel` coordinates (`control.TranslatePoint(default, topLevel)`
+   plus `Bounds.Size`). No pre-layout hook is needed: the remembered value *is* First.
+2. **Last.** On `LayoutUpdated`, measure again. Unchanged position and size → do nothing (the common case, so this path
+   allocates nothing and touches no composition object).
+3. **Invert.** Write `Translation = first - last` on the element visual, and for `LayoutAnimateMode.PositionAndSize`
+   also `Scale = (firstW/lastW, firstH/lastH, 1)` with `CenterPoint = (0,0,0)` — the inverse scale must be anchored at
+   the same corner the offset maths used, which is why this path sets `CenterPoint` directly instead of §4.3's centring
+   `ExpressionAnimation`. This must land in the same commit as layout's new `Offset`, or one frame renders in the new
+   position before the invert arrives; the "no first-frame jump" test below is what pins it.
+4. **Play.** `StartAnimation` a `Vector3DKeyFrameAnimation` to `Vector3D.Zero` on `Translation` (and to `(1,1,1)` on
+   `Scale`), compiled through §4.3's easing path: one exact `PrestoEasing` segment, since a layout transition is always
+   a single two-value tween. Key frame 0 is implicit and is the invert value at commit time (§2.3). A spring's `Ease`
+   mutates as it is sampled and the render thread is what samples it, so only `Spring.PureEase` crosses.
+5. **Interruption.** A second layout change mid-flight must invert from where the element *is*, not from its previous
+   layout slot. The UI side cannot read a server value, so each layout animation keeps a §4.3-style mirror — a Presto
+   animation on a scratch `(x, y, sx, sy)` — and First is read as *layout position + current mirror translation*. The
+   mirror is also what supplies `Then()`, `OnComplete` and `Progress`, since server animations have no completion event.
+6. **Shared elements.** `PrestoAvalonia.AnimateSharedElement(source, target, duration, ease)` is the same four steps with
+   First taken from a *different* control: measure `source` now, then invert `target` by `sourcePos - targetPos` (and by
+   the size ratio) on its next layout pass and play to identity. Both controls must be in one `TopLevel`. Reparenting an
+   item between containers is this call, not a special case.
+
+Scope and caveats, all to be stated in the XML docs:
+
+- `LayoutAnimateMode.Position` (default) translates only; `.PositionAndSize` adds the scale correction. Scaling an
+  element scales its rendered content with it — Motion counter-scales children, which here would mean writing every
+  child's visual, so v1 scales the element and documents it rather than pretending otherwise.
+- Enter and leave transitions are out of scope: they need a presenter/lifetime hook, not a layout hook.
+- Hit testing goes through the UI-thread `Visual` tree, which knows nothing about compositor `Translation`, so during a
+  transition the element is *hit* at its new layout position while *drawn* on the way there.
+- This shares §4.3's registry: a layout transition and a compositor `X`/`Y`/`Scale` animation on the same control fight
+  over the same two server properties. Same rule, same Debug warning, and `Presto.Remove(control)` reaches both.
+- A control created outside the visual tree starts when it is attached to one; `Revert()` drops the animations, writes
+  identity and lets layout move the control in one frame again.
+
+Tests (headless + Skia, `ForceRenderTimerTick()`): a `Margin` change eases the rendered position across ticks rather
+than jumping, asserted as *interpolation* with a pixel probe, as the `Offset` version's suite already does; the frame immediately
+after the layout change still shows the *old* position (step 3's guard); a second `Margin` change mid-flight retargets
+from the current visual position instead of snapping back; `.PositionAndSize` scales and lands at identity;
+`AnimateSharedElement` moves a control to another parent's slot; `Cancel`/`Revert` restore identity; `Then()` completes.
+The freeze-proof claim cannot be tested headless (§2.1: the headless render timer is on the UI thread) and belongs in
+the sample. **Headless green would not be acceptance here**: the `Offset` version passed a pixel-accurate headless
+interpolation test and still snapped on Win32, so a re-implementation counts as working only once the sample has been
+watched on the desktop head.
 
 ## 5. Public API sketch
 
@@ -350,53 +416,39 @@ spinner.Invoke<SpinnerScene>(s => s.Engine.Speed = 2);     // marshalled to the 
 var spin = icon.AnimateOnCompositor(new() { ["Rotate"] = 360, Duration = 1200, Ease = Eases.None, Loop = true });
 await busyWork;
 spin.Revert();
-
-// Layout moves ease on the render thread.
-PrestoAvalonia.AnimateLayout(listItem, duration: 300, ease: Eases.OutQuint);
 ```
 
 ## 6. Phases
 
 Checklist entries live in `docs/PLAN.md` §5 (Phases 9–12) so `implement-plan` can pick them up; details are here.
 
-- [ ] **Phase 9 — Engine instancing (core).** §4.1: `Engine` constructor, `Engine.Current`/`MakeCurrent`,
+- [x] **Phase 9 — Engine instancing (core).** §4.1: `Engine` constructor, `Engine.Current`/`MakeCurrent`,
   `Clock.Engine`, per-engine `Defaults`/`CurrentScope`/additive state, thread-safe statics, thread-static scratch,
   `Interlocked` ids. `Presto.Defaults` forwards to the main engine. All existing tests green; new `EnginesTests`.
   Bridge: `Draggable`, `ScrollContainer`, `ScrollObserver`, `TextScrambler`, `TextSplitter` switch their `Presto.Engine`
   reads to `Engine.Current` (they stay UI-thread objects). Docs: PLAN §3.1 thread model paragraph.
-- [ ] **Phase 10 — Compositor scenes (bridge + sample).** §4.2: `CompositorCanvas`, `CompositorScene`,
+- [x] **Phase 10 — Compositor scenes (bridge + sample).** §4.2: `CompositorCanvas`, `CompositorScene`,
   `CompositorSceneHandler`, brush/pen caching helper, sample page with the freeze button, headless tests including the
   allocation budget. README: a "Render thread" section and the Platforms table row for Browser.
-- [ ] **Phase 11a — Compositor animations, fire-and-forget (bridge).** §4.3 steps 1–5: params, mirror + sampler,
+- [x] **Phase 11a — Compositor animations, fire-and-forget (bridge).** §4.3 steps 1–5: params, mirror + sampler,
   property mapping, `CenterPoint` expression, `Opacity` ownership, registry, `Cancel`/`Revert`/`Then`, pixel tests.
   README: anime.js → Presto table row for `waapi.animate`.
-- [ ] **Phase 11b — Compositor animations, playback control (bridge).** §4.3 step 6: `Pause`/`Resume`/`Seek`/
+- [x] **Phase 11b — Compositor animations, playback control (bridge).** §4.3 step 6: `Pause`/`Resume`/`Seek`/
   `Reverse`/`PlaybackRate` by recompilation, sample controls page variant, tests for phase rotation of infinite loops.
-- [ ] **Phase 12 — Layout transitions (bridge).** §4.4: `AnimateLayout`, sample (reorderable list), test that a
-  `Margin` change eases the rendered position across ticks.
+- [ ] **Phase 12 — FLIP layout transitions (bridge).** §4.4: measure First/Last on the UI thread, invert onto
+  `Translation` (and `Scale` in `.PositionAndSize`), play to identity on the compositor through §4.3's easing path;
+  `AnimateLayout`, `AnimateSharedElement`, the mirror for interruption and `Then()`; sample (cards, growing panel,
+  shared-element move) watched under the freeze button; tests that assert interpolation rather than late arrival.
+  Built once and lost to an agent deletion, not to a design problem: `LayoutTransitionTests.cs` and the layout cases of
+  `CompositorRegistryTests` are the surviving spec, behind a `LAYOUT_TRANSITION` compile symbol.
 
 ## 7. Decisions and open questions
 
-Decided here, to be lifted into PLAN §7 when the phases land:
-
-1. Scenes get their own `Engine`; the UI thread never ticks a scene and the render thread never writes an
-   `AvaloniaProperty`. Ambient `Engine.Current` rather than an `engine` parameter on every factory, so the anime.js call
-   shape survives.
-2. Compositor animations on controls are a separate type with a reduced surface, as upstream's `waapi` is, and share
-   no registry with UI-thread animations. Unsupported properties throw instead of falling back.
-3. Compile by sampling the Presto mirror (upstream's `linear()` approach), exact single-segment easing as an
-   optimisation. `RotationAngle` is radians on the wire; Presto keeps degrees at the API.
-4. `Opacity` is owned through an `Animation`-priority binding for the life of the compositor animation.
-5. Browser is documented as "runs but does not survive a blocked UI thread"; nothing to build there.
+Decided: PLAN §7, decisions 12–16.
 
 Open:
 
-- Naming: `Compositor*` (Avalonia's term) vs `RenderThread*` (what users care about). `Composition*` is out because
-  the core already has `Composition` (replace/none/blend).
-- Should `CompositorCanvas` also draw a UI-thread placeholder for the previewer / design mode?
-- Whether §4.3 should also cover `CompositionSolidColorVisual.Color` for solid backgrounds, by inserting a child solid
-  visual under a `Border`. Cheap, but it draws above the control's content; probably not.
-- Skew between mirror and server clocks in §4.3 step 6: measure on Windows and macOS before deciding whether to
-  compensate with `CompositionBatch.Processed`.
-- The semantics in §2.2 are Avalonia internals (equality guard, `SetAnimatedValue(out)`, `Offset + Translation`). The
-  pixel test in §4.3 guards them; bumping `AvaloniaVersion` in `Directory.Packages.props` must re-run it.
+- Should `CompositorCanvas` also draw a UI-thread placeholder for the previewer / design mode? Nothing was built for it.
+- The semantics in §2.2 are Avalonia internals (equality guard, `SetAnimatedValue(out)`, `Offset + Translation`).
+  `CompositorAnimationTests.InvalidateVisualDoesNotStopACompositorFade` guards them; bumping `AvaloniaVersion` in
+  `Directory.Packages.props` must re-run it.

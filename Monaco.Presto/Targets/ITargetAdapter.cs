@@ -15,4 +15,11 @@ public interface ITargetAdapter
     /// </summary>
     /// <remarks>Must not throw for a name it does not recognise: unlike <see cref="Resolve"/> this is asked speculatively.</remarks>
     string? Canonicalise(object target, string property) => null;
+
+    /// <summary>
+    /// Called by <see cref="Presto.Remove(object?, Timer?, string?)"/> once the tweens are gone, so that an adapter driving
+    /// <paramref name="targets"/> outside the engine — the Avalonia bridge's compositor animations — stops too: every
+    /// property of them, or only <paramref name="property"/> when one is named.
+    /// </summary>
+    void Removed(IReadOnlyList<object> targets, string? property) { }
 }

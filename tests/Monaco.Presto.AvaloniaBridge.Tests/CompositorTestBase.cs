@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -26,6 +27,17 @@ public abstract class CompositorTestBase : BridgeTestBase
     protected static (StackPanel Panel, CompositorCanvas Canvas) ShowScene(CompositorScene scene) =>
         Show(new CompositorCanvas { Scene = scene, Width = 64, Height = 64 });
 
+    /// <summary>Shows a red 40x20 bar at (30, 40) of a 100x100 window, ticked once so that it has a composition visual.</summary>
+    protected static Border ShowBar()
+    {
+        var bar = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+        Canvas.SetLeft(bar, 30);
+        Canvas.SetTop(bar, 40);
+        new Window { Content = new Canvas { Children = { bar } }, Background = Brushes.White, Width = 100, Height = 100 }.Show();
+        Tick();
+        return bar;
+    }
+
     /// <summary>Commits what the UI thread has queued for the compositor, as a real frame does, then runs one compositor frame.</summary>
     protected static void Tick()
     {
@@ -42,6 +54,50 @@ public abstract class CompositorTestBase : BridgeTestBase
             await Task.Delay(8);
         }
         return until();
+    }
+
+    /// <summary>The pixels of the last frame the window holding <paramref name="visual"/> rendered.</summary>
+    protected static byte[] Capture(Visual visual) => Read(visual).Pixels;
+
+    /// <summary>
+    /// The mean difference per byte between two frames: zero while nothing moves, and rising as a visual fades into or slides
+    /// over what is behind it, which is all a compositor animation leaves observable.
+    /// </summary>
+    protected static double Difference(byte[] first, byte[] second)
+    {
+        var total = 0L;
+        for (var i = 0; i < first.Length; i++) total += Math.Abs(first[i] - second[i]);
+        return total / (double)first.Length;
+    }
+
+    /// <summary>The box the pixels matching <paramref name="color"/> fill in the last rendered frame, or null when it has none.</summary>
+    protected static Rect? Extent(Visual visual, Color color)
+    {
+        var (pixels, stride) = Read(visual);
+        double left = int.MaxValue, top = int.MaxValue, right = -1, bottom = -1;
+        for (var y = 0; y < pixels.Length / stride; y++)
+        {
+            for (var x = 0; x * 4 + 3 < stride; x++)
+            {
+                var i = (y * stride) + (x * 4);
+                if (pixels[i] != color.R || pixels[i + 1] != color.G || pixels[i + 2] != color.B) continue;
+                left = Math.Min(left, x);
+                top = Math.Min(top, y);
+                right = Math.Max(right, x + 1);
+                bottom = Math.Max(bottom, y + 1);
+            }
+        }
+        return right < 0 ? null : new Rect(left, top, right - left, bottom - top);
+    }
+
+    private static (byte[] Pixels, int Stride) Read(Visual visual)
+    {
+        var window = TopLevel.GetTopLevel(visual)!;
+        using var frame = window.GetLastRenderedFrame() ?? throw new InvalidOperationException("The window has not rendered yet.");
+        using var locked = frame.Lock();
+        var pixels = new byte[locked.RowBytes * locked.Size.Height];
+        Marshal.Copy(locked.Address, pixels, 0, pixels.Length);
+        return (pixels, locked.RowBytes);
     }
 
     /// <summary>
