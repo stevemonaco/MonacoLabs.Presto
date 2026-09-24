@@ -8,83 +8,91 @@
     <showcase:ShowcasePage.Styles>
         <Style Selector="Border.stage">
             <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Height" Value="240" />
+        </Style>
+
+        <Style Selector="Canvas.pane">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="ClipToBounds" Value="True" />
         </Style>
 
         <Style Selector="Border.puck">
-            <Setter Property="Width" Value="52" />
-            <Setter Property="Height" Value="52" />
-            <Setter Property="CornerRadius" Value="26" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Canvas.Left" Value="20" />
+            <Setter Property="Canvas.Top" Value="20" />
         </Style>
 
-        <Style Selector="Border.puck > TextBlock">
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Background}" />
+        <Style Selector="Border.tile">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Height" Value="72" />
+            <Setter Property="Margin" Value="5,0" />
         </Style>
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-            <Border Grid.Row="0" Classes="stage" Padding="0" Height="300" PointerPressed="ClickStagePressed">
-                <Canvas x:Name="ClickStage">
-                    <Border x:Name="ReplacePuck" Classes="puck" Canvas.Left="40" Canvas.Top="40"
-                            Background="{x:Static showcase:Palette.Accent}">
-                        <TextBlock Text="replace" />
-                    </Border>
-                    <Border x:Name="NonePuck" Classes="puck" Canvas.Left="112" Canvas.Top="40"
-                            Background="{x:Static showcase:Palette.Aqua}">
-                        <TextBlock Text="none" />
-                    </Border>
-                    <Border x:Name="BlendPuck" Classes="puck" Canvas.Left="184" Canvas.Top="40"
-                            Background="{x:Static showcase:Palette.AccentPale}">
-                        <TextBlock Text="blend" />
-                    </Border>
-                </Canvas>
+        <StackPanel Spacing="12">
+            <TextBlock Classes="title" Text="What happens when an animation is interrupted mid-flight." />
+
+            <TextBlock Classes="eyebrow showcase" Text="RETARGET · THREE WAYS TO CHANGE YOUR MIND" />
+            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                <Border Grid.Column="0" Classes="stage">
+                    <Canvas x:Name="ReplacePane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="ReplacePuck" Classes="puck" Background="{x:Static showcase:Palette.Accent}" />
+                    </Canvas>
+                </Border>
+                <Border Grid.Column="1" Classes="stage">
+                    <Canvas x:Name="NonePane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="NonePuck" Classes="puck" Background="{x:Static showcase:Palette.Aqua}" />
+                    </Canvas>
+                </Border>
+                <Border Grid.Column="2" Classes="stage">
+                    <Canvas x:Name="BlendPane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="BlendPuck" Classes="puck" Background="{x:Static showcase:Palette.AccentPale}" />
+                    </Canvas>
+                </Border>
+                <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ReplaceCount" Classes="code" />
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="NoneCount" Classes="code" />
+                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="BlendCount" Classes="code" />
+            </Grid>
+
+            <Border Classes="rail showcase">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button x:Name="BurstButton" Content="Burst" Click="BurstClicked" />
+                    <Button x:Name="CancelNewestButton" Content="Cancel newest" Click="CancelNewestClicked" />
+                    <Button x:Name="ResetPucks" Content="Reset" Click="ResetPucksClicked" />
+                </StackPanel>
             </Border>
 
-            <Border Grid.Row="1" Classes="rail showcase">
-                <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="18">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                        <Border Classes="dot" Background="{x:Static showcase:Palette.Accent}" />
-                        <TextBlock x:Name="ReplaceCount" Classes="code" Margin="0" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                        <Border Classes="dot" Background="{x:Static showcase:Palette.Aqua}" />
-                        <TextBlock x:Name="NoneCount" Classes="code" Margin="0" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-                        <Border Classes="dot" Background="{x:Static showcase:Palette.AccentPale}" />
-                        <TextBlock x:Name="BlendCount" Classes="code" Margin="0" />
-                    </StackPanel>
-                    <TextBlock Grid.Column="3" x:Name="ClickCount" Classes="code" Margin="0" HorizontalAlignment="Right" />
-                    <Button Grid.Column="4" x:Name="ResetPucks" Content="Reset" Click="ResetPucksClicked" />
+            <TextBlock Classes="eyebrow showcase" Text="HOVER · INTERRUPT FROM WHERE YOU ARE" />
+            <Border Classes="rail showcase">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <UniformGrid x:Name="Tiles" Columns="5" Margin="0,18,0,4">
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 1" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 2" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 3" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 4" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 5" />
+                        </Border>
+                    </UniformGrid>
+                    <ToggleSwitch Grid.Column="1" x:Name="HoverMode" VerticalAlignment="Center"
+                                  OffContent="retarget" OnContent="restart" />
                 </Grid>
             </Border>
 
-            <Border Grid.Row="2" Classes="stage" Padding="0" Height="130">
-                <Canvas Width="700" HorizontalAlignment="Center">
-                    <Border x:Name="Card" Classes="card showcase" Canvas.Left="20" Canvas.Top="26"
-                            PointerEntered="CardEntered">
-                        <StackPanel Spacing="4">
-                            <TextBlock Classes="eyebrow showcase" Text="TRAVELLING" />
-                            <TextBlock Classes="title" Text="Hover me" />
-                        </StackPanel>
-                    </Border>
-                </Canvas>
-            </Border>
-
-            <Border Grid.Row="3" Classes="rail showcase">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="18">
-                    <ToggleSwitch Grid.Column="0" x:Name="BlendWobble" IsChecked="True" VerticalAlignment="Center"
-                                  OffContent="wobble replaces" OnContent="wobble blends" />
-                    <TextBlock Grid.Column="1" x:Name="TravelText" Classes="code" Margin="0" HorizontalAlignment="Right" />
-                </Grid>
-            </Border>
-
-            <TextBlock Grid.Row="4" Classes="caption" TextWrapping="Wrap"
-                       Text="Click anywhere on the top stage and all three pucks are sent to the click point by one 900 ms animation each, identical apart from their composition. Replace and none draw the same path — the newest animation is rendered last either way — so the live counts in the rail are the only thing that tells them apart, and that is the point: replace overrides the tweens it lands on and cancels the animation left holding none of them, so exactly one stays alive however hard you spam the stage, while none runs every click to its end. Blend keeps its pile too and is the first puck to arrive: a blended To becomes the additive group’s base and every earlier click’s delta goes on easing out in parallel, so 320 ms after the last of five clicks blend is 42px short of it while replace, easing afresh from wherever it had got to, is still 80px short. An absolute To under blend does not accumulate — all three settle on the click point. The counts are the page’s own list of the animations it made, pruned on Animation.Cancelled and Animation.Completed, because nothing public reports what is alive on a target and tween counts are not public at all (SAMPLES-PLAN §8). Reset is Presto.Remove on each puck, which takes all three counts to zero. Below, a card crosses its stage on a looping blended animation and hovering it lays a wobble over the same X: blended, the wobble rides the travel; replaced, it is written and then overwritten by the additive pass in the same frame and never reaches the card at all." />
-        </Grid>
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Click any pane, or press Burst for five quick retargets, and compare the trails: replace and none trace the same sharp path, while blend rounds every corner and arrives first. Then press Cancel newest mid-burst: replace just stops where it is, but none is yanked back toward the older targets it was still animating to underneath. Sweep the pointer quickly across the tiles: retarget eases each one back from wherever it had got to, while restart snaps it to fully raised before it falls." />
+        </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

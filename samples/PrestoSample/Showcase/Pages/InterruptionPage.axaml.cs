@@ -1,5 +1,7 @@
 using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Monaco.Presto;
@@ -10,28 +12,53 @@ namespace PrestoSample.Showcase.Pages;
 public partial class InterruptionPage : ShowcasePage
 {
     private const double RetargetDuration = 900;
-    private const double TravelEnd = 460;
-    private const double TravelDuration = 4200;
-    private const double WobbleReach = 18;
+    private const double BurstSpacing = 160;
+    private const int BurstTargets = 5;
+    private const int BurstSeed = 7;
+    private const int TrailLength = 24;
+    private const double TrailDot = 8;
+    private const double HoverDuration = 500;
+    private const double HoverLift = -14;
+    private const double HoverScale = 1.12;
 
     private static readonly Composition[] Modes = [Composition.Replace, Composition.None, Composition.Blend];
     private static readonly string[] Names = ["replace", "none", "blend"];
 
     private readonly List<Animation>[] _made = [[], [], []];
+    private readonly Canvas[] _panes;
     private readonly Border[] _pucks;
     private readonly TextBlock[] _counts;
+    private readonly Ellipse[][] _trails;
+    private readonly int[] _shown = [-1, -1, -1];
 
-    private int _clicks;
+    private int _trailHead;
+    private Timeline? _burst;
 
     public InterruptionPage()
     {
         InitializeComponent();
+        _panes = [ReplacePane, NonePane, BlendPane];
         _pucks = [ReplacePuck, NonePuck, BlendPuck];
         _counts = [ReplaceCount, NoneCount, BlendCount];
+        _trails = new Ellipse[Modes.Length][];
+        for (var i = 0; i < Modes.Length; i++)
+        {
+            _trails[i] = new Ellipse[TrailLength];
+            for (var k = 0; k < TrailLength; k++)
+            {
+                var dot = new Ellipse
+                {
+                    Width = TrailDot,
+                    Height = TrailDot,
+                    Fill = _pucks[i].Background,
+                    Opacity = 0,
+                    IsHitTestVisible = false,
+                };
+                _trails[i][k] = dot;
+                _panes[i].Children.Insert(0, dot);
+            }
+        }
     }
-
-    /// <summary>The card's looping journey, which a blended wobble adds to and a replaced one cannot reach.</summary>
-    public Animation? Travel { get; private set; }
 
     /// <summary>
     /// How many of the animations this page made for <paramref name="mode"/>'s puck are still running, dropping the
@@ -44,45 +71,77 @@ public partial class InterruptionPage : ShowcasePage
         return made.Count;
     }
 
+    /// <summary>Retargets all three pucks five times, 160 ms apart, along the same seeded script every time.</summary>
+    public void Burst()
+    {
+        var random = Utils.CreateSeededRandom(BurstSeed);
+        _burst = Presto.CreateTimeline();
+        for (var k = 0; k < BurstTargets; k++)
+        {
+            var target = new Point(random(0.1, 0.9, 2), random(0.1, 0.9, 2));
+            _burst.Call(_ => Retarget(target), k * BurstSpacing);
+        }
+    }
+
+    /// <summary>Cancels each pane's most recent animation that is still running.</summary>
+    public void CancelNewest()
+    {
+        for (var i = 0; i < Modes.Length; i++)
+        {
+            if (Alive(Modes[i]) > 0) _made[i][^1].Cancel();
+        }
+    }
+
     protected override void OnAttached()
     {
-        Travel = Presto.Animate(Card, new AvaloniaAnimationParams
-        {
-            ["X"] = TravelEnd,
-            Duration = TravelDuration,
-            Ease = Eases.InOutSine,
-            Loop = true,
-            Alternate = true,
-            // Blended so a blended wobble can add to it; a replaced travel would be killed by a replaced wobble and
-            // hidden by a blended one, so neither half of the toggle would be worth watching (SAMPLES-PLAN §8).
-            Composition = Composition.Blend,
-        });
+        for (var i = 0; i < Modes.Length; i++) ClearTrail(i);
         Presto.CreateTimer(new TimerParams { OnUpdate = _ => Refresh() });
     }
 
     private void Refresh()
     {
+        _trailHead = (_trailHead + 1) % TrailLength;
         for (var i = 0; i < Modes.Length; i++)
         {
-            _counts[i].Text = string.Create(CultureInfo.InvariantCulture, $"{Names[i]} · {Alive(Modes[i])} live");
+            Place(_trails[i][_trailHead], Drawn(Modes[i]));
+            for (var age = 0; age < TrailLength; age++)
+            {
+                _trails[i][(_trailHead - age + TrailLength) % TrailLength].Opacity = 0.7 * (1 - ((double)age / TrailLength));
+            }
+            var alive = Alive(Modes[i]);
+            if (alive == _shown[i]) continue;
+            _shown[i] = alive;
+            _counts[i].Text = string.Create(CultureInfo.InvariantCulture, $"{Names[i]} · {alive} live");
         }
-        ClickCount.Text = string.Create(CultureInfo.InvariantCulture, $"{_clicks} clicks");
-        TravelText.Text = string.Create(CultureInfo.InvariantCulture, $"card x {Presto.Get(Card, "X"):0}");
     }
 
-    private void ClickStagePressed(object? sender, PointerPressedEventArgs e)
+    /// <summary>Where <paramref name="mode"/>'s puck centre is drawn in its pane: its canvas slot plus the tweened translation.</summary>
+    public Point Drawn(Composition mode)
     {
-        var click = e.GetPosition(ClickStage);
-        _clicks++;
+        var puck = _pucks[Array.IndexOf(Modes, mode)];
+        return new Point(
+            Canvas.GetLeft(puck) + (double)Presto.Get(puck, "X")! + (puck.Width / 2),
+            Canvas.GetTop(puck) + (double)Presto.Get(puck, "Y")! + (puck.Height / 2));
+    }
+
+    private static void Place(Ellipse dot, Point centre)
+    {
+        Canvas.SetLeft(dot, centre.X - (TrailDot / 2));
+        Canvas.SetTop(dot, centre.Y - (TrailDot / 2));
+    }
+
+    private void Retarget(Point relative)
+    {
         for (var i = 0; i < Modes.Length; i++)
         {
+            var pane = _panes[i];
             var puck = _pucks[i];
             // Outside Scope on purpose: a scope holds every animation made inside it until it reverts, and a spammed
-            // stage makes them faster than the page could ever revert them (SAMPLES-PLAN §8).
+            // pane makes them faster than the page could ever revert them (SAMPLES-PLAN §8 row 18).
             _made[i].Add(Presto.Animate(puck, new AvaloniaAnimationParams
             {
-                ["X"] = click.X - Canvas.GetLeft(puck) - (puck.Bounds.Width / 2),
-                ["Y"] = click.Y - Canvas.GetTop(puck) - (puck.Bounds.Height / 2),
+                ["X"] = (relative.X * pane.Bounds.Width) - Canvas.GetLeft(puck) - (puck.Width / 2),
+                ["Y"] = (relative.Y * pane.Bounds.Height) - Canvas.GetTop(puck) - (puck.Height / 2),
                 Duration = RetargetDuration,
                 Ease = Eases.OutQuad,
                 Composition = Modes[i],
@@ -90,29 +149,49 @@ public partial class InterruptionPage : ShowcasePage
         }
     }
 
-    private void ResetPucksClicked(object? sender, RoutedEventArgs e)
+    private void TileEntered(object? sender, PointerEventArgs e) => Hover((Border)sender!, raised: true);
+
+    private void TileExited(object? sender, PointerEventArgs e) => Hover((Border)sender!, raised: false);
+
+    private void Hover(Border tile, bool raised)
     {
-        foreach (var puck in _pucks)
+        var (fromY, toY, fromScale, toScale) = raised ? (0d, HoverLift, 1d, HoverScale) : (HoverLift, 0d, HoverScale, 1d);
+        var restart = HoverMode.IsChecked == true;
+        // Outside Scope for the same reason as Retarget (SAMPLES-PLAN §8 row 18).
+        Presto.Animate(tile, new AvaloniaAnimationParams
         {
-            Presto.Remove(puck);
-            Presto.Set(puck, new AvaloniaAnimationParams { ["X"] = 0, ["Y"] = 0 });
-        }
-        _clicks = 0;
+            ["Y"] = restart ? TweenValue.FromTo(fromY, toY) : toY,
+            ["Scale"] = restart ? TweenValue.FromTo(fromScale, toScale) : toScale,
+            Duration = HoverDuration,
+            Ease = Eases.OutQuint,
+        });
     }
 
-    private void CardEntered(object? sender, PointerEventArgs e) => Presto.Animate(Card, new AvaloniaAnimationParams
+    private void PanePressed(object? sender, PointerPressedEventArgs e)
     {
-        // Aimed at the travel's destination rather than at the card: a blended tween's To becomes the additive group's
-        // base, so a wobble aimed around 0 would take the travel back to the start with it.
-        ["X"] = new TweenParams[]
+        var pane = (Canvas)sender!;
+        var click = e.GetPosition(pane);
+        Retarget(new Point(click.X / pane.Bounds.Width, click.Y / pane.Bounds.Height));
+    }
+
+    private void BurstClicked(object? sender, RoutedEventArgs e) => Burst();
+
+    private void CancelNewestClicked(object? sender, RoutedEventArgs e) => CancelNewest();
+
+    private void ResetPucksClicked(object? sender, RoutedEventArgs e)
+    {
+        _burst?.Cancel();
+        for (var i = 0; i < Modes.Length; i++)
         {
-            new() { To = TravelEnd + WobbleReach },
-            new() { To = TravelEnd - WobbleReach },
-            new() { To = TravelEnd },
-        },
-        Duration = 140,
-        Ease = Eases.InOutSine,
-        Loop = 2,
-        Composition = BlendWobble.IsChecked == true ? Composition.Blend : Composition.Replace,
-    });
+            Presto.Remove(_pucks[i]);
+            Presto.Set(_pucks[i], new AvaloniaAnimationParams { ["X"] = 0, ["Y"] = 0 });
+            _made[i].Clear();
+            ClearTrail(i);
+        }
+    }
+
+    private void ClearTrail(int pane)
+    {
+        foreach (var dot in _trails[pane]) Place(dot, Drawn(Modes[pane]));
+    }
 }

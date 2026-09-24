@@ -22,6 +22,7 @@ public partial class BoardPage : ShowcasePage
     private readonly List<Border>[] _lanes = [.. Datasets.Lanes.Select(_ => new List<Border>())];
     private readonly Dictionary<Border, LayoutTransition> _reflow = [];
     private readonly Dictionary<Border, int> _lifted = [];
+    private readonly Dictionary<Border, (int Lane, int Slot)> _aims = [];
 
     private Canvas[] _canvases = [];
     private TextBlock[] _headers = [];
@@ -77,16 +78,16 @@ public partial class BoardPage : ShowcasePage
             ContainerFriction = .9,
             Snap = Utils.Snap(LanePitch),
             Y = new DraggableAxisParams { Snap = Utils.Snap(RowPitch) },
-            ReleaseMass = 1.2,
-            ReleaseStiffness = 120,
-            ReleaseDamping = 16,
-            MinVelocity = .1,
+            ReleaseMass = 1,
+            ReleaseStiffness = 700,
+            ReleaseDamping = 50,
             MaxVelocity = 1.5,
             ScrollSpeed = 2,
             ScrollThreshold = 28,
             OnGrab = _ => Grab(card),
             OnDrag = _ => Lift(card),
-            OnSnap = _ => Aim(card),
+            // OnUpdate rather than OnSnap: it keeps firing through the release throw, so the gap follows a flung card.
+            OnUpdate = _ => Aim(card),
             OnRelease = drag => VelocityText.Text = Utils.RoundPad(drag.Velocity, 2),
             OnSettle = drag => Land(card, drag),
         });
@@ -96,11 +97,11 @@ public partial class BoardPage : ShowcasePage
     private void Arm(Border card) =>
         _reflow[card] = Scope.Execute(_ => card.AnimateLayout(ReflowDuration, Eases.OutQuint));
 
-    private void Layout(int lane)
+    private void Layout(int lane, int? gapAt = null)
     {
         var cards = _lanes[lane];
-        for (var i = 0; i < cards.Count; i++) Canvas.SetTop(cards[i], i * RowPitch);
-        _canvases[lane].Height = Math.Max(cards.Count, LaneRows) * RowPitch;
+        for (var i = 0; i < cards.Count; i++) Canvas.SetTop(cards[i], (i >= gapAt ? i + 1 : i) * RowPitch);
+        _canvases[lane].Height = Math.Max(cards.Count + (gapAt is null ? 0 : 1), LaneRows) * RowPitch;
         _headers[lane].Text = $"{Datasets.Lanes[lane].ToUpperInvariant()} · {cards.Count}";
     }
 
@@ -119,37 +120,46 @@ public partial class BoardPage : ShowcasePage
         _lanes[lane].Remove(card);
         card.ZIndex = 1;
         _zones[lane].ZIndex = 1;
-        Layout(lane);
+        Aim(card);
     }
 
     private void Aim(Border card)
     {
         if (!_lifted.ContainsKey(card)) return;
         var target = Zone(card);
+        var slot = target == BinZone ? 0 : Slot(card, target);
+        var aimed = _aims.TryGetValue(card, out var aim);
+        if (aimed && aim == (target, slot)) return;
+        _aims[card] = (target, slot);
+        if (aimed && aim.Lane != target && aim.Lane != BinZone) Layout(aim.Lane);
+        if (target != BinZone) Layout(target, slot);
         for (var i = 0; i < _zones.Length; i++) _zones[i].Classes.Set("target", i == target);
-        DropText.Text = target == BinZone ? "bin" : $"{Datasets.Lanes[target]} · slot {Slot(card, target) + 1}";
+        DropText.Text = target == BinZone ? "bin" : $"{Datasets.Lanes[target]} · slot {slot + 1}";
     }
 
     private void Land(Border card, Draggable drag)
     {
-        if (!_lifted.Remove(card, out var source))
+        if (!_lifted.TryGetValue(card, out var source))
         {
             Arm(card);
             return;
         }
 
+        Aim(card);
+        _lifted.Remove(card);
+        _aims.Remove(card, out var aim);
+        var (target, slot) = aim;
+
         card.ZIndex = 0;
         _zones[source].ZIndex = _lifted.ContainsValue(source) ? 1 : 0;
         foreach (var zone in _zones) zone.Classes.Remove("target");
 
-        var target = Zone(card);
         if (target == BinZone)
         {
             Spin(card, drag, source);
             return;
         }
 
-        var slot = Slot(card, target);
         // Armed where the card is drawn and a line before it changes parents, so the transition plays the reparent.
         Arm(card);
         _canvases[source].Children.Remove(card);

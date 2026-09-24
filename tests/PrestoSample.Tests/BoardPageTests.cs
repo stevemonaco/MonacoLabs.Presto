@@ -15,6 +15,7 @@ namespace PrestoSample.Tests;
 /// </summary>
 public sealed class BoardPageTests
 {
+    private const double LanePitch = 170;
     private const double RowPitch = 64;
 
     [AvaloniaFact]
@@ -130,6 +131,58 @@ public sealed class BoardPageTests
         Assert.True(scroller.Offset.Y > 0, "the pointer sat in the edge band and the board never scrolled");
         window.MouseUp(band, MouseButton.Left);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public async Task TheLaneACardIsAimedAtOpensAGapThatTheDropFillsWithoutMovingAnythingElse()
+    {
+        const int slot = 1;
+        var page = new BoardPage();
+        var window = SceneHarness.Show(page, 900, 520);
+        await SceneHarness.Settle();
+        var card = Cards(page, 0)[1];
+        var lane = Cards(page, 1);
+        var grab = SceneHarness.Centre(card, window);
+        var top = card.TranslatePoint(default, window)!.Value;
+        Point Over(int target, int row) =>
+            grab + (Lane(page, target).TranslatePoint(new Point(0, row * RowPitch), window)!.Value - top).WithX(target * LanePitch);
+
+        window.MouseDown(grab, MouseButton.Left);
+        var pointer = MoveTo(window, grab, Over(1, slot));
+        Assert.Equal(lane.Select((_, i) => (i >= slot ? i + 1 : i) * RowPitch), lane.Select(Canvas.GetTop));
+
+        pointer = MoveTo(window, pointer, Over(2, 0));
+        Assert.Equal(lane.Select((_, i) => i * RowPitch), lane.Select(Canvas.GetTop));
+
+        pointer = MoveTo(window, pointer, Over(1, slot));
+        // The draggable samples velocity every other frame and keeps the fastest of three, so this lets it fall to rest.
+        for (var i = 0; i < 8; i++)
+        {
+            window.MouseMove(pointer);
+            TestFrames.Tick();
+        }
+        window.MouseUp(pointer, MouseButton.Left);
+        var frames = 0;
+        for (; frames < 60 && !ReferenceEquals(card.Parent, Lane(page, 1)); frames++) TestFrames.Tick();
+
+        Assert.True(frames <= 20, $"a gentle drop took {frames} frames to settle");
+        Assert.Same(card, Cards(page, 1)[slot]);
+        for (var i = 0; i < Datasets.Lanes.Count; i++)
+        {
+            var left = Cards(page, i);
+            Assert.Equal(left.Select((_, row) => row * RowPitch), left.Select(Canvas.GetTop));
+        }
+        SceneHarness.Close(window);
+    }
+
+    private static Point MoveTo(Window window, Point from, Point to)
+    {
+        for (var i = 1; i <= 6; i++)
+        {
+            window.MouseMove(from + ((to - from) * i / 6));
+            TestFrames.Tick();
+        }
+        return to;
     }
 
     private static void Fling(Window window, Point grab, Vector step, int steps)

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -9,58 +10,87 @@ using PrestoSample.Showcase.Pages;
 namespace PrestoSample.Tests;
 
 /// <summary>
-/// SAMPLES-PLAN §4.8: what each composition leaves alive behind a spammed stage, where the three pucks land, and
-/// which way a wobble and the travel under it can reach the same property. The clicks are here because the DevTools
-/// MCP drives a Button through its automation peer and has no pointer input at all.
+/// SAMPLES-PLAN §4.8: what each composition leaves alive behind a burst, what cancelling the newest retarget reveals,
+/// and that a click in one pane is mirrored into the other two. The clicks are here because the DevTools MCP drives a
+/// Button through its automation peer and has no pointer input at all.
 /// </summary>
 public sealed class InterruptionPageTests
 {
     private const double Width = 1000;
     private const double Height = 820;
-    private const int Clicks = 5;
-    private const int BetweenClicks = 6;
-    private const int RetargetFrames = 60;
+    private const int BurstFrames = 44;
+    private const int RetargetFrames = 70;
+    private const double HoverJump = 0.02;
+    private const int HoverFrames = 3; // early, while OutQuint still rises steeply, or restart's snap is under a frame's travel
 
     private static readonly Composition[] Modes = [Composition.Replace, Composition.None, Composition.Blend];
 
-    private static readonly Point[] Points =
-        [.. Enumerable.Range(0, Clicks).Select(i => new Point(320 + (i * 70), 90 + (i * 34)))];
-
     [AvaloniaFact]
-    public void SpammingTheStageLeavesReplaceHoldingOneAnimationAndEveryPuckLandingOnTheLastClick()
+    public void ABurstLeavesReplaceHoldingOneAnimationAndNoneHoldingAllFiveUntilTheyComplete()
     {
         var page = new InterruptionPage();
         var window = SceneHarness.Show(page, Width, Height);
-        var stage = page.GetControl<Canvas>("ClickStage");
 
-        foreach (var point in Points)
-        {
-            ClickAt(window, stage, point);
-            TestFrames.Tick(BetweenClicks);
-        }
+        page.Burst();
+        TestFrames.Tick(BurstFrames);
 
         Assert.Equal(1, page.Alive(Composition.Replace));
-        Assert.Equal(Clicks, page.Alive(Composition.None));
-        Assert.Equal(Clicks, page.Alive(Composition.Blend));
-
-        var last = Points[^1];
-        TestFrames.Tick(20);
-        var replaceLeft = Math.Abs(Drawn(page, Composition.Replace).X - last.X);
-        var blendLeft = Math.Abs(Drawn(page, Composition.Blend).X - last.X);
-        Assert.True(
-            replaceLeft > blendLeft + 4,
-            $"replace was {replaceLeft:0.#}px from the click and blend {blendLeft:0.#}px, so blend is not carrying the earlier clicks on");
+        Assert.Equal(5, page.Alive(Composition.None));
 
         TestFrames.Tick(RetargetFrames);
-        foreach (var mode in Modes)
+        foreach (var mode in Modes) Assert.Equal(0, page.Alive(mode));
+
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void CancellingTheNewestYanksNoneBackTowardTheOlderTargetsAndStopsReplaceWhereItIs()
+    {
+        var page = new InterruptionPage();
+        var window = SceneHarness.Show(page, Width, Height);
+        Point[] script = [new(0.2, 0.2), new(0.8, 0.8), new(0.2, 0.8), new(0.8, 0.2), new(0.2, 0.2)];
+
+        foreach (var relative in script)
         {
-            var drawn = Drawn(page, mode);
-            Assert.Equal(last.X, drawn.X, 1);
-            Assert.Equal(last.Y, drawn.Y, 1);
+            ClickAt(window, page, Composition.None, relative);
+            TestFrames.Tick(10);
         }
 
-        Assert.Equal(0, page.Alive(Composition.None));
-        Assert.Equal(0, page.Alive(Composition.Blend));
+        var last = Mirrored(page, Composition.None, script[^1]);
+        var noneBefore = Point.Distance(page.Drawn(Composition.None), last);
+        var replaceBefore = page.Drawn(Composition.Replace);
+
+        page.CancelNewest();
+        TestFrames.Tick(4);
+
+        var noneAfter = Point.Distance(page.Drawn(Composition.None), last);
+        Assert.True(noneAfter > noneBefore + 4, $"none went from {noneBefore:0.#}px to {noneAfter:0.#}px off the last target");
+        for (var frame = 0; frame < 10; frame++)
+        {
+            Assert.True(Point.Distance(page.Drawn(Composition.Replace), replaceBefore) < 1, "replace kept moving after its only animation was cancelled");
+            TestFrames.Tick();
+        }
+
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ClickingOnePaneSendsAllThreePucksToTheSameRelativePoint()
+    {
+        var page = new InterruptionPage();
+        var window = SceneHarness.Show(page, Width, Height);
+        var relative = new Point(0.7, 0.4);
+
+        ClickAt(window, page, Composition.Blend, relative);
+        TestFrames.Tick(RetargetFrames);
+
+        foreach (var mode in Modes)
+        {
+            var target = Mirrored(page, mode, relative);
+            var drawn = page.Drawn(mode);
+            Assert.Equal(target.X, drawn.X, 1);
+            Assert.Equal(target.Y, drawn.Y, 1);
+        }
 
         SceneHarness.Close(window);
     }
@@ -70,11 +100,10 @@ public sealed class InterruptionPageTests
     {
         var page = new InterruptionPage();
         var window = SceneHarness.Show(page, Width, Height);
-        var stage = page.GetControl<Canvas>("ClickStage");
 
-        foreach (var point in Points) ClickAt(window, stage, point);
-        TestFrames.Tick(BetweenClicks);
-        Assert.True(page.Alive(Composition.None) > 0, "the clicks never reached the stage");
+        page.Burst();
+        TestFrames.Tick(BurstFrames);
+        Assert.True(page.Alive(Composition.None) > 0, "the burst never retargeted anything");
 
         SceneHarness.Click(window, page.GetControl<Button>("ResetPucks"));
         TestFrames.Tick(2);
@@ -90,65 +119,54 @@ public sealed class InterruptionPageTests
     }
 
     [AvaloniaFact]
-    public void TheWobbleRidesTheTravelBlendedAndNeverReachesTheCardReplaced()
+    public void LeavingAHalfRaisedTileUnderRetargetCarriesOnFromTheCurrentScaleWithoutAJump()
+    {
+        var (before, after) = ScaleAcrossALeave(restart: false);
+
+        Assert.True(after <= before, $"the scale went back up from {before:0.###} to {after:0.###} on the leave");
+    }
+
+    [AvaloniaFact]
+    public void LeavingAHalfRaisedTileUnderRestartJumpsItToTheHoveredScaleFirst()
+    {
+        var (before, after) = ScaleAcrossALeave(restart: true);
+
+        Assert.True(after - before > HoverJump, $"the scale went from {before:0.###} to {after:0.###} on the leave");
+    }
+
+    private static (double Before, double After) ScaleAcrossALeave(bool restart)
     {
         var page = new InterruptionPage();
         var window = SceneHarness.Show(page, Width, Height);
-        var card = page.GetControl<Border>("Card");
-        var toggle = page.GetControl<ToggleSwitch>("BlendWobble");
-        TestFrames.Tick(30);
+        page.GetControl<ToggleSwitch>("HoverMode").IsChecked = restart;
+        var tile = page.GetControl<UniformGrid>("Tiles").Children[1];
 
-        // Parked so that the only thing left that can move the card is the wobble.
-        page.Travel!.Pause();
-        TestFrames.Tick();
-        var parked = X(card);
-
-        toggle.IsChecked = false;
-        Hover(window, card);
-        TestFrames.Tick(8);
-        Assert.Equal(parked, X(card), 1);
-        Assert.False(page.Travel.Cancelled, "the replaced wobble cancelled the travel it cannot even reach");
-
-        toggle.IsChecked = true;
-        Hover(window, card);
-        TestFrames.Tick(8);
-        Assert.True(Math.Abs(X(card) - parked) > 4, $"the blended wobble moved the parked card {X(card) - parked:0.#}px");
-        Assert.False(page.Travel.Cancelled);
-
-        page.Travel.Resume();
-        TestFrames.Tick(30);
-        Assert.True(X(card) > parked + 20, "the travel did not carry on under the wobble that blended onto it");
-
-        SceneHarness.Close(window);
-    }
-
-    private static Border Puck(InterruptionPage page, Composition mode) =>
-        page.GetControl<Border>($"{mode}Puck");
-
-    /// <summary>Where a puck is drawn in its stage: its canvas slot plus the translation the tweens wrote.</summary>
-    private static Point Drawn(InterruptionPage page, Composition mode)
-    {
-        var puck = Puck(page, mode);
-        return new Point(
-            Canvas.GetLeft(puck) + X(puck) + (puck.Bounds.Width / 2),
-            Canvas.GetTop(puck) + (double)Presto.Get(puck, "Y")! + (puck.Bounds.Height / 2));
-    }
-
-    private static double X(Visual target) => (double)Presto.Get(target, "X")!;
-
-    private static void ClickAt(Window window, Visual stage, Point at)
-    {
-        var point = stage.TranslatePoint(at, window)!.Value;
-        window.MouseDown(point, MouseButton.Left);
-        window.MouseUp(point, MouseButton.Left);
-    }
-
-    /// <summary>Takes the pointer off the card and back onto it, which is what fires the hover the wobble hangs on.</summary>
-    private static void Hover(Window window, Visual card)
-    {
+        window.MouseMove(SceneHarness.Centre(tile, window));
+        TestFrames.Tick(HoverFrames);
+        var before = (double)Presto.Get(tile, "Scale")!;
         window.MouseMove(new Point(Width - 1, Height - 1));
         TestFrames.Tick();
-        window.MouseMove(SceneHarness.Centre(card, window));
-        TestFrames.Tick();
+        var after = (double)Presto.Get(tile, "Scale")!;
+
+        SceneHarness.Close(window);
+        return (before, after);
+    }
+
+    private static Border Puck(InterruptionPage page, Composition mode) => page.GetControl<Border>($"{mode}Puck");
+
+    private static Canvas Pane(InterruptionPage page, Composition mode) => page.GetControl<Canvas>($"{mode}Pane");
+
+    private static Point Mirrored(InterruptionPage page, Composition mode, Point relative)
+    {
+        var size = Pane(page, mode).Bounds.Size;
+        return new Point(relative.X * size.Width, relative.Y * size.Height);
+    }
+
+    private static void ClickAt(Window window, InterruptionPage page, Composition mode, Point relative)
+    {
+        var pane = Pane(page, mode);
+        var point = pane.TranslatePoint(Mirrored(page, mode, relative), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
     }
 }

@@ -50,10 +50,7 @@ public partial class TitleSequencePage : ShowcasePage
 
     private Timeline BuildSequence(TextSplitter split)
     {
-        var timeline = Presto.CreateTimeline(new TimelineParams
-        {
-            PlaybackEase = Eases.InOutSine,
-        })
+        var timeline = Presto.CreateTimeline()
             .Label("draw", 0)
             .Add(Monogram, new()
             {
@@ -86,17 +83,18 @@ public partial class TitleSequencePage : ShowcasePage
                 Duration = 1200,
                 Ease = Eases.OutQuad,
             }, "<<")
-            .Label("cards", "+=140")
+            .Label("cards", "+=200")
             .Add(Cards.Children, new()
             {
-                ["Y"] = TweenValue.FromTo(40, 0),
-                ["Opacity"] = TweenValue.FromTo(0, 1),
-                Duration = 820,
-                Ease = Eases.OutBack(),
-                Delay = Presto.Stagger(110),
+                ["Y"] = TweenValue.FromTo(28, 0),
+                ["Opacity"] = new TweenParams { From = 0, To = 1, Duration = 450, Ease = Eases.OutQuad },
+                Duration = 900,
+                Ease = Eases.OutQuart,
+                Delay = Presto.Stagger(120),
             }, "cards")
             .Label("out", "+=400")
             .Call(_ => BeatText.Text = $"out · {++_crossings} crossings", "out")
+            .Add(new TimerParams { Duration = 800 }, "out")
             .Sync(BuildDrift(), 0);
 
         _timeline = timeline;

@@ -38,19 +38,19 @@
 
                         <StackPanel x:Name="Cards" Orientation="Horizontal" Spacing="12"
                                     HorizontalAlignment="Center" Margin="0,22,0,0">
-                            <Border Classes="card showcase">
+                            <Border Classes="card showcase" Opacity="0">
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="Timelines" FontWeight="SemiBold" />
                                     <TextBlock Classes="caption" TextWrapping="Wrap" Text="Labels, positions, nested children" />
                                 </StackPanel>
                             </Border>
-                            <Border Classes="card showcase">
+                            <Border Classes="card showcase" Opacity="0">
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="Shapes" FontWeight="SemiBold" />
                                     <TextBlock Classes="caption" TextWrapping="Wrap" Text="Strokes that draw, geometries that morph" />
                                 </StackPanel>
                             </Border>
-                            <Border Classes="card showcase">
+                            <Border Classes="card showcase" Opacity="0">
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="Text" FontWeight="SemiBold" />
                                     <TextBlock Classes="caption" TextWrapping="Wrap" Text="Split into characters, staggered into place" />
@@ -76,7 +76,7 @@
             <showcase:TransportBar x:Name="Bar" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="PlaybackEase eases the playhead itself, so Seek(tl.Labels[name]) lands where the ease sends that time rather than on the beat the label names (SAMPLES-PLAN §8)." />
+                       Text="Press Loop and watch one timeline draw the mark, stagger the title out from the centre and scramble the subtitle before the cards fade up once the headline has landed. The SEEK buttons jump straight to a beat by its label; scrub, reverse or drag the speed and duration sliders to retime the whole sequence without a jump." />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>
