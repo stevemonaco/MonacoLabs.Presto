@@ -16,6 +16,7 @@ public partial class CallbacksPage : UserControl
     private Indicator[] _indicators = [];
     private Animation? _animation;
     private Timer? _decay;
+    private int _clicks;
 
     public CallbacksPage() => InitializeComponent();
 
@@ -32,7 +33,7 @@ public partial class CallbacksPage : UserControl
         var pause = new Indicator(PauseDot, PauseCount);
         _indicators = [begin, loop, beforeUpdate, render, update, complete, pause];
 
-        _animation = Square.Animate(new()
+        _animation = ClickButton.Animate(new()
         {
             ["X"] = 320,
             ["Rotate"] = 180,
@@ -91,6 +92,9 @@ public partial class CallbacksPage : UserControl
         await animation;
         AwaitText.Text += " · await animation returned";
     }
+
+    private void Clicked(object? sender, RoutedEventArgs e) =>
+        ClickText.Text = string.Create(CultureInfo.InvariantCulture, $"Click me · {++_clicks}");
 
     private void ResetIndicators()
     {

@@ -25,7 +25,7 @@ public partial class KeyframesPage : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        _animations.Add(PerPropertySquare.Animate(new()
+        _animations.Add(PerPropertyButton.Animate(new()
         {
             ["X"] = TweenValue.Keyframes(
                 new TweenParams { To = 200, Duration = 500, Ease = Eases.OutQuad },
@@ -34,7 +34,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
         }));
 
-        _animations.Add(ArraySquare.Animate(new()
+        _animations.Add(ArrayToggle.Animate(new()
         {
             Keyframes = new Keyframe[]
             {
@@ -47,7 +47,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
         }));
 
-        _animations.Add(PercentSquare.Animate(new()
+        _animations.Add(PercentButton.Animate(new()
         {
             Keyframes = new Dictionary<string, Keyframe>
             {
@@ -61,7 +61,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
         }));
 
-        _animations.Add(LinearSquare.Animate(new()
+        _animations.Add(LinearButton.Animate(new()
         {
             Keyframes = March,
             Duration = 2000,
@@ -69,7 +69,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
             Alternate = true,
         }));
-        _animations.Add(EasedSquare.Animate(new()
+        _animations.Add(EasedButton.Animate(new()
         {
             Keyframes = March,
             Duration = 2000,

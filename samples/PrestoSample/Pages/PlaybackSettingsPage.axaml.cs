@@ -11,6 +11,7 @@ namespace PrestoSample.Pages;
 public partial class PlaybackSettingsPage : UserControl
 {
     private Animation? _animation;
+    private int _clicks;
 
     public PlaybackSettingsPage() => InitializeComponent();
 
@@ -30,7 +31,7 @@ public partial class PlaybackSettingsPage : UserControl
     private void Rebuild()
     {
         _animation?.Revert();
-        _animation = Square.Animate(new()
+        _animation = ClickButton.Animate(new()
         {
             ["X"] = 320,
             ["Rotate"] = 180,
@@ -69,4 +70,7 @@ public partial class PlaybackSettingsPage : UserControl
     private void Pause(object? sender, RoutedEventArgs e) => _animation?.Pause();
 
     private void Restart(object? sender, RoutedEventArgs e) => _animation?.Restart();
+
+    private void Clicked(object? sender, RoutedEventArgs e) =>
+        ClickText.Text = string.Create(CultureInfo.InvariantCulture, $"Click me · {++_clicks}");
 }

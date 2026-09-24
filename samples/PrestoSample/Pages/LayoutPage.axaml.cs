@@ -11,6 +11,9 @@ namespace PrestoSample.Pages;
 
 public partial class LayoutPage : UserControl
 {
+    private static readonly (string Icon, string Title)[] Kinds =
+        [("HeartIcon", "Liked"), ("StarIcon", "Starred"), ("PlayIcon", "Playing")];
+
     private readonly Scope _scope = new();
     private int _next;
     private bool _moved;
@@ -73,10 +76,20 @@ public partial class LayoutPage : UserControl
 
     private void AddCard()
     {
+        var (icon, title) = Kinds[_next % Kinds.Length];
         var card = new Border
         {
             Classes = { "card" },
-            Child = new TextBlock { Text = (++_next).ToString() },
+            Child = new Grid
+            {
+                RowDefinitions = new RowDefinitions("*,Auto"),
+                Children =
+                {
+                    new PathIcon { Data = (Geometry)Application.Current!.FindResource(icon)! },
+                    new TextBlock { Classes = { "number" }, Text = (++_next).ToString() },
+                    new TextBlock { Text = title, [Grid.RowProperty] = 1 },
+                },
+            },
         };
         _scope.Execute(_ => card.AnimateLayout(Duration, Eases.OutQuint));
         Cards.Children.Add(card);

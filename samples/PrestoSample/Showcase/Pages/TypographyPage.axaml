@@ -61,7 +61,7 @@
                         <Button Grid.Column="1" Content="Replay" Click="ReplayWordmark" />
                     </Grid>
                     <TextBlock x:Name="Wordmark" Text="MOTION" FontSize="104" FontWeight="Black" LetterSpacing="6"
-                               HorizontalAlignment="Center" Margin="0,24,0,8"
+                               HorizontalAlignment="Center" Margin="0,24,0,8" ClipToBounds="False"
                                Foreground="{x:Static showcase:Palette.AccentDim}" />
                 </StackPanel>
             </Border>

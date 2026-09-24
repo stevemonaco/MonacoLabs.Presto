@@ -21,6 +21,7 @@ public static class Palette
     public static readonly ImmutableSolidColorBrush AccentBright = new(Color.FromRgb(0x82, 0xB4, 0xFF));
     public static readonly ImmutableSolidColorBrush AccentPale = new(Color.FromRgb(0xC3, 0xDB, 0xFF));
     public static readonly ImmutableSolidColorBrush Aqua = new(Color.FromRgb(0x2D, 0xD4, 0xBF));
+    public static readonly ImmutableSolidColorBrush Coral = new(Color.FromRgb(0xFF, 0x6B, 0x7A));
 
     /// <summary>The accent hue from deepest to palest, for staggering a set of visuals across the ramp.</summary>
     public static readonly IReadOnlyList<ImmutableSolidColorBrush> AccentBrushRamp =

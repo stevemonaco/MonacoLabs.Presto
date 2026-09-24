@@ -13,7 +13,9 @@
     <ScrollViewer>
         <StackPanel Spacing="12">
             <Border Classes="stage" MinHeight="120" Padding="16">
-                <Border x:Name="Square" Classes="swatch" Width="48" Height="48" />
+                <Button x:Name="ClickButton" Classes="specimen" Padding="14,8" Click="Clicked">
+                    <TextBlock x:Name="ClickText" Text="Click me · 0" />
+                </Button>
             </Border>
 
             <StackPanel Orientation="Horizontal" Spacing="8">

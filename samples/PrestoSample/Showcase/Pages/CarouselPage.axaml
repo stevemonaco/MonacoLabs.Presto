@@ -1,0 +1,58 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="600"
+                       x:Class="PrestoSample.Showcase.Pages.CarouselPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Button.arrow">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Margin" Value="16" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.arrow > PathIcon">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+        <Style Selector="StackPanel#Dots > Border">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Border}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <StackPanel Spacing="16">
+        <Border x:Name="Viewport" Height="340" CornerRadius="12" ClipToBounds="True" Focusable="True"
+                SizeChanged="ViewportResized" PointerEntered="ViewportEntered" PointerExited="ViewportExited"
+                Background="{x:Static showcase:Palette.Surface}">
+            <Panel>
+                <Canvas>
+                    <StackPanel x:Name="Strip" Orientation="Horizontal" />
+                </Canvas>
+                <Button Classes="arrow" HorizontalAlignment="Left" Click="PreviousClicked">
+                    <PathIcon Data="M10.5,1.5 L12,3 L7,8 L12,13 L10.5,14.5 L4,8 Z" />
+                </Button>
+                <Button x:Name="Next" Classes="arrow" HorizontalAlignment="Right" Click="NextClicked">
+                    <PathIcon Data="M5.5,1.5 L4,3 L9,8 L4,13 L5.5,14.5 L12,8 Z" />
+                </Button>
+            </Panel>
+        </Border>
+
+        <Panel HorizontalAlignment="Center">
+            <StackPanel x:Name="Dots" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" />
+            <Path x:Name="Ring" Width="32" Height="16" Margin="-4,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                  Stroke="{x:Static showcase:Palette.Aqua}" StrokeThickness="2" StrokeLineCap="Round"
+                  Data="M16,1 L24,1 A7,7 0 0 1 24,15 L8,15 A7,7 0 0 1 8,1 Z" />
+        </Panel>
+    </StackPanel>
+</showcase:ShowcasePage>

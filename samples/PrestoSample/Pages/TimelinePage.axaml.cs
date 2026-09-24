@@ -22,7 +22,7 @@ public partial class TimelinePage : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        _synced = SyncedSquare.Animate(new()
+        _synced = SyncedButton.Animate(new()
         {
             ["X"] = 300,
             ["Background"] = "#ff6b6b",
@@ -36,13 +36,13 @@ public partial class TimelinePage : UserControl
             Autoplay = false,
             OnUpdate = _ => UpdateReadouts(),
         })
-            .Add(AbsoluteSquare, new() { ["X"] = 300 }, 0)
-            .Add(AppendSquare, new() { ["X"] = 300 })
-            .Add(RelativeSquare, new() { ["X"] = 300 }, "-=400")
-            .Add(PreviousEndSquare, new() { ["X"] = 300 }, "<")
-            .Add(PreviousStartSquare, new() { ["X"] = 300 }, "<<")
+            .Add(AbsoluteButton, new() { ["X"] = 300 }, 0)
+            .Add(AppendToggle, new() { ["X"] = 300 })
+            .Add(RelativeSlider, new() { ["X"] = 300 }, "-=400")
+            .Add(PreviousEndTextBox, new() { ["X"] = 300 }, "<")
+            .Add(PreviousStartCheck, new() { ["X"] = 300 }, "<<")
             .Label("flash", "+=200")
-            .Add(LabelSquare, new() { ["X"] = 300, ["Rotate"] = 360 }, "flash")
+            .Add(LabelButton, new() { ["X"] = 300, ["Rotate"] = 360 }, "flash")
             .Add(new TimerParams
             {
                 Duration = 400,

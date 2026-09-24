@@ -13,13 +13,14 @@ public partial class ControlsPage : UserControl
 {
     private Animation? _animation;
     private bool _syncingSlider;
+    private int _clicks;
 
     public ControlsPage() => InitializeComponent();
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _animation = Square.Animate(new()
+        _animation = ClickButton.Animate(new()
         {
             ["X"] = 300,
             ["Rotate"] = 180,
@@ -72,6 +73,9 @@ public partial class ControlsPage : UserControl
     }
 
     private void StretchChanged(object? sender, RangeBaseValueChangedEventArgs e) => Run(a => a.Stretch(e.NewValue));
+
+    private void Clicked(object? sender, RoutedEventArgs e) =>
+        ClickText.Text = string.Create(CultureInfo.InvariantCulture, $"Click me · {++_clicks}");
 
     private void Run(Action<Animation> control)
     {

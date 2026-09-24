@@ -5,6 +5,8 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
+using PrestoSample.ViewModels;
+using PrestoSample.Views;
 
 namespace PrestoSample.Tests;
 
@@ -15,6 +17,49 @@ namespace PrestoSample.Tests;
 public sealed class GalleryFlipPageTests
 {
     private static readonly Color ProbeColor = Colors.Magenta;
+
+    [AvaloniaFact]
+    public async Task OpeningThePageFadesEveryCardUpOnceWhereLayoutPutsIt()
+    {
+        TestFrames.Install();
+        var gallery = new MainViewModel();
+        var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000, frames: 20);
+        gallery.SelectedPage = gallery.Sections.SelectMany(section => section.Pages).First(page => page.Title == "Card gallery");
+        window.UpdateLayout();
+        var cards = SceneHarness.Cards(gallery.CurrentPage!).ToArray();
+        for (var i = 0; i < cards.Length; i++)
+        {
+            SceneHarness.Flood(cards[i], SceneHarness.Tint(i));
+            // Glyphs are antialiased a channel at a time, so at part opacity they are off the tint's blend with the stage.
+            foreach (var text in cards[i].GetLogicalDescendants().OfType<TextBlock>()) text.Opacity = 0;
+        }
+
+        var shown = new double[cards.Length];
+        for (var frame = 0; frame < 90; frame++)
+        {
+            TestFrames.Tick();
+            await Task.Delay(8);
+            var (pixels, stride) = SceneHarness.Capture(window);
+            for (var i = 0; i < cards.Length; i++)
+            {
+                var slot = SceneHarness.Slot(cards[i], window);
+                var opacity = Opacity(pixels, stride, slot);
+                Assert.True(opacity >= shown[i] - 0.03, $"card {i} was drawn at {shown[i]:0.00} and then {opacity:0.00} in frame {frame}");
+                shown[i] = opacity;
+                // By then the rise, which eases with the fade, has a pixel left, while a layout transition would still be tens away.
+                if (opacity < 0.95) continue;
+
+                var (across, top) = Drawn(pixels, stride, slot, SceneHarness.Tint(i));
+                Assert.True(
+                    Math.Abs(across) <= 1.5 && top >= -1.5 && top <= 3,
+                    $"card {i} was drawn {across:0.0}px across and {top:0.0}px down from its slot at {opacity:0.00} in frame {frame}, not just lowered by its entry");
+            }
+            if (frame == 0) Assert.True(shown[^1] < 0.1, $"the last card was already drawn at {shown[^1]:0.00} before its entry");
+        }
+
+        Assert.All(shown, opacity => Assert.True(opacity > 0.98, $"a card finished its entry at {opacity:0.00}"));
+        SceneHarness.Close(window);
+    }
 
     [AvaloniaFact]
     public async Task AFilterChangeEasesASurvivingCardOutOfTheSlotItLeft()
@@ -153,6 +198,37 @@ public sealed class GalleryFlipPageTests
             var box = SceneHarness.Extent(page, SceneHarness.Colour(card));
             Assert.True(box != null && SceneHarness.Near(box.Value, SceneHarness.Slot(card, window)), $"{CardView.Record(card).Title} was left drawn at {box} instead of {SceneHarness.Slot(card, window)}");
         }
+    }
+
+    // Read against the stage at full opacity, so while the page switch fades the page in this is the product of the two.
+    private static double Opacity(byte[] pixels, int stride, Rect slot)
+    {
+        var background = Palette.Surface.Color;
+        var red = pixels[((int)slot.Center.Y * stride) + ((int)slot.Center.X * 4)];
+        return Math.Max(0, (red - background.R) / (255d - background.R));
+    }
+
+    // Walks in from outside the slot to the first pixel of the card's tint; not upwards, as the row below is drawn over it.
+    private static (double Across, double Top) Drawn(byte[] pixels, int stride, Rect slot, Color tint)
+    {
+        var x = (int)slot.Center.X;
+        var y = (int)slot.Center.Y;
+        int left = (int)slot.X - 24, right = (int)slot.Right + 24, top = (int)slot.Y - 24;
+        while (left < x && !Tinted(pixels, stride, left, y, tint)) left++;
+        while (right > x && !Tinted(pixels, stride, right, y, tint)) right--;
+        while (top < y && !Tinted(pixels, stride, x, top, tint)) top++;
+        return (((left + right + 1) / 2d) - slot.Center.X, top - slot.Y);
+    }
+
+    private static bool Tinted(byte[] pixels, int stride, int x, int y, Color tint)
+    {
+        if (x < 0 || y < 0 || (x * 4) + 3 >= stride || (y * stride) >= pixels.Length) return false;
+        var background = Palette.Surface.Color;
+        var i = (y * stride) + (x * 4);
+        var alpha = (pixels[i] - background.R) / (255d - background.R);
+        return alpha >= 0.5 &&
+            Math.Abs(pixels[i + 1] - (background.G * (1 - alpha))) <= 4 &&
+            Math.Abs(pixels[i + 2] - (background.B + (alpha * (tint.B - background.B)))) <= 4;
     }
 
     private static ListBoxItem Chip(Control page, string name) =>

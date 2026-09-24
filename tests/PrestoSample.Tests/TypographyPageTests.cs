@@ -59,6 +59,57 @@ public sealed class TypographyPageTests
     }
 
     [AvaloniaFact]
+    public void ALiftedSwollenWordmarkLetterIsNeverClipped()
+    {
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
+        var letters = WordmarkLetters(page);
+
+        SceneHarness.Click(window, page.GetControl<Border>("WordmarkStage").GetVisualDescendants().OfType<Button>().First());
+        for (var frame = 0; frame < 40; frame++)
+        {
+            TestFrames.Tick();
+            foreach (var letter in letters) AssertUnclipped(letter);
+        }
+
+        window.MouseMove(SceneHarness.Centre(letters[0], window));
+        TestFrames.Tick(20);
+        Assert.True(Y(letters[0]) < -25, $"the pointed-at M only lifted to {Y(letters[0]):0.#}");
+        foreach (var letter in letters) AssertUnclipped(letter);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheRotatorFadesTheOldWordOutAndTheNewOneInWithoutFlashing()
+    {
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 100);
+        var word = page.GetControl<TextBlock>("Word");
+        var outgoing = RotatorChars(word);
+        var last = new Dictionary<TextBlock, double>();
+
+        for (var frame = 0; frame < 160; frame++)
+        {
+            TestFrames.Tick();
+            Assert.True(word.Inlines is { Count: > 0 } && string.IsNullOrEmpty(word.Text), $"frame {frame} shows the word unsplit");
+            foreach (var piece in RotatorChars(word))
+            {
+                Assert.InRange(piece.Opacity, -1e-6, 1 + 1e-6);
+                var leaving = outgoing.Contains(piece);
+                if (last.TryGetValue(piece, out var before))
+                {
+                    Assert.True(leaving ? piece.Opacity <= before : piece.Opacity >= before,
+                        $"frame {frame}: '{piece.Text}' went from {before:0.000} to {piece.Opacity:0.000} while {(leaving ? "leaving" : "arriving")}");
+                }
+                last[piece] = piece.Opacity;
+            }
+        }
+
+        Assert.DoesNotContain(RotatorChars(word), outgoing.Contains);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void TheTerminalTypesItsFirstLineAndCountsUp()
     {
         var page = new TypographyPage();
@@ -74,6 +125,18 @@ public sealed class TypographyPageTests
 
     private static Control[] WordmarkLetters(TypographyPage page) =>
         [.. page.GetControl<TextBlock>("Wordmark").GetVisualDescendants().OfType<TextBlock>().Where(text => text.Text?.Length == 1)];
+
+    private static TextBlock[] RotatorChars(TextBlock word) => [.. word.GetVisualDescendants().OfType<TextBlock>()];
+
+    private static void AssertUnclipped(Control letter)
+    {
+        foreach (var ancestor in letter.GetVisualAncestors().Where(visual => visual.ClipToBounds))
+        {
+            var drawn = new Rect(letter.Bounds.Size).TransformToAABB(letter.TransformToVisual(ancestor)!.Value);
+            Assert.True(new Rect(ancestor.Bounds.Size).Contains(drawn),
+                $"'{((TextBlock)letter).Text}' is drawn at {drawn}, outside the {ancestor.GetType().Name} clipping it at {ancestor.Bounds.Size}");
+        }
+    }
 
     private static double Y(Control letter) => (double)Presto.Get(letter, "Y")!;
 }

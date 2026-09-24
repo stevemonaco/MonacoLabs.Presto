@@ -11,9 +11,10 @@ public partial class GalleryFlipPage : ShowcasePage
 {
     private const string Everything = "All";
     private const double ReflowDuration = 700;
-    private const double EntryDuration = 420;
+    private const double EntryDuration = 600;
     private const double ExitDuration = 240;
     private const double RevealDuration = 260;
+    private const double Rise = 14;
 
     private readonly ObservableCollection<Control> _shown = [];
     private readonly Dictionary<Datasets.Card, Border> _cards = [];
@@ -35,7 +36,16 @@ public partial class GalleryFlipPage : ShowcasePage
     protected override void OnAttached()
     {
         foreach (var record in Datasets.Cards) _cards[record] = BuildCard(record);
-        Apply();
+        Reorder(Wanted());
+        Field.LayoutUpdated += Arrive;
+    }
+
+    // AutoGrid staggers from where the first layout pass put the cards, and starting inside that pass renders the
+    // from-values before the first frame shows them.
+    private void Arrive(object? sender, EventArgs e)
+    {
+        Field.LayoutUpdated -= Arrive;
+        Enter(_shown, PrestoAvalonia.Stagger(20));
     }
 
     private Border BuildCard(Datasets.Card record)
@@ -142,7 +152,7 @@ public partial class GalleryFlipPage : ShowcasePage
 
         if (going.Count > 0) Leave(going);
         Reorder(wanted);
-        if (coming.Count > 0) Enter(coming);
+        if (coming.Count > 0) Enter(coming, Presto.Stagger(16));
     }
 
     private IReadOnlyList<Datasets.Card> Wanted()
@@ -168,15 +178,17 @@ public partial class GalleryFlipPage : ShowcasePage
         }
     }
 
-    private void Enter(IReadOnlyList<Control> coming) => Scope.Execute(_ =>
+    private void Enter(IReadOnlyList<Control> coming, Stagger delay) => Scope.Execute(_ =>
         PrestoAvalonia.AnimateOnCompositor(coming, new CompositorAnimationParams
         {
-            // Composition properties, so they meet the layout transition's translation rather than multiplying with it.
-            ["Scale"] = TweenValue.FromTo(0.8, 1),
+            // Composition properties: a card the filter also moves gives the rise up to the layout transition's translation.
+            ["Y"] = TweenValue.FromTo(Rise, 0),
+            // Only Scale overshoots: an Opacity past 1 is drawn almost transparent, so the card would blink (SAMPLES-PLAN §8).
+            ["Scale"] = new TweenParams { From = 0.9, To = 1, Ease = Eases.OutBack(1.2) },
             ["Opacity"] = TweenValue.FromTo(0, 1),
             Duration = EntryDuration,
-            Delay = Presto.Stagger(16),
-            Ease = Eases.OutBack(2),
+            Delay = delay,
+            Ease = Eases.OutQuint,
         }));
 
     private void Leave(IReadOnlyList<Control> going) => Scope.Execute(_ =>

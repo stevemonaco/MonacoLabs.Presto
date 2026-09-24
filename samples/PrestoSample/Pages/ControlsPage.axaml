@@ -7,8 +7,9 @@
     <ScrollViewer>
         <StackPanel Spacing="12">
             <Border Classes="stage" MinHeight="140" Padding="16">
-                <Border x:Name="Square" Width="64" Height="64" CornerRadius="10" Background="#4c8dff"
-                        HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <Button x:Name="ClickButton" Classes="specimen" Padding="14,8" Click="Clicked">
+                    <TextBlock x:Name="ClickText" Text="Click me · 0" />
+                </Button>
             </Border>
 
             <StackPanel Spacing="2">
@@ -34,7 +35,7 @@
             </StackPanel>
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Cancel stops the animation where it stands; Revert wipes the animation-priority values the bridge wrote, so the square snaps back to the blue, unrotated, fully opaque state declared in XAML." />
+                       Text="Cancel stops the animation where it stands; Revert wipes the animation-priority values the bridge wrote, so the button snaps back to the blue, unrotated, fully opaque state its style declares." />
 
             <StackPanel Spacing="2">
                 <TextBlock Classes="caption" Text="{Binding #StretchSlider.Value, StringFormat='Stretch to {0:0} ms total'}" />

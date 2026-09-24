@@ -17,23 +17,23 @@ public partial class ValueTypesPage : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        _animations.Add(NumberSquare.Animate(Looping(new() { ["X"] = 220 })));
-        _animations.Add(TurnBar.Animate(Looping(new() { ["Rotate"] = "1turn" })));
-        _animations.Add(RelativeSquare.Animate(Looping(new() { ["X"] = "+=140", ["Scale"] = "*=1.5" })));
-        _animations.Add(FromToSquare.Animate(Looping(new()
+        _animations.Add(NumberButton.Animate(Looping(new() { ["X"] = 220 })));
+        _animations.Add(TurnButton.Animate(Looping(new() { ["Rotate"] = "1turn" })));
+        _animations.Add(RelativeButton.Animate(Looping(new() { ["X"] = "+=140", ["Scale"] = "*=1.5" })));
+        _animations.Add(FromToButton.Animate(Looping(new()
         {
             ["X"] = new double[] { 0, 220 },
             ["Opacity"] = new double[] { .2, 1 },
         })));
         _animations.Add(PercentBar.Animate(Looping(new() { ["Value"] = "75%" })));
 
-        _animations.Add(HexSquare.Animate(Looping(new() { ["Background"] = "#f5c542" })));
-        _animations.Add(RgbSquare.Animate(Looping(new() { ["Background"] = "rgb(74, 222, 128)" })));
-        _animations.Add(HslSquare.Animate(Looping(new() { ["Background"] = "hsl(280, 70%, 60%)" })));
-        _animations.Add(((SolidColorBrush)TypedColorSquare.Background!).Animate(
+        _animations.Add(HexButton.Animate(Looping(new() { ["Background"] = "#f5c542" })));
+        _animations.Add(RgbButton.Animate(Looping(new() { ["Background"] = "rgb(74, 222, 128)" })));
+        _animations.Add(HslButton.Animate(Looping(new() { ["Background"] = "hsl(280, 70%, 60%)" })));
+        _animations.Add(((SolidColorBrush)Avatar.Background!).Animate(
             Looping(new() { [SolidColorBrush.ColorProperty] = TweenValue.Of(Colors.OrangeRed) })));
 
-        _animations.Add(StructSquare.Animate(Looping(new()
+        _animations.Add(ProfileCard.Animate(Looping(new()
         {
             ["BorderThickness"] = TweenValue.Of(new Thickness(10)),
             ["CornerRadius"] = TweenValue.Of(new CornerRadius(30)),

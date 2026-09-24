@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -9,13 +10,14 @@ namespace PrestoSample.Pages;
 public partial class AnimationBasicsPage : UserControl
 {
     private Animation? _animation;
+    private int _likes;
 
     public AnimationBasicsPage() => InitializeComponent();
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _animation = Square.Animate(new()
+        _animation = LikeButton.Animate(new()
         {
             ["X"] = 320,
             ["Y"] = -40,
@@ -39,4 +41,6 @@ public partial class AnimationBasicsPage : UserControl
     }
 
     private void Replay(object? sender, RoutedEventArgs e) => _animation?.Restart();
+
+    private void Like(object? sender, RoutedEventArgs e) => LikeCount.Text = (++_likes).ToString(CultureInfo.InvariantCulture);
 }

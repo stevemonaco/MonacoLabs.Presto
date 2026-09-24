@@ -6,15 +6,15 @@
              x:Class="PrestoSample.Pages.DraggablePage">
     <UserControl.Styles>
         <Style Selector="Border.card">
-            <Setter Property="Width" Value="90" />
-            <Setter Property="Height" Value="90" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Width" Value="150" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="TextElement.Foreground" Value="#101010" />
         </Style>
 
-        <Style Selector="Border.card > TextBlock">
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+        <Style Selector="Border.card CheckBox">
             <Setter Property="Foreground" Value="#101010" />
+            <Setter Property="MinHeight" Value="28" />
         </Style>
 
         <Style Selector="TextBlock.readout">
@@ -29,11 +29,19 @@
             <Border Classes="stage" Padding="0" Height="300">
                 <Canvas x:Name="Stage">
                     <Border x:Name="SpringCard" Classes="card" Canvas.Left="20" Canvas.Top="20" Background="#4c8dff">
-                        <TextBlock Text="spring" />
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Spring" FontWeight="SemiBold" />
+                            <TextBlock Text="Flick me at an edge" FontSize="11" />
+                            <CheckBox x:Name="SpringCheck" Content="Done" />
+                        </StackPanel>
                     </Border>
 
-                    <Border x:Name="SnapCard" Classes="card" Canvas.Left="140" Canvas.Top="20" Background="#f5c542">
-                        <TextBlock Text="snap 40" />
+                    <Border x:Name="SnapCard" Classes="card" Canvas.Left="190" Canvas.Top="20" Background="#f5c542">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Snap 40" FontWeight="SemiBold" />
+                            <TextBlock Text="Steps on a 40 grid" FontSize="11" />
+                            <CheckBox Content="Pinned" />
+                        </StackPanel>
                     </Border>
 
                     <Border x:Name="Rail" Width="260" Height="44" CornerRadius="8" Background="#304c8dff"

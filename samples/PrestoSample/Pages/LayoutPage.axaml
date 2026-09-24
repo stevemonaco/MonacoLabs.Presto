@@ -6,22 +6,33 @@
              x:Class="PrestoSample.Pages.LayoutPage">
     <UserControl.Styles>
         <Style Selector="Border.card">
-            <Setter Property="Width" Value="56" />
-            <Setter Property="Height" Value="56" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Width" Value="96" />
+            <Setter Property="Height" Value="68" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,8" />
             <Setter Property="Background" Value="{DynamicResource SystemAccentColorLight1}" />
+            <Setter Property="TextElement.Foreground" Value="#101010" />
         </Style>
-        <Style Selector="Border.card > TextBlock">
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+        <Style Selector="Border.card PathIcon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Foreground" Value="#101010" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style Selector="Border.card TextBlock">
             <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Border.card TextBlock.number">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Opacity" Value="0.6" />
         </Style>
     </UserControl.Styles>
 
     <StackPanel Spacing="16">
         <Border Classes="stage">
             <StackPanel Spacing="20" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <WrapPanel x:Name="Cards" Width="420" ItemWidth="68" ItemHeight="68" />
+                <WrapPanel x:Name="Cards" Width="420" ItemWidth="104" ItemHeight="76" />
 
                 <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
                     <Border x:Name="GrowBox" Width="120" Height="56" CornerRadius="6"

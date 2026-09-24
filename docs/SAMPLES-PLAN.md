@@ -226,6 +226,30 @@ seconds. The frame-time graph is itself a `CompositorScene`, so it keeps drawing
   plain objects and posting results to the UI. That is Phase 9 made visible.
 - **Done when** the numbers are reproducible, a steady state at 5 000 targets shows ~zero gen-0 growth, and any figure
   that disappoints is written down in §8 rather than hidden behind a lower default.
+- **Built at 13g.** The targets live in a fixed 720×300 field (scaled down to fit, never up), so a count means the same
+  pixels at every window size: `Border`s on a `Canvas` for the two per-visual modes, `BenchScene` drawing plain `Cell`s
+  for the scene mode. Every set loops the same 1.2 s `InOutSine` over a `[0, 1200]` stagger. Compositor tracks have no
+  colour, so the per-visual mode runs the colour as a UI-thread `Background` tween beside them. Each count/mode/set is
+  built in a nested `Scope`'s constructor and swapped with `Refresh()`, which reverts the previous set before building.
+  `FrameGraphScene` graphs the last 240 UI frame times (posted once per UI frame) with their mean and nearest-rank p95,
+  and draws the render fps; a UI frame that has not arrived grows as a coral bar. The worker toggle is **included**: a
+  second `Engine` on a `StopwatchFrameSource` is filled under `MakeCurrent()` and woken from the thread pool, so the
+  pump thread ticks it, drives the same count of `Cell`s, posts its fps and a cell to the UI twice a second, and pauses
+  itself from its own tick when switched off. Browser caps the count at 4 000, keeps the mode on UI-thread animations and disables the worker.
+- **Measured at 13g** (Debug, dev machine, transform set unless noted; ui / render fps, UI frame mean / p95, gen-0 over
+  10 s steady state):
+
+  | Targets | UI-thread animations | Compositor, per visual | Compositor scene |
+  |---|---|---|---|
+  | 5 000 | 88 / 129, 8.8 / 16.9 ms, +98 | 51 / 51, 16.4 / 22.2 ms, +1 | 106 / 101, 9.9 / 11.9 ms, +1 |
+  | 10 000 | 24 / 43, 25.8 / 50.8 ms, +83 | 27 / 27, 30.4 / 39.0 ms | 86 / 89, 11.9 / 16.7 ms |
+  | 20 000 | 21 / 65, 38.5 / 85.3 ms | — | 45 / 45, 22.4 / 27.8 ms, +0 |
+
+  At 5 000: opacity only on the UI thread 62 / 87 fps (+92 gen-0), transform + colour 101 fps (+82), opacity only in the
+  scene 102 / 107 fps (+1); the worker ran at 64 fps (its pump's `Thread.Sleep(1)` at the Windows timer resolution)
+  with the scene still at +0 gen-0. Default 5 000 in the UI-thread mode, which holds 60 fps there; the slider top stays
+  20 000. The ~zero gen-0 target holds for the scene and the per-visual mode but not for the UI-thread mode (§8 row 27),
+  and the per-visual mode is slower than the UI-thread one (§8 row 28).
 
 ### 4.10 Typography — `TypographyPage`
 
@@ -263,10 +287,15 @@ seconds. The frame-time graph is itself a `CompositorScene`, so it keeps drawing
       reference pages stepped through on Desktop.
 - [x] **13b — Showpieces.** Title sequence, Morph lab, Particle field (+ `SceneText` spike first, §7.1).
 - [x] **13c — Real-world.** Card gallery, Board, Dashboard, Scroll story.
-- [ ] **13d — Hard parts.** Interruption lab, Stress bench (+ `FrameGraphScene`).
+- [x] **13d — Hard parts.** Interruption lab, Stress bench (+ `FrameGraphScene`).
 - [ ] **13f — Polish round.** Title sequence beat, board insertion gap, interruption lab rebuild, Typography page —
       see [SHOWCASE-POLISH-PLAN.md](SHOWCASE-POLISH-PLAN.md). Implemented; pending a full `slnx` build and a Desktop
       hand-check of the board drag and gap, the hover tiles and the wordmark.
+- [ ] **13g — Round 2.** Typography clip and rotator blink, card-gallery load, real controls on the reference pages,
+      compositor page rebuild, four new pages (Micro-interactions, Loaders, Carousel, Stress bench) — see
+      [SHOWCASE-ROUND2-PLAN.md](SHOWCASE-ROUND2-PLAN.md). Implemented; pending a full `slnx` build and
+      `dotnet test --solution` (blocked by a locked Desktop bin), and a Desktop hand-check of the Card gallery
+      first-load wave and a pointer drag on the Carousel.
 - [ ] **13e — Docs.** README showcase section with captures, `CLAUDE.md` layout table updated with the
       `Showcase/` folder, this checklist ticked, findings from §8 folded into [PLAN.md](PLAN.md) §7.
 
@@ -301,8 +330,7 @@ Two additions worth making:
    render thread; pinned headlessly by `tests/PrestoSample.Tests/SceneTextTests.cs`, which cannot answer the thread
    question because the headless compositor ticks on the UI thread. Promoting it to the bridge is §8 row 3.
 2. **20 000 targets may not hold 60 fps.** The count is a slider precisely so the ceiling is discovered rather than
-   promised. Measured for 4.3 at 13b (see §4.3); the stress bench is the one left — measure at 13d and set its defaults
-   from the measurement.
+   promised. Measured for 4.3 at 13b (see §4.3); the stress bench was measured at 13g (see §4.9).
 3. **Restyling the whole gallery can break reference pages.** Mitigated by changing setter values only — never adding,
    removing or renaming a class — and by the 13a acceptance pass over all 17 pages.
 4. **`AnimateLayout` under churn** (4.4, 4.5): removing a control mid-transition, or reparenting during a drag, is
@@ -341,3 +369,8 @@ side effect of a demo — it graduates to [PLAN.md](PLAN.md) §7 and is decided 
 | 21 | 13c `ScrollStoryPage` | Re-measuring a scroller's observers after a resize means keeping your own list of them: `ScrollContainer.Containers` and `Register` are internal, so nothing public maps a `ScrollViewer` to the container that already holds its observers, and each `Refresh()` has to be guarded by `Ready` the way the bridge's own `RefreshObservers` guards it, because a page's `SizeChanged` fires on the first layout pass — before the deferred resolve has measured anything. The container does refresh itself, but 250 ms behind the resize; the page's own `Refresh()` is what makes the re-measure immediate, which `ScrollStoryPageTests` pins by ticking two frames after it. Measured live: shrinking the window 130px mid-pin took the scrub from 43% to the re-measured 39%, and back to 43% when it was restored. | Make `Refresh()` a no-op until the observer has resolved, and expose the container of a `ScrollViewer` (or a refresh across an observer's siblings), so a page does not have to track its own observers to re-measure them. |
 | 22 | 13d `InterruptionPage` | §4.8 asks for a travelling card whose hover wobble *rides* the travel when it blends and *kills* it when it replaces, and only one of those is reachable, because row 8 cuts both ways. Blended, a property belongs to the additive pass, so the travel has to blend too for the wobble to add to it — and then a replaced wobble is written and overwritten in the same frame and never reaches the card at all, rather than killing the travel. Making the travel replace instead buys the kill and loses the ride: the blended wobble takes the property over and the card stops travelling. The page blends the travel, so the toggle shows the ride and row 8 from the other side. A blended tween's `To` also becomes the additive group's base rather than an offset from where the target is, so the wobble has to aim at the travel's destination; aimed around zero it drags the travel back to the start with it. | Give a blended tween a spelling for "add this much to whatever else is on the property" — a delta or relative `To` that does not move the group's base — so a layered effect can be written without knowing the animation underneath it, and say on `Composition` that a replaced tween cannot reach a property the additive pass owns. Since 13f the page no longer has the travelling card, so this is no longer demonstrated. |
 | 23 | 13f `TypographyPage` | A split effect runs before its pieces have been laid out, so nothing it can read says how tall a line or how wide a word is: every piece's `Bounds` is empty, and the text is measured only inside `TextSplitter` on a private copy. The page measures a probe `TextBlock` with the host's font for the line height the reveal rises from, and again for each rotator word's width. Words are not addressable per line either — `Lines` and `Words` are flat lists — so the per-line stagger splits with `IncludeSpaces`, which makes every child of a line row a word piece, and counts them. And a split host whose width follows its text re-splits 150 ms after every text swap, rebuilding the incoming animation mid-flight; the rotator pins the word block's width so it never resizes. | Give a piece its line (a `LineIndex`, or `Words` grouped per line) and expose the split's measured line height and piece widths, so an effect can size and stagger its tweens without a probe. |
+| 24 | 13g `TypographyPage` | An `Opacity` tween that overshoots 1 makes the control vanish instead of saturating: the bridge writes the eased value straight to `Visual.Opacity`, and Avalonia draws an opacity above 1 nearly transparent. Measured on the word rotator, whose `InBack` exit took each char to 1.10 before fading it: the rendered word lost ~40% of its ink while the chars were still in place and came back as they fell below 1, so every char blinked out, back and out again. CSS clamps opacity, so upstream never shows this. The rotator now eases its `Opacity` with `InQuad` and keeps `InBack` on `Y`. The composition track does the same: `GalleryFlipPage`'s entry ran `Opacity` through `OutBack(2)` on the compositor, so every card faded up to ~0.95, all but vanished while the ease overshot and snapped back at the end; its `OutBack` is now on `Scale` alone. | Clamp `Opacity` to [0, 1] in the Avalonia property adapter (and on the composition track), as the browser does. |
+| 25 | 13g `TypographyPage` | A split's pieces are drawn inside the host `TextBlock`, which clips to its bounds by default, so any piece transformed past the text's line box is cut off — upstream's spans overflow freely. The wordmark's lifted, swollen letters lost their tops and the outer halves of M and N; the page sets `ClipToBounds="False"` on the host. | Have `TextSplitter` turn off the host's `ClipToBounds` while split and restore it on `Revert`, or say on `SplitText` that the host clips. |
+| 26 | 13g `MicroInteractionsPage` | `MorphTo` reads the geometry it starts from off a `Path` only (`(target as Path)?.Data`), so the `Data` of a `PathIcon` — the icon control a button actually holds — throws "Can't morph a PathIcon" unless a previous tween chains into it. The submit button's spinner is therefore a stroked `Path` rather than the `PathIcon` the plan asked for. | Read the start geometry through the target adapter (any `Geometry`-typed `Data` property), so `PathIcon` and other geometry-bearing controls morph too. |
+| 27 | 13g `StressBenchPage` | Animating `AvaloniaObject` targets is not allocation-free: at 5 000 targets in steady state the UI-thread mode runs ~9 gen-0 collections a second (+98 over 10 s for transforms, +92 for opacity only, +82 with colour), while the same animation over plain `Cell`s in the scene mode, or 5 000 compositor tracks, shows +0 to +1. So the core's tick path is allocation-free, and the allocation is in writing values through the bridge or in Avalonia's property system. Not bisected further; the likeliest suspects are the boxed `object` every `IValueCodec.Encode`/adapter write goes through and Avalonia's per-change `AvaloniaPropertyChangedEventArgs`. | Profile the bridge's write path at 5 000 targets and remove whatever allocation is the bridge's own (a typed `double` write for the shorthands and `Opacity`, no boxing), and say on the adapter what is left to Avalonia. |
+| 28 | 13g `StressBenchPage` | `AnimateOnCompositor` over many visuals is slower than animating them on the UI thread, and does not free the UI thread: 5 000 transformed `Border`s run at 51 ui / 51 render fps (UI-thread animations: 88 / 129), 10 000 at 27 / 27. Each target gets its own paused mirror `Animation`, which the UI engine ticks as the playback model, and its own composition key frame animations, so the cost lands on both threads at once. Reverting also leaves each mirror at minus its delay rather than 0, so `CurrentTime` of a reverted per-visual animation reads -1 200 on this page. | Share one playback model across the targets of one `CompositorAnimation` (the mirrors differ only by their resolved delay and values), and say on `AnimateOnCompositor` that it is meant for a handful of visuals rather than thousands. |

@@ -121,7 +121,8 @@ public partial class TypographyPage : ShowcasePage
             .Add(_word!.Chars, new()
             {
                 ["Y"] = Drop,
-                ["Opacity"] = 0,
+                // InBack would overshoot Opacity past 1, which Avalonia draws nearly transparent (SAMPLES-PLAN §8 row 24).
+                ["Opacity"] = new TweenParams { To = 0, Ease = Eases.InQuad },
                 Duration = 380,
                 Ease = Eases.InBack(),
                 Delay = Presto.Stagger(25),

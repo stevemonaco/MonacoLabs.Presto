@@ -9,6 +9,10 @@
             <Setter Property="Height" Value="48" />
             <Setter Property="Padding" Value="6" />
         </Style>
+        <Style Selector="Border.demo > :is(Control)">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </UserControl.Styles>
 
     <ScrollViewer>
@@ -16,37 +20,39 @@
             <Grid ColumnDefinitions="230,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                 <TextBlock Grid.Row="0" Grid.Column="0" Classes="code" Text=".Add(a, …, 0)" />
                 <Border Grid.Row="0" Grid.Column="1" Classes="demo">
-                    <Border x:Name="AbsoluteSquare" Classes="swatch" Width="28" Height="28" />
+                    <Button x:Name="AbsoluteButton" Classes="specimen" Content="Button" />
                 </Border>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Classes="code" Text=".Add(b, …)&#10;appended at the end" />
                 <Border Grid.Row="1" Grid.Column="1" Classes="demo">
-                    <Border x:Name="AppendSquare" Classes="swatch" Width="28" Height="28" />
+                    <ToggleSwitch x:Name="AppendToggle" IsChecked="True" />
                 </Border>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Classes="code" Text=".Add(c, …, &quot;-=400&quot;)" />
                 <Border Grid.Row="2" Grid.Column="1" Classes="demo">
-                    <Border x:Name="RelativeSquare" Classes="swatch" Width="28" Height="28" />
+                    <Slider x:Name="RelativeSlider" Width="140" Maximum="100" Value="40" />
                 </Border>
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Classes="code" Text=".Add(d, …, &quot;&lt;&quot;)&#10;previous child's end" />
                 <Border Grid.Row="3" Grid.Column="1" Classes="demo">
-                    <Border x:Name="PreviousEndSquare" Classes="swatch" Width="28" Height="28" />
+                    <TextBox x:Name="PreviousEndTextBox" Width="140" Text="Type here" />
                 </Border>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Classes="code" Text=".Add(e, …, &quot;&lt;&lt;&quot;)&#10;previous child's start" />
                 <Border Grid.Row="4" Grid.Column="1" Classes="demo">
-                    <Border x:Name="PreviousStartSquare" Classes="swatch" Width="28" Height="28" />
+                    <CheckBox x:Name="PreviousStartCheck" Content="CheckBox" IsChecked="True" />
                 </Border>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Classes="code" Text=".Label(&quot;flash&quot;, &quot;+=200&quot;)&#10;.Add(f, …, &quot;flash&quot;)" />
                 <Border Grid.Row="5" Grid.Column="1" Classes="demo">
-                    <Border x:Name="LabelSquare" Classes="swatch" Width="28" Height="28" Background="#f5c542" />
+                    <Button x:Name="LabelButton" Classes="specimen" Background="#f5c542" Foreground="#101010">
+                        <PathIcon Data="{StaticResource StarIcon}" />
+                    </Button>
                 </Border>
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Classes="code" Text=".Sync(animation, 0)" />
                 <Border Grid.Row="6" Grid.Column="1" Classes="demo">
-                    <Border x:Name="SyncedSquare" Classes="swatch" Width="28" Height="28" />
+                    <Button x:Name="SyncedButton" Classes="specimen" Content="Synced" />
                 </Border>
 
                 <TextBlock Grid.Row="7" Grid.Column="0" Classes="code" Text=".Add(new TimerParams { … }, 20)" />
