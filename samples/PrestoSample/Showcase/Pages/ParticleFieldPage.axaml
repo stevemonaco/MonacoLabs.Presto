@@ -1,0 +1,29 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:compositor="using:Monaco.Presto.AvaloniaBridge.Compositor"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.ParticleFieldPage">
+    <Grid RowDefinitions="*,Auto,Auto" RowSpacing="12">
+        <Border Grid.Row="0" Classes="stage" Padding="0">
+            <compositor:CompositorCanvas x:Name="Field" />
+        </Border>
+
+        <Border Grid.Row="1" Classes="rail showcase">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+                <TextBlock Grid.Column="0" Classes="code" Margin="0" Width="118"
+                           Text="{Binding #CountSlider.Value, StringFormat='{}{0:0} particles'}" />
+                <Slider Grid.Column="1" x:Name="CountSlider" Minimum="500" Maximum="20000"
+                        TickFrequency="500" IsSnapToTickEnabled="True"
+                        VerticalAlignment="Center" ValueChanged="CountChanged" />
+                <Button Grid.Column="2" Content="Freeze UI thread for 2 s" Click="Freeze" />
+                <showcase:FpsMeter Grid.Column="3" x:Name="Meter" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
+                   Text="Every dot is a plain Particle object — no Avalonia objects live below the canvas — laid out on a grid and drifting on one animation with a centre-out grid stagger, ticked and drawn by the scene's own engine on the render thread. Moving the pointer over the field parts it: the push is damped per frame with Utils.Damp rather than tweened. Clicking bursts the dots within 260px outwards and springs them home on Composition.Blend, so the burst adds onto the drift instead of replacing it — the dots keep drifting while they fly. The freeze button sleeps the dispatcher for two seconds: the scene's fps, drawn in the top left of the field, carries on while the UI-thread fps beside the slider stalls with the rest of the window." />
+    </Grid>
+</showcase:ShowcasePage>

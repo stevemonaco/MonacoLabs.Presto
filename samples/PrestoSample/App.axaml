@@ -1,74 +1,10 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="PrestoSample.App"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
 
     <Application.Styles>
         <FluentTheme />
-
-        <Style Selector="Border.stage">
-            <Setter Property="Background" Value="#18808080" />
-            <Setter Property="BorderBrush" Value="#40808080" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="24" />
-            <Setter Property="MinHeight" Value="260" />
-            <Setter Property="ClipToBounds" Value="True" />
-        </Style>
-
-        <Style Selector="TextBlock.readout">
-            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
-            <Setter Property="FontSize" Value="28" />
-        </Style>
-
-        <Style Selector="TextBlock.caption">
-            <Setter Property="Opacity" Value="0.65" />
-        </Style>
-
-        <Style Selector="TextBlock.code">
-            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,0,12,0" />
-        </Style>
-
-        <Style Selector="Border.demo">
-            <Setter Property="Background" Value="#18808080" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="10" />
-            <Setter Property="Height" Value="76" />
-            <Setter Property="ClipToBounds" Value="True" />
-        </Style>
-
-        <Style Selector="Border.swatch">
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="36" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Background" Value="#4c8dff" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-
-        <Style Selector="Border.dot">
-            <Setter Property="Width" Value="14" />
-            <Setter Property="Height" Value="14" />
-            <Setter Property="CornerRadius" Value="7" />
-            <Setter Property="Background" Value="#4c8dff" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-
-        <Style Selector="Border.chip">
-            <Setter Property="Width" Value="40" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Background" Value="#304c8dff" />
-        </Style>
-
-        <Style Selector="Border.chip > TextBlock">
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
+        <StyleInclude Source="avares://PrestoSample/Styles/Showcase.axaml" />
     </Application.Styles>
 </Application>

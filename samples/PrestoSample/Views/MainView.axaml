@@ -12,23 +12,28 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="220,*">
-        <Border Grid.Column="0" BorderBrush="#40808080" BorderThickness="0,0,1,0">
-            <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:GalleryPage">
-                        <TextBlock Text="{Binding Title}" />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </Border>
+    <Grid ColumnDefinitions="240,*">
+        <TreeView Grid.Column="0" Name="Nav" Classes="nav showcase"
+                  ItemsSource="{Binding Sections}"
+                  SelectedItem="{Binding SelectedPage, Mode=OneWay}"
+                  SelectionChanged="NavSelectionChanged">
+            <TreeView.DataTemplates>
+                <TreeDataTemplate x:DataType="vm:GallerySection" ItemsSource="{Binding Pages}">
+                    <TextBlock Classes="section" Text="{Binding Name}" />
+                </TreeDataTemplate>
+                <DataTemplate x:DataType="vm:GalleryPage">
+                    <TextBlock Text="{Binding Title}" />
+                </DataTemplate>
+            </TreeView.DataTemplates>
+        </TreeView>
 
         <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="24">
             <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+                <TextBlock Text="{Binding SelectedPage.Section}" Classes="eyebrow showcase" />
                 <TextBlock Text="{Binding SelectedPage.Title}" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding SelectedPage.Description}" Classes="caption" TextWrapping="Wrap" />
             </StackPanel>
-            <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" />
+            <ContentControl Name="PageHost" Grid.Row="1" Content="{Binding CurrentPage}" />
         </Grid>
     </Grid>
 </UserControl>
