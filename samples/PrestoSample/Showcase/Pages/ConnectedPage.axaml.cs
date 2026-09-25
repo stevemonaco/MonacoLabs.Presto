@@ -7,7 +7,6 @@ using Avalonia.Media.Immutable;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Compositor;
-using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -21,7 +20,6 @@ public partial class ConnectedPage : ShowcasePage
     private readonly Tile[] _tiles;
     private CompositorAnimation? _scatter;
     private CompositorAnimation? _shell;
-    private Timer? _retiring;
     private Animation[] _content = [];
     private int _scattered = -1;
     private int? _open;
@@ -88,7 +86,6 @@ public partial class ConnectedPage : ShowcasePage
 
         Scope.Execute(_ =>
         {
-            _retiring?.Cancel();
             if (_scattered == index)
             {
                 _scatter!.Play();
@@ -117,7 +114,6 @@ public partial class ConnectedPage : ShowcasePage
                     Duration = 500,
                     Delay = Presto.Stagger(35, new StaggerParams { Start = 140 }),
                 }),
-                // Only Scale overshoots: an Opacity past 1 is drawn almost transparent (SAMPLES-PLAN §8).
                 Play.Animate(new() { ["Scale"] = 1, Duration = 520, Delay = 220, Ease = Eases.OutBack(1.7) }),
                 Presto.Animate((Control[])[Meta, Back], new AvaloniaAnimationParams { ["Opacity"] = 1, Duration = 320, Delay = 180, Ease = Eases.OutQuad }),
             ];
@@ -135,11 +131,13 @@ public partial class ConnectedPage : ShowcasePage
 
         Scope.Execute(_ =>
         {
-            _scatter!.Reverse();
+            var scatter = _scatter!.Reverse();
             _shell!.Reverse();
-            // A reversed compositor animation leaves Visual.Opacity at its forward end, and no callback says when the last
-            // staggered card is home, so the scatter is reverted once the longest reverse has run (SAMPLES-PLAN §8).
-            _retiring = Presto.CreateTimer(new TimerParams { Duration = ScatterDuration, OnComplete = _ => Retire() });
+            // Reopening before the cards are home plays the scatter forward again, which resolves this too.
+            scatter.Then(_ =>
+            {
+                if (_open == null && scatter == _scatter) Retire();
+            });
             Stage.Animate(new() { ["Background"] = TweenValue.Of(Palette.Surface), Duration = ArtDuration, Ease = Eases.OutQuint });
             Cancel();
             _content =

@@ -195,7 +195,7 @@ public sealed class ParticleFieldScene : CompositorScene
         return (x, y, Math.Sqrt((x * x) + (y * y)));
     }
 
-    // Brush keys on the exact colour, so a tweened per-particle tint would grow its cache every frame (SAMPLES-PLAN §8).
+    // Brush caches a small palette, so a tweened per-particle tint is coarsened to keep reusing its brushes.
     private static Color Quantize(Color tint) => Color.FromRgb((byte)(tint.R & 0xF0), (byte)(tint.G & 0xF0), (byte)(tint.B & 0xF0));
 
     /// <summary>Resizes the field, which lays it out again and rebuilds the drift.</summary>

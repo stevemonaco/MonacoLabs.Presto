@@ -204,6 +204,25 @@ public sealed class LayoutTransitionTests : CompositorTestBase
             "the bar never reached the slot its new parent gave it");
     }
 
+    /// <summary>A dropped drag: the source is drawn off its slot by its render transform, and the move starts from there.</summary>
+    [AvaloniaFact]
+    public void ASharedElementMoveStartsWhereTheSourceIsDrawnByItsRenderTransform()
+    {
+        var (left, right, bar) = ShowColumns();
+        _ = bar.Animate(new() { ["X"] = Growth, ["Y"] = Growth / 2, Duration = 100 });
+        Frames.Advance(200);
+        Tick();
+        var drawn = Box(bar);
+
+        _ = PrestoAvalonia.AnimateSharedElement(bar, bar, Held, Eases.None);
+        left.Children.Remove(bar);
+        right.Children.Add(bar);
+        _ = PrestoAvalonia.Set(bar, new() { ["X"] = 0d, ["Y"] = 0d });
+        Tick();
+
+        Assert.Equal(drawn, Box(bar));
+    }
+
     /// <summary>
     /// A 600 ms move interrupted halfway and re-armed as a shared element carries on from where the bar is drawn instead of
     /// jumping to the slot it was heading for, and with <c>once</c> off keeps easing the layout changes after it.

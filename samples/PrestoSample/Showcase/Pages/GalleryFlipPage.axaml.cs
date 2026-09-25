@@ -101,8 +101,8 @@ public partial class GalleryFlipPage : ShowcasePage
         _slot = _shown.IndexOf(card);
         card.Classes.Remove("row");
         card.Classes.Add("expanded");
-        // The card is the shared element and the transition it reflows with plays the move, so a second click inverts from
-        // where the card is drawn; AnimateSharedElement is one-shot and would re-measure from the slot (SAMPLES-PLAN §8).
+        // The card is its own shared element: the transition it reflows with plays the move, so a second click inverts from
+        // where the card is drawn.
         _shown.Remove(card);
         Host.Child = card;
         Detail.IsVisible = true;
@@ -183,12 +183,11 @@ public partial class GalleryFlipPage : ShowcasePage
         {
             // Composition properties: a card the filter also moves gives the rise up to the layout transition's translation.
             ["Y"] = TweenValue.FromTo(Rise, 0),
-            // Only Scale overshoots: an Opacity past 1 is drawn almost transparent, so the card would blink (SAMPLES-PLAN §8).
-            ["Scale"] = new TweenParams { From = 0.9, To = 1, Ease = Eases.OutBack(1.2) },
+            ["Scale"] = TweenValue.FromTo(0.9, 1),
             ["Opacity"] = TweenValue.FromTo(0, 1),
             Duration = EntryDuration,
             Delay = delay,
-            Ease = Eases.OutQuint,
+            Ease = Eases.OutBack(1.2),
         }));
 
     private void Leave(IReadOnlyList<Control> going) => Scope.Execute(_ =>

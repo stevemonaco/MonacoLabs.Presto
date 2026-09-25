@@ -57,7 +57,7 @@ public partial class TypographyPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        Split = PrestoAvalonia.SplitText(Paragraph, new SplitTextParams { Lines = new SplitPieceParams { Wrap = true }, IncludeSpaces = true })
+        Split = PrestoAvalonia.SplitText(Paragraph, new SplitTextParams { Lines = new SplitPieceParams { Wrap = true } })
             .AddEffect(BuildReveal);
 
         _wordIndex = 0;
@@ -85,19 +85,19 @@ public partial class TypographyPage : ShowcasePage
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        // Each rotation is built outside Scope so it does not grow every cycle (SAMPLES-PLAN §8 row 18).
+        // Each rotation is a timeline built outside Scope, which prunes superseded animations but not timelines (SAMPLES-PLAN §8 row 18).
         _rotation?.Revert();
         _word?.Revert();
     }
 
     private Animation BuildReveal(TextSplitter split)
     {
-        // With IncludeSpaces every child of a line row is a word piece, which is the only way to know a word's line.
-        var delays = new List<double>();
-        for (var line = 0; line < split.Lines.Count; line++)
+        var delays = new double[split.Words.Count];
+        for (int i = 0, line = -1, word = 0; i < delays.Length; i++, word++)
         {
-            var words = ((Panel)split.Lines[line]).Children.Count;
-            for (var word = 0; word < words; word++) delays.Add((line * LineStagger) + (word * WordStagger));
+            var at = TextSplitter.GetLineIndex(split.Words[i]);
+            if (at != line) (line, word) = (at, 0);
+            delays[i] = (line * LineStagger) + (word * WordStagger);
         }
 
         Reveal = Presto.Animate(split.Words, new AnimationParams
@@ -118,8 +118,7 @@ public partial class TypographyPage : ShowcasePage
             .Add(_word!.Chars, new()
             {
                 ["Y"] = Drop,
-                // InBack would overshoot Opacity past 1, which Avalonia draws nearly transparent (SAMPLES-PLAN §8 row 24).
-                ["Opacity"] = new TweenParams { To = 0, Ease = Eases.InQuad },
+                ["Opacity"] = 0,
                 Duration = 380,
                 Ease = Eases.InBack(),
                 Delay = Presto.Stagger(25),

@@ -175,11 +175,48 @@ public sealed class BoardPageTests
         SceneHarness.Close(window);
     }
 
-    private static Point MoveTo(Window window, Point from, Point to)
+    [AvaloniaFact]
+    public async Task ADroppedCardIsDrawnWhereItWasLetGoUntilItSettles()
     {
-        for (var i = 1; i <= 6; i++)
+        var page = new BoardPage();
+        var window = SceneHarness.Show(page, 900, 520);
+        var card = Cards(page, 0)[1];
+        SceneHarness.Flood(card, SceneHarness.Tint(0));
+        await SceneHarness.Settle();
+        var lifted = SceneHarness.Extent(page, SceneHarness.Colour(card))!.Value;
+        var grab = SceneHarness.Centre(card, window);
+
+        // Let go mid-move, as by hand, so the release throw is still running and the card lands after the button is up.
+        window.MouseDown(grab, MouseButton.Left);
+        var pointer = MoveTo(window, grab, grab + (new Vector(LanePitch, RowPitch) * .8), steps: 12);
+        var released = SceneHarness.Extent(page, SceneHarness.Colour(card))!.Value;
+        window.MouseUp(pointer, MouseButton.Left);
+        Assert.NotSame(Lane(page, 1), card.Parent);
+
+        var frames = new List<Rect?>();
+        for (var after = -1; after < 30 && frames.Count < 200; frames.Add(SceneHarness.Extent(page, SceneHarness.Colour(card))))
         {
-            window.MouseMove(from + ((to - from) * i / 6));
+            TestFrames.Tick();
+            if (after >= 0 || ReferenceEquals(card.Parent, Lane(page, 1))) after++;
+        }
+
+        Assert.Same(Lane(page, 1), card.Parent);
+        var landed = SceneHarness.Slot(card, window);
+        var path = new Rect(released.Position, landed.Position).Normalize().Inflate(8);
+        for (var frame = 0; frame < frames.Count; frame++)
+        {
+            Assert.True(
+                frames[frame] is { } drawn && !SceneHarness.Near(drawn, lifted) && path.Contains(drawn.Position),
+                $"frame {frame} after the drop drew the card at {frames[frame]}, off the way from {released} to {landed} (lifted from {lifted})");
+        }
+        SceneHarness.Close(window);
+    }
+
+    private static Point MoveTo(Window window, Point from, Point to, int steps = 6)
+    {
+        for (var i = 1; i <= steps; i++)
+        {
+            window.MouseMove(from + ((to - from) * i / steps));
             TestFrames.Tick();
         }
         return to;

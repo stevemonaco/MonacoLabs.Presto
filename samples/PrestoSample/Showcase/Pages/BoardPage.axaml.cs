@@ -15,12 +15,8 @@ public partial class BoardPage : ShowcasePage
     // Both pitches come from the page's styles: the lane width plus the column spacing, the card height plus the row gap.
     private const double LanePitch = 170;
     private const double RowPitch = 64;
-    // Every lane keeps room for this many rows so that lifting a card does not resize the board: a container that
-    // resizes refreshes the draggable 150ms later, which cancels a release still in flight (SAMPLES-PLAN §8).
-    private const int LaneRows = 12;
 
     private readonly List<Border>[] _lanes = [.. Datasets.Lanes.Select(_ => new List<Border>())];
-    private readonly Dictionary<Border, LayoutTransition> _reflow = [];
     private readonly Dictionary<Border, int> _lifted = [];
     private readonly Dictionary<Border, (int Lane, int Slot)> _aims = [];
 
@@ -70,7 +66,7 @@ public partial class BoardPage : ShowcasePage
     private Border BuildCard(Datasets.Card record)
     {
         var card = CardView.Build(record, eyebrow: false);
-        Arm(card);
+        Scope.Execute(_ => card.AnimateLayout(ReflowDuration, Eases.OutQuint));
         PrestoAvalonia.CreateDraggable(card, new DraggableParams
         {
             Container = Board,
@@ -84,7 +80,6 @@ public partial class BoardPage : ShowcasePage
             MaxVelocity = 1.5,
             ScrollSpeed = 2,
             ScrollThreshold = 28,
-            OnGrab = _ => Grab(card),
             OnDrag = _ => Lift(card),
             // OnUpdate rather than OnSnap: it keeps firing through the release throw, so the gap follows a flung card.
             OnUpdate = _ => Aim(card),
@@ -94,22 +89,12 @@ public partial class BoardPage : ShowcasePage
         return card;
     }
 
-    private void Arm(Border card) =>
-        _reflow[card] = Scope.Execute(_ => card.AnimateLayout(ReflowDuration, Eases.OutQuint));
-
     private void Layout(int lane, int? gapAt = null)
     {
         var cards = _lanes[lane];
         for (var i = 0; i < cards.Count; i++) Canvas.SetTop(cards[i], (i >= gapAt ? i + 1 : i) * RowPitch);
-        _canvases[lane].Height = Math.Max(cards.Count + (gapAt is null ? 0 : 1), LaneRows) * RowPitch;
+        _canvases[lane].Height = (cards.Count + (gapAt is null ? 0 : 1)) * RowPitch;
         _headers[lane].Text = $"{Datasets.Lanes[lane].ToUpperInvariant()} · {cards.Count}";
-    }
-
-    private void Grab(Border card)
-    {
-        // The drag writes the render transform and Measure reads it back, so a live transition would invert every
-        // layout pass the drag outlives straight back against the pointer (SAMPLES-PLAN §8).
-        if (_reflow.Remove(card, out var reflow)) reflow.Revert();
     }
 
     private void Lift(Border card)
@@ -139,11 +124,7 @@ public partial class BoardPage : ShowcasePage
 
     private void Land(Border card, Draggable drag)
     {
-        if (!_lifted.TryGetValue(card, out var source))
-        {
-            Arm(card);
-            return;
-        }
+        if (!_lifted.TryGetValue(card, out var source)) return;
 
         Aim(card);
         _lifted.Remove(card);
@@ -160,14 +141,13 @@ public partial class BoardPage : ShowcasePage
             return;
         }
 
-        // Armed where the card is drawn and a line before it changes parents, so the transition plays the reparent.
-        Arm(card);
+        // Measured where the drag left the card drawn, before the reparent and Reset() move it, so it settles from the release.
+        Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(
+            card, card, ReflowDuration, Eases.OutQuint, LayoutAnimateMode.Position, once: false));
         _canvases[source].Children.Remove(card);
         _canvases[target].Children.Add(card);
         _lanes[target].Insert(slot, card);
-        // Written through the axes rather than Draggable.Reset(), which stops a card already spinning out (SAMPLES-PLAN §8).
-        drag.X = 0;
-        drag.Y = 0;
+        drag.Reset();
         Layout(source);
         Layout(target);
     }

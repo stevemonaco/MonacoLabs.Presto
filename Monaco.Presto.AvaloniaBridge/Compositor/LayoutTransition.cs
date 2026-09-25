@@ -104,11 +104,16 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         return new Rect(position, control.Bounds.Size);
     }
 
-    /// <summary>Where <paramref name="control"/> is drawn: <see cref="Measure"/> plus whatever its live transition still holds.</summary>
+    /// <summary>Where <paramref name="control"/> is drawn: <see cref="Measure"/> plus its render transform's translation and its live transition.</summary>
     internal static Rect? MeasureDrawn(Control control)
     {
-        var measured = Measure(control);
-        if (measured is not { } slot || !s_live.TryGetValue(control, out var live)) return measured;
+        if (Measure(control) is not { } slot) return null;
+        if (control.RenderTransform is { } transform)
+        {
+            var matrix = transform.Value;
+            slot = slot.Translate(new Vector(matrix.M31, matrix.M32));
+        }
+        if (!s_live.TryGetValue(control, out var live)) return slot;
         var scratch = live._scratch;
         return new Rect(slot.X + scratch.X, slot.Y + scratch.Y, slot.Width * scratch.ScaleX, slot.Height * scratch.ScaleY);
     }

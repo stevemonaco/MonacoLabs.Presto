@@ -24,7 +24,6 @@ public partial class InterruptionPage : ShowcasePage
     private static readonly Composition[] Modes = [Composition.Replace, Composition.None, Composition.Blend];
     private static readonly string[] Names = ["replace", "none", "blend"];
 
-    private readonly List<Animation>[] _made = [[], [], []];
     private readonly Canvas[] _panes;
     private readonly Border[] _pucks;
     private readonly TextBlock[] _counts;
@@ -60,16 +59,8 @@ public partial class InterruptionPage : ShowcasePage
         }
     }
 
-    /// <summary>
-    /// How many of the animations this page made for <paramref name="mode"/>'s puck are still running, dropping the
-    /// ones that are not so the list cannot grow without bound.
-    /// </summary>
-    public int Alive(Composition mode)
-    {
-        var made = _made[Array.IndexOf(Modes, mode)];
-        made.RemoveAll(animation => animation.Cancelled || animation.Completed);
-        return made.Count;
-    }
+    /// <summary>How many animations are still running on <paramref name="mode"/>'s puck.</summary>
+    public int Alive(Composition mode) => Presto.GetAnimations(_pucks[Array.IndexOf(Modes, mode)]).Count;
 
     /// <summary>Retargets all three pucks five times, 160 ms apart, along the same seeded script every time.</summary>
     public void Burst()
@@ -86,9 +77,9 @@ public partial class InterruptionPage : ShowcasePage
     /// <summary>Cancels each pane's most recent animation that is still running.</summary>
     public void CancelNewest()
     {
-        for (var i = 0; i < Modes.Length; i++)
+        foreach (var puck in _pucks)
         {
-            if (Alive(Modes[i]) > 0) _made[i][^1].Cancel();
+            if (Presto.GetAnimations(puck) is [.., var newest]) newest.Cancel();
         }
     }
 
@@ -136,15 +127,14 @@ public partial class InterruptionPage : ShowcasePage
         {
             var pane = _panes[i];
             var puck = _pucks[i];
-            // Outside Scope on purpose: a scope holds every animation made inside it until it reverts, and a spammed
-            // pane makes them faster than the page could ever revert them (SAMPLES-PLAN §8 row 18).
-            _made[i].Add(Presto.Animate(puck, new AvaloniaAnimationParams
+            var mode = Modes[i];
+            Scope.Execute(_ => Presto.Animate(puck, new AvaloniaAnimationParams
             {
                 ["X"] = (relative.X * pane.Bounds.Width) - Canvas.GetLeft(puck) - (puck.Width / 2),
                 ["Y"] = (relative.Y * pane.Bounds.Height) - Canvas.GetTop(puck) - (puck.Height / 2),
                 Duration = RetargetDuration,
                 Ease = Eases.OutQuad,
-                Composition = Modes[i],
+                Composition = mode,
             }));
         }
     }
@@ -157,14 +147,13 @@ public partial class InterruptionPage : ShowcasePage
     {
         var (fromY, toY, fromScale, toScale) = raised ? (0d, HoverLift, 1d, HoverScale) : (HoverLift, 0d, HoverScale, 1d);
         var restart = HoverMode.IsChecked == true;
-        // Outside Scope for the same reason as Retarget (SAMPLES-PLAN §8 row 18).
-        Presto.Animate(tile, new AvaloniaAnimationParams
+        Scope.Execute(_ => Presto.Animate(tile, new AvaloniaAnimationParams
         {
             ["Y"] = restart ? TweenValue.FromTo(fromY, toY) : toY,
             ["Scale"] = restart ? TweenValue.FromTo(fromScale, toScale) : toScale,
             Duration = HoverDuration,
             Ease = Eases.OutQuint,
-        });
+        }));
     }
 
     private void PanePressed(object? sender, PointerPressedEventArgs e)
@@ -185,7 +174,6 @@ public partial class InterruptionPage : ShowcasePage
         {
             Presto.Remove(_pucks[i]);
             Presto.Set(_pucks[i], new AvaloniaAnimationParams { ["X"] = 0, ["Y"] = 0 });
-            _made[i].Clear();
             ClearTrail(i);
         }
     }

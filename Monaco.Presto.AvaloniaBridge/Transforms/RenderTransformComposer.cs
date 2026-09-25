@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Data;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Transforms;
@@ -15,7 +16,8 @@ namespace Monaco.Presto.AvaloniaBridge.Transforms;
 /// A group's children apply in the order they are listed, so they are added in the reverse of upstream's string order: the
 /// translation lands last, leaving rotation, scale and skew acting on the visual's own box. The render transform the visual
 /// already had stays as the first child, and the group is written at <see cref="BindingPriority.Animation"/> so releasing the
-/// last shorthand uncovers it again.
+/// last shorthand uncovers it again. A transition that displaces the group, such as Fluent's pressed scale on a button, is
+/// pushed back underneath it, and the style value it animates to becomes the first child instead.
 /// </remarks>
 internal sealed class RenderTransformComposer
 {
@@ -26,8 +28,8 @@ internal sealed class RenderTransformComposer
 
     private readonly double[] _values = [.. s_identities];
     private readonly TransformGroup _group = new();
-    private readonly Transform? _existing;
-    private readonly IDisposable? _written;
+    private Transform? _existing;
+    private IDisposable? _written;
     private TranslateTransform? _translate;
     private RotateTransform? _rotate;
     private ScaleTransform? _scale;
@@ -36,13 +38,9 @@ internal sealed class RenderTransformComposer
 
     private RenderTransformComposer(Visual visual)
     {
-        _existing = visual.RenderTransform switch
-        {
-            Transform transform => transform,
-            { } immutable => new MatrixTransform(immutable.Value),
-            null => null,
-        };
+        _existing = AsTransform(visual.RenderTransform);
         _written = visual.SetValue(Visual.RenderTransformProperty, _group, BindingPriority.Animation);
+        visual.PropertyChanged += OnPropertyChanged;
     }
 
     public static double Get(Visual visual, TransformShorthand shorthand) =>
@@ -87,8 +85,32 @@ internal sealed class RenderTransformComposer
             composer.Rebuild();
             return;
         }
+        visual.PropertyChanged -= composer.OnPropertyChanged;
         composer._written?.Dispose();
         s_composers.Remove(visual);
+    }
+
+    private static Transform? AsTransform(ITransform? transform) => transform switch
+    {
+        Transform mutable => mutable,
+        { } immutable => new MatrixTransform(immutable.Value),
+        null => null,
+    };
+
+    private void OnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        var visual = (Visual)sender!;
+        if (e.Property != Visual.RenderTransformProperty || ReferenceEquals(visual.RenderTransform, _group)) return;
+        var displaced = _written;
+        _written = visual.SetValue(Visual.RenderTransformProperty, _group, BindingPriority.Animation);
+        displaced?.Dispose();
+        // The transition starts before the style's new value is committed as the base value.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!s_composers.TryGetValue(visual, out var composer) || composer != this) return;
+            _existing = AsTransform(visual.GetBaseValue(Visual.RenderTransformProperty).GetValueOrDefault());
+            Rebuild();
+        }, DispatcherPriority.Send);
     }
 
     private bool Animates(TransformShorthand shorthand) => (_animated & (1 << (int)shorthand)) != 0;

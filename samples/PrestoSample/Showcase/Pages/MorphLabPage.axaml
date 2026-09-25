@@ -30,8 +30,7 @@
                             <TextBlock Classes="code" Margin="0" Text="Ease" />
                             <ComboBox x:Name="EaseBox" Width="180" SelectionChanged="Rebuild" />
                         </StackPanel>
-                        <TextBlock Classes="caption"
-                                   Text="{Binding #PrecisionSlider.Value, StringFormat='Precision {0:0.000} sample points per unit of contour'}" />
+                        <TextBlock x:Name="PrecisionText" Classes="caption" />
                         <Slider x:Name="PrecisionSlider" Minimum="0.01" Maximum="0.5" Value="0.33"
                                 SmallChange="0.01" ValueChanged="Rebuild" />
                     </StackPanel>

@@ -146,11 +146,5 @@ public partial class ScrollStoryPage : ShowcasePage
         _vane?.Set("Rotate", observer.Backward ? 180 : 0).Set("ScaleY", 1 + (Utils.Clamp(observer.Velocity, 0, 4) * 0.5));
     }
 
-    private void Remeasure(object? sender, SizeChangedEventArgs e)
-    {
-        foreach (var observer in _observers)
-        {
-            if (observer.Ready) observer.Refresh();
-        }
-    }
+    private void Remeasure(object? sender, SizeChangedEventArgs e) => PrestoAvalonia.RefreshScroll(Scroller);
 }

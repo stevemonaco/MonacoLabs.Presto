@@ -13,7 +13,7 @@ public sealed class BenchScene(int count, AnimationParams motion) : CompositorSc
 {
     private const int TintSteps = 16;
 
-    // Quantized, because the scene's brush cache keys on the exact colour (SAMPLES-PLAN §8 row 9).
+    // A fixed ramp, because the scene's brush cache is meant for a small palette.
     private static readonly Color[] Tints = [.. Enumerable.Range(0, TintSteps).Select(i => Mix(Palette.Accent.Color, Palette.Aqua.Color, i / (TintSteps - 1d)))];
 
     private readonly Cell[] _cells = [.. Enumerable.Range(0, count).Select(_ => new Cell())];

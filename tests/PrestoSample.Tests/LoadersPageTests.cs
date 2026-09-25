@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge.Compositor;
 using PrestoSample.Showcase.Pages;
+using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Tests;
 
@@ -21,6 +23,44 @@ public sealed class LoadersPageTests
         SceneHarness.Close(window);
 
         Assert.True(reverted);
+    }
+
+    [AvaloniaFact]
+    public void TheRenderThreadToggleSwapsVariantsAndLeavesNothingRunning()
+    {
+        var page = new LoadersPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var renderThread = page.GetControl<ToggleSwitch>("RenderThread");
+        var retired = new List<object>(page.Loaders);
+
+        renderThread.IsChecked = true;
+        TestFrames.Tick(90);
+        Assert.Equal(3, page.Loaders.Count);
+        Assert.Equal(6, page.CompositorLoaders.Count);
+        Assert.All(page.CompositorLoaders, loader => Assert.True(loader.CurrentTime > 0));
+        retired.AddRange(page.CompositorLoaders);
+
+        renderThread.IsChecked = false;
+        TestFrames.Tick(30);
+        Assert.Equal(9, page.Loaders.Count);
+        Assert.Empty(page.CompositorLoaders);
+        retired.AddRange(page.Loaders);
+
+        renderThread.IsChecked = true;
+        TestFrames.Tick(90);
+        Assert.All(page.CompositorLoaders, loader => Assert.True(loader.CurrentTime > 0));
+        retired.AddRange(page.Loaders);
+        retired.AddRange(page.CompositorLoaders);
+
+        SceneHarness.Close(window);
+
+        Assert.All(retired, loader => Assert.True(loader switch
+        {
+            Timer timer => timer.Cancelled,
+            // Reverting rewinds the playback model to before its longest delay.
+            CompositorAnimation compositor => compositor.CurrentTime <= 0,
+            _ => false,
+        }));
     }
 
     [AvaloniaFact]

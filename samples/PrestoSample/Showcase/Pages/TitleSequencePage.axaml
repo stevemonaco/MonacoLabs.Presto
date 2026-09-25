@@ -12,6 +12,7 @@
     <showcase:ShowcasePage.Styles>
         <Style Selector="TextBlock.wordmark-char">
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.AccentPale}" />
+            <Setter Property="Opacity" Value="0" />
         </Style>
     </showcase:ShowcasePage.Styles>
 

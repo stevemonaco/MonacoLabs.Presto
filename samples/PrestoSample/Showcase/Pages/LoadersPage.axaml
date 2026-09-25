@@ -54,15 +54,21 @@
     <ScrollViewer>
         <StackPanel Spacing="16">
             <Border Classes="rail showcase">
-                <StackPanel Orientation="Horizontal" Spacing="14">
+                <WrapPanel ItemSpacing="14" LineSpacing="8">
                     <TextBlock Classes="caption" VerticalAlignment="Center" Text="Speed" />
                     <Slider x:Name="Speed" Width="220" Minimum="0.25" Maximum="3" Value="1"
                             VerticalAlignment="Center" ValueChanged="SpeedChanged" />
                     <TextBlock x:Name="SpeedLabel" Classes="code" Text="1.00×" />
                     <ToggleSwitch x:Name="PauseAll" OnContent="Pause all" OffContent="Pause all"
                                   IsCheckedChanged="PauseAllChanged" />
-                </StackPanel>
+                    <ToggleSwitch x:Name="RenderThread" OnContent="Render thread" OffContent="Render thread"
+                                  IsCheckedChanged="RenderThreadChanged" />
+                    <Button Content="Freeze UI thread for 2 s" Click="Freeze" />
+                </WrapPanel>
             </Border>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Render thread rebuilds the equaliser, orbiting dots, grid wave, bouncing ball, typing and ripples with AnimateOnCompositor using the parameters shown, so those six keep moving through the freeze. The blob morph, drawing ring and progress counter animate Data, Draw and Text, which have no composition property, so they stay on the UI thread and stop with it." />
 
             <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
                 <StackPanel Spacing="8">

@@ -208,12 +208,13 @@ public partial class DashboardPage : ShowcasePage
     private void Push()
     {
         _round++;
-        // Outside the page scope on purpose: a scope holds every animation made inside it until it reverts, and the
-        // feed makes seven of them every 800 ms (SAMPLES-PLAN §8).
-        for (var i = 0; i < _counters.Length; i++) Presto.Animate(_counters[i], CounterTo(i, PushDuration));
-        Presto.Animate(_bars, BarsTo(PushDuration));
-        Presto.Animate(_arcs, ArcsTo(PushDuration));
-        Presto.Animate(Spark, SparkTo());
+        Scope.Execute(_ =>
+        {
+            for (var i = 0; i < _counters.Length; i++) Presto.Animate(_counters[i], CounterTo(i, PushDuration));
+            Presto.Animate(_bars, BarsTo(PushDuration));
+            Presto.Animate(_arcs, ArcsTo(PushDuration));
+            Presto.Animate(Spark, SparkTo());
+        });
         if (Feed is { } feed)
         {
             FeedText.Text = string.Create(CultureInfo.InvariantCulture, $"round {_round} · feed {feed.CurrentTime:0} ms");

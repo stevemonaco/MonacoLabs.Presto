@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -57,6 +58,9 @@ public partial class MorphLabPage : ShowcasePage
 
         var ease = (string)EaseBox.SelectedItem!;
         var precision = PrecisionSlider.Value;
+        var points = 0;
+        for (var i = 1; i <= Shapes.Length; i++) points = Math.Max(points, PrestoAvalonia.MorphPointCount(Shapes[i - 1], Shapes[i % Shapes.Length], precision));
+        PrecisionText.Text = string.Create(CultureInfo.InvariantCulture, $"Precision {precision:0.000} per unit of contour · up to {points} sample points");
         _loop = Scope.Execute(_ =>
         {
             var timeline = Presto.CreateTimeline(new TimelineParams { Loop = true });

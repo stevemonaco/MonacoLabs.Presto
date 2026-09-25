@@ -1,4 +1,3 @@
-using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -105,18 +104,8 @@ public sealed class DashboardPageTests
             $"{what} went back towards {start} rather than on from {before}");
     }
 
-    // Nothing public counts them (SAMPLES-PLAN §8).
-    private static int LiveAnimations(IReadOnlyList<object> targets)
-    {
-        var head = typeof(Clock).GetField("_head", BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var next = typeof(Monaco.Presto.Timer).GetField("_next", BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var count = 0;
-        for (var timer = (Monaco.Presto.Timer?)head.GetValue(Presto.Engine); timer != null; timer = (Monaco.Presto.Timer?)next.GetValue(timer))
-        {
-            if (timer is Animation animation && animation.Targets.Any(targets.Contains)) count++;
-        }
-        return count;
-    }
+    private static int LiveAnimations(IReadOnlyList<object> targets) =>
+        targets.SelectMany(target => Presto.GetAnimations(target)).Distinct().Count();
 
     private static TextBlock[] Readouts(Visual page) =>
         [.. page.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.Classes.Contains("readout"))];

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 using Monaco.Presto;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
@@ -41,6 +42,33 @@ public sealed class TitleSequencePageTests
 
         SceneHarness.Close(window);
     }
+
+    [AvaloniaFact]
+    public void WordmarkCharsStayHiddenUntilTheirArrivalAndHideAgainWhenSeekedBackToTheStart()
+    {
+        var page = new TitleSequencePage();
+        var window = SceneHarness.Show(page, 1000, 900);
+        Assert.NotEmpty(Chars(page));
+
+        // A re-split replaces the pieces, so they are read afresh every frame.
+        var timeline = Timeline(page);
+        while (timeline.CurrentTime < timeline.Labels["title"])
+        {
+            Assert.All(Chars(page), piece => Assert.Equal(0, piece.Opacity));
+            TestFrames.Tick();
+            timeline = Timeline(page);
+        }
+        TestFrames.Tick(60);
+        Assert.All(Chars(page), piece => Assert.Equal(1, piece.Opacity, 3));
+
+        SceneHarness.Click(window, page.GetLogicalDescendants().OfType<Button>().Single(button => button.Tag is "draw"));
+        Assert.All(Chars(page), piece => Assert.Equal(0, piece.Opacity));
+        SceneHarness.Close(window);
+    }
+
+    private static List<TextBlock> Chars(TitleSequencePage page) =>
+        page.GetControl<TextBlock>("Headline").GetVisualDescendants().OfType<TextBlock>()
+            .Where(text => text.Classes.Contains("wordmark-char")).ToList();
 
     [AvaloniaFact]
     public void SeekingToTheCardsLabelLandsOnItAfterTheSubtitleHasLanded()

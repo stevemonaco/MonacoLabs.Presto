@@ -1,6 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -141,5 +146,38 @@ public sealed class TransformsTests : BridgeTestBase
         rotating.Revert();
 
         Assert.Null(border.RenderTransform);
+    }
+
+    /// <summary>Fluent's <c>Button:pressed</c> style sets a <c>scale(0.98)</c> render transform through a transition.</summary>
+    [AvaloniaFact]
+    public void PressingAnAnimatedButtonKeepsItDrawnAtItsAnimatedPositionAndComposesThePressedScale()
+    {
+        var button = new Button { Content = "Click me", Width = 80, Height = 30, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        var canvas = new Canvas { Children = { button } };
+        var window = new Window { Content = canvas, Width = 400, Height = 200 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var animation = button.Animate(new() { ["X"] = 200, Duration = 1000, Ease = "linear" });
+
+        Matrix Frame()
+        {
+            Frames.Advance(16);
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            var drawn = button.TransformToVisual(canvas)!.Value;
+            Assert.Equal((double)Presto.Get(button, "X")!, drawn.M31, 1d);
+            return drawn;
+        }
+
+        for (var i = 0; i < 10; i++) Frame();
+        var point = button.TranslatePoint(new Point(40, 15), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        for (var i = 0; i < 5; i++) Assert.Equal(0.98, Frame().M11, 3);
+        window.MouseUp(point, MouseButton.Left);
+        for (var i = 0; i < 5; i++) Assert.Equal(1, Frame().M11, 3);
+
+        animation.Revert();
+
+        Assert.IsNotType<TransformGroup>(button.RenderTransform);
     }
 }

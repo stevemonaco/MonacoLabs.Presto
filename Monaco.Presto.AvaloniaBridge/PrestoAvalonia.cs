@@ -129,7 +129,8 @@ public static class PrestoAvalonia
     /// <remarks>
     /// The two are measured in their window's coordinates with scrolling taken out, so they have to share a window, and a
     /// move between two scrolled containers is off by the difference in their offsets. <paramref name="source"/> is measured
-    /// where it is drawn, so re-arming a control mid-move carries on from there. By default a one-shot, off again once the
+    /// where it is drawn, render-transform translation included, so a dropped drag or a control re-armed mid-move carries on
+    /// from there. By default a one-shot, off again once the
     /// move is under way; passing <paramref name="once"/> false keeps easing later layout changes as
     /// <see cref="AnimateLayout"/> does. Passing the same control twice reparents it.
     /// </remarks>
