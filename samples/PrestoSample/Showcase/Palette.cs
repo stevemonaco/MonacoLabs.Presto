@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 
@@ -22,11 +23,31 @@ public static class Palette
     public static readonly ImmutableSolidColorBrush AccentPale = new(Color.FromRgb(0xC3, 0xDB, 0xFF));
     public static readonly ImmutableSolidColorBrush Aqua = new(Color.FromRgb(0x2D, 0xD4, 0xBF));
     public static readonly ImmutableSolidColorBrush Coral = new(Color.FromRgb(0xFF, 0x6B, 0x7A));
+    public static readonly ImmutableSolidColorBrush Amber = new(Color.FromRgb(0xFF, 0xB5, 0x47));
+    public static readonly ImmutableSolidColorBrush Violet = new(Color.FromRgb(0xA7, 0x7B, 0xFF));
+    public static readonly ImmutableSolidColorBrush Lime = new(Color.FromRgb(0xA3, 0xD9, 0x5B));
+    public static readonly ImmutableSolidColorBrush Rose = new(Color.FromRgb(0xF4, 0x72, 0xB6));
 
     /// <summary>The accent hue from deepest to palest, for staggering a set of visuals across the ramp.</summary>
     public static readonly IReadOnlyList<ImmutableSolidColorBrush> AccentBrushRamp =
         [AccentDeep, AccentDim, Accent, AccentBright, AccentPale];
 
+    /// <summary>Eight fills a chart can tell apart, one per data point.</summary>
+    public static readonly IReadOnlyList<ImmutableSolidColorBrush> Categorical =
+        [Accent, Aqua, Amber, Coral, Violet, Lime, Rose, AccentPale];
+
     /// <summary><see cref="AccentBrushRamp"/> as colours, for a scene that draws its own brushes.</summary>
     public static readonly IReadOnlyList<Color> AccentRamp = [.. AccentBrushRamp.Select(brush => brush.Color)];
+
+    /// <summary>A diagonal gradient from <paramref name="hue"/> (degrees) to a darker neighbour, for album and place art.</summary>
+    public static LinearGradientBrush HueGradient(double hue) => new()
+    {
+        StartPoint = RelativePoint.TopLeft,
+        EndPoint = RelativePoint.BottomRight,
+        GradientStops =
+        {
+            new GradientStop(HsvColor.ToRgb(hue, .6, .95), 0),
+            new GradientStop(HsvColor.ToRgb((hue + 40) % 360, .8, .45), 1),
+        },
+    };
 }

@@ -1,0 +1,97 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="600"
+                       x:Class="PrestoSample.Showcase.Pages.ConnectedPage"
+                       Focusable="True">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Grid.album">
+            <Setter Property="Width" Value="158" />
+            <Setter Property="Margin" Value="5" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Grid.album > Border.shell">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+        <Style Selector="Border.art">
+            <Setter Property="Width" Value="142" />
+            <Setter Property="Height" Value="70" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="Border.art.hero">
+            <Setter Property="Width" Value="244" />
+            <Setter Property="Height" Value="120" />
+            <Setter Property="CornerRadius" Value="14" />
+        </Style>
+        <Style Selector="Border.art > TextBlock">
+            <Setter Property="FontSize" Value="34" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="Opacity" Value="0.85" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.art.hero > TextBlock">
+            <Setter Property="FontSize" Value="58" />
+        </Style>
+        <Style Selector="TextBlock.heading">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="TextBlock.heading.hero">
+            <Setter Property="FontSize" Value="28" />
+        </Style>
+        <Style Selector="StackPanel#Tracks > Grid">
+            <Setter Property="Height" Value="26" />
+        </Style>
+        <Style Selector="StackPanel#Tracks TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+        <Style Selector="StackPanel#Tracks TextBlock.caption">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+        </Style>
+        <Style Selector="Button#Play">
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Border x:Name="Stage" Padding="12" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Top"
+            Background="{x:Static showcase:Palette.Surface}">
+        <Grid>
+            <UniformGrid x:Name="Albums" Columns="4" Rows="3" />
+
+            <Grid x:Name="Detail" ColumnDefinitions="244,*" ColumnSpacing="24" Margin="5"
+                  Background="Transparent" IsHitTestVisible="False">
+                <StackPanel Spacing="16">
+                    <Border x:Name="Hero" Height="120" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button x:Name="Play">
+                            <PathIcon Width="16" Height="16" Foreground="{x:Static showcase:Palette.Background}"
+                                      Data="M3,1 L14,8 L3,15 Z" />
+                        </Button>
+                        <Button x:Name="Back" Content="Back" Opacity="0" VerticalAlignment="Center" Click="BackClicked" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="4">
+                    <Border x:Name="Heading" Height="38" />
+                    <TextBlock x:Name="Meta" Classes="caption" Opacity="0" Margin="0,0,0,10" />
+                    <StackPanel x:Name="Tracks" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</showcase:ShowcasePage>

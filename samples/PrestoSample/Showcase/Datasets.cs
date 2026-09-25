@@ -19,6 +19,40 @@ public static class Datasets
     private static readonly string[] Owners =
         ["A. Mori", "B. Okafor", "C. Lindqvist", "D. Navarro", "E. Sato", "F. Kaur"];
 
+    private static readonly string[] Moods = ["Neon", "Quiet", "Paper", "Velvet", "Hollow", "Golden", "Static", "Salt", "Midnight", "Glass"];
+
+    private static readonly string[] Nouns = ["Harbour", "Orchard", "Signal", "Coast", "Hours", "Rooms", "Weather", "Engines", "Gardens", "Tides"];
+
+    private static readonly string[] Artists =
+        ["Lumen Parade", "The Cartographers", "Ada Voss", "Northbound", "Mira Kell", "Low Tide Club",
+         "Pale Arcade", "Juno Hart", "Sister Static", "The Long Weekend", "Oren Blake", "Fieldnotes"];
+
+    private static readonly (string City, string Country)[] Cities =
+    [
+        ("Lisbon", "Portugal"), ("Kyoto", "Japan"), ("Reykjavík", "Iceland"), ("Oaxaca", "Mexico"),
+        ("Marrakesh", "Morocco"), ("Tbilisi", "Georgia"), ("Hobart", "Australia"), ("Valparaíso", "Chile"),
+        ("Ljubljana", "Slovenia"), ("Hoi An", "Vietnam"), ("Tromsø", "Norway"), ("Cartagena", "Colombia"),
+        ("Zanzibar", "Tanzania"), ("Queenstown", "New Zealand"), ("Bruges", "Belgium"), ("Luang Prabang", "Laos"),
+        ("Dubrovnik", "Croatia"), ("Cusco", "Peru"), ("Seville", "Spain"), ("Quebec City", "Canada"),
+    ];
+
+    private static readonly string[] Openers = ["Slow mornings,", "Come for", "Three days of", "Stay for", "Long evenings of"];
+
+    private static readonly string[] Pleasures =
+        ["harbour light", "night markets", "tiled stairways", "mountain air", "street food", "old bookshops",
+         "hot springs", "cliff walks", "late dinners", "river ferries", "quiet gardens", "rooftop bars"];
+
+    private static readonly string[] Channels = ["Search", "Social", "Email", "Direct", "Video", "Partner", "Events", "Print"];
+
+    /// <summary>Twelve albums, each with its own hue and a track list of eight to ten songs.</summary>
+    public static readonly IReadOnlyList<Album> Albums = BuildAlbums();
+
+    /// <summary>Twenty destinations, each with its own hue and a one-line blurb.</summary>
+    public static readonly IReadOnlyList<Place> Places = BuildPlaces();
+
+    /// <summary>Rounds of the same eight chart points: the labels stay put from round to round and the numbers change.</summary>
+    public static readonly IReadOnlyList<IReadOnlyList<ChartPoint>> ChartPoints = BuildChartPoints();
+
     /// <summary>The categories every card belongs to, in the order the demos list them.</summary>
     public static readonly IReadOnlyList<string> Categories = ["Motion", "Layout", "Shapes", "Text"];
 
@@ -48,6 +82,72 @@ public static class Datasets
 
     /// <summary>One KPI tile: its label, the unit under the number, the decimals its counter shows and a reading per round.</summary>
     public sealed record Metric(string Label, string Unit, int Decimals, IReadOnlyList<double> Readings);
+
+    /// <summary>One album. <paramref name="Hue"/> is in degrees, for the art tile's gradient and the detail view's tint.</summary>
+    public sealed record Album(string Title, string Artist, int Year, double Hue, IReadOnlyList<Track> Tracks);
+
+    public sealed record Track(string Title, TimeSpan Length);
+
+    /// <summary>One destination. <paramref name="Hue"/> is in degrees, for the card's gradient art.</summary>
+    public sealed record Place(string City, string Country, double Hue, string Blurb);
+
+    /// <summary>One chart point: <paramref name="Value"/> in thousands, <paramref name="Secondary"/> a percentage and <paramref name="Weight"/> 1 to 5.</summary>
+    public sealed record ChartPoint(string Label, double Value, double Secondary, double Weight);
+
+    private static ChartPoint[][] BuildChartPoints()
+    {
+        var random = Utils.CreateSeededRandom(3141);
+        var rounds = new ChartPoint[Rounds][];
+        for (var i = 0; i < rounds.Length; i++)
+        {
+            rounds[i] = [.. Channels.Select(label => new ChartPoint(label, random(12, 140), random(4, 56), random(1, 5)))];
+        }
+        return rounds;
+    }
+
+    private static Place[] BuildPlaces()
+    {
+        var random = Utils.CreateSeededRandom(2718);
+        var places = new Place[Cities.Length];
+        for (var i = 0; i < places.Length; i++)
+        {
+            var first = (int)random(0, Pleasures.Length - 1);
+            var second = (first + (int)random(1, Pleasures.Length - 1)) % Pleasures.Length;
+            places[i] = new Place(
+                Cities[i].City,
+                Cities[i].Country,
+                ((i * 137) + random(0, 20)) % 360,
+                $"{Openers[(int)random(0, Openers.Length - 1)]} {Pleasures[first]} and {Pleasures[second]}.");
+        }
+        return places;
+    }
+
+    private static Album[] BuildAlbums()
+    {
+        var random = Utils.CreateSeededRandom(5150);
+        var titles = new HashSet<string>();
+        var albums = new Album[Artists.Length];
+        for (var i = 0; i < albums.Length; i++)
+        {
+            string title;
+            do
+            {
+                title = $"{Moods[(int)random(0, Moods.Length - 1)]} {Nouns[(int)random(0, Nouns.Length - 1)]}";
+            }
+            while (!titles.Add(title));
+
+            var tracks = new Track[(int)random(8, 10)];
+            for (var j = 0; j < tracks.Length; j++)
+            {
+                tracks[j] = new Track(
+                    $"{Nouns[(int)random(0, Nouns.Length - 1)]} of {Moods[(int)random(0, Moods.Length - 1)]}",
+                    TimeSpan.FromSeconds(random(130, 400)));
+            }
+
+            albums[i] = new Album(title, Artists[i], (int)random(1971, 2024), (i * 30) + random(0, 20), tracks);
+        }
+        return albums;
+    }
 
     private static Card[] Build()
     {
