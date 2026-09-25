@@ -50,6 +50,9 @@ public sealed class Draggable : IRevertible
     private Func<double, double>? _snapX;
     private Func<double, double>? _snapY;
     private ScrollViewer? _scroller;
+    private Animation? _overshootOut;
+    private Animation? _overshootBack;
+    private Animation? _scrolling;
     private Cursor? _hoverCursor;
     private Cursor? _grabCursor;
     private Cursor? _originalCursor;
@@ -203,14 +206,17 @@ public sealed class Draggable : IRevertible
     public double Angle { get; private set; }
 
     /// <summary>Stops the drag and every animation running on the target's axes, leaving it where it is.</summary>
+    /// <remarks>Only the draggable's own release, overshoot and scroll animations are cancelled; animations on other targets keep running.</remarks>
     public Draggable Stop()
     {
         _updateTicker.Pause();
         _overshootTicker.Pause();
         foreach (var animation in Animate.Animations.Values) animation.Pause();
         Presto.Remove(this);
-        Presto.Remove(_overshoot);
-        Presto.Remove(_scroll);
+        // Cancelled rather than removed: unlinking the engine's next child mid-frame drops every child after it.
+        _overshootOut?.Cancel();
+        _overshootBack?.Cancel();
+        _scrolling?.Cancel();
         return this;
     }
 
@@ -229,6 +235,7 @@ public sealed class Draggable : IRevertible
     }
 
     /// <summary>Reads the parameters that can change — container, padding, snapping, threshold, friction, velocity, cursors — and measures the bounds again.</summary>
+    /// <remarks>A release still in flight is re-aimed at its destination clamped to the new bounds, and settles there.</remarks>
     public Draggable Refresh()
     {
         var currentX = X;
@@ -248,6 +255,11 @@ public sealed class Draggable : IRevertible
         _hoverCursor = cursor is { Enabled: false } ? null : cursor?.OnHover ?? s_grab;
         _grabCursor = cursor is { Enabled: false } ? null : cursor?.OnGrab ?? s_grabbing;
         UpdateBoundingValues();
+        if (!_grabbed && ReleaseRemaining() is { } remaining)
+        {
+            RetargetRelease(remaining);
+            return this;
+        }
         SetX(Utils.Clamp(currentX, _boundsLeft, _boundsRight), true);
         SetY(Utils.Clamp(currentY, _boundsTop, _boundsBottom), true);
         return this;
@@ -262,7 +274,7 @@ public sealed class Draggable : IRevertible
         _scroll.X = offset.X;
         _scroll.Y = offset.Y;
         _scrollLocked = true;
-        Presto.Animate(_scroll, new AnimationParams
+        _scrolling = Presto.Animate(_scroll, new AnimationParams
         {
             ["X"] = ClampScroll(offset.X + overflow.X, scroller.Extent.Width, scroller.Viewport.Width),
             ["Y"] = ClampScroll(offset.Y + overflow.Y, scroller.Extent.Height, scroller.Viewport.Height),
@@ -620,14 +632,14 @@ public sealed class Draggable : IRevertible
         if (!_hasReleaseSpring && outOfBounds && friction != 0 && (durationX != 0 || durationY != 0))
         {
             // Two blended tweens: out to where the throw would have landed, then back to the clamped destination.
-            Presto.Animate(_overshoot, new AnimationParams
+            _overshootOut = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = cushionedX, Duration = durationX * .65 },
                 ["Y"] = new TweenParams { To = cushionedY, Duration = durationY * .65 },
                 Ease = _releaseEase,
                 Composition = Composition.Blend,
             });
-            Presto.Animate(_overshoot, new AnimationParams
+            _overshootBack = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = destX, Duration = durationX },
                 ["Y"] = new TweenParams { To = destY, Duration = durationY },
@@ -652,6 +664,35 @@ public sealed class Draggable : IRevertible
         _updated = true;
         _released = true;
         _parameters.OnRelease?.Invoke(this);
+    }
+
+    // Null when no release is in flight; the overshoot clears _released mid-throw, so its ticker is checked first.
+    private double? ReleaseRemaining()
+    {
+        if (!_overshootTicker.Paused) return _overshootTicker.Duration - _overshootTicker.CurrentTime;
+        if (!_released) return null;
+        double? remaining = null;
+        foreach (var animation in Animate.Animations.Values)
+        {
+            if (!animation.Paused) remaining = Math.Max(remaining ?? 0, animation.Duration - animation.CurrentTime);
+        }
+        return remaining;
+    }
+
+    private void RetargetRelease(double remaining)
+    {
+        var destX = Snapped(_destX, _snapX, _boundsLeft, _boundsRight);
+        var destY = Snapped(_destY, _snapY, _boundsTop, _boundsBottom);
+        if (destX == _destX && destY == _destY) return;
+        _overshootTicker.Pause();
+        _overshootOut?.Cancel();
+        _overshootBack?.Cancel();
+        // The overshoot ticker leaves _manual set, which would swallow the settle this write ends in.
+        _manual = false;
+        _destX = _snappedX = destX;
+        _destY = _snappedY = destY;
+        if (!_disabledX) Animate.Set(_xProp, destX, remaining, _releaseEase);
+        if (!_disabledY) Animate.Set(_yProp, destY, remaining, _releaseEase);
     }
 
     private double ReleaseDuration(Spring spring, double from, double to, double min, double max, double thrown, double velocity, bool otherAxisDisabled)

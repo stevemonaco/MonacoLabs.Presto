@@ -19,6 +19,8 @@ namespace Monaco.Presto.AvaloniaBridge.Compositor;
 /// </remarks>
 public abstract class CompositorScene
 {
+    internal const int BrushCacheLimit = 1024;
+
     private readonly Dictionary<(uint Color, byte Alpha), ImmutableSolidColorBrush> _brushes = [];
 
     private CompositorSceneHandler? _handler;
@@ -71,12 +73,19 @@ public abstract class CompositorScene
     protected void Invalidate() => Handler.InvalidateScene();
 
     /// <summary>A brush this scene caches: the same colour and opacity hand back the same instance, opacity rounded to 256 steps.</summary>
+    /// <remarks>
+    /// Meant for a small palette. The cache is cleared once it holds 1 024 brushes, so a scene
+    /// that tweens colours through more distinct values than that allocates again instead of growing without bound.
+    /// </remarks>
     protected IImmutableBrush Brush(Color color, double opacity = 1)
     {
         var key = (color.ToUInt32(), Alpha: Quantize(opacity));
-        if (!_brushes.TryGetValue(key, out var brush)) _brushes[key] = brush = new ImmutableSolidColorBrush(color, key.Alpha / 255d);
-        return brush;
+        if (_brushes.TryGetValue(key, out var brush)) return brush;
+        if (_brushes.Count >= BrushCacheLimit) _brushes.Clear();
+        return _brushes[key] = new ImmutableSolidColorBrush(color, key.Alpha / 255d);
     }
+
+    internal int CachedBrushCount => _brushes.Count;
 
     // Scenes tween opacity every frame, so it is rounded to the 256 steps the framebuffer has anyway; unrounded, the cache would grow without bound.
     private static byte Quantize(double opacity) => (byte)Math.Clamp(Math.Round(opacity * 255), 0, 255);

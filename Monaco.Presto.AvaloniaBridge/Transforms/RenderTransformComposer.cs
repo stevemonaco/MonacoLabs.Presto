@@ -48,8 +48,17 @@ internal sealed class RenderTransformComposer
     public static double Get(Visual visual, TransformShorthand shorthand) =>
         (s_composers.TryGetValue(visual, out var composer) ? composer._values : s_identities)[(int)shorthand];
 
-    /// <summary>Whether a shorthand currently drives <paramref name="visual"/>'s render transform.</summary>
-    public static bool Animates(Visual visual) => s_composers.TryGetValue(visual, out var composer) && composer._animated != 0;
+    /// <summary>Whether a running animation drives a shorthand of <paramref name="visual"/>; one that has ended only holds its value.</summary>
+    public static bool Animates(Visual visual)
+    {
+        if (!s_composers.TryGetValue(visual, out var composer)) return false;
+        for (var i = 0; i < s_identities.Length; i++)
+        {
+            var shorthand = (TransformShorthand)i;
+            if (composer.Animates(shorthand) && Presto.GetAnimations(visual, shorthand.ToString()).Count != 0) return true;
+        }
+        return false;
+    }
 
     public static void Set(Visual visual, TransformShorthand shorthand, double value)
     {

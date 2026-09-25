@@ -90,6 +90,37 @@ public static class Presto
         return parsed;
     }
 
+    /// <summary>
+    /// The running animations on the current engine, timeline children included, that tween <paramref name="target"/> —
+    /// only those tweening its <paramref name="property"/> when one is named.
+    /// </summary>
+    /// <remarks>Completed and cancelled animations are skipped, and a paused one drops out once the engine releases it on its next frame.</remarks>
+    public static IReadOnlyList<Animation> GetAnimations(object target, string? property = null)
+    {
+        var animations = new List<Animation>();
+        CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(property) ? null : Canonicalise(target, property), animations);
+        return animations;
+    }
+
+    private static void CollectAnimations(Clock parent, object target, string? property, List<Animation> animations)
+    {
+        for (var child = parent._head; child != null; child = child._next)
+        {
+            if (child.Completed || child.Cancelled) continue;
+            if (child._head != null) CollectAnimations(child, target, property, animations);
+            else if (child is Animation animation && Tweens(animation, target, property)) animations.Add(animation);
+        }
+    }
+
+    private static bool Tweens(Animation animation, object target, string? property)
+    {
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            if (ReferenceEquals(tween.Target, target) && (property == null || tween.Property == property)) return true;
+        }
+        return false;
+    }
+
     private static DecomposedValue? Decompose(object? targets, string property)
     {
         var parsed = TargetParser.Parse(targets);

@@ -6,13 +6,15 @@ public sealed class ClockTests
 {
     private sealed class TestClock(double initTime = 0) : Clock(initTime);
 
-    [Fact]
-    public void FpsBelowMinValueClampsAndSetsFrameDuration()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void FpsZeroOrNegativeIsUncapped(double fps)
     {
-        var clock = new TestClock { Fps = 0 };
+        var clock = new TestClock { Fps = fps };
 
-        Assert.Equal(Constants.MinValue, clock.Fps);
-        Assert.Equal(Constants.K / Constants.MinValue, clock._frameDuration);
+        Assert.Equal(Constants.MaxFps, clock.Fps);
+        Assert.Equal(Constants.K / Constants.MaxFps, clock._frameDuration);
     }
 
     [Fact]

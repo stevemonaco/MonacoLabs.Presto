@@ -160,6 +160,21 @@ public sealed class CompositorRegistryTests : CompositorTestBase
 
         Assert.Single(warnings.Messages);
     }
+
+    [AvaloniaFact]
+    public void AShorthandThatHasEndedDoesNotWarnWhenALayoutTransitionMoves()
+    {
+        var bar = ShowBar();
+        using var warnings = new WarningSink();
+
+        _ = bar.Animate(new() { ["X"] = 40, Duration = 200 });
+        Frames.Advance(400);
+        _ = bar.AnimateLayout(2000, Eases.None);
+        Canvas.SetTop(bar, 60);
+        Tick();
+
+        Assert.Empty(warnings.Messages);
+    }
 #endif
 
     private sealed class WarningSink : ILogSink, IDisposable

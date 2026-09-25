@@ -208,4 +208,94 @@ public sealed class TimingsTests : EngineTestBase
         Assert.Equal(250, timer.IterationCurrentTime);
         Assert.Equal(.25, timer.IterationProgress);
     }
+
+    [Fact]
+    public void RaisingLoopMidPlayExtendsDurationAndPlaysTheExtraIterations()
+    {
+        var loops = 0;
+        var timer = Presto.CreateTimer(new() { Duration = 100, LoopDelay = 10, OnLoop = _ => loops++ });
+        Frames.Advance(48);
+
+        timer.Loop = 2;
+        Assert.Equal(2, timer.Loop.Value);
+        Assert.Equal(3, timer.IterationCount);
+        Assert.Equal(320, timer.Duration);
+        RunUntil(() => timer.Completed);
+
+        Assert.Equal(2, loops);
+        Assert.Equal(320, timer.CurrentTime);
+    }
+
+    [Fact]
+    public void LoweringLoopBelowTheCurrentIterationCompletesOnTheNextTick()
+    {
+        var completed = 0;
+        var timer = Presto.CreateTimer(new() { Duration = 100, Loop = 4, OnComplete = _ => completed++ });
+        RunUntil(() => timer.CurrentIteration == 2);
+
+        timer.Loop = 1;
+        Assert.Equal(200, timer.Duration);
+        Assert.Equal(200, timer.CurrentTime);
+        Assert.False(timer.Completed);
+        Frames.Advance(16);
+
+        Assert.True(timer.Completed);
+        Assert.Equal(1, completed);
+        Assert.Equal(1, timer.Progress);
+    }
+
+    [Fact]
+    public void LoweringLoopOnAPausedTimerRendersTheEndStateOnceItPlays()
+    {
+        var target = new StyleTarget();
+        var updates = 0;
+        var animation = Presto.Animate(target, new() { ["X"] = 100, Duration = 100, Loop = 4, Ease = "linear", OnUpdate = _ => updates++ });
+        RunUntil(() => animation.CurrentIteration == 2 && animation.IterationProgress > .3);
+        animation.Pause();
+
+        animation.Loop = 0;
+        updates = 0;
+        animation.Play();
+        Frames.Advance(16);
+
+        Assert.True(animation.Completed);
+        Assert.Equal(100, target.X);
+        Assert.True(updates > 0);
+    }
+
+    [Fact]
+    public void SettingLoopToInfiniteNeverCompletes()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 100 });
+        Frames.Advance(16);
+
+        timer.Loop = LoopCount.Infinite;
+        Frames.Advance(500, 16);
+
+        Assert.True(timer.Loop.IsInfinite);
+        Assert.False(timer.Completed);
+    }
+
+    [Theory]
+    [InlineData(null, false, 50, 50)]
+    [InlineData("inQuad", false, 50, 25)]
+    [InlineData(null, true, 25, 75)]
+    [InlineData("inQuad", true, 25, 56.25)]
+    public void IterationTimeReflectsPlaybackEaseAndReversed(string? playbackEase, bool reversed, double seek, double expected)
+    {
+        var animation = Presto.Animate(new StyleTarget(), new()
+        {
+            ["X"] = 100,
+            Duration = 100,
+            Ease = "linear",
+            PlaybackEase = playbackEase is null ? null : (EaseValue?)playbackEase,
+            Reversed = reversed,
+            Autoplay = false,
+        });
+
+        animation.Seek(seek);
+
+        Assert.Equal(seek, animation.CurrentTime);
+        Assert.Equal(expected, animation.IterationTime);
+    }
 }

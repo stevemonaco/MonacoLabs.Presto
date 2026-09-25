@@ -204,6 +204,67 @@ public sealed class LayoutTransitionTests : CompositorTestBase
             "the bar never reached the slot its new parent gave it");
     }
 
+    /// <summary>
+    /// A 600 ms move interrupted halfway and re-armed as a shared element carries on from where the bar is drawn instead of
+    /// jumping to the slot it was heading for, and with <c>once</c> off keeps easing the layout changes after it.
+    /// </summary>
+    /// <inheritdoc cref="ASecondLayoutChangeRetargetsFromWhereTheControlIsDrawn" path="/remarks"/>
+    [AvaloniaFact]
+    public void ReArmingAMoveMidFlightAsASharedElementCarriesOnFromWhereItIsDrawn()
+    {
+        var (spacer, bar) = ShowStack();
+        _ = bar.AnimateLayout(600, Eases.None);
+        var start = Top(bar);
+
+        spacer.Height += Shift;
+        Tick();
+        Frames.Advance(300);
+        var transition = PrestoAvalonia.AnimateSharedElement(bar, bar, 600, Eases.None, once: false);
+        spacer.Height -= Shift;
+        Tick();
+
+        Assert.InRange(Top(bar), start + (Shift / 2) - 3, start + (Shift / 2) + 3);
+
+        Frames.Advance(1200);
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.False(transition.Completed, "the shared element stopped easing layout changes");
+    }
+
+    [AvaloniaFact]
+    public void ScrollingAnArmedControlIsNotALayoutMove()
+    {
+        var bar = new Border { Background = Brushes.Red, Width = 40, Height = 20, Margin = new Thickness(0, 50, 0, 150) };
+        var scroller = new ScrollViewer { Content = bar };
+        new Window { Content = scroller, Background = Brushes.White, Width = 100, Height = 100 }.Show();
+        Tick();
+        var transition = bar.AnimateLayout(Held, Eases.None);
+        var start = Top(bar);
+
+        scroller.Offset = new Vector(0, Shift);
+        Tick();
+
+        Assert.True(transition.Completed, "scrolling started a transition");
+        Assert.Equal(start - Shift, Top(bar));
+    }
+
+    [AvaloniaFact]
+    public void ALayoutPassDoesNotInvertAShorthandTranslation()
+    {
+        var (spacer, bar) = ShowStack();
+        var transition = bar.AnimateLayout(Held, Eases.None);
+        var start = Box(bar);
+
+        _ = bar.Animate(new() { ["X"] = Shift, Duration = 100 });
+        Frames.Advance(200);
+        spacer.Width += Growth;
+        Tick();
+
+        Assert.True(transition.Completed, "the layout pass started a transition");
+        Assert.Equal(start.Left + Shift, Box(bar).Left);
+    }
+
     [AvaloniaFact]
     public async Task ThenResolvesWhenTheMoveCompletes()
     {

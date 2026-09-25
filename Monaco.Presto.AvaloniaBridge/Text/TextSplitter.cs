@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Data;
 using Avalonia.Layout;
 
 namespace Monaco.Presto.AvaloniaBridge.Text;
@@ -16,7 +17,8 @@ namespace Monaco.Presto.AvaloniaBridge.Text;
 /// Upstream's <c>clone</c> and <c>debug</c> options and its HTML templates are not ported; the piece tree is built from
 /// <see cref="SplitPieceParams"/> instead. Only the block's plain text is split, so inline formatting is not preserved,
 /// and the text is left to automation through <see cref="AutomationProperties.NameProperty"/> on the block where
-/// upstream leaves a visually hidden copy.
+/// upstream leaves a visually hidden copy. While split, the block's <see cref="Visual.ClipToBounds"/> is off so pieces
+/// animated past its edges stay visible.
 /// </remarks>
 public sealed class TextSplitter : IRevertible
 {
@@ -33,6 +35,7 @@ public sealed class TextSplitter : IRevertible
     private readonly List<Control> _lines = [];
     private readonly List<Control> _words = [];
     private readonly List<Control> _chars = [];
+    private IDisposable? _unclip;
     private double _width;
     private bool _ready;
 
@@ -56,6 +59,13 @@ public sealed class TextSplitter : IRevertible
         if (host.Bounds.Width > 0) Split();
     }
 
+    /// <summary>
+    /// Upstream's <c>data-line</c>: the index of the wrapped line a line, word or character piece sits on, set when the
+    /// piece is created so it can be read inside an effect.
+    /// </summary>
+    public static readonly AttachedProperty<int> LineIndexProperty =
+        AvaloniaProperty.RegisterAttached<TextSplitter, Control, int>("LineIndex");
+
     /// <summary>The line pieces, empty unless <see cref="SplitTextParams.Lines"/> is set.</summary>
     public IReadOnlyList<Control> Lines => _lines;
 
@@ -65,11 +75,22 @@ public sealed class TextSplitter : IRevertible
     /// <summary>The character pieces, empty unless <see cref="SplitTextParams.Chars"/> is set.</summary>
     public IReadOnlyList<Control> Chars => _chars;
 
+    /// <summary>The height of one line of the block's text, measured before the pieces are laid out.</summary>
+    public double LineHeight { get; private set; }
+
+    /// <summary>The index of the wrapped line <paramref name="piece"/> sits on.</summary>
+    public static int GetLineIndex(Control piece) => piece.GetValue(LineIndexProperty);
+
     /// <summary>
     /// Registers <paramref name="effect"/> over the pieces, running it at once when they already exist and again after
     /// every re-split.
     /// </summary>
     /// <param name="effect">Returns what to undo before the next run, or null when there is nothing to undo.</param>
+    /// <remarks>
+    /// A timeline captures its children's targets when they are added, so an effect that builds one over the pieces
+    /// builds all of it here and returns it through the <see cref="Timer"/> overload, whose <see cref="Utils.KeepTime"/>
+    /// hands the playhead on to the next one.
+    /// </remarks>
     public TextSplitter AddEffect(Func<TextSplitter, Action?> effect) => Register(split => effect(split));
 
     /// <summary>
@@ -101,6 +122,8 @@ public sealed class TextSplitter : IRevertible
         _host.Inlines = null;
         _host.Text = _text;
         _host.ClearValue(AutomationProperties.NameProperty);
+        _unclip?.Dispose();
+        _unclip = null;
         _width = 0;
         _ready = false;
         return this;
@@ -131,17 +154,20 @@ public sealed class TextSplitter : IRevertible
         _width = _host.Bounds.Width;
         // Without this every piece is snapped to a whole pixel and a line ends up wider than the text it was measured from.
         var root = new StackPanel { UseLayoutRounding = false };
-        foreach (var line in MeasureLines()) root.Children.Add(BuildLine(line.TrimEnd()));
+        var lines = MeasureLines();
+        for (var i = 0; i < lines.Count; i++) root.Children.Add(BuildLine(lines[i].TrimEnd(), i));
 
         _host.Text = null;
         _host.Inlines = [new InlineUIContainer(root)];
         AutomationProperties.SetName(_host, _text);
+        // Above local priority so a local or style value is never overwritten, only covered until Revert.
+        _unclip ??= _host.SetValue(Visual.ClipToBoundsProperty, false, BindingPriority.Animation);
         _ready = true;
 
         for (var i = 0; i < _effects.Count; i++) _cleanups[i] = _effects[i](this);
     }
 
-    private IEnumerable<string> MeasureLines()
+    private List<string> MeasureLines()
     {
         // Measured on a copy: the host's own layout holds the pieces by the time of a re-split.
         var measure = new TextBlock
@@ -156,22 +182,25 @@ public sealed class TextSplitter : IRevertible
             TextWrapping = _host.TextWrapping,
         };
         measure.Measure(new Size(_width, double.PositiveInfinity));
+        LineHeight = measure.TextLayout.TextLines[0].Height;
 
+        var lines = new List<string>();
         foreach (var line in measure.TextLayout.TextLines)
         {
             var start = line.FirstTextSourceIndex;
             // The last line's Length counts the layout's paragraph terminator, which is not part of the text.
-            if (start < _text.Length) yield return _text.Substring(start, Math.Min(line.Length, _text.Length - start));
+            if (start < _text.Length) lines.Add(_text.Substring(start, Math.Min(line.Length, _text.Length - start)));
         }
+        return lines;
     }
 
-    private Control BuildLine(string text)
+    private Control BuildLine(string text, int index)
     {
-        var line = _parameters.Words == null && _parameters.Chars == null ? Piece(text) : BuildWords(text);
-        return _parameters.Lines is { } parameters ? Decorate(line, parameters, _lines) : line;
+        var line = _parameters.Words == null && _parameters.Chars == null ? Piece(text) : BuildWords(text, index);
+        return _parameters.Lines is { } parameters ? Decorate(line, parameters, _lines, index) : line;
     }
 
-    private Control BuildWords(string text)
+    private Control BuildWords(string text, int line)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         var tokens = Tokenize(text);
@@ -184,12 +213,12 @@ public sealed class TextSplitter : IRevertible
                 continue;
             }
             // The line is trimmed, so anything after a word is the space before the next one.
-            row.Children.Add(BuildWord(token, _parameters.IncludeSpaces && i + 1 < tokens.Count ? Nbsp : ""));
+            row.Children.Add(BuildWord(token, _parameters.IncludeSpaces && i + 1 < tokens.Count ? Nbsp : "", line));
         }
         return row;
     }
 
-    private Control BuildWord(string text, string trailing)
+    private Control BuildWord(string text, string trailing, int line)
     {
         Control word;
         if (_parameters.Chars is { } charParams)
@@ -199,7 +228,7 @@ public sealed class TextSplitter : IRevertible
             for (var i = 0; i < graphemes.Count; i++)
             {
                 var grapheme = i == graphemes.Count - 1 ? graphemes[i] + trailing : graphemes[i];
-                panel.Children.Add(Decorate(Piece(grapheme), charParams, _chars));
+                panel.Children.Add(Decorate(Piece(grapheme), charParams, _chars, line));
             }
             word = panel;
         }
@@ -207,11 +236,12 @@ public sealed class TextSplitter : IRevertible
         {
             word = Piece(text + trailing);
         }
-        return _parameters.Words is { } wordParams ? Decorate(word, wordParams, _words) : word;
+        return _parameters.Words is { } wordParams ? Decorate(word, wordParams, _words, line) : word;
     }
 
-    private static Control Decorate(Control piece, SplitPieceParams parameters, List<Control> pieces)
+    private static Control Decorate(Control piece, SplitPieceParams parameters, List<Control> pieces, int line)
     {
+        piece.SetValue(LineIndexProperty, line);
         if (parameters.Class is { } className) piece.Classes.Add(className);
         pieces.Add(piece);
         return parameters.Wrap ? new Border { ClipToBounds = true, Child = piece } : piece;

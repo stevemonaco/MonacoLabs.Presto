@@ -17,7 +17,8 @@ namespace Monaco.Presto.AvaloniaBridge.Events;
 /// Upstream's <c>debug</c> overlay draws DOM elements and is not ported, nor are the function forms of <c>axis</c>,
 /// <c>repeat</c>, <c>enter</c> and <c>leave</c> — the values are read again on every <see cref="Refresh"/> instead.
 /// Upstream also links through <c>autoplay: onScroll()</c>; here the linked object is created paused and handed to
-/// <see cref="Link"/>, which still ties the two lifetimes together.
+/// <see cref="Link"/>, which still ties the two lifetimes together. A control pinned between the thresholds is the
+/// caller's overlay, as <see cref="PrestoAvalonia.OnScroll"/> describes.
 /// </remarks>
 public sealed class ScrollObserver : IRevertible
 {
@@ -172,11 +173,13 @@ public sealed class ScrollObserver : IRevertible
     }
 
     /// <summary>Re-reads the parameters that can change and measures the target against the container again.</summary>
-    public ScrollObserver Refresh()
+    /// <remarks>A no-op until the observer has resolved, a frame after it is created, and once it has reverted.</remarks>
+    public ScrollObserver Refresh() => Ready ? Measure() : this;
+
+    private ScrollObserver Measure()
     {
         // Upstream's flag: HandleScroll does nothing until a refresh has measured the bounds it reads.
         Ready = true;
-        Reverted = false;
         Repeat = _parameters.Repeat ?? true;
         Horizontal = (_parameters.Axis ?? ScrollAxis.Vertical) == ScrollAxis.Horizontal;
         _enter = _parameters.Enter ?? "end start";
@@ -369,7 +372,7 @@ public sealed class ScrollObserver : IRevertible
             throw new InvalidOperationException(
                 "A ScrollObserver watches a control inside a ScrollViewer: set ScrollObserverParams.Target, or link an animation of one.");
         }
-        Refresh();
+        Measure();
     }
 
     private void UpdateBounds()

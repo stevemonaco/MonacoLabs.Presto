@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
 using Avalonia.Rendering.Composition;
+using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -73,5 +75,28 @@ public sealed class CompositorSceneTests : CompositorTestBase
         canvas.Width = canvas.Height = 32;
 
         Assert.True(await Pump(() => scene.Rendered == new Size(32, 32)), $"the scene kept rendering at {scene.Rendered}");
+    }
+
+    [AvaloniaFact]
+    public void TheBrushCacheNeverGrowsPastItsBoundAndHandsBackTheSameBrushForOneColour()
+    {
+        var scene = new BrushScene();
+
+        for (var i = 0; i <= CompositorScene.BrushCacheLimit * 2; i++)
+        {
+            scene.BrushFor(Color.FromUInt32((uint)i | 0xFF000000));
+            Assert.True(scene.CachedBrushCount <= CompositorScene.BrushCacheLimit, $"the cache grew to {scene.CachedBrushCount}");
+        }
+
+        Assert.Same(scene.BrushFor(Colors.Red, 0.5), scene.BrushFor(Colors.Red, 0.5));
+    }
+
+    private sealed class BrushScene : CompositorScene
+    {
+        public IImmutableBrush BrushFor(Color color, double opacity = 1) => Brush(color, opacity);
+
+        protected override void OnRender(ImmediateDrawingContext context, Size size)
+        {
+        }
     }
 }

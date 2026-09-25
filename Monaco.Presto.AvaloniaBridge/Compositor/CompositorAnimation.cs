@@ -19,9 +19,15 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
 {
     private readonly TargetAnimation[] _targets;
     private readonly Animation? _control;
+    private readonly Action<Timer>? _onComplete;
+    private TaskCompletionSource<CompositorAnimation>? _completion;
+    private Action<CompositorAnimation>? _onResolve;
+    private bool _moving;
+    private Timer? _finishedWhileMoving;
 
     internal CompositorAnimation(object? targets, CompositorAnimationParams parameters)
     {
+        _onComplete = parameters.OnComplete;
         var parsed = TargetParser.Parse(targets);
         _targets = new TargetAnimation[parsed.Count];
         for (var i = 0; i < parsed.Count; i++)
@@ -34,9 +40,8 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
 
         foreach (var target in _targets)
         {
-            if (target.Mirror == _control) continue;
-            target.Mirror.OnBegin = null;
-            target.Mirror.OnComplete = null;
+            target.Mirror.OnComplete = target.OnComplete;
+            if (target.Mirror != _control) target.Mirror.OnBegin = null;
         }
 
         Engine.Current.CurrentScope?.Register(this);
@@ -59,17 +64,24 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     /// <inheritdoc cref="Timer.Began"/>
     public bool Began => _control?.Began ?? false;
 
-    /// <inheritdoc cref="Timer.Completed"/>
-    public bool Completed => _control?.Completed ?? true;
+    /// <summary>True once every target has finished in the current direction (upstream <c>_completed</c> reaching <c>animations.length</c>).</summary>
+    public bool Completed
+    {
+        get
+        {
+            foreach (var target in _targets)
+            {
+                if (!target.Mirror.Completed) return false;
+            }
+            return true;
+        }
+    }
 
     /// <summary>How fast the animation plays (upstream <c>playbackRate</c>); setting it recompiles from the current position.</summary>
     public double Speed
     {
         get => _control?.Speed ?? 1;
-        set
-        {
-            foreach (var target in _targets) target.Move(model => model.Speed = value);
-        }
+        set => Move(model => model.Speed = value);
     }
 
     /// <summary>
@@ -110,25 +122,17 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     }
 
     /// <inheritdoc cref="Timer.Alternate"/>
-    public CompositorAnimation Alternate()
-    {
-        foreach (var target in _targets) target.Move(static model => model.Alternate());
-        return this;
-    }
+    public CompositorAnimation Alternate() => Move(static model => model.Alternate());
 
     /// <inheritdoc cref="Timer.Seek"/>
     /// <inheritdoc cref="Pause" path="/remarks"/>
-    public CompositorAnimation Seek(double time, bool muteCallbacks = false)
-    {
-        foreach (var target in _targets) target.Move(model => model.Seek(time, muteCallbacks));
-        return this;
-    }
+    public CompositorAnimation Seek(double time, bool muteCallbacks = false) => Move(model => model.Seek(time, muteCallbacks));
 
     /// <inheritdoc cref="Timer.Restart"/>
     public CompositorAnimation Restart() => Seek(0, muteCallbacks: true).Resume();
 
-    /// <summary>Seeks to the end, firing <see cref="CompositorAnimationParams.OnComplete"/> and resolving <see cref="Then"/> (upstream <c>waapi.complete</c>).</summary>
-    public CompositorAnimation Complete() => Seek(_control?.Duration ?? 0);
+    /// <summary>Seeks every target to its end, firing <see cref="CompositorAnimationParams.OnComplete"/> and resolving <see cref="Then"/> (upstream <c>waapi.complete</c>).</summary>
+    public CompositorAnimation Complete() => Move(static model => model.Seek(model.Duration));
 
     /// <summary>Detaches the animation from the render thread, leaving every property it animated where it stands.</summary>
     public CompositorAnimation Cancel()
@@ -146,12 +150,18 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
 
     void IRevertible.Revert() => Revert();
 
-    /// <inheritdoc cref="Animation.Then"/>
-    public async Task<CompositorAnimation> Then(Action<CompositorAnimation>? callback = null)
+    /// <summary>Completes when the target that finishes last in the current direction finishes; an already completed animation resolves immediately.</summary>
+    /// <inheritdoc cref="Timer.Then" path="/param"/>
+    public Task<CompositorAnimation> Then(Action<CompositorAnimation>? callback = null)
     {
-        if (_control is { } control) await control.Then(callback == null ? null : _ => callback(this));
-        else callback?.Invoke(this);
-        return this;
+        if (Completed)
+        {
+            callback?.Invoke(this);
+            return Task.FromResult(this);
+        }
+        _completion ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _onResolve += callback;
+        return _completion.Task;
     }
 
     /// <inheritdoc cref="Timer.GetAwaiter"/>
@@ -172,6 +182,38 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         Cancel();
     }
 
+    private CompositorAnimation Move(Action<Animation> move)
+    {
+        _moving = true;
+        foreach (var target in _targets) target.Move(move);
+        _moving = false;
+        if (_finishedWhileMoving is { } finished)
+        {
+            _finishedWhileMoving = null;
+            OnTargetComplete(finished);
+        }
+        return this;
+    }
+
+    private void OnTargetComplete(Timer mirror)
+    {
+        // Mid-move, a target yet to be moved may still read completed from the other direction.
+        if (_moving)
+        {
+            _finishedWhileMoving = mirror;
+            return;
+        }
+        if (!Completed) return;
+        _onComplete?.Invoke(mirror);
+        var completion = _completion;
+        if (completion == null) return;
+        var onResolve = _onResolve;
+        _completion = null;
+        _onResolve = null;
+        onResolve?.Invoke(this);
+        completion.SetResult(this);
+    }
+
     private sealed class TargetAnimation(CompositorAnimation owner, Visual visual, Animation mirror, CompiledTrack[] tracks)
     {
         private const string Centre = "Vector3(this.Target.Size.X * 0.5, this.Target.Size.Y * 0.5, 0)";
@@ -179,8 +221,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         private static readonly Vector3D s_one = new(1, 1, 1);
 
         private CompositionVisual? _element;
-        private AnimatedValue? _opacity;
-        private double _opacityEnd;
+        private AnimatedValue<double>? _opacity;
         private bool _centred;
         private bool _moved;
         private int _running;
@@ -208,11 +249,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
                 CompositorRegistry.WarnIfShorthandsDrive(visual, track.Kind);
                 // Taking the property over stops whoever held it, which has to happen before this one starts.
                 CompositorRegistry.Take(visual, track.Kind, owner);
-                if (track.Kind == CompositorTrackKind.Opacity)
-                {
-                    _opacityEnd = track.Values[^1][0];
-                    Own();
-                }
+                if (track.Kind == CompositorTrackKind.Opacity) Own();
                 element.StartAnimation(track.Kind.ToString(), CompositorTracks.Build(element, track));
                 _running |= 1 << (int)track.Kind;
                 _centred |= track.Kind is CompositorTrackKind.Scale or CompositorTrackKind.RotationAngle;
@@ -252,7 +289,15 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
             Stop();
             _opacity?.Dispose();
             if (_element is { } element) Restore(element);
-            mirror.Revert();
+            // Timer.Revert would leave the playhead at minus the delay; the scratch it restores is never read again.
+            mirror.Seek(0, muteCallbacks: true).Cancel();
+        }
+
+        public void OnComplete(Timer finished)
+        {
+            // A finished instance holds its last key frame, which the mirror has just rendered, so pushing it hands ownership over without a jump.
+            _opacity?.Push(Math.Clamp(((CompositorScratch)mirror._headTween!.Target).Opacity, 0, 1));
+            owner.OnTargetComplete(finished);
         }
 
         /// <summary>Lets go of <paramref name="kind"/> on <paramref name="target"/>, which another animation is taking over.</summary>
@@ -286,7 +331,6 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
             {
                 if ((_running & (1 << (int)track.Kind)) == 0) continue;
                 element.StopAnimation(track.Kind.ToString());
-                if (track.Kind == CompositorTrackKind.Opacity) _opacityEnd = track.Values[^1][0];
                 if (playing) element.StartAnimation(track.Kind.ToString(), CompositorTracks.Build(element, track));
                 else Write(element, track.Kind, track.Values[0]);
             }
@@ -320,10 +364,8 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         private void Own()
         {
             // Avalonia syncs Visual.Opacity to the server every dirty pass; holding it stops a real change removing the animation.
-            var opacity = _opacity = new AnimatedValue(visual, Visual.OpacityProperty);
-            opacity.Push(visual.Opacity);
-            // A finished instance holds its last key frame, so pushing that same value back hands ownership over without a jump.
-            _ = mirror.Then(_ => opacity.Push(_opacityEnd));
+            _opacity = new AnimatedValue<double>(visual, Visual.OpacityProperty);
+            _opacity.Push(visual.Opacity);
         }
 
         private void Stop()

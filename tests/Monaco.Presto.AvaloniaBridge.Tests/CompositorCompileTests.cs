@@ -57,6 +57,19 @@ public sealed class CompositorCompileTests : BridgeTestBase
         Assert.False(spring.Completed);
     }
 
+    [AvaloniaTheory]
+    [InlineData(0, 1)]
+    [InlineData(1, 0)]
+    public void AnOvershootingEaseCompilesOpacityInsideZeroToOne(double from, double to)
+    {
+        var track = Assert.Single(Compile(new Border { Opacity = from }, new() { ["Opacity"] = to, Duration = 400, Ease = Eases.OutBack() }));
+
+        Assert.All(track.Values, value => Assert.InRange(value[0], 0, 1));
+        Assert.Equal(to, track.Values[^1][0]);
+        // An eased segment would overshoot between its two key frames on the server.
+        Assert.All(track.Easings, easing => Assert.IsType<LinearEasing>(easing));
+    }
+
     [AvaloniaFact]
     public void RotateCompilesToRadians()
     {

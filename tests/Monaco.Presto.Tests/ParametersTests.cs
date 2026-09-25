@@ -334,4 +334,16 @@ public sealed class ParametersTests : EngineTestBase
 
         Assert.Equal(Constants.MinValue, tl.Duration);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-30)]
+    public void FrameRateZeroOrNegativeRendersEveryFrame(double frameRate)
+    {
+        var updates = 0;
+        Presto.CreateTimer(new() { FrameRate = frameRate, Duration = 10000, OnUpdate = _ => updates++ });
+        Frames.Advance(160, 16);
+
+        Assert.Equal(10, updates);
+    }
 }

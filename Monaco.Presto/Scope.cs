@@ -50,7 +50,17 @@ public class Scope : IRevertible
     public IDictionary<string, Action> Methods { get; } = new Dictionary<string, Action>();
 
     /// <summary>Records <paramref name="revertible"/> so <see cref="Revert"/> undoes it.</summary>
-    public void Register(IRevertible revertible) => (_once ? _revertiblesOnce : _revertibles).Add(revertible);
+    /// <remarks>Animations cancelled by a replacing animation are dropped as the list grows, their original values handed to the animation that replaced them.</remarks>
+    public void Register(IRevertible revertible)
+    {
+        var revertibles = _once ? _revertiblesOnce : _revertibles;
+        revertibles.Add(revertible);
+        var count = revertibles.Count;
+        // Pruning only at powers of two keeps registration amortized constant time.
+        if (count >= 32 && (count & (count - 1)) == 0) PruneSuperseded(revertibles);
+    }
+
+    internal int RevertibleCount => _revertibles.Count + _revertiblesOnce.Count;
 
     /// <summary>Runs <paramref name="callback"/> with this scope current, its defaults in force and its engine ambient.</summary>
     /// <remarks>All three are restored in a <c>finally</c>, where upstream restores them only when the callback returns.</remarks>
@@ -168,6 +178,48 @@ public class Scope : IRevertible
     }
 
     void IRevertible.Revert() => Revert();
+
+    // Completed animations are cancelled too when the engine drops them, so only the uncompleted cancelled ones were superseded.
+    private static void PruneSuperseded(List<IRevertible> revertibles)
+    {
+        var kept = 0;
+        for (var i = 0; i < revertibles.Count; i++)
+        {
+            var revertible = revertibles[i];
+            if (revertible is not Animation { Cancelled: true, Completed: false } animation || !HandOnOriginals(animation, revertibles, i + 1))
+            {
+                revertibles[kept++] = revertible;
+            }
+        }
+        revertibles.RemoveRange(kept, revertibles.Count - kept);
+    }
+
+    // Revert runs newest first, so the oldest original of a property is the one left written; it moves to the next animation of that property.
+    private static bool HandOnOriginals(Animation animation, List<IRevertible> revertibles, int start)
+    {
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            if (tween._inlineValue != null && FindSuccessor(tween, revertibles, start) == null) return false;
+        }
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            if (tween._inlineValue != null) FindSuccessor(tween, revertibles, start)!._inlineValue = tween._inlineValue;
+        }
+        return true;
+    }
+
+    private static Tween? FindSuccessor(Tween tween, List<IRevertible> revertibles, int start)
+    {
+        for (var i = start; i < revertibles.Count; i++)
+        {
+            if (revertibles[i] is not Animation later) continue;
+            for (var candidate = later._headTween; candidate != null; candidate = candidate._next)
+            {
+                if (ReferenceEquals(candidate.Target, tween.Target) && candidate.Property == tween.Property) return candidate;
+            }
+        }
+        return null;
+    }
 
     private static Func<Scope, Action?> AsConstructor(Action<Scope> constructor) => scope =>
     {

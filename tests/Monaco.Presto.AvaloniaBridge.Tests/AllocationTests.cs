@@ -21,8 +21,8 @@ public sealed class AllocationTests : CompositorTestBase
 
         var bytes = BytesPerTick();
 
-        // measured 104: 80 for the property change Avalonia raises, 24 for the double boxed into the untyped binding.
-        Assert.True(bytes <= 128, $"{bytes:0.##} bytes per tick");
+        // measured 80, down from 104 when the double was boxed into an untyped binding: all of it is the property change Avalonia raises.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
     [AvaloniaFact]

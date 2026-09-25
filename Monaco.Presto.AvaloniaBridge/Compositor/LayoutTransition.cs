@@ -1,7 +1,9 @@
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Rendering.Composition;
+using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Compositor;
 
@@ -86,11 +88,30 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     /// <inheritdoc cref="Timer.GetAwaiter"/>
     public TaskAwaiter<LayoutTransition> GetAwaiter() => Then().GetAwaiter();
 
-    /// <summary>Where <paramref name="control"/> stands in its window, the frame a move between two parents is measured in.</summary>
-    internal static Rect? Measure(Control control) =>
-        TopLevel.GetTopLevel(control) is { } top && control.TranslatePoint(default, top) is { } position
-            ? new Rect(position, control.Bounds.Size)
-            : null;
+    /// <summary>
+    /// The layout slot <paramref name="control"/> has in its window with every scroll offset taken back out, so neither a
+    /// scroll nor a render transform reads as a layout move; this is also the frame a move between two parents is measured in.
+    /// </summary>
+    internal static Rect? Measure(Control control)
+    {
+        if (TopLevel.GetTopLevel(control) is null) return null;
+        var position = default(Point);
+        for (Visual? visual = control; visual is not null and not TopLevel; visual = visual.GetVisualParent())
+        {
+            position += visual.Bounds.Position;
+            if (visual.GetVisualParent() is ScrollContentPresenter scroller) position += scroller.Offset;
+        }
+        return new Rect(position, control.Bounds.Size);
+    }
+
+    /// <summary>Where <paramref name="control"/> is drawn: <see cref="Measure"/> plus whatever its live transition still holds.</summary>
+    internal static Rect? MeasureDrawn(Control control)
+    {
+        var measured = Measure(control);
+        if (measured is not { } slot || !s_live.TryGetValue(control, out var live)) return measured;
+        var scratch = live._scratch;
+        return new Rect(slot.X + scratch.X, slot.Y + scratch.Y, slot.Width * scratch.ScaleX, slot.Height * scratch.ScaleY);
+    }
 
     /// <summary>
     /// Lets go of a property another owner is taking over, or that <see cref="Presto.Remove"/> has taken away. The stopped

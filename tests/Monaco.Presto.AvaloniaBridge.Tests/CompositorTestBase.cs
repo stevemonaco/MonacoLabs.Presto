@@ -90,6 +90,23 @@ public abstract class CompositorTestBase : BridgeTestBase
         return right < 0 ? null : new Rect(left, top, right - left, bottom - top);
     }
 
+    /// <summary>The pixels of the last rendered frame inside <paramref name="box"/> that hold something other than <paramref name="background"/>.</summary>
+    protected static int CountPixels(Visual visual, Rect box, Color background)
+    {
+        var (pixels, stride) = Read(visual);
+        var clipped = box.Intersect(new Rect(visual.Bounds.Size));
+        var count = 0;
+        for (var y = (int)clipped.Y; y < (int)Math.Ceiling(clipped.Bottom); y++)
+        {
+            for (var x = (int)clipped.X; x < (int)Math.Ceiling(clipped.Right); x++)
+            {
+                var i = (y * stride) + (x * 4);
+                if (pixels[i] != background.R || pixels[i + 1] != background.G || pixels[i + 2] != background.B) count++;
+            }
+        }
+        return count;
+    }
+
     private static (byte[] Pixels, int Stride) Read(Visual visual)
     {
         var window = TopLevel.GetTopLevel(visual)!;

@@ -59,11 +59,8 @@ public class Timer : Clock, IRevertible
             offsetPosition = (engine._lastTickTime - engine._startTime) * Globals.TimeScale;
         }
 
-        var duration = Helpers.ClampInfinity(((timerDuration + timerLoopDelay) * timerIterationCount) - timerLoopDelay);
-
         Id = parameters.Id ?? timerId.ToString();
         Parent = parent;
-        Duration = duration == 0 || double.IsNaN(duration) ? Constants.MinValue : duration;
         Paused = true;
         OnBegin = parameters.OnBegin ?? timerDefaults.OnBegin;
         OnBeforeUpdate = parameters.OnBeforeUpdate ?? timerDefaults.OnBeforeUpdate;
@@ -77,6 +74,7 @@ public class Timer : Clock, IRevertible
         _offset = offsetPosition;
         _delay = timerDelay;
         _loopDelay = timerLoopDelay;
+        UpdateDuration();
         _reversed = parameters.Reversed ?? timerDefaults.Reversed;
         _reverse = _reversed;
         _alternate = parameters.Alternate ?? timerDefaults.Alternate;
@@ -107,6 +105,25 @@ public class Timer : Clock, IRevertible
     /// <summary>Number of iterations; <see cref="double.PositiveInfinity"/> when looping forever.</summary>
     public double IterationCount { get; internal set; }
 
+    /// <summary>Iterations to play beyond the first, as <see cref="TimerParams.Loop"/>; setting it recomputes <see cref="IterationCount"/> and <see cref="Duration"/> in place.</summary>
+    /// <remarks>
+    /// A running timer lowered below its current iteration completes on the next tick, a paused one once it plays again;
+    /// one given more loops keeps playing them.
+    /// A parent timeline grows to fit a child that now runs past its end, but keeps its duration when the child gets shorter.
+    /// </remarks>
+    public LoopCount Loop
+    {
+        get => double.IsPositiveInfinity(IterationCount) ? LoopCount.Infinite : (int)IterationCount - 1;
+        set
+        {
+            IterationCount = value.IsInfinite ? double.PositiveInfinity : value.Value + 1;
+            UpdateDuration();
+            // Just short of the end: a playhead already at it would complete on the next tick without rendering or updating.
+            if (Paused && _currentTime > Duration) Seek(Math.BitDecrement(Duration), muteCallbacks: true);
+            (Parent as Timeline)?.FitChildren();
+        }
+    }
+
     /// <summary>True while the playhead is moving towards 0, combining <see cref="Reversed"/>, alternating iterations and the parent's direction.</summary>
     public bool Backwards { get; internal set; }
 
@@ -120,22 +137,22 @@ public class Timer : Clock, IRevertible
     public bool Completed { get; internal set; }
 
     /// <summary>Called once when the timer passes its delay and starts playing (upstream <c>onBegin</c>).</summary>
-    public Action<Timer>? OnBegin { get; internal set; }
+    public Action<Timer>? OnBegin { get; set; }
 
     /// <summary>Called every frame before the tweens are rendered (upstream <c>onBeforeUpdate</c>).</summary>
-    public Action<Timer>? OnBeforeUpdate { get; internal set; }
+    public Action<Timer>? OnBeforeUpdate { get; set; }
 
     /// <summary>Called every frame after the tweens are rendered (upstream <c>onUpdate</c>).</summary>
-    public Action<Timer>? OnUpdate { get; internal set; }
+    public Action<Timer>? OnUpdate { get; set; }
 
     /// <summary>Called each time an iteration ends and the next one begins (upstream <c>onLoop</c>).</summary>
-    public Action<Timer>? OnLoop { get; internal set; }
+    public Action<Timer>? OnLoop { get; set; }
 
     /// <summary>Called when <see cref="Pause"/> pauses a running timer; reaching the end does not fire it (upstream <c>onPause</c>).</summary>
-    public Action<Timer>? OnPause { get; internal set; }
+    public Action<Timer>? OnPause { get; set; }
 
     /// <summary>Called once when the last iteration finishes; an infinite timer never fires it (upstream <c>onComplete</c>).</summary>
-    public Action<Timer>? OnComplete { get; internal set; }
+    public Action<Timer>? OnComplete { get; set; }
 
     /// <summary>True once <see cref="Cancel"/> has detached the timer; setting it false revives it and plays it from the start.</summary>
     public bool Cancelled
@@ -165,6 +182,9 @@ public class Timer : Clock, IRevertible
         get => Helpers.Clamp(Helpers.Round(_iterationTime, Globals.Precision), 0, IterationDuration);
         set => CurrentTime = (IterationDuration * _currentIteration) + value;
     }
+
+    /// <summary>The rendered position inside the current iteration, after <see cref="Reversed"/>, alternation and the playback ease are applied.</summary>
+    public double IterationTime => Helpers.Round(_iterationTime, Globals.Precision);
 
     /// <summary>Position of the playhead across every iteration, from 0 to 1; setting it seeks.</summary>
     public double Progress
@@ -233,6 +253,12 @@ public class Timer : Clock, IRevertible
             });
         }
         timer._cancelled = false;
+    }
+
+    internal void UpdateDuration()
+    {
+        var duration = Helpers.ClampInfinity(((IterationDuration + _loopDelay) * IterationCount) - _loopDelay);
+        Duration = duration == 0 || double.IsNaN(duration) ? Constants.MinValue : duration;
     }
 
     private static bool SortByPriority(Timer prev, Timer child) => prev._priority > child._priority;
@@ -371,6 +397,7 @@ public class Timer : Clock, IRevertible
     }
 
     /// <summary>Rescales the total duration to <paramref name="newDuration"/>, scaling the iteration duration, delay and loop delay proportionally.</summary>
+    /// <remarks>As upstream, <see cref="CurrentTime"/> stays where it was and <see cref="Progress"/> is not preserved.</remarks>
     public virtual Timer Stretch(double newDuration)
     {
         var currentDuration = Duration;

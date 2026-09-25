@@ -1,8 +1,10 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
 using Monaco.Presto;
 using PrestoSample.Showcase;
+using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Tests;
 
@@ -34,17 +36,58 @@ public sealed class ShowcaseKitTests
         var window = new Window { Content = bar, Width = 720, Height = 200 };
         window.Show();
 
-        var timer = Presto.CreateTimer(new() { Duration = 1000 });
+        var updates = 0;
+        Action<Timer> onUpdate = _ => updates++;
+        var timer = Presto.CreateTimer(new() { Duration = 1000, OnUpdate = onUpdate });
         bar.Timer = timer;
         var scrubber = bar.GetControl<Slider>("Scrubber");
         for (var i = 0; i < 20; i++) TestFrames.Tick();
 
         Assert.True(timer.Progress > 0.2);
-        // The bar reads the timer on a frame of its own, so it can be one behind.
-        Assert.InRange(scrubber.Value, timer.Progress - 0.05, timer.Progress + 0.05);
+        Assert.Equal(timer.Progress, scrubber.Value, 3);
+        Assert.True(updates > 0);
 
         scrubber.Value = 0.75;
         Assert.Equal(0.75, timer.Progress, 3);
+
+        bar.Timer = null;
+        Assert.Same(onUpdate, timer.OnUpdate);
+
+        window.Content = null;
+        window.Close();
+        timer.Revert();
+    }
+
+    [AvaloniaFact]
+    public void TransportBarLoopTogglesTheLoopCountLiveAndPutsItBack()
+    {
+        TestFrames.Install();
+
+        var bar = new TransportBar();
+        var window = new Window { Content = bar, Width = 720, Height = 200 };
+        window.Show();
+
+        var timer = Presto.CreateTimer(new() { Duration = 200, Loop = 1 });
+        bar.Timer = timer;
+        var loop = bar.GetControl<ToggleButton>("LoopToggle");
+
+        loop.IsChecked = true;
+        Assert.True(timer.Loop.IsInfinite);
+        TestFrames.Tick(40);
+        Assert.False(timer.Completed);
+        Assert.Equal(timer.IterationProgress, bar.GetControl<Slider>("Scrubber").Value, 3);
+
+        loop.IsChecked = false;
+        Assert.Equal(1, timer.Loop.Value);
+        Assert.Equal(400, timer.Duration);
+        Assert.InRange(timer.CurrentTime, 200, 400);
+        TestFrames.Tick(20);
+        Assert.True(timer.Completed);
+        Assert.Equal(1, bar.GetControl<Slider>("Scrubber").Value);
+
+        loop.IsChecked = true;
+        bar.Timer = null;
+        Assert.Equal(1, timer.Loop.Value);
 
         window.Content = null;
         window.Close();

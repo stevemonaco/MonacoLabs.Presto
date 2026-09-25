@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -154,6 +155,72 @@ public sealed class TextSplitTests : BridgeTestBase
         {
             Assert.True(Assert.IsType<Border>(piece.Parent).ClipToBounds);
         }
+    }
+
+    [AvaloniaFact]
+    public void EveryPieceKnowsItsLineInsideAnEffect()
+    {
+        var block = ShowText(160);
+        var checkedPieces = 0;
+
+        PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new() }).AddEffect(split =>
+        {
+            Assert.True(split.Lines.Count > 2);
+            for (var line = 0; line < split.Lines.Count; line++)
+            {
+                var row = split.Lines[line];
+                Assert.Equal(line, TextSplitter.GetLineIndex(row));
+                var words = row.GetLogicalDescendants().OfType<Control>().Where(split.Words.Contains).ToArray();
+                Assert.Equal(words, split.Words.Where(word => TextSplitter.GetLineIndex(word) == line));
+                Assert.Equal(TextOf(row).Replace(" ", ""), string.Concat(split.Chars.Where(c => TextSplitter.GetLineIndex(c) == line).Select(TextOf)));
+                checkedPieces += words.Length;
+            }
+            return (Action?)null;
+        });
+
+        Assert.Equal(SentenceWords.Length, checkedPieces);
+    }
+
+    [AvaloniaFact]
+    public void MeasuresTheLineHeightBeforeThePiecesAreLaidOut()
+    {
+        var probe = new TextBlock { Text = "Ag", FontSize = 20 };
+        probe.Measure(Avalonia.Size.Infinity);
+        var lineHeight = 0.0;
+
+        PrestoAvalonia.SplitText(ShowText(160), new() { Lines = new() }).AddEffect(split =>
+        {
+            lineHeight = split.LineHeight;
+            return (Action?)null;
+        });
+
+        Assert.True(lineHeight > 0);
+        Assert.Equal(probe.DesiredSize.Height, lineHeight, tolerance: 1);
+    }
+
+    [AvaloniaFact]
+    public void TurnsOffTheHostClipWhileSplitAndRestoresItOnRevert()
+    {
+        var block = ShowText();
+        Assert.True(block.ClipToBounds);
+
+        var split = PrestoAvalonia.SplitText(block);
+        Assert.False(block.ClipToBounds);
+
+        split.Revert();
+        Assert.True(block.ClipToBounds);
+        Assert.False(block.IsSet(Avalonia.Visual.ClipToBoundsProperty));
+    }
+
+    [AvaloniaFact]
+    public void AHostThatDidNotClipStillDoesNotAfterRevert()
+    {
+        var block = ShowText();
+        block.ClipToBounds = false;
+
+        PrestoAvalonia.SplitText(block).Revert();
+
+        Assert.False(block.ClipToBounds);
     }
 
     [AvaloniaFact]

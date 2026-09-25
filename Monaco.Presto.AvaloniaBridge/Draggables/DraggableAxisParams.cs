@@ -16,6 +16,10 @@ public sealed record DraggableAxisParams
     public Func<double, double>? Snap { get; init; }
 
     /// <summary>Post-processes this axis's value, in place of <see cref="DraggableParams.Modifier"/>.</summary>
+    /// <remarks>
+    /// Must be idempotent, like rounding or wrapping: from the release on it is re-applied to its own output, so a curve such as a
+    /// rubber band jumps at release and settles short of the snap point. Upstream behaves the same way.
+    /// </remarks>
     public Func<double, double>? Modifier { get; init; }
 
     /// <summary>How the drag composes with other animations of the property this axis writes; it otherwise replaces them.</summary>

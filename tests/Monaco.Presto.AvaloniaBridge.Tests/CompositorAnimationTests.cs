@@ -99,4 +99,36 @@ public sealed class CompositorAnimationTests : CompositorTestBase
         Assert.True(animation.Completed);
         Assert.Equal(1, animation.Progress);
     }
+
+    [AvaloniaFact]
+    public void EveryCompletionHandsTheDrawnOpacityBackToTheControl()
+    {
+        var bar = ShowBar();
+        bar.Opacity = 0;
+        var animation = bar.AnimateOnCompositor(new() { ["Opacity"] = 1, Duration = 200, Ease = "linear" });
+
+        Frames.Advance(400);
+        Assert.Equal(1, bar.Opacity);
+
+        _ = animation.Reverse();
+        Frames.Advance(400);
+        Assert.True(animation.Completed);
+        Assert.Equal(0, bar.Opacity);
+
+        _ = animation.Play();
+        Frames.Advance(400);
+        Assert.Equal(1, bar.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void RevertLeavesEveryMirrorAtZeroRatherThanBeforeItsDelay()
+    {
+        var bar = ShowBar();
+        var animation = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 200, Delay = 100, Ease = "linear" });
+        Frames.Advance(150);
+
+        _ = animation.Revert();
+
+        Assert.Equal(0, animation.CurrentTime);
+    }
 }

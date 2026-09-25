@@ -428,6 +428,72 @@ public sealed class DraggableTests : BridgeTestBase
         Assert.Equal(0d, settledY);
     }
 
+    [AvaloniaTheory]
+    [InlineData(10)] // lands inside the old bounds
+    [InlineData(20)] // thrown past them, so the blended overshoot is in flight
+    public void AContainerResizedMidThrowRetargetsTheReleaseAndSettlesOnce(double step)
+    {
+        var (window, container, target) = Show();
+        var settles = 0;
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+            OnSettle = _ => settles++,
+        });
+
+        Drag(window, step, 4);
+        window.MouseUp(new Point(25 + (4 * step), 25), MouseButton.Left);
+        Frames.Advance(60, 20);
+
+        container.Width = 100;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(50d, draggable.X);
+        Assert.Equal(1, settles);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)] // mid-frame, with the blended overshoot tweens next in the engine's list
+    public void ResetMidOvershootLeavesAnAnimationOnAnotherControlRunning(bool fromItsCallback)
+    {
+        var (window, container, target) = Show();
+        var other = new Border { Width = 10, Height = 10 };
+        container.Children.Add(other);
+        Dispatcher.UIThread.RunJobs();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+        });
+        var completed = 0;
+        var reset = false;
+
+        Drag(window, 20, 10);
+        other.Animate(new AvaloniaAnimationParams
+        {
+            ["Opacity"] = 0,
+            Duration = 1000,
+            OnUpdate = _ =>
+            {
+                if (!fromItsCallback || reset) return;
+                reset = true;
+                draggable.Reset();
+            },
+            OnComplete = _ => completed++,
+        });
+        window.MouseUp(new Point(225, 25), MouseButton.Left);
+        Frames.Advance(100, 20);
+        if (!fromItsCallback) draggable.Reset();
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(0d, draggable.X);
+        Assert.Equal(0d, other.Opacity);
+        Assert.Equal(1, completed);
+    }
+
     /// <summary>Upstream "Removing the parent should not throw an error".</summary>
     [AvaloniaFact]
     public void RemovingTheParentMidDragDoesNotThrow()

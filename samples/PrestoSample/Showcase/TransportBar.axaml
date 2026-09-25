@@ -12,7 +12,7 @@
                 <Button Content="Restart" Click="Restart" />
                 <Button Content="Reverse" Click="Reverse" />
                 <Button Content="Alternate" Click="Alternate" />
-                <ToggleButton x:Name="LoopToggle" Content="Loop" />
+                <ToggleButton x:Name="LoopToggle" Content="Loop" IsCheckedChanged="LoopChanged" />
                 <TextBlock x:Name="TimeText" Classes="code" Margin="8,0,0,0" Text="0 ms · 0%" />
             </StackPanel>
 

@@ -1,16 +1,16 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Monaco.Presto.AvaloniaBridge.Compositor;
-using PrestoSample.Showcase;
 
-namespace PrestoSample.Tests;
+namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
-/// The SAMPLES-PLAN §7.1 spike: glyph runs cached on the UI thread and drawn by a scene through
-/// <c>ImmediateDrawingContext.DrawGlyphRun</c> really rasterise, and follow the string the scene holds.
+/// Glyph runs cached on the UI thread and drawn by a scene through <c>ImmediateDrawingContext.DrawGlyphRun</c> really
+/// rasterise, and follow the string the scene holds.
 /// </summary>
-public sealed class SceneTextTests
+public sealed class SceneTextTests : CompositorTestBase
 {
     private const double FontSize = 20;
 
@@ -19,44 +19,38 @@ public sealed class SceneTextTests
     [AvaloniaFact]
     public async Task GlyphsLandInsideTheMeasuredBoxAndAnEmptyStringLeavesItUntouched()
     {
-        TestFrames.Install();
         const string Text = "1024 fps";
 
-        var (drawn, drawnScene) = ShowScene(Text);
-        var (blank, blankScene) = ShowScene("");
-        Assert.True(await SceneHarness.Pump(() => drawnScene.Renders > 0 && blankScene.Renders > 0), "the scenes never rendered");
+        var (drawn, drawnScene) = ShowText(Text);
+        var (blank, blankScene) = ShowText("");
+        Assert.True(await Pump(() => drawnScene.Renders > 0 && blankScene.Renders > 0), "the scenes never rendered");
 
         var metrics = new SceneText(FontSize);
         var box = new Rect(Origin, new Size(metrics.Measure(Text), metrics.Height));
 
-        Assert.True(SceneHarness.CountPixels(drawn, box, Colors.Black) > 0, "SceneText drew no glyph pixels");
-        Assert.Equal(
-            SceneHarness.CountPixels(drawn, new Rect(drawn.Bounds.Size), Colors.Black),
-            SceneHarness.CountPixels(drawn, box.Inflate(1), Colors.Black));
-        Assert.Equal(0, SceneHarness.CountPixels(blank, box, Colors.Black));
+        Assert.True(CountPixels(drawn, box, Colors.Black) > 0, "SceneText drew no glyph pixels");
+        Assert.Equal(CountPixels(drawn, new Rect(drawn.Bounds.Size), Colors.Black), CountPixels(drawn, box.Inflate(1), Colors.Black));
+        Assert.Equal(0, CountPixels(blank, box, Colors.Black));
     }
 
     [AvaloniaFact]
     public async Task TheReadoutFollowsTheStringTheSceneHolds()
     {
-        TestFrames.Install();
-
-        var (canvas, scene) = ShowScene("0 fps");
-        Assert.True(await SceneHarness.Pump(() => scene.Renders > 0), "the scene never rendered");
-        var first = SceneHarness.Capture(canvas).Pixels;
+        var (canvas, scene) = ShowText("0 fps");
+        Assert.True(await Pump(() => scene.Renders > 0), "the scene never rendered");
+        var first = Capture(canvas);
 
         canvas.Post("240 fps");
 
-        Assert.True(
-            await SceneHarness.Pump(() => !SceneHarness.Capture(canvas).Pixels.AsSpan().SequenceEqual(first)),
-            "the readout never changed");
+        Assert.True(await Pump(() => !Capture(canvas).AsSpan().SequenceEqual(first)), "the readout never changed");
     }
 
-    private static (CompositorCanvas Canvas, TextScene Scene) ShowScene(string text)
+    private static (CompositorCanvas Canvas, TextScene Scene) ShowText(string text)
     {
         var scene = new TextScene(text);
         var canvas = new CompositorCanvas { Scene = scene, Width = 220, Height = 48 };
-        SceneHarness.Show(canvas);
+        new Window { Content = canvas, Width = 220, Height = 48 }.Show();
+        Tick();
         return (canvas, scene);
     }
 

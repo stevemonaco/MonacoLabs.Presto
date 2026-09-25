@@ -36,7 +36,6 @@ public partial class TypographyPage : ShowcasePage
 
     private readonly List<Animatable> _letters = [];
     private readonly Spring _relax = Eases.Spring(bounce: .45, duration: 450);
-    private double _lineHeight;
     private int _wordIndex;
     private TextSplitter? _word;
     private Timeline? _rotation;
@@ -58,8 +57,6 @@ public partial class TypographyPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        // The pieces have no bounds yet when the effect runs, so the line height comes from a probe (SAMPLES-PLAN §8 row 23).
-        _lineHeight = Measure(Paragraph, "Ag").Height;
         Split = PrestoAvalonia.SplitText(Paragraph, new SplitTextParams { Lines = new SplitPieceParams { Wrap = true }, IncludeSpaces = true })
             .AddEffect(BuildReveal);
 
@@ -105,7 +102,7 @@ public partial class TypographyPage : ShowcasePage
 
         Reveal = Presto.Animate(split.Words, new AnimationParams
         {
-            ["Y"] = TweenValue.FromTo(_lineHeight, 0),
+            ["Y"] = TweenValue.FromTo(split.LineHeight, 0),
             Duration = 1100,
             Ease = Eases.OutExpo,
             Delay = (FunctionValue)((_, i, _) => delays[i]),

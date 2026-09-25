@@ -43,6 +43,48 @@ public sealed class ScopeTests : EngineTestBase
     }
 
     [Fact]
+    public void ReplacedAnimationsDoNotAccumulateAndRevertStillRestoresTheOriginal()
+    {
+        var target = new StyleTarget { X = 10 };
+        var scope = Presto.CreateScope();
+
+        scope.Execute(_ =>
+        {
+            for (var i = 0; i < 1000; i++)
+            {
+                Presto.Animate(target, new() { ["X"] = 100 + i, Duration = 100 });
+                Frames.Advance(16);
+            }
+        });
+
+        Assert.InRange(scope.RevertibleCount, 1, 32);
+        Assert.NotEqual(10, target.X);
+
+        scope.Revert();
+
+        Assert.Equal(10, target.X);
+    }
+
+    [Fact]
+    public void CompletedAnimationsStayRegistered()
+    {
+        var targets = Enumerable.Range(0, 32).Select(_ => new StyleTarget()).ToArray();
+        var scope = Presto.CreateScope();
+
+        scope.Execute(_ =>
+        {
+            for (var i = 0; i < 31; i++) Presto.Animate(targets[i], new() { ["X"] = 100, Duration = 10 });
+        });
+        Frames.Advance(100, 16);
+        // The 32nd registration triggers a prune, which must spare the completed (and engine-cancelled) animations.
+        scope.Execute(_ => Presto.Animate(targets[31], new() { ["X"] = 100, Duration = 10 }));
+
+        Assert.Equal(32, scope.RevertibleCount);
+        scope.Revert();
+        Assert.All(targets, target => Assert.Equal(0, target.X));
+    }
+
+    [Fact]
     public void AppliesScopedDefaultsToChildrenCreatedInside()
     {
         var scope = Presto.CreateScope(new() { Defaults = defaults => defaults.Duration = 500 });

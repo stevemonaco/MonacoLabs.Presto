@@ -22,6 +22,10 @@ public sealed class TweenParams
     public Func<double, double>? Modifier { get; init; }
 
     /// <summary>Maps the tween's current value to the whole string the target receives, in place of the usual value composition.</summary>
+    /// <remarks>
+    /// The written string is read back as the next tween's from-value, so it must parse back to the number it was given:
+    /// no thousands separators, and units kept in a separate element.
+    /// </remarks>
     public Func<double, string>? TextModifier { get; init; }
 
     /// <summary>Overrides the animation's composition mode for this property, deciding how it meets tweens already running on it.</summary>

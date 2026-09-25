@@ -137,6 +137,42 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
         Assert.Equal(30d, Left(bar));
     }
 
+    /// <remarks>
+    /// Reversed from mid-flight, the visual with the longest delay is the least far along and comes home first, so the
+    /// animation finishes with the one that had got furthest.
+    /// </remarks>
+    [AvaloniaFact]
+    public void AStaggerReversedMidFlightCompletesWhenTheLastVisualIsHome()
+    {
+        var bars = new[] { new Border(), new Border(), new Border() };
+        new Window { Content = new StackPanel { Children = { bars[0], bars[1], bars[2] } } }.Show();
+        Tick();
+        var completions = 0;
+        var animation = PrestoAvalonia.AnimateOnCompositor(bars, new()
+        {
+            ["X"] = 100,
+            Duration = 400,
+            Delay = Presto.Stagger(100),
+            Ease = "linear",
+            OnComplete = _ => completions++,
+        });
+        Frames.Advance(250);
+
+        _ = animation.Reverse();
+        var then = animation.Then();
+        Frames.Advance(100);
+
+        Assert.False(animation.Completed);
+        Assert.False(then.IsCompleted);
+        Assert.Equal(0, completions);
+
+        Frames.Advance(250);
+
+        Assert.True(animation.Completed);
+        Assert.True(then.IsCompleted);
+        Assert.Equal(1, completions);
+    }
+
     private static double Left(Visual visual) => Extent(visual, Colors.Red)!.Value.Left;
 
     /// <summary>

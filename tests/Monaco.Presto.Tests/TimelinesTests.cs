@@ -293,4 +293,35 @@ public sealed class TimelinesTests : EngineTestBase
 
         Assert.Equal(-100, target.Y);
     }
+
+    [Fact]
+    public void RaisingAChildLoopGrowsTheTimelineToFitIt()
+    {
+        var tl = Presto.CreateTimeline().Add(new TimerParams { Duration = 100 });
+        var child = tl._head!;
+        Frames.Advance(48);
+
+        child.Loop = 2;
+        Assert.Equal(300, tl.Duration);
+        RunUntil(() => tl.Completed);
+
+        Assert.True(child.Completed);
+        Assert.Equal(300, tl.CurrentTime);
+    }
+
+    [Fact]
+    public void LoweringAChildLoopKeepsTheTimelineDuration()
+    {
+        var tl = Presto.CreateTimeline().Add(new TimerParams { Duration = 100, Loop = 2 });
+        var child = tl._head!;
+        Frames.Advance(48);
+
+        child.Loop = 0;
+        Assert.Equal(100, child.Duration);
+        Assert.Equal(300, tl.Duration);
+        RunUntil(() => tl.Completed);
+
+        Assert.True(child.Completed);
+        Assert.Equal(300, tl.CurrentTime);
+    }
 }

@@ -1213,4 +1213,32 @@ public sealed class CallbacksTests : EngineTestBase
         Assert.Equal(0, a2Loop);
         Assert.Equal(1, a2Complete);
     }
+
+    [Fact]
+    public void OnUpdateAssignedAfterCreationFiresOnTheNextTick()
+    {
+        var ticks = 0;
+        var timer = Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(16);
+
+        timer.OnUpdate = _ => ticks++;
+        Frames.Advance(16);
+
+        Assert.Equal(1, ticks);
+    }
+
+    [Fact]
+    public void OnCompleteReplacedAfterCreationFiresTheNewCallback()
+    {
+        var first = 0;
+        var second = 0;
+        var timer = Presto.CreateTimer(new() { Duration = 50, OnComplete = _ => first++ });
+        Frames.Advance(16);
+
+        timer.OnComplete = _ => second++;
+        RunUntil(() => timer.Completed);
+
+        Assert.Equal(0, first);
+        Assert.Equal(1, second);
+    }
 }

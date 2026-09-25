@@ -34,6 +34,17 @@ public sealed class TargetsTests : EngineTestBase
     public void DuplicatesKeepTheirFirstPosition() =>
         Assert.Equal([_first, _second], TargetParser.Parse(new object[] { _first, _second, _first, new[] { _second } }));
 
+    [Theory]
+    [InlineData(5)]
+    [InlineData(100)]
+    public void DuplicatesKeepTheirFirstPositionAtAnySize(int count)
+    {
+        var targets = Enumerable.Range(0, count).Select(_ => new object()).ToArray();
+        var input = targets.Select((target, i) => new[] { target, targets[i / 2] }).ToArray();
+
+        Assert.Equal(targets, TargetParser.Parse(input));
+    }
+
     [Fact]
     public void NullTargetsAreEmpty() => Assert.Empty(TargetParser.Parse(null));
 

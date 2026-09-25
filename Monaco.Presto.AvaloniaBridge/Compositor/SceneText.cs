@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Media;
 
-namespace PrestoSample.Showcase;
+namespace Monaco.Presto.AvaloniaBridge.Compositor;
 
 /// <summary>
-/// Text for a <c>CompositorScene</c>, whose <see cref="ImmediateDrawingContext"/> offers <c>DrawGlyphRun</c> and no
+/// Text for a <see cref="CompositorScene"/>, whose <see cref="ImmediateDrawingContext"/> offers <c>DrawGlyphRun</c> and no
 /// <c>DrawText</c>. One immutable glyph run is built per printable ASCII character, so drawing a readout every frame
 /// costs a translate and a draw per character and allocates nothing.
 /// </summary>
@@ -12,7 +12,7 @@ namespace PrestoSample.Showcase;
 /// Construct on the UI thread — a scene's own constructor is the right place — and draw only from the render thread:
 /// the glyph typeface comes from the font manager and every run is built up front, so <see cref="Draw"/> touches
 /// nothing but the cache. Characters outside U+0020..U+007E are skipped, and each character is advanced by its own
-/// width, so there is no kerning or shaping; the readouts this exists for are digits and Latin words.
+/// width, so there is no kerning or shaping.
 /// </remarks>
 public sealed class SceneText
 {
@@ -22,6 +22,7 @@ public sealed class SceneText
     private readonly IImmutableGlyphRunReference?[] _runs = new IImmutableGlyphRunReference?[Last - First + 1];
     private readonly double[] _advances = new double[Last - First + 1];
 
+    /// <summary>Builds the glyph runs for the default typeface at <paramref name="fontSize"/>.</summary>
     public SceneText(double fontSize)
     {
         var typeface = Typeface.Default.GlyphTypeface;

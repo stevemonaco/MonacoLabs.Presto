@@ -94,6 +94,8 @@ public static class PrestoAvalonia
     /// <remarks>
     /// Only "X", "Y", "Rotate", "Scale", "ScaleX", "ScaleY" and "Opacity" have composition counterparts; anything else throws.
     /// Every target has to be a <see cref="Visual"/>, and one outside the visual tree starts when it is attached to one.
+    /// Each target gets its own playback mirror and composition animations, so this is meant for a handful of visuals, not
+    /// thousands.
     /// </remarks>
     public static CompositorAnimation AnimateOnCompositor(object? targets, CompositorAnimationParams parameters)
     {
@@ -125,13 +127,22 @@ public static class PrestoAvalonia
     /// next, which is how an item moves between two containers (COMPOSITOR-PLAN §4.4 step 6).
     /// </summary>
     /// <remarks>
-    /// A one-shot: the two are measured in their window's coordinates, so they have to share one, and the transition is off
-    /// again once the move is under way. Passing the same control twice reparents it.
+    /// The two are measured in their window's coordinates with scrolling taken out, so they have to share a window, and a
+    /// move between two scrolled containers is off by the difference in their offsets. <paramref name="source"/> is measured
+    /// where it is drawn, so re-arming a control mid-move carries on from there. By default a one-shot, off again once the
+    /// move is under way; passing <paramref name="once"/> false keeps easing later layout changes as
+    /// <see cref="AnimateLayout"/> does. Passing the same control twice reparents it.
     /// </remarks>
-    public static LayoutTransition AnimateSharedElement(Control source, Control target, double duration, EaseValue? ease = null)
+    public static LayoutTransition AnimateSharedElement(
+        Control source,
+        Control target,
+        double duration,
+        EaseValue? ease = null,
+        LayoutAnimateMode mode = LayoutAnimateMode.PositionAndSize,
+        bool once = true)
     {
         EnsureInitialized();
-        return new LayoutTransition(target, LayoutTransition.Measure(source), duration, ease, LayoutAnimateMode.PositionAndSize, once: true);
+        return new LayoutTransition(target, LayoutTransition.MeasureDrawn(source), duration, ease, mode, once);
     }
 
     /// <inheritdoc cref="Presto.Remove"/>
@@ -147,6 +158,10 @@ public static class PrestoAvalonia
         EnsureInitialized();
         return Presto.Remove(targets, renderable, AvaloniaObjectTargetAdapter.Encode(property));
     }
+
+    /// <inheritdoc cref="Presto.GetAnimations"/>
+    public static IReadOnlyList<Animation> GetAnimations(object target, AvaloniaProperty property) =>
+        Presto.GetAnimations(target, AvaloniaObjectTargetAdapter.Encode(property));
 
     /// <summary>
     /// Upstream <c>svg.createDrawable</c>: puts <paramref name="shape"/> into the stroke dash state that reveals only the
@@ -197,13 +212,13 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>svg.morphTo</c>: the from/to pair that morphs a <see cref="Path"/>'s <see cref="Path.Data"/> into
-    /// <paramref name="destination"/>, by resampling both contours at <paramref name="precision"/> points per unit of the
-    /// longer one and interpolating the two point by point.
+    /// Upstream <c>svg.morphTo</c>: the from/to pair that morphs the target's <see cref="Geometry"/> <c>Data</c> property
+    /// (<see cref="Path.Data"/>, <see cref="PathIcon.Data"/>) into <paramref name="destination"/>, by resampling both
+    /// contours at <paramref name="precision"/> points per unit of the longer one and interpolating the two point by point.
     /// </summary>
     /// <remarks>
     /// The morph chains off the tween it follows, so one added to a timeline, or a later keyframe, starts from the shape the
-    /// previous one ended on rather than from the path's own data. Both geometries are read in their own coordinates, so the
+    /// previous one ended on rather than from the target's own data. Both geometries are read in their own coordinates, so the
     /// path must not stretch its data. A <c>Polyline</c>'s or <c>Polygon</c>'s <c>Points</c> is a list of points rather than
     /// a <see cref="Geometry"/> and cannot be morphed; use a <see cref="Path"/>.
     /// </remarks>
@@ -225,12 +240,16 @@ public static class PrestoAvalonia
         return (target, _, _, previous) =>
         {
             // Upstream writes prevTween._value back to the element before sampling it; here that value parses into the geometry to sample.
-            var source = previous?._value is string data ? Geometry.Parse(data) : (target as Path)?.Data;
-            if (source == null) throw new ArgumentException($"Can't morph a {target.GetType()}. MorphTo animates the Data of a Path.", nameof(target));
-            var points = GeometryCodec.PointCount(Math.Max(source.ContourLength, destination.ContourLength), precision);
+            var source = previous?._value is string data ? Geometry.Parse(data) : Presto.Get(target, "Data") as Geometry;
+            if (source == null) throw new ArgumentException($"Can't morph a {target.GetType()}. MorphTo animates a Geometry Data property.", nameof(target));
+            var points = MorphPointCount(source, destination, precision);
             return TweenValue.FromTo(GeometryCodec.Sample(source, points), GeometryCodec.Sample(destination, points));
         };
     }
+
+    /// <summary>The number of points <see cref="MorphTo"/> resamples both <paramref name="from"/> and <paramref name="to"/> at.</summary>
+    public static int MorphPointCount(Geometry from, Geometry to, double precision = GeometryCodec.DefaultPrecision) =>
+        GeometryCodec.PointCount(Math.Max(from.ContourLength, to.ContourLength), precision);
 
     /// <summary>
     /// Upstream <c>splitText</c>: takes <paramref name="textBlock"/>'s text apart into the per-line, per-word and
@@ -270,10 +289,22 @@ public static class PrestoAvalonia
     /// Upstream <c>onScroll</c>: watches a control crossing a <see cref="ScrollViewer"/>'s thresholds, and drives
     /// whatever is handed to <see cref="ScrollObserver.Link"/> from the scroll position.
     /// </summary>
+    /// <remarks>
+    /// Nothing is pinned while its thresholds pass: Avalonia has no <c>position: sticky</c>, so a pinned stage is the
+    /// caller's overlay. Put it beside the <see cref="ScrollViewer"/> in a <see cref="Panel"/> with
+    /// <c>IsHitTestVisible="False"</c>, so the wheel still reaches the scroller, and show and hide it from
+    /// <see cref="ScrollObserverParams.OnEnter"/> and <see cref="ScrollObserverParams.OnLeave"/>.
+    /// </remarks>
     public static ScrollObserver OnScroll(ScrollObserverParams? parameters = null)
     {
         EnsureInitialized();
         return new ScrollObserver(parameters ?? new ScrollObserverParams());
+    }
+
+    /// <summary>Measures every resolved observer of <paramref name="scroller"/> again now, instead of 250ms after its size changes.</summary>
+    public static void RefreshScroll(ScrollViewer scroller)
+    {
+        if (ScrollContainer.Containers.TryGetValue(scroller, out var container)) container.Refresh();
     }
 
     /// <summary><see cref="Presto.CreateScope"/> rooted on a control, so everything created inside reverts when <paramref name="root"/> leaves the visual tree.</summary>

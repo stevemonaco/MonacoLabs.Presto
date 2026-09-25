@@ -25,6 +25,7 @@ public sealed class Timeline : Timer
     }
 
     /// <summary>Named positions children can be added at.</summary>
+    /// <remarks>Labels are raw times on the timeline, so seeking to one lands on it only when no <see cref="TimelineParams.PlaybackEase"/> or <see cref="Timer.Reversed"/> reshapes the playhead.</remarks>
     public Dictionary<string, double> Labels { get; }
 
     /// <inheritdoc cref="TimelineParams.Composition"/>
@@ -160,13 +161,17 @@ public sealed class Timeline : Timer
     {
         if (Composition) child.Init(true);
         Helpers.AddChild(this, child);
+        FitChildren();
+        if (Composition) Init(true);
+    }
+
+    internal void FitChildren()
+    {
         for (var sibling = _head; sibling != null; sibling = sibling._next)
         {
             var siblingEnd = sibling._offset + sibling._delay + sibling.Duration;
             if (siblingEnd > IterationDuration) IterationDuration = siblingEnd;
         }
-        var duration = Helpers.ClampInfinity(((IterationDuration + _loopDelay) * IterationCount) - _loopDelay);
-        Duration = duration == 0 || double.IsNaN(duration) ? Constants.MinValue : duration;
-        if (Composition) Init(true);
+        UpdateDuration();
     }
 }

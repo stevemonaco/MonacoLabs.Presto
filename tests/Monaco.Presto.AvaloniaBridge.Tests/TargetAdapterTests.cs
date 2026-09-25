@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Diagnostics;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Monaco.Presto.Values;
 
@@ -56,6 +57,18 @@ public sealed class TargetAdapterTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void GetAnimationsFiltersByAvaloniaProperty()
+    {
+        var border = new Border { Opacity = 0, Width = 0 };
+
+        var fading = border.Animate(new() { ["Opacity"] = 1, Duration = 100 });
+        var widening = border.Animate(new() { [Layoutable.WidthProperty] = 100, Duration = 100 });
+
+        Assert.Same(fading, Assert.Single(PrestoAvalonia.GetAnimations(border, Visual.OpacityProperty)));
+        Assert.Same(widening, Assert.Single(PrestoAvalonia.GetAnimations(border, Layoutable.WidthProperty)));
+    }
+
+    [AvaloniaFact]
     public void PropertiesWithACodecAnimateThroughIt()
     {
         var border = new Border { Background = Brushes.Red };
@@ -91,6 +104,32 @@ public sealed class TargetAdapterTests : BridgeTestBase
 
         Assert.Equal(.25, border.Opacity);
         Assert.False(border.IsAnimating(Visual.OpacityProperty));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(0, 1)]
+    [InlineData(1, 0)]
+    public void AnOvershootingEaseNeverWritesOpacityOutsideZeroToOne(double from, double to)
+    {
+        var border = new Border { Opacity = from };
+        Canvas.SetLeft(border, from);
+        var written = new List<double>();
+        border.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Visual.OpacityProperty) written.Add((double)e.NewValue!);
+        };
+
+        var animation = border.Animate(new() { ["Opacity"] = to, ["Canvas.Left"] = to, Duration = 100, Ease = Eases.OutBack(), Autoplay = false });
+        var furthest = 0d;
+        for (var time = 0d; time <= 100; time += 5)
+        {
+            animation.Seek(time);
+            furthest = Math.Max(furthest, Math.Abs(Canvas.GetLeft(border) - .5));
+        }
+
+        Assert.All(written, opacity => Assert.InRange(opacity, 0, 1));
+        Assert.Contains(to, written);
+        Assert.True(furthest > .5, "only Opacity is clamped, so Canvas.Left should overshoot");
     }
 
     [AvaloniaFact]

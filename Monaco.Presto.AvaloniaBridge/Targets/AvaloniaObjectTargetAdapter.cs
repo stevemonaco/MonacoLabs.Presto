@@ -20,7 +20,9 @@ namespace Monaco.Presto.AvaloniaBridge.Targets;
 /// A target's property is bound once at <see cref="BindingPriority.Animation"/> and every frame is pushed through that one
 /// binding, so a frame costs no value entry of its own and a revert disposes the binding, uncovering whatever value the
 /// property had underneath. A direct property binding ignores the priority and writes through the setter, so the value the
-/// property held before the first frame is captured and written back on revert instead.
+/// property held before the first frame is captured and written back on revert instead. A <see cref="double"/> property is
+/// bound typed, so a frame pushes it unboxed and what is left per frame is the property-changed args Avalonia raises.
+/// <see cref="Visual.OpacityProperty"/> is clamped to 0-1, so an overshooting ease holds at the ends.
 /// </remarks>
 public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
 {
@@ -143,8 +145,10 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     {
         private readonly AvaloniaProperty _property;
         private readonly Func<double, object>? _number;
+        private readonly bool _isDouble;
+        private readonly bool _isOpacity;
         private readonly bool _isString;
-        private readonly ConditionalWeakTable<AvaloniaObject, AnimatedValue> _animated = new();
+        private readonly ConditionalWeakTable<AvaloniaObject, IDisposable> _animated = new();
         private readonly ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>? _original;
 
         public AvaloniaPropertyAccessor(AvaloniaProperty property)
@@ -152,8 +156,9 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             _property = property;
             // A direct property's write returns no disposable, so its pre-animation value has to be kept for Revert.
             if (property.IsDirect) _original = new ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>();
+            _isOpacity = property == Visual.OpacityProperty;
             var type = property.PropertyType;
-            if (type == typeof(double)) _number = static n => n;
+            if (type == typeof(double)) _isDouble = true;
             else if (type == typeof(float)) _number = static n => (float)n;
             else if (type == typeof(int)) _number = static n => (int)Helpers.Round(n, 0);
             else if (type == typeof(string)) _isString = true;
@@ -169,9 +174,14 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         {
             var animated = (AvaloniaObject)target;
             if (_original != null && !_original.TryGetValue(animated, out _)) _original.Add(animated, new StrongBox<object?>(animated.GetValue(_property)));
-            var value = _isString ? tween.ComposeString(number) : _number != null ? _number(number) : Codec!.Encode(number, tween);
-            if (!_animated.TryGetValue(animated, out var source)) _animated.Add(animated, source = new AnimatedValue(animated, _property));
-            source.Push(value);
+            if (_isDouble) Animated<double>(animated).Push(_isOpacity ? Math.Clamp(number, 0, 1) : number);
+            else Animated<object?>(animated).Push(_isString ? tween.ComposeString(number) : _number != null ? _number(number) : Codec!.Encode(number, tween));
+        }
+
+        private AnimatedValue<T> Animated<T>(AvaloniaObject target)
+        {
+            if (!_animated.TryGetValue(target, out var source)) _animated.Add(target, source = new AnimatedValue<T>(target, _property));
+            return (AnimatedValue<T>)source;
         }
 
         public void Revert(object target, object? originalValue)

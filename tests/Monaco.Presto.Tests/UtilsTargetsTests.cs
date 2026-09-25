@@ -183,6 +183,45 @@ public sealed class UtilsTargetsTests : EngineTestBase
     }
 
     [Fact]
+    public void GetAnimationsListsTheRunningAnimationsOfATarget()
+    {
+        var target = new StyleTarget();
+        var other = new StyleTarget();
+        var moving = Presto.Animate(target, new() { ["X"] = 100, Duration = 1000 });
+        var fading = Presto.Animate(new[] { other, target }, new() { ["Y"] = 100, Duration = 1000 });
+        Presto.Animate(other, new() { ["X"] = 100, Duration = 1000 });
+
+        Assert.Equal([moving, fading], Presto.GetAnimations(target));
+        Assert.Equal([fading], Presto.GetAnimations(target, "Y"));
+    }
+
+    [Fact]
+    public void GetAnimationsSkipsCompletedAndCancelledAnimations()
+    {
+        var target = new StyleTarget();
+        var completed = Presto.Animate(target, new() { ["X"] = 100, Duration = 10 });
+        var cancelled = Presto.Animate(target, new() { ["Y"] = 100, Duration = 1000 });
+        var running = Presto.Animate(target, new() { ["Opacity"] = 1, Duration = 1000 });
+
+        Frames.Advance(50, 16);
+        cancelled.Cancel();
+
+        Assert.True(completed.Completed);
+        Assert.Equal([running], Presto.GetAnimations(target));
+    }
+
+    [Fact]
+    public void GetAnimationsFindsTimelineChildren()
+    {
+        var target = new StyleTarget();
+        var tl = Presto.CreateTimeline(new() { Defaults = new() { Duration = 100 } })
+            .Add(target, new() { ["X"] = 100 })
+            .Add(new StyleTarget(), new() { ["X"] = 100 });
+
+        Assert.Same(TestHelpers.GetChildAtIndex(tl, 0), Assert.Single(Presto.GetAnimations(target)));
+    }
+
+    [Fact]
     public void CancelAnimationsWithNoTweensLeftAfterCallingRemove()
     {
         var target = new StyleTarget();

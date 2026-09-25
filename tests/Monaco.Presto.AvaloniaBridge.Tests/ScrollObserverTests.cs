@@ -357,6 +357,34 @@ public sealed class ScrollObserverTests : BridgeTestBase
         Assert.Equal(400d, observer.Distance);
     }
 
+    [AvaloniaFact]
+    public void RefreshBeforeTheObserverResolvesDoesNothing()
+    {
+        var (_, _, target) = Show();
+        var observer = PrestoAvalonia.OnScroll(new ScrollObserverParams { Target = target });
+
+        observer.Refresh();
+        Assert.False(observer.Ready);
+
+        Frames.Advance(16);
+        Assert.True(observer.Ready);
+    }
+
+    [AvaloniaFact]
+    public void RefreshScrollRemeasuresEveryObserverOfTheScrollerAtOnce()
+    {
+        var (_, scroller, target) = Show();
+        var first = Observe(new ScrollObserverParams { Target = target });
+        var second = Observe(new ScrollObserverParams { Target = target, Enter = "center start" });
+
+        target.Height = TargetSize * 2;
+        Dispatcher.UIThread.RunJobs();
+        PrestoAvalonia.RefreshScroll(scroller);
+
+        Assert.Equal(500d, first.OffsetEnd);
+        Assert.Equal(500d, second.OffsetEnd);
+    }
+
     /// <summary>Upstream "resizeTicker completing before target is resolved should not throw".</summary>
     [AvaloniaFact]
     public void CompletingTheResizeTickerBeforeTheObserverResolvesDoesNotThrow()

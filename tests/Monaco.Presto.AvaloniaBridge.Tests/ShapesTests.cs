@@ -242,6 +242,32 @@ public sealed class ShapesTests : BridgeTestBase
         AssertPoint(new Point(25, 50), PointAt(path.Data!, 0));
     }
 
+    [AvaloniaFact]
+    public void MorphReadsTheDataOfAnyGeometryProperty()
+    {
+        var icon = new PathIcon { Data = Geometry.Parse("M 0,0 L 100,0 L 100,100") };
+        var destination = Geometry.Parse("M 0,100 L 100,100 L 100,0");
+
+        var animation = icon.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(destination), Duration = 100, Autoplay = false });
+        animation.Seek(animation.Duration);
+
+        AssertPoint(PointAt(destination, 0), PointAt(icon.Data!, 0));
+        AssertPoint(PointAt(destination, 1), PointAt(icon.Data!, 1));
+    }
+
+    [AvaloniaFact]
+    public void MorphPointCountIsTheNumberOfPointsTheMorphSamples()
+    {
+        var path = CreatePath();
+        var destination = Geometry.Parse("M 0,0 L 300,0");
+        var expected = PrestoAvalonia.MorphPointCount(path.Data!, destination);
+
+        var animation = path.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(destination), Duration = 100, Autoplay = false });
+
+        Assert.True(expected > 2);
+        Assert.Equal(expected, animation._headTween!._toNumbers.Length / 2);
+    }
+
     /// <summary>Upstream's <c>precision: 0</c> morphs the raw points attribute, which an Avalonia <c>Geometry</c> cannot carry.</summary>
     [AvaloniaFact]
     public void MorphRejectsAPrecisionOfZero()

@@ -48,7 +48,6 @@ internal static class CompositorCompiler
             Reversed = parameters.Reversed,
             PlaybackRate = parameters.PlaybackRate,
             OnBegin = parameters.OnBegin,
-            OnComplete = parameters.OnComplete,
             Autoplay = false,
         };
 
@@ -241,8 +240,19 @@ internal static class CompositorCompiler
             && only._changeDuration == mirror.IterationDuration
             && only._textModifier == null
             && ReferenceEquals(only._modifier, s_noModifier)
+            && (kind != CompositorTrackKind.Opacity || StaysInRange(only._ease))
                 ? only
                 : null;
+    }
+
+    // Opacity samples are clamped, but an exact track eases on the server, where an overshoot would get past the clamp.
+    private static bool StaysInRange(Ease ease)
+    {
+        for (var s = 0; s <= SamplesPerIteration; s++)
+        {
+            if (ease((double)s / SamplesPerIteration) is < 0 or > 1) return false;
+        }
+        return true;
     }
 
     private static double[] Read(CompositorScratch scratch, CompositorTrackKind kind) => kind switch
@@ -251,7 +261,7 @@ internal static class CompositorCompiler
         // The uniform scale multiplies the per axis ones, as RenderTransformComposer does on the UI thread.
         CompositorTrackKind.Scale => [scratch.Scale * scratch.ScaleX, scratch.Scale * scratch.ScaleY, 1],
         CompositorTrackKind.RotationAngle => [scratch.Rotate * Math.PI / 180],
-        _ => [scratch.Opacity],
+        _ => [Math.Clamp(scratch.Opacity, 0, 1)],
     };
 
     private static TweenValue? Resolve(TweenValue? value, object target, int index, IReadOnlyList<object> targets)

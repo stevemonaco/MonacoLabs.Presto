@@ -4,19 +4,21 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
 using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Showcase;
 
 /// <summary>Playback controls for any <see cref="Timer"/>, a timeline included: transport buttons, a scrubber, a speed slider and a duration slider.</summary>
 /// <remarks>
-/// The bar reads the timer from a timer of its own, because <see cref="Timer.OnUpdate"/> and
-/// <see cref="Timer.OnComplete"/> can only be set when a timer is created (SAMPLES-PLAN §8).
+/// The bar follows the timer through its <see cref="Timer.OnUpdate"/>, chained after any handler already there, and
+/// Loop sets its <see cref="Timer.Loop"/>; both are put back when the bar is given another timer. The scrubber and the
+/// readout track the current iteration, so they keep sweeping while the timer loops forever.
 /// </remarks>
 public partial class TransportBar : UserControl
 {
     private Timer? _timer;
+    private Action<Timer>? _baseOnUpdate;
+    private LoopCount _baseLoop;
     private double _baseDuration;
     private bool _scrubbing;
     private bool _syncing;
@@ -27,7 +29,6 @@ public partial class TransportBar : UserControl
         // Tunnelling: the thumb handles both events and captures the pointer, so neither one bubbles back up here.
         Scrubber.AddHandler(PointerPressedEvent, (_, _) => _scrubbing = true, RoutingStrategies.Tunnel);
         Scrubber.AddHandler(PointerReleasedEvent, (_, _) => _scrubbing = false, RoutingStrategies.Tunnel);
-        PrestoAvalonia.CreateScope(this).Execute(_ => Presto.CreateTimer(new() { OnUpdate = _ => Sync() }));
     }
 
     /// <summary>The timer the bar drives; the duration slider scales whatever duration it has when it is set here.</summary>
@@ -36,24 +37,36 @@ public partial class TransportBar : UserControl
         get => _timer;
         set
         {
+            if (_timer is { } previous)
+            {
+                previous.OnUpdate = _baseOnUpdate;
+                previous.Loop = _baseLoop;
+            }
             _timer = value;
             _baseDuration = value?.Duration ?? 0;
+            _baseLoop = value?.Loop ?? 0;
+            _baseOnUpdate = value?.OnUpdate;
             StretchSlider.Value = 1;
             SpeedSlider.Value = value?.Speed ?? 1;
+            if (value is null) return;
+            value.OnUpdate = timer =>
+            {
+                _baseOnUpdate?.Invoke(timer);
+                Sync(timer);
+            };
+            if (LoopToggle.IsChecked == true) value.Loop = LoopCount.Infinite;
         }
     }
 
-    private void Sync()
+    private void Sync(Timer timer)
     {
-        if (_timer is not { } timer) return;
-        if (LoopToggle.IsChecked == true && timer.Completed) timer.Restart();
         if (!_scrubbing)
         {
             _syncing = true;
-            Scrubber.Value = timer.Progress;
+            Scrubber.Value = timer.IterationProgress;
             _syncing = false;
         }
-        TimeText.Text = string.Create(CultureInfo.InvariantCulture, $"{timer.CurrentTime:0} ms · {timer.Progress * 100:0}%");
+        TimeText.Text = string.Create(CultureInfo.InvariantCulture, $"{timer.IterationCurrentTime:0} ms · {timer.IterationProgress * 100:0}%");
     }
 
     private void Play(object? sender, RoutedEventArgs e) => _timer?.Play();
@@ -66,9 +79,20 @@ public partial class TransportBar : UserControl
 
     private void Alternate(object? sender, RoutedEventArgs e) => _timer?.Alternate();
 
+    private void LoopChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_timer is not { } timer) return;
+        var time = timer.CurrentTime;
+        timer.Loop = LoopToggle.IsChecked == true ? LoopCount.Infinite : _baseLoop;
+        // Left past the new end, the timer would complete on its next tick without rendering or updating the bar.
+        if (time > timer.Duration) timer.CurrentTime = timer.Duration - timer.IterationDuration + (time % timer.IterationDuration);
+        if (timer.Completed) timer.Restart();
+    }
+
     private void Scrub(object? sender, RangeBaseValueChangedEventArgs e)
     {
-        if (!_syncing && _timer is { } timer) timer.Progress = e.NewValue;
+        // IterationProgress reads the rendered position, which a reversed timer mirrors, but seeks the unmirrored one.
+        if (!_syncing && _timer is { } timer) timer.IterationProgress = timer.Reversed ? 1 - e.NewValue : e.NewValue;
     }
 
     private void SpeedChanged(object? sender, RangeBaseValueChangedEventArgs e)
@@ -79,10 +103,14 @@ public partial class TransportBar : UserControl
     private void StretchChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
         if (_timer is not { } timer || !double.IsFinite(_baseDuration)) return;
-        // Stretch keeps the current time rather than the progress, so the playhead would land on an earlier beat of the
-        // retimed sequence and the picture would jump backwards (SAMPLES-PLAN §8).
-        var progress = timer.Progress;
+        // Stretch keeps time, not progress, so rescale CurrentTime or the playhead jumps back (SAMPLES-PLAN §8);
+        // it needs the finite base loop count to scale, so the live one is swapped out around the call.
+        var loop = timer.Loop;
+        var time = timer.CurrentTime;
+        var iterationDuration = timer.IterationDuration;
+        timer.Loop = _baseLoop;
         timer.Stretch(_baseDuration * e.NewValue);
-        timer.Progress = progress;
+        timer.Loop = loop;
+        timer.CurrentTime = time * timer.IterationDuration / iterationDuration;
     }
 }

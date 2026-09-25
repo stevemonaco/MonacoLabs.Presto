@@ -31,6 +31,7 @@ public record TimerParams
     public bool? Autoplay { get; init; }
 
     /// <summary>Caps how often this timer renders, in frames per second; unlike <see cref="PlaybackRate"/> it does not change how fast its time advances (upstream <c>frameRate</c>).</summary>
+    /// <remarks>0 or less means uncapped (240 fps), where upstream clamps it to a rate that never renders.</remarks>
     public double? FrameRate { get; init; }
 
     /// <summary>Multiplier on this timer's own time, so 2 finishes it in half the wall-clock duration (upstream <c>playbackRate</c>).</summary>

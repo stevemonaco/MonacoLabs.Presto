@@ -10,5 +10,9 @@ public enum Composition
     None = 1,
 
     /// <summary>Adds to the running tweens on that property instead of overriding them (upstream <c>'blend'</c>).</summary>
+    /// <remarks>
+    /// While a blended tween is live, the additive pass owns the property and overwrites a <see cref="Replace"/> tween on it
+    /// in the same frame. A blended tween's <c>To</c> sets the base the additive group composes from.
+    /// </remarks>
     Blend = 2,
 }

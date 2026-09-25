@@ -31,12 +31,13 @@ public abstract class Clock
     public double DeltaTime { get; internal set; }
 
     /// <summary>Cap on how often this clock renders, in frames per second (upstream <c>frameRate</c>); raising it past <see cref="PrestoDefaults.FrameRate"/> raises that default too, as upstream does.</summary>
+    /// <remarks>0 or less means uncapped (240 fps), where upstream clamps it to a rate that never renders.</remarks>
     public double Fps
     {
         get => _fps;
         set
         {
-            var fps = value < Constants.MinValue ? Constants.MinValue : value;
+            var fps = value <= 0 ? Constants.MaxFps : value;
             var defaults = OwnerEngine.Defaults;
             if (fps > defaults.FrameRate) defaults.FrameRate = fps;
             _fps = fps;
