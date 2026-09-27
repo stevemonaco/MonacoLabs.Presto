@@ -1,0 +1,204 @@
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using Avalonia.Threading;
+using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Compositor;
+using Path = Avalonia.Controls.Shapes.Path;
+
+namespace PrestoSample.Showcase.Pages;
+
+/// <summary>
+/// A connected animation across two views, as the Community Toolkit's <c>ConnectedAnimationService</c> does between pages:
+/// the gallery is swapped out for a detail view built from scratch, and the photo and city name fly between the two.
+/// </summary>
+public partial class ConnectedNavPage : ShowcasePage
+{
+    private const int Columns = 4;
+    private const double HeroDuration = 620;
+    private const double TitleDuration = 520;
+    private static readonly string[] Months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    private readonly Card[] _cards;
+    private readonly Control _gallery;
+    private Detail? _detail;
+    private CompositorAnimation? _cascade;
+    private int? _open;
+
+    public ConnectedNavPage()
+    {
+        InitializeComponent();
+        _cards = [.. Datasets.Places.Take(8).Select(BuildCard)];
+        var grid = new UniformGrid { Columns = Columns, Rows = 2 };
+        foreach (var card in _cards) grid.Children.Add(card.Root);
+        _gallery = new StackPanel
+        {
+            Spacing = 10,
+            Children =
+            {
+                new StackPanel
+                {
+                    Margin = new Thickness(5, 0),
+                    Children =
+                    {
+                        new TextBlock { Classes = { "title" }, Text = "Where to next?" },
+                        new TextBlock { Classes = { "caption" }, Text = "Pick a destination" },
+                    },
+                },
+                grid,
+            },
+        };
+        Host.Child = _gallery;
+    }
+
+    private double Pace => SlowMotion.IsChecked == true ? 4 : 1;
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key != Key.Escape || _open == null) return;
+        Close();
+        e.Handled = true;
+    }
+
+    private void Open(int index)
+    {
+        if (_open != null) return;
+        _open = index;
+        var card = _cards[index];
+        var detail = _detail = BuildDetail(index);
+        var pace = Pace;
+
+        Scope.Execute(_ =>
+        {
+            // Both sources are measured now, while the gallery is still on screen; the targets start once they are attached.
+            PrestoAvalonia.AnimateSharedElement(card.Photo, detail.Hero, HeroDuration * pace, Eases.OutQuint);
+            PrestoAvalonia.AnimateSharedElement(card.City, detail.City, TitleDuration * pace, Eases.OutExpo);
+            Host.Child = detail.Root;
+
+            _cascade?.Revert();
+            _cascade = PrestoAvalonia.AnimateOnCompositor(detail.Coordinated, Presto.Build()
+                .Y(from: 28, to: 0)
+                .Opacity(from: 0, to: 1)
+                .Duration(480 * pace)
+                .Delay(Presto.Stagger(45 * pace, new StaggerParams { Start = 200 * pace }))
+                .Ease(Eases.OutQuart));
+        });
+        Jam();
+        Focus();
+    }
+
+    private void Close()
+    {
+        if (_open is not { } index || _detail is not { } detail) return;
+        _open = null;
+        var card = _cards[index];
+        var pace = Pace;
+
+        Scope.Execute(_ =>
+        {
+            PrestoAvalonia.AnimateSharedElement(detail.Hero, card.Photo, HeroDuration * pace, Eases.OutQuint);
+            PrestoAvalonia.AnimateSharedElement(detail.City, card.City, TitleDuration * pace, Eases.OutExpo);
+            Host.Child = _gallery;
+
+            _cascade?.Revert();
+            Control[] returning = [.. _cards.Where(other => other != card).Select(other => other.Root), card.Country];
+            _cascade = PrestoAvalonia.AnimateOnCompositor(returning, Presto.Build()
+                .Scale(from: .9, to: 1)
+                .Opacity(from: 0, to: 1)
+                .Duration(420 * pace)
+                .Delay((FunctionValue)((target, _, _) => (120 + 70 * Distance((int)((Control)target).Tag!, index)) * pace))
+                .Ease(Eases.OutQuart));
+        });
+        Jam();
+    }
+
+    // Posted below Render priority, so the flight is committed to the compositor before the dispatcher stops answering.
+    private void Jam()
+    {
+        if (JamUi.IsChecked == true) Dispatcher.UIThread.Post(() => Thread.Sleep(1500), DispatcherPriority.Background);
+    }
+
+    private static double Distance(int from, int to) =>
+        Math.Sqrt(Math.Pow(from % Columns - to % Columns, 2) + Math.Pow(from / Columns - to / Columns, 2));
+
+    private Card BuildCard(Datasets.Place place, int index)
+    {
+        var photo = new Border { Classes = { "photo" }, Child = Scenery(place, index) };
+        var city = new TextBlock { Classes = { "city" }, Text = place.City, Margin = new Thickness(2, 8, 0, 0) };
+        var country = new TextBlock { Classes = { "caption" }, Text = place.Country, Margin = new Thickness(2, 1, 0, 0), Tag = index };
+        var root = new Border { Classes = { "place" }, Tag = index, Child = new StackPanel { Children = { photo, city, country } } };
+        root.PointerPressed += (_, _) => Open(index);
+        return new Card(root, photo, city, country);
+    }
+
+    private Detail BuildDetail(int index)
+    {
+        var place = Datasets.Places[index];
+        var hero = new Border { Classes = { "photo", "hero" }, Child = Scenery(place, index) };
+        var city = new TextBlock { Classes = { "city", "hero" }, Text = place.City };
+        var back = new Button { Content = "Back" };
+        back.Click += (_, _) => Close();
+        var book = new Button { Content = "Book a trip", Classes = { "accent" } };
+        book.Click += (_, _) => book.Animate(Presto.Build().Scale(k => k.To(1.08, duration: 110).To(1, duration: 320, ease: Eases.OutBack())));
+
+        Control[] coordinated =
+        [
+            new TextBlock { Classes = { "caption" }, Text = place.Country, FontSize = 14 },
+            new TextBlock { Classes = { "blurb" }, Text = place.Blurb, Margin = new Thickness(0, 12, 0, 16) },
+            new WrapPanel { Children = { Fact($"Best in {Months[index * 5 % 12]}"), Fact($"{3 + index % 5}h {index * 13 % 60:00}m flight"), Fact($"★ {4.1 + index % 9 / 10.0:0.0}") } },
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Margin = new Thickness(0, 12, 0, 0), Children = { book, back } },
+        ];
+
+        var text = new StackPanel { Children = { city } };
+        foreach (var control in coordinated) text.Children.Add(control);
+        var root = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("330,*"),
+            ColumnSpacing = 24,
+            Margin = new Thickness(5),
+            Children = { new StackPanel { Children = { hero } }, text },
+        };
+        Grid.SetColumn(text, 1);
+        return new Detail(root, hero, city, coordinated);
+    }
+
+    private static Border Fact(string text) => new() { Classes = { "fact" }, Child = new TextBlock { Text = text } };
+
+    /// <summary>A little landscape drawn in a fixed 200×130 frame, so the thumbnail and the hero show the same picture at two scales.</summary>
+    private static Viewbox Scenery(Datasets.Place place, int index)
+    {
+        var sky = Palette.HueGradient(place.Hue);
+        var far = new ImmutableSolidColorBrush(HsvColor.ToRgb((place.Hue + 200) % 360, .45, .45));
+        var near = new ImmutableSolidColorBrush(HsvColor.ToRgb((place.Hue + 190) % 360, .55, .25));
+        var sun = new ImmutableSolidColorBrush(HsvColor.ToRgb((place.Hue + 40) % 360, .3, 1));
+        var peak = 40 + index * 23 % 40;
+        return new Viewbox
+        {
+            Stretch = Stretch.UniformToFill,
+            Child = new Canvas
+            {
+                Width = 200,
+                Height = 130,
+                Background = sky,
+                Children =
+                {
+                    new Ellipse { Width = 34, Height = 34, Fill = sun, [Canvas.LeftProperty] = 20d + index * 47 % 140, [Canvas.TopProperty] = 18d },
+                    new Path { Fill = far, Opacity = .8, Data = Geometry.Parse(string.Create(CultureInfo.InvariantCulture, $"M0,95 L40,{peak + 22} L75,85 L115,{peak} L160,82 L200,62 L200,130 L0,130 Z")) },
+                    new Path { Fill = near, Data = Geometry.Parse("M0,110 C50,88 90,120 140,100 C170,90 185,96 200,92 L200,130 L0,130 Z") },
+                },
+            },
+        };
+    }
+
+    private sealed record Card(Border Root, Border Photo, TextBlock City, TextBlock Country);
+
+    private sealed record Detail(Grid Root, Border Hero, TextBlock City, Control[] Coordinated);
+}
