@@ -1,4 +1,5 @@
-﻿using Monaco.Presto.Core;
+﻿using System.Runtime.CompilerServices;
+using Monaco.Presto.Core;
 using Monaco.Presto.Targets;
 
 namespace Monaco.Presto;
@@ -34,6 +35,7 @@ public sealed class Timeline : Timer
     internal override PrestoDefaults ChildDefaults => _defaults;
 
     /// <summary>Adds an animation of <paramref name="targets"/> at <paramref name="position"/>, which defaults to the end of the timeline.</summary>
+    [OverloadResolutionPriority(1)]
     public Timeline Add(object? targets, AnimationParams parameters, TimelinePosition position = default)
     {
         _hasChildren = true;
@@ -43,6 +45,7 @@ public sealed class Timeline : Timer
     }
 
     /// <summary>Adds one child per target, each at the position <paramref name="position"/> staggers that target to.</summary>
+    [OverloadResolutionPriority(1)]
     public Timeline Add(object? targets, AnimationParams parameters, Stagger position)
     {
         _hasChildren = true;
@@ -63,6 +66,13 @@ public sealed class Timeline : Timer
         return this;
     }
 
+    /// <summary>Adds an animation of <paramref name="targets"/> built from a snapshot of <paramref name="builder"/>.</summary>
+    public Timeline Add(object? targets, AnimationBuilder builder, TimelinePosition position = default) =>
+        Add(targets, builder.ToParams(), position);
+
+    /// <summary>Adds one child per target built from a snapshot of <paramref name="builder"/>, each at its staggered position.</summary>
+    public Timeline Add(object? targets, AnimationBuilder builder, Stagger position) => Add(targets, builder.ToParams(), position);
+
     /// <summary>
     /// Adds a plain timer at <paramref name="position"/>. The parameters must be written as <c>new TimerParams { … }</c>,
     /// since a bare <c>new() { … }</c> is ambiguous with the targets overload.
@@ -76,8 +86,13 @@ public sealed class Timeline : Timer
     }
 
     /// <summary>Adds an animation that writes its values instantly at <paramref name="position"/>, replacing whatever the earlier children left there.</summary>
+    [OverloadResolutionPriority(1)]
     public Timeline Set(object? targets, AnimationParams parameters, TimelinePosition position = default) =>
         Add(targets, parameters with { Duration = Constants.MinValue, Composition = Monaco.Presto.Composition.Replace }, position);
+
+    /// <summary>Like <see cref="Set(object?, AnimationParams, TimelinePosition)"/>, with a snapshot of <paramref name="builder"/>.</summary>
+    public Timeline Set(object? targets, AnimationBuilder builder, TimelinePosition position = default) =>
+        Set(targets, builder.ToParams(), position);
 
     /// <summary>Invokes <paramref name="callback"/> when the playhead reaches <paramref name="position"/>, in either direction.</summary>
     public Timeline Call(Action<Timeline> callback, TimelinePosition position = default) =>

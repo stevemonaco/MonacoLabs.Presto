@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Monaco.Presto.AvaloniaBridge.Compositor;
@@ -12,15 +13,28 @@ namespace Monaco.Presto.AvaloniaBridge;
 public static class AnimateExtensions
 {
     /// <summary>Animates this object's properties, installing the bridge first when nothing else has.</summary>
+    [OverloadResolutionPriority(1)]
     public static Animation Animate(this AvaloniaObject target, AvaloniaAnimationParams parameters)
     {
         PrestoAvalonia.EnsureInitialized();
         return Presto.Animate(target, parameters);
     }
 
-    /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor"/>
+    /// <summary>Animates this object with a snapshot of <paramref name="builder"/>, installing the bridge first when nothing else has.</summary>
+    public static Animation Animate(this AvaloniaObject target, AnimationBuilder builder)
+    {
+        PrestoAvalonia.EnsureInitialized();
+        return builder.Animate(target);
+    }
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor(object?, CompositorAnimationParams)"/>
+    [OverloadResolutionPriority(1)]
     public static CompositorAnimation AnimateOnCompositor(this Visual target, CompositorAnimationParams parameters) =>
         PrestoAvalonia.AnimateOnCompositor(target, parameters);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>
+    public static CompositorAnimation AnimateOnCompositor(this Visual target, AnimationBuilder builder) =>
+        PrestoAvalonia.AnimateOnCompositor(target, builder);
 
     /// <inheritdoc cref="PrestoAvalonia.AnimateLayout"/>
     public static LayoutTransition AnimateLayout(

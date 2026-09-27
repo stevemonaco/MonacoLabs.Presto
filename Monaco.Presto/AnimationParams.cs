@@ -17,7 +17,7 @@ public record AnimationParams : TimerParams
     }
 
     /// <summary>A <c>with</c> copy shares this dictionary; every consumer only reads it.</summary>
-    internal OrderedDictionary<string, TweenValue> Properties { get; } = new();
+    internal OrderedDictionary<string, TweenValue> Properties { get; init; } = new();
 
     /// <summary>How long each property takes, in milliseconds, or a <see cref="FunctionValue"/> giving each target its own.</summary>
     public new TweenValue? Duration { get; init; }

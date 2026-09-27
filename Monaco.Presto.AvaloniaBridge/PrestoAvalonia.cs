@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -97,10 +98,50 @@ public static class PrestoAvalonia
     /// Each target gets its own playback mirror and composition animations, so this is meant for a handful of visuals, not
     /// thousands.
     /// </remarks>
+    [OverloadResolutionPriority(1)]
     public static CompositorAnimation AnimateOnCompositor(object? targets, CompositorAnimationParams parameters)
     {
         EnsureInitialized();
         return new CompositorAnimation(targets, parameters);
+    }
+
+    /// <summary>Runs a snapshot of <paramref name="builder"/> on the render thread, as the <see cref="CompositorAnimationParams"/> overload does.</summary>
+    /// <exception cref="NotSupportedException">The builder set something the compositor has no counterpart for.</exception>
+    public static CompositorAnimation AnimateOnCompositor(object? targets, AnimationBuilder builder)
+    {
+        var p = builder.ToParams();
+        var unsupported =
+            p.Keyframes != null ? nameof(p.Keyframes) :
+            p.FrameRate != null ? nameof(p.FrameRate) :
+            p.PlaybackEase != null ? nameof(p.PlaybackEase) :
+            p.Composition != null ? nameof(p.Composition) :
+            p.Modifier != null ? nameof(p.Modifier) :
+            p.Id != null ? nameof(p.Id) :
+            p.Priority != new TimerParams().Priority ? nameof(p.Priority) :
+            p.OnBeforeUpdate != null ? nameof(p.OnBeforeUpdate) :
+            p.OnUpdate != null ? nameof(p.OnUpdate) :
+            p.OnLoop != null ? nameof(p.OnLoop) :
+            p.OnPause != null ? nameof(p.OnPause) :
+            p.OnRender != null ? nameof(p.OnRender) :
+            null;
+        if (unsupported != null) throw new NotSupportedException($"{unsupported} has no counterpart on the compositor.");
+
+        var parameters = new CompositorAnimationParams
+        {
+            Duration = p.Duration,
+            Delay = p.Delay,
+            Ease = p.Ease,
+            Loop = p.Loop,
+            LoopDelay = p.LoopDelay,
+            Alternate = p.Alternate,
+            Reversed = p.Reversed,
+            Autoplay = p.Autoplay,
+            PlaybackRate = p.PlaybackRate,
+            OnBegin = p.OnBegin,
+            OnComplete = p.OnComplete,
+        };
+        foreach (var (name, value) in p.Properties) parameters.Properties[name] = value;
+        return AnimateOnCompositor(targets, parameters);
     }
 
     /// <summary>

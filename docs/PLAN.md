@@ -191,7 +191,7 @@ Phases 9–12 are the compositor work; [docs/COMPOSITOR-PLAN.md](COMPOSITOR-PLAN
 - [x] **Phase 11b — Compositor animations, playback control (bridge).** `Pause`/`Resume`/`Play`/`Reverse`/`Alternate`/`Seek`/`Restart`/`Complete`/`Progress`/`Speed` by recompiling from the mirror's position; phase rotation for infinite loops. Sample: the spun `PathIcon` gets Pause/Resume/Reverse buttons and a speed slider.
 - [x] **Phase 12 — FLIP layout transitions (bridge).** `PrestoAvalonia.AnimateLayout` and `AnimateSharedElement`: First/Last measured on the UI thread, inverted onto the element visual's `Translation` (plus `Scale` in `.PositionAndSize`) and played to identity on the compositor, with a mirror for interruption and `Then()`. Sample (cards, growing panel, shared-element move) and tests that assert interpolation, watched on the Desktop head. The specs are live in `tests/Monaco.Presto.AvaloniaBridge.Tests/LayoutTransitionTests.cs` and the layout cases of `CompositorRegistryTests`, held behind a `LAYOUT_TRANSITION` compile symbol until the implementation lands again.
 - [ ] **Phase 13 — Advanced sample gallery.** A second "Showcase" section of nine demos that use many features at once — motion-design set-pieces, real-world UI patterns and the render-thread/scale/blend proofs — plus a restyle of the shell and the shared classes the reference pages already use. The plan, per-demo specs and its own phase checklist live in [docs/SAMPLES-PLAN.md](SAMPLES-PLAN.md); the API gaps it turns up land in §7 below.
-- [ ] **Phase 14 — Fluent builder.** `Presto.Build()` → `AnimationBuilder`, a reusable recipe that snapshots into `AnimationParams` and ends in a live `Animation`; typed shorthand/property extensions in the bridge, timeline and compositor overloads. Beside the indexer, not replacing it. Design, API shape and tests in [docs/FLUENT-BUILDER-PLAN.md](FLUENT-BUILDER-PLAN.md).
+- [x] **Phase 14 — Fluent builder.** `Presto.Build()` → `AnimationBuilder`, a reusable recipe that snapshots into `AnimationParams` and ends in a live `Animation`; typed shorthand/property extensions in the bridge, timeline and compositor overloads. Beside the indexer, not replacing it. Design, API shape and tests in [docs/FLUENT-BUILDER-PLAN.md](FLUENT-BUILDER-PLAN.md).
 
 ## 6. Testing strategy
 
@@ -207,7 +207,7 @@ Decided (change here if reconsidered):
 
 1. Time unit is milliseconds as `double`; seconds mode is an engine scale factor (parity).
 2. `Defaults.Ease` is `Eases.Out(2)` like upstream, not linear.
-3. Property tweens use the string indexer on params objects; typed `AvaloniaProperty` indexer available in the bridge. No fluent builder in v1 (can be layered on later without changing the model).
+3. Property tweens use the string indexer on params objects plus an optional fluent builder over it (`Presto.Build()`, Phase 14), which only builds params and so leaves the model unchanged; typed `AvaloniaProperty` indexer available in the bridge.
 4. Transform shorthands write a bridge-owned `TransformGroup` to `RenderTransform`; if the user already set a non-Presto `RenderTransform`, it is wrapped as the first child rather than replaced.
 5. Animated values are written at `BindingPriority.Animation` so `Revert()` restores user values precisely.
 6. Bridge root namespace is `Monaco.Presto.AvaloniaBridge` to avoid shadowing `Avalonia.*`.
