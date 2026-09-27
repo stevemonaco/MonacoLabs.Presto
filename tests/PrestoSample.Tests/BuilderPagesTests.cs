@@ -123,12 +123,14 @@ public sealed class BuilderPagesTests
     }
 
     [Fact]
-    public void XamlPageSnippetsMatchItsMarkup()
-    {
-        var markup = Normalise(File.ReadAllText(RepoFile("samples/PrestoSample/Builder/XamlPage.axaml")));
-        var snippets = typeof(XamlPage).GetFields(BindingFlags.Public | BindingFlags.Static).Where(field => field.IsLiteral).ToList();
+    public void XamlPageSnippetsMatchItsMarkup() => AssertSnippetsMatchMarkup(typeof(XamlPage), "samples/PrestoSample/Builder/XamlPage.axaml", 3);
 
-        Assert.Equal(3, snippets.Count);
+    internal static void AssertSnippetsMatchMarkup(Type page, string axaml, int count)
+    {
+        var markup = Normalise(File.ReadAllText(RepoFile(axaml)));
+        var snippets = page.GetFields(BindingFlags.Public | BindingFlags.Static).Where(field => field.IsLiteral).ToList();
+
+        Assert.Equal(count, snippets.Count);
         Assert.All(snippets, field => Assert.Contains(Normalise((string)field.GetValue(null)!), markup));
     }
 

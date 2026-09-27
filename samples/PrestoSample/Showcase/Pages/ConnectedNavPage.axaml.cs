@@ -1,17 +1,12 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Layout;
-using Avalonia.Media;
-using Avalonia.Media.Immutable;
 using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Compositor;
-using Path = Avalonia.Controls.Shapes.Path;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -148,7 +143,7 @@ public partial class ConnectedNavPage : ShowcasePage
 
     private Card BuildCard(Datasets.Place place, int index)
     {
-        var photo = new Border { Classes = { "photo" }, Child = Scenery(place, index) };
+        var photo = new Border { Classes = { "photo" }, Child = new Scenery { Hue = place.Hue, Index = index } };
         var city = new TextBlock { Classes = { "city" }, Text = place.City, Margin = new Thickness(2, 8, 0, 0) };
         var country = new TextBlock { Classes = { "caption" }, Text = place.Country, Margin = new Thickness(2, 1, 0, 0), Tag = index };
         var root = new Border { Classes = { "place" }, Tag = index, Child = new StackPanel { Children = { photo, city, country } } };
@@ -159,7 +154,7 @@ public partial class ConnectedNavPage : ShowcasePage
     private Detail BuildDetail(int index)
     {
         var place = Datasets.Places[index];
-        var hero = new Border { Classes = { "photo", "hero" }, Child = Scenery(place, index) };
+        var hero = new Border { Classes = { "photo", "hero" }, Child = new Scenery { Hue = place.Hue, Index = index } };
         var city = new TextBlock { Classes = { "city", "hero" }, Text = place.City };
         var back = new Button { Content = "Back" };
         back.Click += (_, _) => Close();
@@ -188,32 +183,6 @@ public partial class ConnectedNavPage : ShowcasePage
     }
 
     private static Border Fact(string text) => new() { Classes = { "fact" }, Child = new TextBlock { Text = text } };
-
-    /// <summary>A little landscape drawn in a fixed 200×130 frame, so the thumbnail and the hero show the same picture at two scales.</summary>
-    private static Viewbox Scenery(Datasets.Place place, int index)
-    {
-        var sky = Palette.HueGradient(place.Hue);
-        var far = new ImmutableSolidColorBrush(HsvColor.ToRgb((place.Hue + 200) % 360, .45, .45));
-        var near = new ImmutableSolidColorBrush(HsvColor.ToRgb((place.Hue + 190) % 360, .55, .25));
-        var sun = new ImmutableSolidColorBrush(HsvColor.ToRgb((place.Hue + 40) % 360, .3, 1));
-        var peak = 40 + index * 23 % 40;
-        return new Viewbox
-        {
-            Stretch = Stretch.UniformToFill,
-            Child = new Canvas
-            {
-                Width = 200,
-                Height = 130,
-                Background = sky,
-                Children =
-                {
-                    new Ellipse { Width = 34, Height = 34, Fill = sun, [Canvas.LeftProperty] = 20d + index * 47 % 140, [Canvas.TopProperty] = 18d },
-                    new Path { Fill = far, Opacity = .8, Data = Geometry.Parse(string.Create(CultureInfo.InvariantCulture, $"M0,95 L40,{peak + 22} L75,85 L115,{peak} L160,82 L200,62 L200,130 L0,130 Z")) },
-                    new Path { Fill = near, Data = Geometry.Parse("M0,110 C50,88 90,120 140,100 C170,90 185,96 200,92 L200,130 L0,130 Z") },
-                },
-            },
-        };
-    }
 
     private sealed record Card(Border Root, Border Photo, TextBlock City, TextBlock Country);
 

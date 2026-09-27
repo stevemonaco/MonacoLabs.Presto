@@ -90,6 +90,14 @@ public abstract class CompositorTestBase : BridgeTestBase
         return right < 0 ? null : new Rect(left, top, right - left, bottom - top);
     }
 
+    /// <summary>The box the red pixels of <paramref name="visual"/> fill in the last rendered frame.</summary>
+    protected static Rect Box(Visual visual) =>
+        Extent(visual, Colors.Red) ?? throw new InvalidOperationException("The red element is not in the rendered frame.");
+
+    /// <summary>The layout slot of <paramref name="control"/> in window coordinates.</summary>
+    protected static Rect SlotOf(Control control) =>
+        new(control.TranslatePoint(default, TopLevel.GetTopLevel(control)!)!.Value, control.Bounds.Size);
+
     /// <summary>The pixels of the last rendered frame inside <paramref name="box"/> that hold something other than <paramref name="background"/>.</summary>
     protected static int CountPixels(Visual visual, Rect box, Color background)
     {

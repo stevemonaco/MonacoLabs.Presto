@@ -481,9 +481,6 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         return (list, panel);
     }
 
-    private static Rect SlotOf(Control control) =>
-        new(control.TranslatePoint(default, TopLevel.GetTopLevel(control)!)!.Value, control.Bounds.Size);
-
     /// <summary>The box the bar is rendered in halfway through a <see cref="Duration"/> move, pumping the render thread until it gets there.</summary>
     private static async Task<Rect> HalfwayBox(Visual bar)
     {
@@ -501,7 +498,4 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     }
 
     private static double Top(Visual bar) => Box(bar).Top;
-
-    private static Rect Box(Visual bar) =>
-        Extent(bar, Colors.Red) ?? throw new InvalidOperationException("The bar is not in the rendered frame.");
 }

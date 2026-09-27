@@ -35,6 +35,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
 
     private Rect? _first;
     private bool _firstOnScreen;
+    private bool _armed = true;
     private Animation? _mirror;
     private bool _translating;
     private bool _scaling;
@@ -62,6 +63,9 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     /// <inheritdoc cref="Timer.Completed"/>
     public bool Completed => _mirror?.Completed ?? true;
 
+    /// <summary>True from creation until the first move it plays has finished, unlike <see cref="Completed"/>, which is true until that move starts.</summary>
+    internal bool InFlight => _armed || _mirror is { Completed: false };
+
     /// <summary>Stops the move in flight, leaving the control in the slot layout gave it.</summary>
     public LayoutTransition Cancel()
     {
@@ -75,6 +79,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     public LayoutTransition Revert()
     {
         Cancel();
+        _armed = false;
         _control.LayoutUpdated -= OnLayoutUpdated;
         if (s_live.TryGetValue(_control, out var live) && live == this) s_live.Remove(_control);
         return this;
@@ -103,9 +108,14 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     /// Where <paramref name="control"/> is drawn on screen: its slot with scrolling left in, plus its render transform's
     /// translation and its live transition. This is what a shared element flies from, whatever scrolls around it.
     /// </summary>
-    internal static Rect? MeasureDrawn(Control control)
+    internal static Rect? MeasureDrawn(Control control) => MeasureOnScreen(control) is { } slot ? Drawn(control, slot) : null;
+
+    /// <summary>The layout slot <paramref name="control"/> has on screen, scroll offsets left in.</summary>
+    internal static Rect? MeasureOnScreen(Control control) => Measure(control, onScreen: true);
+
+    /// <summary>Where <paramref name="control"/> is drawn given its on-screen <paramref name="slot"/>: moved by its render transform and scaled by its live transition.</summary>
+    internal static Rect Drawn(Control control, Rect slot)
     {
-        if (Measure(control, onScreen: true) is not { } slot) return null;
         if (control.RenderTransform is { } transform)
         {
             var matrix = transform.Value;
@@ -124,9 +134,12 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
             s_prepared.Remove(key);
             return false;
         }
-        s_prepared[key] = (drawn, Stopwatch.GetTimestamp());
+        Prepare(key, drawn);
         return true;
     }
+
+    /// <summary>Records <paramref name="drawn"/> under <paramref name="key"/>, replacing any earlier entry.</summary>
+    internal static void Prepare(string key, Rect drawn) => s_prepared[key] = (drawn, Stopwatch.GetTimestamp());
 
     /// <summary>Removes and returns the rect prepared under <paramref name="key"/>, unless there is none or it has expired.</summary>
     internal static Rect? TakePrepared(string key)
@@ -175,6 +188,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         _firstOnScreen = false;
         _first = last;
         if (first is not { } from || ElementComposition.GetElementVisual(_control) is not { } element) return;
+        _armed = false;
 
         var sizable = _mode == LayoutAnimateMode.PositionAndSize && last.Width > 0 && last.Height > 0;
         var scaled = sizable && (from.Size != last.Size || _scratch.ScaleX != 1 || _scratch.ScaleY != 1);

@@ -551,6 +551,34 @@ PrestoAvalonia.AnimateSharedElement("photo", heroImage, Presto.Build().Duration(
 During the flight a control is still drawn inside its own parents, so one flying into a clipped container, such as a
 `ScrollViewer`, is clipped to it until it lands.
 
+#### Connected animations from XAML
+
+With view-model navigation (a `ContentControl` or `TransitioningContentControl` swapping views through DataTemplates),
+the prepare and start calls can move into markup, and neither view needs code:
+
+```xml
+<!-- Gallery item template -->
+<Border Classes="photo" presto:Connected.Key="{Binding Id, StringFormat=photo-{0}}" />
+
+<!-- Detail view -->
+<Border Classes="photo hero"
+        presto:Connected.Key="{Binding Id, StringFormat=photo-{0}}"
+        presto:Connected.Motion="{x:Static local:Motions.Flight}" />
+<StackPanel presto:Connected.Anchor="{Binding Id, StringFormat=photo-{0}}">…</StackPanel>
+```
+
+| Property | Type | Question | Where |
+|---|---|---|---|
+| `Key` | `string?` | Which element is the same thing in both views? | The matching element in both views |
+| `Motion` | `AnimationBuilder?` | How does this element arrive? | A keyed element (its flight) or an anchored one (its entrance) |
+| `Anchor` | `string?` | Which keyed flight does this element arrive with, without flying itself? | Elements around the destination |
+
+Arrival is attachment to the visual tree: a keyed element flies from another attached element with its key, or else
+from where the last one to leave was drawn, and otherwise shows normally. The arriving element's `Motion` wins; the
+leaving element's is never used. Without one, flights use `Connected.DefaultMotion` (500 ms, `OutQuint`) and anchored
+entrances `Connected.DefaultAnchorMotion` (rise 24 px and fade in over 400 ms, `OutQuart`, 150 ms delay); both are
+settable.
+
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:
