@@ -46,6 +46,9 @@ Option 1 is the bug fix; option 3 is the API improvement. They are independent a
 
 ## 2. Fluent builder
 
+> **Planned** in [FLUENT-BUILDER-PLAN.md](FLUENT-BUILDER-PLAN.md) (PLAN.md Phase 14), which settles the open question below:
+> the builder sits beside the indexer.
+
 `AnimationBuilder` ([docs](https://learn.microsoft.com/en-us/windows/communitytoolkit/animations/animationbuilder)) is a **fire-and-forget schedule**: `Create()` configures, `Start(element)` runs it, and the builder is reusable across elements. Control after the fact is a `CancellationToken`; there is no seek, reverse or playback rate.
 
 ```csharp

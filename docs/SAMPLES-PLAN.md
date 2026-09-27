@@ -253,8 +253,7 @@ seconds. The frame-time graph is itself a `CompositorScene`, so it keeps drawing
 
 ### 4.10 Typography — `TypographyPage`
 
-*Showpiece. The text module composed.* Four panels on one scrolling page, each with a `Replay` button (plan:
-[SHOWCASE-POLISH-PLAN.md](SHOWCASE-POLISH-PLAN.md) §4).
+*Showpiece. The text module composed.* Four panels on one scrolling page, each with a `Replay` button.
 
 - **Masked line reveal + reflow.** A paragraph split into `Lines` (`Wrap = true`) and `Words`; each word rises from a
   full line height under its line's mask, 120 ms per line plus 30 ms per word in the line, `OutExpo`. A width slider
@@ -288,16 +287,16 @@ seconds. The frame-time graph is itself a `CompositorScene`, so it keeps drawing
 - [x] **13b — Showpieces.** Title sequence, Morph lab, Particle field (+ `SceneText` spike first, §7.1).
 - [x] **13c — Real-world.** Card gallery, Board, Dashboard, Scroll story.
 - [x] **13d — Hard parts.** Interruption lab, Stress bench (+ `FrameGraphScene`).
-- [ ] **13f — Polish round.** Title sequence beat, board insertion gap, interruption lab rebuild, Typography page —
-      see [SHOWCASE-POLISH-PLAN.md](SHOWCASE-POLISH-PLAN.md). Implemented; pending a full `slnx` build and a Desktop
+- [ ] **13f — Polish round.** Title sequence beat, board insertion gap, interruption lab rebuild, Typography page.
+      Implemented; pending a full `slnx` build and a Desktop
       hand-check of the board drag and gap, the hover tiles and the wordmark.
 - [ ] **13g — Round 2.** Typography clip and rotator blink, card-gallery load, real controls on the reference pages,
-      compositor page rebuild, four new pages (Micro-interactions, Loaders, Carousel, Stress bench) — see
-      [SHOWCASE-ROUND2-PLAN.md](SHOWCASE-ROUND2-PLAN.md). Implemented; pending a full `slnx` build and
+      compositor page rebuild, four new pages (Micro-interactions, Loaders, Carousel, Stress bench).
+      Implemented; pending a full `slnx` build and
       `dotnet test --solution` (blocked by a locked Desktop bin), and a Desktop hand-check of the Card gallery
       first-load wave and a pointer drag on the Carousel.
 - [ ] **13h — Round 3.** Six new pages (Connected animation, Colour bloom, Gestures, Liquid navigation, Swipe deck,
-      Chart morph) — see [SHOWCASE-ROUND3-PLAN.md](SHOWCASE-ROUND3-PLAN.md). Implemented, §8 rows 29–30; the
+      Chart morph). Implemented, §8 rows 29–30; the
       three test projects pass, pending a full `slnx` build (blocked by a locked Desktop bin) and a Desktop pass over
       each page against its "done when" clause.
 - [ ] **13e — Docs.** README showcase section with captures, `CLAUDE.md` layout table updated with the
@@ -347,7 +346,7 @@ Two additions worth making:
 
 Filled in during implementation; each entry is a gap the demos hit, with a recommendation. Nothing here gets fixed as a
 side effect of a demo — it graduates to [PLAN.md](PLAN.md) §7 and is decided on its own. The Outcome column records
-what [LIBRARY-FINDINGS-PLAN.md](LIBRARY-FINDINGS-PLAN.md) decided and what landed.
+what the library-findings pass (commit `9bafac0`) decided and what landed.
 
 | # | Found in | Gap | Recommendation | Outcome |
 |---|---|---|---|---|
