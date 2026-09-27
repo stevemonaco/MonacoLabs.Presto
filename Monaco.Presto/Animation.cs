@@ -378,9 +378,20 @@ public sealed class Animation : Timer
             tween._currentTime *= timeScale;
             tween._delay *= timeScale;
             tween._startTime *= timeScale;
-            tween._absoluteStartTime *= timeScale;
-            tween._absoluteUpdateStartTime *= timeScale;
-            tween._absoluteEndTime *= timeScale;
+            if (Parent == null)
+            {
+                // A top level animation keeps its offset (Timer.Stretch), so the absolute times are rebuilt from the scaled local
+                // ones as the constructor builds them; scaling them instead would multiply their rounding noise as well.
+                tween._absoluteStartTime = Helpers.Round(_offset + tween._startTime, 12);
+                tween._absoluteUpdateStartTime = Helpers.Round(_offset + tween._startTime - tween._delay, 12);
+                tween._absoluteEndTime = Helpers.Round(_offset + Helpers.Round(tween._startTime + tween._updateDuration, 12), 12);
+            }
+            else
+            {
+                tween._absoluteStartTime *= timeScale;
+                tween._absoluteUpdateStartTime *= timeScale;
+                tween._absoluteEndTime *= timeScale;
+            }
         }
         base.Stretch(newDuration);
         return this;

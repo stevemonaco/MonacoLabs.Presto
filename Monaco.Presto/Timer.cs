@@ -407,7 +407,9 @@ public class Timer : Clock, IRevertible
         var isSetter = newDuration <= Constants.MinValue;
         Duration = isSetter ? Constants.MinValue : normalizedDuration;
         IterationDuration = isSetter ? Constants.MinValue : Helpers.NormalizeTime(IterationDuration * timeScale);
-        _offset *= timeScale;
+        // Deviates from upstream: a top level offset is the engine time the timer was created at, not a position in a parent,
+        // and stretching from a setter's 1e-11 duration would scale it past the precision a frame needs.
+        if (Parent != null) _offset *= timeScale;
         _delay *= timeScale;
         _loopDelay *= timeScale;
         return this;

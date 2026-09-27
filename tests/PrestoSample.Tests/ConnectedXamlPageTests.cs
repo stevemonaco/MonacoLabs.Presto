@@ -16,6 +16,17 @@ public sealed class ConnectedXamlPageTests
     private static readonly Color Tint = SceneHarness.Tint(0);
     private static readonly Color TextTint = SceneHarness.Tint(1);
 
+    [Fact]
+    public void SwitchingHostsStartsTheListBackAtTheTop()
+    {
+        var model = new ConnectedXamlViewModel();
+        model.Gallery.Offset = new Vector(0, 330);
+
+        model.CrossFade = true;
+
+        Assert.Equal(default, model.Gallery.Offset);
+    }
+
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]

@@ -19,7 +19,7 @@ public sealed partial class ConnectedXamlViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(SwappedPage), nameof(FadedPage))]
     public partial ObservableObject CurrentPage { get; set; }
 
-    /// <summary>Shows the pages in the cross-fading host instead of the swapping one.</summary>
+    /// <summary>Shows the pages in the cross-fading host instead of the swapping one, starting the list back at the top.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SwappedPage), nameof(FadedPage))]
     public partial bool CrossFade { get; set; }
@@ -31,6 +31,9 @@ public sealed partial class ConnectedXamlViewModel : ObservableObject
     public ObservableObject? FadedPage => CrossFade ? CurrentPage : null;
 
     private void Open(Destination destination) => CurrentPage = new DestinationViewModel(destination, () => CurrentPage = Gallery);
+
+    // Runs before the hosts rebuild: a new list clamps an offset it has no extent for yet and writes the clamp back.
+    partial void OnCrossFadeChanged(bool value) => Gallery.Offset = default;
 }
 
 /// <summary>A destination as both views bind it; <see cref="Id"/> builds their connected keys.</summary>
