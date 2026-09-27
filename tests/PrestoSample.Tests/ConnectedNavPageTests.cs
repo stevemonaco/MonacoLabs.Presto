@@ -61,6 +61,33 @@ public sealed class ConnectedNavPageTests
     }
 
     [AvaloniaFact]
+    public async Task ACardInTheScrolledGalleryFliesFromWhereItIsSeenAndBackIntoIt()
+    {
+        const int far = 13;
+        var page = new ConnectedNavPage();
+        var window = SceneHarness.Show(page, 1100, 700);
+        page.GetLogicalDescendants().OfType<ScrollViewer>().First().Offset = new Vector(0, 330);
+        TestFrames.Tick();
+        var photo = Photo(Cards(page)[far]);
+        var from = SceneHarness.Slot(photo, window);
+
+        SceneHarness.Click(window, Cards(page)[far]);
+        Flood(Hero(page));
+        TestFrames.Tick(2);
+
+        var early = SceneHarness.Extent(page, Tint);
+        Assert.True(early is { } box && Math.Abs(box.Top - from.Top) < 30, $"the hero started at {early}, not from the scrolled card at {from}");
+
+        await SceneHarness.Settle();
+        SceneHarness.Click(window, page.GetLogicalDescendants().OfType<Button>().First(button => Equals(button.Content, "Back")));
+        Flood(photo);
+        await SceneHarness.Settle();
+
+        Assert.True(SceneHarness.Extent(page, Tint) is { } landed && SceneHarness.Near(landed, SceneHarness.Slot(photo, window)), "the photo did not land in its scrolled card");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public async Task RapidTogglesLeaveThePhotoDrawnInItsCard()
     {
         var page = new ConnectedNavPage();
@@ -76,7 +103,7 @@ public sealed class ConnectedNavPageTests
             // Back is hit where the compositor draws it, so it can be pressed once its staggered fade-in shows it.
             Assert.True(await SceneHarness.Pump(() => Hittable(window, back)), "Back never became clickable");
             SceneHarness.Click(window, back);
-            Assert.IsType<StackPanel>(page.GetControl<Border>("Host").Child);
+            Assert.IsType<ScrollViewer>(page.GetControl<Border>("Host").Child);
             TestFrames.Tick(3);
         }
         await SceneHarness.Settle();

@@ -26,8 +26,11 @@ public partial class ConnectedNavPage : ShowcasePage
     private const double TitleDuration = 520;
     private static readonly string[] Months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+    private const string PhotoKey = "destination-photo";
+    private const string CityKey = "destination-city";
+
     private readonly Card[] _cards;
-    private readonly Control _gallery;
+    private readonly ScrollViewer _gallery;
     private Detail? _detail;
     private CompositorAnimation? _cascade;
     private int? _open;
@@ -35,28 +38,36 @@ public partial class ConnectedNavPage : ShowcasePage
     public ConnectedNavPage()
     {
         InitializeComponent();
-        _cards = [.. Datasets.Places.Take(8).Select(BuildCard)];
-        var grid = new UniformGrid { Columns = Columns, Rows = 2 };
+        _cards = [.. Datasets.Places.Select(BuildCard)];
+        var grid = new UniformGrid { Columns = Columns };
         foreach (var card in _cards) grid.Children.Add(card.Root);
-        _gallery = new StackPanel
+        // The header scrolls with the cards so the list's viewport covers the whole stage: a photo flying home is clipped to it.
+        _gallery = new ScrollViewer
         {
-            Spacing = 10,
-            Children =
+            Content = new StackPanel
             {
-                new StackPanel
+                Spacing = 10,
+                Children =
                 {
-                    Margin = new Thickness(5, 0),
-                    Children =
+                    new StackPanel
                     {
-                        new TextBlock { Classes = { "title" }, Text = "Where to next?" },
-                        new TextBlock { Classes = { "caption" }, Text = "Pick a destination" },
+                        Margin = new Thickness(5, 0),
+                        Children =
+                        {
+                            new TextBlock { Classes = { "title" }, Text = "Where to next?" },
+                            new TextBlock { Classes = { "caption" }, Text = $"{_cards.Length} destinations" },
+                        },
                     },
+                    grid,
                 },
-                grid,
             },
         };
         Host.Child = _gallery;
     }
+
+    /// <summary>The photo's flight: X and the scale ease out fast while Y eases in and out, which bends the straight line into an arc.</summary>
+    private static AnimationBuilder Flight(double duration) =>
+        Presto.Build().Duration(duration).Ease(Eases.OutQuint).Y(ease: Eases.InOutCubic);
 
     private double Pace => SlowMotion.IsChecked == true ? 4 : 1;
 
@@ -76,12 +87,15 @@ public partial class ConnectedNavPage : ShowcasePage
         var detail = _detail = BuildDetail(index);
         var pace = Pace;
 
+        // The gallery only records where its pieces are, keyed, and the detail view claims them: neither needs the other's controls.
+        PrestoAvalonia.PrepareSharedElement(PhotoKey, card.Photo);
+        PrestoAvalonia.PrepareSharedElement(CityKey, card.City);
+        Host.Child = detail.Root;
+
         Scope.Execute(_ =>
         {
-            // Both sources are measured now, while the gallery is still on screen; the targets start once they are attached.
-            PrestoAvalonia.AnimateSharedElement(card.Photo, detail.Hero, HeroDuration * pace, Eases.OutQuint);
-            PrestoAvalonia.AnimateSharedElement(card.City, detail.City, TitleDuration * pace, Eases.OutExpo);
-            Host.Child = detail.Root;
+            PrestoAvalonia.AnimateSharedElement(PhotoKey, detail.Hero, Flight(HeroDuration * pace));
+            PrestoAvalonia.AnimateSharedElement(CityKey, detail.City, TitleDuration * pace, Eases.OutExpo);
 
             _cascade?.Revert();
             _cascade = PrestoAvalonia.AnimateOnCompositor(detail.Coordinated, Presto.Build()
@@ -102,11 +116,14 @@ public partial class ConnectedNavPage : ShowcasePage
         var card = _cards[index];
         var pace = Pace;
 
+        PrestoAvalonia.PrepareSharedElement(PhotoKey, detail.Hero);
+        PrestoAvalonia.PrepareSharedElement(CityKey, detail.City);
+        Host.Child = _gallery;
+
         Scope.Execute(_ =>
         {
-            PrestoAvalonia.AnimateSharedElement(detail.Hero, card.Photo, HeroDuration * pace, Eases.OutQuint);
-            PrestoAvalonia.AnimateSharedElement(detail.City, card.City, TitleDuration * pace, Eases.OutExpo);
-            Host.Child = _gallery;
+            PrestoAvalonia.AnimateSharedElement(PhotoKey, card.Photo, Flight(HeroDuration * pace));
+            PrestoAvalonia.AnimateSharedElement(CityKey, card.City, TitleDuration * pace, Eases.OutExpo);
 
             _cascade?.Revert();
             Control[] returning = [.. _cards.Where(other => other != card).Select(other => other.Root), card.Country];

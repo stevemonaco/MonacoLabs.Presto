@@ -125,21 +125,33 @@ internal static class CompositorCompiler
     }
 
     /// <summary>
-    /// The one exact segment a layout transition plays (COMPOSITOR-PLAN §4.4 step 4): <paramref name="from"/> to
-    /// <paramref name="to"/> over <paramref name="mirror"/>'s iteration, eased by <paramref name="ease"/> itself rather
-    /// than by samples of it, since a FLIP move is always a single two-value tween.
+    /// The one segment a layout transition plays (COMPOSITOR-PLAN §4.4 step 4): <paramref name="from"/> to
+    /// <paramref name="to"/> over <paramref name="mirror"/>'s iteration, after its delay. <paramref name="eases"/> gives
+    /// each channel its ease, the last one covering the rest. A shared ease is compiled exactly rather than sampled, since
+    /// a FLIP move is a single two-value tween; channels eased differently, which is what makes an arc, are sampled.
     /// </summary>
-    public static CompiledTrack Segment(CompositorTrackKind kind, double[] from, double[] to, Animation mirror, Ease ease) =>
-        new(
-            kind,
-            [0, 1],
-            [from, to],
-            [s_linear, new PrestoEasing(ease)],
-            TimeSpan.FromMilliseconds(mirror.IterationDuration * WallClock(mirror)),
-            TimeSpan.Zero,
-            1,
-            false,
-            PlaybackDirection.Normal);
+    public static CompiledTrack Segment(CompositorTrackKind kind, double[] from, double[] to, Animation mirror, Ease[] eases)
+    {
+        var timeScale = WallClock(mirror);
+        var duration = TimeSpan.FromMilliseconds(mirror.IterationDuration * timeScale);
+        var delay = TimeSpan.FromMilliseconds(mirror._delay * timeScale);
+        if (eases.All(ease => ease == eases[0]))
+            return new(kind, [0, 1], [from, to], [s_linear, new PrestoEasing(eases[0])], duration, delay, 1, false, PlaybackDirection.Normal);
+
+        var keys = new float[SamplesPerIteration + 1];
+        var values = new double[SamplesPerIteration + 1][];
+        var easings = new Easing[SamplesPerIteration + 1];
+        for (var s = 0; s <= SamplesPerIteration; s++)
+        {
+            var progress = (double)s / SamplesPerIteration;
+            keys[s] = (float)progress;
+            easings[s] = s_linear;
+            values[s] = new double[from.Length];
+            for (var c = 0; c < from.Length; c++)
+                values[s][c] = from[c] + ((to[c] - from[c]) * eases[Math.Min(c, eases.Length - 1)](progress));
+        }
+        return new(kind, keys, values, easings, duration, delay, 1, false, PlaybackDirection.Normal);
+    }
 
     // Wall-clock ms per mirror ms, the scale Timer.ResetTime rebases on; the engine's own rate already carries the time unit.
     private static double WallClock(Animation mirror) => 1 / (mirror._speed * mirror.OwnerEngine._speed);

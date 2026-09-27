@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -20,30 +21,34 @@ namespace Monaco.Presto.AvaloniaBridge.Compositor;
 /// </remarks>
 public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
 {
+    // Matches the Toolkit's ConnectedAnimationService, which discards a prepared animation not started within about three seconds.
+    private static readonly TimeSpan s_preparedLifetime = TimeSpan.FromSeconds(3);
     private static readonly ConditionalWeakTable<Control, LayoutTransition> s_live = new();
+    private static readonly Dictionary<string, (Rect OnScreen, long At)> s_prepared = new();
     private static readonly Vector3D s_one = new(1, 1, 1);
 
     private readonly Control _control;
-    private readonly double _duration;
-    private readonly EaseValue? _ease;
+    private readonly LayoutMotion _motion;
     private readonly LayoutAnimateMode _mode;
     private readonly bool _once;
     private readonly CompositorScratch _scratch = new() { Scale = 1, ScaleX = 1, ScaleY = 1 };
 
     private Rect? _first;
+    private bool _firstOnScreen;
     private Animation? _mirror;
     private bool _translating;
     private bool _scaling;
 
-    internal LayoutTransition(Control control, Rect? first, double duration, EaseValue? ease, LayoutAnimateMode mode, bool once)
+    // An on-screen first is moved into this control's layout frame at its first pass, once its own scroll offset is known.
+    internal LayoutTransition(Control control, Rect? first, bool firstOnScreen, LayoutMotion motion, LayoutAnimateMode mode, bool once)
     {
         _control = control;
-        _duration = duration;
-        _ease = ease;
+        _motion = motion;
         _mode = mode;
         _once = once;
         // Measuring now rather than on the first layout pass is what lets the very next move ease instead of only recording.
         _first = first ?? Measure(control);
+        _firstOnScreen = first != null && firstOnScreen;
 
         if (s_live.TryGetValue(control, out var replaced)) replaced.Revert();
         s_live.AddOrUpdate(control, this);
@@ -92,22 +97,15 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     /// The layout slot <paramref name="control"/> has in its window with every scroll offset taken back out, so neither a
     /// scroll nor a render transform reads as a layout move; this is also the frame a move between two parents is measured in.
     /// </summary>
-    internal static Rect? Measure(Control control)
-    {
-        if (TopLevel.GetTopLevel(control) is null) return null;
-        var position = default(Point);
-        for (Visual? visual = control; visual is not null and not TopLevel; visual = visual.GetVisualParent())
-        {
-            position += visual.Bounds.Position;
-            if (visual.GetVisualParent() is ScrollContentPresenter scroller) position += scroller.Offset;
-        }
-        return new Rect(position, control.Bounds.Size);
-    }
+    internal static Rect? Measure(Control control) => Measure(control, onScreen: false);
 
-    /// <summary>Where <paramref name="control"/> is drawn: <see cref="Measure"/> plus its render transform's translation and its live transition.</summary>
+    /// <summary>
+    /// Where <paramref name="control"/> is drawn on screen: its slot with scrolling left in, plus its render transform's
+    /// translation and its live transition. This is what a shared element flies from, whatever scrolls around it.
+    /// </summary>
     internal static Rect? MeasureDrawn(Control control)
     {
-        if (Measure(control) is not { } slot) return null;
+        if (Measure(control, onScreen: true) is not { } slot) return null;
         if (control.RenderTransform is { } transform)
         {
             var matrix = transform.Value;
@@ -116,6 +114,37 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         if (!s_live.TryGetValue(control, out var live)) return slot;
         var scratch = live._scratch;
         return new Rect(slot.X + scratch.X, slot.Y + scratch.Y, slot.Width * scratch.ScaleX, slot.Height * scratch.ScaleY);
+    }
+
+    /// <summary>Records where <paramref name="source"/> is drawn under <paramref name="key"/>, replacing any earlier entry.</summary>
+    internal static bool Prepare(string key, Control source)
+    {
+        if (MeasureDrawn(source) is not { } drawn)
+        {
+            s_prepared.Remove(key);
+            return false;
+        }
+        s_prepared[key] = (drawn, Stopwatch.GetTimestamp());
+        return true;
+    }
+
+    /// <summary>Removes and returns the rect prepared under <paramref name="key"/>, unless there is none or it has expired.</summary>
+    internal static Rect? TakePrepared(string key)
+    {
+        if (!s_prepared.Remove(key, out var prepared)) return null;
+        return Stopwatch.GetElapsedTime(prepared.At) <= s_preparedLifetime ? prepared.OnScreen : null;
+    }
+
+    private static Rect? Measure(Control control, bool onScreen)
+    {
+        if (TopLevel.GetTopLevel(control) is null) return null;
+        var position = default(Point);
+        for (Visual? visual = control; visual is not null and not TopLevel; visual = visual.GetVisualParent())
+        {
+            position += visual.Bounds.Position;
+            if (!onScreen && visual.GetVisualParent() is ScrollContentPresenter scroller) position += scroller.Offset;
+        }
+        return new Rect(position, control.Bounds.Size);
     }
 
     /// <summary>
@@ -141,6 +170,9 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     {
         if (Measure(_control) is not { } last) return;
         var first = _first;
+        // Adding this control's own scroll offsets moves an on-screen source into its layout frame.
+        if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(last.Position - screenSlot.Position);
+        _firstOnScreen = false;
         _first = last;
         if (first is not { } from || ElementComposition.GetElementVisual(_control) is not { } element) return;
 
@@ -169,45 +201,45 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
             _scratch.ScaleY = scale[1];
         }
 
-        var ease = CompositorCompiler.Pure(_ease ?? Engine.Current.Defaults.Ease, _control, 0, 1, out var spring);
+        var ease = CompositorCompiler.Pure(_motion.Ease ?? Engine.Current.Defaults.Ease, _control, 0, 1, out var spring);
+        var easeX = Axis(_motion.EaseX, ease);
+        var easeY = Axis(_motion.EaseY, ease);
+        var easeScale = Axis(_motion.EaseScale, ease);
         var mirrorParams = new AnimationParams
         {
-            Duration = spring != null ? (TweenValue)spring.SettlingDuration : _duration,
+            Duration = spring != null ? (TweenValue)spring.SettlingDuration : _motion.Duration,
+            Delay = _motion.Delay,
             Ease = ease,
         };
-        mirrorParams.Properties["X"] = 0d;
-        mirrorParams.Properties["Y"] = 0d;
+        mirrorParams.Properties["X"] = new TweenParams { To = 0d, Ease = easeX };
+        mirrorParams.Properties["Y"] = new TweenParams { To = 0d, Ease = easeY };
         if (scaled)
         {
-            mirrorParams.Properties["ScaleX"] = 1d;
-            mirrorParams.Properties["ScaleY"] = 1d;
+            mirrorParams.Properties["ScaleX"] = new TweenParams { To = 1d, Ease = easeScale };
+            mirrorParams.Properties["ScaleY"] = new TweenParams { To = 1d, Ease = easeScale };
         }
 
         _mirror?.Cancel();
         var mirror = _mirror = Presto.Animate(_scratch, mirrorParams);
 
-        Start(element, CompositorTrackKind.Translation, translation, [0, 0, 0], mirror, ease, ref _translating);
+        Start(element, CompositorCompiler.Segment(CompositorTrackKind.Translation, translation, [0, 0, 0], mirror, [easeX, easeY]), ref _translating);
         if (!scaled) return;
         // The inverse scale is anchored on the corner the offset maths used, not on the middle a §4.3 rotation centres on.
         element.StopAnimation("CenterPoint");
         Corner(element);
-        Start(element, CompositorTrackKind.Scale, scale, [1, 1, 1], mirror, ease, ref _scaling);
+        Start(element, CompositorCompiler.Segment(CompositorTrackKind.Scale, scale, [1, 1, 1], mirror, [easeScale]), ref _scaling);
     }
 
-    private void Start(
-        CompositionVisual element,
-        CompositorTrackKind kind,
-        double[] from,
-        double[] to,
-        Animation mirror,
-        Ease ease,
-        ref bool holding)
+    private Ease Axis(EaseValue? value, Ease fallback) =>
+        value is { } axis ? CompositorCompiler.Pure(axis, _control, 0, 1, out _) : fallback;
+
+    private void Start(CompositionVisual element, CompiledTrack track, ref bool holding)
     {
         // The transition keeps the property across later layout passes, so the collision is worth saying once.
-        if (!holding) CompositorRegistry.WarnIfShorthandsDrive(_control, kind);
-        CompositorRegistry.Take(_control, kind, this);
+        if (!holding) CompositorRegistry.WarnIfShorthandsDrive(_control, track.Kind);
+        CompositorRegistry.Take(_control, track.Kind, this);
         holding = true;
-        element.StartAnimation(kind.ToString(), CompositorTracks.Build(element, CompositorCompiler.Segment(kind, from, to, mirror, ease)));
+        element.StartAnimation(track.Kind.ToString(), CompositorTracks.Build(element, track));
     }
 
     private void Identity()

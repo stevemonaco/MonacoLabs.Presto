@@ -529,6 +529,28 @@ corner, which scales its content with it. Layout itself is unchanged: `Bounds` i
 pixels lag behind, so a control is hit where layout put it while it is still drawn on the way there. `Revert()` takes it
 off again.
 
+A shared element is measured where it is seen, scroll included, so a card in a scrolled list flies from the right place.
+When the two views never exist at once, as with navigation driven by a view model, prepare the source under a key
+before its view goes and start the target from that key when the next view is built, as the Community Toolkit's
+connected animations do:
+
+```csharp
+PrestoAvalonia.PrepareSharedElement("photo", thumbnail);                        // leaving view
+PrestoAvalonia.AnimateSharedElement("photo", heroImage, 500, Eases.OutQuint);   // arriving view; null if nothing prepared
+```
+
+A prepared entry keeps only the rectangle and lapses after three seconds. Every layout and shared-element call also
+takes an `AnimationBuilder` for its motion: duration, delay, ease, and per-axis eases given as `.X(ease: …)`,
+`.Y(ease: …)` or `.Scale(ease: …)`; easing X and Y differently curves the flight into an arc. Layout owns the values,
+so giving X, Y or Scale a value, or setting anything else, throws.
+
+```csharp
+PrestoAvalonia.AnimateSharedElement("photo", heroImage, Presto.Build().Duration(600).Ease(Eases.OutQuint).Y(ease: Eases.InOutCubic));
+```
+
+During the flight a control is still drawn inside its own parents, so one flying into a clipped container, such as a
+`ScrollViewer`, is clipped to it until it lands.
+
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:

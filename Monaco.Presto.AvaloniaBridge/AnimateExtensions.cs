@@ -36,13 +36,17 @@ public static class AnimateExtensions
     public static CompositorAnimation AnimateOnCompositor(this Visual target, AnimationBuilder builder) =>
         PrestoAvalonia.AnimateOnCompositor(target, builder);
 
-    /// <inheritdoc cref="PrestoAvalonia.AnimateLayout"/>
+    /// <inheritdoc cref="PrestoAvalonia.AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/>
     public static LayoutTransition AnimateLayout(
         this Control target,
         double duration,
         EaseValue? ease = null,
         LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
         PrestoAvalonia.AnimateLayout(target, duration, ease, mode);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/>
+    public static LayoutTransition AnimateLayout(this Control target, AnimationBuilder builder, LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
+        PrestoAvalonia.AnimateLayout(target, builder, mode);
 
     /// <summary>Creates an animatable over this object's properties, installing the bridge first when nothing else has.</summary>
     public static Animatable CreateAnimatable(this AvaloniaObject target, AvaloniaAnimatableParams parameters)
