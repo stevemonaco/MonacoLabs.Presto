@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PrestoSample.Builder;
 using PrestoSample.Pages;
 using PrestoSample.Showcase.Pages;
 
@@ -85,6 +86,17 @@ public partial class MainViewModel : ObservableObject
                 () => new ChartMorphPage()),
             new GalleryPage("Stress bench", "Up to 20 000 squares animated three ways: Presto animations on the UI thread, a compositor animation per visual, or one compositor scene drawing them all. Raise the count and switch modes to see where the UI frame times in the graph, the fps readouts and the gen-0 count give way. The graph is itself drawn on the render thread, so a stalled UI thread shows as a coral bar that keeps growing, and the worker switch adds a third engine on a thread of its own.",
                 () => new StressBenchPage())),
+        Section("Builder",
+            new GalleryPage("Builder basics", "The Animation basics like-button spelled with the fluent builder: Presto.Build() chains the transform shorthands, opacity, a Palette brush and the playback settings, and the code beneath the stage is the exact call that ran, captured at compile time. It's a real Button, so click it while it moves and watch the counter go up; Replay restarts it.",
+                () => new BuilderBasicsPage()),
+            new GalleryPage("Properties and keyframes", "Three builder stages, each with the code that ran beneath it: one property with its own from, to and ease beside another with its own duration and delay; a ball bouncing through per-property keyframes above a square following animation-level keyframes at 0, 30 and 100 percent; and a card whose Palette background, CornerRadius and BorderThickness are typed values, the last set through any AvaloniaProperty. Replay restarts a stage.",
+                () => new PropertiesPage()),
+            new GalleryPage("Recipes", "A builder is a reusable recipe: one static Pop builder plays on whichever button you click, and the same recipe runs over the whole row with a stagger delay layered on its snapshot. The slider changes the recipe's duration, so the next play uses it while a pop already running keeps its own, because every Animate snapshots the builder.",
+                () => new RecipesPage()),
+            new GalleryPage("Timeline and compositor", "One fadeUp builder assembled into a timeline, each card added at its own position with Add(target, builder, position); the slider scrubs it and Play resumes. Below, a gear spun by AnimateOnCompositor(builder) runs on the render thread, so press Freeze and watch it keep turning while the timeline above stops dead for two seconds.",
+                () => new TimelineBuilderPage()),
+            new GalleryPage("XAML", "A builder attached from markup with Animate.OnAttached, three ways: a static recipe on a row of cards, a FadeUp markup extension whose Delay cascades a list in, and a binding to a view model that swaps an idle float for an alert shake when you flip the switch. Each panel prints its XAML and the C# it points at; Replay re-attaches all three.",
+                () => new XamlPage())),
     ];
 
     [ObservableProperty]

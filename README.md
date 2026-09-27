@@ -153,6 +153,21 @@ var spin = icon.AnimateOnCompositor(Presto.Build().Rotate(360).Duration(1200).Ea
 `AnimateOnCompositor` throws `NotSupportedException`, naming the setting, for anything the builder set that the
 [render-thread model](#render-thread) has no counterpart for (`Keyframes`, `OnUpdate`, `Composition`, …).
 
+#### From XAML
+
+`presto:Animate.OnAttached` (`xmlns:presto="using:Monaco.Presto.AvaloniaBridge"`) takes a builder three ways:
+
+```xml
+<Border presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}" />
+<TextBlock presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=100}" />
+<PathIcon presto:Animate.OnAttached="{Binding Emphasis}" />
+```
+
+Use `x:Static` for a fixed recipe shared as-is, a markup extension when the markup parameterises it per element, and a
+binding when the view model decides which animation runs. The builder plays each time the visual attaches to the visual
+tree and is reverted on detach; a new value reverts the old animation and plays the new one, `null` reverts and stops
+listening, and nothing runs in design mode.
+
 ## Avalonia setup
 
 Install the bridge once at startup:
@@ -545,9 +560,8 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
 | `core/*`, `types/*` | Internal (`Clock`, `Renderer`, `Composer`, value parsing) or TypeScript declarations with no C# counterpart. |
 
-There is no XAML surface for animations yet — no attached properties, no markup extension. It is deliberately deferred
-until the C# API has settled, so it is not built against something about to change. Animate from code-behind or a view
-model for now.
+The only XAML surface is `Animate.OnAttached`, which plays a builder when a visual attaches ([From XAML](#from-xaml));
+other triggers belong in code-behind or a view model.
 
 ### Parameter names
 
