@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="400"
+             x:Class="PrestoSample.Pages.TextPage">
+    <UserControl.Styles>
+        <Style Selector="TextBlock.split-char">
+            <Setter Property="Foreground" Value="#4c8dff" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="PrestoAvalonia.SplitText(Headline, new() { Lines = new() { Wrap = true }, Chars = new() { Class = &quot;split-char&quot; } })" />
+                <TextBlock Classes="code" Text="[&quot;Y&quot;] = TweenValue.FromTo(44, 0), Delay = Presto.Stagger(18)" />
+            </StackPanel>
+
+            <Border Classes="stage" MinHeight="0">
+                <TextBlock x:Name="Headline" TextWrapping="Wrap" FontSize="30"
+                           Text="Presto splits this headline into lines and characters, then staggers every one of them into place." />
+            </Border>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Each line is wrapped in a clipping container, so the characters rise into it from below. Resize the window: the splitter re-measures where the text wraps, rebuilds the pieces and runs the effect again over the new ones." />
+
+            <Button Content="Refresh" Click="OnRefresh" HorizontalAlignment="Left" />
+
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="PrestoAvalonia.ScrambleText(new() { Chars = &quot;shades&quot;, From = ScrambleFrom.Center, Cursor = &quot;_&quot; })" />
+                <TextBlock Classes="code" Text="[&quot;Text&quot;] = PrestoAvalonia.ScrambleText(...)" />
+            </StackPanel>
+
+            <Border Classes="stage" MinHeight="0">
+                <TextBlock x:Name="Transmission" FontSize="26" FontFamily="Consolas, Menlo, Courier New"
+                           Text="Decoding the transmission" />
+            </Border>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Scramble settles back on the text the block started with, wherever it is now; Change text scrambles to a different one." />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+                <Button Content="Scramble" Click="OnScramble" />
+                <Button Content="Change text" Click="OnChangeText" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

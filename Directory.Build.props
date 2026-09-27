@@ -14,8 +14,25 @@
     <Authors>Steve Monaco</Authors>
     <Product>Monaco.Presto</Product>
     <RepositoryUrl>https://github.com/stevemonaco/Monaco.Presto</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <Version>0.1.0</Version>
+    <PackageProjectUrl>https://github.com/stevemonaco/Monaco.Presto</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
+
+  <PropertyGroup Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)samples'))">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 
   <!-- Machine-local secrets such as AvaloniaUILicenseKey. Git-ignored; see CLAUDE.md. -->
   <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props"

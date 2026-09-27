@@ -7,7 +7,9 @@
     <Project Path="samples/PrestoSample/PrestoSample.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Monaco.Presto.AvaloniaBridge.Tests/Monaco.Presto.AvaloniaBridge.Tests.csproj" />
     <Project Path="tests/Monaco.Presto.Tests/Monaco.Presto.Tests.csproj" />
+    <Project Path="tests/PrestoSample.Tests/PrestoSample.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />

@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+             x:Class="PrestoSample.Pages.ControlsPage">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Border Classes="stage" MinHeight="140" Padding="16">
+                <Button x:Name="ClickButton" Classes="specimen" Padding="14,8" Click="Clicked">
+                    <TextBlock x:Name="ClickText" Text="Click me · 0" />
+                </Button>
+            </Border>
+
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="Seek — the slider is the animation's Progress" />
+                <Slider x:Name="ScrubSlider" Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"
+                        ValueChanged="Scrub" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Play" Click="Play" />
+                <Button Content="Pause" Click="Pause" />
+                <Button Content="Resume" Click="Resume" />
+                <Button Content="Restart" Click="Restart" />
+                <Button Content="Reverse" Click="Reverse" />
+                <Button Content="Alternate" Click="Alternate" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Complete" Click="Complete" />
+                <Button Content="Cancel" Click="Cancel" />
+                <Button Content="Revert" Click="Revert" />
+                <Button Content="Reset" Click="Reset" />
+            </StackPanel>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Cancel stops the animation where it stands; Revert wipes the animation-priority values the bridge wrote, so the button snaps back to the blue, unrotated, fully opaque state its style declares." />
+
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="{Binding #StretchSlider.Value, StringFormat='Stretch to {0:0} ms total'}" />
+                <Slider x:Name="StretchSlider" Minimum="600" Maximum="6000" Value="2700" ValueChanged="StretchChanged" />
+            </StackPanel>
+
+            <TextBlock x:Name="ReadoutText" Classes="code" FontSize="13" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

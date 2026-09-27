@@ -3,14 +3,15 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Monaco.Presto</RootNamespace>
+    <PackageTags>animation;tween;easing;timeline;animejs</PackageTags>
     <Description>Framework-agnostic animation engine: timers, tweens, timelines, easings and staggering.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Monaco.Presto.Tests" />
     <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge" />
+    <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.Tests" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,98 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.InterruptionPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Height" Value="240" />
+        </Style>
+
+        <Style Selector="Canvas.pane">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+
+        <Style Selector="Border.puck">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Canvas.Left" Value="20" />
+            <Setter Property="Canvas.Top" Value="20" />
+        </Style>
+
+        <Style Selector="Border.tile">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Height" Value="72" />
+            <Setter Property="Margin" Value="5,0" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <TextBlock Classes="title" Text="What happens when an animation is interrupted mid-flight." />
+
+            <TextBlock Classes="eyebrow showcase" Text="RETARGET · THREE WAYS TO CHANGE YOUR MIND" />
+            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                <Border Grid.Column="0" Classes="stage">
+                    <Canvas x:Name="ReplacePane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="ReplacePuck" Classes="puck" Background="{x:Static showcase:Palette.Accent}" />
+                    </Canvas>
+                </Border>
+                <Border Grid.Column="1" Classes="stage">
+                    <Canvas x:Name="NonePane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="NonePuck" Classes="puck" Background="{x:Static showcase:Palette.Aqua}" />
+                    </Canvas>
+                </Border>
+                <Border Grid.Column="2" Classes="stage">
+                    <Canvas x:Name="BlendPane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="BlendPuck" Classes="puck" Background="{x:Static showcase:Palette.AccentPale}" />
+                    </Canvas>
+                </Border>
+                <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ReplaceCount" Classes="code" />
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="NoneCount" Classes="code" />
+                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="BlendCount" Classes="code" />
+            </Grid>
+
+            <Border Classes="rail showcase">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button x:Name="BurstButton" Content="Burst" Click="BurstClicked" />
+                    <Button x:Name="CancelNewestButton" Content="Cancel newest" Click="CancelNewestClicked" />
+                    <Button x:Name="ResetPucks" Content="Reset" Click="ResetPucksClicked" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="eyebrow showcase" Text="HOVER · INTERRUPT FROM WHERE YOU ARE" />
+            <Border Classes="rail showcase">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <UniformGrid x:Name="Tiles" Columns="5" Margin="0,18,0,4">
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 1" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 2" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 3" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 4" />
+                        </Border>
+                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                            <TextBlock Classes="title" Text="Tile 5" />
+                        </Border>
+                    </UniformGrid>
+                    <ToggleSwitch Grid.Column="1" x:Name="HoverMode" VerticalAlignment="Center"
+                                  OffContent="retarget" OnContent="restart" />
+                </Grid>
+            </Border>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Click any pane, or press Burst for five quick retargets, and compare the trails: replace and none trace the same sharp path, while blend rounds every corner and arrives first. Then press Cancel newest mid-burst: replace just stops where it is, but none is yanked back toward the older targets it was still animating to underneath. Sweep the pointer quickly across the tiles: retarget eases each one back from wherever it had got to, while restart snaps it to fully raised before it falls." />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

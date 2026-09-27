@@ -1,0 +1,111 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="712" d:DesignHeight="440"
+                       x:Class="PrestoSample.Showcase.Pages.GesturesPage">
+    <showcase:ShowcasePage.Resources>
+        <StreamGeometry x:Key="ArchiveIcon">M1,2 L15,2 L15,6 L1,6 Z M2,7 L14,7 L14,15 L2,15 Z M5.5,9 L10.5,9 L10.5,10.5 L5.5,10.5 Z</StreamGeometry>
+        <StreamGeometry x:Key="DeleteIcon">M5.5,1 L10.5,1 L10.5,3 L14.5,3 L14.5,5 L1.5,5 L1.5,3 L5.5,3 Z M2.5,6 L13.5,6 L12.5,15 L3.5,15 Z</StreamGeometry>
+    </showcase:ShowcasePage.Resources>
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="Border.panel TextBlock.code">
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <Style Selector="Border.row">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        </Style>
+        <Style Selector="Border.row TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+        <Style Selector="Border.row TextBlock.caption">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+        </Style>
+        <Style Selector="StackPanel#Inbox PathIcon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Margin" Value="14,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Background}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+        <Border Grid.Column="0" Classes="panel">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock DockPanel.Dock="Right" x:Name="PullVelocity" Classes="code" Text="0.00" />
+                    <TextBlock Classes="eyebrow showcase" Text="PULL TO REFRESH" />
+                </DockPanel>
+                <Panel x:Name="PullViewport" ClipToBounds="True" Background="{x:Static showcase:Palette.Surface}">
+                    <Panel Height="64" VerticalAlignment="Top">
+                        <Ellipse x:Name="Ring" Width="28" Height="28" StrokeThickness="3"
+                                 Stroke="{x:Static showcase:Palette.Accent}" StrokeLineCap="Round" />
+                        <Path x:Name="Arrow" Data="M6,1 L6,11 M2,7 L6,11 L10,7" StrokeThickness="2"
+                              Stroke="{x:Static showcase:Palette.AccentBright}" StrokeLineCap="Round" StrokeJoin="Round"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Panel>
+                    <StackPanel x:Name="Feed" Spacing="4" VerticalAlignment="Top"
+                                Background="{x:Static showcase:Palette.Surface}" />
+                </Panel>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="1" Classes="panel">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock DockPanel.Dock="Right" x:Name="InboxVelocity" Classes="code" Text="0.00" />
+                    <TextBlock Classes="eyebrow showcase" Text="SWIPE TO DISMISS" />
+                </DockPanel>
+                <Button DockPanel.Dock="Bottom" x:Name="UndoButton" Classes="specimen" Content="Undo"
+                        IsEnabled="False" Click="UndoClicked" />
+                <StackPanel x:Name="Inbox" />
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="2" Classes="panel">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock DockPanel.Dock="Right" x:Name="CurtainVelocity" Classes="code" Text="0.00" />
+                    <TextBlock Classes="eyebrow showcase" Text="CURTAIN" />
+                </DockPanel>
+                <Panel x:Name="CurtainStage" ClipToBounds="True">
+                    <StackPanel x:Name="Home" Spacing="4" Margin="0,36,0,0">
+                        <TextBlock Text="09:41" FontSize="40" FontWeight="Light" HorizontalAlignment="Center"
+                                   Foreground="{x:Static showcase:Palette.Ink}" />
+                    </StackPanel>
+                    <Border x:Name="Scrim" Background="{x:Static showcase:Palette.Background}" Opacity="0"
+                            IsHitTestVisible="False" />
+                    <Border x:Name="Shade" Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="0,0,10,10"
+                            Margin="0,-40,0,0">
+                        <DockPanel>
+                            <Border x:Name="Handle" DockPanel.Dock="Bottom" Height="28" Background="Transparent"
+                                    Cursor="Hand">
+                                <Border Width="36" Height="4" CornerRadius="2"
+                                        Background="{x:Static showcase:Palette.AccentBright}" />
+                            </Border>
+                            <StackPanel x:Name="Notifications" Spacing="4" Margin="8,0" VerticalAlignment="Bottom">
+                                <TextBlock Classes="eyebrow showcase" Text="NOTIFICATIONS" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </Panel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</showcase:ShowcasePage>

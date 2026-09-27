@@ -1,0 +1,119 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.GalleryFlipPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style Selector="Border.card.showcase">
+            <Setter Property="Width" Value="127" />
+            <Setter Property="Padding" Value="9,5" />
+            <Setter Property="Margin" Value="0,0,8,4" />
+        </Style>
+        <Style Selector="Border.card TextBlock.eyebrow">
+            <Setter Property="FontSize" Value="9" />
+        </Style>
+        <Style Selector="Border.card TextBlock.caption, Border.card TextBlock.code">
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+
+        <Style Selector="Border.card.row">
+            <Setter Property="Width" Value="331" />
+            <Setter Property="Padding" Value="10,2" />
+            <Setter Property="Margin" Value="0,0,8,3" />
+        </Style>
+        <Style Selector="Border.card.row > StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="8" />
+        </Style>
+        <Style Selector="Border.card.row > StackPanel > Control">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.card.row TextBlock.eyebrow">
+            <Setter Property="Width" Value="44" />
+        </Style>
+        <Style Selector="Border.card.row TextBlock.title">
+            <Setter Property="Width" Value="112" />
+        </Style>
+
+        <Style Selector="Border.card">
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Border.card.expanded">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="22,18" />
+        </Style>
+        <Style Selector="Border.card.expanded TextBlock.eyebrow">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="Border.card.expanded TextBlock.title">
+            <Setter Property="FontSize" Value="34" />
+        </Style>
+        <Style Selector="Border.card.expanded TextBlock.caption, Border.card.expanded TextBlock.code">
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+
+        <Style Selector="ListBox.filters">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6" />
+                </ItemsPanelTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.filters ListBoxItem">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12,3" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+        <Border Grid.Row="0" Classes="rail showcase">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+                <ListBox Grid.Column="0" x:Name="Filters" Classes="filters" VerticalAlignment="Center"
+                         SelectionChanged="Rebuild" />
+                <ToggleSwitch Grid.Column="2" x:Name="ByValue" VerticalAlignment="Center"
+                              OffContent="by title" OnContent="by value" IsCheckedChanged="Rebuild" />
+                <ToggleSwitch Grid.Column="3" x:Name="AsRows" VerticalAlignment="Center"
+                              OffContent="grid" OnContent="list" IsCheckedChanged="Rebuild" />
+                <ToggleSwitch Grid.Column="4" x:Name="Sized" VerticalAlignment="Center" IsChecked="True"
+                              OffContent="Position" OnContent="Position+Size" IsCheckedChanged="Rearm" />
+                <Button Grid.Column="5" x:Name="Drop" VerticalAlignment="Center"
+                        Content="Drop mid-reflow" Click="Churn" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Classes="stage">
+            <Grid>
+                <ItemsControl x:Name="Field" VerticalAlignment="Top">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <Grid x:Name="Detail" IsVisible="False" ColumnDefinitions="*,236" ColumnSpacing="16">
+                    <Border x:Name="Veil" Grid.ColumnSpan="2" Margin="-12" Opacity="0"
+                            Background="#E60B0E14" PointerPressed="Dismiss" />
+                    <Border x:Name="Host" />
+                    <StackPanel x:Name="Chrome" Grid.Column="1" Opacity="0" Spacing="10">
+                        <Button Content="Close" HorizontalAlignment="Left" Click="Dismiss" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
+                   Text="Every card was handed AnimateLayout when it was built, so a chip, the sort toggle or the grid/list switch reorders and resizes the whole field in one layout pass while the render thread eases the pixels after it. FLIP only moves what is already there: arriving cards rise, scale and fade in on a staggered compositor animation, leaving ones play one whose OnComplete takes them out of the panel, and Drop pulls a card straight out a third of the way through a re-sort. The Position/Position+Size toggle re-arms every card with the other AnimateLayout mode, so the grid/list switch snaps each card to its new width and eases only the move, or eases the size with it. Clicking a card reparents it into the detail pane and the field closes the gap behind it; clicking it again, or the veil, puts it back, and because both moves are the card's own transition, a reversal halfway carries on from where the card is drawn instead of snapping to its slot. Filtering or re-sorting while a card is open closes it first, so an open card that the filter drops leaves from its cell." />
+    </Grid>
+</showcase:ShowcasePage>

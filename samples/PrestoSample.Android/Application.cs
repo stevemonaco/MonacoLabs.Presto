@@ -2,6 +2,7 @@
 using Android.Runtime;
 using Avalonia;
 using Avalonia.Android;
+using Monaco.Presto.AvaloniaBridge;
 
 namespace PrestoSample.Android
 {
@@ -15,6 +16,7 @@ namespace PrestoSample.Android
         protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
         {
             return base.CustomizeAppBuilder(builder)
+            .UsePresto()
             .WithInterFont();
         }
     }

@@ -1,0 +1,188 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:pages="clr-namespace:PrestoSample.Showcase.Pages"
+                       mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="900"
+                       x:Class="PrestoSample.Showcase.Pages.LoadersPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Height" Value="150" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="Border.stage > :is(Control)">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.bar">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="CornerRadius" Value="3.5" />
+        </Style>
+        <Style Selector="Panel.orbit">
+            <Setter Property="Width" Value="64" />
+            <Setter Property="Height" Value="64" />
+        </Style>
+        <Style Selector="Panel.orbit > Border">
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.AccentBright}" />
+        </Style>
+        <Style Selector="UniformGrid#Squares > Border">
+            <Setter Property="Width" Value="11" />
+            <Setter Property="Height" Value="11" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Accent}" />
+        </Style>
+        <Style Selector="StackPanel#Typing > Border">
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="10" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.InkDim}" />
+        </Style>
+        <Style Selector="Panel#Ripples > Ellipse">
+            <Setter Property="Width" Value="84" />
+            <Setter Property="Height" Value="84" />
+            <Setter Property="Stroke" Value="{x:Static showcase:Palette.Aqua}" />
+            <Setter Property="StrokeThickness" Value="2" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Border Classes="rail showcase">
+                <WrapPanel ItemSpacing="14" LineSpacing="8">
+                    <TextBlock Classes="caption" VerticalAlignment="Center" Text="Speed" />
+                    <Slider x:Name="Speed" Width="220" Minimum="0.25" Maximum="3" Value="1"
+                            VerticalAlignment="Center" ValueChanged="SpeedChanged" />
+                    <TextBlock x:Name="SpeedLabel" Classes="code" Text="1.00×" />
+                    <ToggleSwitch x:Name="PauseAll" OnContent="Pause all" OffContent="Pause all"
+                                  IsCheckedChanged="PauseAllChanged" />
+                    <ToggleSwitch x:Name="RenderThread" OnContent="Render thread" OffContent="Render thread"
+                                  IsCheckedChanged="RenderThreadChanged" />
+                    <Button Content="Freeze UI thread for 2 s" Click="Freeze" />
+                </WrapPanel>
+            </Border>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Render thread rebuilds the equaliser, orbiting dots, grid wave, bouncing ball, typing and ripples with AnimateOnCompositor using the parameters shown, so those six keep moving through the freeze. The blob morph, drawing ring and progress counter animate Data, Draw and Text, which have no composition property, so they stay on the UI thread and stop with it." />
+
+            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="EQUALISER" />
+                    <Border Classes="stage">
+                        <StackPanel x:Name="Bars" Orientation="Horizontal" Spacing="6">
+                            <Border Classes="bar" Background="{x:Static showcase:Palette.AccentDim}" />
+                            <Border Classes="bar" Background="{x:Static showcase:Palette.Accent}" />
+                            <Border Classes="bar" Background="{x:Static showcase:Palette.AccentBright}" />
+                            <Border Classes="bar" Background="{x:Static showcase:Palette.AccentPale}" />
+                            <Border Classes="bar" Background="{x:Static showcase:Palette.AccentBright}" />
+                            <Border Classes="bar" Background="{x:Static showcase:Palette.Accent}" />
+                            <Border Classes="bar" Background="{x:Static showcase:Palette.AccentDim}" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.EqualiserCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="ORBITING DOTS" />
+                    <Border Classes="stage">
+                        <Panel x:Name="Orbit">
+                            <Panel Classes="orbit"><Border Width="12" Height="12" CornerRadius="6" /></Panel>
+                            <Panel Classes="orbit"><Border Width="10" Height="10" CornerRadius="5" Opacity=".85" /></Panel>
+                            <Panel Classes="orbit"><Border Width="8" Height="8" CornerRadius="4" Opacity=".7" /></Panel>
+                            <Panel Classes="orbit"><Border Width="6" Height="6" CornerRadius="3" Opacity=".55" /></Panel>
+                            <Panel Classes="orbit"><Border Width="4" Height="4" CornerRadius="2" Opacity=".4" /></Panel>
+                        </Panel>
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.OrbitCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="GRID WAVE" />
+                    <Border Classes="stage">
+                        <UniformGrid x:Name="Squares" Columns="5" Rows="5" />
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.GridCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="MORPHING BLOB" />
+                    <Border Classes="stage">
+                        <Path x:Name="Blob" Width="60" Height="60" Fill="{x:Static showcase:Palette.Accent}"
+                              Data="M30,4 C44,4 56,16 56,30 C56,44 44,56 30,56 C16,56 4,44 4,30 C4,16 16,4 30,4 Z" />
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.BlobCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="DRAWING RING" />
+                    <Border Classes="stage">
+                        <Panel>
+                            <Ellipse Width="56" Height="56" Stroke="{x:Static showcase:Palette.SurfaceHigh}" StrokeThickness="5" />
+                            <Path x:Name="Ring" Width="56" Height="56" Stroke="{x:Static showcase:Palette.Aqua}"
+                                  StrokeThickness="5" StrokeLineCap="Round"
+                                  Data="M28,2.5 A25.5,25.5 0 1 1 28,53.5 A25.5,25.5 0 1 1 28,2.5" />
+                        </Panel>
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.RingCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="2" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="BOUNCING BALL" />
+                    <Border Classes="stage">
+                        <StackPanel Width="80">
+                            <Ellipse x:Name="Ball" Width="26" Height="26" Margin="0,56,0,0"
+                                     RenderTransformOrigin="50%,100%" Fill="{x:Static showcase:Palette.AccentBright}" />
+                            <Border Height="2" CornerRadius="1" Background="{x:Static showcase:Palette.Border}" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.BallCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="TYPING" />
+                    <Border Classes="stage">
+                        <Border Background="{x:Static showcase:Palette.SurfaceHigh}" CornerRadius="18,18,18,4" Padding="16,14">
+                            <StackPanel x:Name="Typing" Orientation="Horizontal" Spacing="6">
+                                <Border />
+                                <Border />
+                                <Border />
+                            </StackPanel>
+                        </Border>
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.TypingCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Grid.Column="1" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="RIPPLES" />
+                    <Border Classes="stage">
+                        <Panel>
+                            <Panel x:Name="Ripples">
+                                <Ellipse />
+                                <Ellipse />
+                                <Ellipse />
+                            </Panel>
+                            <Ellipse Width="14" Height="14" Fill="{x:Static showcase:Palette.Aqua}" />
+                        </Panel>
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.RippleCode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Grid.Column="2" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="PROGRESS COUNTER" />
+                    <Border Classes="stage">
+                        <StackPanel Width="200" Spacing="10">
+                            <TextBlock x:Name="Percent" Classes="readout" HorizontalAlignment="Center" Text="0%" />
+                            <ProgressBar x:Name="Meter" Maximum="100" Foreground="{x:Static showcase:Palette.Accent}" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Classes="code" Margin="0" Text="{x:Static pages:LoadersPage.CounterCode}" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

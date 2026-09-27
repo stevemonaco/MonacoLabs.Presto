@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Monaco.Presto.AvaloniaBridge</RootNamespace>
+    <PackageTags>animation;tween;easing;timeline;avalonia;animejs</PackageTags>
     <Description>Avalonia bindings for Monaco.Presto: frame pump, AvaloniaProperty targets, transforms, colors and control helpers.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

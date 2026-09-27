@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+             x:Class="PrestoSample.Pages.KeyframesPage">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="code"
+                           Text="[&quot;X&quot;] = TweenValue.Keyframes(&#10;    new TweenParams { To = 200, Duration = 500, Ease = Eases.OutQuad },&#10;    new TweenParams { To = 80, Duration = 300, Delay = 200 },&#10;    new TweenParams { To = 0, Duration = 600, Ease = Eases.InOutQuad })" />
+                <Border Classes="demo">
+                    <Button x:Name="PerPropertyButton" Classes="specimen">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource PlayIcon}" />
+                            <TextBlock Text="Play" />
+                        </StackPanel>
+                    </Button>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Classes="code"
+                           Text="Keyframes = new Keyframe[]&#10;{&#10;    new() { [&quot;Y&quot;] = -40, [&quot;Rotate&quot;] = -20 },&#10;    new() { [&quot;X&quot;] = 220, Ease = Eases.OutQuad },&#10;    new() { [&quot;Y&quot;] = 0, [&quot;Rotate&quot;] = 20 },&#10;    new() { [&quot;X&quot;] = 0, [&quot;Rotate&quot;] = 0, Duration = 600 },&#10;}" />
+                <Border Classes="demo">
+                    <ToggleSwitch x:Name="ArrayToggle" IsChecked="True" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Classes="code"
+                           Text="Keyframes = new Dictionary&lt;string, Keyframe&gt;&#10;{&#10;    [&quot;0%&quot;] = new() { [&quot;X&quot;] = 0, [&quot;Scale&quot;] = 1, [&quot;Background&quot;] = &quot;#4c8dff&quot; },&#10;    [&quot;30%&quot;] = new() { [&quot;X&quot;] = 220, [&quot;Background&quot;] = &quot;#f5c542&quot; },&#10;    [&quot;60%&quot;] = new() { [&quot;Scale&quot;] = 1.6 },&#10;    [&quot;100%&quot;] = new() { [&quot;X&quot;] = 0, [&quot;Scale&quot;] = 1, [&quot;Background&quot;] = &quot;#4c8dff&quot; },&#10;}" />
+                <Border Classes="demo">
+                    <Button x:Name="PercentButton" Classes="specimen">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource StarIcon}" />
+                            <TextBlock Text="Star" />
+                        </StackPanel>
+                    </Button>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Classes="code" Text="Four evenly spaced frames, played linearly and with PlaybackEase = Eases.InOutQuad" />
+                <Border Classes="demo" Height="120">
+                    <StackPanel Spacing="8" VerticalAlignment="Center">
+                        <Button x:Name="LinearButton" Classes="specimen" Content="linear" Padding="10,3" />
+                        <Button x:Name="EasedButton" Classes="specimen" Content="InOutQuad" Padding="10,3" Background="#f5c542" Foreground="#0b0e14" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

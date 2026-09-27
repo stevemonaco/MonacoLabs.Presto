@@ -1,0 +1,69 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="620"
+                       x:Class="PrestoSample.Showcase.Pages.BoardPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+
+        <Style Selector="Border.lane">
+            <Setter Property="Width" Value="158" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+        </Style>
+        <Style Selector="Border.bin">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.AccentDim}" />
+        </Style>
+        <Style Selector="Border.lane.target">
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Accent}" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.AccentDeep}" />
+        </Style>
+
+        <Style Selector="Border.card.showcase">
+            <Setter Property="Width" Value="142" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="Padding" Value="9,7" />
+        </Style>
+        <Style Selector="Border.card TextBlock.caption, Border.card TextBlock.code">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+        <Border Grid.Row="0" Classes="rail showcase">
+            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="18">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                    <TextBlock Classes="caption" Text="drop" VerticalAlignment="Center" />
+                    <TextBlock x:Name="DropText" Classes="code" Text="—" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                    <TextBlock Classes="caption" Text="velocity" VerticalAlignment="Center" />
+                    <TextBlock x:Name="VelocityText" Classes="code" Text="0.00" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Classes="stage">
+            <ScrollViewer x:Name="Scroller">
+                <Grid x:Name="Board" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" HorizontalAlignment="Left">
+                    <Border Grid.Column="3" x:Name="Bin" Classes="lane bin">
+                        <TextBlock Classes="eyebrow showcase" Text="BIN" HorizontalAlignment="Center" />
+                    </Border>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
+                   Text="Drag a card across the lanes: the lane under it opens a gap at the slot it would land in, and the gap follows the card as you move or fling it. Let go gently and it drops straight into that gap with nothing else moving; flick it and the throw carries it on a lane, or over the bin, where it spins away. Hold a card near the bottom edge to auto-scroll the board." />
+    </Grid>
+</showcase:ShowcasePage>

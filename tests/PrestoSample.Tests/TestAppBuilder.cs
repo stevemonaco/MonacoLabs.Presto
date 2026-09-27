@@ -1,0 +1,32 @@
+using Avalonia;
+using Avalonia.Headless;
+using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Styling;
+using Avalonia.Themes.Fluent;
+
+namespace PrestoSample.Tests;
+
+public static class TestAppBuilder
+{
+    /// <summary>Skia replaces the headless drawing stub, whose geometries report a <c>ContourLength</c> of 0.</summary>
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
+        .UseSkia()
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+}
+
+/// <summary>
+/// The gallery's styles without its <see cref="App"/>: the headless session builds a fresh application per test, and
+/// <c>App.Initialize</c> attaches the developer tools, which refuses a second attachment in the same process.
+/// </summary>
+internal sealed class TestApp : Application
+{
+    public override void Initialize()
+    {
+        RequestedThemeVariant = ThemeVariant.Dark;
+        Styles.Add(new FluentTheme());
+        Styles.Add(new StyleInclude(new Uri("avares://PrestoSample/"))
+        {
+            Source = new Uri("avares://PrestoSample/Styles/Showcase.axaml"),
+        });
+    }
+}

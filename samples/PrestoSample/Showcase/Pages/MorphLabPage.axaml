@@ -1,0 +1,69 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.MorphLabPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <StackPanel Grid.Column="0" Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="MORPH LOOP" />
+                <TextBlock Classes="code" Margin="0"
+                           Text="[&quot;Data&quot;] = PrestoAvalonia.MorphTo(next, precision)" />
+                <Border Classes="stage">
+                    <Canvas Width="240" Height="240">
+                        <Path x:Name="MorphPath" Stretch="None" Fill="#334C8DFF" StrokeThickness="3"
+                              Stroke="{x:Static showcase:Palette.AccentBright}" StrokeJoin="Round" />
+                    </Canvas>
+                </Border>
+                <Border Classes="rail showcase">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="code" Margin="0" Text="Ease" />
+                            <ComboBox x:Name="EaseBox" Width="180" SelectionChanged="Rebuild" />
+                        </StackPanel>
+                        <TextBlock x:Name="PrecisionText" Classes="caption" />
+                        <Slider x:Name="PrecisionSlider" Minimum="0.01" Maximum="0.5" Value="0.33"
+                                SmallChange="0.01" ValueChanged="Rebuild" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="SIGNATURE" />
+                <TextBlock Classes="code" Margin="0"
+                           Text="[&quot;Draw&quot;] = TweenValue.Keyframes(&quot;0 0&quot;, &quot;0 1&quot;, &quot;1 1&quot;)" />
+                <Border Classes="stage">
+                    <Canvas Width="360" Height="135" HorizontalAlignment="Center">
+                        <Path x:Name="Signature" Stretch="None" StrokeThickness="5"
+                              Stroke="{x:Static showcase:Palette.Aqua}"
+                              StrokeLineCap="Round" StrokeJoin="Round"
+                              Data="M 16,92 C 31,47 49,34 59,50 C 70,67 56,97 49,77 C 41,58 68,29 88,54 C 103,73 92,97 103,92 C 117,85 121,45 139,45 C 153,45 151,77 164,77 C 178,77 178,38 194,38 C 211,38 205,85 223,81 C 241,77 243,34 265,41 C 283,48 272,85 292,85 C 311,85 322,56 337,49" />
+                    </Canvas>
+                </Border>
+
+                <TextBlock Classes="eyebrow showcase" Text="MOTION PATH" />
+                <TextBlock Classes="code" Margin="0"
+                           Text="[&quot;X&quot;] = (FunctionValue)((_, i, _) =&gt; trails[i].X)" />
+                <Border Classes="stage">
+                    <Canvas x:Name="TrackStage" Width="360" Height="190" HorizontalAlignment="Center">
+                        <Path x:Name="Track" Stretch="None" StrokeThickness="2" StrokeDashArray="3,3"
+                              Stroke="{x:Static showcase:Palette.Border}"
+                              Data="M 36,135 C 36,36 126,18 180,63 L 270,18 L 297,108 C 315,153 180,171 36,135 Z" />
+                        <Border x:Name="Marker" ZIndex="1" Width="26" Height="10" CornerRadius="3"
+                                Background="{x:Static showcase:Palette.AccentPale}"
+                                Canvas.Left="-13" Canvas.Top="-5" />
+                    </Canvas>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</showcase:ShowcasePage>

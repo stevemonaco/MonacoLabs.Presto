@@ -1,0 +1,102 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:compositor="using:Monaco.Presto.AvaloniaBridge.Compositor"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="640"
+                       x:Class="PrestoSample.Pages.CompositorPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.orbit">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Background}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="StackPanel.specimen > Panel">
+            <Setter Property="Height" Value="64" />
+        </Style>
+        <Style Selector="StackPanel.specimen > TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <StackPanel Spacing="28" HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="32" HorizontalAlignment="Center">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="eyebrow showcase" Text="RENDER THREAD" />
+                        <Border Classes="orbit">
+                            <compositor:CompositorCanvas x:Name="Orbit" Width="200" Height="200" />
+                        </Border>
+                        <TextBlock Classes="caption" Text="CompositorScene, its own engine" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="eyebrow showcase" Text="UI THREAD" />
+                        <Border Classes="orbit">
+                            <Canvas x:Name="UiOrbit" Width="200" Height="200" />
+                        </Border>
+                        <showcase:FpsMeter />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="28" HorizontalAlignment="Center">
+                    <StackPanel Classes="specimen" Spacing="6">
+                        <Panel>
+                            <Button x:Name="PulseButton" Classes="specimen" Content="Button" />
+                        </Panel>
+                        <TextBlock Classes="caption" Text="Scale" />
+                    </StackPanel>
+
+                    <StackPanel Classes="specimen" Spacing="6">
+                        <Panel>
+                            <Border x:Name="BobCard" Classes="specimen">
+                                <StackPanel>
+                                    <TextBlock Text="Card" FontWeight="SemiBold" />
+                                    <TextBlock Classes="caption" Text="text rides along" />
+                                </StackPanel>
+                            </Border>
+                        </Panel>
+                        <TextBlock Classes="caption" Text="Y" />
+                    </StackPanel>
+
+                    <StackPanel Classes="specimen" Spacing="6">
+                        <Panel>
+                            <PathIcon x:Name="Gear" Data="{StaticResource GearIcon}" Width="40" Height="40"
+                                      Foreground="{x:Static showcase:Palette.AccentBright}" />
+                        </Panel>
+                        <TextBlock Classes="caption" Text="Rotate" />
+                    </StackPanel>
+
+                    <StackPanel Classes="specimen" Spacing="6">
+                        <Panel>
+                            <ToggleSwitch x:Name="BreatheToggle" IsChecked="True" OnContent="On" OffContent="Off"
+                                          VerticalAlignment="Center" />
+                        </Panel>
+                        <TextBlock Classes="caption" Text="Opacity" />
+                    </StackPanel>
+
+                    <StackPanel Classes="specimen" Spacing="6">
+                        <Panel>
+                            <ProgressBar IsIndeterminate="True" Width="96" VerticalAlignment="Center" />
+                        </Panel>
+                        <TextBlock Classes="caption" Text="ProgressBar, UI thread" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+            <Button Classes="accent" Content="Freeze UI thread for 2 s" Click="Freeze" />
+            <Button Content="Pause" Click="PauseMotions" />
+            <Button Content="Resume" Click="ResumeMotions" />
+            <Button Content="Reverse" Click="ReverseMotions" />
+            <TextBlock Classes="caption" Text="speed" VerticalAlignment="Center" />
+            <Slider Width="120" Minimum="0.25" Maximum="3" Value="1"
+                    VerticalAlignment="Center" ValueChanged="SpeedChanged" />
+        </StackPanel>
+    </StackPanel>
+</showcase:ShowcasePage>
