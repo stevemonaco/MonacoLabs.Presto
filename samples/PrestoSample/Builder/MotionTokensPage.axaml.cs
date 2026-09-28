@@ -38,7 +38,7 @@ public partial class MotionTokensPage : ShowcasePage
             .Duration(t.Long)
             .Ease(t.Emphasized));
         (Pop, var pop) = Snippet.Of<Func<MotionTokens, AnimationBuilder>>(t => Presto.Build()
-            .Scale(k => k.To(1 + (t.Distance / 100), ease: t.Standard).To(1))
+            .Scale(k => k.To(1 + (t.Distance / 100)).To(1))
             .Rotate(from: -t.Distance, to: 0)
             .Duration(t.Short * 2)
             .Ease(t.Standard));

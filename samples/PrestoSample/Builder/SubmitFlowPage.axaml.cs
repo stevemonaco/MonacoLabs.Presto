@@ -50,12 +50,12 @@ public partial class SubmitFlowPage : ShowcasePage
             .Loop()));
         Succeed = Recipe(nameof(Succeed), Snippet.Of(Presto.Build()
             .Background(Palette.Aqua)
-            .Scale(k => k.To(1.15, ease: Eases.OutQuad).To(1))
+            .Scale(k => k.To(1.15).To(1))
             .Duration(420)
             .Ease(Eases.OutQuad)));
         Fail = Recipe(nameof(Fail), Snippet.Of(Presto.Build()
             .Background(Palette.Coral)
-            .X(k => k.To(-10, ease: Eases.OutSine).To(10).To(-6).To(6).To(0))
+            .X(k => k.To(-10).To(10).To(-6).To(6).To(0))
             .Duration(460)));
         DrawIn = Recipe(nameof(DrawIn), Snippet.Of(Presto.Build()
             .Draw(from: "0 0", to: "0 1")

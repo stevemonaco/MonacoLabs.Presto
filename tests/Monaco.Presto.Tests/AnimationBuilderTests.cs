@@ -60,15 +60,33 @@ public sealed class AnimationBuilderTests : EngineTestBase
             new()
             {
                 ["X"] = TweenValue.Keyframes(
-                    10,
+                    new TweenParams { To = 10 },
                     new TweenParams { To = 20, Duration = 100 },
                     new TweenParams { To = 30, Delay = 50, Ease = "inQuad" }),
-                ["Y"] = TweenValue.Keyframes(1, 2, 3),
+                ["Y"] = TweenValue.Keyframes(new TweenParams { To = 1 }, new TweenParams { To = 2 }, new TweenParams { To = 3 }),
             },
             Presto.Build()
                 .Property("X", k => k.To(10).To(20, duration: 100).To(30, delay: 50, ease: "inQuad"))
                 .Property("Y", k => k.To(1).To(2).To(3))
                 .ToParams());
+    }
+
+    [Fact]
+    public void BareKeyframesStartFromTheCurrentValueRatherThanTheFirstFrame()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Build()
+            .Property("X", k => k.To(100).To(0))
+            .Duration(200)
+            .Ease("linear")
+            .Animate(target);
+
+        animation.Seek(50);
+        Assert.Equal(50, target.X, 3);
+        animation.Seek(100);
+        Assert.Equal(100, target.X, 3);
+        animation.Seek(200);
+        Assert.Equal(0, target.X, 3);
     }
 
     [Fact]

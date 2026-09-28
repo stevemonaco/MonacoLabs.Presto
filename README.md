@@ -120,7 +120,8 @@ pop.Animate(first);
 pop.Delay(200).Animate(second);                 // first keeps its zero delay
 ```
 
-Keyframes, per property and animation-wide (`Frame` for duration-based frames, `At` for percentages; not both):
+Keyframes, per property and animation-wide (`Frame` for duration-based frames, `At` for percentages; not both). Each
+`To` is a frame ending on that value, so the first frame starts from the property's current value:
 
 ```csharp
 Presto.Build()

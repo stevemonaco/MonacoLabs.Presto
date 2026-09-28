@@ -23,12 +23,12 @@ public static class FormMotions
                 .Loop()
                 .Alternate(),
             [FormState.Error] = Presto.Build()
-                .X(k => k.To(-14, ease: Eases.OutSine).To(12).To(-8).To(6).To(-3).To(0))
+                .X(k => k.To(-14).To(12).To(-8).To(6).To(-3).To(0))
                 .Duration(520)
                 .Ease(Eases.OutSine),
             [FormState.Success] = Presto.Build()
-                .Scale(k => k.To(1.05, ease: Eases.OutQuad).To(1))
-                .Y(k => k.To(-8, ease: Eases.OutQuad).To(0))
+                .Scale(k => k.To(1.05).To(1))
+                .Y(k => k.To(-8).To(0))
                 .Duration(600)
                 .Ease(Eases.OutBack()),
         });
@@ -46,7 +46,7 @@ public static class FormMotions
                 .Ease(Eases.InOutQuad)
                 .Loop(),
             [FormState.Error] = Presto.Build()
-                .Rotate(k => k.To(-25, ease: Eases.OutSine).To(20).To(-12).To(0))
+                .Rotate(k => k.To(-25).To(20).To(-12).To(0))
                 .Duration(500),
             [FormState.Success] = Presto.Build()
                 .Scale(from: 0, to: 1)
