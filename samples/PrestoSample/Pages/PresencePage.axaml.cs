@@ -11,10 +11,13 @@ namespace PrestoSample.Pages;
 
 public partial class PresencePage : UserControl
 {
-    public static readonly AnimationBuilder Enter =
+    public static readonly AnimationBuilder RiseIn =
+        Presto.Build().Opacity(from: 0, to: 1).Y(from: 16, to: 0).Delay(Presto.Stagger(60)).Duration(420).Ease(Eases.OutQuart);
+
+    public static readonly AnimationBuilder SlideIn =
         Presto.Build().Opacity(from: 0, to: 1).X(from: -24, to: 0).Duration(320).Ease(Eases.OutQuart);
 
-    public static readonly AnimationBuilder Leave =
+    public static readonly AnimationBuilder SlideOut =
         Presto.Build().Opacity(to: 0).X(to: 80).Scale(to: .9).Duration(320).Ease(Eases.InQuad);
 
     private static readonly string[] Chores =
@@ -68,7 +71,9 @@ public partial class PresencePage : UserControl
             Background = SolidColorBrush.Parse(color),
             Child = new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Bottom },
         };
-        Animate.SetOnAttached(view, Presto.Build().Opacity(from: 0, to: 1).Y(from: 16, to: 0).Duration(360).Ease(Eases.OutQuart));
+        var arrive = Presto.Build().Opacity(from: 0, to: 1).Y(from: 16, to: 0).Duration(360).Ease(Eases.OutQuart);
+        Presence.SetInitial(view, arrive);
+        Presence.SetEnter(view, arrive);
         Presence.SetExit(view, Presto.Build().Opacity(to: 0).Y(to: -16).Duration(360).Ease(Eases.InQuad));
         return view;
     }

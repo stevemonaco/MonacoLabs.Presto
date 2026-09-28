@@ -167,7 +167,8 @@ var spin = icon.AnimateOnCompositor(Presto.Build().Rotate(360).Duration(1200).Ea
 Use `x:Static` for a fixed recipe shared as-is, a markup extension when the markup parameterises it per element, and a
 binding when the view model decides which animation runs. The builder plays each time the visual attaches to the visual
 tree and is reverted on detach; a new value reverts the old animation and plays the new one, `null` reverts and stops
-listening, and nothing runs in design mode.
+listening, and nothing runs in design mode. `Presence.Initial`, `Presence.Enter` and `Presence.Exit` take builders the
+same ways, and play only for their own moment of an element's lifecycle ([Lifecycle animations](#lifecycle-animations)).
 
 ## Avalonia setup
 
@@ -594,29 +595,45 @@ leaving element's is never used. Without one, flights use `Connected.DefaultMoti
 entrances `Connected.DefaultAnchorMotion` (rise 24 px and fade in over 400 ms, `OutQuart`, 150 ms delay); both are
 settable.
 
-### Exit animations
+### Lifecycle animations
 
-A control removed from the tree is gone in the same frame: an items container may be recycled at once, and a panel child
-may be re-added. So `Presence.Exit` plays the exit on a *ghost*. The ghost is a snapshot of the element, drawn in the
-window's overlay where the element was and clipped as it was:
+`Presence` classifies every arrival and departure of an element once, by one rule, and plays the builder for that moment:
+
+| Moment | When | Property |
+|---|---|---|
+| **Initial** | the element appears with its view: the window's first show, a page navigated in, the rows a list starts with, a view shown again | `Presence.Initial` |
+| **Enter** | it arrives on its own into a view that has loaded: an item added, content swapped in, a child added to a panel | `Presence.Enter` |
+| **Exit** | it leaves on its own while its loaded parent stays: an item removed, content swapped out | `Presence.Exit` |
+| *Unload* | it leaves with its view, such as a page navigated away | nothing plays |
 
 ```xml
 <DataTemplate x:DataType="local:Task">
     <Border Classes="task"
-            presto:Animate.OnAttached="{x:Static local:Motions.Enter}"
-            presto:Presence.Exit="{x:Static local:Motions.Leave}">…</Border>
+            presto:Presence.Initial="{x:Static local:Motions.RiseIn}"
+            presto:Presence.Enter="{x:Static local:Motions.SlideIn}"
+            presto:Presence.Exit="{x:Static local:Motions.SlideOut}">…</Border>
 </DataTemplate>
 ```
 
-Removing the item from its `ObservableCollection`, or swapping a `ContentControl`'s content, plays the exit. Nothing else
-is needed in code-behind, and `AnimateLayout` on the siblings closes the gap underneath the ghost. Only an element that
-leaves *on its own* is ghosted: every visual between it and the root of what was removed must wrap only it. So navigating
-a whole page away does not ghost each row on it. Code that removes a control itself can call
-`PrestoAvalonia.AnimateExit(control, builder)` first, in the same frame.
+The rule: an arriving element's ancestors are walked up past the new wrappers around it, such as its item container,
+and stop at the first panel or other host. A loaded host (`Control.IsLoaded`) means the element entered on its own; a host
+still in its first layout means it came with its view. A departure exits only when every visual between the element and
+the root of what was removed wraps only it, and the parent it leaves has loaded.
 
-The ghost is an `Image`, so an exit animates the transform shorthands and `Opacity`. It keeps the element's styles and
-resources, and a transform the shorthands held moves onto it; content that was animating inside the element holds still.
+Elements arriving in one pass under one panel form a batch, and each one's position in it is the index its function
+values and staggers see, so `RiseIn = Presto.Build()….Delay(Presto.Stagger(60))` ripples a list in with no code.
+Staggers run in arrival order, since the batch size is not known while it is still arriving.
 
+A removed control is gone in the same frame, since an items container may be recycled at once and a panel child
+re-added. So an exit plays on a *ghost*: a snapshot of the element, drawn in the window's overlay where the element was
+and clipped as it was. The ghost is an `Image`, so an exit animates the transform shorthands and `Opacity`. It keeps the
+element's styles and resources, and a transform the shorthands held moves onto it; content that was animating inside the
+element holds still. The snapshot is taken before the element's own entrance is reverted, so a row removed mid-entrance
+leaves from where it was drawn. An element added back while its ghost is still exiting dismisses the ghost. Code that
+removes a control itself can call `PrestoAvalonia.AnimateExit(control, builder)` first, in the same frame.
+
+`Animate.OnAttached` stays the raw trigger: it plays on every attach, unclassified, which suits things tied to "while
+attached", such as a countdown bar.
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:
@@ -642,13 +659,13 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
 | `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
-| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Animate.OnAttached`, and leaving is `Presence.Exit` (see [Exit animations](#exit-animations)). |
+| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Initial` or `Presence.Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
 | `core/*`, `types/*` | Internal (`Clock`, `Renderer`, `Composer`, value parsing) or TypeScript declarations with no C# counterpart. |
 
-The only XAML surface is `Animate.OnAttached`, which plays a builder when a visual attaches ([From XAML](#from-xaml));
+The XAML surface is `Animate.OnAttached`, which plays a builder whenever a visual attaches ([From XAML](#from-xaml)), the `Presence` lifecycle properties ([Lifecycle animations](#lifecycle-animations)) and `Connected`'s keys;
 other triggers belong in code-behind or a view model.
 
 ### Parameter names

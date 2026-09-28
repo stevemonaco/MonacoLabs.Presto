@@ -53,6 +53,27 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void LifecycleLogsWhatPresenceClassified()
+    {
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 900);
+        TestFrames.Tick(40);
+        SceneHarness.Click(window, Button(page, "Add row"));
+        TestFrames.Tick(40);
+        SceneHarness.Click(window, Button(page, "Remove row"));
+        TestFrames.Tick(40);
+        SceneHarness.Click(window, Button(page, "Navigate"));
+        TestFrames.Tick(40);
+
+        var moments = page.GetControl<ItemsControl>("Moments").Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => entry.Moment).ToList();
+        Assert.Contains("Initial", moments);
+        Assert.Contains("Enter", moments);
+        Assert.Contains("Exit", moments);
+        Assert.Contains("Unload", moments);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void ADraggableCardsCheckBoxTogglesWithoutDraggingTheCard()
     {
         var page = new DraggablePage();

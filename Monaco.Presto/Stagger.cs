@@ -64,7 +64,8 @@ public sealed class Stagger
             double.NaN;
         var staggerIndex = customIndex >= 0 && customIndex < total ? (int)customIndex : index;
 
-        if (_values.Length == 0) BuildValues(targets, total);
+        // Deviation: upstream keeps the first count it sees, which reads past the cache once a shared stagger meets a larger group.
+        if (_values.Length != total) BuildValues(targets, total);
         _cachedOffset ??= timeline != null ? StartPosition(timeline).Parse(timeline) : JsNumber.ToNumber(_start.Raw, double.NaN);
 
         // A Total below the target count leaves the trailing targets without a value, which upstream reads as undefined.
