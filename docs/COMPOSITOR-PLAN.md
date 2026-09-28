@@ -276,6 +276,9 @@ Compile, per target:
    (`Scale*ScaleX`, `Scale*ScaleY`, 1), a `ScalarKeyFrameAnimation` for `RotationAngle` (radians) and one for `Opacity`,
    each key frame `LinearEasing`. Optimisation for the common case: a property with a single two-value tween and no
    modifier compiles to one segment with `PrestoEasing(tween ease)` (springs via a pure `Solve` wrapper), exact.
+   Within one `AnimateOnCompositor` call, params with nothing per target (no function values or staggers outside the
+   top-level `Delay`) are sampled once per distinct seed (the control's starting transform and opacity); targets with
+   that seed share the sampled key frames and keep their own mirror and delay.
 3. Map `Loop` → `IterationCount`/`Forever`, `Alternate`/`Reversed` → `Direction`, `Delay` → `DelayTime` with
    `SetInitialValueBeforeDelay` (anime.js renders `from` at creation). Set `CenterPoint` once with an
    `ExpressionAnimation("Vector3(this.Target.Size.X*0.5, this.Target.Size.Y*0.5, 0)")` so rotation and scale follow the

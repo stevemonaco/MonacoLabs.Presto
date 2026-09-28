@@ -23,8 +23,11 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     private const double Growth = 20;
     private const double Duration = 800;
 
-    /// <summary>Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them.</summary>
-    private const double Held = 60000;
+    /// <summary>
+    /// Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them, even in the
+    /// first test of a run, whose first compositor frame also counts the JIT time since the frame before it.
+    /// </summary>
+    private const double Held = 600000;
 
     [AvaloniaTheory]
     [InlineData(false)]
@@ -252,6 +255,129 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ASharedElementOutOfAScrolledListStartsWhereItIsDrawn()
+    {
+        var (list, panel) = ShowScrolledList();
+        var source = new Border { Background = Brushes.Blue, Width = 40, Height = 20 };
+        list.Children.Insert(1, source);
+        Tick();
+        var drawn = Extent(source, Colors.Blue)!.Value;
+
+        var target = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+        _ = PrestoAvalonia.AnimateSharedElement(source, target, Held, Eases.None);
+        list.Children.Remove(source);
+        panel.Children.Add(target);
+        Tick();
+
+        Assert.Equal(drawn, Box(target));
+    }
+
+    [AvaloniaFact]
+    public void ASharedElementIntoAScrolledListStartsWhereTheSourceIsDrawn()
+    {
+        var (list, panel) = ShowScrolledList();
+        var source = new Border { Background = Brushes.Blue, Width = 40, Height = 20 };
+        panel.Children.Add(source);
+        Tick();
+        var drawn = Extent(source, Colors.Blue)!.Value;
+
+        var target = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+        _ = PrestoAvalonia.AnimateSharedElement(source, target, Held, Eases.None);
+        panel.Children.Remove(source);
+        list.Children.Insert(1, target);
+        Tick();
+
+        Assert.Equal(drawn, Box(target));
+    }
+
+    [AvaloniaFact]
+    public void AKeyedSharedElementFliesFromWhereItsSourceWasPreparedAfterTheSourceIsGone()
+    {
+        var (list, panel) = ShowScrolledList();
+        var source = new Border { Background = Brushes.Blue, Width = 40, Height = 20 };
+        list.Children.Insert(1, source);
+        Tick();
+        var drawn = Extent(source, Colors.Blue)!.Value;
+
+        Assert.True(PrestoAvalonia.PrepareSharedElement("keyed", source));
+        list.Children.Remove(source);
+        Tick();
+        var target = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+        var transition = PrestoAvalonia.AnimateSharedElement("keyed", target, Held, Eases.None);
+        panel.Children.Add(target);
+        Tick();
+
+        Assert.NotNull(transition);
+        Assert.Equal(drawn, Box(target));
+        Assert.Null(PrestoAvalonia.AnimateSharedElement("keyed", target, Held));
+    }
+
+    [AvaloniaFact]
+    public void AKeyedSharedElementWithNothingPreparedReturnsNullAndLeavesTheTargetAlone()
+    {
+        var (_, panel) = ShowScrolledList();
+        var target = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+
+        Assert.False(PrestoAvalonia.PrepareSharedElement("detached", new Border()));
+        Assert.Null(PrestoAvalonia.AnimateSharedElement("detached", target, Held));
+        Assert.Null(PrestoAvalonia.AnimateSharedElement("never", target, Presto.Build().Duration(Held)));
+        panel.Children.Add(target);
+        Tick();
+
+        Assert.Equal(SlotOf(target), Box(target));
+    }
+
+    [AvaloniaFact]
+    public async Task ABuilderDelayHoldsTheControlWhereItWasBeforeItMoves()
+    {
+        var (left, right, bar) = ShowColumns();
+        var start = Box(bar);
+
+        _ = PrestoAvalonia.AnimateSharedElement(bar, bar, Presto.Build().Duration(50).Delay(Held).Ease(Eases.None));
+        left.Children.Remove(bar);
+        bar.Margin = new Thickness(0, 10, 0, 0);
+        right.Children.Add(bar);
+        await Pump(() => false, 30);
+
+        Assert.Equal(start, Box(bar));
+    }
+
+    /// <summary>X eased linearly and Y eased in: halfway through, X has covered half its way and Y only a quarter, off the straight line.</summary>
+    /// <inheritdoc cref="ALayoutMoveEasesIntoPlaceInsteadOfJumping" path="/remarks"/>
+    [AvaloniaFact]
+    public async Task DifferentAxisEasesFlyTheSharedElementInAnArc()
+    {
+        var (left, right, bar) = ShowColumns();
+        var start = Box(bar);
+
+        _ = PrestoAvalonia.AnimateSharedElement(bar, bar, Presto.Build().Duration(Duration).X(ease: Eases.None).Y(ease: Eases.InQuad));
+        left.Children.Remove(bar);
+        bar.Margin = new Thickness(0, 10, 0, 0);
+        right.Children.Add(bar);
+        Tick();
+
+        var halfway = await HalfwayBox(bar);
+
+        Assert.InRange(halfway.Left, start.Left + (Shift * .3), start.Left + (Shift * .7));
+        Assert.InRange(halfway.Top, start.Top - (Shift * .45), start.Top - (Shift * .05));
+        Assert.True(
+            await Pump(() => Box(bar) == start.Translate(new Vector(Shift, -Shift))),
+            "the bar never reached the slot its new parent gave it");
+    }
+
+    [AvaloniaFact]
+    public void ABuilderThatGivesALayoutAxisAValueOrSetsAnythingElseThrows()
+    {
+        var (_, bar) = ShowStack();
+
+        Assert.Throws<NotSupportedException>(() => bar.AnimateLayout(Presto.Build().X(10)));
+        Assert.Throws<NotSupportedException>(() => bar.AnimateLayout(Presto.Build().Y(from: 0, ease: Eases.OutQuad)));
+        Assert.Throws<NotSupportedException>(() => bar.AnimateLayout(Presto.Build().Opacity(0.5)));
+        Assert.Throws<NotSupportedException>(() => bar.AnimateLayout(Presto.Build().Loop()));
+        Assert.Throws<NotSupportedException>(() => bar.AnimateLayout(Presto.Build().Delay(Presto.Stagger(10))));
+    }
+
+    [AvaloniaFact]
     public void ScrollingAnArmedControlIsNotALayoutMove()
     {
         var bar = new Border { Background = Brushes.Red, Width = 40, Height = 20, Margin = new Thickness(0, 50, 0, 150) };
@@ -332,6 +458,29 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         return (left, right, bar);
     }
 
+    /// <summary>
+    /// A list scrolled 100 down, whose first child is a 150-tall spacer so an item inserted after it is drawn 50 from the
+    /// top on the left, under an unscrolled panel on the right. The panel lies over the list, as a detail view does, since
+    /// a control flying into the list is clipped to the list's viewport until it lands.
+    /// </summary>
+    private static (StackPanel List, StackPanel Panel) ShowScrolledList()
+    {
+        var list = new StackPanel { HorizontalAlignment = HorizontalAlignment.Left, Children = { new Border { Height = 150 }, new Border { Height = 400 } } };
+        var scroller = new ScrollViewer { Width = 120, Height = 200, Content = list };
+        var panel = new StackPanel { Width = 40, Margin = new Thickness(0, 120, 0, 0), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        new Window
+        {
+            Content = new Grid { Width = 120, Height = 200, Children = { scroller, panel } },
+            Background = Brushes.White,
+            Width = 160,
+            Height = 220,
+        }.Show();
+        Tick();
+        scroller.Offset = new Vector(0, 100);
+        Tick();
+        return (list, panel);
+    }
+
     /// <summary>The box the bar is rendered in halfway through a <see cref="Duration"/> move, pumping the render thread until it gets there.</summary>
     private static async Task<Rect> HalfwayBox(Visual bar)
     {
@@ -349,7 +498,4 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     }
 
     private static double Top(Visual bar) => Box(bar).Top;
-
-    private static Rect Box(Visual bar) =>
-        Extent(bar, Colors.Red) ?? throw new InvalidOperationException("The bar is not in the rendered frame.");
 }

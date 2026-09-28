@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -64,13 +65,15 @@ public partial class StressBenchPage : ShowcasePage
         var count = (int)CountSlider.Value;
         var set = SetBox.SelectedIndex;
         _workload = [];
-        switch (ModeBox.SelectedIndex)
+        var mode = ModeBox.SelectedIndex;
+        var targets = mode is UiThread or PerVisual ? AddTargets(count) : [];
+        var build = Stopwatch.StartNew();
+        switch (mode)
         {
             case UiThread:
-                _workload.Add(Presto.Animate(AddTargets(count), Motion(set, "Background", Aqua)));
+                _workload.Add(Presto.Animate(targets, Motion(set, "Background", Aqua)));
                 break;
             case PerVisual:
-                var targets = AddTargets(count);
                 _workload.Add(PrestoAvalonia.AnimateOnCompositor(targets, Timed(set == OpacityOnly
                     ? new CompositorAnimationParams { ["Opacity"] = .15 }
                     : new CompositorAnimationParams { ["Scale"] = .35, ["Rotate"] = 90 })));
@@ -83,6 +86,7 @@ public partial class StressBenchPage : ShowcasePage
                 _workload.Add(scene);
                 break;
         }
+        BuildReadout.Text = string.Create(CultureInfo.InvariantCulture, $"build {build.Elapsed.TotalMilliseconds:0.0} ms");
 
         var stopWorker = WorkerToggle.IsChecked == true ? StartWorker(count, set) : null;
         return () =>

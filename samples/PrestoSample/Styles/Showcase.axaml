@@ -43,6 +43,27 @@
         <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
     </Style>
 
+    <!-- A Builder page's printed code: Border.codeblock > ScrollViewer > SelectableTextBlock.code. -->
+    <Style Selector="Border.codeblock">
+        <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="14,12" />
+    </Style>
+
+    <Style Selector="Border.codeblock > ScrollViewer">
+        <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
+    </Style>
+
+    <Style Selector="SelectableTextBlock.code">
+        <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+    </Style>
+
     <Style Selector="Border.demo">
         <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
         <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />

@@ -1,0 +1,74 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1100"
+                       x:Class="PrestoSample.Builder.MotionTokensPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.row">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,10" />
+        </Style>
+        <Style Selector="Border.row > TextBlock">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <RadioButton x:Name="StandardOption" GroupName="Tokens" Content="Standard" IsChecked="True" IsCheckedChanged="TokensChanged" />
+                <RadioButton x:Name="ExpressiveOption" GroupName="Tokens" Content="Expressive" IsCheckedChanged="TokensChanged" />
+                <RadioButton x:Name="ReducedOption" GroupName="Tokens" Content="Reduced motion" IsCheckedChanged="TokensChanged" />
+                <Button Content="Replay" Click="Replay" />
+            </StackPanel>
+
+            <Border Classes="stage">
+                <Grid ColumnDefinitions="*,220" ColumnSpacing="20">
+                    <StackPanel x:Name="Rows" Spacing="8">
+                        <Border Classes="row"><TextBlock Text="Quarterly report is ready" /></Border>
+                        <Border Classes="row"><TextBlock Text="Ada commented on your draft" /></Border>
+                        <Border Classes="row"><TextBlock Text="Build 482 passed" /></Border>
+                        <Border Classes="row"><TextBlock Text="Three new sign-ups today" /></Border>
+                        <Border Classes="row"><TextBlock Text="Invoice #1043 was paid" /></Border>
+                    </StackPanel>
+                    <Button x:Name="Fab" Classes="specimen" Width="48" Height="48" CornerRadius="24" Padding="0"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,-12"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                        <PathIcon Data="{StaticResource StarIcon}" />
+                    </Button>
+                    <Border x:Name="Panel" Grid.Column="1" Classes="specimen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Details" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
+                            <TextBlock Text="Every motion on this stage is a recipe of the selected tokens. Switch the set and the same three recipes replay with its durations, eases and distances."
+                                       TextWrapping="Wrap" Foreground="{x:Static showcase:Palette.InkDim}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <TextBlock Classes="caption" Text="The selected token set" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="TokensCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+
+            <TextBlock Classes="caption" Text="Recipes: builders made from tokens, never from literals" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="RecipesCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+
+            <TextBlock Classes="caption" Text="What ran" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="PlayCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

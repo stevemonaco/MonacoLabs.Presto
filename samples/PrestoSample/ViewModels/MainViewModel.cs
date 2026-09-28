@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PrestoSample.Builder;
 using PrestoSample.Pages;
 using PrestoSample.Showcase.Pages;
 
@@ -73,6 +74,10 @@ public partial class MainViewModel : ObservableObject
                 () => new Showcase.Pages.CarouselPage()),
             new GalleryPage("Connected", "Twelve album cards; click one and its art and title fly into the detail view on transitions of their own, 560 and 460 ms long, so the title lands first while the other cards scatter away from it on one staggered compositor animation. Press Back or Escape at any point, or click the card again while it closes, and every piece reverses from where it is drawn.",
                 () => new ConnectedPage()),
+            new GalleryPage("Connected navigation", "A connected animation between two views, as the Community Toolkit does between pages: scroll the gallery, click a destination, and it is swapped for a detail view built from scratch while the photo arcs and the city name flies into place on the render thread, the two views meeting only through prepared keys. The text, facts and buttons ride in behind them on one staggered compositor builder. Press Back or Escape, even mid-flight, to fly them home into the scrolled list as the other cards ripple back in, and turn on Block the UI thread to see the flights land while the dispatcher sleeps.",
+                () => new ConnectedNavPage()),
+            new GalleryPage("Connected XAML", "The same destinations with no animation code at all: a view model swaps a gallery for a detail page through DataTemplates, and the views' XAML carries the rest. Connected.Key marks the photo and city name as the same thing in both views, Connected.Motion gives the photo its arc both ways, and Connected.Anchor brings the detail text in behind the photo's flight. Scroll the list, open a destination and go back, then flip the switch to host the pages in a cross-fading TransitioningContentControl, where the two views overlap and the photo flies from the live one. The XAML that does it is printed beneath the stage.",
+                () => new ConnectedXamlPage()),
             new GalleryPage("Bloom navigation", "Four tabs, each with its own hue. Click one and a circle of its colour grows from the pointer, or from the tab's centre when you pick it with the keyboard, until it covers the farthest corner; one timeline swaps the content under it at 65% and fades it while the new tiles rise in, as the underline, labels and header follow. Click tabs quickly and the blooms stack, each clearing the ones beneath it as it finishes. The bloom's Scale runs on the UI thread so it can share the timeline with the swap.",
                 () => new BloomNavPage()),
             new GalleryPage("Gestures", "Three draggables with their live velocity. Pull the feed down: it stiffens as it goes, springs home from a short pull and holds from a long one while the arrow turns into a spinner, three new rows slide in and the list springs back. Swipe an inbox row either way to reveal archive or delete; past 40% the icon pops and the release carries the row off and collapses its gap, and Undo brings the last one back from the side it left. Pull the curtain down by its handle, or tap the handle to step it closed, half and full: it rests at the nearest of the three, and the content under it sinks, shrinks and dims in step, springs included.",
@@ -85,6 +90,33 @@ public partial class MainViewModel : ObservableObject
                 () => new ChartMorphPage()),
             new GalleryPage("Stress bench", "Up to 20 000 squares animated three ways: Presto animations on the UI thread, a compositor animation per visual, or one compositor scene drawing them all. Raise the count and switch modes to see where the UI frame times in the graph, the fps readouts and the gen-0 count give way. The graph is itself drawn on the render thread, so a stalled UI thread shows as a coral bar that keeps growing, and the worker switch adds a third engine on a thread of its own.",
                 () => new StressBenchPage())),
+        Section("Builder",
+            new GalleryPage("Builder basics", "The Animation basics like-button spelled with the fluent builder: Presto.Build() chains the transform shorthands, opacity, a Palette brush and the playback settings, and the code beneath the stage is the exact call that ran, captured at compile time. It's a real Button, so click it while it moves and watch the counter go up; Replay restarts it.",
+                () => new BuilderBasicsPage()),
+            new GalleryPage("Properties and keyframes", "Three builder stages, each with the code that ran beneath it: one property with its own from, to and ease beside another with its own duration and delay; a ball bouncing through per-property keyframes above a square following animation-level keyframes at 0, 30 and 100 percent; and a card whose Palette background, CornerRadius and BorderThickness are typed values, the last set through any AvaloniaProperty. Replay restarts a stage.",
+                () => new PropertiesPage()),
+            new GalleryPage("Recipes", "A builder is a reusable recipe: one static Pop builder plays on whichever button you click, and the same recipe runs over the whole row with a stagger delay layered on its snapshot. The slider changes the recipe's duration, so the next play uses it while a pop already running keeps its own, because every Animate snapshots the builder.",
+                () => new RecipesPage()),
+            new GalleryPage("Timeline and compositor", "One fadeUp builder assembled into a timeline, each card added at its own position with Add(target, builder, position); the slider scrubs it and Play resumes. Below, a gear spun by AnimateOnCompositor(builder) runs on the render thread, so press Freeze and watch it keep turning while the timeline above stops dead for two seconds.",
+                () => new TimelineBuilderPage()),
+            new GalleryPage("XAML", "A builder attached from markup with Animate.OnAttached, three ways: a static recipe on a row of cards, a FadeUp markup extension whose Delay cascades a list in, and a binding to a view model that swaps an idle float for an alert shake when you flip the switch. Each panel prints its XAML and the C# it points at; Replay re-attaches all three.",
+                () => new XamlPage()),
+            new GalleryPage("Motion tokens", "Recipes built from a design system's tokens instead of literals: Enter, SlideIn and Pop are functions of a MotionTokens record, so picking Standard, Expressive or Reduced motion restyles every animation on the stage at once. Reduced motion zeroes the distances and stagger, leaving quick fades. The printed code is the token set, the recipes and the calls that ran.",
+                () => new MotionTokensPage()),
+            new GalleryPage("Playground", "Every control edits one step of a builder chain over six squares: transforms, duration, an ease by name, a stagger delay and where it spreads from, loop and alternate. The squares replay as you change it, and the code beneath is the C# for exactly that chain, ready to paste.",
+                () => new PlaygroundPage()),
+            new GalleryPage("Ripple grid", "Click any cell and a wave runs out from it across a 16 by 9 grid. Grid staggers do all the work: one sets each cell's delay by its distance from the click, and two more, as ranges inside the Scale and Rotate keyframes, dip and twist the nearest cells hardest. Click again mid-wave and it restarts from the new cell.",
+                () => new RippleGridPage()),
+            new GalleryPage("Submit flow", "A submit button driven by nine small recipes awaited in turn: it collapses into a circle, spins while a Presto timer stands in for the request, then turns aqua and draws a tick, or turns coral, shakes and draws a cross, before springing back. Tick \"Fail the next request\" to see the error branch.",
+                () => new SubmitFlowPage()),
+            new GalleryPage("Counters", "Four stat tiles counted by Text tweens, each with its own textModifier for currency, thousands or percentages and counting on from the value it shows. Below, an odometer rolls its digit strips with one Y tween whose target digit comes per strip from a function value, staggered from the last digit; tick Mechanical to add a Modifier that snaps each strip to whole digits. New data retargets both.",
+                () => new CountersPage()),
+            new GalleryPage("Toast stack", "An ItemsControl of toasts whose item template attaches its entrance and a five-second countdown bar from XAML with Animate.OnAttached. When the bar runs out, or you press ✕, the page collapses the toast's container and the stack closes up before the item leaves the collection. Press Notify a few times: past four toasts the oldest leaves on its own.",
+                () => new ToastsPage()),
+            new GalleryPage("Form states", "A sign-up form as a state machine: Idle, Validating, Error and Success. The card and badge bind Animate.OnAttached to builders the view model looks up by state, so every transition swaps what they play: a breathing pulse and spinning badge while checking, a shake on error, a spring pop on success, and a gentle float at rest.",
+                () => new FormStatesPage()),
+            new GalleryPage("Storyboard", "A keyframed hop built paused with Autoplay(false): Play, Restart or drag the slider to seek it, and read CurrentTime, IterationProgress, OnLoop calls and OnUpdate calls per second back live. Change PlaybackEase, FrameRate or PlaybackRate and it rebuilds at the same moment; drop to 6 fps and the updates per second follow.",
+                () => new StoryboardPage())),
     ];
 
     [ObservableProperty]

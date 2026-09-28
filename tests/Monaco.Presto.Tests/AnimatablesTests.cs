@@ -33,6 +33,37 @@ public sealed class AnimatablesTests : EngineTestBase
         Assert.Equal(45, animatable.Get("Rotate"));
     }
 
+    /// <summary>
+    /// Retargeting a zero duration property with a real duration, long after the engine started, still eases every frame:
+    /// stretching the setter duration must not scale the animation's creation offset past what a double can resolve.
+    /// </summary>
+    [Fact]
+    public void RetargetingAZeroDurationPropertyLongAfterTheEngineStartedStillEases()
+    {
+        var keepAlive = Presto.CreateTimer();
+        Frames.Advance(62000, 16);
+        var stuck = new List<string>();
+        for (var i = 0; i < 40; i++)
+        {
+            Frames.Advance(7.3 * (i % 5 + 1));
+            var target = new StyleTarget();
+            var animatable = Presto.CreateAnimatable(target, new() { ["TranslateX"] = 0 });
+            for (var drag = 0; drag < 5; drag++)
+            {
+                animatable.Set("TranslateX", drag * 10, 0);
+                Frames.Advance(16);
+            }
+            animatable.Set("TranslateX", 100, 1480, Eases.None);
+            Frames.Advance(736, 16);
+            var value = animatable.Get("TranslateX");
+            if (value is < 60 or > 80) stuck.Add($"{i}:{value:0.#}");
+            animatable.Revert();
+        }
+
+        Assert.True(stuck.Count == 0, "midway values: " + string.Join(" ", stuck));
+        keepAlive.Cancel();
+    }
+
     [Fact]
     public void GetAndAnimateAnimatableComplexValues()
     {

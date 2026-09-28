@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -97,10 +98,50 @@ public static class PrestoAvalonia
     /// Each target gets its own playback mirror and composition animations, so this is meant for a handful of visuals, not
     /// thousands.
     /// </remarks>
+    [OverloadResolutionPriority(1)]
     public static CompositorAnimation AnimateOnCompositor(object? targets, CompositorAnimationParams parameters)
     {
         EnsureInitialized();
         return new CompositorAnimation(targets, parameters);
+    }
+
+    /// <summary>Runs a snapshot of <paramref name="builder"/> on the render thread, as the <see cref="CompositorAnimationParams"/> overload does.</summary>
+    /// <exception cref="NotSupportedException">The builder set something the compositor has no counterpart for.</exception>
+    public static CompositorAnimation AnimateOnCompositor(object? targets, AnimationBuilder builder)
+    {
+        var p = builder.ToParams();
+        var unsupported =
+            p.Keyframes != null ? nameof(p.Keyframes) :
+            p.FrameRate != null ? nameof(p.FrameRate) :
+            p.PlaybackEase != null ? nameof(p.PlaybackEase) :
+            p.Composition != null ? nameof(p.Composition) :
+            p.Modifier != null ? nameof(p.Modifier) :
+            p.Id != null ? nameof(p.Id) :
+            p.Priority != new TimerParams().Priority ? nameof(p.Priority) :
+            p.OnBeforeUpdate != null ? nameof(p.OnBeforeUpdate) :
+            p.OnUpdate != null ? nameof(p.OnUpdate) :
+            p.OnLoop != null ? nameof(p.OnLoop) :
+            p.OnPause != null ? nameof(p.OnPause) :
+            p.OnRender != null ? nameof(p.OnRender) :
+            null;
+        if (unsupported != null) throw new NotSupportedException($"{unsupported} has no counterpart on the compositor.");
+
+        var parameters = new CompositorAnimationParams
+        {
+            Duration = p.Duration,
+            Delay = p.Delay,
+            Ease = p.Ease,
+            Loop = p.Loop,
+            LoopDelay = p.LoopDelay,
+            Alternate = p.Alternate,
+            Reversed = p.Reversed,
+            Autoplay = p.Autoplay,
+            PlaybackRate = p.PlaybackRate,
+            OnBegin = p.OnBegin,
+            OnComplete = p.OnComplete,
+        };
+        foreach (var (name, value) in p.Properties) parameters.Properties[name] = value;
+        return AnimateOnCompositor(targets, parameters);
     }
 
     /// <summary>
@@ -119,7 +160,21 @@ public static class PrestoAvalonia
         LayoutAnimateMode mode = LayoutAnimateMode.Position)
     {
         EnsureInitialized();
-        return new LayoutTransition(control, first: null, duration, ease, mode, once: false);
+        return new LayoutTransition(control, first: null, firstOnScreen: false, new LayoutMotion(duration, Ease: ease), mode, once: false);
+    }
+
+    /// <summary>
+    /// <see cref="AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/> with the motion taken from
+    /// <paramref name="builder"/>: its duration, delay and ease, and per-axis eases given as <c>.X(ease: …)</c>,
+    /// <c>.Y(ease: …)</c> and <c>.Scale(ease: …)</c>. Easing X and Y differently curves the move into an arc.
+    /// </summary>
+    /// <exception cref="NotSupportedException">
+    /// The builder gives X, Y or Scale a value, which is layout's to decide, or sets anything else a layout transition cannot honour.
+    /// </exception>
+    public static LayoutTransition AnimateLayout(Control control, AnimationBuilder builder, LayoutAnimateMode mode = LayoutAnimateMode.Position)
+    {
+        EnsureInitialized();
+        return new LayoutTransition(control, first: null, firstOnScreen: false, LayoutMotion.From(builder), mode, once: false);
     }
 
     /// <summary>
@@ -127,12 +182,11 @@ public static class PrestoAvalonia
     /// next, which is how an item moves between two containers (COMPOSITOR-PLAN §4.4 step 6).
     /// </summary>
     /// <remarks>
-    /// The two are measured in their window's coordinates with scrolling taken out, so they have to share a window, and a
-    /// move between two scrolled containers is off by the difference in their offsets. <paramref name="source"/> is measured
-    /// where it is drawn, render-transform translation included, so a dropped drag or a control re-armed mid-move carries on
-    /// from there. By default a one-shot, off again once the
-    /// move is under way; passing <paramref name="once"/> false keeps easing later layout changes as
-    /// <see cref="AnimateLayout"/> does. Passing the same control twice reparents it.
+    /// <paramref name="source"/> is measured where it is drawn on screen — scroll offsets, render-transform translation and
+    /// any live transition included — so a dropped drag, a control re-armed mid-move or an item in a scrolled list flies from
+    /// where it is seen. The two have to share a window. By default a one-shot, off again once the move is under way;
+    /// passing <paramref name="once"/> false keeps easing later layout changes as
+    /// <see cref="AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/> does. Passing the same control twice reparents it.
     /// </remarks>
     public static LayoutTransition AnimateSharedElement(
         Control source,
@@ -143,7 +197,68 @@ public static class PrestoAvalonia
         bool once = true)
     {
         EnsureInitialized();
-        return new LayoutTransition(target, LayoutTransition.MeasureDrawn(source), duration, ease, mode, once);
+        return new LayoutTransition(target, LayoutTransition.MeasureDrawn(source), firstOnScreen: true, new LayoutMotion(duration, Ease: ease), mode, once);
+    }
+
+    /// <summary>
+    /// <see cref="AnimateSharedElement(Control, Control, double, EaseValue?, LayoutAnimateMode, bool)"/> with the motion
+    /// taken from <paramref name="builder"/>, as <see cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/> takes it.
+    /// </summary>
+    /// <inheritdoc cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)" path="/exception"/>
+    public static LayoutTransition AnimateSharedElement(
+        Control source,
+        Control target,
+        AnimationBuilder builder,
+        LayoutAnimateMode mode = LayoutAnimateMode.PositionAndSize,
+        bool once = true)
+    {
+        EnsureInitialized();
+        return new LayoutTransition(target, LayoutTransition.MeasureDrawn(source), firstOnScreen: true, LayoutMotion.From(builder), mode, once);
+    }
+
+    /// <summary>
+    /// Records where <paramref name="source"/> is drawn under <paramref name="key"/>, so a keyed
+    /// <see cref="AnimateSharedElement(string, Control, double, EaseValue?, LayoutAnimateMode, bool)"/> can fly a control
+    /// from there later, after <paramref name="source"/> and its view are gone: the Toolkit's <c>PrepareToAnimate</c>.
+    /// </summary>
+    /// <remarks>
+    /// Only the rectangle is kept, never the control. Preparing a key again replaces it, and an entry that no keyed start
+    /// takes within three seconds is discarded, so a navigation that never completed cannot launch a later one from a stale place.
+    /// </remarks>
+    /// <returns><c>false</c>, and nothing prepared under the key, when <paramref name="source"/> is not on screen.</returns>
+    public static bool PrepareSharedElement(string key, Control source) => LayoutTransition.Prepare(key, source);
+
+    /// <summary>
+    /// Flies <paramref name="target"/> from where <see cref="PrepareSharedElement"/> recorded <paramref name="key"/> into
+    /// the slot layout gives it next, taking the entry: the Toolkit's <c>GetAnimation(key)?.TryStart(target)</c>.
+    /// </summary>
+    /// <returns>The transition, or <c>null</c> when nothing live is prepared under the key.</returns>
+    public static LayoutTransition? AnimateSharedElement(
+        string key,
+        Control target,
+        double duration,
+        EaseValue? ease = null,
+        LayoutAnimateMode mode = LayoutAnimateMode.PositionAndSize,
+        bool once = true) =>
+        AnimateSharedElement(key, target, new LayoutMotion(duration, Ease: ease), mode, once);
+
+    /// <summary>The keyed <see cref="AnimateSharedElement(string, Control, double, EaseValue?, LayoutAnimateMode, bool)"/> with its motion taken from <paramref name="builder"/>.</summary>
+    /// <inheritdoc cref="AnimateSharedElement(string, Control, double, EaseValue?, LayoutAnimateMode, bool)" path="/returns"/>
+    /// <inheritdoc cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)" path="/exception"/>
+    public static LayoutTransition? AnimateSharedElement(
+        string key,
+        Control target,
+        AnimationBuilder builder,
+        LayoutAnimateMode mode = LayoutAnimateMode.PositionAndSize,
+        bool once = true) =>
+        AnimateSharedElement(key, target, LayoutMotion.From(builder), mode, once);
+
+    private static LayoutTransition? AnimateSharedElement(string key, Control target, LayoutMotion motion, LayoutAnimateMode mode, bool once)
+    {
+        EnsureInitialized();
+        return LayoutTransition.TakePrepared(key) is { } from
+            ? new LayoutTransition(target, from, firstOnScreen: true, motion, mode, once)
+            : null;
     }
 
     /// <inheritdoc cref="Presto.Remove"/>

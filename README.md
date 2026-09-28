@@ -83,6 +83,91 @@ Named properties resolve through `AvaloniaPropertyRegistry`, so `"Opacity"`, `"W
 properties like `"Canvas.Left"` all work. Values are written at `BindingPriority.Animation`, so `Revert()` puts the
 control's own values back exactly.
 
+### Fluent builder
+
+`Presto.Build()` is an optional, typed spelling of the same parameters. It only builds an `AnimationParams` and hands it
+to `Presto.Animate`, so it can express nothing the indexer cannot; the indexer stays the primary spelling in these docs.
+
+```csharp
+Square.Animate(Presto.Build()                   // or Presto.Build()...Animate(Square)
+    .X(320)
+    .Y(-40)
+    .Rotate(from: -180)
+    .Scale(1.4)
+    .Property(Visual.OpacityProperty, 0.4)
+    .Background("#ff6b6b")
+    .Duration(1250)
+    .Delay(250)
+    .Ease(Eases.InOutQuint)
+    .Loop()
+    .Alternate());
+
+Presto.Build().Property("X", 320).Duration(1250).Animate(ship);   // core: any property by name
+```
+
+The transform shorthands, `Opacity`, `Width`, `Height`, `Background`, `Foreground`, `CornerRadius`, `BorderThickness`,
+`Margin`, `Padding` and the `Draw` / `Text` / `Data` pseudo-properties are bridge extension methods that write the same
+keys the indexer does; anything else is `Property(SomeControl.SomeProperty, …)` or `Property("Name", …)`. A property
+given only `to` is a bare value, and any other argument (`from`, `duration`, `ease`, …) makes it a `TweenParams`.
+Naming a property again replaces its value but keeps its position, and a second callback replaces the first.
+
+A builder is a reusable recipe. `Animate`, `Set` and `ToParams` each take a fresh snapshot, so changing the builder
+afterwards never touches an animation already running:
+
+```csharp
+var pop = Presto.Build().Scale(from: 0.6, to: 1).Opacity(from: 0, to: 1).Duration(400).Ease(Eases.OutBack());
+pop.Animate(first);
+pop.Delay(200).Animate(second);                 // first keeps its zero delay
+```
+
+Keyframes, per property and animation-wide (`Frame` for duration-based frames, `At` for percentages; not both):
+
+```csharp
+Presto.Build()
+    .X(k => k.To(200, duration: 500, ease: Eases.OutQuad).To(80, duration: 300, delay: 200).To(0, duration: 600))
+    .Animate(box);
+
+Presto.Build()
+    .Keyframes(k => k
+        .At(0, f => f.X(0).Scale(1))
+        .At(60, f => f.Scale(1.6))
+        .At(100, f => f.X(0).Scale(1)))
+    .Duration(2500)
+    .Ease("linear")
+    .Animate(box);
+```
+
+Timelines and the render thread take a builder wherever they take parameters:
+
+```csharp
+var slide = Presto.Build().X(300).Duration(600).Ease(Eases.OutQuad);
+Presto.CreateTimeline()
+    .Add(a, slide)
+    .Add(b, slide, "-=400")
+    .Add(strip.Children, Presto.Build().Y(-14), Presto.Stagger(60))
+    .Set(c, Presto.Build().Opacity(0), "<");
+
+var spin = icon.AnimateOnCompositor(Presto.Build().Rotate(360).Duration(1200).Ease(Eases.None).Loop());
+```
+
+`AnimateOnCompositor` throws `NotSupportedException`, naming the setting, for anything the builder set that the
+[render-thread model](#render-thread) has no counterpart for (`Keyframes`, `OnUpdate`, `Composition`, …).
+
+#### From XAML
+
+`presto:Animate.OnAttached` (`xmlns:presto="using:Monaco.Presto.AvaloniaBridge"`) takes a builder three ways:
+
+```xml
+<Border presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}" />
+<TextBlock presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=100}" />
+<PathIcon presto:Animate.OnAttached="{Binding Emphasis}" />
+```
+
+Use `x:Static` for a fixed recipe shared as-is, a markup extension when the markup parameterises it per element, and a
+binding when the view model decides which animation runs. The builder plays each time the visual attaches to the visual
+tree and is reverted on detach; a new value reverts the old animation and plays the new one, `null` reverts and stops
+listening, and nothing runs in design mode.
+
 ## Avalonia setup
 
 Install the bridge once at startup:
@@ -444,15 +529,65 @@ corner, which scales its content with it. Layout itself is unchanged: `Bounds` i
 pixels lag behind, so a control is hit where layout put it while it is still drawn on the way there. `Revert()` takes it
 off again.
 
+A shared element is measured where it is seen, scroll included, so a card in a scrolled list flies from the right place.
+When the two views never exist at once, as with navigation driven by a view model, prepare the source under a key
+before its view goes and start the target from that key when the next view is built, as the Community Toolkit's
+connected animations do:
+
+```csharp
+PrestoAvalonia.PrepareSharedElement("photo", thumbnail);                        // leaving view
+PrestoAvalonia.AnimateSharedElement("photo", heroImage, 500, Eases.OutQuint);   // arriving view; null if nothing prepared
+```
+
+A prepared entry keeps only the rectangle and lapses after three seconds. Every layout and shared-element call also
+takes an `AnimationBuilder` for its motion: duration, delay, ease, and per-axis eases given as `.X(ease: …)`,
+`.Y(ease: …)` or `.Scale(ease: …)`; easing X and Y differently curves the flight into an arc. Layout owns the values,
+so giving X, Y or Scale a value, or setting anything else, throws.
+
+```csharp
+PrestoAvalonia.AnimateSharedElement("photo", heroImage, Presto.Build().Duration(600).Ease(Eases.OutQuint).Y(ease: Eases.InOutCubic));
+```
+
+During the flight a control is still drawn inside its own parents, so one flying into a clipped container, such as a
+`ScrollViewer`, is clipped to it until it lands.
+
+#### Connected animations from XAML
+
+With view-model navigation (a `ContentControl` or `TransitioningContentControl` swapping views through DataTemplates),
+the prepare and start calls can move into markup, and neither view needs code:
+
+```xml
+<!-- Gallery item template -->
+<Border Classes="photo" presto:Connected.Key="{Binding Id, StringFormat=photo-{0}}" />
+
+<!-- Detail view -->
+<Border Classes="photo hero"
+        presto:Connected.Key="{Binding Id, StringFormat=photo-{0}}"
+        presto:Connected.Motion="{x:Static local:Motions.Flight}" />
+<StackPanel presto:Connected.Anchor="{Binding Id, StringFormat=photo-{0}}">…</StackPanel>
+```
+
+| Property | Type | Question | Where |
+|---|---|---|---|
+| `Key` | `string?` | Which element is the same thing in both views? | The matching element in both views |
+| `Motion` | `AnimationBuilder?` | How does this element arrive? | A keyed element (its flight) or an anchored one (its entrance) |
+| `Anchor` | `string?` | Which keyed flight does this element arrive with, without flying itself? | Elements around the destination |
+
+Arrival is attachment to the visual tree: a keyed element flies from another attached element with its key, or else
+from where the last one to leave was drawn, and otherwise shows normally. The arriving element's `Motion` wins; the
+leaving element's is never used. Without one, flights use `Connected.DefaultMotion` (500 ms, `OutQuint`) and anchored
+entrances `Connected.DefaultAnchorMotion` (rise 24 px and fade in over 400 ms, `OutQuart`, 150 ms delay); both are
+settable.
+
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:
 
 | anime.js | Presto |
 |---|---|
-| `animate(targets, params)` | `Presto.Animate(targets, new AnimationParams { … })`, or `control.Animate(new() { … })` |
+| `animate(targets, params)` | `Presto.Animate(targets, new AnimationParams { … })`, or `control.Animate(new() { … })`<br>Builder: `Presto.Build().X(…).Duration(…).Animate(targets)` |
 | `createTimer(params)` | `Presto.CreateTimer(new TimerParams { … })` |
-| `createTimeline(params)` | `Presto.CreateTimeline(new TimelineParams { … })`, then `.Add` / `.Set` / `.Sync` / `.Label` / `.Call` / `.Remove` / `.Refresh` |
+| `createTimeline(params)` | `Presto.CreateTimeline(new TimelineParams { … })`, then `.Add` / `.Set` / `.Sync` / `.Label` / `.Call` / `.Remove` / `.Refresh`<br>Builder: `.Add(targets, Presto.Build()…, position)` / `.Set(targets, Presto.Build()…)` |
 | `createAnimatable(targets, params)` | `Presto.CreateAnimatable(targets, new AnimatableParams { … })`, or `control.CreateAnimatable(new() { … })` |
 | `createScope(params)` | `Presto.CreateScope(new ScopeParams { … })`; `PrestoAvalonia.CreateScope(control)` reverts when the control detaches |
 | `createDraggable(target, params)` | `PrestoAvalonia.CreateDraggable(control, new DraggableParams { … })` |
@@ -468,16 +603,15 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `engine` | `Presto.Engine` (`Speed`, `Fps`, `Precision`, `TimeUnit`, `Pause()`, `Resume()`, `FrameSource`) |
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
-| `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
+| `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
 | `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are out: a control that appears or disappears is not a layout move. |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
 | `core/*`, `types/*` | Internal (`Clock`, `Renderer`, `Composer`, value parsing) or TypeScript declarations with no C# counterpart. |
 
-There is no XAML surface for animations yet — no attached properties, no markup extension. It is deliberately deferred
-until the C# API has settled, so it is not built against something about to change. Animate from code-behind or a view
-model for now.
+The only XAML surface is `Animate.OnAttached`, which plays a builder when a visual attaches ([From XAML](#from-xaml));
+other triggers belong in code-behind or a view model.
 
 ### Parameter names
 

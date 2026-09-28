@@ -1,0 +1,91 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:local="using:PrestoSample.Builder"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1400"
+                       x:Class="PrestoSample.Builder.XamlPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="TextBlock.row">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="Padding" Value="14,10" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
+            <StackPanel x:Name="Demos" Spacing="32">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" Text="{}{x:Static}: a fixed, named recipe any view can reuse" />
+                    <Border Classes="stage" MinHeight="140">
+                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Classes="swatch" Width="64" Height="64" presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}" />
+                            <Border Classes="swatch" Width="64" Height="64" presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}" />
+                            <Border Classes="swatch" Width="64" Height="64" presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}" />
+                            <Border Classes="swatch" Width="64" Height="64" presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.StaticXaml}" />
+                        </ScrollViewer>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock x:Name="StaticCode" Classes="code" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" Text="Markup extension: a recipe the markup parameterises, a fresh builder per element" />
+                    <Border Classes="stage" MinHeight="0">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="row" Text="Inbox" presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=0}" />
+                            <TextBlock Classes="row" Text="Drafts" presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=100}" />
+                            <TextBlock Classes="row" Text="Sent" presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=200}" />
+                            <TextBlock Classes="row" Text="Archive" presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=300}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.ExtensionXaml}" />
+                        </ScrollViewer>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock x:Name="ExtensionCode" Classes="code" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" Text="Binding: view state picks the animation, and the element re-animates when it changes" />
+                    <Border Classes="stage" MinHeight="160">
+                        <StackPanel Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center" x:DataType="local:EmphasisViewModel">
+                            <StackPanel.DataContext>
+                                <local:EmphasisViewModel />
+                            </StackPanel.DataContext>
+                            <ToggleSwitch IsChecked="{Binding IsAlert}" OffContent="Idle" OnContent="Alert" />
+                            <PathIcon Data="{StaticResource StarIcon}" Width="48" Height="48" Foreground="{x:Static showcase:Palette.Amber}" presto:Animate.OnAttached="{Binding Emphasis}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.BindingXaml}" />
+                        </ScrollViewer>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock x:Name="BindingCode" Classes="code" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

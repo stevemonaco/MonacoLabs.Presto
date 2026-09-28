@@ -47,6 +47,9 @@ public static class Presto
     public static Animation Animate(object? targets, AnimationParams parameters) =>
         (Animation)new Animation(targets, parameters, null, 0).Init();
 
+    /// <summary>Starts a fluent, reusable <see cref="AnimationBuilder"/>, a typed alternative to the <see cref="AnimationParams"/> indexer.</summary>
+    public static AnimationBuilder Build() => new();
+
     /// <summary>Writes values to targets immediately; returns the zero duration animation that wrote them, as upstream <c>utils.set()</c> does.</summary>
     public static Animation Set(object? targets, AnimationParams parameters) =>
         (Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume();

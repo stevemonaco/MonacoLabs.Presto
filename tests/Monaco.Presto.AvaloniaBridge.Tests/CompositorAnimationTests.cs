@@ -121,6 +121,41 @@ public sealed class CompositorAnimationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public async Task UniformStaggeredTargetsEachLandOnTheirEndValue()
+    {
+        Color[] colors = [Colors.Red, Colors.Blue, Colors.Lime];
+        var bars = colors.Select(color => new Border { Background = new SolidColorBrush(color), Width = 20, Height = 10 }).ToArray();
+        var canvas = new Canvas();
+        for (var i = 0; i < bars.Length; i++)
+        {
+            Canvas.SetLeft(bars[i], 10);
+            Canvas.SetTop(bars[i], 10 + (30 * i));
+            canvas.Children.Add(bars[i]);
+        }
+        new Window { Content = canvas, Background = Brushes.White, Width = 100, Height = 100 }.Show();
+        Tick();
+
+        var animation = PrestoAvalonia.AnimateOnCompositor(bars, new()
+        {
+            ["X"] = new TweenValue[] { 40, 20 }, Duration = 200, Delay = Presto.Stagger(100), Ease = "linear",
+        });
+        Frames.Advance(300);
+
+        Assert.False(animation.Completed);
+        Assert.InRange(animation.Progress, .4, .7);
+
+        Frames.Advance(200);
+
+        Assert.True(animation.Completed);
+        Assert.Equal(1, animation.Progress);
+        for (var i = 0; i < bars.Length; i++)
+        {
+            var end = new Rect(30, 10 + (30 * i), 20, 10);
+            Assert.True(await Pump(() => Extent(bars[i], colors[i]) == end), $"bar {i} never reached {end}");
+        }
+    }
+
+    [AvaloniaFact]
     public void RevertLeavesEveryMirrorAtZeroRatherThanBeforeItsDelay()
     {
         var bar = ShowBar();

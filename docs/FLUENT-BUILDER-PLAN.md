@@ -197,8 +197,7 @@ public static partial class PrestoAvalonia
      in the anime.js → Presto cheat sheet for the rows it shortens.
    - XML docs: 1–2 sentence summaries per the repo convention; the `Property` overloads document the
      bare-value-vs-`TweenParams` rule once, on the class.
-   - Sample: the Animation basics page drives one of its demos through the builder and shows both spellings in its
-     code panel. No bulk migration of existing call sites (see §6).
+   - Samples are a follow-up after this phase, not part of it.
    - PLAN.md: tick Phase 14; reword §7 decision 3 to "string indexer plus an optional fluent builder over it";
      DESIGN-NOTES §2 gets a one-line "Built, see FLUENT-BUILDER-PLAN.md" banner like §1's.
 
@@ -243,7 +242,7 @@ refactor-safe, so the list does not need to grow to cover every control.
 
 - Builders for `Timer`, `Timeline`, `Animatable`, `Draggable`, `ScrollObserver` params. Their object initialisers have
   no string keys, so a builder buys little. Revisit if users ask.
-- Migrating existing samples and README examples to the builder. The indexer stays the primary, documented spelling.
+- Sample pages for the builder (a follow-up phase), and migrating existing samples and README examples to it. The indexer stays the primary, documented spelling.
 - A typed `PrestoProperty` handle in the params surface (DESIGN-NOTES §1 option 3). The builder gets typed names
   without it; the indexer stays string/`AvaloniaProperty`-keyed.
 - XAML surface. Still deferred (PLAN §7); the builder does not change that decision, but a XAML layer could later be
@@ -251,9 +250,16 @@ refactor-safe, so the list does not need to grow to cover every control.
 
 ## 7. Open questions
 
-- **Entry-point name.** `Presto.Build()` (DESIGN-NOTES' sketch) reads slightly oddly at the call site.
-  Alternatives: `Presto.Animation()`, `Presto.Motion()`, or a public `new AnimationBuilder()` only. Default:
-  `Presto.Build()`, plus a public constructor.
+- **Entry-point name.** Decided: `Presto.Build()`, plus a public `AnimationBuilder` constructor.
 - **Per-property overload count.** Four overloads per typed method (bare, full, `FunctionValue`, keyframes) × ~20
   properties is ~80 small methods in the bridge. Hand-written is fine at this size; a source generator is not worth it
   unless the list grows.
+
+## 8. Deviations as built
+
+- Adding the builder overloads made every existing `new() { … }` call to `Timeline.Add`/`Set`, `control.Animate` and
+  `AnimateOnCompositor` ambiguous, since a target-typed `new()` fits both parameter types. The existing params overloads
+  are marked `[OverloadResolutionPriority(1)]`, so those calls bind as before.
+- The compositor guard also rejects `Id`, a non-default `Priority`, `OnBeforeUpdate`, `OnLoop`, `OnPause` and `OnRender`.
+- Only `Text` and the typed `Property(AvaloniaProperty, …)` extensions take `textModifier`; the other typed methods stop
+  at `modifier`.

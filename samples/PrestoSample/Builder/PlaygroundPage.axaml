@@ -1,0 +1,76 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1000"
+                       x:Class="PrestoSample.Builder.PlaygroundPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Grid#Controls TextBlock.caption">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Grid#Controls ComboBox">
+            <Setter Property="MinWidth" Value="160" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Border Classes="stage" MinHeight="220">
+                <StackPanel x:Name="Squares" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Accent}" />
+                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Aqua}" />
+                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Amber}" />
+                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Coral}" />
+                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Violet}" />
+                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Lime}" />
+                </StackPanel>
+            </Border>
+
+            <Grid x:Name="Controls" ColumnDefinitions="Auto,*,32,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+                <TextBlock Classes="caption" Text="{Binding #XSlider.Value, StringFormat='X {0:0}'}" />
+                <Slider x:Name="XSlider" Grid.Column="1" Minimum="-200" Maximum="200" Value="0" ValueChanged="SliderChanged" />
+                <TextBlock Classes="caption" Grid.Row="1" Text="{Binding #YSlider.Value, StringFormat='Y {0:0}'}" />
+                <Slider x:Name="YSlider" Grid.Row="1" Grid.Column="1" Minimum="-80" Maximum="80" Value="-60" ValueChanged="SliderChanged" />
+                <TextBlock Classes="caption" Grid.Row="2" Text="{Binding #RotateSlider.Value, StringFormat='Rotate {0:0}'}" />
+                <Slider x:Name="RotateSlider" Grid.Row="2" Grid.Column="1" Minimum="-360" Maximum="360" Value="180" ValueChanged="SliderChanged" />
+                <TextBlock Classes="caption" Grid.Row="3" Text="{Binding #ScaleSlider.Value, StringFormat='Scale {0:0.0}'}" />
+                <Slider x:Name="ScaleSlider" Grid.Row="3" Grid.Column="1" Minimum="0.2" Maximum="2" Value="1" ValueChanged="SliderChanged" />
+                <TextBlock Classes="caption" Grid.Row="4" Text="{Binding #DurationSlider.Value, StringFormat='Duration {0:0}'}" />
+                <Slider x:Name="DurationSlider" Grid.Row="4" Grid.Column="1" Minimum="100" Maximum="3000" Value="900" ValueChanged="SliderChanged" />
+
+                <TextBlock Classes="caption" Grid.Column="3" Text="Ease" />
+                <ComboBox x:Name="EaseBox" Grid.Column="4" SelectedIndex="3" SelectionChanged="SelectionChanged">
+                    <ComboBoxItem Content="linear" />
+                    <ComboBoxItem Content="outQuad" />
+                    <ComboBoxItem Content="inOutQuint" />
+                    <ComboBoxItem Content="outBack" />
+                    <ComboBoxItem Content="outElastic" />
+                    <ComboBoxItem Content="outBounce" />
+                    <ComboBoxItem Content="inOutSine" />
+                    <ComboBoxItem Content="steps(6)" />
+                </ComboBox>
+                <TextBlock Classes="caption" Grid.Row="1" Grid.Column="3" Text="{Binding #StaggerSlider.Value, StringFormat='Stagger {0:0}'}" />
+                <Slider x:Name="StaggerSlider" Grid.Row="1" Grid.Column="4" Minimum="0" Maximum="300" Value="80" ValueChanged="SliderChanged" />
+                <TextBlock Classes="caption" Grid.Row="2" Grid.Column="3" Text="From" />
+                <ComboBox x:Name="FromBox" Grid.Row="2" Grid.Column="4" SelectedIndex="1" SelectionChanged="SelectionChanged">
+                    <ComboBoxItem Content="First" />
+                    <ComboBoxItem Content="Center" />
+                    <ComboBoxItem Content="Last" />
+                    <ComboBoxItem Content="Random" />
+                </ComboBox>
+                <StackPanel Grid.Row="3" Grid.Column="3" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="16">
+                    <CheckBox x:Name="LoopBox" Content="Loop" IsChecked="True" IsCheckedChanged="CheckChanged" />
+                    <CheckBox x:Name="AlternateBox" Content="Alternate" IsChecked="True" IsCheckedChanged="CheckChanged" />
+                </StackPanel>
+                <Button Grid.Row="4" Grid.Column="3" Grid.ColumnSpan="2" Content="Replay" Click="Replay" />
+            </Grid>
+
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="CodeText" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

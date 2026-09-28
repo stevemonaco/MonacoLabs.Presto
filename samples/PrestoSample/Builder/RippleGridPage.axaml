@@ -1,0 +1,21 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="900"
+                       x:Class="PrestoSample.Builder.RippleGridPage">
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <TextBlock Classes="caption" Text="Click any cell: the wave starts there" />
+            <Border Classes="stage">
+                <UniformGrid x:Name="Cells" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" />
+            </Border>
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="CodeText" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

@@ -1,0 +1,41 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="900"
+                       x:Class="PrestoSample.Builder.RecipesPage">
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <TextBlock Classes="caption" Text="One recipe, any target: click a button" />
+            <Border Classes="stage">
+                <StackPanel x:Name="Row" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                    <Button Classes="specimen" Padding="16,10" Content="One" Click="PlayOne" />
+                    <Button Classes="specimen" Padding="16,10" Content="Two" Click="PlayOne" />
+                    <Button Classes="specimen" Padding="16,10" Content="Three" Click="PlayOne" />
+                    <Button Classes="specimen" Padding="16,10" Content="Four" Click="PlayOne" />
+                    <Button Classes="specimen" Padding="16,10" Content="Five" Click="PlayOne" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="{Binding #DurationSlider.Value, StringFormat='Pop.Duration({0:0})'}" />
+                <Slider x:Name="DurationSlider" Minimum="200" Maximum="2000" Value="600" ValueChanged="DurationChanged" />
+            </StackPanel>
+
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="RecipeCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+
+            <TextBlock Classes="caption" Text="The same recipe, staggered over the row" />
+            <Button Content="Stagger the row" Click="PlayStaggered" HorizontalAlignment="Left" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="StaggeredCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>
