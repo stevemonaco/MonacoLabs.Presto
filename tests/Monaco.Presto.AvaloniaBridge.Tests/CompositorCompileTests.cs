@@ -164,6 +164,84 @@ public sealed class CompositorCompileTests : BridgeTestBase
         Assert.Equal(TimeSpan.FromMilliseconds(100), Assert.Single(second).Delay);
     }
 
+    [AvaloniaFact]
+    public void UniformTargetsSeededAlikeShareTheirSampledTracks()
+    {
+        object[] targets = [new Border(), new Border(), new Border()];
+        var parameters = new CompositorAnimationParams
+        {
+            ["X"] = new TweenValue[] { 50, 100 }, ["Opacity"] = .5, Duration = 400, Delay = Presto.Stagger(100),
+        };
+
+        var compiled = CompositorCompiler.Compile(targets, parameters);
+
+        for (var i = 0; i < targets.Length; i++)
+        {
+            Assert.Same(compiled[0].Tracks[0].Values, compiled[i].Tracks[0].Values);
+            Assert.Same(compiled[0].Tracks[0].Keys, compiled[i].Tracks[0].Keys);
+            Assert.All(compiled[i].Tracks, track => Assert.Equal(TimeSpan.FromMilliseconds(100 * i), track.Delay));
+        }
+    }
+
+    [AvaloniaFact]
+    public void ATargetSeededDifferentlyGetsItsOwnTracks()
+    {
+        object[] targets = [new Border(), new Border { Opacity = .2 }, new Border()];
+        var parameters = new CompositorAnimationParams { ["X"] = new TweenValue[] { 50, 100 }, ["Opacity"] = 1, Duration = 400 };
+
+        var compiled = CompositorCompiler.Compile(targets, parameters);
+        var alone = CompositorCompiler.Compile(1, targets, parameters).Tracks;
+
+        Assert.Same(compiled[0].Tracks[1].Values, compiled[2].Tracks[1].Values);
+        Assert.Equal(alone[1].Values, compiled[1].Tracks[1].Values);
+        Assert.NotEqual(compiled[0].Tracks[1].Values, compiled[1].Tracks[1].Values);
+    }
+
+    [AvaloniaFact]
+    public void PerTargetValuesCompileEachTargetOnItsOwn()
+    {
+        object[] targets = [new Border(), new Border(), new Border()];
+        CompositorAnimationParams[] cases =
+        [
+            new() { ["X"] = Presto.Stagger(50), Duration = 400, Ease = Eases.OutBack() },
+            new() { ["X"] = (FunctionValue)((_, i, _) => 100 * (i + 1)), Duration = 400, Ease = Eases.OutBack() },
+            new() { ["X"] = new TweenParams { To = 100, Duration = Presto.Stagger(100, new() { Start = 200 }) }, Ease = Eases.OutBack() },
+        ];
+
+        foreach (var parameters in cases)
+        {
+            var compiled = CompositorCompiler.Compile(targets, parameters);
+
+            Assert.NotSame(compiled[0].Tracks[0].Values, compiled[1].Tracks[0].Values);
+            for (var i = 0; i < targets.Length; i++)
+                Assert.Equal(CompositorCompiler.Compile(i, targets, parameters).Tracks[0].Values, compiled[i].Tracks[0].Values);
+        }
+    }
+
+    [AvaloniaTheory]
+    [InlineData(0, false)]
+    [InlineData(2, false)]
+    [InlineData(-1, false)]
+    [InlineData(0, true)]
+    [InlineData(2, true)]
+    public void ASharedTrackLeavesItsMirrorWhereSamplingWould(int loop, bool reversed)
+    {
+        object[] targets = [new Border(), new Border()];
+        var parameters = new CompositorAnimationParams
+        {
+            ["X"] = new TweenValue[] { 50, 100 },
+            Duration = 400,
+            Loop = loop < 0 ? true : (LoopCount)loop,
+            Reversed = reversed,
+        };
+
+        var compiled = CompositorCompiler.Compile(targets, parameters);
+
+        Assert.Same(compiled[0].Tracks[0].Values, compiled[1].Tracks[0].Values);
+        Assert.Equal(compiled[0].Mirror.CurrentTime, compiled[1].Mirror.CurrentTime);
+        Assert.Equal(compiled[0].Mirror.Completed, compiled[1].Mirror.Completed);
+    }
+
     [AvaloniaTheory]
     [InlineData("Width")]
     [InlineData("Background")]

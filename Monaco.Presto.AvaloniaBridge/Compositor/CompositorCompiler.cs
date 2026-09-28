@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
+using SeedKey = (double X, double Y, double Rotate, double Scale, double ScaleX, double ScaleY, double Opacity);
 
 namespace Monaco.Presto.AvaloniaBridge.Compositor;
 
@@ -23,6 +24,19 @@ internal static class CompositorCompiler
     private static readonly Func<double, double> s_noModifier = new PrestoDefaults().Modifier;
 
     /// <summary>
+    /// Compiles every target of <paramref name="targets"/> in order. When nothing but the delay varies per target, targets
+    /// seeded alike share one set of sampled tracks, each with its own delay.
+    /// </summary>
+    /// <exception cref="NotSupportedException">A property has no composition counterpart.</exception>
+    public static (Animation Mirror, CompiledTrack[] Tracks)[] Compile(IReadOnlyList<object> targets, CompositorAnimationParams parameters)
+    {
+        var cache = targets.Count > 1 && IsUniform(parameters) ? new Dictionary<SeedKey, CompiledTrack[]>() : null;
+        var compiled = new (Animation Mirror, CompiledTrack[] Tracks)[targets.Count];
+        for (var i = 0; i < targets.Count; i++) compiled[i] = Compile(i, targets, parameters, cache);
+        return compiled;
+    }
+
+    /// <summary>
     /// Builds the mirror animation for the target at <paramref name="index"/> of <paramref name="targets"/> — the position
     /// function values and staggers resolve against — and samples it. The mirror is paused: it writes only to its own scratch
     /// object, and the caller starts it alongside the composition animations it drives.
@@ -31,7 +45,8 @@ internal static class CompositorCompiler
     public static (Animation Mirror, CompiledTrack[] Tracks) Compile(
         int index,
         IReadOnlyList<object> targets,
-        CompositorAnimationParams parameters)
+        CompositorAnimationParams parameters,
+        Dictionary<SeedKey, CompiledTrack[]>? cache = null)
     {
         var visual = (Visual)targets[index];
         var defaults = Engine.Current.Defaults;
@@ -60,9 +75,56 @@ internal static class CompositorCompiler
         }
 
         var scratch = CompositorScratch.Seed(visual);
+        var seed = scratch.Key;
         var mirror = Presto.Animate(scratch, mirrorParams);
-        return (mirror, Build(mirror, scratch, kinds));
+        if (cache == null) return (mirror, Build(mirror, scratch, kinds));
+        if (!cache.TryGetValue(seed, out var cached))
+        {
+            cached = Build(mirror, scratch, kinds);
+            cache[seed] = cached;
+            return (mirror, cached);
+        }
+
+        var delay = TimeSpan.FromMilliseconds(mirror._delay * WallClock(mirror));
+        var tracks = new CompiledTrack[cached.Length];
+        for (var k = 0; k < cached.Length; k++) tracks[k] = cached[k] with { Delay = delay };
+        // Leave the mirror where sampling would have, so it reads the same before it starts.
+        SeekSample(mirror, mirror.IterationDuration);
+        return (mirror, tracks);
     }
+
+    // Only the top-level delay may vary: the mirror trims it into _delay, which Build reads for the track delay alone.
+    private static bool IsUniform(CompositorAnimationParams parameters)
+    {
+        var defaults = Engine.Current.Defaults;
+        if (IsPerTarget(parameters.Duration ?? defaults.Duration) || IsPerTarget(parameters.Ease ?? defaults.Ease)) return false;
+        foreach (var (_, value) in parameters.Properties)
+        {
+            if (IsPerTarget(value)) return false;
+        }
+        return true;
+    }
+
+    private static bool IsPerTarget(TweenValue? value)
+    {
+        switch (value?.Raw)
+        {
+            case FunctionValue or ChainedFunctionValue or Stagger:
+                return true;
+            case TweenValue[] frames:
+                foreach (var frame in frames)
+                {
+                    if (IsPerTarget(frame)) return true;
+                }
+                return false;
+            case TweenParams key:
+                return IsPerTarget(key.From) || IsPerTarget(key.To) || IsPerTarget(key.Duration) || IsPerTarget(key.Delay) || IsPerTarget(key.Ease);
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsPerTarget(EaseValue? ease) => ease?.Raw is FunctionValue;
 
     /// <summary>
     /// Re-samples <paramref name="mirror"/> from where its playhead stands (COMPOSITOR-PLAN §4.3 step 6), so that starting
@@ -73,7 +135,7 @@ internal static class CompositorCompiler
     /// <remarks>
     /// The mirror has to be paused, since sampling seeks it; it is left where it was found. Everything the mirror knows is
     /// in the samples — the remaining iterations, the loop delays, the direction — so the track is one linear cycle
-    /// playing forwards, and the exact single segment compile of <see cref="Compile"/> does not apply: half of an ease
+    /// playing forwards, and the exact single segment compile of <see cref="Compile(int, IReadOnlyList{object}, CompositorAnimationParams, Dictionary{SeedKey, CompiledTrack[]})"/> does not apply: half of an ease
     /// is not an ease.
     /// </remarks>
     public static CompiledTrack[] CompileFrom(Animation mirror, CompiledTrack[] tracks)
@@ -177,10 +239,7 @@ internal static class CompositorCompiler
         var samples = new double[segments + 1][][];
         for (var s = 0; s <= segments; s++)
         {
-            var forward = iteration * s / segments;
-            var time = mirror._reversed ? iteration - forward : forward;
-            // A looping mirror renders the start of the next iteration at the boundary rather than the end of this one.
-            mirror.Seek(loops && time >= iteration ? Math.BitDecrement(iteration) : time, muteCallbacks: true);
+            SeekSample(mirror, iteration * s / segments);
             samples[s] = new double[kinds.Count][];
             for (var k = 0; k < kinds.Count; k++) samples[s][k] = Read(scratch, kinds[k]);
         }
@@ -236,6 +295,14 @@ internal static class CompositorCompiler
                 direction);
         }
         return tracks;
+    }
+
+    private static void SeekSample(Animation mirror, double forward)
+    {
+        var iteration = mirror.IterationDuration;
+        var time = mirror._reversed ? iteration - forward : forward;
+        // A looping mirror renders the start of the next iteration at the boundary rather than the end of this one.
+        mirror.Seek(mirror.IterationCount > 1 && time >= iteration ? Math.BitDecrement(iteration) : time, muteCallbacks: true);
     }
 
     private static Tween? ExactTween(Animation mirror, CompositorTrackKind kind)

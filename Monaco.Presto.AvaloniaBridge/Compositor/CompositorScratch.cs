@@ -27,6 +27,9 @@ internal sealed class CompositorScratch
 
     public double Opacity { get; set; }
 
+    internal (double X, double Y, double Rotate, double Scale, double ScaleX, double ScaleY, double Opacity) Key =>
+        (X, Y, Rotate, Scale, ScaleX, ScaleY, Opacity);
+
     public static CompositorScratch Seed(Visual visual) => new()
     {
         X = RenderTransformComposer.Get(visual, TransformShorthand.X),

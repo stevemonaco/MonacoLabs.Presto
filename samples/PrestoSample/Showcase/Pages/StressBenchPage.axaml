@@ -53,6 +53,7 @@
                 <WrapPanel ItemSpacing="24" LineSpacing="6">
                     <showcase:FpsMeter VerticalAlignment="Center" />
                     <TextBlock x:Name="GcReadout" Classes="code" Margin="0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="BuildReadout" Classes="code" Margin="0" VerticalAlignment="Center" />
                     <TextBlock x:Name="WorkerReadout" Classes="code" Margin="0" VerticalAlignment="Center" Text="worker off" />
                 </WrapPanel>
             </Border>

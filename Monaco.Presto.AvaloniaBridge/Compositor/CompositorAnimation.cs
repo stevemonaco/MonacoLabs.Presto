@@ -30,9 +30,10 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         _onComplete = parameters.OnComplete;
         var parsed = TargetParser.Parse(targets);
         _targets = new TargetAnimation[parsed.Count];
+        var compiled = CompositorCompiler.Compile(parsed, parameters);
         for (var i = 0; i < parsed.Count; i++)
         {
-            var (mirror, tracks) = CompositorCompiler.Compile(i, parsed, parameters);
+            var (mirror, tracks) = compiled[i];
             _targets[i] = new TargetAnimation(this, (Visual)parsed[i], mirror, tracks);
             // Upstream reports the timing of the animation that finishes last, its controlAnimation.
             if (_control == null || mirror._delay + mirror.Duration > _control._delay + _control.Duration) _control = mirror;
