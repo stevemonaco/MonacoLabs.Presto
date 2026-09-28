@@ -192,6 +192,20 @@ public static class PropertyBuilderExtensions
 
     /// <summary>Animates <c>"Background"</c> through the keyframes <paramref name="keyframes"/> adds.</summary>
     public static T Background<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Background", keyframes);
+    /// <summary>Animates <c>"BoxShadow"</c> to <paramref name="to"/>, a <see cref="BoxShadows"/> string such as <c>"0 4 16 0 #40000000"</c>.</summary>
+    public static T BoxShadow<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("BoxShadow", to);
+
+    /// <summary>Animates <c>"BoxShadow"</c> with its own tween settings.</summary>
+    public static T BoxShadow<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("BoxShadow", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates <c>"BoxShadow"</c> to a value computed per target.</summary>
+    public static T BoxShadow<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("BoxShadow", to);
+
+    /// <summary>Animates <c>"BoxShadow"</c> through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T BoxShadow<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("BoxShadow", keyframes);
 
     /// <summary>Animates <c>"Foreground"</c> to <paramref name="to"/>.</summary>
     public static T Foreground<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("Foreground", to);
@@ -317,14 +331,16 @@ public static class PropertyBuilderExtensions
     /// <summary>Animates <c>"Background"</c> to a solid brush of <paramref name="to"/>.</summary>
     public static T Background<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("Background", SolidBrush(to));
 
-    /// <summary>Animates <c>"Background"</c> to the color of the solid brush <paramref name="to"/>.</summary>
+    /// <summary>Animates <c>"Background"</c> to the brush <paramref name="to"/>: a solid brush's color, or a gradient's stops and geometry.</summary>
     public static T Background<T>(this T builder, IBrush to) where T : PropertyBuilder<T> => Init(builder).Property("Background", TweenValue.Of(to));
 
     /// <summary>Animates <c>"Foreground"</c> to a solid brush of <paramref name="to"/>.</summary>
     public static T Foreground<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("Foreground", SolidBrush(to));
 
-    /// <summary>Animates <c>"Foreground"</c> to the color of the solid brush <paramref name="to"/>.</summary>
+    /// <summary>Animates <c>"Foreground"</c> to the brush <paramref name="to"/>: a solid brush's color, or a gradient's stops and geometry.</summary>
     public static T Foreground<T>(this T builder, IBrush to) where T : PropertyBuilder<T> => Init(builder).Property("Foreground", TweenValue.Of(to));
+    /// <summary>Animates <c>"BoxShadow"</c> to <paramref name="to"/>.</summary>
+    public static T BoxShadow<T>(this T builder, BoxShadows to) where T : PropertyBuilder<T> => Init(builder).Property("BoxShadow", TweenValue.Of(to));
 
     /// <summary>Animates <c>"CornerRadius"</c> to <paramref name="to"/>.</summary>
     public static T CornerRadius<T>(this T builder, CornerRadius to) where T : PropertyBuilder<T> => Init(builder).Property("CornerRadius", TweenValue.Of(to));

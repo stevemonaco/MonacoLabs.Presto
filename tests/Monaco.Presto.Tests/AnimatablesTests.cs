@@ -221,6 +221,146 @@ public sealed class AnimatablesTests : EngineTestBase
     }
 
     [Fact]
+    public void ARetargetedSpringKeepsItsMomentumWhenVelocityIsPreserved()
+    {
+        var animatable = MomentumFollower(new StyleTarget(), preserveVelocity: true);
+
+        animatable.Set("X", 100);
+        Frames.Advance(160, 16);
+        var before = Velocity(animatable);
+        animatable.Set("X", 0);
+
+        Assert.True(before > .1, $"moving at {before} per ms before the retarget");
+        Assert.Equal(before, Velocity(animatable), before * .02);
+    }
+
+    [Fact]
+    public void ARetargetedSpringStartsFromRestWithoutPreservedVelocity()
+    {
+        var animatable = MomentumFollower(new StyleTarget(), preserveVelocity: false);
+
+        animatable.Set("X", 100);
+        Frames.Advance(160, 16);
+        var before = Velocity(animatable);
+        animatable.Set("X", 0);
+
+        var after = Velocity(animatable);
+        Assert.True(Math.Abs(after) < before * .02, $"{after} per ms after the retarget against {before} before it");
+    }
+
+    [Fact]
+    public void AMomentumSpringCarriesOnPastWhereItTurnedBeforeHeadingToItsNewTarget()
+    {
+        var target = new StyleTarget();
+        var animatable = MomentumFollower(target, preserveVelocity: true);
+
+        animatable.Set("X", 100);
+        Frames.Advance(160, 16);
+        var turnedAt = target.X;
+        animatable.Set("X", 0);
+        var peak = turnedAt;
+        for (var i = 0; i < 10; i++)
+        {
+            Frames.Advance(16);
+            peak = Math.Max(peak, target.X);
+        }
+
+        Assert.True(peak > turnedAt + 1, $"peaked at {peak} after turning at {turnedAt}");
+        RunUntil(() => animatable.Animations["X"].Paused);
+        Assert.Equal(0, target.X);
+    }
+
+    [Fact]
+    public void AMomentumSpringSettlesOnItsTargetAndCompletesOnce()
+    {
+        var completes = 0;
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new()
+        {
+            ["X"] = new(),
+            Ease = new Spring(stiffness: 120, damping: 12),
+            PreserveVelocity = true,
+            OnComplete = _ => completes++,
+        });
+
+        animatable.Set("X", 100);
+        Frames.Advance(80, 16);
+        animatable.Set("X", -50);
+        RunUntil(() => animatable.Animations["X"].Paused);
+        Frames.Advance(32, 16);
+
+        Assert.Equal(-50, target.X);
+        Assert.Equal(1, completes);
+    }
+
+    [Fact]
+    public void RetargetingASettledMomentumSpringStartsFromRest()
+    {
+        var animatable = MomentumFollower(new StyleTarget(), preserveVelocity: true);
+
+        animatable.Set("X", 100);
+        RunUntil(() => animatable.Animations["X"].Paused);
+        animatable.Set("X", 0);
+
+        Assert.Equal(0, Velocity(animatable), .01);
+    }
+
+    [Fact]
+    public void RepeatedRetargetsWithinOneFrameKeepTheMomentum()
+    {
+        var animatable = MomentumFollower(new StyleTarget(), preserveVelocity: true);
+
+        animatable.Set("X", 100);
+        Frames.Advance(160, 16);
+        var before = Velocity(animatable);
+        animatable.Set("X", 10).Set("X", -20);
+
+        Assert.Equal(before, Velocity(animatable), before * .02);
+    }
+
+    [Fact]
+    public void PreservedVelocityIgnoresAPropertyThatIsNotSpringEased()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100, Ease = "linear", PreserveVelocity = true });
+
+        animatable.Set("X", 100);
+        Frames.Advance(48, 16);
+        animatable.Set("X", 0);
+
+        Assert.Equal(100, animatable.Animations["X"].Duration);
+        Frames.Advance(16);
+        Assert.True(target.X < 48, "a linear retarget heads straight for the new target");
+    }
+
+    [Fact]
+    public void ASpringPassedToSetCarriesTheMomentumOfTheDeclaredOne()
+    {
+        var animatable = MomentumFollower(new StyleTarget(), preserveVelocity: true);
+
+        animatable.Set("X", 100);
+        Frames.Advance(160, 16);
+        var before = Velocity(animatable);
+        animatable.Set("X", 0, ease: new Spring(stiffness: 300, damping: 20));
+
+        Assert.Equal(before, Velocity(animatable), before * .02);
+    }
+
+    private static Animatable MomentumFollower(StyleTarget target, bool preserveVelocity) =>
+        Presto.CreateAnimatable(target, new() { ["X"] = new(), Ease = new Spring(stiffness: 120, damping: 12), PreserveVelocity = preserveVelocity });
+
+    /// <summary>How fast the X tween moves at its current time, in units per ms, from a central difference of its ease.</summary>
+    private static double Velocity(Animatable animatable)
+    {
+        const double step = 1e-4;
+        var tween = animatable.Animations["X"]._headTween!;
+        var progress = tween._currentTime / tween._updateDuration;
+        var before = Math.Max(0, progress - step);
+        var after = Math.Min(1, progress + step);
+        return (tween._ease(after) - tween._ease(before)) / ((after - before) * tween._updateDuration) * (tween._toNumber - tween._fromNumber);
+    }
+
+    [Fact]
     public void RevertAnAnimatable()
     {
         var target = new StyleTarget();

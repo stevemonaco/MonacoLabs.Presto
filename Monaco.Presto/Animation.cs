@@ -245,6 +245,7 @@ public sealed class Animation : Timer
                         ScratchTo.Number = ValueParser.GetRelativeValue(ScratchFrom.Number, ScratchTo.Number, ScratchTo.Operator);
                     }
 
+                    if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(ScratchFrom, ScratchTo);
                     if (ScratchFrom.Kind != ScratchTo.Kind) Homogenise(ScratchFrom, ScratchTo);
 
                     if (ScratchFrom.Unit != ScratchTo.Unit)

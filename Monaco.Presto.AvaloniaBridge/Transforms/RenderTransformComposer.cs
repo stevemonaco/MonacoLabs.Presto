@@ -91,6 +91,29 @@ internal sealed class RenderTransformComposer
         s_composers.Remove(visual);
     }
 
+    /// <summary>
+    /// Runs <paramref name="action"/> with <paramref name="visual"/>'s group emptied, so it sees the visual untransformed.
+    /// The group's children change and the property does not, so nothing re-asserts the group in between.
+    /// </summary>
+    /// <returns>The group's transform, or null, with <paramref name="action"/> not run, when the visual's render transform is not a composer's.</returns>
+    public static Matrix? Untransformed(Visual visual, Action action)
+    {
+        if (!s_composers.TryGetValue(visual, out var composer) || !ReferenceEquals(visual.RenderTransform, composer._group)) return null;
+        var matrix = composer._group.Value;
+        var children = composer._group.Children;
+        var saved = children.ToArray();
+        children.Clear();
+        try
+        {
+            action();
+        }
+        finally
+        {
+            children.AddRange(saved);
+        }
+        return matrix;
+    }
+
     private static Transform? AsTransform(ITransform? transform) => transform switch
     {
         Transform mutable => mutable,

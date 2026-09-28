@@ -11,6 +11,8 @@ public partial class AnimatablePage : UserControl
 {
     private readonly Animatable _particles;
     private readonly Animatable _follower;
+    private readonly Animatable _momentum;
+    private readonly Animatable _rest;
 
     public AnimatablePage()
     {
@@ -29,6 +31,13 @@ public partial class AnimatablePage : UserControl
                 Ease = "outElastic(.3, 1.4)",
             }),
             Follower.CreateAnimatable(new() { ["X"] = 500, ["Y"] = 500, Ease = Eases.Out(3) })
+        ));
+
+        var spring = new Spring(stiffness: 90, damping: 9);
+        (_momentum, _rest) = PrestoAvalonia.CreateScope(this).Execute(_ =>
+        (
+            MomentumDot.CreateAnimatable(new() { ["X"] = new(), Ease = spring, PreserveVelocity = true }),
+            RestDot.CreateAnimatable(new() { ["X"] = new(), Ease = spring })
         ));
     }
 
@@ -51,6 +60,14 @@ public partial class AnimatablePage : UserControl
         _follower
             .Set("X", Utils.MapRange(point.X, 0, FollowerStage.Bounds.Width, -halfWidth, halfWidth))
             .Set("Y", Utils.MapRange(point.Y, 0, FollowerStage.Bounds.Height, -halfHeight, halfHeight));
+    }
+
+    private void MoveMomentum(object? sender, PointerEventArgs e)
+    {
+        var halfWidth = MomentumStage.Bounds.Width / 2;
+        var x = Utils.MapRange(e.GetPosition(MomentumStage).X, 0, MomentumStage.Bounds.Width, -halfWidth, halfWidth);
+        _momentum.Set("X", x);
+        _rest.Set("X", x);
     }
 
     private void SetExplicit(object? sender, RoutedEventArgs e) => _follower.Set("X", -140, 1200, "inOutQuad");

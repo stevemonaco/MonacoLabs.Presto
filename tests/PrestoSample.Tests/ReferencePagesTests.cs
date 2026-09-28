@@ -40,6 +40,19 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void PresenceRemovesSwapsAndCloses()
+    {
+        var page = new PresencePage();
+        var window = SceneHarness.Show(page, 900, 900);
+        SceneHarness.Click(window, Button(page, "Remove random"));
+        SceneHarness.Click(window, Button(page, "Swap"));
+        TestFrames.Tick(30);
+
+        Assert.Equal(3, page.Items.Count);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void ADraggableCardsCheckBoxTogglesWithoutDraggingTheCard()
     {
         var page = new DraggablePage();

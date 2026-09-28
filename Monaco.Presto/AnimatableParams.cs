@@ -26,6 +26,17 @@ public record AnimatableParams
     /// <summary>Post-processes every property's value, unless it carries its own <see cref="AnimatableProperty.Modifier"/>.</summary>
     public Func<double, double>? Modifier { get; init; }
 
+    /// <summary>
+    /// Makes a spring-eased property keep its momentum when <see cref="Animatable.Set(string, double, double?, EaseValue?)"/>
+    /// retargets it: the new spring starts with the velocity the value has, instead of from rest. A property's own setting wins.
+    /// </summary>
+    /// <remarks>
+    /// Not in anime.js, whose springs always start at rest. Only the scalar <c>Set</c> carries velocity, and a retarget to the
+    /// current value starts at rest, because an eased tween cannot move over zero distance. The springs set the duration,
+    /// overriding any the property declares; a duration passed to <c>Set</c> compresses them and the velocity with them.
+    /// </remarks>
+    public bool? PreserveVelocity { get; init; }
+
     /// <inheritdoc cref="TimerParams.PlaybackRate"/>
     public double? PlaybackRate { get; init; }
 

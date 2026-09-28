@@ -231,8 +231,14 @@ await animation.Then(a => Log(a.Id));
 ["Opacity"] = new double[] { 0.2, 1 },              // from → to
 ["Background"] = "hsl(280, 70%, 60%)",              // #rgb, #rrggbbaa, rgb(), rgba(), hsl(), hsla()
 ["BorderThickness"] = TweenValue.Of(new Thickness(10)),   // typed structs, via codecs
+["Background"] = TweenValue.Of(new LinearGradientBrush { … }),   // linear/radial/conic, solid ↔ gradient
+["BoxShadow"] = "0 14 28 2 #804c8dff",               // shadow lists, padded as CSS pads them
 ["Y"] = new FunctionValue((target, i, total) => -10 - i * 6),
 ```
+
+Gradients with different stop counts are resampled onto the union of their offsets, a solid brush takes the gradient's
+shape, and a gradient eased to a colour ends on a `SolidColorBrush`. Two kinds of gradient interpolate their stops, while
+the geometry snaps to the end value's.
 
 ### Keyframes
 
@@ -339,6 +345,14 @@ follower.Set("X", point.X).Set("Y", point.Y);    // eases toward the value over 
 follower.Set("X", -140, 1200, "inOutQuad");      // one-off duration and ease
 var x = follower.Get("X");
 follower.Revert();
+```
+
+With a spring ease, `PreserveVelocity = true` keeps a property's momentum across retargets: each new spring starts
+with the velocity the value already has instead of from rest, so a flicked follower swings through the turn. This is
+not in anime.js, so it is opt-in:
+
+```csharp
+var dot = Dot.CreateAnimatable(new() { ["X"] = new(), Ease = new Spring(stiffness: 90, damping: 9), PreserveVelocity = true });
 ```
 
 ### Scope
@@ -580,6 +594,29 @@ leaving element's is never used. Without one, flights use `Connected.DefaultMoti
 entrances `Connected.DefaultAnchorMotion` (rise 24 px and fade in over 400 ms, `OutQuart`, 150 ms delay); both are
 settable.
 
+### Exit animations
+
+A control removed from the tree is gone in the same frame: an items container may be recycled at once, and a panel child
+may be re-added. So `Presence.Exit` plays the exit on a *ghost*. The ghost is a snapshot of the element, drawn in the
+window's overlay where the element was and clipped as it was:
+
+```xml
+<DataTemplate x:DataType="local:Task">
+    <Border Classes="task"
+            presto:Animate.OnAttached="{x:Static local:Motions.Enter}"
+            presto:Presence.Exit="{x:Static local:Motions.Leave}">…</Border>
+</DataTemplate>
+```
+
+Removing the item from its `ObservableCollection`, or swapping a `ContentControl`'s content, plays the exit. Nothing else
+is needed in code-behind, and `AnimateLayout` on the siblings closes the gap underneath the ghost. Only an element that
+leaves *on its own* is ghosted: every visual between it and the root of what was removed must wrap only it. So navigating
+a whole page away does not ghost each row on it. Code that removes a control itself can call
+`PrestoAvalonia.AnimateExit(control, builder)` first, in the same frame.
+
+The ghost is an `Image`, so an exit animates the transform shorthands and `Opacity`. It keeps the element's styles and
+resources, and a transform the shorthands held moves onto it; content that was animating inside the element holds still.
+
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:
@@ -605,7 +642,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
 | `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
-| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are out: a control that appears or disappears is not a layout move. |
+| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Animate.OnAttached`, and leaving is `Presence.Exit` (see [Exit animations](#exit-animations)). |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |

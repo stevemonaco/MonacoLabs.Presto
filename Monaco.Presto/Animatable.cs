@@ -1,3 +1,5 @@
+using Monaco.Presto.Core;
+
 namespace Monaco.Presto;
 
 /// <summary>
@@ -9,7 +11,11 @@ namespace Monaco.Presto;
 public sealed class Animatable : IRevertible
 {
     private readonly List<object> _targets = [];
+    private const double VelocityStep = 1e-4;
+
     private readonly Dictionary<string, Animation> _animations = [];
+    // The properties that keep their momentum, each with the spring it was declared with, if any.
+    private readonly Dictionary<string, Spring?> _momentum = [];
     private readonly Animation _callbacks;
 
     internal Animatable(object? targets, AnimatableParams parameters)
@@ -51,6 +57,10 @@ public sealed class Animatable : IRevertible
             });
             if (_targets.Count == 0) _targets.AddRange(animation.Targets);
             _animations[Key(property)] = animation;
+            if (settings.PreserveVelocity ?? parameters.PreserveVelocity ?? false)
+            {
+                _momentum[Key(property)] = (settings.Ease ?? parameters.Ease)?.Raw as Spring;
+            }
         }
     }
 
@@ -75,7 +85,12 @@ public sealed class Animatable : IRevertible
     /// <returns>This animatable, so calls chain.</returns>
     public Animatable Set(string property, double to, double? duration = null, EaseValue? ease = null)
     {
-        if (!_animations.TryGetValue(Key(property), out var animation)) return this;
+        var key = Key(property);
+        if (!_animations.TryGetValue(key, out var animation)) return this;
+        if (_momentum.TryGetValue(key, out var declared) && (ease is { } given ? given.Raw as Spring : declared) is { } spring)
+        {
+            return CarryMomentum(animation, spring, declared, to, duration);
+        }
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             tween._fromNumber = tween._modifier(tween._number);
@@ -121,6 +136,54 @@ public sealed class Animatable : IRevertible
         if (duration is { } newDuration) animation.Stretch(newDuration);
         animation.Reset(true).Resume();
         return this;
+    }
+
+    /// <summary>
+    /// Retargets every tween of <paramref name="animation"/> with a copy of <paramref name="spring"/> that starts at the tween's
+    /// current velocity. Each copy settles in its own time, so all of them are sampled over the longest one's solver span.
+    /// </summary>
+    private Animatable CarryMomentum(Animation animation, Spring spring, Spring? declared, double to, double? duration)
+    {
+        var springs = new List<Spring>();
+        var span = 0d;
+        var settling = 0d;
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            var from = tween._modifier(tween._number);
+            var distance = to - from;
+            // The solver's velocity is progress per solver second, which is its unit of time scaled back to the engine's.
+            var velocity = animation.Paused || distance == 0 ? 0 : Velocity(tween, spring, declared) * Constants.K * Globals.TimeScale / distance;
+            var thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);
+            springs.Add(thrown);
+            span = Math.Max(span, thrown.SolverDuration);
+            settling = Math.Max(settling, thrown.SettlingDuration);
+            tween._fromNumber = from;
+            tween._toNumber = to;
+            tween._currentTime = 0;
+        }
+
+        var index = 0;
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            var thrown = springs[index++];
+            tween._ease = t => t >= 1 ? 1 : thrown.Solve(t * span);
+        }
+        return Replay(animation, duration ?? settling);
+    }
+
+    /// <summary>How fast <paramref name="tween"/>'s value is changing, in units per engine-time unit, from its ease around the current time.</summary>
+    private static double Velocity(Tween tween, Spring spring, Spring? declared)
+    {
+        var ease = tween._ease;
+        // A spring's own ease raises its OnComplete when sampled past its duration; its pure twin does not.
+        if (ease == spring.Ease) ease = spring.PureEase;
+        else if (declared != null && ease == declared.Ease) ease = declared.PureEase;
+
+        var duration = tween._updateDuration;
+        var progress = tween._currentTime / duration;
+        var before = Math.Max(0, progress - VelocityStep);
+        var after = Math.Min(1, progress + VelocityStep);
+        return (ease(after) - ease(before)) / ((after - before) * duration) * (tween._toNumber - tween._fromNumber);
     }
 
     private Action<Timer>? Wrap(Action<Animatable>? callback) => callback == null ? null : _ => callback(this);

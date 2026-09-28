@@ -67,6 +67,34 @@
             </Grid>
 
             <Grid ColumnDefinitions="300,*">
+                <TextBlock Classes="code" Text="[&quot;Background&quot;] = TweenValue.Of(new LinearGradientBrush {&#10;    StartPoint = new(0, 1), EndPoint = new(1, 0),&#10;    GradientStops = { amber @ 0, rose @ .5, violet @ 1 } })" />
+                <Border Grid.Column="1" Classes="demo">
+                    <Border x:Name="GradientCard" Width="260" Height="44" CornerRadius="10"
+                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                <GradientStop Offset="0" Color="#4c8dff" />
+                                <GradientStop Offset="1" Color="#22d3ee" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="2 stops → 3 stops" FontWeight="SemiBold" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Border>
+            </Grid>
+
+            <Grid ColumnDefinitions="300,*">
+                <TextBlock Classes="code" Text="[&quot;BoxShadow&quot;] = &quot;0 14 28 2 #804c8dff&quot;&#10;[&quot;Y&quot;] = -6" />
+                <Border Grid.Column="1" Classes="demo" Height="96">
+                    <Border x:Name="ElevationCard" Width="160" Height="44" CornerRadius="10" Background="#f8fafc"
+                            BoxShadow="0 1 3 0 #40000000" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                        <TextBlock Text="Elevation" FontWeight="SemiBold" Foreground="#0f172a"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Border>
+            </Grid>
+
+            <Grid ColumnDefinitions="300,*">
                 <StackPanel VerticalAlignment="Center" Spacing="8">
                     <TextBlock Classes="code" Text="[SolidColorBrush.ColorProperty] =&#10;    TweenValue.Of(Colors.OrangeRed)" />
                     <TextBlock Classes="code" Text="[&quot;BorderThickness&quot;] = new Thickness(10)&#10;[&quot;CornerRadius&quot;] = new CornerRadius(30)" />

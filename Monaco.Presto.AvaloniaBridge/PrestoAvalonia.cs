@@ -32,6 +32,7 @@ public static class PrestoAvalonia
         Presto.Codecs[typeof(Color)] = new ColorCodec();
 
         Presto.Codecs[typeof(IBrush)] = new BrushCodec();
+        Presto.Codecs[typeof(BoxShadows)] = new BoxShadowsCodec();
 
         Presto.Codecs[typeof(Geometry)] = new GeometryCodec();
 
@@ -259,6 +260,18 @@ public static class PrestoAvalonia
         return LayoutTransition.TakePrepared(key) is { } from
             ? new LayoutTransition(target, from, firstOnScreen: true, motion, mode, once)
             : null;
+    }
+
+    /// <summary>
+    /// Plays <paramref name="exit"/> on a ghost of <paramref name="control"/> drawn where the control is now, so code that
+    /// removes the control itself can do so in the same frame: <see cref="Presence.ExitProperty"/> for imperative removal.
+    /// </summary>
+    /// <returns>The ghost's animation, whose completion or cancellation removes the ghost; <c>null</c> when <paramref name="control"/> is not on screen.</returns>
+    public static Animation? AnimateExit(Control control, AnimationBuilder exit)
+    {
+        EnsureInitialized();
+        if (control.GetVisualParent() is not { } parent || TopLevel.GetTopLevel(control) is not { } top) return null;
+        return parent.TranslatePoint(control.Bounds.Position, top) is { } position ? Presence.Ghost(control, parent, position, exit) : null;
     }
 
     /// <inheritdoc cref="Presto.Remove"/>

@@ -30,6 +30,21 @@ public partial class ValueTypesPage : UserControl
         _animations.Add(HexButton.Animate(Looping(new() { ["Background"] = "#f5c542" })));
         _animations.Add(RgbButton.Animate(Looping(new() { ["Background"] = "rgb(74, 222, 128)" })));
         _animations.Add(HslButton.Animate(Looping(new() { ["Background"] = "hsl(280, 70%, 60%)" })));
+        _animations.Add(GradientCard.Animate(Looping(new()
+        {
+            ["Background"] = TweenValue.Of(new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(Color.Parse("#f5c542"), 0),
+                    new GradientStop(Color.Parse("#f43f5e"), .5),
+                    new GradientStop(Color.Parse("#8b5cf6"), 1),
+                },
+            }),
+        })));
+        _animations.Add(ElevationCard.Animate(Looping(new() { ["BoxShadow"] = "0 14 28 2 #804c8dff", ["Y"] = -6 })));
         _animations.Add(((SolidColorBrush)Avatar.Background!).Animate(
             Looping(new() { [SolidColorBrush.ColorProperty] = TweenValue.Of(Colors.OrangeRed) })));
 
