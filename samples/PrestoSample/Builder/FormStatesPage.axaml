@@ -1,0 +1,76 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:local="using:PrestoSample.Builder"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1300"
+                       x:Class="PrestoSample.Builder.FormStatesPage"
+                       x:DataType="local:FormViewModel">
+    <showcase:ShowcasePage.DataContext>
+        <local:FormViewModel />
+    </showcase:ShowcasePage.DataContext>
+
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.form">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Width" Value="380" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.badge">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="CornerRadius" Value="22" />
+        </Style>
+        <Style Selector="Border.badge > TextBlock">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <TextBlock Classes="caption" Text="Submit without an @ to see Error, with one to see Success; typing again returns to Idle" />
+            <Border Classes="stage" MinHeight="300">
+                <Border Classes="form" presto:Animate.OnAttached="{Binding CardMotion}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Orientation="Horizontal" Spacing="14">
+                            <Border Classes="badge" Background="{Binding Tint}" presto:Animate.OnAttached="{Binding BadgeMotion}">
+                                <TextBlock Text="{Binding Glyph}" />
+                            </Border>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Join the beta" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
+                                <TextBlock Classes="caption" Text="{Binding Status}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBox Text="{Binding Email}" Watermark="you@example.com" />
+                        <Button Classes="specimen" Content="Submit" Command="{Binding SubmitCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Border>
+
+            <TextBlock Classes="caption" Text="The bindings" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="BindingCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+            <TextBlock Classes="caption" Text="What they bind to: CardMotion and BadgeMotion look the view model's State up in these tables" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="TablesCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

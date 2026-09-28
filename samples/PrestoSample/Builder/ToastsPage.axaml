@@ -1,0 +1,89 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:local="using:PrestoSample.Builder"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1200"
+                       x:Class="PrestoSample.Builder.ToastsPage"
+                       x:DataType="local:ToastsViewModel">
+    <showcase:ShowcasePage.DataContext>
+        <local:ToastsViewModel />
+    </showcase:ShowcasePage.DataContext>
+
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.toast">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="Border.toast Border.accent">
+            <Setter Property="Width" Value="4" />
+            <Setter Property="Margin" Value="0,12,12,0" />
+            <Setter Property="CornerRadius" Value="2" />
+        </Style>
+        <Style Selector="Border.toast TextBlock.title">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,12,0,2" />
+        </Style>
+        <Style Selector="Border.toast TextBlock.message">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style Selector="Border.toast Button.close">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="4" />
+        </Style>
+        <Style Selector="Border.toast Border.countdown">
+            <Setter Property="Height" Value="3" />
+            <Setter Property="RenderTransformOrigin" Value="0%,50%" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Button Content="Notify" Command="{Binding NotifyCommand}" HorizontalAlignment="Left" />
+
+            <TextBlock Classes="caption" Text="Each toast slides in from its template, counts down on a bar and collapses out of the stack; ✕ dismisses it early" />
+            <Border Classes="stage" MinHeight="420">
+                <ItemsControl x:Name="ToastList" ItemsSource="{Binding Toasts}" Width="340" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="local:Toast">
+                            <Border Classes="toast" presto:Animate.OnAttached="{x:Static local:ToastsPage.SlideIn}">
+                                <Grid ColumnDefinitions="16,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                    <Border Grid.Column="1" Grid.RowSpan="2" Classes="accent" Background="{Binding Accent}" />
+                                    <TextBlock Grid.Column="2" Classes="title" Text="{Binding Title}" />
+                                    <TextBlock Grid.Column="2" Grid.Row="1" Classes="message" Text="{Binding Message}" />
+                                    <Button Grid.Column="3" Classes="close" Content="✕" Click="Close" />
+                                    <Border Grid.Row="2" Grid.ColumnSpan="4" Classes="countdown" Background="{Binding Accent}"
+                                            presto:Animate.OnAttached="{x:Static local:ToastsPage.Countdown}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <TextBlock Classes="caption" Text="The item template" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock Classes="code" Text="{x:Static local:ToastsPage.TemplateXaml}" />
+                </ScrollViewer>
+            </Border>
+            <TextBlock Classes="caption" Text="The recipes it points at, and the one the page plays to take a toast away" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="RecipesCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

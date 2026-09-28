@@ -35,6 +35,7 @@ internal sealed class RenderTransformComposer
     private ScaleTransform? _scale;
     private SkewTransform? _skew;
     private int _animated;
+    private bool _reasserting;
 
     private RenderTransformComposer(Visual visual)
     {
@@ -100,10 +101,19 @@ internal sealed class RenderTransformComposer
     private void OnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
         var visual = (Visual)sender!;
-        if (e.Property != Visual.RenderTransformProperty || ReferenceEquals(visual.RenderTransform, _group)) return;
+        if (_reasserting || e.Property != Visual.RenderTransformProperty || ReferenceEquals(visual.RenderTransform, _group)) return;
         var displaced = _written;
-        _written = visual.SetValue(Visual.RenderTransformProperty, _group, BindingPriority.Animation);
-        displaced?.Dispose();
+        // Detaching removes a transition mid re-evaluation, where each re-assert raises another change instead of winning.
+        _reasserting = true;
+        try
+        {
+            _written = visual.SetValue(Visual.RenderTransformProperty, _group, BindingPriority.Animation);
+            displaced?.Dispose();
+        }
+        finally
+        {
+            _reasserting = false;
+        }
         // The transition starts before the style's new value is committed as the base value.
         Dispatcher.UIThread.Post(() =>
         {

@@ -1,0 +1,46 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1200"
+                       x:Class="PrestoSample.Builder.SubmitFlowPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Button#Submit Path">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Stroke" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Border Classes="stage">
+                <StackPanel Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button x:Name="Submit" Classes="specimen" Width="200" Height="48" Padding="0" FontSize="15"
+                            HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            Click="SubmitClicked">
+                        <Grid>
+                            <TextBlock x:Name="Label" Text="Send message" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Path x:Name="Spinner" Opacity="0" StrokeThickness="2.5" Data="M11,2 A9,9 0 1 1 2,11" />
+                            <Path x:Name="Tick" StrokeThickness="3" Data="M5,11.5 L9.5,16 L17,6.5" />
+                            <Path x:Name="Cross" StrokeThickness="3" Data="M6,6 L16,16 M16,6 L6,16" />
+                        </Grid>
+                    </Button>
+                    <CheckBox x:Name="FailBox" Content="Fail the next request" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="caption" Text="Nine recipes; the click handler awaits them in turn, and a Presto timer stands in for the request" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="RecipesCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>
