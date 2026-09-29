@@ -131,6 +131,33 @@
                                 <Button Content="Next status" Click="NextStatus" />
                             </StackPanel>
                         </Grid>
+
+                        <StackPanel Orientation="Horizontal" Spacing="12" x:DataType="local:UploadViewModel">
+                            <StackPanel.DataContext>
+                                <local:UploadViewModel />
+                            </StackPanel.DataContext>
+                            <Border x:Name="UploadCard" Classes="card" Width="220"
+                                    Classes.starred="{Binding IsStarred}" presto:Motion.State="{Binding Phase}">
+                                <presto:Motion.States>
+                                    <presto:MotionStates>
+                                        <presto:MotionState When="Uploading" Motion="{x:Static local:StatesPage.Pulse}" />
+                                        <presto:MotionState When="Paused" Motion="{x:Static local:StatesPage.Dim}" />
+                                        <presto:MotionState When="Uploaded" Motion="{x:Static local:StatesPage.Success}" />
+                                        <presto:MotionState When=".starred" Motion="{x:Static local:StatesPage.Star}" />
+                                        <presto:MotionState When="Uploaded.starred" Motion="{x:Static local:StatesPage.Trophy}" />
+                                    </presto:MotionStates>
+                                </presto:Motion.States>
+                                <TextBlock Text="{Binding Phase, StringFormat='report.pdf · {0}'}" presto:Motion.State="{Binding Phase}">
+                                    <presto:Motion.States>
+                                        <presto:MotionStates>
+                                            <presto:MotionState When="Uploaded" Motion="{x:Static local:StatesPage.DarkInk}" />
+                                        </presto:MotionStates>
+                                    </presto:Motion.States>
+                                </TextBlock>
+                            </Border>
+                            <Button Content="Next phase" Command="{Binding NextPhaseCommand}" VerticalAlignment="Center" />
+                            <ToggleButton Content="★ Star" IsChecked="{Binding IsStarred}" VerticalAlignment="Center" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -152,6 +179,8 @@
                        Text="Hover, press and Tab through the controls. Motion.Hover, Press and Focus are sugar for :pointerover, a :pressed Presto synthesises for every element (the cards are plain Borders) and :focus-visible, which only the keyboard sets: Tab to a button and it grows, click it and it does not. The search box uses When=&quot;:focus&quot; instead, so it widens for a click too. States layer: press wins the scale over focus, and letting go returns to whatever still holds rather than to rest." />
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The checklist shares one MotionStates list through a style; each checkbox keeps its own runtime state, and :checked is just another condition. A card's arrow nudges when the card is hovered, not the arrow: a style setter on Motion.State brings the parent's selector down to the child as the token &quot;hot&quot;. The chip's Motion.State is bound to the page's Status, so each value is a state; Failed has a Leave, which times its return. The log is written from the controls' own class and property changes." />
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The upload card is driven by a view model. Its Phase enum is bound to Motion.State, so each member name is a state, and IsStarred is bound to Classes.starred, which a state names as .starred. Tokens AND together: Uploaded.starred only holds for a starred, finished upload." />
 
             <TextBlock Classes="caption" Text="The XAML" />
             <Border Classes="codeblock">

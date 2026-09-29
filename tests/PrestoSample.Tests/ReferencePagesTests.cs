@@ -3,10 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Pages;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Tests;
 
@@ -110,6 +112,32 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void TheUploadCardFollowsItsViewModelEnumAndClassBinding()
+    {
+        var page = new StatesPage();
+        SceneHarness.Show(page, 1100, 900);
+        var card = page.GetControl<Border>("UploadCard");
+        var model = (UploadViewModel)card.DataContext!;
+
+        model.IsStarred = true;
+        TestFrames.Tick(30);
+        Assert.Contains("starred", card.Classes);
+        Assert.Equal(-4, (double)PrestoAvalonia.Get(card, "Y")!, 6);
+        Assert.Equal(1, (double)PrestoAvalonia.Get(card, "Scale")!, 6);
+
+        model.Phase = UploadPhase.Uploaded;
+        TestFrames.Tick(40);
+        Assert.Equal("Uploaded", Motion.GetState(card)?.ToString());
+        Assert.Equal(1.06, (double)PrestoAvalonia.Get(card, "Scale")!, 6);
+        Assert.Equal(Palette.Background.Color, ((ISolidColorBrush)card.GetLogicalDescendants().OfType<TextBlock>().Single().Foreground!).Color);
+
+        model.IsStarred = false;
+        TestFrames.Tick(40);
+        Assert.Equal(0, (double)PrestoAvalonia.Get(card, "Y")!, 6);
+        Assert.Equal(1, (double)PrestoAvalonia.Get(card, "Scale")!, 6);
+    }
+
+    [AvaloniaFact]
     public void ClosingTheStatesPageLeavesNothingAnimating()
     {
         var page = new StatesPage();
@@ -126,7 +154,7 @@ public sealed class ReferencePagesTests
 
     [AvaloniaFact]
     public void StatesSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(StatesPage), "samples/PrestoSample/Pages/StatesPage.axaml", 6);
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(StatesPage), "samples/PrestoSample/Pages/StatesPage.axaml", 7);
 
     [AvaloniaFact]
     public void EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
