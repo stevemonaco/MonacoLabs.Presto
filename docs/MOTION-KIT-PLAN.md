@@ -17,7 +17,9 @@ throughout the bridge. Lambdas are added as sugar at one-shot call sites.
 | 22 | Builder groundwork: `Clone`/`With`, `Action<AnimationBuilder>` overloads | small |
 | 23 | State triggers: `Motion.Hover`/`Press`/`Focus`/`States`/`State`, code API, one-shot `Animate.OnTapped`/`OnChanged` | large |
 | 24 | Effects: blur, drop shadow, 3D rotation, clip and mask reveals | medium |
-| 25 | Recipes and reduced motion: the prebuilt catalogue, XAML markup extensions, motion tokens, reduced-motion switch | medium |
+| 25 | Recipes and reduced motion: the prebuilt catalogue, XAML markup extensions, motion tokens, reduced-motion flag | medium |
+
+Following the OS "reduce motion" setting was split out of Phase 25 into Phase 26 ([PLATFORM-PLAN.md](PLATFORM-PLAN.md)).
 
 Phase 22 goes first even though triggers and effects are the headline. It is about a day of work, and both later
 phases write their code API in its terms. For example, `card.WhileHover(b => b.Y(-4))` is a Phase 22 overload shape.
@@ -458,17 +460,9 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
      - interactions keep colour and shadow but drop travel and scale.
    - Animations without an alternative are unaffected, unless the app also sets `PrestoDefaults.ReduceAll`. That
      clamps durations to 0, which gives instant sets.
-   - The bridge fills the flag from the OS through an `IReducedMotionSource`, because Avalonia 12.1.2 exposes no
-     setting (`IPlatformSettings` has none). Sources:
-     - Windows: `SPI_GETCLIENTAREAANIMATION`;
-     - macOS: `accessibilityDisplayShouldReduceMotion`;
-     - Browser: `prefers-reduced-motion`;
-     - Android: `ANIMATOR_DURATION_SCALE`;
-     - iOS: `UIAccessibility.IsReduceMotionEnabled`.
-
-     Windows and Browser ship in the bridge. The mobile ones need platform assemblies and are documented as snippets
-     for the app's head.
-   - `PrestoAvalonia.ReducedMotion` (`bool?`, `null` = follow the OS) overrides the OS value.
+   - The app sets the flag. Reading the OS "reduce motion" setting is Phase 26
+     ([PLATFORM-PLAN.md](PLATFORM-PLAN.md)), which adds an opt-in source that writes this same flag, so nothing in
+     this phase changes when it lands.
 9. **Stateful recipes are small bridge types, not builders.** Pointer-follow `Tilt` needs the pointer position, so it is
    an attached property `Tilt.Enabled`/`Tilt.Strength` driven by an `Animatable` over `RotateX`/`RotateY`. The
    typewriter and count-up recipes need `SplitText` or `Text`, so they are `Recipes.Typewriter(textBlock, …)` and
@@ -483,9 +477,7 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
    - The family classes and the `Recipes` facade.
    - `Tilt`, and the text recipes.
 3. **Markup extensions** and the exit-form detection.
-4. **`IReducedMotionSource`** with the Windows and Browser implementations, `PrestoAvalonia.ReducedMotion`, and a
-   re-read when the setting changes where the OS reports that.
-5. **README:**
+4. **README:**
    - a "Recipes" section with a table of every recipe, its arguments and its reduced form;
    - a "Reduced motion" section;
    - PLAN §8 marks the recipe bullets built (masks and reveals are covered by Phase 24).
@@ -507,7 +499,7 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
 - The markup extension returns the exit form under `Presence.Exit` and the entrance form under `Presence.Enter`.
 - `Recipes.Tokens` swap: the next call uses the new tokens, and a builder already made keeps its own values.
 - `Tilt`: pointer moves drive `RotateX`/`RotateY` within `Strength`, and leaving springs back.
-- `PrestoAvalonia.ReducedMotion = true` makes a `Presence.Enter` recipe play its fade.
+- `Presto.Defaults.ReducedMotion = true` makes a `Presence.Enter` recipe play its fade.
 
 ### 4.4 Samples
 
@@ -541,7 +533,7 @@ A real-world page that uses Phases 22–25 together. It goes into the Showcase s
 - **Quick view.** A modal opens over a `Blur`red grid with a `ClipCircle` reveal from the clicked card, and closes with
   a blur-out `Presence.Exit`.
 - **Loading.** A `Shimmer` skeleton while a Presto timer stands in for the fetch.
-- **Reduced motion.** A header switch flips `PrestoAvalonia.ReducedMotion` live, so the page shows every recipe's
+- **Reduced motion.** A header switch flips `Presto.Defaults.ReducedMotion` live, so the page shows every recipe's
   reduced form in context.
 
 The page ships with a `PrestoSample.Tests` page test (hover, press, focus and reduced-motion paths through the
@@ -562,8 +554,8 @@ headless harness) and a Desktop visual check through DevTools screenshots.
 - **Press on touch.** Synthesised pressed ends on capture loss. Should a touch that turns into a scroll (a
   `ScrollViewer` taking capture) cancel the press state immediately? That is the proposed default. *Settled by Phase
   23: yes; `PointerCaptureLost` ends the press at once.*
-- **Mobile reduced-motion sources.** Ship Android/iOS implementations in separate small packages, or document them as
-  snippets only?
+- **Mobile reduced-motion sources.** *Moved to [PLATFORM-PLAN.md](PLATFORM-PLAN.md) §2 with the rest of the OS
+  sources.*
 - **Effect conflict.** Throwing on blur plus shadow is strict. The alternative is a documented "last kind wins"; decide
   after the Effects page shows which one users trip over. *Settled by Phase 24: it throws InvalidOperationException
   naming both shorthands (decision 29); one after the other switches the kind.*

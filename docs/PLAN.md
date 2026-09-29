@@ -209,7 +209,11 @@ Phases 22–25 are the motion kit: state triggers, effects and prebuilt recipes;
 - [x] **Phase 22 — Builder groundwork (core + bridge).** `AnimationBuilder.Clone`/`With` (and the `Connected` defaults hand out copies), and an `Action<AnimationBuilder>` overload beside every `AnimationBuilder` call site (`Presto.Animate`/`Set`, `Timeline.Add`/`Set`, `Animate`, `AnimateOnCompositor`, `AnimateLayout`, `AnimateSharedElement`, `AnimateExit`). The builder stays the value type attached properties and recipes carry. Samples: `RecipesPage` uses `With`.
 - [x] **Phase 23 — State triggers (bridge).** `Motion.Hover`/`Press`/`Focus`, a `Motion.States` list of `When` conditions over pseudo-classes, classes and `Motion.State` tokens (style setters on `Motion.State` give full selector reach), layered by declaration order and returning to each property's base value; `While*` code API; one-shot `Animate.OnTapped`/`OnChanged`. Samples: a States page; Form states, Chart morph, Micro-interactions and Counters migrated.
 - [x] **Phase 24 — Effects (bridge).** `Blur` and `Shadow*` shorthands over a bridge-owned `Visual.Effect`, `RotateX`/`RotateY`/`Perspective` through `Rotate3DTransform`, and `ClipInset`/`ClipCircle`/`MaskSweep` reveals; effects removed at rest. Samples: an Effects page; blur-behind in Card gallery, lean in Swipe deck.
-- [ ] **Phase 25 — Recipes and reduced motion (core + bridge).** Factory recipes by family behind a `Recipes` facade, XAML markup extensions that pick the exit form under `Presence.Exit`, library `MotionTokens`, `Tilt` and text recipes, and reduced motion (`WhenReduced`, `PrestoDefaults.ReducedMotion`, OS sources). Samples: a Recipe gallery page, sample-side recipes retired, and a Storefront showcase using Phases 22–25 together.
+- [ ] **Phase 25 — Recipes and reduced motion (core + bridge).** Factory recipes by family behind a `Recipes` facade, XAML markup extensions that pick the exit form under `Presence.Exit`, library `MotionTokens`, `Tilt` and text recipes, and reduced motion as an app-set flag (`WhenReduced`, `PrestoDefaults.ReducedMotion`/`ReduceAll`). Samples: a Recipe gallery page, sample-side recipes retired, and a Storefront showcase using Phases 22–25 together.
+
+Phase 26 is platform work kept out of the feature phases so they land on the Desktop head alone; design, API and tests in [docs/PLATFORM-PLAN.md](PLATFORM-PLAN.md).
+
+- [ ] **Phase 26 — Reduced-motion sources (bridge).** Opt-in `PrestoAvalonia.FollowSystemReducedMotion()` (and a `UsePresto` parameter) over an `IReducedMotionSource` that writes `PrestoDefaults.ReducedMotion`: Windows, Browser and macOS sources in the bridge, Android and iOS as packages or snippets.
 
 ## 6. Testing strategy
 
@@ -287,4 +291,4 @@ as an `AnimationBuilder` (or a small bridge type where state is involved), usabl
 - **Loading recipes.** Skeleton shimmer (a gradient sweep, Phase 19), spinner and dots loaders, and an indeterminate progress sweep.
 - **Tilt and 2.5D.** Pointer-follow tilt with a perspective approximation (skew and scale on the compositor), and a card flip. True 3D is out of scope.
 - **Counters and text.** A count-up with formatting (`TextModifier`), a typewriter, and per-line reveals over `SplitText`.
-- **Reduced motion.** Honour the OS "reduce motion" setting: a global switch that shortens or replaces prebuilt effects (and optionally all animations) with fades or instant sets.
+- **Reduced motion.** A global switch that shortens or replaces prebuilt effects (and optionally all animations) with fades or instant sets (Phase 25); following the OS "reduce motion" setting is Phase 26.
