@@ -927,7 +927,7 @@ timers keep their durations, and animations built from a `WhenReduced` alternati
 the whole app.
 
 Both flags are ordinary defaults, so each engine has its own and a `Scope` copies them. Presto never sets them itself;
-following the OS "reduce motion" setting is Phase 26 ([PLATFORM-PLAN.md](docs/PLATFORM-PLAN.md)).
+to follow the OS "reduce motion" setting, read it in the app and set `ReducedMotion`.
 
 ## anime.js → Presto
 
@@ -966,7 +966,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
 | *CSS, not anime.js:* `clip-path: inset()` / `circle()` | `ClipInset`, `ClipCircle` with `ClipCircleCenter` |
 | *CSS, not anime.js:* a `mask-image` linear-gradient sweep | `MaskSweep` with `MaskSweepAngle` and `MaskSweepFeather` |
-| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; `reducedMotion="user"` is Phase 26. See [Reduced motion](#reduced-motion) |
+| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, the app reads the OS setting and sets the flag. See [Reduced motion](#reduced-motion) |
 
 The XAML surface is `Animate.OnAttached`, which plays a builder whenever a visual attaches ([From XAML](#from-xaml)), the `Presence` lifecycle properties ([Lifecycle animations](#lifecycle-animations)), `Connected`'s keys,
 the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)), and the recipe markup extensions and `Tilt` ([Recipes](#recipes)); other triggers belong in code-behind or a view model.

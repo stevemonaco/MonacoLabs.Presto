@@ -19,7 +19,7 @@ throughout the bridge. Lambdas are added as sugar at one-shot call sites.
 | 24 | Effects: blur, drop shadow, 3D rotation, clip and mask reveals | medium |
 | 25 | Recipes and reduced motion: the prebuilt catalogue, XAML markup extensions, motion tokens, reduced-motion flag | medium |
 
-Following the OS "reduce motion" setting was split out of Phase 25 into Phase 26 ([PLATFORM-PLAN.md](PLATFORM-PLAN.md)).
+Following the OS "reduce motion" setting was split out of Phase 25 and then dropped: the app reads it and writes the flag (PLAN decision 36).
 
 Phase 22 goes first even though triggers and effects are the headline. It is about a day of work, and both later
 phases write their code API in its terms. For example, `card.WhileHover(b => b.Y(-4))` is a Phase 22 overload shape.
@@ -460,9 +460,8 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
      - interactions keep colour and shadow but drop travel and scale.
    - Animations without an alternative are unaffected, unless the app also sets `PrestoDefaults.ReduceAll`. That
      clamps durations to 0, which gives instant sets.
-   - The app sets the flag. Reading the OS "reduce motion" setting is Phase 26
-     ([PLATFORM-PLAN.md](PLATFORM-PLAN.md)), which adds an opt-in source that writes this same flag, so nothing in
-     this phase changes when it lands.
+   - The app sets the flag, including from the OS "reduce motion" setting if it wants to follow it; Presto ships no
+     platform-specific sources.
 9. **Stateful recipes are small bridge types, not builders.** Pointer-follow `Tilt` needs the pointer position, so it is
    an attached property `Tilt.Enabled`/`Tilt.Strength` driven by an `Animatable` over `RotateX`/`RotateY`. The
    typewriter and count-up recipes need `SplitText` or `Text`, so they are `Recipes.Typewriter(textBlock, …)` and
@@ -554,8 +553,7 @@ headless harness) and a Desktop visual check through DevTools screenshots.
 - **Press on touch.** Synthesised pressed ends on capture loss. Should a touch that turns into a scroll (a
   `ScrollViewer` taking capture) cancel the press state immediately? That is the proposed default. *Settled by Phase
   23: yes; `PointerCaptureLost` ends the press at once.*
-- **Mobile reduced-motion sources.** *Moved to [PLATFORM-PLAN.md](PLATFORM-PLAN.md) §2 with the rest of the OS
-  sources.*
+- **Mobile reduced-motion sources.** *Dropped with the rest of the OS sources; the app writes the flag.*
 - **Effect conflict.** Throwing on blur plus shadow is strict. The alternative is a documented "last kind wins"; decide
   after the Effects page shows which one users trip over. *Settled by Phase 24: it throws InvalidOperationException
   naming both shorthands (decision 29); one after the other switches the kind.*

@@ -279,6 +279,36 @@ seconds. The frame-time graph is itself a `CompositorScene`, so it keeps drawing
 - **Done when** dragging the slider mid-reveal re-wraps without restarting, the rotator cycles without the headline
   jumping, the wordmark follows the pointer and springs back, and the terminal loops.
 
+### 4.11 Activity feed — `ActivityFeedPage`
+
+*Real-world. The long, live list.* Built with PLAN Phase 27 ([LIFECYCLE-PLAN.md](LIFECYCLE-PLAN.md) §10).
+
+A notifications and activity feed: about 2,000 seeded events (comments, orders, deploys, mentions) in a virtualized
+`ListBox`, with day headers as items of their own type, since `ListBox` has no grouping. A live source adds events
+at the top, and the bottom loads more as you scroll.
+
+| What the user sees | Trigger |
+|---|---|
+| The first screen of rows rises in with a stagger as the page opens | `Presence.Initial` |
+| Each row scrolled into view fades and rises 12px, rows from one scroll step rippling | `Presence.Reveal` |
+| New events slide in at the top; scrolled down, a "3 new" pill appears and scrolls to the top on click | `Presence.Enter`, pill on `Presence.Initial`/`Enter` |
+| A dismissed event collapses out | `Presence.Exit` |
+| Skeleton rows shimmer at the bottom while the next page loads (600 ms, 50 events) | `Animate.OnAttached` |
+| The unread badge pulses when its count changes | `Animate.OnChanged` |
+
+An overlay has an "animations played" counter per trigger (fed from each builder's `OnBegin`), a Reveal switch
+(Off / Once / Every time, over `Presence.RevealOnce`) and a "Use OnAttached" switch that moves the rows' reveal to
+`Animate.OnAttached`, so the counter shows it replaying on every recycle.
+
+- **Exercises** every `Presence` property and both `Animate` triggers in one list, `Stagger` on Initial and Reveal
+  batches, a `Timer` for the live source, and the item-keyed Reveal memory under inserts, removals and paging.
+- **Risks** Inserting at index 0 while scrolled down may move the viewport if `VirtualizingStackPanel` does not keep its
+  anchor. If it moves, record it in §8 and hold new events behind the pill until the user returns to the top. Swipe
+  to dismiss with `Draggable` on a recycled row is a stretch goal; a dismiss button is the baseline.
+- **Done when** a slow scroll reveals each row once and scrolling back up plays nothing, a scrollbar drag to the end lands
+  at rest, "Every time" and "Use OnAttached" visibly replay, a live insert while scrolled down does not move what you
+  are reading, and ten minutes of live events and paging leave the counters and the Reveal memory bounded.
+
 ## 5. Phases
 
 - [x] **13a — Shell and kit.** Sections + `TreeView` nav, `Styles/Showcase.axaml` and the palette, dark variant,
@@ -299,6 +329,7 @@ seconds. The frame-time graph is itself a `CompositorScene`, so it keeps drawing
       Chart morph). Implemented, §8 rows 29–30; the
       three test projects pass, pending a full `slnx` build (blocked by a locked Desktop bin) and a Desktop pass over
       each page against its "done when" clause.
+- [ ] **13i — Activity feed.** §4.11, built with PLAN Phase 27 rather than on its own.
 - [ ] **13e — Docs.** README showcase section with captures, `CLAUDE.md` layout table updated with the
       `Showcase/` folder, this checklist ticked, findings from §8 folded into [PLAN.md](PLAN.md) §7.
 

@@ -1,6 +1,6 @@
 # Lifecycle animations — one model for initial load, enter and exit
 
-Phase 21 in [PLAN.md](PLAN.md). Status: **built**, with the recommendations in §5 taken. §8 records where implementation refined the proposal; where it and the text above differ, §8 is what shipped.
+Phase 21 in [PLAN.md](PLAN.md). Status: **built**, with the recommendations in §5 taken. §8 records where implementation refined the proposal; where it and the text above differ, §8 is what shipped. §9 (`Presence.Arrive`, Phase 26) and §10 (`Presence.Reveal`, Phase 27) are **proposed**.
 
 ## 1. Problem
 
@@ -209,3 +209,105 @@ Sample: a new Reference page, **Lifecycle**, beside Presence. It has three views
 plus buttons to navigate, show a view again, add and remove rows. A log is written by each builder's `OnBegin`, so it
 shows what `Presence` classified rather than what the button meant. The Presence page and the Toasts builder page moved
 from `Animate.OnAttached` to `Presence.Initial`/`Enter`; the toast countdown bar keeps the raw trigger.
+## 9. `Presence.Arrive` (Phase 26)
+
+### 9.1 Problem
+
+Animating every arrival alike means setting `Initial` and `Enter` to the same builder (§3). That duplication is why the
+sample still reaches for `Animate.OnAttached` to play entrances: `Builder/XamlPage`'s cards and staggered list, and the
+Fade and Pop swatches on `Builder/RecipeGalleryPage`. `OnAttached` is the wrong tool there. It plays on every attach,
+including a virtualizing panel's recycling, which `Presence` deliberately ignores (§8.5).
+
+### 9.2 Decisions
+
+1. **`Presence.Arrive` is a fourth attached property**, `AnimationBuilder?` on `Control`, not a setter that writes
+   `Initial` and `Enter`. Only a real property works from style setters and bindings, and it leaves `Get`/`Set` on the
+   other two meaning what they say.
+2. **It is the fallback for both arrival moments.** The tracker's builder for Initial is `Initial ?? Arrive`, and for
+   Enter it is `Enter ?? Arrive`. A set `Initial` or `Enter` wins for its own moment, so "rise on page load, slide when
+   added" is `Arrive` plus one override. `Realize` and `Recycle` still play nothing, and `Exit` is unaffected.
+3. **Change and revert behave like `Initial`/`Enter` as built.** A new value applies from the next arrival. The tracker
+   lives while any of the four properties is set (`HandleChanged` gains `Arrive`), and clearing the last one releases it
+   and reverts. Detach reverts after any Exit snapshot, and initial-load batching and stagger ordinals apply unchanged.
+4. **`Animate.OnAttached` becomes the "while attached" trigger.** Its doc comment, the `Presence` class remarks and the
+   README's "From XAML" and "Lifecycle animations" sections say to use it for loops and timers tied to being on screen,
+   such as a skeleton shimmer or a countdown, and to use `Presence` for entrances. No API change.
+
+### 9.3 Migration
+
+| Where | Today | After |
+|---|---|---|
+| `Builder/XamlPage` cards and list | `Animate.OnAttached` | `Presence.Arrive`; the page teaches the three XAML spellings on `Arrive`, and its "OnAttached vs Presence" note becomes the §9.2.4 wording |
+| `Builder/XamlPage` binding panel (Float/Shake) | `Animate.OnAttached="{Binding Emphasis}"` | unchanged: a looping emphasis is "while attached" |
+| `Builder/RecipeGalleryPage` Fade and Pop swatches | `Animate.OnAttached` | `Presence.Arrive`; Shake stays on `OnAttached` |
+| `Builder/ToastsPage` toast | `Presence.Initial` + `Enter` with one recipe | `Presence.Arrive` |
+| `Builder/ToastsPage` countdown, `Showcase/StorefrontPage` shimmer | `Animate.OnAttached` | unchanged |
+| `Pages/LifecyclePage` view panels (`SetInitial`/`SetEnter` with one `arrive` builder) | both | `Presence.SetArrive`; the rows keep distinct Initial and Enter, since they demonstrate the classification |
+
+Each page that prints its own code has its printed snippet updated to match. `BuilderPagesTests`, which finds the
+`OnAttached` elements, follows the move.
+
+### 9.4 Tests (`PresenceLifecycleTests`, bridge)
+
+- `Arrive` alone plays on an initial load and on an enter.
+- A set `Initial` wins over `Arrive` on an initial load while `Arrive` still plays on an enter, and the mirror case for `Enter`.
+- `Arrive` alone plays nothing on scroll realization or recycling in a virtualized list.
+- An initial-load batch using `Arrive` staggers by arrival order.
+- An element with only `Arrive` set keeps its tracker, clearing it mid-animation reverts, and detach reverts after an Exit snapshot.
+- Existing `PresenceTests`, `PresenceLifecycleTests` and `AnimateAttachedTests` stay green.
+- Sample: XamlPage, Recipe gallery and Toasts checked on the Desktop head (Replay, add and remove).
+
+## 10. `Presence.Reveal` (Phase 27)
+
+### 10.1 Problem
+
+A virtualized list has a third kind of arrival: a row scrolled into view. Presence classifies it as the internal
+`Realize` moment and plays nothing (§8.5), which is right for entrances but leaves no way to reveal rows as they scroll
+in. `Animate.OnAttached` plays there, but it also plays on the first load and on adds, gets no stagger ordinal and
+replays on every recycle. `ScrollObserver` watches a `ScrollViewer`, not recycled rows.
+
+### 10.2 Decisions (recommended)
+
+1. **`Presence.Reveal` is an `AnimationBuilder?` that plays on `Realize` only.** It never plays on Initial, Enter or
+   Recycle, and it has no effect outside an item container of a list, where there is no `Realize`. A non-virtualized
+   list inside a `ScrollViewer` never realizes on scroll, so scroll reveals there stay with `ScrollObserver`.
+2. **Once per item by default.** `Presence.RevealOnce` (`bool`, default `true`) makes a row reveal only the first time its
+   item is realized. The memory is kept per list and keyed by item, not container, since containers are recycled. An item
+   counts as seen once it has been shown by any moment, Initial and Enter included. The memory drops an item when it
+   leaves `Items` and is cleared on reset, reusing the item-change watcher from §8.5. With `RevealOnce` false, every
+   realization reveals.
+3. **Direction follows from once.** In the default mode, scrolling back up reveals nothing, because those rows were seen.
+   A row is revealed from above only after a jump past it (for example, dragging the scrollbar to the end and scrolling
+   back). v1 plays the same builder from either edge. Mirroring by scroll direction is left open (§10.5).
+4. **Jumps and flings snap.** When the list's `ScrollViewer` has moved more than one viewport since the previous layout
+   pass, the rows realized in that pass are marked seen and not animated. A fling or a scrollbar jump then lands at rest
+   instead of fading in a screen of rows at once. It's a fixed rule with no public setting in v1.
+5. **Rows realized in one layout pass share a batch**, as an initial load does (§2.3, §8.3), so
+   `Delay(Presto.Stagger(30))` ripples the rows a scroll brings in. Ordinals follow realization order, and the spike
+   below checks that order runs outward from the edge scrolled in from.
+
+### 10.3 Spike before building
+
+- What order `VirtualizingStackPanel` realizes rows in when scrolling down and up. If it is not edge-outward, either
+  sort a batch's ordinals by distance from the leading edge before its animations start, or accept arrival order.
+- Whether an animation created at realization shows its from-values on the first frame, as Initial does (§6). A
+  realization happens inside a layout pass driven by scrolling, not by a first layout.
+- How far `ScrollViewer.Offset` moves between passes on a mouse-wheel notch, a touchpad fling and a scrollbar drag,
+  to confirm "one viewport" separates them.
+
+### 10.4 Tests (`PresenceLifecycleTests`, bridge)
+
+- Scrolling a virtualized list reveals newly realized rows, and not the rows realized on first load.
+- Scrolling back over seen rows reveals nothing with `RevealOnce`, and does reveal them with `RevealOnce` false.
+- An item added and then scrolled to is not revealed again (Enter marked it seen). An item removed and re-added is.
+- A reset clears the memory.
+- A scroll of more than one viewport in one pass snaps its rows.
+- Rows realized in one pass stagger by ordinal.
+- Recycle and detach revert a running reveal.
+- The seen memory holds no item after it leaves `Items`.
+
+### 10.5 Open
+
+- **Mirroring by direction.** Should a row revealed while scrolling up start from above? That needs either a direction
+  the builder can read (a function value, or a `Presence.RevealFromAbove` companion) or a mirrored copy of the builder.
+  Decide after the Activity feed shows whether it is noticeable.
