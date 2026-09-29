@@ -7,7 +7,7 @@ using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
 
-/// <summary>Stat tiles counted by Text tweens with their own formats, and an odometer whose strips take their digit from a function value.</summary>
+/// <summary>Stat tiles counted by Text tweens with their own formats and bumped when their watched value changes, and an odometer whose strips take their digit from a function value.</summary>
 public partial class CountersPage : ShowcasePage
 {
     private const int Digits = 7;
@@ -22,21 +22,28 @@ public partial class CountersPage : ShowcasePage
     ];
 
     private readonly TextBlock[] _readouts = new TextBlock[Metrics.Length];
+    private readonly Border[] _tiles = new Border[Metrics.Length];
     private readonly double[] _values = new double[Metrics.Length];
     private readonly List<StackPanel> _strips = [];
     private readonly Random _random = new(7);
+    private readonly string _bumpCode;
 
     public CountersPage()
     {
         InitializeComponent();
+        (var bump, _bumpCode) = Snippet.Of(Presto.Build()
+            .Scale(k => k.To(1.06).To(1))
+            .Duration(420)
+            .Ease(Eases.OutQuad));
         for (var i = 0; i < Metrics.Length; i++)
         {
             _readouts[i] = new TextBlock { Classes = { "readout" }, Text = Metrics[i].Format(0) };
-            Tiles.Children.Add(new Border
+            Tiles.Children.Add(_tiles[i] = new Border
             {
                 Classes = { "tile" },
                 Child = new StackPanel { Spacing = 4, Children = { new TextBlock { Classes = { "caption" }, Text = Metrics[i].Title }, _readouts[i] } },
             });
+            Animate.SetOnChanged(_tiles[i], bump);
         }
         for (var i = 0; i < Digits; i++)
         {
@@ -67,9 +74,10 @@ public partial class CountersPage : ShowcasePage
                 .Duration(1600)
                 .Ease(Eases.OutExpo)));
             _values[i] = next;
+            Animate.SetWatch(_tiles[i], next);
         }
         Counters = counters;
-        CountersCode.Text += ";";
+        CountersCode.Text += $";\n\nAnimate.SetOnChanged(_tiles[i], {_bumpCode});\nAnimate.SetWatch(_tiles[i], next);";
 
         var value = OdometerValue = _random.Next((int)Math.Pow(10, Digits));
         var (odometer, code) = Snippet.Of(Presto.Build()

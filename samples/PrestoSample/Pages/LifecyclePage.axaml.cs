@@ -27,7 +27,9 @@ public partial class LifecyclePage : UserControl
 
     private readonly (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View)[] _views;
     private readonly ObservableCollection<(string Moment, IBrush Tint, string Detail)> _moments = [];
+    private readonly Control[] _panels = [Panel("Inbox", "#7dd3fc"), Panel("Archive", "#fca5a5")];
     private int _view;
+    private int _panel;
     private int _next;
 
     public LifecyclePage()
@@ -50,6 +52,7 @@ public partial class LifecyclePage : UserControl
             View("Archive · 300 rows, virtualized", [.. Enumerable.Range(1, 300).Select(i => $"Archived task #{i}")], initial, enter, exit, virtualized: true),
         ];
         Host.Content = _views[0].View;
+        Swapper.Content = _panels[0];
     }
 
     private (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View) Current => _views[_view];
@@ -116,9 +119,27 @@ public partial class LifecyclePage : UserControl
         Host.Content = view;
     }
 
+    private void Swap(object? sender, RoutedEventArgs e) => Swapper.Content = _panels[_panel = 1 - _panel];
+
+    private static Control Panel(string title, string color)
+    {
+        var panel = new Border
+        {
+            Classes = { "panel" },
+            Background = SolidColorBrush.Parse(color),
+            Child = new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Bottom },
+        };
+        var arrive = Presto.Build().Opacity(from: 0, to: 1).Y(from: 16, to: 0).Duration(360).Ease(Eases.OutQuart);
+        Presence.SetInitial(panel, arrive);
+        Presence.SetEnter(panel, arrive);
+        Presence.SetExit(panel, Presto.Build().Opacity(to: 0).Y(to: -16).Duration(360).Ease(Eases.InQuad));
+        return panel;
+    }
+
     private void AddRow(object? sender, RoutedEventArgs e)
     {
-        var index = ShownRange() is { } shown ? Random.Shared.Next(shown.First, shown.Last + 1) : 0;
+        // A virtualizing panel keeps its first realized row anchored, so an item inserted at its index lands above the viewport.
+        var index = ShownRange() is { } shown ? Random.Shared.Next(shown.First, shown.Last) + 1 : 0;
         Current.Rows.Insert(index, $"New task #{++_next}");
     }
 

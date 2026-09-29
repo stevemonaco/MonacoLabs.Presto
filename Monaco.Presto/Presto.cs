@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Monaco.Presto.Core;
 using Monaco.Presto.Targets;
 using Monaco.Presto.Values;
@@ -44,15 +45,30 @@ public static class Presto
     public static Stagger Stagger(TweenValue value, StaggerParams? parameters = null) => new(value, parameters ?? new());
 
     /// <summary>Animates the properties named in <paramref name="parameters"/> on every one of <paramref name="targets"/> (upstream <c>animate()</c>).</summary>
+    [OverloadResolutionPriority(1)]
     public static Animation Animate(object? targets, AnimationParams parameters) =>
         (Animation)new Animation(targets, parameters, null, 0).Init();
+
+    /// <summary>Animates <paramref name="targets"/> with the fresh builder <paramref name="build"/> configures.</summary>
+    public static Animation Animate(object? targets, Action<AnimationBuilder> build) => Animate(targets, Build(build).ToParams());
 
     /// <summary>Starts a fluent, reusable <see cref="AnimationBuilder"/>, a typed alternative to the <see cref="AnimationParams"/> indexer.</summary>
     public static AnimationBuilder Build() => new();
 
     /// <summary>Writes values to targets immediately; returns the zero duration animation that wrote them, as upstream <c>utils.set()</c> does.</summary>
+    [OverloadResolutionPriority(1)]
     public static Animation Set(object? targets, AnimationParams parameters) =>
         (Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume();
+
+    /// <summary>Writes the values of the fresh builder <paramref name="build"/> configures to <paramref name="targets"/> immediately.</summary>
+    public static Animation Set(object? targets, Action<AnimationBuilder> build) => Set(targets, Build(build).ToParams());
+
+    internal static AnimationBuilder Build(Action<AnimationBuilder> build)
+    {
+        var builder = new AnimationBuilder();
+        build(builder);
+        return builder;
+    }
 
     /// <summary>Reads <paramref name="property"/> from the first of <paramref name="targets"/>, or null when none resolve.</summary>
     public static object? Get(object? targets, string property)

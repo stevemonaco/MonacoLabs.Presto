@@ -40,6 +40,9 @@ public static class Connected
         AvaloniaProperty.RegisterAttached<Control, Entrance?>("Entrance", typeof(Connected));
 
     private static readonly Dictionary<string, Registration> s_keys = new();
+    private static AnimationBuilder s_defaultMotion = Presto.Build().Duration(500).Ease(Eases.OutQuint);
+    private static AnimationBuilder s_defaultAnchorMotion =
+        Presto.Build().Y(from: 24, to: 0).Opacity(from: 0, to: 1).Duration(400).Delay(150).Ease(Eases.OutQuart);
 
     static Connected()
     {
@@ -47,12 +50,19 @@ public static class Connected
         AnchorProperty.Changed.AddClassHandler<Control>(HandleAnchorChanged);
     }
 
-    /// <summary>The flight for an arriving keyed element with no <see cref="MotionProperty"/> of its own.</summary>
-    public static AnimationBuilder DefaultMotion { get; set; } = Presto.Build().Duration(500).Ease(Eases.OutQuint);
+    /// <summary>The flight for an arriving keyed element with no <see cref="MotionProperty"/> of its own; the getter hands out a copy.</summary>
+    public static AnimationBuilder DefaultMotion
+    {
+        get => s_defaultMotion.Clone();
+        set => s_defaultMotion = value;
+    }
 
-    /// <summary>The entrance for an anchored element with no <see cref="MotionProperty"/> of its own.</summary>
-    public static AnimationBuilder DefaultAnchorMotion { get; set; } =
-        Presto.Build().Y(from: 24, to: 0).Opacity(from: 0, to: 1).Duration(400).Delay(150).Ease(Eases.OutQuart);
+    /// <summary>The entrance for an anchored element with no <see cref="MotionProperty"/> of its own; the getter hands out a copy.</summary>
+    public static AnimationBuilder DefaultAnchorMotion
+    {
+        get => s_defaultAnchorMotion.Clone();
+        set => s_defaultAnchorMotion = value;
+    }
 
     /// <summary>Gets the key that connects <paramref name="control"/> to its counterpart in another view.</summary>
     public static string? GetKey(Control control) => control.GetValue(KeyProperty);
@@ -131,7 +141,7 @@ public static class Connected
     private static void Arrive(string key, Control control)
     {
         var registration = Register(key, control);
-        var motion = GetMotion(control) ?? DefaultMotion;
+        var motion = GetMotion(control) ?? s_defaultMotion;
         var flight = Other(key, control) is { } source
             ? PrestoAvalonia.AnimateSharedElement(source, control, motion)
             : PrestoAvalonia.AnimateSharedElement(key, control, motion);
@@ -201,7 +211,7 @@ public static class Connected
         public void Play()
         {
             Stop();
-            _animation = PrestoAvalonia.AnimateOnCompositor(_control, GetMotion(_control) ?? DefaultAnchorMotion);
+            _animation = PrestoAvalonia.AnimateOnCompositor(_control, GetMotion(_control) ?? s_defaultAnchorMotion);
         }
 
         public void Release()

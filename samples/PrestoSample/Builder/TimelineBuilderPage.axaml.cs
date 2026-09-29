@@ -8,7 +8,7 @@ using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
 
-/// <summary>A timeline assembled from one builder with a scrub slider, and a builder spun on the compositor so it survives a frozen UI thread.</summary>
+/// <summary>A timeline assembled from one shared builder and one lambda, with a scrub slider, and a builder spun on the compositor so it survives a frozen UI thread.</summary>
 public partial class TimelineBuilderPage : ShowcasePage
 {
     private bool _syncingScrub;
@@ -31,7 +31,7 @@ public partial class TimelineBuilderPage : ShowcasePage
             .Add(CardA, fadeUp)
             .Add(CardB, fadeUp, "-=400")
             .Add(CardC, fadeUp, "-=400")
-            .Add(CardD, fadeUp, "<"));
+            .Add(CardD, b => b.Opacity(from: 0, to: 1).Y(from: 40, to: 0).Scale(from: 0.6, to: 1).Duration(600), "<"));
         TimelineCode.Text = $"{Snippet.Declare("var fadeUp", fadeUpCode)}\n\n{timelineCode};";
 
         (Spin, SpinCode.Text) = Snippet.Of(Gear.AnimateOnCompositor(Presto.Build()

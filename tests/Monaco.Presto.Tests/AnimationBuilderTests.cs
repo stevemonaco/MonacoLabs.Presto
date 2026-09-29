@@ -387,6 +387,107 @@ public sealed class AnimationBuilderTests : EngineTestBase
         Assert.Equal(byParams.Duration, byBuilder.Duration);
     }
 
+    [Fact]
+    public void CloneIsIndependentOfItsSourceBothWays()
+    {
+        var source = Recipe();
+        var clone = source.Clone();
+        Mutate(source);
+        AssertEquivalent(Recipe().ToParams(), clone.ToParams());
+
+        source = Recipe();
+        clone = source.Clone();
+        Mutate(clone);
+        AssertEquivalent(Recipe().ToParams(), source.ToParams());
+
+        static AnimationBuilder Recipe() => Presto.Build()
+            .Property("X", 100)
+            .Property("Y", 50, duration: 200, ease: "outQuad")
+            .Keyframes(k => k.Frame(f => f.Property("Scale", 2).Duration(100)))
+            .Duration(400)
+            .Delay(20);
+
+        static void Mutate(AnimationBuilder builder) => builder
+            .Duration(900).Loop()
+            .Property("X", 1).Property("Z", 3)
+            .Property("Y", 0, duration: 10)
+            .Keyframes(k => k.At(50, f => f.Property("Scale", 4)));
+    }
+
+    [Fact]
+    public void WithChangesOnlyTheCopyAndAnOverrideKeepsItsPosition()
+    {
+        var source = Presto.Build().Property("X", 1).Property("Y", 2).Duration(100);
+
+        var changed = source.With(b => b.Property("X", 10).Property("Z", 3).Delay(50)).ToParams();
+
+        var original = source.ToParams();
+        Assert.Equal(["X", "Y"], original.Properties.Keys);
+        Assert.Equal(1d, original["X"].Raw);
+        Assert.Null(original.Delay);
+        Assert.Equal(["X", "Y", "Z"], changed.Properties.Keys);
+        Assert.Equal(10d, changed["X"].Raw);
+        Assert.Equal(100d, changed.Duration?.Raw);
+        Assert.Equal(50d, changed.Delay?.Raw);
+    }
+
+    [Fact]
+    public void LambdaAnimateAndSetMatchTheBuilderForm()
+    {
+        var byBuilder = new StyleTarget();
+        var byLambda = new StyleTarget();
+        Presto.Build().Property("X", 100).Property("Y", 40, ease: "outQuad").Duration(300).Animate(byBuilder);
+        Presto.Animate(byLambda, b => b.Property("X", 100).Property("Y", 40, ease: "outQuad").Duration(300));
+
+        for (var i = 0; i < 4; i++)
+        {
+            Frames.Advance(90);
+            Assert.Equal(byBuilder.X, byLambda.X);
+            Assert.Equal(byBuilder.Y, byLambda.Y);
+        }
+        Assert.Equal(100, byLambda.X);
+
+        Presto.Build().Property("Scale", 3).Set(byBuilder);
+        Presto.Set(byLambda, b => b.Property("Scale", 3));
+        Assert.Equal(3, byLambda.Scale);
+        Assert.Equal(byBuilder.Scale, byLambda.Scale);
+    }
+
+    [Fact]
+    public void TimelinesBuiltWithLambdasLayOutLikeTimelinesBuiltWithBuilders()
+    {
+        var target = new StyleTarget();
+        var targets = new[] { new StyleTarget(), new StyleTarget(), new StyleTarget() };
+        var byBuilder = Presto.CreateTimeline(new() { Defaults = new() { Duration = 10 } })
+            .Add(target, Presto.Build().Property("Y", 50).Duration(30).Delay(5), "+=20")
+            .Add(targets, Presto.Build().Property("X", 10), Presto.Stagger(15))
+            .Set(target, Presto.Build().Property("Scale", 2), 200);
+        var byLambda = Presto.CreateTimeline(new() { Defaults = new() { Duration = 10 } })
+            .Add(target, b => b.Property("Y", 50).Duration(30).Delay(5), "+=20")
+            .Add(targets, b => b.Property("X", 10), Presto.Stagger(15))
+            .Set(target, b => b.Property("Scale", 2), 200);
+
+        Assert.Equal(5, TestHelpers.GetChildLength(byLambda));
+        Assert.Equal(TestHelpers.GetChildLength(byBuilder), TestHelpers.GetChildLength(byLambda));
+        for (var i = 0; i < TestHelpers.GetChildLength(byBuilder); i++)
+        {
+            Assert.Equal(TestHelpers.OffsetOf(byBuilder, i), TestHelpers.OffsetOf(byLambda, i));
+        }
+        Assert.Equal(byBuilder.Duration, byLambda.Duration);
+    }
+
+    [Fact]
+    public void TargetTypedParamsStillBindBesideTheLambdaOverloads()
+    {
+        var target = new StyleTarget();
+
+        Presto.Set(target, new() { ["X"] = 7 });
+        Presto.Animate(target, new() { ["Y"] = 1, Duration = 10 });
+        Presto.CreateTimeline().Add(target, new() { ["Scale"] = 2 }).Set(target, new() { ["X"] = 3 });
+
+        Assert.Equal(7, target.X);
+    }
+
     private static void AssertEquivalent(AnimationParams expected, AnimationParams actual)
     {
         Assert.Equal(expected.Properties.Keys, actual.Properties.Keys);

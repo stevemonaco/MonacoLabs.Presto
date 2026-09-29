@@ -35,6 +35,14 @@ public sealed class KeyframesBuilder
         ? _frames.Select(f => f.ToKeyframe()).ToArray()
         : _percentages.ToDictionary(p => p.Key, p => p.Value.ToKeyframe());
 
+    internal KeyframesBuilder Clone()
+    {
+        var copy = new KeyframesBuilder();
+        foreach (var frame in _frames) copy._frames.Add(frame.Clone());
+        foreach (var (percent, frame) in _percentages) copy._percentages[percent] = frame.Clone();
+        return copy;
+    }
+
     private static KeyframeBuilder Build(Action<KeyframeBuilder> frame)
     {
         var builder = new KeyframeBuilder();

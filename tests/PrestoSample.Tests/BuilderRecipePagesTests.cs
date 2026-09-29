@@ -127,6 +127,29 @@ public sealed class BuilderRecipePagesTests
     }
 
     [AvaloniaFact]
+    public void CounterTilesBumpOnEachRefreshButNotTheFirstFill()
+    {
+        var page = new CountersPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        TestFrames.Tick(5);
+        var tiles = page.GetControl<UniformGrid>("Tiles").Children;
+
+        Assert.All(tiles, tile => Assert.Empty(Presto.GetAnimations(tile, "Scale")));
+
+        page.GetControl<CheckBox>("MechanicalBox").IsChecked = true;
+        TestFrames.Tick(8);
+
+        Assert.All(tiles, tile => Assert.True(Scale(tile) > 1));
+        Assert.Contains("Animate.SetOnChanged(_tiles[i], Presto.Build()", page.GetControl<SelectableTextBlock>("CountersCode").Text);
+
+        TestFrames.Tick(30);
+
+        Assert.All(tiles, tile => Assert.Empty(Presto.GetAnimations(tile, "Scale")));
+        Assert.All(tiles, tile => Assert.Equal(1, Scale(tile), 3));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void ToastStackTrimsToFourAndEveryToastExpires()
     {
         var page = new ToastsPage();
@@ -153,7 +176,7 @@ public sealed class BuilderRecipePagesTests
         BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ToastsPage), "samples/PrestoSample/Builder/ToastsPage.axaml", 1);
 
     [AvaloniaFact]
-    public void FormStatesSwapTheBoundAnimationPerState()
+    public void FormStatesPlayEachStateAndReturnToRest()
     {
         var page = new FormStatesPage();
         var window = SceneHarness.Show(page, 1280, 900);
@@ -165,13 +188,18 @@ public sealed class BuilderRecipePagesTests
         TestFrames.Tick(5);
 
         Assert.Equal(FormState.Validating, model.State);
-        Assert.Single(Presto.GetAnimations(card, "Scale"));
+        Assert.True(double.IsPositiveInfinity(Assert.Single(Presto.GetAnimations(card, "Scale")).IterationCount));
 
         TestFrames.Tick(80);
 
         Assert.Equal(FormState.Error, model.State);
         Assert.Single(Presto.GetAnimations(card, "X"));
-        Assert.Empty(Presto.GetAnimations(card, "Scale"));
+
+        TestFrames.Tick(40);
+
+        Assert.Equal(0, Get(card, "X"), 3);
+        Assert.Equal(1, Scale(card), 3);
+        Assert.Equal(1, card.Opacity, 3);
 
         model.Email = "ada@example.com";
         Assert.Equal(FormState.Idle, model.State);
@@ -180,6 +208,14 @@ public sealed class BuilderRecipePagesTests
 
         Assert.Equal(FormState.Success, model.State);
         Assert.Single(Presto.GetAnimations(card, "Y"));
+
+        model.Email = "";
+        TestFrames.Tick(60);
+
+        Assert.Equal(FormState.Idle, model.State);
+        Assert.Empty(Presto.GetAnimations(card));
+        Assert.Equal(0, Get(card, "Y"), 3);
+        Assert.Equal(1, Scale(card), 3);
         SceneHarness.Close(window);
     }
 
@@ -214,5 +250,7 @@ public sealed class BuilderRecipePagesTests
         SceneHarness.Close(window);
     }
 
-    private static double Scale(Control cell) => Convert.ToDouble(Presto.Get(cell, "Scale"), CultureInfo.InvariantCulture);
+    private static double Scale(Control cell) => Get(cell, "Scale");
+
+    private static double Get(Control control, string property) => Convert.ToDouble(Presto.Get(control, property), CultureInfo.InvariantCulture);
 }

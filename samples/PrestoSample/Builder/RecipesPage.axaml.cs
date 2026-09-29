@@ -7,7 +7,7 @@ using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
 
-/// <summary>One static builder reused on any clicked button and staggered over the row; the slider changes the recipe, not what already runs.</summary>
+/// <summary>One static builder reused on any clicked button and staggered over the row through <c>With</c>; the slider changes the recipe, not what already runs.</summary>
 public partial class RecipesPage : ShowcasePage
 {
     private static readonly AnimationBuilder Pop;
@@ -36,7 +36,7 @@ public partial class RecipesPage : ShowcasePage
     }
 
     private void Stagger() =>
-        (Staggered, StaggeredCode.Text) = Snippet.Of(Presto.Animate(Row.Children, Pop.ToParams() with { Delay = Presto.Stagger(60) }));
+        (Staggered, StaggeredCode.Text) = Snippet.Of(Pop.With(b => b.Delay(Presto.Stagger(60))).Animate(Row.Children));
 
     private void PlayOne(object? sender, RoutedEventArgs e)
     {

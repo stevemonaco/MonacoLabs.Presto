@@ -48,7 +48,7 @@ public sealed class BuilderPagesTests
         TestFrames.Tick(30);
 
         Assert.Contains("Presto.Build()", page.GetControl<SelectableTextBlock>("RecipeCode").Text);
-        Assert.Contains("Pop.ToParams()", page.GetControl<SelectableTextBlock>("StaggeredCode").Text);
+        Assert.Contains("Pop.With(b => b.Delay(Presto.Stagger(60)))", page.GetControl<SelectableTextBlock>("StaggeredCode").Text);
         Assert.True(page.Staggered!.CurrentTime > 0);
         SceneHarness.Close(window);
     }
@@ -82,6 +82,7 @@ public sealed class BuilderPagesTests
         var timelineCode = page.GetControl<SelectableTextBlock>("TimelineCode").Text;
         Assert.Contains("var fadeUp = Presto.Build()", timelineCode);
         Assert.Contains(".Add(CardB, fadeUp, \"-=400\")", timelineCode);
+        Assert.Contains(".Add(CardD, b => b.Opacity(", timelineCode);
         Assert.Contains("Gear.AnimateOnCompositor(Presto.Build()", page.GetControl<SelectableTextBlock>("SpinCode").Text);
         Assert.True(page.Timeline!.CurrentTime > 0);
         Assert.True(page.Spin!.CurrentTime > 0);

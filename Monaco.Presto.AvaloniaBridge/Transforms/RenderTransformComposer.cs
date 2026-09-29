@@ -24,7 +24,7 @@ internal sealed class RenderTransformComposer
     private static readonly ConditionalWeakTable<Visual, RenderTransformComposer> s_composers = new();
 
     /// <summary>The value a shorthand holds while nothing animates it, indexed by <see cref="TransformShorthand"/>.</summary>
-    private static readonly double[] s_identities = [0, 0, 0, 1, 1, 1, 0, 0];
+    private static readonly double[] s_identities = [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0];
 
     private readonly double[] _values = [.. s_identities];
     private readonly TransformGroup _group = new();
@@ -34,6 +34,7 @@ internal sealed class RenderTransformComposer
     private RotateTransform? _rotate;
     private ScaleTransform? _scale;
     private SkewTransform? _skew;
+    private Rotate3DTransform? _rotate3D;
     private int _animated;
     private bool _reasserting;
 
@@ -43,6 +44,8 @@ internal sealed class RenderTransformComposer
         _written = visual.SetValue(Visual.RenderTransformProperty, _group, BindingPriority.Animation);
         visual.PropertyChanged += OnPropertyChanged;
     }
+
+    public static double Identity(TransformShorthand shorthand) => s_identities[(int)shorthand];
 
     public static double Get(Visual visual, TransformShorthand shorthand) =>
         (s_composers.TryGetValue(visual, out var composer) ? composer._values : s_identities)[(int)shorthand];
@@ -155,6 +158,7 @@ internal sealed class RenderTransformComposer
         if (_existing != null) children.Add(_existing);
         if (Animates(TransformShorthand.SkewX) || Animates(TransformShorthand.SkewY)) children.Add(_skew ??= new SkewTransform());
         if (Animates(TransformShorthand.Scale) || Animates(TransformShorthand.ScaleX) || Animates(TransformShorthand.ScaleY)) children.Add(_scale ??= new ScaleTransform());
+        if (Animates(TransformShorthand.RotateX) || Animates(TransformShorthand.RotateY) || Animates(TransformShorthand.Perspective)) children.Add(_rotate3D ??= new Rotate3DTransform());
         if (Animates(TransformShorthand.Rotate)) children.Add(_rotate ??= new RotateTransform());
         if (Animates(TransformShorthand.X) || Animates(TransformShorthand.Y)) children.Add(_translate ??= new TranslateTransform());
     }
@@ -182,6 +186,15 @@ internal sealed class RenderTransformComposer
                 break;
             case TransformShorthand.SkewY:
                 _skew!.AngleY = value;
+                break;
+            case TransformShorthand.RotateX:
+                _rotate3D!.AngleX = value;
+                break;
+            case TransformShorthand.RotateY:
+                _rotate3D!.AngleY = value;
+                break;
+            case TransformShorthand.Perspective:
+                _rotate3D!.Depth = value;
                 break;
         }
     }

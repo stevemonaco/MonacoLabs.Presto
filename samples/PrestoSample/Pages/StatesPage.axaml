@@ -1,0 +1,164 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+             xmlns:local="using:PrestoSample.Pages"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="900"
+             x:Class="PrestoSample.Pages.StatesPage">
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Width" Value="150" />
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.card TextBlock">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Path.arrow">
+            <Setter Property="Data" Value="M 0,0 L 6,6 L 0,12" />
+            <Setter Property="Stroke" Value="{x:Static showcase:Palette.AccentBright}" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Path.arrow">
+            <Setter Property="presto:Motion.States">
+                <presto:MotionStates>
+                    <presto:MotionState When="hot" Motion="{x:Static local:StatesPage.Nudge}" />
+                </presto:MotionStates>
+            </Setter>
+        </Style>
+        <Style Selector="Border.card:pointerover Path.arrow">
+            <Setter Property="presto:Motion.State" Value="hot" />
+        </Style>
+        <Style Selector="CheckBox.task">
+            <Setter Property="presto:Motion.Focus" Value="{x:Static local:StatesPage.Ring}" />
+            <Setter Property="presto:Motion.States">
+                <presto:MotionStates>
+                    <presto:MotionState When=":checked" Motion="{x:Static local:StatesPage.Done}" />
+                </presto:MotionStates>
+            </Setter>
+        </Style>
+        <Style Selector="Border.status">
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="14,5" />
+            <Setter Property="MinWidth" Value="96" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.AccentDeep}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.AccentDim}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.status > TextBlock">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,260" ColumnSpacing="12">
+                <Border x:Name="Stage" Classes="stage">
+                    <StackPanel Spacing="26">
+                        <WrapPanel ItemSpacing="12" LineSpacing="12">
+                            <Button x:Name="SaveButton" Classes="specimen" Content="Save"
+                                    presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
+                                    presto:Motion.Press="{x:Static local:StatesPage.Squish}"
+                                    presto:Motion.Focus="{x:Static local:StatesPage.Ring}" />
+                            <Button x:Name="ShareButton" Classes="specimen" Content="Share"
+                                    presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
+                                    presto:Motion.Press="{x:Static local:StatesPage.Squish}"
+                                    presto:Motion.Focus="{x:Static local:StatesPage.Ring}" />
+                        </WrapPanel>
+                        <TextBox x:Name="SearchBox" Width="180" HorizontalAlignment="Left" PlaceholderText="Search">
+                            <presto:Motion.States>
+                                <presto:MotionStates>
+                                    <presto:MotionState When=":focus" Motion="{x:Static local:StatesPage.Grow}" />
+                                </presto:MotionStates>
+                            </presto:Motion.States>
+                        </TextBox>
+
+                        <WrapPanel ItemSpacing="12" LineSpacing="12">
+                            <Border x:Name="InboxCard" Classes="card"
+                                    presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
+                                    presto:Motion.Press="{x:Static local:StatesPage.Squish}">
+                                <DockPanel>
+                                    <Path x:Name="InboxArrow" Classes="arrow" DockPanel.Dock="Right" />
+                                    <TextBlock Text="Inbox" />
+                                </DockPanel>
+                            </Border>
+                            <Border x:Name="DraftsCard" Classes="card"
+                                    presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
+                                    presto:Motion.Press="{x:Static local:StatesPage.Squish}">
+                                <DockPanel>
+                                    <Path x:Name="DraftsArrow" Classes="arrow" DockPanel.Dock="Right" />
+                                    <TextBlock Text="Drafts" />
+                                </DockPanel>
+                            </Border>
+                            <Border x:Name="ArchiveCard" Classes="card"
+                                    presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
+                                    presto:Motion.Press="{x:Static local:StatesPage.Squish}">
+                                <DockPanel>
+                                    <Path x:Name="ArchiveArrow" Classes="arrow" DockPanel.Dock="Right" />
+                                    <TextBlock Text="Archive" />
+                                </DockPanel>
+                            </Border>
+                        </WrapPanel>
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+                            <StackPanel Spacing="4">
+                                <CheckBox x:Name="MilkCheck" Classes="task" Content="Buy milk" IsChecked="True" />
+                                <CheckBox x:Name="PlantsCheck" Classes="task" Content="Water the plants" />
+                                <CheckBox x:Name="GraceCheck" Classes="task" Content="Reply to Grace" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Border x:Name="StatusChip" Classes="status" presto:Motion.State="{Binding $parent[local:StatesPage].Status}">
+                                    <presto:Motion.States>
+                                        <presto:MotionStates>
+                                            <presto:MotionState When="Syncing" Motion="{x:Static local:StatesPage.Pulse}" />
+                                            <presto:MotionState When="Failed" Motion="{x:Static local:StatesPage.Alarm}" Leave="{x:Static local:StatesPage.Calm}" />
+                                            <presto:MotionState When="Done" Motion="{x:Static local:StatesPage.Success}" />
+                                        </presto:MotionStates>
+                                    </presto:Motion.States>
+                                    <TextBlock Text="{Binding $parent[local:StatesPage].Status}" />
+                                </Border>
+                                <Button Content="Next status" Click="NextStatus" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="stage">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="caption" Text="State changes, newest first" />
+                        <ItemsControl x:Name="Log">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Classes="code" Text="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Hover, press and Tab through the controls. Motion.Hover, Press and Focus are sugar for :pointerover, a :pressed Presto synthesises for every element (the cards are plain Borders) and :focus-visible, which only the keyboard sets: Tab to a button and it grows, click it and it does not. The search box uses When=&quot;:focus&quot; instead, so it widens for a click too. States layer: press wins the scale over focus, and letting go returns to whatever still holds rather than to rest." />
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The checklist shares one MotionStates list through a style; each checkbox keeps its own runtime state, and :checked is just another condition. A card's arrow nudges when the card is hovered, not the arrow: a style setter on Motion.State brings the parent's selector down to the child as the token &quot;hot&quot;. The chip's Motion.State is bound to the page's Status, so each value is a state; Failed has a Leave, which times its return. The log is written from the controls' own class and property changes." />
+
+            <TextBlock Classes="caption" Text="The XAML" />
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="XamlCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -82,7 +82,7 @@ public static class PrestoAvalonia
         return Presto.Get(targets, AvaloniaObjectTargetAdapter.Encode(property));
     }
 
-    /// <inheritdoc cref="Presto.Set"/>
+    /// <inheritdoc cref="Presto.Set(object?, AnimationParams)"/>
     public static Animation Set(object? targets, AvaloniaAnimationParams parameters)
     {
         EnsureInitialized();
@@ -145,6 +145,10 @@ public static class PrestoAvalonia
         return AnimateOnCompositor(targets, parameters);
     }
 
+    /// <inheritdoc cref="AnimateOnCompositor(object?, AnimationBuilder)"/>
+    public static CompositorAnimation AnimateOnCompositor(object? targets, Action<AnimationBuilder> build) =>
+        AnimateOnCompositor(targets, Presto.Build(build));
+
     /// <summary>
     /// Upstream <c>createLayout</c>: eases <paramref name="control"/> into its new place over <paramref name="duration"/>
     /// milliseconds whenever layout moves it, on the render thread (COMPOSITOR-PLAN §4.4).
@@ -177,6 +181,10 @@ public static class PrestoAvalonia
         EnsureInitialized();
         return new LayoutTransition(control, first: null, firstOnScreen: false, LayoutMotion.From(builder), mode, once: false);
     }
+
+    /// <inheritdoc cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/>
+    public static LayoutTransition AnimateLayout(Control control, Action<AnimationBuilder> build, LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
+        AnimateLayout(control, Presto.Build(build), mode);
 
     /// <summary>
     /// Eases <paramref name="target"/> from where <paramref name="source"/> stands right now into the slot layout gives it
@@ -217,6 +225,15 @@ public static class PrestoAvalonia
         return new LayoutTransition(target, LayoutTransition.MeasureDrawn(source), firstOnScreen: true, LayoutMotion.From(builder), mode, once);
     }
 
+    /// <inheritdoc cref="AnimateSharedElement(Control, Control, AnimationBuilder, LayoutAnimateMode, bool)"/>
+    public static LayoutTransition AnimateSharedElement(
+        Control source,
+        Control target,
+        Action<AnimationBuilder> build,
+        LayoutAnimateMode mode = LayoutAnimateMode.PositionAndSize,
+        bool once = true) =>
+        AnimateSharedElement(source, target, Presto.Build(build), mode, once);
+
     /// <summary>
     /// Records where <paramref name="source"/> is drawn under <paramref name="key"/>, so a keyed
     /// <see cref="AnimateSharedElement(string, Control, double, EaseValue?, LayoutAnimateMode, bool)"/> can fly a control
@@ -254,6 +271,15 @@ public static class PrestoAvalonia
         bool once = true) =>
         AnimateSharedElement(key, target, LayoutMotion.From(builder), mode, once);
 
+    /// <inheritdoc cref="AnimateSharedElement(string, Control, AnimationBuilder, LayoutAnimateMode, bool)"/>
+    public static LayoutTransition? AnimateSharedElement(
+        string key,
+        Control target,
+        Action<AnimationBuilder> build,
+        LayoutAnimateMode mode = LayoutAnimateMode.PositionAndSize,
+        bool once = true) =>
+        AnimateSharedElement(key, target, Presto.Build(build), mode, once);
+
     private static LayoutTransition? AnimateSharedElement(string key, Control target, LayoutMotion motion, LayoutAnimateMode mode, bool once)
     {
         EnsureInitialized();
@@ -273,6 +299,9 @@ public static class PrestoAvalonia
         if (control.GetVisualParent() is not { } parent || TopLevel.GetTopLevel(control) is not { } top) return null;
         return parent.TranslatePoint(control.Bounds.Position, top) is { } position ? Presence.Ghost(control, parent, position, exit) : null;
     }
+
+    /// <inheritdoc cref="AnimateExit(Control, AnimationBuilder)"/>
+    public static Animation? AnimateExit(Control control, Action<AnimationBuilder> exit) => AnimateExit(control, Presto.Build(exit));
 
     /// <inheritdoc cref="Presto.Remove"/>
     public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)

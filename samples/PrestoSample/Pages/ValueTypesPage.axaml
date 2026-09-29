@@ -95,6 +95,21 @@
             </Grid>
 
             <Grid ColumnDefinitions="300,*">
+                <StackPanel VerticalAlignment="Center" Spacing="6">
+                    <TextBlock Classes="code" Text="[&quot;ShadowY&quot;] = 12&#10;[&quot;ShadowBlur&quot;] = 24&#10;[&quot;ShadowColor&quot;] = &quot;rgba(76, 141, 255, .8)&quot;" />
+                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,12,0"
+                               Text="A DropShadowEffect through the Shadow shorthands. Blur, 3D tilt and clip and mask reveals are on the Effects page." />
+                </StackPanel>
+                <Border Grid.Column="1" Classes="demo" Height="96">
+                    <Border x:Name="GlowCard" Width="160" Height="44" CornerRadius="10" Background="#f8fafc"
+                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                        <TextBlock Text="Drop shadow" FontWeight="SemiBold" Foreground="#0f172a"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Border>
+            </Grid>
+
+            <Grid ColumnDefinitions="300,*">
                 <StackPanel VerticalAlignment="Center" Spacing="8">
                     <TextBlock Classes="code" Text="[SolidColorBrush.ColorProperty] =&#10;    TweenValue.Of(Colors.OrangeRed)" />
                     <TextBlock Classes="code" Text="[&quot;BorderThickness&quot;] = new Thickness(10)&#10;[&quot;CornerRadius&quot;] = new CornerRadius(30)" />

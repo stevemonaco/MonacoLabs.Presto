@@ -27,6 +27,9 @@ public static class AnimateExtensions
         return builder.Animate(target);
     }
 
+    /// <inheritdoc cref="Animate(AvaloniaObject, AnimationBuilder)"/>
+    public static Animation Animate(this AvaloniaObject target, Action<AnimationBuilder> build) => target.Animate(Presto.Build(build));
+
     /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor(object?, CompositorAnimationParams)"/>
     [OverloadResolutionPriority(1)]
     public static CompositorAnimation AnimateOnCompositor(this Visual target, CompositorAnimationParams parameters) =>
@@ -35,6 +38,10 @@ public static class AnimateExtensions
     /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>
     public static CompositorAnimation AnimateOnCompositor(this Visual target, AnimationBuilder builder) =>
         PrestoAvalonia.AnimateOnCompositor(target, builder);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>
+    public static CompositorAnimation AnimateOnCompositor(this Visual target, Action<AnimationBuilder> build) =>
+        PrestoAvalonia.AnimateOnCompositor(target, build);
 
     /// <inheritdoc cref="PrestoAvalonia.AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/>
     public static LayoutTransition AnimateLayout(
@@ -47,6 +54,10 @@ public static class AnimateExtensions
     /// <inheritdoc cref="PrestoAvalonia.AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/>
     public static LayoutTransition AnimateLayout(this Control target, AnimationBuilder builder, LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
         PrestoAvalonia.AnimateLayout(target, builder, mode);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/>
+    public static LayoutTransition AnimateLayout(this Control target, Action<AnimationBuilder> build, LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
+        PrestoAvalonia.AnimateLayout(target, build, mode);
 
     /// <summary>Creates an animatable over this object's properties, installing the bridge first when nothing else has.</summary>
     public static Animatable CreateAnimatable(this AvaloniaObject target, AvaloniaAnimatableParams parameters)

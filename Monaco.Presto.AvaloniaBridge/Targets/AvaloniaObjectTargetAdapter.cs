@@ -2,9 +2,12 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Data;
+using Avalonia.Media;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Effects;
 using Monaco.Presto.AvaloniaBridge.Shapes;
 using Monaco.Presto.AvaloniaBridge.Transforms;
+using Monaco.Presto.AvaloniaBridge.Values;
 using Monaco.Presto.Core;
 using Monaco.Presto.Targets;
 using Monaco.Presto.Values;
@@ -12,8 +15,8 @@ using Monaco.Presto.Values;
 namespace Monaco.Presto.AvaloniaBridge.Targets;
 
 /// <summary>
-/// Resolves the properties of an <see cref="AvaloniaObject"/>: the transform shorthands ("X", "Rotate", "ScaleX"), a
-/// <see cref="Shape"/>'s "Draw", plain names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
+/// Resolves the properties of an <see cref="AvaloniaObject"/>: the transform shorthands ("X", "Rotate", "ScaleX"), the
+/// effect shorthands ("Blur", "ShadowX"), the reveal shorthands ("ClipInset", "ClipCircle", "MaskSweep"), a <see cref="Shape"/>'s "Draw", plain names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
 /// instances <see cref="AvaloniaAnimationParams"/> encodes. Any other target is left to the next adapter.
 /// </summary>
 /// <remarks>
@@ -29,6 +32,9 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     private static readonly Dictionary<(Type Type, string Name), AvaloniaProperty> s_resolved = [];
     private static readonly Dictionary<AvaloniaProperty, IPropertyAccessor> s_accessors = [];
     private static readonly IPropertyAccessor?[] s_transforms = new IPropertyAccessor?[Enum.GetValues<TransformShorthand>().Length];
+    private static readonly IPropertyAccessor?[] s_effects = new IPropertyAccessor?[Enum.GetValues<EffectShorthand>().Length];
+    private static readonly IPropertyAccessor?[] s_clips = new IPropertyAccessor?[Enum.GetValues<ClipShorthand>().Length];
+    private static readonly IPropertyAccessor?[] s_masks = new IPropertyAccessor?[Enum.GetValues<MaskShorthand>().Length];
     private static IPropertyAccessor? s_draw;
 
     internal static string Encode(AvaloniaProperty property) => $"{property.OwnerType.Name}.{property.Name}";
@@ -50,6 +56,17 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             {
                 return s_transforms[(int)shorthand] ??= new TransformAccessor(shorthand);
             }
+            if (EffectShorthands.Parse(property) is { } effect)
+            {
+                EffectComposer.Claim(visual, effect);
+                return s_effects[(int)effect] ??= new EffectAccessor(effect);
+            }
+            if (EffectShorthands.ParseClip(property) is { } clip)
+            {
+                ClipComposer.Claim(visual, clip);
+                return s_clips[(int)clip] ??= new ClipAccessor(clip);
+            }
+            if (EffectShorthands.ParseMask(property) is { } mask) return s_masks[(int)mask] ??= new MaskAccessor(mask);
             if (visual is Shape && property == "Draw") return s_draw ??= new DrawAccessor();
         }
 
@@ -73,7 +90,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     public string? Canonicalise(object target, string property)
     {
         if (target is not AvaloniaObject) return null;
-        if (target is Visual && (TransformShorthands.Parse(property) != null || (target is Shape && property == "Draw"))) return property;
+        if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is Shape && property == "Draw"))) return property;
         return ResolveProperty(target.GetType(), property) is { } resolved ? Encode(resolved) : null;
     }
 
@@ -93,7 +110,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         }
     }
 
-    private static AvaloniaProperty? ResolveProperty(Type targetType, string name)
+    internal static AvaloniaProperty? ResolveProperty(Type targetType, string name)
     {
         if (s_resolved.TryGetValue((targetType, name), out var cached)) return cached;
         var resolved = Find(targetType, name);
@@ -139,6 +156,67 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             RenderTransformComposer.Set((Visual)target, shorthand, _isAngle ? TransformShorthands.ToDegrees(number, tween._unit) : number);
 
         public void Revert(object target, object? originalValue) => RenderTransformComposer.Revert((Visual)target, shorthand);
+    }
+
+    private sealed class EffectAccessor(EffectShorthand shorthand) : IPropertyAccessor
+    {
+        public IValueCodec? Codec { get; } = shorthand == EffectShorthand.ShadowColor ? Presto.Codecs[typeof(Color)] : null;
+
+        public object? GetValue(object target) => EffectComposer.Get((Visual)target, shorthand);
+
+        public void SetValue(object target, double number, Tween tween)
+        {
+            // Rebuilt here rather than through the codec, whose Encode boxes the colour.
+            if (shorthand == EffectShorthand.ShadowColor) EffectComposer.SetColor((Visual)target, PrestoColor.FromChannels(tween._numbers).ToAvalonia());
+            else EffectComposer.Set((Visual)target, shorthand, number, tween._currentTime >= tween._changeDuration);
+        }
+
+        public void Revert(object target, object? originalValue) => EffectComposer.Revert((Visual)target, shorthand);
+    }
+
+    private sealed class ClipAccessor(ClipShorthand shorthand) : IPropertyAccessor
+    {
+        public IValueCodec? Codec { get; } = shorthand switch
+        {
+            ClipShorthand.ClipInset => new ClipInsetCodec(),
+            ClipShorthand.ClipCircleCenter => Presto.Codecs[typeof(RelativePoint)],
+            _ => null,
+        };
+
+        public object? GetValue(object target) => ClipComposer.Get((Visual)target, shorthand);
+
+        public void SetValue(object target, double number, Tween tween)
+        {
+            var visual = (Visual)target;
+            var ended = tween._currentTime >= tween._changeDuration;
+            switch (shorthand)
+            {
+                case ClipShorthand.ClipInset:
+                    ClipComposer.SetInset(visual, tween._numbers, tween._strings, ended);
+                    break;
+                case ClipShorthand.ClipCircle:
+                    ClipComposer.SetRadius(visual, number, ended);
+                    break;
+                default:
+                    ClipComposer.SetCenter(visual, RelativePointCodec.Compose(tween));
+                    break;
+            }
+        }
+
+        public void Revert(object target, object? originalValue) => ClipComposer.Revert((Visual)target, shorthand);
+    }
+
+    private sealed class MaskAccessor(MaskShorthand shorthand) : IPropertyAccessor
+    {
+        public IValueCodec? Codec => null;
+
+        public object? GetValue(object target) => MaskComposer.Get((Visual)target, shorthand);
+
+        public void SetValue(object target, double number, Tween tween) =>
+            MaskComposer.Set((Visual)target, shorthand, shorthand == MaskShorthand.MaskSweepAngle ? TransformShorthands.ToDegrees(number, tween._unit) : number,
+                tween._currentTime >= tween._changeDuration);
+
+        public void Revert(object target, object? originalValue) => MaskComposer.Revert((Visual)target, shorthand);
     }
 
     private sealed class AvaloniaPropertyAccessor : IPropertyAccessor

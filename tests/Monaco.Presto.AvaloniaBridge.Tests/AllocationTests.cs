@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Media;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Path = Avalonia.Controls.Shapes.Path;
@@ -25,16 +27,44 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void TransformShorthandTweenTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData("Rotate")]
+    [InlineData("RotateY")]
+    public void TransformShorthandTweenTicksWithinBudget(string rotation)
     {
         var border = new Border();
-        border.Animate(new() { ["X"] = 100, ["Rotate"] = 90, Duration = 400, Loop = true, Alternate = true });
+        border.Animate(new() { ["X"] = 100, [rotation] = 90, Duration = 400, Loop = true, Alternate = true });
 
         var bytes = BytesPerTick();
 
         // measured 160: the composer reuses its transforms, so this is 80 per shorthand for the property change each raises.
         Assert.True(bytes <= 192, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
+    [InlineData("Blur")]
+    [InlineData("ShadowBlur")]
+    public void EffectShorthandTweenTicksWithinBudget(string shorthand)
+    {
+        var border = new Border();
+        border.Animate(new() { [shorthand] = new[] { 2, 8 }, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        // measured 80: the composer mutates its one effect, so all of it is the property change the effect raises.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void MaskSweepTicksWithinBudget()
+    {
+        var border = new Border();
+        border.Animate(new() { ["MaskSweep"] = new[] { 0, 0.9 }, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        // measured 224: the composer mutates its one brush, so this is 112 each for the StartPoint and EndPoint changes, whose args carry two RelativePoints.
+        Assert.True(bytes <= 256, $"{bytes:0.##} bytes per tick");
     }
 
     [AvaloniaFact]
@@ -66,6 +96,25 @@ public sealed class AllocationTests : CompositorTestBase
         // measured 288, down from 944 for a fresh list per frame: 144 per dash written into the reused
         // AvaloniaList, which is the change args and the two boxed doubles its render subscription is handed.
         Assert.True(bytes <= 320, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void AHoverAllocatesOnlyAtItsTransitions()
+    {
+        var box = Box();
+        Motion.SetHover(box, Presto.Build().Scale(1.1).Duration(100));
+        var window = Show(box);
+        Tick();
+
+        var idle = BytesPerTick();
+        // BytesPerTick's warm-up frames play each 100 ms transition out, so only the settled frames are measured.
+        window.MouseMove(new Point(25, 25));
+        var hovered = BytesPerTick();
+        window.MouseMove(new Point(150, 150));
+        var rested = BytesPerTick();
+
+        Assert.True(idle == 0 && hovered == 0 && rested == 0,
+            $"{idle:0.##} bytes per tick idle, {hovered:0.##} hovered, {rested:0.##} at rest");
     }
 
     /// <remarks>

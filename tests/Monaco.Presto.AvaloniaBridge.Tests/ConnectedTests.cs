@@ -167,6 +167,19 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ChainingOnADefaultLeavesTheDefaultUnchanged()
+    {
+        var motion = Connected.DefaultMotion.ToParams();
+        var anchorMotion = Connected.DefaultAnchorMotion.ToParams();
+
+        Connected.DefaultMotion.Duration(9999);
+        Connected.DefaultAnchorMotion.Duration(9999);
+
+        Assert.Equal(motion.Duration, Connected.DefaultMotion.ToParams().Duration);
+        Assert.Equal(anchorMotion.Duration, Connected.DefaultAnchorMotion.ToParams().Duration);
+    }
+
+    [AvaloniaFact]
     public async Task DefaultMotionAppliesWhenNeitherElementSetsOne()
     {
         const string key = nameof(DefaultMotionAppliesWhenNeitherElementSetsOne);
@@ -371,7 +384,7 @@ public sealed class ConnectedTests : CompositorTestBase
         return root;
     }
 
-    private static void Show(Control content)
+    private static new void Show(Control content)
     {
         new Window { Content = content, Background = Brushes.White, Width = 160, Height = 220 }.Show();
         Tick();

@@ -16,6 +16,9 @@ public partial class SwipeDeckPage : ShowcasePage
     private const double SlotScale = .06;
     private const double Tilt = .06;
     private const double ExtraTilt = 18;
+    private const double Lean = .06;
+    private const double MaxLean = 8;
+    private const double Depth = 800;
     private const double DismissAt = 110;
     private const double FlingVelocity = .5;
     private const double StampAt = 120;
@@ -116,7 +119,7 @@ public partial class SwipeDeckPage : ShowcasePage
     private void Follow(Border card, double x)
     {
         var lift = Math.Clamp(Math.Abs(x) / DismissAt, 0, 1);
-        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["Rotate"] = x * Tilt });
+        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["Rotate"] = x * Tilt, ["RotateY"] = Math.Clamp(x * Lean, -MaxLean, MaxLean), ["Perspective"] = Depth });
         PrestoAvalonia.Set(Stamp(card, true), new AvaloniaAnimationParams { ["Opacity"] = Math.Clamp(x / StampAt, 0, 1) });
         PrestoAvalonia.Set(Stamp(card, false), new AvaloniaAnimationParams { ["Opacity"] = Math.Clamp(-x / StampAt, 0, 1) });
         for (var slot = 1; slot < _stack.Count; slot++)
@@ -152,6 +155,7 @@ public partial class SwipeDeckPage : ShowcasePage
             card.Animate(new()
             {
                 ["Rotate"] = exit.Rotate,
+                ["RotateY"] = 0,
                 Duration = ExitDuration,
                 Ease = Eases.OutQuad,
                 OnComplete = _ =>
@@ -173,7 +177,7 @@ public partial class SwipeDeckPage : ShowcasePage
         Scope.Execute(_ =>
         {
             Presto.Animate(drag, new AnimationParams { ["X"] = 0, ["Y"] = 0, Ease = Eases.Spring(bounce: .25, duration: 600) });
-            top.Animate(new() { ["Scale"] = 1, ["Rotate"] = 0, Ease = Eases.Spring(bounce: .25, duration: 600) });
+            top.Animate(new() { ["Scale"] = 1, ["Rotate"] = 0, ["RotateY"] = 0, Ease = Eases.Spring(bounce: .25, duration: 600) });
             for (var slot = 1; slot < _stack.Count; slot++)
             {
                 _stack[slot].Animate(new()

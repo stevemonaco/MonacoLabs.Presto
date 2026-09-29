@@ -14,19 +14,15 @@ public enum FormState
     Success,
 }
 
-/// <summary>A sign-up form as a state machine; every state change swaps the builders the card and badge are bound to.</summary>
+/// <summary>A sign-up form as a state machine; the card and badge animate from its State through Motion.State.</summary>
 public sealed partial class FormViewModel : ObservableObject
 {
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CardMotion), nameof(BadgeMotion), nameof(Status), nameof(Glyph), nameof(Tint))]
+    [NotifyPropertyChangedFor(nameof(Status), nameof(Glyph), nameof(Tint))]
     public partial FormState State { get; set; }
 
     [ObservableProperty]
     public partial string Email { get; set; } = "";
-
-    public AnimationBuilder? CardMotion => FormMotions.Card.GetValueOrDefault(State);
-
-    public AnimationBuilder? BadgeMotion => FormMotions.Badge.GetValueOrDefault(State);
 
     public string Status => State switch
     {

@@ -15,6 +15,7 @@ public partial class GalleryFlipPage : ShowcasePage
     private const double ExitDuration = 240;
     private const double RevealDuration = 260;
     private const double Rise = 14;
+    private const double FieldBlur = 6;
 
     private readonly ObservableCollection<Control> _shown = [];
     private readonly Dictionary<Datasets.Card, Border> _cards = [];
@@ -122,14 +123,18 @@ public partial class GalleryFlipPage : ShowcasePage
         Reveal(0);
     }
 
+    // The blur goes on the field rather than a card: the cards' entry, exit and FLIP moves run on the compositor.
     private void Reveal(double opacity) => Scope.Execute(_ =>
+    {
+        Field.Animate(new() { ["Blur"] = opacity * FieldBlur, Duration = RevealDuration, Ease = Eases.OutQuad });
         Presto.Animate((Control[])[Veil, Chrome], new AvaloniaAnimationParams
         {
             ["Opacity"] = opacity,
             Duration = RevealDuration,
             Ease = Eases.OutQuad,
             OnComplete = _ => Detail.IsVisible = _open != null,
-        }));
+        });
+    });
 
     private void Apply()
     {

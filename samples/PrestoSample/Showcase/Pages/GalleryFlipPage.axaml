@@ -104,7 +104,7 @@
 
                 <Grid x:Name="Detail" IsVisible="False" ColumnDefinitions="*,236" ColumnSpacing="16">
                     <Border x:Name="Veil" Grid.ColumnSpan="2" Margin="-12" Opacity="0"
-                            Background="#E60B0E14" PointerPressed="Dismiss" />
+                            Background="#A60B0E14" PointerPressed="Dismiss" />
                     <Border x:Name="Host" />
                     <StackPanel x:Name="Chrome" Grid.Column="1" Opacity="0" Spacing="10">
                         <Button Content="Close" HorizontalAlignment="Left" Click="Dismiss" />

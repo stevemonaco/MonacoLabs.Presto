@@ -3,6 +3,8 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:local="using:PrestoSample.Showcase.Pages"
                        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="760"
                        x:Class="PrestoSample.Showcase.Pages.MicroInteractionsPage">
     <showcase:ShowcasePage.Styles>
@@ -28,6 +30,7 @@
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Padding" Value="10,0" />
             <Setter Property="MinWidth" Value="0" />
+            <Setter Property="presto:Motion.Hover" Value="{x:Static local:MicroInteractionsPage.TabLift}" />
         </Style>
         <!-- The Presto underline replaces Fluent's own selection pipe. -->
         <Style Selector="TabStripItem:selected /template/ Border#PART_SelectedPipe">
@@ -62,11 +65,13 @@
 
             <StackPanel Grid.Column="1" Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="LIKE" />
-                <TextBlock Classes="code" Margin="0" Text="Ease = Eases.Spring(bounce: .6), TextModifier = N0" />
+                <TextBlock Classes="code" Margin="0" Text="Motion.Press, Animate.OnTapped, TextModifier = N0" />
                 <Border Classes="stage">
                     <Button x:Name="Like" Classes="specimen" Background="{x:Static showcase:Palette.SurfaceHigh}"
                             BorderBrush="{x:Static showcase:Palette.Border}" Padding="16,10"
-                            HorizontalAlignment="Center" Click="LikeClicked">
+                            HorizontalAlignment="Center" Click="LikeClicked"
+                            presto:Motion.Press="{x:Static local:MicroInteractionsPage.PressIn}"
+                            presto:Animate.OnTapped="{x:Static local:MicroInteractionsPage.Pop}">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <Panel Width="22" Height="22">
                                 <Canvas x:Name="Burst" Width="0" Height="0"

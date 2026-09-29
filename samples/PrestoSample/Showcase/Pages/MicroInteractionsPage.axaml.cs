@@ -13,6 +13,10 @@ namespace PrestoSample.Showcase.Pages;
 
 public partial class MicroInteractionsPage : ShowcasePage
 {
+    public static readonly AnimationBuilder PressIn = Presto.Build().Scale(.92).Duration(120).Ease(Eases.OutQuad);
+    public static readonly AnimationBuilder Pop = Presto.Build().Scale(k => k.To(1.1, duration: 110).To(1, duration: 420, ease: Eases.OutBack()));
+    public static readonly AnimationBuilder TabLift = Presto.Build().Y(-2).Duration(180).Ease(Eases.OutQuad);
+
     private const int BurstCount = 8;
     private const double BurstRadius = 34;
     private const double TabInset = 10;
@@ -91,7 +95,6 @@ public partial class MicroInteractionsPage : ShowcasePage
         Heart.Foreground = _liked ? Palette.Coral : Palette.InkDim;
         Scope.Execute(_ =>
         {
-            Heart.Animate(new() { ["Scale"] = TweenValue.FromTo(.5, 1), Ease = Eases.Spring(bounce: .6, duration: 500) });
             LikeCount.Animate(new()
             {
                 ["Text"] = new TweenParams { From = from, To = _likes, TextModifier = Count },

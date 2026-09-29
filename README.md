@@ -105,7 +105,7 @@ Square.Animate(Presto.Build()                   // or Presto.Build()...Animate(S
 Presto.Build().Property("X", 320).Duration(1250).Animate(ship);   // core: any property by name
 ```
 
-The transform shorthands, `Opacity`, `Width`, `Height`, `Background`, `Foreground`, `CornerRadius`, `BorderThickness`,
+The transform and [effect](#effects) shorthands, `Opacity`, `Width`, `Height`, `Background`, `Foreground`, `CornerRadius`, `BorderThickness`,
 `Margin`, `Padding` and the `Draw` / `Text` / `Data` pseudo-properties are bridge extension methods that write the same
 keys the indexer does; anything else is `Property(SomeControl.SomeProperty, …)` or `Property("Name", …)`. A property
 given only `to` is a bare value, and any other argument (`from`, `duration`, `ease`, …) makes it a `TweenParams`.
@@ -118,6 +118,14 @@ afterwards never touches an animation already running:
 var pop = Presto.Build().Scale(from: 0.6, to: 1).Opacity(from: 0, to: 1).Duration(400).Ease(Eases.OutBack());
 pop.Animate(first);
 pop.Delay(200).Animate(second);                 // first keeps its zero delay
+```
+
+`With` varies a copy of a shared builder and leaves the original untouched (`Clone` is the bare copy). Anywhere a
+builder is taken, a lambda also works; it configures a fresh `Presto.Build()`:
+
+```csharp
+pop.With(b => b.Delay(Presto.Stagger(60))).Animate(row.Children);   // pop itself is unchanged
+control.Animate(b => b.X(100).Duration(400));
 ```
 
 Keyframes, per property and animation-wide (`Frame` for duration-based frames, `At` for percentages; not both). Each
@@ -145,6 +153,7 @@ var slide = Presto.Build().X(300).Duration(600).Ease(Eases.OutQuad);
 Presto.CreateTimeline()
     .Add(a, slide)
     .Add(b, slide, "-=400")
+    .Add(d, x => x.Y(-40).Duration(400), "<")
     .Add(strip.Children, Presto.Build().Y(-14), Presto.Stagger(60))
     .Set(c, Presto.Build().Opacity(0), "<");
 
@@ -628,7 +637,7 @@ Staggers run in arrival order, since the batch size is not known while it is sti
 
 A removed control is gone in the same frame, since an items container may be recycled at once and a panel child
 re-added. So an exit plays on a *ghost*: a snapshot of the element, drawn in the window's overlay where the element was
-and clipped as it was. The ghost is an `Image`, so an exit animates the transform shorthands and `Opacity`. It keeps the
+and clipped as it was. The ghost is an `Image`, so an exit animates the transform shorthands, the [effect](#effects) shorthands and `Opacity`. It keeps the
 element's styles and resources, and a transform the shorthands held moves onto it; content that was animating inside the
 element holds still. The snapshot is taken before the element's own entrance is reverted, so a row removed mid-entrance
 leaves from where it was drawn. An element added back while its ghost is still exiting dismisses the ghost. Code that
@@ -636,15 +645,156 @@ removes a control itself can call `PrestoAvalonia.AnimateExit(control, builder)`
 
 `Animate.OnAttached` stays the raw trigger: it plays on every attach, unclassified, which suits things tied to "while
 attached", such as a countdown bar.
+
+### State motion
+
+`Motion` gives an element states. While a state's condition holds, the properties its builder names go to its values;
+when the condition stops holding, they go back. This is Framer Motion's `whileHover`/`whileTap`/`whileFocus` and variants,
+keyed on Avalonia's own pseudo-classes and classes.
+
+```xml
+<Button Content="Save"
+        presto:Motion.Hover="{x:Static local:Motions.Lift}"
+        presto:Motion.Press="{x:Static local:Motions.Squish}"
+        presto:Motion.Focus="{x:Static local:Motions.Ring}" />
+
+<Border Classes="status" presto:Motion.State="{Binding Status}">
+    <presto:Motion.States>
+        <presto:MotionStates>
+            <presto:MotionState When="Syncing" Motion="{x:Static local:Motions.Pulse}" />
+            <presto:MotionState When="Failed" Motion="{x:Static local:Motions.Alarm}" Leave="{x:Static local:Motions.Calm}" />
+            <presto:MotionState When=".selected:pointerover" Motion="{x:Static local:Motions.Raise}" />
+        </presto:MotionStates>
+    </presto:Motion.States>
+</Border>
+```
+
+```csharp
+public static readonly AnimationBuilder Lift = Presto.Build().Y(-4).Duration(220).Ease(Eases.OutQuart);
+public static readonly AnimationBuilder Squish = Presto.Build().Scale(.95).Duration(120).Ease(Eases.OutQuad);
+public static readonly AnimationBuilder Pulse = Presto.Build().Opacity(k => k.To(.35).To(1)).Duration(900).Loop();
+public static readonly AnimationBuilder Calm = Presto.Build().Duration(900).Ease(Eases.OutQuad);   // timing only
+```
+
+| Property | Holds while |
+|---|---|
+| `Hover` | `:pointerover` |
+| `Focus` | `:focus-visible`: keyboard focus only, so a click does not play it (`When=":focus"` plays on both) |
+| `Press` | `:pressed`, which Presto synthesises for every element, not only buttons: a left button, touch or pen press until release or capture loss, so a touch that turns into a scroll ends it |
+| `States` | each `MotionState`'s `When` |
+| `State` | *(not a state)* an `object?` whose `ToString()`, split on whitespace and commas, names the bare-name conditions that hold; an enum matches by name |
+
+A `When` is ANDed tokens on the element itself: `:pseudo-class`, `.class`, and a leading bare name matched against
+`Motion.State`, as in `:checked`, `.selected:pointerover` or `Failed:focus`. It is not a selector: descendant, child and
+template parts throw `ArgumentException`. For anything a selector can express, set `Motion.State` from a style setter and
+name that token in the state. Here hovering a card nudges its arrow; when the selector stops matching, the setter's value
+goes away and the arrow returns:
+
+```xml
+<Style Selector="Path.arrow">
+    <Setter Property="presto:Motion.States">
+        <presto:MotionStates>
+            <presto:MotionState When="hot" Motion="{x:Static local:Motions.Nudge}" />
+        </presto:MotionStates>
+    </Setter>
+</Style>
+<Style Selector="Border.card:pointerover Path.arrow">
+    <Setter Property="presto:Motion.State" Value="hot" />
+</Style>
+```
+
+States layer by declaration order: `Hover`, then `Focus`, then `Press`, then the `States` entries, then states added
+from code, and a later state wins the properties it shares with an earlier one. So press wins a shared `Scale` over
+hover, and letting go returns it to hover's value. A property no holding state names returns to rest: an
+`AvaloniaProperty` to its base value (the style, binding or local value beneath the animation, read as it returns, so
+one changed mid-hover is honoured), a transform shorthand to its identity. When that return finishes, the animated
+value is reverted, uncovering the equal value beneath. The return uses the leaving state's `Leave` builder if it has
+one, otherwise the state's own timing; `Leave` takes only duration, delay and eases (`.Scale(ease: …)`), and a value
+there throws. State values are absolute: a relative `"+=4"` or a `From` without a `To` throws, since a state re-enters.
+
+Each transition plays one animation per state that gains or loses properties, with replace composition, so it takes
+them over from where they stand: a hover during a `Presence.Enter` goes straight to the lift, and the entrance keeps
+the rest. States that already hold when the element attaches are applied instantly, so a recycled row or a view shown
+again arrives in its state instead of replaying it; detaching cancels and reverts every state animation. A
+`MotionState` is immutable, so one `MotionStates` list can be shared through a style while each element keeps its own
+runtime state. Nothing runs in design mode.
+
+From code, `WhileHover`, `WhilePressed`, `WhileFocused` and `While(when, …)` add a state after the declared ones, taking
+a builder or a lambda; disposing the handle removes it, and its properties return like those of any state that stops
+holding:
+
+```csharp
+using var hover = card.WhileHover(b => b.Y(-4).Scale(1.02).Duration(180).Ease(Eases.OutQuad));
+Motion.SetState(chip, SyncStatus.Failed);
+```
+
+One-shot triggers are not states and stay on `Animate`. `Animate.OnTapped` plays its builder on each tap, restarting
+it; `Animate.OnChanged` plays each time `Animate.Watch` changes, but not for its first value. Both revert when the
+animation completes or the element detaches:
+
+```xml
+<Button presto:Motion.Press="{x:Static local:Motions.PressIn}"
+        presto:Animate.OnTapped="{x:Static local:Motions.Pop}" />
+<TextBlock Text="{Binding Count}"
+           presto:Animate.Watch="{Binding Count}"
+           presto:Animate.OnChanged="{x:Static local:Motions.Bump}" />
+```
+
+### Effects
+
+Blur, drop shadow, 3D rotation and clip or mask reveals are shorthands, like the transform ones. They are written at
+`Animation` priority and changed in place every frame, so nothing is allocated per frame, and `Revert()` uncovers the
+control's own `Effect`, `Clip`, `OpacityMask` or `RenderTransform`.
+
+```csharp
+card.Animate(b => b.Shadow(0, 12, 24, Color.Parse("#66000000")).Duration(300).Ease(Eases.OutQuad));
+title.Animate(b => b.Blur(from: 12, to: 0).Opacity(from: 0, to: 1).Duration(500));
+tile.Animate(b => b.RotateY(180).Perspective(600).Duration(700).Ease(Eases.InOutQuart));
+photo.Animate(b => b.ClipCircle(from: 0, to: 1).ClipCircleCenter(new RelativePoint(0.2, 0.3, RelativeUnit.Relative)).Duration(600));
+
+photo.Animate(new() { ["ClipInset"] = new[] { "50%", "0%" }, Duration = 900, Ease = Eases.OutQuart });
+photo.Animate(new() { ["MaskSweep"] = new double[] { 0, 1 }, ["MaskSweepAngle"] = 90, Duration = 1100 });
+```
+
+| Shorthand | Drives | Values |
+|---|---|---|
+| `Blur` | `BlurEffect.Radius` | DIPs |
+| `ShadowX`, `ShadowY`, `ShadowBlur` | `DropShadowEffect.OffsetX` / `OffsetY` / `BlurRadius` | DIPs |
+| `ShadowColor` | `DropShadowEffect.Color` | colour string, `Color` |
+| `ShadowOpacity` | `DropShadowEffect.Opacity` | 0–1 |
+| `RotateX`, `RotateY` | `Rotate3DTransform.AngleX` / `AngleY` | degrees (`turn` / `rad` accepted, as `Rotate`) |
+| `Perspective` | `Rotate3DTransform.Depth` | DIPs; 0 is no perspective |
+| `ClipInset` | `Visual.Clip` rectangle | left, top, right, bottom in `Thickness` order (`"10%"`, `"0 20"`, `"0 0 100% 0"`, a `Thickness`), each in DIPs or `%` of the bounds |
+| `ClipCircle` | `Visual.Clip` ellipse | radius fraction, 1 reaching the corner farthest from the centre |
+| `ClipCircleCenter` | the circle's centre | `RelativePoint`, default 50%, 50% |
+| `MaskSweep` | `Visual.OpacityMask` gradient | progress, 0 hidden to 1 shown |
+| `MaskSweepAngle` | the sweep's direction | degrees, 0 sweeping left to right (`turn` / `rad` accepted) |
+| `MaskSweepFeather` | the soft edge's width | fraction of the sweep, default 0.2 |
+
+Each has the usual four builder overloads (bare, tween settings, `FunctionValue`, keyframes), plus `ShadowColor(Color)`,
+`ClipInset(Thickness)`, `ClipCircleCenter(RelativePoint)` and `Shadow(x, y, blur, color)`, which sets the four shadow
+shorthands at once. A user effect of the same kind supplies a shadow's or blur's starting values; without one a shadow
+starts black, opaque, unblurred and at no offset, so animating `ShadowBlur` alone shows it.
+
+- **One effect per visual.** Avalonia has no effect group, so animating a blur and a shadow on one visual at once throws
+  `InvalidOperationException` from the `Animate` or `Set` call; one after the other switches the kind. Put the blur on
+  an inner element of a shadowed card, and on a `Border` prefer `BoxShadow`, which is cheaper and not exclusive. A
+  visual likewise holds one clip, so `ClipInset` and `ClipCircle` together throw too.
+- **Removed at rest.** Any effect costs an offscreen pass, so a blur of 0, or a shadow whose `ShadowOpacity` ended at
+  0, is removed rather than left installed. A reveal that ends fully visible (every inset 0, a radius of 1, a sweep at
+  1) removes its clip or mask the same way.
+- **UI thread only.** The composition layer has no counterpart for any of them, so `AnimateOnCompositor` throws
+  `NotSupportedException` for these shorthands.
+
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:
 
 | anime.js | Presto |
 |---|---|
-| `animate(targets, params)` | `Presto.Animate(targets, new AnimationParams { … })`, or `control.Animate(new() { … })`<br>Builder: `Presto.Build().X(…).Duration(…).Animate(targets)` |
+| `animate(targets, params)` | `Presto.Animate(targets, new AnimationParams { … })`, or `control.Animate(new() { … })`<br>Builder: `Presto.Build().X(…).Duration(…).Animate(targets)`, or `control.Animate(b => b.X(…))` |
 | `createTimer(params)` | `Presto.CreateTimer(new TimerParams { … })` |
-| `createTimeline(params)` | `Presto.CreateTimeline(new TimelineParams { … })`, then `.Add` / `.Set` / `.Sync` / `.Label` / `.Call` / `.Remove` / `.Refresh`<br>Builder: `.Add(targets, Presto.Build()…, position)` / `.Set(targets, Presto.Build()…)` |
+| `createTimeline(params)` | `Presto.CreateTimeline(new TimelineParams { … })`, then `.Add` / `.Set` / `.Sync` / `.Label` / `.Call` / `.Remove` / `.Refresh`<br>Builder: `.Add(targets, Presto.Build()…, position)` / `.Set(targets, Presto.Build()…)`, or `.Add(targets, b => …, position)` |
 | `createAnimatable(targets, params)` | `Presto.CreateAnimatable(targets, new AnimatableParams { … })`, or `control.CreateAnimatable(new() { … })` |
 | `createScope(params)` | `Presto.CreateScope(new ScopeParams { … })`; `PrestoAvalonia.CreateScope(control)` reverts when the control detaches |
 | `createDraggable(target, params)` | `PrestoAvalonia.CreateDraggable(control, new DraggableParams { … })` |
@@ -666,9 +816,16 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
 | `core/*`, `types/*` | Internal (`Clock`, `Renderer`, `Composer`, value parsing) or TypeScript declarations with no C# counterpart. |
+| *Framer Motion, not anime.js:* `whileHover` / `whileTap` / `whileFocus` | `Motion.Hover` / `Motion.Press` / `Motion.Focus`, or `control.WhileHover` / `WhilePressed` / `WhileFocused` in code; see [State motion](#state-motion) |
+| *Framer Motion, not anime.js:* `variants` with `animate="name"` | `Motion.States` entries whose `When` names a state, chosen by binding `Motion.State`; `control.While(when, …)` in code |
+| *CSS, not anime.js:* `filter: blur()` | `Blur`; see [Effects](#effects) |
+| *CSS, not anime.js:* `filter: drop-shadow()` | `ShadowX` / `ShadowY` / `ShadowBlur` / `ShadowColor` / `ShadowOpacity`, or `.Shadow(x, y, blur, color)`; `box-shadow` is `BoxShadow` on a `Border` |
+| *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
+| *CSS, not anime.js:* `clip-path: inset()` / `circle()` | `ClipInset`, `ClipCircle` with `ClipCircleCenter` |
+| *CSS, not anime.js:* a `mask-image` linear-gradient sweep | `MaskSweep` with `MaskSweepAngle` and `MaskSweepFeather` |
 
-The XAML surface is `Animate.OnAttached`, which plays a builder whenever a visual attaches ([From XAML](#from-xaml)), the `Presence` lifecycle properties ([Lifecycle animations](#lifecycle-animations)) and `Connected`'s keys;
-other triggers belong in code-behind or a view model.
+The XAML surface is `Animate.OnAttached`, which plays a builder whenever a visual attaches ([From XAML](#from-xaml)), the `Presence` lifecycle properties ([Lifecycle animations](#lifecycle-animations)), `Connected`'s keys,
+the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)); other triggers belong in code-behind or a view model.
 
 ### Parameter names
 
@@ -731,7 +888,7 @@ build; what has actually been *run* differs, and the table says so rather than i
 | **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. The gallery has not been driven on a device, so touch input and per-page rendering are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
 
-Three platform notes:
+Four platform notes:
 
 - **On WebAssembly the render loop is not a thread.** `BrowserRenderTimer` drives the compositor from the single WASM
   thread that also runs the UI, so a `CompositorScene` runs and draws there but does **not** survive a blocked UI
@@ -743,6 +900,9 @@ Three platform notes:
 - **On Android the frame pump starts on a dispatcher timer.** Avalonia's Android lifetime exposes only a factory for its
   main view, so the bridge cannot ask it for a `TopLevel`; it uses the first visual it animates instead and moves onto
   that top level's frame callback. Until then a 60 Hz render-priority timer pumps, so animations run either way.
+- **Effects render through Skia on every head.** `Blur` and the shadow shorthands cost an offscreen pass wherever they
+  run. What a blur costs in the Browser head has not been measured yet; it is to be measured in the smoke run, not
+  assumed.
 
 ## Running the sample and the tests
 

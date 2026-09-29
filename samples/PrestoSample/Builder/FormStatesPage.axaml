@@ -41,10 +41,25 @@
         <StackPanel Spacing="16">
             <TextBlock Classes="caption" Text="Submit without an @ to see Error, with one to see Success; typing again returns to Idle" />
             <Border Classes="stage" MinHeight="300">
-                <Border Classes="form" presto:Animate.OnAttached="{Binding CardMotion}">
+                <Border Classes="form" presto:Motion.State="{Binding State}">
+                    <presto:Motion.States>
+                        <presto:MotionStates>
+                            <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.CardValidating}" />
+                            <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.CardError}" />
+                            <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.CardSuccess}" />
+                        </presto:MotionStates>
+                    </presto:Motion.States>
                     <StackPanel Spacing="16">
                         <StackPanel Orientation="Horizontal" Spacing="14">
-                            <Border Classes="badge" Background="{Binding Tint}" presto:Animate.OnAttached="{Binding BadgeMotion}">
+                            <Border Classes="badge" Background="{Binding Tint}" presto:Motion.State="{Binding State}">
+                                <presto:Motion.States>
+                                    <presto:MotionStates>
+                                        <presto:MotionState When="Idle" Motion="{x:Static local:FormMotions.BadgeIdle}" />
+                                        <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.BadgeValidating}" />
+                                        <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.BadgeError}" />
+                                        <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.BadgeSuccess}" />
+                                    </presto:MotionStates>
+                                </presto:Motion.States>
                                 <TextBlock Text="{Binding Glyph}" />
                             </Border>
                             <StackPanel VerticalAlignment="Center" Spacing="2">
@@ -59,16 +74,16 @@
                 </Border>
             </Border>
 
-            <TextBlock Classes="caption" Text="The bindings" />
+            <TextBlock Classes="caption" Text="The states: each view-model State is a bare-name condition on Motion.State" />
             <Border Classes="codeblock">
                 <ScrollViewer>
-                    <SelectableTextBlock x:Name="BindingCode" Classes="code" />
+                    <SelectableTextBlock x:Name="StatesCode" Classes="code" />
                 </ScrollViewer>
             </Border>
-            <TextBlock Classes="caption" Text="What they bind to: CardMotion and BadgeMotion look the view model's State up in these tables" />
+            <TextBlock Classes="caption" Text="What they play: plain builders in FormMotions.cs" />
             <Border Classes="codeblock">
                 <ScrollViewer>
-                    <SelectableTextBlock x:Name="TablesCode" Classes="code" />
+                    <SelectableTextBlock x:Name="BuildersCode" Classes="code" />
                 </ScrollViewer>
             </Border>
         </StackPanel>

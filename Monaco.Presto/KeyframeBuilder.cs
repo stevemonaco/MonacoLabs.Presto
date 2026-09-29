@@ -32,4 +32,9 @@ public sealed class KeyframeBuilder : PropertyBuilder<KeyframeBuilder>
         foreach (var (name, value) in Properties) keyframe.Properties[name] = value;
         return keyframe;
     }
+
+    internal KeyframeBuilder Clone() => CopyPropertiesTo(new KeyframeBuilder
+    {
+        _duration = _duration, _delay = _delay, _ease = _ease, _composition = _composition, _modifier = _modifier,
+    });
 }

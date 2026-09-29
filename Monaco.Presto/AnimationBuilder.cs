@@ -86,12 +86,24 @@ public sealed class AnimationBuilder : PropertyBuilder<AnimationBuilder>
         return this;
     }
 
+    /// <summary>Copies this builder's settings, properties and keyframes into a new builder that changes independently of it.</summary>
+    public AnimationBuilder Clone() =>
+        CopyPropertiesTo(new AnimationBuilder { _settings = _settings, _keyframes = _keyframes?.Clone() });
+
+    /// <summary>Returns a <see cref="Clone"/> with <paramref name="change"/> applied, leaving this builder untouched.</summary>
+    public AnimationBuilder With(Action<AnimationBuilder> change)
+    {
+        var copy = Clone();
+        change(copy);
+        return copy;
+    }
+
     /// <summary>Snapshots the builder into new <see cref="AnimationParams"/>, equal to the indexer form of the same calls.</summary>
     public AnimationParams ToParams() => _settings with { Properties = new(Properties), Keyframes = _keyframes?.ToKeyframes() };
 
-    /// <summary>Animates <paramref name="targets"/> with a snapshot of this builder, as <see cref="Presto.Animate"/> does.</summary>
+    /// <summary>Animates <paramref name="targets"/> with a snapshot of this builder, as <see cref="Presto.Animate(object?, AnimationParams)"/> does.</summary>
     public Animation Animate(object? targets) => Presto.Animate(targets, ToParams());
 
-    /// <summary>Writes this builder's values to <paramref name="targets"/> immediately, as <see cref="Presto.Set"/> does.</summary>
+    /// <summary>Writes this builder's values to <paramref name="targets"/> immediately, as <see cref="Presto.Set(object?, AnimationParams)"/> does.</summary>
     public Animation Set(object? targets) => Presto.Set(targets, ToParams());
 }

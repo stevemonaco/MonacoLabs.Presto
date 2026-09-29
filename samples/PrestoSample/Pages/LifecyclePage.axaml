@@ -52,6 +52,13 @@
             <Setter Property="Foreground" Value="#0f172a" />
             <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
+        <Style Selector="Border.panel">
+            <Setter Property="Width" Value="260" />
+            <Setter Property="Height" Value="120" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="TextElement.Foreground" Value="#101010" />
+        </Style>
     </UserControl.Styles>
 
     <ScrollViewer>
@@ -83,6 +90,18 @@
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The rule: an arriving element's ancestors are walked up past the new wrappers around it, such as its item container, and stop at the first panel or other host. A loaded host (Control.IsLoaded) means the element entered on its own; a host still in its first layout means it came with its view. In an item container, the list's own item changes decide instead. Animate.OnAttached remains the raw trigger beside these, playing on every attach unclassified." />
+
+            <Border Classes="stage" MinHeight="180">
+                <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ContentControl x:Name="Swapper" Width="260" Height="120" />
+                    <Button Content="Swap" Click="Swap" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="code" Text="swapper.Content = next;   // both views carry Presence.Enter and Presence.Exit" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A ContentControl swapping its content: the old view's exit plays on its ghost while the new view enters in the same slot, so the two crossfade. A whole page navigated away is not ghosted: an element leaves on its own only when everything between it and what was removed wraps nothing else." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

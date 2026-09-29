@@ -191,6 +191,21 @@ public sealed class PresenceTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ABlurExitBlursTheGhostAndLeavesTheElementUntouched()
+    {
+        var item = new Border { Width = 40, Height = 20, Background = Brushes.Red };
+        var (window, _) = Show(item);
+
+        PrestoAvalonia.AnimateExit(item, Presto.Build().Blur(to: 10).Duration(200).Ease(Eases.None));
+        Frames.Advance(100, 16);
+        Tick();
+
+        var ghost = Assert.IsType<Image>(Assert.Single(((Canvas)Assert.Single(Ghosts(window)).Children[0]).Children));
+        Assert.InRange(Assert.IsType<BlurEffect>(ghost.Effect).Radius, 3, 7);
+        Assert.Null(item.Effect);
+    }
+
+    [AvaloniaFact]
     public void AGhostIsDrawnWhereTheElementsRenderTransformHadMovedIt()
     {
         var item = Leaving();

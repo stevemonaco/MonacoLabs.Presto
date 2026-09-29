@@ -7,7 +7,7 @@ using Monaco.Presto.AvaloniaBridge.Targets;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// Typed names for the <see cref="PropertyBuilder{TSelf}"/> properties: the transform shorthands, the Avalonia properties
+/// Typed names for the <see cref="PropertyBuilder{TSelf}"/> properties: the transform, effect and reveal shorthands, the Avalonia properties
 /// animated most often, the Draw/Text/Data pseudo-properties and any <see cref="AvaloniaProperty"/>. Each writes the
 /// key the <see cref="AvaloniaAnimationParams"/> indexers write, and installs the bridge first when nothing else has.
 /// </summary>
@@ -57,6 +57,48 @@ public static class PropertyBuilderExtensions
 
     /// <summary>Animates the <c>"Rotate"</c> angle through the keyframes <paramref name="keyframes"/> adds.</summary>
     public static T Rotate<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Rotate", keyframes);
+    /// <summary>Animates the <c>"RotateX"</c> angle to <paramref name="to"/>.</summary>
+    public static T RotateX<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("RotateX", to);
+
+    /// <summary>Animates the <c>"RotateX"</c> angle with its own tween settings.</summary>
+    public static T RotateX<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("RotateX", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"RotateX"</c> angle to a value computed per target.</summary>
+    public static T RotateX<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("RotateX", to);
+
+    /// <summary>Animates the <c>"RotateX"</c> angle through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T RotateX<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("RotateX", keyframes);
+    /// <summary>Animates the <c>"RotateY"</c> angle to <paramref name="to"/>.</summary>
+    public static T RotateY<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("RotateY", to);
+
+    /// <summary>Animates the <c>"RotateY"</c> angle with its own tween settings.</summary>
+    public static T RotateY<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("RotateY", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"RotateY"</c> angle to a value computed per target.</summary>
+    public static T RotateY<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("RotateY", to);
+
+    /// <summary>Animates the <c>"RotateY"</c> angle through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T RotateY<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("RotateY", keyframes);
+    /// <summary>Animates the <c>"Perspective"</c> depth to <paramref name="to"/>.</summary>
+    public static T Perspective<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("Perspective", to);
+
+    /// <summary>Animates the <c>"Perspective"</c> depth with its own tween settings.</summary>
+    public static T Perspective<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("Perspective", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"Perspective"</c> depth to a value computed per target.</summary>
+    public static T Perspective<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("Perspective", to);
+
+    /// <summary>Animates the <c>"Perspective"</c> depth through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Perspective<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Perspective", keyframes);
 
     /// <summary>Animates the uniform <c>"Scale"</c> to <paramref name="to"/>.</summary>
     public static T Scale<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("Scale", to);
@@ -327,6 +369,174 @@ public static class PropertyBuilderExtensions
 
     /// <summary>Animates a path's <c>"Data"</c> geometry through the keyframes <paramref name="keyframes"/> adds.</summary>
     public static T Data<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Data", keyframes);
+    /// <summary>Animates the <c>"Blur"</c> radius to <paramref name="to"/>.</summary>
+    public static T Blur<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("Blur", to);
+
+    /// <summary>Animates the <c>"Blur"</c> radius with its own tween settings.</summary>
+    public static T Blur<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("Blur", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"Blur"</c> radius to a value computed per target.</summary>
+    public static T Blur<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("Blur", to);
+
+    /// <summary>Animates the <c>"Blur"</c> radius through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Blur<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Blur", keyframes);
+    /// <summary>Animates the <c>"ShadowX"</c> drop-shadow offset to <paramref name="to"/>.</summary>
+    public static T ShadowX<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowX", to);
+
+    /// <summary>Animates the <c>"ShadowX"</c> drop-shadow offset with its own tween settings.</summary>
+    public static T ShadowX<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ShadowX", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ShadowX"</c> drop-shadow offset to a value computed per target.</summary>
+    public static T ShadowX<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowX", to);
+
+    /// <summary>Animates the <c>"ShadowX"</c> drop-shadow offset through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ShadowX<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ShadowX", keyframes);
+    /// <summary>Animates the <c>"ShadowY"</c> drop-shadow offset to <paramref name="to"/>.</summary>
+    public static T ShadowY<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowY", to);
+
+    /// <summary>Animates the <c>"ShadowY"</c> drop-shadow offset with its own tween settings.</summary>
+    public static T ShadowY<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ShadowY", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ShadowY"</c> drop-shadow offset to a value computed per target.</summary>
+    public static T ShadowY<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowY", to);
+
+    /// <summary>Animates the <c>"ShadowY"</c> drop-shadow offset through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ShadowY<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ShadowY", keyframes);
+    /// <summary>Animates the <c>"ShadowBlur"</c> drop-shadow radius to <paramref name="to"/>.</summary>
+    public static T ShadowBlur<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowBlur", to);
+
+    /// <summary>Animates the <c>"ShadowBlur"</c> drop-shadow radius with its own tween settings.</summary>
+    public static T ShadowBlur<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ShadowBlur", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ShadowBlur"</c> drop-shadow radius to a value computed per target.</summary>
+    public static T ShadowBlur<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowBlur", to);
+
+    /// <summary>Animates the <c>"ShadowBlur"</c> drop-shadow radius through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ShadowBlur<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ShadowBlur", keyframes);
+    /// <summary>Animates the <c>"ShadowColor"</c> drop-shadow color to <paramref name="to"/>.</summary>
+    public static T ShadowColor<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowColor", to);
+
+    /// <summary>Animates the <c>"ShadowColor"</c> drop-shadow color with its own tween settings.</summary>
+    public static T ShadowColor<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ShadowColor", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ShadowColor"</c> drop-shadow color to a value computed per target.</summary>
+    public static T ShadowColor<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowColor", to);
+
+    /// <summary>Animates the <c>"ShadowColor"</c> drop-shadow color through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ShadowColor<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ShadowColor", keyframes);
+    /// <summary>Animates the <c>"ShadowOpacity"</c> drop-shadow opacity to <paramref name="to"/>.</summary>
+    public static T ShadowOpacity<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowOpacity", to);
+
+    /// <summary>Animates the <c>"ShadowOpacity"</c> drop-shadow opacity with its own tween settings.</summary>
+    public static T ShadowOpacity<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ShadowOpacity", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ShadowOpacity"</c> drop-shadow opacity to a value computed per target.</summary>
+    public static T ShadowOpacity<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowOpacity", to);
+
+    /// <summary>Animates the <c>"ShadowOpacity"</c> drop-shadow opacity through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ShadowOpacity<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ShadowOpacity", keyframes);
+    /// <summary>Animates the <c>"ClipInset"</c> reveal to <paramref name="to"/>.</summary>
+    public static T ClipInset<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ClipInset", to);
+
+    /// <summary>Animates the <c>"ClipInset"</c> reveal with its own tween settings.</summary>
+    public static T ClipInset<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ClipInset", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ClipInset"</c> reveal to a value computed per target.</summary>
+    public static T ClipInset<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ClipInset", to);
+
+    /// <summary>Animates the <c>"ClipInset"</c> reveal through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ClipInset<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ClipInset", keyframes);
+    /// <summary>Animates the <c>"ClipCircle"</c> reveal radius to <paramref name="to"/>.</summary>
+    public static T ClipCircle<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ClipCircle", to);
+
+    /// <summary>Animates the <c>"ClipCircle"</c> reveal radius with its own tween settings.</summary>
+    public static T ClipCircle<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ClipCircle", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ClipCircle"</c> reveal radius to a value computed per target.</summary>
+    public static T ClipCircle<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ClipCircle", to);
+
+    /// <summary>Animates the <c>"ClipCircle"</c> reveal radius through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ClipCircle<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ClipCircle", keyframes);
+    /// <summary>Animates the <c>"ClipCircleCenter"</c> reveal center to <paramref name="to"/>.</summary>
+    public static T ClipCircleCenter<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ClipCircleCenter", to);
+
+    /// <summary>Animates the <c>"ClipCircleCenter"</c> reveal center with its own tween settings.</summary>
+    public static T ClipCircleCenter<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ClipCircleCenter", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"ClipCircleCenter"</c> reveal center to a value computed per target.</summary>
+    public static T ClipCircleCenter<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ClipCircleCenter", to);
+
+    /// <summary>Animates the <c>"ClipCircleCenter"</c> reveal center through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ClipCircleCenter<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ClipCircleCenter", keyframes);
+    /// <summary>Animates the <c>"MaskSweep"</c> reveal to <paramref name="to"/>.</summary>
+    public static T MaskSweep<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweep", to);
+
+    /// <summary>Animates the <c>"MaskSweep"</c> reveal with its own tween settings.</summary>
+    public static T MaskSweep<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("MaskSweep", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"MaskSweep"</c> reveal to a value computed per target.</summary>
+    public static T MaskSweep<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweep", to);
+
+    /// <summary>Animates the <c>"MaskSweep"</c> reveal through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T MaskSweep<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweep", keyframes);
+    /// <summary>Animates the <c>"MaskSweepAngle"</c> sweep direction to <paramref name="to"/>.</summary>
+    public static T MaskSweepAngle<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweepAngle", to);
+
+    /// <summary>Animates the <c>"MaskSweepAngle"</c> sweep direction with its own tween settings.</summary>
+    public static T MaskSweepAngle<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("MaskSweepAngle", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"MaskSweepAngle"</c> sweep direction to a value computed per target.</summary>
+    public static T MaskSweepAngle<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweepAngle", to);
+
+    /// <summary>Animates the <c>"MaskSweepAngle"</c> sweep direction through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T MaskSweepAngle<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweepAngle", keyframes);
+    /// <summary>Animates the <c>"MaskSweepFeather"</c> soft edge to <paramref name="to"/>.</summary>
+    public static T MaskSweepFeather<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweepFeather", to);
+
+    /// <summary>Animates the <c>"MaskSweepFeather"</c> soft edge with its own tween settings.</summary>
+    public static T MaskSweepFeather<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("MaskSweepFeather", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"MaskSweepFeather"</c> soft edge to a value computed per target.</summary>
+    public static T MaskSweepFeather<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweepFeather", to);
+
+    /// <summary>Animates the <c>"MaskSweepFeather"</c> soft edge through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T MaskSweepFeather<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweepFeather", keyframes);
 
     /// <summary>Animates <c>"Background"</c> to a solid brush of <paramref name="to"/>.</summary>
     public static T Background<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("Background", SolidBrush(to));
@@ -360,6 +570,18 @@ public static class PropertyBuilderExtensions
 
     /// <summary>Morphs a path's <c>"Data"</c> into <paramref name="to"/>.</summary>
     public static T Data<T>(this T builder, Geometry to) where T : PropertyBuilder<T> => Init(builder).Property("Data", TweenValue.Of(to));
+    /// <summary>Animates <c>"ShadowColor"</c> to <paramref name="to"/>.</summary>
+    public static T ShadowColor<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("ShadowColor", TweenValue.Of(to));
+
+    /// <summary>Animates the four drop-shadow shorthands to <paramref name="x"/>, <paramref name="y"/>, <paramref name="blur"/> and <paramref name="color"/>.</summary>
+    public static T Shadow<T>(this T builder, double x, double y, double blur, Color color) where T : PropertyBuilder<T> =>
+        builder.ShadowX(x).ShadowY(y).ShadowBlur(blur).ShadowColor(color);
+
+    /// <summary>Animates the <c>"ClipInset"</c> reveal to the DIP insets <paramref name="to"/>.</summary>
+    public static T ClipInset<T>(this T builder, Thickness to) where T : PropertyBuilder<T> => Init(builder).Property("ClipInset", TweenValue.Of(to));
+
+    /// <summary>Animates the <c>"ClipCircleCenter"</c> reveal center to <paramref name="to"/>.</summary>
+    public static T ClipCircleCenter<T>(this T builder, RelativePoint to) where T : PropertyBuilder<T> => Init(builder).Property("ClipCircleCenter", TweenValue.Of(to));
 
     /// <summary>Animates <paramref name="property"/> to <paramref name="to"/>.</summary>
     public static T Property<T>(this T builder, AvaloniaProperty property, TweenValue to) where T : PropertyBuilder<T> =>

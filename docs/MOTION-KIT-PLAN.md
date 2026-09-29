@@ -518,7 +518,7 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
   - a reduced-motion switch that shows every reduced form;
   - a second tab with the same stage in XAML through the markup extensions.
 - **Retire the sample-side recipes:**
-  - `Motions.cs`, `FadeUpExtension.cs` and the fades in `LifecyclePage`/`PresencePage` switch to `Recipes` and
+  - `Motions.cs`, `FadeUpExtension.cs` and the fades in `LifecyclePage` switch to `Recipes` and
     `{presto:Fade}`.
   - Each of those pages keeps one explicit builder, so the page still teaches the raw form beside the recipe.
   - `MotionTokensPage` becomes a demo of the library tokens and the real reduced-motion flag.
@@ -552,20 +552,99 @@ headless harness) and a Desktop visual check through DevTools screenshots.
 - **Naming.** `Motion` for states and `Recipes` for prebuilts. The alternatives were a Framer-style `While.Hover`, and
   `Interact` for states. `Motion` collides with nothing in Avalonia 12.1.2.
 - **Initial states.** They snap on attach (decision 10). Should a `Motion.AnimateInitial` opt-in exist for a page that
-  wants its selected card to animate in?
+  wants its selected card to animate in? *Settled by Phase 23: they snap, and no opt-in was built.*
 - **Momentum.** A state spring interrupted mid-flight restarts at rest velocity. Phase 18's velocity measurement is
   `Animatable`-only. Should the tracker reuse it (`MotionState.PreserveVelocity`) or run states on an `Animatable`
-  where their properties allow?
+  where their properties allow? *Settled by Phase 23: left out; state springs restart at rest velocity.*
 - **Compositor states.** `Motion.*` could play transform- and opacity-only states through `AnimateOnCompositor`.
   Input arrives on the UI thread anyway, so the gain is smoothness under load, not responsiveness. Left out unless a
-  sample shows the need.
+  sample shows the need. *Settled by Phase 23: left out; every state plays on the UI thread.*
 - **Press on touch.** Synthesised pressed ends on capture loss. Should a touch that turns into a scroll (a
-  `ScrollViewer` taking capture) cancel the press state immediately? That is the proposed default.
+  `ScrollViewer` taking capture) cancel the press state immediately? That is the proposed default. *Settled by Phase
+  23: yes; `PointerCaptureLost` ends the press at once.*
 - **Mobile reduced-motion sources.** Ship Android/iOS implementations in separate small packages, or document them as
   snippets only?
 - **Effect conflict.** Throwing on blur plus shadow is strict. The alternative is a documented "last kind wins"; decide
-  after the Effects page shows which one users trip over.
+  after the Effects page shows which one users trip over. *Settled by Phase 24: it throws InvalidOperationException
+  naming both shorthands (decision 29); one after the other switches the kind.*
 
 ## 7. Deviations as built
 
 Filled in as each phase lands, as in the other plans.
+
+**Phase 22**
+- `Presto.Animate` and `Presto.Set` had no `[OverloadResolutionPriority(1)]` before this phase (only the bridge params
+  overloads did); they gained it so `Presto.Animate(x, new() { … })` keeps binding to params beside the lambda twin.
+
+**Phase 23**
+- Probe findings (pinned by `MotionProbeTests`):
+  - Pseudo-classes live in `Classes` with their `:` prefix and raise `Classes.CollectionChanged` (`:pointerover` from a
+    headless mouse move, `:checked` on a `ToggleButton`), so one subscription covers classes and pseudo-classes.
+  - `GetBaseValue` exists. The untyped `AvaloniaObjectExtensions.GetBaseValue(AvaloniaObject, AvaloniaProperty)` routes
+    to the typed call, so no generic helper is needed; it returns the style or local value beneath an Animation-priority
+    value and follows a local value set meanwhile. With only the default beneath, it returns `AvaloniaProperty.UnsetValue`,
+    so rest is then the property's default (inherited properties aside); decision 8's capture fallback is not needed.
+  - `:focus-visible` is set on Tab focus and not on pointer-click focus (only `:focus` is).
+  - `AddHandler(PointerPressedEvent, …, handledEventsToo: true)` sees a Button's own press, already `Handled`.
+- `MotionStates` is a plain `AvaloniaList<MotionState>` with a public constructor, so XAML can write it. The attached
+  property defaults to `null`, so `<presto:Motion.States>` needs an explicit `<presto:MotionStates>` wrapper around its
+  `MotionState` children, in element syntax and in a style setter alike.
+- Rest (decision 8) is read through the untyped `GetBaseValue`, with the property resolved from its canonical name by
+  `AvaloniaObjectTargetAdapter.ResolveProperty` (made internal for this); `UnsetValue` falls back to the metadata
+  default. A shorthand's identity comes from a new `RenderTransformComposer.Identity`. A returning property that is
+  neither an `AvaloniaProperty` nor a transform shorthand throws `NotSupportedException`.
+- `Motion.State` tokens are its `ToString()` split on whitespace and commas, and a bare name is only allowed as the
+  leading token of a `When`.
+- `:pressed` in any `When` reads the tracker's own flag (a `Pressed` flag on the parsed condition), never `Classes`, so
+  a Button's own `:pressed` is not used. The press counts a `LeftButtonPressed` update (touch and pen report as left)
+  through Tunnel and Bubble with `handledEventsToo`, and ends on a left release or capture loss. The pointer handlers
+  are subscribed only while some state has a `:pressed` condition.
+- Focus (decision 4) needed no `IsFocusedProperty` subscription: `:focus` and `:focus-visible` arrive through
+  `Classes.CollectionChanged` like every other pseudo-class.
+- A keyframed state is expanded per property, so a transition can play just the properties whose winner changed; the
+  value a snap or a hand-over to that state aims at is its last keyframe's.
+- Code-added states keep the tracker alive when every XAML property is cleared.
+- `Animate.OnTapped` is registered on `InputElement`, where `Tapped` lives; `OnChanged` and `Watch` are on `Visual`.
+- Chart morph's point lift is a shared `MotionStates` list set with `Motion.SetStates`, not `WhileHover` as §2.6
+  planned, because it needs a `Leave` and the `While*` API takes none. The tooltip is not a state (it sets text,
+  position and the transform origin), so it moved to one `IsPointerOver` property-changed handler per point that runs
+  `ShowTip` inside the page's `Scope`.
+- Counters sets `Animate.Watch` from code on each refresh rather than binding it, and Micro-interactions sets the tab
+  labels' `Motion.Hover` through a `TabStripItem` style setter.
+
+**Phase 24**
+- One scalar cannot carry §3.2's extra reveal parameters, so they are companion shorthands, each with its own builder
+  methods, identity and revert:
+  - `ClipCircleCenter`, a `RelativePoint` defaulting to 50%, 50%. `ClipCircle` is the radius fraction alone, 1
+    reaching the corner farthest from the centre.
+  - `MaskSweepAngle`, in degrees with `turn`/`rad` accepted, 0 sweeping left to right.
+  - `MaskSweepFeather`, the edge's width as a fraction of the sweep, default 0.2.
+- Shadow identities: without a user `DropShadowEffect`, a shadow starts black, at opacity 1, blur 0 and offset 0, so
+  animating `ShadowBlur` alone shows it. A user effect of the same kind supplies the starting values (decision 1). A
+  shadow is removed at rest only when `ShadowOpacity` ends at 0; a blur is removed on any frame whose radius is 0.
+- Conflict detection happens when the adapter resolves the accessor, so it throws from the `Animate`/`Set` call. A
+  kind conflicts with the other kind's running animations (`Presto.GetAnimations` per shorthand), or with a claim made
+  earlier in the same dispatcher job, which catches a blur and a shadow in one animation before either has rendered. A
+  claim lapses with the job, so a `Presto.Get` does not hold one. One after the other switches the kind. `ClipInset`
+  and `ClipCircle` conflict the same way, because a visual holds one clip. `MaskSweep` has only one kind, so it cannot
+  conflict.
+- Exit ghosts: nothing changed in `Presence`. The ghost is an `Image`, so the effect shorthands apply to it directly.
+  Its clip box was not inflated for a blur's spread, because the box is the set of ancestor clips that would have cut
+  the live element's blur too.
+- `MaskSweep` does not go through the Phase 19 gradient codec. `MaskComposer` owns one `LinearGradientBrush` with two
+  fixed stops (opaque, then transparent) and moves its start and end points each frame instead. Skia clamps stop
+  offsets to 0–1, and the soft edge has to run past both ends of the visual.
+- `ClipInset` takes one, two or four values in `Thickness` order, or a `Thickness`. A bare number is DIPs. Each
+  channel's unit is the end value's, and a start value written in the other unit is not converted. The clip is laid
+  out from `Bounds` and follows a resize while installed. A reveal starts from its identity (fully visible), never
+  from the user's own `Clip` or `OpacityMask`.
+- `Rotate3DTransform` sits between the scale and the 2D rotate in the group. This is upstream's `validTransforms`
+  order reversed, with perspective applied at the rotation's slot because one transform carries the angles and the
+  `Depth`. `Perspective`'s identity is 0, Avalonia's default, meaning no perspective.
+- The compositor rejection needed no new code. `CompositorProperty` already throws `NotSupportedException` for any
+  name outside its X/Y/Rotate/Scale/Opacity list.
+- Samples: in Card gallery, the veil's alpha went from `E6` to `A6` so that the blur behind it shows. The Swipe deck
+  lean is 0.06° of `RotateY` per pixel of drag, clamped to 8°, at `Perspective` 800.
+- §3.3 step 4's Browser blur measurement is deferred: the Browser head stays out of the day-to-day loop, so the cost of
+  the Effects page's blur stage and Card gallery's blur-behind there is still unmeasured, and the README Platforms note
+  says so.

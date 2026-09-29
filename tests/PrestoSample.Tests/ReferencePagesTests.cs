@@ -1,6 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Headless;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
+using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Pages;
 
 namespace PrestoSample.Tests;
@@ -40,19 +45,6 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
-    public void PresenceRemovesSwapsAndCloses()
-    {
-        var page = new PresencePage();
-        var window = SceneHarness.Show(page, 900, 900);
-        SceneHarness.Click(window, Button(page, "Remove random"));
-        SceneHarness.Click(window, Button(page, "Swap"));
-        TestFrames.Tick(30);
-
-        Assert.Equal(3, page.Items.Count);
-        SceneHarness.Close(window);
-    }
-
-    [AvaloniaFact]
     public void LifecycleLogsWhatPresenceClassified()
     {
         var page = new LifecyclePage();
@@ -63,6 +55,7 @@ public sealed class ReferencePagesTests
         SceneHarness.Click(window, Button(page, "Remove row"));
         TestFrames.Tick(40);
         SceneHarness.Click(window, Button(page, "Navigate"));
+        SceneHarness.Click(window, Button(page, "Swap"));
         TestFrames.Tick(40);
 
         var moments = page.GetControl<ItemsControl>("Moments").Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => entry.Moment).ToList();
@@ -94,6 +87,76 @@ public sealed class ReferencePagesTests
         Assert.StartsWith("Enter", Log(moments)[0]);
         SceneHarness.Close(window);
     }
+
+    [AvaloniaFact]
+    public void AHoveredStatesCardLiftsAndReturns()
+    {
+        var page = new StatesPage();
+        var window = SceneHarness.Show(page, 1100, 900);
+        var card = page.GetControl<Border>("InboxCard");
+
+        window.MouseMove(SceneHarness.Centre(card, window));
+        TestFrames.Tick(30);
+        Assert.Equal(-4, (double)PrestoAvalonia.Get(card, "Y")!, 6);
+        Assert.Equal("hot", Motion.GetState(page.GetControl<Avalonia.Controls.Shapes.Path>("InboxArrow")));
+        Assert.Contains("InboxCard  + :pointerover", page.GetControl<ItemsControl>("Log").Items.Cast<string>());
+
+        window.MouseMove(new Avalonia.Point(1, 1));
+        TestFrames.Tick(30);
+        Assert.Empty(Presto.GetAnimations(card));
+        Assert.True(card.RenderTransform?.Value.IsIdentity ?? true, "the card kept its lift");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ClosingTheStatesPageLeavesNothingAnimating()
+    {
+        var page = new StatesPage();
+        var window = SceneHarness.Show(page, 1100, 900);
+        page.Status = "Syncing";
+        window.MouseMove(SceneHarness.Centre(page.GetControl<Border>("DraftsCard"), window));
+        TestFrames.Tick(10);
+        Assert.NotEmpty(Presto.GetAnimations(page.GetControl<Border>("StatusChip")));
+
+        SceneHarness.Close(window);
+
+        Assert.Empty(page.GetLogicalDescendants().SelectMany(target => Presto.GetAnimations(target)));
+    }
+
+    [AvaloniaFact]
+    public void StatesSnippetsMatchTheMarkup() =>
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(StatesPage), "samples/PrestoSample/Pages/StatesPage.axaml", 6);
+
+    [AvaloniaFact]
+    public void EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
+    {
+        var page = new EffectsPage();
+        var window = SceneHarness.Show(page, 1100, 2600);
+        foreach (var content in new[] { "Blur out", "Raise", "Flip", "Inset", "Circle", "Sweep" }) SceneHarness.Click(window, Button(page, content));
+        page.GetControl<Slider>("ShadowXSlider").Value = -20;
+        SceneHarness.Click(window, page.GetLogicalDescendants().OfType<Button>().First(button => Equals(button.Content, "✕")));
+        window.MouseMove(SceneHarness.Centre(page.GetControl<Border>("TiltCard"), window) + new Point(40, 30));
+        TestFrames.Tick(20);
+
+        Assert.True(page.GetControl<Image>("BlurPicture").IsAnimating(Visual.EffectProperty), "the picture never blurred");
+        Assert.True(page.GetControl<Border>("EffectCard").IsAnimating(Visual.EffectProperty), "the effect card never raised its shadow");
+        Assert.True(page.GetControl<Image>("RevealPicture").IsAnimating(Visual.OpacityMaskProperty), "the sweep never masked the picture");
+        Assert.False(page.GetControl<Border>("TiltCard").RenderTransform!.Value.IsIdentity, "the card never tilted");
+        Assert.Equal(3, page.Items.Count);
+
+        SceneHarness.Close(window);
+
+        var visuals = page.GetVisualDescendants().Prepend(page).ToList();
+        Assert.Empty(visuals.SelectMany(visual => Presto.GetAnimations(visual)));
+        Assert.All(visuals, visual => Assert.False(
+            visual.IsAnimating(Visual.EffectProperty) || visual.IsAnimating(Visual.ClipProperty) || visual.IsAnimating(Visual.OpacityMaskProperty),
+            $"{visual.GetType().Name} {visual.Name} kept a bridge-owned effect, clip or mask"));
+        Assert.IsType<Avalonia.Media.DropShadowEffect>(page.GetControl<Border>("EffectCard").Effect);
+    }
+
+    [Fact]
+    public void EffectsSnippetsMatchTheMarkup() =>
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(EffectsPage), "samples/PrestoSample/Pages/EffectsPage.axaml", 1);
 
     private static List<string> Log(ItemsControl moments) =>
         moments.Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => $"{entry.Moment} {entry.Detail}").ToList();

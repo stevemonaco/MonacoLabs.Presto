@@ -23,7 +23,9 @@ internal sealed class RelativePointCodec : IValueCodec
         return true;
     }
 
-    public object Encode(double number, Tween tween) => new RelativePoint(
+    public object Encode(double number, Tween tween) => Compose(tween);
+
+    internal static RelativePoint Compose(Tween tween) => new(
         tween._numbers[0],
         tween._numbers[1],
         tween._strings[^1] == AbsoluteUnit ? RelativeUnit.Absolute : RelativeUnit.Relative);

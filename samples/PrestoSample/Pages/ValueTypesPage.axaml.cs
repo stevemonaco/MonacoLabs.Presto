@@ -45,6 +45,7 @@ public partial class ValueTypesPage : UserControl
             }),
         })));
         _animations.Add(ElevationCard.Animate(Looping(new() { ["BoxShadow"] = "0 14 28 2 #804c8dff", ["Y"] = -6 })));
+        _animations.Add(GlowCard.Animate(Looping(new() { ["ShadowY"] = 12, ["ShadowBlur"] = 24, ["ShadowColor"] = "rgba(76, 141, 255, .8)" })));
         _animations.Add(((SolidColorBrush)Avatar.Background!).Animate(
             Looping(new() { [SolidColorBrush.ColorProperty] = TweenValue.Of(Colors.OrangeRed) })));
 
