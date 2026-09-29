@@ -204,6 +204,13 @@ Phases 18–20 close the motion gaps found after Phase 17 (Framer Motion/GSAP pa
 
 - [x] **Phase 21 — Lifecycle animations (bridge).** One classification rule for every arrival and departure, with `Presence.Initial` (a view's initial load), `Presence.Enter` (arrives on its own into a loaded view) and the existing `Presence.Exit`, owned by one tracker per element so snapshot and revert order is defined; order-based staggers across an initial load; `Animate.OnAttached` stays as the raw trigger. Sample: a Lifecycle page with a log of what Presence classified. Design and rule: [docs/LIFECYCLE-PLAN.md](LIFECYCLE-PLAN.md).
 
+Phases 22–25 are the motion kit: state triggers, effects and prebuilt recipes; design, API and tests in [docs/MOTION-KIT-PLAN.md](MOTION-KIT-PLAN.md).
+
+- [ ] **Phase 22 — Builder groundwork (core + bridge).** `AnimationBuilder.Clone`/`With` (and the `Connected` defaults hand out copies), and an `Action<AnimationBuilder>` overload beside every `AnimationBuilder` call site (`Presto.Animate`/`Set`, `Timeline.Add`/`Set`, `Animate`, `AnimateOnCompositor`, `AnimateLayout`, `AnimateSharedElement`, `AnimateExit`). The builder stays the value type attached properties and recipes carry. Samples: `RecipesPage` uses `With`.
+- [ ] **Phase 23 — State triggers (bridge).** `Motion.Hover`/`Press`/`Focus`, a `Motion.States` list of `When` conditions over pseudo-classes, classes and `Motion.State` tokens (style setters on `Motion.State` give full selector reach), layered by declaration order and returning to each property's base value; `While*` code API; one-shot `Animate.OnTapped`/`OnChanged`. Samples: a States page; Form states, Chart morph, Micro-interactions and Counters migrated.
+- [ ] **Phase 24 — Effects (bridge).** `Blur` and `Shadow*` shorthands over a bridge-owned `Visual.Effect`, `RotateX`/`RotateY`/`Perspective` through `Rotate3DTransform`, and `ClipInset`/`ClipCircle`/`MaskSweep` reveals; effects removed at rest. Samples: an Effects page; blur-behind in Card gallery, lean in Swipe deck.
+- [ ] **Phase 25 — Recipes and reduced motion (core + bridge).** Factory recipes by family behind a `Recipes` facade, XAML markup extensions that pick the exit form under `Presence.Exit`, library `MotionTokens`, `Tilt` and text recipes, and reduced motion (`WhenReduced`, `PrestoDefaults.ReducedMotion`, OS sources). Samples: a Recipe gallery page, sample-side recipes retired, and a Storefront showcase using Phases 22–25 together.
+
 ## 6. Testing strategy
 
 - **Core**: xunit v3, no Avalonia. Tests drive `Engine.Update(now)` directly through `ManualFrameSource.Advance(ms)`, giving deterministic timing identical to how upstream tests use `engine.update()`/fake timers.
@@ -258,7 +265,9 @@ Open (confirm before the relevant phase):
 ## 8. Prebuilts (later)
 
 Ready-made effects on top of the engine: named, parameterised recipes and the few bridge pieces they need, so common UI
-motion is one call or one XAML attribute rather than a hand-assembled animation. None is scheduled yet. Each should land
+motion is one call or one XAML attribute rather than a hand-assembled animation. Effect shorthands, masks and reveals,
+2.5D tilt and flip, and the entrance, exit, attention, loading, counter and reduced-motion recipes are scheduled as
+Phases 24–25 ([MOTION-KIT-PLAN.md](MOTION-KIT-PLAN.md)); shader and pixel transitions are not. Each should land
 as an `AnimationBuilder` (or a small bridge type where state is involved), usable from code, `Animate.OnAttached`,
 `Presence.Exit` and the compositor where the properties allow.
 
