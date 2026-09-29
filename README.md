@@ -618,7 +618,9 @@ settable.
 The rule: an arriving element's ancestors are walked up past the new wrappers around it, such as its item container,
 and stop at the first panel or other host. A loaded host (`Control.IsLoaded`) means the element entered on its own; a host
 still in its first layout means it came with its view. A departure exits only when every visual between the element and
-the root of what was removed wraps only it, and the parent it leaves has loaded.
+the root of what was removed wraps only it, and the parent it leaves has loaded. Inside a list the list itself decides: a row
+enters only when its item was just added and exits only when it was just removed, so a virtualizing `ListBox` can scroll
+without rows animating as it realizes and recycles them.
 
 Elements arriving in one pass under one panel form a batch, and each one's position in it is the index its function
 values and staggers see, so `RiseIn = Presto.Build()….Delay(Presto.Stagger(60))` ripples a list in with no code.

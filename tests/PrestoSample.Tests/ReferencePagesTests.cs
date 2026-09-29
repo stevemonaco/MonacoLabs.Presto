@@ -74,6 +74,31 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void ScrollingTheLifecycleArchiveLogsNothingButAnAddedRowEnters()
+    {
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 900);
+        SceneHarness.Click(window, Button(page, "Navigate"));
+        SceneHarness.Click(window, Button(page, "Navigate"));
+        TestFrames.Tick(60);
+        var archive = page.GetLogicalDescendants().OfType<ListBox>().Single();
+        var moments = page.GetControl<ItemsControl>("Moments");
+        var before = Log(moments);
+
+        archive.Scroll!.Offset = new Avalonia.Vector(0, 1200);
+        TestFrames.Tick(60);
+
+        Assert.Equal(before, Log(moments));
+        SceneHarness.Click(window, Button(page, "Add row"));
+        TestFrames.Tick(60);
+        Assert.StartsWith("Enter", Log(moments)[0]);
+        SceneHarness.Close(window);
+    }
+
+    private static List<string> Log(ItemsControl moments) =>
+        moments.Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => $"{entry.Moment} {entry.Detail}").ToList();
+
+    [AvaloniaFact]
     public void ADraggableCardsCheckBoxTogglesWithoutDraggingTheCard()
     {
         var page = new DraggablePage();

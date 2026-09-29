@@ -1,6 +1,9 @@
+using System.Collections.Specialized;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -104,28 +107,45 @@ public static class Presence
     /// <summary>Sets the builder played on a ghost of <paramref name="control"/> when it leaves.</summary>
     public static void SetExit(Control control, AnimationBuilder? value) => control.SetValue(ExitProperty, value);
 
-    /// <summary>What <paramref name="control"/>, which has just attached, arrived as.</summary>
+    /// <summary>
+    /// What <paramref name="control"/>, which has just attached, arrived as. The content of an item container enters only
+    /// when its item was just added: a virtualizing list realizes and recycles containers as it scrolls, which is neither.
+    /// </summary>
     internal static PresenceMoment ClassifyArrival(Control control)
     {
+        var moment = PresenceMoment.Initial;
         for (var visual = control.GetVisualParent(); visual is not null; visual = visual.GetVisualParent())
         {
             if (visual is not Control ancestor) continue;
-            if (ancestor.IsLoaded) return PresenceMoment.Enter;
+            if (ancestor.IsLoaded)
+            {
+                moment = PresenceMoment.Enter;
+                break;
+            }
             // A panel realizing its first item has one child for a moment, so only a child count outside panels means a wrapper.
-            if (ancestor is Panel || ancestor.GetVisualChildren().Count() != 1) return PresenceMoment.Initial;
+            if (ancestor is Panel || ancestor.GetVisualChildren().Count() != 1) break;
         }
-        return PresenceMoment.Initial;
+
+        if (OwnerOfItem(control.GetVisualParent()) is not { } owner || ItemChanges.Of(owner) is not { } changes) return moment;
+        if (moment == PresenceMoment.Initial || changes.Added.Contains(control.DataContext!)) return moment;
+        return changes.Reset ? PresenceMoment.Initial : PresenceMoment.Realize;
     }
 
     /// <summary>
     /// What <paramref name="control"/>, which has just detached from <paramref name="parent"/>, left as, and for an exit
-    /// where it was, in its window's coordinates.
+    /// where it was, in its window's coordinates. The content of an item container exits only when its item was just
+    /// removed or its list reset.
     /// </summary>
     internal static (PresenceMoment Moment, Point Position) ClassifyDeparture(Control control, Visual? parent)
     {
         if (parent is null || !parent.IsAttachedToVisualTree() || TopLevel.GetTopLevel(parent) is not { } top) return (PresenceMoment.Unload, default);
         // A view shown again re-creates its item containers before it has loaded, which is part of its load and not an exit.
         if (parent.FindAncestorOfType<Control>(includeSelf: true) is { IsLoaded: false }) return (PresenceMoment.Unload, default);
+        if (OwnerOfItem(parent) is { } owner && ItemChanges.Of(owner) is { } changes && !changes.Reset &&
+            (control.DataContext is not { } item || !changes.Removed.Contains(item)))
+        {
+            return (PresenceMoment.Recycle, default);
+        }
 
         // The removed subtree has not been laid out again, so its bounds still hold where it sat in the parent it was cut from.
         var position = default(Point);
@@ -138,6 +158,24 @@ public static class Presence
         }
         return parent.TranslatePoint(position, top) is { } onScreen ? (PresenceMoment.Exit, onScreen) : (PresenceMoment.Unload, default);
     }
+
+    /// <summary>
+    /// The list whose item <paramref name="parent"/> hosts as content: <paramref name="parent"/> is an item container, or
+    /// part of one's template, such as a <see cref="ListBoxItem"/>'s presenter. Null for anything else.
+    /// </summary>
+    private static ItemsControl? OwnerOfItem(Visual? parent) =>
+        // Found through the panel: a container being recycled has already lost the logical parent ItemsControlFromItemContainer reads.
+        ItemContainerOf(parent) is { } container ? container.GetVisualParent()!.FindAncestorOfType<ItemsControl>() : null;
+
+    /// <summary>The item container <paramref name="parent"/> is, or is part of the template of; null for anything else.</summary>
+    private static Control? ItemContainerOf(Visual? parent)
+    {
+        if (parent is not Control host) return null;
+        var container = IsItemContainer(host) ? host : host.TemplatedParent as Control;
+        return container is not null && IsItemContainer(container) ? container : null;
+    }
+
+    private static bool IsItemContainer(Control control) => control.GetVisualParent() is Panel { IsItemsHost: true };
 
     private static void HandleChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
@@ -166,11 +204,83 @@ public static class Presence
         if (!s_batches.TryGetValue(key, out var batch))
         {
             s_batches[key] = batch = [];
-            // Loaded runs after the pass has laid out and rendered, which is where a batch of arrivals ends.
-            Dispatcher.UIThread.Post(() => s_batches.Remove(key), DispatcherPriority.Loaded);
+            AfterLayout((Layoutable)key, () => s_batches.Remove(key));
         }
         batch.Add(control);
         return (Animation)new Animation(control, builder.ToParams(), null, 0, index: batch.Count - 1, allTargets: batch.ToArray()).Init();
+    }
+
+    /// <summary>
+    /// Runs <paramref name="action"/> once the next layout pass has finished, which is where the arrivals and departures a
+    /// change causes have happened.
+    /// </summary>
+    /// <remarks>
+    /// Not a dispatcher priority: a desktop lays out on its next render tick, so a job posted after a click at any priority
+    /// below input runs before the layout pass it was meant to follow.
+    /// </remarks>
+    private static void AfterLayout(Layoutable target, Action action)
+    {
+        void Handle(object? sender, EventArgs e)
+        {
+            target.LayoutUpdated -= Handle;
+            Dispatcher.UIThread.Post(action, DispatcherPriority.Background);
+        }
+        target.LayoutUpdated += Handle;
+    }
+
+    /// <summary>
+    /// The items a list has just added and removed, and whether it has just reset, kept until the layout pass that realizes
+    /// them has finished. A list is watched from the first lifecycle arrival in it; until that pass ends it cannot yet tell
+    /// an added item from a realized one, so <see cref="Of"/> answers null and the arrival is classified by the general rule.
+    /// </summary>
+    private sealed class ItemChanges
+    {
+        private static readonly ConditionalWeakTable<ItemsControl, ItemChanges> s_lists = new();
+
+        private readonly ItemsControl _owner;
+        private bool _watching;
+        private bool _clearing;
+
+        private ItemChanges(ItemsControl owner)
+        {
+            _owner = owner;
+            owner.Items.CollectionChanged += OnCollectionChanged;
+            Clear();
+        }
+
+        public HashSet<object> Added { get; } = [];
+
+        public HashSet<object> Removed { get; } = [];
+
+        public bool Reset { get; private set; }
+
+        public static ItemChanges? Of(ItemsControl owner)
+        {
+            var changes = s_lists.GetValue(owner, static list => new ItemChanges(list));
+            return changes._watching ? changes : null;
+        }
+
+        private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Reset) Reset = true;
+            if (e.NewItems is { } added) foreach (var item in added) if (item is not null) Added.Add(item);
+            if (e.OldItems is { } removed) foreach (var item in removed) if (item is not null) Removed.Add(item);
+            Clear();
+        }
+
+        private void Clear()
+        {
+            if (_clearing) return;
+            _clearing = true;
+            AfterLayout(_owner, () =>
+            {
+                Added.Clear();
+                Removed.Clear();
+                Reset = false;
+                _clearing = false;
+                _watching = true;
+            });
+        }
     }
 
     /// <summary>Owns an element's lifecycle animations, so a departure snapshots its exit before reverting its entrance.</summary>
@@ -179,6 +289,8 @@ public static class Presence
         private readonly Control _control;
         private Animation? _arrival;
         private Animation? _ghost;
+        private Point? _slot;
+        private bool _recording;
 
         public Tracker(Control control)
         {
@@ -191,8 +303,34 @@ public static class Presence
         {
             _control.AttachedToVisualTree -= HandleAttached;
             _control.DetachedFromVisualTree -= HandleDetached;
+            StopRecording();
             _arrival?.Revert();
             _arrival = null;
+        }
+
+        /// <summary>
+        /// A virtualizing panel moves the container of a removed item before its content detaches, so a row there records
+        /// where it is drawn after every layout pass instead of being measured on the way out.
+        /// </summary>
+        private void StartRecording()
+        {
+            if (_recording || ItemContainerOf(_control.GetVisualParent()) is not { } container || container.GetVisualParent() is not VirtualizingPanel) return;
+            _recording = true;
+            _control.LayoutUpdated += RecordSlot;
+            RecordSlot(null, EventArgs.Empty);
+        }
+
+        private void StopRecording()
+        {
+            if (!_recording) return;
+            _recording = false;
+            _control.LayoutUpdated -= RecordSlot;
+            _slot = null;
+        }
+
+        private void RecordSlot(object? sender, EventArgs e)
+        {
+            if (TopLevel.GetTopLevel(_control) is { } top && _control.GetVisualParent() is { } parent) _slot = parent.TranslatePoint(_control.Bounds.Position, top);
         }
 
         private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e)
@@ -203,16 +341,23 @@ public static class Presence
             _arrival?.Revert();
             _arrival = null;
 
-            var builder = ClassifyArrival(_control) == PresenceMoment.Enter ? GetEnter(_control) : GetInitial(_control);
+            var builder = ClassifyArrival(_control) switch
+            {
+                PresenceMoment.Initial => GetInitial(_control),
+                PresenceMoment.Enter => GetEnter(_control),
+                _ => null,
+            };
             if (builder is not null) _arrival = Arrive(_control, builder);
+            if (GetExit(_control) is not null) StartRecording();
         }
 
         private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e)
         {
             if (GetExit(_control) is { } exit && ClassifyDeparture(_control, e.AttachmentPoint) is (PresenceMoment.Exit, var position))
             {
-                _ghost = Ghost(_control, e.AttachmentPoint!, position, exit);
+                _ghost = Ghost(_control, e.AttachmentPoint!, _slot ?? position, exit);
             }
+            StopRecording();
             _arrival?.Revert();
             _arrival = null;
         }
@@ -239,7 +384,8 @@ public static class Presence
             if (transform is null) snapshot.Render(element);
         });
 
-        var clip = Clip(anchor, top);
+        // An item container leaves with its item, or is recycled for another, so only what is outside it clips the ghost.
+        var clip = Clip(ItemContainerOf(anchor)?.GetVisualParent() ?? anchor, top);
         var ghost = new Image
         {
             Source = snapshot,
@@ -293,6 +439,8 @@ public static class Presence
         var pinned = !root.IsSet(StyledElement.DataContextProperty);
         if (pinned) root.DataContext = root.DataContext;
         ((ISetLogicalParent)root).SetParent(host);
+        // Inherited values such as the font come from where the branch was drawn, not from the ancestor lending it styles.
+        if (root is Visual branch && branch != anchor && !branch.IsVisualAncestorOf(anchor)) ((ISetInheritanceParent)root).SetParent(anchor);
         try
         {
             render();

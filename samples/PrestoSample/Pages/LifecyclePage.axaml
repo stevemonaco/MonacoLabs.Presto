@@ -28,6 +28,19 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style Selector="ListBox.archive">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.archive ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="ListBox.archive ListBoxItem /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.archive ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.archive ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.archive ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
         <Style Selector="Border.moment">
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="6,1" />
@@ -63,10 +76,13 @@
             <TextBlock Classes="code" Text="&lt;Border Classes=&quot;row&quot;&#10;        presto:Presence.Initial=&quot;{x:Static local:Motions.RiseIn}&quot;&#10;        presto:Presence.Enter=&quot;{x:Static local:Motions.SlideIn}&quot;&#10;        presto:Presence.Exit=&quot;{x:Static local:Motions.SlideOut}&quot; /&gt;&#10;&#10;RiseIn   = Presto.Build().Opacity(from: 0, to: 1).Y(from: 18, to: 0).Delay(Presto.Stagger(70)).Duration(460).Ease(Eases.OutQuart);&#10;SlideIn  = Presto.Build().Opacity(from: 0, to: 1).X(from: -40, to: 0).Duration(380).Ease(Eases.OutBack(1.4));&#10;SlideOut = Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad);" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the two views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />
+                       Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="The rule: an arriving element's ancestors are walked up past the new wrappers around it, such as its item container, and stop at the first panel or other host. A loaded host (Control.IsLoaded) means the element entered on its own; a host still in its first layout means it came with its view. Animate.OnAttached remains the raw trigger beside these, playing on every attach unclassified." />
+                       Text="Navigate to the third view, Archive, a ListBox of 300 rows that virtualizes: only the rows on screen exist, and scrolling recycles their controls for other items. Scroll it and the log stays quiet: a row realized or recycled by scrolling is neither an arrival nor a departure, because its item never left the list. Inside a list, Presence enters a row only when its item was just added and exits one only when its item was just removed, so Add row and Remove row still animate; they act on the rows currently on screen." />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The rule: an arriving element's ancestors are walked up past the new wrappers around it, such as its item container, and stop at the first panel or other host. A loaded host (Control.IsLoaded) means the element entered on its own; a host still in its first layout means it came with its view. In an item container, the list's own item changes decide instead. Animate.OnAttached remains the raw trigger beside these, playing on every attach unclassified." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

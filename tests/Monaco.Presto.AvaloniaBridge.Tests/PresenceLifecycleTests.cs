@@ -6,6 +6,8 @@ using Avalonia.Controls.Templates;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.Controls.Documents;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -165,6 +167,134 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
         Assert.All(moments, moment => Assert.Equal(PresenceMoment.Initial, moment));
         Assert.DoesNotContain(OverlayLayer.GetOverlayLayer(panel)!.Children, child => child is Canvas);
     }
+
+    [AvaloniaFact]
+    public void ScrollingAVirtualizedListPlaysNothingAndLeavesNoGhosts()
+    {
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows);
+        var panel = Show(list);
+        Frames.Advance(300, 16);
+        Tick();
+
+        list.Scroll!.Offset = new Vector(0, 600);
+        Tick();
+
+        Assert.DoesNotContain(OverlayLayer.GetOverlayLayer(panel)!.Children, child => child is Canvas);
+        var realized = rows.Where(row => row.Key != "row0" && Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(row.Value) && row.Value.DataContext is string).ToList();
+        Assert.NotEmpty(realized);
+        Assert.All(realized, row => Assert.Equal(1, row.Value.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void AVirtualizedListStillEntersAddedItemsAndExitsRemovedOnes()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(items, rows);
+        var panel = Show(list);
+        Frames.Advance(300, 16);
+        Tick();
+
+        items.RemoveAt(1);
+        Tick();
+        Assert.Single(OverlayLayer.GetOverlayLayer(panel)!.Children.OfType<Canvas>());
+
+        items.Insert(1, "added");
+        Tick();
+        Assert.Equal(0, rows["added"].Opacity);
+    }
+
+    [AvaloniaFact]
+    public void ARowRemovedFromAScrolledVirtualizedListIsGhostedWhereItWasDrawn()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var list = new ListBox
+        {
+            Height = 120,
+            ItemsSource = items,
+            ItemTemplate = new FuncDataTemplate<string>((_, _) =>
+            {
+                var row = new Border { Height = 20, Width = 40, HorizontalAlignment = HorizontalAlignment.Left };
+                row.Bind(Border.BackgroundProperty, new Avalonia.Data.Binding { Converter = new Avalonia.Data.Converters.FuncValueConverter<string, IBrush>(text => text == "row5" ? Brushes.Red : Brushes.Blue) });
+                Presence.SetExit(row, FadeOut);
+                return row;
+            }),
+        };
+        var panel = Show(list);
+        list.Scroll!.Offset = new Vector(0, 150);
+        Tick();
+        Frames.Advance(300, 16);
+        Tick();
+        var drawn = Box(panel);
+
+        items.Remove("row5");
+        Tick();
+
+        Assert.Equal(drawn, Box(panel));
+    }
+
+    [AvaloniaFact]
+    public void AGhostOfARecycledRowKeepsWhatItInheritedFromItsContainer()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var list = new ListBox
+        {
+            Height = 200,
+            ItemsSource = items,
+            ItemTemplate = new FuncDataTemplate<string>((_, _) =>
+            {
+                var row = new TextBlock { Text = "█", Foreground = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left };
+                row.Bind(Visual.IsVisibleProperty, new Avalonia.Data.Binding { Converter = new Avalonia.Data.Converters.FuncValueConverter<string, bool>(text => text == "row1") });
+                Presence.SetExit(row, FadeOut);
+                return row;
+            }),
+        };
+        list.Styles.Add(new Style(x => x.OfType<ListBoxItem>()) { Setters = { new Setter(TextElement.FontSizeProperty, 40d) } });
+        var panel = Show(list);
+        Frames.Advance(300, 16);
+        Tick();
+        var drawn = Box(panel);
+
+        items.Remove("row1");
+        Tick();
+
+        // A glyph lands on another sub-pixel offset in the snapshot, so the box can differ by its anti-aliased edge.
+        var ghost = Box(panel);
+        Assert.InRange(ghost.Width, drawn.Width - 1, drawn.Width + 1);
+        Assert.InRange(ghost.Height, drawn.Height - 1, drawn.Height + 1);
+    }
+
+    [AvaloniaFact]
+    public void ClearingAListExitsEveryRow()
+    {
+        var items = new ObservableCollection<string> { "a", "b", "c" };
+        var list = new ItemsControl
+        {
+            ItemsSource = items,
+            ItemTemplate = new FuncDataTemplate<string>((_, _) => Arriving(exit: FadeOut)),
+        };
+        var panel = Show(list);
+        Tick();
+
+        items.Clear();
+        Tick();
+
+        Assert.Equal(3, OverlayLayer.GetOverlayLayer(panel)!.Children.OfType<Canvas>().Count());
+    }
+
+    private static ListBox VirtualizedList(ObservableCollection<string> items, Dictionary<string, Border> rows) => new()
+    {
+        Height = 100,
+        ItemsSource = items,
+        ItemTemplate = new FuncDataTemplate<string>((item, _) =>
+        {
+            var row = Arriving(initial: FadeIn, enter: FadeIn, exit: FadeOut);
+            row.Background = Brushes.Red;
+            if (item is not null) rows[item] = row;
+            return row;
+        }),
+    };
 
     [AvaloniaFact]
     public void AListInAViewShownAgainLeavesNoGhostsOfTheContainersItReCreates()

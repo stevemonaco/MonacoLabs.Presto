@@ -181,7 +181,31 @@ animation created at attach writes its from-values before the first frame. Imple
    so a builder's shared stagger read past its cache once a batch grew and gave every later element a zero delay. It now
    rebuilds when the target count changes (a pinned deviation, `StaggerTests.AStaggerReusedOnALargerGroupStaggersEveryTarget`).
 
-Sample: a new Reference page, **Lifecycle**, beside Presence. It has two views whose rows carry Initial, Enter and Exit,
+5. **Lists decide for their items** (a follow-up, resolving §5.3 differently from its recommendation). A `ListBox` spike
+   showed a virtualizing panel *detaching* a row's content when it recycles the container on scroll. Every row scrolled out
+   therefore exited on a ghost, and every row scrolled in entered. For an element that is the content of an item container,
+   the container or a part of its template, `Presence` now watches the list's `Items` for changes:
+   - it **enters** only if its item was just added;
+   - it **exits** only if its item was just removed or the list was reset;
+   - scroll realization and recycling are new internal moments, `Realize` and `Recycle`, which play nothing.
+
+   The owner is found from the items panel, because a container being recycled has already lost the logical parent
+   `ItemsControlFromItemContainer` reads. A list is watched from the first lifecycle arrival in it. It answers only after
+   that pass has rendered, so the arrivals of that first pass fall back to the general rule. Covered by
+   `ScrollingAVirtualizedListPlaysNothingAndLeavesNoGhosts`, `AVirtualizedListStillEntersAddedItemsAndExitsRemovedOnes`
+   and `ClearingAListExitsEveryRow`.
+   Three further fixes surfaced only on the Desktop head, where layout runs on the next render tick rather than inside
+   the dispatcher job that made the change (headless tests cannot reproduce that ordering):
+   - The "just changed" window, and a stagger batch, now end after the next layout pass (`LayoutUpdated`, then a posted
+     job) instead of at `DispatcherPriority.Loaded`. After a click, `Loaded` ran before the layout pass that realized the
+     added row, so the row was classified as scroll realization.
+   - A virtualizing panel moves a removed item's container before the item's content detaches, so the content of a
+     container in a `VirtualizingPanel` records where it is drawn after each layout pass, and its ghost uses that slot.
+   - The ghost is clipped only by what is outside the item container (the recycled container clipped it to itself), and
+     while it is snapshotted, a recycled row inherits from where it was drawn rather than from the ancestor lending it
+     styles.
+
+Sample: a new Reference page, **Lifecycle**, beside Presence. It has three views, the third a virtualized `ListBox` of 300 rows that scrolls without a log entry, whose rows carry Initial, Enter and Exit,
 plus buttons to navigate, show a view again, add and remove rows. A log is written by each builder's `OnBegin`, so it
 shows what `Presence` classified rather than what the button meant. The Presence page and the Toasts builder page moved
 from `Animate.OnAttached` to `Presence.Initial`/`Enter`; the toast countdown bar keeps the raw trigger.
