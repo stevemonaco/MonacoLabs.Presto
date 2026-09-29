@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
@@ -68,34 +68,51 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 320, $"{bytes:0.##} bytes per tick");
     }
 
+    /// <remarks>
+    /// The scene's cost is what drawing with a tweened opacity adds to drawing the same dots opaque, measured in alternating
+    /// blocks with the median difference kept: every window earlier tests left open is rendered with each frame too, which in
+    /// a full run drifts the baseline of about 4.6 KB per frame by ±100 bytes, more than the budget.
+    /// </remarks>
     [AvaloniaFact]
     public void CompositorSceneFramesWithinBudget()
     {
-        var (_, canvas) = ShowScene(new DotScene(animated: true));
-        var animated = BytesPerFrame();
-        canvas.Scene = new DotScene(animated: false);
-        Tick();
+        const int blocks = 11;
+        var (_, canvas) = ShowScene(new DotScene());
+        // Scene time is the compositor's own clock, so warming up takes wall time: two alternate cycles fill the brush cache.
+        var warmUp = System.Diagnostics.Stopwatch.StartNew();
+        while (warmUp.ElapsedMilliseconds < 1000) Tick();
 
-        var bytes = animated - BytesPerFrame();
+        var differences = new double[blocks];
+        for (var i = 0; i < blocks; i++)
+        {
+            var animated = BytesPerFrame(canvas, animated: true);
+            differences[i] = animated - BytesPerFrame(canvas, animated: false);
+        }
+        Array.Sort(differences);
+        var bytes = differences[blocks / 2];
 
-        // measured 6 to 22: the twin differenced out carries the same tick, the same Invalidate and the same ellipses,
-        // so what is left is the brush cache, which stops allocating once the tween has visited its 256 opacity steps.
-        Assert.True(bytes <= 64, $"{bytes:0.##} bytes per frame");
+        // measured a median of 0 to 6 over twelve full runs, with single blocks ±80: once the brush cache is full, tweening costs nothing.
+        Assert.True(bytes <= 64, $"{bytes:0.##} bytes per frame, median of {string.Join(", ", differences.Select(d => d.ToString("0")))}");
     }
 
-    /// <summary>Bytes the render loop allocates per compositor frame, measured once the scene has been drawing for a while.</summary>
-    private static double BytesPerFrame()
+    /// <summary>Bytes the render loop allocates per compositor frame while the scene draws its dots tweened or opaque.</summary>
+    private static double BytesPerFrame(CompositorCanvas canvas, bool animated)
     {
-        const int measured = 1000;
-        for (var i = 0; i < 500; i++) Tick();
+        const int measured = 100;
+        canvas.Post(animated);
+        for (var i = 0; i < 10; i++) Tick();
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < measured; i++) Tick();
         return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;
     }
 
-    private sealed class DotScene(bool animated) : CompositorScene
+    /// <summary>A ring of dots whose opacity tweens; <see cref="OnMessage"/> switches between drawing that opacity and drawing them opaque.</summary>
+    private sealed class DotScene : CompositorScene
     {
         private readonly SceneTarget[] _dots = [.. Enumerable.Range(0, 36).Select(_ => new SceneTarget())];
+        private bool _animated = true;
+
+        protected override void OnMessage(object message) => _animated = (bool)message;
 
         protected override void OnAttached() =>
             Presto.Animate(_dots, new()
@@ -114,7 +131,7 @@ public sealed class AllocationTests : CompositorTestBase
             {
                 var angle = i * Math.Tau / _dots.Length;
                 var centre = new Point(size.Width / 2 + Math.Cos(angle) * 18, size.Height / 2 + Math.Sin(angle) * 18);
-                context.DrawEllipse(Brush(Colors.SteelBlue, animated ? _dots[i].Opacity : 1), null, centre, 3, 3);
+                context.DrawEllipse(Brush(Colors.SteelBlue, _animated ? _dots[i].Opacity : 1), null, centre, 3, 3);
             }
         }
     }
