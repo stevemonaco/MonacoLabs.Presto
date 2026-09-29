@@ -140,6 +140,7 @@ public static class PrestoAvalonia
             PlaybackRate = p.PlaybackRate,
             OnBegin = p.OnBegin,
             OnComplete = p.OnComplete,
+            IsReducedMotion = p.IsReducedMotion,
         };
         foreach (var (name, value) in p.Properties) parameters.Properties[name] = value;
         return AnimateOnCompositor(targets, parameters);

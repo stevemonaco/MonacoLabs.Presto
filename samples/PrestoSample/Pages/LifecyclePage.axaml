@@ -80,7 +80,7 @@
                 <Button Content="Remove row" Click="RemoveRow" Margin="0,0,8,8" />
             </WrapPanel>
 
-            <TextBlock Classes="code" Text="&lt;Border Classes=&quot;row&quot;&#10;        presto:Presence.Initial=&quot;{x:Static local:Motions.RiseIn}&quot;&#10;        presto:Presence.Enter=&quot;{x:Static local:Motions.SlideIn}&quot;&#10;        presto:Presence.Exit=&quot;{x:Static local:Motions.SlideOut}&quot; /&gt;&#10;&#10;RiseIn   = Presto.Build().Opacity(from: 0, to: 1).Y(from: 18, to: 0).Delay(Presto.Stagger(70)).Duration(460).Ease(Eases.OutQuart);&#10;SlideIn  = Presto.Build().Opacity(from: 0, to: 1).X(from: -40, to: 0).Duration(380).Ease(Eases.OutBack(1.4));&#10;SlideOut = Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad);" />
+            <TextBlock x:Name="RowCode" Classes="code" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />

@@ -42,7 +42,7 @@ public static class Connected
     private static readonly Dictionary<string, Registration> s_keys = new();
     private static AnimationBuilder s_defaultMotion = Presto.Build().Duration(500).Ease(Eases.OutQuint);
     private static AnimationBuilder s_defaultAnchorMotion =
-        Presto.Build().Y(from: 24, to: 0).Opacity(from: 0, to: 1).Duration(400).Delay(150).Ease(Eases.OutQuart);
+        Presto.Build().Y(from: 24).Opacity(from: 0).Duration(400).Delay(150).Ease(Eases.OutQuart);
 
     static Connected()
     {

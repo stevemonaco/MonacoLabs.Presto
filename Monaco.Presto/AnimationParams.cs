@@ -42,4 +42,7 @@ public record AnimationParams : TimerParams
 
     /// <summary>Called after the tweens have been written each frame, once per animation rather than once per target.</summary>
     public Action<Timer>? OnRender { get; init; }
+
+    /// <summary>Set on params built from a <see cref="AnimationBuilder.WhenReduced"/> alternative, which <see cref="PrestoDefaults.ReduceAll"/> leaves alone.</summary>
+    internal bool IsReducedMotion { get; init; }
 }

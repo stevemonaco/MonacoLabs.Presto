@@ -84,14 +84,9 @@ public partial class TitleSequencePage : ShowcasePage
                 Ease = Eases.OutQuad,
             }, "<<")
             .Label("cards", "+=200")
-            .Add(Cards.Children, new()
-            {
-                ["Y"] = TweenValue.FromTo(28, 0),
-                ["Opacity"] = new TweenParams { From = 0, To = 1, Duration = 450, Ease = Eases.OutQuad },
-                Duration = 900,
-                Ease = Eases.OutQuart,
-                Delay = Presto.Stagger(120),
-            }, "cards")
+            .Add(Cards.Children, Recipes.FadeUp(distance: 28, duration: 900, ease: Eases.OutQuart).Delay(Presto.Stagger(120)), "cards")
+            // Added after the fade-up, which would otherwise land on this 0 rather than the cards' resting opacity.
+            .Set(Cards.Children, b => b.Opacity(0), 0)
             .Label("out", "+=400")
             .Call(_ => BeatText.Text = $"out · {++_crossings} crossings", "out")
             .Add(new TimerParams { Duration = 800 }, "out")

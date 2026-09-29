@@ -39,19 +39,19 @@
 
                         <StackPanel x:Name="Cards" Orientation="Horizontal" Spacing="12"
                                     HorizontalAlignment="Center" Margin="0,22,0,0">
-                            <Border Classes="card showcase" Opacity="0">
+                            <Border Classes="card showcase">
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="Timelines" FontWeight="SemiBold" />
                                     <TextBlock Classes="caption" TextWrapping="Wrap" Text="Labels, positions, nested children" />
                                 </StackPanel>
                             </Border>
-                            <Border Classes="card showcase" Opacity="0">
+                            <Border Classes="card showcase">
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="Shapes" FontWeight="SemiBold" />
                                     <TextBlock Classes="caption" TextWrapping="Wrap" Text="Strokes that draw, geometries that morph" />
                                 </StackPanel>
                             </Border>
-                            <Border Classes="card showcase" Opacity="0">
+                            <Border Classes="card showcase">
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="Text" FontWeight="SemiBold" />
                                     <TextBlock Classes="caption" TextWrapping="Wrap" Text="Split into characters, staggered into place" />

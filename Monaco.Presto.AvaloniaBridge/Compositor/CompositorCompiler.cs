@@ -64,6 +64,7 @@ internal static class CompositorCompiler
             PlaybackRate = parameters.PlaybackRate,
             OnBegin = parameters.OnBegin,
             Autoplay = false,
+            IsReducedMotion = parameters.IsReducedMotion,
         };
 
         var kinds = new List<CompositorTrackKind>();

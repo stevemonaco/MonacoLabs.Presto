@@ -64,4 +64,16 @@ public sealed record PrestoDefaults
 
     /// <summary>Called on every frame on which a tween actually wrote a value to a target (upstream <c>onRender</c>).</summary>
     public Action<Timer>? OnRender { get; set; }
+
+    /// <summary>
+    /// Makes <see cref="AnimationBuilder.ToParams"/> build the <see cref="AnimationBuilder.WhenReduced"/> alternative where one
+    /// exists. Like every default it belongs to one engine or <see cref="Scope"/>, which copy it when created.
+    /// </summary>
+    public bool ReducedMotion { get; set; }
+
+    /// <summary>
+    /// Collapses every animation not built from a <see cref="AnimationBuilder.WhenReduced"/> alternative to an instant,
+    /// non-looping set of its end values. Like every default it belongs to one engine or <see cref="Scope"/>, which copy it when created.
+    /// </summary>
+    public bool ReduceAll { get; set; }
 }

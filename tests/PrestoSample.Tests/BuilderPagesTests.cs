@@ -99,10 +99,11 @@ public sealed class BuilderPagesTests
         var attached = AttachedElements(page);
         Assert.Equal(9, attached.Count);
         Assert.All(attached, visual => Assert.Single(Presto.GetAnimations(visual)));
-        Assert.All(["StaticCode", "ExtensionCode", "BindingCode"], name => Assert.Contains("Presto.Build()", page.GetControl<SelectableTextBlock>(name).Text));
+        Assert.Contains("Presto.Build()", page.GetControl<SelectableTextBlock>("StaticCode").Text);
+        Assert.Contains("Recipes.FadeUp(distance: 48, delay: 100)", page.GetControl<SelectableTextBlock>("ExtensionCode").Text);
         var bindingCode = page.GetControl<SelectableTextBlock>("BindingCode").Text;
-        Assert.Contains("Float", bindingCode);
-        Assert.Contains("Shake", bindingCode);
+        Assert.Contains("Idle = Recipes.Float()", bindingCode);
+        Assert.Contains("Alert = Recipes.Shake().Loop().LoopDelay(700)", bindingCode);
         SceneHarness.Close(window);
     }
 

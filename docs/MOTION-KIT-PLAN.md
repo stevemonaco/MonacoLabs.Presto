@@ -1,6 +1,6 @@
 # Motion kit — builder lambdas, state triggers, effects and recipes
 
-Phases 22–25 in [PLAN.md](PLAN.md). Status: **proposed**. This plan follows the post-Phase-21 evaluation, which found
+Phases 22–25 in [PLAN.md](PLAN.md). Status: **built** (Phases 22–25; see §7 for deviations). This plan follows the post-Phase-21 evaluation, which found
 three gaps that matter most in a real app:
 
 - Nothing plays on hover, press, focus, a pseudo-class or a view-model state. The samples wire `PointerEntered` and
@@ -445,7 +445,7 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
 6. **Every entry point takes the same optional arguments:** `duration`, `delay`, `ease`, `distance` or `intensity`, and
    `stagger`. `stagger` becomes `Delay = Presto.Stagger(step)`, which works with Presence batches (decision 23).
 7. **XAML uses markup extensions,** one per family verb:
-   - `{presto:Fade Direction=Up Distance=24}`, `{presto:Scale From=0.8}`, `{presto:Pop}`, `{presto:Blur Radius=12}`,
+   - `{presto:Fade Direction=Up, Distance=24}`, `{presto:Scale From=0.8}`, `{presto:Pop}`, `{presto:Blur Radius=12}`,
      `{presto:Slide Edge=Left}`, `{presto:Shake Intensity=1.5}`, `{presto:Lift}`, `{presto:PressIn}`, `{presto:Glow}`,
      `{presto:Shimmer}`.
    - An extension reads `IProvideValueTarget`. Given `Presence.Exit` as the target property, it builds the exit form.
@@ -640,3 +640,51 @@ Filled in as each phase lands, as in the other plans.
 - §3.3 step 4's Browser blur measurement is deferred: the Browser head stays out of the day-to-day loop, so the cost of
   the Effects page's blur stage and Card gallery's blur-behind there is still unmeasured, and the README Platforms note
   says so.
+
+**Phase 25**
+- Reduced motion as PLAN decisions 35–36; reduced-form params carry an internal `IsReducedMotion` mark that `ReduceAll`
+  skips, and a new `Engine`/`Scope` copies both flags.
+- Namespace (decision 2): a namespace `Monaco.Presto.AvaloniaBridge.Recipes` cannot sit beside the type `Recipes` in
+  `Monaco.Presto.AvaloniaBridge` (CS0101). `Recipes`, `MotionTokens` and the `Edge` enum live in the root namespace, so
+  one `using Monaco.Presto.AvaloniaBridge;` covers `Recipes.SlideIn(Edge.Left)`; the family classes live in
+  `Monaco.Presto.AvaloniaBridge.Prebuilt` (folder `Prebuilt/`).
+- `MotionTokens` names its eases `Ease` and `EmphasizedEase`, since `Standard` is a preset, and gains `Scale` and
+  `BlurRadius` as the travel of the scale, pop and blur recipes. Entrances default to `Medium`, exits to `Short`; pops
+  and flips use `EmphasizedEase`.
+- `stagger` (decision 6) is a `bool`: it delays each element by `Tokens.StaggerStep` after `delay`
+  (`Presto.Stagger(step, new() { Start = delay })`). Another step is `.Delay(Presto.Stagger(…))` chained on.
+- Every entrance and exit also fades. `SlideIn`/`SlideOut` travel four times `Distance` by default. The flips take an
+  `angle` (default ±90°, not a token) and set `Perspective` 800 as a to-value, which is invisible once the rotation is 0.
+- `FlipOut` is UI-thread only like `FlipIn`: the compositor has no `RotateX` or `Perspective`.
+- Attention, Loops, Interactions and Loading follow the entrance conventions. Attention recipes are per-property
+  keyframes scaled by `intensity`, last `Long`, and end at identity; reduced, each blinks Opacity 1 → 0.6 → 1 over
+  `Short`. Loops and Loading iterate over twice `Long` with `InOutSine` (the spins linearly), not the token ease, which
+  would stall a loop at each turn. Reduced, loops are static (no properties, one iteration) and loading indicators
+  become a slow Opacity pulse, so a wait still shows.
+- Interactions are to-values only, since `MotionState` rejects relative and from-only values, and take no `stagger`
+  because a state applies to one element. Reduced, `Lift` keeps its shadow, `Glow` and `Dim` are unchanged, `Grow` does
+  nothing and `PressIn` dims Opacity to 0.8. `Glow` defaults to `DodgerBlue`; `Indeterminate` takes the track width.
+- `MotionTracker` re-reads a state's values whenever the reduced-motion flag differs from the one they were read under,
+  so toggling it takes effect at the next transition; a state already held keeps its values until it is left.
+- `Shimmer` is a `MaskSweep` loop, not a gradient sweep through the Phase 19 codec (PLAN §8), and `Dots` staggers its
+  batch by a sixth of an iteration itself, so it takes no `stagger`.
+- `Tilt` drives real `RotateX`/`RotateY` at `Perspective` 800 through an `Animatable` whose angles spring (bounce 0.25,
+  500 ms, `PreserveVelocity`), rather than PLAN §8's compositor skew-and-scale approximation, so it is UI thread only. The
+  `Animatable` is created on attach and reverted on detach or when `Enabled` goes false; positions are measured against
+  the untransformed layout slot. Under `ReducedMotion` pointer moves are ignored, so nothing tilts.
+- `Recipes.Typewriter(textBlock, charDelay, duration, delay, ease)` splits into characters only and reverts the split
+  when the last one has appeared; reduced, it plays `Fade` on the whole block. `Recipes.CountUp(textBlock, to, format,
+  duration, delay, ease)` starts from the number the block shows (or 0), formats in the current culture (default `"N0"`)
+  and lasts `Long`; reduced, it is a zero-duration `Text` set through `WhenReduced`. `Typewriter` reads the flag when
+  called instead, because its reduced form animates the block rather than the split characters.
+- Markup extensions are in the root namespace, beside `Recipes`, so the existing `presto` XAML prefix covers them. They
+  derive from an abstract `RecipeExtension` holding `Duration`, `Delay`, `Ease` (an `EaseParser` string), `Stagger` (the
+  step in ms, from `Delay`) and `Out` (`bool?`). An explicit `Out=False` forces the entrance form even on
+  `Presence.Exit`; with no service provider the entrance form is provided. `{presto:Fade}` gained a public
+  `FadeDirection` enum (`None`/`Up`/`Down`/`Left`/`Right`). XAML needs commas between arguments, so decision 7's
+  examples now read `{presto:Fade Direction=Up, Distance=24}`.
+- Samples: the Recipe gallery is a Builder page after Motion tokens, printing each tile's call through `Snippet.Of`, and
+  it puts `Recipes.Tokens` and the flag back when it detaches, as Motion tokens and Storefront do. The sample's
+  `Motions.cs`, `FadeUpExtension.cs` and `MotionTokens` were deleted; XAML and Lifecycle each keep one explicit
+  `Presto.Build()`. Storefront sits before Stress bench, bumps the cart badge with `{presto:Pop}` through
+  `Animate.OnChanged`, and uses `{presto:Scale}` for the grid's filter enter and exit.

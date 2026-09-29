@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             x:Class="Monaco.Presto.AvaloniaBridge.Tests.RecipeXamlView">
+  <UserControl.Styles>
+    <Style Selector="Border.leaving">
+      <Setter Property="presto:Presence.Exit" Value="{presto:Fade Out=True}" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+    <Border x:Name="Hovered" Width="50" Height="20" Background="Red" presto:Motion.Hover="{presto:Lift}" />
+    <Border x:Name="Shaken" Width="50" Height="20" presto:Animate.OnAttached="{presto:Shake Intensity=1.5}" />
+    <Border x:Name="Faded" Height="20"
+            presto:Presence.Enter="{presto:Fade Direction=Up, Distance=24}"
+            presto:Presence.Exit="{presto:Fade Direction=Up, Distance=24}" />
+    <Border x:Name="Styled" Classes="leaving" Height="20" />
+    <Border x:Name="Twin" Height="20" presto:Presence.Enter="{presto:Fade}" />
+    <Border x:Name="OtherTwin" Height="20" presto:Presence.Enter="{presto:Fade}" />
+    <Border x:Name="Tuned" Height="20" presto:Presence.Enter="{presto:Pop Ease=outBack, Stagger=60}" />
+  </StackPanel>
+</UserControl>

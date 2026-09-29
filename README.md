@@ -786,6 +786,149 @@ starts black, opaque, unblurred and at no offset, so animating `ShadowBlur` alon
 - **UI thread only.** The composition layer has no counterpart for any of them, so `AnimateOnCompositor` throws
   `NotSupportedException` for these shorthands.
 
+### Recipes
+
+`Recipes` is a catalogue of everyday motion. Each recipe is a factory that returns a new `AnimationBuilder`, so chaining
+on one never touches another caller's copy, and it goes wherever a builder goes: `Animate`, `Presence.*`, `Motion.*`,
+`Animate.OnAttached`, and `AnimateOnCompositor` where the table allows.
+
+```csharp
+card.Animate(Recipes.FadeUp());
+Recipes.SlideIn(Edge.Left, stagger: true).Animate(panel.Children);
+using var hover = card.WhileHover(Recipes.Lift());
+badge.Animate(Recipes.Shake(intensity: 1.5));
+var spinner = icon.Animate(Recipes.Spinner());     // loops until cancelled
+```
+
+Every recipe also takes `duration`, `delay` and `ease`, defaulting to the [tokens](#motion-tokens), and all but the
+interactions and `Dots` take `stagger: true`, which starts each element of a batch `Tokens.StaggerStep` ms after the one
+before, from `delay`. The families are classes in `Monaco.Presto.AvaloniaBridge.Prebuilt`; `Recipes` forwards to them,
+so `using Monaco.Presto.AvaloniaBridge;` is enough.
+
+Entrances state only where the element starts (`.Opacity(from: 0)`), so they land on its own resting values: a card at
+`Opacity` 0.6 fades up to 0.6. Every entrance and exit fades as well as moving. Exits, attention, loops and interactions
+use to-values; attention recipes end back at identity, and loops and loaders run until cancelled.
+
+| Family | Recipe | Own arguments | Compositor | Reduced form |
+|---|---|---|---|---|
+| `Entrances` | `Fade` | | yes | fade in over `Short` |
+| | `FadeUp`, `FadeDown`, `FadeLeft`, `FadeRight` | `distance` | yes | 〃 |
+| | `ScaleIn`, `PopIn` (overshoots) | `scale` | yes | 〃 |
+| | `BlurIn` | `radius` | no | 〃 |
+| | `SlideIn` | `edge`, `distance` (default 4 × `Distance`) | yes | 〃 |
+| | `FlipIn` | `angle` (90°) | no | 〃 |
+| `Exits` | `FadeOut`, `FadeOutUp`, `FadeOutDown`, `FadeOutLeft`, `FadeOutRight`, `ScaleOut`, `PopOut`, `BlurOut`, `SlideOut`, `FlipOut` | as the entrance; `FlipOut`'s `angle` is −90° | all but `BlurOut` and `FlipOut` | fade out over `Short` |
+| `Attention` | `Shake`, `Pulse`, `Wobble`, `Jelly`, `Heartbeat`, `Tada`, `Bounce` | `intensity` | yes | an Opacity blink, 1 → 0.6 → 1 over `Short` |
+| `Loops` | `Float` | `distance` | yes | static: nothing moves |
+| | `Spin` | | yes | 〃 |
+| | `Breathe`, `Blink` | `intensity` | yes | 〃 |
+| `Interactions` | `Lift` | `distance`, `intensity` | no (shadow) | the shadow alone |
+| | `Grow` | `intensity` | yes | nothing |
+| | `PressIn` | `intensity` | yes | Opacity to 0.8 |
+| | `Glow` | `color` (`DodgerBlue`), `intensity` | no (shadow) | unchanged |
+| | `Dim` | `intensity` | yes | unchanged |
+| `Loading` | `Shimmer` (a `MaskSweep` skeleton) | | no (mask) | a slow Opacity pulse |
+| | `Spinner` | | yes | 〃 |
+| | `Dots` (staggers a panel's children itself) | `distance` | yes | 〃, still staggered |
+| | `Indeterminate` | `distance`, the track width (required) | yes | 〃 |
+
+The interactions are meant for [`Motion` states](#state-motion); they take no `stagger`, since a state belongs to one
+element.
+
+#### Motion tokens
+
+`Recipes.Tokens` is a `MotionTokens` record read on every call, so replacing it restyles later calls but not builders
+already made. Entrances last `Medium`, exits and interactions `Short`, attention `Long`, and loops and loaders twice `Long`;
+pops and flips use `EmphasizedEase`.
+
+```csharp
+Recipes.Tokens = MotionTokens.Expressive;
+Recipes.Tokens = MotionTokens.Standard with { Distance = 32, StaggerStep = 40 };
+```
+
+| Preset | `Short` / `Medium` / `Long` | `Ease` / `EmphasizedEase` | `Distance` | `Scale` | `BlurRadius` | `StaggerStep` |
+|---|---|---|---|---|---|---|
+| `Standard` (default) | 200 / 450 / 650 | `OutCubic` / `OutBack()` | 24 | 0.9 | 12 | 50 |
+| `Expressive` | 450 / 900 / 1200 | `OutBack(2.2)` / `OutElastic(1, .5)` | 64 | 0.6 | 24 | 90 |
+| `Reduced` | 120 / 150 / 200 | `None` / `None` | 0 | 1 | 0 | 0 |
+
+The `Reduced` preset tones motion down by its numbers alone; it is not the [reduced-motion](#reduced-motion) flag.
+
+#### Recipes from XAML
+
+Each markup extension provides a new builder per element from its recipe:
+
+```xml
+<Border presto:Presence.Initial="{presto:Fade Direction=Up, Stagger=60}"
+        presto:Presence.Exit="{presto:Fade Direction=Up}"
+        presto:Motion.Hover="{presto:Lift}"
+        presto:Motion.Press="{presto:PressIn}" />
+
+<Style Selector="Border.toast">
+    <Setter Property="presto:Presence.Exit" Value="{presto:Slide Edge=Right, Out=True}" />
+</Style>
+```
+
+| Extension | Recipe | Own properties | Exit form |
+|---|---|---|---|
+| `{presto:Fade}` | `Fade`, `FadeUp`… | `Direction` (`None`, `Up`, `Down`, `Left`, `Right`), `Distance` | `FadeOut`, `FadeOutUp`… |
+| `{presto:Scale}` | `ScaleIn` | `From` | `ScaleOut` |
+| `{presto:Pop}` | `PopIn` | `Scale` | `PopOut` |
+| `{presto:Blur}` | `BlurIn` | `Radius` | `BlurOut` |
+| `{presto:Slide}` | `SlideIn` | `Edge`, `Distance` | `SlideOut` |
+| `{presto:Shake}` | `Shake` | `Intensity` | |
+| `{presto:Lift}`, `{presto:PressIn}`, `{presto:Glow}` | the same | `Intensity` | |
+| `{presto:Shimmer}` | `Shimmer` | | |
+
+All of them take `Duration`, `Delay`, `Ease` (a string such as `outBack`), `Stagger` (the step in ms) and `Out`. Set
+on `Presence.Exit`, an extension with an exit form provides it. A style `Setter` is not the property it sets, so there
+`Out=True` asks for the exit form; `Out=False` forces the entrance form anywhere. Arguments are separated by commas.
+
+#### Tilt, typewriter and count-up
+
+These need the pointer or the text, so they are not builders. `Tilt` turns an element towards the pointer, up to
+`Strength` degrees (default 10) at its edges, through the `RotateX`, `RotateY` and `Perspective` shorthands, and springs
+flat when the pointer leaves; detaching or disabling it reverts them. It runs on the UI thread, and nothing tilts under
+reduced motion.
+
+```xml
+<Image Source="{Binding Photo}" presto:Tilt.Enabled="True" presto:Tilt.Strength="8" />
+```
+
+```csharp
+Recipes.Typewriter(headline);                    // each character fades in StaggerStep ms after the last
+Recipes.CountUp(total, 1280, format: "C0");      // from the number shown, or 0, over Long
+```
+
+Both play at once and return the `Animation`. `Typewriter(textBlock, charDelay, …)` splits a laid-out `TextBlock` into
+characters and puts it back together at the end; reduced, the whole block fades in. `CountUp(textBlock, to, format, …)`
+formats each value in the current culture (default `"N0"`); reduced, the text is set to the end value on the first frame.
+
+### Reduced motion
+
+Reduced motion is a flag the app sets, and each builder says what it becomes under it:
+
+```csharp
+Presto.Defaults.ReducedMotion = settings.ReduceMotion;
+
+var intro = Presto.Build().Y(from: 80).Scale(from: .8).Opacity(from: 0).Duration(900).Ease(Eases.OutBack())
+    .WhenReduced(b => b.Opacity(from: 0).Duration(150));
+```
+
+While `PrestoDefaults.ReducedMotion` is set, `ToParams()` builds the `WhenReduced` alternative instead: a new builder
+with this one's settings (duration, delay, ease, loop, callbacks), including those chained after `WhenReduced`, but none
+of its properties or keyframes. So `Recipes.FadeUp().Delay(Presto.Stagger(60))` keeps its stagger when reduced. The
+flag is read when the builder becomes params, so a running animation is left alone; a `Motion` state picks up a change at
+its next transition. Every recipe supplies an alternative (the table above).
+
+`PrestoDefaults.ReduceAll` handles everything without one: each other animation, from a builder or from params, becomes
+an instant, one-iteration set of its end values, keyframes and springs included, and so do timeline children. Plain
+timers keep their durations, and animations built from a `WhenReduced` alternative play as written. Set both to reduce
+the whole app.
+
+Both flags are ordinary defaults, so each engine has its own and a `Scope` copies them. Presto never sets them itself;
+following the OS "reduce motion" setting is Phase 26 ([PLATFORM-PLAN.md](docs/PLATFORM-PLAN.md)).
+
 ## anime.js → Presto
 
 Every entry point of anime.js 4.5.0's `src/index.js`:
@@ -823,9 +966,10 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
 | *CSS, not anime.js:* `clip-path: inset()` / `circle()` | `ClipInset`, `ClipCircle` with `ClipCircleCenter` |
 | *CSS, not anime.js:* a `mask-image` linear-gradient sweep | `MaskSweep` with `MaskSweepAngle` and `MaskSweepFeather` |
+| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; `reducedMotion="user"` is Phase 26. See [Reduced motion](#reduced-motion) |
 
 The XAML surface is `Animate.OnAttached`, which plays a builder whenever a visual attaches ([From XAML](#from-xaml)), the `Presence` lifecycle properties ([Lifecycle animations](#lifecycle-animations)), `Connected`'s keys,
-the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)); other triggers belong in code-behind or a view model.
+the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)), and the recipe markup extensions and `Tilt` ([Recipes](#recipes)); other triggers belong in code-behind or a view model.
 
 ### Parameter names
 

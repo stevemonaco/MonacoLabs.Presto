@@ -63,6 +63,7 @@ public sealed class ReferencePagesTests
         Assert.Contains("Enter", moments);
         Assert.Contains("Exit", moments);
         Assert.Contains("Unload", moments);
+        Assert.Contains("Presence.SetEnter(row, Recipes.SlideIn(Edge.Left", page.GetControl<TextBlock>("RowCode").Text);
         SceneHarness.Close(window);
     }
 

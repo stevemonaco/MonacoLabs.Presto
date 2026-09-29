@@ -488,6 +488,58 @@ public sealed class AnimationBuilderTests : EngineTestBase
         Assert.Equal(7, target.X);
     }
 
+    [Fact]
+    public void WhenReducedIsPickedOnlyWhileReducedMotionIsSet()
+    {
+        var builder = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
+
+        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Presto.Defaults.ReducedMotion = true;
+        Assert.Equal(["Opacity"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["X"], Presto.Build().Property("X", 100).ToParams().Properties.Keys);
+        Presto.Defaults.ReducedMotion = false;
+        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+    }
+
+    [Fact]
+    public void SettingsChainedAfterWhenReducedCarryIntoTheReducedFormButMainPropertiesDoNot()
+    {
+        TweenValue delay = Presto.Stagger(60);
+        Action<Timer> onComplete = _ => { };
+        Presto.Defaults.ReducedMotion = true;
+
+        var parameters = Presto.Build()
+            .Property("X", 100)
+            .Keyframes(k => k.Frame(f => f.Property("Y", 1)))
+            .Duration(800)
+            .Ease("outExpo")
+            .WhenReduced(b => b.Property("Opacity", 1).Duration(150))
+            .Delay(delay)
+            .OnComplete(onComplete)
+            .ToParams();
+
+        Assert.Equal(["Opacity"], parameters.Properties.Keys);
+        Assert.Null(parameters.Keyframes);
+        Assert.Equal(150d, parameters.Duration?.Raw);
+        Assert.Equal("outExpo", parameters.Ease?.Raw);
+        Assert.Same(delay.Raw, parameters.Delay?.Raw);
+        Assert.Same(onComplete, parameters.OnComplete);
+    }
+
+    [Fact]
+    public void CloneAndWithCarryTheReducedFormAndWithLeavesTheSourceAlone()
+    {
+        var source = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
+
+        var clone = source.Clone();
+        var changed = source.With(b => b.WhenReduced(r => r.Property("Scale", 1)));
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.Equal(["Opacity"], clone.ToParams().Properties.Keys);
+        Assert.Equal(["Scale"], changed.ToParams().Properties.Keys);
+        Assert.Equal(["Opacity"], source.ToParams().Properties.Keys);
+    }
+
     private static void AssertEquivalent(AnimationParams expected, AnimationParams actual)
     {
         Assert.Equal(expected.Properties.Keys, actual.Properties.Keys);

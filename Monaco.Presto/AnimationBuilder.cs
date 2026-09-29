@@ -8,6 +8,7 @@ public sealed class AnimationBuilder : PropertyBuilder<AnimationBuilder>
 {
     private AnimationParams _settings = new();
     private KeyframesBuilder? _keyframes;
+    private Action<AnimationBuilder>? _reduced;
 
     /// <inheritdoc cref="AnimationParams.Duration"/>
     public AnimationBuilder Duration(TweenValue duration) { _settings = _settings with { Duration = duration }; return this; }
@@ -86,9 +87,15 @@ public sealed class AnimationBuilder : PropertyBuilder<AnimationBuilder>
         return this;
     }
 
-    /// <summary>Copies this builder's settings, properties and keyframes into a new builder that changes independently of it.</summary>
+    /// <summary>
+    /// Sets the form <see cref="ToParams"/> builds while <see cref="PrestoDefaults.ReducedMotion"/> is set: a new builder
+    /// carrying this one's settings, including those chained later, but none of its properties or keyframes, changed by <paramref name="reduced"/>.
+    /// </summary>
+    public AnimationBuilder WhenReduced(Action<AnimationBuilder> reduced) { _reduced = reduced; return this; }
+
+    /// <summary>Copies this builder's settings, properties, keyframes and reduced form into a new builder that changes independently of it.</summary>
     public AnimationBuilder Clone() =>
-        CopyPropertiesTo(new AnimationBuilder { _settings = _settings, _keyframes = _keyframes?.Clone() });
+        CopyPropertiesTo(new AnimationBuilder { _settings = _settings, _keyframes = _keyframes?.Clone(), _reduced = _reduced });
 
     /// <summary>Returns a <see cref="Clone"/> with <paramref name="change"/> applied, leaving this builder untouched.</summary>
     public AnimationBuilder With(Action<AnimationBuilder> change)
@@ -99,11 +106,20 @@ public sealed class AnimationBuilder : PropertyBuilder<AnimationBuilder>
     }
 
     /// <summary>Snapshots the builder into new <see cref="AnimationParams"/>, equal to the indexer form of the same calls.</summary>
-    public AnimationParams ToParams() => _settings with { Properties = new(Properties), Keyframes = _keyframes?.ToKeyframes() };
+    public AnimationParams ToParams()
+    {
+        if (_reduced == null || !Engine.Current.Defaults.ReducedMotion) return Snapshot(false);
+        var reduced = new AnimationBuilder { _settings = _settings };
+        _reduced(reduced);
+        return reduced.Snapshot(true);
+    }
 
     /// <summary>Animates <paramref name="targets"/> with a snapshot of this builder, as <see cref="Presto.Animate(object?, AnimationParams)"/> does.</summary>
     public Animation Animate(object? targets) => Presto.Animate(targets, ToParams());
 
     /// <summary>Writes this builder's values to <paramref name="targets"/> immediately, as <see cref="Presto.Set(object?, AnimationParams)"/> does.</summary>
     public Animation Set(object? targets) => Presto.Set(targets, ToParams());
+
+    private AnimationParams Snapshot(bool reducedMotion) =>
+        _settings with { Properties = new(Properties), Keyframes = _keyframes?.ToKeyframes(), IsReducedMotion = reducedMotion };
 }

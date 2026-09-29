@@ -166,4 +166,31 @@ public sealed class CompositorAnimationTests : CompositorTestBase
 
         Assert.Equal(0, animation.CurrentTime);
     }
+
+    [AvaloniaFact]
+    public async Task ReduceAllLandsACompositorAnimationOnItsEndValuesAtOnce()
+    {
+        var bar = ShowBar();
+        Presto.Defaults.ReduceAll = true;
+
+        var animation = bar.AnimateOnCompositor(Presto.Build().X(20).Duration(1000).Delay(500).Loop(2));
+        Frames.Advance(16);
+
+        Assert.True(animation.Completed);
+        Assert.True(await Pump(() => Extent(bar, Colors.Red) == new Rect(50, 40, 40, 20), rounds: 4), "the reduced move did not land at once");
+    }
+
+    [AvaloniaFact]
+    public void ReduceAllLeavesAReducedAlternativeOnTheCompositorAlone()
+    {
+        var bar = ShowBar();
+        Presto.Defaults.ReducedMotion = true;
+        Presto.Defaults.ReduceAll = true;
+
+        var animation = bar.AnimateOnCompositor(Presto.Build().X(20).WhenReduced(r => r.Opacity(0.5).Duration(300).Ease("linear")));
+        Frames.Advance(150);
+
+        Assert.False(animation.Completed);
+        Assert.InRange(animation.Progress, 0.3, 0.7);
+    }
 }

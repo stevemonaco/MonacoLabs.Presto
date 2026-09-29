@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Builder;
 using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Pages;
@@ -38,12 +39,17 @@ public partial class LifecyclePage : UserControl
         Moments.ItemsSource = _moments;
         Moments.ItemTemplate = new FuncDataTemplate<(string Moment, IBrush Tint, string Detail)>((entry, _) => MomentLine(entry));
 
-        var initial = Presto.Build().Opacity(from: 0, to: 1).Y(from: 18, to: 0).Delay(Presto.Stagger(70)).Duration(460).Ease(Eases.OutQuart)
-            .OnBegin(timer => Record("Initial", InitialTint, RowOf(timer)));
-        var enter = Presto.Build().Opacity(from: 0, to: 1).X(from: -40, to: 0).Duration(380).Ease(Eases.OutBack(1.4))
-            .OnBegin(timer => Record("Enter", EnterTint, RowOf(timer)));
-        var exit = Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad)
-            .OnBegin(_ => Record("Exit", ExitTint, "a ghost of the removed row"));
+        var (initial, initialCode) = Snippet.Of(Recipes.FadeUp(distance: 18, duration: 460, ease: Eases.OutQuart).Delay(Presto.Stagger(70)));
+        var (enter, enterCode) = Snippet.Of(Recipes.SlideIn(Edge.Left, distance: 40, duration: 380, ease: Eases.OutBack(1.4)));
+        var (exit, exitCode) = Snippet.Of(Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad));
+        RowCode.Text = $"""
+            Presence.SetInitial(row, {initialCode});
+            Presence.SetEnter(row, {enterCode});
+            Presence.SetExit(row, {exitCode});
+            """;
+        initial.OnBegin(timer => Record("Initial", InitialTint, RowOf(timer)));
+        enter.OnBegin(timer => Record("Enter", EnterTint, RowOf(timer)));
+        exit.OnBegin(_ => Record("Exit", ExitTint, "a ghost of the removed row"));
 
         _views =
         [
@@ -129,10 +135,10 @@ public partial class LifecyclePage : UserControl
             Background = SolidColorBrush.Parse(color),
             Child = new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Bottom },
         };
-        var arrive = Presto.Build().Opacity(from: 0, to: 1).Y(from: 16, to: 0).Duration(360).Ease(Eases.OutQuart);
+        var arrive = Recipes.FadeUp(distance: 16, duration: 360, ease: Eases.OutQuart);
         Presence.SetInitial(panel, arrive);
         Presence.SetEnter(panel, arrive);
-        Presence.SetExit(panel, Presto.Build().Opacity(to: 0).Y(to: -16).Duration(360).Ease(Eases.InQuad));
+        Presence.SetExit(panel, Recipes.FadeOutUp(distance: 16, duration: 360, ease: Eases.InQuad));
         return panel;
     }
 

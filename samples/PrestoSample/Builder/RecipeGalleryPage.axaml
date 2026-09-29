@@ -1,0 +1,144 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1400"
+                       x:Class="PrestoSample.Builder.RecipeGalleryPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.tile">
+            <Setter Property="Width" Value="214" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.tile TextBlock.name">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+        <Style Selector="Border.well">
+            <Setter Property="Height" Value="96" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="Border.well > :is(Control)">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.skeleton">
+            <Setter Property="Width" Value="150" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.AccentDim}" />
+        </Style>
+        <Style Selector="Border.ring">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="BorderThickness" Value="4,4,0,0" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.AccentBright}" />
+        </Style>
+        <Style Selector="Border.fill">
+            <Setter Property="Width" Value="60" />
+            <Setter Property="Height" Value="6" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.AccentBright}" />
+        </Style>
+        <Style Selector="Border.row">
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        </Style>
+        <Style Selector="Border.row TextBlock, Border.specimen > TextBlock">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <WrapPanel ItemSpacing="24" LineSpacing="12">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="Tokens" />
+                    <ComboBox x:Name="TokensBox" SelectedIndex="0" Width="150">
+                        <ComboBoxItem Content="Standard" />
+                        <ComboBoxItem Content="Expressive" />
+                        <ComboBoxItem Content="Reduced" />
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="Reduced motion" />
+                    <ToggleSwitch x:Name="ReducedSwitch" OffContent="Full forms" OnContent="Reduced forms" />
+                </StackPanel>
+                <StackPanel Spacing="2" Width="220">
+                    <TextBlock Classes="caption" Text="Duration (far left: the tokens decide)" />
+                    <Slider x:Name="DurationSlider" Minimum="0" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" />
+                </StackPanel>
+                <StackPanel Spacing="2" Width="220">
+                    <TextBlock Classes="caption" Text="Intensity" />
+                    <Slider x:Name="IntensitySlider" Minimum="0.25" Maximum="2" Value="1" TickFrequency="0.25" IsSnapToTickEnabled="True" />
+                </StackPanel>
+            </WrapPanel>
+
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="SettingsCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+
+            <TabControl>
+                <TabItem Header="C#">
+                    <StackPanel x:Name="FamilyPanel" Spacing="12" Margin="0,12,0,0" />
+                </TabItem>
+                <TabItem Header="XAML">
+                    <StackPanel Spacing="12" Margin="0,12,0,0">
+                        <Button Content="Replay" Click="ReplayXaml" HorizontalAlignment="Left" />
+                        <Border x:Name="XamlHost" Classes="stage" MinHeight="0">
+                            <StackPanel Spacing="20">
+                                <WrapPanel ItemSpacing="24" LineSpacing="16">
+                                    <Border Classes="swatch" presto:Animate.OnAttached="{presto:Fade Direction=Up}" />
+                                    <Border Classes="swatch" presto:Animate.OnAttached="{presto:Pop}" />
+                                    <Border Classes="swatch" presto:Animate.OnAttached="{presto:Shake Intensity=1.5}" />
+                                    <Button Classes="specimen" Content="Hover me" presto:Motion.Hover="{presto:Lift}" />
+                                    <Border Classes="specimen" presto:Tilt.Enabled="True">
+                                        <TextBlock Text="Move over me" />
+                                    </Border>
+                                </WrapPanel>
+                                <StackPanel x:Name="XamlRows" Spacing="6">
+                                    <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
+                                        <DockPanel>
+                                            <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
+                                            <TextBlock Text="Quarterly report is ready" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
+                                        <DockPanel>
+                                            <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
+                                            <TextBlock Text="Ada commented on your draft" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
+                                        <DockPanel>
+                                            <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
+                                            <TextBlock Text="Build 482 passed" />
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Classes="caption" Text="The XAML: each markup extension provides a new recipe builder per element, and on Presence.Exit it provides the exit form" />
+                        <Border Classes="codeblock">
+                            <ScrollViewer>
+                                <SelectableTextBlock x:Name="XamlCode" Classes="code" />
+                            </ScrollViewer>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

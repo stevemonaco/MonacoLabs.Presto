@@ -166,12 +166,17 @@ internal sealed class MotionTracker
     {
         var condition = MotionCondition.Parse(state.When);
         state.Validate();
+        return new Entry(state, condition, Read(state), Engine.Current.Defaults.ReducedMotion);
+    }
+
+    private Dictionary<string, KeyValuePair<string, TweenValue>> Read(MotionState state)
+    {
         var properties = new Dictionary<string, KeyValuePair<string, TweenValue>>();
         if (state.Motion != null)
         {
             foreach (var pair in Expand(state.Motion.ToParams())) properties[Presto.Canonicalise(_control, pair.Key)] = pair;
         }
-        return new Entry(state, condition, properties);
+        return properties;
     }
 
     private void ReadTokens()
@@ -182,8 +187,11 @@ internal sealed class MotionTracker
 
     private void Resolve(Dictionary<string, Entry> winners)
     {
+        var reduced = Engine.Current.Defaults.ReducedMotion;
         foreach (var entry in _entries)
         {
+            // Re-read here so toggling reduced motion takes effect at the next transition.
+            if (entry.Reduced != reduced) (entry.Properties, entry.Reduced) = (Read(entry.State), reduced);
             entry.WasActive = entry.Active;
             entry.Active = entry.Condition.Matches(_control.Classes, _tokens, _pressed, _hovered);
             if (!entry.Active) continue;
@@ -441,14 +449,17 @@ internal sealed class MotionTracker
     }
 
     /// <summary>One state in the tracker's order, with the properties it moves keyed by canonical name.</summary>
-    internal sealed class Entry(MotionState state, MotionCondition condition, Dictionary<string, KeyValuePair<string, TweenValue>> properties)
+    internal sealed class Entry(MotionState state, MotionCondition condition, Dictionary<string, KeyValuePair<string, TweenValue>> properties, bool reduced)
     {
         public MotionState State { get; } = state;
 
         public MotionCondition Condition { get; } = condition;
 
         /// <summary>Canonical name to the name and value as the state wrote them.</summary>
-        public Dictionary<string, KeyValuePair<string, TweenValue>> Properties { get; } = properties;
+        public Dictionary<string, KeyValuePair<string, TweenValue>> Properties { get; set; } = properties;
+
+        /// <summary>Whether <see cref="Properties"/> were read from the <see cref="AnimationBuilder.WhenReduced"/> form.</summary>
+        public bool Reduced { get; set; } = reduced;
 
         public bool Active { get; set; }
 

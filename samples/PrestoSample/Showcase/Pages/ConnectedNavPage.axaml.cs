@@ -93,12 +93,8 @@ public partial class ConnectedNavPage : ShowcasePage
             PrestoAvalonia.AnimateSharedElement(CityKey, detail.City, TitleDuration * pace, Eases.OutExpo);
 
             _cascade?.Revert();
-            _cascade = PrestoAvalonia.AnimateOnCompositor(detail.Coordinated, Presto.Build()
-                .Y(from: 28, to: 0)
-                .Opacity(from: 0, to: 1)
-                .Duration(480 * pace)
-                .Delay(Presto.Stagger(45 * pace, new StaggerParams { Start = 200 * pace }))
-                .Ease(Eases.OutQuart));
+            _cascade = PrestoAvalonia.AnimateOnCompositor(detail.Coordinated,
+                Recipes.FadeUp(distance: 28, duration: 480 * pace, ease: Eases.OutQuart).Delay(Presto.Stagger(45 * pace, new StaggerParams { Start = 200 * pace })));
         });
         Jam();
         Focus();
@@ -122,12 +118,8 @@ public partial class ConnectedNavPage : ShowcasePage
 
             _cascade?.Revert();
             Control[] returning = [.. _cards.Where(other => other != card).Select(other => other.Root), card.Country];
-            _cascade = PrestoAvalonia.AnimateOnCompositor(returning, Presto.Build()
-                .Scale(from: .9, to: 1)
-                .Opacity(from: 0, to: 1)
-                .Duration(420 * pace)
-                .Delay((FunctionValue)((target, _, _) => (120 + 70 * Distance((int)((Control)target).Tag!, index)) * pace))
-                .Ease(Eases.OutQuart));
+            _cascade = PrestoAvalonia.AnimateOnCompositor(returning, Recipes.ScaleIn(scale: .9, duration: 420 * pace, ease: Eases.OutQuart)
+                .Delay((FunctionValue)((target, _, _) => (120 + 70 * Distance((int)((Control)target).Tag!, index)) * pace)));
         });
         Jam();
     }

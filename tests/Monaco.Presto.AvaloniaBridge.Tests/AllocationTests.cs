@@ -117,6 +117,22 @@ public sealed class AllocationTests : CompositorTestBase
             $"{idle:0.##} bytes per tick idle, {hovered:0.##} hovered, {rested:0.##} at rest");
     }
 
+    [AvaloniaFact]
+    public void AnIdleTiltAllocatesNothingPerFrame()
+    {
+        var box = Box();
+        Tilt.SetEnabled(box, true);
+        var window = Show(box);
+        Tick();
+
+        var idle = BytesPerTick();
+        window.MouseMove(new Point(40, 10));
+        Frames.Advance(2000, 16);
+        var tilted = BytesPerTick();
+
+        Assert.True(idle == 0 && tilted == 0, $"{idle:0.##} bytes per tick idle, {tilted:0.##} tilted and still");
+    }
+
     /// <remarks>
     /// The scene's cost is what drawing with a tweened opacity adds to drawing the same dots opaque, measured in alternating
     /// blocks with the median difference kept: every window earlier tests left open is rendered with each frame too, which in

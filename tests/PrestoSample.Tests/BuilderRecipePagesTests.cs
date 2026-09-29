@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Builder;
 
 namespace PrestoSample.Tests;
@@ -12,24 +13,73 @@ namespace PrestoSample.Tests;
 public sealed class BuilderRecipePagesTests
 {
     [AvaloniaFact]
-    public void MotionTokensReplaysTheRecipesWithTheSelectedSet()
+    public void MotionTokensReplaysTheRecipesWithTheSelectedPresetAndFlagAndRestoresBothOnDetach()
     {
+        var tokens = Recipes.Tokens;
         var page = new MotionTokensPage();
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(50);
 
-        Assert.Contains("Func<MotionTokens, AnimationBuilder> Enter = t => Presto.Build()", page.GetControl<SelectableTextBlock>("RecipesCode").Text);
+        Assert.Same(MotionTokens.Standard, Recipes.Tokens);
         Assert.All(page.Played, animation => Assert.True(animation.CurrentTime > 0));
+        Assert.Contains("Recipes.FadeUp(stagger: true).Animate(Rows.Children);", page.GetControl<SelectableTextBlock>("PlayCode").Text);
 
         var standard = page.Played;
-        page.GetControl<RadioButton>("ReducedOption").IsChecked = true;
+        page.GetControl<ComboBox>("TokensBox").SelectedIndex = 1;
         TestFrames.Tick();
 
         Assert.NotSame(standard, page.Played);
-        Assert.Contains("Distance: 0", page.GetControl<SelectableTextBlock>("TokensCode").Text);
-        Assert.Contains("Enter(tokens)", page.GetControl<SelectableTextBlock>("PlayCode").Text);
+        Assert.Same(MotionTokens.Expressive, Recipes.Tokens);
+        Assert.Equal(MotionTokens.Expressive.Medium, page.Played[1].Duration);
+
+        page.GetControl<ToggleSwitch>("ReducedSwitch").IsChecked = true;
+        TestFrames.Tick();
+
+        Assert.True(Presto.Defaults.ReducedMotion);
+        Assert.Equal(MotionTokens.Expressive.Short, page.Played[1].Duration);
+        var settings = page.GetControl<SelectableTextBlock>("TokensCode").Text;
+        Assert.Contains("Recipes.Tokens = MotionTokens.Expressive;", settings);
+        Assert.Contains("Presto.Defaults.ReducedMotion = true;", settings);
+
         SceneHarness.Close(window);
+
+        Assert.Same(tokens, Recipes.Tokens);
+        Assert.False(Presto.Defaults.ReducedMotion);
     }
+
+    [AvaloniaFact]
+    public void RecipeGalleryPlaysTilesInTheirReducedFormsAndRestoresTheGlobalsOnDetach()
+    {
+        var tokens = Recipes.Tokens;
+        var page = new RecipeGalleryPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var fadeUp = page.GetLogicalDescendants().OfType<Button>().First(button => button.Tag is "FadeUp");
+
+        fadeUp.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        TestFrames.Tick(2);
+
+        var specimen = (Control)page.Played!.Targets[0];
+        Assert.True(Get(specimen, "Y") > 0);
+        Assert.Contains("target.Animate(Recipes.FadeUp(duration: duration))", page.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+
+        page.GetControl<ComboBox>("TokensBox").SelectedIndex = 1;
+        page.GetControl<ToggleSwitch>("ReducedSwitch").IsChecked = true;
+        fadeUp.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        TestFrames.Tick(2);
+
+        Assert.Same(MotionTokens.Expressive, Recipes.Tokens);
+        Assert.Equal(0, Get(specimen, "Y"));
+        Assert.InRange(specimen.Opacity, 0, .99);
+
+        SceneHarness.Close(window);
+
+        Assert.Same(tokens, Recipes.Tokens);
+        Assert.False(Presto.Defaults.ReducedMotion);
+    }
+
+    [Fact]
+    public void RecipeGalleryPageSnippetsMatchItsMarkup() =>
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(RecipeGalleryPage), "samples/PrestoSample/Builder/RecipeGalleryPage.axaml", 2);
 
     [AvaloniaFact]
     public void PlaygroundPrintsTheChainItPlaysAndRebuildsAfterAChange()
