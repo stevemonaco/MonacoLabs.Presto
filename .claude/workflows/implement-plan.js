@@ -126,7 +126,7 @@ const TEST_SCHEMA = {
 
 const EDIT_RULES = `
 
-Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. When porting, read the anime.js 4.5.0 source first: a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch.`
+Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. Never send real OS mouse or keyboard input (only the avalonia_devtools tools may drive a Presto app), and never capture the screen or inspect any window that is not a Monaco.Presto app's own. When porting, read the anime.js 4.5.0 source first: a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch.`
 
 const READ_ONLY_RULES = ` Do not edit files, build, or run tests.`
 
@@ -136,6 +136,8 @@ Visual verification (this item changes what the sample shows):
 - If a PrestoSample.Desktop process is already running, attach-to-app and reuse it: hot reload applies your edits to the live instance.
 - Otherwise run \`dotnet watch --project samples/PrestoSample.Desktop\` in the background, wait for the window, then attach-to-app. .axaml edits are patched live; C# edits hot-reload through dotnet watch except rude edits (new types, changed signatures), which need the watch process restarted.
 - Drive the page with input, then confirm end states with screenshot and props. Record what you saw in \`verified\`.
+- Send input only through the avalonia_devtools \`input\`, \`action\` and \`set-prop\` tools. Never use real OS input (SendInput, mouse_event, keybd_event, SetCursorPos, UI Automation, AutoHotkey, or anything else that moves the real cursor or types on the user's desktop). If DevTools cannot drive something (drags, wheel, multi-touch), say so in \`blockers\` and leave it for the user.
+- Look only at Monaco.Presto's own apps: DevTools screenshots of the attached app, or a window capture targeted at a Presto process's window handle. Never capture the whole screen or desktop, and never capture, inspect or read other applications' windows.
 - Stop any watch process you started before finishing.
 `
 

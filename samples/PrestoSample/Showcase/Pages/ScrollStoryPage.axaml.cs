@@ -60,14 +60,21 @@ public partial class ScrollStoryPage : ShowcasePage
         }));
 
         Control[] chapters = [Chapter1, Chapter2, Chapter3];
+        TextBlock[] headings = [Heading1, Heading2, Heading3];
         for (var i = 0; i < chapters.Length; i++)
         {
             var chapter = chapters[i];
+            var heading = headings[i];
             Watch($"chapter {i + 1}", chapter, new ScrollObserverParams
             {
                 Enter = "bottom-=120 top",
                 Leave = "top+=40 bottom",
-                OnEnter = observer => Crossed(observer, "enter"),
+                OnEnter = observer =>
+                {
+                    Crossed(observer, "enter");
+                    // Presence.Reveal only plays in a virtualizing list; set on an attached block, OnAttached plays at once.
+                    if (Animate.GetOnAttached(heading) is null) Animate.SetOnAttached(heading, Recipes.LineMask());
+                },
                 OnLeave = observer => Crossed(observer, "leave"),
             }).Link(chapter.Animate(new()
             {

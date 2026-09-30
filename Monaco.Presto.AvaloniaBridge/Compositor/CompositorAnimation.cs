@@ -227,8 +227,6 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
 
     private sealed class TargetAnimation(CompositorAnimation owner, Visual visual, Animation mirror, CompiledTrack[] tracks)
     {
-        private const string Centre = "Vector3(this.Target.Size.X * 0.5, this.Target.Size.Y * 0.5, 0)";
-
         private static readonly Vector3D s_one = new(1, 1, 1);
 
         private CompositionVisual? _element;
@@ -268,8 +266,12 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
                 _centred |= track.Kind is CompositorTrackKind.Scale or CompositorTrackKind.RotationAngle;
             }
 
-            // Keeps the origin of a rotation or a scale on the middle of the control as layout resizes it, as RenderTransformOrigin does.
-            if (_centred) element.StartAnimation("CenterPoint", element.Compositor.CreateExpressionAnimation(Centre));
+            if (_centred)
+            {
+                Pivot(element);
+                visual.PropertyChanged -= OnPropertyChanged;
+                visual.PropertyChanged += OnPropertyChanged;
+            }
             mirror.Resume();
         }
 
@@ -384,6 +386,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         private void Stop()
         {
             visual.AttachedToVisualTree -= OnAttachedToVisualTree;
+            visual.PropertyChanged -= OnPropertyChanged;
             if (_element is not { } element) return;
             foreach (var track in tracks) Release(track.Kind, handOver: false);
             if (_centred) element.StopAnimation("CenterPoint");
@@ -397,6 +400,22 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
             // A cancel keeps Visual.Opacity held so nothing writes over the frozen pixels; a hand over lets the next owner have it.
             if (handOver && kind == CompositorTrackKind.Opacity) _opacity?.Dispose();
             CompositorRegistry.Drop(visual, kind, owner);
+        }
+
+        private void Pivot(CompositionVisual element)
+        {
+            var origin = visual.RenderTransformOrigin;
+            var (x, y) = origin.Point;
+            // An expression on Target.Size keeps a relative origin correct across layout resizes.
+            var expression = origin.Unit == RelativeUnit.Relative
+                ? FormattableString.Invariant($"Vector3(this.Target.Size.X * {x:0.#########}, this.Target.Size.Y * {y:0.#########}, 0)")
+                : FormattableString.Invariant($"Vector3({x:0.#########}, {y:0.#########}, 0)");
+            element.StartAnimation("CenterPoint", element.Compositor.CreateExpressionAnimation(expression));
+        }
+
+        private void OnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == Visual.RenderTransformOriginProperty) Pivot(_element!);
         }
 
         private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)

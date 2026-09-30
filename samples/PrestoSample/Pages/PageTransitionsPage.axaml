@@ -19,6 +19,7 @@
                             <ComboBoxItem Content="PageSlide" />
                             <ComboBoxItem Content="PagePush" />
                             <ComboBoxItem Content="Custom pair" />
+                            <ComboBoxItem Content="Blur slide (UI thread)" />
                         </ComboBox>
                         <ComboBox x:Name="OptionPicker" HorizontalAlignment="Stretch" SelectionChanged="OptionChanged" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -26,6 +27,7 @@
                             <Button Classes="accent" Content="Next" Click="NextClicked" />
                         </StackPanel>
                         <Button Content="Next, freeze UI thread 2 s" Click="FreezeClicked" />
+                        <Button Content="Next, again mid-flight on the other thread" Click="CrossThreadClicked" />
                         <ProgressBar IsIndeterminate="True" />
                     </StackPanel>
                 </Grid>

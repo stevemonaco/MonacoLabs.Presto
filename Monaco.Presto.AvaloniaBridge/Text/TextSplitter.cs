@@ -66,6 +66,12 @@ public sealed class TextSplitter : IRevertible
     public static readonly AttachedProperty<int> LineIndexProperty =
         AvaloniaProperty.RegisterAttached<TextSplitter, Control, int>("LineIndex");
 
+    private static readonly AttachedProperty<int> IndexInLineProperty =
+        AvaloniaProperty.RegisterAttached<TextSplitter, Control, int>("IndexInLine");
+
+    private static readonly AttachedProperty<TextSplitter?> OwnerProperty =
+        AvaloniaProperty.RegisterAttached<TextSplitter, Control, TextSplitter?>("Owner");
+
     /// <summary>The line pieces, empty unless <see cref="SplitTextParams.Lines"/> is set.</summary>
     public IReadOnlyList<Control> Lines => _lines;
 
@@ -80,6 +86,21 @@ public sealed class TextSplitter : IRevertible
 
     /// <summary>The index of the wrapped line <paramref name="piece"/> sits on.</summary>
     public static int GetLineIndex(Control piece) => piece.GetValue(LineIndexProperty);
+
+    /// <summary>
+    /// A delay for split pieces of one kind: <paramref name="start"/> plus the piece's line index times
+    /// <paramref name="lineStep"/> plus its position among that line's pieces times <paramref name="pieceStep"/>.
+    /// </summary>
+    public static FunctionValue StaggerByLine(double lineStep, double pieceStep = 0, double? start = null)
+    {
+        var offset = start ?? 0;
+        return (target, _, _) => target is Control piece
+            ? offset + (GetLineIndex(piece) * lineStep) + (piece.GetValue(IndexInLineProperty) * pieceStep)
+            : offset;
+    }
+
+    /// <summary>The <see cref="LineHeight"/> of the split <paramref name="piece"/> belongs to, or 0 when it is not a split piece.</summary>
+    public static double LineHeightOf(Control piece) => piece.GetValue(OwnerProperty)?.LineHeight ?? 0;
 
     /// <summary>
     /// Registers <paramref name="effect"/> over the pieces, running it at once when they already exist and again after
@@ -239,9 +260,11 @@ public sealed class TextSplitter : IRevertible
         return _parameters.Words is { } wordParams ? Decorate(word, wordParams, _words, line) : word;
     }
 
-    private static Control Decorate(Control piece, SplitPieceParams parameters, List<Control> pieces, int line)
+    private Control Decorate(Control piece, SplitPieceParams parameters, List<Control> pieces, int line)
     {
         piece.SetValue(LineIndexProperty, line);
+        piece.SetValue(IndexInLineProperty, pieces.Count > 0 && GetLineIndex(pieces[^1]) == line ? pieces[^1].GetValue(IndexInLineProperty) + 1 : 0);
+        piece.SetValue(OwnerProperty, this);
         if (parameters.Class is { } className) piece.Classes.Add(className);
         pieces.Add(piece);
         return parameters.Wrap ? new Border { ClipToBounds = true, Child = piece } : piece;

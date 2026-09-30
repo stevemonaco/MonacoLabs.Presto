@@ -16,6 +16,7 @@ internal sealed class LayoutArm
     private readonly ItemsControl? _list;
     private LayoutTransition? _transition;
     private bool _reduced;
+    private int _generation;
 
     public LayoutArm(Control control, ItemsControl? list = null)
     {
@@ -67,6 +68,7 @@ internal sealed class LayoutArm
 
     private void Disarm()
     {
+        _generation++;
         _transition?.Revert();
         _transition = null;
     }
@@ -80,11 +82,11 @@ internal sealed class LayoutArm
     // A flight plays on its first layout pass, and until then its Then() has nothing to wait for.
     private void Follow(LayoutTransition flight)
     {
-        var builder = Builder;
+        var generation = _generation;
         ItemChanges.AfterLayout(_control, async () =>
         {
             await flight.Then();
-            if (_transition is null && Builder == builder) Arm(attaching: false);
+            if (_generation == generation) Arm(attaching: false);
         });
     }
 

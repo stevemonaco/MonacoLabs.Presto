@@ -2,11 +2,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
              mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="400"
              x:Class="PrestoSample.Pages.TextPage">
+    <UserControl.Resources>
+        <x:String x:Key="Paragraph">Every trigger can reveal a paragraph by its pieces: lines, words or characters, staggered line by line.</x:String>
+    </UserControl.Resources>
+
     <UserControl.Styles>
         <Style Selector="TextBlock.split-char">
             <Setter Property="Foreground" Value="#4c8dff" />
+        </Style>
+        <Style Selector="StackPanel.reveal">
+            <Setter Property="Width" Value="260" />
+            <Setter Property="Spacing" Value="6" />
+        </Style>
+        <Style Selector="StackPanel.reveal > Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+        <Style Selector="StackPanel.reveal TextBlock.paragraph">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
     </UserControl.Styles>
 
@@ -46,6 +63,57 @@
                 <Button Content="Scramble" Click="OnScramble" />
                 <Button Content="Change text" Click="OnChangeText" />
             </StackPanel>
+
+            <StackPanel Spacing="2" Margin="0,12,0,0">
+                <TextBlock Classes="caption" Text="Text reveals" />
+                <TextBlock Classes="code" Text="&lt;TextBlock Classes=&quot;paragraph&quot; Text=&quot;{StaticResource Paragraph}&quot; presto:Animate.OnAttached=&quot;{presto:LineRise}&quot; /&gt;" />
+            </StackPanel>
+
+            <Border x:Name="RevealHost">
+                <WrapPanel ItemSpacing="12" LineSpacing="12">
+                    <StackPanel Classes="reveal">
+                        <Border Classes="stage">
+                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}" presto:Animate.OnAttached="{presto:LineRise}" />
+                        </Border>
+                        <TextBlock Classes="code" Text="{}{presto:LineRise}" />
+                    </StackPanel>
+                    <StackPanel Classes="reveal">
+                        <Border Classes="stage">
+                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}" presto:Animate.OnAttached="{presto:LineMask}" />
+                        </Border>
+                        <TextBlock Classes="code" Text="{}{presto:LineMask}" />
+                    </StackPanel>
+                    <StackPanel Classes="reveal">
+                        <Border Classes="stage">
+                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}" presto:Animate.OnAttached="{presto:LineWipe}" />
+                        </Border>
+                        <TextBlock Classes="code" Text="{}{presto:LineWipe}" />
+                    </StackPanel>
+                    <StackPanel Classes="reveal">
+                        <Border Classes="stage">
+                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}" presto:Animate.OnAttached="{presto:WordFade}" />
+                        </Border>
+                        <TextBlock Classes="code" Text="{}{presto:WordFade}" />
+                    </StackPanel>
+                    <StackPanel Classes="reveal">
+                        <Border Classes="stage">
+                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}" presto:Animate.OnAttached="{presto:WordBlur}" />
+                        </Border>
+                        <TextBlock Classes="code" Text="{}{presto:WordBlur}" />
+                    </StackPanel>
+                    <StackPanel Classes="reveal">
+                        <Border Classes="stage">
+                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}" presto:Animate.OnAttached="{presto:CharCascade}" />
+                        </Border>
+                        <TextBlock Classes="code" Text="{}{presto:CharCascade}" />
+                    </StackPanel>
+                </WrapPanel>
+            </Border>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Each extension sets the TextReveal.Pieces it needs (and Mask for LineMask), so the block is split into those pieces, held hidden until they start, re-split on resize and rejoined when the reveal ends. Replay detaches the cards and attaches them again." />
+
+            <Button Content="Replay" Click="OnReplay" HorizontalAlignment="Left" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

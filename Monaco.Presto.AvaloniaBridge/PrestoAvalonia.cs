@@ -7,6 +7,7 @@ using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Draggables;
 using Monaco.Presto.AvaloniaBridge.Events;
+using Monaco.Presto.AvaloniaBridge.Gestures;
 using Monaco.Presto.AvaloniaBridge.Shapes;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Text;
@@ -458,6 +459,17 @@ public static class PrestoAvalonia
     {
         EnsureInitialized();
         return new Draggable(target, parameters ?? new DraggableParams());
+    }
+
+    /// <summary>
+    /// Makes <paramref name="target"/> pan with one pointer and pan, pinch-zoom and rotate with two, through the transform
+    /// shorthands "X", "Y", "Scale" and "Rotate".
+    /// </summary>
+    /// <exception cref="InvalidOperationException">A live <see cref="Draggable"/> already drives <paramref name="target"/>.</exception>
+    public static Transformable CreateTransformable(Control target, TransformableParams? parameters = null)
+    {
+        EnsureInitialized();
+        return new Transformable(target, parameters ?? new TransformableParams());
     }
 
     /// <summary>

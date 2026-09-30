@@ -85,31 +85,63 @@ public sealed class ActivityFeedPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DismissingTheTopRowAfterLiveInsertsLeavesTheFeedAtTheTop(bool itemLayout)
+    {
+        var (window, page) = Loaded();
+        var feed = Feed(page);
+        if (!itemLayout) Animate.SetItemLayout(feed, null);
+        SelectTopRow(window, feed);
+        for (var i = 0; i < 2; i++)
+        {
+            var count = page.ViewModel.Items.Count;
+            TickUntil(() => page.ViewModel.Items.Count > count);
+        }
+        TestFrames.Tick(30);
+        Assert.Equal(3, feed.SelectedIndex);
+        Assert.Equal(default, feed.Scroll!.Offset);
+
+        var dismiss = SelectTopRow(window, feed);
+        SceneHarness.Click(window, dismiss);
+        TestFrames.Tick(60);
+
+        Assert.Equal(default, feed.Scroll!.Offset);
+        Assert.Null(page.ViewModel.Unseen);
+        SceneHarness.Close(window);
+    }
+
     [AvaloniaFact]
-    public void ScrolledDownALiveEventWaitsBehindAPillThatScrollsToTheTopAndLetsItIn()
+    public void ScrolledDownLiveEventsInsertAtOnceWithoutMovingTheRowsAndAPillCountsThem()
     {
         var (window, page) = Loaded();
         var feed = Feed(page);
         feed.Scroll!.Offset = new Vector(0, 3000);
         TestFrames.Tick(30);
-        var reading = Rows(page).OrderBy(row => Top(row, feed)).First(row => Top(row, feed) >= 0);
-        var top = Top(reading, feed);
-        var count = page.ViewModel.Items.Count;
+        var reading = Rows(page).Where(row => Top(row, feed) >= 0).MinBy(row => Top(row, feed))!.DataContext;
+        var top = Top(Row(page, reading), feed);
         var events = page.ViewModel.Items.OfType<ActivityEvent>().Count();
 
-        TickUntil(() => page.ViewModel.Unseen == 1);
-        TestFrames.Tick();
+        for (var i = 1; i <= 2; i++)
+        {
+            TickUntil(() => page.ViewModel.Unseen == i);
+            TestFrames.Tick(2);
 
-        Assert.Equal(count, page.ViewModel.Items.Count);
-        Assert.Equal(top, Top(reading, feed), 1);
+            Assert.Equal(events + i, page.ViewModel.Items.OfType<ActivityEvent>().Count());
+            Assert.Equal(top, Top(Row(page, reading), feed), 1);
+        }
         var pill = page.GetControl<ContentControl>("PillHost").GetVisualDescendants().OfType<Button>().Single();
-        Assert.Equal("1 new", pill.Content);
+        Assert.Equal("2 new above", pill.Content);
 
         TestFrames.Tick(30);
         SceneHarness.Click(window, pill);
+        TestFrames.Tick();
         Assert.Equal(0, feed.Scroll.Offset.Y);
         Assert.Null(page.ViewModel.Unseen);
-        Assert.Equal(events + 1, page.ViewModel.Items.OfType<ActivityEvent>().Count());
+        var live = page.ViewModel.Items.Skip(1).Take(2).ToList();
+        Assert.All(live, item => Assert.True(Assert.IsType<ActivityEvent>(item).Unread));
+        Assert.All(live, item => Row(page, item));
         SceneHarness.Close(window);
     }
 
@@ -188,6 +220,14 @@ public sealed class ActivityFeedPageTests
         return counter() - before;
     }
 
+    private static Button SelectTopRow(Window window, ListBox feed)
+    {
+        var row = feed.ContainerFromIndex(1)!;
+        SceneHarness.Click(window, row.GetVisualDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("title")));
+        Assert.Equal(1, feed.SelectedIndex);
+        return row.GetVisualDescendants().OfType<Button>().Single();
+    }
+
     private static (Window Window, ActivityFeedPage Page) Loaded()
     {
         var page = new ActivityFeedPage();
@@ -206,6 +246,8 @@ public sealed class ActivityFeedPageTests
 
     private static IEnumerable<Border> Rows(Visual page) =>
         page.GetVisualDescendants().OfType<Border>().Where(border => border.Classes.Contains("event") && border.IsEffectivelyVisible);
+
+    private static Border Row(Visual page, object? item) => Rows(page).Single(row => ReferenceEquals(row.DataContext, item));
 
     private static double Top(Visual row, Visual feed) => row.TranslatePoint(default, feed)!.Value.Y;
 }

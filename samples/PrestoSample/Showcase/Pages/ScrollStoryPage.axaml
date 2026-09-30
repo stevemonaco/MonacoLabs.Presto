@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="720"
                        x:Class="PrestoSample.Showcase.Pages.ScrollStoryPage"
                        SizeChanged="Remeasure">
@@ -55,7 +56,8 @@
                 <Border x:Name="Chapter1" Classes="stage">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="ONE · THRESHOLDS" />
-                        <TextBlock Classes="title" Text="Where a section counts as in view" />
+                        <TextBlock x:Name="Heading1" Classes="title" Text="Where a section counts as in view"
+                                   presto:TextReveal.Pieces="Lines" presto:TextReveal.Mask="True" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
                                    Text="This card enters at &quot;bottom-=120 top&quot; — the container's bottom, 120px early, reaching the card's top — and leaves at &quot;top+=40 bottom&quot;. The observer plays the reveal on the way in and pauses it on the way out, and every crossing is reported to the rail with the direction it happened in." />
                     </StackPanel>
@@ -64,7 +66,8 @@
                 <Border x:Name="Chapter2" Classes="stage">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="TWO · SMOOTHING" />
-                        <TextBlock Classes="title" Text="The hero trails the scrollbar" />
+                        <TextBlock x:Name="Heading2" Classes="title" Text="The hero trails the scrollbar"
+                                   presto:TextReveal.Pieces="Lines" presto:TextReveal.Mask="True" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
                                    Text="Scroll back to the top and the hero's three layers chase the scroll position rather than tracking it: Sync = 0.35 lerps the linked timeline's progress towards the scroll's a fraction at a time, and keeps the engine awake until it has caught up." />
                     </StackPanel>
@@ -84,7 +87,8 @@
                 <Border x:Name="Chapter3" Classes="stage">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="THREE · REFRESH" />
-                        <TextBlock Classes="title" Text="Re-measured on every resize" />
+                        <TextBlock x:Name="Heading3" Classes="title" Text="Re-measured on every resize"
+                                   presto:TextReveal.Pieces="Lines" presto:TextReveal.Mask="True" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
                                    Text="Every threshold here is a pixel offset measured once against this article and its viewport. Resize the window mid-scroll and the page calls Refresh() on all seven observers, so the pinned scrub below carries on from the scroll position it is actually at instead of the one the old measurement said it was." />
                     </StackPanel>

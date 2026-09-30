@@ -98,4 +98,74 @@ public sealed class RecipeMarkupTests : BridgeTestBase
         var animation = builder.Animate(new[] { new Avalonia.Controls.Border(), new(), new() });
         Assert.Equal((2 * 60) + MotionTokens.Standard.Medium, animation.Duration);
     }
+
+    [AvaloniaFact]
+    public void PlayFramesReadsEachSheetsFrameCount()
+    {
+        var view = new RecipeXamlView();
+        Show(view);
+
+        var shortPlay = Assert.Single(Presto.GetAnimations(view.ShortSheet));
+        var longPlay = Assert.Single(Presto.GetAnimations(view.LongSheet));
+        Assert.Equal(400, shortPlay.Duration, 6);
+        Assert.Equal(1200, longPlay.Duration, 6);
+
+        Frames.Advance(1300, 16);
+
+        Assert.Equal(3, view.ShortSheet.CurrentFrame);
+        Assert.Equal(11, view.LongSheet.CurrentFrame);
+    }
+
+    [AvaloniaFact]
+    public void TextRevealExtensionsConfigureTheBlockUnlessAlreadySet()
+    {
+        var view = new RecipeXamlView();
+
+        Assert.Equal(TextPieces.Lines, TextReveal.GetPieces(view.Masked));
+        Assert.True(TextReveal.GetMask(view.Masked));
+        Assert.Equal(TextPieces.Chars, TextReveal.GetPieces(view.Explicit));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(nameof(Recipes.LineRise))]
+    [InlineData(nameof(Recipes.LineMask))]
+    [InlineData(nameof(Recipes.LineWipe))]
+    [InlineData(nameof(Recipes.WordFade))]
+    [InlineData(nameof(Recipes.WordBlur))]
+    [InlineData(nameof(Recipes.CharCascade))]
+    public void TextRevealExtensionsProvideTheirRecipe(string recipe)
+    {
+        var ease = EaseParser.Parse("outQuad");
+        (TextRevealExtension extension, AnimationBuilder expected) = recipe switch
+        {
+            nameof(Recipes.LineRise) => ((TextRevealExtension)new LineRiseExtension(), Recipes.LineRise(321, null, ease)),
+            nameof(Recipes.LineMask) => (new LineMaskExtension(), Recipes.LineMask(321, null, ease)),
+            nameof(Recipes.LineWipe) => (new LineWipeExtension(), Recipes.LineWipe(321, null, ease)),
+            nameof(Recipes.WordFade) => (new WordFadeExtension(), Recipes.WordFade(321, null, ease)),
+            nameof(Recipes.WordBlur) => (new WordBlurExtension(), Recipes.WordBlur(321, null, ease)),
+            _ => (new CharCascadeExtension(), Recipes.CharCascade(321, null, ease)),
+        };
+        extension.Duration = 321;
+        extension.Ease = "outQuad";
+
+        var actual = ((AnimationBuilder)extension.ProvideValue(null!)).ToParams();
+
+        static object?[] Values(AnimationParams parameters) => parameters.Properties
+            .SelectMany(pair => pair.Value.Raw is TweenParams tween ? [pair.Key, tween.From?.Raw, tween.To?.Raw] : new[] { pair.Key, pair.Value.Raw })
+            .ToArray();
+        Assert.Equal(expected.ToParams().Duration, actual.Duration);
+        Assert.Same(ease, actual.Ease?.Raw);
+        Assert.Equal(Values(expected.ToParams()), Values(actual));
+    }
+
+    [AvaloniaFact]
+    public void PlayFramesTakesAnExplicitDurationAndEaseOverTheFrameTiming()
+    {
+        var builder = (AnimationBuilder)new PlayFramesExtension { Duration = 500, Ease = "outQuad" }.ProvideValue(null!);
+
+        var parameters = builder.ToParams();
+
+        Assert.Equal((TweenValue)500, parameters.Duration);
+        Assert.Same(EaseParser.Parse("outQuad"), parameters.Ease?.Raw);
+    }
 }

@@ -60,6 +60,34 @@ public sealed class CompositorAnimationTests : CompositorTestBase
         Assert.Equal(50, turned.Center.Y, 1);
     }
 
+    [AvaloniaTheory]
+    [InlineData(null, "ScaleY", 30, 45, 40, 10)]
+    [InlineData("50%,100%", "ScaleY", 30, 50, 40, 10)]
+    [InlineData("0,0", "Scale", 30, 40, 20, 10)]
+    public async Task AScalePivotsOnTheRenderTransformOrigin(string? origin, string property, double x, double y, double width, double height)
+    {
+        var bar = ShowBar();
+        if (origin != null) bar.RenderTransformOrigin = RelativePoint.Parse(origin);
+
+        _ = bar.AnimateOnCompositor(new() { [property] = 0.5, Duration = 300, Ease = "linear" });
+
+        var expected = new Rect(x, y, width, height);
+        Assert.True(await Pump(() => Extent(bar, Colors.Red) == expected), $"the bar never scaled to {expected}, it stands at {Extent(bar, Colors.Red)}");
+    }
+
+    [AvaloniaFact]
+    public async Task ChangingTheOriginMidAnimationMovesThePivotAtTheNextFrame()
+    {
+        var bar = ShowBar();
+        _ = bar.AnimateOnCompositor(new() { ["ScaleY"] = new TweenValue[] { 0.5, 0.5 }, Duration = Held, Ease = "linear" });
+        Assert.True(await Pump(() => Extent(bar, Colors.Red) == new Rect(30, 45, 40, 10)), "the bar never scaled about its centre");
+
+        bar.RenderTransformOrigin = RelativePoint.Parse("50%,100%");
+        Tick();
+
+        Assert.Equal(new Rect(30, 50, 40, 10), Extent(bar, Colors.Red));
+    }
+
     [AvaloniaFact]
     public async Task CancelFreezesThePixelsWhereTheyAre()
     {

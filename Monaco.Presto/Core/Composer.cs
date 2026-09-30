@@ -192,12 +192,12 @@ internal static class Composer
             return;
         }
 
-        var cancelPrevParentTimeline = true;
-        Helpers.ForEachChildren(prevParentTimeline, child =>
+        // A loop rather than ForEachChildren: its closure would be allocated on every call, since the capture is method-wide.
+        for (var child = prevParentTimeline._head; child != null; child = child._next)
         {
-            if (child != prevParent && !AllTweensOverlapped(child)) cancelPrevParentTimeline = false;
-        });
-        if (cancelPrevParentTimeline) prevParentTimeline.Cancel();
+            if (child != prevParent && !AllTweensOverlapped(child)) return;
+        }
+        prevParentTimeline.Cancel();
     }
 
     private static void ComposeBlendedTween(Tween tween)

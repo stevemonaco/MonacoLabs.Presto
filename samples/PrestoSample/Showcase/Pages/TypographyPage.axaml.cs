@@ -11,8 +11,6 @@ namespace PrestoSample.Showcase.Pages;
 
 public partial class TypographyPage : ShowcasePage
 {
-    private const double LineStagger = 120;
-    private const double WordStagger = 30;
     private const double CycleDuration = 2600;
     private const double Drop = 28;
     private const double Falloff = 160;
@@ -49,17 +47,8 @@ public partial class TypographyPage : ShowcasePage
         foreach (var _ in TerminalScript) TerminalLines.Children.Add(new TextBlock { Classes = { "code" } });
     }
 
-    /// <summary>The paragraph's line and word split.</summary>
-    public TextSplitter? Split { get; private set; }
-
-    /// <summary>The reveal over the paragraph's current pieces, rebuilt by every re-split.</summary>
-    public Animation? Reveal { get; private set; }
-
     protected override void OnAttached()
     {
-        Split = PrestoAvalonia.SplitText(Paragraph, new SplitTextParams { Lines = new SplitPieceParams { Wrap = true } })
-            .AddEffect(BuildReveal);
-
         _wordIndex = 0;
         Slot.Width = Measure(Word, RotatorWords[0]).Width;
         ShowWord(RotatorWords[0]);
@@ -88,26 +77,6 @@ public partial class TypographyPage : ShowcasePage
         // Each rotation is a timeline built outside Scope, which prunes superseded animations but not timelines (SAMPLES-PLAN §8 row 18).
         _rotation?.Revert();
         _word?.Revert();
-    }
-
-    private Animation BuildReveal(TextSplitter split)
-    {
-        var delays = new double[split.Words.Count];
-        for (int i = 0, line = -1, word = 0; i < delays.Length; i++, word++)
-        {
-            var at = TextSplitter.GetLineIndex(split.Words[i]);
-            if (at != line) (line, word) = (at, 0);
-            delays[i] = (line * LineStagger) + (word * WordStagger);
-        }
-
-        Reveal = Presto.Animate(split.Words, new AnimationParams
-        {
-            ["Y"] = TweenValue.FromTo(split.LineHeight, 0),
-            Duration = 1100,
-            Ease = Eases.OutExpo,
-            Delay = (FunctionValue)((_, i, _) => delays[i]),
-        });
-        return Reveal;
     }
 
     private void Rotate()
@@ -225,7 +194,12 @@ public partial class TypographyPage : ShowcasePage
         return probe.DesiredSize;
     }
 
-    private void ReplayReveal(object? sender, RoutedEventArgs e) => Reveal?.Restart();
+    private void ReplayReveal(object? sender, RoutedEventArgs e)
+    {
+        var reveal = Animate.GetOnAttached(Paragraph);
+        Animate.SetOnAttached(Paragraph, null);
+        Animate.SetOnAttached(Paragraph, reveal);
+    }
 
     private void ReplayRotator(object? sender, RoutedEventArgs e)
     {

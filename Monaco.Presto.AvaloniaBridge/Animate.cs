@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Text;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -249,7 +250,7 @@ public static class Animate
     {
         private readonly Visual _visual;
         private readonly AttachedProperty<AnimationBuilder?> _builder;
-        private Animation? _animation;
+        private IRevertible? _animation;
 
         public Trigger(Visual visual, AttachedProperty<AnimationBuilder?> builder)
         {
@@ -266,7 +267,16 @@ public static class Animate
         {
             Stop();
             if (!_visual.IsAttachedToVisualTree() || _visual.GetValue(_builder) is not { } builder) return;
-            var animation = _animation = _visual.Animate(builder);
+            PrestoAvalonia.EnsureInitialized();
+            var parameters = builder.ToParams();
+            // A text reveal reverts itself when it completes.
+            if (_builder != OnChangedProperty && PieceTargets.Play(_visual, parameters) is { } reveal)
+            {
+                _animation = reveal;
+                return;
+            }
+            var animation = Presto.Animate(_visual, parameters);
+            _animation = animation;
             if (_builder == OnAttachedProperty) return;
             var completed = animation.OnComplete;
             animation.OnComplete = timer =>

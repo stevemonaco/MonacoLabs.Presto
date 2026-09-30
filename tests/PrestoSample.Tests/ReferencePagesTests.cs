@@ -188,6 +188,21 @@ public sealed class ReferencePagesTests
     public void EffectsSnippetsMatchTheMarkup() =>
         BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(EffectsPage), "samples/PrestoSample/Pages/EffectsPage.axaml", 2);
 
+    [AvaloniaFact]
+    public async Task TheParticlesPageEmitsABurstCountsItAndPrintsTheChangedGravity()
+    {
+        var page = new ParticlesPage();
+        var window = SceneHarness.Show(page, 1100, 1000);
+        var live = page.GetControl<TextBlock>("LiveCount");
+
+        SceneHarness.Click(window, Button(page, "Emit"));
+
+        Assert.True(await SceneHarness.Pump(() => live.Text is not "0 live"), "the burst never showed in the live count");
+        page.GetControl<Slider>("GravitySlider").Value = 0.002;
+        Assert.Contains("Gravity = 0.002,", page.GetControl<SelectableTextBlock>("Code").Text);
+        SceneHarness.Close(window);
+    }
+
     private static List<string> Log(ItemsControl moments) =>
         moments.Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => $"{entry.Moment} {entry.Detail}").ToList();
 

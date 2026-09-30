@@ -85,7 +85,7 @@ public sealed class Engine : Clock
         var activeTickable = _head;
         while (activeTickable != null)
         {
-            var nextTickable = activeTickable._next;
+            _nextChild = activeTickable._next;
             if (!activeTickable.Paused)
             {
                 Renderer.Tick(
@@ -105,7 +105,7 @@ public sealed class Engine : Clock
                     activeTickable.Cancel();
                 }
             }
-            activeTickable = nextTickable;
+            activeTickable = _nextChild;
         }
         Additive.Update();
     }

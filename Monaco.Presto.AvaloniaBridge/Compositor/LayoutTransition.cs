@@ -97,7 +97,10 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     /// <summary>Called with the transition that has just reverted this one by arming on the same control.</summary>
     internal Action<LayoutTransition>? Replaced { get; set; }
 
-    /// <summary>The list of the item container this eases; a pass that scrolls it without a pending item change moves the container in one frame.</summary>
+    /// <summary>
+    /// The list of the item container this eases; a pass that scrolls it without a pending item change, or that scroll
+    /// anchoring compensates, moves the container in one frame.
+    /// </summary>
     internal ItemChanges? List { get; init; }
 
     /// <inheritdoc cref="Animation.Then"/>
@@ -205,7 +208,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         _firstOnScreen = false;
         _first = last;
         // A virtualizing panel also repositions realized rows as it corrects estimated sizes during a scroll.
-        if (List is { Scrolled: true, Pending: false })
+        if (List is { Scrolled: true, Pending: false } or { Anchoring: true })
         {
             Cancel();
             return;

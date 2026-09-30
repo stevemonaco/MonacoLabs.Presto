@@ -52,6 +52,25 @@ public sealed class AllocationTests : EngineTestBase
     }
 
     [Fact]
+    public void ParticleSystemStepsWithoutAllocating()
+    {
+        var system = new ParticleSystem(new()
+        {
+            Burst = 500, Rate = 5000, Lifetime = (100, 200), Gravity = .001, Drag = 1, Spin = (-1, 1), Flutter = 2,
+            Size = new(4, 8, "outQuad"), ColorMix = new(0, 1), EndColor = new(0, 0, 0), Seed = 1,
+        });
+        system.Start();
+        for (var i = 0; i < 10; i++) system.Step(16);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 200; i++) system.Step(16);
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(system.Live > 400, $"{system.Live} live");
+        Assert.Equal(0, bytes);
+    }
+
+    [Fact]
     public void TimelineTicksWithinItsLoopBoundaryBudget()
     {
         var targets = new[] { new TestObject(), new TestObject(), new TestObject() };

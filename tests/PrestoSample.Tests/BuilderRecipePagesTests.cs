@@ -137,7 +137,30 @@ public sealed class BuilderRecipePagesTests
         Assert.Equal(label, page.GetControl<TextBlock>("Label").Text);
         Assert.Equal(200, page.GetControl<Button>("Submit").Width, 1);
         Assert.Contains("static readonly AnimationBuilder DrawIn = Presto.Build()", page.GetControl<SelectableTextBlock>("RecipesCode").Text);
+        Assert.Contains("Celebrate = button => Recipes.Confetti(button, count: 80);", page.GetControl<SelectableTextBlock>("RecipesCode").Text);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    public void SubmitFlowThrowsConfettiOnSuccessUnlessMotionIsReduced(bool reduced, int overlays)
+    {
+        var page = new SubmitFlowPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        Presto.Defaults.ReducedMotion = reduced;
+        try
+        {
+            page.GetControl<Button>("Submit").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            TestFrames.Tick(120);
+
+            Assert.Equal(overlays, SceneHarness.ParticleOverlays(page).Length);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
     }
 
     /// <summary>Detaching the pressed, still-transformed button once re-asserted the render transform until the stack overflowed.</summary>

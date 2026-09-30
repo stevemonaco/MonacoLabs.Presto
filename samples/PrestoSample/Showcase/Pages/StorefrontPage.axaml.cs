@@ -69,6 +69,7 @@ public partial class StorefrontPage : ShowcasePage
         if (!Presto.Defaults.ReducedMotion)
         {
             Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(card.GetVisualDescendants().OfType<Scenery>().First(), thumb, 700, Eases.InOutCubic));
+            Recipes.Burst(Badge, count: 12, color: Palette.Accent.Color);
         }
         ViewModel.CartCount++;
     }

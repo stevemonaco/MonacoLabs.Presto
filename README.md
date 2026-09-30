@@ -444,6 +444,38 @@ Velocity is in units per engine-time unit, so per **millisecond** by default, no
 travel is `Power · Velocity · TimeConstant` (defaults 1 and 350). Framer's defaults, power 0.8 and timeConstant 700
 with velocity per second, are `new Inertia(v) { Power = 1.14, TimeConstant = 700 }` here.
 
+### Transformable
+
+Pan, pinch-zoom and rotate on one control, which anime.js has no counterpart for. Two fingers zoom and rotate about
+their midpoint while one pans, and a scale pushed past `MinScale` or `MaxScale` rubber-bands. On release the pan and
+rotation coast with an `Inertia` and the scale springs back inside its limits. A double-tap toggles zoom about the tap
+point and Ctrl+wheel zooms about the cursor. `ZoomTo`, `PanTo`, `RotateTo` and `Reset` animate through the same
+`Settle` animation.
+
+```csharp
+using Monaco.Presto.AvaloniaBridge.Gestures;
+
+// Photo sits in a Border with ClipToBounds, its parent, which bounds the pan.
+var viewer = Photo.CreateTransformable(new()
+{
+    Rotate = true,
+    RotationSnap = 90,
+    MaxScale = 5,
+    OnSettle = t => Readout.Text = $"{t.Scale:0.##}× at {t.Rotation:0}°",
+});
+ResetButton.Click += (_, _) => viewer.Reset();
+```
+
+- **`PanAtRest`** is off by default. At `MinScale` a one-finger drag is left alone, so a `ScrollViewer` or `Carousel`
+  around the photo still gets the swipe. Two fingers always engage, and once zoomed in one finger pans.
+- **`WheelZoom`** is `WithControl` by default, which leaves a plain wheel to an enclosing scroller. `Always` zooms on
+  every wheel and `None` never does.
+- **One gesture owner per control.** Creating a `Transformable` on a control that a live `Draggable` drives throws, and
+  so does the reverse. `Revert()` frees the control.
+- **The transform is the `X`, `Y`, `Scale` and `Rotate` shorthands**, about `RenderTransformOrigin`. A `RenderTransform`
+  of your own stays underneath them and is not part of the maths. A `Motion` hover on the same control would animate
+  the same shorthands, so put hover motion on an inner element.
+
 ### onScroll
 
 Watches a control cross a `ScrollViewer`'s thresholds, and drives whatever is linked to it:
@@ -498,6 +530,28 @@ Transmission.Animate(new()
     ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", From = ScrambleFrom.Center }),
 });
 ```
+
+#### Text reveals
+
+`TextReveal.Pieces` (`None`, `Lines`, `Words`, `Chars`) on a `TextBlock` turns any builder into a text reveal:
+`Presence.Initial`/`Enter`/`Arrive`/`Reveal`, `Animate.OnAttached` and `Animate.OnTapped` play it on the block's split
+pieces instead of the block, each piece taking its own index and the piece count for function values and staggers.
+`Motion` states and `Animate.OnChanged` still animate the block. `TextReveal.Mask="True"` wraps each piece in its own
+clipping border.
+
+```xml
+<TextBlock Classes="headline" TextWrapping="Wrap" Text="{Binding Headline}"
+           presto:Presence.Initial="{presto:LineMask}" />
+<TextBlock Text="{Binding Body}" presto:TextReveal.Pieces="Words"
+           presto:Presence.Reveal="{presto:FadeUp Stagger=True}" />
+```
+
+The block is held at `Opacity` 0 from the trigger until it has been laid out and split, a resize re-splits it and the
+reveal carries on at the same time, and a reveal that completes puts the text back together (a looping one stays
+split). Reduced-motion forms play on the block unsplit. `TextSplitter.StaggerByLine(lineStep, pieceStep, start)` is a
+delay function of line index × `lineStep` + index on the line × `pieceStep`, and `TextSplitter.LineHeightOf(piece)` is
+the owning split's line height (0 for a control that is not a piece). The ready-made reveals are
+[recipes](#recipes).
 
 ### Render thread
 
@@ -566,6 +620,10 @@ The rules that come with the thread:
   need one.
 - **The scene's `Engine` is its own.** It starts from a copy of `Presto.Defaults`, and after that `Presto.Engine`'s
   speed, fps and pause state do not apply to it.
+
+`ParticleScene` is a ready-made scene of emitted particles: `canvas.Post(new ParticleScene.Emit(emitterParams, origin))`
+starts a core `ParticleSystem` drawn as a `ParticleShape` (rect, rounded rect, circle, streak, glyph or bitmap), capped
+at `MaxLive` particles; the [particle recipes](#confetti-sparkles-and-bursts) use it.
 
 A scene only draws itself. To move an *existing* control on the render thread — through the composition visual Avalonia
 already gives it — there is `AnimateOnCompositor`, the anime.js `waapi.animate` analogue:
@@ -927,6 +985,8 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `Spinner` | | yes | 〃 |
 | | `Dots` (staggers a panel's children itself) | `distance` | yes | 〃, still staggered |
 | | `Indeterminate` | `distance`, the track width (required) | yes | 〃 |
+| `Sprites` | `PlayFrames`, for a [`SpriteSheet` or `ImageSequence`](#sprite-sheets-and-image-sequences) | `fps` (24), `loop`, `reverse` | no | frame 0, still |
+| `TextReveals` | `LineRise`, `LineMask`, `LineWipe`, `WordFade`, `WordBlur`, `CharCascade`, for a [text reveal](#text-reveals) | `lineStep` (3 × `StaggerStep`), `pieceStep`; no `stagger` | no | whole block fades, no split |
 | `Layouts` | `Reflow`, for [`Animate.Layout`](#layout-animation-from-xaml) and `AnimateLayout` | | layout only | an instant move |
 | `Pages` ([`IPageTransition`](#page-transitions)) | `PageFade`, `PageFadeThrough` | `duration` only | yes | a crossfade over `Short` |
 | | `PageSharedAxis` | `axis` (`X`, `Y`, `Z`), `distance` | yes | 〃 |
@@ -979,11 +1039,17 @@ Each markup extension provides a new builder per element from its recipe:
 | `{presto:Shake}` | `Shake` | `Intensity` | |
 | `{presto:Lift}`, `{presto:PressIn}`, `{presto:Glow}` | the same | `Intensity` | |
 | `{presto:Shimmer}` | `Shimmer` | | |
+| `{presto:PlayFrames}` | `PlayFrames` | `Fps`, `Loop`, `Reverse` | |
+| `{presto:LineRise}`, `{presto:LineMask}`, `{presto:LineWipe}`, `{presto:WordFade}`, `{presto:WordBlur}`, `{presto:CharCascade}` | the same | `LineStep`, `PieceStep` | |
 | `{presto:Reflow}` | `Reflow` | `Duration` also positional: `{presto:Reflow 320}`; no `Stagger` | |
 
 All of them take `Duration`, `Delay`, `Ease` (a string such as `outBack`), `Stagger` (the step in ms) and `Out`. Set
 on `Presence.Exit`, an extension with an exit form provides it. A style `Setter` is not the property it sets, so there
 `Out=True` asks for the exit form; `Out=False` forces the entrance form anywhere. Arguments are separated by commas.
+
+Set on a `TextBlock`, the text reveal extensions also set the `TextReveal.Pieces` (and for `LineMask`, `Mask`) their
+recipe needs, unless the block sets them itself. From a style `Setter` they cannot reach the block, so set
+`TextReveal.Pieces` there too.
 
 #### Page transitions
 
@@ -1029,8 +1095,46 @@ Recipes.CountUp(total, 1280, format: "C0");      // from the number shown, or 0,
 ```
 
 Both play at once and return the `Animation`. `Typewriter(textBlock, charDelay, …)` splits a laid-out `TextBlock` into
-characters and puts it back together at the end; reduced, the whole block fades in. `CountUp(textBlock, to, format, …)`
+characters and puts it back together at the end; reduced, the whole block fades in. `CharCascade` is its trigger form,
+which waits for layout. `CountUp(textBlock, to, format, …)`
 formats each value in the current culture (default `"N0"`); reduced, the text is set to the end value on the first frame.
+
+#### Confetti, sparkles and bursts
+
+Particle recipes emit into one render-thread overlay per window, laid over the anchor in the window's `OverlayLayer`,
+ignoring hit tests, and removed once it has drawn nothing for a second:
+
+```csharp
+await Recipes.Confetti(submit);                           // 120 rects and streaks from the button's centre
+Recipes.Confetti(submit, from: Edge.Bottom);              // or launched along a window edge
+var sparkles = Recipes.Sparkles(badge, rate: 30);         // twinkles over its bounds until stopped
+sparkles.Stop();                                          // stop emitting; live particles finish
+Recipes.Burst(like, count: 24, color: Colors.HotPink);    // a ring of circles for a press or a like
+```
+
+Each returns a `ParticleEffect`: `Stop`, `Cancel` (clears at once; also `Revert`), `Pause`/`Resume` for its own
+emitters, and `Then()`/`await`, which completes on the UI thread when the last particle dies. Emitted particles cannot be
+sought. Under reduced motion nothing is emitted, `reduced` plays on the anchor instead (default `Recipes.Pulse()`, an
+opacity blink when reduced) and the effect is complete at once.
+
+#### Sprite sheets and image sequences
+
+`SpriteSheet` shows one cell of a grid `Source` (`Columns`, `Rows`, and `FrameCount` when the last row is partial), and
+`ImageSequence` one image of `Frames`. Both show the frame their `double` `Frame` selects, and `Play` tweens it linearly
+from 0 to the frame count, so every frame gets 1000 / fps ms:
+
+```csharp
+var run = sheet.Play(fps: 12);                            // loops; Play(fps, loop: false, reverse: true) plays once backwards
+```
+
+```xml
+<presto:SpriteSheet Source="/Assets/Sprites/run.png" Columns="8" Rows="2"
+                    presto:Animate.OnAttached="{presto:PlayFrames Fps=12}" />
+```
+
+`Recipes.PlayFrames(fps, loop, reverse)` is the same as a builder, reading each target's frame count, and
+`{presto:PlayFrames}` adds `Fps`, `Loop` and `Reverse`; an explicit `Duration` or `Ease` replaces the frame timing.
+Reduced, it holds frame 0.
 
 ### Reduced motion
 
@@ -1091,6 +1195,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *Framer Motion, not anime.js:* `variants` with `animate="name"` | `Motion.States` entries whose `When` names a state, chosen by binding `Motion.State`; `control.While(when, …)` in code |
 | *Framer Motion, not anime.js:* `inertia` transition; GSAP `InertiaPlugin` | `Inertia` as a to-value, `Animatable.Fling`, `DraggableParams.ReleaseInertia`; see [Inertia](#inertia) |
 | *Framer Motion, not anime.js:* `useVelocity`, velocity tracking | `VelocityTracker` (`Add(value, time)`, `Velocity`, `Reset()`) |
+| *Not anime.js:* pan, pinch and rotate, the `usePinch` / `useGesture` hooks Framer Motion apps pair with | `control.CreateTransformable(new TransformableParams { … })`; see [Transformable](#transformable) |
 | *CSS, not anime.js:* `filter: blur()` | `Blur`; see [Effects](#effects) |
 | *CSS, not anime.js:* `filter: drop-shadow()` | `ShadowX` / `ShadowY` / `ShadowBlur` / `ShadowColor` / `ShadowOpacity`, or `.Shadow(x, y, blur, color)`; `box-shadow` is `BoxShadow` on a `Border` |
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
@@ -1162,7 +1267,7 @@ build; what has actually been *run* differs, and the table says so rather than i
 | **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. The gallery has not been driven on a device, so touch input and per-page rendering are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
 
-Four platform notes:
+Five platform notes:
 
 - **On WebAssembly the render loop is not a thread.** `BrowserRenderTimer` drives the compositor from the single WASM
   thread that also runs the UI, so a `CompositorScene` runs and draws there but does **not** survive a blocked UI
@@ -1177,6 +1282,10 @@ Four platform notes:
 - **Effects render through Skia on every head.** `Blur` and the shadow shorthands cost an offscreen pass wherever they
   run. What a blur costs in the Browser head has not been measured yet; it is to be measured in the smoke run, not
   assumed.
+- **A trackpad pinch reaches `Transformable` differently on each platform.** On Windows and in the Browser it arrives
+  as Ctrl+wheel, which the default `WheelZoom` handles. On macOS, `Avalonia.Native` raises magnify and rotate gestures,
+  which zoom and (with `Rotate` on) turn about the pointer. X11 raises no touchpad gestures, so a trackpad pinch on Linux
+  is unsupported; Ctrl+wheel still zooms there.
 
 ## Running the sample and the tests
 

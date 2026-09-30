@@ -52,13 +52,33 @@ public sealed class VelocityTracker
     {
         var elapsed = time - _time;
         if (elapsed < _interval) return false;
-        _time = time;
-        _samples[_index] = distance / elapsed;
-        _index = (_index + 1) % _samples.Length;
+        Push(distance / elapsed, time);
         var velocity = 0.0;
         foreach (var sample in _samples)
             if (Math.Abs(sample) > Math.Abs(velocity)) velocity = sample;
         Velocity = velocity;
         return true;
+    }
+
+    /// <summary>
+    /// Draggable's sampler, as upstream's <c>computeVelocity</c>: each sample is scaled, clamped and rounded when taken,
+    /// and the velocity is the plain maximum of the window, zero seeds included.
+    /// </summary>
+    internal bool AddDisplacement(double distance, double time, double multiplier, double min, double max)
+    {
+        var elapsed = time - _time;
+        if (elapsed < _interval) return false;
+        Push(Utils.Round(Utils.Clamp(distance / elapsed * multiplier, min, max), 5), time);
+        var velocity = double.NegativeInfinity;
+        foreach (var sample in _samples) velocity = Math.Max(velocity, sample);
+        Velocity = velocity;
+        return true;
+    }
+
+    private void Push(double sample, double time)
+    {
+        _time = time;
+        _samples[_index] = sample;
+        _index = (_index + 1) % _samples.Length;
     }
 }

@@ -85,6 +85,22 @@ public sealed class StorefrontPageTests
         Assert.Equal("1", badge.GetLogicalDescendants().OfType<TextBlock>().Single().Text);
         Assert.NotEmpty(Presto.GetAnimations(badge));
         Assert.Single(page.GetControl<StackPanel>("CartShelf").Children);
+        Assert.Single(SceneHarness.ParticleOverlays(page));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void WithReducedMotionOnAddingToTheCartBumpsTheBadgeWithoutParticles()
+    {
+        var (window, page) = Loaded();
+        var badge = page.GetControl<Border>("Badge");
+        SceneHarness.Click(window, page.GetControl<ToggleSwitch>("ReducedSwitch"));
+
+        SceneHarness.Click(window, Button(Cards(page).First(), "Add"));
+
+        Assert.Equal(1, page.ViewModel.CartCount);
+        Assert.NotEmpty(Presto.GetAnimations(badge));
+        Assert.Empty(SceneHarness.ParticleOverlays(page));
         SceneHarness.Close(window);
     }
 

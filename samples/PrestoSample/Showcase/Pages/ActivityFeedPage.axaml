@@ -106,7 +106,7 @@
         <Border Grid.Row="2" Classes="stage">
             <Panel>
                 <ListBox x:Name="Feed" Classes="feed" ItemsSource="{Binding Items}"
-                         presto:Animate.ItemLayout="{presto:Reflow}">
+                         presto:Animate.ItemLayout="{presto:Reflow}" presto:Presence.ScrollAnchor="True">
                     <ListBox.DataTemplates>
                         <DataTemplate x:DataType="local:DayHeader">
                             <TextBlock Classes="eyebrow showcase day" Text="{Binding Label}"
@@ -145,7 +145,7 @@
                                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0">
                     <ContentControl.ContentTemplate>
                         <DataTemplate x:DataType="x:Int32">
-                            <Button Classes="pill" Content="{Binding StringFormat='{}{0} new'}" Click="PillClicked"
+                            <Button Classes="pill" Content="{Binding StringFormat='{}{0} new above'}" Click="PillClicked"
                                     presto:Presence.Arrive="{presto:Fade Direction=Down}"
                                     presto:Presence.Exit="{presto:Fade}" />
                         </DataTemplate>
@@ -155,6 +155,6 @@
         </Border>
 
         <TextBlock Grid.Row="3" Classes="caption" TextWrapping="Wrap"
-                   Text="A live feed of 2,000 events in a virtualized ListBox, with day headers as items of their own. The first screen rises in through Presence.Initial; scroll slowly and each row fades up once through Presence.Reveal, rippling with the rows from the same scroll step, while scrolling back up or dragging the scrollbar far plays nothing. Every four seconds a Timer adds an event that slides in through Presence.Enter and bumps the unread badge through Animate.OnChanged; scrolled down, a pill arrives through Presence.Arrive to count them instead and scrolls to the top on click. Dismiss collapses a row out through Presence.Exit; the rows below an insert or a dismissal ease into place through Animate.ItemLayout, while recycled rows and scrolling ease nothing. Near the bottom skeleton rows shimmer through Animate.OnAttached while the next 50 events load. The counters above tally each trigger's plays; set Reveal to Every time, or move it to OnAttached, and scrolling back replays rows." />
+                   Text="A live feed of 2,000 events in a virtualized ListBox, with day headers as items of their own. The first screen rises in through Presence.Initial; scroll slowly and each row fades up once through Presence.Reveal, rippling with the rows from the same scroll step, while scrolling back up or dragging the scrollbar far plays nothing. Every four seconds a Timer adds an event that slides in through Presence.Enter and bumps the unread badge through Animate.OnChanged; scrolled down, it is inserted at once while Presence.ScrollAnchor keeps the rows being read still, and a pill arrives through Presence.Arrive to count the new rows above and scrolls to the top on click. Dismiss collapses a row out through Presence.Exit; the rows below an insert or a dismissal ease into place through Animate.ItemLayout, while recycled rows and scrolling ease nothing. Near the bottom skeleton rows shimmer through Animate.OnAttached while the next 50 events load. The counters above tally each trigger's plays; set Reveal to Every time, or move it to OnAttached, and scrolling back replays rows." />
     </Grid>
 </showcase:ShowcasePage>

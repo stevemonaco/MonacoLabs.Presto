@@ -82,6 +82,9 @@
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The blue card is bounded by the stage and thrown on release by a soft spring, so flicking it at an edge lets it push past the bound and settle back on it — the readout and the log above follow that one. The Inertia release instead coasts it to rest on a 40 unit grid and bounces it off the stage edge. The yellow card snaps to a 40 unit grid, reporting every step it crosses through OnSnap. The rail only moves along x and is grabbed by its handle rather than by itself. All three take the grab and grabbing cursors and are created in a scope, so leaving the page reverts them." />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A draggable follows one pointer. For two-finger pan, pinch-zoom and rotate, see Transformable on the Photo viewer showcase page." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

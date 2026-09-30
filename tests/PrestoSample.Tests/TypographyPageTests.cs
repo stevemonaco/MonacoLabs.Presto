@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge.Text;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -16,25 +17,27 @@ public sealed class TypographyPageTests
         var page = new TypographyPage();
         var paragraph = page.GetControl<TextBlock>("Paragraph");
         var text = paragraph.Text;
-        var window = SceneHarness.Show(page, 1000, 900, frames: 30);
-        var split = page.Split!;
-        var lines = split.Lines.ToArray();
-        var reveal = page.Reveal!;
-        Assert.InRange(reveal.Progress, 0.01, 0.99);
-        var progress = reveal.Progress;
+        var window = SceneHarness.Show(page, 1000, 900, frames: 12);
+        var words = Pieces(paragraph);
+        var lines = TextSplitter.GetLineIndex(words[^1]);
+        // The first word starts at once however the text wraps, so its opacity is the reveal's own clock.
+        var opacity = words[0].Opacity;
+        Assert.InRange(opacity, 0.05, 0.95);
 
         page.GetControl<Slider>("WidthSlider").Value = 360;
         TestFrames.Tick(15);
 
-        Assert.DoesNotContain(split.Lines, lines.Contains);
-        Assert.True(page.Reveal!.Progress > progress, $"the reveal went back from {progress:0.000} to {page.Reveal.Progress:0.000}");
+        var rewrapped = Pieces(paragraph);
+        Assert.DoesNotContain(rewrapped, words.Contains);
+        Assert.True(TextSplitter.GetLineIndex(rewrapped[^1]) > lines, "the narrower paragraph did not wrap onto more lines");
+        Assert.True(rewrapped[0].Opacity > opacity, $"the reveal went back from {opacity:0.000} to {rewrapped[0].Opacity:0.000}");
 
-        TestFrames.Tick(150);
-        Assert.True(page.Reveal.Completed, "the reveal never finished");
-
-        SceneHarness.Close(window);
+        TestFrames.Tick(200);
+        Assert.Empty(Pieces(paragraph));
         Assert.Equal(text, paragraph.Text);
         Assert.Null(paragraph.Inlines);
+
+        SceneHarness.Close(window);
     }
 
     [AvaloniaFact]
@@ -85,14 +88,14 @@ public sealed class TypographyPageTests
         var page = new TypographyPage();
         var window = SceneHarness.Show(page, 1000, 1400, frames: 100);
         var word = page.GetControl<TextBlock>("Word");
-        var outgoing = RotatorChars(word);
+        var outgoing = Pieces(word);
         var last = new Dictionary<TextBlock, double>();
 
         for (var frame = 0; frame < 160; frame++)
         {
             TestFrames.Tick();
             Assert.True(word.Inlines is { Count: > 0 } && string.IsNullOrEmpty(word.Text), $"frame {frame} shows the word unsplit");
-            foreach (var piece in RotatorChars(word))
+            foreach (var piece in Pieces(word))
             {
                 Assert.InRange(piece.Opacity, -1e-6, 1 + 1e-6);
                 var leaving = outgoing.Contains(piece);
@@ -105,7 +108,7 @@ public sealed class TypographyPageTests
             }
         }
 
-        Assert.DoesNotContain(RotatorChars(word), outgoing.Contains);
+        Assert.DoesNotContain(Pieces(word), outgoing.Contains);
         SceneHarness.Close(window);
     }
 
@@ -126,7 +129,7 @@ public sealed class TypographyPageTests
     private static Control[] WordmarkLetters(TypographyPage page) =>
         [.. page.GetControl<TextBlock>("Wordmark").GetVisualDescendants().OfType<TextBlock>().Where(text => text.Text?.Length == 1)];
 
-    private static TextBlock[] RotatorChars(TextBlock word) => [.. word.GetVisualDescendants().OfType<TextBlock>()];
+    private static TextBlock[] Pieces(TextBlock block) => [.. block.GetVisualDescendants().OfType<TextBlock>()];
 
     private static void AssertUnclipped(Control letter)
     {

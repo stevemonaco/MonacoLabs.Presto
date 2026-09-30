@@ -51,4 +51,11 @@ public partial class TextPage : UserControl
         {
             ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", Chars = "blocks" }),
         });
+
+    private void OnReplay(object? sender, RoutedEventArgs e)
+    {
+        var cards = RevealHost.Child;
+        RevealHost.Child = null;
+        RevealHost.Child = cards;
+    }
 }

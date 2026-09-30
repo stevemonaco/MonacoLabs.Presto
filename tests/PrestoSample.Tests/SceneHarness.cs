@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
@@ -67,6 +68,10 @@ internal static class SceneHarness
     /// <summary>Ticks until <paramref name="card"/> is drawn in the slot layout has given it, which is both its entry and its reflow finishing.</summary>
     public static Task<bool> Settles(Visual page, Window window, Border card) =>
         Pump(() => Extent(page, Colour(card)) is { } box && Near(box, Slot(card, window)), rounds: 140);
+
+    /// <summary>The overlay canvases the particle recipes draw into over <paramref name="visual"/>'s window.</summary>
+    public static CompositorCanvas[] ParticleOverlays(Visual visual) =>
+        OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<CompositorCanvas>().ToArray();
 
     /// <summary>The number a readout is showing.</summary>
     public static double Number(TextBlock text) => double.Parse(text.Text!, CultureInfo.InvariantCulture);

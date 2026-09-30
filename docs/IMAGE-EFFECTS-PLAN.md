@@ -7,7 +7,7 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
 
 | Phase | Scope | Size |
 |---|---|---|
-| 28 | `FilteredImage`: a drop-in `Image` with animatable CSS-style colour filters, drawn through Skia colour filters | medium |
+| 28 | `FilteredImage`: an `Image`-compatible control with animatable CSS-style colour filters, drawn through Skia colour filters | medium |
 | 29 | Pixel transitions on `FilteredImage`: crossfade, dissolve, pixelate, ripple and wipe between two sources, and the same effects as standalone properties | medium |
 
 ## 0. What Avalonia 12.1.2 offers (verified against the source)
@@ -32,8 +32,11 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
 
 ### 1.1 Decisions
 
-1. **A control, not shorthands.** `FilteredImage` derives from `Avalonia.Controls.Image`, so `Source`, `Stretch`,
-   `StretchDirection`, measure and arrange are inherited and it is a drop-in replacement in XAML. Each filter is a
+1. **A control, not shorthands.** `FilteredImage` derives from `Control`, not `Image`: Avalonia 12.1.2 seals
+   `Image.Render` (found while building Phase 37). As `SpriteSheet` does, it takes `Source`, `Stretch` and
+   `StretchDirection` from `Image`'s properties through `AddOwner`, so its XAML surface matches `Image` and swapping
+   one for the other is a rename, and it measures, arranges and draws its plain form through the internal
+   `FramePlayer.Measure`/`Draw` helpers `SpriteSheet` and `ImageSequence` already share. Each filter is a
    plain `StyledProperty<double>` (or `Color`) with `AffectsRender`, so everything Presto already does with an
    `AvaloniaProperty` works unchanged: `Animate`, the typed indexer, builders, `Motion` states, `Presence`, recipes,
    bindings, style setters, `Animation`-priority writes and `Revert`. No composer, no new accessor kind, no codec.
@@ -52,13 +55,13 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
    with `ImmediateDrawingContext.DrawBitmap` (so Avalonia's own sampling, interpolation mode and opacity apply),
    leases again and `Restore`s. The spike (step 1) confirms this interleaving is legal; the fallback is to copy the
    bitmap's pixels once per `Source` into a cached `SKImage` and draw that inside the lease.
-5. **Identity draws plain.** When the composed matrix is the identity (every filter at its default), `Render` defers to
-   `Image.Render` and no layer is pushed, as decision 29 in PLAN §7 removes effects at rest.
+5. **Identity draws plain.** When the composed matrix is the identity (every filter at its default), `Render` draws
+   through `FramePlayer.Draw`, exactly as `SpriteSheet` draws a frame, and no layer is pushed, as decision 29 in PLAN §7 removes effects at rest.
 6. **Non-bitmap sources are rasterized.** A `DrawingImage` (SVG icons) or other `IImage` is rendered into a cached
    `RenderTargetBitmap` at the control's size times render scaling, invalidated on resize, scaling change or the
    drawing's own invalidation. A `CroppedBitmap` passes its source rect to `DrawBitmap`.
 7. **Without a Skia lease, draw unfiltered.** `TryGetFeature<ISkiaSharpApiLeaseFeature>()` returning null (a non-Skia
-   backend, headless drawing) falls back to `Image.Render`. Nothing throws.
+   backend, headless drawing) falls back to the plain `FramePlayer.Draw` path. Nothing throws.
 8. **The bridge takes a package reference on `Avalonia.Skia`** (version already in `Directory.Packages.props`) for
    `ISkiaSharpApiLeaseFeature` and SkiaSharp. Every head already carries it.
 9. **Compositor animation stays unsupported.** The filter values live in UI-thread render data, so a filter animates on
@@ -70,8 +73,12 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
 ### 1.2 API
 
 ```csharp
-public class FilteredImage : Image
+public sealed class FilteredImage : Control
 {
+    public static readonly StyledProperty<IImage?> SourceProperty;              // Image.SourceProperty.AddOwner
+    public static readonly StyledProperty<Stretch> StretchProperty;             // Image.StretchProperty.AddOwner
+    public static readonly StyledProperty<StretchDirection> StretchDirectionProperty; // Image.StretchDirectionProperty.AddOwner
+
     public static readonly StyledProperty<double> BrightnessProperty;   // 1 = identity, 0 = black, >1 brighter
     public static readonly StyledProperty<double> ContrastProperty;     // 1 = identity
     public static readonly StyledProperty<double> SaturateProperty;     // 1 = identity, 0 = gray, >1 oversaturated
@@ -109,7 +116,8 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
    drawing path (decision 4) won in §5 of this document.
 2. **`ColorMatrix` (internal, pure).** A 5×4 `float` matrix struct with `Multiply`, `IsIdentity` and one factory per
    filter from the Filter Effects spec, plus `Tint` and `Duotone`. No Avalonia dependency beyond `Color`.
-3. **`FilteredImage`.** Properties, `AffectsRender`, `Render` building the composed matrix and the draw op, identity
+3. **`FilteredImage`.** `Control` subclass with the `AddOwner` image properties and `FramePlayer`-based measure and
+   arrange; filter properties, `AffectsRender`, `Render` building the composed matrix and the draw op, identity
    short-circuit, non-bitmap rasterization cache, lease fallback.
 4. **Builder extensions, recipes, README rows** (anime.js `filter` → `FilteredImage` in the cheat sheet), and a
    Platforms note once the Browser and Android heads have been smoke-run with a filtered image.
@@ -121,7 +129,8 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   documented one (brightness then invert differs from invert then brightness, and the control uses the former).
 - Pixel tests, headless Skia: a red bitmap at `Grayscale = 1` renders the spec luminance gray; `Invert = 1` renders
   cyan; `HueRotate = 180` rotates a known colour to its spec value; `Tint = 1` with blue renders luminance × blue;
-  all defaults render identical to a plain `Image`.
+  all defaults render identical to a plain `Image` with the same `Source`, `Stretch` and size.
+- Layout: measure and arrange match `Image` for each `Stretch`/`StretchDirection` over the same source.
 - Animation: `Presto.Animate` on `GrayscaleProperty` renders intermediate frames and `Revert` restores the local value.
 - A `Motion.Hover` state on `SaturateProperty` returns to the base value (decision 26 applies unchanged).
 - Identity draws plain: an internal `IsFiltering` flag is false at rest and after an animation back to identity.
@@ -206,6 +215,9 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   `Blur` effect shorthand, which blurs the whole element.
 - Whether the Phase 29 transitions should also accept arbitrary content (a `TransitioningContentControl`-style host),
   which depends on the `FilterPresenter` decision in §3 and overlaps Phase 31's page transitions.
+- Whether `SpriteSheet` should derive from `FilteredImage` so filters apply to frames (PREBUILTS-2-PLAN 2.6). That
+  needs `FilteredImage` unsealed with an overridable source rect; decide when Phase 28 starts, since both controls
+  already share `FramePlayer`.
 
 ## 5. Deviations as built
 

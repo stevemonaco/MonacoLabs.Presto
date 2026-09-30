@@ -17,8 +17,6 @@ public partial class MicroInteractionsPage : ShowcasePage
     public static readonly AnimationBuilder Pop = Presto.Build().Scale(k => k.To(1.1, duration: 110).To(1, duration: 420, ease: Eases.OutBack()));
     public static readonly AnimationBuilder TabLift = Presto.Build().Y(-2).Duration(180).Ease(Eases.OutQuad);
 
-    private const int BurstCount = 8;
-    private const double BurstRadius = 34;
     private const double TabInset = 10;
     private const double StretchDuration = 170;
     private const double ContractDuration = 320;
@@ -42,19 +40,6 @@ public partial class MicroInteractionsPage : ShowcasePage
     {
         InitializeComponent();
         LikeCount.Text = Count(_likes);
-        for (var i = 0; i < BurstCount; i++)
-        {
-            Burst.Children.Add(new Border
-            {
-                Width = 7,
-                Height = 7,
-                CornerRadius = new CornerRadius(3.5),
-                Background = Palette.Coral,
-                Opacity = 0,
-                [Canvas.LeftProperty] = -3.5d,
-                [Canvas.TopProperty] = -3.5d,
-            });
-        }
     }
 
     protected override void OnAttached()
@@ -99,17 +84,7 @@ public partial class MicroInteractionsPage : ShowcasePage
                 Duration = 400,
                 Ease = Eases.OutQuad,
             });
-            if (!_liked) return;
-            Presto.Animate(Burst.Children, new AvaloniaAnimationParams
-            {
-                ["X"] = (FunctionValue)((_, i, total) => TweenValue.FromTo(0, BurstRadius * Math.Cos(i * 2 * Math.PI / total))),
-                ["Y"] = (FunctionValue)((_, i, total) => TweenValue.FromTo(0, BurstRadius * Math.Sin(i * 2 * Math.PI / total))),
-                ["Scale"] = TweenValue.FromTo(1.4, .2),
-                ["Opacity"] = new TweenParams { From = 1, To = 0, Ease = Eases.InQuad },
-                Duration = 560,
-                Delay = Presto.Stagger(18),
-                Ease = Eases.OutQuint,
-            });
+            if (_liked) Recipes.Burst(Heart, color: Palette.Coral.Color, reduced: Recipes.Fade());
         });
     }
 

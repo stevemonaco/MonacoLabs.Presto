@@ -143,6 +143,41 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public async Task ClearingAndRestoringTheSameBuilderMidFlightLeavesOneTransitionThatDetachReverts()
+    {
+        var key = nameof(ClearingAndRestoringTheSameBuilderMidFlightLeavesOneTransitionThatDetachReverts);
+        var root = new Panel();
+        new Window { Content = root, Background = Brushes.White, Width = 160, Height = 220 }.Show();
+        var leaving = Placed(new Border { Background = Brushes.Blue, Width = 40, Height = 20 }, 0, 50);
+        Connected.SetKey(leaving, key);
+        root.Children.Add(leaving);
+        Tick();
+        root.Children.Remove(leaving);
+
+        var layout = HeldMove;
+        var arriving = Placed(new Border { Background = Brushes.Red, Width = 40, Height = 20 }, 80, 130);
+        Animate.SetLayout(arriving, layout);
+        Connected.SetKey(arriving, key);
+        Connected.SetMotion(arriving, HeldMove);
+        root.Children.Add(arriving);
+        Tick();
+        Animate.SetLayout(arriving, null);
+        Animate.SetLayout(arriving, layout);
+
+        // The restored arm re-arms at its next layout pass; the released one must not fill the gap before it.
+        Frames.Advance(Held + 1);
+        await Pump(() => LayoutTransition.Live(arriving) is { Once: false }, rounds: 8);
+        root.Children.Remove(arriving);
+        Assert.False(LayoutTransition.Live(arriving) is { Once: false }, "a released arm re-armed after the flight and outlived the detach");
+
+        root.Children.Add(arriving);
+        Tick();
+        Assert.True(LayoutTransition.Live(arriving) is { Once: false });
+        root.Children.Remove(arriving);
+        Assert.Null(LayoutTransition.Live(arriving));
+    }
+
+    [AvaloniaFact]
     public void AStyleSetterSharesOneReflowAndEachElementGetsItsOwnTransition()
     {
         var reflow = Recipes.Reflow(Held, ease: Eases.None);

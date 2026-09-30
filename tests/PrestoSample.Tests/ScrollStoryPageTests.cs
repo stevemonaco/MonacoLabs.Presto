@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Events;
 using PrestoSample.Showcase.Pages;
 
@@ -99,6 +100,27 @@ public sealed class ScrollStoryPageTests
             Math.Abs(drawnAfter - drawnBefore) < 8,
             $"the scrub jumped from {drawnBefore}% to {drawnAfter}% across a {Shrink}px resize");
 
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void AChapterHeadingMasksInByLineAsItsChapterEntersAndIsRejoinedAfter()
+    {
+        var (window, page, scroller) = Show();
+        var heading = page.GetControl<TextBlock>("Heading1");
+        var text = heading.Text;
+
+        for (var offset = SweepStep; offset < scroller.Extent.Height && !page.Crossings.Contains("chapter 1 enter forward"); offset += SweepStep)
+        {
+            ScrollTo(scroller, offset);
+        }
+
+        Assert.Contains("chapter 1 enter forward", page.Crossings);
+        Assert.Contains(heading.GetVisualDescendants().OfType<Border>(), mask => mask.ClipToBounds && mask.Child is TextBlock);
+
+        TestFrames.Tick(60);
+        Assert.Equal(text, heading.Text);
+        Assert.Null(heading.Inlines);
         SceneHarness.Close(window);
     }
 

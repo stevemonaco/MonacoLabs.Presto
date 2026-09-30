@@ -324,4 +324,32 @@ public sealed class TimelinesTests : EngineTestBase
         Assert.True(child.Completed);
         Assert.Equal(300, tl.CurrentTime);
     }
+
+    [Fact]
+    public void RemovingTheNextChildsTargetFromAChildCallbackKeepsTheRestRendering()
+    {
+        StyleTarget a = new(), b = new(), c = new();
+        var removed = false;
+        var cUpdatesSinceRemoval = 0;
+        var tl = Presto.CreateTimeline(new() { Defaults = new() { Duration = 200 } })
+            .Add(a, new()
+            {
+                ["TranslateX"] = 100,
+                OnUpdate = self =>
+                {
+                    if (removed || self.CurrentTime < 50) return;
+                    removed = true;
+                    Presto.Remove(b);
+                },
+            })
+            .Add(b, new() { ["TranslateX"] = 100 }, 0)
+            .Add(c, new() { ["TranslateX"] = 100, OnUpdate = _ => { if (removed) cUpdatesSinceRemoval++; } }, 0);
+
+        RunUntil(() => removed);
+        Assert.Equal(1, cUpdatesSinceRemoval);
+        Frames.Advance(16);
+
+        Assert.Equal(2, cUpdatesSinceRemoval);
+        Assert.Equal(2, TestHelpers.GetChildLength(tl));
+    }
 }

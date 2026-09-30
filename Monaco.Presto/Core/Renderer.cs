@@ -266,9 +266,10 @@ internal static class Renderer
             {
                 var tlIterationDuration = tickable.IterationDuration;
                 var child = tickable._head;
+                tickable._nextChildIsPrev = false;
                 while (child != null)
                 {
-                    var nextChild = child._next;
+                    tickable._nextChild = child._next;
                     if (!tlIsRunningBackwards)
                     {
                         if (!child.Completed && !child.Backwards && child._currentTime < child.IterationDuration)
@@ -288,15 +289,16 @@ internal static class Renderer
                             child.OnComplete?.Invoke(child);
                         }
                     }
-                    child = nextChild;
+                    child = tickable._nextChild;
                 }
                 if (!muteCallbacks) tickable.OnLoop?.Invoke(tickable);
             }
 
             var activeChild = tlIsRunningBackwards ? tickable._tail : tickable._head;
+            tickable._nextChildIsPrev = tlIsRunningBackwards;
             while (activeChild != null)
             {
-                var nextActiveChild = tlIsRunningBackwards ? activeChild._prev : activeChild._next;
+                tickable._nextChild = tlIsRunningBackwards ? activeChild._prev : activeChild._next;
                 // Rounding is needed when using seconds.
                 var childTime = Helpers.Round((tlChildrenTime - activeChild._offset) * activeChild._speed, 12);
                 // Past-end siblings are skipped on backward iteration so their end values do not overwrite the active sibling's write.
@@ -306,7 +308,7 @@ internal static class Renderer
                     tlChildrenHasRendered |= Render(activeChild, childTime, muteCallbacks, internalRender, childTickMode);
                     if (!activeChild.Completed && tlChildrenHaveCompleted) tlChildrenHaveCompleted = false;
                 }
-                activeChild = nextActiveChild;
+                activeChild = tickable._nextChild;
             }
 
             // Renders on a timeline are triggered by its children, so this follows the child loop.

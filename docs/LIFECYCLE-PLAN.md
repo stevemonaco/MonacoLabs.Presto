@@ -345,6 +345,10 @@ replays on every recycle. `ScrollObserver` watches a `ScrollViewer`, not recycle
   revealed while scrolling up only after a jump passed over it, since a slow scroll up meets rows already seen, so the
   case is rare; the "Every time" setting makes it constant. Whether the upward rise reads as wrong there is left to a
   Desktop hand check of the feed, not yet done.
+- **Inserts above a scrolled list.** The Activity feed no longer holds live events back while scrolled down: with
+  `Presence.ScrollAnchor` (Phase 34) it inserts them at once. An event inserted above the rows in view is not realized,
+  so `Enter` neither plays nor marks it seen, and it is revealed when scrolled to, like any unseen row. How those rows
+  reveal together is PLAN Phase 39.
 
 ### 10.6 Spike
 

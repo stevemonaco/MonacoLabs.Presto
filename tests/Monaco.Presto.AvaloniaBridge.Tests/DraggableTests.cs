@@ -237,6 +237,20 @@ public sealed class DraggableTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ANegativeMultiplierKeepsTheZeroSeedsUntilThreeSamplesAreTaken()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { VelocityMultiplier = -1, MinVelocity = -50 });
+
+        Drag(window, 20, 2);
+        Assert.Equal(0d, draggable.Velocity);
+
+        window.MouseMove(new Point(85, 25));
+        Frames.Advance(20);
+        Assert.Equal(-1d, draggable.Velocity);
+    }
+
+    [AvaloniaFact]
     public void AnOutOfBoundsReleaseEasesBackIntoTheContainer()
     {
         var (window, container, target) = Show();

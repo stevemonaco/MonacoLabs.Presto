@@ -7,8 +7,9 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// The recipe catalogue in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
-/// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text recipes need the
-/// <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/>.
+/// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text reveals are builders
+/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/> and <see cref="CountUp"/> need
+/// the <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/>.
 /// </summary>
 public static class Recipes
 {
@@ -181,6 +182,10 @@ public static class Recipes
     public static AnimationBuilder Indeterminate(double distance, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loading.Indeterminate(distance, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Sprites.PlayFrames"/>
+    public static AnimationBuilder PlayFrames(double fps = 24, bool loop = true, bool reverse = false, double? delay = null) =>
+        Sprites.PlayFrames(fps, loop, reverse, delay);
+
     /// <inheritdoc cref="Pages.PageFade"/>
     public static PrestoPageTransition PageFade(double? duration = null) => Pages.PageFade(duration);
 
@@ -196,13 +201,52 @@ public static class Recipes
     /// <inheritdoc cref="Pages.PagePush"/>
     public static PrestoPageTransition PagePush(Edge edge) => Pages.PagePush(edge);
 
+    /// <inheritdoc cref="TextReveals.LineRise"/>
+    public static AnimationBuilder LineRise(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineRise(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineMask"/>
+    public static AnimationBuilder LineMask(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineMask(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineWipe"/>
+    public static AnimationBuilder LineWipe(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineWipe(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordFade"/>
+    public static AnimationBuilder WordFade(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordFade(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordBlur"/>
+    public static AnimationBuilder WordBlur(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordBlur(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.CharCascade"/>
+    public static AnimationBuilder CharCascade(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.CharCascade(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="Particles.Confetti"/>
+    public static ParticleEffect Confetti(Control anchor, int count = 120, IReadOnlyList<Color>? colors = null, Edge? from = null, AnimationBuilder? reduced = null) =>
+        Particles.Confetti(anchor, count, colors, from, reduced);
+
+    /// <inheritdoc cref="Particles.Sparkles"/>
+    public static ParticleEffect Sparkles(Control anchor, double rate = 30, Color? color = null, AnimationBuilder? reduced = null) =>
+        Particles.Sparkles(anchor, rate, color, reduced);
+
+    /// <inheritdoc cref="Particles.Burst"/>
+    public static ParticleEffect Burst(Control anchor, int count = 24, Color? color = null, AnimationBuilder? reduced = null) =>
+        Particles.Burst(anchor, count, color, reduced);
+
     /// <summary>
     /// Types out <paramref name="textBlock"/>'s text: it is split into characters, each starting <paramref name="charDelay"/> ms
     /// (default <see cref="MotionTokens.StaggerStep"/>) after the one before and fading in over <paramref name="duration"/>
     /// (default <paramref name="charDelay"/>), and put back together once the last has appeared. Reduced, the whole block
     /// fades in as <see cref="Fade"/> does.
     /// </summary>
-    /// <remarks>The block has to be laid out, since the split follows its wrapped lines.</remarks>
+    /// <remarks>
+    /// The block has to be laid out, since the split follows its wrapped lines. <see cref="CharCascade"/> is the trigger form,
+    /// splitting when the block is first laid out.
+    /// </remarks>
     public static Animation Typewriter(TextBlock textBlock, double? charDelay = null, double? duration = null, double? delay = null, EaseValue? ease = null)
     {
         if (Engine.Current.Defaults.ReducedMotion) return Fade(delay: delay).Animate(textBlock);

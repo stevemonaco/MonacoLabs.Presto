@@ -41,7 +41,7 @@ public partial class ActivityFeedPage : ShowcasePage
         {
             Duration = LiveInterval,
             Loop = true,
-            OnLoop = _ => ViewModel.AddLive(hold: Feed.Scroll!.Offset.Y > 0),
+            OnLoop = _ => ViewModel.AddLive(above: Feed.Scroll!.Offset.Y > 0),
         });
 
     private void FeedScrolled(object? sender, ScrollChangedEventArgs e)
@@ -49,7 +49,7 @@ public partial class ActivityFeedPage : ShowcasePage
         var scroll = Feed.Scroll!;
         if (scroll.Offset.Y <= 0)
         {
-            ViewModel.Release();
+            ViewModel.Unseen = null;
             return;
         }
         if (ViewModel.Loading || scroll.Offset.Y + scroll.Viewport.Height < scroll.Extent.Height - NearBottom) return;

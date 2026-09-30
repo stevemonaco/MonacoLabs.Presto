@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
@@ -6,7 +7,7 @@ using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
 
-/// <summary>A submit button that collapses to a spinner, draws a tick or a cross on the outcome and springs back, one awaited recipe per step.</summary>
+/// <summary>A submit button that collapses to a spinner, draws a tick and throws confetti or draws a cross on the outcome and springs back, one awaited recipe per step.</summary>
 public partial class SubmitFlowPage : ShowcasePage
 {
     private static readonly AnimationBuilder Collapse;
@@ -18,7 +19,8 @@ public partial class SubmitFlowPage : ShowcasePage
     private static readonly AnimationBuilder Erase;
     private static readonly AnimationBuilder Succeed;
     private static readonly AnimationBuilder Fail;
-    private static readonly string Recipes;
+    private static readonly Func<Control, ParticleEffect> Celebrate;
+    private static readonly string Code;
     private bool _busy;
 
     static SubmitFlowPage()
@@ -70,13 +72,15 @@ public partial class SubmitFlowPage : ShowcasePage
             .CornerRadius(new CornerRadius(8))
             .Background(Palette.Accent)
             .Ease(Eases.Spring(bounce: .35, duration: 650))));
-        Recipes = string.Join("\n\n", declarations);
+        (Celebrate, var celebrate) = Snippet.Of<Func<Control, ParticleEffect>>(button => Recipes.Confetti(button, count: 80));
+        declarations.Add(Snippet.Declare("static readonly Func<Control, ParticleEffect> Celebrate", celebrate));
+        Code = string.Join("\n\n", declarations);
     }
 
     public SubmitFlowPage()
     {
         InitializeComponent();
-        RecipesCode.Text = Recipes;
+        RecipesCode.Text = Code;
     }
 
     /// <summary>Completes when the flow the last click started has sprung back; <see langword="null"/> before the first click.</summary>
@@ -108,6 +112,7 @@ public partial class SubmitFlowPage : ShowcasePage
         Spinner.Animate(Hide);
         var mark = fail ? Cross : Tick;
         Submit.Animate(fail ? Fail : Succeed);
+        if (!fail) _ = Celebrate(Submit);
         await mark.Animate(DrawIn);
         await Presto.CreateTimer(new() { Duration = 700 });
 

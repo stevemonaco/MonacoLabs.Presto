@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Gestures;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
 
@@ -95,6 +96,7 @@ public sealed class Draggable : IRevertible
 
     internal Draggable(Control target, DraggableParams parameters)
     {
+        GestureOwners.Claim(target, this);
         _engine = Engine.Current;
         _engine.CurrentScope?.Register(this);
         _target = target;
@@ -345,6 +347,7 @@ public sealed class Draggable : IRevertible
         Animate.Revert();
         _target.SizeChanged -= HandleSizeChanged;
         if (_parameters.Container is { } container && container != _target) container.SizeChanged -= HandleSizeChanged;
+        GestureOwners.Release(_target, this);
         return this;
     }
 
@@ -437,9 +440,8 @@ public sealed class Draggable : IRevertible
 
     private double ComputeVelocity(double dx, double dy)
     {
-        // Clamping and rounding the strongest sample equals upstream's strongest of the clamped, rounded samples.
-        if (_velocityTracker.AddDisplacement(Math.Sqrt(dx * dx + dy * dy), _engine.FrameSource.Now))
-            Velocity = Utils.Round(Utils.Clamp(_velocityTracker.Velocity * _velocityMultiplier, _minVelocity, _maxVelocity), 5);
+        if (_velocityTracker.AddDisplacement(Math.Sqrt(dx * dx + dy * dy), _engine.FrameSource.Now, _velocityMultiplier, _minVelocity, _maxVelocity))
+            Velocity = _velocityTracker.Velocity;
         return Velocity;
     }
 

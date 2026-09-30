@@ -7,6 +7,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 
 namespace Monaco.Presto.AvaloniaBridge;
@@ -101,6 +102,13 @@ public static class Presence
     public static readonly AttachedProperty<AnimationBuilder?> ExitProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Exit", typeof(Presence));
 
+    /// <summary>
+    /// Whether the list scrolls to keep the first row in view where it is when items are added or removed above it, so a
+    /// live list can take inserts while it is read. At the top it does not, and new items stay in view.
+    /// </summary>
+    public static readonly AttachedProperty<bool> ScrollAnchorProperty =
+        AvaloniaProperty.RegisterAttached<ItemsControl, bool>("ScrollAnchor", typeof(Presence));
+
     private static readonly AttachedProperty<Tracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, Tracker?>("Tracker", typeof(Presence));
 
@@ -114,6 +122,7 @@ public static class Presence
         ArriveProperty.Changed.AddClassHandler<Control>(HandleChanged);
         RevealProperty.Changed.AddClassHandler<Control>(HandleChanged);
         ExitProperty.Changed.AddClassHandler<Control>(HandleChanged);
+        ScrollAnchorProperty.Changed.AddClassHandler<ItemsControl>((list, _) => ItemChanges.For(list));
     }
 
     /// <summary>Gets the builder played on <paramref name="control"/> when it appears with its view.</summary>
@@ -151,6 +160,12 @@ public static class Presence
 
     /// <summary>Sets the builder played on a ghost of <paramref name="control"/> when it leaves.</summary>
     public static void SetExit(Control control, AnimationBuilder? value) => control.SetValue(ExitProperty, value);
+
+    /// <summary>Gets whether <paramref name="list"/> keeps its first visible row in place when items change above it.</summary>
+    public static bool GetScrollAnchor(ItemsControl list) => list.GetValue(ScrollAnchorProperty);
+
+    /// <summary>Sets whether <paramref name="list"/> keeps its first visible row in place when items change above it.</summary>
+    public static void SetScrollAnchor(ItemsControl list, bool value) => list.SetValue(ScrollAnchorProperty, value);
 
     /// <summary>
     /// What <paramref name="control"/>, which has just attached, arrived as. The content of an item container enters only
@@ -265,10 +280,15 @@ public static class Presence
     /// Animates <paramref name="control"/> as the next arrival of its panel's batch, which gives the animation its index and
     /// the arrivals so far as the targets function values and staggers resolve against.
     /// </summary>
-    /// <remarks>The panel, not the ancestor that classified the arrival, keys the batch: an item container that has loaded classifies its own content.</remarks>
-    private static Animation Arrive(Control control, AnimationBuilder builder)
+    /// <remarks>
+    /// The panel, not the ancestor that classified the arrival, keys the batch: an item container that has loaded classifies
+    /// its own content. A text reveal (<see cref="TextReveal"/>) plays on its pieces instead, which are its own batch.
+    /// </remarks>
+    private static IRevertible Arrive(Control control, AnimationBuilder builder)
     {
         PrestoAvalonia.EnsureInitialized();
+        var parameters = builder.ToParams();
+        if (PieceTargets.Play(control, parameters) is { } reveal) return reveal;
         Visual key = control.FindAncestorOfType<Panel>() ?? (Visual?)TopLevel.GetTopLevel(control) ?? control;
         if (!s_batches.TryGetValue(key, out var batch))
         {
@@ -276,14 +296,14 @@ public static class Presence
             ItemChanges.AfterLayout((Layoutable)key, () => s_batches.Remove(key));
         }
         batch.Add(control);
-        return (Animation)new Animation(control, builder.ToParams(), null, 0, index: batch.Count - 1, allTargets: batch.ToArray()).Init();
+        return new Animation(control, parameters, null, 0, index: batch.Count - 1, allTargets: batch.ToArray()).Init();
     }
 
     /// <summary>Owns an element's lifecycle animations, so a departure snapshots its exit before reverting its entrance.</summary>
     private sealed class Tracker
     {
         private readonly Control _control;
-        private Animation? _arrival;
+        private IRevertible? _arrival;
         private Animation? _ghost;
         private Point? _slot;
         private bool _recording;

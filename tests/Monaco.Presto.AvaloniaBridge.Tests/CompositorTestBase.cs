@@ -143,6 +143,19 @@ public abstract class CompositorTestBase : BridgeTestBase
         return count;
     }
 
+    /// <summary>Row <paramref name="y"/> of the last frame the window holding <paramref name="visual"/> rendered.</summary>
+    protected static Color[] Row(Visual visual, int y)
+    {
+        var (pixels, stride) = Read(visual);
+        var row = new Color[stride / 4];
+        for (var x = 0; x < row.Length; x++)
+        {
+            var i = (y * stride) + (x * 4);
+            row[x] = Color.FromRgb(pixels[i], pixels[i + 1], pixels[i + 2]);
+        }
+        return row;
+    }
+
     private static (byte[] Pixels, int Stride) Read(Visual visual)
     {
         var window = TopLevel.GetTopLevel(visual)!;

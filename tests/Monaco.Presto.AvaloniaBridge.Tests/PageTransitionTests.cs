@@ -312,6 +312,70 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public async Task ACompositorRunTakesOverAUIThreadRunWithoutDrawingItsOffsetTwice()
+    {
+        var page = ShowPage();
+        var blur = new PrestoPageTransition { Enter = Presto.Build().X(from: 100).Opacity(from: 0).Blur(from: 2).Duration(100).Ease("linear") };
+        using var first = new CancellationTokenSource();
+        _ = blur.Start(null, page, true, first.Token);
+        Frames.Advance(50);
+        var stood = (X: X(page), page.Opacity);
+
+        first.Cancel();
+        var second = new PrestoPageTransition { Exit = HeldMove.X(-100).Opacity(0) }.Start(page, null, true, CancellationToken.None);
+        Tick();
+
+        Assert.InRange(stood.X, 20, 80);
+        AssertDrawnAt(page, stood.X, stood.Opacity);
+        _ = ((CompositorAnimation)CompositorRegistry.Holder(page, CompositorTrackKind.Translation)!).Complete();
+        Settle(() => second.IsCompleted);
+        await second;
+        AssertNothingAnimated(page);
+    }
+
+    [AvaloniaFact]
+    public async Task AUIThreadRunTakesOverACompositorRunFromWhereItsMirrorStood()
+    {
+        var page = ShowPage();
+        var slide = new PrestoPageTransition { Enter = Presto.Build().X(from: 100).Opacity(from: 0).Duration(100).Ease("linear") };
+        using var first = new CancellationTokenSource();
+        _ = slide.Start(null, page, true, first.Token);
+        Frames.Advance(50);
+        var mirror = ((CompositorAnimation)CompositorRegistry.Holder(page, CompositorTrackKind.Translation)!).ScratchOf(page)!;
+        var stood = (mirror.X, mirror.Opacity);
+
+        first.Cancel();
+        var blur = new PrestoPageTransition { Exit = Presto.Build().X(-100).Opacity(0).Blur(2).Duration(100).Ease("linear") };
+        var second = blur.Start(page, null, true, CancellationToken.None);
+        Tick();
+
+        Assert.InRange(stood.X, 20, 80);
+        AssertDrawnAt(page, stood.X, stood.Opacity);
+        Frames.Advance(50);
+        Tick();
+        AssertDrawnAt(page, X(page), page.Opacity);
+        Settle(() => second.IsCompleted);
+        await second;
+        AssertNothingAnimated(page);
+    }
+
+    [AvaloniaFact]
+    public async Task ASharedAxisScaleOnTheCompositorHonoursTheHostsOrigin()
+    {
+        var (from, to) = ShowPair();
+        from.IsVisible = false;
+        to.Background = Brushes.Red;
+        to.RenderTransformOrigin = RelativePoint.TopLeft;
+        ((Window)TopLevel.GetTopLevel(to)!).Background = Brushes.White;
+
+        _ = Recipes.PageSharedAxis(PageAxis.Z).Start(null, to, true, CancellationToken.None);
+
+        var far = new Rect(to.Bounds.Width - 2, to.Bounds.Height - 2, 2, 2);
+        Assert.True(await Pump(() => CountPixels(to, new Rect(0, 0, 2, 2), Colors.White) > 0 && CountPixels(to, far, Colors.White) == 0),
+            "the incoming page did not grow from its top left corner");
+    }
+
+    [AvaloniaFact]
     public void UpdateSeeksBothSidesOnTheUIThread()
     {
         var (from, to) = ShowPair();
@@ -433,6 +497,37 @@ public sealed class PageTransitionTests : CompositorTestBase
 
     private static ContentPresenter Presenter(TransitioningContentControl host, object? content) =>
         host.GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Content == content);
+
+    private static Border ShowPage()
+    {
+        var page = new Border { Background = Brushes.Red };
+        Show(page).Background = Brushes.White;
+        Tick();
+        return page;
+    }
+
+    // Red over white loses green in proportion to opacity; a blurred edge sits at half that loss.
+    private static void AssertDrawnAt(Border page, double x, double opacity)
+    {
+        var alpha = Row(page, (int)page.Bounds.Height / 2).Take((int)page.Bounds.Width).Select(c => 1 - (c.G / 255.0)).ToArray();
+        var drawnOpacity = alpha.Max();
+        var covered = alpha.Select(a => a >= drawnOpacity / 2).ToArray();
+        var drawnX = covered[0] ? Array.LastIndexOf(covered, true) + 1 - alpha.Length : Array.IndexOf(covered, true);
+
+        // One frame of a 100 ms linear run moves the page 16 px and its opacity by 0.16.
+        Assert.InRange(drawnX, x - 16, x + 16);
+        Assert.InRange(drawnOpacity, opacity - 0.16, opacity + 0.16);
+    }
+
+    private static void AssertNothingAnimated(Border page)
+    {
+        Assert.Null(page.RenderTransform);
+        Assert.Null(page.Effect);
+        Assert.False(page.IsAnimating(Visual.OpacityProperty));
+        Assert.Null(CompositorRegistry.Holder(page, CompositorTrackKind.Translation));
+        Assert.Null(CompositorRegistry.Holder(page, CompositorTrackKind.Opacity));
+        Assert.Equal(1, page.Opacity);
+    }
 
     private static (Border From, Border To) ShowPair()
     {

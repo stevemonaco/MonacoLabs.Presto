@@ -27,6 +27,15 @@ public partial class PageTransitionsPage : UserControl
             .Duration(200).Ease(Eases.InQuad),
     });
 
+    // Blur has no composition counterpart, so this pair runs on the UI thread.
+    private static readonly (PrestoPageTransition Value, string Code) BlurSlide = Snippet.Of(new PrestoPageTransition
+    {
+        Enter = Presto.Build().X(from: 120).Opacity(from: 0).Blur(from: 12)
+            .Duration(900).Ease(Eases.OutQuint),
+        Exit = Presto.Build().X(-120).Opacity(0).Blur(12)
+            .Duration(900).Ease(Eases.OutQuint),
+    });
+
     private int _page;
 
     public PageTransitionsPage()
@@ -63,6 +72,7 @@ public partial class PageTransitionsPage : UserControl
             (3, Edge edge) => (Recipes.PageSlide(edge), $"Recipes.PageSlide(Edge.{edge})", $"{{presto:PageSlide Edge={edge}}}"),
             (4, Edge edge) => (Recipes.PagePush(edge), $"Recipes.PagePush(Edge.{edge})", $"{{presto:PagePush Edge={edge}}}"),
             (5, _) => (Custom.Value, Custom.Code, null),
+            (6, _) => (BlurSlide.Value, BlurSlide.Code, null),
             // The option picker is between item sources.
             _ => default((PrestoPageTransition?, string, string?)),
         };
@@ -88,6 +98,18 @@ public partial class PageTransitionsPage : UserControl
     {
         Go(1);
         TopLevel.GetTopLevel(this)?.RequestAnimationFrame(_ => Dispatcher.UIThread.Post(() => Thread.Sleep(2000), DispatcherPriority.Background));
+    }
+
+    // Restored at Background priority, after the layout pass that starts the second transition.
+    private void CrossThreadClicked(object? sender, RoutedEventArgs e)
+    {
+        Go(1);
+        DispatcherTimer.RunOnce(() =>
+        {
+            Host.PageTransition = RecipePicker.SelectedIndex == 6 ? Recipes.PageSlide(Edge.Right) : BlurSlide.Value;
+            Go(1);
+            Dispatcher.UIThread.Post(Apply, DispatcherPriority.Background);
+        }, TimeSpan.FromMilliseconds(200));
     }
 
     private void PreviousSlideClicked(object? sender, RoutedEventArgs e) => Swiper.Previous();

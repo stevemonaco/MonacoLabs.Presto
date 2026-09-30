@@ -36,8 +36,14 @@ public abstract class RecipeExtension : MarkupExtension
         // Compiled XAML names a plain object's CLR property with an IPropertyInfo that does not know its declaring type.
         var exit = Out ?? (ReferenceEquals(target?.TargetProperty, Presence.ExitProperty)
             || target is { TargetObject: PrestoPageTransition, TargetProperty: IPropertyInfo { Name: nameof(PrestoPageTransition.Exit) or nameof(PrestoPageTransition.BackExit) } });
+        Configure(target);
         var builder = Build(exit, Ease is { } name ? (EaseValue?)EaseParser.Parse(name) : null);
         return Stagger is { } step ? builder.Delay(Presto.Stagger(step, new() { Start = Delay })) : builder;
+    }
+
+    /// <summary>Prepares the element the recipe is set on, when XAML names one; <paramref name="target"/> is null from code.</summary>
+    protected virtual void Configure(IProvideValueTarget? target)
+    {
     }
 
     /// <summary>Calls the recipe's factory with <see cref="Duration"/>, <see cref="Delay"/> and <paramref name="ease"/>: its exit form when <paramref name="exit"/> is set and it has one.</summary>

@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -13,7 +14,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// them has finished. A list is watched from the first lifecycle arrival in it; until that pass ends it cannot yet tell
 /// an added item from a realized one, so <see cref="Of"/> answers null and the arrival is classified by the general rule.
 /// It also remembers the items whose rows have been shown, for <see cref="Presence.RevealOnceProperty"/>, until they leave
-/// the list, and where the list was scrolled when the last layout pass ended.
+/// the list, and where the list was scrolled when the last layout pass ended, and it scrolls the list for
+/// <see cref="Presence.ScrollAnchorProperty"/>.
 /// </summary>
 internal sealed class ItemChanges
 {
@@ -24,6 +26,10 @@ internal sealed class ItemChanges
     private bool _clearing;
     private Vector _offset;
     private bool _scrolled;
+    private object? _anchor;
+    private Point _anchorAt;
+    private int _corrections;
+    private bool _correcting;
 
     private ItemChanges(ItemsControl owner)
     {
@@ -49,6 +55,9 @@ internal sealed class ItemChanges
 
     /// <summary>Whether the list is scrolled away from where the last layout pass left it, read from any handler of this pass.</summary>
     public bool Scrolled => _scrolled || (Scroller?.Offset ?? default) != _offset;
+
+    /// <summary>Whether a change above the first visible row is being scrolled back out of view, from the change until the layout pass that realizes it has finished.</summary>
+    public bool Anchoring => _anchor is not null;
 
     private ScrollViewer? Scroller => _owner.ItemsPanelRoot?.FindAncestorOfType<ScrollViewer>();
 
@@ -76,6 +85,9 @@ internal sealed class ItemChanges
 
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
+        // The panel can re-estimate its start again after the first correction, so a second one is allowed.
+        if (_anchor is { } anchor && !_correcting && _corrections < 2) Correct(anchor);
+
         var offset = Scroller?.Offset ?? default;
         if (offset == _offset) return;
         _offset = offset;
@@ -86,6 +98,7 @@ internal sealed class ItemChanges
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (Presence.GetScrollAnchor(_owner) && _anchor is null && e.Action != NotifyCollectionChangedAction.Reset) RecordAnchor(e);
         if (e.Action == NotifyCollectionChangedAction.Reset)
         {
             Reset = true;
@@ -102,6 +115,50 @@ internal sealed class ItemChanges
         Clear();
     }
 
+    private void RecordAnchor(NotifyCollectionChangedEventArgs e)
+    {
+        if (Scroller is not { } scroll || scroll.Offset == default || LayoutTransition.MeasureOnScreen(scroll) is not { } viewport) return;
+        // The panel hears of the change after this, so containers keep their old indices and slots while Items is already new.
+        var first = int.MaxValue;
+        Control? anchor = null;
+        var at = default(Point);
+        foreach (var container in _owner.GetRealizedContainers())
+        {
+            var index = _owner.IndexFromContainer(container);
+            if (index < 0 || index >= first || !container.IsVisible || LayoutTransition.MeasureOnScreen(container) is not { } slot || !viewport.Contains(slot.Position)) continue;
+            (first, anchor, at) = (index, container, slot.Position);
+        }
+
+        var start = e.Action switch
+        {
+            NotifyCollectionChangedAction.Add => e.NewStartingIndex,
+            NotifyCollectionChangedAction.Move => Math.Min(e.OldStartingIndex, e.NewStartingIndex),
+            _ => e.OldStartingIndex,
+        };
+        if (anchor?.DataContext is null || start > first || (start == first && e.Action != NotifyCollectionChangedAction.Add)) return;
+        _anchor = anchor.DataContext;
+        _anchorAt = at;
+        _corrections = 0;
+    }
+
+    private void Correct(object anchor)
+    {
+        if (Scroller is not { } scroll) return;
+        _correcting = true;
+        try
+        {
+            // Re-estimating after an insert before the realized range can leave the anchor unrealized; this nests layout passes.
+            if (_owner.ContainerFromItem(anchor) is null) _owner.ScrollIntoView(anchor);
+            if (_owner.ContainerFromItem(anchor) is not { } container || LayoutTransition.MeasureOnScreen(container) is not { } slot || slot.Position == _anchorAt) return;
+            _corrections++;
+            scroll.Offset += slot.Position - _anchorAt;
+        }
+        finally
+        {
+            _correcting = false;
+        }
+    }
+
     private void Clear()
     {
         if (_clearing) return;
@@ -111,6 +168,7 @@ internal sealed class ItemChanges
             Added.Clear();
             Removed.Clear();
             Reset = false;
+            _anchor = null;
             _clearing = false;
             _watching = true;
         });

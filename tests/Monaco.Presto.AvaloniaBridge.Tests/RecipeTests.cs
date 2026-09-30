@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
+using Avalonia.Media.Imaging;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -459,6 +460,30 @@ public sealed class RecipeTests : CompositorTestBase
         Assert.InRange(Value(from, "X"), -299, -1);
         RunUntil(() => done.IsCompleted);
         Assert.Equal(0, Value(to, "X"), 6);
+    }
+
+    [AvaloniaFact]
+    public void PlayFramesPlaysAnImageSequencesFrames()
+    {
+        var sequence = new ImageSequence { Frames = [new RenderTargetBitmap(new PixelSize(1, 1)), new RenderTargetBitmap(new PixelSize(1, 1)), new RenderTargetBitmap(new PixelSize(1, 1))] };
+
+        var animation = Recipes.PlayFrames(fps: 10, loop: false).Animate(sequence);
+        RunUntil(() => animation.Completed);
+
+        Assert.Equal(300, animation.Duration, 6);
+        Assert.Equal(2, sequence.CurrentFrame);
+    }
+
+    [AvaloniaFact]
+    public void ReducedPlayFramesHoldsFrameZero()
+    {
+        var sheet = new SpriteSheet { Columns = 4, Rows = 2, Frame = 5 };
+        Presto.Defaults.ReducedMotion = true;
+
+        var animation = Recipes.PlayFrames(reverse: true).Animate(sheet);
+        RunUntil(() => animation.Completed);
+
+        Assert.Equal(0, sheet.Frame);
     }
 
     private static IEnumerable<AnimationBuilder> PageBuilders(PrestoPageTransition transition) =>

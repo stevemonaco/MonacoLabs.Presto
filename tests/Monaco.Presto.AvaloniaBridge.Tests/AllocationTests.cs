@@ -3,8 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Gestures;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -25,6 +27,17 @@ public sealed class AllocationTests : CompositorTestBase
 
         // measured 80, down from 104 when the double was boxed into an untyped binding: all of it is the property change Avalonia raises.
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void APlayingSpriteSheetTicksWithinBudget()
+    {
+        new SpriteSheet { Columns = 4, Rows = 2 }.Play(fps: 24);
+
+        var bytes = BytesPerTick();
+
+        // measured 104: the 80 of a double tween, plus 64 for CurrentFrame's change args on the 38% of 16 ms ticks that reach a new frame.
+        Assert.True(bytes <= 112, $"{bytes:0.##} bytes per tick");
     }
 
     [AvaloniaTheory]
@@ -133,6 +146,40 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(idle == 0 && tilted == 0, $"{idle:0.##} bytes per tick idle, {tilted:0.##} tilted and still");
     }
 
+    [AvaloniaFact]
+    public void APinchMoveAllocatesOnlyItsWrites()
+    {
+        var target = new Border { Background = Brushes.Red };
+        var bystander = new Border();
+        var window = Show(new Panel { Children = { target, bystander } });
+        target.CreateTransformable(new() { PanBounds = PanBounds.Free, Rotate = true });
+        var touch = new Touch(window);
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        PointerEventArgs[] moves = [touch.Move(2, new Point(100, 80)), touch.Move(2, new Point(80, 60))];
+
+        // Raising the same args on a control nobody listens to prices Avalonia's routing, which is not the transformable's.
+        var bytes = BytesPerMove(target, moves) - BytesPerMove(bystander, moves);
+
+        // ~400 B is Avalonia's change args for X, Y, ScaleX, ScaleY and Angle; the rest is Animatable.Set composing each value (see GESTURES-PLAN §7).
+        Assert.True(bytes <= 600, $"{bytes:0.##} bytes per move");
+    }
+
+    private double BytesPerMove(Interactive on, PointerEventArgs[] moves)
+    {
+        const int measured = 200;
+        var before = 0L;
+        for (var i = 0; i < 10 + measured; i++)
+        {
+            if (i == 10) before = GC.GetAllocatedBytesForCurrentThread();
+            var move = moves[i % moves.Length];
+            move.Handled = false;
+            on.RaiseEvent(move);
+            Frames.Advance(16);
+        }
+        return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;
+    }
+
     /// <remarks>
     /// The scene's cost is what drawing with a tweened opacity adds to drawing the same dots opaque, measured in alternating
     /// blocks with the median difference kept: every window earlier tests left open is rendered with each frame too, which in
@@ -160,15 +207,58 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 64, $"{bytes:0.##} bytes per frame, median of {string.Join(", ", differences.Select(d => d.ToString("0")))}");
     }
 
-    /// <summary>Bytes the render loop allocates per compositor frame while the scene draws its dots tweened or opaque.</summary>
-    private static double BytesPerFrame(CompositorCanvas canvas, bool animated)
+    /// <remarks>
+    /// Drawing is priced as a frame with 500 live particles minus a frame with none, in alternating blocks with the median
+    /// kept as above; each block re-adds the same seeded burst, so the brush cache is warm from the second block on.
+    /// </remarks>
+    [AvaloniaFact]
+    public void AParticleSceneOf500DrawsWithoutAllocating()
+    {
+        const int blocks = 11;
+        var burst = new EmitterParams
+        {
+            Burst = 500,
+            Speed = (0, 0),
+            Lifetime = (20000, 20000),
+            Spin = (-0.2, 0.2),
+            Flutter = 2,
+            Area = (64, 64),
+            Colors = [new(255, 80, 80), new(80, 255, 80), new(80, 80, 255)],
+            Seed = 3,
+        };
+        var (_, canvas) = ShowScene(new ParticleScene());
+        ParticleSystem? system = null;
+
+        var differences = new double[blocks + 1];
+        for (var i = 0; i < differences.Length; i++)
+        {
+            canvas.Invoke<ParticleScene>(scene => system = scene.Add(burst, new Point(32, 32)));
+            var drawing = BytesPerFrame();
+            canvas.Invoke<ParticleScene>(_ => system!.Clear());
+            differences[i] = drawing - BytesPerFrame();
+        }
+        var measured = differences[1..];
+        Array.Sort(measured);
+        var bytes = measured[blocks / 2];
+
+        Assert.True(bytes <= 64, $"{bytes:0.##} bytes per frame, median of {string.Join(", ", measured.Select(d => d.ToString("0")))}");
+    }
+
+    /// <summary>Bytes the render loop allocates per compositor frame, after the frames that deliver what was posted.</summary>
+    private static double BytesPerFrame()
     {
         const int measured = 100;
-        canvas.Post(animated);
         for (var i = 0; i < 10; i++) Tick();
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < measured; i++) Tick();
         return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;
+    }
+
+    /// <summary>Bytes the render loop allocates per compositor frame while the scene draws its dots tweened or opaque.</summary>
+    private static double BytesPerFrame(CompositorCanvas canvas, bool animated)
+    {
+        canvas.Post(animated);
+        return BytesPerFrame();
     }
 
     /// <summary>A ring of dots whose opacity tweens; <see cref="OnMessage"/> switches between drawing that opacity and drawing them opaque.</summary>

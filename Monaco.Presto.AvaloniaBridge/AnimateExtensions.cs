@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Gestures;
 using Monaco.Presto.AvaloniaBridge.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge;
@@ -65,6 +66,10 @@ public static class AnimateExtensions
         PrestoAvalonia.EnsureInitialized();
         return Presto.CreateAnimatable(target, parameters);
     }
+
+    /// <inheritdoc cref="PrestoAvalonia.CreateTransformable"/>
+    public static Transformable CreateTransformable(this Control target, TransformableParams? parameters = null) =>
+        PrestoAvalonia.CreateTransformable(target, parameters);
 
     /// <inheritdoc cref="Animatable.Set(string, double, double?, EaseValue?)"/>
     /// <remarks>The typed form, for a property registered through the <see cref="AvaloniaProperty"/> indexer.</remarks>

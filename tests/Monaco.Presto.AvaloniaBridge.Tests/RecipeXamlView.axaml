@@ -18,6 +18,12 @@
     <Border x:Name="OtherTwin" Height="20" presto:Presence.Enter="{presto:Fade}" />
     <Border x:Name="Reflowed" Height="20" presto:Presence.Enter="{presto:Reflow 320, Ease=outQuint}" />
     <Border x:Name="Tuned" Height="20" presto:Presence.Enter="{presto:Pop Ease=outBack, Stagger=60}" />
+    <presto:SpriteSheet x:Name="ShortSheet" Columns="4" Rows="1" presto:Animate.OnAttached="{presto:PlayFrames Fps=10, Loop=False}" />
+    <presto:SpriteSheet x:Name="LongSheet" Columns="4" Rows="3" presto:Animate.OnAttached="{presto:PlayFrames Fps=10, Loop=False}" />
+    <TextBlock x:Name="Masked" Width="180" FontSize="20" TextWrapping="Wrap"
+               Text="The quick brown fox jumps over the lazy dog near the river"
+               presto:Presence.Initial="{presto:LineMask}" />
+    <TextBlock x:Name="Explicit" Text="Hello" presto:TextReveal.Pieces="Chars" presto:Presence.Initial="{presto:WordFade}" />
     <TransitioningContentControl x:Name="FadePage" PageTransition="{presto:PageFade Duration=300}" />
     <TransitioningContentControl x:Name="FadeThroughPage" PageTransition="{presto:PageFadeThrough Duration=300}" />
     <TransitioningContentControl x:Name="AxisPage" PageTransition="{presto:PageSharedAxis Axis=Y, Distance=40}" />

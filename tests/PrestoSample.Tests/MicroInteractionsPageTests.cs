@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Showcase.Pages;
 
@@ -61,6 +62,29 @@ public sealed class MicroInteractionsPageTests
         TestFrames.Tick(90);
         Assert.Empty(toasts.Children);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    public void LikingBurstsParticlesUnlessMotionIsReducedWhenTheHeartFadesIn(bool reduced, int overlays)
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        Presto.Defaults.ReducedMotion = reduced;
+        try
+        {
+            SceneHarness.Click(window, page.GetControl<Button>("Like"));
+
+            Assert.Equal(overlays, SceneHarness.ParticleOverlays(page).Length);
+            if (reduced)
+                Assert.NotEmpty(Presto.GetAnimations(page.GetControl<PathIcon>("Heart")));
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
     }
 
     [AvaloniaFact]
