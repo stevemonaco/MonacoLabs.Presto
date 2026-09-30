@@ -15,6 +15,8 @@ public partial class DraggablePage : UserControl
     private readonly List<string> _log = [];
     private int _drags;
     private int _updates;
+    private ControlScope? _scope;
+    private Draggable? _spring;
 
     public DraggablePage() => InitializeComponent();
 
@@ -22,7 +24,8 @@ public partial class DraggablePage : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        var spring = PrestoAvalonia.CreateScope(this).Execute(_ =>
+        _scope = PrestoAvalonia.CreateScope(this);
+        _scope.Execute(_ =>
         {
             PrestoAvalonia.CreateDraggable(SnapCard, new() { Container = Stage, Snap = Utils.Snap(40) });
             PrestoAvalonia.CreateDraggable(Rail, new()
@@ -31,27 +34,42 @@ public partial class DraggablePage : UserControl
                 Trigger = Handle,
                 Y = new DraggableAxisParams { Enabled = false },
             });
-            return PrestoAvalonia.CreateDraggable(SpringCard, new()
-            {
-                Container = Stage,
-                ReleaseStiffness = 40,
-                ReleaseDamping = 8,
-                OnGrab = Record("OnGrab"),
-                OnSnap = Record("OnSnap"),
-                OnRelease = Record("OnRelease"),
-                OnSettle = Record("OnSettle"),
-                OnDrag = _ => _drags++,
-                OnUpdate = draggable =>
-                {
-                    _updates++;
-                    ShowState(draggable);
-                },
-                // The progress readouts are a ratio of the container bounds, which are only real once it has been measured.
-                OnAfterResize = ShowState,
-            });
         });
+        CreateSpring();
+    }
 
-        ShowState(spring);
+    private void ReleaseChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_scope is null) return;
+        _spring?.Revert();
+        CreateSpring();
+    }
+
+    private void CreateSpring()
+    {
+        var inertia = ReleaseBox.SelectedIndex == 1;
+        var release = inertia ? "ReleaseInertia = new Inertia(0) { ModifyTarget = Utils.Snap(40) }" : "ReleaseStiffness = 40, ReleaseDamping = 8";
+        SpringCode.Text = $"PrestoAvalonia.CreateDraggable(SpringCard, new() {{ Container = Stage, {release}, OnGrab = …, OnSnap = …, OnRelease = …, OnSettle = … }})";
+        _spring = _scope!.Execute(_ => PrestoAvalonia.CreateDraggable(SpringCard, new()
+        {
+            Container = Stage,
+            ReleaseStiffness = 40,
+            ReleaseDamping = 8,
+            ReleaseInertia = inertia ? new Inertia(0) { ModifyTarget = Utils.Snap(40) } : null,
+            OnGrab = Record("OnGrab"),
+            OnSnap = Record("OnSnap"),
+            OnRelease = Record("OnRelease"),
+            OnSettle = Record("OnSettle"),
+            OnDrag = _ => _drags++,
+            OnUpdate = draggable =>
+            {
+                _updates++;
+                ShowState(draggable);
+            },
+            // The progress readouts are a ratio of the container bounds, which are only real once it has been measured.
+            OnAfterResize = ShowState,
+        }));
+        ShowState(_spring);
     }
 
     private Action<Draggable> Record(string callback) => _ =>

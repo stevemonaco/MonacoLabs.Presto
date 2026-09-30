@@ -36,6 +36,7 @@ public static partial class ValueParser
             case null:
                 return;
             case string s:
+                if (codec is IReconcilingValueCodec reconciling && IndexOfRelativeOperator(s) != 0 && reconciling.TryParse(s, into)) return;
                 DecomposeString(s, into);
                 return;
             case double or float or int or long or short or byte or decimal or bool:

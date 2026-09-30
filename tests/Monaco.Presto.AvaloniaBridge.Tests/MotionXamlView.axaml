@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             xmlns:local="using:Monaco.Presto.AvaloniaBridge.Tests"
+             x:Class="Monaco.Presto.AvaloniaBridge.Tests.MotionXamlView">
+  <UserControl.Styles>
+    <Style Selector="Border.tile">
+      <Setter Property="presto:Motion.States">
+        <presto:MotionStates>
+          <presto:MotionState When=".selected" Motion="{x:Static local:MotionXamlView.Dim}" />
+        </presto:MotionStates>
+      </Setter>
+    </Style>
+    <Style Selector="Border.card:pointerover Path.arrow">
+      <Setter Property="presto:Motion.State" Value="hot" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+    <Border x:Name="First" Classes="tile" Width="50" Height="20" Background="Red" />
+    <Border x:Name="Second" Classes="tile" Width="50" Height="20" Background="Red" />
+    <Border x:Name="Third" Classes="tile" Width="50" Height="20" Background="Red" />
+    <Border x:Name="Card" Classes="card" Width="50" Height="50" Background="Blue">
+      <Path x:Name="Arrow" Classes="arrow" Data="M 0,0 L 10,5 L 0,10 Z" Fill="White">
+        <presto:Motion.States>
+          <presto:MotionStates>
+            <presto:MotionState When="hot" Motion="{x:Static local:MotionXamlView.Nudge}" />
+          </presto:MotionStates>
+        </presto:Motion.States>
+      </Path>
+    </Border>
+  </StackPanel>
+</UserControl>

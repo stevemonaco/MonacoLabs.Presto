@@ -20,7 +20,7 @@ public partial class ToastsPage : ShowcasePage
 
     public const string TemplateXaml = """
         <DataTemplate x:DataType="local:Toast">
-            <Border Classes="toast" presto:Animate.OnAttached="{x:Static local:ToastsPage.SlideIn}">
+            <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}">
                 <Grid ColumnDefinitions="16,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
                     <Border Grid.Column="1" Grid.RowSpan="2" Classes="accent" Background="{Binding Accent}" />
                     <TextBlock Grid.Column="2" Classes="title" Text="{Binding Title}" />
@@ -33,7 +33,6 @@ public partial class ToastsPage : ShowcasePage
         </DataTemplate>
         """;
 
-    public static readonly AnimationBuilder SlideIn;
     public static readonly AnimationBuilder Countdown;
     private static readonly Func<Control, AnimationBuilder> Leave;
     private static readonly string Recipes;
@@ -42,11 +41,6 @@ public partial class ToastsPage : ShowcasePage
 
     static ToastsPage()
     {
-        (SlideIn, var slideIn) = Snippet.Of(Presto.Build()
-            .X(from: 120, to: 0)
-            .Opacity(from: 0, to: 1)
-            .Duration(650)
-            .Ease(Eases.OutBack(1.2)));
         (Countdown, var countdown) = Snippet.Of(Presto.Build()
             .ScaleX(from: 1, to: 0)
             .Duration(5000)
@@ -60,7 +54,6 @@ public partial class ToastsPage : ShowcasePage
             .Ease(Eases.InOutQuad));
         const string field = "public static readonly AnimationBuilder";
         Recipes = string.Join("\n\n",
-            Snippet.Declare($"{field} SlideIn", slideIn),
             Snippet.Declare($"{field} Countdown", countdown),
             Snippet.Declare("static readonly Func<Control, AnimationBuilder> Leave", leave));
     }

@@ -19,9 +19,12 @@
     <ScrollViewer>
         <StackPanel Spacing="16">
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <RadioButton x:Name="StandardOption" GroupName="Tokens" Content="Standard" IsChecked="True" IsCheckedChanged="TokensChanged" />
-                <RadioButton x:Name="ExpressiveOption" GroupName="Tokens" Content="Expressive" IsCheckedChanged="TokensChanged" />
-                <RadioButton x:Name="ReducedOption" GroupName="Tokens" Content="Reduced motion" IsCheckedChanged="TokensChanged" />
+                <ComboBox x:Name="TokensBox" SelectedIndex="0" Width="150">
+                    <ComboBoxItem Content="Standard" />
+                    <ComboBoxItem Content="Expressive" />
+                    <ComboBoxItem Content="Reduced" />
+                </ComboBox>
+                <ToggleSwitch x:Name="ReducedSwitch" OffContent="Full motion" OnContent="Reduced motion" />
                 <Button Content="Replay" Click="Replay" />
             </StackPanel>
 
@@ -42,24 +45,17 @@
                     <Border x:Name="Panel" Grid.Column="1" Classes="specimen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <StackPanel Spacing="8">
                             <TextBlock Text="Details" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
-                            <TextBlock Text="Every motion on this stage is a recipe of the selected tokens. Switch the set and the same three recipes replay with its durations, eases and distances."
+                            <TextBlock Text="Every motion on this stage is a library recipe reading Recipes.Tokens. Pick a preset and the same three recipes replay with its durations, eases and distances; flip the flag and each plays its reduced form instead."
                                        TextWrapping="Wrap" Foreground="{x:Static showcase:Palette.InkDim}" />
                         </StackPanel>
                     </Border>
                 </Grid>
             </Border>
 
-            <TextBlock Classes="caption" Text="The selected token set" />
+            <TextBlock Classes="caption" Text="The app-wide settings every recipe reads when it is called" />
             <Border Classes="codeblock">
                 <ScrollViewer>
                     <SelectableTextBlock x:Name="TokensCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
-
-            <TextBlock Classes="caption" Text="Recipes: builders made from tokens, never from literals" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="RecipesCode" Classes="code" />
                 </ScrollViewer>
             </Border>
 

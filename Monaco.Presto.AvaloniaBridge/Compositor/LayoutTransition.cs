@@ -30,7 +30,6 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private readonly Control _control;
     private readonly LayoutMotion _motion;
     private readonly LayoutAnimateMode _mode;
-    private readonly bool _once;
     private readonly CompositorScratch _scratch = new() { Scale = 1, ScaleX = 1, ScaleY = 1 };
 
     private Rect? _first;
@@ -41,20 +40,25 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private bool _scaling;
 
     // An on-screen first is moved into this control's layout frame at its first pass, once its own scroll offset is known.
-    internal LayoutTransition(Control control, Rect? first, bool firstOnScreen, LayoutMotion motion, LayoutAnimateMode mode, bool once)
+    // With recordFirst and no first, that pass only records; unscoped is for a transition whose owner reverts it.
+    internal LayoutTransition(
+        Control control, Rect? first, bool firstOnScreen, LayoutMotion motion, LayoutAnimateMode mode, bool once,
+        bool recordFirst = false, bool scoped = true)
     {
         _control = control;
         _motion = motion;
         _mode = mode;
-        _once = once;
+        Once = once;
         // Measuring now rather than on the first layout pass is what lets the very next move ease instead of only recording.
-        _first = first ?? Measure(control);
+        _first = first ?? (recordFirst ? null : Measure(control));
         _firstOnScreen = first != null && firstOnScreen;
 
-        if (s_live.TryGetValue(control, out var replaced)) replaced.Revert();
+        s_live.TryGetValue(control, out var replaced);
+        replaced?.Revert();
         s_live.AddOrUpdate(control, this);
         control.LayoutUpdated += OnLayoutUpdated;
-        Engine.Current.CurrentScope?.Register(this);
+        if (scoped) Engine.Current.CurrentScope?.Register(this);
+        replaced?.Replaced?.Invoke(this);
     }
 
     /// <inheritdoc cref="Timer.Progress"/>
@@ -65,6 +69,9 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
 
     /// <summary>True from creation until the first move it plays has finished, unlike <see cref="Completed"/>, which is true until that move starts.</summary>
     internal bool InFlight => _armed || _mirror is { Completed: false };
+
+    /// <summary>Whether this is a one-shot that stops easing once its first move is under way, such as a shared element flight.</summary>
+    internal bool Once { get; }
 
     /// <summary>Stops the move in flight, leaving the control in the slot layout gave it.</summary>
     public LayoutTransition Cancel()
@@ -86,6 +93,12 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     }
 
     void IRevertible.Revert() => Revert();
+
+    /// <summary>Called with the transition that has just reverted this one by arming on the same control.</summary>
+    internal Action<LayoutTransition>? Replaced { get; set; }
+
+    /// <summary>The list of the item container this eases; a pass that scrolls it without a pending item change moves the container in one frame.</summary>
+    internal ItemChanges? List { get; init; }
 
     /// <inheritdoc cref="Animation.Then"/>
     public async Task<LayoutTransition> Then(Action<LayoutTransition>? callback = null)
@@ -125,6 +138,9 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         var scratch = live._scratch;
         return new Rect(slot.X + scratch.X, slot.Y + scratch.Y, slot.Width * scratch.ScaleX, slot.Height * scratch.ScaleY);
     }
+
+    /// <summary>The transition last armed on <paramref name="control"/> and not reverted since, if any.</summary>
+    internal static LayoutTransition? Live(Control control) => s_live.TryGetValue(control, out var live) ? live : null;
 
     /// <summary>Records where <paramref name="source"/> is drawn under <paramref name="key"/>, replacing any earlier entry.</summary>
     internal static bool Prepare(string key, Control source)
@@ -181,12 +197,19 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
 
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
-        if (Measure(_control) is not { } last) return;
+        // A transition reverted by an earlier handler of this pass still runs from the event's snapshot.
+        if (Live(_control) != this || Measure(_control) is not { } last) return;
         var first = _first;
         // Adding this control's own scroll offsets moves an on-screen source into its layout frame.
         if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(last.Position - screenSlot.Position);
         _firstOnScreen = false;
         _first = last;
+        // A virtualizing panel also repositions realized rows as it corrects estimated sizes during a scroll.
+        if (List is { Scrolled: true, Pending: false })
+        {
+            Cancel();
+            return;
+        }
         if (first is not { } from || ElementComposition.GetElementVisual(_control) is not { } element) return;
         _armed = false;
 
@@ -195,7 +218,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         if (from.Position == last.Position && !scaled) return;
 
         Play(element, from, last, scaled);
-        if (_once) _control.LayoutUpdated -= OnLayoutUpdated;
+        if (Once) _control.LayoutUpdated -= OnLayoutUpdated;
     }
 
     /// <remarks>
@@ -236,7 +259,14 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         _mirror?.Cancel();
         var mirror = _mirror = Presto.Animate(_scratch, mirrorParams);
 
-        Start(element, CompositorCompiler.Segment(CompositorTrackKind.Translation, translation, [0, 0, 0], mirror, [easeX, easeY]), ref _translating);
+        var move = CompositorCompiler.Segment(CompositorTrackKind.Translation, translation, [0, 0, 0], mirror, [easeX, easeY]);
+        // A zero-length compositor animation can still draw its first key for a frame, so an instant move is not started.
+        if (move.Duration == TimeSpan.Zero && move.Delay == TimeSpan.Zero)
+        {
+            Cancel();
+            return;
+        }
+        Start(element, move, ref _translating);
         if (!scaled) return;
         // The inverse scale is anchored on the corner the offset maths used, not on the middle a §4.3 rotation centres on.
         element.StopAnimation("CenterPoint");

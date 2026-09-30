@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:PrestoSample.ViewModels"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
              x:Class="PrestoSample.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -33,7 +34,9 @@
                 <TextBlock Text="{Binding SelectedPage.Title}" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding SelectedPage.Description}" Classes="caption" TextWrapping="Wrap" />
             </StackPanel>
-            <ContentControl Name="PageHost" Grid.Row="1" Content="{Binding CurrentPage}" />
+            <TransitioningContentControl Grid.Row="1" ClipToBounds="True" Content="{Binding CurrentPage}"
+                                         IsTransitionReversed="{Binding IsBack}"
+                                         PageTransition="{presto:PageFadeThrough}" />
         </Grid>
     </Grid>
 </UserControl>

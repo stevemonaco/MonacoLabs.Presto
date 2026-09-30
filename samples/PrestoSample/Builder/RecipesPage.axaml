@@ -29,7 +29,7 @@
                 </ScrollViewer>
             </Border>
 
-            <TextBlock Classes="caption" Text="The same recipe, staggered over the row" />
+            <TextBlock Classes="caption" Text="The same recipe, staggered over the row: With varies a copy and leaves Pop unchanged" />
             <Button Content="Stagger the row" Click="PlayStaggered" HorizontalAlignment="Left" />
             <Border Classes="codeblock">
                 <ScrollViewer>

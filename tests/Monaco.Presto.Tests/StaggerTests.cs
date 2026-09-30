@@ -48,6 +48,18 @@ public sealed class StaggerTests : EngineTestBase
         Assert.Equal(30, TweenDelay(animation, 3));
     }
 
+    /// <summary>A deviation from upstream, which sizes a stagger by the first group it meets and leaves a larger one past its end.</summary>
+    [Fact]
+    public void AStaggerReusedOnALargerGroupStaggersEveryTarget()
+    {
+        var stagger = Presto.Stagger(10);
+        Presto.Animate(StyleTargets(1), new() { ["TranslateX"] = 100, Duration = 10, Delay = stagger, Autoplay = false });
+
+        var animation = Presto.Animate(StyleTargets(3), new() { ["TranslateX"] = 100, Duration = 10, Delay = stagger, Autoplay = false });
+
+        Assert.Equal(20, TweenDelay(animation, 2));
+    }
+
     [Fact]
     public void StaggersValuesWithAUnitString()
     {

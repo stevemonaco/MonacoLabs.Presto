@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             x:Class="Monaco.Presto.AvaloniaBridge.Tests.RecipeXamlView">
+  <UserControl.Styles>
+    <Style Selector="Border.leaving">
+      <Setter Property="presto:Presence.Exit" Value="{presto:Fade Out=True}" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+    <Border x:Name="Hovered" Width="50" Height="20" Background="Red" presto:Motion.Hover="{presto:Lift}" />
+    <Border x:Name="Shaken" Width="50" Height="20" presto:Animate.OnAttached="{presto:Shake Intensity=1.5}" />
+    <Border x:Name="Faded" Height="20"
+            presto:Presence.Enter="{presto:Fade Direction=Up, Distance=24}"
+            presto:Presence.Exit="{presto:Fade Direction=Up, Distance=24}" />
+    <Border x:Name="Styled" Classes="leaving" Height="20" />
+    <Border x:Name="Twin" Height="20" presto:Presence.Enter="{presto:Fade}" />
+    <Border x:Name="OtherTwin" Height="20" presto:Presence.Enter="{presto:Fade}" />
+    <Border x:Name="Reflowed" Height="20" presto:Presence.Enter="{presto:Reflow 320, Ease=outQuint}" />
+    <Border x:Name="Tuned" Height="20" presto:Presence.Enter="{presto:Pop Ease=outBack, Stagger=60}" />
+    <TransitioningContentControl x:Name="FadePage" PageTransition="{presto:PageFade Duration=300}" />
+    <TransitioningContentControl x:Name="FadeThroughPage" PageTransition="{presto:PageFadeThrough Duration=300}" />
+    <TransitioningContentControl x:Name="AxisPage" PageTransition="{presto:PageSharedAxis Axis=Y, Distance=40}" />
+    <TransitioningContentControl x:Name="SlidePage" PageTransition="{presto:PageSlide Edge=Top}" />
+    <TransitioningContentControl x:Name="PushPage" PageTransition="{presto:PagePush Edge=Left}" />
+    <TransitioningContentControl x:Name="CustomPage">
+      <TransitioningContentControl.PageTransition>
+        <presto:PrestoPageTransition Enter="{presto:Fade}" Exit="{presto:Fade}" BackExit="{presto:Slide Edge=Left}" />
+      </TransitioningContentControl.PageTransition>
+    </TransitioningContentControl>
+  </StackPanel>
+</UserControl>

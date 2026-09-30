@@ -21,6 +21,9 @@ public sealed record AnimatableProperty
     /// <summary>How this property composes with other animations of it; an animatable otherwise replaces them.</summary>
     public Composition? Composition { get; init; }
 
+    /// <inheritdoc cref="AnimatableParams.PreserveVelocity"/>
+    public bool? PreserveVelocity { get; init; }
+
     /// <summary>A bare number is the property's <see cref="Duration"/>.</summary>
     public static implicit operator AnimatableProperty(double duration) => new() { Duration = duration };
 

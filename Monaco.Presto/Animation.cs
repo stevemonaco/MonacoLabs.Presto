@@ -37,6 +37,8 @@ public sealed class Animation : Timer
         Targets = TargetParser.Parse(targets);
 
         var animDefaults = parent?.ChildDefaults ?? OwnerEngine.Defaults;
+        var reduceAll = !fastSet && !parameters.IsReducedMotion && OwnerEngine.Defaults.ReduceAll;
+        if (reduceAll) IterationCount = 1;
 
         var properties = parameters.Keyframes is { } keyframes
             // Upstream's generateKeyframes reads the engine defaults, not the parent timeline's.
@@ -129,6 +131,15 @@ public sealed class Animation : Timer
                         tweenToValue = computedToValue;
                     }
 
+                    var inertia = tweenToValue?.Raw as Inertia;
+                    if (inertia != null)
+                    {
+                        // Its duration is only known once the previous keyframe resolves (INERTIA-PLAN §7).
+                        if (propertyValue.IsArray) throw new ArgumentException($"An Inertia cannot be a keyframe or part of a from/to pair ('{declaredName}').", nameof(parameters));
+                        tweenToValue = null;
+                        toFunc = null;
+                    }
+
                     var tweenFromValue = GetFunctionValue(key?.From, target, ti, groupTargets, chainedTween, ref fromFunc);
                     var tweenEase = (key?.Ease ?? tEasing).Resolve(target, ti, total, out var keySpring);
 
@@ -138,11 +149,11 @@ public sealed class Animation : Timer
                     else if (frames.Length > 1) tweenDurationValue = JsNumber.ToNumber(GetFunctionValue(tDuration, target, ti, groupTargets, chainedTween)?.Raw, 0) / frames.Length;
                     else tweenDurationValue = tDuration;
 
-                    var tweenDuration = keySpring != null
-                        ? keySpring.SettlingDuration
+                    var tweenDuration = reduceAll ? Constants.MinValue
+                        : keySpring != null ? keySpring.SettlingDuration
                         : JsNumber.ToNumber(GetFunctionValue(tweenDurationValue, target, ti, groupTargets, chainedTween)?.Raw, 0);
                     // The animation delay only applies to the first keyframe.
-                    var tweenDelay = JsNumber.ToNumber(GetFunctionValue(key?.Delay ?? (tweenIndex == 0 ? tDelay : (TweenValue)0), target, ti, groupTargets, chainedTween)?.Raw, 0);
+                    var tweenDelay = reduceAll ? 0 : JsNumber.ToNumber(GetFunctionValue(key?.Delay ?? (tweenIndex == 0 ? tDelay : (TweenValue)0), target, ti, groupTargets, chainedTween)?.Raw, 0);
                     var tweenModifier = key?.Modifier ?? tModifier;
                     var tweenTextModifier = key?.TextModifier;
 
@@ -245,6 +256,7 @@ public sealed class Animation : Timer
                         ScratchTo.Number = ValueParser.GetRelativeValue(ScratchFrom.Number, ScratchTo.Number, ScratchTo.Operator);
                     }
 
+                    if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(ScratchFrom, ScratchTo);
                     if (ScratchFrom.Kind != ScratchTo.Kind) Homogenise(ScratchFrom, ScratchTo);
 
                     if (ScratchFrom.Unit != ScratchTo.Unit)
@@ -255,6 +267,16 @@ public sealed class Animation : Timer
                     if (ScratchTo.Numbers != null && ScratchFrom.Numbers != null && ScratchTo.Numbers.Length != ScratchFrom.Numbers.Length)
                     {
                         PadShorterValue(ScratchFrom, ScratchTo);
+                    }
+
+                    if (inertia != null)
+                    {
+                        if (ScratchFrom.Kind is ValueKind.Color or ValueKind.Complex) throw new ArgumentException($"An Inertia needs a single number property, not '{declaredName}'.", nameof(parameters));
+                        var plan = InertiaSolver.Resolve(ScratchFrom.Number, inertia.Velocity, inertia);
+                        ScratchTo.Number = plan.To;
+                        tweenEase = plan.Ease;
+                        if (!reduceAll) tweenDuration = plan.Duration;
+                        if (plan.Then is { } then) frames = [frame, new TweenParams { To = then.To, Duration = then.Duration, Ease = then.Ease }];
                     }
 
                     // Rounding minimises the floating point errors of working in seconds.
@@ -466,6 +488,7 @@ public sealed class Animation : Timer
         {
             return fastSet ? [new TweenParams { To = TweenValue.FromTo(propertyValue, propertyValue) }] : [propertyValue];
         }
+        if (Array.Exists(items, static item => item.Raw is Inertia)) throw new ArgumentException("An Inertia cannot be a keyframe or part of a from/to pair.");
         if (items.Length < 2 || items[0].IsParams) return items;
         if (items.Length == 2) return [new TweenParams { To = propertyValue }];
         var frames = new TweenValue[items.Length - 1];

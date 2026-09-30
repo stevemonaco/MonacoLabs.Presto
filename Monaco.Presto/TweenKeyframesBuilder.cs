@@ -7,12 +7,14 @@ public sealed class TweenKeyframesBuilder
 
     internal TweenKeyframesBuilder() { }
 
-    /// <summary>Adds a frame ending on <paramref name="to"/>; a frame given only <c>to</c> is a bare value, otherwise a <see cref="TweenParams"/>.</summary>
+    /// <summary>Adds a frame ending on <paramref name="to"/>; the first frame starts from the property's current value.</summary>
+    /// <remarks>
+    /// Every frame is a <see cref="TweenParams"/>, never a bare value: a bare array reads as <c>[from, to]</c>, which would
+    /// turn the first frame into a start value.
+    /// </remarks>
     public TweenKeyframesBuilder To(TweenValue to, TweenValue? duration = null, TweenValue? delay = null, EaseValue? ease = null)
     {
-        _frames.Add(duration == null && delay == null && ease == null
-            ? to
-            : new TweenParams { To = to, Duration = duration, Delay = delay, Ease = ease });
+        _frames.Add(new TweenParams { To = to, Duration = duration, Delay = delay, Ease = ease });
         return this;
     }
 

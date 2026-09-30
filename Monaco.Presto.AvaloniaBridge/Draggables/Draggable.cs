@@ -18,7 +18,6 @@ public sealed class Draggable : IRevertible
     private const double DefaultDragThreshold = 3;
     private const double ResizeDebounce = 150;
     private const double ScrollInViewDuration = 350;
-    private const double VelocityInterval = 17;
     private const double ReleaseDistance = 150;
 
     private static readonly Cursor s_grab = new(StandardCursorType.Hand);
@@ -38,7 +37,7 @@ public sealed class Draggable : IRevertible
     private readonly Spring _releaseSpringY;
     private readonly Ease _releaseEase;
     private readonly bool _hasReleaseSpring;
-    private readonly double[] _velocityStack = new double[3];
+    private readonly VelocityTracker _velocityTracker = new();
     private readonly string _xProp;
     private readonly string _yProp;
     private readonly bool _xIsLayout;
@@ -85,8 +84,6 @@ public sealed class Draggable : IRevertible
     private double _snappedY;
     private double _destX;
     private double _destY;
-    private double _velocityTime;
-    private int _velocityStackIndex;
     private IPointer? _pointer;
     private bool _manual;
     private bool _enabled;
@@ -118,7 +115,7 @@ public sealed class Draggable : IRevertible
         _releaseSpringX = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseSpringY = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseEase = parameters.ReleaseEase is { } releaseEase ? releaseEase.Resolve(target, 0, 1, out _) : Eases.OutQuint;
-        _velocityTime = _engine.FrameSource.Now;
+        _velocityTracker.AddDisplacement(0, _engine.FrameSource.Now);
 
         Animate = target.CreateAnimatable(new AvaloniaAnimatableParams
         {
@@ -235,7 +232,10 @@ public sealed class Draggable : IRevertible
     }
 
     /// <summary>Reads the parameters that can change — container, padding, snapping, threshold, friction, velocity, cursors — and measures the bounds again.</summary>
-    /// <remarks>A release still in flight is re-aimed at its destination clamped to the new bounds, and settles there.</remarks>
+    /// <remarks>
+    /// A release still in flight is re-aimed at its destination clamped to the new bounds, and settles there; an
+    /// <see cref="DraggableParams.ReleaseInertia"/> release is resolved again from its current value and velocity instead.
+    /// </remarks>
     public Draggable Refresh()
     {
         var currentX = X;
@@ -437,21 +437,15 @@ public sealed class Draggable : IRevertible
 
     private double ComputeVelocity(double dx, double dy)
     {
-        var time = _engine.FrameSource.Now;
-        var elapsed = time - _velocityTime;
-        if (elapsed < VelocityInterval) return Velocity;
-        _velocityTime = time;
-        _velocityStack[_velocityStackIndex] =
-            Utils.Round(Utils.Clamp(Math.Sqrt(dx * dx + dy * dy) / elapsed * _velocityMultiplier, _minVelocity, _maxVelocity), 5);
-        _velocityStackIndex = (_velocityStackIndex + 1) % _velocityStack.Length;
-        Velocity = Math.Max(_velocityStack[0], Math.Max(_velocityStack[1], _velocityStack[2]));
+        // Clamping and rounding the strongest sample equals upstream's strongest of the clamped, rounded samples.
+        if (_velocityTracker.AddDisplacement(Math.Sqrt(dx * dx + dy * dy), _engine.FrameSource.Now))
+            Velocity = Utils.Round(Utils.Clamp(_velocityTracker.Velocity * _velocityMultiplier, _minVelocity, _maxVelocity), 5);
         return Velocity;
     }
 
     private void ClearVelocity()
     {
-        Array.Clear(_velocityStack);
-        _velocityStackIndex = 0;
+        _velocityTracker.Reset();
         Velocity = 0;
         Angle = 0;
     }
@@ -595,10 +589,29 @@ public sealed class Draggable : IRevertible
         ReleasePointer();
         TakeCursor(_hoverCursor);
 
-        var x = X;
-        var y = Y;
         var velocity = ComputeVelocity(_pointerX - _appliedX, _pointerY - _appliedY);
         var angle = Angle = Math.Atan2(_pointerY - _pointerPrevY, _pointerX - _pointerPrevX);
+        var longest = _parameters.ReleaseInertia is { } inertia
+            ? FlingRelease(inertia, velocity * Math.Cos(angle), velocity * Math.Sin(angle))
+            : Throw(velocity, angle);
+
+        ScrollInView(longest, _scrollThreshold, _releaseEase);
+
+        var snapped = (_snapX != null && _destX != _snappedX) || (_snapY != null && _destY != _snappedY);
+        _snappedX = _destX;
+        _snappedY = _destY;
+        if (snapped) _parameters.OnSnap?.Invoke(this);
+
+        _updated = true;
+        _released = true;
+        _parameters.OnRelease?.Invoke(this);
+    }
+
+    // The upstream release: projected along the throw, cushioned past the bounds and snapped. Returns the longest axis duration.
+    private double Throw(double velocity, double angle)
+    {
+        var x = X;
+        var y = Y;
         var thrown = velocity * ReleaseDistance;
         var friction = 1 - _releaseContainerFriction;
         var thrownX = x + Math.Cos(angle) * thrown;
@@ -653,17 +666,29 @@ public sealed class Draggable : IRevertible
             if (!_disabledX) Animate.Set(_xProp, destX, durationX, easeX);
             if (!_disabledY) Animate.Set(_yProp, destY, durationY, easeY);
         }
+        return longest;
+    }
 
-        ScrollInView(longest, _scrollThreshold, _releaseEase);
+    // A null velocity carries on at the axis's current speed. Returns the longest axis duration.
+    private double FlingRelease(Inertia template, double? velocityX, double? velocityY)
+    {
+        var longest = 0d;
+        if (!_disabledX) _destX = Fling(_xProp, velocityX, template, _snapX, _boundsLeft, _boundsRight, ref longest);
+        if (!_disabledY) _destY = Fling(_yProp, velocityY, template, _snapY, _boundsTop, _boundsBottom, ref longest);
+        return longest;
+    }
 
-        var snapped = (_snapX != null && destX != _snappedX) || (_snapY != null && destY != _snappedY);
-        _snappedX = destX;
-        _snappedY = destY;
-        if (snapped) _parameters.OnSnap?.Invoke(this);
-
-        _updated = true;
-        _released = true;
-        _parameters.OnRelease?.Invoke(this);
+    // Returns where the axis comes to rest.
+    private double Fling(string property, double? velocity, Inertia template, Func<double, double>? snap, double min, double max, ref double longest)
+    {
+        var settings = template with { ModifyTarget = template.ModifyTarget ?? snap, Min = min, Max = max };
+        if (velocity is { } v) Animate.Fling(property, v, settings);
+        else Animate.Fling(property, settings);
+        var animation = Animate.Animations[Presto.Canonicalise(_target, property)];
+        longest = Math.Max(longest, animation.Duration);
+        var tween = animation._headTween!;
+        // The ease's end rather than the to-number: a release on a bound moving outward peaks there and comes back.
+        return Utils.Round(tween._fromNumber + (tween._toNumber - tween._fromNumber) * tween._ease(1), 5);
     }
 
     // Null when no release is in flight; the overshoot clears _released mid-throw, so its ticker is checked first.
@@ -681,6 +706,14 @@ public sealed class Draggable : IRevertible
 
     private void RetargetRelease(double remaining)
     {
+        if (_parameters.ReleaseInertia is { } inertia)
+        {
+            if (Utils.Clamp(_destX, _boundsLeft, _boundsRight) == _destX && Utils.Clamp(_destY, _boundsTop, _boundsBottom) == _destY) return;
+            FlingRelease(inertia, null, null);
+            _snappedX = _destX;
+            _snappedY = _destY;
+            return;
+        }
         var destX = Snapped(_destX, _snapX, _boundsLeft, _boundsRight);
         var destY = Snapped(_destY, _snapY, _boundsTop, _boundsBottom);
         if (destX == _destX && destY == _destY) return;

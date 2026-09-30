@@ -49,11 +49,7 @@ public partial class ConnectedXamlPage : ShowcasePage
     public const string HostsXaml = """
         <Panel>
             <ContentControl Content="{Binding SwappedPage}" />
-            <TransitioningContentControl Content="{Binding FadedPage}">
-                <TransitioningContentControl.PageTransition>
-                    <CrossFade Duration="0:0:0.3" />
-                </TransitioningContentControl.PageTransition>
-            </TransitioningContentControl>
+            <TransitioningContentControl Content="{Binding FadedPage}" PageTransition="{presto:PageFade Duration=300}" />
         </Panel>
         """;
 

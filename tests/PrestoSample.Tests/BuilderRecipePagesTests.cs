@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Builder;
 
 namespace PrestoSample.Tests;
@@ -12,24 +13,73 @@ namespace PrestoSample.Tests;
 public sealed class BuilderRecipePagesTests
 {
     [AvaloniaFact]
-    public void MotionTokensReplaysTheRecipesWithTheSelectedSet()
+    public void MotionTokensReplaysTheRecipesWithTheSelectedPresetAndFlagAndRestoresBothOnDetach()
     {
+        var tokens = Recipes.Tokens;
         var page = new MotionTokensPage();
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(50);
 
-        Assert.Contains("Func<MotionTokens, AnimationBuilder> Enter = t => Presto.Build()", page.GetControl<SelectableTextBlock>("RecipesCode").Text);
+        Assert.Same(MotionTokens.Standard, Recipes.Tokens);
         Assert.All(page.Played, animation => Assert.True(animation.CurrentTime > 0));
+        Assert.Contains("Recipes.FadeUp(stagger: true).Animate(Rows.Children);", page.GetControl<SelectableTextBlock>("PlayCode").Text);
 
         var standard = page.Played;
-        page.GetControl<RadioButton>("ReducedOption").IsChecked = true;
+        page.GetControl<ComboBox>("TokensBox").SelectedIndex = 1;
         TestFrames.Tick();
 
         Assert.NotSame(standard, page.Played);
-        Assert.Contains("Distance: 0", page.GetControl<SelectableTextBlock>("TokensCode").Text);
-        Assert.Contains("Enter(tokens)", page.GetControl<SelectableTextBlock>("PlayCode").Text);
+        Assert.Same(MotionTokens.Expressive, Recipes.Tokens);
+        Assert.Equal(MotionTokens.Expressive.Medium, page.Played[1].Duration);
+
+        page.GetControl<ToggleSwitch>("ReducedSwitch").IsChecked = true;
+        TestFrames.Tick();
+
+        Assert.True(Presto.Defaults.ReducedMotion);
+        Assert.Equal(MotionTokens.Expressive.Short, page.Played[1].Duration);
+        var settings = page.GetControl<SelectableTextBlock>("TokensCode").Text;
+        Assert.Contains("Recipes.Tokens = MotionTokens.Expressive;", settings);
+        Assert.Contains("Presto.Defaults.ReducedMotion = true;", settings);
+
         SceneHarness.Close(window);
+
+        Assert.Same(tokens, Recipes.Tokens);
+        Assert.False(Presto.Defaults.ReducedMotion);
     }
+
+    [AvaloniaFact]
+    public void RecipeGalleryPlaysTilesInTheirReducedFormsAndRestoresTheGlobalsOnDetach()
+    {
+        var tokens = Recipes.Tokens;
+        var page = new RecipeGalleryPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var fadeUp = page.GetLogicalDescendants().OfType<Button>().First(button => button.Tag is "FadeUp");
+
+        fadeUp.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        TestFrames.Tick(2);
+
+        var specimen = (Control)page.Played!.Targets[0];
+        Assert.True(Get(specimen, "Y") > 0);
+        Assert.Contains("target.Animate(Recipes.FadeUp(duration: duration))", page.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+
+        page.GetControl<ComboBox>("TokensBox").SelectedIndex = 1;
+        page.GetControl<ToggleSwitch>("ReducedSwitch").IsChecked = true;
+        fadeUp.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        TestFrames.Tick(2);
+
+        Assert.Same(MotionTokens.Expressive, Recipes.Tokens);
+        Assert.Equal(0, Get(specimen, "Y"));
+        Assert.InRange(specimen.Opacity, 0, .99);
+
+        SceneHarness.Close(window);
+
+        Assert.Same(tokens, Recipes.Tokens);
+        Assert.False(Presto.Defaults.ReducedMotion);
+    }
+
+    [Fact]
+    public void RecipeGalleryPageSnippetsMatchItsMarkup() =>
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(RecipeGalleryPage), "samples/PrestoSample/Builder/RecipeGalleryPage.axaml", 2);
 
     [AvaloniaFact]
     public void PlaygroundPrintsTheChainItPlaysAndRebuildsAfterAChange()
@@ -127,6 +177,29 @@ public sealed class BuilderRecipePagesTests
     }
 
     [AvaloniaFact]
+    public void CounterTilesBumpOnEachRefreshButNotTheFirstFill()
+    {
+        var page = new CountersPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        TestFrames.Tick(5);
+        var tiles = page.GetControl<UniformGrid>("Tiles").Children;
+
+        Assert.All(tiles, tile => Assert.Empty(Presto.GetAnimations(tile, "Scale")));
+
+        page.GetControl<CheckBox>("MechanicalBox").IsChecked = true;
+        TestFrames.Tick(8);
+
+        Assert.All(tiles, tile => Assert.True(Scale(tile) > 1));
+        Assert.Contains("Animate.SetOnChanged(_tiles[i], Presto.Build()", page.GetControl<SelectableTextBlock>("CountersCode").Text);
+
+        TestFrames.Tick(30);
+
+        Assert.All(tiles, tile => Assert.Empty(Presto.GetAnimations(tile, "Scale")));
+        Assert.All(tiles, tile => Assert.Equal(1, Scale(tile), 3));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void ToastStackTrimsToFourAndEveryToastExpires()
     {
         var page = new ToastsPage();
@@ -153,7 +226,7 @@ public sealed class BuilderRecipePagesTests
         BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ToastsPage), "samples/PrestoSample/Builder/ToastsPage.axaml", 1);
 
     [AvaloniaFact]
-    public void FormStatesSwapTheBoundAnimationPerState()
+    public void FormStatesPlayEachStateAndReturnToRest()
     {
         var page = new FormStatesPage();
         var window = SceneHarness.Show(page, 1280, 900);
@@ -165,13 +238,18 @@ public sealed class BuilderRecipePagesTests
         TestFrames.Tick(5);
 
         Assert.Equal(FormState.Validating, model.State);
-        Assert.Single(Presto.GetAnimations(card, "Scale"));
+        Assert.True(double.IsPositiveInfinity(Assert.Single(Presto.GetAnimations(card, "Scale")).IterationCount));
 
         TestFrames.Tick(80);
 
         Assert.Equal(FormState.Error, model.State);
         Assert.Single(Presto.GetAnimations(card, "X"));
-        Assert.Empty(Presto.GetAnimations(card, "Scale"));
+
+        TestFrames.Tick(40);
+
+        Assert.Equal(0, Get(card, "X"), 3);
+        Assert.Equal(1, Scale(card), 3);
+        Assert.Equal(1, card.Opacity, 3);
 
         model.Email = "ada@example.com";
         Assert.Equal(FormState.Idle, model.State);
@@ -180,6 +258,14 @@ public sealed class BuilderRecipePagesTests
 
         Assert.Equal(FormState.Success, model.State);
         Assert.Single(Presto.GetAnimations(card, "Y"));
+
+        model.Email = "";
+        TestFrames.Tick(60);
+
+        Assert.Equal(FormState.Idle, model.State);
+        Assert.Empty(Presto.GetAnimations(card));
+        Assert.Equal(0, Get(card, "Y"), 3);
+        Assert.Equal(1, Scale(card), 3);
         SceneHarness.Close(window);
     }
 
@@ -214,5 +300,7 @@ public sealed class BuilderRecipePagesTests
         SceneHarness.Close(window);
     }
 
-    private static double Scale(Control cell) => Convert.ToDouble(Presto.Get(cell, "Scale"), CultureInfo.InvariantCulture);
+    private static double Scale(Control cell) => Get(cell, "Scale");
+
+    private static double Get(Control control, string property) => Convert.ToDouble(Presto.Get(control, property), CultureInfo.InvariantCulture);
 }

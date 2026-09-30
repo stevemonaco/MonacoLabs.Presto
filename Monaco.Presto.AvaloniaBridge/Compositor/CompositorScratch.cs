@@ -30,16 +30,28 @@ internal sealed class CompositorScratch
     internal (double X, double Y, double Rotate, double Scale, double ScaleX, double ScaleY, double Opacity) Key =>
         (X, Y, Rotate, Scale, ScaleX, ScaleY, Opacity);
 
-    public static CompositorScratch Seed(Visual visual) => new()
+    /// <remarks>A property another compositor animation drives starts from where that animation's mirror stands, as upstream reads a running WAAPI animation's computed style.</remarks>
+    public static CompositorScratch Seed(Visual visual)
     {
-        X = RenderTransformComposer.Get(visual, TransformShorthand.X),
-        Y = RenderTransformComposer.Get(visual, TransformShorthand.Y),
-        Rotate = RenderTransformComposer.Get(visual, TransformShorthand.Rotate),
-        Scale = RenderTransformComposer.Get(visual, TransformShorthand.Scale),
-        ScaleX = RenderTransformComposer.Get(visual, TransformShorthand.ScaleX),
-        ScaleY = RenderTransformComposer.Get(visual, TransformShorthand.ScaleY),
-        Opacity = visual.Opacity,
-    };
+        var scratch = new CompositorScratch
+        {
+            X = RenderTransformComposer.Get(visual, TransformShorthand.X),
+            Y = RenderTransformComposer.Get(visual, TransformShorthand.Y),
+            Rotate = RenderTransformComposer.Get(visual, TransformShorthand.Rotate),
+            Scale = RenderTransformComposer.Get(visual, TransformShorthand.Scale),
+            ScaleX = RenderTransformComposer.Get(visual, TransformShorthand.ScaleX),
+            ScaleY = RenderTransformComposer.Get(visual, TransformShorthand.ScaleY),
+            Opacity = visual.Opacity,
+        };
+        if (Held(visual, CompositorTrackKind.Translation) is { } translation) (scratch.X, scratch.Y) = (translation.X, translation.Y);
+        if (Held(visual, CompositorTrackKind.Scale) is { } scale) (scratch.Scale, scratch.ScaleX, scratch.ScaleY) = (scale.Scale, scale.ScaleX, scale.ScaleY);
+        if (Held(visual, CompositorTrackKind.RotationAngle) is { } rotation) scratch.Rotate = rotation.Rotate;
+        if (Held(visual, CompositorTrackKind.Opacity) is { } opacity) scratch.Opacity = opacity.Opacity;
+        return scratch;
+    }
+
+    private static CompositorScratch? Held(Visual visual, CompositorTrackKind kind) =>
+        (CompositorRegistry.Holder(visual, kind) as CompositorAnimation)?.ScratchOf(visual);
 
     /// <summary>
     /// Resolves the scratch's angle the way the control's own would resolve: the reflection adapter sees a plain double and

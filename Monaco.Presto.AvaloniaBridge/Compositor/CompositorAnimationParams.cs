@@ -63,4 +63,7 @@ public sealed record CompositorAnimationParams
 
     /// <inheritdoc cref="Timer.OnComplete"/>
     public Action<Timer>? OnComplete { get; init; }
+
+    /// <inheritdoc cref="AnimationParams.IsReducedMotion"/>
+    internal bool IsReducedMotion { get; init; }
 }

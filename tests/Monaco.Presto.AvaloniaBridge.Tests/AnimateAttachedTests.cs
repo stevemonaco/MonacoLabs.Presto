@@ -1,10 +1,16 @@
+using System.ComponentModel;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>The lifetime of <see cref="Animate.OnAttachedProperty"/>: play on attach, revert on detach, value change or null.</summary>
+/// <summary>The <see cref="Animate"/> triggers: OnAttached plays on attach, OnTapped on each tap and OnChanged on each later Watch change.</summary>
 public sealed class AnimateAttachedTests : BridgeTestBase
 {
     private static StackPanel ShowPanel()
@@ -134,6 +140,145 @@ public sealed class AnimateAttachedTests : BridgeTestBase
         Assert.Equal(60d, PrestoAvalonia.Get(view.BindingBorder, "X"));
     }
 
+    private static Border AddHitBorder(Panel panel)
+    {
+        var border = new Border { Height = 50, Background = Brushes.Red };
+        panel.Children.Add(border);
+        Dispatcher.UIThread.RunJobs();
+        return border;
+    }
+
+    private static void Tap(Border border)
+    {
+        var window = (Window)TopLevel.GetTopLevel(border)!;
+        var point = border.TranslatePoint(new Point(10, 10), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+    }
+
+    [AvaloniaFact]
+    public void OnTappedPlaysOnATapAndRevertsWhenItCompletes()
+    {
+        var border = AddHitBorder(ShowPanel());
+        Animate.SetOnTapped(border, SlideX(100));
+        Assert.Empty(Presto.GetAnimations(border));
+
+        Tap(border);
+        Frames.Advance(50, 10);
+        Assert.InRange((double)PrestoAvalonia.Get(border, "X")!, 1, 99);
+
+        Frames.Advance(100, 10);
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Equal(0d, PrestoAvalonia.Get(border, "X"));
+    }
+
+    [AvaloniaFact]
+    public void OnTappedRestartsOnEachTap()
+    {
+        var border = AddHitBorder(ShowPanel());
+        Animate.SetOnTapped(border, SlideX(100));
+        Tap(border);
+        Frames.Advance(60, 10);
+        var first = Assert.Single(Presto.GetAnimations(border));
+
+        Tap(border);
+
+        Assert.True(first.Cancelled);
+        Assert.NotSame(first, Assert.Single(Presto.GetAnimations(border)));
+        Frames.Advance(20, 10);
+        Assert.InRange((double)PrestoAvalonia.Get(border, "X")!, 1, 50);
+    }
+
+    [AvaloniaFact]
+    public void ClearingOnTappedStopsListening()
+    {
+        var border = AddHitBorder(ShowPanel());
+        Animate.SetOnTapped(border, SlideX(100));
+        Tap(border);
+        Frames.Advance(50, 10);
+
+        Animate.SetOnTapped(border, null);
+        Assert.Equal(0d, PrestoAvalonia.Get(border, "X"));
+
+        Tap(border);
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void OnChangedSkipsTheInitialBindingAndPlaysOnEachLaterChange()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var model = new CountModel { Count = 1 };
+        Animate.SetOnChanged(border, SlideX(100));
+        border.Bind(Animate.WatchProperty, new Binding(nameof(CountModel.Count)));
+
+        panel.DataContext = model;
+        Assert.Equal(1, Animate.GetWatch(border));
+        Assert.Empty(Presto.GetAnimations(border));
+
+        model.Count = 2;
+        var first = Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(50, 10);
+
+        model.Count = 3;
+        Assert.True(first.Cancelled);
+        Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(200, 16);
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Equal(0d, PrestoAvalonia.Get(border, "X"));
+    }
+
+    [AvaloniaFact]
+    public void OnChangedSetAfterTheFirstValuePlaysOnTheNextChange()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetWatch(border, 1);
+
+        Animate.SetOnChanged(border, SlideX(100));
+        Assert.Empty(Presto.GetAnimations(border));
+
+        Animate.SetWatch(border, 2);
+        Assert.Single(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void ClearingOnChangedStopsListening()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnChanged(border, SlideX(100));
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+        Frames.Advance(50, 10);
+
+        Animate.SetOnChanged(border, null);
+        Assert.Equal(0d, PrestoAvalonia.Get(border, "X"));
+
+        Animate.SetWatch(border, 3);
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void DetachingRevertsTheTriggers()
+    {
+        var panel = ShowPanel();
+        var tapped = AddHitBorder(panel);
+        var changed = AddBorder(panel);
+        Animate.SetOnTapped(tapped, SlideX(100));
+        Animate.SetOnChanged(changed, SlideX(100));
+        Animate.SetWatch(changed, 1);
+        Tap(tapped);
+        Animate.SetWatch(changed, 2);
+        Frames.Advance(50, 10);
+
+        panel.Children.Clear();
+
+        Assert.Empty(Presto.GetAnimations(tapped));
+        Assert.Empty(Presto.GetAnimations(changed));
+        Assert.Equal(0d, PrestoAvalonia.Get(tapped, "X"));
+        Assert.Equal(0d, PrestoAvalonia.Get(changed, "X"));
+    }
+
     [AvaloniaFact]
     public void DoesNothingInDesignMode()
     {
@@ -150,5 +295,20 @@ public sealed class AnimateAttachedTests : BridgeTestBase
         }
 
         Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    private sealed class CountModel : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public int Count
+        {
+            get;
+            set
+            {
+                field = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Count)));
+            }
+        }
     }
 }

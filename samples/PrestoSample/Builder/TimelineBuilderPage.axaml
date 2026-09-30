@@ -7,7 +7,7 @@
                        x:Class="PrestoSample.Builder.TimelineBuilderPage">
     <ScrollViewer>
         <StackPanel Spacing="16">
-            <TextBlock Classes="caption" Text="A timeline assembled from one builder" />
+            <TextBlock Classes="caption" Text="A timeline assembled from one shared builder and one lambda" />
             <Border Classes="stage">
                 <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
                     <Border x:Name="CardA" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Accent}" />

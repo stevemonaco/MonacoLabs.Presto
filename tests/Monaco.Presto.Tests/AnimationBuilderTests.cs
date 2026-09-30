@@ -60,15 +60,44 @@ public sealed class AnimationBuilderTests : EngineTestBase
             new()
             {
                 ["X"] = TweenValue.Keyframes(
-                    10,
+                    new TweenParams { To = 10 },
                     new TweenParams { To = 20, Duration = 100 },
                     new TweenParams { To = 30, Delay = 50, Ease = "inQuad" }),
-                ["Y"] = TweenValue.Keyframes(1, 2, 3),
+                ["Y"] = TweenValue.Keyframes(new TweenParams { To = 1 }, new TweenParams { To = 2 }, new TweenParams { To = 3 }),
             },
             Presto.Build()
                 .Property("X", k => k.To(10).To(20, duration: 100).To(30, delay: 50, ease: "inQuad"))
                 .Property("Y", k => k.To(1).To(2).To(3))
                 .ToParams());
+    }
+
+    [Fact]
+    public void BareKeyframesStartFromTheCurrentValueRatherThanTheFirstFrame()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Build()
+            .Property("X", k => k.To(100).To(0))
+            .Duration(200)
+            .Ease("linear")
+            .Animate(target);
+
+        animation.Seek(50);
+        Assert.Equal(50, target.X, 3);
+        animation.Seek(100);
+        Assert.Equal(100, target.X, 3);
+        animation.Seek(200);
+        Assert.Equal(0, target.X, 3);
+    }
+
+    [Fact]
+    public void AnInertiaPassesAsAPropertyValue()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Build().Property("X", new Inertia(1)).Animate(target);
+
+        animation.Complete();
+
+        Assert.Equal(350, target.X, 9);
     }
 
     [Fact]
@@ -367,6 +396,159 @@ public sealed class AnimationBuilderTests : EngineTestBase
             Assert.Equal(TestHelpers.OffsetOf(byParams, i), TestHelpers.OffsetOf(byBuilder, i));
         }
         Assert.Equal(byParams.Duration, byBuilder.Duration);
+    }
+
+    [Fact]
+    public void CloneIsIndependentOfItsSourceBothWays()
+    {
+        var source = Recipe();
+        var clone = source.Clone();
+        Mutate(source);
+        AssertEquivalent(Recipe().ToParams(), clone.ToParams());
+
+        source = Recipe();
+        clone = source.Clone();
+        Mutate(clone);
+        AssertEquivalent(Recipe().ToParams(), source.ToParams());
+
+        static AnimationBuilder Recipe() => Presto.Build()
+            .Property("X", 100)
+            .Property("Y", 50, duration: 200, ease: "outQuad")
+            .Keyframes(k => k.Frame(f => f.Property("Scale", 2).Duration(100)))
+            .Duration(400)
+            .Delay(20);
+
+        static void Mutate(AnimationBuilder builder) => builder
+            .Duration(900).Loop()
+            .Property("X", 1).Property("Z", 3)
+            .Property("Y", 0, duration: 10)
+            .Keyframes(k => k.At(50, f => f.Property("Scale", 4)));
+    }
+
+    [Fact]
+    public void WithChangesOnlyTheCopyAndAnOverrideKeepsItsPosition()
+    {
+        var source = Presto.Build().Property("X", 1).Property("Y", 2).Duration(100);
+
+        var changed = source.With(b => b.Property("X", 10).Property("Z", 3).Delay(50)).ToParams();
+
+        var original = source.ToParams();
+        Assert.Equal(["X", "Y"], original.Properties.Keys);
+        Assert.Equal(1d, original["X"].Raw);
+        Assert.Null(original.Delay);
+        Assert.Equal(["X", "Y", "Z"], changed.Properties.Keys);
+        Assert.Equal(10d, changed["X"].Raw);
+        Assert.Equal(100d, changed.Duration?.Raw);
+        Assert.Equal(50d, changed.Delay?.Raw);
+    }
+
+    [Fact]
+    public void LambdaAnimateAndSetMatchTheBuilderForm()
+    {
+        var byBuilder = new StyleTarget();
+        var byLambda = new StyleTarget();
+        Presto.Build().Property("X", 100).Property("Y", 40, ease: "outQuad").Duration(300).Animate(byBuilder);
+        Presto.Animate(byLambda, b => b.Property("X", 100).Property("Y", 40, ease: "outQuad").Duration(300));
+
+        for (var i = 0; i < 4; i++)
+        {
+            Frames.Advance(90);
+            Assert.Equal(byBuilder.X, byLambda.X);
+            Assert.Equal(byBuilder.Y, byLambda.Y);
+        }
+        Assert.Equal(100, byLambda.X);
+
+        Presto.Build().Property("Scale", 3).Set(byBuilder);
+        Presto.Set(byLambda, b => b.Property("Scale", 3));
+        Assert.Equal(3, byLambda.Scale);
+        Assert.Equal(byBuilder.Scale, byLambda.Scale);
+    }
+
+    [Fact]
+    public void TimelinesBuiltWithLambdasLayOutLikeTimelinesBuiltWithBuilders()
+    {
+        var target = new StyleTarget();
+        var targets = new[] { new StyleTarget(), new StyleTarget(), new StyleTarget() };
+        var byBuilder = Presto.CreateTimeline(new() { Defaults = new() { Duration = 10 } })
+            .Add(target, Presto.Build().Property("Y", 50).Duration(30).Delay(5), "+=20")
+            .Add(targets, Presto.Build().Property("X", 10), Presto.Stagger(15))
+            .Set(target, Presto.Build().Property("Scale", 2), 200);
+        var byLambda = Presto.CreateTimeline(new() { Defaults = new() { Duration = 10 } })
+            .Add(target, b => b.Property("Y", 50).Duration(30).Delay(5), "+=20")
+            .Add(targets, b => b.Property("X", 10), Presto.Stagger(15))
+            .Set(target, b => b.Property("Scale", 2), 200);
+
+        Assert.Equal(5, TestHelpers.GetChildLength(byLambda));
+        Assert.Equal(TestHelpers.GetChildLength(byBuilder), TestHelpers.GetChildLength(byLambda));
+        for (var i = 0; i < TestHelpers.GetChildLength(byBuilder); i++)
+        {
+            Assert.Equal(TestHelpers.OffsetOf(byBuilder, i), TestHelpers.OffsetOf(byLambda, i));
+        }
+        Assert.Equal(byBuilder.Duration, byLambda.Duration);
+    }
+
+    [Fact]
+    public void TargetTypedParamsStillBindBesideTheLambdaOverloads()
+    {
+        var target = new StyleTarget();
+
+        Presto.Set(target, new() { ["X"] = 7 });
+        Presto.Animate(target, new() { ["Y"] = 1, Duration = 10 });
+        Presto.CreateTimeline().Add(target, new() { ["Scale"] = 2 }).Set(target, new() { ["X"] = 3 });
+
+        Assert.Equal(7, target.X);
+    }
+
+    [Fact]
+    public void WhenReducedIsPickedOnlyWhileReducedMotionIsSet()
+    {
+        var builder = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
+
+        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Presto.Defaults.ReducedMotion = true;
+        Assert.Equal(["Opacity"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["X"], Presto.Build().Property("X", 100).ToParams().Properties.Keys);
+        Presto.Defaults.ReducedMotion = false;
+        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+    }
+
+    [Fact]
+    public void SettingsChainedAfterWhenReducedCarryIntoTheReducedFormButMainPropertiesDoNot()
+    {
+        TweenValue delay = Presto.Stagger(60);
+        Action<Timer> onComplete = _ => { };
+        Presto.Defaults.ReducedMotion = true;
+
+        var parameters = Presto.Build()
+            .Property("X", 100)
+            .Keyframes(k => k.Frame(f => f.Property("Y", 1)))
+            .Duration(800)
+            .Ease("outExpo")
+            .WhenReduced(b => b.Property("Opacity", 1).Duration(150))
+            .Delay(delay)
+            .OnComplete(onComplete)
+            .ToParams();
+
+        Assert.Equal(["Opacity"], parameters.Properties.Keys);
+        Assert.Null(parameters.Keyframes);
+        Assert.Equal(150d, parameters.Duration?.Raw);
+        Assert.Equal("outExpo", parameters.Ease?.Raw);
+        Assert.Same(delay.Raw, parameters.Delay?.Raw);
+        Assert.Same(onComplete, parameters.OnComplete);
+    }
+
+    [Fact]
+    public void CloneAndWithCarryTheReducedFormAndWithLeavesTheSourceAlone()
+    {
+        var source = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
+
+        var clone = source.Clone();
+        var changed = source.With(b => b.WhenReduced(r => r.Property("Scale", 1)));
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.Equal(["Opacity"], clone.ToParams().Properties.Keys);
+        Assert.Equal(["Scale"], changed.ToParams().Properties.Keys);
+        Assert.Equal(["Opacity"], source.ToParams().Properties.Keys);
     }
 
     private static void AssertEquivalent(AnimationParams expected, AnimationParams actual)

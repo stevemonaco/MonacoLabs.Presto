@@ -35,8 +35,28 @@
 
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Content="Set(&quot;X&quot;, -140, 1200, &quot;inOutQuad&quot;)" Click="SetExplicit" />
+                <Button Content="Fling()" Click="FlingFollower" />
                 <Button Content="Revert()" Click="RevertFollower" />
             </StackPanel>
+
+            <TextBlock Classes="code" Text="dot.Fling(&quot;X&quot;, new Inertia(0) { Min = -edge, Max = edge }).Fling(&quot;Y&quot;, …)" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Press Set, then Fling while the dot moves: Fling measures the running tween's velocity and coasts from it, bouncing off the stage edge." />
+
+            <Border x:Name="MomentumStage" Classes="stage" MinHeight="0" Height="150" PointerMoved="MoveMomentum">
+                <Grid RowDefinitions="*,*">
+                    <Border x:Name="MomentumDot" Classes="dot" Width="28" Height="28" CornerRadius="14"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Border x:Name="RestDot" Grid.Row="1" Classes="dot" Width="28" Height="28" CornerRadius="14" Opacity=".45"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <TextBlock Classes="code" Text="var spring = new Spring(stiffness: 90, damping: 9);&#10;momentumDot.CreateAnimatable(new() { [&quot;X&quot;] = new(), Ease = spring, PreserveVelocity = true });&#10;restDot.CreateAnimatable(new() { [&quot;X&quot;] = new(), Ease = spring });" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Flick the pointer left and right across the stage. Both dots follow it on the same spring, but only the top one keeps its momentum: PreserveVelocity starts each retargeted spring with the velocity the dot already has, so it swings through the turn the way a thrown weight would. The faded dot starts every new spring from rest and stops dead each time the pointer changes direction. anime.js has no equivalent; it is opt-in here." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

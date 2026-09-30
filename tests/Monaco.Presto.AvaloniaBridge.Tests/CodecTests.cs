@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Monaco.Presto.Values;
@@ -63,6 +64,170 @@ public sealed class CodecTests : BridgeTestBase
         Assert.Equal(Colors.Red, original.Color);
         Assert.Equal(Colors.Blue, Assert.IsType<SolidColorBrush>(Tweened<IBrush>(Brushes.Red, "#0000ff")).Color);
     }
+
+    [AvaloniaFact]
+    public void LinearGradientInterpolatesItsStopsAndPoints()
+    {
+        var from = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(200, 0, 0)));
+        var to = Linear(new(0, 0), new(0, 1), (0, Color.FromRgb(200, 0, 0)), (1, Color.FromRgb(0, 0, 200)));
+
+        var brush = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(from, TweenValue.Of(to), .5));
+
+        Assert.Equal(new RelativePoint(.5, .5, RelativeUnit.Relative), brush.EndPoint);
+        Assert.Equal([Color.FromRgb(100, 0, 100), Color.FromRgb(100, 0, 100)], brush.GradientStops.Select(stop => stop.Color));
+    }
+
+    [AvaloniaFact]
+    public void GradientsWithDifferentStopCountsInterpolateOnTheUnionOfTheirOffsets()
+    {
+        var from = Linear(new(0, 0), new(1, 0), (0, Colors.Black), (1, Color.FromRgb(200, 200, 200)));
+        var to = Linear(new(0, 0), new(1, 0), (0, Colors.Black), (.5, Color.FromRgb(0, 200, 0)), (1, Color.FromRgb(200, 200, 200)));
+
+        var halfway = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(from, TweenValue.Of(to), .5));
+        var end = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(from, TweenValue.Of(to)));
+
+        Assert.Equal([0, .5, 1], halfway.GradientStops.Select(stop => stop.Offset));
+        Assert.Equal(Color.FromRgb(50, 150, 50), halfway.GradientStops[1].Color);
+        Assert.Equal(to.GradientStops.Select(stop => stop.Color), end.GradientStops.Select(stop => stop.Color));
+    }
+
+    [AvaloniaFact]
+    public void ASolidBrushTweensIntoAGradient()
+    {
+        var to = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(0, 200, 0)));
+
+        var brush = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(new SolidColorBrush(Color.FromRgb(200, 0, 0)), TweenValue.Of(to), .5));
+
+        Assert.Equal([Color.FromRgb(100, 0, 100), Color.FromRgb(100, 100, 0)], brush.GradientStops.Select(stop => stop.Color));
+    }
+
+    [AvaloniaFact]
+    public void AGradientTweenedToAColorEndsOnASolidBrush()
+    {
+        var from = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(0, 200, 0)));
+
+        var halfway = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(from, "#c80000", .5));
+        var end = Assert.IsType<SolidColorBrush>(Tweened<IBrush>(from, "#c80000"));
+
+        Assert.Equal([Color.FromRgb(100, 0, 100), Color.FromRgb(100, 100, 0)], halfway.GradientStops.Select(stop => stop.Color));
+        Assert.Equal(Color.FromRgb(200, 0, 0), end.Color);
+    }
+
+    [AvaloniaFact]
+    public void AMissingBrushFadesIntoAGradientInItsOwnColors()
+    {
+        var to = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(0, 200, 0)));
+
+        var brush = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(null!, TweenValue.Of(to), .5));
+
+        Assert.Equal([Color.FromArgb(128, 0, 0, 200), Color.FromArgb(128, 0, 200, 0)], brush.GradientStops.Select(stop => stop.Color));
+    }
+
+    [AvaloniaFact]
+    public void RadialAndConicGradientsInterpolateTheirGeometry()
+    {
+        var radial = Assert.IsType<RadialGradientBrush>(Tweened<IBrush>(
+            Radial(new(.5, .5, RelativeUnit.Relative), .5),
+            TweenValue.Of(Radial(new(0, 0, RelativeUnit.Relative), 1)),
+            .5));
+        var conic = Assert.IsType<ConicGradientBrush>(Tweened<IBrush>(Conic(0), TweenValue.Of(Conic(90)), .5));
+
+        Assert.Equal(new RelativePoint(.25, .25, RelativeUnit.Relative), radial.Center);
+        Assert.Equal(new RelativeScalar(.75, RelativeUnit.Relative), radial.RadiusX);
+        Assert.Equal(45, conic.Angle);
+    }
+
+    [AvaloniaFact]
+    public void AGradientTweenedToAnotherKindTakesTheEndGeometryAndInterpolatesItsStops()
+    {
+        var from = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(0, 0, 200)));
+
+        var brush = Assert.IsType<RadialGradientBrush>(Tweened<IBrush>(from, TweenValue.Of(Radial(new(0, 0, RelativeUnit.Relative), 1)), .5));
+
+        Assert.Equal(new RelativePoint(0, 0, RelativeUnit.Relative), brush.Center);
+        Assert.Equal(Color.FromRgb(100, 0, 100), brush.GradientStops[0].Color);
+    }
+
+    [AvaloniaFact]
+    public void AGradientTweenReusesOneBrushAndLeavesTheOriginalUntouched()
+    {
+        var from = Linear(new(0, 0), new(1, 0), (0, Colors.Black), (1, Colors.White));
+        var box = new ValueBox<IBrush> { Value = from };
+        var animation = Presto.Animate(box, new() { ["Value"] = TweenValue.Of(Linear(new(0, 0), new(0, 1), (0, Colors.White), (1, Colors.Black))), Duration = 100, Ease = "linear", Autoplay = false });
+
+        animation.Seek(25);
+        var first = box.Value;
+        animation.Seek(50);
+
+        Assert.Same(first, box.Value);
+        Assert.NotSame(from, box.Value);
+        Assert.Equal(new RelativePoint(1, 0, RelativeUnit.Relative), from.EndPoint);
+    }
+
+    [AvaloniaFact]
+    public void BoxShadowStringsParseAndInterpolate()
+    {
+        var shadows = Tweened(BoxShadows.Parse("0 2 4 0 #40000000"), "0 10 20 0 #80000000", .5);
+
+        Assert.Equal(1, shadows.Count);
+        Assert.Equal(6, shadows[0].OffsetY);
+        Assert.Equal(12, shadows[0].Blur);
+        Assert.Equal(96, shadows[0].Color.A);
+    }
+
+    [AvaloniaFact]
+    public void AnAddedShadowGrowsInItsOwnColorFromNothing()
+    {
+        var shadows = Tweened(BoxShadows.Parse("0 2 4 0 #FF0000"), "0 2 4 0 #FF0000, 0 0 20 0 #0000FF", .5);
+
+        Assert.Equal(2, shadows.Count);
+        Assert.Equal(10, shadows[1].Blur);
+        Assert.Equal(Color.FromArgb(128, 0, 0, 255), shadows[1].Color);
+    }
+
+    [AvaloniaFact]
+    public void AShadowTakesItsInsetFromTheEndValue() =>
+        Assert.True(Tweened(BoxShadows.Parse("0 0 10 0 #000000"), "inset 0 0 10 0 #000000", .5)[0].IsInset);
+
+    [AvaloniaFact]
+    public void ABorderWithoutAShadowTweensOneIn()
+    {
+        var border = new Border();
+
+        var animation = border.Animate(new() { ["BoxShadow"] = "0 4 16 0 #000000", Duration = 100, Ease = "linear", Autoplay = false });
+        animation.Seek(50);
+
+        Assert.Equal(1, border.BoxShadow.Count);
+        Assert.Equal(2, border.BoxShadow[0].OffsetY);
+        Assert.Equal(8, border.BoxShadow[0].Blur);
+        Assert.Equal(128, border.BoxShadow[0].Color.A);
+    }
+
+    private static LinearGradientBrush Linear(Point start, Point end, params (double Offset, Color Color)[] stops)
+    {
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(start, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(end, RelativeUnit.Relative),
+        };
+        foreach (var (offset, color) in stops) brush.GradientStops.Add(new GradientStop(color, offset));
+        return brush;
+    }
+
+    private static RadialGradientBrush Radial(RelativePoint center, double radius) => new()
+    {
+        Center = center,
+        GradientOrigin = center,
+        RadiusX = new RelativeScalar(radius, RelativeUnit.Relative),
+        RadiusY = new RelativeScalar(radius, RelativeUnit.Relative),
+        GradientStops = { new GradientStop(Color.FromRgb(200, 0, 0), 0), new GradientStop(Colors.Black, 1) },
+    };
+
+    private static ConicGradientBrush Conic(double angle) => new()
+    {
+        Angle = angle,
+        GradientStops = { new GradientStop(Colors.White, 0), new GradientStop(Colors.Black, 1) },
+    };
 
     [AvaloniaFact]
     public void ColorsConvertBetweenPrestoAndAvaloniaChannels()

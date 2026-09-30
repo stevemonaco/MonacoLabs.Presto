@@ -66,6 +66,43 @@ public sealed class TransformsTests : BridgeTestBase
         Assert.Equal(40, Assert.IsType<TranslateTransform>(group.Children[1]).X);
     }
 
+    [AvaloniaFact]
+    public void RotateXRotateYAndPerspectiveComposeIntoOneRotate3DTransformBetweenScaleAndRotate()
+    {
+        var border = new Border();
+
+        var flat = border.Animate(new() { ["X"] = 40, ["Y"] = 20, ["Scale"] = 2, ["Rotate"] = 45, Duration = 100, Autoplay = false });
+        flat.Seek(flat.Duration);
+        var group = Assert.IsType<TransformGroup>(border.RenderTransform);
+        Assert.DoesNotContain(group.Children, child => child is Rotate3DTransform);
+
+        var tilted = border.Animate(new() { ["RotateX"] = 30, ["RotateY"] = 60, ["Perspective"] = 500, Duration = 100, Autoplay = false });
+        tilted.Seek(tilted.Duration);
+
+        Assert.Equal(4, group.Children.Count);
+        Assert.Equal(2, Assert.IsType<ScaleTransform>(group.Children[0]).ScaleX);
+        var rotate3D = Assert.IsType<Rotate3DTransform>(group.Children[1]);
+        Assert.Equal(30, rotate3D.AngleX);
+        Assert.Equal(60, rotate3D.AngleY);
+        Assert.Equal(500, rotate3D.Depth);
+        Assert.Equal(45, Assert.IsType<RotateTransform>(group.Children[2]).Angle);
+        var translate = Assert.IsType<TranslateTransform>(group.Children[3]);
+        Assert.Equal(40, translate.X);
+        Assert.Equal(20, translate.Y);
+    }
+
+    [AvaloniaFact]
+    public void RotateYAcceptsAngleUnits()
+    {
+        var border = new Border();
+
+        var animation = border.Animate(new() { ["RotateY"] = "0.5turn", Duration = 100, Autoplay = false });
+        animation.Seek(animation.Duration);
+
+        var group = Assert.IsType<TransformGroup>(border.RenderTransform);
+        Assert.Equal(180, Assert.IsType<Rotate3DTransform>(Assert.Single(group.Children)).AngleY, 10);
+    }
+
     /// <summary>Upstream renders <c>scale(1.5) scaleX(2) scaleY(3)</c>; one <see cref="ScaleTransform"/> has to multiply them instead.</summary>
     [AvaloniaFact]
     public void AUniformScaleMultipliesThePerAxisScales()

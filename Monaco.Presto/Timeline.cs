@@ -73,6 +73,13 @@ public sealed class Timeline : Timer
     /// <summary>Adds one child per target built from a snapshot of <paramref name="builder"/>, each at its staggered position.</summary>
     public Timeline Add(object? targets, AnimationBuilder builder, Stagger position) => Add(targets, builder.ToParams(), position);
 
+    /// <summary>Adds an animation of <paramref name="targets"/> built from the fresh builder <paramref name="build"/> configures.</summary>
+    public Timeline Add(object? targets, Action<AnimationBuilder> build, TimelinePosition position = default) =>
+        Add(targets, Presto.Build(build), position);
+
+    /// <summary>Adds one child per target built from the fresh builder <paramref name="build"/> configures, each at its staggered position.</summary>
+    public Timeline Add(object? targets, Action<AnimationBuilder> build, Stagger position) => Add(targets, Presto.Build(build), position);
+
     /// <summary>
     /// Adds a plain timer at <paramref name="position"/>. The parameters must be written as <c>new TimerParams { … }</c>,
     /// since a bare <c>new() { … }</c> is ambiguous with the targets overload.
@@ -93,6 +100,10 @@ public sealed class Timeline : Timer
     /// <summary>Like <see cref="Set(object?, AnimationParams, TimelinePosition)"/>, with a snapshot of <paramref name="builder"/>.</summary>
     public Timeline Set(object? targets, AnimationBuilder builder, TimelinePosition position = default) =>
         Set(targets, builder.ToParams(), position);
+
+    /// <summary>Like <see cref="Set(object?, AnimationParams, TimelinePosition)"/>, with the fresh builder <paramref name="build"/> configures.</summary>
+    public Timeline Set(object? targets, Action<AnimationBuilder> build, TimelinePosition position = default) =>
+        Set(targets, Presto.Build(build), position);
 
     /// <summary>Invokes <paramref name="callback"/> when the playhead reaches <paramref name="position"/>, in either direction.</summary>
     public Timeline Call(Action<Timeline> callback, TimelinePosition position = default) =>

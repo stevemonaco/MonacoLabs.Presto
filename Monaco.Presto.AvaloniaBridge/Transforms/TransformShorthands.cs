@@ -16,6 +16,9 @@ internal enum TransformShorthand
     ScaleY,
     SkewX,
     SkewY,
+    RotateX,
+    RotateY,
+    Perspective,
 }
 
 internal static class TransformShorthands
@@ -24,7 +27,7 @@ internal static class TransformShorthands
 
     /// <summary>Whether <paramref name="shorthand"/> is turned in degrees rather than moved in pixels or multiplied.</summary>
     public static bool IsAngle(TransformShorthand shorthand) =>
-        shorthand is TransformShorthand.Rotate or TransformShorthand.SkewX or TransformShorthand.SkewY;
+        shorthand is TransformShorthand.Rotate or TransformShorthand.SkewX or TransformShorthand.SkewY or TransformShorthand.RotateX or TransformShorthand.RotateY;
 
     /// <summary>Converts an angle carrying a unit of its own (<c>"1turn"</c>, <c>".5rad"</c>) into the degrees a transform holds.</summary>
     public static double ToDegrees(double number, string? unit)
@@ -48,6 +51,9 @@ internal static class TransformShorthands
         "ScaleY" => TransformShorthand.ScaleY,
         "SkewX" => TransformShorthand.SkewX,
         "SkewY" => TransformShorthand.SkewY,
+        "RotateX" => TransformShorthand.RotateX,
+        "RotateY" => TransformShorthand.RotateY,
+        "Perspective" => TransformShorthand.Perspective,
         _ => null,
     };
 }

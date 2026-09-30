@@ -133,11 +133,7 @@
                     Background="{x:Static showcase:Palette.Surface}">
                 <Panel>
                     <ContentControl Content="{Binding SwappedPage}" />
-                    <TransitioningContentControl Content="{Binding FadedPage}">
-                        <TransitioningContentControl.PageTransition>
-                            <CrossFade Duration="0:0:0.3" />
-                        </TransitioningContentControl.PageTransition>
-                    </TransitioningContentControl>
+                    <TransitioningContentControl Content="{Binding FadedPage}" PageTransition="{presto:PageFade Duration=300}" />
                 </Panel>
             </Border>
             <TextBlock Classes="caption" Text="A gallery card: the photo and city name are keyed by the destination's Id" />

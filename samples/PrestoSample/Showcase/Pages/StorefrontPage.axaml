@@ -1,0 +1,198 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:local="using:PrestoSample.Showcase.Pages"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.StorefrontPage"
+                       x:DataType="local:StorefrontViewModel">
+    <showcase:ShowcasePage.DataContext>
+        <local:StorefrontViewModel />
+    </showcase:ShowcasePage.DataContext>
+
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <Style Selector="ToggleButton.chip">
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="14,4" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+            <Setter Property="presto:Motion.States">
+                <presto:MotionStates>
+                    <presto:MotionState When=":checked" Motion="{x:Static local:StorefrontPage.Picked}" />
+                </presto:MotionStates>
+            </Setter>
+        </Style>
+        <!-- The chip shows its own animated Background and Foreground in every state instead of Fluent's. -->
+        <Style Selector="ToggleButton.chip /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{TemplateBinding Background}" />
+            <Setter Property="Foreground" Value="{TemplateBinding Foreground}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+        </Style>
+
+        <Style Selector="Border.product">
+            <Setter Property="Width" Value="196" />
+            <Setter Property="Margin" Value="0,0,14,14" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Focusable" Value="True" />
+        </Style>
+        <Style Selector="Border.art">
+            <Setter Property="Height" Value="112" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="Border.product TextBlock.name, Border.dialog TextBlock.name">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+        <Style Selector="TextBlock.price">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.AccentBright}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Border.skeleton">
+            <Setter Property="Width" Value="196" />
+            <Setter Property="Height" Value="190" />
+            <Setter Property="Margin" Value="0,0,14,14" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        </Style>
+
+        <Style Selector="Border.thumb">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+
+        <Style Selector="Border.dialog">
+            <Setter Property="Width" Value="440" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.AccentDim}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+        <Border Grid.Row="0" Classes="rail showcase">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="16">
+                <TextBlock Classes="eyebrow showcase" Text="PRESTO SUPPLY" VerticalAlignment="Center" />
+                <ItemsControl Grid.Column="1" ItemsSource="{x:Static local:StorefrontViewModel.Categories}" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="6" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <ToggleButton Classes="chip" Content="{Binding}" IsCheckedChanged="ChipChanged" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ToggleSwitch Grid.Column="3" x:Name="ReducedSwitch" VerticalAlignment="Center"
+                              OffContent="Full motion" OnContent="Reduced motion" IsCheckedChanged="ReducedChanged" />
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel x:Name="CartShelf" Orientation="Horizontal" Spacing="4" />
+                    <TextBlock Classes="caption" Text="Cart" VerticalAlignment="Center" />
+                    <Border x:Name="Badge" Classes="badge showcase"
+                            presto:Animate.Watch="{Binding CartCount}" presto:Animate.OnChanged="{presto:Pop}">
+                        <TextBlock Text="{Binding CartCount}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Classes="stage">
+            <Panel x:Name="Body">
+                <ItemsControl x:Name="Skeleton" presto:Presence.Exit="{presto:Fade}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="skeleton" presto:Animate.OnAttached="{presto:Shimmer}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <ScrollViewer x:Name="Catalogue" IsVisible="False">
+                    <ItemsControl x:Name="Products" ItemsSource="{Binding Shown}" presto:Animate.ItemLayout="{presto:Reflow 500, Ease=outQuint}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="local:Product">
+                                <Border Classes="product"
+                                        presto:Presence.Initial="{presto:Fade Direction=Up, Stagger=40}"
+                                        presto:Presence.Enter="{presto:Scale}"
+                                        presto:Presence.Exit="{presto:Scale}"
+                                        presto:Motion.Hover="{presto:Lift}"
+                                        presto:Motion.Press="{presto:PressIn}"
+                                        presto:Motion.Focus="{presto:Glow}">
+                                    <StackPanel Spacing="8">
+                                        <Border Classes="art" presto:Tilt.Enabled="True">
+                                            <showcase:Scenery Hue="{Binding Hue}" Index="{Binding Index}" />
+                                        </Border>
+                                        <TextBlock Classes="name" Text="{Binding Name}" />
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="Add" Click="AddClicked"
+                                                    presto:Animate.OnTapped="{presto:Pop}" />
+                                            <Button DockPanel.Dock="Right" Content="Quick view" Margin="0,0,6,0" Click="QuickViewClicked" />
+                                            <TextBlock Classes="price" Text="{Binding Price}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <ContentControl x:Name="QuickHost" Margin="-16" Content="{Binding QuickView}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate x:DataType="local:Product">
+                            <Panel presto:Presence.Exit="{presto:Blur}">
+                                <Border Background="#A60B0E14" PointerPressed="CloseQuickView" />
+                                <Border Classes="dialog">
+                                    <Grid ColumnDefinitions="200,*" ColumnSpacing="16">
+                                        <Border Classes="art" Height="130">
+                                            <showcase:Scenery Hue="{Binding Hue}" Index="{Binding Index}" />
+                                        </Border>
+                                        <DockPanel Grid.Column="1">
+                                            <Button DockPanel.Dock="Bottom" Content="Close" Click="CloseQuickView" />
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Classes="eyebrow showcase" Text="{Binding Category}" />
+                                                <TextBlock Classes="name" FontSize="20" Text="{Binding Name}" TextWrapping="Wrap" />
+                                                <TextBlock Classes="price" FontSize="18" Text="{Binding Price}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Grid>
+                                </Border>
+                            </Panel>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </Panel>
+        </Border>
+
+        <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
+                   Text="A shop front built from recipes. The grid shimmers as a skeleton while a timer stands in for the fetch, then the cards fade up in order through Presence.Initial. Hover a card to lift it, press it to squeeze it, move over its picture to tilt it, and Tab to a card for a glow. Pick category chips to recolour them through a :checked state and reflow the grid through Animate.ItemLayout while cards scale in and out. Add pops the button, flies the picture to the cart and bumps the badge; Quick view opens a dialog over the blurred grid with a circle reveal from the card, and closing it blurs it out through Presence.Exit. Flip Reduced motion to see every recipe's reduced form in place." />
+    </Grid>
+</showcase:ShowcasePage>

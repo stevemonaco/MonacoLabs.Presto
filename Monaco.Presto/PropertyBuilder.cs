@@ -45,4 +45,10 @@ public abstract class PropertyBuilder<TSelf> where TSelf : PropertyBuilder<TSelf
         keyframes(builder);
         return Property(name, TweenValue.Keyframes(builder.ToArray()));
     }
+
+    private protected TSelf CopyPropertiesTo(TSelf copy)
+    {
+        foreach (var (name, value) in Properties) copy.Properties[name] = value;
+        return copy;
+    }
 }

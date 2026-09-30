@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
              mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
              x:Class="PrestoSample.Pages.LayoutPage">
     <UserControl.Styles>
@@ -32,7 +33,15 @@
     <StackPanel Spacing="16">
         <Border Classes="stage">
             <StackPanel Spacing="20" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <WrapPanel x:Name="Cards" Width="420" ItemWidth="104" ItemHeight="76" />
+                <WrapPanel x:Name="Cards" Width="420" ItemWidth="104" ItemHeight="76">
+                    <Border x:Name="XamlCard" Classes="card" Background="{DynamicResource SystemAccentColorLight3}"
+                            presto:Animate.Layout="{presto:Reflow}">
+                        <Grid RowDefinitions="*,Auto">
+                            <PathIcon Data="{StaticResource StarIcon}" />
+                            <TextBlock Grid.Row="1" Text="XAML" />
+                        </Grid>
+                    </Border>
+                </WrapPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
                     <Border x:Name="GrowBox" Width="120" Height="56" CornerRadius="6"
@@ -59,6 +68,6 @@
         </StackPanel>
 
         <TextBlock Classes="caption" TextWrapping="Wrap"
-                   Text="Every card was handed to AnimateLayout when it was created, so a Shuffle, an Add or a Remove moves it in one layout pass and the pixels ease after it. This is FLIP played on the compositor: where the card was and where layout has just put it are measured on the UI thread, the difference is written to the composition Translation so the frame still renders it where it was, and the render thread eases that back to zero. Bounds is already right throughout, which is why a card is clicked where layout put it rather than where it is drawn. The panel grows under LayoutAnimateMode.PositionAndSize, which inverts the size onto the composition scale about the top left corner — its content scales with it. Moving between containers is AnimateSharedElement: the square is measured in the window before it is reparented and eased from there into whatever slot its new parent gives it. Freezing sleeps the dispatcher for two seconds; start a slow move first and it keeps easing throughout, because nothing but the first measurement needs the UI thread." />
+                   Text="Every card was handed to AnimateLayout when it was created, so a Shuffle, an Add or a Remove moves it in one layout pass and the pixels ease after it. This is FLIP played on the compositor: where the card was and where layout has just put it are measured on the UI thread, the difference is written to the composition Translation so the frame still renders it where it was, and the render thread eases that back to zero. Bounds is already right throughout, which is why a card is clicked where layout put it rather than where it is drawn. The panel grows under LayoutAnimateMode.PositionAndSize, which inverts the size onto the composition scale about the top left corner — its content scales with it. Moving between containers is AnimateSharedElement: the square is measured in the window before it is reparented and eased from there into whatever slot its new parent gives it. The paler card is armed from XAML instead, with presto:Animate.Layout=&quot;{presto:Reflow}&quot;, so it moves with the others at the token duration whatever the slow switch says. Freezing sleeps the dispatcher for two seconds; start a slow move first and it keeps easing throughout, because nothing but the first measurement needs the UI thread." />
     </StackPanel>
 </UserControl>

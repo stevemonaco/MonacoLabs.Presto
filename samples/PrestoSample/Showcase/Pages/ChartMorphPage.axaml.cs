@@ -25,6 +25,16 @@ public partial class ChartMorphPage : ShowcasePage
     private const double UndrawDuration = 240;
     private const int TickCount = 5;
 
+    private static readonly MotionStates Lift =
+    [
+        new MotionState
+        {
+            When = ":pointerover",
+            Motion = Presto.Build().Scale(1.08).Duration(380).Ease(Eases.OutBack()),
+            Leave = Presto.Build().Duration(260).Ease(Eases.OutQuad),
+        },
+    ];
+
     private readonly Path[] _points = new Path[Datasets.ChartPoints[0].Count];
     private readonly TextBlock[] _ticks = new TextBlock[TickCount];
     private ChartView _view;
@@ -43,8 +53,11 @@ public partial class ChartMorphPage : ShowcasePage
                 Fill = Palette.Categorical[i],
                 Data = ChartGeometry.Bar(Column(i), Plot.Height - 1, Plot.Height, BarWidth, BarRadius),
             };
-            _points[i].PointerEntered += (_, _) => Scope.Execute(_ => Lift(index));
-            _points[i].PointerExited += (_, _) => Scope.Execute(_ => Drop(index));
+            Motion.SetStates(_points[i], Lift);
+            _points[i].PropertyChanged += (_, e) =>
+            {
+                if (e.Property == IsPointerOverProperty) Scope.Execute(_ => ShowTip(index, e.GetNewValue<bool>()));
+            };
             Plot.Children.Insert(Plot.Children.IndexOf(Tip), _points[i]);
 
             var label = new TextBlock { Text = Points[i].Label, Width = column, TextAlignment = TextAlignment.Center };
@@ -178,22 +191,18 @@ public partial class ChartMorphPage : ShowcasePage
         return [.. points.Select((p, i) => new Point(Column(i), Y(p.Value, max)))];
     }
 
-    private void Lift(int index)
+    private void ShowTip(int index, bool shown)
     {
-        var point = Points[index];
-        var box = _points[index].Data!.Bounds;
-        _points[index].RenderTransformOrigin = new RelativePoint(box.Center, RelativeUnit.Absolute);
-        TipText.Text = $"{point.Label} · {point.Value}k visits · {point.Secondary}%";
-        Canvas.SetLeft(Tip, Math.Clamp(box.Center.X - (Tip.Width / 2), 0, Plot.Width - Tip.Width));
-        Canvas.SetTop(Tip, Math.Max(0, box.Top - 36));
-        _points[index].Animate(new() { ["Scale"] = 1.08, Duration = 380, Ease = Eases.OutBack() });
-        Tip.Animate(new() { ["Opacity"] = 1, Duration = 160, Ease = Eases.OutQuad });
-    }
-
-    private void Drop(int index)
-    {
-        _points[index].Animate(new() { ["Scale"] = 1, Duration = 260, Ease = Eases.OutQuad });
-        Tip.Animate(new() { ["Opacity"] = 0, Duration = 160, Ease = Eases.OutQuad });
+        if (shown)
+        {
+            var point = Points[index];
+            var box = _points[index].Data!.Bounds;
+            _points[index].RenderTransformOrigin = new RelativePoint(box.Center, RelativeUnit.Absolute);
+            TipText.Text = $"{point.Label} · {point.Value}k visits · {point.Secondary}%";
+            Canvas.SetLeft(Tip, Math.Clamp(box.Center.X - (Tip.Width / 2), 0, Plot.Width - Tip.Width));
+            Canvas.SetTop(Tip, Math.Max(0, box.Top - 36));
+        }
+        Tip.Animate(new() { ["Opacity"] = shown ? 1 : 0, Duration = 160, Ease = Eases.OutQuad });
     }
 
     private void ViewChanged(object? sender, SelectionChangedEventArgs e)

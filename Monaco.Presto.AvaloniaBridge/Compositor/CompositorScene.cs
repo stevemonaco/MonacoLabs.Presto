@@ -47,7 +47,7 @@ public abstract class CompositorScene
         }
     }
 
-    /// <summary>Builds the scene's animations; runs with <see cref="Engine"/> ambient and <see cref="Scope"/> current, so <see cref="Presto.Animate"/> and friends need no arguments of their own.</summary>
+    /// <summary>Builds the scene's animations; runs with <see cref="Engine"/> ambient and <see cref="Scope"/> current, so <see cref="Presto.Animate(object?, AnimationParams)"/> and friends need no arguments of their own.</summary>
     protected virtual void OnAttached()
     {
     }

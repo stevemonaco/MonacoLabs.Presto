@@ -1,6 +1,9 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -57,6 +60,24 @@ public sealed class MicroInteractionsPageTests
 
         TestFrames.Tick(90);
         Assert.Empty(toasts.Children);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void PressingLikeScalesItInAndReleasingReturnsIt()
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var like = page.GetControl<Button>("Like");
+        var centre = SceneHarness.Centre(like, window);
+
+        window.MouseDown(centre, MouseButton.Left);
+        TestFrames.Tick(20);
+        Assert.Equal(.92, (double)PrestoAvalonia.Get(like, "Scale")!, 3);
+
+        window.MouseUp(centre, MouseButton.Left);
+        TestFrames.Tick(60);
+        Assert.Equal(1, (double)PrestoAvalonia.Get(like, "Scale")!, 3);
         SceneHarness.Close(window);
     }
 }

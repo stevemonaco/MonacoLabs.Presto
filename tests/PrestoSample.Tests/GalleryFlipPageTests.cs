@@ -134,6 +134,23 @@ public sealed class GalleryFlipPageTests
     }
 
     [AvaloniaFact]
+    public async Task TheDetailPaneBlursTheGridBehindItAndClosingLeavesNoEffect()
+    {
+        var (window, page, shown) = await Filtered();
+        var field = page.GetControl<ItemsControl>("Field");
+        Assert.Null(field.Effect);
+
+        SceneHarness.Click(window, shown[0]);
+        Assert.True(
+            await SceneHarness.Pump(() => field.Effect is BlurEffect { Radius: > 5 }),
+            $"opening the pane left the grid with {field.Effect}");
+
+        SceneHarness.Click(window, shown[0]);
+        Assert.True(await SceneHarness.Pump(() => field.Effect == null), $"closing the pane left {field.Effect} on the grid");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public async Task TheLayoutSwitchEasesACardsWidthAndTheSortEasesItsPosition()
     {
         var (window, page, shown) = await Filtered();

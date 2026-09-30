@@ -3,25 +3,39 @@ using PrestoSample.Showcase;
 namespace PrestoSample.Builder;
 
 /// <summary>
-/// A sign-up form whose card and badge bind <c>Animate.OnAttached</c> to builders the view model picks per state. The
-/// XAML snippets are constants pinned to the markup by a test.
+/// A sign-up form whose card and badge bind <c>Motion.State</c> to the view model's state and list a <c>MotionState</c> per
+/// value. The XAML snippets are constants pinned to the markup by a test.
 /// </summary>
 public partial class FormStatesPage : ShowcasePage
 {
     public const string CardXaml = """
-        <Border Classes="form" presto:Animate.OnAttached="{Binding CardMotion}">
+        <Border Classes="form" presto:Motion.State="{Binding State}">
+            <presto:Motion.States>
+                <presto:MotionStates>
+                    <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.CardValidating}" />
+                    <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.CardError}" />
+                    <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.CardSuccess}" />
+                </presto:MotionStates>
+            </presto:Motion.States>
         """;
 
     public const string BadgeXaml = """
-        <Border Classes="badge" Background="{Binding Tint}" presto:Animate.OnAttached="{Binding BadgeMotion}">
+        <Border Classes="badge" Background="{Binding Tint}" presto:Motion.State="{Binding State}">
+            <presto:Motion.States>
+                <presto:MotionStates>
+                    <presto:MotionState When="Idle" Motion="{x:Static local:FormMotions.BadgeIdle}" />
+                    <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.BadgeValidating}" />
+                    <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.BadgeError}" />
+                    <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.BadgeSuccess}" />
+                </presto:MotionStates>
+            </presto:Motion.States>
         """;
 
     public FormStatesPage()
     {
         InitializeComponent();
-        BindingCode.Text = $"{CardXaml}\n    …\n        {BadgeXaml}";
-        const string field = "public static readonly IReadOnlyDictionary<FormState, AnimationBuilder>";
-        TablesCode.Text = $"// FormMotions.cs\n{Snippet.Declare($"{field} Card", FormMotions.CardCode)}\n\n{Snippet.Declare($"{field} Badge", FormMotions.BadgeCode)}";
+        StatesCode.Text = $"{CardXaml}\n    …\n\n{BadgeXaml}\n    …";
+        BuildersCode.Text = $"// FormMotions.cs\n{FormMotions.Code}";
     }
 
     public FormViewModel ViewModel => (FormViewModel)DataContext!;
