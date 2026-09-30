@@ -74,20 +74,6 @@
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="ClipToBounds" Value="True" />
         </Style>
-        <Style Selector="Border.badge">
-            <Setter Property="MinWidth" Value="22" />
-            <Setter Property="Height" Value="22" />
-            <Setter Property="CornerRadius" Value="11" />
-            <Setter Property="Padding" Value="6,0" />
-            <Setter Property="Background" Value="{x:Static showcase:Palette.Coral}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Border.badge > TextBlock">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Background}" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
 
         <Style Selector="Border.dialog">
             <Setter Property="Width" Value="440" />
@@ -122,7 +108,7 @@
                 <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <StackPanel x:Name="CartShelf" Orientation="Horizontal" Spacing="4" />
                     <TextBlock Classes="caption" Text="Cart" VerticalAlignment="Center" />
-                    <Border x:Name="Badge" Classes="badge"
+                    <Border x:Name="Badge" Classes="badge showcase"
                             presto:Animate.Watch="{Binding CartCount}" presto:Animate.OnChanged="{presto:Pop}">
                         <TextBlock Text="{Binding CartCount}" />
                     </Border>

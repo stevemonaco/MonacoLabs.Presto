@@ -1,6 +1,6 @@
 # Lifecycle animations — one model for initial load, enter and exit
 
-Phase 21 in [PLAN.md](PLAN.md). Status: **built**, with the recommendations in §5 taken. §8 records where implementation refined the proposal; where it and the text above differ, §8 is what shipped. §9 (`Presence.Arrive`, Phase 26) and §10 (`Presence.Reveal`, Phase 27) are **proposed**.
+Phase 21 in [PLAN.md](PLAN.md). Status: **built**, with the recommendations in §5 taken. §8 records where implementation refined the proposal; where it and the text above differ, §8 is what shipped. §9 (`Presence.Arrive`, Phase 26) is **built** as proposed; §10 (`Presence.Reveal`, Phase 27) is **built**, with the §10.2 decisions taken and refined in §8 items 7 and 8; §10.5 stays open.
 
 ## 1. Problem
 
@@ -29,12 +29,13 @@ The mismatch shows up in the Presence sample, which pairs `Animate.OnAttached` w
 ## 2. The model
 
 Every arrival and departure of an element is classified once, by the same rule, into one of four lifecycle moments.
-Three of them have an attached property on `Presence`; the fourth is deliberately not animated.
+Three of them have an attached property on `Presence`, and `Presence.Arrive` is the fallback for both arrivals; the
+fourth is deliberately not animated.
 
 | Moment | When | Property |
 |---|---|---|
-| **Initial** | the element appears as part of a view's initial load: the window's first show, a page navigated in, the items a list is realized with during its first layout, or a cached view shown again | `Presence.Initial` |
-| **Enter** | the element arrives *on its own* into a view that has already loaded: an item added to a collection, content swapped into a `ContentControl`, a child added to a panel | `Presence.Enter` |
+| **Initial** | the element appears as part of a view's initial load: the window's first show, a page navigated in, the items a list is realized with during its first layout, or a cached view shown again | `Presence.Initial` (fallback `Presence.Arrive`) |
+| **Enter** | the element arrives *on its own* into a view that has already loaded: an item added to a collection, content swapped into a `ContentControl`, a child added to a panel | `Presence.Enter` (fallback `Presence.Arrive`) |
 | **Exit** | the element leaves *on its own* while its parent stays: an item removed, content swapped out, a child removed | `Presence.Exit` (exists) |
 | *Unload* | the element leaves *with* its view: a page navigated away, a window closed | none; page transitions belong to the navigation host |
 
@@ -100,11 +101,12 @@ default). Staggers that need the total (`Center`, `Last`, a grid) are an open qu
 - `Presence.InitialProperty`, `Presence.EnterProperty`, `Presence.ExitProperty`: all `AnimationBuilder?` on `Control`,
   with the usual `Get`/`Set` accessors. Initial and Enter play on the element itself at UI-thread priority. They revert
   on detach, after any Exit snapshot, and on value change, as `Animate.OnAttached` does today.
+- `Presence.ArriveProperty`: the fallback for both arrivals. Initial plays `Initial ?? Arrive` and Enter plays
+  `Enter ?? Arrive`, so a set Initial or Enter wins for its own moment.
 - Each is independent: an element with only `Exit` set does nothing on arrival. To animate every arrival alike, set
-  Initial and Enter to the same builder.
-- `Animate.OnAttached` stays unchanged as the **raw trigger**: every attach, no classification. Its docs point to
-  `Presence` for lifecycle work. It remains the right tool for things tied to "while attached" rather than to arrival,
-  such as the toast countdown bar.
+  Arrive.
+- `Animate.OnAttached` is the **"while attached" trigger**: every attach, no classification. Use it for loops and
+  timers tied to being on screen, such as a skeleton shimmer or the toast countdown bar, and `Presence` for entrances.
 - `PrestoAvalonia.AnimateExit` stays the imperative exit. Imperative entrances need nothing new (`control.Animate(...)`).
 - Internal: a `PresenceMoment` enum (Initial, Enter, Exit, Unload) and one `Classify` function used by all three, so
   tests can pin the rule directly.
@@ -205,10 +207,39 @@ animation created at attach writes its from-values before the first frame. Imple
      while it is snapshotted, a recycled row inherits from where it was drawn rather than from the ancestor lending it
      styles.
 
+6. **`Presence.Arrive`** (Phase 26, §9) built as proposed. The tracker plays `Initial ?? Arrive` on an initial load and
+   `Enter ?? Arrive` on an enter, and `HandleChanged` keeps it alive while any of the four properties is set. The
+   sample moved its entrances to `Arrive`: XamlPage, the Recipe gallery's Fade and Pop, the Toasts toast and the
+   Lifecycle view panels. The XamlPage star, Shake, the toast countdown and the storefront shimmer stay on `OnAttached`.
+
+7. **Reveal snaps on jumps and keeps arrival order** (Phase 27, §10.2.4 and 5). The item-change watcher also records the
+   list's `ScrollViewer` offset (the nearest one above the items panel) each time a layout pass ends. A row realized in a
+   pass whose offset has moved more than the viewport on either axis since then is marked seen and not revealed, with
+   `RevealOnce` false too. There is no setting. Covered by `AJumpOfMoreThanAViewportSnapsTheRowsItRealizes`.
+   Batch ordinals keep realization order, which starts next to the rows already on screen and ends
+   at the edge scrolled in from, so a ripple follows the scroll: top-down when scrolling down
+   (`RowsRevealedInOnePassStaggerDownFromTheRowsAlreadyShown`), bottom-up when scrolling up. Sorting from the leading edge
+   instead would mean re-creating the batch's animations once the pass ends, since each writes its from-values at attach
+   with the index it has then, and the ripple would run against the scroll.
+
+8. **The seen memory lives on the item-change watcher** (Phase 27, §10.2.1 and 2). It is a set of items beside
+   `Added` and `Removed`, sharing the one `CollectionChanged` subscription. Every list-row arrival marks its item seen,
+   whether or not a builder played, and this starts with the list's first arrival, before the watcher answers (§8.5), so
+   the rows of a first load count. A removed or replaced item is forgotten, a moved one is kept, and a reset clears the
+   set. A recycled container first attaches its template built for no item, which classifies as `Realize`; a row
+   without a `DataContext` is neither revealed nor remembered, so these placeholders take no ordinal. `Arrive` is not a
+   fallback for `Realize`: it stays "every classified arrival" of §9, and a reveal is opted into only through `Reveal`.
+   Tests read the set through the internal `Presence.Seen(ItemsControl)`. Covered by
+   `TheRowsOfTheFirstLoadAndAnAddedItemCountAsSeen`, `ScrollingBackOverSeenRowsRevealsThemOnlyWithoutRevealOnce`,
+   `AnItemRemovedAndAddedBackIsRevealedAgain`, `AResetForgetsTheSeenRows` and
+   `TheSeenMemoryHoldsNoItemAfterItLeavesTheList`. The sample is the Showcase **Activity feed**
+   ([SAMPLES-PLAN.md](SAMPLES-PLAN.md) §4.11), whose overlay switches Reveal between off, once and every time.
+
 Sample: a new Reference page, **Lifecycle**, beside Presence. It has three views, the third a virtualized `ListBox` of 300 rows that scrolls without a log entry, whose rows carry Initial, Enter and Exit,
 plus buttons to navigate, show a view again, add and remove rows. A log is written by each builder's `OnBegin`, so it
-shows what `Presence` classified rather than what the button meant. The Presence page and the Toasts builder page moved
-from `Animate.OnAttached` to `Presence.Initial`/`Enter`; the toast countdown bar keeps the raw trigger.
+shows what `Presence` classified rather than what the button meant. The Presence page moved from `Animate.OnAttached`
+to `Presence.Initial`/`Enter`.
+
 ## 9. `Presence.Arrive` (Phase 26)
 
 ### 9.1 Problem
@@ -266,7 +297,7 @@ A virtualized list has a third kind of arrival: a row scrolled into view. Presen
 in. `Animate.OnAttached` plays there, but it also plays on the first load and on adds, gets no stagger ordinal and
 replays on every recycle. `ScrollObserver` watches a `ScrollViewer`, not recycled rows.
 
-### 10.2 Decisions (recommended)
+### 10.2 Decisions (taken; see §8 items 7 and 8)
 
 1. **`Presence.Reveal` is an `AnimationBuilder?` that plays on `Realize` only.** It never plays on Initial, Enter or
    Recycle, and it has no effect outside an item container of a list, where there is no `Realize`. A non-virtualized
@@ -310,4 +341,23 @@ replays on every recycle. `ScrollObserver` watches a `ScrollViewer`, not recycle
 
 - **Mirroring by direction.** Should a row revealed while scrolling up start from above? That needs either a direction
   the builder can read (a function value, or a `Presence.RevealFromAbove` companion) or a mirrored copy of the builder.
-  Decide after the Activity feed shows whether it is noticeable.
+  Decide after the Activity feed shows whether it is noticeable. With the feed built: in the default once mode a row is
+  revealed while scrolling up only after a jump passed over it, since a slow scroll up meets rows already seen, so the
+  case is rare; the "Every time" setting makes it constant. Whether the upward rise reads as wrong there is left to a
+  Desktop hand check of the feed, not yet done.
+
+### 10.6 Spike
+
+Headless `ListBox` of 200 rows, 300 high (about 40 per row), measured before `reveal-core` was built on it.
+
+- **Realization order.** Scrolling down realizes rows top-down and scrolling up realizes them bottom-up: each pass starts
+  next to the rows already on screen and ends at the edge scrolled in from. Arrival order is kept (§8.7).
+- **First frame.** An animation created at realization writes its from-values before the first frame, as Initial does.
+  `RowsRevealedInOnePassStaggerDownFromTheRowsAlreadyShown` asserts the last row of a pass, still in its delay, is at 0.
+
+- **Offset per pass.** A wheel notch moves 50 in one pass (a sixth of this viewport). Setting `Offset` to 3000 lands in
+  one pass, and it realizes and recycles rows in between as the panel re-estimates. Each pointer move on the scrollbar
+  thumb is one pass, at about 31 of offset per pixel dragged (5 px moved 150 to 170), so a drag faster than about 10 px
+  per frame covers more than a viewport. A touchpad fling cannot be driven headless and is left for the Desktop head.
+  One viewport therefore separates a wheel notch and a slow drag from jumps and fast drags, and a fast drag snapping
+  is what §10.2.4 intends.

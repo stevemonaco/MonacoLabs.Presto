@@ -12,6 +12,10 @@ public static class Animate
     /// Plays the builder on the visual each time it attaches to the visual tree and reverts it on detach; changing the
     /// value reverts the previous animation and plays the new one, and <see langword="null"/> stops listening.
     /// </summary>
+    /// <remarks>
+    /// Every attach includes a virtualizing panel's recycling, which suits loops and timers tied to being on screen, such as
+    /// a skeleton shimmer or a countdown. Entrances belong on <see cref="Presence"/>, which classifies each arrival.
+    /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> OnAttachedProperty =
         AvaloniaProperty.RegisterAttached<Visual, AnimationBuilder?>("OnAttached", typeof(Animate));
 

@@ -135,9 +135,7 @@ public partial class LifecyclePage : UserControl
             Background = SolidColorBrush.Parse(color),
             Child = new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Bottom },
         };
-        var arrive = Recipes.FadeUp(distance: 16, duration: 360, ease: Eases.OutQuart);
-        Presence.SetInitial(panel, arrive);
-        Presence.SetEnter(panel, arrive);
+        Presence.SetArrive(panel, Recipes.FadeUp(distance: 16, duration: 360, ease: Eases.OutQuart));
         Presence.SetExit(panel, Recipes.FadeOutUp(distance: 16, duration: 360, ease: Eases.InQuad));
         return panel;
     }

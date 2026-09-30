@@ -98,7 +98,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Classes="code" Text="swapper.Content = next;   // both views carry Presence.Enter and Presence.Exit" />
+            <TextBlock Classes="code" Text="swapper.Content = next;   // both views carry Presence.Arrive and Presence.Exit" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="A ContentControl swapping its content: the old view's exit plays on its ghost while the new view enters in the same slot, so the two crossfade. A whole page navigated away is not ghosted: an element leaves on its own only when everything between it and what was removed wraps nothing else." />

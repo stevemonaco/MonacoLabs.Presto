@@ -20,8 +20,8 @@ public partial class RecipeGalleryPage : ShowcasePage
 {
     public const string ShowcaseXaml = """
         <WrapPanel ItemSpacing="24" LineSpacing="16">
-            <Border Classes="swatch" presto:Animate.OnAttached="{presto:Fade Direction=Up}" />
-            <Border Classes="swatch" presto:Animate.OnAttached="{presto:Pop}" />
+            <Border Classes="swatch" presto:Presence.Arrive="{presto:Fade Direction=Up}" />
+            <Border Classes="swatch" presto:Presence.Arrive="{presto:Pop}" />
             <Border Classes="swatch" presto:Animate.OnAttached="{presto:Shake Intensity=1.5}" />
             <Button Classes="specimen" Content="Hover me" presto:Motion.Hover="{presto:Lift}" />
             <Border Classes="specimen" presto:Tilt.Enabled="True">

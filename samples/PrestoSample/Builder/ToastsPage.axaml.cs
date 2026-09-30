@@ -20,7 +20,7 @@ public partial class ToastsPage : ShowcasePage
 
     public const string TemplateXaml = """
         <DataTemplate x:DataType="local:Toast">
-            <Border Classes="toast" presto:Presence.Initial="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}" presto:Presence.Enter="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}">
+            <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}">
                 <Grid ColumnDefinitions="16,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
                     <Border Grid.Column="1" Grid.RowSpan="2" Classes="accent" Background="{Binding Accent}" />
                     <TextBlock Grid.Column="2" Classes="title" Text="{Binding Title}" />

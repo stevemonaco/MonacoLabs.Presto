@@ -7,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using Avalonia.Controls.Documents;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -168,11 +169,13 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
         Assert.DoesNotContain(OverlayLayer.GetOverlayLayer(panel)!.Children, child => child is Canvas);
     }
 
-    [AvaloniaFact]
-    public void ScrollingAVirtualizedListPlaysNothingAndLeavesNoGhosts()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ScrollingAVirtualizedListPlaysNothingAndLeavesNoGhosts(bool viaArrive)
     {
         var rows = new Dictionary<string, Border>();
-        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows);
+        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows, viaArrive);
         var panel = Show(list);
         Frames.Advance(300, 16);
         Tick();
@@ -283,13 +286,220 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
         Assert.Equal(3, OverlayLayer.GetOverlayLayer(panel)!.Children.OfType<Canvas>().Count());
     }
 
-    private static ListBox VirtualizedList(ObservableCollection<string> items, Dictionary<string, Border> rows) => new()
+    [AvaloniaFact]
+    public void RevealAlonePlaysNothingOnFirstLoadOrOnAnAddedItem()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var rows = new Dictionary<string, Border>();
+        Show(VirtualizedList(items, rows, reveal: FadeIn));
+
+        items.Insert(1, "added");
+        Tick();
+
+        Assert.All(Realized(rows), row => Assert.Equal(1, row.Opacity));
+        Assert.Equal(1, rows["added"].Opacity);
+    }
+
+    [AvaloniaFact]
+    public void RowsRevealedInOnePassStaggerDownFromTheRowsAlreadyShown()
+    {
+        var staggered = Presto.Build().Opacity(from: 0, to: 1).Duration(100).Delay(Presto.Stagger(80)).Ease("linear");
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows, reveal: staggered);
+        Show(list);
+        var loaded = Realized(rows);
+
+        list.Scroll!.Offset = new Vector(0, 90);
+        Tick();
+        Frames.Advance(40, 16);
+
+        var revealed = Realized(rows).Except(loaded).OrderBy(row => int.Parse(((string)row.DataContext!)[3..])).ToList();
+        Assert.True(revealed.Count >= 2);
+        Assert.InRange(revealed[0].Opacity, .1, .9);
+        Assert.Equal(0, revealed[^1].Opacity);
+    }
+
+    [AvaloniaFact]
+    public void RecyclingOrDetachingARowRevertsItsRunningReveal()
+    {
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows, reveal: FadeIn);
+        var panel = Show(list);
+        list.Scroll!.Offset = new Vector(0, 80);
+        Tick();
+        Frames.Advance(50, 16);
+        var recycled = Realized(rows);
+        list.Scroll!.Offset = new Vector(0, 160);
+        Tick();
+        Frames.Advance(50, 16);
+        var detached = Realized(rows).Except(recycled).ToList();
+
+        panel.Children.Remove(list);
+
+        Assert.All(recycled, row => Assert.False(row.IsAttachedToVisualTree()));
+        Assert.All(recycled, row => Assert.Equal(1, row.Opacity));
+        Assert.NotEmpty(detached);
+        Assert.All(detached, row => Assert.Equal(1, row.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void ClearingRevealMidRevealReverts()
+    {
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows, reveal: FadeIn);
+        Show(list);
+        list.Scroll!.Offset = new Vector(0, 80);
+        Tick();
+        Frames.Advance(50, 16);
+        var row = Realized(rows)[^1];
+        Assert.InRange(row.Opacity, .1, .9);
+
+        Presence.SetReveal(row, null);
+
+        Assert.Equal(1, row.Opacity);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ScrollingBackOverSeenRowsRevealsThemOnlyWithoutRevealOnce(bool revealOnce)
+    {
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows, reveal: FadeIn, revealOnce: revealOnce);
+        Show(list);
+        ScrollTo(list, rows, 600);
+        ScrollTo(list, rows, 1200);
+        Frames.Advance(300, 16);
+
+        var returned = ScrollTo(list, rows, 600);
+
+        Assert.NotEmpty(returned);
+        Assert.All(returned, row => Assert.Equal(revealOnce ? 1 : 0, row.Opacity));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AJumpOfMoreThanAViewportSnapsTheRowsItRealizes(bool revealOnce)
+    {
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows, reveal: FadeIn, revealOnce: revealOnce);
+        Show(list);
+
+        list.Scroll!.Offset = new Vector(0, 600);
+        Tick();
+        var landed = Realized(rows).Select(row => row.DataContext).ToList();
+        Assert.All(Realized(rows), row => Assert.Equal(1, row.Opacity));
+        list.Scroll.Offset = default;
+        Tick();
+        var returned = ScrollTo(list, rows, 600);
+
+        Assert.NotEmpty(returned);
+        Assert.All(returned, row => Assert.Contains(row.DataContext, landed));
+        Assert.All(returned, row => Assert.Equal(revealOnce ? 1 : 0, row.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void TheRowsOfTheFirstLoadAndAnAddedItemCountAsSeen()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(items, rows, reveal: FadeIn);
+        Show(list);
+        items.Insert(1, "added");
+        Tick();
+        ScrollTo(list, rows, 600);
+        Frames.Advance(300, 16);
+
+        ScrollTo(list, rows, 0);
+
+        Assert.Contains(Realized(rows), row => (string)row.DataContext! == "added");
+        Assert.All(Realized(rows), row => Assert.Equal(1, row.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void AnItemRemovedAndAddedBackIsRevealedAgain()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(items, rows, reveal: FadeIn);
+        Show(list);
+        ScrollTo(list, rows, 600);
+        Frames.Advance(300, 16);
+
+        items.Remove("row1");
+        items.Insert(1, "row1");
+        Tick();
+        ScrollTo(list, rows, 0);
+
+        Assert.All(Realized(rows), row => Assert.Equal((string)row.DataContext! == "row1" ? 0 : 1, row.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void AResetForgetsTheSeenRows()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(items, rows, reveal: FadeIn);
+        Show(list);
+        ScrollTo(list, rows, 600);
+        ScrollTo(list, rows, 0);
+        Frames.Advance(300, 16);
+
+        items.Clear();
+        foreach (var i in Enumerable.Range(0, 50)) items.Add($"row{i}");
+        Tick();
+        var revealed = ScrollTo(list, rows, 600);
+
+        Assert.NotEmpty(revealed);
+        Assert.All(revealed, row => Assert.Equal(0, row.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void TheSeenMemoryHoldsNoItemAfterItLeavesTheList()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(items, rows, reveal: FadeIn);
+        Show(list);
+        ScrollTo(list, rows, 300);
+        Assert.NotEmpty(Presence.Seen(list));
+
+        items.RemoveAt(0);
+        items[15] = "replacement";
+        items.Move(1, 40);
+        Tick();
+        Assert.All(Presence.Seen(list), item => Assert.Contains((string)item, items));
+
+        while (items.Count > 0) items.RemoveAt(items.Count - 1);
+        Tick();
+        Assert.Empty(Presence.Seen(list));
+    }
+
+    private static List<Border> ScrollTo(ListBox list, Dictionary<string, Border> rows, double offset)
+    {
+        var shown = Realized(rows);
+        for (var y = list.Scroll!.Offset.Y; y != offset; )
+        {
+            y = y < offset ? Math.Min(y + 80, offset) : Math.Max(y - 80, offset);
+            shown = Realized(rows);
+            list.Scroll.Offset = new Vector(0, y);
+            Tick();
+        }
+        return Realized(rows).Except(shown).ToList();
+    }
+
+    private static List<Border> Realized(Dictionary<string, Border> rows) =>
+        rows.Values.Where(row => row.IsAttachedToVisualTree() && row.DataContext is string).ToList();
+
+    private static ListBox VirtualizedList(ObservableCollection<string> items, Dictionary<string, Border> rows, bool viaArrive = false, AnimationBuilder? reveal = null, bool revealOnce = true) => new()
     {
         Height = 100,
         ItemsSource = items,
         ItemTemplate = new FuncDataTemplate<string>((item, _) =>
         {
-            var row = Arriving(initial: FadeIn, enter: FadeIn, exit: FadeOut);
+            var row = reveal is not null ? Arriving(reveal: reveal) : viaArrive ? Arriving(arrive: FadeIn, exit: FadeOut) : Arriving(initial: FadeIn, enter: FadeIn, exit: FadeOut);
+            Presence.SetRevealOnce(row, revealOnce);
             row.Background = Brushes.Red;
             if (item is not null) rows[item] = row;
             return row;
@@ -436,6 +646,25 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
         Assert.Equal(1, row.Opacity);
     }
 
+    [AvaloniaFact]
+    public void ASetInitialOrEnterWinsOverArriveForItsOwnMoment()
+    {
+        var fadeHalf = Presto.Build().Opacity(from: .5, to: 1).Duration(200).Ease("linear");
+        var initialOnLoad = Arriving(initial: fadeHalf, arrive: FadeIn);
+        var enterOnLoad = Arriving(enter: fadeHalf, arrive: FadeIn);
+        var panel = Show(initialOnLoad, enterOnLoad);
+        var initialEntering = Arriving(initial: fadeHalf, arrive: FadeIn);
+        var enterEntering = Arriving(enter: fadeHalf, arrive: FadeIn);
+
+        panel.Children.Add(initialEntering);
+        panel.Children.Add(enterEntering);
+
+        Assert.Equal(.5, initialOnLoad.Opacity);
+        Assert.Equal(0, enterOnLoad.Opacity);
+        Assert.Equal(0, initialEntering.Opacity);
+        Assert.Equal(.5, enterEntering.Opacity);
+    }
+
     private static (Control Control, List<PresenceMoment> Moments) Recorded(Control control)
     {
         var moments = new List<PresenceMoment>();
@@ -443,11 +672,13 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
         return (control, moments);
     }
 
-    private static Border Arriving(AnimationBuilder? initial = null, AnimationBuilder? enter = null, AnimationBuilder? exit = null)
+    private static Border Arriving(AnimationBuilder? initial = null, AnimationBuilder? enter = null, AnimationBuilder? exit = null, AnimationBuilder? arrive = null, AnimationBuilder? reveal = null)
     {
         var element = new Border { Width = 40, Height = 20, HorizontalAlignment = HorizontalAlignment.Left };
         Presence.SetInitial(element, initial);
         Presence.SetEnter(element, enter);
+        Presence.SetArrive(element, arrive);
+        Presence.SetReveal(element, reveal);
         Presence.SetExit(element, exit);
         return element;
     }

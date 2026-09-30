@@ -165,19 +165,21 @@ var spin = icon.AnimateOnCompositor(Presto.Build().Rotate(360).Duration(1200).Ea
 
 #### From XAML
 
-`presto:Animate.OnAttached` (`xmlns:presto="using:Monaco.Presto.AvaloniaBridge"`) takes a builder three ways:
+The attached properties (`xmlns:presto="using:Monaco.Presto.AvaloniaBridge"`) take a builder three ways:
 
 ```xml
-<Border presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}" />
-<TextBlock presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=100}" />
+<Border presto:Presence.Arrive="{x:Static local:Motions.FadeUp}" />
+<TextBlock presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=100}" />
 <PathIcon presto:Animate.OnAttached="{Binding Emphasis}" />
 ```
 
 Use `x:Static` for a fixed recipe shared as-is, a markup extension when the markup parameterises it per element, and a
-binding when the view model decides which animation runs. The builder plays each time the visual attaches to the visual
-tree and is reverted on detach; a new value reverts the old animation and plays the new one, `null` reverts and stops
-listening, and nothing runs in design mode. `Presence.Initial`, `Presence.Enter` and `Presence.Exit` take builders the
-same ways, and play only for their own moment of an element's lifecycle ([Lifecycle animations](#lifecycle-animations)).
+binding when the view model decides which animation runs. `Presence.Arrive`, `Initial`, `Enter`, `Reveal` and `Exit` play only
+for their own moment of an element's lifecycle ([Lifecycle animations](#lifecycle-animations)), so entrances belong
+there. `Animate.OnAttached` plays each time the visual attaches to the visual tree, including a virtualizing list's
+recycling, and is reverted on detach, so it is the trigger for loops and timers tied to being on screen, such as a
+skeleton shimmer or a countdown; a new value reverts the old animation and plays the new one, and `null` reverts and
+stops listening. Nothing runs in design mode on either.
 
 ## Avalonia setup
 
@@ -612,13 +614,17 @@ settable.
 |---|---|---|
 | **Initial** | the element appears with its view: the window's first show, a page navigated in, the rows a list starts with, a view shown again | `Presence.Initial` |
 | **Enter** | it arrives on its own into a view that has loaded: an item added, content swapped in, a child added to a panel | `Presence.Enter` |
+| **Reveal** | a virtualizing list realizes its row for an item it already had, such as a row scrolled into view | `Presence.Reveal` |
 | **Exit** | it leaves on its own while its loaded parent stays: an item removed, content swapped out | `Presence.Exit` |
 | *Unload* | it leaves with its view, such as a page navigated away | nothing plays |
+
+`Presence.Arrive` plays on every classified arrival, Initial and Enter alike, and a set `Initial` or `Enter` wins for its
+own moment. So "rise on page load, slide when added" is `Arrive` plus one override:
 
 ```xml
 <DataTemplate x:DataType="local:Task">
     <Border Classes="task"
-            presto:Presence.Initial="{x:Static local:Motions.RiseIn}"
+            presto:Presence.Arrive="{x:Static local:Motions.RiseIn}"
             presto:Presence.Enter="{x:Static local:Motions.SlideIn}"
             presto:Presence.Exit="{x:Static local:Motions.SlideOut}">…</Border>
 </DataTemplate>
@@ -635,6 +641,23 @@ Elements arriving in one pass under one panel form a batch, and each one's posit
 values and staggers see, so `RiseIn = Presto.Build()….Delay(Presto.Stagger(60))` ripples a list in with no code.
 Staggers run in arrival order, since the batch size is not known while it is still arriving.
 
+`Presence.Reveal` plays when a virtualizing list realizes a row for an item it already had, which is a row scrolled into
+view. It never plays on Initial, Enter or a recycle, `Arrive` does not cover it, and outside a list's item container it
+does nothing. A list that does not virtualize realizes nothing on scroll, so scroll reveals there use
+[`OnScroll`](#onscroll). By default a row reveals once per item (`Presence.RevealOnce`, default `true`): the list
+remembers every item whose row has been shown, whether by Initial, Enter or Reveal, so scrolling back up plays nothing.
+It forgets an item that leaves `Items`, and a reset clears the memory; with `RevealOnce` false every realization reveals.
+Rows realized in one layout pass form a batch like any other, so a stagger ripples them in the scroll direction. A jump or
+fling that moves the list more than one viewport in a pass snaps instead: its rows are marked seen and land at rest.
+
+```xml
+<DataTemplate x:DataType="local:Event">
+    <Border Classes="event"
+            presto:Presence.Initial="{presto:Fade Direction=Up, Stagger=60}"
+            presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=12, Stagger=30}">…</Border>
+</DataTemplate>
+```
+
 A removed control is gone in the same frame, since an items container may be recycled at once and a panel child
 re-added. So an exit plays on a *ghost*: a snapshot of the element, drawn in the window's overlay where the element was
 and clipped as it was. The ghost is an `Image`, so an exit animates the transform shorthands, the [effect](#effects) shorthands and `Opacity`. It keeps the
@@ -643,8 +666,7 @@ element holds still. The snapshot is taken before the element's own entrance is 
 leaves from where it was drawn. An element added back while its ghost is still exiting dismisses the ghost. Code that
 removes a control itself can call `PrestoAvalonia.AnimateExit(control, builder)` first, in the same frame.
 
-`Animate.OnAttached` stays the raw trigger: it plays on every attach, unclassified, which suits things tied to "while
-attached", such as a countdown bar.
+`Animate.OnAttached` is the unclassified "while attached" trigger for loops and timers; see [From XAML](#from-xaml).
 
 ### State motion
 
@@ -954,7 +976,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
 | `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
-| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Initial` or `Presence.Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
+| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Arrive`, `Initial` or `Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
@@ -968,7 +990,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *CSS, not anime.js:* a `mask-image` linear-gradient sweep | `MaskSweep` with `MaskSweepAngle` and `MaskSweepFeather` |
 | *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, the app reads the OS setting and sets the flag. See [Reduced motion](#reduced-motion) |
 
-The XAML surface is `Animate.OnAttached`, which plays a builder whenever a visual attaches ([From XAML](#from-xaml)), the `Presence` lifecycle properties ([Lifecycle animations](#lifecycle-animations)), `Connected`'s keys,
+The XAML surface is the `Presence` lifecycle properties for entrances, scroll reveals and exits ([Lifecycle animations](#lifecycle-animations)), `Animate.OnAttached` for loops and timers while a visual is attached ([From XAML](#from-xaml)), `Connected`'s keys,
 the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)), and the recipe markup extensions and `Tilt` ([Recipes](#recipes)); other triggers belong in code-behind or a view model.
 
 ### Parameter names

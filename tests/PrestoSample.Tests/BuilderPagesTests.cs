@@ -137,7 +137,7 @@ public sealed class BuilderPagesTests
     }
 
     private static List<Visual> AttachedElements(Visual page) =>
-        [.. page.GetVisualDescendants().Where(visual => Animate.GetOnAttached(visual) is not null)];
+        [.. page.GetVisualDescendants().Where(visual => visual is Control control && (Presence.GetArrive(control) ?? Animate.GetOnAttached(control)) is not null)];
 
     private static string Normalise(string text) => Regex.Replace(text, @"\s+", " ").Trim();
 

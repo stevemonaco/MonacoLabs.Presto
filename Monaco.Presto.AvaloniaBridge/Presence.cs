@@ -15,9 +15,9 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// Lifecycle animations: what plays when an element appears with its view (<see cref="InitialProperty"/>), arrives on its
-/// own into a view that has loaded (<see cref="EnterProperty"/>), or leaves on its own (<see cref="ExitProperty"/>). An
-/// element that leaves with its whole view, such as a page navigated away, plays nothing. Every arrival and departure is
-/// classified once, by one rule, so the three never disagree about what happened.
+/// own into a view that has loaded (<see cref="EnterProperty"/>), either of those (<see cref="ArriveProperty"/>), is
+/// scrolled into view in a virtualizing list (<see cref="RevealProperty"/>), or leaves on its own
+/// (<see cref="ExitProperty"/>). An element that leaves with its whole view, such as a page navigated away, plays nothing. Every arrival and departure is classified once, by one rule, so they never disagree about what happened.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -31,7 +31,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <para>
 /// Elements that arrive in one pass under the same panel form a batch, and each one's position in it is the index its
 /// animation resolves function values and <see cref="Presto.Stagger"/> with, so <c>Delay(Presto.Stagger(40))</c> ripples
-/// a list in. The total is not known while a batch is still arriving, so staggers run in arrival order.
+/// a list in, and rows a scroll reveals together ripple the same way. The total is not known while a batch is still
+/// arriving, so staggers run in arrival order.
 /// </para>
 /// <para>
 /// <see cref="Animate.OnAttachedProperty"/> is the raw trigger beside these: it plays on every attach, unclassified.
@@ -64,6 +65,32 @@ public static class Presence
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Enter", typeof(Presence));
 
     /// <summary>
+    /// Plays the builder on the element on every classified arrival, initial load and enter alike. A set
+    /// <see cref="InitialProperty"/> or <see cref="EnterProperty"/> wins for its own moment.
+    /// </summary>
+    public static readonly AttachedProperty<AnimationBuilder?> ArriveProperty =
+        AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Arrive", typeof(Presence));
+
+    /// <summary>
+    /// Plays the builder on the element when a virtualizing list realizes it for an item the list already had, such as a
+    /// row scrolled into view. It never plays on an initial load, an enter or a recycle.
+    /// </summary>
+    /// <remarks>
+    /// It does nothing outside an item container of a list. A list that does not virtualize never realizes rows on scroll,
+    /// so scroll reveals there belong to <see cref="Events.ScrollObserver"/>. The animation reverts when the row is
+    /// recycled or detaches.
+    /// </remarks>
+    public static readonly AttachedProperty<AnimationBuilder?> RevealProperty =
+        AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Reveal", typeof(Presence));
+
+    /// <summary>
+    /// Whether <see cref="RevealProperty"/> plays only the first time the element's item is shown, so rows scrolled back
+    /// over stay still. Defaults to true.
+    /// </summary>
+    public static readonly AttachedProperty<bool> RevealOnceProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("RevealOnce", typeof(Presence), defaultValue: true);
+
+    /// <summary>
     /// Plays the builder on a ghost of the element each time it leaves the visual tree on its own: its parent stays attached
     /// and has loaded, and every visual between it and the root of what was removed wraps only it. That is an item removed
     /// from a list, a panel child removed or a content swap, and not a whole page navigated away, which takes more than the
@@ -86,6 +113,8 @@ public static class Presence
     {
         InitialProperty.Changed.AddClassHandler<Control>(HandleChanged);
         EnterProperty.Changed.AddClassHandler<Control>(HandleChanged);
+        ArriveProperty.Changed.AddClassHandler<Control>(HandleChanged);
+        RevealProperty.Changed.AddClassHandler<Control>(HandleChanged);
         ExitProperty.Changed.AddClassHandler<Control>(HandleChanged);
     }
 
@@ -100,6 +129,24 @@ public static class Presence
 
     /// <summary>Sets the builder played on <paramref name="control"/> when it arrives on its own.</summary>
     public static void SetEnter(Control control, AnimationBuilder? value) => control.SetValue(EnterProperty, value);
+
+    /// <summary>Gets the builder played on <paramref name="control"/> when it appears with its view or arrives on its own.</summary>
+    public static AnimationBuilder? GetArrive(Control control) => control.GetValue(ArriveProperty);
+
+    /// <summary>Sets the builder played on <paramref name="control"/> when it appears with its view or arrives on its own.</summary>
+    public static void SetArrive(Control control, AnimationBuilder? value) => control.SetValue(ArriveProperty, value);
+
+    /// <summary>Gets the builder played on <paramref name="control"/> when a list realizes it scrolled into view.</summary>
+    public static AnimationBuilder? GetReveal(Control control) => control.GetValue(RevealProperty);
+
+    /// <summary>Sets the builder played on <paramref name="control"/> when a list realizes it scrolled into view.</summary>
+    public static void SetReveal(Control control, AnimationBuilder? value) => control.SetValue(RevealProperty, value);
+
+    /// <summary>Gets whether <paramref name="control"/> reveals only the first time its item is shown.</summary>
+    public static bool GetRevealOnce(Control control) => control.GetValue(RevealOnceProperty);
+
+    /// <summary>Sets whether <paramref name="control"/> reveals only the first time its item is shown.</summary>
+    public static void SetRevealOnce(Control control, bool value) => control.SetValue(RevealOnceProperty, value);
 
     /// <summary>Gets the builder played on a ghost of <paramref name="control"/> when it leaves.</summary>
     public static AnimationBuilder? GetExit(Control control) => control.GetValue(ExitProperty);
@@ -177,11 +224,14 @@ public static class Presence
 
     private static bool IsItemContainer(Control control) => control.GetVisualParent() is Panel { IsItemsHost: true };
 
+    /// <summary>The items of <paramref name="list"/> whose rows have been shown, which <see cref="RevealOnceProperty"/> does not reveal again.</summary>
+    internal static IReadOnlySet<object> Seen(ItemsControl list) => ItemChanges.For(list).Seen;
+
     private static void HandleChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
         if (Design.IsDesignMode) return;
         var tracker = control.GetValue(TrackerProperty);
-        if (GetInitial(control) is null && GetEnter(control) is null && GetExit(control) is null)
+        if (GetInitial(control) is null && GetEnter(control) is null && GetArrive(control) is null && GetReveal(control) is null && GetExit(control) is null)
         {
             tracker?.Release();
             control.ClearValue(TrackerProperty);
@@ -232,6 +282,8 @@ public static class Presence
     /// The items a list has just added and removed, and whether it has just reset, kept until the layout pass that realizes
     /// them has finished. A list is watched from the first lifecycle arrival in it; until that pass ends it cannot yet tell
     /// an added item from a realized one, so <see cref="Of"/> answers null and the arrival is classified by the general rule.
+    /// It also remembers the items whose rows have been shown, for <see cref="RevealOnceProperty"/>, until they leave the list,
+    /// and where the list was scrolled when the last layout pass ended.
     /// </summary>
     private sealed class ItemChanges
     {
@@ -240,11 +292,13 @@ public static class Presence
         private readonly ItemsControl _owner;
         private bool _watching;
         private bool _clearing;
+        private Vector _offset;
 
         private ItemChanges(ItemsControl owner)
         {
             _owner = owner;
             owner.Items.CollectionChanged += OnCollectionChanged;
+            owner.LayoutUpdated += (_, _) => _offset = Scroller?.Offset ?? default;
             Clear();
         }
 
@@ -252,19 +306,34 @@ public static class Presence
 
         public HashSet<object> Removed { get; } = [];
 
+        public HashSet<object> Seen { get; } = [];
+
         public bool Reset { get; private set; }
 
-        public static ItemChanges? Of(ItemsControl owner)
-        {
-            var changes = s_lists.GetValue(owner, static list => new ItemChanges(list));
-            return changes._watching ? changes : null;
-        }
+        public bool Jumped => Scroller is { } scroll &&
+            (Math.Abs(scroll.Offset.X - _offset.X) > scroll.Viewport.Width || Math.Abs(scroll.Offset.Y - _offset.Y) > scroll.Viewport.Height);
+
+        private ScrollViewer? Scroller => _owner.ItemsPanelRoot?.FindAncestorOfType<ScrollViewer>();
+
+        public static ItemChanges For(ItemsControl owner) => s_lists.GetValue(owner, static list => new ItemChanges(list));
+
+        public static ItemChanges? Of(ItemsControl owner) => For(owner) is { _watching: true } changes ? changes : null;
 
         private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.Action == NotifyCollectionChangedAction.Reset) Reset = true;
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                Reset = true;
+                Seen.Clear();
+            }
             if (e.NewItems is { } added) foreach (var item in added) if (item is not null) Added.Add(item);
-            if (e.OldItems is { } removed) foreach (var item in removed) if (item is not null) Removed.Add(item);
+            if (e.OldItems is { } removed)
+                foreach (var item in removed)
+                    if (item is not null)
+                    {
+                        Removed.Add(item);
+                        if (e.Action != NotifyCollectionChangedAction.Move) Seen.Remove(item);
+                    }
             Clear();
         }
 
@@ -341,10 +410,14 @@ public static class Presence
             _arrival?.Revert();
             _arrival = null;
 
+            var changes = _control.DataContext is not null && OwnerOfItem(_control.GetVisualParent()) is { } owner ? ItemChanges.For(owner) : null;
+            var firstShown = changes?.Seen.Add(_control.DataContext!) == true;
             var builder = ClassifyArrival(_control) switch
             {
-                PresenceMoment.Initial => GetInitial(_control),
-                PresenceMoment.Enter => GetEnter(_control),
+                PresenceMoment.Initial => GetInitial(_control) ?? GetArrive(_control),
+                PresenceMoment.Enter => GetEnter(_control) ?? GetArrive(_control),
+                // A container being recycled first hosts its template built for no item, which is not a row to reveal.
+                PresenceMoment.Realize when changes is { Jumped: false } && (firstShown || !GetRevealOnce(_control)) => GetReveal(_control),
                 _ => null,
             };
             if (builder is not null) _arrival = Arrive(_control, builder);

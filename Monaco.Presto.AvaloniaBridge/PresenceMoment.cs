@@ -15,7 +15,7 @@ internal enum PresenceMoment
     /// <summary>Left with its view; nothing plays.</summary>
     Unload,
 
-    /// <summary>Realized by a list for an item it already had, such as one scrolled into view; nothing plays.</summary>
+    /// <summary>Realized by a list for an item it already had, such as one scrolled into view; plays Reveal.</summary>
     Realize,
 
     /// <summary>Taken out of a list's container for an item the list still has, such as one scrolled out of view; nothing plays.</summary>
