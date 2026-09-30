@@ -199,10 +199,11 @@
                 </ScrollViewer>
             </Border>
 
-            <TextBlock Classes="caption" Text="A row removed with a blur-out Presence.Exit, played on the row's ghost" />
+            <TextBlock Classes="caption" Text="A row removed with a blur-out Presence.Exit, played on the row's ghost while Animate.ItemLayout closes the gap" />
             <Border Classes="stage" MinHeight="0">
                 <Grid ColumnDefinitions="*,Auto">
-                    <ItemsControl x:Name="Rows" Width="300" HorizontalAlignment="Left" ClipToBounds="False">
+                    <ItemsControl x:Name="Rows" Width="300" HorizontalAlignment="Left" ClipToBounds="False"
+                                  presto:Animate.ItemLayout="{presto:Reflow 320, Ease=outQuint}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="x:String">
                                 <Border Classes="row" presto:Presence.Exit="{x:Static local:EffectsPage.BlurOut}">

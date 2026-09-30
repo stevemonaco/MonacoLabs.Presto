@@ -168,6 +168,16 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     /// <inheritdoc cref="Timer.GetAwaiter"/>
     public TaskAwaiter<CompositorAnimation> GetAwaiter() => Then().GetAwaiter();
 
+    /// <summary>Where the playback mirror of <paramref name="visual"/> stands, or null when the animation does not drive it.</summary>
+    internal CompositorScratch? ScratchOf(Visual visual)
+    {
+        foreach (var target in _targets)
+        {
+            if (ReferenceEquals(target.Visual, visual)) return target.Mirror._headTween?.Target as CompositorScratch;
+        }
+        return null;
+    }
+
     /// <summary>
     /// Upstream's <c>removeWAAPIAnimation</c>. Losing the last track leaves nothing to drive, so the animation cancels, as
     /// upstream's <c>_completed</c> counter reaching <c>animations.length</c> does; being replaced is a cancellation rather
@@ -228,6 +238,8 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         private int _running;
 
         public Animation Mirror => mirror;
+
+        public Visual Visual => visual;
 
         /// <summary>Whether any of this target's tracks is still on its composition visual.</summary>
         public bool Running => _running != 0;

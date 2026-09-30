@@ -16,6 +16,9 @@ public sealed class Animatable : IRevertible
     private readonly Dictionary<string, Animation> _animations = [];
     // The properties that keep their momentum, each with the spring it was declared with, if any.
     private readonly Dictionary<string, Spring?> _momentum = [];
+    // The eases and duration a flung property returns to on its next Set.
+    private readonly Dictionary<string, (List<Ease> Eases, double Duration)> _flung = [];
+    private static readonly Inertia DefaultInertia = new(0);
     private readonly Animation _callbacks;
 
     internal Animatable(object? targets, AnimatableParams parameters)
@@ -87,18 +90,60 @@ public sealed class Animatable : IRevertible
     {
         var key = Key(property);
         if (!_animations.TryGetValue(key, out var animation)) return this;
+        _flung.Remove(key, out var flung);
         if (_momentum.TryGetValue(key, out var declared) && (ease is { } given ? given.Raw as Spring : declared) is { } spring)
         {
-            return CarryMomentum(animation, spring, declared, to, duration);
+            return CarryMomentum(animation, spring, to, duration);
         }
+        var index = 0;
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             tween._fromNumber = tween._modifier(tween._number);
             tween._toNumber = to;
             if (ease is { } easeValue) tween._ease = easeValue.Resolve(tween.Target, 0, 1, out _);
+            else if (flung.Eases is { } eases) tween._ease = eases[index++];
             tween._currentTime = 0;
         }
-        return Replay(animation, duration);
+        return Replay(animation, duration ?? (flung.Eases != null ? flung.Duration : null));
+    }
+
+    /// <summary>Coasts the property from where it is now at <paramref name="velocity"/> units per engine-time unit, decaying as <paramref name="settings"/> describes.</summary>
+    /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(string, double, double?, EaseValue?)"/>.</remarks>
+    public Animatable Fling(string property, double velocity, Inertia? settings = null) => Coast(property, velocity, settings);
+
+    /// <summary>Coasts the property from its current velocity, or from rest when it is not moving, decaying as <paramref name="settings"/> describes.</summary>
+    /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(string, double, double?, EaseValue?)"/>.</remarks>
+    public Animatable Fling(string property, Inertia? settings = null) => Coast(property, null, settings);
+
+    private Animatable Coast(string property, double? velocity, Inertia? settings)
+    {
+        var key = Key(property);
+        if (!_animations.TryGetValue(key, out var animation)) return this;
+        settings ??= DefaultInertia;
+        var eases = _flung.ContainsKey(key) ? null : new List<Ease>();
+        var span = 0d;
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            var from = tween._modifier(tween._number);
+            var plan = InertiaSolver.Resolve(from, velocity ?? (animation.Paused ? 0 : Velocity(tween)), settings);
+            var (ease, length) = (plan.Ease, plan.Duration);
+            // Released on a bound moving outward: out to the peak and back, as one tween from the bound to the peak.
+            if (plan.Then is { } back)
+            {
+                var (outward, split) = (plan.Ease, plan.Duration / (plan.Duration + back.Duration));
+                ease = u => u < split ? outward(u / split) : 1 - back.Ease((u - split) / (1 - split));
+                length += back.Duration;
+            }
+            eases?.Add(tween._ease);
+            span = Math.Max(span, length);
+            // Captures span itself, so every tween samples over the longest plan once the loop has seen them all.
+            tween._ease = u => ease(Math.Min(1, u * span / length));
+            tween._fromNumber = from;
+            tween._toNumber = plan.To;
+            tween._currentTime = 0;
+        }
+        if (eases != null) _flung.Add(key, (eases, animation.Duration));
+        return Replay(animation, span);
     }
 
     /// <inheritdoc cref="Set(string, double, double?, EaseValue?)"/>
@@ -142,7 +187,7 @@ public sealed class Animatable : IRevertible
     /// Retargets every tween of <paramref name="animation"/> with a copy of <paramref name="spring"/> that starts at the tween's
     /// current velocity. Each copy settles in its own time, so all of them are sampled over the longest one's solver span.
     /// </summary>
-    private Animatable CarryMomentum(Animation animation, Spring spring, Spring? declared, double to, double? duration)
+    private Animatable CarryMomentum(Animation animation, Spring spring, double to, double? duration)
     {
         var springs = new List<Spring>();
         var span = 0d;
@@ -152,7 +197,7 @@ public sealed class Animatable : IRevertible
             var from = tween._modifier(tween._number);
             var distance = to - from;
             // The solver's velocity is progress per solver second, which is its unit of time scaled back to the engine's.
-            var velocity = animation.Paused || distance == 0 ? 0 : Velocity(tween, spring, declared) * Constants.K * Globals.TimeScale / distance;
+            var velocity = animation.Paused || distance == 0 ? 0 : Velocity(tween) * Constants.K * Globals.TimeScale / distance;
             var thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);
             springs.Add(thrown);
             span = Math.Max(span, thrown.SolverDuration);
@@ -172,12 +217,11 @@ public sealed class Animatable : IRevertible
     }
 
     /// <summary>How fast <paramref name="tween"/>'s value is changing, in units per engine-time unit, from its ease around the current time.</summary>
-    private static double Velocity(Tween tween, Spring spring, Spring? declared)
+    private static double Velocity(Tween tween)
     {
         var ease = tween._ease;
         // A spring's own ease raises its OnComplete when sampled past its duration; its pure twin does not.
-        if (ease == spring.Ease) ease = spring.PureEase;
-        else if (declared != null && ease == declared.Ease) ease = declared.PureEase;
+        if (ease.Target is Spring spring && ease == spring.Ease) ease = spring.PureEase;
 
         var duration = tween._updateDuration;
         var progress = tween._currentTime / duration;

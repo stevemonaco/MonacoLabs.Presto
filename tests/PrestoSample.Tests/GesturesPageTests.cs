@@ -65,6 +65,35 @@ public sealed class GesturesPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void AFlickUpCoastsTheSheetOpenPastItsStopAndBouncesBackOntoIt()
+    {
+        var page = new GesturesPage();
+        var window = SceneHarness.Show(page, 712, 440);
+        TestFrames.Tick(30);
+        var sheet = page.GetControl<Border>("Sheet");
+        Assert.Equal(sheet.Bounds.Height - 28, TranslateY(sheet), 1);
+        var grab = sheet.TranslatePoint(new Point(sheet.Bounds.Width / 2, 14), window)!.Value;
+
+        window.MouseDown(grab, MouseButton.Left);
+        for (var i = 1; i <= 4; i++)
+        {
+            window.MouseMove(grab - new Vector(0, 40 * i));
+            TestFrames.Tick();
+        }
+        window.MouseUp(grab - new Vector(0, 160), MouseButton.Left);
+        var peak = double.MaxValue;
+        for (var i = 0; i < 120; i++)
+        {
+            TestFrames.Tick();
+            peak = Math.Min(peak, TranslateY(sheet));
+        }
+
+        Assert.True(peak < -1, $"the sheet peaked at {peak}");
+        Assert.Equal(0, TranslateY(sheet), 1);
+        SceneHarness.Close(window);
+    }
+
     private static double TranslateY(Control control) => Convert.ToDouble(PrestoAvalonia.Get(control, "Y"));
 
     // Held still before letting go, so the release carries no throw and the snap alone decides where it lands.

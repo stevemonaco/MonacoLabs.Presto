@@ -11,7 +11,7 @@ namespace PrestoSample.Showcase.Pages;
 
 /// <summary>
 /// A shop front that uses Phases 22–25 together: recipes from XAML for the grid's entrance, hover, press, focus and exits,
-/// a <c>:checked</c> chip state, <c>AnimateLayout</c> reflow, a shared-element fly to the cart, a quick view revealed with
+/// a <c>:checked</c> chip state, an <c>Animate.ItemLayout</c> reflow, a shared-element fly to the cart, a quick view revealed with
 /// <c>ClipCircle</c> over a blurred grid, a <c>Shimmer</c> skeleton and a live reduced-motion switch.
 /// </summary>
 public partial class StorefrontPage : ShowcasePage
@@ -31,7 +31,6 @@ public partial class StorefrontPage : ShowcasePage
     {
         InitializeComponent();
         Skeleton.ItemsSource = Enumerable.Range(0, 8);
-        Products.ContainerPrepared += (_, e) => e.Container.AnimateLayout(500, Eases.OutQuint);
     }
 
     public StorefrontViewModel ViewModel => (StorefrontViewModel)DataContext!;

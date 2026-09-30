@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -185,7 +186,7 @@ public sealed class ReferencePagesTests
 
     [Fact]
     public void EffectsSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(EffectsPage), "samples/PrestoSample/Pages/EffectsPage.axaml", 1);
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(EffectsPage), "samples/PrestoSample/Pages/EffectsPage.axaml", 2);
 
     private static List<string> Log(ItemsControl moments) =>
         moments.Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => $"{entry.Moment} {entry.Detail}").ToList();
@@ -202,6 +203,49 @@ public sealed class ReferencePagesTests
 
         Assert.True(check.IsChecked);
         Assert.True(card.RenderTransform?.Value.IsIdentity ?? true, "pressing the CheckBox dragged the card");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheInertiaReleaseCoastsTheCardOntoTheGridInsideTheStage()
+    {
+        var page = new DraggablePage();
+        var window = SceneHarness.Show(page, 900, 900);
+        var card = page.GetControl<Border>("SpringCard");
+        page.GetControl<ComboBox>("ReleaseBox").SelectedIndex = 1;
+        var grab = SceneHarness.Centre(card, window);
+
+        window.MouseDown(grab, MouseButton.Left);
+        for (var i = 1; i <= 4; i++)
+        {
+            window.MouseMove(grab + new Vector(15 * i, 0));
+            TestFrames.Tick();
+        }
+        window.MouseUp(grab + new Vector(60, 0), MouseButton.Left);
+        TestFrames.Tick(240);
+
+        var x = (double)PrestoAvalonia.Get(card, "X")!;
+        var max = page.GetControl<Canvas>("Stage").Bounds.Width - card.Bounds.Width - Canvas.GetLeft(card);
+        Assert.True(x > 60, $"the card did not coast past the pointer ({x})");
+        Assert.True(x % 40 == 0 || Math.Abs(x - max) < 1e-6, $"the card rested off the grid and off the bound ({x}, max {max})");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void FlingCoastsTheFollowerAndKeepsItOnTheStage()
+    {
+        var page = new AnimatablePage();
+        var window = SceneHarness.Show(page, 900, 1400);
+        var follower = page.GetControl<Border>("Follower");
+        SceneHarness.Click(window, Button(page, "Set(\"X\", -140, 1200, \"inOutQuad\")"));
+        TestFrames.Tick(20);
+        var released = (double)PrestoAvalonia.Get(follower, "X")!;
+
+        SceneHarness.Click(window, Button(page, "Fling()"));
+        TestFrames.Tick(240);
+
+        var edge = page.GetControl<Border>("FollowerStage").Bounds.Width / 2 - follower.Width / 2;
+        Assert.InRange((double)PrestoAvalonia.Get(follower, "X")!, -edge - 1e-6, released - 10);
         SceneHarness.Close(window);
     }
 

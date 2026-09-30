@@ -13,10 +13,15 @@ namespace PrestoSample.Pages;
 /// <summary>
 /// The effect shorthands on real controls: blur, a live drop shadow, <c>BoxShadow</c> beside <c>DropShadowEffect</c>, a
 /// <c>RotateY</c> flip, a pointer tilt, clip and mask reveals and a blur-out exit. Each stage prints the code it ran, and
-/// the row's XAML is a constant pinned to the markup by a test.
+/// the list's and row's XAML are constants pinned to the markup by a test.
 /// </summary>
 public partial class EffectsPage : UserControl
 {
+    public const string ListXaml = """
+        <ItemsControl x:Name="Rows" Width="300" HorizontalAlignment="Left" ClipToBounds="False"
+                      presto:Animate.ItemLayout="{presto:Reflow 320, Ease=outQuint}">
+        """;
+
     public const string RowXaml = """
         <Border Classes="row" presto:Presence.Exit="{x:Static local:EffectsPage.BlurOut}">
         """;
@@ -44,9 +49,8 @@ public partial class EffectsPage : UserControl
         InitializeComponent();
         _scope = PrestoAvalonia.CreateScope(this);
         Rows.ItemsSource = Items;
-        Rows.ContainerPrepared += (_, e) => _scope.Execute(_ => e.Container.AnimateLayout(320, Eases.OutQuint));
         Refill();
-        ExitCode.Text = $"{RowXaml}\n\n{BlurOutCode}\nrows.ContainerPrepared += (_, e) => e.Container.AnimateLayout(320, Eases.OutQuint);";
+        ExitCode.Text = $"{ListXaml}\n    {RowXaml}\n\n{BlurOutCode}";
 
         (_tilt, var tilt) = _scope.Execute(_ => Snippet.Of(TiltCard.CreateAnimatable(new()
         {

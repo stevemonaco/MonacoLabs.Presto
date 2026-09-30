@@ -401,6 +401,49 @@ PrestoAvalonia.CreateDraggable(SpringCard, new()
 });
 ```
 
+### Inertia
+
+Framer Motion's `inertia` and GSAP's InertiaPlugin, which are not in anime.js. An `Inertia` goes where a `To` goes: the
+value coasts from a velocity and decays to rest. `ModifyTarget` snaps where it lands, and crossing `Min` or `Max` hands
+over to a bounce spring that settles on the bound. The end value, ease and duration are worked out from the start
+value, so a `Duration` beside it is ignored.
+
+```csharp
+Presto.Animate(card, new AnimationParams
+{
+    ["X"] = new Inertia(velocity) { ModifyTarget = Utils.Snap(240), Min = -960, Max = 0 },
+});
+
+follower.Fling("X", new Inertia(0) { Min = -300, Max = 300 });    // coasts from its current velocity
+follower.Fling("Y", tracker.Velocity, new Inertia(0) { Max = 0 }); // or from a given one
+
+PrestoAvalonia.CreateDraggable(Sheet, new()
+{
+    Container = Stage,
+    X = new DraggableAxisParams { Enabled = false },
+    ReleaseInertia = new Inertia(0) { TimeConstant = 250 },
+});
+```
+
+`Animatable.Fling` replaces the property's ease and duration until the next `Set`. `DraggableParams.ReleaseInertia` is
+opt-in: the default release stays the ported anime.js throw. When it is set, each axis flings at the pointer's velocity,
+with the container as `Min`/`Max` and `Snap` as `ModifyTarget` unless the template sets its own. For a gesture of your
+own, feed a `VelocityTracker` and pass its `Velocity` on:
+
+```csharp
+var tracker = new VelocityTracker();
+Sheet.PointerMoved += (_, e) => tracker.Add(e.GetPosition(Stage).Y, Presto.Engine.FrameSource.Now);
+Sheet.PointerReleased += (_, _) =>
+{
+    Sheet.Animate(new() { ["Y"] = new Inertia(tracker.Velocity) { Min = 0, Max = 400 } });
+    tracker.Reset();
+};
+```
+
+Velocity is in units per engine-time unit, so per **millisecond** by default, not per second as in Framer. The ideal
+travel is `Power · Velocity · TimeConstant` (defaults 1 and 350). Framer's defaults, power 0.8 and timeConstant 700
+with velocity per second, are `new Inertia(v) { Power = 1.14, TimeConstant = 700 }` here.
+
 ### onScroll
 
 Watches a control cross a `ScrollViewer`'s thresholds, and drives whatever is linked to it:
@@ -577,6 +620,37 @@ PrestoAvalonia.AnimateSharedElement("photo", heroImage, Presto.Build().Duration(
 
 During the flight a control is still drawn inside its own parents, so one flying into a clipped container, such as a
 `ScrollViewer`, is clipped to it until it lands.
+
+#### Layout animation from XAML
+
+`Animate.Layout` keeps the same transition armed while the control is attached, and `Animate.ItemLayout` arms one on
+every item container of a list. `{presto:Reflow}` is the [recipe](#recipes-from-xaml) made for them:
+
+```xml
+<Border presto:Animate.Layout="{presto:Reflow}" presto:Animate.LayoutMode="PositionAndSize" />
+
+<ItemsControl ItemsSource="{Binding Rows}" presto:Animate.ItemLayout="{presto:Reflow 320}">
+    <ItemsControl.ItemTemplate>
+        <DataTemplate><Border presto:Presence.Enter="{presto:Fade}" presto:Presence.Exit="{presto:Blur}" /></DataTemplate>
+    </ItemsControl.ItemTemplate>
+</ItemsControl>
+
+<Style Selector="StackPanel.accordion > Border">
+    <Setter Property="presto:Animate.Layout" Value="{presto:Reflow}" />
+    <Setter Property="presto:Animate.LayoutMode" Value="PositionAndSize" />
+</Style>
+```
+
+Attaching records where the control is without easing its arrival, detaching reverts, and changing the builder or the
+mode re-arms; `null` stops. `Animate.LayoutMode` set on the list applies to its containers. A container that is realized
+or recycled lands in its slot at once instead of flying there from its old one, and a pass that only scrolls the list
+eases nothing. A `Connected` flight or a code `AnimateLayout` call on the same control wins its move; the property takes
+over again after a flight lands. The builder takes the same timing and eases as the code API and throws for anything
+else.
+
+Layout and `Presence` recipes drive the same composition `Translation` and `Scale`, so the container moves and the content
+arrives: put the layout property on the container (or a wrapper) and `Presence` on its content, as the list above does.
+An opacity-only or blur entrance can share the element.
 
 #### Connected animations from XAML
 
@@ -853,6 +927,10 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `Spinner` | | yes | 〃 |
 | | `Dots` (staggers a panel's children itself) | `distance` | yes | 〃, still staggered |
 | | `Indeterminate` | `distance`, the track width (required) | yes | 〃 |
+| `Layouts` | `Reflow`, for [`Animate.Layout`](#layout-animation-from-xaml) and `AnimateLayout` | | layout only | an instant move |
+| `Pages` ([`IPageTransition`](#page-transitions)) | `PageFade`, `PageFadeThrough` | `duration` only | yes | a crossfade over `Short` |
+| | `PageSharedAxis` | `axis` (`X`, `Y`, `Z`), `distance` | yes | 〃 |
+| | `PageSlide`, `PagePush` | `edge` only | yes | 〃 |
 
 The interactions are meant for [`Motion` states](#state-motion); they take no `stagger`, since a state belongs to one
 element.
@@ -901,10 +979,38 @@ Each markup extension provides a new builder per element from its recipe:
 | `{presto:Shake}` | `Shake` | `Intensity` | |
 | `{presto:Lift}`, `{presto:PressIn}`, `{presto:Glow}` | the same | `Intensity` | |
 | `{presto:Shimmer}` | `Shimmer` | | |
+| `{presto:Reflow}` | `Reflow` | `Duration` also positional: `{presto:Reflow 320}`; no `Stagger` | |
 
 All of them take `Duration`, `Delay`, `Ease` (a string such as `outBack`), `Stagger` (the step in ms) and `Out`. Set
 on `Presence.Exit`, an extension with an exit form provides it. A style `Setter` is not the property it sets, so there
 `Out=True` asks for the exit form; `Out=False` forces the entrance form anywhere. Arguments are separated by commas.
+
+#### Page transitions
+
+`PrestoPageTransition` is an Avalonia `IPageTransition` (and `IProgressPageTransition`) for any host that takes one:
+`TransitioningContentControl`, `Carousel`, `NavigationPage`, `TabControl`. It plays `Enter` on the incoming page and
+`Exit` on the outgoing one, going back plays the pair reversed unless `BackEnter`/`BackExit` are set, and it runs on the
+render thread whenever every property allows (`UseCompositor`). The page recipes return one ready-made:
+
+```xml
+<TransitioningContentControl Content="{Binding CurrentPage}" ClipToBounds="True"
+                             IsTransitionReversed="{Binding IsBack}"
+                             PageTransition="{presto:PagePush Edge=Right}" />
+
+<TransitioningContentControl.PageTransition>
+    <presto:PrestoPageTransition Enter="{presto:Fade Direction=Up, Delay=90}" Exit="{presto:Fade Duration=90}" />
+</TransitioningContentControl.PageTransition>
+```
+
+```csharp
+host.PageTransition = Recipes.PageSharedAxis(PageAxis.X);
+host.PageTransition = new PrestoPageTransition { Enter = Recipes.SlideIn(Edge.Right), Exit = Recipes.FadeOut() };
+```
+
+The extensions are `{presto:PageFade}` and `{presto:PageFadeThrough}` (`Duration`), `{presto:PageSharedAxis}` (`Axis`,
+`Distance`), and `{presto:PageSlide}` and `{presto:PagePush}` (`Edge`). A recipe extension set on `Exit` or `BackExit`
+provides its exit form without `Out=True`. The slides travel the full size of the host's panel and would otherwise show
+outside it, so give the host `ClipToBounds="True"`.
 
 #### Tilt, typewriter and count-up
 
@@ -976,13 +1082,15 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
 | `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
-| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. See [Render thread](#render-thread). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Arrive`, `Initial` or `Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
+| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. From XAML, `Animate.Layout` arms it on a control and `Animate.ItemLayout` on every container of a list, for as long as each is attached. See [Render thread](#render-thread) and [Layout animation from XAML](#layout-animation-from-xaml). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Arrive`, `Initial` or `Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
 | `core/*`, `types/*` | Internal (`Clock`, `Renderer`, `Composer`, value parsing) or TypeScript declarations with no C# counterpart. |
 | *Framer Motion, not anime.js:* `whileHover` / `whileTap` / `whileFocus` | `Motion.Hover` / `Motion.Press` / `Motion.Focus`, or `control.WhileHover` / `WhilePressed` / `WhileFocused` in code; see [State motion](#state-motion) |
 | *Framer Motion, not anime.js:* `variants` with `animate="name"` | `Motion.States` entries whose `When` names a state, chosen by binding `Motion.State`; `control.While(when, …)` in code |
+| *Framer Motion, not anime.js:* `inertia` transition; GSAP `InertiaPlugin` | `Inertia` as a to-value, `Animatable.Fling`, `DraggableParams.ReleaseInertia`; see [Inertia](#inertia) |
+| *Framer Motion, not anime.js:* `useVelocity`, velocity tracking | `VelocityTracker` (`Add(value, time)`, `Velocity`, `Reset()`) |
 | *CSS, not anime.js:* `filter: blur()` | `Blur`; see [Effects](#effects) |
 | *CSS, not anime.js:* `filter: drop-shadow()` | `ShadowX` / `ShadowY` / `ShadowBlur` / `ShadowColor` / `ShadowOpacity`, or `.Shadow(x, y, blur, color)`; `box-shadow` is `BoxShadow` on a `Border` |
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |

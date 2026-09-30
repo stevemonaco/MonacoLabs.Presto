@@ -95,6 +95,7 @@ public sealed class ActivityFeedPageTests
         var reading = Rows(page).OrderBy(row => Top(row, feed)).First(row => Top(row, feed) >= 0);
         var top = Top(reading, feed);
         var count = page.ViewModel.Items.Count;
+        var events = page.ViewModel.Items.OfType<ActivityEvent>().Count();
 
         TickUntil(() => page.ViewModel.Unseen == 1);
         TestFrames.Tick();
@@ -108,7 +109,7 @@ public sealed class ActivityFeedPageTests
         SceneHarness.Click(window, pill);
         Assert.Equal(0, feed.Scroll.Offset.Y);
         Assert.Null(page.ViewModel.Unseen);
-        Assert.Equal(count + 1, page.ViewModel.Items.Count);
+        Assert.Equal(events + 1, page.ViewModel.Items.OfType<ActivityEvent>().Count());
         SceneHarness.Close(window);
     }
 

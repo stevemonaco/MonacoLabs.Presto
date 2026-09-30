@@ -1,6 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Monaco.Presto.AvaloniaBridge;
 using CarouselPage = PrestoSample.Showcase.Pages.CarouselPage;
 
@@ -60,6 +62,30 @@ public sealed class CarouselPageTests
         TestFrames.Tick(300);
 
         Assert.Equal(0, StripX(page));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void AHardFlickCoastsPastSeveralSlidesAndLandsOnOne()
+    {
+        var page = new CarouselPage();
+        var window = SceneHarness.Show(page, 1100, 600);
+        var width = page.GetControl<Border>("Viewport").Bounds.Width;
+        var grab = SceneHarness.Centre(page.GetControl<Border>("Viewport"), window);
+
+        window.MouseDown(grab, MouseButton.Left);
+        for (var i = 1; i <= 4; i++)
+        {
+            window.MouseMove(grab - new Vector(150 * i, 0));
+            TestFrames.Tick();
+        }
+        window.MouseUp(grab - new Vector(600, 0), MouseButton.Left);
+        TestFrames.Tick(200);
+
+        var slide = -StripX(page) / width;
+        Assert.Equal(Math.Round(slide), slide, 3);
+        Assert.InRange(slide, 2, 4);
+        Assert.Equal(24, page.GetControl<StackPanel>("Dots").Children[(int)Math.Round(slide)].Width);
         SceneHarness.Close(window);
     }
 

@@ -48,6 +48,13 @@ public sealed record DraggableParams
     /// <inheritdoc cref="ReleaseMass"/>
     public double? ReleaseDamping { get; init; }
 
+    /// <summary>
+    /// Replaces the thrown release with this inertia on each axis, launched at the pointer's velocity, bounced off the
+    /// container bounds and snapped by <see cref="Snap"/> unless it sets its own <see cref="Inertia.ModifyTarget"/>.
+    /// Its own velocity and bounds are ignored, and so are <see cref="ReleaseEase"/>, the release springs and <see cref="ReleaseContainerFriction"/>.
+    /// </summary>
+    public Inertia? ReleaseInertia { get; init; }
+
     /// <summary>Floor and ceiling of the pointer speed the release throw is scaled by, 0 and 50 by default.</summary>
     public double? MinVelocity { get; init; }
 

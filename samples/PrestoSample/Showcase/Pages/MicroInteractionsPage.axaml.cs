@@ -62,8 +62,6 @@ public partial class MicroInteractionsPage : ShowcasePage
         _underline = Underline.CreateAnimatable(new() { ["X"] = StretchDuration, ["Width"] = StretchDuration, Ease = Eases.OutCubic });
         _contract = Presto.CreateTimer(new TimerParams { Duration = StretchDuration, Autoplay = false, OnComplete = _ => Contract() });
         Tabs.LayoutUpdated += PlaceUnderline;
-
-        foreach (var section in Accordion.Children) section.AnimateLayout(RestackDuration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize);
     }
 
     private static string Count(double likes) => likes.ToString("N0", CultureInfo.InvariantCulture);

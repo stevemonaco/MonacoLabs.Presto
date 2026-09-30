@@ -161,6 +161,10 @@ public static class Recipes
     public static AnimationBuilder Dim(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.Dim(intensity, duration, delay, ease);
 
+    /// <inheritdoc cref="Layouts.Reflow"/>
+    public static AnimationBuilder Reflow(double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Layouts.Reflow(duration, delay, ease);
+
     /// <inheritdoc cref="Loading.Shimmer"/>
     public static AnimationBuilder Shimmer(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loading.Shimmer(duration, delay, ease, stagger);
@@ -176,6 +180,21 @@ public static class Recipes
     /// <inheritdoc cref="Loading.Indeterminate"/>
     public static AnimationBuilder Indeterminate(double distance, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loading.Indeterminate(distance, duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Pages.PageFade"/>
+    public static PrestoPageTransition PageFade(double? duration = null) => Pages.PageFade(duration);
+
+    /// <inheritdoc cref="Pages.PageFadeThrough"/>
+    public static PrestoPageTransition PageFadeThrough(double? duration = null) => Pages.PageFadeThrough(duration);
+
+    /// <inheritdoc cref="Pages.PageSharedAxis"/>
+    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null) => Pages.PageSharedAxis(axis, distance);
+
+    /// <inheritdoc cref="Pages.PageSlide"/>
+    public static PrestoPageTransition PageSlide(Edge edge) => Pages.PageSlide(edge);
+
+    /// <inheritdoc cref="Pages.PagePush"/>
+    public static PrestoPageTransition PagePush(Edge edge) => Pages.PagePush(edge);
 
     /// <summary>
     /// Types out <paramref name="textBlock"/>'s text: it is split into characters, each starting <paramref name="charDelay"/> ms

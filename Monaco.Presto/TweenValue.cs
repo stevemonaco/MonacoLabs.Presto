@@ -53,6 +53,9 @@ public readonly struct TweenValue
     /// <summary>Lets a <see cref="FunctionValue"/> used as an <see cref="EaseValue"/> return a different spring per target.</summary>
     public static implicit operator TweenValue(Spring value) => new(value);
 
+    /// <summary>A to-value that coasts from a velocity; not allowed in keyframes or a from/to pair.</summary>
+    public static implicit operator TweenValue(Inertia value) => new(value);
+
     /// <summary>
     /// Two items are a from/to pair; three or more are keyframes whose first frame is the leading pair. An array of
     /// <see cref="TweenParams"/> is always keyframes, however many there are.

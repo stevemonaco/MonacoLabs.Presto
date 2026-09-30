@@ -35,8 +35,14 @@
 
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Content="Set(&quot;X&quot;, -140, 1200, &quot;inOutQuad&quot;)" Click="SetExplicit" />
+                <Button Content="Fling()" Click="FlingFollower" />
                 <Button Content="Revert()" Click="RevertFollower" />
             </StackPanel>
+
+            <TextBlock Classes="code" Text="dot.Fling(&quot;X&quot;, new Inertia(0) { Min = -edge, Max = edge }).Fling(&quot;Y&quot;, …)" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Press Set, then Fling while the dot moves: Fling measures the running tween's velocity and coasts from it, bouncing off the stage edge." />
 
             <Border x:Name="MomentumStage" Classes="stage" MinHeight="0" Height="150" PointerMoved="MoveMomentum">
                 <Grid RowDefinitions="*,*">

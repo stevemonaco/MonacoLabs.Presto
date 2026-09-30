@@ -23,12 +23,6 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     private const double Growth = 20;
     private const double Duration = 800;
 
-    /// <summary>
-    /// Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them, even in the
-    /// first test of a run, whose first compositor frame also counts the JIT time since the frame before it.
-    /// </summary>
-    private const double Held = 600000;
-
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -425,6 +419,43 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         Assert.Equal(1, transition.Progress);
     }
 
+    [AvaloniaFact]
+    public void ARecordFirstTransitionDoesNotEaseItsFirstPass()
+    {
+        var (spacer, bar) = ShowStack();
+        var transition = new LayoutTransition(bar, null, false, new LayoutMotion(Held, Ease: Eases.None), LayoutAnimateMode.Position, once: false, recordFirst: true);
+        var start = Top(bar);
+
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.True(transition.Completed, "the first pass started a transition");
+        Assert.Equal(start + Shift, Top(bar));
+
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.Equal(start + Shift, Top(bar));
+    }
+
+    /// <remarks><see cref="Monaco.Presto.Tests.EngineTestBase"/> gives every test fresh defaults, which resets <c>ReduceAll</c>.</remarks>
+    [AvaloniaTheory]
+    [InlineData(true, Held)]
+    [InlineData(false, 0d)]
+    public void AReducedOrZeroDurationMoveLandsInOneFrame(bool reduceAll, double duration)
+    {
+        var (spacer, bar) = ShowStack();
+        Presto.Defaults.ReduceAll = reduceAll;
+        var transition = bar.AnimateLayout(Presto.Build().Duration(duration).Delay(duration).Ease(Eases.None));
+        var start = Top(bar);
+
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.Equal(start + Shift, Top(bar));
+        Assert.True(transition.Completed);
+    }
+
     /// <summary>A red 40x20 bar under a spacer whose height is what moves it, in a 100x100 window ticked once so it has a composition visual.</summary>
     private static (Border Spacer, Border Bar) ShowStack()
     {
@@ -496,6 +527,4 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         Assert.NotNull(halfway);
         return halfway.Value;
     }
-
-    private static double Top(Visual bar) => Box(bar).Top;
 }

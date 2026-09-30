@@ -72,5 +72,14 @@ public partial class AnimatablePage : UserControl
 
     private void SetExplicit(object? sender, RoutedEventArgs e) => _follower.Set("X", -140, 1200, "inOutQuad");
 
+    private void FlingFollower(object? sender, RoutedEventArgs e)
+    {
+        var edgeX = FollowerStage.Bounds.Width / 2 - Follower.Width / 2;
+        var edgeY = FollowerStage.Bounds.Height / 2 - Follower.Height / 2;
+        _follower
+            .Fling("X", new Inertia(0) { Min = -edgeX, Max = edgeX })
+            .Fling("Y", new Inertia(0) { Min = -edgeY, Max = edgeY });
+    }
+
     private void RevertFollower(object? sender, RoutedEventArgs e) => _follower.Revert();
 }

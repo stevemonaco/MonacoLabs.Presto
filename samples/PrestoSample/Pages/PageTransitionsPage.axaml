@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1100"
+             x:Class="PrestoSample.Pages.PageTransitionsPage">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <TextBlock Classes="caption" Text="A TransitioningContentControl under the picked transition; Back sets IsTransitionReversed" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+                    <TransitioningContentControl x:Name="Host" Height="200" ClipToBounds="True" />
+                    <StackPanel Grid.Column="1" Spacing="8" Width="200">
+                        <ComboBox x:Name="RecipePicker" HorizontalAlignment="Stretch" SelectionChanged="RecipeChanged">
+                            <ComboBoxItem Content="PageFade" />
+                            <ComboBoxItem Content="PageFadeThrough" />
+                            <ComboBoxItem Content="PageSharedAxis" />
+                            <ComboBoxItem Content="PageSlide" />
+                            <ComboBoxItem Content="PagePush" />
+                            <ComboBoxItem Content="Custom pair" />
+                        </ComboBox>
+                        <ComboBox x:Name="OptionPicker" HorizontalAlignment="Stretch" SelectionChanged="OptionChanged" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Back" Click="BackClicked" />
+                            <Button Classes="accent" Content="Next" Click="NextClicked" />
+                        </StackPanel>
+                        <Button Content="Next, freeze UI thread 2 s" Click="FreezeClicked" />
+                        <ProgressBar IsIndeterminate="True" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock x:Name="HostCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+
+            <TextBlock Classes="caption" Text="A Carousel with IsSwipeEnabled under {presto:PageSlide Edge=Right}: drag a page sideways to scrub the transition" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                    <Button Content="‹" VerticalAlignment="Center" Click="PreviousSlideClicked" />
+                    <Carousel x:Name="Swiper" Grid.Column="1" Height="180" ClipToBounds="True" IsSwipeEnabled="True"
+                              PageTransition="{presto:PageSlide Edge=Right}" />
+                    <Button Grid.Column="2" Content="›" VerticalAlignment="Center" Click="NextSlideClicked" />
+                </Grid>
+            </Border>
+
+            <TextBlock Classes="caption" Text="A NavigationPage under {presto:PagePush Edge=Right}: push and pop, or use its own back button" />
+            <Border Classes="stage" MinHeight="0">
+                <StackPanel Spacing="12">
+                    <NavigationPage x:Name="Stack" Height="260" ClipToBounds="True"
+                                    PageTransition="{presto:PagePush Edge=Right}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="accent" Content="Push" Click="PushClicked" />
+                        <Button Content="Pop" Click="PopClicked" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

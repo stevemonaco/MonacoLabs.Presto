@@ -38,6 +38,32 @@ public abstract class CompositorTestBase : BridgeTestBase
         return bar;
     }
 
+    /// <summary>
+    /// Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them, even in the
+    /// first test of a run, whose first compositor frame also counts the JIT time since the frame before it.
+    /// </summary>
+    protected const double Held = 600000;
+
+    protected static AnimationBuilder HeldMove => Presto.Build().Duration(Held).Ease(Eases.None);
+
+    protected static AnimationBuilder SlideIn =>Presto.Build().X(from: 100).Duration(100).Ease("linear");
+
+    /// <summary>Swaps <paramref name="host"/>'s content and lays its window out, which is when the host starts its page transition.</summary>
+    protected static void Swap(TransitioningContentControl host, Control next)
+    {
+        host.Content = next;
+        ((Window)TopLevel.GetTopLevel(host)!).UpdateLayout();
+    }
+
+    protected static double X(Visual visual) => Convert.ToDouble(PrestoAvalonia.Get(visual, "X"));
+
+    /// <summary>Advances frames, running the dispatcher's jobs after each, until <paramref name="done"/> holds.</summary>
+    protected void Settle(Func<bool> done) => RunUntil(() =>
+    {
+        Dispatcher.UIThread.RunJobs();
+        return done();
+    });
+
     /// <summary>Commits what the UI thread has queued for the compositor, as a real frame does, then runs one compositor frame.</summary>
     protected static void Tick()
     {
@@ -93,6 +119,8 @@ public abstract class CompositorTestBase : BridgeTestBase
     /// <summary>The box the red pixels of <paramref name="visual"/> fill in the last rendered frame.</summary>
     protected static Rect Box(Visual visual) =>
         Extent(visual, Colors.Red) ?? throw new InvalidOperationException("The red element is not in the rendered frame.");
+
+    protected static double Top(Visual visual) => Box(visual).Top;
 
     /// <summary>The layout slot of <paramref name="control"/> in window coordinates.</summary>
     protected static Rect SlotOf(Control control) =>

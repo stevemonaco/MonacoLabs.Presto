@@ -36,9 +36,8 @@ public partial class LayoutPage : UserControl
 
     private void Shuffle(object? sender, RoutedEventArgs e)
     {
-        var cards = Cards.Children.ToArray();
-        Cards.Children.Clear();
-        foreach (var card in Utils.Shuffle(cards)) Cards.Children.Add(card);
+        // Moving rather than re-adding keeps the XAML card attached; Animate.Layout records afresh on every attach.
+        foreach (var card in Utils.Shuffle(Cards.Children.ToArray())) Cards.Children.Move(Cards.Children.IndexOf(card), Cards.Children.Count - 1);
     }
 
     private void Add(object? sender, RoutedEventArgs e) => AddCard();
@@ -70,7 +69,10 @@ public partial class LayoutPage : UserControl
 
     private void Arm()
     {
-        foreach (var card in Cards.Children) _scope.Execute(_ => ((Control)card).AnimateLayout(Duration, Eases.OutQuint));
+        foreach (var card in Cards.Children)
+        {
+            if (card != XamlCard) _scope.Execute(_ => card.AnimateLayout(Duration, Eases.OutQuint));
+        }
         _scope.Execute(_ => GrowBox.AnimateLayout(Duration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize));
     }
 

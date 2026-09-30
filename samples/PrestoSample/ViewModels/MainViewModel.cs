@@ -52,7 +52,9 @@ public partial class MainViewModel : ObservableObject
             new("States", "Motion.Hover, Press and Focus on real Buttons, a TextBox, a checklist and cards, which lift on hover, squish on press and grow on keyboard focus. The checklist slides done items through a shared :checked state, a card's hover nudges its arrow through a style setter on Motion.State, and a status chip's bound Motion.State pulses, shakes and settles. Tab through it to see focus-visible differ from a click, and watch the log record each state change.",
                 () => new StatesPage()),
             new("Effects", "The effect shorthands on real controls: text and a picture blurred out and back, a drop shadow steered by five sliders, BoxShadow beside a DropShadowEffect on identical cards, a RotateY flip with Perspective, a card tilting after the pointer and springing back, ClipInset, ClipCircle and MaskSweep reveals over one picture, and a row leaving with a blur-out Presence.Exit. Each writes one bridge-owned effect, clip or mask and removes it at rest, and every stage prints the code it ran.",
-                () => new EffectsPage())),
+                () => new EffectsPage()),
+            new("Page transitions", "PrestoPageTransition on Avalonia's three page hosts. Pick a page recipe, or a custom Enter and Exit builder pair, and press Next and Back to play it forward and reversed in a TransitioningContentControl, with the C# and XAML that set it printed beneath it; press the freeze button and the transition keeps playing on the render thread while the ProgressBar stops. Drag the Carousel's page sideways and a Presto PageSlide follows your finger, then push and pop the NavigationPage to see PagePush slide over and dim.",
+                () => new PageTransitionsPage())),
         Section("Showcase",
             new GalleryPage("Title sequence", "One timeline builds a whole title card: a monogram draws itself and morphs into the mark, \"PRESTO\" staggers in from the centre, a subtitle scrambles into place and three cards fade up. Try the SEEK buttons to jump to a beat by its label, and scrub, reverse or stretch the sequence from the transport bar.",
                 () => new TitleSequencePage()),
@@ -76,7 +78,7 @@ public partial class MainViewModel : ObservableObject
                 () => new MicroInteractionsPage()),
             new GalleryPage("Loaders", "Nine loading indicators in the anime.js homepage spirit, each a single Animate or timeline call printed beneath it: staggers, a centre-out grid wave, a MorphTo blob, a Draw ring, squash keyframes and a TextModifier counter. Drag the speed slider to retune every loader's own Speed while the rest of the gallery keeps its pace, and flip Pause all to freeze them mid-motion.",
                 () => new LoadersPage()),
-            new GalleryPage("Carousel", "Five slides on an x-only draggable that snaps to the slide width and springs home on release. Drag one halfway and watch its background, art and title slide at different rates; the arrows and the Left/Right keys spring to a slide too. The ring around the active dot draws the four-second autoplay, which holds while the pointer is over the strip.",
+            new GalleryPage("Carousel", "Five slides on an x-only draggable that coasts on inertia and lands on a slide: a soft swipe moves one, a hard flick skips several and bounces off the last. Drag one halfway and watch its background, art and title slide at different rates; the arrows and the Left/Right keys spring to a slide too. The ring around the active dot draws the four-second autoplay, which holds while the pointer is over the strip.",
                 () => new Showcase.Pages.CarouselPage()),
             new GalleryPage("Connected", "Twelve album cards; click one and its art and title fly into the detail view on transitions of their own, 560 and 460 ms long, so the title lands first while the other cards scatter away from it on one staggered compositor animation. Press Back or Escape at any point, or click the card again while it closes, and every piece reverses from where it is drawn.",
                 () => new ConnectedPage()),
@@ -86,7 +88,7 @@ public partial class MainViewModel : ObservableObject
                 () => new ConnectedXamlPage()),
             new GalleryPage("Bloom navigation", "Four tabs, each with its own hue. Click one and a circle of its colour grows from the pointer, or from the tab's centre when you pick it with the keyboard, until it covers the farthest corner; one timeline swaps the content under it at 65% and fades it while the new tiles rise in, as the underline, labels and header follow. Click tabs quickly and the blooms stack, each clearing the ones beneath it as it finishes. The bloom's Scale runs on the UI thread so it can share the timeline with the swap.",
                 () => new BloomNavPage()),
-            new GalleryPage("Gestures", "Three draggables with their live velocity. Pull the feed down: it stiffens as it goes, springs home from a short pull and holds from a long one while the arrow turns into a spinner, three new rows slide in and the list springs back. Swipe an inbox row either way to reveal archive or delete; past 40% the icon pops and the release carries the row off and collapses its gap, and Undo brings the last one back from the side it left. Pull the curtain down by its handle, or tap the handle to step it closed, half and full: it rests at the nearest of the three, and the content under it sinks, shrinks and dims in step, springs included.",
+            new GalleryPage("Gestures", "Four draggables with their live velocity. Pull the feed down: it stiffens as it goes, springs home from a short pull and holds from a long one while the arrow turns into a spinner, three new rows slide in and the list springs back. Swipe an inbox row either way to reveal archive or delete; past 40% the icon pops and the release carries the row off and collapses its gap, and Undo brings the last one back from the side it left. Pull the curtain down by its handle, or tap the handle to step it closed, half and full: it rests at the nearest of the three, and the content under it sinks, shrinks and dims in step, springs included. Flick the bottom sheet: its release coasts on inertia to the nearest stop, and a hard flick overshoots the open or closed stop and bounces back onto it.",
                 () => new GesturesPage()),
             new GalleryPage("Liquid", "A tab bar whose pill stretches: click a tab and the pill's leading edge darts there in 300 ms while the trailing edge follows 70 ms later on a slower ease, squashing as it goes, both edges plain doubles on one animation with per-property tween params. Click across the bar quickly and it retargets from wherever it is without snapping. Press the gooey button to spring three actions out of it and again, even mid-flight, to pull them back in: a single Path rebuilt every frame joins each one to the button with a metaball neck that thins and breaks as it leaves.",
                 () => new LiquidPage()),
@@ -137,9 +139,19 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial Control? CurrentPage { get; set; }
 
+    /// <summary>Whether the selected page sits above the previous one in the nav, so the page transition plays backwards.</summary>
+    [ObservableProperty]
+    public partial bool IsBack { get; set; }
+
     public MainViewModel() => SelectedPage = Sections[0].Pages[0];
 
-    partial void OnSelectedPageChanged(GalleryPage? value) => CurrentPage = value?.Create();
+    partial void OnSelectedPageChanged(GalleryPage? oldValue, GalleryPage? newValue)
+    {
+        IsBack = oldValue is not null && Order(newValue) < Order(oldValue);
+        CurrentPage = newValue?.Create();
+    }
+
+    private int Order(GalleryPage? page) => Sections.SelectMany(section => section.Pages).TakeWhile(entry => entry != page).Count();
 
     private static GallerySection Section(string name, params GalleryPage[] pages) =>
         new(name, [.. pages.Select(page => page with { Section = name })]);

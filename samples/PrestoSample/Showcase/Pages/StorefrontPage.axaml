@@ -132,7 +132,7 @@
                 </ItemsControl>
 
                 <ScrollViewer x:Name="Catalogue" IsVisible="False">
-                    <ItemsControl x:Name="Products" ItemsSource="{Binding Shown}">
+                    <ItemsControl x:Name="Products" ItemsSource="{Binding Shown}" presto:Animate.ItemLayout="{presto:Reflow 500, Ease=outQuint}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel />
@@ -193,6 +193,6 @@
         </Border>
 
         <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
-                   Text="A shop front built from recipes. The grid shimmers as a skeleton while a timer stands in for the fetch, then the cards fade up in order through Presence.Initial. Hover a card to lift it, press it to squeeze it, move over its picture to tilt it, and Tab to a card for a glow. Pick category chips to recolour them through a :checked state and reflow the grid with AnimateLayout while cards scale in and out. Add pops the button, flies the picture to the cart and bumps the badge; Quick view opens a dialog over the blurred grid with a circle reveal from the card, and closing it blurs it out through Presence.Exit. Flip Reduced motion to see every recipe's reduced form in place." />
+                   Text="A shop front built from recipes. The grid shimmers as a skeleton while a timer stands in for the fetch, then the cards fade up in order through Presence.Initial. Hover a card to lift it, press it to squeeze it, move over its picture to tilt it, and Tab to a card for a glow. Pick category chips to recolour them through a :checked state and reflow the grid through Animate.ItemLayout while cards scale in and out. Add pops the button, flies the picture to the cart and bumps the badge; Quick view opens a dialog over the blurred grid with a circle reveal from the card, and closing it blurs it out through Presence.Exit. Flip Reduced motion to see every recipe's reduced form in place." />
     </Grid>
 </showcase:ShowcasePage>

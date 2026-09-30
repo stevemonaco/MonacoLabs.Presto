@@ -21,6 +21,7 @@ public partial class GesturesPage : ShowcasePage
 
     private readonly Stack<(Panel Slot, int Index, int Side)> _dismissed = [];
     private Draggable? _curtain;
+    private Draggable? _sheet;
     private bool _pulling;
     private bool _handleTapped;
     private int _fresh = 8;
@@ -32,12 +33,15 @@ public partial class GesturesPage : ShowcasePage
         foreach (var card in Datasets.Cards.Take(8)) Inbox.Children.Add(Slot(card));
         foreach (var album in Datasets.Albums.Skip(8).Take(4)) Home.Children.Add(FeedRow(album));
         foreach (var album in Datasets.Albums.Skip(4).Take(3)) Notifications.Children.Add(FeedRow(album));
+        foreach (var album in Datasets.Albums.Skip(12).Take(5)) Queue.Children.Add(FeedRow(album));
         Handle.PointerPressed += (_, _) => _handleTapped = true;
     }
 
     private double Travel => Math.Max(0, CurtainStage.Bounds.Height - HandleHeight);
 
     private double Rest(double step) => (step / 2 - 1) * Travel;
+
+    private double SheetTravel => Math.Max(0, Sheet.Bounds.Height - HandleHeight);
 
     protected override void OnAttached()
     {
@@ -90,14 +94,25 @@ public partial class GesturesPage : ShowcasePage
             },
             OnSettle = drag => CurtainVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
         });
-        CurtainStage.LayoutUpdated += CloseCurtain;
+        _sheet = PrestoAvalonia.CreateDraggable(Sheet, new DraggableParams
+        {
+            X = new DraggableAxisParams { Enabled = false },
+            ContainerBounds = _ => new Rect(0, 0, 0, SheetTravel),
+            // Stops a whole travel apart, so a flick aimed past one crosses its bound and bounces there.
+            Snap = y => Utils.Snap(y, SheetTravel),
+            ReleaseInertia = new Inertia(0),
+            OnUpdate = drag => SheetVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
+            OnSettle = drag => SheetVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
+        });
+        CurtainStage.LayoutUpdated += CloseDrawers;
     }
 
-    private void CloseCurtain(object? sender, EventArgs e)
+    private void CloseDrawers(object? sender, EventArgs e)
     {
         if (Travel == 0) return;
-        CurtainStage.LayoutUpdated -= CloseCurtain;
+        CurtainStage.LayoutUpdated -= CloseDrawers;
         _curtain!.Refresh().Y = Rest(0);
+        _sheet!.Refresh().Y = SheetTravel;
     }
 
     private void Refresh(Draggable drag)

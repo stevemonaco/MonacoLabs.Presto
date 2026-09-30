@@ -550,4 +550,116 @@ public sealed class DraggableTests : BridgeTestBase
         Assert.Equal(0d, PrestoAvalonia.Get(target, "X"));
         Assert.Equal(0d, PrestoAvalonia.Get(target, "Y"));
     }
+
+    // ReleaseInertia (INERTIA-PLAN §2 decision 7): not upstream, so these pin the opt-in release on its own.
+
+    private void Flick(Window window, double stepX, double stepY, int steps)
+    {
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        for (var i = 1; i <= steps; i++)
+        {
+            window.MouseMove(new Point(25 + (i * stepX), 25 + (i * stepY)));
+            Frames.Advance(20);
+        }
+        window.MouseUp(new Point(25 + (steps * stepX), 25 + (steps * stepY)), MouseButton.Left);
+    }
+
+    [AvaloniaFact]
+    public void AnInertiaReleaseDecaysOntoEachAxisSnap()
+    {
+        var (window, _, target) = Show();
+        var settles = 0;
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            X = new DraggableAxisParams { Snap = Utils.Snap(100) },
+            Y = new DraggableAxisParams { Snap = Utils.Snap(30) },
+            ReleaseInertia = new Inertia(0),
+            OnSettle = _ => settles++,
+        });
+
+        // 20 and 10 units per 20 ms frame: velocities of 1 and .5, coasting 350 and 175 on the default time constant.
+        Flick(window, 20, 10, 4);
+        Frames.Advance(100, 20);
+        Assert.InRange(draggable.X, 81, 399);
+        Assert.InRange(draggable.Y, 41, 209);
+
+        Frames.Advance(5000, 20);
+        Assert.Equal(400d, draggable.X);
+        Assert.Equal(210d, draggable.Y);
+        Assert.Equal(1, settles);
+    }
+
+    [AvaloniaFact]
+    public void AnInertiaReleaseBouncesOffTheContainerAndSettlesOnItsBound()
+    {
+        var (window, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+            ReleaseInertia = new Inertia(0),
+        });
+        var peak = 0d;
+
+        Flick(window, 20, 0, 4);
+        for (var t = 0; t < 5000; t += 20)
+        {
+            Frames.Advance(20);
+            peak = Math.Max(peak, draggable.X);
+        }
+
+        Assert.True(peak > 150, $"the release never bounced past the bound, peaking at {peak}");
+        Assert.Equal(150d, draggable.X);
+    }
+
+    [AvaloniaFact]
+    public void ARefreshMidInertiaReleaseResolvesItAgainAndSettlesOnce()
+    {
+        var (window, container, target) = Show();
+        var settles = 0;
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+            ReleaseInertia = new Inertia(0) { TimeConstant = 200 },
+            OnSettle = _ => settles++,
+        });
+
+        // Released at 40 with a velocity of .5, bound for 140 inside the 150 bound.
+        Flick(window, 10, 0, 4);
+        Frames.Advance(60, 20);
+        container.Width = 100;
+        Dispatcher.UIThread.RunJobs();
+        draggable.Refresh();
+        var refreshed = draggable.X;
+        var peak = refreshed;
+        for (var t = 0; t < 5000; t += 20)
+        {
+            Frames.Advance(20);
+            peak = Math.Max(peak, draggable.X);
+        }
+
+        Assert.True(refreshed > 50, $"the release was already inside the new bound at {refreshed}");
+        Assert.True(peak > refreshed, "the resolved release did not carry the measured velocity on");
+        Assert.Equal(50d, draggable.X);
+        Assert.Equal(1, settles);
+    }
+
+    [AvaloniaFact]
+    public void AnInertiaReleaseLeavesADisabledAxisAlone()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Y = new DraggableAxisParams { Enabled = false },
+            ReleaseInertia = new Inertia(0),
+        });
+
+        Flick(window, 20, 20, 4);
+        Frames.Advance(5000, 20);
+
+        Assert.True(draggable.X > 80, $"the enabled axis did not coast on from 80, resting at {draggable.X}");
+        Assert.Equal(0d, draggable.Y);
+        Assert.Equal(0d, PrestoAvalonia.Get(target, "Y"));
+    }
 }

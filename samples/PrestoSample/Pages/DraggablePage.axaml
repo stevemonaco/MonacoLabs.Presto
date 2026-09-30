@@ -24,7 +24,15 @@
 
     <ScrollViewer>
         <StackPanel Spacing="12">
-            <TextBlock Classes="code" Text="PrestoAvalonia.CreateDraggable(SpringCard, new() { Container = Stage, ReleaseStiffness = 40, ReleaseDamping = 8, OnGrab = …, OnSnap = …, OnRelease = …, OnSettle = … })" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="caption" Text="Release" VerticalAlignment="Center" />
+                <ComboBox x:Name="ReleaseBox" Width="130" SelectedIndex="0" SelectionChanged="ReleaseChanged">
+                    <ComboBoxItem>Upstream</ComboBoxItem>
+                    <ComboBoxItem>Inertia</ComboBoxItem>
+                </ComboBox>
+            </StackPanel>
+
+            <TextBlock x:Name="SpringCode" Classes="code" />
 
             <Border Classes="stage" Padding="0" Height="300">
                 <Canvas x:Name="Stage">
@@ -73,7 +81,7 @@
             </Border>
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="The blue card is bounded by the stage and thrown on release by a soft spring, so flicking it at an edge lets it push past the bound and settle back on it — the readout and the log above follow that one. The yellow card snaps to a 40 unit grid, reporting every step it crosses through OnSnap. The rail only moves along x and is grabbed by its handle rather than by itself. All three take the grab and grabbing cursors and are created in a scope, so leaving the page reverts them." />
+                       Text="The blue card is bounded by the stage and thrown on release by a soft spring, so flicking it at an edge lets it push past the bound and settle back on it — the readout and the log above follow that one. The Inertia release instead coasts it to rest on a 40 unit grid and bounces it off the stage edge. The yellow card snaps to a 40 unit grid, reporting every step it crosses through OnSnap. The rail only moves along x and is grabbed by its handle rather than by itself. All three take the grab and grabbing cursors and are created in a scope, so leaving the page reverts them." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

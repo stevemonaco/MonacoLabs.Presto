@@ -1,6 +1,6 @@
 # Inertia — momentum from a velocity, with snapping and bounds
 
-Phase 33 in [PLAN.md](PLAN.md). Status: **planned**. This plan follows the post-Phase-27 gap review. Framer Motion's
+Phase 33 in [PLAN.md](PLAN.md). Status: **built**. This plan follows the post-Phase-27 gap review. Framer Motion's
 `inertia` and GSAP's InertiaPlugin let any value coast to a stop from a measured velocity, snap where it lands, and bounce
 off bounds. In Presto that motion exists only inside `Draggable`'s release, and even there it isn't a decay.
 
@@ -240,4 +240,32 @@ it. A `Duration` set beside an inertia tween is ignored for that tween, as it is
 
 ## 8. Deviations as built
 
-(Filled in as the phase lands.)
+- §7's open questions were settled as planned; defaults are unchanged.
+- **The solver** is `Core/InertiaSolver`, returning a `Plan(To, Duration, Ease, Then?)`. The decay duration is clamped to
+  `[0, 60000]`; a bounce lasts the crossing time plus the thrown spring's settling duration. A start outside the bounds
+  springs to the nearest bound with the spring's side-effect-free `PureEase`.
+- **The degenerate bounce** (decision 3) is taken not only at `bound == from` but whenever the crossing velocity
+  normalised by `bound − from` exceeds `K · 10`, i.e. a release just short of a bound. Its peak is found by stepping the
+  impulse response in `1e-3` s steps. `Plan.Then` carries the way back:
+  - The `Animation` constructor turns it into two consecutive tweens, as planned.
+  - `Animatable.Fling` has one tween per target, so it folds both parts into a single ease from the bound out to the
+    peak and back.
+- **`VelocityTracker`** takes values, not displacements: the first `Add` after `Reset` is only the baseline, and
+  `Velocity` is the signed sample of largest magnitude. `Reset` keeps the last sample time, as upstream does. `Draggable`
+  measures path length rather than a value, so it uses an internal `AddDisplacement(distance, time)` that reports
+  whether the sample was accepted. It keeps its own multiplier, `[MinVelocity, MaxVelocity]` clamp and 5-digit rounding,
+  applied only on an accepted sample, so the parity tests pass untouched.
+- **`Animatable.Fling`**:
+  - `Fling(property)` measures with Phase 18's velocity helper, and gives 0 when the animation is paused or finished.
+    The helper now handles any ease: a spring's ease is swapped for its `PureEase` by checking the delegate's `Target`,
+    which removed `CarryMomentum`'s `declared` parameter.
+  - When a property's targets resolve to different durations, every tween is sampled over the longest.
+  - The ease and duration from before the fling are saved and restored by the next scalar `Set`.
+- **`ReleaseInertia`** ignores the template's own `Velocity`, `Min` and `Max`. `Refresh` mid-throw re-resolves only when
+  the resting point falls outside the new bounds, through `Fling(property, settings)` from the current value and the
+  measured velocity. `ScrollInView` uses the longest fling's duration.
+- **No per-axis velocity on `Draggable`.** §3's `drag.VelocityX` does not exist: `Draggable` reports a speed and an
+  `Angle`, and `ReleaseInertia` splits them into `Velocity·cos(Angle)` and `Velocity·sin(Angle)` itself.
+- **Carousel sample.** It snaps through the draggable's `Snap` lambda, which `ReleaseInertia` uses as its
+  `ModifyTarget`, rather than a `ModifyTarget` on the template. The active dot is marked in `OnSettle` from the resting
+  `X` instead of in `OnSnap`, because `OnSnap` fires at release, before the inertia lands.

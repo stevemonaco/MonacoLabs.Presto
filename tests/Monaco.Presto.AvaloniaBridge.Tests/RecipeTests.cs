@@ -3,6 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
+using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -74,6 +76,19 @@ public sealed class RecipeTests : CompositorTestBase
         ["Dots"] = () => Recipes.Dots(),
         ["Indeterminate"] = () => Recipes.Indeterminate(100),
     };
+
+    private static readonly Dictionary<string, Func<PrestoPageTransition>> Pages = new()
+    {
+        ["PageFade"] = () => Recipes.PageFade(),
+        ["PageFadeThrough"] = () => Recipes.PageFadeThrough(),
+        ["PageSharedAxisX"] = () => Recipes.PageSharedAxis(PageAxis.X),
+        ["PageSharedAxisY"] = () => Recipes.PageSharedAxis(PageAxis.Y),
+        ["PageSharedAxisZ"] = () => Recipes.PageSharedAxis(PageAxis.Z),
+        ["PageSlide"] = () => Recipes.PageSlide(Edge.Bottom),
+        ["PagePush"] = () => Recipes.PagePush(Edge.Right),
+    };
+
+    public static TheoryData<string> PageNames => [.. Pages.Keys];
 
     public static TheoryData<string> EntranceNames => [.. Entrances.Keys];
 
@@ -170,6 +185,35 @@ public sealed class RecipeTests : CompositorTestBase
         {
             Recipes.Tokens = MotionTokens.Standard;
         }
+    }
+
+    [AvaloniaFact]
+    public void ReflowTakesItsTimingFromTheTokensAndIsALayoutMotion()
+    {
+        Recipes.Tokens = MotionTokens.Standard with { Medium = 999 };
+        try
+        {
+            var reflow = Recipes.Reflow().ToParams();
+
+            Assert.Equal((TweenValue)999, reflow.Duration);
+            Assert.Same(MotionTokens.Standard.Ease.Raw, reflow.Ease?.Raw);
+            Assert.Equal(999, LayoutMotion.From(Recipes.Reflow()).Duration);
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+    }
+
+    [AvaloniaFact]
+    public void ReducedReflowMovesInstantly()
+    {
+        Presto.Defaults.ReducedMotion = true;
+
+        var reduced = Recipes.Reflow(delay: 100).ToParams();
+
+        Assert.Equal((TweenValue)0, reduced.Duration);
+        Assert.Equal((TweenValue)0, reduced.Delay);
     }
 
     [AvaloniaFact]
@@ -368,6 +412,57 @@ public sealed class RecipeTests : CompositorTestBase
 
         Assert.Equal(42.5.ToString("0.0", CultureInfo.CurrentCulture), block.Text);
     }
+
+    [AvaloniaTheory]
+    [MemberData(nameof(PageNames))]
+    public void EveryPropertyOfAPageRecipeHasACompositionCounterpart(string name)
+    {
+        var builders = PageBuilders(Pages[name]()).ToArray();
+
+        Assert.True(builders.Length >= 2);
+        Assert.All(builders.SelectMany(b => b.ToParams().Properties.Keys), p => Assert.NotNull(CompositorProperty.Find(p)));
+    }
+
+    [AvaloniaTheory]
+    [MemberData(nameof(PageNames))]
+    public void ReducedMotionPlaysEachPageRecipesShortCrossfade(string name)
+    {
+        var transition = Pages[name]();
+        Presto.Defaults.ReducedMotion = true;
+
+        var enter = transition.Enter!.ToParams();
+        var exit = transition.Exit!.ToParams();
+
+        foreach (var reduced in PageBuilders(transition).Select(b => b.ToParams()))
+        {
+            Assert.Equal(["Opacity"], reduced.Properties.Keys);
+            Assert.Equal((TweenValue)MotionTokens.Standard.Short, reduced.Duration);
+            Assert.Equal((TweenValue)0, reduced.Delay);
+        }
+        Assert.Equal(0d, Assert.IsType<TweenParams>(enter.Properties["Opacity"].Raw).From?.Raw);
+        Assert.Equal(0d, exit.Properties["Opacity"].Raw);
+    }
+
+    [AvaloniaFact]
+    public void APageSlideTravelsTheWidthOfTheHostsParent()
+    {
+        Border from = new() { Width = 100, HorizontalAlignment = HorizontalAlignment.Left }, to = new() { Width = 100, HorizontalAlignment = HorizontalAlignment.Left };
+        Show(new Grid { Width = 300, Height = 200, Children = { from, to } });
+        Tick();
+        var transition = Recipes.PageSlide(Edge.Right);
+        transition.UseCompositor = false;
+
+        var done = transition.Start(from, to, forward: true, CancellationToken.None);
+
+        Assert.Equal(300, Value(to, "X"), 6);
+        Frames.Advance(MotionTokens.Standard.Medium / 2, 16);
+        Assert.InRange(Value(from, "X"), -299, -1);
+        RunUntil(() => done.IsCompleted);
+        Assert.Equal(0, Value(to, "X"), 6);
+    }
+
+    private static IEnumerable<AnimationBuilder> PageBuilders(PrestoPageTransition transition) =>
+        new[] { transition.Enter, transition.Exit, transition.BackEnter, transition.BackExit }.OfType<AnimationBuilder>();
 
     private static Func<AnimationBuilder> Build(string name) =>
         Entrances.TryGetValue(name, out var entrance) ? entrance

@@ -346,6 +346,96 @@ public sealed class AnimatablesTests : EngineTestBase
         Assert.Equal(before, Velocity(animatable), before * .02);
     }
 
+    [Fact]
+    public void AFlingWithoutAVelocityContinuesARunningSetAtItsSpeed()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 1000, Ease = "outQuad" });
+
+        animatable.Set("X", 500);
+        Frames.Advance(160, 16);
+        var before = Velocity(animatable);
+        animatable.Fling("X");
+
+        Assert.True(before > .1, $"moving at {before} per ms before the fling");
+        Assert.Equal(before, Velocity(animatable), before * .02);
+    }
+
+    [Fact]
+    public void AFlingTravelsPowerTimesVelocityTimesTimeConstant()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+
+        animatable.Fling("X", .5, new Inertia(3) { Power = 2, TimeConstant = 200 });
+        RunUntil(() => animatable.Animations["X"].Paused);
+
+        Assert.Equal(200, target.X, 1e-9);
+    }
+
+    [Fact]
+    public void AFlingPastABoundSettlesOnIt()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+
+        animatable.Fling("X", 2, new Inertia(0) { Min = -50, Max = 300 });
+        var peak = 0d;
+        while (!animatable.Animations["X"].Paused)
+        {
+            Frames.Advance(16);
+            peak = Math.Max(peak, target.X);
+        }
+
+        Assert.True(peak > 300, $"peaked at {peak}");
+        Assert.Equal(300, target.X, 1e-9);
+    }
+
+    [Fact]
+    public void AFlingOutwardFromABoundGoesOutAndBack()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+
+        animatable.Fling("X", 1, new Inertia(0) { Max = 0 });
+        var peak = 0d;
+        while (!animatable.Animations["X"].Paused)
+        {
+            Frames.Advance(16);
+            peak = Math.Max(peak, target.X);
+        }
+
+        Assert.True(peak > 1, $"peaked at {peak}");
+        Assert.Equal(0, target.X, 1e-9);
+    }
+
+    [Fact]
+    public void ASetAfterAFlingUsesTheDeclaredEaseAndDurationAgain()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100, Ease = "linear" });
+
+        animatable.Fling("X", 1);
+        Frames.Advance(48, 16);
+        animatable.Set("X", 0);
+
+        Assert.Equal(100, animatable.Animations["X"].Duration);
+        Assert.Equal(.25, animatable.Animations["X"]._headTween!._ease(.25));
+    }
+
+    [Fact]
+    public void RevertAFlungAnimatable()
+    {
+        var target = new StyleTarget { X = 10 };
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+
+        animatable.Fling("X", 1);
+        Frames.Advance(48, 16);
+        animatable.Revert();
+        animatable.Fling("X", 1);
+        Frames.Advance(48, 16);
+
+        Assert.Equal(10, target.X);
+    }
+
     private static Animatable MomentumFollower(StyleTarget target, bool preserveVelocity) =>
         Presto.CreateAnimatable(target, new() { ["X"] = new(), Ease = new Spring(stiffness: 120, damping: 12), PreserveVelocity = preserveVelocity });
 

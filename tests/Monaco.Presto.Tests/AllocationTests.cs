@@ -31,6 +31,16 @@ public sealed class AllocationTests : EngineTestBase
     }
 
     [Fact]
+    public void BouncingInertiaTweenTicksWithoutAllocating()
+    {
+        Presto.Animate(new StyleTarget(), new() { ["X"] = new Inertia(2) { Max = 300 }, Loop = true });
+
+        var bytes = BytesPerTick();
+
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
+    }
+
+    [Fact]
     public void ColorTweenTicksWithoutAllocating()
     {
         var target = new ColorTarget();

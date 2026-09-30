@@ -26,7 +26,7 @@ public partial class CarouselPage : ShowcasePage
 
     private static readonly (string Title, string Blurb, string Icon, ImmutableSolidColorBrush Tint)[] Slides =
     [
-        ("Throw it", "An x-only draggable snaps to the slide width and settles on a spring.", "PlayIcon", Palette.Accent),
+        ("Throw it", "An x-only draggable coasts on inertia and lands on a slide: flick hard to skip a few.", "PlayIcon", Palette.Accent),
         ("Parallax", "Every layer reads the strip's X in OnUpdate and moves at its own rate.", "StarIcon", Palette.Aqua),
         ("Indicators", "The active dot widens through a Width tween while the ring draws the autoplay.", "HeartIcon", Palette.Coral),
         ("Autoplay", "A looping Draw animation advances every four seconds and holds while hovered.", "GearIcon", Palette.AccentBright),
@@ -70,8 +70,7 @@ public partial class CarouselPage : ShowcasePage
             Y = new DraggableAxisParams { Enabled = false },
             ContainerBounds = _ => new Rect(-(Slides.Length - 1) * _slideWidth, 0, (Slides.Length - 1) * _slideWidth, 0),
             Snap = x => Utils.Snap(x, _slideWidth),
-            ReleaseStiffness = 180,
-            ReleaseDamping = 22,
+            ReleaseInertia = new Inertia(0),
             OnGrab = _ =>
             {
                 _travel?.Pause();
@@ -80,7 +79,7 @@ public partial class CarouselPage : ShowcasePage
                 Hold();
             },
             OnUpdate = drag => Parallax(drag.X),
-            OnSnap = drag => Mark((int)Math.Round(-drag.X / _slideWidth)),
+            OnSettle = drag => Mark((int)Math.Round(-drag.X / _slideWidth)),
             OnRelease = _ =>
             {
                 _dragging = false;

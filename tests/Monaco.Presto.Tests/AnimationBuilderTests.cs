@@ -90,6 +90,17 @@ public sealed class AnimationBuilderTests : EngineTestBase
     }
 
     [Fact]
+    public void AnInertiaPassesAsAPropertyValue()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Build().Property("X", new Inertia(1)).Animate(target);
+
+        animation.Complete();
+
+        Assert.Equal(350, target.X, 9);
+    }
+
+    [Fact]
     public void EveryTimerSettingAndCallbackMatchesTheIndexer()
     {
         Func<double, double> modifier = Math.Floor;

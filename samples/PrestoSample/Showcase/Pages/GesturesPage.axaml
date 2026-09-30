@@ -45,7 +45,7 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
         <Border Grid.Column="0" Classes="panel">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
@@ -101,6 +101,31 @@
                             </Border>
                             <StackPanel x:Name="Notifications" Spacing="4" Margin="8,0" VerticalAlignment="Bottom">
                                 <TextBlock Classes="eyebrow showcase" Text="NOTIFICATIONS" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </Panel>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="3" Classes="panel">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock DockPanel.Dock="Right" x:Name="SheetVelocity" Classes="code" Text="0.00" />
+                    <TextBlock Classes="eyebrow showcase" Text="BOTTOM SHEET" />
+                </DockPanel>
+                <Panel ClipToBounds="True">
+                    <TextBlock Text="Flick it" FontSize="28" FontWeight="Light" Margin="0,36,0,0"
+                               HorizontalAlignment="Center" Foreground="{x:Static showcase:Palette.InkDim}" />
+                    <Border x:Name="Sheet" Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="10,10,0,0"
+                            Margin="0,24,0,0">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Height="28" Background="Transparent" Cursor="Hand">
+                                <Border Width="36" Height="4" CornerRadius="2"
+                                        Background="{x:Static showcase:Palette.AccentBright}" />
+                            </Border>
+                            <StackPanel x:Name="Queue" Spacing="4" Margin="8,0">
+                                <TextBlock Classes="eyebrow showcase" Text="UP NEXT" />
                             </StackPanel>
                         </DockPanel>
                     </Border>

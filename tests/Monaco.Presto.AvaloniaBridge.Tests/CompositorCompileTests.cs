@@ -57,6 +57,26 @@ public sealed class CompositorCompileTests : BridgeTestBase
         Assert.False(spring.Completed);
     }
 
+    [AvaloniaFact]
+    public void AnInertiaCompilesToTheCurveTheUIThreadPlays()
+    {
+        var inertia = new Inertia(1) { Max = 100 };
+        var track = Assert.Single(Compile(new Border(), new() { ["X"] = inertia }));
+        var border = new Border();
+        var animation = Presto.Animate(border, new AnimationParams { ["X"] = inertia, Autoplay = false });
+
+        Assert.Equal(animation.Duration, track.Duration.TotalMilliseconds, 1e-3);
+        for (var i = 0; i <= 50; i++)
+        {
+            var progress = i / 50d;
+            animation.Seek(progress * animation.Duration);
+            var k = Math.Max(1, Array.FindIndex(track.Keys, key => key >= progress));
+            var local = (progress - track.Keys[k - 1]) / (track.Keys[k] - track.Keys[k - 1]);
+            var sampled = track.Values[k - 1][0] + ((track.Values[k][0] - track.Values[k - 1][0]) * track.Easings[k].Ease(local));
+            Assert.Equal((double)PrestoAvalonia.Get(border, "X")!, sampled, 1e-6);
+        }
+    }
+
     [AvaloniaTheory]
     [InlineData(0, 1)]
     [InlineData(1, 0)]

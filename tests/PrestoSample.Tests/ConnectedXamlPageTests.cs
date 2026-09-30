@@ -1,5 +1,4 @@
 using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
@@ -36,7 +35,7 @@ public sealed class ConnectedXamlPageTests
         Model(page).CrossFade = crossFade;
         var window = await Show(page);
         // The views still overlap for the whole fade, but the hero is only drawn in its exact tint once it is opaque.
-        if (crossFade) page.GetVisualDescendants().OfType<TransitioningContentControl>().Single().PageTransition = new CrossFade(TimeSpan.FromMilliseconds(16));
+        if (crossFade) page.GetVisualDescendants().OfType<TransitioningContentControl>().Single().PageTransition = Recipes.PageFade(16);
         var card = Cards(page)[Picked];
         var from = SceneHarness.Slot(Photo(card), window);
 

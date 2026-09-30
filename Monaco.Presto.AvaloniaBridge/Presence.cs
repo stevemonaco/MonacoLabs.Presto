@@ -1,13 +1,11 @@
-using System.Collections.Specialized;
-using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 
@@ -164,6 +162,7 @@ public static class Presence
         for (var visual = control.GetVisualParent(); visual is not null; visual = visual.GetVisualParent())
         {
             if (visual is not Control ancestor) continue;
+            if (IsPrestoPage(ancestor)) return PresenceMoment.Initial;
             if (ancestor.IsLoaded)
             {
                 moment = PresenceMoment.Enter;
@@ -188,6 +187,7 @@ public static class Presence
         if (parent is null || !parent.IsAttachedToVisualTree() || TopLevel.GetTopLevel(parent) is not { } top) return (PresenceMoment.Unload, default);
         // A view shown again re-creates its item containers before it has loaded, which is part of its load and not an exit.
         if (parent.FindAncestorOfType<Control>(includeSelf: true) is { IsLoaded: false }) return (PresenceMoment.Unload, default);
+        if (IsPrestoPage(parent) || !IsOnScreen(parent)) return (PresenceMoment.Unload, default);
         if (OwnerOfItem(parent) is { } owner && ItemChanges.Of(owner) is { } changes && !changes.Reset &&
             (control.DataContext is not { } item || !changes.Removed.Contains(item)))
         {
@@ -210,7 +210,7 @@ public static class Presence
     /// The list whose item <paramref name="parent"/> hosts as content: <paramref name="parent"/> is an item container, or
     /// part of one's template, such as a <see cref="ListBoxItem"/>'s presenter. Null for anything else.
     /// </summary>
-    private static ItemsControl? OwnerOfItem(Visual? parent) =>
+    internal static ItemsControl? OwnerOfItem(Visual? parent) =>
         // Found through the panel: a container being recycled has already lost the logical parent ItemsControlFromItemContainer reads.
         ItemContainerOf(parent) is { } container ? container.GetVisualParent()!.FindAncestorOfType<ItemsControl>() : null;
 
@@ -223,6 +223,25 @@ public static class Presence
     }
 
     private static bool IsItemContainer(Control control) => control.GetVisualParent() is Panel { IsItemsHost: true };
+
+    // A page navigated in or away under a Presto transition is part of that transition, not an arrival or exit of its own.
+    private static bool IsPrestoPage(Visual host) => ((host as Control)?.TemplatedParent switch
+    {
+        TransitioningContentControl owner => owner.PageTransition,
+        NavigationPage owner => owner.PageTransition,
+        TabControl owner when host is ContentPresenter => owner.PageTransition,
+        _ => OwnerOfItem(host) is Carousel carousel ? carousel.PageTransition : null,
+    }) is PrestoPageTransition;
+
+    private static bool IsOnScreen(Visual parent)
+    {
+        if (!parent.IsEffectivelyVisible) return false;
+        for (Visual? visual = parent; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual.Opacity == 0) return false;
+        }
+        return true;
+    }
 
     /// <summary>The items of <paramref name="list"/> whose rows have been shown, which <see cref="RevealOnceProperty"/> does not reveal again.</summary>
     internal static IReadOnlySet<object> Seen(ItemsControl list) => ItemChanges.For(list).Seen;
@@ -254,102 +273,10 @@ public static class Presence
         if (!s_batches.TryGetValue(key, out var batch))
         {
             s_batches[key] = batch = [];
-            AfterLayout((Layoutable)key, () => s_batches.Remove(key));
+            ItemChanges.AfterLayout((Layoutable)key, () => s_batches.Remove(key));
         }
         batch.Add(control);
         return (Animation)new Animation(control, builder.ToParams(), null, 0, index: batch.Count - 1, allTargets: batch.ToArray()).Init();
-    }
-
-    /// <summary>
-    /// Runs <paramref name="action"/> once the next layout pass has finished, which is where the arrivals and departures a
-    /// change causes have happened.
-    /// </summary>
-    /// <remarks>
-    /// Not a dispatcher priority: a desktop lays out on its next render tick, so a job posted after a click at any priority
-    /// below input runs before the layout pass it was meant to follow.
-    /// </remarks>
-    private static void AfterLayout(Layoutable target, Action action)
-    {
-        void Handle(object? sender, EventArgs e)
-        {
-            target.LayoutUpdated -= Handle;
-            Dispatcher.UIThread.Post(action, DispatcherPriority.Background);
-        }
-        target.LayoutUpdated += Handle;
-    }
-
-    /// <summary>
-    /// The items a list has just added and removed, and whether it has just reset, kept until the layout pass that realizes
-    /// them has finished. A list is watched from the first lifecycle arrival in it; until that pass ends it cannot yet tell
-    /// an added item from a realized one, so <see cref="Of"/> answers null and the arrival is classified by the general rule.
-    /// It also remembers the items whose rows have been shown, for <see cref="RevealOnceProperty"/>, until they leave the list,
-    /// and where the list was scrolled when the last layout pass ended.
-    /// </summary>
-    private sealed class ItemChanges
-    {
-        private static readonly ConditionalWeakTable<ItemsControl, ItemChanges> s_lists = new();
-
-        private readonly ItemsControl _owner;
-        private bool _watching;
-        private bool _clearing;
-        private Vector _offset;
-
-        private ItemChanges(ItemsControl owner)
-        {
-            _owner = owner;
-            owner.Items.CollectionChanged += OnCollectionChanged;
-            owner.LayoutUpdated += (_, _) => _offset = Scroller?.Offset ?? default;
-            Clear();
-        }
-
-        public HashSet<object> Added { get; } = [];
-
-        public HashSet<object> Removed { get; } = [];
-
-        public HashSet<object> Seen { get; } = [];
-
-        public bool Reset { get; private set; }
-
-        public bool Jumped => Scroller is { } scroll &&
-            (Math.Abs(scroll.Offset.X - _offset.X) > scroll.Viewport.Width || Math.Abs(scroll.Offset.Y - _offset.Y) > scroll.Viewport.Height);
-
-        private ScrollViewer? Scroller => _owner.ItemsPanelRoot?.FindAncestorOfType<ScrollViewer>();
-
-        public static ItemChanges For(ItemsControl owner) => s_lists.GetValue(owner, static list => new ItemChanges(list));
-
-        public static ItemChanges? Of(ItemsControl owner) => For(owner) is { _watching: true } changes ? changes : null;
-
-        private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (e.Action == NotifyCollectionChangedAction.Reset)
-            {
-                Reset = true;
-                Seen.Clear();
-            }
-            if (e.NewItems is { } added) foreach (var item in added) if (item is not null) Added.Add(item);
-            if (e.OldItems is { } removed)
-                foreach (var item in removed)
-                    if (item is not null)
-                    {
-                        Removed.Add(item);
-                        if (e.Action != NotifyCollectionChangedAction.Move) Seen.Remove(item);
-                    }
-            Clear();
-        }
-
-        private void Clear()
-        {
-            if (_clearing) return;
-            _clearing = true;
-            AfterLayout(_owner, () =>
-            {
-                Added.Clear();
-                Removed.Clear();
-                Reset = false;
-                _clearing = false;
-                _watching = true;
-            });
-        }
     }
 
     /// <summary>Owns an element's lifecycle animations, so a departure snapshots its exit before reverting its entrance.</summary>

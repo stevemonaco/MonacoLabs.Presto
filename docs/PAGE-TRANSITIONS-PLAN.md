@@ -1,6 +1,6 @@
 # Page transitions — a Presto `IPageTransition`
 
-Phase 31 in [PLAN.md](PLAN.md). Status: **planned**. Avalonia's page hosts take an `IPageTransition`, and the ones it
+Phase 31 in [PLAN.md](PLAN.md). Status: **built**. Avalonia's page hosts take an `IPageTransition`, and the ones it
 ships (`CrossFade`, `PageSlide`, `Rotate3DTransition`) are fixed shapes on Avalonia's own animation system: no Presto
 eases or springs, no recipes, no reduced motion, no render-thread playback. This phase adds one adapter that plays two
 `AnimationBuilder`s, so every host uses Presto motion from XAML with no code-behind.
@@ -196,4 +196,36 @@ or `new PrestoPageTransition { Enter = Recipes.SlideIn(Edge.Right), Exit = ... }
 
 ## 7. Deviations as built
 
-(Filled in as the phase lands.)
+- **Carousel axis (§6):** accepted. `Carousel.GetTransitionAxis` recognises only Avalonia's `PageSlide`, so a carousel
+  under a Presto transition lays out and swipes horizontally whatever its builders do; no `CompositePageTransition`
+  steering.
+- **Peeking carousels (§6):** `Update` with a non-empty `visibleItems` does nothing, as `PageSlide` does; there is no
+  offset-to-builder mapping.
+- **Progress runs:** `Update` keeps one (from, to, forward) run per transition instance. A new triple, or one whose host
+  was taken over or `Reset`, reverts the previous run before building the next, and a host a running `Start` holds is
+  reverted rather than taken over, because a seek measures from base values. A `Start` given an `Update`-driven host
+  takes it over like a cancelled one. Seeks ignore `Delay` (staging collapses while dragging) and `pageLength`.
+- **Completed swipes:** `VirtualizingCarouselPanel` resets the page it recycles but not the one a swipe lands on, so that
+  page keeps its seeked end values (its base values, and `ZIndex`) at `Animation` priority until the next transition or
+  recycle takes it over or resets it.
+- **Presence pop (decision 10, step 1):** reproduced headlessly in 12.1.2. After a `CrossFade` the host detaches the old
+  page while its presenter is at opacity 0, and its `Presence.Exit` ghosted; under `PrestoPageTransition` the page also
+  ghosted after its presenter was hidden. Both are fixed (`PresencePageTransitionTests`). The page hosts recognised are
+  `TransitioningContentControl` and `NavigationPage` presenters, a `TabControl`'s content presenter and `Carousel` item
+  containers; page content arriving through any wrapper the arrival walk crosses classifies as `Initial`.
+- **Exit detection (step 1):** in compiled XAML a markup extension on a plain object's CLR property sees
+  `TargetObject` as the object and `TargetProperty` as an `Avalonia.Data.Core.ClrPropertyInfo` (an `IPropertyInfo`
+  naming the property but not its declaring type), so `RecipeExtension` matches `TargetObject is PrestoPageTransition`
+  plus the name `Exit`/`BackExit`. A style `Setter.Value` also reports a `ClrPropertyInfo`, with the `Setter` as target.
+  A `PrestoPageTransition` in `Resources` is deferred, so the check applies when the resource is first resolved.
+- **Page recipes:** `PageFadeThrough` spends 30% of its duration on the exit and delays the enter by as much, and sets
+  its `Back` pair to the forward one so it stages the same way both ways; the others reverse. `PageSharedAxis` exits
+  over `Short` and enters over `Medium`, like the entrance and exit families, and ignores `distance` along Z (the
+  outgoing page grows to `2 − Scale`). `PagePush` dims the outgoing page to opacity 0.6. Full-size travel reads the
+  host's visual parent's `Bounds`, or the host's own when it has no parent.
+- **`NavigationPage`** matched §0 in 12.1.2 (`PART_PagePresenter`/`PART_PageBackPresenter`, `PushAsync`/`PopAsync`
+  await the transition); it only calls `Start`.
+- **Samples (§5):** the Reference page "Page transitions" (`PageTransitionsPage`) prints the chosen transition's C# and
+  XAML beneath the stage rather than beside it, so the code fits the gallery's width. Its freeze button advances a page
+  and sleeps the dispatcher after the next animation frame, so the transition has started on the compositor first. The
+  carousel uses `Carousel.IsSwipeEnabled`, the 12.1.2 name.

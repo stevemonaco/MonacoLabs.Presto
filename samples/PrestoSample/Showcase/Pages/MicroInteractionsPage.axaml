@@ -36,6 +36,10 @@
         <Style Selector="TabStripItem:selected /template/ Border#PART_SelectedPipe">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+        <Style Selector="StackPanel#Accordion > Expander">
+            <Setter Property="presto:Animate.Layout" Value="{presto:Reflow 380, Ease=outQuint}" />
+            <Setter Property="presto:Animate.LayoutMode" Value="PositionAndSize" />
+        </Style>
         <Style Selector="TextBox.invalid /template/ Border#PART_BorderElement">
             <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Coral}" />
         </Style>
@@ -112,7 +116,7 @@
 
             <StackPanel Grid.Row="1" Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="ACCORDION" />
-                <TextBlock Classes="code" Margin="0" Text="AnimateLayout(360, OutQuint, PositionAndSize)" />
+                <TextBlock Classes="code" Margin="0" Text="Animate.Layout {presto:Reflow 380}, LayoutMode PositionAndSize" />
                 <Border Classes="stage">
                     <StackPanel x:Name="Accordion" Spacing="6">
                         <Expander Header="Shipping" HorizontalAlignment="Stretch" Expanding="Expanding">

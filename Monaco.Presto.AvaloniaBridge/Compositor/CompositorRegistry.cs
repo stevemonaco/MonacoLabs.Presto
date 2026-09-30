@@ -30,6 +30,10 @@ internal static class CompositorRegistry
         held[(int)kind] = owner;
     }
 
+    /// <summary>Whoever drives <paramref name="kind"/> on <paramref name="visual"/>, if anyone.</summary>
+    public static ICompositorTrackOwner? Holder(Visual visual, CompositorTrackKind kind) =>
+        s_held.TryGetValue(visual, out var held) ? held[(int)kind] : null;
+
     /// <summary>Drops <paramref name="owner"/>'s claim on <paramref name="kind"/>, if it still holds it.</summary>
     public static void Drop(Visual visual, CompositorTrackKind kind, ICompositorTrackOwner owner)
     {

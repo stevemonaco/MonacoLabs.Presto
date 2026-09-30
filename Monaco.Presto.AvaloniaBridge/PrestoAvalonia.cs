@@ -108,24 +108,23 @@ public static class PrestoAvalonia
 
     /// <summary>Runs a snapshot of <paramref name="builder"/> on the render thread, as the <see cref="CompositorAnimationParams"/> overload does.</summary>
     /// <exception cref="NotSupportedException">The builder set something the compositor has no counterpart for.</exception>
-    public static CompositorAnimation AnimateOnCompositor(object? targets, AnimationBuilder builder)
+    public static CompositorAnimation AnimateOnCompositor(object? targets, AnimationBuilder builder) =>
+        RunOnCompositor(targets, builder.ToParams());
+
+    /// <summary>Whether <paramref name="p"/> can run on the render thread: no setting the compositor lacks and a composition counterpart for every property.</summary>
+    internal static bool FitsCompositor(AnimationParams p)
     {
-        var p = builder.ToParams();
-        var unsupported =
-            p.Keyframes != null ? nameof(p.Keyframes) :
-            p.FrameRate != null ? nameof(p.FrameRate) :
-            p.PlaybackEase != null ? nameof(p.PlaybackEase) :
-            p.Composition != null ? nameof(p.Composition) :
-            p.Modifier != null ? nameof(p.Modifier) :
-            p.Id != null ? nameof(p.Id) :
-            p.Priority != new TimerParams().Priority ? nameof(p.Priority) :
-            p.OnBeforeUpdate != null ? nameof(p.OnBeforeUpdate) :
-            p.OnUpdate != null ? nameof(p.OnUpdate) :
-            p.OnLoop != null ? nameof(p.OnLoop) :
-            p.OnPause != null ? nameof(p.OnPause) :
-            p.OnRender != null ? nameof(p.OnRender) :
-            null;
-        if (unsupported != null) throw new NotSupportedException($"{unsupported} has no counterpart on the compositor.");
+        if (UnsupportedOnCompositor(p) != null) return false;
+        foreach (var name in p.Properties.Keys)
+        {
+            if (CompositorProperty.Find(name) == null) return false;
+        }
+        return true;
+    }
+
+    internal static CompositorAnimation RunOnCompositor(object? targets, AnimationParams p)
+    {
+        if (UnsupportedOnCompositor(p) is { } unsupported) throw new NotSupportedException($"{unsupported} has no counterpart on the compositor.");
 
         var parameters = new CompositorAnimationParams
         {
@@ -146,13 +145,29 @@ public static class PrestoAvalonia
         return AnimateOnCompositor(targets, parameters);
     }
 
+    private static string? UnsupportedOnCompositor(AnimationParams p) =>
+        p.Keyframes != null ? nameof(p.Keyframes) :
+        p.FrameRate != null ? nameof(p.FrameRate) :
+        p.PlaybackEase != null ? nameof(p.PlaybackEase) :
+        p.Composition != null ? nameof(p.Composition) :
+        p.Modifier != null ? nameof(p.Modifier) :
+        p.Id != null ? nameof(p.Id) :
+        p.Priority != new TimerParams().Priority ? nameof(p.Priority) :
+        p.OnBeforeUpdate != null ? nameof(p.OnBeforeUpdate) :
+        p.OnUpdate != null ? nameof(p.OnUpdate) :
+        p.OnLoop != null ? nameof(p.OnLoop) :
+        p.OnPause != null ? nameof(p.OnPause) :
+        p.OnRender != null ? nameof(p.OnRender) :
+        null;
+
     /// <inheritdoc cref="AnimateOnCompositor(object?, AnimationBuilder)"/>
     public static CompositorAnimation AnimateOnCompositor(object? targets, Action<AnimationBuilder> build) =>
         AnimateOnCompositor(targets, Presto.Build(build));
 
     /// <summary>
     /// Upstream <c>createLayout</c>: eases <paramref name="control"/> into its new place over <paramref name="duration"/>
-    /// milliseconds whenever layout moves it, on the render thread (COMPOSITOR-PLAN §4.4).
+    /// milliseconds whenever layout moves it, on the render thread (COMPOSITOR-PLAN §4.4). From XAML, set
+    /// <see cref="Animate.LayoutProperty"/> or <see cref="Animate.ItemLayoutProperty"/>.
     /// </summary>
     /// <remarks>
     /// The move is inverted onto the composition transform, so <see cref="Visual.Bounds"/> is still right in the layout pass
@@ -172,7 +187,8 @@ public static class PrestoAvalonia
     /// <summary>
     /// <see cref="AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/> with the motion taken from
     /// <paramref name="builder"/>: its duration, delay and ease, and per-axis eases given as <c>.X(ease: …)</c>,
-    /// <c>.Y(ease: …)</c> and <c>.Scale(ease: …)</c>. Easing X and Y differently curves the move into an arc.
+    /// <c>.Y(ease: …)</c> and <c>.Scale(ease: …)</c>. Easing X and Y differently curves the move into an arc. From XAML, set
+    /// <see cref="Animate.LayoutProperty"/> or <see cref="Animate.ItemLayoutProperty"/>.
     /// </summary>
     /// <exception cref="NotSupportedException">
     /// The builder gives X, Y or Scale a value, which is layout's to decide, or sets anything else a layout transition cannot honour.

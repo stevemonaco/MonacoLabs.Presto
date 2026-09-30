@@ -1,6 +1,6 @@
 # Declarative layout animation — `AnimateLayout` from XAML
 
-Phase 32 in [PLAN.md](PLAN.md). Status: **planned**. This plan follows the post-Phase-27 gap review. Framer Motion's most
+Phase 32 in [PLAN.md](PLAN.md). Status: **steps 1–4 built; sample migration (step 5) pending**. This plan follows the post-Phase-27 gap review. Framer Motion's most
 used feature is its `layout` prop: any change of an element's layout box eases instead of jumping. Presto already has the
 engine for it, `AnimateLayout` (COMPOSITOR-PLAN §4.4, FLIP inverted onto the composition `Translation`), but only from code.
 Every list in the sample arms it from a `ContainerPrepared` handler inside a scope, and every panel re-arms its children in
@@ -186,4 +186,25 @@ The Lifecycle or Activity feed page gains a short note that layout goes on the c
 
 ## 8. Deviations as built
 
-(Filled in as the phase lands.)
+- **No `Rebase()`.** Rebasing is a revert plus a record-first re-arm. `LayoutTransition`'s internal constructor gained
+  `recordFirst` (leave First unset so the first pass only records) and `scoped: false` (skip the ambient scope).
+  `ContainerClearing` releases the container's arm rather than rebasing it, and `ContainerPrepared` arms it again as if
+  attaching, so a recycled container records its new slot.
+- **Scroll rule lives on the transition.** `Presence.ItemChanges` and `AfterLayout` moved to an internal top-level
+  `ItemChanges` (`ItemChanges.cs`) rather than a new helper, adding `Pending` (a collection change not yet realized) and
+  `Scrolled` (an offset change this pass, readable from whichever handler runs first). A transition with the internal
+  `List` option cancels to identity and records on a pass that scrolled with nothing pending. `LayoutArm` sets it for
+  `ItemLayout` containers and for `Animate.Layout` on an item container, found through `Presence.OwnerOfItem`, now internal.
+- **`LayoutArm` has its own file** (`LayoutArm.cs`, internal), not a nested class beside `Trigger`. The list side is
+  a private `ItemArms` class in `Animate.cs`, which reads `Animate.LayoutMode` from the list.
+- **Flight precedence** uses an internal `Replaced` callback, `Once` and `Live(control)` on `LayoutTransition`. The re-arm
+  waits for the flight's `Then()` after the next layout pass, because a flight has nothing to await until it plays. Arming
+  while a flight is already in the air follows that flight as well. A transition reverted earlier in the same layout pass
+  no longer plays from the event's snapshot.
+- **`ReduceAll` needed a fix.** A move whose compiled compositor track has zero duration and zero delay is no longer
+  started, because a zero-length composition animation can draw its first key for a frame. It lands in one frame.
+- **`Reflow` lives in a new `Prebuilt/Layouts` family,** not `Interactions`, whose "short, reduced keeps colour" summary
+  would not fit. `ReflowExtension` takes the duration positionally. `Stagger` makes the delay per-target, which
+  `LayoutMotion.From` rejects.
+- **Invalid builders throw where they are set.** `Animate.Layout` validates even while detached, and `Animate.ItemLayout`
+  validates before any container is realized.
