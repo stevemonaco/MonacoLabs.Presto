@@ -4,8 +4,10 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -486,6 +488,108 @@ public sealed class RecipeTests : CompositorTestBase
         Assert.Equal(0, sheet.Frame);
     }
 
+    [AvaloniaFact]
+    public void TheImageRecipesTargetTheFilters()
+    {
+        var colorize = Recipes.Colorize().ToParams();
+        var develop = Recipes.Develop().ToParams();
+        var flash = Recipes.FlashTint().ToParams();
+
+        Assert.Equal([Key(PrestoImageBase.GrayscaleProperty), Key(PrestoImageBase.SaturateProperty)], colorize.Properties.Keys);
+        Assert.Equal(0d, colorize[Key(PrestoImageBase.GrayscaleProperty)].Raw);
+        Assert.Equal(1d, colorize[Key(PrestoImageBase.SaturateProperty)].Raw);
+        Assert.Equal(["Opacity", Key(PrestoImageBase.SepiaProperty), Key(PrestoImageBase.BrightnessProperty), "Blur"], develop.Properties.Keys);
+        Assert.Equal((TweenValue)MotionTokens.Standard.Long, develop.Duration);
+        Assert.Equal([Key(PrestoImageBase.TintColorProperty), Key(PrestoImageBase.TintProperty)], flash.Properties.Keys);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ColorizeHoversAGrayscaleImageToFullColourAndBack(bool reduced)
+    {
+        var image = Photo();
+        image.Grayscale = 1;
+        var window = Show(image);
+        Presto.Defaults.ReducedMotion = reduced;
+        Motion.SetHover(image, Recipes.Colorize());
+
+        window.MouseMove(new Point(25, 25));
+        Frames.Advance(400, 10);
+        Assert.Equal(0, image.Grayscale, 6);
+        Assert.Equal(1, image.Saturate, 6);
+        Assert.False(image.IsFiltering);
+
+        window.MouseMove(new Point(150, 150));
+        Frames.Advance(400, 10);
+        Assert.Equal(1, image.Grayscale, 6);
+        Assert.Empty(Presto.GetAnimations(image));
+    }
+
+    [AvaloniaFact]
+    public void DevelopSettlesFromSepiaBrightnessAndBlurOntoTheImagesRestingValues()
+    {
+        var image = Photo();
+
+        var animation = Recipes.Develop(duration: 400).Autoplay(false).Animate(image);
+        animation.Seek(0);
+        Assert.Equal(0.8, image.Sepia, 6);
+        Assert.Equal(1.6, image.Brightness, 6);
+        Assert.Equal(MotionTokens.Standard.BlurRadius, Value(image, "Blur"), 6);
+        animation.Seek(400);
+
+        Assert.Equal(0, image.Sepia, 6);
+        Assert.Equal(1, image.Brightness, 6);
+        Assert.Equal(0, Value(image, "Blur"), 6);
+        Assert.Equal(1, image.Opacity, 6);
+        Assert.False(image.IsFiltering);
+    }
+
+    [AvaloniaFact]
+    public void FlashTintRaisesTheTintInItsColourAndEndsAtIdentity()
+    {
+        var image = Photo();
+
+        var animation = Recipes.FlashTint(Colors.Gold, 0.5, duration: 400, ease: "linear").Autoplay(false).Animate(image);
+        animation.Seek(200);
+        Assert.Equal(0.5, image.Tint, 6);
+        Assert.Equal(Colors.Gold, image.TintColor);
+        animation.Seek(400);
+
+        Assert.Equal(0, image.Tint, 6);
+        Assert.False(image.IsFiltering);
+    }
+
+    [AvaloniaFact]
+    public void ReducedDevelopAndFlashTintOnlyFadeOrBlink()
+    {
+        var image = Photo();
+        Presto.Defaults.ReducedMotion = true;
+
+        foreach (var build in new Func<AnimationBuilder>[] { () => Recipes.Develop(), () => Recipes.FlashTint() })
+        {
+            Assert.Equal(["Opacity"], build().ToParams().Properties.Keys);
+            var animation = build().Animate(image);
+            Assert.Equal(MotionTokens.Standard.Short, animation.Duration);
+            RunUntil(() => animation.Completed);
+            Assert.Equal(1, image.Opacity, 6);
+            Assert.False(image.IsFiltering);
+        }
+    }
+
+    private static string Key(AvaloniaProperty property) => AvaloniaObjectTargetAdapter.Encode(property);
+
+    private static FilteredImage Photo()
+    {
+        var bitmap = new RenderTargetBitmap(new PixelSize(10, 10));
+        using (var context = bitmap.CreateDrawingContext()) context.FillRectangle(Brushes.Red, new Rect(0, 0, 10, 10));
+        return new FilteredImage
+        {
+            Source = bitmap, Width = 50, Height = 50, Stretch = Stretch.Fill,
+            HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
+        };
+    }
+
     private static IEnumerable<AnimationBuilder> PageBuilders(PrestoPageTransition transition) =>
         new[] { transition.Enter, transition.Exit, transition.BackEnter, transition.BackExit }.OfType<AnimationBuilder>();
 
@@ -497,5 +601,5 @@ public sealed class RecipeTests : CompositorTestBase
         : Interactions.TryGetValue(name, out var interaction) ? interaction
         : Loading[name];
 
-    private static double Value(Border card, string property) => Convert.ToDouble(Presto.Get(card, property, withUnit: false));
+    private static double Value(Visual card, string property) => Convert.ToDouble(Presto.Get(card, property, withUnit: false));
 }

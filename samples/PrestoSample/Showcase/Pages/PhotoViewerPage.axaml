@@ -26,7 +26,10 @@
             </ListBox.ItemsPanel>
         </ListBox>
 
-        <Carousel x:Name="Photos" ClipToBounds="True" IsSwipeEnabled="True" SelectionChanged="PhotoChanged"
-                  PageTransition="{presto:PageSlide Edge=Right}" />
+        <Panel>
+            <presto:FilteredImage x:Name="Backdrop" Stretch="UniformToFill" Brightness="0.35" SourceTransition="Dissolve 700" />
+            <Carousel x:Name="Photos" ClipToBounds="True" IsSwipeEnabled="True" SelectionChanged="PhotoChanged"
+                      PageTransition="{presto:PageSlide Edge=Right}" />
+        </Panel>
     </DockPanel>
 </showcase:ShowcasePage>

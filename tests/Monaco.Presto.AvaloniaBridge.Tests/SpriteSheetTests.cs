@@ -155,6 +155,19 @@ public sealed class SpriteSheetTests : CompositorTestBase
             Assert.All(Row(sheet, y)[..40], pixel => Assert.Equal(Cells[5], pixel));
     }
 
+    [AvaloniaFact]
+    public void AFilteredFrameIsFilteredWithoutNeighbouringCells()
+    {
+        var sheet = ShowSheet(Sheet(), Stretch.Fill, 40, BitmapInterpolationMode.Unspecified);
+
+        sheet.Frame = 5;
+        sheet.Invert = 1;
+        Tick();
+
+        for (var y = 0; y < 40; y++)
+            Assert.All(Row(sheet, y)[..40], pixel => Assert.Equal(Colors.Lime, pixel));
+    }
+
     private static SpriteSheet ShowSheet(IImage source, Stretch stretch = Stretch.None, double size = double.NaN,
         BitmapInterpolationMode interpolation = BitmapInterpolationMode.None)
     {

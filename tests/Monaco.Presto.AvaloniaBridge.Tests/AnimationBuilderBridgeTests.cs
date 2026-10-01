@@ -90,6 +90,51 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ImageFilterMethodsWriteTheIndexerKeysAndValues()
+    {
+        var expected = new AvaloniaAnimationParams
+        {
+            [PrestoImageBase.BrightnessProperty] = 1.5, [PrestoImageBase.ContrastProperty] = 2, [PrestoImageBase.SaturateProperty] = 0.5,
+            [PrestoImageBase.GrayscaleProperty] = 1, [PrestoImageBase.SepiaProperty] = 0.8, [PrestoImageBase.HueRotateProperty] = 180,
+            [PrestoImageBase.InvertProperty] = 1, [PrestoImageBase.TintProperty] = 0.5, [PrestoImageBase.TintColorProperty] = TweenValue.Of(Colors.Red),
+            [PrestoImageBase.DuotoneProperty] = 1, [PrestoImageBase.DuotoneShadowProperty] = TweenValue.Of(Colors.Black), [PrestoImageBase.DuotoneHighlightProperty] = TweenValue.Of(Colors.White),
+        };
+
+        var actual = Presto.Build()
+            .Brightness(1.5).Contrast(2).Saturate(0.5).Grayscale(1).Sepia(0.8).HueRotate(180).Invert(1).Tint(0.5).TintColor(Colors.Red)
+            .Duotone(1).DuotoneShadow(Colors.Black).DuotoneHighlight(Colors.White)
+            .ToParams();
+
+        Assert.Equal(expected.Properties.Keys, actual.Properties.Keys);
+        foreach (var key in expected.Properties.Keys) Assert.Equal(expected[key].Raw, actual[key].Raw);
+    }
+
+    [AvaloniaFact]
+    public void ImageFilterOverloadsWriteTheSameKey()
+    {
+        FunctionValue function = (_, i, _) => i;
+        var key = AvaloniaObjectTargetAdapter.Encode(PrestoImageBase.GrayscaleProperty);
+
+        Assert.Equal([key], Presto.Build().Grayscale(1).ToParams().Properties.Keys);
+        Assert.Equal([key], Presto.Build().Grayscale(from: 1, to: 0, duration: 100).ToParams().Properties.Keys);
+        Assert.Equal([key], Presto.Build().Grayscale(function).ToParams().Properties.Keys);
+        Assert.Equal([key], Presto.Build().Grayscale(k => k.To(1).To(0)).ToParams().Properties.Keys);
+    }
+
+    [AvaloniaFact]
+    public void AFilterMethodAnimatesEveryImageOnTheBase()
+    {
+        PrestoImageBase[] images = [new FilteredImage(), new SpriteSheet(), new ImageSequence()];
+
+        Presto.Build().Grayscale(1).Dissolve(1).DissolveScale(12).DissolveSoftness(0.3).Pixelate(8).Ripple(4).RippleScale(20)
+            .Duration(100).Animate(images);
+        Frames.Advance(200);
+
+        Assert.All(images, image => Assert.Equal((1, 1, 12, 0.3, 8, 4, 20),
+            (image.Grayscale, image.Dissolve, image.DissolveScale, image.DissolveSoftness, image.Pixelate, image.Ripple, image.RippleScale)));
+    }
+
+    [AvaloniaFact]
     public void TypedEffectValuesAreWrappedAsTheIndexerWouldWrapThem()
     {
         var parameters = Presto.Build()

@@ -269,6 +269,9 @@ pill becomes a count of "N new above" that scrolls to the top. At the top, event
     `LayoutTransition` also moves in one frame when it is set, not only when `Scrolled` is set without `Pending`, so
     both the insert pass and the compensating pass ease nothing.
   - **Enter.** An insert into the partly shown band above the anchor row is in view, so it enters.
+  - **Phase 39.** The anchor also ends when a pass finishes at an offset other than the one the change or the last
+    correction left, since the reader scrolled, rather than correcting that scroll away (PLAN §7 decision 40,
+    LIFECYCLE-PLAN §10.7).
 - **Item 7 (sample).** Built as planned. The view model inserts every live event at once and counts one in `Unseen`
   when the feed is off the top, and reaching the top clears the count (the held list and `Release` are gone). The pill
   reads "N new above". `ScrolledDownLiveEventsInsertAtOnceWithoutMovingTheRowsAndAPillCountsThem` replaces the hold

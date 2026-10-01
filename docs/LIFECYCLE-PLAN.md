@@ -347,8 +347,8 @@ replays on every recycle. `ScrollObserver` watches a `ScrollViewer`, not recycle
   Desktop hand check of the feed, not yet done.
 - **Inserts above a scrolled list.** The Activity feed no longer holds live events back while scrolled down: with
   `Presence.ScrollAnchor` (Phase 34) it inserts them at once. An event inserted above the rows in view is not realized,
-  so `Enter` neither plays nor marks it seen, and it is revealed when scrolled to, like any unseen row. How those rows
-  reveal together is PLAN Phase 39.
+  so `Enter` neither plays nor marks it seen, and it is revealed when scrolled to, like any unseen row. They reveal a
+  scroll step at a time as of PLAN Phase 39 (§10.7).
 
 ### 10.6 Spike
 
@@ -365,3 +365,49 @@ Headless `ListBox` of 200 rows, 300 high (about 40 per row), measured before `re
   per frame covers more than a viewport. A touchpad fling cannot be driven headless and is left for the Desktop head.
   One viewport therefore separates a wheel notch and a slow drag from jumps and fast drags, and a fast drag snapping
   is what §10.2.4 intends.
+
+### 10.7 Phase 39 (as built)
+
+Each bug was pinned by a failing headless test before its fix, measured on the Activity feed (viewport 690, rows 68
+apart, extent about 140 000) and in `ScrollAnchorTests`. The tests pass now and stay as regressions.
+
+**Bug A: new rows do not reveal one scroll step at a time.**
+- **Input.** `EventsInsertedAboveRevealOnlyInThePassThatBringsThemIntoView`: three live events at 300 or 3000, then single
+  wheel notches up (15 or 60 frames apart) or a 1 px-per-move thumb drag. The live timer keeps inserting every 4 s.
+  Fails at 3000 by wheel and by drag, and at 300 with 60 frames between notches.
+- **Cause.** Without an insert mid-scroll each notch reveals one new row, but `Tracker.HandleAttached` adds to `Seen` on
+  every attach, including rows realized only in the insert pass that the anchor correction scrolls away before anything
+  is drawn. A row re-attached in that pass loses its running reveal and, now seen, does not start another.
+- **Fix.** A row realized for a reveal is not marked seen: its list holds it (`ItemChanges.Held`) until a
+  layout pass ends with its container intersecting the viewport. The held rows that pass shows then reveal as one batch
+  in realization order. A pass whose anchor correction scrolled is skipped, a jump marks the held rows seen, and a
+  detach drops them. A second path lost reveals too: on a plain list a notch reveals a row, and the insert landing in the
+  same frame re-realizes it, reverting the reveal. So a recycle while the list is anchoring forgets a row whose reveal
+  has not finished. `PresenceLifecycleTests.RowsInsertedAboveAScrolledListRevealInTheWheelNotchThatBringsThemIntoView`
+  (1000) pins that path, and the `CacheLength` cases pin rows realized out of view.
+
+**Bug B: scrolling to the top lands on an old row.**
+- **Input.** `ScrollingBackToTheTopLandsThereWithTheNewestEventShown`, "before the anchor clears": from 300 with three
+  inserts, wheel up to 83, insert one event and run one layout pass, then scroll to 0 by 10 notches or a 100 px drag
+  sent before the dispatcher runs its Background jobs, and run the next pass. The headless input methods run queued jobs
+  first, so the test calls `IHeadlessWindow` directly. `AWheelNotchBeforeTheAnchorClearsIsNotUndone` does the same on
+  the 30/90 rows.
+- **Cause.** `ItemChanges._anchor` lives until `AfterLayout`'s Background post, and `OnLayoutUpdated`
+  corrects on every pass while it is set. A scroll in that window is undone. On a desktop, jobs below `Input` wait while
+  input is pending, so a continuous wheel or drag keeps the anchor alive for the passes that follow.
+- **Fix (deviates from FIXES-PLAN §7).** `ItemChanges` keeps the offset the anchor expects: the offset at
+  the change, then the offset each correction leaves. A pass that ends at any other offset was scrolled by the reader,
+  so it drops the anchor instead of correcting. The anchor still waits for the Background clear otherwise, since the
+  panel's shift can show one pass after the insert. `AScrollToTheTopBeforeTheAnchorClearsStaysThereWithTheAddedRowShown`
+  pins it on a plain `ListBox`.
+
+**Desktop check.** DevTools can send clicks and keys but not wheel or drag input, so the Desktop feed (viewport 465) was
+driven by scrollbar line and page buttons and `PageUp`/`PageDown`, with live events landing throughout. Scrolled
+to 1 400 with three to six events above, each step up revealed only the new rows it brought in (Reveal 24 → 25 → 26
+→ 27, then +7 staggered for a page) and ended at `0, 0` with the newest row and the day header shown and the pill
+cleared; an event landing at 0 kept the offset there. The pill click snapped to the top with Reveal unchanged
+(§10.2.4). Wheel notches, touchpad scrolling and thumb drags are covered by the headless tests only.
+
+**Open: manual wheel/drag check on Desktop.** Neither bug reproduced from DevTools-set offsets, and Bug B's cause
+(Background jobs starved while wheel or drag input is pending) is inferred from dispatcher priorities, not observed. A
+manual pass with a mouse wheel, touchpad and thumb drag on the Desktop Activity feed is still needed to confirm both fixes.

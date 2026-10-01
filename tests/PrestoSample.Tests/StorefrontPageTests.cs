@@ -140,6 +140,25 @@ public sealed class StorefrontPageTests
         Assert.False(Presto.Defaults.ReducedMotion);
     }
 
+    [AvaloniaFact]
+    public void ASoldOutPictureIsGrayAndColorizesWhileHovered()
+    {
+        var (window, page) = Loaded();
+        var card = Cards(page).First(card => ((Product)card.DataContext!).SoldOut);
+        var picture = card.GetLogicalDescendants().OfType<FilteredImage>().Single();
+        Assert.Equal(1, picture.Grayscale);
+        Assert.False(Button(card, "Add").IsEnabled);
+
+        window.MouseMove(Top(card, window));
+        TestFrames.Tick(30);
+        Assert.Equal(0, picture.Grayscale, 6);
+
+        window.MouseMove(new Point(1, 1));
+        TestFrames.Tick(30);
+        Assert.Equal(1, picture.Grayscale, 6);
+        SceneHarness.Close(window);
+    }
+
     private static (Window Window, StorefrontPage Page) Loaded()
     {
         var page = new StorefrontPage();

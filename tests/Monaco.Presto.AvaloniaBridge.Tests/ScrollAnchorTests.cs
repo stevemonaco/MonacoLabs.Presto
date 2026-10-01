@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -162,6 +163,47 @@ public sealed class ScrollAnchorTests : CompositorTestBase
         Assert.False(rows.TryGetValue("added", out var added) && added.IsAttachedToVisualTree() && added.IsEffectivelyVisible, "the added row is in view");
         Assert.All(Realized(rows), row => Assert.Equal(1, row.Opacity));
     }
+
+    [AvaloniaTheory]
+    [InlineData(100)]
+    [InlineData(3100)]
+    public void AWheelNotchBeforeTheAnchorClearsIsNotUndone(double offset)
+    {
+        var items = Rows(200);
+        var list = Show(Feed(items));
+        Jump(list, offset);
+        items.Insert(1, "added");
+        list.UpdateLayout();
+        var anchored = list.Scroll!.Offset.Y;
+
+        UnqueuedWheel((Window)TopLevel.GetTopLevel(list)!, new Point(20, 100), new Vector(0, 1));
+        Assert.Equal(anchored - 50, list.Scroll.Offset.Y);
+        list.UpdateLayout();
+        Tick();
+
+        Assert.Equal(anchored - 50, list.Scroll.Offset.Y);
+    }
+
+    [AvaloniaFact]
+    public void AScrollToTheTopBeforeTheAnchorClearsStaysThereWithTheAddedRowShown()
+    {
+        var items = Rows(200);
+        var list = Show(Feed(items));
+        Jump(list, 100);
+        items.Insert(0, "added");
+        list.UpdateLayout();
+
+        UnqueuedWheel((Window)TopLevel.GetTopLevel(list)!, new Point(20, 100), new Vector(0, 10));
+        list.UpdateLayout();
+        Tick();
+
+        Assert.Equal(default, list.Scroll!.Offset);
+        Assert.Equal(("added", 0d), Reading(list));
+    }
+
+    // Headless input extensions drain Background jobs first; a desktop lets input outrank them.
+    private static void UnqueuedWheel(Window window, Point at, Vector delta) =>
+        window.PlatformImpl!.GetType().GetInterface("IHeadlessWindow")!.GetMethod("MouseWheel")!.Invoke(window.PlatformImpl, [at, delta, RawInputModifiers.None]);
 
     private static void Apply(BatchCollection items, string change, int reading)
     {

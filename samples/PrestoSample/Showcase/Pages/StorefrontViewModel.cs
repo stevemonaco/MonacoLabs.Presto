@@ -11,7 +11,7 @@ public sealed partial class StorefrontViewModel : ObservableObject
         new("Trail lantern", "Outdoor", "$48", 30, 0),
         new("Canvas daypack", "Travel", "$86", 200, 1),
         new("Linen throw", "Home", "$64", 340, 2),
-        new("Camp kettle", "Outdoor", "$39", 12, 3),
+        new("Camp kettle", "Outdoor", "$39", 12, 3, SoldOut: true),
         new("Passport wallet", "Travel", "$29", 160, 4),
         new("Stoneware mug", "Home", "$18", 45, 5),
         new("Folding stool", "Outdoor", "$55", 110, 6),
@@ -19,7 +19,7 @@ public sealed partial class StorefrontViewModel : ObservableObject
         new("Oak side table", "Home", "$210", 70, 8),
         new("Star map", "Outdoor", "$22", 230, 9),
         new("Weekender bag", "Travel", "$140", 290, 10),
-        new("Candle trio", "Home", "$27", 320, 11),
+        new("Candle trio", "Home", "$27", 320, 11, SoldOut: true),
     ];
 
     private readonly HashSet<string> _picked = [];

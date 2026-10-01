@@ -8,7 +8,7 @@ namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 /// Arguments left null come from <see cref="Recipes.Tokens"/>, read when the recipe is called: the duration is
 /// <see cref="MotionTokens.Medium"/> and the ease <see cref="MotionTokens.Ease"/>. <c>stagger</c> delays each element of a
 /// batch by <see cref="MotionTokens.StaggerStep"/> more than the one before, starting at <c>delay</c>. All but
-/// <see cref="BlurIn"/> and <see cref="FlipIn"/> can run through <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>.
+/// <see cref="BlurIn"/>, <see cref="FlipIn"/> and <see cref="Develop"/> can run through <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>.
 /// </remarks>
 public static class Entrances
 {
@@ -57,6 +57,15 @@ public static class Entrances
     /// </summary>
     public static AnimationBuilder FlipIn(double angle = 90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Enter(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(from: angle).Perspective(Recipes.FlipPerspective);
+
+    /// <summary>
+    /// Develops a <see cref="PrestoImageBase"/> like a photograph over <see cref="MotionTokens.Long"/>: fades in while settling
+    /// from <see cref="PrestoImageBase.Sepia"/> 0.8, <see cref="PrestoImageBase.Brightness"/> 1.6 and a blur of
+    /// <see cref="MotionTokens.BlurRadius"/>. UI thread only: the compositor cannot filter or blur.
+    /// </summary>
+    public static AnimationBuilder Develop(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Enter(duration ?? Recipes.Tokens.Long, delay, ease, stagger)
+            .Sepia(from: 0.8).Brightness(from: 1.6).Blur(from: Recipes.Tokens.BlurRadius);
 
     private static AnimationBuilder Enter(double? duration, double? delay, EaseValue? ease, bool stagger)
     {

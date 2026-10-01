@@ -4,6 +4,8 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -38,6 +40,25 @@ public sealed class PhotoViewerPageTests
         SceneHarness.Click(window, page.GetControl<Button>("ResetButton"));
         TestFrames.Tick(60);
         Assert.Equal(1, SceneHarness.Number(scale));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public async Task PickingAPhotoDissolvesTheBackdropToIt()
+    {
+        var page = new PhotoViewerPage();
+        var window = SceneHarness.Show(page, 712, 440);
+        var backdrop = page.GetControl<FilteredImage>("Backdrop");
+        var filmstrip = page.GetControl<ListBox>("Filmstrip");
+        Assert.Same(((Image)filmstrip.Items[0]!).Source, backdrop.Source);
+
+        filmstrip.SelectedIndex = 2;
+        TestFrames.Tick();
+
+        Assert.Same(((Image)filmstrip.Items[2]!).Source, backdrop.Source);
+        Assert.NotEmpty(Presto.GetAnimations(backdrop));
+        await SceneHarness.Settle();
+        Assert.Empty(Presto.GetAnimations(backdrop));
         SceneHarness.Close(window);
     }
 

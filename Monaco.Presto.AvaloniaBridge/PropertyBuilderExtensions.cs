@@ -7,7 +7,7 @@ using Monaco.Presto.AvaloniaBridge.Targets;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// Typed names for the <see cref="PropertyBuilder{TSelf}"/> properties: the transform, effect and reveal shorthands, the Avalonia properties
+/// Typed names for the <see cref="PropertyBuilder{TSelf}"/> properties: the transform, effect and reveal shorthands, the <see cref="PrestoImageBase"/> colour filters, the Avalonia properties
 /// animated most often, the Draw/Text/Data pseudo-properties and any <see cref="AvaloniaProperty"/>. Each writes the
 /// key the <see cref="AvaloniaAnimationParams"/> indexers write, and installs the bridge first when nothing else has.
 /// </summary>
@@ -538,6 +538,276 @@ public static class PropertyBuilderExtensions
     /// <summary>Animates the <c>"MaskSweepFeather"</c> soft edge through the keyframes <paramref name="keyframes"/> adds.</summary>
     public static T MaskSweepFeather<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("MaskSweepFeather", keyframes);
 
+    /// <summary>Animates the image brightness filter (<see cref="PrestoImageBase.Brightness"/>) to <paramref name="to"/>.</summary>
+    public static T Brightness<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.BrightnessProperty, to);
+
+    /// <summary>Animates the image brightness filter with its own tween settings.</summary>
+    public static T Brightness<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.BrightnessProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image brightness filter to a value computed per target.</summary>
+    public static T Brightness<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.BrightnessProperty, to);
+
+    /// <summary>Animates the image brightness filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Brightness<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.BrightnessProperty, keyframes);
+
+    /// <summary>Animates the image contrast filter (<see cref="PrestoImageBase.Contrast"/>) to <paramref name="to"/>.</summary>
+    public static T Contrast<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.ContrastProperty, to);
+
+    /// <summary>Animates the image contrast filter with its own tween settings.</summary>
+    public static T Contrast<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.ContrastProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image contrast filter to a value computed per target.</summary>
+    public static T Contrast<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.ContrastProperty, to);
+
+    /// <summary>Animates the image contrast filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Contrast<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.ContrastProperty, keyframes);
+
+    /// <summary>Animates the image saturation filter (<see cref="PrestoImageBase.Saturate"/>) to <paramref name="to"/>.</summary>
+    public static T Saturate<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.SaturateProperty, to);
+
+    /// <summary>Animates the image saturation filter with its own tween settings.</summary>
+    public static T Saturate<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.SaturateProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image saturation filter to a value computed per target.</summary>
+    public static T Saturate<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.SaturateProperty, to);
+
+    /// <summary>Animates the image saturation filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Saturate<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.SaturateProperty, keyframes);
+
+    /// <summary>Animates the image grayscale filter (<see cref="PrestoImageBase.Grayscale"/>) to <paramref name="to"/>.</summary>
+    public static T Grayscale<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.GrayscaleProperty, to);
+
+    /// <summary>Animates the image grayscale filter with its own tween settings.</summary>
+    public static T Grayscale<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.GrayscaleProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image grayscale filter to a value computed per target.</summary>
+    public static T Grayscale<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.GrayscaleProperty, to);
+
+    /// <summary>Animates the image grayscale filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Grayscale<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.GrayscaleProperty, keyframes);
+
+    /// <summary>Animates the image sepia filter (<see cref="PrestoImageBase.Sepia"/>) to <paramref name="to"/>.</summary>
+    public static T Sepia<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.SepiaProperty, to);
+
+    /// <summary>Animates the image sepia filter with its own tween settings.</summary>
+    public static T Sepia<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.SepiaProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image sepia filter to a value computed per target.</summary>
+    public static T Sepia<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.SepiaProperty, to);
+
+    /// <summary>Animates the image sepia filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Sepia<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.SepiaProperty, keyframes);
+
+    /// <summary>Animates the image hue rotation, in degrees, (<see cref="PrestoImageBase.HueRotate"/>) to <paramref name="to"/>.</summary>
+    public static T HueRotate<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.HueRotateProperty, to);
+
+    /// <summary>Animates the image hue rotation, in degrees, with its own tween settings.</summary>
+    public static T HueRotate<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.HueRotateProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image hue rotation, in degrees, to a value computed per target.</summary>
+    public static T HueRotate<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.HueRotateProperty, to);
+
+    /// <summary>Animates the image hue rotation, in degrees, through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T HueRotate<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.HueRotateProperty, keyframes);
+
+    /// <summary>Animates the image invert filter (<see cref="PrestoImageBase.Invert"/>) to <paramref name="to"/>.</summary>
+    public static T Invert<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.InvertProperty, to);
+
+    /// <summary>Animates the image invert filter with its own tween settings.</summary>
+    public static T Invert<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.InvertProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image invert filter to a value computed per target.</summary>
+    public static T Invert<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.InvertProperty, to);
+
+    /// <summary>Animates the image invert filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Invert<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.InvertProperty, keyframes);
+
+    /// <summary>Animates the image tint filter (<see cref="PrestoImageBase.Tint"/>) to <paramref name="to"/>.</summary>
+    public static T Tint<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.TintProperty, to);
+
+    /// <summary>Animates the image tint filter with its own tween settings.</summary>
+    public static T Tint<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.TintProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image tint filter to a value computed per target.</summary>
+    public static T Tint<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.TintProperty, to);
+
+    /// <summary>Animates the image tint filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Tint<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.TintProperty, keyframes);
+
+    /// <summary>Animates the image tint color (<see cref="PrestoImageBase.TintColor"/>) to <paramref name="to"/>.</summary>
+    public static T TintColor<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.TintColorProperty, to);
+
+    /// <summary>Animates the image tint color with its own tween settings.</summary>
+    public static T TintColor<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.TintColorProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image tint color to a value computed per target.</summary>
+    public static T TintColor<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.TintColorProperty, to);
+
+    /// <summary>Animates the image tint color through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T TintColor<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.TintColorProperty, keyframes);
+
+    /// <summary>Animates the image duotone filter (<see cref="PrestoImageBase.Duotone"/>) to <paramref name="to"/>.</summary>
+    public static T Duotone<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneProperty, to);
+
+    /// <summary>Animates the image duotone filter with its own tween settings.</summary>
+    public static T Duotone<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.DuotoneProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image duotone filter to a value computed per target.</summary>
+    public static T Duotone<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneProperty, to);
+
+    /// <summary>Animates the image duotone filter through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Duotone<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneProperty, keyframes);
+
+    /// <summary>Animates the image duotone shadow color (<see cref="PrestoImageBase.DuotoneShadow"/>) to <paramref name="to"/>.</summary>
+    public static T DuotoneShadow<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneShadowProperty, to);
+
+    /// <summary>Animates the image duotone shadow color with its own tween settings.</summary>
+    public static T DuotoneShadow<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.DuotoneShadowProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image duotone shadow color to a value computed per target.</summary>
+    public static T DuotoneShadow<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneShadowProperty, to);
+
+    /// <summary>Animates the image duotone shadow color through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T DuotoneShadow<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneShadowProperty, keyframes);
+
+    /// <summary>Animates the image duotone highlight color (<see cref="PrestoImageBase.DuotoneHighlight"/>) to <paramref name="to"/>.</summary>
+    public static T DuotoneHighlight<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneHighlightProperty, to);
+
+    /// <summary>Animates the image duotone highlight color with its own tween settings.</summary>
+    public static T DuotoneHighlight<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.DuotoneHighlightProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image duotone highlight color to a value computed per target.</summary>
+    public static T DuotoneHighlight<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneHighlightProperty, to);
+
+    /// <summary>Animates the image duotone highlight color through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T DuotoneHighlight<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneHighlightProperty, keyframes);
+
+    /// <summary>Animates the image noise dissolve (<see cref="PrestoImageBase.Dissolve"/>) to <paramref name="to"/>.</summary>
+    public static T Dissolve<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveProperty, to);
+
+    /// <summary>Animates the image noise dissolve with its own tween settings.</summary>
+    public static T Dissolve<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.DissolveProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image noise dissolve to a value computed per target.</summary>
+    public static T Dissolve<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveProperty, to);
+
+    /// <summary>Animates the image noise dissolve through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Dissolve<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveProperty, keyframes);
+
+    /// <summary>Animates the dissolve noise size in DIPs (<see cref="PrestoImageBase.DissolveScale"/>) to <paramref name="to"/>.</summary>
+    public static T DissolveScale<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveScaleProperty, to);
+
+    /// <summary>Animates the dissolve noise size in DIPs with its own tween settings.</summary>
+    public static T DissolveScale<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.DissolveScaleProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the dissolve noise size in DIPs to a value computed per target.</summary>
+    public static T DissolveScale<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveScaleProperty, to);
+
+    /// <summary>Animates the dissolve noise size in DIPs through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T DissolveScale<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveScaleProperty, keyframes);
+
+    /// <summary>Animates the dissolve edge softness (<see cref="PrestoImageBase.DissolveSoftness"/>) to <paramref name="to"/>.</summary>
+    public static T DissolveSoftness<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveSoftnessProperty, to);
+
+    /// <summary>Animates the dissolve edge softness with its own tween settings.</summary>
+    public static T DissolveSoftness<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.DissolveSoftnessProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the dissolve edge softness to a value computed per target.</summary>
+    public static T DissolveSoftness<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveSoftnessProperty, to);
+
+    /// <summary>Animates the dissolve edge softness through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T DissolveSoftness<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DissolveSoftnessProperty, keyframes);
+
+    /// <summary>Animates the image pixelation block size in DIPs (<see cref="PrestoImageBase.Pixelate"/>) to <paramref name="to"/>.</summary>
+    public static T Pixelate<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.PixelateProperty, to);
+
+    /// <summary>Animates the image pixelation block size with its own tween settings.</summary>
+    public static T Pixelate<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.PixelateProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image pixelation block size to a value computed per target.</summary>
+    public static T Pixelate<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.PixelateProperty, to);
+
+    /// <summary>Animates the image pixelation block size through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Pixelate<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.PixelateProperty, keyframes);
+
+    /// <summary>Animates the image noise displacement in DIPs (<see cref="PrestoImageBase.Ripple"/>) to <paramref name="to"/>.</summary>
+    public static T Ripple<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.RippleProperty, to);
+
+    /// <summary>Animates the image noise displacement with its own tween settings.</summary>
+    public static T Ripple<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.RippleProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the image noise displacement to a value computed per target.</summary>
+    public static T Ripple<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.RippleProperty, to);
+
+    /// <summary>Animates the image noise displacement through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Ripple<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.RippleProperty, keyframes);
+
+    /// <summary>Animates the ripple noise size in DIPs (<see cref="PrestoImageBase.RippleScale"/>) to <paramref name="to"/>.</summary>
+    public static T RippleScale<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.RippleScaleProperty, to);
+
+    /// <summary>Animates the ripple noise size in DIPs with its own tween settings.</summary>
+    public static T RippleScale<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        builder.Property(PrestoImageBase.RippleScaleProperty, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the ripple noise size in DIPs to a value computed per target.</summary>
+    public static T RippleScale<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.RippleScaleProperty, to);
+
+    /// <summary>Animates the ripple noise size in DIPs through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T RippleScale<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.RippleScaleProperty, keyframes);
+
     /// <summary>Animates <c>"Background"</c> to a solid brush of <paramref name="to"/>.</summary>
     public static T Background<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("Background", SolidBrush(to));
 
@@ -576,6 +846,15 @@ public static class PropertyBuilderExtensions
     /// <summary>Animates the four drop-shadow shorthands to <paramref name="x"/>, <paramref name="y"/>, <paramref name="blur"/> and <paramref name="color"/>.</summary>
     public static T Shadow<T>(this T builder, double x, double y, double blur, Color color) where T : PropertyBuilder<T> =>
         builder.ShadowX(x).ShadowY(y).ShadowBlur(blur).ShadowColor(color);
+
+    /// <summary>Animates <see cref="PrestoImageBase.TintColor"/> to <paramref name="to"/>.</summary>
+    public static T TintColor<T>(this T builder, Color to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.TintColorProperty, TweenValue.Of(to));
+
+    /// <summary>Animates <see cref="PrestoImageBase.DuotoneShadow"/> to <paramref name="to"/>.</summary>
+    public static T DuotoneShadow<T>(this T builder, Color to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneShadowProperty, TweenValue.Of(to));
+
+    /// <summary>Animates <see cref="PrestoImageBase.DuotoneHighlight"/> to <paramref name="to"/>.</summary>
+    public static T DuotoneHighlight<T>(this T builder, Color to) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.DuotoneHighlightProperty, TweenValue.Of(to));
 
     /// <summary>Animates the <c>"ClipInset"</c> reveal to the DIP insets <paramref name="to"/>.</summary>
     public static T ClipInset<T>(this T builder, Thickness to) where T : PropertyBuilder<T> => Init(builder).Property("ClipInset", TweenValue.Of(to));

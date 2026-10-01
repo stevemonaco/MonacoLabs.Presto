@@ -13,7 +13,8 @@ namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 /// <see cref="MotionTokens.Short"/> and the ease <see cref="MotionTokens.Ease"/>. <c>intensity</c> multiplies the change
 /// (default 1). A state applies to one element, so there is no <c>stagger</c>. <see cref="Grow"/>, <see cref="PressIn"/>
 /// and <see cref="Dim"/> can run through <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>;
-/// <see cref="Lift"/> and <see cref="Glow"/> are UI thread only, since the compositor cannot draw a shadow.
+/// <see cref="Lift"/> and <see cref="Glow"/> are UI thread only, since the compositor cannot draw a shadow, and so is
+/// <see cref="Colorize"/>, since it cannot filter.
 /// </remarks>
 public static class Interactions
 {
@@ -37,6 +38,13 @@ public static class Interactions
     /// <summary>Dims Opacity to 0.6. Reduced: the same dimming.</summary>
     public static AnimationBuilder Dim(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Start(duration, delay, ease, b => b.Opacity(1 - (0.4 * intensity)));
+
+    /// <summary>
+    /// Brings a <see cref="PrestoImageBase"/> to full colour, <see cref="PrestoImageBase.Grayscale"/> 0 and
+    /// <see cref="PrestoImageBase.Saturate"/> 1, from the grayscale its resting values set. Reduced: the same change.
+    /// </summary>
+    public static AnimationBuilder Colorize(double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Start(duration, delay, ease, b => b.Grayscale(0).Saturate(1));
 
     private static AnimationBuilder Start(double? duration, double? delay, EaseValue? ease, Func<AnimationBuilder, AnimationBuilder>? kept)
     {

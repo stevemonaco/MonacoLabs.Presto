@@ -778,7 +778,8 @@ view. It never plays on Initial, Enter or a recycle, `Arrive` does not cover it,
 does nothing. A list that does not virtualize realizes nothing on scroll, so scroll reveals there use
 [`OnScroll`](#onscroll). By default a row reveals once per item (`Presence.RevealOnce`, default `true`): the list
 remembers every item whose row has been shown, whether by Initial, Enter or Reveal, so scrolling back up plays nothing.
-It forgets an item that leaves `Items`, and a reset clears the memory; with `RevealOnce` false every realization reveals.
+A realized row counts as shown only once a layout pass ends with it in the viewport, so rows inserted above a scrolled
+list reveal a scroll step at a time as the reader scrolls back up to them. The list forgets an item that leaves `Items`, and a reset clears the memory; with `RevealOnce` false every realization reveals.
 Rows realized in one layout pass form a batch like any other, so a stagger ripples them in the scroll direction. A jump or
 fling that moves the list more than one viewport in a pass snaps instead: its rows are marked seen and land at rest.
 
@@ -940,6 +941,108 @@ starts black, opaque, unblurred and at no offset, so animating `ShadowBlur` alon
 - **UI thread only.** The composition layer has no counterpart for any of them, so `AnimateOnCompositor` throws
   `NotSupportedException` for these shorthands.
 
+#### Image filters
+
+CSS colour filters are properties of `PrestoImageBase`, an `Image`-like control (`Source`, `Stretch`,
+`StretchDirection`) whose `Render` subclasses can override. `FilteredImage` is its plain form, and `SpriteSheet` and
+`ImageSequence` derive from it too, so frames are filtered the same way. The filters are ordinary styled properties, so
+they animate, bind, style and revert like any other; each has a typed builder method with the usual four overloads, and
+the colours also take a `Color`.
+
+```xml
+<presto:FilteredImage Source="/Assets/Photos/port-blanc.jpg" Grayscale="1" Stretch="UniformToFill" />
+```
+
+```csharp
+Motion.SetHover(photo, Recipes.Colorize());       // to full colour while hovered, back to grayscale after
+photo.Animate(b => b.Sepia(from: 0.8).Brightness(from: 1.6).Duration(900));
+photo.Animate(b => b.HueRotate(360).Duration(4000).Loop());
+photo.Animate(b => b.Duotone(1).DuotoneShadow(Colors.Navy).DuotoneHighlight(Colors.Gold));
+```
+
+| Property | Identity | Range | CSS |
+|---|---|---|---|
+| `Brightness` | 1 | 0 (black) and up | `brightness()` |
+| `Contrast` | 1 | 0 (flat gray) and up | `contrast()` |
+| `Saturate` | 1 | 0 (gray) and up; above 1 oversaturates | `saturate()` |
+| `Grayscale` | 0 | 0–1 | `grayscale()` |
+| `Sepia` | 0 | 0–1 | `sepia()` |
+| `HueRotate` | 0 | degrees | `hue-rotate()` |
+| `Invert` | 0 | 0–1 | `invert()` |
+| `Tint`, with `TintColor` (white) | 0 | 0–1: maps luminance onto `TintColor`, black staying black | none |
+| `Duotone`, with `DuotoneShadow` (black) and `DuotoneHighlight` (white) | 0 | 0–1: maps luminance from the shadow to the highlight colour | none |
+
+The filters compose into one colour matrix in a fixed order, Brightness → Contrast → Saturate → Grayscale → Sepia →
+HueRotate → Tint → Duotone → Invert, rather than CSS's per-declaration order, so each can animate on its own. With every
+filter at its identity the image draws plain, with no offscreen layer. A source that is not a bitmap (a `DrawingImage`)
+is rasterized once per size to be filtered, and a renderer without Skia draws the image unfiltered. Filters run on the
+UI thread, not the compositor: `AnimateOnCompositor` throws `NotSupportedException` for them.
+
+#### Pixel transitions
+
+Three pixel effects sit beside the filters on `PrestoImageBase`, built from Skia's own noise, displacement and matrix
+filters rather than shaders. They are styled properties with typed builder methods like the filters, so each can reveal
+or hide a single image on its own:
+
+| Property | Identity | Tuning | Effect |
+|---|---|---|---|
+| `Dissolve` | 0 | `DissolveScale` (noise size in DIPs, 24), `DissolveSoftness` (edge width, 0.1) | 0 to 1: the image breaks up into noise until it is gone |
+| `Pixelate` | 1 | | block size in DIPs from the image's top-left, each block one sampled pixel |
+| `Ripple` | 0 | `RippleScale` (noise size in DIPs, 32) | displacement in DIPs over noise; the image never draws past its own rect |
+
+`Seed` (an `int`) picks the noise for both `Dissolve` and `Ripple`, so the same seed draws the same pattern every frame
+and every run. The effects apply after the colour filters, in the order Ripple → Pixelate → Dissolve, so the dissolve
+mask is never rippled or pixelated; at identity the image still draws plain.
+
+```xml
+<presto:FilteredImage Source="/Assets/Photos/mongolia.jpg" Seed="7"
+                      presto:Presence.Enter="{x:Static local:Motions.DissolveIn}" />
+```
+
+```csharp
+public static readonly AnimationBuilder DissolveIn = Presto.Build().Dissolve(from: 1, to: 0).Duration(900).Ease(Eases.OutQuad);
+photo.Animate(b => b.Pixelate(to: 32, ease: Eases.InQuad).Opacity(to: 0, delay: 300, duration: 400).Duration(700));
+photo.Animate(b => b.Ripple(12).RippleScale(48).Duration(1200).Alternate().Loop());
+```
+
+`FilteredImage` also swaps its `Source` through a transition. Set `SourceTransition` and every `Source` change plays one
+from the old image, including changes through a binding; without it a change snaps, as `Image` does. The XAML string
+form is a kind and an optional duration in ms (`"Dissolve"`, `"Wipe 800"`); the element form takes the tuning. In code,
+`TransitionTo` sets `Source` at once and returns the `Animation`, so it can be awaited, put in a timeline or reverted,
+which snaps to the new source.
+
+```xml
+<presto:FilteredImage Source="{Binding Photo}" SourceTransition="Dissolve 600" />
+<presto:FilteredImage Source="{Binding Photo}">
+    <presto:FilteredImage.SourceTransition>
+        <presto:ImageTransition Kind="Wipe" Angle="45" Feather="0.3" />
+    </presto:FilteredImage.SourceTransition>
+</presto:FilteredImage>
+```
+
+```csharp
+await hero.TransitionTo(next, ImageTransitionKind.Dissolve);
+hero.TransitionTo(next, ImageTransitionKind.Pixelate, b => b.Duration(900).Ease(Eases.InOutCubic));
+hero.SourceTransition = new ImageTransition { Kind = ImageTransitionKind.Ripple, PeakRipple = 30, Builder = Presto.Build().Duration(1000) };
+```
+
+| `ImageTransitionKind` | What plays | Tuning on `ImageTransition` |
+|---|---|---|
+| `Crossfade` (default) | the old image fades out as the new one fades in | |
+| `Dissolve` | the new image appears through seeded noise over the old one | the image's `Seed`, `DissolveScale`, `DissolveSoftness` |
+| `Pixelate` | the old image breaks into blocks that grow to a peak mid-way, then shrink away on the new image | `PeakPixelate` (24) |
+| `Ripple` | a crossfade under a displacement that peaks mid-way | `PeakRipple` (20), the image's `RippleScale` |
+| `Wipe` | the new image is revealed behind a soft edge sweeping across the old one, as `MaskSweep` | `Angle` (0, left to right), `Feather` (0.2) |
+
+`Builder` gives the timing; without one a transition runs 600 ms on `Eases.InOutQuad`. The colour filters apply to both
+images, and each keeps its own `Stretch` placement. Changing `Source` while a transition is running starts the next one
+from what is on screen: the current composite is captured and becomes the outgoing image, so nothing jumps. The
+outgoing image is released when the transition completes or is reverted, and detaching mid-transition completes it.
+
+A `Presence` exit cannot dissolve or pixelate an image: the exit ghost is a plain `Image` snapshot with none of these
+properties. Play the effect on the live element, await it, then remove the element, as the Image effects page does.
+`Presence.Enter` has no such limit, since the entrance plays on the element itself.
+
 ### Recipes
 
 `Recipes` is a catalogue of everyday motion. Each recipe is a factory that returns a new `AnimationBuilder`, so chaining
@@ -971,8 +1074,10 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `BlurIn` | `radius` | no | 〃 |
 | | `SlideIn` | `edge`, `distance` (default 4 × `Distance`) | yes | 〃 |
 | | `FlipIn` | `angle` (90°) | no | 〃 |
+| | `Develop`, for an [image](#image-filters): settles from `Sepia` 0.8, `Brightness` 1.6 and a `BlurRadius` blur over `Long` | | no | 〃 |
 | `Exits` | `FadeOut`, `FadeOutUp`, `FadeOutDown`, `FadeOutLeft`, `FadeOutRight`, `ScaleOut`, `PopOut`, `BlurOut`, `SlideOut`, `FlipOut` | as the entrance; `FlipOut`'s `angle` is −90° | all but `BlurOut` and `FlipOut` | fade out over `Short` |
 | `Attention` | `Shake`, `Pulse`, `Wobble`, `Jelly`, `Heartbeat`, `Tada`, `Bounce` | `intensity` | yes | an Opacity blink, 1 → 0.6 → 1 over `Short` |
+| | `FlashTint`, for an [image](#image-filters): `Tint` up to `intensity` and back | `color` (`DodgerBlue`), `intensity` | no (filter) | 〃 |
 | `Loops` | `Float` | `distance` | yes | static: nothing moves |
 | | `Spin` | | yes | 〃 |
 | | `Breathe`, `Blink` | `intensity` | yes | 〃 |
@@ -981,6 +1086,7 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `PressIn` | `intensity` | yes | Opacity to 0.8 |
 | | `Glow` | `color` (`DodgerBlue`), `intensity` | no (shadow) | unchanged |
 | | `Dim` | `intensity` | yes | unchanged |
+| | `Colorize`, for an [image](#image-filters) at rest in grayscale: `Grayscale` 0, `Saturate` 1 | | no (filter) | unchanged |
 | `Loading` | `Shimmer` (a `MaskSweep` skeleton) | | no (mask) | a slow Opacity pulse |
 | | `Spinner` | | yes | 〃 |
 | | `Dots` (staggers a panel's children itself) | `distance` | yes | 〃, still staggered |
@@ -998,7 +1104,7 @@ element.
 #### Motion tokens
 
 `Recipes.Tokens` is a `MotionTokens` record read on every call, so replacing it restyles later calls but not builders
-already made. Entrances last `Medium`, exits and interactions `Short`, attention `Long`, and loops and loaders twice `Long`;
+already made. Entrances last `Medium` (`Develop` `Long`), exits and interactions `Short`, attention `Long`, and loops and loaders twice `Long`;
 pops and flips use `EmphasizedEase`.
 
 ```csharp
@@ -1121,7 +1227,8 @@ opacity blink when reduced) and the effect is complete at once.
 
 `SpriteSheet` shows one cell of a grid `Source` (`Columns`, `Rows`, and `FrameCount` when the last row is partial), and
 `ImageSequence` one image of `Frames`. Both show the frame their `double` `Frame` selects, and `Play` tweens it linearly
-from 0 to the frame count, so every frame gets 1000 / fps ms:
+from 0 to the frame count, so every frame gets 1000 / fps ms. Both derive from `PrestoImageBase`, so they inherit the
+[image filters](#image-filters):
 
 ```csharp
 var run = sheet.Play(fps: 12);                            // loops; Play(fps, loop: false, reverse: true) plays once backwards
@@ -1197,6 +1304,9 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *Framer Motion, not anime.js:* `useVelocity`, velocity tracking | `VelocityTracker` (`Add(value, time)`, `Velocity`, `Reset()`) |
 | *Not anime.js:* pan, pinch and rotate, the `usePinch` / `useGesture` hooks Framer Motion apps pair with | `control.CreateTransformable(new TransformableParams { … })`; see [Transformable](#transformable) |
 | *CSS, not anime.js:* `filter: blur()` | `Blur`; see [Effects](#effects) |
+| *CSS, not anime.js:* `filter: 'grayscale(1)'` (and `brightness`, `contrast`, `saturate`, `sepia`, `hue-rotate`, `invert`) | `Grayscale` and the others on a `FilteredImage`: `b.Grayscale(1)`; see [Image filters](#image-filters) |
+| *CSS/GSAP, not anime.js:* crossfading or dissolving an `<img>` into the next (two stacked images, opacity or a noise mask) | `SourceTransition="Dissolve"` on a `FilteredImage`, or `image.TransitionTo(next, ImageTransitionKind.Dissolve)`; see [Pixel transitions](#pixel-transitions) |
+| *CSS, not anime.js:* `image-rendering: pixelated` on a scaled-down copy; an SVG `feTurbulence` + `feDisplacementMap` ripple | `Pixelate`, `Ripple` on a `FilteredImage`, or the `Pixelate` and `Ripple` transition kinds |
 | *CSS, not anime.js:* `filter: drop-shadow()` | `ShadowX` / `ShadowY` / `ShadowBlur` / `ShadowColor` / `ShadowOpacity`, or `.Shadow(x, y, blur, color)`; `box-shadow` is `BoxShadow` on a `Border` |
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
 | *CSS, not anime.js:* `clip-path: inset()` / `circle()` | `ClipInset`, `ClipCircle` with `ClipCircleCenter` |

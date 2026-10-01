@@ -12,7 +12,7 @@ namespace PrestoSample.Showcase.Pages;
 /// <summary>
 /// A shop front that uses Phases 22–25 together: recipes from XAML for the grid's entrance, hover, press, focus and exits,
 /// a <c>:checked</c> chip state, an <c>Animate.ItemLayout</c> reflow, a shared-element fly to the cart, a quick view revealed with
-/// <c>ClipCircle</c> over a blurred grid, a <c>Shimmer</c> skeleton and a live reduced-motion switch.
+/// <c>ClipCircle</c> over a blurred grid, a <c>Shimmer</c> skeleton, sold-out pictures that colorize on hover and a live reduced-motion switch.
 /// </summary>
 public partial class StorefrontPage : ShowcasePage
 {
@@ -26,6 +26,9 @@ public partial class StorefrontPage : ShowcasePage
         .Foreground(Palette.Background)
         .Duration(200)
         .Ease(Eases.OutQuad);
+
+    /// <summary>The hover that colours a sold-out product's gray picture.</summary>
+    public static readonly AnimationBuilder Colorize = Recipes.Colorize();
 
     public StorefrontPage()
     {
@@ -68,7 +71,7 @@ public partial class StorefrontPage : ShowcasePage
         if (CartShelf.Children.Count > ShelfSize) CartShelf.Children.RemoveAt(ShelfSize);
         if (!Presto.Defaults.ReducedMotion)
         {
-            Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(card.GetVisualDescendants().OfType<Scenery>().First(), thumb, 700, Eases.InOutCubic));
+            Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(card.GetVisualDescendants().OfType<FilteredImage>().First(), thumb, 700, Eases.InOutCubic));
             Recipes.Burst(Badge, count: 12, color: Palette.Accent.Color);
         }
         ViewModel.CartCount++;

@@ -189,6 +189,71 @@ public sealed class ReferencePagesTests
         BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(EffectsPage), "samples/PrestoSample/Pages/EffectsPage.axaml", 2);
 
     [AvaloniaFact]
+    public void TheImageEffectsSlidersPrintTheirFiltersAndResetDrawsPlain()
+    {
+        var page = new ImageEffectsPage();
+        var window = SceneHarness.Show(page, 1100, 2000);
+        var photo = page.GetControl<FilteredImage>("Photo");
+        var code = page.GetControl<SelectableTextBlock>("FilterCode");
+
+        page.GetControl<Slider>("GrayscaleSlider").Value = 0.5;
+        Assert.Equal(0.5, photo.Grayscale);
+        Assert.Contains("Grayscale=\"0.5\"", code.Text);
+        Assert.Contains(".Grayscale(0.5)", code.Text);
+        SceneHarness.Click(window, Button(page, "Reset"));
+        Assert.Equal(0, photo.Grayscale);
+        Assert.Contains("draws plain", code.Text);
+        SceneHarness.Close(window);
+    }
+
+    [Fact]
+    public void ImageEffectsSnippetsMatchTheMarkup() =>
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ImageEffectsPage), "samples/PrestoSample/Pages/ImageEffectsPage.axaml", 4);
+
+    [AvaloniaFact]
+    public void TheSlideshowDissolvesToTheNextPhotoAndPrintsThePickedKind()
+    {
+        var page = new ImageEffectsPage();
+        var window = SceneHarness.Show(page, 1100, 3000);
+        var slideshow = page.GetControl<FilteredImage>("Slideshow");
+        var code = page.GetControl<SelectableTextBlock>("SlideshowCode");
+        var first = slideshow.Source;
+
+        SceneHarness.Click(window, Button(page, "Next"));
+
+        Assert.NotSame(first, slideshow.Source);
+        Assert.Equal(ImageTransitionKind.Dissolve, slideshow.SourceTransition!.Kind);
+        Assert.Contains("ImageTransitionKind.Dissolve", code.Text);
+        page.GetControl<ComboBox>("KindBox").SelectedItem = ImageTransitionKind.Wipe;
+        page.GetControl<Slider>("AngleSlider").Value = 45;
+        Assert.Contains("ImageTransitionKind.Wipe", code.Text);
+        Assert.Contains("Angle = 45", code.Text);
+        Assert.Equal(45, slideshow.SourceTransition.Angle);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public async Task TheDissolveCardPixelatesOutAndDissolvesBackIn()
+    {
+        var page = new ImageEffectsPage();
+        var window = SceneHarness.Show(page, 1100, 3000);
+        var card = page.GetControl<FilteredImage>("Card");
+        var frame = page.GetControl<Border>("CardFrame");
+        var button = page.GetControl<Button>("CardButton");
+
+        SceneHarness.Click(window, button);
+        Assert.True(await SceneHarness.Pump(() => card.Pixelate > 1), "the card never pixelated");
+        Assert.True(await SceneHarness.Pump(() => frame.Child is null, rounds: 120), "the card was never removed");
+        Assert.Equal(1, card.Pixelate);
+
+        SceneHarness.Click(window, button);
+        Assert.Same(card, frame.Child);
+        Assert.True(await SceneHarness.Pump(() => card.Dissolve is > 0 and < 1), "the card never dissolved in");
+        Assert.True(await SceneHarness.Pump(() => card.Dissolve == 0, rounds: 120), "the card never finished dissolving in");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public async Task TheParticlesPageEmitsABurstCountsItAndPrintsTheChangedGravity()
     {
         var page = new ParticlesPage();

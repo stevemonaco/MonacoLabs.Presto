@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             x:Class="Monaco.Presto.AvaloniaBridge.Tests.ImageTransitionXamlView">
+  <UserControl.Styles>
+    <Style Selector="presto|FilteredImage.styled">
+      <Setter Property="SourceTransition" Value="Pixelate" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel>
+    <presto:FilteredImage x:Name="Parsed" SourceTransition="wipe 800" />
+    <presto:FilteredImage x:Name="Styled" Classes="styled" />
+    <presto:FilteredImage x:Name="Element">
+      <presto:FilteredImage.SourceTransition>
+        <presto:ImageTransition Kind="Ripple" PeakRipple="8" />
+      </presto:FilteredImage.SourceTransition>
+    </presto:FilteredImage>
+  </StackPanel>
+</UserControl>

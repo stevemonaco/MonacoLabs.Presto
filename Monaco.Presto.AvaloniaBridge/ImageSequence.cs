@@ -7,18 +7,15 @@ using Avalonia.Platform;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
-/// <summary>Shows one image of <see cref="Frames"/>, sized to the first frame and stretched and aligned as <see cref="Image"/> does.</summary>
-public class ImageSequence : Control
+/// <summary>
+/// Shows one image of <see cref="Frames"/>, sized to the first frame and stretched and aligned as <see cref="Image"/> does.
+/// The inherited <see cref="PrestoImageBase.Source"/> is ignored.
+/// </summary>
+public class ImageSequence : PrestoImageBase
 {
     /// <summary>Defines the <see cref="Frames"/> property.</summary>
     public static readonly StyledProperty<IReadOnlyList<IImage>?> FramesProperty =
         AvaloniaProperty.Register<ImageSequence, IReadOnlyList<IImage>?>(nameof(Frames));
-
-    /// <summary>Defines the <see cref="Stretch"/> property.</summary>
-    public static readonly StyledProperty<Stretch> StretchProperty = Image.StretchProperty.AddOwner<ImageSequence>();
-
-    /// <summary>Defines the <see cref="StretchDirection"/> property.</summary>
-    public static readonly StyledProperty<StretchDirection> StretchDirectionProperty = Image.StretchDirectionProperty.AddOwner<ImageSequence>();
 
     /// <summary>Defines the <see cref="Frame"/> property.</summary>
     public static readonly StyledProperty<double> FrameProperty =
@@ -36,8 +33,8 @@ public class ImageSequence : Control
 
     static ImageSequence()
     {
-        AffectsRender<ImageSequence>(FramesProperty, StretchProperty, StretchDirectionProperty, CurrentFrameProperty);
-        AffectsMeasure<ImageSequence>(FramesProperty, StretchProperty, StretchDirectionProperty);
+        AffectsRender<ImageSequence>(FramesProperty, CurrentFrameProperty);
+        AffectsMeasure<ImageSequence>(FramesProperty);
     }
 
     /// <summary>The frames, in playing order.</summary>
@@ -45,20 +42,6 @@ public class ImageSequence : Control
     {
         get => GetValue(FramesProperty);
         set => SetValue(FramesProperty, value);
-    }
-
-    /// <summary>How a frame is stretched to fill the control; defaults to <see cref="Avalonia.Media.Stretch.Uniform"/>.</summary>
-    public Stretch Stretch
-    {
-        get => GetValue(StretchProperty);
-        set => SetValue(StretchProperty, value);
-    }
-
-    /// <summary>Whether a frame may be scaled up, down or both.</summary>
-    public StretchDirection StretchDirection
-    {
-        get => GetValue(StretchDirectionProperty);
-        set => SetValue(StretchDirectionProperty, value);
     }
 
     /// <inheritdoc cref="SpriteSheet.Frame"/>
@@ -109,20 +92,9 @@ public class ImageSequence : Control
     }
 
     /// <inheritdoc/>
-    public override void Render(DrawingContext context)
-    {
-        if (FrameCount == 0) return;
-        var image = Frames![CurrentFrame];
-        FramePlayer.Draw(context, image, new Rect(image.Size), Bounds.Size, Stretch, StretchDirection);
-    }
+    protected override IImage? CurrentImage => FrameCount > 0 ? Frames![CurrentFrame] : null;
 
-    /// <inheritdoc/>
-    protected override Size MeasureOverride(Size availableSize) =>
-        FrameCount > 0 ? FramePlayer.Measure(availableSize, Frames![0].Size, Stretch, StretchDirection) : default;
-
-    /// <inheritdoc/>
-    protected override Size ArrangeOverride(Size finalSize) =>
-        FrameCount > 0 ? FramePlayer.Measure(finalSize, Frames![0].Size, Stretch, null) : default;
+    private protected override IImage? MeasuredImage => FrameCount > 0 ? Frames![0] : null;
 
     /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

@@ -1,6 +1,6 @@
 # Image effects — color filters and pixel transitions
 
-Phases 28–29 in [PLAN.md](PLAN.md). Status: **planned**. This plan follows the post-Phase-27 gap review, which found that
+Phases 28–29 in [PLAN.md](PLAN.md). Status: **built** (deviations in §5). This plan follows the post-Phase-27 gap review, which found that
 the colour and image effects every web animation library leans on (CSS `filter`: grayscale, saturate, sepia, hue-rotate,
 brightness, contrast, invert; plus dissolve, pixelate and ripple transitions) cannot be expressed in Avalonia at all.
 Phase 24 covered what `Visual.Effect` offers; this covers what it does not, without writing shaders.
@@ -32,11 +32,14 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
 
 ### 1.1 Decisions
 
-1. **A control, not shorthands.** `FilteredImage` derives from `Control`, not `Image`: Avalonia 12.1.2 seals
-   `Image.Render` (found while building Phase 37). As `SpriteSheet` does, it takes `Source`, `Stretch` and
-   `StretchDirection` from `Image`'s properties through `AddOwner`, so its XAML surface matches `Image` and swapping
-   one for the other is a rename, and it measures, arranges and draws its plain form through the internal
-   `FramePlayer.Measure`/`Draw` helpers `SpriteSheet` and `ImageSequence` already share. Each filter is a
+1. **A control, not shorthands, on a shared base.** Avalonia 12.1.2 seals `Image.Render` (found while building Phase
+   37), so the filters live on a new public abstract `PrestoImageBase : Control` whose `Render` is not sealed. It takes
+   `Source`, `Stretch` and `StretchDirection` from `Image`'s properties through `AddOwner` (so its XAML surface matches
+   `Image` and swapping one for the other is a rename), measures and arranges one frame, and draws it plain or filtered.
+   Subclasses supply what to draw through two protected virtual hooks, the current `IImage` and its source rect, and
+   may override `Render`. `FilteredImage` is the thin concrete subclass (the whole `Source`); Phase 37's `SpriteSheet`
+   (a grid cell) and `ImageSequence` (the current frame's bitmap) move onto the base, so frames get the filters too, and
+   the internal `FramePlayer.Draw`/`Measure` helpers fold into it (`FramePlayer` keeps `Resolve`/`Play`). Each filter is a
    plain `StyledProperty<double>` (or `Color`) with `AffectsRender`, so everything Presto already does with an
    `AvaloniaProperty` works unchanged: `Animate`, the typed indexer, builders, `Motion` states, `Presence`, recipes,
    bindings, style setters, `Animation`-priority writes and `Revert`. No composer, no new accessor kind, no codec.
@@ -55,13 +58,13 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
    with `ImmediateDrawingContext.DrawBitmap` (so Avalonia's own sampling, interpolation mode and opacity apply),
    leases again and `Restore`s. The spike (step 1) confirms this interleaving is legal; the fallback is to copy the
    bitmap's pixels once per `Source` into a cached `SKImage` and draw that inside the lease.
-5. **Identity draws plain.** When the composed matrix is the identity (every filter at its default), `Render` draws
-   through `FramePlayer.Draw`, exactly as `SpriteSheet` draws a frame, and no layer is pushed, as decision 29 in PLAN §7 removes effects at rest.
+5. **Identity draws plain.** When the composed matrix is the identity (every filter at its default), the base draws
+   the hook's image and source rect directly, exactly as `SpriteSheet` draws a frame today, and no layer is pushed, as decision 29 in PLAN §7 removes effects at rest.
 6. **Non-bitmap sources are rasterized.** A `DrawingImage` (SVG icons) or other `IImage` is rendered into a cached
    `RenderTargetBitmap` at the control's size times render scaling, invalidated on resize, scaling change or the
    drawing's own invalidation. A `CroppedBitmap` passes its source rect to `DrawBitmap`.
 7. **Without a Skia lease, draw unfiltered.** `TryGetFeature<ISkiaSharpApiLeaseFeature>()` returning null (a non-Skia
-   backend, headless drawing) falls back to the plain `FramePlayer.Draw` path. Nothing throws.
+   backend, headless drawing) falls back to the base's plain draw. Nothing throws.
 8. **The bridge takes a package reference on `Avalonia.Skia`** (version already in `Directory.Packages.props`) for
    `ISkiaSharpApiLeaseFeature` and SkiaSharp. Every head already carries it.
 9. **Compositor animation stays unsupported.** The filter values live in UI-thread render data, so a filter animates on
@@ -73,11 +76,15 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
 ### 1.2 API
 
 ```csharp
-public sealed class FilteredImage : Control
+public abstract class PrestoImageBase : Control
 {
     public static readonly StyledProperty<IImage?> SourceProperty;              // Image.SourceProperty.AddOwner
     public static readonly StyledProperty<Stretch> StretchProperty;             // Image.StretchProperty.AddOwner
     public static readonly StyledProperty<StretchDirection> StretchDirectionProperty; // Image.StretchDirectionProperty.AddOwner
+
+    protected virtual IImage? CurrentImage => Source;                          // ImageSequence: the current frame
+    protected virtual Rect SourceRect(IImage image) => new(image.Size);         // SpriteSheet: the current cell
+    public override void Render(DrawingContext context);                        // plain or filtered; overridable
 
     public static readonly StyledProperty<double> BrightnessProperty;   // 1 = identity, 0 = black, >1 brighter
     public static readonly StyledProperty<double> ContrastProperty;     // 1 = identity
@@ -92,6 +99,10 @@ public sealed class FilteredImage : Control
     public static readonly StyledProperty<Color> DuotoneShadowProperty;
     public static readonly StyledProperty<Color> DuotoneHighlightProperty;
 }
+
+public sealed class FilteredImage : PrestoImageBase { }
+public class SpriteSheet : PrestoImageBase { /* Phase 37 surface unchanged */ }
+public class ImageSequence : PrestoImageBase { /* Phase 37 surface unchanged */ }
 ```
 
 ```xml
@@ -116,10 +127,13 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
    drawing path (decision 4) won in §5 of this document.
 2. **`ColorMatrix` (internal, pure).** A 5×4 `float` matrix struct with `Multiply`, `IsIdentity` and one factory per
    filter from the Filter Effects spec, plus `Tint` and `Duotone`. No Avalonia dependency beyond `Color`.
-3. **`FilteredImage`.** `Control` subclass with the `AddOwner` image properties and `FramePlayer`-based measure and
-   arrange; filter properties, `AffectsRender`, `Render` building the composed matrix and the draw op, identity
-   short-circuit, non-bitmap rasterization cache, lease fallback.
-4. **Builder extensions, recipes, README rows** (anime.js `filter` → `FilteredImage` in the cheat sheet), and a
+3. **`PrestoImageBase` and `FilteredImage`.** The base with the `AddOwner` image properties, the two hooks, measure
+   and arrange, filter properties, `AffectsRender`, `Render` building the composed matrix and the draw op, identity
+   short-circuit, non-bitmap rasterization cache, lease fallback; `FilteredImage` over it.
+4. **Move `SpriteSheet` and `ImageSequence` onto the base.** Their public surface, tests and allocation budgets stay as
+   Phase 37 shipped them (the half-pixel source-rect inset for scaled cells moves into the base's draw); fold
+   `FramePlayer.Draw`/`Measure` into the base. Add a pixel test that a filtered `SpriteSheet` frame is filtered.
+5. **Builder extensions, recipes, README rows** (anime.js `filter` → `FilteredImage` in the cheat sheet), and a
    Platforms note once the Browser and Android heads have been smoke-run with a filtered image.
 
 ### 1.4 Tests (`ColorMatrixTests`, `FilteredImageTests`)
@@ -215,10 +229,89 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   `Blur` effect shorthand, which blurs the whole element.
 - Whether the Phase 29 transitions should also accept arbitrary content (a `TransitioningContentControl`-style host),
   which depends on the `FilterPresenter` decision in §3 and overlaps Phase 31's page transitions.
-- Whether `SpriteSheet` should derive from `FilteredImage` so filters apply to frames (PREBUILTS-2-PLAN 2.6). That
-  needs `FilteredImage` unsealed with an overridable source rect; decide when Phase 28 starts, since both controls
-  already share `FramePlayer`.
 
 ## 5. Deviations as built
 
-(Filled in as the phases land.)
+- **`ColorMatrix` luminance weights.** `Saturate` uses the `grayscale()` weights 0.2126/0.7152/0.0722 rather than
+  `feColorMatrix`'s rounded 0.213/0.715/0.072, so `Grayscale(a)` equals `Saturate(1 - a)` exactly; `HueRotate` keeps
+  the published matrix. Skia's colour-matrix offsets are normalized 0..1 (checked by drawing), despite SkiaSharp's
+  0..255 doc remark.
+- **`ImageSequence` ignores the inherited `Source`.** It draws `Frames[CurrentFrame]` and sizes by `Frames[0]` (through an
+  internal `MeasuredImage` hook on the base); setting `Source` on it has no effect. `TintColor` defaults to white (a
+  plain monotone gray), `DuotoneShadow`/`DuotoneHighlight` to black/white.
+
+- **Drawing path: the interleaved lease won (decision 4).** `ImageEffectDrawOperation` (first `ColorFilterDrawOperation`)
+  leases the canvas to `SaveLayer` (bounded to the destination) with a paint carrying the effect, releases it, draws
+  through `ImmediateDrawingContext.DrawBitmap`, then leases again to `Restore`. Headless Skia pixel tests confirm the pixels are
+  filtered and that ancestor opacity, clip and transforms still apply; device render scaling is 1 in the headless
+  app, so only a scale transform was checked. The cached-`SKImage` fallback was not needed. The native filter and paint
+  are created per render and disposed with the operation; no per-control cache (decision 10) has been needed yet.
+- **One image-filter chain, in a fixed order (Phase 29).** The layer paint carries a single `SKImageFilter`: the colour
+  matrix (`CreateColorFilter`), then `Ripple`, then `Pixelate`, then the `Dissolve` mask as a `DstIn`
+  `CreateBlendMode` over a colour-filtered noise `CreateShader`, so the mask is neither rippled nor pixelated. The mask
+  moved from a `DrawRect` inside the layer into the chain for that reason; stages that are at identity are skipped.
+- **Pixelate is two nearest-neighbour matrix filters.** `CreateMatrix` scales by `1/Pixelate` and back by `Pixelate`
+  about the destination's top-left, both with `SKFilterMode.Nearest`, so each block is one sampled pixel rather than an
+  average; Skia keeps the small intermediate (the spike test found no transform folding in SkiaSharp 3.119), blocks
+  align to the destination's top-left and a partial last block samples inside the image, so no transparency bleeds in.
+  Blocks are in DIPs because image filters run in the canvas's local space.
+- **Ripple uses fractal noise, unpadded.** The displacement input is `CreatePerlinNoiseFractalNoise` (centred on 0.5),
+  not turbulence, which sums absolute noise, is not centred on 0.5 and so would shift the whole image. Its scale is `Ripple` itself,
+  not multiplied by render scaling: Skia maps both the scale and the noise through the canvas matrix. The layer is not
+  padded; the displacement output is cropped to the destination, so edge pixels displaced from outside read as
+  transparent and the ripple never draws past the control's image rect.
+- **Rasterized sources are reference-counted.** A non-bitmap source is rasterized at the destination size (not the
+  whole control) times render scaling, keyed on the image, source rect, size and scaling, so resizes, stretch changes
+  and sprite frames re-rasterize. Because `Bitmap`'s ref-counted impl is internal, each draw operation retains the
+  cached `RenderTargetBitmap` and the last holder disposes it, so the render thread never draws a disposed raster.
+  Only `DrawingImage` invalidation is observed (`IAffectsRender` is internal in 12.1.2); other custom `IImage`s
+  re-rasterize only when the key changes.
+- **Compositor animation needed no change (decision 9):** `AnimateOnCompositor` naming `GrayscaleProperty` already
+  throws `NotSupportedException` through the unknown-property path.
+- **Builder methods write the typed handle, not the name.** `.Grayscale(1)` and the rest write the
+  `PrestoImageBase.GrayscaleProperty` key, the same as the `AvaloniaAnimationParams` indexer, so they resolve on every
+  subclass. `TintColor`, `DuotoneShadow` and `DuotoneHighlight` also take a `Color`, as `ShadowColor` does.
+- **Recipes.** `Develop` is an ordinary entrance (it fades in too) lasting `Long`; `FlashTint` sets `TintColor` with
+  a zero-duration tween and keeps the Attention family's reduced opacity blink; `Colorize` keeps its colour change when
+  reduced, as the other interactions keep colour. No `{presto:Colorize}`/`{presto:Develop}`/`{presto:FlashTint}`
+  extensions were added: none of the three families has an extension for every recipe (`Grow`, `Dim`, `FlipIn`,
+  `Pulse`… have none).
+- **Samples.** The duotone card follows `ActualThemeVariantChanged`, but the gallery app is fixed to Dark, so the page
+  flips a `ThemeVariantScope` around the card rather than the app theme. XAML reaches `Colorize`, `Develop` and the hue
+  cycle through the page's `x:Static` builders (no markup extensions, above). The Storefront's product art was drawn
+  controls (`Scenery`), so `Scenery.Picture` now builds it as a `DrawingImage`: every card shows a `FilteredImage`
+  of it, and the two sold-out products, gray through a style setter, exercise the rasterization path; their Add is
+  disabled. The Frames page binds a HueRotate slider to the adventurer `SpriteSheet`. Verified on Desktop only; hover
+  was checked by the headless tests, since DevTools cannot send pointer movement. The Browser and Android heads were not
+  smoke-run, so the README has no Platforms note yet.
+- **Transitions draw each image through its own layer (Phase 29).** `FilteredImage` overrides `Render` while a
+  transition runs and draws the outgoing and incoming images each through the same `ImageEffectDrawOperation` path,
+  with its own `Stretch` placement and the colour filters: `Dissolve` and `Wipe` draw the incoming image over the
+  outgoing one with its `Dissolve` or wipe mask at `1 - p` or `p`; `Pixelate` draws only the outgoing image before
+  mid-way and only the incoming after, blocks peaking at `PeakPixelate`; `Crossfade` and `Ripple` push complementary
+  opacities, `Ripple` peaking at `PeakRipple` on both. The wipe is an internal field of `ImageEffect` (an angled
+  gradient mask in the chain), not a public standalone property, since `MaskSweep` already wipes any element.
+- **Progress is an internal styled property.** `FilteredImage.TransitionProgressProperty` (0 to 1, default 1,
+  `AffectsRender`) lives on `FilteredImage`, not the base, and is internal: `TransitionTo` animates it through an
+  ordinary builder, so `Revert` returns it to 1 (the new source alone) and releases the outgoing image. It is not
+  public because a user-set progress has no outgoing image to show. The noise tuning (`Seed`, `DissolveScale`,
+  `DissolveSoftness`, `RippleScale`) comes from the image's own properties rather than `ImageTransition`.
+- **Interruption snapshots the control.** A source change mid-transition renders the current composite into a
+  `RenderTargetBitmap` the size of the control, which becomes the outgoing image drawn with `Stretch.Fill` and no
+  colour filters (it already shows them); it is reference-counted like the rasterized sources and released on
+  completion, revert or detach (detaching completes the animation).
+- **`SourceTransition` has a string form.** `ImageTransition.Parse` takes a kind and an optional duration in ms
+  (`"Dissolve"`, `"Wipe 800"`, eased `InOutQuad`); the Avalonia XAML compiler finds the static `Parse` for attributes
+  and style setters, so no type converter or markup extension was added. The element form sets the tuning. A null
+  `Builder` plays 600 ms. With `SourceTransition` set, a change while detached snaps, and `TransitionTo`'s own swap is
+  not transitioned twice.
+- **Exit ghosts do not carry the pixel effects.** The `Presence` exit ghost is a plain `Image` snapshot, so an exit
+  cannot dissolve or pixelate; this is documented as unsupported (README "Pixel transitions") rather than worked
+  around. The Image effects card plays `PixelateOut` on the live `FilteredImage`, awaits it, then removes the card and
+  reverts the animation; its entrance uses `Presence.Enter` on the element itself.
+- **Showcase: the Photo viewer's backdrop.** Neither the Connected nor the Gallery flip detail holds an image (the
+  Connected hero is a lifted gradient `Border`, the Gallery flip host reparents a card), so the hero swap went to the
+  Photo viewer, which already loads the three photos. Its photos slide in a `Carousel` with a `Transformable` each, so
+  rather than a second copy of the photo, a dimmed `FilteredImage` backdrop (`Brightness` 0.35, `UniformToFill`,
+  `SourceTransition="Dissolve 700"`) sits behind the carousel and dissolves to each photo as the filmstrip or a swipe
+  selects it; the carousel pages lost their opaque background so it shows around the photo.

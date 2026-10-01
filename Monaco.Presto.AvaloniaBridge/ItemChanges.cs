@@ -14,8 +14,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// them has finished. A list is watched from the first lifecycle arrival in it; until that pass ends it cannot yet tell
 /// an added item from a realized one, so <see cref="Of"/> answers null and the arrival is classified by the general rule.
 /// It also remembers the items whose rows have been shown, for <see cref="Presence.RevealOnceProperty"/>, until they leave
-/// the list, and where the list was scrolled when the last layout pass ended, and it scrolls the list for
-/// <see cref="Presence.ScrollAnchorProperty"/>.
+/// the list, the rows realized for a reveal until a layout pass shows them, and where the list was scrolled when the last
+/// layout pass ended, and it scrolls the list for <see cref="Presence.ScrollAnchorProperty"/>.
 /// </summary>
 internal sealed class ItemChanges
 {
@@ -28,6 +28,7 @@ internal sealed class ItemChanges
     private bool _scrolled;
     private object? _anchor;
     private Point _anchorAt;
+    private Vector _anchorOffset;
     private int _corrections;
     private bool _correcting;
 
@@ -45,6 +46,9 @@ internal sealed class ItemChanges
 
     public HashSet<object> Seen { get; } = [];
 
+    /// <summary>Rows realized for a reveal and not yet in view, in realization order; the layout pass that shows one reveals it.</summary>
+    public List<Control> Held { get; } = [];
+
     public bool Reset { get; private set; }
 
     /// <summary>Whether items were added, removed or reset and the layout pass that realizes them has not yet finished.</summary>
@@ -56,7 +60,7 @@ internal sealed class ItemChanges
     /// <summary>Whether the list is scrolled away from where the last layout pass left it, read from any handler of this pass.</summary>
     public bool Scrolled => _scrolled || (Scroller?.Offset ?? default) != _offset;
 
-    /// <summary>Whether a change above the first visible row is being scrolled back out of view, from the change until the layout pass that realizes it has finished.</summary>
+    /// <summary>Whether a change above the first visible row is being scrolled back out of view, from the change until the layout pass that realizes it has finished or the reader scrolls.</summary>
     public bool Anchoring => _anchor is not null;
 
     private ScrollViewer? Scroller => _owner.ItemsPanelRoot?.FindAncestorOfType<ScrollViewer>();
@@ -85,8 +89,16 @@ internal sealed class ItemChanges
 
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
-        // The panel can re-estimate its start again after the first correction, so a second one is allowed.
-        if (_anchor is { } anchor && !_correcting && _corrections < 2) Correct(anchor);
+        var corrected = false;
+        if (_anchor is { } anchor && !_correcting)
+        {
+            // Any other scroll is the reader's, and correcting it would take it back.
+            if (Scroller?.Offset != _anchorOffset) _anchor = null;
+            // The panel can re-estimate its start again after the first correction, so a second one is allowed.
+            else if (_corrections < 2) corrected = Correct(anchor);
+        }
+        // A correction's own pass lays the rows out where they are drawn.
+        if (Held.Count > 0 && !_correcting && !corrected) RevealShown();
 
         var offset = Scroller?.Offset ?? default;
         if (offset == _offset) return;
@@ -138,24 +150,42 @@ internal sealed class ItemChanges
         if (anchor?.DataContext is null || start > first || (start == first && e.Action != NotifyCollectionChangedAction.Add)) return;
         _anchor = anchor.DataContext;
         _anchorAt = at;
+        _anchorOffset = scroll.Offset;
         _corrections = 0;
     }
 
-    private void Correct(object anchor)
+    private bool Correct(object anchor)
     {
-        if (Scroller is not { } scroll) return;
+        if (Scroller is not { } scroll) return false;
         _correcting = true;
         try
         {
             // Re-estimating after an insert before the realized range can leave the anchor unrealized; this nests layout passes.
             if (_owner.ContainerFromItem(anchor) is null) _owner.ScrollIntoView(anchor);
-            if (_owner.ContainerFromItem(anchor) is not { } container || LayoutTransition.MeasureOnScreen(container) is not { } slot || slot.Position == _anchorAt) return;
+            if (_owner.ContainerFromItem(anchor) is not { } container || LayoutTransition.MeasureOnScreen(container) is not { } slot || slot.Position == _anchorAt) return false;
             _corrections++;
             scroll.Offset += slot.Position - _anchorAt;
+            return true;
         }
         finally
         {
+            _anchorOffset = scroll.Offset;
             _correcting = false;
+        }
+    }
+
+    private void RevealShown()
+    {
+        if (Scroller is not { } scroll || LayoutTransition.MeasureOnScreen(scroll) is not { } viewport) return;
+        var jumped = Jumped;
+        for (var i = 0; i < Held.Count; i++)
+        {
+            var row = Held[i];
+            var container = Presence.ItemContainerOf(row.GetVisualParent()) ?? row;
+            if (!jumped && (!container.IsEffectivelyVisible || LayoutTransition.MeasureOnScreen(container) is not { } slot || !slot.Intersects(viewport))) continue;
+            Held.RemoveAt(i--);
+            Seen.Add(row.DataContext!);
+            if (!jumped) Presence.RevealHeld(row);
         }
     }
 

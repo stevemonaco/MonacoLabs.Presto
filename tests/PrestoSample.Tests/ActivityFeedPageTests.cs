@@ -1,7 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
@@ -207,6 +210,135 @@ public sealed class ActivityFeedPageTests
 
         Assert.Equal(played, page.ViewModel.RevealPlayed);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(300, false, 15)]
+    [InlineData(300, false, 60)]
+    [InlineData(3000, false, 15)]
+    [InlineData(300, true, 15)]
+    [InlineData(3000, true, 15)]
+    public void EventsInsertedAboveRevealOnlyInThePassThatBringsThemIntoView(double offset, bool drag, int gap)
+    {
+        var (window, page) = Loaded();
+        var feed = Feed(page);
+        var inserted = ScrollDownAndInsert(window, page, offset, 3);
+        var grab = drag ? PressThumb(window, feed) : default;
+        var revealed = new Dictionary<object, string>();
+        var log = new List<string>();
+
+        for (var step = 1; feed.Scroll!.Offset.Y > 0 && step < 200; step++)
+        {
+            var before = feed.Scroll.Offset.Y;
+            var played = page.ViewModel.RevealPlayed;
+            Scroll(window, feed, ref grab, drag, 1);
+            for (var frame = 0; frame <= gap; frame++)
+            {
+                TestFrames.Tick();
+                foreach (var item in inserted)
+                {
+                    if (revealed.ContainsKey(item) || feed.ContainerFromItem(item) is null || Row(page, item) is not { Opacity: < 1 } row) continue;
+                    var top = Top(row, feed);
+                    revealed[item] = top + row.Bounds.Height > 0 && top < feed.Scroll.Viewport.Height ? "in view" : $"out of view at {top:0}";
+                }
+            }
+            log.Add($"{before:0}->{feed.Scroll.Offset.Y:0} +{page.ViewModel.RevealPlayed - played} [{string.Join(",", inserted.Select(item => revealed.GetValueOrDefault(item, "-")))}]");
+        }
+        if (drag) window.MouseUp(grab, MouseButton.Left);
+
+        Assert.True(inserted.All(item => revealed.GetValueOrDefault(item) == "in view"), string.Join(Environment.NewLine, log));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false, "none")]
+    [InlineData(true, "none")]
+    [InlineData(false, "near the top")]
+    [InlineData(true, "near the top")]
+    [InlineData(false, "before the anchor clears")]
+    [InlineData(true, "before the anchor clears")]
+    public void ScrollingBackToTheTopLandsThereWithTheNewestEventShown(bool drag, string insert)
+    {
+        var (window, page) = Loaded();
+        var feed = Feed(page);
+        ScrollDownAndInsert(window, page, 300, 3);
+        var unqueued = insert == "before the anchor clears";
+        var dragging = drag && !unqueued;
+        var grab = dragging ? PressThumb(window, feed) : default;
+        var log = new List<string>();
+        void Step(Action input)
+        {
+            var before = feed.Scroll!.Offset.Y;
+            input();
+            log.Add($"{before:0}->{feed.Scroll.Offset.Y:0}");
+        }
+
+        while (feed.Scroll!.Offset.Y > 120) Step(() =>
+        {
+            Scroll(window, feed, ref grab, dragging, dragging ? .25 : 1);
+            TestFrames.Tick(20);
+        });
+        if (unqueued)
+        {
+            if (drag) grab = PressThumb(window, feed);
+            page.ViewModel.AddLive(above: true);
+            Step(window.UpdateLayout);
+            Step(() => Unqueued(window, drag ? "MouseMove" : "MouseWheel", drag ? [grab -= new Vector(0, 100), RawInputModifiers.LeftMouseButton] : [SceneHarness.Centre(feed, window), new Vector(0, 10), RawInputModifiers.None]));
+            Step(window.UpdateLayout);
+        }
+        else
+        {
+            var unseen = page.ViewModel.Unseen;
+            if (insert == "near the top") Step(() => TickUntil(() => page.ViewModel.Unseen != unseen));
+            while (feed.Scroll.Offset.Y > 0 && log.Count < 100) Step(() =>
+            {
+                Scroll(window, feed, ref grab, drag, drag ? 100 : 10);
+                TestFrames.Tick();
+            });
+        }
+        TestFrames.Tick(30);
+        if (drag) window.MouseUp(grab, MouseButton.Left);
+        TestFrames.Tick(30);
+
+        var trace = string.Join(" ", log);
+        Assert.True(feed.Scroll.Offset == default, $"ended at {feed.Scroll.Offset.Y}: {trace}");
+        var newest = page.ViewModel.Items[1];
+        Assert.True(feed.ContainerFromItem(newest) is not null && Top(Row(page, newest), feed) >= 0, $"the newest event is not shown: {trace}");
+        SceneHarness.Close(window);
+    }
+
+    private static void Scroll(Window window, ListBox feed, ref Point grab, bool drag, double by)
+    {
+        if (drag) window.MouseMove(grab -= new Vector(0, by));
+        else window.MouseWheel(SceneHarness.Centre(feed, window), new Vector(0, by));
+    }
+
+    // Headless input extensions drain Background jobs first; a desktop lets input outrank them.
+    private static void Unqueued(Window window, string input, object[] args) =>
+        window.PlatformImpl!.GetType().GetInterface("IHeadlessWindow")!.GetMethod(input)!.Invoke(window.PlatformImpl, args);
+
+    private static List<object> ScrollDownAndInsert(Window window, ActivityFeedPage page, double offset, int events)
+    {
+        var feed = Feed(page);
+        if (offset < 1000) window.MouseWheel(SceneHarness.Centre(feed, window), new Vector(0, -offset / 50));
+        else feed.Scroll!.Offset = new Vector(0, offset);
+        TestFrames.Tick(30);
+        var inserted = new List<object>();
+        for (var i = 1; i <= events; i++)
+        {
+            TickUntil(() => page.ViewModel.Unseen == i);
+            inserted.Insert(0, page.ViewModel.Items[1]);
+        }
+        TestFrames.Tick(30);
+        return inserted;
+    }
+
+    private static Point PressThumb(Window window, ListBox feed)
+    {
+        var bar = ((ScrollViewer)feed.Scroll!).GetVisualDescendants().OfType<ScrollBar>().Single(bar => bar.Orientation == Orientation.Vertical);
+        var grab = SceneHarness.Centre(bar.GetVisualDescendants().OfType<Thumb>().Single(), window);
+        window.MouseDown(grab, MouseButton.Left);
+        return grab;
     }
 
     private static int ScrollDownAndBack(ActivityFeedPage page, Func<int> counter)

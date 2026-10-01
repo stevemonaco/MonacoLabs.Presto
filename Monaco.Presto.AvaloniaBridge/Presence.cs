@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Transforms;
@@ -75,6 +76,8 @@ public static class Presence
     /// row scrolled into view. It never plays on an initial load, an enter or a recycle.
     /// </summary>
     /// <remarks>
+    /// It plays in the layout pass that brings the row into view, so a row realized out of view, as a list does when it
+    /// re-estimates after a change above, reveals when scrolled to. Rows shown in one pass stagger in realization order.
     /// It does nothing outside an item container of a list. A list that does not virtualize never realizes rows on scroll,
     /// so scroll reveals there belong to <see cref="Events.ScrollObserver"/>. The animation reverts when the row is
     /// recycled or detaches.
@@ -104,7 +107,8 @@ public static class Presence
 
     /// <summary>
     /// Whether the list scrolls to keep the first row in view where it is when items are added or removed above it, so a
-    /// live list can take inserts while it is read. At the top it does not, and new items stay in view.
+    /// live list can take inserts while it is read. At the top it does not, and new items stay in view. A scroll that
+    /// lands before the list has laid the change out ends the anchoring, so the scroll is kept.
     /// </summary>
     public static readonly AttachedProperty<bool> ScrollAnchorProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, bool>("ScrollAnchor", typeof(Presence));
@@ -230,7 +234,7 @@ public static class Presence
         ItemContainerOf(parent) is { } container ? container.GetVisualParent()!.FindAncestorOfType<ItemsControl>() : null;
 
     /// <summary>The item container <paramref name="parent"/> is, or is part of the template of; null for anything else.</summary>
-    private static Control? ItemContainerOf(Visual? parent)
+    internal static Control? ItemContainerOf(Visual? parent)
     {
         if (parent is not Control host) return null;
         var container = IsItemContainer(host) ? host : host.TemplatedParent as Control;
@@ -261,6 +265,9 @@ public static class Presence
     /// <summary>The items of <paramref name="list"/> whose rows have been shown, which <see cref="RevealOnceProperty"/> does not reveal again.</summary>
     internal static IReadOnlySet<object> Seen(ItemsControl list) => ItemChanges.For(list).Seen;
 
+    /// <summary>Reveals <paramref name="row"/>, which its list held from its realization until a layout pass showed it.</summary>
+    internal static void RevealHeld(Control row) => row.GetValue(TrackerProperty)?.Reveal();
+
     private static void HandleChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
         if (Design.IsDesignMode) return;
@@ -284,7 +291,7 @@ public static class Presence
     /// The panel, not the ancestor that classified the arrival, keys the batch: an item container that has loaded classifies
     /// its own content. A text reveal (<see cref="TextReveal"/>) plays on its pieces instead, which are its own batch.
     /// </remarks>
-    private static IRevertible Arrive(Control control, AnimationBuilder builder)
+    private static IRevertible Arrive(Control control, AnimationBuilder builder, bool laidOut = false)
     {
         PrestoAvalonia.EnsureInitialized();
         var parameters = builder.ToParams();
@@ -293,7 +300,9 @@ public static class Presence
         if (!s_batches.TryGetValue(key, out var batch))
         {
             s_batches[key] = batch = [];
-            ItemChanges.AfterLayout((Layoutable)key, () => s_batches.Remove(key));
+            // Called from LayoutUpdated, AfterLayout would keep the batch open until the next pass.
+            if (laidOut) Dispatcher.UIThread.Post(() => s_batches.Remove(key), DispatcherPriority.Background);
+            else ItemChanges.AfterLayout((Layoutable)key, () => s_batches.Remove(key));
         }
         batch.Add(control);
         return new Animation(control, parameters, null, 0, index: batch.Count - 1, allTargets: batch.ToArray()).Init();
@@ -304,6 +313,7 @@ public static class Presence
     {
         private readonly Control _control;
         private IRevertible? _arrival;
+        private ItemChanges? _list;
         private Animation? _ghost;
         private Point? _slot;
         private bool _recording;
@@ -319,6 +329,7 @@ public static class Presence
         {
             _control.AttachedToVisualTree -= HandleAttached;
             _control.DetachedFromVisualTree -= HandleDetached;
+            Leave();
             StopRecording();
             _arrival?.Revert();
             _arrival = null;
@@ -358,21 +369,46 @@ public static class Presence
             _arrival = null;
 
             var changes = _control.DataContext is not null && OwnerOfItem(_control.GetVisualParent()) is { } owner ? ItemChanges.For(owner) : null;
-            var firstShown = changes?.Seen.Add(_control.DataContext!) == true;
-            var builder = ClassifyArrival(_control) switch
+            var moment = ClassifyArrival(_control);
+            // A container being recycled first hosts its template built for no item, which is not a row to reveal.
+            if (moment == PresenceMoment.Realize && changes is { Jumped: false } && GetReveal(_control) is not null &&
+                (!GetRevealOnce(_control) || !changes.Seen.Contains(_control.DataContext!)))
             {
-                PresenceMoment.Initial => GetInitial(_control) ?? GetArrive(_control),
-                PresenceMoment.Enter => GetEnter(_control) ?? GetArrive(_control),
-                // A container being recycled first hosts its template built for no item, which is not a row to reveal.
-                PresenceMoment.Realize when changes is { Jumped: false } && (firstShown || !GetRevealOnce(_control)) => GetReveal(_control),
-                _ => null,
-            };
-            if (builder is not null) _arrival = Arrive(_control, builder);
+                // A panel re-estimating after a change above can realize rows out of view, so the pass that shows the row reveals it.
+                _list = changes;
+                changes.Held.Add(_control);
+            }
+            else
+            {
+                changes?.Seen.Add(_control.DataContext!);
+                var builder = moment switch
+                {
+                    PresenceMoment.Initial => GetInitial(_control) ?? GetArrive(_control),
+                    PresenceMoment.Enter => GetEnter(_control) ?? GetArrive(_control),
+                    _ => null,
+                };
+                if (builder is not null) _arrival = Arrive(_control, builder);
+            }
             if (GetExit(_control) is not null) StartRecording();
+        }
+
+        public void Reveal()
+        {
+            if (GetReveal(_control) is { } builder) _arrival = Arrive(_control, builder, laidOut: true);
+        }
+
+        private void Leave()
+        {
+            if (_list is not { } list) return;
+            list.Held.Remove(_control);
+            // A panel re-estimating for the scroll anchor recycles rows the reader has not seen revealed.
+            if (list.Anchoring && _arrival is Animation { Completed: false } && _control.DataContext is { } item) list.Seen.Remove(item);
+            _list = null;
         }
 
         private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e)
         {
+            Leave();
             if (GetExit(_control) is { } exit && ClassifyDeparture(_control, e.AttachmentPoint) is (PresenceMoment.Exit, var position))
             {
                 _ghost = Ghost(_control, e.AttachmentPoint!, _slot ?? position, exit);

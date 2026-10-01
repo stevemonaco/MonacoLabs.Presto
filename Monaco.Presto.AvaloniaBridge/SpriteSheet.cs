@@ -1,24 +1,14 @@
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Media;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// Shows one frame of a <see cref="Source"/> image cut into a <see cref="Columns"/> by <see cref="Rows"/> grid, read left
+/// Shows one frame of a <see cref="PrestoImageBase.Source"/> image cut into a <see cref="Columns"/> by <see cref="Rows"/> grid, read left
 /// to right then top to bottom, and sized, stretched and aligned as a single frame.
 /// </summary>
-public class SpriteSheet : Control
+public class SpriteSheet : PrestoImageBase
 {
-    /// <summary>Defines the <see cref="Source"/> property.</summary>
-    public static readonly StyledProperty<IImage?> SourceProperty = Image.SourceProperty.AddOwner<SpriteSheet>();
-
-    /// <summary>Defines the <see cref="Stretch"/> property.</summary>
-    public static readonly StyledProperty<Stretch> StretchProperty = Image.StretchProperty.AddOwner<SpriteSheet>();
-
-    /// <summary>Defines the <see cref="StretchDirection"/> property.</summary>
-    public static readonly StyledProperty<StretchDirection> StretchDirectionProperty = Image.StretchDirectionProperty.AddOwner<SpriteSheet>();
-
     /// <summary>Defines the <see cref="Columns"/> property.</summary>
     public static readonly StyledProperty<int> ColumnsProperty =
         AvaloniaProperty.Register<SpriteSheet, int>(nameof(Columns), 1, validate: static v => v > 0);
@@ -51,39 +41,18 @@ public class SpriteSheet : Control
 
     static SpriteSheet()
     {
-        AffectsRender<SpriteSheet>(SourceProperty, StretchProperty, StretchDirectionProperty, CurrentFrameProperty, ColumnsProperty, RowsProperty, FrameSizeProperty);
-        AffectsMeasure<SpriteSheet>(SourceProperty, StretchProperty, StretchDirectionProperty, ColumnsProperty, RowsProperty, FrameSizeProperty);
+        AffectsRender<SpriteSheet>(CurrentFrameProperty, ColumnsProperty, RowsProperty, FrameSizeProperty);
+        AffectsMeasure<SpriteSheet>(ColumnsProperty, RowsProperty, FrameSizeProperty);
     }
 
-    /// <summary>The sheet image.</summary>
-    public IImage? Source
-    {
-        get => GetValue(SourceProperty);
-        set => SetValue(SourceProperty, value);
-    }
-
-    /// <summary>How one frame is stretched to fill the control; defaults to <see cref="Avalonia.Media.Stretch.Uniform"/>.</summary>
-    public Stretch Stretch
-    {
-        get => GetValue(StretchProperty);
-        set => SetValue(StretchProperty, value);
-    }
-
-    /// <summary>Whether one frame may be scaled up, down or both.</summary>
-    public StretchDirection StretchDirection
-    {
-        get => GetValue(StretchDirectionProperty);
-        set => SetValue(StretchDirectionProperty, value);
-    }
-
-    /// <summary>Grid columns in <see cref="Source"/>; defaults to 1.</summary>
+    /// <summary>Grid columns in <see cref="PrestoImageBase.Source"/>; defaults to 1.</summary>
     public int Columns
     {
         get => GetValue(ColumnsProperty);
         set => SetValue(ColumnsProperty, value);
     }
 
-    /// <summary>Grid rows in <see cref="Source"/>; defaults to 1.</summary>
+    /// <summary>Grid rows in <see cref="PrestoImageBase.Source"/>; defaults to 1.</summary>
     public int Rows
     {
         get => GetValue(RowsProperty);
@@ -134,20 +103,6 @@ public class SpriteSheet : Control
         FramePlayer.Play(this, fps, loop, reverse);
 
     /// <inheritdoc/>
-    public override void Render(DrawingContext context)
-    {
-        if (Source is { } source) FramePlayer.Draw(context, source, SourceRect(source), Bounds.Size, Stretch, StretchDirection);
-    }
-
-    /// <inheritdoc/>
-    protected override Size MeasureOverride(Size availableSize) =>
-        Source is { } source ? FramePlayer.Measure(availableSize, SourceRect(source).Size, Stretch, StretchDirection) : default;
-
-    /// <inheritdoc/>
-    protected override Size ArrangeOverride(Size finalSize) =>
-        Source is { } source ? FramePlayer.Measure(finalSize, SourceRect(source).Size, Stretch, null) : default;
-
-    /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -156,7 +111,8 @@ public class SpriteSheet : Control
             CurrentFrame = FramePlayer.Resolve(Frame, EffectiveFrameCount, Wrap);
     }
 
-    private Rect SourceRect(IImage source)
+    /// <inheritdoc/>
+    protected override Rect SourceRect(IImage source)
     {
         var cell = new Size(source.Size.Width / Columns, source.Size.Height / Rows);
         var index = CurrentFrame;

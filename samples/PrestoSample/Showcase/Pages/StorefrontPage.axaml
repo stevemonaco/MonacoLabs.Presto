@@ -51,6 +51,10 @@
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="ClipToBounds" Value="True" />
         </Style>
+        <Style Selector="Border.product.soldout presto|FilteredImage">
+            <Setter Property="Grayscale" Value="1" />
+            <Setter Property="presto:Motion.Hover" Value="{x:Static local:StorefrontPage.Colorize}" />
+        </Style>
         <Style Selector="Border.product TextBlock.name, Border.dialog TextBlock.name">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
@@ -140,7 +144,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="local:Product">
-                                <Border Classes="product"
+                                <Border Classes="product" Classes.soldout="{Binding SoldOut}"
                                         presto:Presence.Initial="{presto:Fade Direction=Up, Stagger=40}"
                                         presto:Presence.Enter="{presto:Scale}"
                                         presto:Presence.Exit="{presto:Scale}"
@@ -149,11 +153,11 @@
                                         presto:Motion.Focus="{presto:Glow}">
                                     <StackPanel Spacing="8">
                                         <Border Classes="art" presto:Tilt.Enabled="True">
-                                            <showcase:Scenery Hue="{Binding Hue}" Index="{Binding Index}" />
+                                            <presto:FilteredImage Source="{Binding Picture}" Stretch="UniformToFill" />
                                         </Border>
                                         <TextBlock Classes="name" Text="{Binding Name}" />
                                         <DockPanel>
-                                            <Button DockPanel.Dock="Right" Content="Add" Click="AddClicked"
+                                            <Button DockPanel.Dock="Right" Content="Add" Click="AddClicked" IsEnabled="{Binding !SoldOut}"
                                                     presto:Animate.OnTapped="{presto:Pop}" />
                                             <Button DockPanel.Dock="Right" Content="Quick view" Margin="0,0,6,0" Click="QuickViewClicked" />
                                             <TextBlock Classes="price" Text="{Binding Price}" />
@@ -193,6 +197,6 @@
         </Border>
 
         <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
-                   Text="A shop front built from recipes. The grid shimmers as a skeleton while a timer stands in for the fetch, then the cards fade up in order through Presence.Initial. Hover a card to lift it, press it to squeeze it, move over its picture to tilt it, and Tab to a card for a glow. Pick category chips to recolour them through a :checked state and reflow the grid through Animate.ItemLayout while cards scale in and out. Add pops the button, flies the picture to the cart and bumps the badge with a burst of particles; Quick view opens a dialog over the blurred grid with a circle reveal from the card, and closing it blurs it out through Presence.Exit. Flip Reduced motion to see every recipe's reduced form in place." />
+                   Text="A shop front built from recipes. The grid shimmers as a skeleton while a timer stands in for the fetch, then the cards fade up in order through Presence.Initial. Hover a card to lift it, press it to squeeze it, hover a sold-out card's gray picture to colorize it through a FilteredImage, move over its picture to tilt it, and Tab to a card for a glow. Pick category chips to recolour them through a :checked state and reflow the grid through Animate.ItemLayout while cards scale in and out. Add pops the button, flies the picture to the cart and bumps the badge with a burst of particles; Quick view opens a dialog over the blurred grid with a circle reveal from the card, and closing it blurs it out through Presence.Exit. Flip Reduced motion to see every recipe's reduced form in place." />
     </Grid>
 </showcase:ShowcasePage>

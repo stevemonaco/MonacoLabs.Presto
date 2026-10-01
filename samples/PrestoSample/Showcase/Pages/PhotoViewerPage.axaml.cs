@@ -27,7 +27,7 @@ public partial class PhotoViewerPage : ShowcasePage
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         })];
-        Photos.ItemsSource = _photos.Select(photo => new Panel { ClipToBounds = true, Background = Palette.Background, Children = { photo } }).ToList();
+        Photos.ItemsSource = _photos.Select(photo => new Panel { ClipToBounds = true, Children = { photo } }).ToList();
         Filmstrip.ItemsSource = bitmaps.Select(bitmap => new Image { Source = bitmap, Height = 48 }).ToList();
     }
 
@@ -48,6 +48,7 @@ public partial class PhotoViewerPage : ShowcasePage
 
     private void PhotoChanged(object? sender, SelectionChangedEventArgs e)
     {
+        Backdrop.Source = _photos[Photos.SelectedIndex].Source;
         if (_viewers.Length == 0) return;
         _viewers[_current].Reset(animate: false);
         _current = Photos.SelectedIndex;

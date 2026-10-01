@@ -41,6 +41,19 @@ public sealed class AllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData("Grayscale", 1)]
+    [InlineData("Pixelate", 8)]
+    public void AnImageFilterTweenTicksWithinBudget(string filter, double to)
+    {
+        new FilteredImage().Animate(new() { [filter] = to, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        // A drawn frame also creates native image filters and an SKPaint per render, which this managed budget does not price.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
     [InlineData("Rotate")]
     [InlineData("RotateY")]
     public void TransformShorthandTweenTicksWithinBudget(string rotation)

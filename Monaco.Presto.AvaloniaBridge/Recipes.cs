@@ -58,6 +58,10 @@ public static class Recipes
     public static AnimationBuilder FlipIn(double angle = 90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Entrances.FlipIn(angle, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Entrances.Develop"/>
+    public static AnimationBuilder Develop(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Entrances.Develop(duration, delay, ease, stagger);
+
     /// <inheritdoc cref="Exits.FadeOut"/>
     public static AnimationBuilder FadeOut(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Exits.FadeOut(duration, delay, ease, stagger);
@@ -126,6 +130,10 @@ public static class Recipes
     public static AnimationBuilder Bounce(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Attention.Bounce(intensity, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Attention.FlashTint"/>
+    public static AnimationBuilder FlashTint(Color? color = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Attention.FlashTint(color, intensity, duration, delay, ease, stagger);
+
     /// <inheritdoc cref="Loops.Float"/>
     public static AnimationBuilder Float(double? distance = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loops.Float(distance, duration, delay, ease, stagger);
@@ -161,6 +169,10 @@ public static class Recipes
     /// <inheritdoc cref="Interactions.Dim"/>
     public static AnimationBuilder Dim(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.Dim(intensity, duration, delay, ease);
+
+    /// <inheritdoc cref="Interactions.Colorize"/>
+    public static AnimationBuilder Colorize(double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Interactions.Colorize(duration, delay, ease);
 
     /// <inheritdoc cref="Layouts.Reflow"/>
     public static AnimationBuilder Reflow(double? duration = null, double? delay = null, EaseValue? ease = null) =>
