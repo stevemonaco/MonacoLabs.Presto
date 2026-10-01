@@ -8,14 +8,14 @@ using Monaco.Presto.AvaloniaBridge.Bindings;
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>Drives the value-driven follower directly, without a binding (GAPS-PLAN §1).</summary>
-public sealed class AnimatedFollowerTests : BridgeTestBase
+public sealed class FollowerTests : BridgeTestBase
 {
-    private static readonly AnimatedBindingParams Linear100 = new() { Duration = 100, Ease = "linear" };
+    private static readonly FollowParams Linear100 = new() { Duration = 100, Ease = "linear" };
 
     [AvaloniaFact]
     public void TheFirstValueSnaps()
     {
-        var follower = new AnimatedFollower(typeof(double), new(), 0d);
+        var follower = new Follower(typeof(double), new(), 0d);
 
         follower.Target(100d);
 
@@ -25,7 +25,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void AnimateInitialEasesTheFirstValueFromThePreBindingValue()
     {
-        var follower = new AnimatedFollower(typeof(double), Linear100 with { AnimateInitial = true }, 20d);
+        var follower = new Follower(typeof(double), Linear100 with { AnimateInitial = true }, 20d);
 
         follower.Target(120d);
         Frames.Advance(48, 16);
@@ -38,7 +38,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void AChangeEasesOneEventPerFrameAndLandsExactly()
     {
-        var follower = new AnimatedFollower(typeof(double), new(), null);
+        var follower = new Follower(typeof(double), new(), null);
         var events = 0;
         follower.PropertyChanged += (_, _) => events++;
         follower.Target(0d);
@@ -56,8 +56,8 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void AColorAndABrushEaseAndLandExactly()
     {
-        var color = new AnimatedFollower(typeof(Color), new(), null);
-        var brush = new AnimatedFollower(typeof(IBrush), new(), null);
+        var color = new Follower(typeof(Color), new(), null);
+        var brush = new Follower(typeof(IBrush), new(), null);
         color.Target(Colors.Red);
         brush.Target(Brushes.Red);
 
@@ -92,7 +92,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
             "RelativePoint" => (typeof(RelativePoint), new RelativePoint(0, 0, RelativeUnit.Relative), new RelativePoint(1, 1, RelativeUnit.Relative)),
             _ => (typeof(BoxShadows), new BoxShadows(new BoxShadow { Blur = 0, Color = Colors.Black }), new BoxShadows(new BoxShadow { OffsetX = 10, Blur = 8, Color = Colors.Black })),
         };
-        var follower = new AnimatedFollower(type, Linear100, null);
+        var follower = new Follower(type, Linear100, null);
         follower.Target(from);
 
         follower.Target(to);
@@ -107,7 +107,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void AnIntEasesThroughWholeNumbers()
     {
-        var follower = new AnimatedFollower(typeof(int), Linear100, null);
+        var follower = new Follower(typeof(int), Linear100, null);
         follower.Target(0);
 
         follower.Target(10);
@@ -119,7 +119,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void ASpringRetargetKeepsTheVelocityOfADouble()
     {
-        var follower = new AnimatedFollower(typeof(double), new(), null);
+        var follower = new Follower(typeof(double), new(), null);
         follower.Target(0d);
         follower.Target(100d);
         Frames.Advance(80, 5);
@@ -133,7 +133,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void ASpringRetargetKeepsTheVelocityOfEachThicknessChannel()
     {
-        var follower = new AnimatedFollower(typeof(Thickness), new(), null);
+        var follower = new Follower(typeof(Thickness), new(), null);
         follower.Target(new Thickness(0));
         follower.Target(new Thickness(100, 0, 50, 0));
         Frames.Advance(80, 5);
@@ -148,7 +148,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void ADurationEaseRestartsFromTheDisplayedValueWithItsFullDuration()
     {
-        var follower = new AnimatedFollower(typeof(double), Linear100, null);
+        var follower = new Follower(typeof(double), Linear100, null);
         follower.Target(0d);
         follower.Target(100d);
         Frames.Advance(48, 16);
@@ -176,7 +176,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
         AssertPassesThrough(typeof(object), 1d, new Thickness(2));
         AssertPassesThrough(typeof(IBrush), Brushes.Red, new LinearGradientBrush { GradientStops = { new(Colors.Blue, 0), new(Colors.Green, 1) } });
 
-        var follower = new AnimatedFollower(typeof(double), new(), null);
+        var follower = new Follower(typeof(double), new(), null);
         follower.Target(1d);
         follower.Target(null);
         Assert.Equal(AvaloniaProperty.UnsetValue, follower.Value);
@@ -185,7 +185,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void AValueIsConvertedToThePropertyType()
     {
-        var follower = new AnimatedFollower(typeof(double), new(), null);
+        var follower = new Follower(typeof(double), new(), null);
 
         follower.Target("12");
 
@@ -196,8 +196,8 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     public void ReducedMotionSnapsUnlessWhenReducedGivesATiming()
     {
         Presto.Engine.Defaults.ReducedMotion = true;
-        var snapping = new AnimatedFollower(typeof(double), new(), null);
-        var easing = new AnimatedFollower(typeof(double), new() { WhenReduced = Presto.Build().Duration(100).Ease("linear") }, null);
+        var snapping = new Follower(typeof(double), new(), null);
+        var easing = new Follower(typeof(double), new() { WhenReduced = Presto.Build().Duration(100).Ease("linear") }, null);
         snapping.Target(0d);
         easing.Target(0d);
 
@@ -212,7 +212,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void ASnapRequestLandsAtOnce()
     {
-        var follower = new AnimatedFollower(typeof(double), new(), null);
+        var follower = new Follower(typeof(double), new(), null);
         follower.Target(0d);
         follower.Target(100d);
         Frames.Advance(32, 16);
@@ -226,7 +226,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void StopLandsOnTheLatestTargetAndStopsTicking()
     {
-        var follower = new AnimatedFollower(typeof(double), new(), null);
+        var follower = new Follower(typeof(double), new(), null);
         follower.Target(0d);
         follower.Target(100d);
         Frames.Advance(32, 16);
@@ -243,7 +243,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void AFollowedDoubleAllocatesOnlyItsBoxPerFrame()
     {
-        var follower = new AnimatedFollower(typeof(double), new() { Duration = 100000, Ease = "linear" }, null);
+        var follower = new Follower(typeof(double), new() { Duration = 100000, Ease = "linear" }, null);
         follower.PropertyChanged += (_, _) => _ = follower.Value;
         follower.Target(0d);
         follower.Target(100000d);
@@ -254,37 +254,37 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
     [Fact]
     public void EachTimingSourceResolves()
     {
-        var durationEase = AnimatedTiming.Resolve(new() { Duration = 300, Ease = "linear" }, reduced: false);
+        var durationEase = FollowTiming.Resolve(new() { Duration = 300, Ease = "linear" }, reduced: false);
         Assert.Equal(300, durationEase.Duration!.Value.AsDouble);
         Assert.Equal("linear", durationEase.Ease!.Value.Raw);
         Assert.False(durationEase.PreserveVelocity);
 
-        AssertSpring(AnimatedTiming.Resolve(new() { Spring = "Snappy" }, false), .15, 300);
-        AssertSpring(AnimatedTiming.Resolve(new() { Spring = "0.2,400" }, false), .2, 400);
-        AssertSpring(AnimatedTiming.Resolve(new() { Bounce = .3, Duration = 200 }, false), .3, 200);
-        AssertSpring(AnimatedTiming.Resolve(new(), false), 0, 500);
-        AssertSpring(AnimatedTiming.Resolve(new() { Ease = Springs.Bouncy }, false), .35, 500);
+        AssertSpring(FollowTiming.Resolve(new() { Spring = "Snappy" }, false), .15, 300);
+        AssertSpring(FollowTiming.Resolve(new() { Spring = "0.2,400" }, false), .2, 400);
+        AssertSpring(FollowTiming.Resolve(new() { Bounce = .3, Duration = 200 }, false), .3, 200);
+        AssertSpring(FollowTiming.Resolve(new(), false), 0, 500);
+        AssertSpring(FollowTiming.Resolve(new() { Ease = Springs.Bouncy }, false), .35, 500);
 
-        var builder = AnimatedTiming.Resolve(new() { Builder = Presto.Build().Duration(250).Ease("outQuad") }, false);
+        var builder = FollowTiming.Resolve(new() { Builder = Presto.Build().Duration(250).Ease("outQuad") }, false);
         Assert.Equal(250, builder.Duration!.Value.AsDouble);
         Assert.Equal("outQuad", builder.Ease!.Value.Raw);
 
-        var token = AnimatedTiming.Resolve(new() { Token = MotionTokens.Expressive }, false);
+        var token = FollowTiming.Resolve(new() { Token = MotionTokens.Expressive }, false);
         Assert.Equal(MotionTokens.Expressive.Medium, token.Duration!.Value.AsDouble);
         Assert.Equal(MotionTokens.Expressive.Ease.Raw, token.Ease!.Value.Raw);
 
-        var reduced = AnimatedTiming.Resolve(new() { WhenReduced = Presto.Build().Duration(80) }, reduced: true);
+        var reduced = FollowTiming.Resolve(new() { WhenReduced = Presto.Build().Duration(80) }, reduced: true);
         Assert.Equal(80, reduced.Duration!.Value.AsDouble);
     }
 
     [Fact]
     public void ConflictingTimingSourcesThrow()
     {
-        Assert.Throws<ArgumentException>(() => AnimatedTiming.Resolve(new() { Builder = Presto.Build(), Duration = 100 }, false));
-        Assert.Throws<ArgumentException>(() => AnimatedTiming.Resolve(new() { Spring = "Gentle", Bounce = .2 }, false));
-        Assert.Throws<ArgumentException>(() => AnimatedTiming.Resolve(new() { Bounce = .2, Ease = "linear" }, false));
-        Assert.Throws<ArgumentException>(() => AnimatedTiming.Resolve(new() { Ease = Springs.Gentle, Duration = 100 }, false));
-        Assert.Throws<FormatException>(() => new AnimatedFollower(typeof(double), new() { Spring = "Wobbly" }, null));
+        Assert.Throws<ArgumentException>(() => FollowTiming.Resolve(new() { Builder = Presto.Build(), Duration = 100 }, false));
+        Assert.Throws<ArgumentException>(() => FollowTiming.Resolve(new() { Spring = "Gentle", Bounce = .2 }, false));
+        Assert.Throws<ArgumentException>(() => FollowTiming.Resolve(new() { Bounce = .2, Ease = "linear" }, false));
+        Assert.Throws<ArgumentException>(() => FollowTiming.Resolve(new() { Ease = Springs.Gentle, Duration = 100 }, false));
+        Assert.Throws<FormatException>(() => new Follower(typeof(double), new() { Spring = "Wobbly" }, null));
     }
 
     [Fact]
@@ -314,7 +314,7 @@ public sealed class AnimatedFollowerTests : BridgeTestBase
 
     private static void AssertPassesThrough(Type type, object? first, object? second)
     {
-        var follower = new AnimatedFollower(type, new(), null);
+        var follower = new Follower(type, new(), null);
         follower.Target(first);
         follower.Target(second);
         Assert.Equal(second, follower.Value);

@@ -10,13 +10,13 @@ namespace Monaco.Presto.AvaloniaBridge.Bindings;
 
 /// <summary>
 /// The displayed side of a value-driven property: each <see cref="Target"/> eases <see cref="Value"/> to the new value
-/// with the timing of an <see cref="AnimatedBindingParams"/>, or snaps to it when it cannot or should not be eased.
+/// with the timing of an <see cref="FollowParams"/>, or snaps to it when it cannot or should not be eased.
 /// </summary>
 /// <remarks>
 /// It runs its own core <see cref="Animatable"/> over a <see cref="FollowerHolder{T}"/> and never registers the control's
 /// property with Presto, so an animation of that property layers over the followed value instead of replacing it.
 /// </remarks>
-internal sealed class AnimatedFollower : INotifyPropertyChanged, IDisposable
+internal sealed class Follower : INotifyPropertyChanged, IDisposable
 {
     private const string HolderProperty = nameof(FollowerHolder<double>.Value);
     private static readonly PropertyChangedEventArgs ValueChanged = new(nameof(Value));
@@ -24,7 +24,7 @@ internal sealed class AnimatedFollower : INotifyPropertyChanged, IDisposable
         [typeof(Color), typeof(Thickness), typeof(CornerRadius), typeof(Point), typeof(Size), typeof(Rect), typeof(Vector), typeof(RelativePoint), typeof(BoxShadows)];
 
     private readonly Type _type;
-    private AnimatedBindingParams _parameters;
+    private FollowParams _parameters;
     private readonly Action<object, object?> _rendered;
     private readonly object? _initial;
     private object? _target = AvaloniaProperty.UnsetValue;
@@ -37,12 +37,12 @@ internal sealed class AnimatedFollower : INotifyPropertyChanged, IDisposable
 
     /// <param name="type">The followed property's type, which every value is converted to.</param>
     /// <param name="parameters">The timing, validated here.</param>
-    /// <param name="initial">The property's value before the binding, which the first value eases from when <see cref="AnimatedBindingParams.AnimateInitial"/> is set.</param>
-    public AnimatedFollower(Type type, AnimatedBindingParams parameters, object? initial)
+    /// <param name="initial">The property's value before the binding, which the first value eases from when <see cref="FollowParams.AnimateInitial"/> is set.</param>
+    public Follower(Type type, FollowParams parameters, object? initial)
     {
         _type = type;
         _parameters = parameters;
-        _timing = AnimatedTiming.Resolve(parameters, reduced: false);
+        _timing = FollowTiming.Resolve(parameters, reduced: false);
         _rendered = OnRendered;
         _initial = parameters.AnimateInitial ? Convert(initial) : AvaloniaProperty.UnsetValue;
     }
@@ -68,7 +68,7 @@ internal sealed class AnimatedFollower : INotifyPropertyChanged, IDisposable
 
         if (_animatable == null || reduced != _reduced || _retimed)
         {
-            if (reduced != _reduced) (_timing, _reduced) = (AnimatedTiming.Resolve(_parameters, reduced), reduced);
+            if (reduced != _reduced) (_timing, _reduced) = (FollowTiming.Resolve(_parameters, reduced), reduced);
             _retimed = false;
             Rebuild(_animatable == null ? from! : Value!);
         }
@@ -78,9 +78,9 @@ internal sealed class AnimatedFollower : INotifyPropertyChanged, IDisposable
 
     /// <summary>Takes the timing of <paramref name="parameters"/> from the next <see cref="Target"/> on.</summary>
     /// <exception cref="ArgumentException">The timing conflicts.</exception>
-    public void Retime(AnimatedBindingParams parameters)
+    public void Retime(FollowParams parameters)
     {
-        _timing = AnimatedTiming.Resolve(parameters, reduced: false);
+        _timing = FollowTiming.Resolve(parameters, reduced: false);
         (_parameters, _reduced, _retimed) = (parameters, false, true);
     }
 

@@ -7,16 +7,16 @@ namespace Monaco.Presto.AvaloniaBridge.Bindings;
 
 /// <summary>
 /// One value-driven property: the source is bound to the property's companion on the target, each companion change
-/// retargets an <see cref="AnimatedFollower"/>, and this observable carries the follower's displayed value to the
+/// retargets an <see cref="Follower"/>, and this observable carries the follower's displayed value to the
 /// property. Subscribing connects the source; disposing the subscription tears both halves down.
 /// </summary>
-internal sealed class AnimatedBinding : IObservable<object?>, IDisposable
+internal sealed class FollowBinding : IObservable<object?>, IDisposable
 {
     private readonly AvaloniaObject _target;
     private readonly AttachedProperty<object?> _companion;
     private readonly BindingBase _source;
     private readonly bool _followsItems;
-    private readonly AnimatedFollower _follower;
+    private readonly Follower _follower;
     private readonly Action _itemSettled;
     private IObserver<object?>? _observer;
     private IDisposable? _input;
@@ -25,7 +25,7 @@ internal sealed class AnimatedBinding : IObservable<object?>, IDisposable
 
     /// <summary>Validates the source and timing; set <paramref name="followsItems"/> when the source resolves against the <c>DataContext</c>, so a new item snaps.</summary>
     /// <exception cref="ArgumentException"><paramref name="source"/> writes back, or the timing conflicts.</exception>
-    public AnimatedBinding(AvaloniaObject target, AvaloniaProperty property, BindingBase source, AnimatedBindingParams options, bool followsItems)
+    public FollowBinding(AvaloniaObject target, AvaloniaProperty property, BindingBase source, FollowParams options, bool followsItems)
     {
         var mode = source switch
         {
@@ -42,7 +42,7 @@ internal sealed class AnimatedBinding : IObservable<object?>, IDisposable
         _companion = CompanionProperties.For(property);
         _source = source;
         _followsItems = followsItems;
-        _follower = new AnimatedFollower(property.PropertyType, options, target.GetValue(property));
+        _follower = new Follower(property.PropertyType, options, target.GetValue(property));
         _follower.PropertyChanged += (_, _) => _observer?.OnNext(_follower.Value);
         _itemSettled = () => _newItem = false;
     }

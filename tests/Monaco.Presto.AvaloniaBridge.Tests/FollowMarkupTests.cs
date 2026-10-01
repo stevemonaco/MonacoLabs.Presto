@@ -9,13 +9,13 @@ using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>The <c>{presto:Animated}</c> markup extension (GAPS-PLAN §1.2 decisions 1, 9, 10 and 12).</summary>
-public sealed class AnimatedMarkupTests : BridgeTestBase
+/// <summary>The <c>{presto:Follow}</c> markup extension (GAPS-PLAN §1.2 decisions 1, 9, 10 and 12).</summary>
+public sealed class FollowMarkupTests : BridgeTestBase
 {
-    private static (AnimatedXamlView View, LevelViewModel Model) ShowView()
+    private static (FollowXamlView View, LevelViewModel Model) ShowView()
     {
         var model = new LevelViewModel();
-        var view = new AnimatedXamlView { DataContext = model };
+        var view = new FollowXamlView { DataContext = model };
         Show(view);
         return (view, model);
     }
@@ -44,7 +44,7 @@ public sealed class AnimatedMarkupTests : BridgeTestBase
     [InlineData("Tokened")]
     public void TheTimingAttributesAreHonoured(string name)
     {
-        AnimatedBindingParams options = name switch
+        FollowParams options = name switch
         {
             "Sprung" => new() { Spring = "Snappy" },
             "Timed" => new() { Duration = 300, Ease = "inQuad" },
@@ -52,10 +52,10 @@ public sealed class AnimatedMarkupTests : BridgeTestBase
             _ => new() { Token = MotionTokens.Expressive },
         };
         var model = new LevelViewModel();
-        var view = new AnimatedXamlView { DataContext = model };
+        var view = new FollowXamlView { DataContext = model };
         var reference = new Border { Height = 4, HorizontalAlignment = HorizontalAlignment.Left, DataContext = model };
         Show(new StackPanel { Children = { view, reference } });
-        reference.BindAnimated(Layoutable.WidthProperty, new Binding(nameof(LevelViewModel.Level)), options);
+        Follow.Bind(reference, Layoutable.WidthProperty, new Binding(nameof(LevelViewModel.Level)), options);
 
         model.Level = 120;
         Frames.Advance(160, 16);
@@ -83,7 +83,7 @@ public sealed class AnimatedMarkupTests : BridgeTestBase
     [AvaloniaFact]
     public void InAnItemTemplateEachRowSnapsToItsItemAnimatesItsChangesAndSnapsToANewItem()
     {
-        var row = (IDataTemplate)new AnimatedXamlView().Resources["Row"]!;
+        var row = (IDataTemplate)new FollowXamlView().Resources["Row"]!;
         var item = new LevelViewModel { Level = 30 };
         var list = new ItemsControl { ItemsSource = new[] { item }, ItemTemplate = row };
         var host = new ContentControl { ContentTemplate = row, Content = item };
@@ -113,11 +113,11 @@ public sealed class AnimatedMarkupTests : BridgeTestBase
     [AvaloniaFact]
     public void AStyleSetterThrowsAndPointsAtTemplates()
     {
-        var extension = new AnimatedExtension(new Binding(nameof(LevelViewModel.Level)));
+        var extension = new FollowExtension(new Binding(nameof(LevelViewModel.Level)));
 
         var error = Assert.Throws<InvalidOperationException>(() => extension.ProvideValue(new ProvidedTarget(new Setter(), nameof(Setter.Value))));
 
         Assert.Contains("ControlTemplate", error.Message);
-        Assert.Contains("BindAnimated", Assert.Throws<InvalidOperationException>(() => extension.ProvideValue(null!)).Message);
+        Assert.Contains("Follow.Bind", Assert.Throws<InvalidOperationException>(() => extension.ProvideValue(null!)).Message);
     }
 }

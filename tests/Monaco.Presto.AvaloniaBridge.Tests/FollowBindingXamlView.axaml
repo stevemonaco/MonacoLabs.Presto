@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Monaco.Presto.AvaloniaBridge.Tests"
-             x:Class="Monaco.Presto.AvaloniaBridge.Tests.AnimatedBindingXamlView"
+             x:Class="Monaco.Presto.AvaloniaBridge.Tests.FollowBindingXamlView"
              x:DataType="local:LevelViewModel"
              MinWidth="33">
   <UserControl.Resources>

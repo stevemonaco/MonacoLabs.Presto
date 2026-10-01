@@ -16,12 +16,12 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// names, the priority a returned observable binding lands at, how a companion property resolves the wrapped binding, and
 /// the order a <c>DataContext</c> change and the value it causes arrive in.
 /// </summary>
-public sealed class AnimatedBindingPlumbingTests : BridgeTestBase
+public sealed class FollowBindingPlumbingTests : BridgeTestBase
 {
-    private static (AnimatedBindingXamlView View, LevelViewModel Model) ShowView()
+    private static (FollowBindingXamlView View, LevelViewModel Model) ShowView()
     {
         var model = new LevelViewModel();
-        var view = new AnimatedBindingXamlView { DataContext = model };
+        var view = new FollowBindingXamlView { DataContext = model };
         var window = Show(view);
         window.UpdateLayout();
         return (view, model);
@@ -133,7 +133,7 @@ public sealed class AnimatedBindingPlumbingTests : BridgeTestBase
     [AvaloniaFact]
     public void AReusedTemplateRootSeesItsNewItemBeforeItsValue()
     {
-        var row = (IDataTemplate)new AnimatedBindingXamlView().Resources["Row"]!;
+        var row = (IDataTemplate)new FollowBindingXamlView().Resources["Row"]!;
         var host = new ContentControl { ContentTemplate = row, Content = new LevelViewModel { Level = 1 } };
         var window = Show(host);
         var first = host.GetVisualDescendants().OfType<Border>().Single();
@@ -151,7 +151,7 @@ public sealed class AnimatedBindingPlumbingTests : BridgeTestBase
     public void AVirtualizedListBuildsANewRowPerItemAndNullsTheRowsItRecycles()
     {
         var items = Enumerable.Range(0, 50).Select(i => new LevelViewModel { Level = i }).ToList();
-        var list = new ListBox { Height = 100, ItemsSource = items, ItemTemplate = (IDataTemplate)new AnimatedBindingXamlView().Resources["Row"]! };
+        var list = new ListBox { Height = 100, ItemsSource = items, ItemTemplate = (IDataTemplate)new FollowBindingXamlView().Resources["Row"]! };
         var window = Show(list);
         window.UpdateLayout();
         var before = list.GetVisualDescendants().OfType<Border>().Where(border => border.Height == 20).ToList();

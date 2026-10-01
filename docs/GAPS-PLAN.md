@@ -82,7 +82,7 @@ first. It sits behind a spike (§1.4 step 1).
 1. **The shape is a binding wrapper, written as a markup extension.**
 
    ```xml
-   <Border Width="{presto:Animated {Binding Level}, Spring=Gentle}" />
+   <Border Width="{presto:Follow {Binding Level}, Spring=Gentle}" />
    ```
 
    The wrapped binding is an ordinary binding. Its value is the *target*, and the property shows the *animated* value.
@@ -161,9 +161,9 @@ first. It sits behind a spike (§1.4 step 1).
     timing).
 
 11. **Code API, the same machinery.** For example:
-    `control.BindAnimated(Border.WidthProperty, source, new AnimatedBindingParams { ... })` returns an `IDisposable`.
+    `Follow.Bind(control, Border.WidthProperty, source, new FollowParams { ... })` returns an `IDisposable`.
     The source can be an `IObservable<T>` or a `BindingBase`.
-    - Code needs no `BindingBase`, so `BindAnimated` binds the follower directly with
+    - Code needs no `BindingBase`, so `Follow.Bind` binds the follower directly with
       `Bind(property, follower, BindingPriority.LocalValue)`.
 
 12. **Not in style setters.** One setter is shared by every control it applies to. With `BindingBase` sealed off,
@@ -187,10 +187,10 @@ first. It sits behind a spike (§1.4 step 1).
 ### 1.3 API
 
 ```csharp
-// XAML: {presto:Animated {Binding Level}, Spring=Gentle}
-public sealed class AnimatedExtension : MarkupExtension
+// XAML: {presto:Follow {Binding Level}, Spring=Gentle}
+public sealed class FollowExtension : MarkupExtension
 {
-    public AnimatedExtension(BindingBase binding);
+    public FollowExtension(BindingBase binding);
     public double? Duration { get; set; }
     public EaseValue? Ease { get; set; }
     public string? Spring { get; set; }          // a Springs preset name, or "bounce,duration"
@@ -200,18 +200,14 @@ public sealed class AnimatedExtension : MarkupExtension
     public AnimationBuilder? WhenReduced { get; set; }
 }
 
-public sealed record AnimatedBindingParams { /* the same options, init-only */ }
+public sealed record FollowParams { /* the same options, init-only */ }
 
-public static class AnimatedBindingExtensions
+public static class Follow                         // shorthands (decision 13) and the code form
 {
-    public static IDisposable BindAnimated(this AvaloniaObject target, AvaloniaProperty property,
-        BindingBase source, AnimatedBindingParams? options = null);
-    public static IDisposable BindAnimated<T>(this AvaloniaObject target, AvaloniaProperty<T> property,
-        IObservable<T> source, AnimatedBindingParams? options = null);
-}
-
-public static class Follow                         // shorthands, decision 13
-{
+    public static IDisposable Bind(AvaloniaObject target, AvaloniaProperty property,
+        BindingBase source, FollowParams? options = null);
+    public static IDisposable Bind<T>(AvaloniaObject target, AvaloniaProperty<T> property,
+        IObservable<T> source, FollowParams? options = null);
     public static readonly AttachedProperty<object?> XProperty; // also Y, Scale, ScaleX, ScaleY, Rotate, Blur
     public static readonly AttachedProperty<AnimationBuilder?> TimingProperty;
 }
@@ -237,7 +233,7 @@ Core: `PreserveVelocity` applies to the channel form of `Animatable.Set`.
    - Per-frame cost of an INPC follower against a direct observable, measured with an allocation budget.
    - How the shorthand layers (decision 13) work.
 2. Core: per-channel `PreserveVelocity`, with tests first.
-3. Bridge: follower, companion registry, `BindAnimated`, then `AnimatedExtension`, then `Follow`. (Done.)
+3. Bridge: follower, companion registry, `Follow.Bind`, then `FollowExtension`, then `Follow`. (Done.)
 4. Sample and docs. (Done: the *Value-driven* Reference page and DESIGN-NOTES §5.)
 
 ### 1.5 Tests
@@ -245,7 +241,7 @@ Core: `PreserveVelocity` applies to the channel form of `Animatable.Set`.
 - **Core (`AnimatablesTests`):**
   - A channel retarget keeps each channel's velocity.
   - Channels that do not move stay at rest.
-- **Bridge (`AnimatedBindingTests`, headless):**
+- **Bridge (`FollowBindingTests`, headless):**
   - The first value snaps, and `AnimateInitial` animates it.
   - A change animates, and the end lands exactly.
   - A retarget mid-flight keeps velocity: the step on either side of the retarget matches.
@@ -258,9 +254,9 @@ Core: `PreserveVelocity` applies to the channel form of `Animatable.Set`.
   - A style value at a lower priority is overridden.
   - A `control.Animate` on the same property layers over the follow and reverts back to it.
   - `ElementName`, `RelativeSource` and converters resolve.
-- **Bridge (`AllocationTests`):** a followed `double` stays within 192 B per tick through `{presto:Animated}`
-  (160 measured) and within 128 B through `BindAnimated` (104 measured). The follower's core holder adds nothing.
-- **Bridge (`AnimatedBindingPlumbingTests`, kept from the spike):** pins the Avalonia behaviour listed in §1.7.
+- **Bridge (`AllocationTests`):** a followed `double` stays within 192 B per tick through `{presto:Follow}`
+  (160 measured) and within 128 B through `Follow.Bind` (104 measured). The follower's core holder adds nothing.
+- **Bridge (`FollowBindingPlumbingTests`, kept from the spike):** pins the Avalonia behaviour listed in §1.7.
 
 ### 1.6 Sample
 
@@ -278,7 +274,7 @@ better.
 ### 1.7 Spike results
 
 Headless probes on Avalonia 12.1.2 with compiled XAML and compiled bindings (`x:DataType`). Probes that pin behaviour
-the later items rely on are kept in `AnimatedBindingPlumbingTests`. They run over `AnimatedBindingXamlView` and a
+the later items rely on are kept in `FollowBindingPlumbingTests`. They run over `FollowBindingXamlView` and a
 test-local `ProbeExtension` that does the plumbing without the animation. Measurements and throwaway variants were
 deleted after their numbers were recorded here.
 
@@ -368,9 +364,10 @@ deleted after their numbers were recorded here.
 - **`EffectComposer`:** needs the same pair for `Blur`, and `Revert` falls back to the followed radius.
 - The core is unaffected.
 
-**Names.** `{presto:Animated}`, `BindAnimated` and `Follow` stay. XAML resolves `{presto:Animated}` to
-`AnimatedExtension`. Nothing public is called `Animated` or `Follow`, and `AnimatedValue` is internal under
-`Targets`.
+**Names.** Renamed after the phase from `{presto:Animated}`/`BindAnimated`/`AnimatedBindingParams` to one name
+for the whole feature: `{presto:Follow}`, `Follow.Bind` and `FollowParams`, beside the `Follow.*` shorthands. XAML
+resolves `{presto:Follow}` to `FollowExtension` before the `Follow` class, so the two share the namespace. `Follow.Bind`
+is a static method rather than an extension, since an extension named `Bind` loses to `AvaloniaObject.Bind`.
 
 **Default timing.** A critically damped spring: `Springs.Gentle`, with `Bounce = 0`. For a spring built from
 `Bounce`/`Duration`, bounce 0 gives a damping ratio of exactly 1. It is a spring rather than a `MotionTokens` entry
@@ -423,12 +420,12 @@ plus `utils.mapRange`/`pipe`. Presto has the pieces: `Animatable` (≈ `quickTo`
   - `Timer.ProgressValue`
   - `Animatable.ValueOf(property)`
 - **Bridge sinks:**
-  - `BindAnimated`'s plumbing from Phase 41, used *without* smoothing, so a `MotionValue` binds to any property at
+  - `Follow.Bind`'s plumbing from Phase 41, used *without* smoothing, so a `MotionValue` binds to any property at
     `LocalValue` priority.
   - `Follow.*` shorthands accept a `MotionValue`.
   - `timer.Scrub(motionValue)` seeks a timeline by a value. That generalises the scroll sync to any source.
 - **XAML:** none in this phase. A view model or code-behind exposes a `MotionValue`, and Phase 41's extension binds it
-  (`{presto:Animated {Binding Header.Opacity}, Duration=0}`). A `{presto:Map}` extension is an open question.
+  (`{presto:Follow {Binding Header.Opacity}, Duration=0}`). A `{presto:Map}` extension is an open question.
 
 ### 2.3 Tests and sample
 
@@ -645,7 +642,7 @@ Each item is independent and can land on its own.
 
 ## 10. Open questions (confirm before the relevant phase)
 
-- **41 — names (settled):** keep `{presto:Animated}` / `BindAnimated` / `Follow`. The spike found no clash (§1.7).
+- **41 — names (settled):** `{presto:Follow}` / `Follow.Bind` / `Follow.*` (§1.7).
 - **41 — default timing (settled):** a critically damped spring, `Springs.Gentle` (§1.7).
 - **41 — `Follow.*` layering (settled):** the followed value is the composer's base layer. An animation overrides
   it, holds until it is reverted, then hands back (decision 13, §1.7 Q6).

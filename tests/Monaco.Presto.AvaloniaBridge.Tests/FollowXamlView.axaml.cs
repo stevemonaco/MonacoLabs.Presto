@@ -3,10 +3,10 @@ using Avalonia.Markup.Xaml;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary><c>{presto:Animated}</c> on attributes, with each kind of timing, and inside control and data templates.</summary>
-public sealed partial class AnimatedXamlView : UserControl
+/// <summary><c>{presto:Follow}</c> on attributes, with each kind of timing, and inside control and data templates.</summary>
+public sealed partial class FollowXamlView : UserControl
 {
-    public AnimatedXamlView() => InitializeComponent();
+    public FollowXamlView() => InitializeComponent();
 }
 
 /// <summary>What XAML hands a markup extension, for calling <see cref="MarkupExtension.ProvideValue"/> from a test.</summary>

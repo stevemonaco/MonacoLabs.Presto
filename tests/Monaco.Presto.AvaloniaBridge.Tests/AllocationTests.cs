@@ -32,11 +32,11 @@ public sealed class AllocationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void ABindAnimatedWidthTicksWithinBudget()
+    public void AFollowBoundWidthTicksWithinBudget()
     {
         var model = new LevelViewModel { Level = 0 };
         var border = new Border { DataContext = model };
-        border.BindAnimated(Layoutable.WidthProperty, new Binding(nameof(LevelViewModel.Level)), new() { Duration = 100000, Ease = "linear" });
+        Follow.Bind(border, Layoutable.WidthProperty, new Binding(nameof(LevelViewModel.Level)), new() { Duration = 100000, Ease = "linear" });
         model.Level = 100000;
 
         var bytes = BytesPerTick();
@@ -50,13 +50,13 @@ public sealed class AllocationTests : CompositorTestBase
     {
         var model = new LevelViewModel { Level = 0 };
         var border = new Border { DataContext = model };
-        var extension = new AnimatedExtension(new Binding(nameof(LevelViewModel.Level))) { Duration = 100000, Ease = "linear" };
+        var extension = new FollowExtension(new Binding(nameof(LevelViewModel.Level))) { Duration = 100000, Ease = "linear" };
         border.Bind(Layoutable.WidthProperty, (BindingBase)extension.ProvideValue(new ProvidedTarget(border, Layoutable.WidthProperty)));
         model.Level = 100000;
 
         var bytes = BytesPerTick();
 
-        // measured 160, as GAPS-PLAN §1.7 predicted for ToBinding(): 56 more than BindAnimated's direct Bind.
+        // measured 160, as GAPS-PLAN §1.7 predicted for ToBinding(): 56 more than Follow.Bind's direct Bind.
         Assert.True(bytes <= 192, $"{bytes:0.##} bytes per tick");
     }
 

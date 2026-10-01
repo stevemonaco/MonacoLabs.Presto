@@ -10,10 +10,10 @@ using Monaco.Presto.AvaloniaBridge.Bindings;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>The places an <c>{presto:Animated}</c>-shaped extension can sit, each wrapping a different kind of binding (GAPS-PLAN §1.7).</summary>
-public sealed partial class AnimatedBindingXamlView : UserControl
+/// <summary>The places an <c>{presto:Follow}</c>-shaped extension can sit, each wrapping a different kind of binding (GAPS-PLAN §1.7).</summary>
+public sealed partial class FollowBindingXamlView : UserControl
 {
-    public AnimatedBindingXamlView() => InitializeComponent();
+    public FollowBindingXamlView() => InitializeComponent();
 }
 
 public sealed class LevelViewModel : INotifyPropertyChanged
@@ -45,7 +45,7 @@ public sealed class Doubler : IValueConverter
 }
 
 /// <summary>
-/// The plumbing of <c>{presto:Animated}</c> without the animation: the wrapped binding is bound to a companion attached
+/// The plumbing of <c>{presto:Follow}</c> without the animation: the wrapped binding is bound to a companion attached
 /// property on the target, and each companion value is passed straight through a follower returned as <c>ToBinding()</c>.
 /// </summary>
 public sealed class ProbeExtension(BindingBase binding) : MarkupExtension

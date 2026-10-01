@@ -13,10 +13,10 @@ using Monaco.Presto.AvaloniaBridge.Bindings;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>Value-driven bindings through <see cref="AnimatedBindingExtensions.BindAnimated"/> (GAPS-PLAN §1.5).</summary>
-public sealed class AnimatedBindingTests : BridgeTestBase
+/// <summary>Value-driven bindings through <see cref="Follow.Bind"/> (GAPS-PLAN §1.5).</summary>
+public sealed class FollowBindingTests : BridgeTestBase
 {
-    private static readonly AnimatedBindingParams Linear100 = new() { Duration = 100, Ease = "linear" };
+    private static readonly FollowParams Linear100 = new() { Duration = 100, Ease = "linear" };
 
     private static Border Unsized() => new() { Height = 4, HorizontalAlignment = HorizontalAlignment.Left };
 
@@ -31,13 +31,13 @@ public sealed class AnimatedBindingTests : BridgeTestBase
         return border;
     }
 
-    private static (Border Border, LevelViewModel Model, IDisposable Binding) ShowBound(AnimatedBindingParams? options = null)
+    private static (Border Border, LevelViewModel Model, IDisposable Binding) ShowBound(FollowParams? options = null)
     {
         var model = new LevelViewModel();
         var border = Unsized();
         border.DataContext = model;
         Show(new StackPanel { Children = { border } });
-        return (border, model, border.BindAnimated(Layoutable.WidthProperty, Level(), options ?? Linear100));
+        return (border, model, Follow.Bind(border, Layoutable.WidthProperty, Level(), options ?? Linear100));
     }
 
     [AvaloniaFact]
@@ -107,7 +107,7 @@ public sealed class AnimatedBindingTests : BridgeTestBase
             ItemTemplate = new FuncDataTemplate<LevelViewModel>((_, _) =>
             {
                 var row = Unsized();
-                row.BindAnimated(Layoutable.WidthProperty, Level(), Linear100);
+                Follow.Bind(row, Layoutable.WidthProperty, Level(), Linear100);
                 return row;
             }),
         };
@@ -129,7 +129,7 @@ public sealed class AnimatedBindingTests : BridgeTestBase
     {
         var border = Unsized();
         var alignment = new Pushed<HorizontalAlignment>(HorizontalAlignment.Left);
-        border.BindAnimated(Layoutable.HorizontalAlignmentProperty, alignment, Linear100);
+        Follow.Bind(border, Layoutable.HorizontalAlignmentProperty, alignment, Linear100);
 
         alignment.Push(HorizontalAlignment.Right);
 
@@ -141,8 +141,8 @@ public sealed class AnimatedBindingTests : BridgeTestBase
     {
         var border = Unsized();
 
-        Assert.Throws<ArgumentException>(() => border.BindAnimated(Layoutable.WidthProperty, new Binding("Level") { Mode = BindingMode.TwoWay }));
-        Assert.Throws<ArgumentException>(() => border.BindAnimated(Layoutable.WidthProperty, new MultiBinding { Mode = BindingMode.OneWayToSource }));
+        Assert.Throws<ArgumentException>(() => Follow.Bind(border, Layoutable.WidthProperty, new Binding("Level") { Mode = BindingMode.TwoWay }));
+        Assert.Throws<ArgumentException>(() => Follow.Bind(border, Layoutable.WidthProperty, new MultiBinding { Mode = BindingMode.OneWayToSource }));
     }
 
     [AvaloniaFact]
@@ -179,7 +179,7 @@ public sealed class AnimatedBindingTests : BridgeTestBase
     {
         var border = Styled(new LevelViewModel());
 
-        border.BindAnimated(Layoutable.WidthProperty, Level());
+        Follow.Bind(border, Layoutable.WidthProperty, Level());
 
         Assert.Equal(20, border.Width);
     }
@@ -209,7 +209,7 @@ public sealed class AnimatedBindingTests : BridgeTestBase
         var panel = new StackPanel { MinWidth = 33, Children = { ancestor } };
         Show(panel);
 
-        ancestor.BindAnimated(Layoutable.WidthProperty, new Binding(nameof(StackPanel.MinWidth)) { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(StackPanel) } });
+        Follow.Bind(ancestor, Layoutable.WidthProperty, new Binding(nameof(StackPanel.MinWidth)) { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(StackPanel) } });
 
         Assert.Equal(33, ancestor.Width);
         panel.MinWidth = 60;
@@ -227,7 +227,7 @@ public sealed class AnimatedBindingTests : BridgeTestBase
         border.DataContext = model;
         Show(border);
 
-        border.BindAnimated(Layoutable.WidthProperty, Level(), Linear100 with { AnimateInitial = true });
+        Follow.Bind(border, Layoutable.WidthProperty, Level(), Linear100 with { AnimateInitial = true });
         Frames.Advance(48, 16);
 
         Assert.InRange(border.Width, 5.01, 19.99);
@@ -252,10 +252,10 @@ public sealed class AnimatedBindingTests : BridgeTestBase
         var background = new Pushed<IBrush?>(Brushes.Red);
         var thickness = new Pushed<Thickness>(new Thickness(0));
         var radius = new Pushed<CornerRadius>(new CornerRadius(0));
-        brush.BindAnimated(SolidColorBrush.ColorProperty, color);
-        border.BindAnimated(Border.BackgroundProperty, background);
-        border.BindAnimated(Border.BorderThicknessProperty, thickness);
-        border.BindAnimated(Border.CornerRadiusProperty, radius);
+        Follow.Bind(brush, SolidColorBrush.ColorProperty, color);
+        Follow.Bind(border, Border.BackgroundProperty, background);
+        Follow.Bind(border, Border.BorderThicknessProperty, thickness);
+        Follow.Bind(border, Border.CornerRadiusProperty, radius);
 
         color.Push(Colors.Blue);
         background.Push(Brushes.Blue);
@@ -279,7 +279,7 @@ public sealed class AnimatedBindingTests : BridgeTestBase
     {
         var model = new LevelViewModel();
         var border = Styled(model);
-        var binding = border.BindAnimated(Layoutable.WidthProperty, Level(), Linear100);
+        var binding = Follow.Bind(border, Layoutable.WidthProperty, Level(), Linear100);
         model.Level = 100;
         Frames.Advance(32, 16);
 

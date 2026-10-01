@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Data;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Bindings;
 using Monaco.Presto.AvaloniaBridge.Effects;
@@ -116,6 +117,20 @@ public static class Follow
     /// <summary>Sets the builder whose timing <paramref name="visual"/>'s shorthands follow with.</summary>
     public static void SetTiming(Visual visual, AnimationBuilder? value) => visual.SetValue(TimingProperty, value);
 
+    /// <summary>
+    /// Binds <paramref name="property"/> at <see cref="BindingPriority.LocalValue"/> so it eases to each value of
+    /// <paramref name="source"/>, which resolves against <paramref name="target"/> as it would on the property itself.
+    /// </summary>
+    /// <returns>The binding; disposing it stops the animation and removes both the binding and its source.</returns>
+    /// <exception cref="ArgumentException"><paramref name="source"/> is <c>TwoWay</c> or <c>OneWayToSource</c>, or the timing conflicts.</exception>
+    public static IDisposable Bind(AvaloniaObject target, AvaloniaProperty property, BindingBase source, FollowParams? options = null) =>
+        target.Bind(property, new FollowBinding(target, property, source, options ?? new(), followsItems: true), BindingPriority.LocalValue);
+
+    /// <summary>Binds <paramref name="property"/> at <see cref="BindingPriority.LocalValue"/> so it eases to each value of <paramref name="source"/>.</summary>
+    /// <returns>The binding; disposing it stops the animation and unsubscribes from <paramref name="source"/>.</returns>
+    public static IDisposable Bind<T>(AvaloniaObject target, AvaloniaProperty<T> property, IObservable<T> source, FollowParams? options = null) =>
+        target.Bind(property, new FollowBinding(target, property, source.ToBinding(), options ?? new(), followsItems: false), BindingPriority.LocalValue);
+
     private static void HandleValueChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
     {
         var index = Array.IndexOf(s_properties, e.Property);
@@ -134,7 +149,7 @@ public static class Follow
         private const int Blur = 6;
 
         private readonly Visual _visual;
-        private readonly AnimatedFollower?[] _followers = new AnimatedFollower?[s_properties.Length];
+        private readonly Follower?[] _followers = new Follower?[s_properties.Length];
         private readonly Action _itemSettled;
         private int _newItems;
         private bool _detached;
@@ -152,7 +167,7 @@ public static class Follow
         {
             if (_followers[index] is not { } follower)
             {
-                follower = _followers[index] = new AnimatedFollower(typeof(double), Parameters(), null);
+                follower = _followers[index] = new Follower(typeof(double), Parameters(), null);
                 follower.PropertyChanged += (_, _) => Show(index, follower.Value);
             }
             follower.Target(ToNumber(index, value), snap: _detached || (_newItems & (1 << index)) != 0);
@@ -180,7 +195,7 @@ public static class Follow
             foreach (var follower in _followers) follower?.Retime(parameters);
         }
 
-        private AnimatedBindingParams Parameters() => new() { Builder = _visual.GetValue(TimingProperty) };
+        private FollowParams Parameters() => new() { Builder = _visual.GetValue(TimingProperty) };
 
         private static object ToNumber(int index, object value)
         {

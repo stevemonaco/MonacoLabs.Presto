@@ -5,7 +5,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <summary>Named springs for value-driven animation. Each read returns a new <see cref="Spring"/>, because a spring carries completion state.</summary>
 public static class Springs
 {
-    /// <summary>Critically damped over 500ms: no overshoot. The default of <see cref="AnimatedBindingParams"/>.</summary>
+    /// <summary>Critically damped over 500ms: no overshoot. The default of <see cref="FollowParams"/>.</summary>
     public static Spring Gentle => new(bounce: 0, duration: 500);
 
     /// <summary>A slight overshoot over 300ms.</summary>

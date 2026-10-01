@@ -143,7 +143,7 @@ Option 1 today; option 3 is the natural home if compositor-backed effects are ev
 
 ## 5. Value-driven animation: companion and follower
 
-Phase 41 (`{presto:Animated}`, `BindAnimated`, `Follow.*`) makes a bound property ease to each new value. The full
+Phase 41 (`{presto:Follow}`, `Follow.Bind`, `Follow.*`) makes a bound property ease to each new value. The full
 decisions and the spike that settled them are in [GAPS-PLAN.md §1](GAPS-PLAN.md); this is the shape in brief.
 
 - **Input, a companion.** Avalonia 12 keeps `BindingBase.CreateInstance` and `TransitionBase.Apply` internal, so Presto
@@ -151,9 +151,9 @@ decisions and the spike that settled them are in [GAPS-PLAN.md §1](GAPS-PLAN.md
   property on the target control, registered once per target property (`CompanionProperties`). `DataContext`,
   `ElementName`, `RelativeSource`, `TemplatedParent` and converters therefore resolve exactly as on the real property,
   and a companion change is the "value changed" event. Untyped values are converted to the property type by the follower.
-- **Output, a follower.** Each use gets an `AnimatedFollower`, which runs its own core `Animatable` over an internal
-  holder and exposes the displayed value as an observable. `{presto:Animated}` returns it as `ToBinding()`, and
-  `BindAnimated` binds it directly, both at `LocalValue`. Springs retarget from the displayed value with its velocity,
+- **Output, a follower.** Each use gets an `Follower`, which runs its own core `Animatable` over an internal
+  holder and exposes the displayed value as an observable. `{presto:Follow}` returns it as `ToBinding()`, and
+  `Follow.Bind` binds it directly, both at `LocalValue`. Springs retarget from the displayed value with its velocity,
   per channel for colours, brushes and thicknesses. It snaps on the first value, on a new item (a `DataContext` change
   first, which is how a recycled row is recognised), while detached, under reduced motion without `WhenReduced`, and for
   values it cannot ease.

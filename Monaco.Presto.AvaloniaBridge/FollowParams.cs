@@ -6,7 +6,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// with none, it follows <see cref="Springs.Gentle"/>.
 /// </summary>
 /// <remarks>A spring keeps its velocity when a new value arrives mid-flight; a duration ease restarts from the displayed value with its full duration.</remarks>
-public sealed record AnimatedBindingParams
+public sealed record FollowParams
 {
     /// <summary>Milliseconds to reach a new value, or a <see cref="Bounce"/> spring's perceived duration.</summary>
     public double? Duration { get; init; }

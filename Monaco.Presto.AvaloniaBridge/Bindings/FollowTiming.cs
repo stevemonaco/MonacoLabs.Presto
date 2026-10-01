@@ -1,15 +1,15 @@
 namespace Monaco.Presto.AvaloniaBridge.Bindings;
 
-/// <summary>Turns <see cref="AnimatedBindingParams"/> into the ease, duration and momentum of a follower's animatable property.</summary>
-internal static class AnimatedTiming
+/// <summary>Turns <see cref="FollowParams"/> into the ease, duration and momentum of a follower's animatable property.</summary>
+internal static class FollowTiming
 {
     private const double BounceDuration = 500;
 
-    /// <summary>The timing in force, from <see cref="AnimatedBindingParams.WhenReduced"/> when <paramref name="reduced"/> is set.</summary>
+    /// <summary>The timing in force, from <see cref="FollowParams.WhenReduced"/> when <paramref name="reduced"/> is set.</summary>
     /// <exception cref="ArgumentException">Two timing sources are given.</exception>
-    /// <exception cref="FormatException"><see cref="AnimatedBindingParams.Spring"/> names no spring.</exception>
+    /// <exception cref="FormatException"><see cref="FollowParams.Spring"/> names no spring.</exception>
     /// <exception cref="NotSupportedException">A builder's duration is not a number.</exception>
-    public static AnimatableProperty Resolve(AnimatedBindingParams p, bool reduced)
+    public static AnimatableProperty Resolve(FollowParams p, bool reduced)
     {
         var conflict =
             p.Builder != null && (p.Duration != null || p.Ease != null || p.Spring != null || p.Bounce != null) ? "Builder gives the duration and ease, so Duration, Ease, Spring and Bounce cannot be set with it." :

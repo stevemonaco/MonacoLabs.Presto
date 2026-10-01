@@ -8,33 +8,33 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// Wraps a one-way binding so its property animates to each new value instead of jumping to it, as in
-/// <c>Width="{presto:Animated {Binding Level}, Spring=Gentle}"</c>; the code form is <see cref="AnimatedBindingExtensions.BindAnimated"/>.
+/// <c>Width="{presto:Follow {Binding Level}, Spring=Gentle}"</c>; the code form is <see cref="Follow.Bind"/>.
 /// </summary>
 /// <remarks>It works on a control's attribute and inside control and data templates, but not in a style <c>Setter</c>, which every matched control shares.</remarks>
-public sealed class AnimatedExtension(BindingBase binding) : MarkupExtension
+public sealed class FollowExtension(BindingBase binding) : MarkupExtension
 {
-    /// <inheritdoc cref="AnimatedBindingParams.Duration"/>
+    /// <inheritdoc cref="FollowParams.Duration"/>
     public double? Duration { get; set; }
 
     /// <summary>An ease in the <see cref="EaseParser"/> grammar, such as <c>"outQuint"</c>.</summary>
     public string? Ease { get; set; }
 
-    /// <inheritdoc cref="AnimatedBindingParams.Spring"/>
+    /// <inheritdoc cref="FollowParams.Spring"/>
     public string? Spring { get; set; }
 
-    /// <inheritdoc cref="AnimatedBindingParams.Bounce"/>
+    /// <inheritdoc cref="FollowParams.Bounce"/>
     public double? Bounce { get; set; }
 
-    /// <inheritdoc cref="AnimatedBindingParams.Builder"/>
+    /// <inheritdoc cref="FollowParams.Builder"/>
     public AnimationBuilder? Builder { get; set; }
 
-    /// <inheritdoc cref="AnimatedBindingParams.Token"/>
+    /// <inheritdoc cref="FollowParams.Token"/>
     public MotionTokens? Token { get; set; }
 
-    /// <inheritdoc cref="AnimatedBindingParams.AnimateInitial"/>
+    /// <inheritdoc cref="FollowParams.AnimateInitial"/>
     public bool AnimateInitial { get; set; }
 
-    /// <inheritdoc cref="AnimatedBindingParams.WhenReduced"/>
+    /// <inheritdoc cref="FollowParams.WhenReduced"/>
     public AnimationBuilder? WhenReduced { get; set; }
 
     /// <inheritdoc/>
@@ -43,12 +43,12 @@ public sealed class AnimatedExtension(BindingBase binding) : MarkupExtension
     public override object ProvideValue(IServiceProvider serviceProvider) => (serviceProvider?.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget) switch
     {
         { TargetObject: Setter } => throw new InvalidOperationException(
-            "{presto:Animated} cannot be used in a style Setter, because one Setter is shared by every control it matches. Set it on the property inside a ControlTemplate or DataTemplate instead."),
-        { TargetObject: AvaloniaObject target, TargetProperty: AvaloniaProperty property } => new AnimatedBinding(target, property, binding, Options(), followsItems: true).ToBinding(),
-        _ => throw new InvalidOperationException("{presto:Animated} must be set on an Avalonia property in XAML; from code, use BindAnimated."),
+            "{presto:Follow} cannot be used in a style Setter, because one Setter is shared by every control it matches. Set it on the property inside a ControlTemplate or DataTemplate instead."),
+        { TargetObject: AvaloniaObject target, TargetProperty: AvaloniaProperty property } => new FollowBinding(target, property, binding, Options(), followsItems: true).ToBinding(),
+        _ => throw new InvalidOperationException("{presto:Follow} must be set on an Avalonia property in XAML; from code, use Follow.Bind."),
     };
 
-    private AnimatedBindingParams Options() => new()
+    private FollowParams Options() => new()
     {
         Duration = Duration,
         Ease = Ease is { } name ? (EaseValue?)EaseParser.Parse(name) : null,
