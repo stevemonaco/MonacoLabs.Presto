@@ -5,7 +5,6 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using PrestoSample.Builder;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -40,8 +39,6 @@ public partial class StorefrontPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        RecipeSettings.Preserve(Scope);
-        ReducedSwitch.IsChecked = Presto.Defaults.ReducedMotion;
         // The grid is realized when it is first shown, so its cards arrive as part of the view's initial load.
         Presto.CreateTimer(new TimerParams
         {
@@ -59,8 +56,6 @@ public partial class StorefrontPage : ShowcasePage
         var chip = (ToggleButton)sender!;
         ViewModel.Pick((string)chip.Content!, chip.IsChecked == true);
     }
-
-    private void ReducedChanged(object? sender, RoutedEventArgs e) => Presto.Defaults.ReducedMotion = ReducedSwitch.IsChecked == true;
 
     private void AddClicked(object? sender, RoutedEventArgs e)
     {

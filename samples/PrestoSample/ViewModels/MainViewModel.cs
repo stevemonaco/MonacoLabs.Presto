@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Monaco.Presto;
 using PrestoSample.Builder;
 using PrestoSample.Pages;
 using PrestoSample.Showcase.Pages;
@@ -106,7 +107,7 @@ public partial class MainViewModel : ObservableObject
                 () => new SwipeDeckPage()),
             new GalleryPage("Chart morph", "Eight data points, four charts. Switch between Bars, Donut, Scatter and Line and every point morphs its own Path into its next shape with MorphTo, staggered from the centre (from the first wedge for the donut), keeping its colour the whole way; the axis labels count to the new scale and the gridlines fade out for the donut. In Line the stroke draws itself once the markers land and undraws before any morph away. Press Shuffle or switch again mid-morph and each point carries on from the shape it is drawn as, and hover a point to lift it and read its values.",
                 () => new ChartMorphPage()),
-            new GalleryPage("Storefront", "A shop front built almost entirely from library recipes in XAML. A shimmering skeleton stands in while a timer plays the fetch, then the products fade up in order. Hover a card to lift it, press it, tilt its picture with the pointer or Tab to it for a glow; pick category chips to recolour them and reflow the grid. Add pops the button, flies the picture to the cart and bumps the badge with a burst of particles, and Quick view opens a dialog with a circle reveal from the card over a blurred grid, blurring out when it closes. Flip Reduced motion to see every recipe's reduced form in context; the flag is put back when you leave.",
+            new GalleryPage("Storefront", "A shop front built almost entirely from library recipes in XAML. A shimmering skeleton stands in while a timer plays the fetch, then the products fade up in order. Hover a card to lift it, press it, tilt its picture with the pointer or Tab to it for a glow; pick category chips to recolour them and reflow the grid. Add pops the button, flies the picture to the cart and bumps the badge with a burst of particles, and Quick view opens a dialog with a circle reveal from the card over a blurred grid, blurring out when it closes. Flip Reduced motion in the sidebar to see every recipe's reduced form in context.",
                 () => new StorefrontPage()),
             new GalleryPage("Activity feed", "A live feed of 2,000 events in a virtualized ListBox that uses every Presence trigger. The first screen rises in as the page opens; scroll slowly and each row fades up the first time it is shown, so scrolling back up plays nothing and a scrollbar drag lands at rest. Every four seconds a new event slides in at the top and the unread badge pulses; scroll down first and a pill arrives through Presence.Arrive to count them instead, scrolling to the top on click. Dismiss collapses a row out, and near the bottom shimmering skeleton rows stand in while the next 50 events load.",
                 () => new ActivityFeedPage()),
@@ -123,9 +124,9 @@ public partial class MainViewModel : ObservableObject
                 () => new TimelineBuilderPage()),
             new GalleryPage("XAML", "A builder attached from markup with Animate.OnAttached, three ways: a builder written out in full and shared through x:Static on a row of cards, the library's {presto:Fade} markup extension whose Delay cascades a list in, and a binding to a view model that swaps Recipes.Float for a looping Recipes.Shake when you flip the switch. Each panel prints its XAML and the C# it points at; Replay re-attaches all three.",
                 () => new XamlPage()),
-            new GalleryPage("Motion tokens", "The library recipes read a design system's tokens instead of literals: FadeUp, SlideIn and PopIn take their durations, eases and distances from Recipes.Tokens, so picking the Standard, Expressive or Reduced MotionTokens preset restyles every animation on the stage at once. The Reduced motion switch sets Presto.Defaults.ReducedMotion, so each recipe plays its reduced form, a short fade, whatever the preset. Both are put back when you leave the page. The printed code is the settings and the calls that ran.",
+            new GalleryPage("Motion tokens", "The library recipes read a design system's tokens instead of literals: FadeUp, SlideIn and PopIn take their durations, eases and distances from Recipes.Tokens, so picking the Standard, Expressive or Reduced MotionTokens preset restyles every animation on the stage at once. The Reduced motion switch in the sidebar sets Presto.Defaults.ReducedMotion, so on Replay each recipe plays its reduced form, a short fade, whatever the preset. The preset is put back when you leave the page. The printed code is the settings and the calls that ran.",
                 () => new MotionTokensPage()),
-            new GalleryPage("Recipe gallery", "Every library recipe on its own tile, grouped by family, with the one-line call that plays it printed beneath: entrances, exits that put their tile back when they end, attention jolts, loops and loading indicators that Play toggles, interactions and a tilt on real buttons through Motion.Hover, Press and Focus, and the Typewriter and CountUp text recipes. Pick a token preset, drag the duration and intensity sliders, or flip Reduced motion to play every reduced form instead. The XAML tab builds a stage from the markup extensions: a fade-up, a pop, a shake, a lifting button, a tilting card and rows that fade out when removed.",
+            new GalleryPage("Recipe gallery", "Every library recipe on its own tile, grouped by family, with the one-line call that plays it printed beneath: entrances, exits that put their tile back when they end, attention jolts, loops and loading indicators that Play toggles, interactions and a tilt on real buttons through Motion.Hover, Press and Focus, and the Typewriter and CountUp text recipes. Pick a token preset, drag the duration and intensity sliders, or flip Reduced motion in the sidebar to play every reduced form instead. The XAML tab builds a stage from the markup extensions: a fade-up, a pop, a shake, a lifting button, a tilting card and rows that fade out when removed.",
                 () => new RecipeGalleryPage()),
             new GalleryPage("Playground", "Every control edits one step of a builder chain over six squares: transforms, duration, an ease by name, a stagger delay and where it spreads from, loop and alternate. The squares replay as you change it, and the code beneath is the C# for exactly that chain, ready to paste.",
                 () => new PlaygroundPage()),
@@ -152,6 +153,13 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Whether the selected page sits above the previous one in the nav, so the page transition plays backwards.</summary>
     [ObservableProperty]
     public partial bool IsBack { get; set; }
+
+    /// <summary>The app-wide <see cref="PrestoDefaults.ReducedMotion"/> flag every page reads.</summary>
+    public bool ReducedMotion
+    {
+        get => Presto.Defaults.ReducedMotion;
+        set => SetProperty(Presto.Defaults.ReducedMotion, value, value => Presto.Defaults.ReducedMotion = value);
+    }
 
     public MainViewModel() => SelectedPage = Sections[0].Pages[0];
 

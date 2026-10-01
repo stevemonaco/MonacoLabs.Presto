@@ -1,5 +1,4 @@
 using Monaco.Presto;
-using PrestoSample.Builder;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
@@ -35,16 +34,10 @@ public partial class ValueDrivenPage : ShowcasePage
         <ProgressBar Grid.Column="1" Maximum="100" Value="{presto:Follow {Binding Progress}}" />
         """;
 
-    public ValueDrivenPage()
-    {
-        InitializeComponent();
-        ReducedSwitch.IsCheckedChanged += (_, _) => Presto.Defaults.ReducedMotion = ReducedSwitch.IsChecked == true;
-    }
+    public ValueDrivenPage() => InitializeComponent();
 
     protected override void OnAttached()
     {
-        RecipeSettings.Preserve(Scope);
-        ReducedSwitch.IsChecked = Presto.Defaults.ReducedMotion;
         Presto.CreateTimer(new() { Duration = 1200, Loop = true, OnLoop = _ => ((ValueDrivenViewModel)DataContext!).Step() });
     }
 }

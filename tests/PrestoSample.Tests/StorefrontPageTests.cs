@@ -94,14 +94,20 @@ public sealed class StorefrontPageTests
     {
         var (window, page) = Loaded();
         var badge = page.GetControl<Border>("Badge");
-        SceneHarness.Click(window, page.GetControl<ToggleSwitch>("ReducedSwitch"));
+        Presto.Defaults.ReducedMotion = true;
+        try
+        {
+            SceneHarness.Click(window, Button(Cards(page).First(), "Add"));
 
-        SceneHarness.Click(window, Button(Cards(page).First(), "Add"));
-
-        Assert.Equal(1, page.ViewModel.CartCount);
-        Assert.NotEmpty(Presto.GetAnimations(badge));
-        Assert.Empty(SceneHarness.ParticleOverlays(page));
-        SceneHarness.Close(window);
+            Assert.Equal(1, page.ViewModel.CartCount);
+            Assert.NotEmpty(Presto.GetAnimations(badge));
+            Assert.Empty(SceneHarness.ParticleOverlays(page));
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
     }
 
     [AvaloniaFact]
@@ -125,19 +131,23 @@ public sealed class StorefrontPageTests
     }
 
     [AvaloniaFact]
-    public void WithReducedMotionOnAHoveredCardDoesNotMoveAndLeavingPutsTheFlagBack()
+    public void WithReducedMotionOnAHoveredCardDoesNotMove()
     {
         var (window, page) = Loaded();
         var card = Cards(page).First();
 
-        SceneHarness.Click(window, page.GetControl<ToggleSwitch>("ReducedSwitch"));
-        Assert.True(Presto.Defaults.ReducedMotion);
-        window.MouseMove(Top(card, window));
-        TestFrames.Tick(30);
-        Assert.Equal(0, (double)(PrestoAvalonia.Get(card, "Y") ?? 0d), 6);
-
-        SceneHarness.Close(window);
-        Assert.False(Presto.Defaults.ReducedMotion);
+        Presto.Defaults.ReducedMotion = true;
+        try
+        {
+            window.MouseMove(Top(card, window));
+            TestFrames.Tick(30);
+            Assert.Equal(0, (double)(PrestoAvalonia.Get(card, "Y") ?? 0d), 6);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
     }
 
     [AvaloniaFact]

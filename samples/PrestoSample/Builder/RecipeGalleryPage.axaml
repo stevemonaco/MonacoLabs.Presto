@@ -70,10 +70,6 @@
                         <ComboBoxItem Content="Reduced" />
                     </ComboBox>
                 </StackPanel>
-                <StackPanel Spacing="2">
-                    <TextBlock Classes="caption" Text="Reduced motion" />
-                    <ToggleSwitch x:Name="ReducedSwitch" OffContent="Full forms" OnContent="Reduced forms" />
-                </StackPanel>
                 <StackPanel Spacing="2" Width="220">
                     <TextBlock Classes="caption" Text="Duration (far left: the tokens decide)" />
                     <Slider x:Name="DurationSlider" Minimum="0" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" />

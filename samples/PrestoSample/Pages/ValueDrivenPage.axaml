@@ -25,7 +25,6 @@
                 <Button Content="+" Command="{Binding RaiseCommand}" VerticalAlignment="Center" />
                 <Button Content="Random" Command="{Binding RandomizeCommand}" VerticalAlignment="Center" />
                 <TextBlock Classes="caption" Text="{Binding Level, StringFormat='Level {0:0}'}" VerticalAlignment="Center" />
-                <ToggleSwitch x:Name="ReducedSwitch" OffContent="Full motion" OnContent="Reduced motion" />
             </WrapPanel>
 
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="16">

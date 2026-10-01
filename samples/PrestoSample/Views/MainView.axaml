@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:PrestoSample.ViewModels"
              xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             xmlns:showcase="using:PrestoSample.Showcase"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
              x:Class="PrestoSample.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -14,19 +15,46 @@
     </Design.DataContext>
 
     <Grid ColumnDefinitions="240,*">
-        <TreeView Grid.Column="0" Name="Nav" Classes="nav showcase"
-                  ItemsSource="{Binding Sections}"
-                  SelectedItem="{Binding SelectedPage, Mode=OneWay}"
-                  SelectionChanged="NavSelectionChanged">
-            <TreeView.DataTemplates>
-                <TreeDataTemplate x:DataType="vm:GallerySection" ItemsSource="{Binding Pages}">
-                    <TextBlock Classes="section" Text="{Binding Name}" />
-                </TreeDataTemplate>
-                <DataTemplate x:DataType="vm:GalleryPage">
-                    <TextBlock Text="{Binding Title}" />
-                </DataTemplate>
-            </TreeView.DataTemplates>
-        </TreeView>
+        <Grid Grid.Column="0" RowDefinitions="*,Auto">
+            <TreeView Name="Nav" Classes="nav showcase"
+                      ItemsSource="{Binding Sections}"
+                      SelectedItem="{Binding SelectedPage, Mode=OneWay}"
+                      SelectionChanged="NavSelectionChanged">
+                <TreeView.DataTemplates>
+                    <TreeDataTemplate x:DataType="vm:GallerySection" ItemsSource="{Binding Pages}">
+                        <TextBlock Classes="section" Text="{Binding Name}" />
+                    </TreeDataTemplate>
+                    <DataTemplate x:DataType="vm:GalleryPage">
+                        <TextBlock Text="{Binding Title}" />
+                    </DataTemplate>
+                </TreeView.DataTemplates>
+            </TreeView>
+
+            <Border Grid.Row="1" Background="{x:Static showcase:Palette.Surface}" BorderBrush="{x:Static showcase:Palette.Border}"
+                    BorderThickness="0,1,1,0" Padding="16,10">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="eyebrow showcase" Text="SETTINGS" />
+                    <ToggleSwitch OffContent="Full motion" OnContent="Reduced motion"
+                                  IsChecked="{Binding ReducedMotion}">
+                        <ToolTip.Tip>
+                            <StackPanel MaxWidth="320" Spacing="6">
+                                <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
+                                           Text="Sets Presto.Defaults.ReducedMotion for every page." />
+                                <StackPanel Spacing="2">
+                                    <TextBlock TextWrapping="Wrap" Text="• Recipes play a short fade with no travel" />
+                                    <TextBlock TextWrapping="Wrap" Text="• Page transitions crossfade" />
+                                    <TextBlock TextWrapping="Wrap" Text="• Text reveals fade the whole block" />
+                                    <TextBlock TextWrapping="Wrap" Text="• Hover tilt stays flat" />
+                                    <TextBlock TextWrapping="Wrap" Text="• Bindings, gesture releases and layout moves land at once" />
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" FontStyle="Italic"
+                                           Text="Hand-written animations without a WhenReduced form, such as the Particles and Loaders pages, play as normal. Pages already playing pick it up on their next replay." />
+                            </StackPanel>
+                        </ToolTip.Tip>
+                    </ToggleSwitch>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="24">
             <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">

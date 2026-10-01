@@ -128,7 +128,6 @@ public partial class RecipeGalleryPage : ShowcasePage
         _rows = [.. XamlRows.Children];
         XamlCode.Text = $"{ShowcaseXaml}\n\n{RowXaml}";
         TokensBox.SelectionChanged += (_, _) => SettingsChanged();
-        ReducedSwitch.IsCheckedChanged += (_, _) => SettingsChanged();
         DurationSlider.ValueChanged += (_, _) => SettingsChanged();
         IntensitySlider.ValueChanged += (_, _) => SettingsChanged();
     }
@@ -203,7 +202,7 @@ public partial class RecipeGalleryPage : ShowcasePage
 
     private void ApplySettings()
     {
-        var settings = RecipeSettings.Apply(TokensBox, ReducedSwitch);
+        var settings = RecipeSettings.Apply(TokensBox);
         foreach (var (tile, specimen) in _applied) tile.Apply!(specimen, Duration, Intensity);
         var duration = Duration?.ToString(CultureInfo.InvariantCulture) ?? "null";
         SettingsCode.Text = $"""

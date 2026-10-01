@@ -24,7 +24,6 @@
                     <ComboBoxItem Content="Expressive" />
                     <ComboBoxItem Content="Reduced" />
                 </ComboBox>
-                <ToggleSwitch x:Name="ReducedSwitch" OffContent="Full motion" OnContent="Reduced motion" />
                 <Button Content="Replay" Click="Replay" />
             </StackPanel>
 
@@ -45,7 +44,7 @@
                     <Border x:Name="Panel" Grid.Column="1" Classes="specimen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <StackPanel Spacing="8">
                             <TextBlock Text="Details" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
-                            <TextBlock Text="Every motion on this stage is a library recipe reading Recipes.Tokens. Pick a preset and the same three recipes replay with its durations, eases and distances; flip the flag and each plays its reduced form instead."
+                            <TextBlock Text="Every motion on this stage is a library recipe reading Recipes.Tokens. Pick a preset and the same three recipes replay with its durations, eases and distances; turn on Reduced motion in the sidebar and each plays its reduced form instead."
                                        TextWrapping="Wrap" Foreground="{x:Static showcase:Palette.InkDim}" />
                         </StackPanel>
                     </Border>

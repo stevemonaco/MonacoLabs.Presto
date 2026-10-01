@@ -1,8 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
+using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Showcase;
 using PrestoSample.ViewModels;
+using PrestoSample.Views;
 
 namespace PrestoSample.Tests;
 
@@ -35,5 +38,30 @@ public sealed class GalleryPageTests
         window.Close();
 
         Assert.True(reverted);
+    }
+
+    [AvaloniaFact]
+    public void TheSidebarSwitchSetsReducedMotionAndItSurvivesNavigation()
+    {
+        var gallery = new MainViewModel();
+        var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000);
+        var sidebarSwitch = window.GetLogicalDescendants().OfType<ToggleSwitch>().Single(toggle => toggle.OnContent is "Reduced motion");
+        try
+        {
+            sidebarSwitch.IsChecked = true;
+            Assert.True(Presto.Defaults.ReducedMotion);
+
+            gallery.SelectedPage = Pages.First(page => page.Title == "Storefront");
+            gallery.SelectedPage = Pages.First(page => page.Title == "Motion tokens");
+            Assert.True(Presto.Defaults.ReducedMotion);
+
+            sidebarSwitch.IsChecked = false;
+            Assert.False(Presto.Defaults.ReducedMotion);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
     }
 }

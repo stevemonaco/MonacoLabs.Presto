@@ -14,7 +14,6 @@ public partial class MotionTokensPage : ShowcasePage
     {
         InitializeComponent();
         TokensBox.SelectionChanged += (_, _) => SettingsChanged();
-        ReducedSwitch.IsCheckedChanged += (_, _) => SettingsChanged();
     }
 
     public IReadOnlyList<Animation> Played { get; private set; } = [];
@@ -28,7 +27,7 @@ public partial class MotionTokensPage : ShowcasePage
     private void Play()
     {
         foreach (var played in Played) played.Revert();
-        TokensCode.Text = RecipeSettings.Apply(TokensBox, ReducedSwitch);
+        TokensCode.Text = RecipeSettings.Apply(TokensBox);
         var (rows, rowsCode) = Snippet.Of(Recipes.FadeUp(stagger: true).Animate(Rows.Children));
         var (panel, panelCode) = Snippet.Of(Panel.Animate(Recipes.SlideIn(Edge.Right)));
         var (fab, fabCode) = Snippet.Of(Fab.Animate(Recipes.PopIn(delay: Recipes.Tokens.Long)));

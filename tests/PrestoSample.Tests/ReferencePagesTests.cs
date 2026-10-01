@@ -269,7 +269,7 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
-    public void TheValueDrivenBarEasesToANewLevelAndLeavingRestoresReducedMotion()
+    public void TheValueDrivenBarEasesToANewLevelAndSnapsUnderReducedMotion()
     {
         var page = new ValueDrivenPage();
         var window = SceneHarness.Show(page, 1100, 1600);
@@ -283,13 +283,17 @@ public sealed class ReferencePagesTests
         TestFrames.Tick(120);
         Assert.Equal(270, bar.Width, 6);
 
-        page.GetControl<ToggleSwitch>("ReducedSwitch").IsChecked = true;
-        Assert.True(Presto.Defaults.ReducedMotion);
-        model.Level = 10;
-        Assert.Equal(30, bar.Width);
-
-        SceneHarness.Close(window);
-        Assert.False(Presto.Defaults.ReducedMotion);
+        Presto.Defaults.ReducedMotion = true;
+        try
+        {
+            model.Level = 10;
+            Assert.Equal(30, bar.Width);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
     }
 
     [Fact]
