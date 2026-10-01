@@ -252,17 +252,25 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   moved from a `DrawRect` inside the layer into the chain for that reason; stages that are at identity are skipped.
 - **Pixelate is two nearest-neighbour matrix filters.** `CreateMatrix` scales by `1/Pixelate` and back by `Pixelate`
   about the destination's top-left, both with `SKFilterMode.Nearest`, so each block is one sampled pixel rather than an
-  average; Skia keeps the small intermediate (the spike test found no transform folding in SkiaSharp 3.119), blocks
-  align to the destination's top-left and a partial last block samples inside the image, so no transparency bleeds in.
-  Blocks are in DIPs because image filters run in the canvas's local space.
-- **Ripple uses fractal noise, unpadded.** The displacement input is `CreatePerlinNoiseFractalNoise` (centred on 0.5),
-  not turbulence, which sums absolute noise, is not centred on 0.5 and so would shift the whole image. Its scale is `Ripple` itself,
-  not multiplied by render scaling: Skia maps both the scale and the noise through the canvas matrix. The layer is not
-  padded; the displacement output is cropped to the destination, so edge pixels displaced from outside read as
-  transparent and the ripple never draws past the control's image rect.
-- **Rasterized sources are reference-counted.** A non-bitmap source is rasterized at the destination size (not the
-  whole control) times render scaling, keyed on the image, source rect, size and scaling, so resizes, stretch changes
-  and sprite frames re-rasterize. Because `Bitmap`'s ref-counted impl is internal, each draw operation retains the
+  average; Skia keeps the small intermediate (the spike test found no transform folding in SkiaSharp 3.119) and blocks
+  align to the destination's top-left. The input is first edge-extended by one block and the result cropped to the
+  destination, so partial blocks are opaque and sample inside the image. Blocks are in DIPs because image filters run
+  in the canvas's local space.
+- **Edge extension is tiled one-DIP strips.** SkiaSharp 3.119 has no crop filter with a clamp tile mode, so `Clamp`
+  merges the input with `CreateTile`s of its outermost column into side pads, then of the widened outermost row into
+  top and bottom pads, which clamps the corners too.
+- **Ripple uses fractal noise over an edge-extended input.** The displacement input is `CreatePerlinNoiseFractalNoise`
+  (centred on 0.5), not turbulence, which sums absolute noise, is not centred on 0.5 and so would shift the whole image.
+  Its scale is `Ripple` itself, not multiplied by render scaling: Skia maps both the scale and the noise through the
+  canvas matrix. The colour input is edge-extended by `Ripple` DIPs, so edge pixels displaced from outside read the
+  image's edge rather than transparency, and the output is cropped to the destination, so the ripple never
+  draws past the control's image rect.
+- **Rasterized sources are cached per draw and reference-counted.** A non-bitmap source is rasterized at the
+  destination size (not the whole control) times render scaling, keyed on the image, source rect, size and scaling, so
+  resizes, stretch changes and sprite frames re-rasterize. The control keeps every raster drawn in a render and drops,
+  once the render is over, those it did not draw (Phase 40), so a transition's outgoing and incoming drawings, or the
+  cells a subclass draws through the protected `DrawImage(context, image, sourceRect)`, each keep their own instead of
+  evicting one another every frame. Because `Bitmap`'s ref-counted impl is internal, each draw operation retains the
   cached `RenderTargetBitmap` and the last holder disposes it, so the render thread never draws a disposed raster.
   Only `DrawingImage` invalidation is observed (`IAffectsRender` is internal in 12.1.2); other custom `IImage`s
   re-rasterize only when the key changes.
@@ -288,9 +296,15 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   transition runs and draws the outgoing and incoming images each through the same `ImageEffectDrawOperation` path,
   with its own `Stretch` placement and the colour filters: `Dissolve` and `Wipe` draw the incoming image over the
   outgoing one with its `Dissolve` or wipe mask at `1 - p` or `p`; `Pixelate` draws only the outgoing image before
-  mid-way and only the incoming after, blocks peaking at `PeakPixelate`; `Crossfade` and `Ripple` push complementary
-  opacities, `Ripple` peaking at `PeakRipple` on both. The wipe is an internal field of `ImageEffect` (an angled
-  gradient mask in the chain), not a public standalone property, since `MaskSweep` already wipes any element.
+  mid-way and only the incoming after, blocks peaking at `PeakPixelate`; `Crossfade` and `Ripple` draw the outgoing
+  image opaque and the incoming one over it at opacity `p` (Phase 40), so an opaque pair never darkens mid-way (red →
+  blue passes (128,0,128), not (64,0,128)), `Ripple` peaking at `PeakRipple` on both. The outgoing image is never
+  faded or masked separately: `FilteredImage` arranges to the incoming image's placement under every `Stretch`, so
+  the outgoing one, placed within the same bounds, never shows outside it, and Pixelate's midway switch cannot strand
+  any of it (pinned by `TheOldImageNeverShowsBesideANewOneOfAnotherAspect`). The cost is that a source of another
+  aspect resizes the control when the transition starts, re-placing the old image inside the new bounds. The wipe is
+  an internal field of `ImageEffect` (an angled gradient mask in the chain), not a public standalone property, since
+  `MaskSweep` already wipes any element.
 - **Progress is an internal styled property.** `FilteredImage.TransitionProgressProperty` (0 to 1, default 1,
   `AffectsRender`) lives on `FilteredImage`, not the base, and is internal: `TransitionTo` animates it through an
   ordinary builder, so `Revert` returns it to 1 (the new source alone) and releases the outgoing image. It is not
@@ -315,3 +329,13 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   rather than a second copy of the photo, a dimmed `FilteredImage` backdrop (`Brightness` 0.35, `UniformToFill`,
   `SourceTransition="Dissolve 700"`) sits behind the carousel and dissolves to each photo as the filmstrip or a swipe
   selects it; the carousel pages lost their opaque background so it shows around the photo.
+- **Phase 40 (as built).** Each fix was pinned first by a headless Skia pixel test on a black window. Subclasses that override `Render` get
+  `protected DrawImage(context, image, sourceRect)`, which draws with the control's own `Stretch`,
+  `StretchDirection`, colour filters and effects; the full overload stays `private protected` because `ImageEffect`
+  and the raster type are internal. Verified on Desktop only: each `ImageTransitionKind` in the Image effects
+  slideshow was screenshotted mid-way at a 16 s duration (set through DevTools) with no darkening, translucent or
+  ragged edges, or end snap, and Pixelate's right and bottom partial blocks sampled fully opaque; the
+  dissolve/pixelate card's blocks were checked by setting `Pixelate` to the exit's peak of 32, since the 700 ms exit
+  is too quick to capture; the Storefront's sold-out cards and the Photo viewer's dimmed backdrop render as before.
+  The slideshow is `UniformToFill` in a fixed frame, so the mixed-aspect case was checked only by the headless test,
+  and Storefront stutter could not be measured through DevTools (the per-draw raster reuse is pinned headlessly).

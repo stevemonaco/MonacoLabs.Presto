@@ -123,7 +123,7 @@ public sealed class FilteredImage : PrestoImageBase
                     var ripple = transition.PeakRipple * Math.Sin(Math.PI * p);
                     (outgoing, incoming) = (outgoing with { Ripple = ripple }, incoming with { Ripple = ripple });
                 }
-                using (context.PushOpacity(1 - p)) DrawOutgoing(context, outgoing);
+                DrawOutgoing(context, outgoing);
                 using (context.PushOpacity(p)) DrawIncoming(context, incoming);
                 break;
         }

@@ -79,16 +79,35 @@ internal sealed class ImageEffectDrawOperation : ICustomDrawOperation
         var frequency = (float)(1 / Math.Max(effect.RippleScale, 1e-3));
         using var noise = SKShader.CreatePerlinNoiseFractalNoise(frequency, frequency, 2, effect.Seed);
         using var map = SKImageFilter.CreateShader(noise);
-        return SKImageFilter.CreateDisplacementMapEffect(SKColorChannel.R, SKColorChannel.G, (float)effect.Ripple, map, input, bounds);
+        using var clamped = Clamp(input, bounds, (float)Math.Abs(effect.Ripple));
+        return SKImageFilter.CreateDisplacementMapEffect(SKColorChannel.R, SKColorChannel.G, (float)effect.Ripple, map, clamped, bounds);
     }
 
+    // The clamp makes a partial last block cover its whole intermediate pixel, which would otherwise be antialiased translucent.
     private static SKImageFilter Pixelate(float size, SKImageFilter? input, SKRect bounds)
     {
         var nearest = new SKSamplingOptions(SKFilterMode.Nearest);
         var down = SKMatrix.CreateScale(1 / size, 1 / size, bounds.Left, bounds.Top);
         var up = SKMatrix.CreateScale(size, size, bounds.Left, bounds.Top);
-        using var small = SKImageFilter.CreateMatrix(in down, nearest, input);
-        return SKImageFilter.CreateMatrix(in up, nearest, small);
+        using var clamped = Clamp(input, bounds, size);
+        using var small = SKImageFilter.CreateMatrix(in down, nearest, clamped);
+        using var large = SKImageFilter.CreateMatrix(in up, nearest, small);
+        return SKImageFilter.CreateOffset(0, 0, large, bounds);
+    }
+
+    // Extends the input past bounds by repeating its outermost DIP column, then row, as a clamp tile mode would.
+    private static SKImageFilter Clamp(SKImageFilter? input, SKRect bounds, float pad)
+    {
+        var (l, t, r, b) = (bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+        // CreateTile rejects a null input, so the layer itself is passed through an identity offset.
+        using var layer = input is null ? SKImageFilter.CreateOffset(0, 0) : null;
+        var from = input ?? layer!;
+        using var left = SKImageFilter.CreateTile(new SKRect(l, t, l + 1, b), new SKRect(l - pad, t, l, b), from);
+        using var right = SKImageFilter.CreateTile(new SKRect(r - 1, t, r, b), new SKRect(r, t, r + pad, b), from);
+        using var wide = SKImageFilter.CreateMerge([from, left, right]);
+        using var top = SKImageFilter.CreateTile(new SKRect(l - pad, t, r + pad, t + 1), new SKRect(l - pad, t - pad, r + pad, t), wide);
+        using var bottom = SKImageFilter.CreateTile(new SKRect(l - pad, b - 1, r + pad, b), new SKRect(l - pad, b, r + pad, b + pad), wide);
+        return SKImageFilter.CreateMerge([wide, top, bottom]);
     }
 
     // Alpha = clamp((noise - threshold) / softness) over the stretched noise; the threshold runs from -softness (all kept) to 1 (all gone).

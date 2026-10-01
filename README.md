@@ -945,7 +945,9 @@ starts black, opaque, unblurred and at no offset, so animating `ShadowBlur` alon
 
 CSS colour filters are properties of `PrestoImageBase`, an `Image`-like control (`Source`, `Stretch`,
 `StretchDirection`) whose `Render` subclasses can override. `FilteredImage` is its plain form, and `SpriteSheet` and
-`ImageSequence` derive from it too, so frames are filtered the same way. The filters are ordinary styled properties, so
+`ImageSequence` derive from it too, so frames are filtered the same way. A subclass that overrides `Render` can draw
+any image, or several cells of one, through the protected `DrawImage(context, image, sourceRect)`, which applies the
+filters and places the cell by `Stretch` within the control. The filters are ordinary styled properties, so
 they animate, bind, style and revert like any other; each has a typed builder method with the usual four overloads, and
 the colours also take a `Color`.
 

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -262,7 +263,9 @@ public abstract class PrestoImageBase : Control
         set => SetValue(SeedProperty, value);
     }
 
-    private Raster? _raster;
+    private readonly List<Raster> _rasters = [];
+    private bool _sweepPending;
+    private Action? _dropUnusedRasters;
     private bool _offscreen;
 
     internal bool IsFiltering => !ImageEffect.IsIdentity;
@@ -283,8 +286,15 @@ public abstract class PrestoImageBase : Control
     /// <inheritdoc/>
     public override void Render(DrawingContext context)
     {
-        if (CurrentImage is { } image) DrawImage(context, image, SourceRect(image), Stretch, StretchDirection, ImageEffect);
+        if (CurrentImage is { } image) DrawImage(context, image, SourceRect(image));
     }
+
+    /// <summary>
+    /// Draws <paramref name="sourceRect"/> of <paramref name="image"/> through the control's filters and effects, placed by its
+    /// <see cref="Stretch"/> within its bounds, so a subclass overriding <see cref="Render"/> can draw images or cells with it.
+    /// </summary>
+    protected void DrawImage(DrawingContext context, IImage image, Rect sourceRect) =>
+        DrawImage(context, image, sourceRect, Stretch, StretchDirection, ImageEffect);
 
     /// <summary>Draws <paramref name="sourceRect"/> of <paramref name="image"/> placed by <paramref name="stretch"/>; a bitmap <paramref name="owner"/> is retained by the draw.</summary>
     private protected void DrawImage(DrawingContext context, IImage image, Rect sourceRect, Stretch stretch, StretchDirection direction,
@@ -326,18 +336,39 @@ public abstract class PrestoImageBase : Control
     /// <summary>How many times a non-bitmap source has been rasterized for filtering.</summary>
     internal int Rasterizations { get; private set; }
 
+    // Rasters not drawn in a render are dropped once it is over, so every source drawn each frame keeps its own.
     private Raster Rasterize(IImage image, Rect source, Size size)
     {
+        if (!_sweepPending)
+        {
+            _sweepPending = true;
+            Dispatcher.UIThread.Post(_dropUnusedRasters ??= DropUnusedRasters);
+        }
         var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-        if (_raster is { } cached && cached.Image == image && cached.Source == source && cached.Size == size && cached.Scaling == scaling)
+        foreach (var cached in _rasters)
+        {
+            if (cached.Image != image || cached.Source != source || cached.Size != size || cached.Scaling != scaling) continue;
+            cached.Used = true;
             return cached;
+        }
 
-        DropRaster();
         var bitmap = new RenderTargetBitmap(PixelSize.FromSize(size, scaling), new Vector(96, 96) * scaling);
         using (var context = bitmap.CreateDrawingContext()) context.DrawImage(image, source, new Rect(size));
         if (image is DrawingImage drawing) drawing.Invalidated += OnRasterSourceInvalidated;
         Rasterizations++;
-        return _raster = new Raster(bitmap, image, source, size, scaling);
+        var raster = new Raster(bitmap, image, source, size, scaling) { Used = true };
+        _rasters.Add(raster);
+        return raster;
+    }
+
+    private void DropUnusedRasters()
+    {
+        _sweepPending = false;
+        for (var i = _rasters.Count - 1; i >= 0; i--)
+        {
+            if (_rasters[i].Used) _rasters[i].Used = false;
+            else DropRaster(i);
+        }
     }
 
     /// <summary>Renders what the control draws now into a bitmap the size of the control at its render scaling.</summary>
@@ -368,23 +399,24 @@ public abstract class PrestoImageBase : Control
 
     private void OnRasterSourceInvalidated(object? sender, EventArgs e)
     {
-        DropRaster();
+        for (var i = _rasters.Count - 1; i >= 0; i--)
+            if (_rasters[i].Image == sender) DropRaster(i);
         InvalidateVisual();
     }
 
-    private void DropRaster()
+    private void DropRaster(int index)
     {
-        if (_raster is null) return;
-        if (_raster.Image is DrawingImage drawing) drawing.Invalidated -= OnRasterSourceInvalidated;
-        _raster.Dispose();
-        _raster = null;
+        var raster = _rasters[index];
+        if (raster.Image is DrawingImage drawing) drawing.Invalidated -= OnRasterSourceInvalidated;
+        raster.Dispose();
+        _rasters.RemoveAt(index);
     }
 
     /// <inheritdoc/>
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        DropRaster();
+        for (var i = _rasters.Count - 1; i >= 0; i--) DropRaster(i);
     }
 
     // Disposed once the control and every draw operation still holding it let go.
@@ -397,6 +429,7 @@ public abstract class PrestoImageBase : Control
         public Rect Source => source;
         public Size Size => size;
         public double Scaling => scaling;
+        public bool Used { get; set; }
 
         public Raster Retain()
         {

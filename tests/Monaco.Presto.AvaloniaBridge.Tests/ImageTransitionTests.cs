@@ -28,13 +28,68 @@ public sealed class ImageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void AHalfCrossfadeMixesRedAndBlue()
+    public void AHalfCrossfadeOfAnOpaquePairDoesNotDarken()
     {
         var (image, animation) = RedToBlue(ImageTransitionKind.Crossfade);
 
         Seek(animation, 50);
 
-        Assert.All(Pixels(image), pixel => AssertNear(Color.FromRgb(64, 0, 128), pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Color.FromRgb(128, 0, 128), pixel));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(25)]
+    [InlineData(50)]
+    [InlineData(75)]
+    public void AnOpaqueRipplePairNeverDarkens(double time)
+    {
+        var (image, animation) = RedToBlue(ImageTransitionKind.Ripple);
+
+        Seek(animation, time);
+
+        Assert.All(Pixels(image), pixel => Assert.True(pixel.R + pixel.B >= 250, $"{pixel} darkened"));
+    }
+
+    public static TheoryData<ImageTransitionKind, Stretch> KindsAndStretches()
+    {
+        var data = new TheoryData<ImageTransitionKind, Stretch>();
+        foreach (var kind in Enum.GetValues<ImageTransitionKind>())
+        foreach (var stretch in (Stretch[])[Stretch.None, Stretch.Fill, Stretch.Uniform, Stretch.UniformToFill])
+            data.Add(kind, stretch);
+        return data;
+    }
+
+    [AvaloniaTheory]
+    [MemberData(nameof(KindsAndStretches))]
+    public void TheOldImageNeverShowsBesideANewOneOfAnotherAspect(ImageTransitionKind kind, Stretch stretch)
+    {
+        var image = Place(new FilteredImage { Source = Solid(Colors.Red, 20, 10), Stretch = stretch, Width = 100, Height = 100 });
+        image.HorizontalAlignment = HorizontalAlignment.Center;
+        var animation = image.TransitionTo(Solid(Colors.Blue, 10, 20), kind, Linear);
+
+        foreach (var time in (double[])[0, 25, 50, 90])
+        {
+            Seek(animation, time);
+            if (stretch == Stretch.Uniform) Assert.Equal(new Rect(25, 0, 50, 100), image.Bounds);
+            Assert.Equal(0, ShownOutside(image));
+        }
+    }
+
+    [AvaloniaTheory]
+    [MemberData(nameof(Kinds))]
+    public void AnInterruptedTransitionNeverShowsBesideANewImageOfAnotherAspect(ImageTransitionKind kind)
+    {
+        var image = Place(new FilteredImage { Source = Solid(Colors.Red, 20, 10), Width = 100, Height = 100 });
+        image.HorizontalAlignment = HorizontalAlignment.Center;
+        Seek(image.TransitionTo(Solid(Colors.Lime, 20, 10), ImageTransitionKind.Crossfade, Linear), 50);
+        var animation = image.TransitionTo(Solid(Colors.Blue, 10, 20), kind, Linear);
+
+        foreach (var time in (double[])[0, 25, 50, 90])
+        {
+            Seek(animation, time);
+            Assert.Equal(new Rect(25, 0, 50, 100), image.Bounds);
+            Assert.Equal(0, ShownOutside(image));
+        }
     }
 
     [AvaloniaFact]
@@ -91,6 +146,19 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Seek(animation, time);
 
         Assert.All(Pixels(image), pixel => AssertNear(time < 50 ? Colors.Red : Colors.Blue, pixel));
+    }
+
+    [AvaloniaFact]
+    public void TwoDrawingsAreEachRasterizedOnceThroughATransition()
+    {
+        var image = Place(new FilteredImage { Source = Drawing(Brushes.Red), Stretch = Stretch.Fill, Width = 60, Height = 60, Grayscale = 1 });
+        var animation = image.TransitionTo(Drawing(Brushes.Blue), ImageTransitionKind.Crossfade, Linear);
+        Seek(animation, 10);
+        Assert.Equal(2, image.Rasterizations);
+
+        foreach (var time in (double[])[30, 50, 70, 90]) Seek(animation, time);
+
+        Assert.Equal(2, image.Rasterizations);
     }
 
     [AvaloniaFact]
@@ -294,12 +362,28 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Assert.InRange(actual.B, expected.B - 3, expected.B + 3);
     }
 
-    private static RenderTargetBitmap Solid(Color color)
+    private static int ShownOutside(Control control)
     {
-        var bitmap = new RenderTargetBitmap(new PixelSize(10, 10));
-        using (var context = bitmap.CreateDrawingContext()) context.FillRectangle(new SolidColorBrush(color), new Rect(0, 0, 10, 10));
+        var slot = SlotOf(control);
+        var count = 0;
+        for (var y = 0; y < 100; y++)
+        {
+            var row = Row(control, y);
+            for (var x = 0; x < 100; x++)
+                if (!slot.Contains(new Point(x + 0.5, y + 0.5)) && row[x] != Colors.Black) count++;
+        }
+        return count;
+    }
+
+    private static RenderTargetBitmap Solid(Color color, int width = 10, int height = 10)
+    {
+        var bitmap = new RenderTargetBitmap(new PixelSize(width, height));
+        using (var context = bitmap.CreateDrawingContext()) context.FillRectangle(new SolidColorBrush(color), new Rect(0, 0, width, height));
         return bitmap;
     }
+
+    private static DrawingImage Drawing(IBrush brush) =>
+        new(new GeometryDrawing { Brush = brush, Geometry = new RectangleGeometry(new Rect(0, 0, 10, 10)) });
 
     private static RenderTargetBitmap Halves()
     {

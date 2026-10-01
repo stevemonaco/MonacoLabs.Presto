@@ -318,6 +318,30 @@ public sealed class FilteredImageTests : CompositorTestBase
         Assert.Contains(Enumerable.Range(0, 12 * 12), i => pixels[i / 12 * 60 + i % 12] != pixels[0]);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ASubclassDrawsCellsThroughTheFilters(bool drawing)
+    {
+        var image = Place(new Cells
+        {
+            Source = drawing ? HalvesDrawing() : Picture(), Stretch = Stretch.Fill, Width = 40, Height = 20, Grayscale = 1,
+        });
+
+        var left = (byte)(drawing ? 18 : 54);
+        AssertNear(Color.FromRgb(left, left, left), Row(image, 5)[10]);
+        AssertNear(Color.FromRgb(182, 182, 182), Row(image, 5)[30]);
+        var rasterizations = image.Rasterizations;
+        Assert.Equal(drawing ? 2 : 0, rasterizations);
+
+        image.InvalidateVisual();
+        Tick();
+        image.InvalidateVisual();
+        Tick();
+
+        Assert.Equal(rasterizations, image.Rasterizations);
+    }
+
     private static FilteredImage Rippled(int seed) =>
         Place(new FilteredImage { Source = Gradient(), Stretch = Stretch.Fill, Width = 60, Height = 60, Ripple = 8, RippleScale = 16, Seed = seed });
 
@@ -383,6 +407,30 @@ public sealed class FilteredImageTests : CompositorTestBase
             }, new Rect(0, 0, 60, 60));
         }
         return bitmap;
+    }
+
+    private static DrawingImage HalvesDrawing() => new(new DrawingGroup
+    {
+        Children =
+        {
+            new GeometryDrawing { Brush = Brushes.Blue, Geometry = new RectangleGeometry(new Rect(0, 0, 10, 10)) },
+            new GeometryDrawing { Brush = Brushes.Lime, Geometry = new RectangleGeometry(new Rect(10, 0, 10, 10)) },
+        },
+    });
+
+    // Draws the left half of the source over the left half of the control and the right half over the right.
+    private sealed class Cells : PrestoImageBase
+    {
+        public override void Render(DrawingContext context)
+        {
+            if (Source is not { } source) return;
+            var half = Bounds.Width / 2;
+            for (var i = 0; i < 2; i++)
+            {
+                using (context.PushTransform(Matrix.CreateScale(0.5, 1) * Matrix.CreateTranslation(half * i, 0)))
+                    DrawImage(context, source, new Rect(source.Size.Width / 2 * i, 0, source.Size.Width / 2, source.Size.Height));
+            }
+        }
     }
 
     // Four coloured quadrants, so any misplaced or resampled pixel changes the frame.
