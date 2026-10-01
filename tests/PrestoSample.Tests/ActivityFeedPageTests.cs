@@ -296,9 +296,12 @@ public sealed class ActivityFeedPageTests
                 TestFrames.Tick();
             });
         }
+        var settling = page.ViewModel.Items[1];
         TestFrames.Tick(30);
         if (drag) window.MouseUp(grab, MouseButton.Left);
         TestFrames.Tick(30);
+        // A live event landing while the feed settles slides in from above the top; let its Enter finish.
+        if (page.ViewModel.Items[1] != settling) TestFrames.Tick(60);
 
         var trace = string.Join(" ", log);
         Assert.True(feed.Scroll.Offset == default, $"ended at {feed.Scroll.Offset.Y}: {trace}");

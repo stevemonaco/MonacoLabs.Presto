@@ -27,6 +27,7 @@ internal sealed class RenderTransformComposer
     private static readonly double[] s_identities = [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0];
 
     private readonly double[] _values = [.. s_identities];
+    private readonly double[] _bases = new double[s_identities.Length];
     private readonly TransformGroup _group = new();
     private Transform? _existing;
     private IDisposable? _written;
@@ -36,6 +37,7 @@ internal sealed class RenderTransformComposer
     private SkewTransform? _skew;
     private Rotate3DTransform? _rotate3D;
     private int _animated;
+    private int _followed;
     private bool _reasserting;
 
     private RenderTransformComposer(Visual visual)
@@ -66,32 +68,35 @@ internal sealed class RenderTransformComposer
     {
         var composer = s_composers.GetValue(visual, static v => new RenderTransformComposer(v));
         composer._values[(int)shorthand] = value;
-        if (!composer.Animates(shorthand))
-        {
-            CompositorRegistry.WarnIfCompositorDrives(visual, shorthand);
-            composer._animated |= 1 << (int)shorthand;
-            composer.Rebuild();
-        }
+        if (!composer.Animates(shorthand)) composer.Include(visual, shorthand, ref composer._animated);
         composer.Apply(shorthand, value);
     }
 
-    /// <summary>Releases one shorthand back to its identity value; the last of them takes the whole group with it.</summary>
+    /// <summary>Makes <paramref name="value"/> the base of one shorthand: shown while no animation holds it, and restored when one is reverted.</summary>
+    public static void Follow(Visual visual, TransformShorthand shorthand, double value)
+    {
+        var composer = s_composers.GetValue(visual, static v => new RenderTransformComposer(v));
+        composer._bases[(int)shorthand] = value;
+        if (!composer.Follows(shorthand)) composer.Include(visual, shorthand, ref composer._followed);
+        if (composer.Animates(shorthand)) return;
+        composer._values[(int)shorthand] = value;
+        composer.Apply(shorthand, value);
+    }
+
+    /// <summary>Releases one shorthand from its animation, back to its followed base or else its identity value; the last of them takes the whole group with it.</summary>
     public static void Revert(Visual visual, TransformShorthand shorthand)
     {
         if (!s_composers.TryGetValue(visual, out var composer) || !composer.Animates(shorthand)) return;
-
-        var identity = s_identities[(int)shorthand];
-        composer._values[(int)shorthand] = identity;
         composer._animated &= ~(1 << (int)shorthand);
-        composer.Apply(shorthand, identity);
-        if (composer._animated != 0)
-        {
-            composer.Rebuild();
-            return;
-        }
-        visual.PropertyChanged -= composer.OnPropertyChanged;
-        composer._written?.Dispose();
-        s_composers.Remove(visual);
+        composer.Release(visual, shorthand);
+    }
+
+    /// <summary>Drops one shorthand's followed base; unless an animation holds it, it returns to its identity value.</summary>
+    public static void Unfollow(Visual visual, TransformShorthand shorthand)
+    {
+        if (!s_composers.TryGetValue(visual, out var composer) || !composer.Follows(shorthand)) return;
+        composer._followed &= ~(1 << (int)shorthand);
+        if (!composer.Animates(shorthand)) composer.Release(visual, shorthand);
     }
 
     /// <summary>
@@ -151,16 +156,44 @@ internal sealed class RenderTransformComposer
 
     private bool Animates(TransformShorthand shorthand) => (_animated & (1 << (int)shorthand)) != 0;
 
+    private bool Follows(TransformShorthand shorthand) => (_followed & (1 << (int)shorthand)) != 0;
+
+    private bool Shows(TransformShorthand shorthand) => ((_animated | _followed) & (1 << (int)shorthand)) != 0;
+
+    private void Include(Visual visual, TransformShorthand shorthand, ref int mask)
+    {
+        var shown = Shows(shorthand);
+        mask |= 1 << (int)shorthand;
+        if (shown) return;
+        CompositorRegistry.WarnIfCompositorDrives(visual, shorthand);
+        Rebuild();
+    }
+
+    private void Release(Visual visual, TransformShorthand shorthand)
+    {
+        var value = Follows(shorthand) ? _bases[(int)shorthand] : s_identities[(int)shorthand];
+        _values[(int)shorthand] = value;
+        Apply(shorthand, value);
+        if ((_animated | _followed) != 0)
+        {
+            Rebuild();
+            return;
+        }
+        visual.PropertyChanged -= OnPropertyChanged;
+        _written?.Dispose();
+        s_composers.Remove(visual);
+    }
+
     private void Rebuild()
     {
         var children = _group.Children;
         children.Clear();
         if (_existing != null) children.Add(_existing);
-        if (Animates(TransformShorthand.SkewX) || Animates(TransformShorthand.SkewY)) children.Add(_skew ??= new SkewTransform());
-        if (Animates(TransformShorthand.Scale) || Animates(TransformShorthand.ScaleX) || Animates(TransformShorthand.ScaleY)) children.Add(_scale ??= new ScaleTransform());
-        if (Animates(TransformShorthand.RotateX) || Animates(TransformShorthand.RotateY) || Animates(TransformShorthand.Perspective)) children.Add(_rotate3D ??= new Rotate3DTransform());
-        if (Animates(TransformShorthand.Rotate)) children.Add(_rotate ??= new RotateTransform());
-        if (Animates(TransformShorthand.X) || Animates(TransformShorthand.Y)) children.Add(_translate ??= new TranslateTransform());
+        if (Shows(TransformShorthand.SkewX) || Shows(TransformShorthand.SkewY)) children.Add(_skew ??= new SkewTransform());
+        if (Shows(TransformShorthand.Scale) || Shows(TransformShorthand.ScaleX) || Shows(TransformShorthand.ScaleY)) children.Add(_scale ??= new ScaleTransform());
+        if (Shows(TransformShorthand.RotateX) || Shows(TransformShorthand.RotateY) || Shows(TransformShorthand.Perspective)) children.Add(_rotate3D ??= new Rotate3DTransform());
+        if (Shows(TransformShorthand.Rotate)) children.Add(_rotate ??= new RotateTransform());
+        if (Shows(TransformShorthand.X) || Shows(TransformShorthand.Y)) children.Add(_translate ??= new TranslateTransform());
     }
 
     private void Apply(TransformShorthand shorthand, double value)

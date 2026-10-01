@@ -52,6 +52,24 @@ public sealed class AllocationTests : EngineTestBase
     }
 
     [Fact]
+    public void ChannelMomentumTicksWithoutAllocating()
+    {
+        // A barely damped spring, so the animatable is still moving for the whole measurement.
+        var animatable = Presto.CreateAnimatable(new ColorTarget(), new()
+        {
+            ["Background"] = new(), Ease = new Spring(stiffness: 5, damping: .2), PreserveVelocity = true,
+        });
+        animatable.Set("Background", [255, 75, 75, 1]);
+        Frames.Advance(160, 16);
+        animatable.Set("Background", [0, 0, 255, 1]);
+
+        var bytes = BytesPerTick();
+
+        Assert.False(animatable.Animations["Background"].Paused);
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
+    }
+
+    [Fact]
     public void ParticleSystemStepsWithoutAllocating()
     {
         var system = new ParticleSystem(new()

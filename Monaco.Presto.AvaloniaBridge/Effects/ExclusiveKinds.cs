@@ -24,6 +24,8 @@ internal sealed class ExclusiveKinds<TShorthand>(TShorthand firstB, TShorthand l
 
     public bool Animates(TShorthand shorthand) => (_animated & Bit(shorthand)) != 0;
 
+    public bool AnimatesAny => _animated != 0;
+
     /// <summary>Records that an animation is being built for <paramref name="shorthand"/>.</summary>
     /// <exception cref="InvalidOperationException">An animation of the other kind is running on, or being built for, <paramref name="visual"/>.</exception>
     public void Claim(Visual visual, TShorthand shorthand)

@@ -1,9 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Gestures;
@@ -27,6 +29,35 @@ public sealed class AllocationTests : CompositorTestBase
 
         // measured 80, down from 104 when the double was boxed into an untyped binding: all of it is the property change Avalonia raises.
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void ABindAnimatedWidthTicksWithinBudget()
+    {
+        var model = new LevelViewModel { Level = 0 };
+        var border = new Border { DataContext = model };
+        border.BindAnimated(Layoutable.WidthProperty, new Binding(nameof(LevelViewModel.Level)), new() { Duration = 100000, Ease = "linear" });
+        model.Level = 100000;
+
+        var bytes = BytesPerTick();
+
+        // measured 104, as GAPS-PLAN §1.7 predicted: the 80 of the property change, plus the follower's boxed double.
+        Assert.True(bytes <= 128, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void AnAnimatedMarkupWidthTicksWithinBudget()
+    {
+        var model = new LevelViewModel { Level = 0 };
+        var border = new Border { DataContext = model };
+        var extension = new AnimatedExtension(new Binding(nameof(LevelViewModel.Level))) { Duration = 100000, Ease = "linear" };
+        border.Bind(Layoutable.WidthProperty, (BindingBase)extension.ProvideValue(new ProvidedTarget(border, Layoutable.WidthProperty)));
+        model.Level = 100000;
+
+        var bytes = BytesPerTick();
+
+        // measured 160, as GAPS-PLAN §1.7 predicted for ToBinding(): 56 more than BindAnimated's direct Bind.
+        Assert.True(bytes <= 192, $"{bytes:0.##} bytes per tick");
     }
 
     [AvaloniaFact]

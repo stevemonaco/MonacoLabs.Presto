@@ -1,6 +1,6 @@
 # Gaps — what GSAP, Motion, Compose and Flutter do that Presto does not
 
-Phases 41–49 in [PLAN.md](PLAN.md). Status: **planned**. This plan comes from the post-Phase-40 review against GSAP (with
+Phases 41–49 in [PLAN.md](PLAN.md). Status: Phase 41 **implemented**; Phases 42–49 **planned**. This plan comes from the post-Phase-40 review against GSAP (with
 its plugins), Motion (Framer Motion), Jetpack Compose, Flutter and SwiftUI. It was checked against the committed code
 (`0106efe`) and the Avalonia 12.1.2 assemblies.
 
@@ -9,7 +9,7 @@ or in its own plan document if it outgrows a section, before it starts.
 
 | Phase | Gap | Scope | Size |
 |---|---|---|---|
-| 41 | Value-driven animation | bridge | medium |
+| 41 | Value-driven animation (implemented) | bridge | medium |
 | 42 | Derived values | core + bridge | medium |
 | 43 | Layout without distortion | bridge | medium–large |
 | 44 | Lottie playback | bridge (new package) | medium |
@@ -94,17 +94,21 @@ first. It sits behind a spike (§1.4 step 1).
    `RelativeSource`, `TemplatedParent`, converters and `FallbackValue` all resolve exactly as they would on the real
    property.
    - There is one companion property per target property, registered lazily and cached. The registry is
-     single-threaded, so this is safe.
+     single-threaded, so this is safe. Avalonia's analyzer flags any registration outside a static initializer
+     (`AVP1001`), so the one call is suppressed.
    - A companion change is the "value changed" event.
+   - The companion is `object`-typed, so nothing converts what arrives on it. A `FallbackValue` written in XAML
+     arrives as a string, and a recycled row's arrives as `null`. The follower converts each value to the property
+     type with `TypeUtilities.TryConvert`, as a binding on the real property would. A value that does not convert
+     becomes `UnsetValue`.
 
 3. **Output: an ordinary binding at the priority the wrapped binding would have had.**
-   - Each use gets a *follower*: an `INotifyPropertyChanged` source that the extension returns as a real `Binding`
-     (`Source` = follower, `Path` = `Value`, `OneWay`). Avalonia then treats the property as bound at `LocalValue`
-     priority, or the template priority inside a template.
-   - So styles at a lower priority are overridden as usual, DevTools shows a binding, and a Presto or Avalonia
-     animation at `Animation` priority layers *over* the followed value and reverts back to it.
-   - The spike confirms this priority. It also confirms the fallback, binding a follower observable directly in
-     `ProvideValue`, if a returned `Binding` cannot be given the right priority.
+   - Each use gets a *follower*: an `IObservable<object?>` that the extension returns as `follower.ToBinding()`.
+     Avalonia then treats the property as bound at `LocalValue` priority. Inside a template this is also
+     `LocalValue`, the same as a bare `{Binding}` there; only literals are held at `Template` (§1.7 Q2).
+   - So styles at a lower priority are overridden as usual, DevTools shows a binding expression, and a Presto or
+     Avalonia animation at `Animation` priority layers *over* the followed value and reverts back to it.
+   - The follower starts at `UnsetValue`. A value-typed property's value store throws if a subscribe hands it `null`.
 
 4. **The follower drives its own animation, not the control's.** Each follower runs a core `Animatable` over an
    internal channel holder. It never registers the control's property with Presto's composition. So a
@@ -122,18 +126,23 @@ first. It sits behind a spike (§1.4 step 1).
 6. **When the follower snaps instead of animating.**
    - **First value:** the first value snaps. `AnimateInitial = true` opts in to animating from the property's
      pre-binding value instead.
-   - **New item:** a value that arrives in the same layout or dispatcher pass as a `DataContext` change on the control
-     snaps. That is a recycled container or a swapped item, not the same item changing. The spike pins down how to
-     detect this reliably.
+   - **New item:** a value caused by a `DataContext` change on the control snaps. That is a recycled container or a
+     swapped item, not the same item changing. `DataContextChanged` on the target always comes first, synchronously,
+     so it sets a flag. The next companion change snaps and clears the flag. A `Dispatcher` post at `Background`
+     also clears it, in case the new item leaves the value unchanged (§1.7 Q4).
    - **Values that cannot be interpolated:** strings, enums, `bool`, `null`, `UnsetValue`, `BindingNotification`
-     errors, or a type change pass through instantly.
+     errors, or a type change pass through instantly. A `null` on a value-typed property passes through as
+     `UnsetValue` (decision 2).
    - **Reduced motion:** with `PrestoDefaults.ReducedMotion` set, the follower snaps unless the extension's
      `WhenReduced` gives a timing.
 
 7. **Lifetime.**
    - On detach, the follower stops ticking and lands on the latest target.
    - On reattach, it starts from the current target with no animation.
-   - Disposing the binding, or clearing the property, tears down both halves.
+   - Disposing the output binding tears down both halves: the follower's subscription is disposed, and it disposes
+     the companion binding. Disposing the expression or binding the property again both count. A `ClearValue` or a
+     local write does not, because in Avalonia 12 a `LocalValue` binding survives both and the next push restores it
+     (§1.7 Q3). The follower behaves the same.
 
 8. **Types.** Anything a Presto codec handles: `double`/`float`/`int` (ints round), `Color`, solid and gradient brushes,
    `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint`, and `BoxShadows`. Once Phase 30
@@ -141,27 +150,39 @@ first. It sits behind a spike (§1.4 step 1).
 
 9. **One-way only.** `TwoWay` or `OneWayToSource` on the wrapped binding throws from `ProvideValue`. Writing animated
    intermediate values back to a view model would be wrong.
+   - `BindingBase` has no `Mode`, so it is read from `ReflectionBinding`, `CompiledBinding`, `MultiBinding` or
+     `TemplateBinding`.
+   - `Default` resolves against the companion, which is `OneWay`. So only an explicit mode throws, even on a
+     property that defaults to `TwoWay`, such as `TextBox.Text`.
 
-10. **Timing.** The extension takes `Duration`/`Ease`, or `Spring` (a token name, or `Bounce`/`Duration`), or a
-    `Builder` (an `AnimationBuilder`, taking only its timing and eases, as `Animate.Layout` does), or a `Token` from
-    `MotionTokens`. The default is a critically damped spring.
+10. **Timing.** The extension takes `Duration`/`Ease`, or `Spring` (a preset name, or `"bounce,duration"`), or
+    `Bounce`/`Duration`, or a `Builder` (an `AnimationBuilder`, taking only its timing and eases, as `Animate.Layout`
+    does), or a `Token` from `MotionTokens`. The default is `Springs.Gentle`, which is critically damped (§1.7,
+    timing).
 
 11. **Code API, the same machinery.** For example:
     `control.BindAnimated(Border.WidthProperty, source, new AnimatedBindingParams { ... })` returns an `IDisposable`.
     The source can be an `IObservable<T>` or a `BindingBase`.
+    - Code needs no `BindingBase`, so `BindAnimated` binds the follower directly with
+      `Bind(property, follower, BindingPriority.LocalValue)`.
 
 12. **Not in style setters.** One setter is shared by every control it applies to. With `BindingBase` sealed off,
     there is no per-instance hook, so an extension inside a `Setter` throws with a message that points at templates
     instead. Control templates work, because their content is built per instance.
+    - A setter is recognised by `TargetObject is Setter`; its `TargetProperty` is the CLR `Value` property.
+    - More generally, `ProvideValue` throws unless `TargetObject` is an `AvaloniaObject` and `TargetProperty` is an
+      `AvaloniaProperty` (§1.7 Q1).
 
 13. **Transform and effect shorthands.**
     - **The problem:** `X`, `Y`, `Scale`, `Rotate` and `Blur` are not Avalonia properties, so an extension cannot sit
       on them.
     - **Recommended:** a bridge `Follow` class with attached properties per shorthand, for example
-      `presto:Follow.X="{Binding Offset}"`, plus a `Follow.Timing`. These feed the same follower and write through the
-      shorthand composer.
-    - **To settle in the spike:** how a Presto `X` animation and a followed `X` layer, because the composer owns one
-      transform per element.
+      `presto:Follow.X="{Binding Offset}"`, plus a `Follow.Timing`. These feed the same follower. The attached
+      property is the input itself, so it needs no companion.
+    - **Layering (§1.7 Q6):** the followed value is a *base* layer in the composer. An animation of the same
+      shorthand overrides it while it runs, holds its end value until it is reverted, and then hands back to the
+      latest followed value. This is the same rule as a real property, where `Animation` priority sits over a
+      `LocalValue` binding.
 
 ### 1.3 API
 
@@ -172,7 +193,7 @@ public sealed class AnimatedExtension : MarkupExtension
     public AnimatedExtension(BindingBase binding);
     public double? Duration { get; set; }
     public EaseValue? Ease { get; set; }
-    public string? Spring { get; set; }          // token or "bounce,duration"
+    public string? Spring { get; set; }          // a Springs preset name, or "bounce,duration"
     public double? Bounce { get; set; }
     public AnimationBuilder? Builder { get; set; }
     public bool AnimateInitial { get; set; }
@@ -194,13 +215,21 @@ public static class Follow                         // shorthands, decision 13
     public static readonly AttachedProperty<object?> XProperty; // also Y, Scale, ScaleX, ScaleY, Rotate, Blur
     public static readonly AttachedProperty<AnimationBuilder?> TimingProperty;
 }
+
+public static class Springs                        // bridge root namespace; a fresh Spring per read, since a Spring is stateful
+{
+    public static Spring Gentle { get; }           // Bounce 0,    Duration 500: critically damped, the default
+    public static Spring Snappy { get; }           // Bounce 0.15, Duration 300
+    public static Spring Bouncy { get; }           // Bounce 0.35, Duration 500
+    public static Spring Stiff { get; }            // Bounce 0,    Duration 250
+}
 ```
 
 Core: `PreserveVelocity` applies to the channel form of `Animatable.Set`.
 
 ### 1.4 Implementation steps
 
-1. **Spike (headless plus Desktop), written up in §1.7 before any API lands:**
+1. **Spike (done, headless; written up in §1.7):**
    - Does `IProvideValueTarget` give the target object and property for attributes on controls and inside templates?
    - Which priority does a returned `Binding` over a follower land at? Is a direct `Bind(IObservable)` the better
      output?
@@ -208,8 +237,8 @@ Core: `PreserveVelocity` applies to the channel form of `Animatable.Set`.
    - Per-frame cost of an INPC follower against a direct observable, measured with an allocation budget.
    - How the shorthand layers (decision 13) work.
 2. Core: per-channel `PreserveVelocity`, with tests first.
-3. Bridge: follower, companion registry, `BindAnimated`, then `AnimatedExtension`, then `Follow`.
-4. Sample and docs.
+3. Bridge: follower, companion registry, `BindAnimated`, then `AnimatedExtension`, then `Follow`. (Done.)
+4. Sample and docs. (Done: the *Value-driven* Reference page and DESIGN-NOTES §5.)
 
 ### 1.5 Tests
 
@@ -229,7 +258,9 @@ Core: `PreserveVelocity` applies to the channel form of `Animatable.Set`.
   - A style value at a lower priority is overridden.
   - A `control.Animate` on the same property layers over the follow and reverts back to it.
   - `ElementName`, `RelativeSource` and converters resolve.
-  - Allocation budget per frame.
+- **Bridge (`AllocationTests`):** a followed `double` stays within 192 B per tick through `{presto:Animated}`
+  (160 measured) and within 128 B through `BindAnimated` (104 measured). The follower's core holder adds nothing.
+- **Bridge (`AnimatedBindingPlumbingTests`, kept from the spike):** pins the Avalonia behaviour listed in §1.7.
 
 ### 1.6 Sample
 
@@ -246,7 +277,113 @@ better.
 
 ### 1.7 Spike results
 
-To be filled in.
+Headless probes on Avalonia 12.1.2 with compiled XAML and compiled bindings (`x:DataType`). Probes that pin behaviour
+the later items rely on are kept in `AnimatedBindingPlumbingTests`. They run over `AnimatedBindingXamlView` and a
+test-local `ProbeExtension` that does the plumbing without the animation. Measurements and throwaway variants were
+deleted after their numbers were recorded here.
+
+**Q1: what `IProvideValueTarget` gives.**
+- **Control attribute:** `TargetObject` is the control and `TargetProperty` is the `AvaloniaProperty` itself, such
+  as `Layoutable.WidthProperty`. It is not the `IPropertyInfo` that `RecipeExtension` sees on plain CLR objects.
+- **`ControlTemplate`:** the same, once per instance. `TemplatedParent` is already set when `ProvideValue` runs.
+- **`DataTemplate`/`ItemTemplate`:** the same, once per built row. `DataContext` is not set yet, so the first value
+  comes after a `DataContextChanged`.
+- **Style `Setter`:** `TargetObject` is the `Setter` and `TargetProperty` is a `ClrPropertyInfo` named `Value`. It
+  is provided once per style, and its result is applied at `StyleTrigger` priority.
+- **Design:** decision 12 detects the setter and also throws on any non-Avalonia target.
+- **Evidence:**
+  - `TheTargetIsTheControlAndItsPropertyOnAnAttributeAndInsideTemplates`
+  - `InAStyleSetterTheTargetIsTheSharedSetterAndItsValueClrProperty`
+
+**Q2: the output and its priority.**
+- **`Binding` over an INPC follower:** lands at `LocalValue` and overrides a style's `Width`.
+- **`follower.ToBinding()`:** the same `LocalValue`, including inside a `ControlTemplate`, where a bare `{Binding}`
+  also lands at `LocalValue` and only a literal is held at `Template`. It needs no reflection or expression trees,
+  and its subscription gives the lifetime signal directly (Q3).
+- **A direct `target.Bind(property, observable)` in `ProvideValue`:** works on an attribute when the extension
+  returns `UnsetValue`. But compiled XAML casts any non-binding result to the property type inside a template, so
+  `UnsetValue` and `BindingOperations.DoNothing` both throw `InvalidCastException` there. It is ruled out for the
+  extension.
+- **Layering:** `control.Animate` on the same property runs at `Animation` priority. View-model changes keep
+  updating the base value underneath, the animation holds its end value until it is reverted, and the revert
+  uncovers the latest followed value with the binding still live.
+- **Design:** decision 3 now returns `ToBinding()`.
+- **Evidence:**
+  - `AReturnedObservableBindingLandsAtLocalValueOverAStyleAndInsideATemplateLikeABareBinding`
+  - `AnAnimationLayersOverTheReturnedBindingAndRevertsToItsLatestValue`
+
+**Q3: the companion property.**
+- **Registration:** registering lazily per property with `RegisterAttached<Owner, AvaloniaObject, object?>` works.
+  It needs `AVP1001` suppressed.
+- **Resolution:** all of these resolve on the companion exactly as on the property: a compiled `{Binding}`,
+  `{ReflectionBinding}`, a converter, `FallbackValue`, `#Name` (`ElementName`), `RelativeSource AncestorType`,
+  `RelativeSource TemplatedParent` and `{TemplateBinding}`.
+- **Untyped values:** the companion is `object`-typed, so values are not converted. The XAML `FallbackValue=12`
+  arrives as the string `"12"`. An INPC `Binding` output hid this, because it converts. Decision 2 now converts.
+- **Mode:** see decision 9.
+- **Lifetime:** a `ClearValue` or a local write leaves a `LocalValue` binding live, and the next push restores it.
+  Disposing the expression, or binding the property again, unsubscribes the follower. Decision 7 is rewritten to
+  match.
+- **Evidence:**
+  - `TheWrappedBindingResolvesOnTheCompanionAsItWouldOnTheProperty`
+  - `OnlyRemovingTheBindingExpressionUnsubscribesTheFollower`
+
+**Q4: detecting a `DataContext` change.**
+- **Order:** on the target, `DataContextChanged`, then `PropertyChanged(DataContext)`, then the companion change
+  it causes. All three run synchronously in the same call. This holds for a direct swap, an inherited swap and a
+  `ContentControl` whose template root is reused for new content.
+- **Virtualized `ListBox`:** rows are not reused. Each newly realized item gets a freshly built template root (a
+  first value, which snaps). A row scrolled away is handed `null` as its `DataContext` clears.
+- **Rule:** decision 6. `DataContextChanged` sets a flag, the next companion change snaps and clears it, and a
+  `Background` dispatcher post clears a flag that no value consumed.
+- **Evidence:**
+  - `ADataContextChangeIsRaisedBeforeTheCompanionValueItCauses`
+  - `AReusedTemplateRootSeesItsNewItemBeforeItsValue`
+  - `AVirtualizedListBuildsANewRowPerItemAndNullsTheRowsItRecycles`
+
+**Q5: cost per frame.** Bytes per push of a new `double` into `Border.Width`, using the `AllocationTests` method:
+
+| Output | B/push |
+|---|---|
+| Plain `Width = x` (Avalonia's change args) | 80 |
+| `AnimatedValue<double>` at `Animation` priority (reference) | 80 |
+| Direct `Bind(property, IObservable<object?>, LocalValue)` | 104 |
+| `ToBinding()`, untyped or typed `IObservable<double>` | 160 |
+| INPC follower + `Binding` or `CompiledBinding` | 192 |
+
+- **Input side:** a view-model change reaching the companion costs 216 B. That is once per change, not per frame.
+- **Budget:** set in §1.5, with the core holder writing without allocating.
+
+**Q6: `Follow.*` layering.**
+- **Today:** a follower writing `X = 40` through `RenderTransformComposer.Set` is overwritten by an `X` animation,
+  which starts from 40. Reverting that animation sets `X` back to its identity, 0, and removes the composer. The
+  followed value is lost until its next change.
+- **Rule:** decision 13. The followed value is a base layer. An animation overrides it while it runs and holds its
+  end value until it is reverted, then the latest followed value shows again.
+- **`RenderTransformComposer`:** needs `Follow(visual, shorthand, value)` and `Unfollow(visual, shorthand)`.
+  - They keep a followed mask and a base per shorthand.
+  - `Follow` writes through only while no animation holds that shorthand.
+  - `Revert` falls back to the base, not the identity, and keeps the group while anything is followed.
+  - `Get` returns the displayed value, so an animation starts from the followed value.
+- **`EffectComposer`:** needs the same pair for `Blur`, and `Revert` falls back to the followed radius.
+- The core is unaffected.
+
+**Names.** `{presto:Animated}`, `BindAnimated` and `Follow` stay. XAML resolves `{presto:Animated}` to
+`AnimatedExtension`. Nothing public is called `Animated` or `Follow`, and `AnimatedValue` is internal under
+`Targets`.
+
+**Default timing.** A critically damped spring: `Springs.Gentle`, with `Bounce = 0`. For a spring built from
+`Bounce`/`Duration`, bounce 0 gives a damping ratio of exactly 1. It is a spring rather than a `MotionTokens` entry
+so that retargets keep their velocity (decision 5). `Token` stays available as an option.
+
+**Spring presets.** No named springs exist today; there is only `Eases.Spring(...)`. Add a static `Springs` class
+in the bridge root namespace, with the values listed in §1.3.
+
+- `Duration` is the spring's perceived duration.
+- Each property returns a new `Spring`, because a `Spring` carries completion state.
+- XAML names a preset as `Spring=Gentle` (the name is resolved), or as `Spring="0.2,400"` for bounce and duration.
+- The presets live in the bridge because they serve XAML. The core keeps `Eases.Spring` as the one way to build a
+  spring.
 
 ## 2. Phase 42 — Derived values
 
@@ -508,10 +645,10 @@ Each item is independent and can land on its own.
 
 ## 10. Open questions (confirm before the relevant phase)
 
-- **41 — names:** `{presto:Animated}` / `BindAnimated` / `Follow`. `Animated` sits close to `Animate`, `Animatable`
-  and the internal `AnimatedValue`. Alternatives: `{presto:Smooth}` or `{presto:Tween}`.
-- **41 — default timing:** a critically damped spring, or a token from `MotionTokens`?
-- **41 — `Follow.*` layering:** how followed and animated shorthands combine (decision 13), settled in the spike.
+- **41 — names (settled):** keep `{presto:Animated}` / `BindAnimated` / `Follow`. The spike found no clash (§1.7).
+- **41 — default timing (settled):** a critically damped spring, `Springs.Gentle` (§1.7).
+- **41 — `Follow.*` layering (settled):** the followed value is the composer's base layer. An animation overrides
+  it, holds until it is reverted, then hands back (decision 13, §1.7 Q6).
 - **42 — XAML:** is a `{presto:Map}` extension worth having, or do derived values stay code and view-model only?
 - **42 — name:** `MotionValue` matches Motion, but the bridge's `Motion` class is about state triggers.
 - **43b — depth:** direct children only, or the whole subtree (costlier, and rarely needed)?

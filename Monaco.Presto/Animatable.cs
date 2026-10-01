@@ -1,4 +1,5 @@
 using Monaco.Presto.Core;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto;
 
@@ -19,6 +20,7 @@ public sealed class Animatable : IRevertible
     // The eases and duration a flung property returns to on its next Set.
     private readonly Dictionary<string, (List<Ease> Eases, double Duration)> _flung = [];
     private static readonly Inertia DefaultInertia = new(0);
+    private static readonly Ease AtRest = static _ => 0;
     private readonly Animation _callbacks;
 
     internal Animatable(object? targets, AnimatableParams parameters)
@@ -102,6 +104,7 @@ public sealed class Animatable : IRevertible
             tween._toNumber = to;
             if (ease is { } easeValue) tween._ease = easeValue.Resolve(tween.Target, 0, 1, out _);
             else if (flung.Eases is { } eases) tween._ease = eases[index++];
+            tween._channelEases = null;
             tween._currentTime = 0;
         }
         return Replay(animation, duration ?? (flung.Eases != null ? flung.Duration : null));
@@ -125,7 +128,7 @@ public sealed class Animatable : IRevertible
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             var from = tween._modifier(tween._number);
-            var plan = InertiaSolver.Resolve(from, velocity ?? (animation.Paused ? 0 : Velocity(tween)), settings);
+            var plan = InertiaSolver.Resolve(from, velocity ?? (animation.Paused ? 0 : Velocity(tween, tween._ease, tween._toNumber - tween._fromNumber)), settings);
             var (ease, length) = (plan.Ease, plan.Duration);
             // Released on a bound moving outward: out to the peak and back, as one tween from the bound to the peak.
             if (plan.Then is { } back)
@@ -138,6 +141,7 @@ public sealed class Animatable : IRevertible
             span = Math.Max(span, length);
             // Captures span itself, so every tween samples over the longest plan once the loop has seen them all.
             tween._ease = u => ease(Math.Min(1, u * span / length));
+            tween._channelEases = null;
             tween._fromNumber = from;
             tween._toNumber = plan.To;
             tween._currentTime = 0;
@@ -150,7 +154,12 @@ public sealed class Animatable : IRevertible
     /// <remarks>The channel form, for the colour and complex properties <see cref="GetChannels"/> reads.</remarks>
     public Animatable Set(string property, IReadOnlyList<double> to, double? duration = null, EaseValue? ease = null)
     {
-        if (!_animations.TryGetValue(Key(property), out var animation)) return this;
+        var key = Key(property);
+        if (!_animations.TryGetValue(key, out var animation)) return this;
+        if (_momentum.TryGetValue(key, out var declared) && (ease is { } given ? given.Raw as Spring : declared) is { } spring)
+        {
+            return CarryChannelMomentum(animation, spring, to, duration);
+        }
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             for (var i = 0; i < to.Count && i < tween._numbers.Length; i++)
@@ -159,6 +168,7 @@ public sealed class Animatable : IRevertible
                 tween._toNumbers[i] = to[i];
             }
             if (ease is { } easeValue) tween._ease = easeValue.Resolve(tween.Target, 0, 1, out _);
+            tween._channelEases = null;
             tween._currentTime = 0;
         }
         return Replay(animation, duration);
@@ -197,7 +207,7 @@ public sealed class Animatable : IRevertible
             var from = tween._modifier(tween._number);
             var distance = to - from;
             // The solver's velocity is progress per solver second, which is its unit of time scaled back to the engine's.
-            var velocity = animation.Paused || distance == 0 ? 0 : Velocity(tween) * Constants.K * Globals.TimeScale / distance;
+            var velocity = animation.Paused || distance == 0 ? 0 : Velocity(tween, tween._ease, tween._toNumber - tween._fromNumber) * Constants.K * Globals.TimeScale / distance;
             var thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);
             springs.Add(thrown);
             span = Math.Max(span, thrown.SolverDuration);
@@ -212,14 +222,53 @@ public sealed class Animatable : IRevertible
         {
             var thrown = springs[index++];
             tween._ease = t => t >= 1 ? 1 : thrown.Solve(t * span);
+            tween._channelEases = null;
         }
         return Replay(animation, duration ?? settling);
     }
 
-    /// <summary>How fast <paramref name="tween"/>'s value is changing, in units per engine-time unit, from its ease around the current time.</summary>
-    private static double Velocity(Tween tween)
+    /// <summary>
+    /// The channel form of <see cref="CarryMomentum"/>: each channel of each tween gets its own thrown spring. Colour RGB
+    /// channels carry their velocity in the squared space the renderer blends them in; a channel that does not move stays at rest.
+    /// </summary>
+    private Animatable CarryChannelMomentum(Animation animation, Spring spring, IReadOnlyList<double> to, double? duration)
     {
-        var ease = tween._ease;
+        var span = 0d;
+        var settling = 0d;
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            var eases = new Ease[tween._numbers.Length];
+            for (var i = 0; i < eases.Length; i++)
+            {
+                var squared = tween._valueType == ValueKind.Color && i < 3;
+                var from = tween._modifier(tween._numbers[i]);
+                var target = i < to.Count ? to[i] : from;
+                var distance = squared ? target * target - from * from : target - from;
+                Spring? thrown = null;
+                if (distance != 0)
+                {
+                    var (oldFrom, oldTo) = (tween._fromNumbers[i], tween._toNumbers[i]);
+                    var travelled = squared ? oldTo * oldTo - oldFrom * oldFrom : oldTo - oldFrom;
+                    var velocity = animation.Paused ? 0 : Velocity(tween, tween._channelEases?[i] ?? tween._ease, travelled) * Constants.K * Globals.TimeScale / distance;
+                    thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);
+                    span = Math.Max(span, thrown.SolverDuration);
+                    settling = Math.Max(settling, thrown.SettlingDuration);
+                }
+                eases[i] = thrown == null ? AtRest : t => t >= 1 ? 1 : thrown.Solve(t * span);
+                tween._fromNumbers[i] = from;
+                tween._toNumbers[i] = target;
+            }
+            tween._currentTime = 0;
+            // The tween's own ease only decides when the renderer rounds, and is what a later Set without an ease plays.
+            tween._ease = t => t >= 1 ? 1 : spring.Solve(t * span);
+            tween._channelEases = eases;
+        }
+        return Replay(animation, duration ?? (settling > 0 ? settling : spring.SettlingDuration));
+    }
+
+    /// <summary>How fast a value eased by <paramref name="ease"/> over <paramref name="distance"/> is changing at <paramref name="tween"/>'s current time, in units per engine-time unit.</summary>
+    private static double Velocity(Tween tween, Ease ease, double distance)
+    {
         // A spring's own ease raises its OnComplete when sampled past its duration; its pure twin does not.
         if (ease.Target is Spring spring && ease == spring.Ease) ease = spring.PureEase;
 
@@ -227,7 +276,7 @@ public sealed class Animatable : IRevertible
         var progress = tween._currentTime / duration;
         var before = Math.Max(0, progress - VelocityStep);
         var after = Math.Min(1, progress + VelocityStep);
-        return (ease(after) - ease(before)) / ((after - before) * duration) * (tween._toNumber - tween._fromNumber);
+        return (ease(after) - ease(before)) / ((after - before) * duration) * distance;
     }
 
     private Action<Timer>? Wrap(Action<Animatable>? callback) => callback == null ? null : _ => callback(this);

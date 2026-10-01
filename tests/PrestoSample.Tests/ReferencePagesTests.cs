@@ -268,6 +268,34 @@ public sealed class ReferencePagesTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void TheValueDrivenBarEasesToANewLevelAndLeavingRestoresReducedMotion()
+    {
+        var page = new ValueDrivenPage();
+        var window = SceneHarness.Show(page, 1100, 1600);
+        var bar = page.GetControl<Border>("Bar");
+        var model = (ValueDrivenViewModel)page.DataContext!;
+        Assert.Equal(120, bar.Width);
+
+        model.Level = 90;
+        TestFrames.Tick(4);
+        Assert.InRange(bar.Width, 121, 269);
+        TestFrames.Tick(120);
+        Assert.Equal(270, bar.Width, 6);
+
+        page.GetControl<ToggleSwitch>("ReducedSwitch").IsChecked = true;
+        Assert.True(Presto.Defaults.ReducedMotion);
+        model.Level = 10;
+        Assert.Equal(30, bar.Width);
+
+        SceneHarness.Close(window);
+        Assert.False(Presto.Defaults.ReducedMotion);
+    }
+
+    [Fact]
+    public void ValueDrivenSnippetsMatchTheMarkup() =>
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ValueDrivenPage), "samples/PrestoSample/Pages/ValueDrivenPage.axaml", 5);
+
     private static List<string> Log(ItemsControl moments) =>
         moments.Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => $"{entry.Moment} {entry.Detail}").ToList();
 

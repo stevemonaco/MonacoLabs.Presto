@@ -145,7 +145,8 @@ internal static class Renderer
                         )))
                     {
                         var tweenNewTime = tween._currentTime = Helpers.Clamp(iterationTime - tween._startTime, 0, tweenChangeDuration);
-                        var tweenProgress = tween._ease(tweenNewTime / tween._updateDuration);
+                        var tweenTime = tweenNewTime / tween._updateDuration;
+                        var tweenProgress = tween._ease(tweenTime);
                         var tweenModifier = tween._modifier;
                         var tweenValueType = tween._valueType;
                         var tweenIsNumber = tweenValueType == ValueKind.Number;
@@ -162,17 +163,17 @@ internal static class Renderer
                             var ns = tween._numbers;
                             var fn = tween._fromNumbers;
                             var tn = tween._toNumbers;
-                            var omt = 1 - tweenProgress;
+                            var channelEases = tween._channelEases;
                             // RGB channels lerp in pseudo-linear space (square inputs, square-root result) to approximate gamma correct blending.
-                            ns[0] = tweenModifier(Math.Sqrt(fn[0] * fn[0] * omt + tn[0] * tn[0] * tweenProgress));
-                            ns[1] = tweenModifier(Math.Sqrt(fn[1] * fn[1] * omt + tn[1] * tn[1] * tweenProgress));
-                            ns[2] = tweenModifier(Math.Sqrt(fn[2] * fn[2] * omt + tn[2] * tn[2] * tweenProgress));
-                            ns[3] = tweenModifier(Helpers.Lerp(fn[3], tn[3], tweenProgress));
+                            ns[0] = tweenModifier(SquaredLerp(fn[0], tn[0], channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
+                            ns[1] = tweenModifier(SquaredLerp(fn[1], tn[1], channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
+                            ns[2] = tweenModifier(SquaredLerp(fn[2], tn[2], channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
+                            ns[3] = tweenModifier(Helpers.Lerp(fn[3], tn[3], channelEases == null ? tweenProgress : channelEases[3](tweenTime)));
                             number = double.NaN;
                         }
                         else
                         {
-                            tween.ComposeComplexNumbers(tweenProgress, tweenPrecision);
+                            tween.ComposeComplexNumbers(tweenProgress, tweenTime, tweenPrecision);
                             number = double.NaN;
                         }
 
@@ -329,4 +330,6 @@ internal static class Renderer
             }
         }
     }
+
+    private static double SquaredLerp(double from, double to, double progress) => Math.Sqrt(from * from * (1 - progress) + to * to * progress);
 }

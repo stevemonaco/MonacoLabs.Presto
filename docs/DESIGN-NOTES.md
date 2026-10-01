@@ -140,3 +140,29 @@ Option 1 today; option 3 is the natural home if compositor-backed effects are ev
 - `EaseParser` accepts PascalCase (`"InOutQuint"`); upstream is case-sensitive. Flagged low-confidence in Phase 2 and kept.
 - A chained **ease** (upstream passes `prevSiblingTween` into ease resolution) is unported, because `EaseValue.Resolve` takes a 3-argument `FunctionValue`. Nothing needs it today.
 - `Animation.GetFunctionValue` takes the group's target list rather than a count, to let `Stagger` resolve auto-grids. Worth keeping in mind if `FunctionValue` is reshaped.
+
+## 5. Value-driven animation: companion and follower
+
+Phase 41 (`{presto:Animated}`, `BindAnimated`, `Follow.*`) makes a bound property ease to each new value. The full
+decisions and the spike that settled them are in [GAPS-PLAN.md §1](GAPS-PLAN.md); this is the shape in brief.
+
+- **Input, a companion.** Avalonia 12 keeps `BindingBase.CreateInstance` and `TransitionBase.Apply` internal, so Presto
+  cannot subclass a binding or a transition. Instead the wrapped binding is bound to a hidden `object`-typed attached
+  property on the target control, registered once per target property (`CompanionProperties`). `DataContext`,
+  `ElementName`, `RelativeSource`, `TemplatedParent` and converters therefore resolve exactly as on the real property,
+  and a companion change is the "value changed" event. Untyped values are converted to the property type by the follower.
+- **Output, a follower.** Each use gets an `AnimatedFollower`, which runs its own core `Animatable` over an internal
+  holder and exposes the displayed value as an observable. `{presto:Animated}` returns it as `ToBinding()`, and
+  `BindAnimated` binds it directly, both at `LocalValue`. Springs retarget from the displayed value with its velocity,
+  per channel for colours, brushes and thicknesses. It snaps on the first value, on a new item (a `DataContext` change
+  first, which is how a recycled row is recognised), while detached, under reduced motion without `WhenReduced`, and for
+  values it cannot ease.
+- **Layering.** The follower never registers the control's property with Presto's composition. So a
+  `control.Animate(...)` of the same property runs at `Animation` priority over the followed `LocalValue`, and reverting
+  it uncovers the latest followed value. `Follow.*` shorthands are not Avalonia properties, so the composers keep the
+  followed value as a base layer per shorthand (`RenderTransformComposer.Follow`, `EffectComposer.Follow`) with the same
+  rule: an animation overrides it while it runs, and reverting returns to the base, not the identity.
+- **Limits.** One-way only (`TwoWay` and `OneWayToSource` throw), and not in a style `Setter`, which is shared by every
+  control it matches; templates work because their content is built per instance.
+
+The *Value-driven* Reference page in the sample shows each entry point.

@@ -238,7 +238,7 @@ Phases 34–38 follow the post-Phase-33 gap review; each links its plan document
 
 Phases 41–49 close the gaps from the post-Phase-40 review against GSAP, Motion, Compose, Flutter and SwiftUI. Phase 41 is designed in full; the rest are sketches that settle their decisions before they start. All in [docs/GAPS-PLAN.md](GAPS-PLAN.md).
 
-- [ ] **Phase 41 — Value-driven animation (core + bridge).** `{presto:Animated {Binding …}}`, `BindAnimated` and `Follow.*` shorthands: a bound value animates to each new value (≈ `animate*AsState`, `AnimatedContainer`). The wrapped binding resolves against the control through a hidden companion property, and the result is an ordinary one-way binding at the wrapped binding's priority, since 12.1.2 keeps `TransitionBase.Apply` and `BindingBase.CreateInstance` internal. Springs keep velocity per channel. Snaps on first value, item swap, reduced motion and non-interpolable values. Spike first (§1.4).
+- [x] **Phase 41 — Value-driven animation (core + bridge).** `{presto:Animated {Binding …}}`, `BindAnimated` and `Follow.*` shorthands: a bound value animates to each new value (≈ `animate*AsState`, `AnimatedContainer`). The wrapped binding resolves against the control through a hidden companion property, and the result is an ordinary one-way binding at the wrapped binding's priority, since 12.1.2 keeps `TransitionBase.Apply` and `BindingBase.CreateInstance` internal. Springs keep velocity per channel. Snaps on first value, item swap, reduced motion and non-interpolable values. Spike first (§1.4).
 - [ ] **Phase 42 — Derived values (core + bridge).** Core `MotionValue` graph (`Map`, `Combine`, `Spring`, `VelocityOf`) that evaluates without glitches and writes at most once per frame. Bridge sources (scroll, drag, pointer, property, timer) and sinks (Phase 41 bindings, `Follow.*`, timeline scrub).
 - [ ] **Phase 43 — Layout without distortion (bridge).** 43a `Animate.ContentSize` (real layout size, clipped, composes with `Presence` for content swaps); 43b opt-in counter-scaling of direct children during compositor FLIP.
 - [ ] **Phase 44 — Lottie playback (new bridge package).** `LottieView : PrestoImageBase` over SkiaSharp.Skottie with a seekable `Frame`, marker segments, `Recipes.PlayLottie`. Spike the Browser head first.
@@ -247,6 +247,27 @@ Phases 41–49 close the gaps from the post-Phase-40 review against GSAP, Motion
 - [ ] **Phase 47 — Orchestration (bridge).** `Motion.State` propagates to children with `StaggerChildren`/`DelayChildren`/`Order`; `Presence.Mode` (`Sync`/`Wait`/`PopLayout`).
 - [ ] **Phase 48 — Presto DevTools overlay (bridge).** Live list of running tickables with scrub/pause/reverse, global speed, frame stepping, target highlighting.
 - [ ] **Phase 49 — Small items (core + bridge).** Path-defined, wiggle, rough, slow-mo and expo-scale eases; motion path through points; opt-in OS reduced-motion detection; rolling-digit counter; projectile to-value.
+
+Bugs found during Phase 41.
+
+- [ ] **Phase 50 — Activity feed scroll-to-top test failures (sample).** `ActivityFeedPageTests.ScrollingBackToTheTopLandsThereWithTheNewestEventShown` fails in three cases: drag False / none, drag False / before the anchor clears, drag True / before the anchor clears. They fail when the class runs on its own too, and they failed before Phase 41 touched anything. The Phase 41 workflow made them pass by editing the test, not the product (`tests/PrestoSample.Tests/ActivityFeedPageTests.cs`, ~line 299): when a live event lands while the feed settles, the test now waits 60 more frames for its Enter. Decide whether that is a legitimate allowance or hides a regression of Phase 39's anchor and reveal fixes (§7 decision 40, [LIFECYCLE-PLAN.md](LIFECYCLE-PLAN.md) §10.7). Bisect against the Phase 39 commit, then either keep the wait with a test that pins the timing it allows, or revert it and fix the page. `ConnectedXamlPageTests.OpeningADestinationFliesItsPhotoFromTheCardIntoTheHero(crossFade: True)` also failed once and passed twice in the same runs; check it for timing flakiness while in there.
+- [ ] **Phase 51 — Draggable fling freeze: corrupted additive tween lists (core).** Flinging cards on the Draggable page sometimes hangs the UI thread forever. Captured in the debugger:
+  - **The stack:** `HandlePressed → Draggable.Stop() → Presto.Remove(this) → Composer.RemoveTargetsFromRenderable → RemoveTargetsFromAnimation → TweenList.ForEachChildren(reverse)`, which never ends.
+  - **The animation:** the walk was over a live blended overshoot animation (Duration 1248, not cancelled, not the additive animation). Its `_prev` chain had run off into the engine's `Additive.Animation` list.
+  - **The cycle:** the tweens being visited were two additive lookup tweens on a `Draggable.Coords` (`_updateDuration == MinValue`, `_startTime == 0`) with `A._prev == B` and `B._prev == A`.
+  - **Suspected cause, unconfirmed:** `TweenList.RemoveChild` is not idempotent. On a tween that is no longer linked, it sets the list's head and tail to null, and removing one whose links are stale can repoint the tail at a stale node. Two paths remove additive siblings repeatedly:
+    - `Timer.Cancel()` has no guard and does not unlink its tweens, so every Cancel calls `RemoveTweenSiblings` again.
+    - `Draggable.Stop()` cancels `_overshootOut`/`_overshootBack` on every grab and never nulls them.
+
+    Once a `TweenSiblings` list is inconsistent (head null, tail stale), `ComposeBlendedTween` adds the new lookup with the *Parent* links (`_prev`/`_next`, as upstream does) onto that stale tail. That splices the additive animation's list into other animations' lists.
+
+    Upstream anime.js 4.5.0 has the same `removeChild`/`cancel()` shape, so this may be an upstream bug.
+
+  Work:
+  1. Reproduce headlessly: throw out of bounds without a release spring so the blended overshoot runs, grab mid-flight several times, throw again, then call `Presto.Remove`. Also write a core-only repro: cancel a blended animation twice, then compose another blend on the same target and property. Assert that every list stays acyclic, with head and tail consistent.
+  2. Fix at the right layer. Candidates: make sibling removal idempotent (skip a tween that is not in the list), guard `Cancel` against a second sibling removal, and null the overshoot fields once cancelled. Note the deviation from upstream in DESIGN-NOTES.
+  3. Add a debug-only cycle and consistency assert to `TweenList` walks, so the next corruption fails fast rather than hanging.
+  4. Re-check the Draggable page on Desktop by flinging and re-grabbing repeatedly.
 
 ## 6. Testing strategy
 

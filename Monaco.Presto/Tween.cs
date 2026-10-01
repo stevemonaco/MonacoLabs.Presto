@@ -17,6 +17,8 @@ public sealed class Tween
     internal Func<TweenValue>? _toFunc;
     internal Func<TweenValue>? _fromFunc;
     internal Ease _ease = Eases.None;
+    // Set only while channels carry their own momentum, each from its own velocity.
+    internal Ease[]? _channelEases;
     // Unused arrays share Array.Empty; color and complex tweens get fresh ones because rendering mutates _numbers in place.
     internal double[] _fromNumbers = [];
     internal double[] _toNumbers = [];
@@ -74,11 +76,13 @@ public sealed class Tween
     public IPropertyAccessor Accessor { get; }
 
     /// <summary>Lerps every channel of a complex value into <c>_numbers</c>, the numeric half of upstream <c>composeComplexValue</c>.</summary>
-    internal void ComposeComplexNumbers(double progress, int precision)
+    internal void ComposeComplexNumbers(double progress, double time, int precision)
     {
+        var channelEases = _channelEases;
         for (var i = 0; i < _toNumbers.Length; i++)
         {
-            _numbers[i] = _modifier(Helpers.Round(Helpers.Lerp(_fromNumbers[i], _toNumbers[i], progress), precision));
+            var channelProgress = channelEases == null ? progress : channelEases[i](time);
+            _numbers[i] = _modifier(Helpers.Round(Helpers.Lerp(_fromNumbers[i], _toNumbers[i], channelProgress), precision));
         }
     }
 
