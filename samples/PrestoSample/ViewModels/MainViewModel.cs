@@ -161,7 +161,7 @@ public partial class MainViewModel : ObservableObject
     private MotionPreference _motion;
     private IDisposable? _following;
 
-    /// <summary>Sets the app-wide <see cref="PrestoDefaults.ReducedMotion"/> flag every page reads, or follows the OS setting with it.</summary>
+    /// <summary>Sets the app-wide <see cref="PrestoDefaults.ReducedMotion"/> flag every page reads, or follows the OS preference with it.</summary>
     public MotionPreference Motion
     {
         get => _motion;
@@ -175,7 +175,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>The OS reduce-motion setting, shown whichever <see cref="Motion"/> is chosen.</summary>
+    /// <summary>The OS reduce-motion preference, shown whichever <see cref="Motion"/> is chosen.</summary>
     [ObservableProperty]
     public partial string SystemMotion { get; private set; } = "";
 
@@ -184,9 +184,9 @@ public partial class MainViewModel : ObservableObject
         SelectedPage = Sections[0].Pages[0];
         PrestoAvalonia.WatchSystemReducedMotion(reduced => SystemMotion = reduced switch
         {
-            true => "OS setting: reduced motion",
-            false => "OS setting: full motion",
-            null => "OS setting: not available here",
+            true => "OS preference: reduced motion",
+            false => "OS preference: full motion",
+            null => "OS preference: not available here",
         });
     }
 

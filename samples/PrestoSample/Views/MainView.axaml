@@ -34,27 +34,35 @@
                     BorderThickness="0,1,1,0" Padding="16,10">
                 <StackPanel Spacing="4">
                     <TextBlock Classes="eyebrow showcase" Text="SETTINGS" />
-                    <ComboBox x:Name="MotionPicker" HorizontalAlignment="Stretch"
-                              SelectedIndex="{Binding Motion}">
-                        <ComboBoxItem Content="Full motion" />
-                        <ComboBoxItem Content="Reduced motion" />
-                        <ComboBoxItem Content="OS setting" />
-                        <ToolTip.Tip>
-                            <StackPanel MaxWidth="320" Spacing="6">
-                                <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
-                                           Text="Sets Presto.Defaults.ReducedMotion for every page. OS setting keeps it in step with the system through PrestoAvalonia.FollowSystemReducedMotion, re-read when the window is activated." />
-                                <StackPanel Spacing="2">
-                                    <TextBlock TextWrapping="Wrap" Text="• Recipes play a short fade with no travel" />
-                                    <TextBlock TextWrapping="Wrap" Text="• Page transitions crossfade" />
-                                    <TextBlock TextWrapping="Wrap" Text="• Text reveals fade the whole block" />
-                                    <TextBlock TextWrapping="Wrap" Text="• Hover tilt stays flat" />
-                                    <TextBlock TextWrapping="Wrap" Text="• Bindings, gesture releases and layout moves land at once" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <ComboBox x:Name="MotionPicker" HorizontalAlignment="Stretch"
+                                  SelectedIndex="{Binding Motion}">
+                            <ComboBoxItem Content="Full motion" />
+                            <ComboBoxItem Content="Reduced motion" />
+                            <ComboBoxItem Content="OS preference" />
+                        </ComboBox>
+                        <Border x:Name="MotionHelp" Grid.Column="1" Width="20" Height="20" CornerRadius="10"
+                                VerticalAlignment="Center" Background="Transparent" BorderThickness="1"
+                                BorderBrush="{x:Static showcase:Palette.InkDim}" ToolTip.ShowDelay="0">
+                            <TextBlock Text="?" FontSize="12" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.InkDim}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ToolTip.Tip>
+                                <StackPanel MaxWidth="320" Spacing="6">
+                                    <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
+                                               Text="Sets Presto.Defaults.ReducedMotion for every page. OS preference keeps it in step with the system's reduce-motion preference through PrestoAvalonia.FollowSystemReducedMotion, re-read when the window is activated." />
+                                    <StackPanel Spacing="2">
+                                        <TextBlock TextWrapping="Wrap" Text="• Recipes play a short fade with no travel" />
+                                        <TextBlock TextWrapping="Wrap" Text="• Page transitions crossfade" />
+                                        <TextBlock TextWrapping="Wrap" Text="• Text reveals fade the whole block" />
+                                        <TextBlock TextWrapping="Wrap" Text="• Hover tilt stays flat" />
+                                        <TextBlock TextWrapping="Wrap" Text="• Bindings, gesture releases and layout moves land at once" />
+                                    </StackPanel>
+                                    <TextBlock TextWrapping="Wrap" FontStyle="Italic"
+                                               Text="Hand-written animations without a WhenReduced form, such as the Particles and Loaders pages, play as normal. Pages already playing pick it up on their next replay." />
                                 </StackPanel>
-                                <TextBlock TextWrapping="Wrap" FontStyle="Italic"
-                                           Text="Hand-written animations without a WhenReduced form, such as the Particles and Loaders pages, play as normal. Pages already playing pick it up on their next replay." />
-                            </StackPanel>
-                        </ToolTip.Tip>
-                    </ComboBox>
+                            </ToolTip.Tip>
+                        </Border>
+                    </Grid>
                     <TextBlock Classes="caption" Text="{Binding SystemMotion}" />
                 </StackPanel>
             </Border>

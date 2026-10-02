@@ -67,20 +67,20 @@ public sealed class GalleryPageTests
     }
 
     [AvaloniaFact]
-    public void TheOsSettingIsShownWhicheverChoiceIsPicked()
+    public void TheOsPreferenceIsShownWhicheverChoiceIsPicked()
     {
         var gallery = new MainViewModel();
         var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000);
         try
         {
-            Assert.StartsWith("OS setting: ", gallery.SystemMotion);
+            Assert.StartsWith("OS preference: ", gallery.SystemMotion);
             Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), block => block.Text == gallery.SystemMotion);
 
             gallery.Motion = MotionPreference.System;
             gallery.Motion = MotionPreference.Full;
 
             Assert.False(Presto.Defaults.ReducedMotion);
-            Assert.StartsWith("OS setting: ", gallery.SystemMotion);
+            Assert.StartsWith("OS preference: ", gallery.SystemMotion);
         }
         finally
         {

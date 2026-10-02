@@ -1453,7 +1453,7 @@ Windows (client-area animation), macOS and iOS (reduce motion) and the browser (
 Linux and elsewhere it reads unknown, which leaves the flag alone. There, pass your own `probe: () => …` and call
 `RefreshSystemReducedMotion` when it changes.
 
-To show the OS setting without following it, as a settings screen offering "full", "reduced" and "OS setting" does,
+To show the OS preference without following it, as a settings screen offering "full", "reduced" and "OS preference" does,
 `PrestoAvalonia.WatchSystemReducedMotion(reduced => …)` reports it now and on each change at the same moments, with
 `null` where it cannot be read, and never touches the flag.
 
