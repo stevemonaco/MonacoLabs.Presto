@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
@@ -53,7 +54,7 @@ public partial class MainViewModel : ObservableObject
                 () => new FramesPage()),
             new("Layout", "AnimateLayout and AnimateSharedElement: a grid of titled icon cards that shuffles, gains and loses cards, each easing into its new cell as FLIP played by the render thread, beside a panel that grows under PositionAndSize and a square that moves between two containers. Try Shuffle with slow on, then Freeze the UI thread and watch the cards keep easing.",
                 () => new LayoutPage()),
-            new("Lifecycle", "Presence.Initial, Enter and Exit side by side: two views whose rows rise in a stagger when a view loads, slide in when added on their own and leave on a ghost when removed, while a whole view navigated away plays nothing. The log beside them is written by each builder's OnBegin, so it shows what Presence classified. Navigate, show a view again, add and remove rows to see each moment. Below, a ContentControl swaps between two views that crossfade, the old one leaving on its ghost as the new one enters, and a three-step wizard whose host sets Presence.Mode to Wait, so each step slides in only after the last has slid out, with a picker to compare Sync and PopLayout.",
+            new("Lifecycle", "Presence.Initial, Enter and Exit side by side: two views whose rows rise in a stagger when a view loads, slide in when added on their own and leave on a ghost when removed, while a whole view navigated away plays nothing. The log beside them is written by each builder's OnBegin, so it shows what Presence classified. Navigate, show a view again, add and remove rows to see each moment. Below, a ContentControl swaps between two views that crossfade, the old one leaving on its ghost as the new one enters, and a three-step wizard whose host sets Presence.Mode to Wait, so each step slides in only after the last has slid out, with a picker to compare it with Sync.",
                 () => new LifecyclePage()),
             new("States", "Motion.Hover, Press and Focus on real Buttons, a TextBox, a checklist and cards, which lift on hover, squish on press and grow on keyboard focus. The checklist slides done items through a shared :checked state, a card's hover nudges its arrow through a style setter on Motion.State, a status chip's bound Motion.State pulses, shakes and settles, and a menu panel's Open state unfolds it and staggers its items in, with pickers for Order and StaggerFrom. Tab through it to see focus-visible differ from a click, and watch the log record each state change.",
                 () => new StatesPage()),
@@ -157,33 +158,37 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsBack { get; set; }
 
-    /// <summary>The app-wide <see cref="PrestoDefaults.ReducedMotion"/> flag every page reads.</summary>
-    public bool ReducedMotion
-    {
-        get => Presto.Defaults.ReducedMotion;
-        set => SetProperty(Presto.Defaults.ReducedMotion, value, value => Presto.Defaults.ReducedMotion = value);
-    }
+    private MotionPreference _motion;
+    private IDisposable? _following;
 
-    private IDisposable? _systemMotion;
-
-    /// <summary>Whether <see cref="ReducedMotion"/> follows the OS setting through <see cref="PrestoAvalonia.FollowSystemReducedMotion"/>.</summary>
-    public bool FollowSystemMotion
+    /// <summary>Sets the app-wide <see cref="PrestoDefaults.ReducedMotion"/> flag every page reads, or follows the OS setting with it.</summary>
+    public MotionPreference Motion
     {
-        get => _systemMotion is not null;
+        get => _motion;
         set
         {
-            if (value == FollowSystemMotion) return;
-            if (value) _systemMotion = PrestoAvalonia.FollowSystemReducedMotion(changed: _ => OnPropertyChanged(nameof(ReducedMotion)));
-            else
-            {
-                _systemMotion!.Dispose();
-                _systemMotion = null;
-            }
-            OnPropertyChanged();
+            if (!SetProperty(ref _motion, value)) return;
+            _following?.Dispose();
+            _following = null;
+            if (value == MotionPreference.System) _following = PrestoAvalonia.FollowSystemReducedMotion();
+            else Presto.Defaults.ReducedMotion = value == MotionPreference.Reduced;
         }
     }
 
-    public MainViewModel() => SelectedPage = Sections[0].Pages[0];
+    /// <summary>The OS reduce-motion setting, shown whichever <see cref="Motion"/> is chosen.</summary>
+    [ObservableProperty]
+    public partial string SystemMotion { get; private set; } = "";
+
+    public MainViewModel()
+    {
+        SelectedPage = Sections[0].Pages[0];
+        PrestoAvalonia.WatchSystemReducedMotion(reduced => SystemMotion = reduced switch
+        {
+            true => "OS setting: reduced motion",
+            false => "OS setting: full motion",
+            null => "OS setting: not available here",
+        });
+    }
 
     partial void OnSelectedPageChanged(GalleryPage? oldValue, GalleryPage? newValue)
     {

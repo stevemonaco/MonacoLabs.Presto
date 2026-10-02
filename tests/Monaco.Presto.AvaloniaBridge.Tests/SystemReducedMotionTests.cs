@@ -55,6 +55,24 @@ public sealed class SystemReducedMotionTests : BridgeTestBase, IDisposable
     }
 
     [AvaloniaFact]
+    public void WatchingReportsTheSettingAndEachChangeWithoutTouchingTheFlag()
+    {
+        bool? system = true;
+        var reported = new List<bool?>();
+        var watching = PrestoAvalonia.WatchSystemReducedMotion(reported.Add, () => system);
+
+        PrestoAvalonia.RefreshSystemReducedMotion();
+        system = null;
+        PrestoAvalonia.RefreshSystemReducedMotion();
+        watching.Dispose();
+        system = false;
+        PrestoAvalonia.RefreshSystemReducedMotion();
+
+        Assert.Equal([true, null], reported);
+        Assert.False(Presto.Defaults.ReducedMotion);
+    }
+
+    [AvaloniaFact]
     public void ThePlatformProbeReadsWithoutThrowing()
     {
         var reading = ReducedMotionProbe.Read();

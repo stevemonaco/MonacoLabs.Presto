@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Gestures;
 using Monaco.Presto.AvaloniaBridge.Transforms;
@@ -83,6 +84,9 @@ public sealed class Draggable : IRevertible
     private double _appliedY;
     private double _grabX;
     private double _grabY;
+    private double _grabValueX;
+    private double _grabValueY;
+    private TopLevel? _escapeRoot;
     private double _snappedX;
     private double _snappedY;
     private double _destX;
@@ -149,8 +153,7 @@ public sealed class Draggable : IRevertible
             OnComplete = _ =>
             {
                 _manual = false;
-                if (!_disabledX) Animate.Set(_xProp, _overshoot.X, 0);
-                if (!_disabledY) Animate.Set(_yProp, _overshoot.Y, 0);
+                SetAxes(_overshoot.X, 0, null, _overshoot.Y, 0, null);
             },
         });
         _resizeTicker = Presto.CreateTimer(new TimerParams
@@ -235,6 +238,7 @@ public sealed class Draggable : IRevertible
         Stop();
         _resizeTicker.Pause();
         _grabbed = _dragged = _updated = _released = false;
+        StopListeningForEscape();
         SetX(0, true);
         SetY(0, true);
         _coordX = _coordY = 0;
@@ -305,14 +309,10 @@ public sealed class Draggable : IRevertible
         UpdateBoundingValues();
         if (OutOfView(gap, 0, 0) is not { } overflow) return this;
         var easeValue = ease ?? (EaseValue)Eases.InOutQuad;
-        if (!_disabledX && overflow.X != 0)
-        {
-            Animate.Set(_xProp, Snapped(X - overflow.X, _snapX, _boundsLeft, _boundsRight), duration ?? ScrollInViewDuration, easeValue);
-        }
-        if (!_disabledY && overflow.Y != 0)
-        {
-            Animate.Set(_yProp, Snapped(Y - overflow.Y, _snapY, _boundsTop, _boundsBottom), duration ?? ScrollInViewDuration, easeValue);
-        }
+        var length = duration ?? ScrollInViewDuration;
+        SetAxes(
+            overflow.X != 0 ? Snapped(X - overflow.X, _snapX, _boundsLeft, _boundsRight) : null, length, easeValue,
+            overflow.Y != 0 ? Snapped(Y - overflow.Y, _snapY, _boundsTop, _boundsBottom) : null, length, easeValue);
         return this;
     }
 
@@ -557,8 +557,8 @@ public sealed class Draggable : IRevertible
         UpdateBoundingValues();
         var position = e.GetPosition(null);
         var friction = 1 - _containerFriction;
-        var x = X;
-        var y = Y;
+        var x = _grabValueX = X;
+        var y = _grabValueY = Y;
         // The raw coordinate the cushioned position came from, so the next drag picks up where the friction left off.
         _coordX = _prevX = friction == 0 ? x : Cushion(x, _boundsLeft, _boundsRight, 1 / friction);
         _coordY = _prevY = friction == 0 ? y : Cushion(y, _boundsTop, _boundsBottom, 1 / friction);
@@ -567,6 +567,11 @@ public sealed class Draggable : IRevertible
         ClearVelocity();
         TakeCursor(_grabCursor);
         ScrollInView(100, 0, Eases.Out(3));
+        if (_parameters.CancelOnEscape && TopLevel.GetTopLevel(_trigger) is { } root)
+        {
+            _escapeRoot = root;
+            root.AddHandler(InputElement.KeyDownEvent, HandleKeyDown, RoutingStrategies.Tunnel);
+        }
         _parameters.OnGrab?.Invoke(this);
     }
 
@@ -592,7 +597,14 @@ public sealed class Draggable : IRevertible
 
     private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e) => Release();
 
-    private void Release()
+    private void HandleKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || !_grabbed) return;
+        e.Handled = true;
+        Release(cancel: true);
+    }
+
+    private void Release(bool cancel = false)
     {
         if (!_grabbed) return;
         // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.
@@ -601,6 +613,15 @@ public sealed class Draggable : IRevertible
         _updateTicker.Pause();
         ReleasePointer();
         TakeCursor(_hoverCursor);
+
+        if (cancel)
+        {
+            ReturnToGrab();
+            _updated = true;
+            _released = true;
+            _parameters.OnRelease?.Invoke(this);
+            return;
+        }
 
         var velocity = ComputeVelocity(_pointerX - _appliedX, _pointerY - _appliedY);
         var angle = Angle = Math.Atan2(_pointerY - _pointerPrevY, _pointerX - _pointerPrevX);
@@ -676,10 +697,38 @@ public sealed class Draggable : IRevertible
         }
         else
         {
-            if (!_disabledX) Animate.Set(_xProp, destX, durationX, easeX);
-            if (!_disabledY) Animate.Set(_yProp, destY, durationY, easeY);
+            SetAxes(destX, durationX, easeX, destY, durationY, easeY);
         }
         return longest;
+    }
+
+    private void ReturnToGrab()
+    {
+        _destX = _snappedX = _grabValueX;
+        _destY = _snappedY = _grabValueY;
+        SetAxes(
+            _grabValueX, ReturnDuration(_releaseSpringX, X, _grabValueX), _hasReleaseSpring ? _releaseSpringX.Ease : _releaseEase,
+            _grabValueY, ReturnDuration(_releaseSpringY, Y, _grabValueY), _hasReleaseSpring ? _releaseSpringY.Ease : _releaseEase);
+    }
+
+    // A zero duration write completes inside Set, so a move on one axis alone would settle before the other axis is written.
+    private void SetAxes(double? x, double durationX, EaseValue? easeX, double? y, double durationY, EaseValue? easeY)
+    {
+        var writesX = !_disabledX && x is not null;
+        var writesY = !_disabledY && y is not null;
+        var manual = _manual;
+        _manual = true;
+        if (writesX) Animate.Set(_xProp, x!.Value, durationX, easeX);
+        if (writesY) Animate.Set(_yProp, y!.Value, durationY, easeY);
+        _manual = manual;
+        if (!manual && (writesX || writesY) && (!writesX || durationX == 0) && (!writesY || durationY == 0)) HandleSettle(Animate);
+    }
+
+    private double ReturnDuration(Spring spring, double from, double to)
+    {
+        spring.Velocity = 0;
+        if (from == to) return 0;
+        return _hasReleaseSpring ? spring.SettlingDuration : spring.SettlingDuration - Spring.RestDuration * Globals.TimeScale;
     }
 
     // A null velocity carries on at the axis's current speed. Returns the longest axis duration.
@@ -737,8 +786,7 @@ public sealed class Draggable : IRevertible
         _manual = false;
         _destX = _snappedX = destX;
         _destY = _snappedY = destY;
-        if (!_disabledX) Animate.Set(_xProp, destX, remaining, _releaseEase);
-        if (!_disabledY) Animate.Set(_yProp, destY, remaining, _releaseEase);
+        SetAxes(destX, remaining, _releaseEase, destY, remaining, _releaseEase);
     }
 
     private double ReleaseDuration(Spring spring, double from, double to, double min, double max, double thrown, double velocity, bool otherAxisDisabled)
@@ -776,6 +824,13 @@ public sealed class Draggable : IRevertible
     {
         if (_pointer is { } pointer && ReferenceEquals(pointer.Captured, _trigger)) pointer.Capture(null);
         _pointer = null;
+        StopListeningForEscape();
+    }
+
+    private void StopListeningForEscape()
+    {
+        _escapeRoot?.RemoveHandler(InputElement.KeyDownEvent, HandleKeyDown);
+        _escapeRoot = null;
     }
 
     private sealed class Coords

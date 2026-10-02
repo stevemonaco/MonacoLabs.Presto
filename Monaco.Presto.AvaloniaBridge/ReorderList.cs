@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -279,6 +280,8 @@ internal sealed class ReorderList
         var args = new ReorderMovingEventArgs(item, from, to);
         _list.RaiseEvent(args);
         if (args.Cancel) return false;
+        var selecting = _list as SelectingItemsControl;
+        var selected = selecting is not null && Equals(selecting.SelectedItem, item);
         if (Reorder.GetCommand(_list) is { } command)
         {
             if (!command.CanExecute(args)) return false;
@@ -292,6 +295,8 @@ internal sealed class ReorderList
         {
             return false;
         }
+        // A collection Move drops the moved item from the selection.
+        if (selected) selecting!.SelectedItem = item;
         // Laid out now so the next crossing reads the new slots and the rebase lands before the frame renders.
         _list.UpdateLayout();
         return true;

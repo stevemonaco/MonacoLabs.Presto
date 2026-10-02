@@ -41,21 +41,22 @@ public sealed class GalleryPageTests
     }
 
     [AvaloniaFact]
-    public void TheSidebarSwitchSetsReducedMotionAndItSurvivesNavigation()
+    public void TheMotionPickerSetsReducedMotionAndItSurvivesNavigation()
     {
         var gallery = new MainViewModel();
         var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000);
-        var sidebarSwitch = window.GetLogicalDescendants().OfType<ToggleSwitch>().Single(toggle => toggle.OnContent is "Reduced motion");
+        var picker = window.GetLogicalDescendants().OfType<ComboBox>().Single(box => box.Name == "MotionPicker");
         try
         {
-            sidebarSwitch.IsChecked = true;
+            picker.SelectedIndex = 1;
+            Assert.Equal(MotionPreference.Reduced, gallery.Motion);
             Assert.True(Presto.Defaults.ReducedMotion);
 
             gallery.SelectedPage = Pages.First(page => page.Title == "Storefront");
             gallery.SelectedPage = Pages.First(page => page.Title == "Motion tokens");
             Assert.True(Presto.Defaults.ReducedMotion);
 
-            sidebarSwitch.IsChecked = false;
+            picker.SelectedIndex = 0;
             Assert.False(Presto.Defaults.ReducedMotion);
         }
         finally
@@ -66,25 +67,24 @@ public sealed class GalleryPageTests
     }
 
     [AvaloniaFact]
-    public void FollowingTheSystemLocksTheSidebarSwitchUntilTurnedOff()
+    public void TheOsSettingIsShownWhicheverChoiceIsPicked()
     {
         var gallery = new MainViewModel();
         var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000);
-        var switches = window.GetLogicalDescendants().OfType<ToggleSwitch>().ToList();
-        var sidebarSwitch = switches.Single(toggle => toggle.OnContent is "Reduced motion");
-        var followSwitch = switches.Single(toggle => toggle.OnContent is "Follow system");
         try
         {
-            followSwitch.IsChecked = true;
-            Assert.False(sidebarSwitch.IsEnabled);
-            Assert.Equal(Presto.Defaults.ReducedMotion, sidebarSwitch.IsChecked);
+            Assert.StartsWith("OS setting: ", gallery.SystemMotion);
+            Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), block => block.Text == gallery.SystemMotion);
 
-            followSwitch.IsChecked = false;
-            Assert.True(sidebarSwitch.IsEnabled);
+            gallery.Motion = MotionPreference.System;
+            gallery.Motion = MotionPreference.Full;
+
+            Assert.False(Presto.Defaults.ReducedMotion);
+            Assert.StartsWith("OS setting: ", gallery.SystemMotion);
         }
         finally
         {
-            gallery.FollowSystemMotion = false;
+            gallery.Motion = MotionPreference.Full;
             Presto.Defaults.ReducedMotion = false;
             SceneHarness.Close(window);
         }

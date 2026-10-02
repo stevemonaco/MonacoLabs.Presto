@@ -157,7 +157,6 @@
                         <ComboBox x:Name="ModePicker" Width="130" SelectionChanged="ModeChanged">
                             <ComboBoxItem Content="Sync" />
                             <ComboBoxItem Content="Wait" />
-                            <ComboBoxItem Content="PopLayout" />
                         </ComboBox>
                     </StackPanel>
                 </StackPanel>
@@ -166,7 +165,7 @@
             <TextBlock x:Name="WizardCode" Classes="code" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="A wizard in a ContentControl with Presence.Mode=&quot;Wait&quot;: the old step slides out on its ghost, and only when that exit ends does the next step slide in, held at opacity 0 until then. Switch the picker to Sync and the two overlap as the crossfade above does; PopLayout behaves as Sync, since a ghost never holds layout. Press Next twice quickly: the step that was still waiting leaves unseen, without a ghost, and the third waits for the first's exit alone." />
+                       Text="A wizard in a ContentControl with Presence.Mode=&quot;Wait&quot;: the old step slides out on its ghost, and only when that exit ends does the next step slide in, held at opacity 0 until then. Switch the picker to Sync and the two overlap as the crossfade above does. Press Next twice quickly: the step that was still waiting leaves unseen, without a ghost, and the third waits for the first's exit alone." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

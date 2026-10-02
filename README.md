@@ -411,6 +411,9 @@ PrestoAvalonia.CreateDraggable(SpringCard, new()
 });
 ```
 
+`CancelOnEscape = true` adds what anime.js does not have: Escape mid-drag ends the drag and springs the target back to
+where it was grabbed, then `OnRelease` and `OnSettle` run as for a release.
+
 #### Drag to reorder
 
 `Reorder` makes an `ItemsControl` or `ListBox` drag-to-reorder, as Motion's `Reorder` and Flutter's
@@ -916,8 +919,8 @@ element holds still. The snapshot is taken before the element's own entrance is 
 leaves from where it was drawn. An element added back while its ghost is still exiting dismisses the ghost. Code that
 removes a control itself can call `PrestoAvalonia.AnimateExit(control, builder)` first, in the same frame.
 
-Because a ghost leaves layout at once, an enter normally plays alongside the exit (`Presence.Mode`'s default `Sync`;
-`PopLayout` is the same). `Presence.Mode="Wait"` on a content host or list plays the exit first, like Motion's
+Because a ghost leaves layout at once, an enter normally plays alongside the exit (`Presence.Mode`'s default `Sync`, which
+is why there is no Motion-style `popLayout`). `Presence.Mode="Wait"` on a content host or list plays the exit first, like Motion's
 `AnimatePresence mode="wait"`: what arrives under it stays at opacity 0, its entrance held back, until every exit in
 flight there has ended. Content swapped again while held leaves unseen, with no ghost.
 
@@ -1449,6 +1452,10 @@ browser reports a change, or you call `PrestoAvalonia.RefreshSystemReducedMotion
 Windows (client-area animation), macOS and iOS (reduce motion) and the browser (`prefers-reduced-motion`). On Android,
 Linux and elsewhere it reads unknown, which leaves the flag alone. There, pass your own `probe: () => …` and call
 `RefreshSystemReducedMotion` when it changes.
+
+To show the OS setting without following it, as a settings screen offering "full", "reduced" and "OS setting" does,
+`PrestoAvalonia.WatchSystemReducedMotion(reduced => …)` reports it now and on each change at the same moments, with
+`null` where it cannot be read, and never touches the flag.
 
 ## anime.js → Presto
 

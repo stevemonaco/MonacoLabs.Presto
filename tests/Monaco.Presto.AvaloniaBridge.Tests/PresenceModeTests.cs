@@ -17,12 +17,10 @@ public sealed class PresenceModeTests : CompositorTestBase
 {
     private static readonly AnimationBuilder FadeOut = Presto.Build().Opacity(to: 0).Duration(200).Ease("linear");
 
-    [AvaloniaTheory]
-    [InlineData(PresenceMode.Sync)]
-    [InlineData(PresenceMode.PopLayout)]
-    public void WithoutWaitTheEnterPlaysWhileTheGhostExits(PresenceMode mode)
+    [AvaloniaFact]
+    public void UnderSyncTheEnterPlaysWhileTheGhostExits()
     {
-        var host = Show(mode, Content());
+        var host = Show(PresenceMode.Sync, Content());
         var began = 0;
         var incoming = Content(() => began++);
 

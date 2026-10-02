@@ -862,7 +862,7 @@ it as a removal and an insert. Without a command, the drag still lifts and sprin
   - `Motion.StaggerChildren` (stagger amount, `from`, order by visual position as Phase 21's initial-load stagger does)
   - `Motion.DelayChildren`
   - `Motion.Order` = `Together` / `BeforeChildren` / `AfterChildren`
-- **`Presence.Mode`** on a content host or `ItemsControl`, with values `Sync` (today), `Wait` and `PopLayout`.
+- **`Presence.Mode`** on a content host or `ItemsControl`, with values `Sync` (today) and `Wait`. Motion's `popLayout` was dropped: a ghost never holds layout, so it would equal `Sync`.
   - `Wait` holds the incoming content at opacity 0, and its `Enter`, until the ghost's exit completes. Phase 38's
     hold-until-measured is the precedent.
 
@@ -922,7 +922,7 @@ PLAN.md decisions 57–63 pin the choices below.
 | Custom ease from path data | GSAP CustomEase | `Eases.FromPath(pathData)` in core, and `fromPath(...)` in ease strings (the parser hands it the raw text between the parentheses). See below. |
 | Wiggle, rough, slow-mo, expo-scale eases | GSAP EasePack, CustomWiggle | `Eases.Wiggle(wiggles = 10, WiggleType, Random?)`, `Eases.Rough(points = 20, strength = 1, clamp, RoughTaper, randomize, template, Random?)`, `Eases.SlowMo(linearRatio = .7, power = .7, yoyoMode)` and `Eases.ExpoScale(startScale, endScale, ease?)`, in `Eases.Pack.cs`. The strings are `wiggle(n[, type])`, `rough(points[, strength])`, `slowMo(ratio[, power[, yoyo]])` and `expoScale(start, end[, ease])`, camel or PascalCase. |
 | Motion path through points | GSAP MotionPath `curviness`, Compose `keyframesWithSpline` | Core `MotionPath.Through(points, curviness = 1, closed)` with `Length`, `BezierPoints`, `Sample(distance, out x, out y, out angle)` and `Tweens(offset, rotateOffset)`. In the bridge, `PrestoAvalonia.CreateMotionPath(IReadOnlyList<Point>, curviness, closed, offset, autoRotate)`, `MotionPathGeometry(points, curviness, closed)` for drawing the track, and a trailing `autoRotate` on the `Shape` overload. |
-| Follow the OS reduced-motion setting | Compose, Flutter, Motion `reducedMotion="user"` | `PrestoAvalonia.FollowSystemReducedMotion(Func<bool?>? probe = null, Action<bool>? changed = null)` returns an `IDisposable`, plus `PrestoAvalonia.RefreshSystemReducedMotion()`. The built-in probes are internal (`Platform/ReducedMotionProbe`). |
+| Follow the OS reduced-motion setting | Compose, Flutter, Motion `reducedMotion="user"` | `PrestoAvalonia.FollowSystemReducedMotion(Func<bool?>? probe = null, Action<bool>? changed = null)` returns an `IDisposable`, plus `PrestoAvalonia.WatchSystemReducedMotion(Action<bool?> changed, Func<bool?>? probe = null)` to read it without following and `PrestoAvalonia.RefreshSystemReducedMotion()`. The built-in probes are internal (`Platform/ReducedMotionProbe`). |
 | Rolling-digit counter | SwiftUI `numericText` | `Recipes.RollDigits(textBlock, to, format, duration, delay, ease)` returns the playing `Animation`, as `CountUp` does. |
 | Projectile/gravity as a to-value | GSAP Physics2D, Flutter `GravitySimulation` | `new Projectile(velocity) { Acceleration, Friction, Duration }` as a to-value, and `Projectile.Launch(speed, angleDegrees, gravity, friction)`, which returns an X and a Y projectile. `ProjectileSolver` resolves it where `Inertia` is resolved. |
 

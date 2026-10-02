@@ -269,6 +269,20 @@ public sealed class ReorderTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AMovedItemStaysSelected()
+    {
+        var (list, items, _) = Show(virtualized: true);
+        var listBox = Assert.IsType<ListBox>(list);
+        listBox.SelectedItem = "red";
+        list.ContainerFromItem("red")!.Focus();
+
+        WindowOf(list).KeyPress(Key.Down, RawInputModifiers.Alt, PhysicalKey.ArrowDown, null);
+
+        Assert.Equal(["a", "green", "red", "d", "e"], items);
+        Assert.Equal("red", listBox.SelectedItem);
+    }
+
+    [AvaloniaFact]
     public void HoldingThePointerInTheBottomEdgeBandScrollsTheListAndKeepsMovingTheItemDownInOrder()
     {
         var items = new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => i == 1 ? "red" : $"row{i}"));

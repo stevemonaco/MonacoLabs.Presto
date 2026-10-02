@@ -25,7 +25,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 public static class PrestoAvalonia
 {
     internal static bool Initialized;
-    private static readonly List<ReducedMotionFollower> s_reducedMotionFollowers = [];
+    private static readonly List<SystemMotionReader> s_systemMotionReaders = [];
     private static bool s_reducedMotionHooked;
 
     /// <summary>Points the engine at an <see cref="AvaloniaFrameSource"/> and registers the Avalonia adapter and codecs the first time it is called; later calls do nothing.</summary>
@@ -634,6 +634,45 @@ public static class PrestoAvalonia
     /// </remarks>
     public static IDisposable FollowSystemReducedMotion(Func<bool?>? probe = null, Action<bool>? changed = null)
     {
+        var engine = Engine.Current;
+        probe ??= ReducedMotionProbe.Read;
+        return ReadSystemReducedMotion(() =>
+        {
+            if (probe() is not { } reduced || reduced == engine.Defaults.ReducedMotion) return;
+            engine.Defaults.ReducedMotion = reduced;
+            changed?.Invoke(reduced);
+        });
+    }
+
+    /// <summary>
+    /// Reports the OS reduce-motion setting now and whenever it changes until the returned handle is disposed, without
+    /// touching <see cref="PrestoDefaults.ReducedMotion"/>; it is read at the same moments <see cref="FollowSystemReducedMotion"/> reads it.
+    /// </summary>
+    /// <param name="changed">Called with the setting; <c>null</c> means the platform cannot read it.</param>
+    /// <param name="probe">Reads the setting in place of the built-in one.</param>
+    public static IDisposable WatchSystemReducedMotion(Action<bool?> changed, Func<bool?>? probe = null)
+    {
+        probe ??= ReducedMotionProbe.Read;
+        var reported = false;
+        bool? last = null;
+        return ReadSystemReducedMotion(() =>
+        {
+            var reduced = probe();
+            if (reported && reduced == last) return;
+            reported = true;
+            last = reduced;
+            changed(reduced);
+        });
+    }
+
+    /// <summary>Reads the OS reduce-motion setting again for every <see cref="FollowSystemReducedMotion"/> and <see cref="WatchSystemReducedMotion"/> still active.</summary>
+    public static void RefreshSystemReducedMotion()
+    {
+        foreach (var reader in s_systemMotionReaders.ToArray()) reader.Read();
+    }
+
+    private static SystemMotionReader ReadSystemReducedMotion(Action read)
+    {
         if (!s_reducedMotionHooked)
         {
             s_reducedMotionHooked = true;
@@ -644,28 +683,17 @@ public static class PrestoAvalonia
             if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime) lifetime.Activated += (_, _) => RefreshSystemReducedMotion();
             ReducedMotionProbe.Listen(RefreshSystemReducedMotion);
         }
-        var follower = new ReducedMotionFollower(Engine.Current, probe ?? ReducedMotionProbe.Read, changed);
-        s_reducedMotionFollowers.Add(follower);
-        follower.Refresh();
-        return follower;
+        var reader = new SystemMotionReader(read);
+        s_systemMotionReaders.Add(reader);
+        read();
+        return reader;
     }
 
-    /// <summary>Reads the OS reduce-motion setting again for every <see cref="FollowSystemReducedMotion"/> still following.</summary>
-    public static void RefreshSystemReducedMotion()
+    private sealed class SystemMotionReader(Action read) : IDisposable
     {
-        foreach (var follower in s_reducedMotionFollowers.ToArray()) follower.Refresh();
-    }
+        public void Read() => read();
 
-    private sealed class ReducedMotionFollower(Engine engine, Func<bool?> probe, Action<bool>? changed) : IDisposable
-    {
-        public void Refresh()
-        {
-            if (probe() is not { } reduced || reduced == engine.Defaults.ReducedMotion) return;
-            engine.Defaults.ReducedMotion = reduced;
-            changed?.Invoke(reduced);
-        }
-
-        public void Dispose() => s_reducedMotionFollowers.Remove(this);
+        public void Dispose() => s_systemMotionReaders.Remove(this);
     }
 
     /// <summary>

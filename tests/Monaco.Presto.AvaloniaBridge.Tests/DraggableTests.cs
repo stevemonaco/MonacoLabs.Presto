@@ -65,6 +65,77 @@ public sealed class DraggableTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void EscapeMidDragSpringsTheTargetBackToWhereItWasGrabbed()
+    {
+        var (window, _, target) = Show();
+        var released = 0;
+        var settled = 0;
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            CancelOnEscape = true,
+            OnRelease = _ => released++,
+            OnSettle = _ => settled++,
+        });
+        draggable.X = 10;
+
+        Drag(window, 20, 3);
+        Assert.Equal(70d, draggable.X);
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        Frames.Advance(2000, 16);
+        window.MouseMove(new Point(150, 25));
+        window.MouseUp(new Point(150, 25), MouseButton.Left);
+        Frames.Advance(100, 16);
+
+        Assert.Equal(10d, draggable.X);
+        Assert.Equal(0d, draggable.Y);
+        Assert.Equal(1, released);
+        Assert.Equal(1, settled);
+    }
+
+    [AvaloniaFact]
+    public void AReleaseThatOnlyMovesOneAxisSettlesOnceBothAreWritten()
+    {
+        var (window, _, target) = Show();
+        var settles = new List<double>();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Snap = Utils.Snap(40),
+            OnSettle = d =>
+            {
+                settles.Add(d.Y);
+                d.Reset();
+            },
+        });
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        for (var i = 1; i <= 3; i++)
+        {
+            window.MouseMove(new Point(25, 25 + (i * 15)));
+            Frames.Advance(16);
+        }
+        window.MouseUp(new Point(25, 70), MouseButton.Left);
+        Frames.Advance(2000, 16);
+
+        Assert.Single(settles);
+        Assert.NotEqual(0d, settles[0]);
+        Assert.Equal(0d, draggable.Y);
+    }
+
+    [AvaloniaFact]
+    public void EscapeIsIgnoredWithoutCancelOnEscape()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target);
+
+        Drag(window, 20, 3);
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        window.MouseMove(new Point(105, 25));
+        Frames.Advance(16);
+
+        Assert.Equal(80d, draggable.X);
+    }
+
+    [AvaloniaFact]
     public void DraggingMovesTheTargetByThePointerDelta()
     {
         var (window, _, target) = Show();

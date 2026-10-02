@@ -242,6 +242,26 @@ public sealed class BoardPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaTheory]
+    [InlineData(12)]
+    [InlineData(40)]
+    public async Task AVerticalFlingWithinALaneLeavesEveryCardDrawnInItsOwnSlot(double step)
+    {
+        var page = new BoardPage();
+        var window = SceneHarness.Show(page, 900, 520);
+        await SceneHarness.Settle();
+        var card = Cards(page, 0)[1];
+
+        Fling(window, SceneHarness.Centre(card, window), new Vector(0, step), 4);
+        for (var i = 0; i < 200; i++) TestFrames.Tick();
+        await SceneHarness.Settle();
+
+        var cards = Cards(page, 0);
+        Assert.All(cards, laid => Assert.Equal((0d, 0d), ((double)PrestoAvalonia.Get(laid, "X")!, (double)PrestoAvalonia.Get(laid, "Y")!)));
+        Assert.Equal(cards.Length, cards.Select(Canvas.GetTop).Distinct().Count());
+        SceneHarness.Close(window);
+    }
+
     private static Point MoveTo(Window window, Point from, Point to, int steps = 6)
     {
         for (var i = 1; i <= steps; i++)

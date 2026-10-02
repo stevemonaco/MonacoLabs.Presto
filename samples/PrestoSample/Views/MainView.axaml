@@ -34,13 +34,15 @@
                     BorderThickness="0,1,1,0" Padding="16,10">
                 <StackPanel Spacing="4">
                     <TextBlock Classes="eyebrow showcase" Text="SETTINGS" />
-                    <ToggleSwitch OffContent="Full motion" OnContent="Reduced motion"
-                                  IsChecked="{Binding ReducedMotion}"
-                                  IsEnabled="{Binding !FollowSystemMotion}">
+                    <ComboBox x:Name="MotionPicker" HorizontalAlignment="Stretch"
+                              SelectedIndex="{Binding Motion}">
+                        <ComboBoxItem Content="Full motion" />
+                        <ComboBoxItem Content="Reduced motion" />
+                        <ComboBoxItem Content="OS setting" />
                         <ToolTip.Tip>
                             <StackPanel MaxWidth="320" Spacing="6">
                                 <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
-                                           Text="Sets Presto.Defaults.ReducedMotion for every page." />
+                                           Text="Sets Presto.Defaults.ReducedMotion for every page. OS setting keeps it in step with the system through PrestoAvalonia.FollowSystemReducedMotion, re-read when the window is activated." />
                                 <StackPanel Spacing="2">
                                     <TextBlock TextWrapping="Wrap" Text="• Recipes play a short fade with no travel" />
                                     <TextBlock TextWrapping="Wrap" Text="• Page transitions crossfade" />
@@ -52,10 +54,8 @@
                                            Text="Hand-written animations without a WhenReduced form, such as the Particles and Loaders pages, play as normal. Pages already playing pick it up on their next replay." />
                             </StackPanel>
                         </ToolTip.Tip>
-                    </ToggleSwitch>
-                    <ToggleSwitch OffContent="Manual" OnContent="Follow system"
-                                  IsChecked="{Binding FollowSystemMotion}"
-                                  ToolTip.Tip="Follows the OS reduce-motion setting with PrestoAvalonia.FollowSystemReducedMotion, re-read when the window is activated." />
+                    </ComboBox>
+                    <TextBlock Classes="caption" Text="{Binding SystemMotion}" />
                 </StackPanel>
             </Border>
         </Grid>
