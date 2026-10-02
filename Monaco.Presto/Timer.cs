@@ -30,6 +30,9 @@ public class Timer : Clock, IRevertible
     internal Action<Timer>? _onRender;
     // Upstream reverts the ScrollObserver passed as `autoplay` from revert(); Presto's observer hooks itself here instead.
     internal Action<Timer>? _onRevert;
+    internal MotionValue? _progressValue;
+    private MotionValue? _scrub;
+    private Action<MotionValue>? _onScrub;
     internal int _priority;
 
     internal Timer(TimerParams parameters, Timer? parent, double parentPosition, Engine? engine = null) : base(0)
@@ -192,6 +195,9 @@ public class Timer : Clock, IRevertible
         get => Helpers.Clamp(Helpers.Round(_currentTime / Duration, 10), 0, 1);
         set => CurrentTime = Duration * value;
     }
+
+    /// <summary>A <see cref="MotionValue"/> holding <see cref="Progress"/>, updated whenever the timer renders.</summary>
+    public MotionValue ProgressValue => _progressValue ??= new(OwnerEngine, [], Progress);
 
     /// <summary>Position of the playhead inside the current iteration, from 0 to 1; setting it seeks.</summary>
     public double IterationProgress
@@ -390,10 +396,31 @@ public class Timer : Clock, IRevertible
     /// <summary>Pauses and detaches the tweens from their targets, leaving the animated values where they stand; <see cref="Reset"/> and <see cref="Seek"/> revive it (upstream <c>timer.cancel()</c>).</summary>
     public Timer Cancel()
     {
+        Scrub(null);
+        return DetachTweens();
+    }
+
+    /// <summary>The engine's cancel of a completed timer, which leaves a <see cref="Scrub"/> running so it can seek back.</summary>
+    internal Timer DetachTweens()
+    {
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
         else TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
         _cancelled = true;
         return Pause();
+    }
+
+    /// <summary>
+    /// Pauses the timer and seeks it to <paramref name="progress"/> times <see cref="Duration"/>, then again on every frame the value changes,
+    /// like a scroll-synced timer driven by any source. <c>null</c>, <see cref="Cancel"/> and <see cref="Revert"/> end the scrub.
+    /// </summary>
+    public Timer Scrub(MotionValue? progress)
+    {
+        if (_scrub != null) _scrub.Changed -= _onScrub;
+        _scrub = progress;
+        if (progress == null) return this;
+        _onScrub ??= value => Seek(value.Value * Duration);
+        progress.Changed += _onScrub;
+        return Pause().Seek(progress.Value * Duration);
     }
 
     /// <summary>Rescales the total duration to <paramref name="newDuration"/>, scaling the iteration duration, delay and loop delay proportionally.</summary>

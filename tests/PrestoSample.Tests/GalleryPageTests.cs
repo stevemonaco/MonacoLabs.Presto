@@ -64,4 +64,29 @@ public sealed class GalleryPageTests
             SceneHarness.Close(window);
         }
     }
+
+    [AvaloniaFact]
+    public void FollowingTheSystemLocksTheSidebarSwitchUntilTurnedOff()
+    {
+        var gallery = new MainViewModel();
+        var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000);
+        var switches = window.GetLogicalDescendants().OfType<ToggleSwitch>().ToList();
+        var sidebarSwitch = switches.Single(toggle => toggle.OnContent is "Reduced motion");
+        var followSwitch = switches.Single(toggle => toggle.OnContent is "Follow system");
+        try
+        {
+            followSwitch.IsChecked = true;
+            Assert.False(sidebarSwitch.IsEnabled);
+            Assert.Equal(Presto.Defaults.ReducedMotion, sidebarSwitch.IsChecked);
+
+            followSwitch.IsChecked = false;
+            Assert.True(sidebarSwitch.IsEnabled);
+        }
+        finally
+        {
+            gallery.FollowSystemMotion = false;
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
+    }
 }

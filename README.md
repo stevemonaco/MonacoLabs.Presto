@@ -339,11 +339,21 @@ Eases.Steps(5);
 Eases.Linear(0, "0.25 75%", 1);
 Eases.Irregular(10, 1);
 Eases.Spring(mass: 1, stiffness: 100, damping: 10, velocity: 0);
+Eases.FromPath("M0,0 C0.3,0 0.4,1.2 0.7,1.1 C0.85,1.05 0.9,1 1,1");   // GSAP CustomEase, y up
+Eases.Wiggle(6, WiggleType.Anticipate);   Eases.Rough(20, 1);           // GSAP CustomWiggle, RoughEase
+Eases.SlowMo(.5, .8);   Eases.ExpoScale(.5, 4);                          // GSAP SlowMo, ExpoScaleEase
 EaseParser.Parse("outElastic(1.2, .4)");
+EaseParser.Parse("wiggle(6, anticipate)");
 ```
 
 An `Ease` is just `double → double`, and anywhere one is accepted a string works too (`Ease = "inOutQuint"`). Avalonia's
 own `Easing` types convert both ways through `PrestoEasing`.
+
+The GSAP-style eases have no anime.js counterpart. `FromPath` takes M/L/H/V/C path data, normalised to run from (0, 0)
+to (1, 1), and y may overshoot in between. `Wiggle` is 0 at both ends, so the to-value is the swing amplitude and the
+property comes back to its start. `Rough` and a `WiggleType.Random` wiggle use `Random.Shared` unless given a `Random`.
+In strings (`fromPath(…)`, `wiggle(n, type)`, `rough(points, strength)`, `slowMo(ratio, power, yoyo)`,
+`expoScale(start, end, ease)`) they are seeded with 1, so a string always gives the same curve.
 
 ### Animatable
 
@@ -401,6 +411,35 @@ PrestoAvalonia.CreateDraggable(SpringCard, new()
 });
 ```
 
+#### Drag to reorder
+
+`Reorder` makes an `ItemsControl` or `ListBox` drag-to-reorder, as Motion's `Reorder` and Flutter's
+`ReorderableListView` do. Grabbing a container (or, when its template has one, a `Reorder.Handle`) lifts it and it follows
+the pointer. Each neighbour midpoint it crosses moves its item one step, and on release it springs into its slot:
+
+```xml
+<ListBox ItemsSource="{Binding Tasks}" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}"
+         presto:Animate.ItemLayout="{presto:Reflow}">
+    <ListBox.ItemTemplate>
+        <DataTemplate>
+            <StackPanel Orientation="Horizontal">
+                <PathIcon Data="{StaticResource GripIcon}" presto:Reorder.Handle="True" />
+                <TextBlock Text="{Binding Title}" />
+            </StackPanel>
+        </DataTemplate>
+    </ListBox.ItemTemplate>
+</ListBox>
+```
+
+`Animate.ItemLayout` slides the neighbours aside; the dragged container is left out of it. `Reorder.Lift` defaults to
+`Recipes.ReorderLift()` (scale 1.03 and a raised shadow), `{presto:Reorder Intensity=2}` doubles it, and `Reorder.Axis`
+is `Vertical` unless set. An `ObservableCollection<T>` is moved in place with `Move(old, new)`. Each step first raises
+the bubbling `Reorder.Moving` (`Item`, `OldIndex`, `NewIndex`, settable `Cancel`), and when `Reorder.Command` is set it
+receives the same args and the view model makes the move, which any other `IList` needs. Escape cancels a drag back to
+its start index one step at a time, Alt+Up/Down (Alt+Left/Right horizontally) moves the focused item, and holding the
+pointer near an edge scrolls the list. The dragged container is focused to keep it realized in a virtualizing panel, so
+a non-focusable one can be recycled when a drag scrolls it far past the viewport.
+
 ### Inertia
 
 Framer Motion's `inertia` and GSAP's InertiaPlugin, which are not in anime.js. An `Inertia` goes where a `To` goes: the
@@ -443,6 +482,20 @@ Sheet.PointerReleased += (_, _) =>
 Velocity is in units per engine-time unit, so per **millisecond** by default, not per second as in Framer. The ideal
 travel is `Power · Velocity · TimeConstant` (defaults 1 and 350). Framer's defaults, power 0.8 and timeConstant 700
 with velocity per second, are `new Inertia(v) { Power = 1.14, TimeConstant = 700 }` here.
+
+A `Projectile` (GSAP Physics2D, Flutter's `GravitySimulation`) also goes where a `To` goes. It flies from a launch
+velocity under constant acceleration and friction for the tween's `Duration`, or its own:
+
+```csharp
+var (x, y) = Projectile.Launch(speed: .6, angleDegrees: -60, gravity: .0015);   // -90 is straight up, Y points down
+Ball.Animate(new() { ["X"] = x, ["Y"] = y, Duration = 900 });
+
+Presto.Animate(chip, new AnimationParams { ["Y"] = new Projectile(-1) { Acceleration = .002, Friction = .001 } });
+```
+
+Velocity and acceleration are per engine-time unit, and `Friction` is the fraction of velocity lost per millisecond. The
+end value is where the physics puts it, so a toss that comes down on its start ends exactly there. It is split at the
+apex into two tweens to get there.
 
 ### Transformable
 
@@ -495,6 +548,41 @@ PrestoAvalonia.OnScroll(new()
 PrestoAvalonia.OnScroll(new() { Target = SyncCard, Sync = true }).Link(timeline);   // scrub with the scroll
 ```
 
+anime.js has no pinning, snapping or parallax. Presto adds them in the shape of GSAP ScrollTrigger and ScrollSmoother:
+
+```csharp
+PrestoAvalonia.OnScroll(new()
+{
+    Target = Stage,
+    Enter = "center center",
+    Leave = "center center+=960",
+    Sync = true,
+    Pin = true,                       // held in place for 960px of scroll
+    Snap = ScrollSnap.Labels,         // or .25, or Utils.Snap([0, .3, 1]); tune with `with { Duration = 600 }`
+}).Link(storyTimeline);
+```
+
+```xml
+<ScrollViewer presto:Scroll.Smooth="True">
+    <StackPanel>
+        <Border presto:Scroll.Speed="0.6" />   <!-- parallax: moves at 60% of the scroll once it enters -->
+        ...
+    </StackPanel>
+</ScrollViewer>
+```
+
+- **`Pin`** holds the target with its own `"Y"` (or `"X"`) shorthand, moved in the scroller's offset notification, so it
+  never lags by a frame. Animate the target's children, not its `X`/`Y`. `PinSpacing` (on by default) adds the pinned
+  distance to its trailing margin, so what follows arrives after the pin ends. Reverting the observer releases both.
+- **`Snap`** eases the scroller's `Offset` to the snapped progress once scrolling has settled inside the thresholds
+  with no pointer down, and any user scroll interrupts it. `ScrollSnap.Labels` lands exactly on a label under a linear
+  `Sync`.
+- **`Scroll.Speed`** moves an element by `(1 − speed) ×` the scroll since it entered the viewport: below 1 it lags,
+  above 1 it leads.
+- **`Scroll.Smooth`** eases mouse-wheel notches instead of jumping. It works on Windows only, where a notch can be
+  told apart from touchpad input. Elsewhere it does nothing.
+- **Scroll velocity as a value** is `PrestoAvalonia.ScrollValue(scroller).VelocityOf()`.
+
 ### Shapes
 
 ```csharp
@@ -507,8 +595,17 @@ PrestoAvalonia.CreateDrawable(SignaturePath).Animate(new()
 var motion = PrestoAvalonia.CreateMotionPath(TrackPath);
 Rider.Animate(new() { ["X"] = motion.X, ["Y"] = motion.Y, ["Rotate"] = motion.Rotate, Duration = 3000 });
 
+Point[] stops = [new(20, 120), new(120, 30), new(240, 150), new(360, 40)];
+var spline = PrestoAvalonia.CreateMotionPath(stops, curviness: 1.2, autoRotate: 90);   // GSAP MotionPath curviness
+Track.Data = PrestoAvalonia.MotionPathGeometry(stops, curviness: 1.2);
+
 MorphPath.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(starGeometry), Duration = 900 });
 ```
+
+The point-list overload runs a Catmull-Rom spline through the points at constant speed. `curviness` 0 is the straight
+polyline, 1 the standard curve, and higher values loosen it. `closed: true` joins the last point back to the first.
+`autoRotate` adds degrees to the tangent angle on either overload. The rider sits at the origin of the container the
+points are in, and the core `MotionPath.Through` gives the same spline without Avalonia.
 
 ### Split and scramble text
 
@@ -653,7 +750,9 @@ PrestoAvalonia.AnimateSharedElement(thumbnail, heroImage, duration: 400, ease: E
 Where the control was and where layout has just put it are measured on the UI thread, the move is inverted onto the
 composition `Translation`, and the render thread eases that back to identity, so the move survives a blocked UI thread.
 `LayoutAnimateMode.PositionAndSize` inverts a resize onto the composition scale as well, about the control's top left
-corner, which scales its content with it. Layout itself is unchanged: `Bounds` is right in the same pass and only the
+corner, which scales its content with it. `LayoutAnimateMode.PositionAndSizeCorrected` counter-scales the control's
+direct children on the render thread so they keep their size and alignment; what the control draws itself, corner
+radius and shadow included, still scales, so a rounded surface wants [`Animate.ContentSize`](#content-size) instead. Layout itself is unchanged: `Bounds` is right in the same pass and only the
 pixels lag behind, so a control is hit where layout put it while it is still drawn on the way there. `Revert()` takes it
 off again.
 
@@ -709,6 +808,24 @@ else.
 Layout and `Presence` recipes drive the same composition `Translation` and `Scale`, so the container moves and the content
 arrives: put the layout property on the container (or a wrapper) and `Presence` on its content, as the list above does.
 An opacity-only or blur entrance can share the element.
+
+#### Content size
+
+`Animate.ContentSize` (or `PrestoAvalonia.AnimateContentSize(host, duration, ease)` / `host.AnimateContentSize(…)`)
+eases a host's real layout size on the UI thread whenever its content changes size, as Compose's `animateContentSize`
+does, and clips the content meanwhile. Nothing is scaled, so corner radius, shadow and text stay true, and the content is
+laid out at its final size from the first frame, so text never rewraps. The host is laid out every frame, which suits a
+panel rather than hundreds of rows.
+
+```csharp
+panel.AnimateContentSize(300, Eases.OutQuint);   // or presto:Animate.ContentSize="{presto:Reflow}" in XAML
+panel.Child = nextView;                          // a view with presto:Presence.Enter and Exit swaps through a ghost
+```
+
+Swapping the host's `Content` or `Child` resizes it from the size drawn to the new content's while `Presence` ghosts the
+old content out, clipped to the old box, and enters the new one (≈ `AnimatedContent` with `SizeTransform`). The host owns
+its size: `Animate.Layout` on it eases only its moves, and its neighbours' layout moves land with the resize rather than
+trailing it. The builder takes timing and an ease only.
 
 #### Connected animations from XAML
 
@@ -799,6 +916,20 @@ element holds still. The snapshot is taken before the element's own entrance is 
 leaves from where it was drawn. An element added back while its ghost is still exiting dismisses the ghost. Code that
 removes a control itself can call `PrestoAvalonia.AnimateExit(control, builder)` first, in the same frame.
 
+Because a ghost leaves layout at once, an enter normally plays alongside the exit (`Presence.Mode`'s default `Sync`;
+`PopLayout` is the same). `Presence.Mode="Wait"` on a content host or list plays the exit first, like Motion's
+`AnimatePresence mode="wait"`: what arrives under it stays at opacity 0, its entrance held back, until every exit in
+flight there has ended. Content swapped again while held leaves unseen, with no ghost.
+
+```xml
+<ContentControl Content="{Binding Step}" presto:Presence.Mode="Wait" />
+
+<DataTemplate x:DataType="local:Step">
+    <Border presto:Presence.Enter="{presto:Slide Edge=Right, Distance=48}"
+            presto:Presence.Exit="{presto:Slide Edge=Left, Distance=48}">…</Border>
+</DataTemplate>
+```
+
 `Animate.OnAttached` is the unclassified "while attached" trigger for loops and timers; see [From XAML](#from-xaml).
 
 ### State motion
@@ -881,6 +1012,37 @@ holding:
 ```csharp
 using var hover = card.WhileHover(b => b.Y(-4).Scale(1.02).Duration(180).Ease(Eases.OutQuad));
 Motion.SetState(chip, SyncStatus.Failed);
+```
+
+`Motion.State` also reaches every visual descendant with states that does not set its own, so one value drives a whole
+subtree, as Motion's variants do. The parent times those children: `Motion.StaggerChildren` starts each one that many
+milliseconds after the previous, in on-screen order (top to bottom, then left to right) from `Motion.StaggerFrom`;
+`Motion.DelayChildren` shifts them all; and `Motion.Order` plays the parent's own animations `Together` with them,
+`BeforeChildren` or `AfterChildren`. Clearing the state mid-stagger returns the started children from where they stand
+and never starts the rest.
+
+```xml
+<Style Selector="Border.item">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="presto:Motion.States">
+        <presto:MotionStates>
+            <presto:MotionState When="Open" Motion="{x:Static local:Motions.SlideIn}" />
+        </presto:MotionStates>
+    </Setter>
+</Style>
+
+<Border Classes="menu" Opacity="0" presto:Motion.State="{Binding MenuState}"
+        presto:Motion.StaggerChildren="40" presto:Motion.DelayChildren="60" presto:Motion.Order="BeforeChildren">
+    <presto:Motion.States>
+        <presto:MotionStates>
+            <presto:MotionState When="Open" Motion="{x:Static local:Motions.Unfold}" />
+        </presto:MotionStates>
+    </presto:Motion.States>
+    <StackPanel>
+        <Border Classes="item"><TextBlock Text="New file" /></Border>
+        <Border Classes="item"><TextBlock Text="Share" /></Border>
+    </StackPanel>
+</Border>
 ```
 
 One-shot triggers are not states and stay on `Animate`. `Animate.OnTapped` plays its builder on each tap, restarting
@@ -1095,7 +1257,7 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `Indeterminate` | `distance`, the track width (required) | yes | 〃 |
 | `Sprites` | `PlayFrames`, for a [`SpriteSheet` or `ImageSequence`](#sprite-sheets-and-image-sequences) | `fps` (24), `loop`, `reverse` | no | frame 0, still |
 | `TextReveals` | `LineRise`, `LineMask`, `LineWipe`, `WordFade`, `WordBlur`, `CharCascade`, for a [text reveal](#text-reveals) | `lineStep` (3 × `StaggerStep`), `pieceStep`; no `stagger` | no | whole block fades, no split |
-| `Layouts` | `Reflow`, for [`Animate.Layout`](#layout-animation-from-xaml) and `AnimateLayout` | | layout only | an instant move |
+| `Layouts` | `Reflow`, for [`Animate.Layout`](#layout-animation-from-xaml), `AnimateLayout` and [`Animate.ContentSize`](#content-size) | | layout only | an instant move |
 | `Pages` ([`IPageTransition`](#page-transitions)) | `PageFade`, `PageFadeThrough` | `duration` only | yes | a crossfade over `Short` |
 | | `PageSharedAxis` | `axis` (`X`, `Y`, `Z`), `distance` | yes | 〃 |
 | | `PageSlide`, `PagePush` | `edge` only | yes | 〃 |
@@ -1150,6 +1312,7 @@ Each markup extension provides a new builder per element from its recipe:
 | `{presto:PlayFrames}` | `PlayFrames` | `Fps`, `Loop`, `Reverse` | |
 | `{presto:LineRise}`, `{presto:LineMask}`, `{presto:LineWipe}`, `{presto:WordFade}`, `{presto:WordBlur}`, `{presto:CharCascade}` | the same | `LineStep`, `PieceStep` | |
 | `{presto:Reflow}` | `Reflow` | `Duration` also positional: `{presto:Reflow 320}`; no `Stagger` | |
+| `{presto:Reorder}` | `ReorderLift` | `Intensity` | |
 
 All of them take `Duration`, `Delay`, `Ease` (a string such as `outBack`), `Stagger` (the step in ms) and `Out`. Set
 on `Presence.Exit`, an extension with an exit form provides it. A style `Setter` is not the property it sets, so there
@@ -1200,12 +1363,17 @@ reduced motion.
 ```csharp
 Recipes.Typewriter(headline);                    // each character fades in StaggerStep ms after the last
 Recipes.CountUp(total, 1280, format: "C0");      // from the number shown, or 0, over Long
+Recipes.RollDigits(score, 1290);                 // odometer: only the changed digits roll, right to left
 ```
 
 Both play at once and return the `Animation`. `Typewriter(textBlock, charDelay, …)` splits a laid-out `TextBlock` into
 characters and puts it back together at the end; reduced, the whole block fades in. `CharCascade` is its trigger form,
 which waits for layout. `CountUp(textBlock, to, format, …)`
 formats each value in the current culture (default `"N0"`); reduced, the text is set to the end value on the first frame.
+`RollDigits(textBlock, to, format, …)`, after SwiftUI's `numericText`, formats the same way and lines the old and new
+text up from the right. Each changed character rolls out upwards under a clip as its replacement rolls in from below,
+or the other way when counting down, staggered right to left by `StaggerStep`. The plain text comes back at the end,
+and calling it again mid-roll finishes the running roll first. Reduced, it sets the text as `CountUp` does.
 
 #### Confetti, sparkles and bursts
 
@@ -1267,8 +1435,20 @@ an instant, one-iteration set of its end values, keyframes and springs included,
 timers keep their durations, and animations built from a `WhenReduced` alternative play as written. Set both to reduce
 the whole app.
 
-Both flags are ordinary defaults, so each engine has its own and a `Scope` copies them. Presto never sets them itself;
-to follow the OS "reduce motion" setting, read it in the app and set `ReducedMotion`.
+Both flags are ordinary defaults, so each engine has its own and a `Scope` copies them. Presto never sets them on its
+own. To follow the OS "reduce motion" setting (Motion's `reducedMotion="user"`), opt in:
+
+```csharp
+var following = PrestoAvalonia.FollowSystemReducedMotion(changed: reduced => Log($"reduce motion: {reduced}"));
+// ...
+following.Dispose();   // stops following and leaves the flag as it is
+```
+
+It sets `ReducedMotion` on the current engine straight away, and again whenever a window or the app is activated, the
+browser reports a change, or you call `PrestoAvalonia.RefreshSystemReducedMotion()`. The built-in probe reads
+Windows (client-area animation), macOS and iOS (reduce motion) and the browser (`prefers-reduced-motion`). On Android,
+Linux and elsewhere it reads unknown, which leaves the flag alone. There, pass your own `probe: () => …` and call
+`RefreshSystemReducedMotion` when it changes.
 
 ## anime.js → Presto
 
@@ -1282,9 +1462,9 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `createAnimatable(targets, params)` | `Presto.CreateAnimatable(targets, new AnimatableParams { … })`, or `control.CreateAnimatable(new() { … })` |
 | `createScope(params)` | `Presto.CreateScope(new ScopeParams { … })`; `PrestoAvalonia.CreateScope(control)` reverts when the control detaches |
 | `createDraggable(target, params)` | `PrestoAvalonia.CreateDraggable(control, new DraggableParams { … })` |
-| `onScroll(params)` | `PrestoAvalonia.OnScroll(new ScrollObserverParams { … })`, over a `ScrollViewer` instead of the window |
+| `onScroll(params)` | `PrestoAvalonia.OnScroll(new ScrollObserverParams { … })`, over a `ScrollViewer` instead of the window; `Pin`, `Snap` and `Scroll.Speed` / `Scroll.Smooth` are Presto's own (GSAP-shaped), upstream has none |
 | `svg.createDrawable(shape)` | `PrestoAvalonia.CreateDrawable(shape, start, end)`, animated through `["Draw"] = "0 1"` |
-| `svg.createMotionPath(path)` | `PrestoAvalonia.CreateMotionPath(path, offset)` → the `X` / `Y` / `Rotate` tweens |
+| `svg.createMotionPath(path)` | `PrestoAvalonia.CreateMotionPath(path, offset, autoRotate)` → the `X` / `Y` / `Rotate` tweens; `CreateMotionPath(points, curviness, …)` through a point list is GSAP-shaped, upstream has none |
 | `svg.morphTo(path, precision)` | `PrestoAvalonia.MorphTo(geometry, precision)`, assigned to a `Path`'s `["Data"]` |
 | `text.split(target, params)` / `splitText` | `PrestoAvalonia.SplitText(textBlock, new SplitTextParams { … })` → `TextSplitter` with `Lines` / `Words` / `Chars` |
 | `text.scramble(params)` / `scrambleText` | `PrestoAvalonia.ScrambleText(new ScrambleTextParams { … })`, assigned to a `["Text"]` property |
@@ -1295,7 +1475,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
 | `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
-| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. From XAML, `Animate.Layout` arms it on a control and `Animate.ItemLayout` on every container of a list, for as long as each is attached. See [Render thread](#render-thread) and [Layout animation from XAML](#layout-animation-from-xaml). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Arrive`, `Initial` or `Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
+| `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. From XAML, `Animate.Layout` arms it on a control and `Animate.ItemLayout` on every container of a list, for as long as each is attached; `LayoutAnimateMode.PositionAndSize` scales a resize and `PositionAndSizeCorrected` counter-scales the direct children. Upstream's real width/height animation is `Animate.ContentSize` / `AnimateContentSize(host, …)`, which eases the layout size on the UI thread. See [Render thread](#render-thread), [Layout animation from XAML](#layout-animation-from-xaml) and [Content size](#content-size). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Arrive`, `Initial` or `Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
 | `core/units.js`, `core/styles.js` | Partly. Numbers, `deg` / `rad` / `turn`, and `%` against the current value are ported; `px` / `em` / `rem`, CSS variables and DOM attribute animation are **not** — Avalonia has no CSS box model. |
@@ -1313,7 +1493,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
 | *CSS, not anime.js:* `clip-path: inset()` / `circle()` | `ClipInset`, `ClipCircle` with `ClipCircleCenter` |
 | *CSS, not anime.js:* a `mask-image` linear-gradient sweep | `MaskSweep` with `MaskSweepAngle` and `MaskSweepFeather` |
-| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, the app reads the OS setting and sets the flag. See [Reduced motion](#reduced-motion) |
+| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, `PrestoAvalonia.FollowSystemReducedMotion()`. See [Reduced motion](#reduced-motion) |
 
 The XAML surface is the `Presence` lifecycle properties for entrances, scroll reveals and exits ([Lifecycle animations](#lifecycle-animations)), `Animate.OnAttached` for loops and timers while a visual is attached ([From XAML](#from-xaml)), `Connected`'s keys,
 the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)), and the recipe markup extensions and `Tilt` ([Recipes](#recipes)); other triggers belong in code-behind or a view model.

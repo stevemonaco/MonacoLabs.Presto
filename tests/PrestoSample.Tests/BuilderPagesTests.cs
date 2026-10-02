@@ -1,9 +1,12 @@
+using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Monaco.Presto;
@@ -124,8 +127,35 @@ public sealed class BuilderPagesTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaTheory]
+    [InlineData("DefaultLift")]
+    [InlineData("StrongLift")]
+    public void XamlPageReorderListsLiftWithTheirRecipeAndReorder(string name)
+    {
+        var page = new XamlPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var list = page.GetControl<ListBox>(name);
+        list.BringIntoView();
+        TestFrames.Tick();
+        var items = (ObservableCollection<string>)list.ItemsSource!;
+        var row = list.ContainerFromIndex(0)!;
+        var grab = SceneHarness.Centre(row, window);
+
+        window.MouseDown(grab, MouseButton.Left);
+        for (var i = 1; i <= 4; i++)
+        {
+            window.MouseMove(grab + new Vector(0, row.Bounds.Height * .3 * i));
+            TestFrames.Tick();
+        }
+        Assert.NotNull(row.Effect);
+        window.MouseUp(grab + new Vector(0, row.Bounds.Height * 1.2), MouseButton.Left);
+
+        Assert.Equal(["Drafts", "Inbox", "Sent", "Archive"], items);
+        SceneHarness.Close(window);
+    }
+
     [Fact]
-    public void XamlPageSnippetsMatchItsMarkup() => AssertSnippetsMatchMarkup(typeof(XamlPage), "samples/PrestoSample/Builder/XamlPage.axaml", 3);
+    public void XamlPageSnippetsMatchItsMarkup() => AssertSnippetsMatchMarkup(typeof(XamlPage), "samples/PrestoSample/Builder/XamlPage.axaml", 4);
 
     internal static void AssertSnippetsMatchMarkup(Type page, string axaml, int count)
     {

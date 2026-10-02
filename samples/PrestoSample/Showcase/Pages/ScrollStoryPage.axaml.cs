@@ -9,7 +9,7 @@ namespace PrestoSample.Showcase.Pages;
 public partial class ScrollStoryPage : ShowcasePage
 {
     private const double ScrubDuration = 1000;
-    private const double FadeDuration = 120;
+    private const double PinDistance = 960;
     private const double RevealDuration = 640;
     // Four 232px panels 14px apart: 370 wider than the 600px of stage they pan inside.
     private const double StripPan = 370;
@@ -39,16 +39,27 @@ public partial class ScrollStoryPage : ShowcasePage
     {
         BuildStrip();
 
-        Watch("hero", Hero, new ScrollObserverParams { Enter = "start start", Sync = 0.35 }).Link(Parallax());
-
-        Watch("pin", PinTrack, new ScrollObserverParams
+        Watch("hero", Hero, new ScrollObserverParams { Enter = "start start", Sync = 0.35 }).Link(HeroTitle.Animate(new()
         {
-            Enter = "start start",
-            Leave = "end end",
+            ["Opacity"] = TweenValue.FromTo(1, 0.15),
+            Duration = ScrubDuration,
+            Ease = Eases.None,
+            Autoplay = false,
+        }));
+
+        var scrub = Scrub();
+        Watch("pin", PinStage, new ScrollObserverParams
+        {
+            Enter = "center center",
+            Leave = $"center center+={PinDistance}",
             Sync = true,
+            Pin = true,
+            Snap = ScrollSnap.Labels,
             OnEnter = observer => Crossed(observer, "enter"),
             OnLeave = observer => Crossed(observer, "leave"),
-        }).Link(Scrub());
+            OnUpdate = observer => PinLabel.Text =
+                scrub.Labels.MinBy(label => Math.Abs(label.Value - (observer.Progress * scrub.Duration))).Key,
+        }).Link(scrub);
 
         Watch("quote", Quote, new ScrollObserverParams { Sync = Eases.InOutQuad }).Link(Quote.Animate(new()
         {
@@ -110,27 +121,21 @@ public partial class ScrollStoryPage : ShowcasePage
         }
     }
 
-    private Timeline Parallax() => Presto.CreateTimeline(new TimelineParams
-        {
-            Autoplay = false,
-            Defaults = new DefaultsParams { Duration = ScrubDuration, Ease = Eases.None },
-        })
-        .Add(HeroSky, new() { ["Y"] = TweenValue.FromTo(0, 90), ["Scale"] = TweenValue.FromTo(1, 1.2) }, 0)
-        .Add(HeroRidge, new() { ["Y"] = TweenValue.FromTo(0, 44) }, 0)
-        .Add(HeroTitle, new() { ["Y"] = TweenValue.FromTo(0, -80), ["Opacity"] = TweenValue.FromTo(1, 0.15) }, 0);
-
-    private Timeline Scrub() => Presto.CreateTimeline(new TimelineParams
-        {
-            Autoplay = false,
-            Defaults = new DefaultsParams { Duration = ScrubDuration, Ease = Eases.None },
-        })
-        .Add(PinStrip, new() { ["X"] = TweenValue.FromTo(0, -StripPan) }, 0)
-        .Add(PinNumber, new()
-        {
-            ["Text"] = new TweenParams { From = 0, To = 100, TextModifier = value => Utils.RoundPad(value, 0) },
-        }, 0)
-        .Add(PinStage, new() { ["Opacity"] = TweenValue.FromTo(0, 1), Duration = FadeDuration }, 0)
-        .Add(PinStage, new() { ["Opacity"] = TweenValue.FromTo(1, 0), Duration = FadeDuration }, ScrubDuration - FadeDuration);
+    private Timeline Scrub()
+    {
+        var timeline = Presto.CreateTimeline(new TimelineParams
+            {
+                Autoplay = false,
+                Defaults = new DefaultsParams { Duration = ScrubDuration, Ease = Eases.None },
+            })
+            .Add(PinStrip, new() { ["X"] = TweenValue.FromTo(0, -StripPan) }, 0)
+            .Add(PinNumber, new()
+            {
+                ["Text"] = new TweenParams { From = 0, To = 100, TextModifier = value => Utils.RoundPad(value, 0) },
+            }, 0);
+        for (var i = 0; i < Steps.Length; i++) timeline.Label($"step{i + 1}", i * ScrubDuration / (Steps.Length - 1));
+        return timeline;
+    }
 
     private ScrollObserver Watch(string id, Control target, ScrollObserverParams parameters)
     {

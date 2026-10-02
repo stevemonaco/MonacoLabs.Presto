@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -24,7 +25,11 @@ public partial class BoardPage : ShowcasePage
     private TextBlock[] _headers = [];
     private Border[] _zones = [];
 
-    public BoardPage() => InitializeComponent();
+    public BoardPage()
+    {
+        InitializeComponent();
+        Priorities.ItemsSource = new ObservableCollection<string>(Datasets.Board[1].Take(5).Select(card => card.Title));
+    }
 
     private int BinZone => Datasets.Lanes.Count;
 

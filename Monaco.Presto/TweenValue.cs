@@ -56,6 +56,9 @@ public readonly struct TweenValue
     /// <summary>A to-value that coasts from a velocity; not allowed in keyframes or a from/to pair.</summary>
     public static implicit operator TweenValue(Inertia value) => new(value);
 
+    /// <summary>A to-value that flies from a launch velocity under acceleration; not allowed in keyframes or a from/to pair.</summary>
+    public static implicit operator TweenValue(Projectile value) => new(value);
+
     /// <summary>
     /// Two items are a from/to pair; three or more are keyframes whose first frame is the leading pair. An array of
     /// <see cref="TweenParams"/> is always keyframes, however many there are.

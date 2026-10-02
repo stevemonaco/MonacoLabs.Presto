@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
@@ -33,6 +34,10 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// animation resolves function values and <see cref="Presto.Stagger"/> with, so <c>Delay(Presto.Stagger(40))</c> ripples
 /// a list in, and rows a scroll reveals together ripple the same way. The total is not known while a batch is still
 /// arriving, so staggers run in arrival order.
+/// </para>
+/// <para>
+/// A host whose <see cref="ModeProperty"/> is <see cref="PresenceMode.Wait"/> holds what arrives under it at opacity 0,
+/// its entrance not yet played, while a ghost of something that left it is still exiting.
 /// </para>
 /// <para>
 /// <see cref="Animate.OnAttachedProperty"/> is the raw trigger beside these: it plays on every attach, unclassified.
@@ -113,8 +118,18 @@ public static class Presence
     public static readonly AttachedProperty<bool> ScrollAnchorProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, bool>("ScrollAnchor", typeof(Presence));
 
+    /// <summary>
+    /// Whether arrivals under this content host or list wait for its exits to end. The nearest ancestor that sets it is
+    /// the one that applies.
+    /// </summary>
+    public static readonly AttachedProperty<PresenceMode> ModeProperty =
+        AvaloniaProperty.RegisterAttached<Control, PresenceMode>("Mode", typeof(Presence));
+
     private static readonly AttachedProperty<Tracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, Tracker?>("Tracker", typeof(Presence));
+
+    private static readonly AttachedProperty<Waiting?> WaitingProperty =
+        AvaloniaProperty.RegisterAttached<Control, Waiting?>("Waiting", typeof(Presence));
 
     // Arrivals under one panel in one pass; cleared once the pass has rendered.
     private static readonly Dictionary<Visual, List<object>> s_batches = [];
@@ -127,6 +142,10 @@ public static class Presence
         RevealProperty.Changed.AddClassHandler<Control>(HandleChanged);
         ExitProperty.Changed.AddClassHandler<Control>(HandleChanged);
         ScrollAnchorProperty.Changed.AddClassHandler<ItemsControl>((list, _) => ItemChanges.For(list));
+        ModeProperty.Changed.AddClassHandler<Control>((host, _) =>
+        {
+            if (GetMode(host) != PresenceMode.Wait) host.GetValue(WaitingProperty)?.Release();
+        });
     }
 
     /// <summary>Gets the builder played on <paramref name="control"/> when it appears with its view.</summary>
@@ -171,6 +190,12 @@ public static class Presence
     /// <summary>Sets whether <paramref name="list"/> keeps its first visible row in place when items change above it.</summary>
     public static void SetScrollAnchor(ItemsControl list, bool value) => list.SetValue(ScrollAnchorProperty, value);
 
+    /// <summary>Gets whether arrivals under <paramref name="host"/> wait for its exits to end.</summary>
+    public static PresenceMode GetMode(Control host) => host.GetValue(ModeProperty);
+
+    /// <summary>Sets whether arrivals under <paramref name="host"/> wait for its exits to end.</summary>
+    public static void SetMode(Control host, PresenceMode value) => host.SetValue(ModeProperty, value);
+
     /// <summary>
     /// What <paramref name="control"/>, which has just attached, arrived as. The content of an item container enters only
     /// when its item was just added: a virtualizing list realizes and recycles containers as it scrolls, which is neither.
@@ -193,6 +218,7 @@ public static class Presence
 
         if (OwnerOfItem(control.GetVisualParent()) is not { } owner || ItemChanges.Of(owner) is not { } changes) return moment;
         if (moment == PresenceMoment.Initial || changes.Added.Contains(control.DataContext!)) return moment;
+        if (changes.Moved.Contains(control.DataContext!)) return PresenceMoment.Move;
         return changes.Reset ? PresenceMoment.Initial : PresenceMoment.Realize;
     }
 
@@ -217,6 +243,7 @@ public static class Presence
         var position = default(Point);
         for (Visual visual = control; ; )
         {
+            if (visual.Opacity == 0) return (PresenceMoment.Unload, default);
             position += visual.Bounds.Position;
             if (visual.GetVisualParent() is not { } above) break;
             if (above.GetVisualChildren().Count() != 1) return (PresenceMoment.Unload, default);
@@ -239,6 +266,15 @@ public static class Presence
         if (parent is not Control host) return null;
         var container = IsItemContainer(host) ? host : host.TemplatedParent as Control;
         return container is not null && IsItemContainer(container) ? container : null;
+    }
+
+    private static Control? ModeHost(Visual? from)
+    {
+        for (var visual = from; visual is not null; visual = OwnerOfItem(visual) ?? visual.GetVisualParent())
+        {
+            if (visual is Control host && host.IsSet(ModeProperty)) return host;
+        }
+        return null;
     }
 
     private static bool IsItemContainer(Control control) => control.GetVisualParent() is Panel { IsItemsHost: true };
@@ -272,7 +308,13 @@ public static class Presence
     {
         if (Design.IsDesignMode) return;
         var tracker = control.GetValue(TrackerProperty);
-        if (GetInitial(control) is null && GetEnter(control) is null && GetArrive(control) is null && GetReveal(control) is null && GetExit(control) is null)
+        // Leaving the logical tree withdraws style setters before the visual detach that plays the exit.
+        if (tracker is not null && control.IsAttachedToVisualTree() && !((ILogical)control).IsAttachedToLogicalTree)
+        {
+            if (e.Property == ExitProperty && e.OldValue is AnimationBuilder exit) tracker.Withdrawn = exit;
+            return;
+        }
+        if (IsUnused(control))
         {
             tracker?.Release();
             control.ClearValue(TrackerProperty);
@@ -282,6 +324,9 @@ public static class Presence
             control.SetValue(TrackerProperty, new Tracker(control));
         }
     }
+
+    private static bool IsUnused(Control control) =>
+        GetInitial(control) is null && GetEnter(control) is null && GetArrive(control) is null && GetReveal(control) is null && GetExit(control) is null;
 
     /// <summary>
     /// Animates <paramref name="control"/> as the next arrival of its panel's batch, which gives the animation its index and
@@ -324,6 +369,9 @@ public static class Presence
             control.AttachedToVisualTree += HandleAttached;
             control.DetachedFromVisualTree += HandleDetached;
         }
+
+        /// <summary>The exit a style setter held until the element left the logical tree, on its way to the visual detach.</summary>
+        public AnimationBuilder? Withdrawn { get; set; }
 
         public void Release()
         {
@@ -387,7 +435,14 @@ public static class Presence
                     PresenceMoment.Enter => GetEnter(_control) ?? GetArrive(_control),
                     _ => null,
                 };
-                if (builder is not null) _arrival = Arrive(_control, builder);
+                if (moment is PresenceMoment.Initial or PresenceMoment.Enter && ModeHost(_control.GetVisualParent())?.GetValue(WaitingProperty) is { } waiting)
+                {
+                    waiting.Hold(_control, builder is null ? null : () => _arrival = Arrive(_control, builder, laidOut: true));
+                }
+                else if (builder is not null)
+                {
+                    _arrival = Arrive(_control, builder);
+                }
             }
             if (GetExit(_control) is not null) StartRecording();
         }
@@ -409,21 +464,101 @@ public static class Presence
         private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e)
         {
             Leave();
-            if (GetExit(_control) is { } exit && ClassifyDeparture(_control, e.AttachmentPoint) is (PresenceMoment.Exit, var position))
+            var withdrawn = Withdrawn;
+            Withdrawn = null;
+            if ((GetExit(_control) ?? withdrawn) is { } exit && ClassifyDeparture(_control, e.AttachmentPoint) is (PresenceMoment.Exit, var position))
             {
-                _ghost = Ghost(_control, e.AttachmentPoint!, _slot ?? position, exit);
+                var waiting = ModeHost(e.AttachmentPoint) is { } host && GetMode(host) == PresenceMode.Wait ? Waiting.Start(host, e.AttachmentPoint!) : null;
+                _ghost = Ghost(_control, e.AttachmentPoint!, _slot ?? position, exit, waiting is null ? null : waiting.Ended);
+                if (_ghost is null) waiting?.Ended();
             }
             StopRecording();
             _arrival?.Revert();
             _arrival = null;
+            if (!IsUnused(_control)) return;
+            Release();
+            _control.ClearValue(TrackerProperty);
         }
     }
+
+    /// <summary>
+    /// The exits in flight under a host in <see cref="PresenceMode.Wait"/>, and what arrived under it meanwhile, held at
+    /// opacity 0 until the last exit ends. A content host's new content is held whether or not it has a lifecycle builder.
+    /// </summary>
+    private sealed class Waiting(Control host)
+    {
+        private readonly List<(Control Element, IDisposable Opacity, Action? Play)> _held = [];
+        private AvaloniaObject? _content;
+        private int _exits;
+
+        public static Waiting Start(Control host, Visual from)
+        {
+            var waiting = host.GetValue(WaitingProperty);
+            if (waiting is null)
+            {
+                waiting = new Waiting(host);
+                host.SetValue(WaitingProperty, waiting);
+            }
+            waiting._exits++;
+            if (waiting._content is null && from is ContentPresenter or Decorator)
+            {
+                waiting._content = from;
+                from.PropertyChanged += waiting.HandleContent;
+            }
+            return waiting;
+        }
+
+        public void Ended()
+        {
+            if (--_exits == 0) Release();
+        }
+
+        public void Hold(Control element, Action? play)
+        {
+            _held.Add((element, element.SetValue(Visual.OpacityProperty, 0d, BindingPriority.Animation)!, play));
+            element.DetachedFromVisualTree += Drop;
+        }
+
+        public void Release()
+        {
+            if (host.GetValue(WaitingProperty) == this) host.ClearValue(WaitingProperty);
+            if (_content is not null) _content.PropertyChanged -= HandleContent;
+            _content = null;
+            var held = _held.ToArray();
+            _held.Clear();
+            foreach (var (element, opacity, _) in held)
+            {
+                element.DetachedFromVisualTree -= Drop;
+                opacity.Dispose();
+            }
+            // Every hold is lifted first, so no entrance starts from a held opacity.
+            foreach (var (_, _, play) in held) play?.Invoke();
+        }
+
+        private void HandleContent(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if ((e.Property == ContentPresenter.ChildProperty || e.Property == Decorator.ChildProperty) && e.NewValue is Control content) Hold(content, null);
+        }
+
+        private void Drop(object? sender, VisualTreeAttachmentEventArgs e)
+        {
+            for (var i = _held.Count - 1; i >= 0; i--)
+            {
+                if (_held[i].Element != sender) continue;
+                _held[i].Element.DetachedFromVisualTree -= Drop;
+                // Descendants detach after their root and must still see it hidden, so they are not ghosted.
+                Dispatcher.UIThread.Post(_held[i].Opacity.Dispose);
+                _held.RemoveAt(i);
+            }
+        }
+    }
+
     /// <summary>
     /// Snapshots <paramref name="element"/> into the overlay of <paramref name="anchor"/>'s window at <paramref name="position"/>,
     /// clipped to the boxes of <paramref name="anchor"/> and its ancestors that clip, and plays <paramref name="exit"/> on it.
     /// </summary>
     /// <returns>The exit animation, whose completion or cancellation removes the ghost; null when there is nothing to draw or nowhere to draw it.</returns>
-    internal static Animation? Ghost(Control element, Visual anchor, Point position, AnimationBuilder exit)
+    internal static Animation? Ghost(Control element, Visual anchor, Point position, AnimationBuilder exit, Action? dismissed = null)
     {
         var size = element.Bounds.Size;
         if (size.Width <= 0 || size.Height <= 0 || TopLevel.GetTopLevel(anchor) is not { } top || OverlayLayer.GetOverlayLayer(anchor) is not { } overlay) return null;
@@ -465,13 +600,15 @@ public static class Presence
         animation.OnComplete = timer =>
         {
             completed?.Invoke(timer);
-            Dismiss(overlay, host, snapshot);
+            Dismiss(overlay, host, snapshot, dismissed);
         };
         animation.OnPause = timer =>
         {
             paused?.Invoke(timer);
-            if (timer.Cancelled) Dismiss(overlay, host, snapshot);
+            if (timer.Cancelled) Dismiss(overlay, host, snapshot, dismissed);
         };
+        // An instant exit, as PrestoDefaults.ReduceAll makes every one, completes inside Animate.
+        if (animation.Completed) Dismiss(overlay, host, snapshot, dismissed);
         return animation;
     }
 
@@ -514,14 +651,15 @@ public static class Presence
         var clip = new Rect(top.Bounds.Size);
         for (Visual? visual = anchor; visual is not null and not TopLevel; visual = visual.GetVisualParent())
         {
-            if (visual.ClipToBounds && visual.TranslatePoint(default, top) is { } origin) clip = clip.Intersect(new Rect(origin, visual.Bounds.Size));
+            if ((visual.ClipToBounds || ContentSizeTransition.Clips(visual)) && visual.TranslatePoint(default, top) is { } origin) clip = clip.Intersect(new Rect(origin, visual.Bounds.Size));
         }
         return clip;
     }
 
-    private static void Dismiss(OverlayLayer overlay, Control host, RenderTargetBitmap snapshot)
+    private static void Dismiss(OverlayLayer overlay, Control host, RenderTargetBitmap snapshot, Action? dismissed)
     {
         if (!overlay.Children.Remove(host)) return;
         snapshot.Dispose();
+        dismissed?.Invoke();
     }
 }

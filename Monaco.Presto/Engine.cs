@@ -11,6 +11,9 @@ public sealed class Engine : Clock
 
     private IFrameSource _frameSource;
     private int _threadId;
+    private List<MotionValue> _sinks = [];
+    private List<MotionValue> _flushingSinks = [];
+    private readonly List<MotionValue> _activeValues = [];
 
     /// <summary>Creates an independent engine driven by its own frame source, starting from a copy of <see cref="Presto.Defaults"/>; the main engine is <see cref="Presto.Engine"/>.</summary>
     public Engine(IFrameSource frameSource) : this(frameSource, Presto.Defaults with { })
@@ -102,12 +105,54 @@ public sealed class Engine : Clock
                 activeTickable._running = false;
                 if (activeTickable.Completed && !activeTickable._cancelled)
                 {
-                    activeTickable.Cancel();
+                    activeTickable.DetachTweens();
                 }
             }
             activeTickable = _nextChild;
         }
         Additive.Update();
+        StepValues(time);
+        FlushSinks();
+    }
+
+    internal void QueueSink(MotionValue sink)
+    {
+        _sinks.Add(sink);
+        Wake();
+    }
+
+    internal void AddActive(MotionValue value)
+    {
+        _activeValues.Add(value);
+        Wake();
+    }
+
+    // Values activated by a step are appended and stepped in the same pass; settled ones are compacted out in place.
+    private void StepValues(double time)
+    {
+        var kept = 0;
+        for (var i = 0; i < _activeValues.Count; i++)
+        {
+            var value = _activeValues[i];
+            if (value.Step(time)) _activeValues[kept++] = value;
+            else value._active = false;
+        }
+        _activeValues.RemoveRange(kept, _activeValues.Count - kept);
+    }
+
+    // Sinks queued by a Changed handler land in the swapped-in list, so they flush next frame instead of looping.
+    private void FlushSinks()
+    {
+        if (_sinks.Count == 0) return;
+        (_sinks, _flushingSinks) = (_flushingSinks, _sinks);
+        for (var i = 0; i < _flushingSinks.Count; i++)
+        {
+            var sink = _flushingSinks[i];
+            if (!sink._queued) continue;
+            sink._queued = false;
+            sink.Flush();
+        }
+        _flushingSinks.Clear();
     }
 
     /// <summary>Starts the frame source unless it is already pumping or <see cref="UseDefaultMainLoop"/> is off; resuming a timer calls it (upstream <c>engine.wake()</c>).</summary>
@@ -125,7 +170,7 @@ public sealed class Engine : Clock
 
     private void OnFrame()
     {
-        if (_head != null)
+        if (_head != null || _sinks.Count > 0 || _activeValues.Count > 0)
         {
             Update();
         }
@@ -147,7 +192,7 @@ public sealed class Engine : Clock
         return this;
     }
 
-    /// <summary>Unlinks every child, the way <see cref="Update"/> prunes the paused ones; for an engine that is retired for good and will never tick again.</summary>
+    /// <summary>Unlinks every child, the way <see cref="Update"/> prunes the paused ones, and drops the queued <see cref="MotionValue"/> sinks and moving values; for an engine that is retired for good and will never tick again.</summary>
     internal void DropChildren()
     {
         var child = _head;
@@ -159,6 +204,10 @@ public sealed class Engine : Clock
             child = next;
         }
         _hasChildren = false;
+        foreach (var sink in _sinks) sink._queued = false;
+        _sinks.Clear();
+        foreach (var value in _activeValues) value._active = false;
+        _activeValues.Clear();
     }
 
     /// <summary>Restarts the frame source and rebases every timer's start time, so the paused interval does not count as elapsed (upstream <c>engine.resume()</c>).</summary>

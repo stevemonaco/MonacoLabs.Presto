@@ -48,7 +48,7 @@ public sealed class SwipeDeckPageTests
     }
 
     [AvaloniaFact]
-    public void DraggingTheTopCardSixtyPixelsRightHalfStampsIt()
+    public void DraggingTheTopCardSixtyPixelsRightHalfStampsAndTintsIt()
     {
         var page = new SwipeDeckPage();
         var window = SceneHarness.Show(page, 712, 440);
@@ -65,6 +65,7 @@ public sealed class SwipeDeckPageTests
 
         var like = top.GetLogicalDescendants().OfType<Border>().Single(border => border.Classes.Contains("like"));
         Assert.Equal(.5, like.Opacity, 3);
+        Assert.NotEqual(Palette.SurfaceHigh.Color, Assert.IsAssignableFrom<ISolidColorBrush>(top.Background).Color);
         window.MouseUp(grab.WithX(grab.X + 60), MouseButton.Left);
         SceneHarness.Close(window);
     }

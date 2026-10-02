@@ -13,7 +13,7 @@ namespace PrestoSample.Pages;
 /// <summary>
 /// <c>Motion</c> states on real controls: hover, press and focus sugar, <c>:checked</c> and <c>:focus</c> through
 /// <c>Motion.States</c>, a parent's hover reaching a child through a style setter on <c>Motion.State</c>, a bound status
-/// chip, and a card driven by a view model's enum and a class binding. The log is written from the controls' own class and
+/// chip, a card driven by a view model's enum and a class binding, and a menu whose items follow the panel's state in a stagger. The log is written from the controls' own class and
 /// property changes. The XAML snippets are constants pinned to the markup by a test.
 /// </summary>
 public partial class StatesPage : UserControl
@@ -98,6 +98,29 @@ public partial class StatesPage : UserControl
         </Border>
         """;
 
+    public const string MenuXaml = """
+        <Border x:Name="MenuPanel" Classes="menu" Opacity="0" RenderTransformOrigin="50%,0%"
+                presto:Motion.StaggerChildren="40" presto:Motion.DelayChildren="60" presto:Motion.Order="BeforeChildren">
+            <presto:Motion.States>
+                <presto:MotionStates>
+                    <presto:MotionState When="Open" Motion="{x:Static local:StatesPage.Unfold}" />
+                </presto:MotionStates>
+            </presto:Motion.States>
+        """;
+
+    public const string MenuItemXaml = """
+        <Style Selector="Border.item">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="presto:Motion.States">
+                <presto:MotionStates>
+                    <presto:MotionState When="Open" Motion="{x:Static local:StatesPage.SlideIn}" />
+                </presto:MotionStates>
+            </Setter>
+        </Style>
+        """;
+
     public static readonly StyledProperty<string> StatusProperty =
         AvaloniaProperty.Register<StatesPage, string>(nameof(Status), "Idle");
 
@@ -105,6 +128,7 @@ public partial class StatesPage : UserControl
 
     private static readonly string[] Statuses = ["Idle", "Syncing", "Failed", "Done"];
     private static readonly string[] Watched = [":pointerover", ":pressed", ":focus", ":focus-visible", ":checked", "starred"];
+    private static readonly StaggerFrom[] Froms = [StaggerFrom.First, StaggerFrom.Last, StaggerFrom.Center];
 
     public static readonly AnimationBuilder Lift = Presto.Build().Y(-4).Duration(220).Ease(Eases.OutQuart);
     public static readonly AnimationBuilder Squish = Presto.Build().Scale(.95).Duration(120).Ease(Eases.OutQuad);
@@ -127,7 +151,8 @@ public partial class StatesPage : UserControl
     public static readonly AnimationBuilder Star = Presto.Build().Y(-4).Property("BorderBrush", TweenValue.Of(Palette.Amber)).Duration(260).Ease(Eases.OutQuart);
     public static readonly AnimationBuilder DarkInk = Presto.Build().Foreground(Palette.Background).Duration(300);
     public static readonly AnimationBuilder Trophy = Presto.Build().Scale(1.06).Duration(420).Ease(Eases.OutBack(2));
-
+    public static readonly AnimationBuilder Unfold = Presto.Build().Opacity(1).ScaleY(1, from: .6).Duration(220).Ease(Eases.OutQuart);
+    public static readonly AnimationBuilder SlideIn = Presto.Build().Opacity(1).Y(0, from: 14).Duration(320).Ease(Eases.OutQuart);
     private readonly ObservableCollection<string> _entries = [];
 
     public StatesPage()
@@ -143,7 +168,9 @@ public partial class StatesPage : UserControl
                 if (e.Property == Motion.StateProperty) Record($"{name}  State = {e.NewValue ?? "none"}");
             };
         }
-        XamlCode.Text = string.Join("\n\n", ButtonXaml, TextBoxXaml, CheckBoxXaml, ArrowXaml, $"{CardXaml}\n    …", $"{ChipXaml}\n    …", UploadXaml);
+        XamlCode.Text = string.Join("\n\n", ButtonXaml, TextBoxXaml, CheckBoxXaml, ArrowXaml, $"{CardXaml}\n    …", $"{ChipXaml}\n    …", UploadXaml, $"{MenuXaml}\n    …", MenuItemXaml);
+        OrderPicker.SelectedIndex = (int)Motion.GetOrder(MenuPanel);
+        FromPicker.SelectedIndex = 0;
     }
 
     public string Status
@@ -162,6 +189,20 @@ public partial class StatesPage : UserControl
     {
         _entries.Insert(0, entry);
         while (_entries.Count > MaxEntries) _entries.RemoveAt(_entries.Count - 1);
+    }
+
+    private void ToggleMenu(object? sender, RoutedEventArgs e) => Motion.SetState(MenuPanel, MenuToggle.IsChecked == true ? "Open" : null);
+
+    private void OrderChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        Motion.SetOrder(MenuPanel, (MotionOrder)OrderPicker.SelectedIndex);
+        Record($"MenuPanel  Order = {Motion.GetOrder(MenuPanel)}");
+    }
+
+    private void FromChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        Motion.SetStaggerFrom(MenuPanel, Froms[FromPicker.SelectedIndex]);
+        Record($"MenuPanel  Stagger {((ComboBoxItem)FromPicker.SelectedItem!).Content}");
     }
 
     private void NextStatus(object? sender, RoutedEventArgs e) => Status = Statuses[(Array.IndexOf(Statuses, Status) + 1) % Statuses.Length];

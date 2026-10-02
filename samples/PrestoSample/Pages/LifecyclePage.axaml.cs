@@ -16,15 +16,28 @@ namespace PrestoSample.Pages;
 /// <summary>
 /// Presence's lifecycle side by side: three views, the last a virtualized list, whose rows carry Initial, Enter and Exit,
 /// and a log written by each builder's OnBegin, so it records what Presence classified rather than what the page intended.
+/// Below, a crossfading swapper and a wizard whose host's <c>Presence.Mode</c> makes each step wait for the last to leave.
 /// </summary>
 public partial class LifecyclePage : UserControl
 {
+    public const string WizardXaml = """
+        <ContentControl x:Name="Wizard" Width="300" Height="140" presto:Presence.Mode="Wait" />
+        """;
+
+    public const string StepXaml = """
+        <DataTemplate x:Key="AccountStep">
+            <Border Classes="step"
+                    presto:Presence.Enter="{presto:Slide Edge=Right, Distance=48}"
+                    presto:Presence.Exit="{presto:Slide Edge=Left, Distance=48}">
+        """;
+
     private const int MaxMoments = 12;
 
     private static readonly IBrush InitialTint = Brush.Parse("#93c5fd");
     private static readonly IBrush EnterTint = Brush.Parse("#86efac");
     private static readonly IBrush ExitTint = Brush.Parse("#fca5a5");
     private static readonly IBrush UnloadTint = Brush.Parse("#cbd5e1");
+    private static readonly string[] Steps = ["AccountStep", "PlanStep", "DoneStep"];
 
     private readonly (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View)[] _views;
     private readonly ObservableCollection<(string Moment, IBrush Tint, string Detail)> _moments = [];
@@ -32,6 +45,7 @@ public partial class LifecyclePage : UserControl
     private int _view;
     private int _panel;
     private int _next;
+    private int _step;
 
     public LifecyclePage()
     {
@@ -59,6 +73,9 @@ public partial class LifecyclePage : UserControl
         ];
         Host.Content = _views[0].View;
         Swapper.Content = _panels[0];
+        WizardCode.Text = $"{WizardXaml}\n\n{StepXaml}\n        …";
+        ModePicker.SelectedIndex = (int)Presence.GetMode(Wizard);
+        ShowStep(0);
     }
 
     private (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View) Current => _views[_view];
@@ -126,6 +143,20 @@ public partial class LifecyclePage : UserControl
     }
 
     private void Swap(object? sender, RoutedEventArgs e) => Swapper.Content = _panels[_panel = 1 - _panel];
+
+    private void WizardBack(object? sender, RoutedEventArgs e) => ShowStep(_step - 1);
+
+    private void WizardNext(object? sender, RoutedEventArgs e) => ShowStep(_step + 1);
+
+    private void ShowStep(int step)
+    {
+        _step = step;
+        Wizard.Content = ((IDataTemplate)Resources[Steps[step]]!).Build(null);
+        BackButton.IsEnabled = step > 0;
+        NextButton.IsEnabled = step < Steps.Length - 1;
+    }
+
+    private void ModeChanged(object? sender, SelectionChangedEventArgs e) => Presence.SetMode(Wizard, (PresenceMode)ModePicker.SelectedIndex);
 
     private static Control Panel(string title, string color)
     {

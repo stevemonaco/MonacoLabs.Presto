@@ -3,9 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Draggables;
+using PrestoSample.Builder;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -25,10 +27,14 @@ public partial class SwipeDeckPage : ShowcasePage
     private const double ExitDistance = 640;
     private const double ExitDuration = 380;
 
+    private static readonly IBrush LikeTint = new ImmutableSolidColorBrush(Color.FromRgb(0x23, 0x62, 0x63));
+    private static readonly IBrush NopeTint = new ImmutableSolidColorBrush(Color.FromRgb(0x6C, 0x3D, 0x4A));
+
     // Index 0 is the top card; a card on its way off-stage is already out of this list.
     private readonly List<Border> _stack = [];
     private readonly Stack<(double X, double Y, double Rotate)> _exits = [];
     private Draggable? _drag;
+    private Action? _unbind;
     private bool _held;
     private int _first;
 
@@ -96,32 +102,72 @@ public partial class SwipeDeckPage : ShowcasePage
         Child = new TextBlock { Text = text, Foreground = brush },
     };
 
-    private Draggable Draggable(Border card) => Scope.Execute(_ => PrestoAvalonia.CreateDraggable(card, new DraggableParams
+    private Draggable Draggable(Border card)
     {
-        Snap = _ => 0,
-        ReleaseStiffness = 180,
-        ReleaseDamping = 18,
-        OnGrab = _ => _held = true,
-        OnUpdate = drag =>
+        var drag = Scope.Execute(_ => PrestoAvalonia.CreateDraggable(card, new DraggableParams
         {
-            if (_held) Follow(card, drag.X);
-        },
-        OnRelease = drag =>
-        {
-            var fling = drag.Velocity > FlingVelocity;
-            if (!fling && Math.Abs(drag.X) <= DismissAt) return;
-            var angle = fling ? drag.Angle : Math.Atan2(drag.Y, drag.X);
-            Dismiss(Math.Cos(angle), Math.Sin(angle));
-        },
-        OnSettle = _ => _held = false,
-    }));
+            Snap = _ => 0,
+            ReleaseStiffness = 180,
+            ReleaseDamping = 18,
+            OnGrab = _ => _held = true,
+            OnUpdate = drag =>
+            {
+                if (_held) Lift(drag.X);
+            },
+            OnRelease = drag =>
+            {
+                var fling = drag.Velocity > FlingVelocity;
+                if (!fling && Math.Abs(drag.X) <= DismissAt) return;
+                var angle = fling ? drag.Angle : Math.Atan2(drag.Y, drag.X);
+                Dismiss(Math.Cos(angle), Math.Sin(angle));
+            },
+            OnSettle = _ => _held = false,
+        }));
+        _unbind = Bind(card, drag.XValue);
+        return drag;
+    }
 
-    private void Follow(Border card, double x)
+    private Action Bind(Border card, MotionValue x)
+    {
+        var (graph, code) = Snippet.Of((
+            Rotate: x.Map(v => v * Tilt),
+            RotateY: x.Map([-MaxLean / Lean, MaxLean / Lean], [-MaxLean, MaxLean]),
+            LikeOpacity: x.Map([0, StampAt], [0, 1]),
+            NopeOpacity: x.Map([-StampAt, 0], [1, 0]),
+            Tint: x.Map([-StampAt, 0, StampAt], [NopeTint, Palette.SurfaceHigh, LikeTint])));
+        Follow.SetRotate(card, graph.Rotate);
+        IDisposable[] bindings =
+        [
+            Follow.Bind(Stamp(card, true), OpacityProperty, graph.LikeOpacity),
+            Follow.Bind(Stamp(card, false), OpacityProperty, graph.NopeOpacity),
+            Follow.Bind(card, Border.BackgroundProperty, graph.Tint),
+        ];
+        // Follow has no RotateY shorthand, so the lean is written from its Changed event.
+        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["Perspective"] = Depth });
+        Action<MotionValue> lean = value => PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["RotateY"] = value.Value });
+        graph.RotateY.Changed += lean;
+
+        GraphCode.Text = $$"""
+            var x = drag.XValue;
+            var graph = {{code}};
+            Follow.SetRotate(card, graph.Rotate);
+            Follow.Bind(likeStamp, OpacityProperty, graph.LikeOpacity);
+            Follow.Bind(nopeStamp, OpacityProperty, graph.NopeOpacity);
+            Follow.Bind(card, Border.BackgroundProperty, graph.Tint);
+            graph.RotateY.Changed += lean =>
+                PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["RotateY"] = lean.Value });
+            """;
+        return () =>
+        {
+            graph.RotateY.Changed -= lean;
+            Follow.SetRotate(card, null);
+            foreach (var binding in bindings) binding.Dispose();
+        };
+    }
+
+    private void Lift(double x)
     {
         var lift = Math.Clamp(Math.Abs(x) / DismissAt, 0, 1);
-        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["Rotate"] = x * Tilt, ["RotateY"] = Math.Clamp(x * Lean, -MaxLean, MaxLean), ["Perspective"] = Depth });
-        PrestoAvalonia.Set(Stamp(card, true), new AvaloniaAnimationParams { ["Opacity"] = Math.Clamp(x / StampAt, 0, 1) });
-        PrestoAvalonia.Set(Stamp(card, false), new AvaloniaAnimationParams { ["Opacity"] = Math.Clamp(-x / StampAt, 0, 1) });
         for (var slot = 1; slot < _stack.Count; slot++)
         {
             PrestoAvalonia.Set(_stack[slot], new AvaloniaAnimationParams
@@ -135,6 +181,7 @@ public partial class SwipeDeckPage : ShowcasePage
     private void Dismiss(double dx, double dy)
     {
         var drag = _drag!;
+        var unbind = _unbind!;
         var card = _stack[0];
         _stack.RemoveAt(0);
         drag.Disable();
@@ -155,13 +202,13 @@ public partial class SwipeDeckPage : ShowcasePage
             card.Animate(new()
             {
                 ["Rotate"] = exit.Rotate,
-                ["RotateY"] = 0,
                 Duration = ExitDuration,
                 Ease = Eases.OutQuad,
                 OnComplete = _ =>
                 {
                     Deck.Children.Remove(card);
                     drag.Revert();
+                    unbind();
                 },
             });
             entering.Animate(new() { ["Opacity"] = 1, Duration = 240, Ease = Eases.OutQuad });
@@ -177,7 +224,7 @@ public partial class SwipeDeckPage : ShowcasePage
         Scope.Execute(_ =>
         {
             Presto.Animate(drag, new AnimationParams { ["X"] = 0, ["Y"] = 0, Ease = Eases.Spring(bounce: .25, duration: 600) });
-            top.Animate(new() { ["Scale"] = 1, ["Rotate"] = 0, ["RotateY"] = 0, Ease = Eases.Spring(bounce: .25, duration: 600) });
+            top.Animate(new() { ["Scale"] = 1, Ease = Eases.Spring(bounce: .25, duration: 600) });
             for (var slot = 1; slot < _stack.Count; slot++)
             {
                 _stack[slot].Animate(new()
@@ -201,6 +248,7 @@ public partial class SwipeDeckPage : ShowcasePage
         UndoButton.IsEnabled = _exits.Count > 0;
         var top = _stack[0];
         var (x, y) = (drag.X, drag.Y);
+        _unbind!();
         drag.Revert();
         PrestoAvalonia.Set(top, new AvaloniaAnimationParams { ["X"] = x, ["Y"] = y });
 
@@ -215,7 +263,7 @@ public partial class SwipeDeckPage : ShowcasePage
 
         _first = Wrap(_first - 1);
         var card = Card(_first, 0);
-        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["X"] = exit.X, ["Y"] = exit.Y, ["Rotate"] = exit.Rotate });
+        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["X"] = exit.X, ["Y"] = exit.Y });
         _stack.Insert(0, card);
         Deck.Children.Add(card);
         Seat();

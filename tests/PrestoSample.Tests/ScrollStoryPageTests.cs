@@ -3,14 +3,17 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Events;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
 
 /// <summary>
-/// SAMPLES-PLAN §4.7: the pinned scrub is frame-accurate in both directions, every named threshold reports both
-/// crossings each way round, and a resize mid-scroll re-measures without moving the scrub off the scroll position.
+/// SAMPLES-PLAN §4.7 and GAPS-PLAN §5.3: the pinned scrub is frame-accurate in both directions, holds its stage still and
+/// snaps to its labels, every named threshold reports both crossings each way round, the hero layers move at their speeds,
+/// and a resize mid-scroll re-measures without moving the scrub off the scroll position.
 /// </summary>
 /// <remarks>
 /// The scroller is driven the way <c>Monaco.Presto.AvaloniaBridge.Tests.ScrollObserverTests</c> drives it — the offset
@@ -30,6 +33,7 @@ public sealed class ScrollStoryPageTests
         var number = page.GetControl<TextBlock>("PinNumber");
 
         Assert.True(pin.Distance > 0, "the pinned track is shorter than the viewport, so there is nothing to scrub");
+        ReachThePin(scroller, pin);
 
         foreach (var fraction in (double[])[0, .25, .5, .75, 1, .75, .5, .25, 0])
         {
@@ -82,8 +86,11 @@ public sealed class ScrollStoryPageTests
         var scrub = pin.Linked!;
         var number = page.GetControl<TextBlock>("PinNumber");
 
+        var stage = page.GetControl<Border>("PinStage");
+        ReachThePin(scroller, pin);
         ScrollTo(scroller, pin.OffsetStart + (pin.Distance / 2));
         var distance = pin.Distance;
+        var start = pin.OffsetStart;
         var before = scrub.Progress;
         var drawnBefore = SceneHarness.Number(number);
         Assert.Equal(.5, before, 2);
@@ -93,12 +100,72 @@ public sealed class ScrollStoryPageTests
         // Fewer frames than the container's own 250 ms resize debounce, so only the page's Refresh has re-measured.
         TestFrames.Tick(2);
 
-        Assert.Equal(distance + Shrink, pin.Distance, 1);
+        Assert.Equal(distance, pin.Distance, 1);
+        Assert.Equal(start + (Shrink / 2), pin.OffsetStart, 1);
+        Assert.Equal((scroller.Viewport.Height - stage.Bounds.Height) / 2, Position(stage, scroller), 1d);
         Assert.Equal(pin.Progress, scrub.Progress, 4);
         var drawnAfter = SceneHarness.Number(number);
         Assert.True(
             Math.Abs(drawnAfter - drawnBefore) < 8,
             $"the scrub jumped from {drawnBefore}% to {drawnAfter}% across a {Shrink}px resize");
+
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ThePinnedStageStaysPutWhileItsRangeScrollsAndWhatFollowsArrivesAfterIt()
+    {
+        var (window, page, scroller) = Show();
+        var pin = Observer(page, "pin");
+        var stage = page.GetControl<Border>("PinStage");
+        var article = page.GetControl<StackPanel>("Article");
+        var next = article.Children[article.Children.IndexOf(stage) + 1];
+
+        ReachThePin(scroller, pin);
+        ScrollTo(scroller, pin.OffsetStart);
+        var pinned = Position(stage, scroller);
+        Assert.Equal((scroller.Viewport.Height - stage.Bounds.Height) / 2, pinned, 1d);
+
+        foreach (var fraction in (double[])[.13, .37, .5, .81, 1])
+        {
+            ScrollTo(scroller, pin.OffsetStart + (fraction * pin.Distance));
+            Assert.Equal(pinned, Position(stage, scroller), 1d);
+        }
+
+        Assert.True(
+            Position(next, scroller) >= pinned + stage.Bounds.Height,
+            "the content after the pinned stage scrolled in underneath it");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ScrollingThatStopsBetweenTwoLabelsSettlesOnTheNearerOne()
+    {
+        var (window, page, scroller) = Show();
+        var pin = Observer(page, "pin");
+        var scrub = (Timeline)pin.Linked!;
+
+        ReachThePin(scroller, pin);
+        ScrollTo(scroller, pin.OffsetStart + (.42 * pin.Distance));
+        TestFrames.Tick(60);
+
+        Assert.Equal(scrub.Labels["step2"], scrub.CurrentTime, 1);
+        Assert.Equal(pin.OffsetStart + (pin.Distance / 3), scroller.Offset.Y, 1);
+        Assert.Equal("step2", page.GetControl<TextBlock>("PinLabel").Text);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheHeroLayersAreTranslatedByTheirSpeeds()
+    {
+        var (window, page, scroller) = Show();
+
+        ScrollTo(scroller, 200);
+
+        foreach (var (name, speed) in ((string, double)[])[("HeroSky", .6), ("HeroRidge", .8), ("HeroTitle", 1.3)])
+        {
+            Assert.Equal((1 - speed) * 200, Convert.ToDouble(PrestoAvalonia.Get(page.GetControl<Control>(name), "Y")), 3);
+        }
 
         SceneHarness.Close(window);
     }
@@ -133,6 +200,15 @@ public sealed class ScrollStoryPageTests
 
     private static ScrollObserver Observer(ScrollStoryPage page, string id) =>
         page.Observers.First(observer => observer.Id == id);
+
+    private static void ReachThePin(ScrollViewer scroller, ScrollObserver pin)
+    {
+        ScrollTo(scroller, pin.OffsetStart);
+        // Lets the heading reveals rejoin and the resize debounce re-measure.
+        TestFrames.Tick(60);
+    }
+
+    private static double Position(Control control, ScrollViewer scroller) => control.TranslatePoint(default, scroller)!.Value.Y;
 
     private static void ScrollTo(ScrollViewer scroller, double offset)
     {

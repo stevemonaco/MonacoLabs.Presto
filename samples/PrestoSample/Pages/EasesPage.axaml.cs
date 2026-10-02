@@ -14,6 +14,7 @@ public partial class EasesPage : UserControl
     private const int Samples = 241;
     private const double PlotPadding = 16;
     private const double DotTravel = -140;
+    private const double DotBase = 16;
     private const double DotDuration = 1600;
 
     private static readonly EaseEntry[] Catalogue =
@@ -40,6 +41,12 @@ public partial class EasesPage : UserControl
         new("Eases.Spring(1, 80, 8, 0)", Eases.Spring(1, 80, 8, 0)),
         new("Eases.Spring(1, 220, 14, 2)", Eases.Spring(1, 220, 14, 2)),
         new("Eases.Spring(4, 140, 18, 0)", Eases.Spring(4, 140, 18, 0)),
+        new("Eases.FromPath(\"M0,0 C.1,.6 .3,1.3 .5,1 .7,.8 .85,1.05 1,1\")", Eases.FromPath("M0,0 C.1,.6 .3,1.3 .5,1 .7,.8 .85,1.05 1,1")),
+        new("Eases.Wiggle(6)", Eases.Wiggle(6)),
+        new("Eases.Wiggle(6, WiggleType.Anticipate)", Eases.Wiggle(6, WiggleType.Anticipate)),
+        new("Eases.Rough(20, 1)", Eases.Rough(20, 1, random: new Random(3))),
+        new("Eases.SlowMo(.5, .8)", Eases.SlowMo(.5, .8)),
+        new("Eases.ExpoScale(.5, 4)", Eases.ExpoScale(.5, 4)),
     ];
 
     private Animation? _animation;
@@ -90,7 +97,7 @@ public partial class EasesPage : UserControl
             {
                 curve = EaseParser.Parse(typed);
             }
-            catch (FormatException error)
+            catch (Exception error) when (error is FormatException or ArgumentException)
             {
                 StatusText.Text = error.Message;
                 return;
@@ -99,12 +106,14 @@ public partial class EasesPage : UserControl
             StatusText.Text = $"EaseParser.Parse(\"{typed.Trim()}\") — a name the parser does not know resolves to linear.";
         }
 
-        Plot(curve);
+        var (lowest, highest) = Plot(curve);
+        var travel = DotTravel / (highest - lowest);
+        Dot.Margin = new Thickness(0, 0, 0, DotBase + (lowest * travel));
 
         _animation?.Revert();
         _animation = Dot.Animate(new()
         {
-            ["Y"] = DotTravel,
+            ["Y"] = travel,
             Ease = ease,
             Duration = DotDuration,
             Loop = true,
@@ -112,7 +121,7 @@ public partial class EasesPage : UserControl
         });
     }
 
-    private void Plot(Ease ease)
+    private (double Lowest, double Highest) Plot(Ease ease)
     {
         var samples = new double[Samples];
         double lowest = 0, highest = 1;
@@ -135,6 +144,7 @@ public partial class EasesPage : UserControl
         ZeroLine.EndPoint = new Point(width, PlotY(0));
         OneLine.StartPoint = new Point(0, PlotY(1));
         OneLine.EndPoint = new Point(width, PlotY(1));
+        return (lowest, highest);
     }
 
     private sealed record EaseEntry(string Name, Ease Curve, Spring? Spring = null)

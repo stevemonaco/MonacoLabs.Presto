@@ -131,11 +131,11 @@ public sealed class Animation : Timer
                         tweenToValue = computedToValue;
                     }
 
-                    var inertia = tweenToValue?.Raw as Inertia;
-                    if (inertia != null)
+                    var physics = tweenToValue?.Raw is Inertia or Projectile ? tweenToValue.Value.Raw : null;
+                    if (physics != null)
                     {
                         // Its duration is only known once the previous keyframe resolves (INERTIA-PLAN §7).
-                        if (propertyValue.IsArray) throw new ArgumentException($"An Inertia cannot be a keyframe or part of a from/to pair ('{declaredName}').", nameof(parameters));
+                        if (propertyValue.IsArray) throw new ArgumentException($"An {physics.GetType().Name} cannot be a keyframe or part of a from/to pair ('{declaredName}').", nameof(parameters));
                         tweenToValue = null;
                         toFunc = null;
                     }
@@ -149,7 +149,7 @@ public sealed class Animation : Timer
                     else if (frames.Length > 1) tweenDurationValue = JsNumber.ToNumber(GetFunctionValue(tDuration, target, ti, groupTargets, chainedTween)?.Raw, 0) / frames.Length;
                     else tweenDurationValue = tDuration;
 
-                    var tweenDuration = reduceAll ? Constants.MinValue
+                    var tweenDuration = reduceAll && physics is not Projectile ? Constants.MinValue
                         : keySpring != null ? keySpring.SettlingDuration
                         : JsNumber.ToNumber(GetFunctionValue(tweenDurationValue, target, ti, groupTargets, chainedTween)?.Raw, 0);
                     // The animation delay only applies to the first keyframe.
@@ -269,13 +269,15 @@ public sealed class Animation : Timer
                         PadShorterValue(ScratchFrom, ScratchTo);
                     }
 
-                    if (inertia != null)
+                    if (physics != null)
                     {
-                        if (ScratchFrom.Kind is ValueKind.Color or ValueKind.Complex) throw new ArgumentException($"An Inertia needs a single number property, not '{declaredName}'.", nameof(parameters));
-                        var plan = InertiaSolver.Resolve(ScratchFrom.Number, inertia.Velocity, inertia);
+                        if (ScratchFrom.Kind is ValueKind.Color or ValueKind.Complex) throw new ArgumentException($"An {physics.GetType().Name} needs a single number property, not '{declaredName}'.", nameof(parameters));
+                        var plan = physics is Inertia inertia
+                            ? InertiaSolver.Resolve(ScratchFrom.Number, inertia.Velocity, inertia)
+                            : ProjectileSolver.Resolve(ScratchFrom.Number, (Projectile)physics, tweenDuration);
                         ScratchTo.Number = plan.To;
                         tweenEase = plan.Ease;
-                        if (!reduceAll) tweenDuration = plan.Duration;
+                        tweenDuration = reduceAll ? Constants.MinValue : plan.Duration;
                         if (plan.Then is { } then) frames = [frame, new TweenParams { To = then.To, Duration = then.Duration, Ease = then.Ease }];
                     }
 
@@ -488,7 +490,7 @@ public sealed class Animation : Timer
         {
             return fastSet ? [new TweenParams { To = TweenValue.FromTo(propertyValue, propertyValue) }] : [propertyValue];
         }
-        if (Array.Exists(items, static item => item.Raw is Inertia)) throw new ArgumentException("An Inertia cannot be a keyframe or part of a from/to pair.");
+        if (Array.Exists(items, static item => item.Raw is Inertia or Projectile)) throw new ArgumentException("An Inertia or Projectile cannot be a keyframe or part of a from/to pair.");
         if (items.Length < 2 || items[0].IsParams) return items;
         if (items.Length == 2) return [new TweenParams { To = propertyValue }];
         var frames = new TweenValue[items.Length - 1];

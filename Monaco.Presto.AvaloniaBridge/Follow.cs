@@ -18,6 +18,10 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// under <see cref="PrestoDefaults.ReducedMotion"/>; detaching lands on the latest value. The followed value is the base of the
 /// shorthand: an animation of the same shorthand overrides it while it holds it, and reverting that animation shows the latest
 /// followed value again.
+/// <para>
+/// A <see cref="MotionValue"/> is written as each value flushes, ignoring <see cref="TimingProperty"/>: smoothing belongs to
+/// the graph, as in <c>value.Spring(...)</c>. It is listened to only while the visual is attached.
+/// </para>
 /// </remarks>
 public static class Follow
 {
@@ -55,6 +59,8 @@ public static class Follow
     /// </summary>
     public static readonly AttachedProperty<AnimationBuilder?> TimingProperty =
         AvaloniaProperty.RegisterAttached<Visual, AnimationBuilder?>("Timing", typeof(Follow));
+
+    private static readonly FollowParams Immediate = new() { Duration = 0 };
 
     private static readonly AttachedProperty<Followed?> FollowedProperty =
         AvaloniaProperty.RegisterAttached<Visual, Followed?>("Followed", typeof(Follow));
@@ -131,6 +137,24 @@ public static class Follow
     public static IDisposable Bind<T>(AvaloniaObject target, AvaloniaProperty<T> property, IObservable<T> source, FollowParams? options = null) =>
         target.Bind(property, new FollowBinding(target, property, source.ToBinding(), options ?? new(), followsItems: false), BindingPriority.LocalValue);
 
+    /// <summary>
+    /// Binds <paramref name="property"/> at <see cref="BindingPriority.LocalValue"/> to each flushed value of <paramref name="source"/>,
+    /// converted to the property's type: written as it is, or eased to through the timing of <paramref name="options"/> when given.
+    /// </summary>
+    /// <returns>The binding; disposing it unsubscribes from <paramref name="source"/> and removes the binding.</returns>
+    /// <exception cref="ArgumentException">The timing conflicts.</exception>
+    public static IDisposable Bind(AvaloniaObject target, AvaloniaProperty property, MotionValue source, FollowParams? options = null) =>
+        options == null && property is StyledProperty<double> number
+            ? target.Bind(number, new MotionValueBinding(target, source), BindingPriority.LocalValue)
+            : BindCell(target, property, source, options);
+
+    /// <inheritdoc cref="Bind(AvaloniaObject, AvaloniaProperty, MotionValue, FollowParams?)"/>
+    public static IDisposable Bind(AvaloniaObject target, AvaloniaProperty property, MotionObjectValue source, FollowParams? options = null) =>
+        BindCell(target, property, source, options);
+
+    private static IDisposable BindCell(AvaloniaObject target, AvaloniaProperty property, object source, FollowParams? options) =>
+        target.Bind(property, new FollowBinding(target, property, new Binding { Source = source }, options ?? Immediate, followsItems: false), BindingPriority.LocalValue);
+
     private static void HandleValueChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
     {
         var index = Array.IndexOf(s_properties, e.Property);
@@ -150,6 +174,8 @@ public static class Follow
 
         private readonly Visual _visual;
         private readonly Follower?[] _followers = new Follower?[s_properties.Length];
+        private readonly MotionValue?[] _sources = new MotionValue?[s_properties.Length];
+        private readonly Action<MotionValue>?[] _sourceChanged = new Action<MotionValue>?[s_properties.Length];
         private readonly Action _itemSettled;
         private int _newItems;
         private bool _detached;
@@ -165,6 +191,18 @@ public static class Follow
 
         public void Target(int index, object value)
         {
+            Unlisten(index);
+            if (value is MotionValue source)
+            {
+                _followers[index]?.Dispose();
+                _followers[index] = null;
+                _sources[index] = source;
+                var changed = _sourceChanged[index] ??= moved => Write(index, moved.Value);
+                if (_detached) return;
+                source.Changed += changed;
+                Write(index, source.Value);
+                return;
+            }
             if (_followers[index] is not { } follower)
             {
                 follower = _followers[index] = new Follower(typeof(double), Parameters(), null);
@@ -176,12 +214,13 @@ public static class Follow
 
         public void Release(int index)
         {
-            if (_followers[index] is not { } follower) return;
+            if (_followers[index] is null && _sources[index] is null) return;
+            Unlisten(index);
+            _followers[index]?.Dispose();
             _followers[index] = null;
-            follower.Dispose();
             if (index == Blur) EffectComposer.Unfollow(_visual);
             else RenderTransformComposer.Unfollow(_visual, s_transforms[index]);
-            if (Array.Exists(_followers, f => f != null)) return;
+            if (Array.Exists(_followers, f => f != null) || Array.Exists(_sources, s => s != null)) return;
 
             _visual.DataContextChanged -= OnDataContextChanged;
             _visual.AttachedToVisualTree -= OnAttached;
@@ -209,13 +248,22 @@ public static class Follow
 
         private void Show(int index, object? value)
         {
-            if (index == Blur)
-            {
-                if (value is double radius) EffectComposer.Follow(_visual, radius);
-                else EffectComposer.Unfollow(_visual);
-            }
-            else if (value is double number) RenderTransformComposer.Follow(_visual, s_transforms[index], number);
+            if (value is double number) Write(index, number);
+            else if (index == Blur) EffectComposer.Unfollow(_visual);
             else RenderTransformComposer.Unfollow(_visual, s_transforms[index]);
+        }
+
+        private void Write(int index, double value)
+        {
+            if (index == Blur) EffectComposer.Follow(_visual, value);
+            else RenderTransformComposer.Follow(_visual, s_transforms[index], value);
+        }
+
+        private void Unlisten(int index)
+        {
+            if (_sources[index] is not { } source) return;
+            _sources[index] = null;
+            source.Changed -= _sourceChanged[index];
         }
 
         private void OnDataContextChanged(object? sender, EventArgs e)
@@ -229,8 +277,22 @@ public static class Follow
         {
             _detached = true;
             foreach (var follower in _followers) follower?.Stop();
+            for (var i = 0; i < _sources.Length; i++)
+            {
+                if (_sources[i] is { } source) source.Changed -= _sourceChanged[i];
+            }
         }
 
-        private void OnAttached(object? sender, VisualTreeAttachmentEventArgs e) => _detached = false;
+        private void OnAttached(object? sender, VisualTreeAttachmentEventArgs e)
+        {
+            if (!_detached) return;
+            _detached = false;
+            for (var i = 0; i < _sources.Length; i++)
+            {
+                if (_sources[i] is not { } source) continue;
+                source.Changed += _sourceChanged[i];
+                Write(i, source.Value);
+            }
+        }
     }
 }

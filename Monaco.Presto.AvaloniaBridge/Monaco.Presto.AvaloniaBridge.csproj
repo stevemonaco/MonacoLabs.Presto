@@ -6,6 +6,7 @@
     <PackageTags>animation;tween;easing;timeline;avalonia;animejs</PackageTags>
     <Description>Avalonia bindings for Monaco.Presto: frame pump, AvaloniaProperty targets, transforms, colors and control helpers.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

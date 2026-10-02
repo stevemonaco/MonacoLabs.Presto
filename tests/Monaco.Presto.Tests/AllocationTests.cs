@@ -89,6 +89,37 @@ public sealed class AllocationTests : EngineTestBase
     }
 
     [Fact]
+    public void MotionValueGraphFlushesWithoutAllocating()
+    {
+        var source = Presto.CreateMotionValue();
+        var other = Presto.CreateMotionValue(1);
+        var mapped = source.Map([0, 250, 500], [0, 1, 0], Eases.OutQuad);
+        var raised = 0;
+        MotionValue.Combine(mapped, other, (a, b) => a * b).Changed += _ => raised++;
+        Presto.CreateTimer(new() { Duration = 400, Loop = true, OnUpdate = _ => source.Set(source.Value + 1) });
+
+        var bytes = BytesPerTick();
+
+        Assert.True(raised >= 200, $"the sink raised {raised} times");
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
+    }
+
+    [Fact]
+    public void SettlingSpringAndVelocityOfStepWithoutAllocating()
+    {
+        var source = Presto.CreateMotionValue();
+        var raised = 0;
+        source.Spring(new Spring(stiffness: 120, damping: 12)).VelocityOf().Changed += _ => raised++;
+        Presto.CreateTimer(new() { Duration = 400, Loop = true, OnLoop = _ => source.Set(source.Value == 0 ? 100 : 0) });
+        source.Set(100);
+
+        var bytes = BytesPerTick();
+
+        Assert.True(raised >= 50, $"the velocity raised {raised} times");
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
+    }
+
+    [Fact]
     public void TimelineTicksWithinItsLoopBoundaryBudget()
     {
         var targets = new[] { new TestObject(), new TestObject(), new TestObject() };

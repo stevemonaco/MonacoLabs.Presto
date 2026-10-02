@@ -3,7 +3,7 @@ using Avalonia.Markup.Xaml;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary><c>{presto:Follow}</c> on attributes, with each kind of timing, and inside control and data templates.</summary>
+/// <summary><c>{presto:Follow}</c> on attributes, with each kind of timing, over a view-model <see cref="MotionValue"/>, and inside control and data templates.</summary>
 public sealed partial class FollowXamlView : UserControl
 {
     public FollowXamlView() => InitializeComponent();

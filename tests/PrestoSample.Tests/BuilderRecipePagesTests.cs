@@ -236,6 +236,26 @@ public sealed class BuilderRecipePagesTests
     }
 
     [AvaloniaFact]
+    public void RollDigitsRollsTheReadoutAndEndsAsPlainText()
+    {
+        var page = new CountersPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        TestFrames.Tick();
+        page.GetLogicalDescendants().OfType<Button>().First(button => button.Content is "Roll to a random value").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        TestFrames.Tick(2);
+
+        var readout = page.GetControl<TextBlock>("RollReadout");
+        Assert.NotEmpty(page.Rolled!.Targets);
+        Assert.Null(readout.Text);
+
+        TestFrames.Tick(60);
+
+        Assert.True(page.Rolled.Completed);
+        Assert.True(double.TryParse(readout.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out _));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void ToastStackTrimsToFourAndEveryToastExpires()
     {
         var page = new ToastsPage();

@@ -1,13 +1,18 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Shapes;
+using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Draggables;
 using Monaco.Presto.AvaloniaBridge.Events;
 using Monaco.Presto.AvaloniaBridge.Gestures;
+using Monaco.Presto.AvaloniaBridge.Platform;
 using Monaco.Presto.AvaloniaBridge.Shapes;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Text;
@@ -20,6 +25,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 public static class PrestoAvalonia
 {
     internal static bool Initialized;
+    private static readonly List<ReducedMotionFollower> s_reducedMotionFollowers = [];
+    private static bool s_reducedMotionHooked;
 
     /// <summary>Points the engine at an <see cref="AvaloniaFrameSource"/> and registers the Avalonia adapter and codecs the first time it is called; later calls do nothing.</summary>
     public static void EnsureInitialized()
@@ -205,6 +212,36 @@ public static class PrestoAvalonia
         AnimateLayout(control, Presto.Build(build), mode);
 
     /// <summary>
+    /// Eases the real layout size of <paramref name="host"/> over <paramref name="duration"/> milliseconds whenever its content
+    /// changes size, clipping the content meanwhile, on the UI thread. From XAML, set <see cref="Animate.ContentSizeProperty"/>.
+    /// </summary>
+    /// <remarks>
+    /// Unlike a <see cref="LayoutAnimateMode.PositionAndSize"/> layout transition nothing is scaled, so corner radius, shadow
+    /// and text stay true, but the host is laid out again every frame, which suits a panel rather than hundreds of rows. Its
+    /// first laid-out pass records its size without easing.
+    /// </remarks>
+    public static ContentSizeTransition AnimateContentSize(Control host, double duration, EaseValue? ease = null)
+    {
+        EnsureInitialized();
+        return new ContentSizeTransition(host, new LayoutMotion(duration, Ease: ease), record: true);
+    }
+
+    /// <summary>
+    /// <see cref="AnimateContentSize(Control, double, EaseValue?)"/> with the duration, delay and ease taken from
+    /// <paramref name="builder"/>. From XAML, set <see cref="Animate.ContentSizeProperty"/>.
+    /// </summary>
+    /// <exception cref="NotSupportedException">The builder animates a property, which is layout's to decide, or sets anything else a layout transition cannot honour.</exception>
+    public static ContentSizeTransition AnimateContentSize(Control host, AnimationBuilder builder)
+    {
+        EnsureInitialized();
+        return new ContentSizeTransition(host, ContentSizeTransition.Motion(builder), record: true);
+    }
+
+    /// <inheritdoc cref="AnimateContentSize(Control, AnimationBuilder)"/>
+    public static ContentSizeTransition AnimateContentSize(Control host, Action<AnimationBuilder> build) =>
+        AnimateContentSize(host, Presto.Build(build));
+
+    /// <summary>
     /// Eases <paramref name="target"/> from where <paramref name="source"/> stands right now into the slot layout gives it
     /// next, which is how an item moves between two containers (COMPOSITOR-PLAN §4.4 step 6).
     /// </summary>
@@ -354,37 +391,65 @@ public static class PrestoAvalonia
     /// <summary>
     /// Upstream <c>svg.createMotionPath</c>: the "X", "Y" and "Rotate" tweens that ride <paramref name="path"/>'s contour,
     /// with <paramref name="offset"/> (0-1) shifting where along it the animation starts — clamping at the two ends when it
-    /// is 0, wrapping around otherwise.
+    /// is 0, wrapping around otherwise — and <paramref name="autoRotate"/> degrees added to the tangent angle.
     /// </summary>
     /// <remarks>
     /// The values are points of the path's own geometry, with no coordinate conversion: the animated control has to sit in
     /// the same container as <paramref name="path"/>, at that container's origin.
     /// </remarks>
-    public static (TweenParams X, TweenParams Y, TweenParams Rotate) CreateMotionPath(Shape path, double offset = 0)
+    public static (TweenParams X, TweenParams Y, TweenParams Rotate) CreateMotionPath(Shape path, double offset = 0, double autoRotate = 0)
     {
         EnsureInitialized();
         var geometry = path.RenderedGeometry ?? throw new ArgumentException($"{path.GetType()} has no geometry to follow.", nameof(path));
         var length = geometry.ContourLength;
-        var shift = offset * length;
-        var clamp = offset == 0;
-
-        double Distance(double progress)
-        {
-            var distance = progress + shift;
-            return clamp ? Math.Clamp(distance, 0, length) : ((distance % length) + length) % length;
-        }
-
+        var distance = MotionPath.OffsetDistance(length, offset);
         return (
-            new TweenParams { From = 0, To = length, Modifier = p => geometry.TryGetPointAtDistance(Distance(p), out var point) ? point.X : 0 },
-            new TweenParams { From = 0, To = length, Modifier = p => geometry.TryGetPointAtDistance(Distance(p), out var point) ? point.Y : 0 },
+            new TweenParams { From = 0, To = length, Modifier = p => geometry.TryGetPointAtDistance(distance(p), out var point) ? point.X : 0 },
+            new TweenParams { From = 0, To = length, Modifier = p => geometry.TryGetPointAtDistance(distance(p), out var point) ? point.Y : 0 },
             new TweenParams
             {
                 From = 0,
                 To = length,
-                Modifier = p => geometry.TryGetPointAndTangentAtDistance(Distance(p), out _, out var tangent)
-                    ? Math.Atan2(tangent.Y, tangent.X) * 180 / Math.PI
+                Modifier = p => geometry.TryGetPointAndTangentAtDistance(distance(p), out _, out var tangent)
+                    ? Math.Atan2(tangent.Y, tangent.X) * 180 / Math.PI + autoRotate
                     : 0,
             });
+    }
+
+    /// <summary>
+    /// The "X", "Y" and "Rotate" tweens that ride a <see cref="MotionPath"/> through <paramref name="points"/>, with the
+    /// <paramref name="offset"/> and <paramref name="autoRotate"/> of <see cref="CreateMotionPath(Shape, double, double)"/>.
+    /// </summary>
+    /// <remarks>The animated control has to sit at the origin of the container the points are in.</remarks>
+    public static (TweenParams X, TweenParams Y, TweenParams Rotate) CreateMotionPath(
+        IReadOnlyList<Point> points, double curviness = 1, bool closed = false, double offset = 0, double autoRotate = 0)
+    {
+        EnsureInitialized();
+        return MotionPath.Through(ToTuples(points), curviness, closed).Tweens(offset, autoRotate);
+    }
+
+    /// <summary>The geometry of the <see cref="MotionPath"/> through <paramref name="points"/>, for drawing its track.</summary>
+    public static StreamGeometry MotionPathGeometry(IReadOnlyList<Point> points, double curviness = 1, bool closed = false)
+    {
+        var bezier = MotionPath.Through(ToTuples(points), curviness, closed).BezierPoints;
+        var geometry = new StreamGeometry();
+        using var context = geometry.Open();
+        context.BeginFigure(new Point(bezier[0].X, bezier[0].Y), false);
+        for (var i = 1; i < bezier.Count; i += 3)
+        {
+            context.CubicBezierTo(
+                new Point(bezier[i].X, bezier[i].Y), new Point(bezier[i + 1].X, bezier[i + 1].Y), new Point(bezier[i + 2].X, bezier[i + 2].Y));
+        }
+
+        context.EndFigure(closed);
+        return geometry;
+    }
+
+    private static (double X, double Y)[] ToTuples(IReadOnlyList<Point> points)
+    {
+        var tuples = new (double X, double Y)[points.Count];
+        for (var i = 0; i < tuples.Length; i++) tuples[i] = (points[i].X, points[i].Y);
+        return tuples;
     }
 
     /// <summary>
@@ -477,10 +542,8 @@ public static class PrestoAvalonia
     /// whatever is handed to <see cref="ScrollObserver.Link"/> from the scroll position.
     /// </summary>
     /// <remarks>
-    /// Nothing is pinned while its thresholds pass: Avalonia has no <c>position: sticky</c>, so a pinned stage is the
-    /// caller's overlay. Put it beside the <see cref="ScrollViewer"/> in a <see cref="Panel"/> with
-    /// <c>IsHitTestVisible="False"</c>, so the wheel still reaches the scroller, and show and hide it from
-    /// <see cref="ScrollObserverParams.OnEnter"/> and <see cref="ScrollObserverParams.OnLeave"/>.
+    /// With <see cref="ScrollObserverParams.Pin"/> set, the target is held in place while its thresholds pass, moved in the
+    /// same notification as the scroll so it never trails it by a frame.
     /// </remarks>
     public static ScrollObserver OnScroll(ScrollObserverParams? parameters = null)
     {
@@ -494,11 +557,115 @@ public static class PrestoAvalonia
         if (ScrollContainer.Containers.TryGetValue(scroller, out var container)) container.Refresh();
     }
 
+    /// <summary>
+    /// A <see cref="MotionValue"/> holding <paramref name="scroller"/>'s offset along <paramref name="axis"/>, rounded to whole
+    /// pixels, or with <paramref name="progress"/> set, how far through its scrollable extent it is, 0 to 1.
+    /// </summary>
+    /// <remarks>
+    /// Each call makes its own value, fed from the <see cref="ScrollContainer"/> the scroller's observers share and refreshed
+    /// when its extent or viewport changes. It stops at its last value once the scroller leaves the visual tree or the ambient
+    /// scope reverts, and reattaching does not revive it, so make another.
+    /// </remarks>
+    public static MotionValue ScrollValue(ScrollViewer scroller, ScrollAxis axis = ScrollAxis.Vertical, bool progress = false)
+    {
+        EnsureInitialized();
+        var value = ScrollContainer.AddValue(scroller, axis, progress);
+        return MotionValueSource.Listen(scroller, value, () => ScrollContainer.Containers[scroller].RemoveValue(value));
+    }
+
+    /// <summary>
+    /// A <see cref="MotionValue"/> holding the pointer's position over <paramref name="control"/> along <paramref name="axis"/>,
+    /// in DIPs from its top left, or with <paramref name="relativeToBounds"/> set, as a fraction of its size.
+    /// </summary>
+    /// <remarks>Updated as the pointer enters and moves; it stops and is not revived as <see cref="ScrollValue"/> describes.</remarks>
+    public static MotionValue PointerValue(Control control, Orientation axis, bool relativeToBounds = false)
+    {
+        EnsureInitialized();
+        var value = new MotionValue(Engine.Current, [], 0);
+        EventHandler<PointerEventArgs> handle = (_, e) =>
+        {
+            var point = e.GetPosition(control);
+            var (position, size) = axis == Orientation.Horizontal ? (point.X, control.Bounds.Width) : (point.Y, control.Bounds.Height);
+            value.Assign(!relativeToBounds ? position : size > 0 ? position / size : 0);
+        };
+        control.PointerEntered += handle;
+        control.PointerMoved += handle;
+        return MotionValueSource.Listen(control, value, () =>
+        {
+            control.PointerEntered -= handle;
+            control.PointerMoved -= handle;
+        });
+    }
+
+    /// <summary>A <see cref="MotionValue"/> holding <paramref name="target"/>'s <paramref name="property"/>, which must convert to <c>double</c>.</summary>
+    /// <remarks>
+    /// Updated whenever the property changes; it stops and is not revived as <see cref="ScrollValue"/> describes, a target
+    /// that is not a <see cref="Visual"/> only when the scope reverts.
+    /// </remarks>
+    public static MotionValue ValueOf(AvaloniaObject target, AvaloniaProperty property)
+    {
+        EnsureInitialized();
+        var value = new MotionValue(Engine.Current, [], Convert.ToDouble(target.GetValue(property), CultureInfo.InvariantCulture));
+        EventHandler<AvaloniaPropertyChangedEventArgs> handle = (_, e) =>
+        {
+            if (e.Property == property) value.Assign(Convert.ToDouble(target.GetValue(property), CultureInfo.InvariantCulture));
+        };
+        target.PropertyChanged += handle;
+        return MotionValueSource.Listen(target, value, () => target.PropertyChanged -= handle);
+    }
+
     /// <summary><see cref="Presto.CreateScope"/> rooted on a control, so everything created inside reverts when <paramref name="root"/> leaves the visual tree.</summary>
     public static ControlScope CreateScope(Control root, ScopeParams? parameters = null)
     {
         EnsureInitialized();
         return new ControlScope(root, parameters);
+    }
+
+    /// <summary>
+    /// Keeps <see cref="PrestoDefaults.ReducedMotion"/> on the <see cref="Engine.Current"/> engine in step with the OS
+    /// reduce-motion setting until the returned handle is disposed, which stops following and leaves the flag as it is.
+    /// </summary>
+    /// <param name="probe">Reads the setting in place of the built-in one; <c>null</c> from it means unknown and leaves the flag alone.</param>
+    /// <param name="changed">Called with the new value whenever following changes the flag.</param>
+    /// <remarks>
+    /// The built-in probe reads Windows, macOS, iOS and the browser, and returns unknown elsewhere, Android included. The
+    /// setting is read now, again whenever a window or the app is activated, on browser change events, and on
+    /// <see cref="RefreshSystemReducedMotion"/>.
+    /// </remarks>
+    public static IDisposable FollowSystemReducedMotion(Func<bool?>? probe = null, Action<bool>? changed = null)
+    {
+        if (!s_reducedMotionHooked)
+        {
+            s_reducedMotionHooked = true;
+            WindowBase.IsActiveProperty.Changed.AddClassHandler<WindowBase>((window, _) =>
+            {
+                if (window.IsActive) RefreshSystemReducedMotion();
+            });
+            if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime) lifetime.Activated += (_, _) => RefreshSystemReducedMotion();
+            ReducedMotionProbe.Listen(RefreshSystemReducedMotion);
+        }
+        var follower = new ReducedMotionFollower(Engine.Current, probe ?? ReducedMotionProbe.Read, changed);
+        s_reducedMotionFollowers.Add(follower);
+        follower.Refresh();
+        return follower;
+    }
+
+    /// <summary>Reads the OS reduce-motion setting again for every <see cref="FollowSystemReducedMotion"/> still following.</summary>
+    public static void RefreshSystemReducedMotion()
+    {
+        foreach (var follower in s_reducedMotionFollowers.ToArray()) follower.Refresh();
+    }
+
+    private sealed class ReducedMotionFollower(Engine engine, Func<bool?> probe, Action<bool>? changed) : IDisposable
+    {
+        public void Refresh()
+        {
+            if (probe() is not { } reduced || reduced == engine.Defaults.ReducedMotion) return;
+            engine.Defaults.ReducedMotion = reduced;
+            changed?.Invoke(reduced);
+        }
+
+        public void Dispose() => s_reducedMotionFollowers.Remove(this);
     }
 
     /// <summary>

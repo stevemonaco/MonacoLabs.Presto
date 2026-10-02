@@ -13,6 +13,18 @@
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
             <Setter Property="Padding" Value="14,10" />
         </Style>
+        <Style Selector="ListBox.reorder">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="ItemTemplate">
+                <DataTemplate x:DataType="x:String">
+                    <TextBlock Classes="row" Text="{Binding}" />
+                </DataTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.reorder ListBoxItem">
+            <Setter Property="Padding" Value="0,0,0,8" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
@@ -83,6 +95,26 @@
                     <Border Classes="codeblock">
                         <ScrollViewer>
                             <SelectableTextBlock x:Name="BindingCode" Classes="code" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Reorder: drag a row to move it. {presto:Reorder} on the left is the default lift, and Intensity=2 on the right doubles its scale-up and shadow. Alt+Up/Down moves the focused row and Escape cancels a drag." />
+                    <Border Classes="stage" MinHeight="0">
+                        <UniformGrid Columns="2" ColumnSpacing="16">
+                            <ListBox x:Name="DefaultLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}" presto:Animate.ItemLayout="{presto:Reflow}" />
+                            <ListBox x:Name="StrongLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder Intensity=2}" presto:Animate.ItemLayout="{presto:Reflow}" />
+                        </UniformGrid>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.ReorderXaml}" />
+                        </ScrollViewer>
+                    </Border>
+                    <Border Classes="codeblock">
+                        <ScrollViewer>
+                            <SelectableTextBlock x:Name="ReorderCode" Classes="code" />
                         </ScrollViewer>
                     </Border>
                 </StackPanel>

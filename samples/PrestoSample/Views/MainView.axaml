@@ -35,7 +35,8 @@
                 <StackPanel Spacing="4">
                     <TextBlock Classes="eyebrow showcase" Text="SETTINGS" />
                     <ToggleSwitch OffContent="Full motion" OnContent="Reduced motion"
-                                  IsChecked="{Binding ReducedMotion}">
+                                  IsChecked="{Binding ReducedMotion}"
+                                  IsEnabled="{Binding !FollowSystemMotion}">
                         <ToolTip.Tip>
                             <StackPanel MaxWidth="320" Spacing="6">
                                 <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
@@ -52,6 +53,9 @@
                             </StackPanel>
                         </ToolTip.Tip>
                     </ToggleSwitch>
+                    <ToggleSwitch OffContent="Manual" OnContent="Follow system"
+                                  IsChecked="{Binding FollowSystemMotion}"
+                                  ToolTip.Tip="Follows the OS reduce-motion setting with PrestoAvalonia.FollowSystemReducedMotion, re-read when the window is activated." />
                 </StackPanel>
             </Border>
         </Grid>

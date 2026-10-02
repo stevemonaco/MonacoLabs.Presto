@@ -1,9 +1,12 @@
+using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 
@@ -209,6 +212,33 @@ public sealed class BoardPageTests
                 frames[frame] is { } drawn && !SceneHarness.Near(drawn, lifted) && path.Contains(drawn.Position),
                 $"frame {frame} after the drop drew the card at {frames[frame]}, off the way from {released} to {landed} (lifted from {lifted})");
         }
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public async Task DraggingAPriorityByItsGripReordersTheListAndSettlesItInItsNewSlot()
+    {
+        var page = new BoardPage();
+        var window = SceneHarness.Show(page, 900, 520);
+        await SceneHarness.Settle();
+        var list = page.GetControl<ListBox>("Priorities");
+        var items = (ObservableCollection<string>)list.ItemsSource!;
+        var moved = items[0];
+        var expected = items.Skip(1).Take(2).Append(moved).Concat(items.Skip(3)).ToList();
+        var container = list.ContainerFromIndex(0)!;
+        var grip = container.GetVisualDescendants().OfType<Border>().First(Reorder.GetHandle);
+
+        var grab = SceneHarness.Centre(grip, window);
+        window.MouseDown(grab, MouseButton.Left);
+        var pointer = MoveTo(window, grab, grab + new Vector(container.Bounds.Width * 2.2, 0), steps: 10);
+        window.MouseUp(pointer, MouseButton.Left);
+
+        Assert.Equal(expected, items);
+        var settled = list.ContainerFromItem(moved)!;
+        Assert.True(
+            await SceneHarness.Pump(() => settled.RenderTransform is null or { Value.IsIdentity: true }, rounds: 120),
+            "the released priority never sprang into its slot");
+        Assert.Equal(2, list.IndexFromContainer(settled));
         SceneHarness.Close(window);
     }
 

@@ -10,7 +10,7 @@ public sealed class Spring
 {
     private const double MaxSpringParamValue = Constants.K * 10;
     private const double TimeStep = .02;
-    private const double RestThreshold = .0005;
+    internal const double RestThreshold = .0005;
 
     /// <summary>Time the solver watches the spring sit still before calling it settled, included in <see cref="SettlingDuration"/>.</summary>
     internal const double RestDuration = 200;

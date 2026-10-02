@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Monaco.Presto;
+using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Builder;
 using PrestoSample.Pages;
 using PrestoSample.Showcase.Pages;
@@ -32,9 +33,9 @@ public partial class MainViewModel : ObservableObject
                 () => new TimelinePage()),
             new("Stagger", "stagger: value and time staggers, ranges, start, total, ease distribution, jitter, modifier, a named grid against the measured auto-grid, and a stagger positioning timeline children.",
                 () => new StaggerPage()),
-            new("Eases", "Every ease plotted from its delegate next to a dot moving through it: the power, back and elastic families, cubic bezier, steps, irregular, linear stops, springs and the string parser.",
+            new("Eases", "Every ease plotted from its delegate next to a dot moving through it: the power, back and elastic families, cubic bezier, steps, irregular, linear stops, springs, a custom ease from SVG path data, wiggle, rough, slow-mo, expo-scale and the string parser.",
                 () => new EasesPage()),
-            new("Shapes", "svg.createDrawable and svg.createMotionPath: a stroke drawn onto a Path through its \"Draw\" property, and a control riding a second path's contour with X, Y and Rotate sampled from it.",
+            new("Shapes", "svg.createDrawable and svg.createMotionPath: a stroke drawn onto a Path through its \"Draw\" property, a control riding a second path's contour with X, Y and Rotate sampled from it, and a third riding a Catmull-Rom spline through six points, turned by autoRotate, with a curviness slider that redraws its track.",
                 () => new ShapesPage()),
             new("Text", "splitText: a headline taken apart into per-line and per-character controls, with a staggered effect that re-runs over the new pieces whenever the width changes.",
                 () => new TextPage()),
@@ -42,7 +43,7 @@ public partial class MainViewModel : ObservableObject
                 () => new DraggablePage()),
             new("Scroll", "onScroll: a card revealed by an animation the observer plays and pauses, a card watching named thresholds, and a timeline scrubbed by the scroll position in sync mode, with progress, velocity and direction read back live.",
                 () => new ScrollPage()),
-            new("Animatable", "createAnimatable: a grid of dots following the pointer, each property registered with its own duration — X and Y from a centre-out stagger, Rotate written through with none — beside a single dot easing after it, both created in a scope that reverts them when you navigate away.",
+            new("Animatable", "createAnimatable: a grid of dots following the pointer, each property registered with its own duration — X and Y from a centre-out stagger, Rotate written through with none — beside a single dot easing after it, both created in a scope that reverts them when you navigate away, and a ball tossed on a Projectile arc.",
                 () => new AnimatablePage()),
             new("Compositor", "Both panels play the same rings and comet: the left is a CompositorScene ticked and drawn on the render thread, the right is real Ellipses animated on the UI thread, and the row below is a real Button, card, gear and ToggleSwitch whose animations were compiled onto the compositor. Press Freeze and watch the UI panel, its fps and the ProgressBar stop dead while everything else keeps moving and the scene counts how long the UI thread has been frozen. Pause, Resume, Reverse and the speed slider drive the compositor controls.",
                 () => new CompositorPage()),
@@ -52,9 +53,9 @@ public partial class MainViewModel : ObservableObject
                 () => new FramesPage()),
             new("Layout", "AnimateLayout and AnimateSharedElement: a grid of titled icon cards that shuffles, gains and loses cards, each easing into its new cell as FLIP played by the render thread, beside a panel that grows under PositionAndSize and a square that moves between two containers. Try Shuffle with slow on, then Freeze the UI thread and watch the cards keep easing.",
                 () => new LayoutPage()),
-            new("Lifecycle", "Presence.Initial, Enter and Exit side by side: two views whose rows rise in a stagger when a view loads, slide in when added on their own and leave on a ghost when removed, while a whole view navigated away plays nothing. The log beside them is written by each builder's OnBegin, so it shows what Presence classified. Navigate, show a view again, add and remove rows to see each moment. Below, a ContentControl swaps between two views that crossfade, the old one leaving on its ghost as the new one enters.",
+            new("Lifecycle", "Presence.Initial, Enter and Exit side by side: two views whose rows rise in a stagger when a view loads, slide in when added on their own and leave on a ghost when removed, while a whole view navigated away plays nothing. The log beside them is written by each builder's OnBegin, so it shows what Presence classified. Navigate, show a view again, add and remove rows to see each moment. Below, a ContentControl swaps between two views that crossfade, the old one leaving on its ghost as the new one enters, and a three-step wizard whose host sets Presence.Mode to Wait, so each step slides in only after the last has slid out, with a picker to compare Sync and PopLayout.",
                 () => new LifecyclePage()),
-            new("States", "Motion.Hover, Press and Focus on real Buttons, a TextBox, a checklist and cards, which lift on hover, squish on press and grow on keyboard focus. The checklist slides done items through a shared :checked state, a card's hover nudges its arrow through a style setter on Motion.State, and a status chip's bound Motion.State pulses, shakes and settles. Tab through it to see focus-visible differ from a click, and watch the log record each state change.",
+            new("States", "Motion.Hover, Press and Focus on real Buttons, a TextBox, a checklist and cards, which lift on hover, squish on press and grow on keyboard focus. The checklist slides done items through a shared :checked state, a card's hover nudges its arrow through a style setter on Motion.State, a status chip's bound Motion.State pulses, shakes and settles, and a menu panel's Open state unfolds it and staggers its items in, with pickers for Order and StaggerFrom. Tab through it to see focus-visible differ from a click, and watch the log record each state change.",
                 () => new StatesPage()),
             new("Effects", "The effect shorthands on real controls: text and a picture blurred out and back, a drop shadow steered by five sliders, BoxShadow beside a DropShadowEffect on identical cards, a RotateY flip with Perspective, a card tilting after the pointer and springing back, ClipInset, ClipCircle and MaskSweep reveals over one picture, and a row leaving with a blur-out Presence.Exit. Each writes one bridge-owned effect, clip or mask and removes it at rest, and every stage prints the code it ran.",
                 () => new EffectsPage()),
@@ -62,6 +63,8 @@ public partial class MainViewModel : ObservableObject
                 () => new ImageEffectsPage()),
             new("Value-driven", "{presto:Follow} and Follow: a view model's Level drives a bar's Width, a gauge needle's Follow.Rotate, a swatch's Background brush and a card's Margin, each easing to every new value with no animation code. Mash + and − and the springs carry their momentum into each retarget; pick a timing to retime the gauge live. Below, 200 virtualized rows ease their bound progress bars as values change, while shuffled, replaced or freshly scrolled-in rows snap to their new item instead of sweeping. Flip Reduced motion and every value snaps; the flag is put back when you leave.",
                 () => new ValueDrivenPage()),
+            new("Derived values", "One MotionValue, five properties: PointerValue across a stage is mapped to a card's Follow.X, mapped and sprung into its Follow.Rotate, bound to its Opacity with Follow.Bind, mapped through three colours onto its Background and, through VelocityOf, into a Follow.Blur, with the C# that builds the graph printed beside it. Sweep fast and the card blurs; stop sharply and the tilt springs on past the pointer. The header's opacity is derived in a view model and written by {presto:Follow} with Duration=0.",
+                () => new DerivedValuesPage()),
             new("Page transitions", "PrestoPageTransition on Avalonia's three page hosts. Pick a page recipe, or a custom Enter and Exit builder pair, and press Next and Back to play it forward and reversed in a TransitioningContentControl, with the C# and XAML that set it printed beneath it; press the freeze button and the transition keeps playing on the render thread while the ProgressBar stops. Drag the Carousel's page sideways and a Presto PageSlide follows your finger, then push and pop the NavigationPage to see PagePush slide over and dim.",
                 () => new PageTransitionsPage())),
         Section("Showcase",
@@ -73,11 +76,11 @@ public partial class MainViewModel : ObservableObject
                 () => new ParticleFieldPage()),
             new GalleryPage("Card gallery", "Opening the page plays one wave of cards rising into place from the top-left corner. Filter by a chip, flip the sort or the grid/list switch, or press Drop mid-reflow, and watch every card ease from where it was drawn into its new slot on the render thread. Click a card to lift it into the detail pane over a grid that blurs behind it, then click it again, even mid-flight, to send it back and clear the blur.",
                 () => new GalleryFlipPage()),
-            new GalleryPage("Board", "Three lanes of draggable cards. Drag one and watch the lane under it open a gap where it would land, following the card through the drag and the throw; a gentle drop fills the gap with nothing else moving. Fling a card to throw it a lane further, or at the bin to spin it off the board.",
+            new GalleryPage("Board", "Three lanes of draggable cards. Drag one and watch the lane under it open a gap where it would land, following the card through the drag and the throw; a gentle drop fills the gap with nothing else moving. Fling a card to throw it a lane further, or at the bin to spin it off the board. Above them, drag a priority by its grip to reorder the row, press Escape mid-drag to put it back, or move the focused one with Alt+Left/Right.",
                 () => new BoardPage()),
             new GalleryPage("Dashboard", "Four counters, twelve bars, a donut and a sparkline, all retargeted where they stand: a counter is a Text tween whose TextModifier formats the number with Utils.RoundPad, a bar is its Height under a staggered animation, a donut slice is the pair of contour fractions CreateDrawable reveals, and the sparkline morphs its Data into the next dataset. A timer behind the live switch pushes a fresh round of seeded data every 800 ms, so the default replace composition is on show: each push reads the value on screen as its from and retires the tweens it overrides, and nothing snaps back to a starting value. The transport drives the reveal timeline that counts the whole board up from zero.",
                 () => new DashboardPage()),
-            new GalleryPage("Scroll story", "A long article driven entirely by where its ScrollViewer is: a hero whose three layers trail the scrollbar under a smoothed sync, three chapters played and paused at their own named enter and leave thresholds with every crossing and its direction reported to the rail, a pull-quote whose whole crossing is shaped by an eased sync, and a pinned section — an overlay the observer shows while its 1600px track passes — whose timeline is seeked frame by frame to the scroll position, panning a strip of panels and counting itself up. A rail across the top reads Progress off an observer watching the whole article and turns a vane through an Animatable from Velocity and Backward, and every observer is re-measured when the window resizes.",
+            new GalleryPage("Scroll story", "A long article driven entirely by where its ScrollViewer is: a hero whose three layers scroll at their own Scroll.Speed for depth, three chapters played and paused at their own named enter and leave thresholds with every crossing and its direction reported to the rail, a pull-quote whose whole crossing is shaped by an eased sync, and a stage the observer pins in place for 960px of scroll, whose timeline is seeked frame by frame to the scroll position, panning a strip of panels and counting itself up, and snapped to the panel labels once scrolling stops. A rail across the top reads Progress off an observer watching the whole article and turns a vane through an Animatable from Velocity and Backward, and every observer is re-measured when the window resizes.",
                 () => new ScrollStoryPage()),
             new GalleryPage("Interruption lab", "What happens when an animation is interrupted mid-flight. Click a pane or press Burst to retarget three pucks at once, one per composition mode, and compare their trails; then press Cancel newest mid-burst to see which modes were still running the older animations underneath. Sweep the pointer across the tiles under retarget and then restart to see which one jumps.",
                 () => new InterruptionPage()),
@@ -122,11 +125,11 @@ public partial class MainViewModel : ObservableObject
                 () => new RecipesPage()),
             new GalleryPage("Timeline and compositor", "One fadeUp builder assembled into a timeline, each card added at its own position with Add(target, builder, position); the slider scrubs it and Play resumes. Below, a gear spun by AnimateOnCompositor(builder) runs on the render thread, so press Freeze and watch it keep turning while the timeline above stops dead for two seconds.",
                 () => new TimelineBuilderPage()),
-            new GalleryPage("XAML", "A builder attached from markup with Animate.OnAttached, three ways: a builder written out in full and shared through x:Static on a row of cards, the library's {presto:Fade} markup extension whose Delay cascades a list in, and a binding to a view model that swaps Recipes.Float for a looping Recipes.Shake when you flip the switch. Each panel prints its XAML and the C# it points at; Replay re-attaches all three.",
+            new GalleryPage("XAML", "A builder attached from markup with Animate.OnAttached, three ways: a builder written out in full and shared through x:Static on a row of cards, the library's {presto:Fade} markup extension whose Delay cascades a list in, and a binding to a view model that swaps Recipes.Float for a looping Recipes.Shake when you flip the switch. Below them, two drag-to-reorder lists lift with {presto:Reorder}, one at its defaults and one at Intensity=2. Each panel prints its XAML and the C# it points at; Replay re-attaches them all.",
                 () => new XamlPage()),
             new GalleryPage("Motion tokens", "The library recipes read a design system's tokens instead of literals: FadeUp, SlideIn and PopIn take their durations, eases and distances from Recipes.Tokens, so picking the Standard, Expressive or Reduced MotionTokens preset restyles every animation on the stage at once. The Reduced motion switch in the sidebar sets Presto.Defaults.ReducedMotion, so on Replay each recipe plays its reduced form, a short fade, whatever the preset. The preset is put back when you leave the page. The printed code is the settings and the calls that ran.",
                 () => new MotionTokensPage()),
-            new GalleryPage("Recipe gallery", "Every library recipe on its own tile, grouped by family, with the one-line call that plays it printed beneath: entrances, exits that put their tile back when they end, attention jolts, loops and loading indicators that Play toggles, interactions and a tilt on real buttons through Motion.Hover, Press and Focus, and the Typewriter and CountUp text recipes. Pick a token preset, drag the duration and intensity sliders, or flip Reduced motion in the sidebar to play every reduced form instead. The XAML tab builds a stage from the markup extensions: a fade-up, a pop, a shake, a lifting button, a tilting card and rows that fade out when removed.",
+            new GalleryPage("Recipe gallery", "Every library recipe on its own tile, grouped by family, with the one-line call that plays it printed beneath: entrances, exits that put their tile back when they end, attention jolts, loops and loading indicators that Play toggles, interactions and a tilt on real buttons through Motion.Hover, Press and Focus, and the Typewriter, CountUp and RollDigits text recipes. Pick a token preset, drag the duration and intensity sliders, or flip Reduced motion in the sidebar to play every reduced form instead. The XAML tab builds a stage from the markup extensions: a fade-up, a pop, a shake, a lifting button, a tilting card and rows that fade out when removed.",
                 () => new RecipeGalleryPage()),
             new GalleryPage("Playground", "Every control edits one step of a builder chain over six squares: transforms, duration, an ease by name, a stagger delay and where it spreads from, loop and alternate. The squares replay as you change it, and the code beneath is the C# for exactly that chain, ready to paste.",
                 () => new PlaygroundPage()),
@@ -134,7 +137,7 @@ public partial class MainViewModel : ObservableObject
                 () => new RippleGridPage()),
             new GalleryPage("Submit flow", "A submit button driven by nine small recipes awaited in turn: it collapses into a circle, spins while a Presto timer stands in for the request, then turns aqua, draws a tick and throws Recipes.Confetti, or turns coral, shakes and draws a cross, before springing back. Tick \"Fail the next request\" to see the error branch.",
                 () => new SubmitFlowPage()),
-            new GalleryPage("Counters", "Four stat tiles counted by Text tweens, each with its own textModifier for currency, thousands or percentages and counting on from the value it shows. Below, an odometer rolls its digit strips with one Y tween whose target digit comes per strip from a function value, staggered from the last digit; tick Mechanical to add a Modifier that snaps each strip to whole digits. New data retargets both, and each tile pops through Animate.OnChanged as its watched value changes.",
+            new GalleryPage("Counters", "Four stat tiles counted by Text tweens, each with its own textModifier for currency, thousands or percentages and counting on from the value it shows. Below, an odometer rolls its digit strips with one Y tween whose target digit comes per strip from a function value, staggered from the last digit; tick Mechanical to add a Modifier that snaps each strip to whole digits. New data retargets both, and each tile pops through Animate.OnChanged as its watched value changes. At the bottom, Recipes.RollDigits rolls a readout to a random value, moving only the characters that change.",
                 () => new CountersPage()),
             new GalleryPage("Toast stack", "An ItemsControl of toasts whose item template attaches its entrance, a {presto:Slide} recipe on Presence.Initial and Enter, and a five-second countdown bar with Animate.OnAttached, all from XAML. When the bar runs out, or you press ✕, the page collapses the toast's container and the stack closes up before the item leaves the collection. Press Notify a few times: past four toasts the oldest leaves on its own.",
                 () => new ToastsPage()),
@@ -159,6 +162,25 @@ public partial class MainViewModel : ObservableObject
     {
         get => Presto.Defaults.ReducedMotion;
         set => SetProperty(Presto.Defaults.ReducedMotion, value, value => Presto.Defaults.ReducedMotion = value);
+    }
+
+    private IDisposable? _systemMotion;
+
+    /// <summary>Whether <see cref="ReducedMotion"/> follows the OS setting through <see cref="PrestoAvalonia.FollowSystemReducedMotion"/>.</summary>
+    public bool FollowSystemMotion
+    {
+        get => _systemMotion is not null;
+        set
+        {
+            if (value == FollowSystemMotion) return;
+            if (value) _systemMotion = PrestoAvalonia.FollowSystemReducedMotion(changed: _ => OnPropertyChanged(nameof(ReducedMotion)));
+            else
+            {
+                _systemMotion!.Dispose();
+                _systemMotion = null;
+            }
+            OnPropertyChanged();
+        }
     }
 
     public MainViewModel() => SelectedPage = Sections[0].Pages[0];

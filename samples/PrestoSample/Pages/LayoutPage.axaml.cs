@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -14,8 +15,11 @@ public partial class LayoutPage : UserControl
     private static readonly (string Icon, string Title)[] Kinds =
         [("HeartIcon", "Liked"), ("StarIcon", "Starred"), ("PlayIcon", "Playing")];
 
+    private static readonly string[] Views = ["ShortView", "ParagraphView", "IconsView"];
+
     private readonly Scope _scope = new();
     private int _next;
+    private int _view;
     private bool _moved;
 
     public LayoutPage()
@@ -23,6 +27,7 @@ public partial class LayoutPage : UserControl
         InitializeComponent();
         for (var i = 0; i < 8; i++) AddCard();
         SlotA.Child = NewSquare();
+        SwapHost.Child = BuildView();
         Arm();
     }
 
@@ -47,7 +52,15 @@ public partial class LayoutPage : UserControl
         if (Cards.Children.Count > 0) Cards.Children.RemoveAt(Cards.Children.Count - 1);
     }
 
-    private void Grow(object? sender, RoutedEventArgs e) => GrowBox.Width = GrowBox.Width > 160 ? 120 : 220;
+    private void Grow(object? sender, RoutedEventArgs e)
+    {
+        GrowBox.Width = GrowBox.Width > 160 ? 120 : 220;
+        (AvatarCard.Width, AvatarCard.Height) = AvatarCard.Width > 200 ? (150, 56) : (240, 112);
+    }
+
+    private void NextView(object? sender, RoutedEventArgs e) => SwapHost.Child = BuildView();
+
+    private Control BuildView() => ((IDataTemplate)Resources[Views[_view++ % Views.Length]]!).Build(null)!;
 
     private void MoveShared(object? sender, RoutedEventArgs e)
     {
@@ -64,8 +77,7 @@ public partial class LayoutPage : UserControl
     private void Freeze(object? sender, RoutedEventArgs e) =>
         Dispatcher.UIThread.Post(() => Thread.Sleep(2000), DispatcherPriority.Background);
 
-    /// <summary>A transition carries the duration it was armed with, so changing the speed re-arms every control.</summary>
-    private void SpeedChanged(object? sender, RoutedEventArgs e) => Arm();
+    private void Rearm(object? sender, RoutedEventArgs e) => Arm();
 
     private void Arm()
     {
@@ -73,7 +85,14 @@ public partial class LayoutPage : UserControl
         {
             if (card != XamlCard) _scope.Execute(_ => card.AnimateLayout(Duration, Eases.OutQuint));
         }
-        _scope.Execute(_ => GrowBox.AnimateLayout(Duration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize));
+        var avatarMode = Uncorrected.IsChecked == true ? LayoutAnimateMode.PositionAndSize : LayoutAnimateMode.PositionAndSizeCorrected;
+        _scope.Execute(_ =>
+        {
+            GrowBox.AnimateLayout(Duration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize);
+            AvatarCard.AnimateLayout(Duration, Eases.OutQuint, avatarMode);
+            SwapHost.AnimateContentSize(Duration, Eases.OutQuint);
+        });
+        Animate.SetContentSize(Faq, Recipes.Reflow(Duration, ease: Eases.OutQuint));
     }
 
     private void AddCard()

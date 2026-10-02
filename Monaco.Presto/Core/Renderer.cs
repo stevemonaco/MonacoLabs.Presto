@@ -56,6 +56,7 @@ internal static class Renderer
         tickable._currentTime = tickableAbsoluteTime;
         tickable._iterationTime = iterationTime;
         tickable.Backwards = isRunningBackwards;
+        tickable._progressValue?.Assign(tickable.Progress);
 
         if (isCurrentTimeAboveZero && !tickable.Began)
         {

@@ -1,4 +1,5 @@
 using System;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -13,6 +14,7 @@ public partial class AnimatablePage : UserControl
     private readonly Animatable _follower;
     private readonly Animatable _momentum;
     private readonly Animatable _rest;
+    private Animation? _toss;
 
     public AnimatablePage()
     {
@@ -39,6 +41,13 @@ public partial class AnimatablePage : UserControl
             MomentumDot.CreateAnimatable(new() { ["X"] = new(), Ease = spring, PreserveVelocity = true }),
             RestDot.CreateAnimatable(new() { ["X"] = new(), Ease = spring })
         ));
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        _toss?.Revert();
+        _toss = null;
     }
 
     private void MoveParticles(object? sender, PointerEventArgs e)
@@ -82,4 +91,12 @@ public partial class AnimatablePage : UserControl
     }
 
     private void RevertFollower(object? sender, RoutedEventArgs e) => _follower.Revert();
+
+    private void Toss(object? sender, RoutedEventArgs e)
+    {
+        const double gravity = .0015;
+        _toss?.Revert();
+        var (x, y) = Projectile.Launch(speed: .6, angleDegrees: -60, gravity);
+        _toss = Ball.Animate(new() { ["X"] = x, ["Y"] = y, Duration = 2 * -y.Velocity / gravity });
+    }
 }

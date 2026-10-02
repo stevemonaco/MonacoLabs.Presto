@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
@@ -10,7 +11,10 @@ namespace PrestoSample.Pages;
 
 public partial class ShapesPage : UserControl
 {
+    private static readonly Point[] SplinePoints = [new(30, 110), new(110, 30), new(180, 120), new(250, 40), new(330, 120), new(390, 50)];
+
     private readonly List<Animation> _animations = [];
+    private Animation? _spline;
     private Animation? _morph;
     private bool _morphed;
 
@@ -39,6 +43,31 @@ public partial class ShapesPage : UserControl
             Ease = Eases.None,
             Loop = true,
         }));
+
+        StartSpline();
+    }
+
+    private void StartSpline()
+    {
+        _spline?.Revert();
+        var curviness = CurvinessSlider.Value;
+        TrackSpline.Data = PrestoAvalonia.MotionPathGeometry(SplinePoints, curviness);
+        var motion = PrestoAvalonia.CreateMotionPath(SplinePoints, curviness, autoRotate: 90);
+        _spline = SplineRider.Animate(new()
+        {
+            ["X"] = motion.X,
+            ["Y"] = motion.Y,
+            ["Rotate"] = motion.Rotate,
+            Duration = 4000,
+            Ease = Eases.InOutSine,
+            Loop = true,
+            Alternate = true,
+        });
+    }
+
+    private void OnCurvinessChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_spline != null) StartSpline();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -46,6 +75,8 @@ public partial class ShapesPage : UserControl
         base.OnDetachedFromVisualTree(e);
         foreach (var animation in _animations) animation.Revert();
         _animations.Clear();
+        _spline?.Revert();
+        _spline = null;
         _morph?.Revert();
         _morph = null;
     }

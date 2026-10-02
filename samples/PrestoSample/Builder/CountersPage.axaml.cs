@@ -7,7 +7,10 @@ using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
 
-/// <summary>Stat tiles counted by Text tweens with their own formats and bumped when their watched value changes, and an odometer whose strips take their digit from a function value.</summary>
+/// <summary>
+/// Stat tiles counted by Text tweens with their own formats and bumped when their watched value changes, an odometer whose
+/// strips take their digit from a function value, and a readout rolled by <see cref="Recipes.RollDigits"/>.
+/// </summary>
 public partial class CountersPage : ShowcasePage
 {
     private const int Digits = 7;
@@ -60,6 +63,8 @@ public partial class CountersPage : ShowcasePage
 
     public int OdometerValue { get; private set; }
 
+    public Animation? Rolled { get; private set; }
+
     protected override void OnAttached() => Refresh();
 
     private void Refresh()
@@ -99,4 +104,6 @@ public partial class CountersPage : ShowcasePage
     private static double SnapToDigit(double y) => Math.Round(y / DigitHeight) * DigitHeight;
 
     private void Refresh(object? sender, RoutedEventArgs e) => Refresh();
+
+    private void RollDigits(object? sender, RoutedEventArgs e) => Rolled = Recipes.RollDigits(RollReadout, _random.Next(1_000_000));
 }

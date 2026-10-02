@@ -109,6 +109,8 @@ public partial class RecipeGalleryPage : ShowcasePage
                 () => new TextBlock { Text = "Typed out, one letter at a time", TextWrapping = TextWrapping.Wrap, Width = 170, Foreground = Palette.Ink }),
             Play("CountUp", (text, duration, _) => Recipes.CountUp((TextBlock)text, 12480, duration: duration),
                 () => new TextBlock { Text = "0", Classes = { "readout" } }),
+            Play("RollDigits", (text, duration, _) => Recipes.RollDigits((TextBlock)text, Random.Shared.Next(100_000), duration: duration),
+                () => new TextBlock { Text = "12,480", Classes = { "readout" } }),
         ]),
     ];
 

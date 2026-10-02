@@ -33,6 +33,8 @@ public sealed class LevelViewModel : INotifyPropertyChanged
     }
 
     public LevelViewModel? Child { get; init; }
+
+    public MotionValue Motion { get; init; } = Presto.CreateMotionValue(20);
 }
 
 public sealed class Doubler : IValueConverter

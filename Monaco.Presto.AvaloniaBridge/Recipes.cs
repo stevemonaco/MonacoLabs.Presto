@@ -1,6 +1,10 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Monaco.Presto.AvaloniaBridge.Prebuilt;
 
 namespace Monaco.Presto.AvaloniaBridge;
@@ -8,12 +12,14 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <summary>
 /// The recipe catalogue in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
 /// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text reveals are builders
-/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/> and <see cref="CountUp"/> need
+/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/>, <see cref="CountUp"/> and <see cref="RollDigits"/> need
 /// the <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/>.
 /// </summary>
 public static class Recipes
 {
     internal const double FlipPerspective = 800;
+
+    private static readonly ConditionalWeakTable<TextBlock, Animation> Rolls = new();
 
     /// <summary>The durations, eases and travel every recipe defaults to, read on each call: replacing it restyles later calls, not builders already made.</summary>
     public static MotionTokens Tokens { get; set; } = MotionTokens.Standard;
@@ -162,6 +168,10 @@ public static class Recipes
     public static AnimationBuilder PressIn(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.PressIn(intensity, duration, delay, ease);
 
+    /// <inheritdoc cref="Interactions.ReorderLift"/>
+    public static AnimationBuilder ReorderLift(double? scale = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Interactions.ReorderLift(scale, intensity, duration, delay, ease);
+
     /// <inheritdoc cref="Interactions.Glow"/>
     public static AnimationBuilder Glow(Color? color = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.Glow(color, intensity, duration, delay, ease);
@@ -288,6 +298,78 @@ public static class Recipes
             .Property("Text", to: to, from: from, textModifier: text)
             .WhenReduced(r => r.Property("Text", to: to, textModifier: text).Duration(0))
             .Animate(textBlock);
+    }
+
+    /// <summary>
+    /// Rolls <paramref name="textBlock"/>'s number to <paramref name="to"/> like an odometer, rolling only the changed characters
+    /// and staggering them right to left. Reduced, the end text is set at once.
+    /// </summary>
+    public static Animation RollDigits(TextBlock textBlock, double to, string? format = null, double? duration = null, double? delay = null, EaseValue? ease = null)
+    {
+        if (Rolls.TryGetValue(textBlock, out var running)) running.Complete();
+        if (Engine.Current.Defaults.ReducedMotion) return CountUp(textBlock, to, format, delay: delay);
+
+        format ??= "N0";
+        var from = double.TryParse(textBlock.Text, NumberStyles.Any, CultureInfo.CurrentCulture, out var shown) ? shown : 0;
+        var oldText = from.ToString(format, CultureInfo.CurrentCulture);
+        var newText = to.ToString(format, CultureInfo.CurrentCulture);
+        var line = textBlock.TextLayout.TextLines[0];
+        var travel = to >= from ? line.Height : -line.Height;
+        var tokens = Tokens;
+
+        var width = Math.Max(oldText.Length, newText.Length);
+        var columns = new Control[width];
+        var glyphs = new List<Control>();
+        var incoming = new List<bool>();
+        var delays = new List<double>();
+        var start = delay ?? 0;
+        for (var c = width - 1; c >= 0; c--)
+        {
+            var o = c - (width - oldText.Length);
+            var n = c - (width - newText.Length);
+            char? leaving = o >= 0 ? oldText[o] : null;
+            char? entering = n >= 0 ? newText[n] : null;
+            if (leaving == entering)
+            {
+                columns[c] = new TextBlock { Text = entering.ToString() };
+                continue;
+            }
+            var column = new Panel { ClipToBounds = true };
+            foreach (var (glyph, enters) in new[] { (leaving, false), (entering, true) })
+            {
+                if (glyph == null) continue;
+                var piece = new TextBlock { Text = glyph.ToString(), HorizontalAlignment = HorizontalAlignment.Center };
+                column.Children.Add(piece);
+                glyphs.Add(piece);
+                incoming.Add(enters);
+                delays.Add(start);
+            }
+            start += tokens.StaggerStep;
+            columns[c] = column;
+        }
+
+        // An inline control sits on the baseline, below half the line gap and above the descent; the margins give back the plain text's line box.
+        var gap = line.TextRuns.Count > 0 && line.TextRuns[0] is ShapedTextRun run ? line.Baseline + run.TextMetrics.Ascent : 0;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, UseLayoutRounding = false, Margin = new(0, -gap, 0, line.Baseline - line.Height) };
+        row.Children.AddRange(columns);
+        textBlock.Text = null;
+        textBlock.Inlines = [new InlineUIContainer(row)];
+
+        var roll = Presto.Build()
+            .Duration(duration ?? tokens.Medium)
+            .Ease(ease ?? tokens.Ease)
+            .Delay((FunctionValue)((_, i, _) => delays[i]))
+            .Property("Y", from: (FunctionValue)((_, i, _) => incoming[i] ? travel : 0), to: (FunctionValue)((_, i, _) => incoming[i] ? 0 : -travel))
+            .Property("Opacity", from: (FunctionValue)((_, i, _) => incoming[i] ? 0 : 1), to: (FunctionValue)((_, i, _) => incoming[i] ? 1 : 0))
+            .OnComplete(_ =>
+            {
+                Rolls.Remove(textBlock);
+                textBlock.Inlines = null;
+                textBlock.Text = newText;
+            })
+            .Animate(glyphs);
+        Rolls.AddOrUpdate(textBlock, roll);
+        return roll;
     }
 
     /// <summary>A builder with a recipe's timing:<paramref name="stagger"/> steps each element of a batch by <see cref="MotionTokens.StaggerStep"/> after <paramref name="delay"/>.</summary>

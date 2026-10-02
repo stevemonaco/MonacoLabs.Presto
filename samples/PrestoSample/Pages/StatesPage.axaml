@@ -54,6 +54,28 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style Selector="Border.menu">
+            <Setter Property="Width" Value="200" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style Selector="Border.item > TextBlock">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+        <Style Selector="Border.item">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="presto:Motion.States">
+                <presto:MotionStates>
+                    <presto:MotionState When="Open" Motion="{x:Static local:StatesPage.SlideIn}" />
+                </presto:MotionStates>
+            </Setter>
+        </Style>
         <Style Selector="Border.status > TextBlock">
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -158,6 +180,37 @@
                             <Button Content="Next phase" Command="{Binding NextPhaseCommand}" VerticalAlignment="Center" />
                             <ToggleButton Content="★ Star" IsChecked="{Binding IsStarred}" VerticalAlignment="Center" />
                         </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="24">
+                            <StackPanel Spacing="8">
+                                <ToggleButton x:Name="MenuToggle" Content="☰ Menu" IsCheckedChanged="ToggleMenu" />
+                                <ComboBox x:Name="OrderPicker" Width="160" SelectionChanged="OrderChanged">
+                                    <ComboBoxItem Content="Together" />
+                                    <ComboBoxItem Content="BeforeChildren" />
+                                    <ComboBoxItem Content="AfterChildren" />
+                                </ComboBox>
+                                <ComboBox x:Name="FromPicker" Width="160" SelectionChanged="FromChanged">
+                                    <ComboBoxItem Content="From first" />
+                                    <ComboBoxItem Content="From last" />
+                                    <ComboBoxItem Content="From center" />
+                                </ComboBox>
+                            </StackPanel>
+                            <Border x:Name="MenuPanel" Classes="menu" Opacity="0" RenderTransformOrigin="50%,0%"
+                                    presto:Motion.StaggerChildren="40" presto:Motion.DelayChildren="60" presto:Motion.Order="BeforeChildren">
+                                <presto:Motion.States>
+                                    <presto:MotionStates>
+                                        <presto:MotionState When="Open" Motion="{x:Static local:StatesPage.Unfold}" />
+                                    </presto:MotionStates>
+                                </presto:Motion.States>
+                                <StackPanel>
+                                    <Border Classes="item"><TextBlock Text="New file" /></Border>
+                                    <Border Classes="item"><TextBlock Text="Open…" /></Border>
+                                    <Border Classes="item"><TextBlock Text="Save as…" /></Border>
+                                    <Border Classes="item"><TextBlock Text="Share" /></Border>
+                                    <Border Classes="item"><TextBlock Text="Settings" /></Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -181,6 +234,8 @@
                        Text="The checklist shares one MotionStates list through a style; each checkbox keeps its own runtime state, and :checked is just another condition. A card's arrow nudges when the card is hovered, not the arrow: a style setter on Motion.State brings the parent's selector down to the child as the token &quot;hot&quot;. The chip's Motion.State is bound to the page's Status, so each value is a state; Failed has a Leave, which times its return. The log is written from the controls' own class and property changes." />
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The upload card is driven by a view model. Its Phase enum is bound to Motion.State, so each member name is a state, and IsStarred is bound to Classes.starred, which a state names as .starred. Tokens AND together: Uploaded.starred only holds for a starred, finished upload." />
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The menu button sets Motion.State=&quot;Open&quot; on the panel only. Its items declare an Open state but no state of their own, so they follow the panel's: StaggerChildren starts each one 40 ms after the one above, DelayChildren holds them all back by 60, and Order picks whether the panel unfolds before, with or after them. The From picker runs the stagger from the top, the bottom or the middle." />
 
             <TextBlock Classes="caption" Text="The XAML" />
             <Border Classes="codeblock">

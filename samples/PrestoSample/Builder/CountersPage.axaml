@@ -26,6 +26,11 @@
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
+        <Style Selector="TextBlock#RollReadout">
+            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+            <Setter Property="FontSize" Value="36" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
@@ -53,6 +58,19 @@
             <Border Classes="codeblock">
                 <ScrollViewer>
                     <SelectableTextBlock x:Name="OdometerCode" Classes="code" />
+                </ScrollViewer>
+            </Border>
+
+            <TextBlock Classes="caption" Text="Recipes.RollDigits: only the characters that change roll, each in its own clipped column, right to left" />
+            <Border Classes="stage" MinHeight="0">
+                <StackPanel Spacing="16" HorizontalAlignment="Center">
+                    <TextBlock x:Name="RollReadout" Text="0" HorizontalAlignment="Center" />
+                    <Button Content="Roll to a random value" Click="RollDigits" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+            <Border Classes="codeblock">
+                <ScrollViewer>
+                    <SelectableTextBlock Classes="code" Text="Rolled = Recipes.RollDigits(RollReadout, _random.Next(1_000_000));" />
                 </ScrollViewer>
             </Border>
         </StackPanel>

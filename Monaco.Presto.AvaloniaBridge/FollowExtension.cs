@@ -8,9 +8,13 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// Wraps a one-way binding so its property animates to each new value instead of jumping to it, as in
-/// <c>Width="{presto:Follow {Binding Level}, Spring=Gentle}"</c>; the code form is <see cref="Follow.Bind"/>.
+/// <c>Width="{presto:Follow {Binding Level}, Spring=Gentle}"</c>; the code form is <see cref="Follow.Bind(AvaloniaObject, AvaloniaProperty, BindingBase, FollowParams?)"/>.
 /// </summary>
-/// <remarks>It works on a control's attribute and inside control and data templates, but not in a style <c>Setter</c>, which every matched control shares.</remarks>
+/// <remarks>
+/// It works on a control's attribute and inside control and data templates, but not in a style <c>Setter</c>, which every matched control shares.
+/// A binding that resolves to a <see cref="MotionValue"/> or <see cref="MotionObjectValue"/> follows each value it flushes, and with
+/// <c>Duration=0</c> shows them as they are.
+/// </remarks>
 public sealed class FollowExtension(BindingBase binding) : MarkupExtension
 {
     /// <inheritdoc cref="FollowParams.Duration"/>

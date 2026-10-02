@@ -38,6 +38,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private Animation? _mirror;
     private bool _translating;
     private bool _scaling;
+    private List<(Visual Child, CompositionVisual Element)>? _corrected;
 
     // An on-screen first is moved into this control's layout frame at its first pass, once its own scroll offset is known.
     // With recordFirst and no first, that pass only records; unscoped is for a transition whose owner reverts it.
@@ -186,9 +187,19 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     /// </summary>
     void ICompositorTrackOwner.Release(Visual visual, CompositorTrackKind kind)
     {
+        if (kind == CompositorTrackKind.Scale && _corrected?.FindIndex(c => c.Child == visual) is >= 0 and var i)
+        {
+            Restore(_corrected[i].Child, _corrected[i].Element);
+            _corrected.RemoveAt(i);
+            return;
+        }
         if (!ReferenceEquals(visual, _control) || ElementComposition.GetElementVisual(_control) is not { } element) return;
         if (kind == CompositorTrackKind.Translation && _translating) _translating = false;
-        else if (kind == CompositorTrackKind.Scale && _scaling) _scaling = false;
+        else if (kind == CompositorTrackKind.Scale && _scaling)
+        {
+            _scaling = false;
+            Uncorrect();
+        }
         else return;
 
         element.StopAnimation(kind.ToString());
@@ -207,8 +218,9 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(last.Position - screenSlot.Position);
         _firstOnScreen = false;
         _first = last;
-        // A virtualizing panel also repositions realized rows as it corrects estimated sizes during a scroll.
-        if (List is { Scrolled: true, Pending: false } or { Anchoring: true })
+        // A virtualizing panel also repositions realized rows as it corrects estimated sizes during a scroll,
+        // and a content size resize beside the control already eases its move, which a flight would trail behind.
+        if (List is { Scrolled: true, Pending: false } or { Anchoring: true } || ContentSizeTransition.ResizingBeside(_control))
         {
             Cancel();
             return;
@@ -216,7 +228,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         if (first is not { } from || ElementComposition.GetElementVisual(_control) is not { } element) return;
         _armed = false;
 
-        var sizable = _mode == LayoutAnimateMode.PositionAndSize && last.Width > 0 && last.Height > 0;
+        var sizable = _mode != LayoutAnimateMode.Position && !ContentSizeTransition.Eases(_control) && last.Width > 0 && last.Height > 0;
         var scaled = sizable && (from.Size != last.Size || _scratch.ScaleX != 1 || _scratch.ScaleY != 1);
         if (from.Position == last.Position && !scaled) return;
 
@@ -250,6 +262,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
             Duration = spring != null ? (TweenValue)spring.SettlingDuration : _motion.Duration,
             Delay = _motion.Delay,
             Ease = ease,
+            OnComplete = _mode == LayoutAnimateMode.PositionAndSizeCorrected ? _ => Uncorrect() : null,
         };
         mirrorParams.Properties["X"] = new TweenParams { To = 0d, Ease = easeX };
         mirrorParams.Properties["Y"] = new TweenParams { To = 0d, Ease = easeY };
@@ -273,8 +286,58 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         if (!scaled) return;
         // The inverse scale is anchored on the corner the offset maths used, not on the middle a §4.3 rotation centres on.
         element.StopAnimation("CenterPoint");
-        Corner(element);
+        Anchor(element, default);
         Start(element, CompositorCompiler.Segment(CompositorTrackKind.Scale, scale, [1, 1, 1], mirror, [easeScale]), ref _scaling);
+        if (_mode == LayoutAnimateMode.PositionAndSizeCorrected) Correct(element);
+    }
+
+    /// <remarks>
+    /// Each child is anchored at the point of itself that sits as far across it as the child sits across the room the
+    /// parent leaves it: a child flush top left stays there, a centred one stays centred, and a margin scales with the parent.
+    /// </remarks>
+    private void Correct(CompositionVisual parent)
+    {
+        var corrected = _corrected ??= [];
+        for (var i = corrected.Count - 1; i >= 0; i--)
+        {
+            if (corrected[i].Child.GetVisualParent() == _control) continue;
+            Restore(corrected[i].Child, corrected[i].Element);
+            corrected.RemoveAt(i);
+        }
+
+        var room = _control.Bounds.Size;
+        foreach (var child in _control.GetVisualChildren())
+        {
+            if (ElementComposition.GetElementVisual(child) is not { } element) continue;
+            var slot = child.Bounds;
+            element.StopAnimation("CenterPoint");
+            Anchor(element, new Vector3D(Across(slot.X, slot.Width, room.Width), Across(slot.Y, slot.Height, room.Height), 0));
+            // A child corrected by the move this one interrupts keeps its expression, which a restore's write would detach.
+            if (CompositorRegistry.Holder(child, CompositorTrackKind.Scale) == this) continue;
+            CompositorRegistry.WarnIfShorthandsDrive(child, CompositorTrackKind.Scale);
+            CompositorRegistry.Take(child, CompositorTrackKind.Scale, this);
+            var counter = element.Compositor.CreateExpressionAnimation("Vector3(1 / parent.Scale.X, 1 / parent.Scale.Y, 1)");
+            counter.SetReferenceParameter("parent", parent);
+            element.StartAnimation("Scale", counter);
+            corrected.Add((child, element));
+        }
+    }
+
+    private static double Across(double offset, double length, double room) => room > length ? offset / (room - length) * length : 0;
+
+    private void Uncorrect()
+    {
+        if (_corrected == null) return;
+        foreach (var (child, element) in _corrected) Restore(child, element);
+        _corrected.Clear();
+    }
+
+    private void Restore(Visual child, CompositionVisual element)
+    {
+        element.StopAnimation("Scale");
+        CompositorTracks.Write(element, CompositorTrackKind.Scale, [1, 1, 1]);
+        Anchor(element, default);
+        CompositorRegistry.Drop(child, CompositorTrackKind.Scale, this);
     }
 
     private Ease Axis(EaseValue? value, Ease fallback) =>
@@ -297,9 +360,10 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
             if (_scaling)
             {
                 Stop(element, CompositorTrackKind.Scale, [1, 1, 1], ref _scaling);
-                Corner(element);
+                Anchor(element, default);
             }
         }
+        Uncorrect();
 
         _scratch.X = _scratch.Y = 0;
         _scratch.ScaleX = _scratch.ScaleY = 1;
@@ -314,9 +378,9 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     }
 
     // The client setter's equality guard drops an unchanged write, so the discarded first write is what puts the real one on the wire.
-    private static void Corner(CompositionVisual element)
+    private static void Anchor(CompositionVisual element, Vector3D at)
     {
-        element.CenterPoint = s_one;
-        element.CenterPoint = default;
+        element.CenterPoint = at + s_one;
+        element.CenterPoint = at;
     }
 }

@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             x:Class="Monaco.Presto.AvaloniaBridge.Tests.ScrollParallaxXamlView">
+  <ScrollViewer x:Name="Scroller" Width="200" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top">
+    <StackPanel>
+      <Border Height="300" />
+      <Border x:Name="Target" Height="100" presto:Scroll.Speed="0.5" />
+      <Border Height="600" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

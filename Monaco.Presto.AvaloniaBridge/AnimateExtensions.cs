@@ -60,6 +60,18 @@ public static class AnimateExtensions
     public static LayoutTransition AnimateLayout(this Control target, Action<AnimationBuilder> build, LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
         PrestoAvalonia.AnimateLayout(target, build, mode);
 
+    /// <inheritdoc cref="PrestoAvalonia.AnimateContentSize(Control, double, EaseValue?)"/>
+    public static ContentSizeTransition AnimateContentSize(this Control host, double duration, EaseValue? ease = null) =>
+        PrestoAvalonia.AnimateContentSize(host, duration, ease);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateContentSize(Control, AnimationBuilder)"/>
+    public static ContentSizeTransition AnimateContentSize(this Control host, AnimationBuilder builder) =>
+        PrestoAvalonia.AnimateContentSize(host, builder);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateContentSize(Control, AnimationBuilder)"/>
+    public static ContentSizeTransition AnimateContentSize(this Control host, Action<AnimationBuilder> build) =>
+        PrestoAvalonia.AnimateContentSize(host, build);
+
     /// <summary>Creates an animatable over this object's properties, installing the bridge first when nothing else has.</summary>
     public static Animatable CreateAnimatable(this AvaloniaObject target, AvaloniaAnimatableParams parameters)
     {

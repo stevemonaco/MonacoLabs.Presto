@@ -61,6 +61,30 @@ public sealed class AllocationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AMotionValueBoundWidthTicksWithinBudget()
+    {
+        var progress = Presto.CreateTimer(new() { Duration = 100000 }).ProgressValue;
+        Follow.Bind(new Border(), Layoutable.WidthProperty, progress.Map(p => p * 100000));
+
+        var bytes = BytesPerTick();
+
+        // measured 80, below Follow.Bind's 104 for a binding: the double is pushed unboxed, and the graph adds nothing.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void AMotionValueFollowedXTicksWithinBudget()
+    {
+        var progress = Presto.CreateTimer(new() { Duration = 100000 }).ProgressValue;
+        Follow.SetX(new Border(), progress.Map(p => p * 100000));
+
+        var bytes = BytesPerTick();
+
+        // measured 80: all of it is the change the composer's TranslateTransform raises.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
     public void APlayingSpriteSheetTicksWithinBudget()
     {
         new SpriteSheet { Columns = 4, Rows = 2 }.Play(fps: 24);

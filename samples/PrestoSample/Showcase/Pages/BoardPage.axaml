@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="620"
                        x:Class="PrestoSample.Showcase.Pages.BoardPage">
     <showcase:ShowcasePage.Styles>
@@ -37,9 +38,52 @@
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Margin" Value="0" />
         </Style>
+
+        <Style Selector="ListBox.priorities">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.priorities ListBoxItem">
+            <Setter Property="Padding" Value="0,0,8,0" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="ListBox.priorities ListBoxItem /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.priorities ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.priorities ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.priorities ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.priority">
+            <Setter Property="Width" Value="124" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="4,0,10,0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="ListBoxItem:focus-visible Border.priority">
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Accent}" />
+        </Style>
+        <Style Selector="Border.priority TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.grip">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="SizeWestEast" />
+        </Style>
+        <Style Selector="Border.grip PathIcon">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+        </Style>
     </showcase:ShowcasePage.Styles>
 
-    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
         <Border Grid.Row="0" Classes="rail showcase">
             <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="18">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
@@ -53,7 +97,33 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Classes="stage">
+        <Border Grid.Row="1" Classes="rail showcase">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="PRIORITIES" />
+                <ListBox x:Name="Priorities" Classes="priorities" presto:Reorder.Enabled="True"
+                         presto:Reorder.Axis="Horizontal" presto:Animate.ItemLayout="{presto:Reflow}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Border Classes="priority">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Classes="grip" presto:Reorder.Handle="True">
+                                        <PathIcon Data="M4,2 L7,2 L7,5 L4,5 Z M9,2 L12,2 L12,5 L9,5 Z M4,7 L7,7 L7,10 L4,10 Z M9,7 L12,7 L12,10 L9,10 Z M4,12 L7,12 L7,15 L4,15 Z M9,12 L12,12 L12,15 L9,15 Z" />
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="{Binding}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Classes="stage">
             <ScrollViewer x:Name="Scroller">
                 <Grid x:Name="Board" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" HorizontalAlignment="Left">
                     <Border Grid.Column="3" x:Name="Bin" Classes="lane bin">
@@ -63,7 +133,7 @@
             </ScrollViewer>
         </Border>
 
-        <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
-                   Text="Drag a card across the lanes: the lane under it opens a gap at the slot it would land in, and the gap follows the card as you move or fling it. Let go gently and it drops straight into that gap with nothing else moving; flick it and the throw carries it on a lane, or over the bin, where it spins away. Hold a card near the bottom edge to auto-scroll the board." />
+        <TextBlock Grid.Row="3" Classes="caption" TextWrapping="Wrap"
+                   Text="Drag a card across the lanes: the lane under it opens a gap at the slot it would land in, and the gap follows the card as you move or fling it. Let go gently and it drops straight into that gap with nothing else moving; flick it and the throw carries it on a lane, or over the bin, where it spins away. Hold a card near the bottom edge to auto-scroll the board. Priorities reorders: drag one by its grip and it lifts while the others slide aside, Escape puts it back, and Alt+Left/Right moves the focused one." />
     </Grid>
 </showcase:ShowcasePage>

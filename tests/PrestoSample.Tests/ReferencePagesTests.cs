@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -48,6 +49,72 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void TheFaqCardEasesOpenToItsNaturalHeightWithoutRewrappingTheAnswer()
+    {
+        var page = new LayoutPage();
+        var window = SceneHarness.Show(page, 900, 1200);
+        var faq = page.GetControl<Border>("Faq");
+        var answer = page.GetControl<TextBlock>("FaqAnswer");
+        var closed = faq.Bounds.Height;
+
+        SceneHarness.Click(window, page.GetControl<ToggleButton>("FaqToggle"));
+        TestFrames.Tick(4);
+        var midFlight = faq.Bounds.Height;
+        var answerMidFlight = answer.Bounds.Size;
+
+        TestFrames.Tick(40);
+        var open = faq.Child!.Bounds.Height + faq.Padding.Top + faq.Padding.Bottom;
+        Assert.Equal(open, faq.Bounds.Height, 6);
+        Assert.InRange(midFlight, closed + 1, open - 1);
+        Assert.Equal(answerMidFlight, answer.Bounds.Size);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void NextViewSwapsThePanelThroughAGhostAndEndsAtTheNewViewsSize()
+    {
+        var page = new LayoutPage();
+        var window = SceneHarness.Show(page, 900, 1200);
+        var host = page.GetControl<Border>("SwapHost");
+        var before = host.Bounds.Size;
+
+        SceneHarness.Click(window, Button(page, "Next view"));
+        var midFlight = host.Bounds.Size;
+        Assert.NotEmpty(OverlayLayer.GetOverlayLayer(host)!.Children.OfType<Canvas>());
+
+        TestFrames.Tick(60);
+        var view = host.Child!;
+        Assert.Equal(view.Bounds.Width + host.Padding.Left + host.Padding.Right, host.Bounds.Width, 6);
+        Assert.Equal(view.Bounds.Height + host.Padding.Top + host.Padding.Bottom, host.Bounds.Height, 6);
+        Assert.InRange(midFlight.Width, before.Width + 1, host.Bounds.Width - 1);
+        Assert.InRange(midFlight.Height, before.Height + 1, host.Bounds.Height - 1);
+        Assert.Equal(1, view.Opacity);
+        Assert.Empty(OverlayLayer.GetOverlayLayer(host)!.Children.OfType<Canvas>());
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public async Task TheCorrectedAvatarKeepsItsSizeWhileItsCardGrows()
+    {
+        var page = new LayoutPage();
+        var window = SceneHarness.Show(page, 900, 1200);
+        page.GetControl<ToggleSwitch>("Slow").IsChecked = true;
+        var card = page.GetControl<Border>("AvatarCard");
+        var cardColour = ((ISolidColorBrush)card.Background!).Color;
+        var avatarColour = ((ISolidColorBrush)page.GetControl<Avalonia.Controls.Shapes.Ellipse>("Avatar").Fill!).Color;
+        TestFrames.Tick();
+        var avatar = SceneHarness.Extent(page, avatarColour)!.Value;
+
+        SceneHarness.Click(window, Button(page, "Grow panel"));
+
+        Assert.True(await SceneHarness.Pump(() => SceneHarness.Extent(page, cardColour) is { Width: > 170 and < 220 }), "the card never drew mid-flight");
+        var midFlight = SceneHarness.Extent(page, avatarColour)!.Value;
+        Assert.InRange(midFlight.Width, avatar.Width - 1, avatar.Width + 1);
+        Assert.InRange(midFlight.Height, avatar.Height - 1, avatar.Height + 1);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void LifecycleLogsWhatPresenceClassified()
     {
         var page = new LifecyclePage();
@@ -91,6 +158,57 @@ public sealed class ReferencePagesTests
         Assert.StartsWith("Enter", Log(moments)[0]);
         SceneHarness.Close(window);
     }
+
+    [AvaloniaFact]
+    public void TheWaitingWizardHoldsTheNextStepUntilTheOldStepsGhostEnds()
+    {
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 2000);
+        var wizard = page.GetControl<ContentControl>("Wizard");
+        TestFrames.Tick(40);
+
+        SceneHarness.Click(window, Button(page, "Next"));
+        var incoming = (Control)wizard.Content!;
+        TestFrames.Tick(4);
+        Assert.Single(Ghosts(wizard));
+        Assert.Equal(0, incoming.Opacity);
+
+        for (var frame = 0; frame < 120 && Ghosts(wizard).Any(); frame++) TestFrames.Tick();
+        Assert.Empty(Ghosts(wizard));
+        TestFrames.Tick(60);
+
+        Assert.Equal(1, incoming.Opacity, 6);
+        Assert.Equal(0, (double)PrestoAvalonia.Get(incoming, "X")!, 6);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void DoubleClickingNextInTheWaitingWizardEndsOnTheThirdStepVisibleAndReleasesTheSkippedStep()
+    {
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 2000);
+        var wizard = page.GetControl<ContentControl>("Wizard");
+        TestFrames.Tick(40);
+
+        SceneHarness.Click(window, Button(page, "Next"));
+        var held = (Control)wizard.Content!;
+        TestFrames.Tick();
+        SceneHarness.Click(window, Button(page, "Next"));
+        TestFrames.Tick(120);
+
+        var third = (Control)wizard.Content!;
+        Assert.Contains("3 · Done", third.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+        Assert.Empty(Ghosts(wizard));
+        Assert.Equal(1, third.Opacity, 6);
+        Assert.False(held.IsAnimating(Visual.OpacityProperty));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void LifecycleSnippetsMatchTheMarkup() =>
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(LifecyclePage), "samples/PrestoSample/Pages/LifecyclePage.axaml", 2);
+
+    private static IEnumerable<Canvas> Ghosts(Visual host) => OverlayLayer.GetOverlayLayer(host)!.Children.OfType<Canvas>();
 
     [AvaloniaFact]
     public void AHoveredStatesCardLiftsAndReturns()
@@ -154,8 +272,41 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void TheStatesMenuStaggersItsItemsInAfterThePanelAndClosesToRest()
+    {
+        var page = new StatesPage();
+        var window = SceneHarness.Show(page, 1100, 900);
+        var panel = page.GetControl<Border>("MenuPanel");
+        var items = panel.GetVisualDescendants().OfType<Border>().Where(item => item.Classes.Contains("item")).ToList();
+        var begins = new int?[items.Count];
+        var panelOpen = 0;
+
+        page.GetControl<ToggleButton>("MenuToggle").IsChecked = true;
+        for (var frame = 1; frame <= 60; frame++)
+        {
+            TestFrames.Tick();
+            if (panelOpen == 0 && panel.Opacity == 1) panelOpen = frame;
+            for (var i = 0; i < items.Count; i++) begins[i] ??= items[i].Opacity > 0 ? frame : null;
+        }
+
+        Assert.Equal(5, items.Count);
+        Assert.All(begins, begin => Assert.True(begin > panelOpen, "an item began before the panel unfolded"));
+        for (var i = 1; i < items.Count; i++) Assert.True(begins[i] > begins[i - 1], $"item {i} began at frame {begins[i]}, item {i - 1} at {begins[i - 1]}");
+        Assert.All(items, item => Assert.Equal(1, item.Opacity, 6));
+        Assert.All(items, item => Assert.Equal(0, (double)PrestoAvalonia.Get(item, "Y")!, 6));
+
+        page.GetControl<ToggleButton>("MenuToggle").IsChecked = false;
+        TestFrames.Tick(60);
+        Assert.Null(Motion.GetState(panel));
+        Assert.Equal(0, panel.Opacity, 6);
+        Assert.All(items, item => Assert.Equal(0, item.Opacity, 6));
+        Assert.Empty(items.Append(panel).SelectMany(target => Presto.GetAnimations(target)));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void StatesSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(StatesPage), "samples/PrestoSample/Pages/StatesPage.axaml", 7);
+        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(StatesPage), "samples/PrestoSample/Pages/StatesPage.axaml", 9);
 
     [AvaloniaFact]
     public void EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
@@ -358,6 +509,50 @@ public sealed class ReferencePagesTests
 
         var edge = page.GetControl<Border>("FollowerStage").Bounds.Width / 2 - follower.Width / 2;
         Assert.InRange((double)PrestoAvalonia.Get(follower, "X")!, -edge - 1e-6, released - 10);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TossArcsTheBallUpAndLandsItBackOnTheFloor()
+    {
+        var page = new AnimatablePage();
+        var window = SceneHarness.Show(page, 900, 1400);
+        var ball = page.GetControl<Border>("Ball");
+        SceneHarness.Click(window, Button(page, "Toss"));
+        TestFrames.Tick(20);
+        Assert.True((double)PrestoAvalonia.Get(ball, "Y")! < -40, "the ball did not rise");
+
+        TestFrames.Tick(60);
+        Assert.Equal(0, (double)PrestoAvalonia.Get(ball, "Y")!, 6);
+        Assert.InRange((double)PrestoAvalonia.Get(ball, "X")!, 200, 220);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void EveryCatalogueEaseAndTypedEaseFormPlots()
+    {
+        var page = new EasesPage();
+        var window = SceneHarness.Show(page, 900, 900);
+        var box = page.GetControl<ComboBox>("EaseBox");
+        var dot = page.GetControl<Border>("Dot");
+        for (var i = 0; i < box.ItemCount; i++)
+        {
+            box.SelectedIndex = i;
+            TestFrames.Tick(3);
+            Assert.InRange(dot.Margin.Bottom, 0, 160);
+        }
+
+        var status = page.GetControl<TextBlock>("StatusText");
+        foreach (var typed in new[] { "wiggle(6, anticipate)", "slowMo(0.5)", "fromPath(M0,0 C.1,.6 .3,1.3 .5,1 .7,.8 .85,1.05 1,1)" })
+        {
+            page.GetControl<TextBox>("EaseNameBox").Text = typed;
+            TestFrames.Tick();
+            Assert.StartsWith("EaseParser.Parse(", status.Text);
+        }
+
+        page.GetControl<TextBox>("EaseNameBox").Text = "wiggle(0)";
+        TestFrames.Tick();
+        Assert.DoesNotContain("EaseParser.Parse(", status.Text);
         SceneHarness.Close(window);
     }
 

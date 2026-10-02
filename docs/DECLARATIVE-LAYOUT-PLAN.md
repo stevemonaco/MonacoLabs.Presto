@@ -180,8 +180,8 @@ The Lifecycle or Activity feed page gains a short note that layout goes on the c
   moves (the reason `GalleryFlipPage` builds its cards in code). The new container records and does not ease. An opt-in
   per-item memory (the last slot keyed by item, as `RevealOnce` keys by item) could fly it from where its item stood.
   That is Framer's `layoutId` inside a list. It is worth doing only if a templated sample needs it.
-- **Counter-scaling content under `PositionAndSize`.** It is still out of scope (COMPOSITOR-PLAN §4.4). Revisit only if
-  the declarative form makes scaled text a common complaint.
+- **Counter-scaling content under `PositionAndSize`.** *Resolved by Phase 43* ([GAPS-PLAN](GAPS-PLAN.md) §3):
+  `LayoutMode="PositionAndSizeCorrected"` counter-scales direct children, and `Animate.ContentSize` eases the real size.
 - **`ItemLayout` for `ItemsRepeater`-style hosts** without `ContainerPrepared` events. Nothing in the sample uses one.
 
 ## 8. Deviations as built

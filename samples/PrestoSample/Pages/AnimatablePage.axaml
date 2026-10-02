@@ -44,6 +44,18 @@
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="Press Set, then Fling while the dot moves: Fling measures the running tween's velocity and coasts from it, bouncing off the stage edge." />
 
+            <Border Classes="stage" MinHeight="0" Height="150">
+                <Border x:Name="Ball" Classes="dot" Width="28" Height="28" CornerRadius="14"
+                        HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+            </Border>
+
+            <Button Content="Toss" Click="Toss" />
+
+            <TextBlock Classes="code" Text="var (x, y) = Projectile.Launch(speed: .6, angleDegrees: -60, gravity: .0015);&#10;ball.Animate(new() { [&quot;X&quot;] = x, [&quot;Y&quot;] = y, Duration = 2 * -y.Velocity / .0015 });" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A Projectile to-value flies from a launch velocity under constant acceleration, resolved in closed form when the tween starts, the way Inertia is. Launch splits the throw into X and Y with gravity on Y only, and a duration of twice the time to the top brings the ball back down to the floor it left. Each Toss starts again from the corner." />
+
             <Border x:Name="MomentumStage" Classes="stage" MinHeight="0" Height="150" PointerMoved="MoveMomentum">
                 <Grid RowDefinitions="*,*">
                     <Border x:Name="MomentumDot" Classes="dot" Width="28" Height="28" CornerRadius="14"

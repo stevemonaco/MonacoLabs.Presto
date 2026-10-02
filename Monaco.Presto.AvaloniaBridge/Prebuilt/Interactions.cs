@@ -13,7 +13,7 @@ namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 /// <see cref="MotionTokens.Short"/> and the ease <see cref="MotionTokens.Ease"/>. <c>intensity</c> multiplies the change
 /// (default 1). A state applies to one element, so there is no <c>stagger</c>. <see cref="Grow"/>, <see cref="PressIn"/>
 /// and <see cref="Dim"/> can run through <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>;
-/// <see cref="Lift"/> and <see cref="Glow"/> are UI thread only, since the compositor cannot draw a shadow, and so is
+/// <see cref="Lift"/>, <see cref="ReorderLift"/> and <see cref="Glow"/> are UI thread only, since the compositor cannot draw a shadow, and so is
 /// <see cref="Colorize"/>, since it cannot filter.
 /// </remarks>
 public static class Interactions
@@ -30,6 +30,11 @@ public static class Interactions
     /// <summary>Shrinks to 0.96 times its size. Reduced: dims Opacity to 0.8.</summary>
     public static AnimationBuilder PressIn(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Start(duration, delay, ease, b => b.Opacity(1 - (0.2 * intensity))).Scale(1 - (0.04 * intensity));
+
+    /// <summary>Lifts a reorder drag's item: grows to <paramref name="scale"/> (default 1.03) over a raised shadow, leaving X and Y to the drag. Reduced: the shadow alone.</summary>
+    public static AnimationBuilder ReorderLift(double? scale = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Start(duration, delay, ease, b => b.ShadowBlur(16 * intensity).ShadowY(6 * intensity).ShadowOpacity(0.3))
+            .Scale(1 + (((scale ?? 1.03) - 1) * intensity));
 
     /// <summary>Glows with a drop shadow of <paramref name="color"/> (default <see cref="Colors.DodgerBlue"/>), blurred 16 DIPs. Reduced: the same glow.</summary>
     public static AnimationBuilder Glow(Color? color = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>

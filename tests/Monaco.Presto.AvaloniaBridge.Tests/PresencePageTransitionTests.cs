@@ -205,6 +205,4 @@ public sealed class PresencePageTransitionTests : CompositorTestBase
         Tick();
         return host;
     }
-
-    private static List<Canvas> Ghosts(Visual visual) => OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<Canvas>().ToList();
 }

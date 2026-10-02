@@ -9,6 +9,7 @@
   </UserControl.Styles>
   <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
     <Border x:Name="Hovered" Width="50" Height="20" Background="Red" presto:Motion.Hover="{presto:Lift}" />
+    <Border x:Name="Pressed" Width="50" Height="20" presto:Motion.Press="{presto:Reorder Intensity=1.5, Duration=200}" />
     <Border x:Name="Shaken" Width="50" Height="20" presto:Animate.OnAttached="{presto:Shake Intensity=1.5}" />
     <Border x:Name="Faded" Height="20"
             presto:Presence.Enter="{presto:Fade Direction=Up, Distance=24}"

@@ -16,7 +16,9 @@ namespace Monaco.Presto.AvaloniaBridge.Draggables;
 /// <remarks>One pointer drags at a time, mouse and touch alike, through a pointer capture on the trigger.</remarks>
 public sealed class Draggable : IRevertible
 {
-    private const double DefaultDragThreshold = 3;
+    internal const double DefaultDragThreshold = 3;
+    internal const double DefaultScrollSpeed = 1.5;
+    internal const double DefaultScrollThreshold = 20;
     private const double ResizeDebounce = 150;
     private const double ScrollInViewDuration = 350;
     private const double ReleaseDistance = 150;
@@ -93,6 +95,8 @@ public sealed class Draggable : IRevertible
     private bool _updated;
     private bool _released;
     private bool _scrollLocked;
+    private MotionValue? _xValue;
+    private MotionValue? _yValue;
 
     internal Draggable(Control target, DraggableParams parameters)
     {
@@ -184,6 +188,12 @@ public sealed class Draggable : IRevertible
         set => SetY(value, false);
     }
 
+    /// <summary>A <see cref="MotionValue"/> mirroring <see cref="X"/>, updated whenever the axis renders and frozen once the draggable reverts.</summary>
+    public MotionValue XValue => _xValue ??= Animate.ValueOf(_xProp).Map(v => Utils.Round(v, _engine.Precision));
+
+    /// <inheritdoc cref="XValue"/>
+    public MotionValue YValue => _yValue ??= Animate.ValueOf(_yProp).Map(v => Utils.Round(v, _engine.Precision));
+
     /// <summary>Where the target sits between the container bounds on that axis, 0 at the start edge and 1 at the end.</summary>
     public double ProgressX
     {
@@ -251,8 +261,8 @@ public sealed class Draggable : IRevertible
         _minVelocity = _parameters.MinVelocity ?? 0;
         _maxVelocity = _parameters.MaxVelocity ?? 50;
         _velocityMultiplier = _parameters.VelocityMultiplier ?? 1;
-        _scrollSpeed = _parameters.ScrollSpeed ?? 1.5;
-        _scrollThreshold = _parameters.ScrollThreshold ?? 20;
+        _scrollSpeed = _parameters.ScrollSpeed ?? DefaultScrollSpeed;
+        _scrollThreshold = _parameters.ScrollThreshold ?? DefaultScrollThreshold;
         var cursor = _parameters.Cursor;
         _hoverCursor = cursor is { Enabled: false } ? null : cursor?.OnHover ?? s_grab;
         _grabCursor = cursor is { Enabled: false } ? null : cursor?.OnGrab ?? s_grabbing;
@@ -375,8 +385,13 @@ public sealed class Draggable : IRevertible
     private static double Snapped(double value, Func<double, double>? snap, double min, double max) =>
         Utils.Clamp(Utils.Round(snap?.Invoke(value) ?? value, 5), min, max);
 
-    private static double ClampScroll(double value, double extent, double viewport) =>
+    internal static double ClampScroll(double value, double extent, double viewport) =>
         Utils.Clamp(value, 0, Math.Max(0, extent - viewport));
+
+    /// <summary>How far one frame scrolls <paramref name="viewport"/> for a pointer at <paramref name="point"/>, which ramps up across the edge bands.</summary>
+    internal static Vector EdgeScroll(Point point, Size viewport, double speed, double threshold) => new Vector(
+        Utils.Clamp((point.X - threshold) / threshold, -1, 0) + Utils.Clamp((point.X - (viewport.Width - threshold)) / threshold, 0, 1),
+        Utils.Clamp((point.Y - threshold) / threshold, -1, 0) + Utils.Clamp((point.Y - (viewport.Height - threshold)) / threshold, 0, 1)) * (speed * 10);
 
     private void SetX(double x, bool muteUpdateCallback)
     {
@@ -458,15 +473,11 @@ public sealed class Draggable : IRevertible
         if (_scroller is not { } scroller) return;
         if (TopLevel.GetTopLevel(scroller) is not { } root || root.TranslatePoint(new Point(_pointerX, _pointerY), scroller) is not { } point) return;
         var viewport = scroller.Viewport;
-        var speed = _scrollSpeed * 10;
-        var dx = (Utils.Clamp((point.X - _scrollThreshold) / _scrollThreshold, -1, 0)
-            + Utils.Clamp((point.X - (viewport.Width - _scrollThreshold)) / _scrollThreshold, 0, 1)) * speed;
-        var dy = (Utils.Clamp((point.Y - _scrollThreshold) / _scrollThreshold, -1, 0)
-            + Utils.Clamp((point.Y - (viewport.Height - _scrollThreshold)) / _scrollThreshold, 0, 1)) * speed;
-        if (dx == 0 && dy == 0) return;
+        var delta = EdgeScroll(point, viewport, _scrollSpeed, _scrollThreshold);
+        if (delta.X == 0 && delta.Y == 0) return;
         var offset = scroller.Offset;
-        var x = _disabledX ? offset.X : ClampScroll(offset.X + dx, scroller.Extent.Width, viewport.Width);
-        var y = _disabledY ? offset.Y : ClampScroll(offset.Y + dy, scroller.Extent.Height, viewport.Height);
+        var x = _disabledX ? offset.X : ClampScroll(offset.X + delta.X, scroller.Extent.Width, viewport.Width);
+        var y = _disabledY ? offset.Y : ClampScroll(offset.Y + delta.Y, scroller.Extent.Height, viewport.Height);
         // The content slides under the pointer, so the target follows it to stay where the pointer left it.
         _coordX += x - offset.X;
         _coordY += y - offset.Y;

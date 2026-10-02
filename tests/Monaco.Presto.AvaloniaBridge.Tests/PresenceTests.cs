@@ -236,6 +236,4 @@ public sealed class PresenceTests : CompositorTestBase
         Tick();
         return (window, panel);
     }
-
-    private static List<Canvas> Ghosts(Window window) => OverlayLayer.GetOverlayLayer(window)!.Children.OfType<Canvas>().ToList();
 }

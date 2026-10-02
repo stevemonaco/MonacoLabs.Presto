@@ -9,7 +9,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// Attached properties that play an <see cref="AnimationBuilder"/> on a visual from XAML when it attaches, is tapped or its
-/// watched value changes, or that ease a control's layout moves while it is attached.
+/// watched value changes, or that ease a control's layout moves or size while it is attached.
 /// </summary>
 public static class Animate
 {
@@ -77,6 +77,28 @@ public static class Animate
     private static readonly AttachedProperty<LayoutArm?> ItemArmProperty =
         AvaloniaProperty.RegisterAttached<Control, LayoutArm?>("ItemArm", typeof(Animate));
 
+    /// <summary>
+    /// Eases the real layout size of the host whenever its content changes size, as
+    /// <see cref="PrestoAvalonia.AnimateContentSize(Control, AnimationBuilder)"/> does, taking only the builder's timing and
+    /// ease. Attaching records the size without easing it, detaching reverts, changing the value re-arms, and
+    /// <see langword="null"/> stops listening. Meant for a <see cref="Decorator"/>, <see cref="ContentControl"/> or <see cref="Border"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Swapping the host's content resizes it from the size drawn to the new content's, so with <see cref="Presence.ExitProperty"/>
+    /// and <see cref="Presence.EnterProperty"/> on the content the old one ghosts out, clipped to the box the host had when
+    /// it was swapped, while the new one enters. The host owns its size: a <see cref="LayoutProperty"/> on it eases only its
+    /// moves, whatever its <see cref="LayoutModeProperty"/>, and a sibling's layout move under the same parent lands in one
+    /// frame while the host resizes, since the resize already eases it.
+    /// </para>
+    /// <para>Applying a builder that animates a property or sets anything a layout transition cannot honour throws <see cref="NotSupportedException"/>.</para>
+    /// </remarks>
+    public static readonly AttachedProperty<AnimationBuilder?> ContentSizeProperty =
+        AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("ContentSize", typeof(Animate));
+
+    private static readonly AttachedProperty<ContentSizeArm?> ContentSizeArmProperty =
+        AvaloniaProperty.RegisterAttached<Control, ContentSizeArm?>("ContentSizeArm", typeof(Animate));
+
     private static readonly AttachedProperty<Trigger?> TappedTriggerProperty =
         AvaloniaProperty.RegisterAttached<Visual, Trigger?>("TappedTrigger", typeof(Animate));
 
@@ -91,6 +113,7 @@ public static class Animate
         WatchProperty.Changed.AddClassHandler<Visual>(HandleWatchChanged);
         LayoutProperty.Changed.AddClassHandler<Control>(HandleLayoutChanged);
         LayoutModeProperty.Changed.AddClassHandler<Control>(HandleLayoutChanged);
+        ContentSizeProperty.Changed.AddClassHandler<Control>(HandleContentSizeChanged);
         ItemLayoutProperty.Changed.AddClassHandler<ItemsControl>(HandleItemLayoutChanged);
         LayoutModeProperty.Changed.AddClassHandler<ItemsControl>(HandleItemLayoutChanged);
     }
@@ -131,11 +154,20 @@ public static class Animate
     /// <summary>Sets how much of a layout change of <paramref name="control"/> is eased.</summary>
     public static void SetLayoutMode(Control control, LayoutAnimateMode value) => control.SetValue(LayoutModeProperty, value);
 
+    /// <summary>Gets the builder that eases the layout size of <paramref name="control"/>.</summary>
+    public static AnimationBuilder? GetContentSize(Control control) => control.GetValue(ContentSizeProperty);
+
+    /// <summary>Sets the builder that eases the layout size of <paramref name="control"/>.</summary>
+    public static void SetContentSize(Control control, AnimationBuilder? value) => control.SetValue(ContentSizeProperty, value);
+
     /// <summary>Gets the builder that eases the layout moves of the item containers of <paramref name="list"/>.</summary>
     public static AnimationBuilder? GetItemLayout(ItemsControl list) => list.GetValue(ItemLayoutProperty);
 
     /// <summary>Sets the builder that eases the layout moves of the item containers of <paramref name="list"/>.</summary>
     public static void SetItemLayout(ItemsControl list, AnimationBuilder? value) => list.SetValue(ItemLayoutProperty, value);
+
+    /// <summary>The arm <see cref="ItemLayoutProperty"/> keeps on an item container, or null when its list sets none.</summary>
+    internal static LayoutArm? ItemArmOf(Control container) => container.GetValue(ItemArmProperty);
 
     private static void HandleOnAttachedChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
     {
@@ -162,6 +194,20 @@ public static class Animate
             return;
         }
         if (arm is null) control.SetValue(LayoutArmProperty, arm = new LayoutArm(control));
+        arm.Arm(attaching: false);
+    }
+
+    private static void HandleContentSizeChanged(Control control, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (Design.IsDesignMode) return;
+        var arm = control.GetValue(ContentSizeArmProperty);
+        if (GetContentSize(control) is null)
+        {
+            arm?.Release();
+            control.ClearValue(ContentSizeArmProperty);
+            return;
+        }
+        if (arm is null) control.SetValue(ContentSizeArmProperty, arm = new ContentSizeArm(control));
         arm.Arm(attaching: false);
     }
 

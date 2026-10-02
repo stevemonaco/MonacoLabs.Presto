@@ -86,6 +86,16 @@ public sealed class Animatable : IRevertible
     public double[] GetChannels(string property) =>
         _animations.TryGetValue(Key(property), out var animation) && animation._headTween is { } tween ? tween._numbers : [];
 
+    /// <summary>A <see cref="MotionValue"/> mirroring <see cref="Get"/> for the property, updated whenever its animation renders.</summary>
+    public MotionValue ValueOf(string property)
+    {
+        var key = Key(property);
+        _animations.TryGetValue(key, out var animation);
+        var value = new MotionValue(animation?.OwnerEngine ?? Engine.Current, [], Get(key));
+        if (animation != null) animation._onRender += _ => value.Assign(Get(key));
+        return value;
+    }
+
     /// <summary>Animates the property from where it is now to <paramref name="to"/>; a no-op after <see cref="Revert"/>.</summary>
     /// <returns>This animatable, so calls chain.</returns>
     public Animatable Set(string property, double to, double? duration = null, EaseValue? ease = null)

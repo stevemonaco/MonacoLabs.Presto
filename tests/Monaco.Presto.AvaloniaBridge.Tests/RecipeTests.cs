@@ -14,7 +14,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// <summary><see cref="Recipes"/> (MOTION-KIT-PLAN §4): every family, their reduced forms and <see cref="Recipes.Tokens"/>.</summary>
 public sealed class RecipeTests : CompositorTestBase
 {
-    private static readonly string[] UIThreadOnly = ["BlurIn", "FlipIn", "BlurOut", "FlipOut", "Lift", "Glow", "Shimmer"];
+    private static readonly string[] UIThreadOnly = ["BlurIn", "FlipIn", "BlurOut", "FlipOut", "Lift", "ReorderLift", "Glow", "Shimmer"];
 
     private static readonly Dictionary<string, Func<AnimationBuilder>> Entrances = new()
     {
@@ -66,6 +66,7 @@ public sealed class RecipeTests : CompositorTestBase
     private static readonly Dictionary<string, Func<AnimationBuilder>> Interactions = new()
     {
         ["Lift"] = () => Recipes.Lift(),
+        ["ReorderLift"] = () => Recipes.ReorderLift(),
         ["Grow"] = () => Recipes.Grow(),
         ["PressIn"] = () => Recipes.PressIn(),
         ["Glow"] = () => Recipes.Glow(),
@@ -317,6 +318,39 @@ public sealed class RecipeTests : CompositorTestBase
         Frames.Advance(400, 10);
         for (var i = 0; i < properties.Length; i++) Assert.Equal(rest[i], PrestoAvalonia.Get(box, properties[i]));
         Assert.Empty(Presto.GetAnimations(box));
+    }
+
+    [AvaloniaFact]
+    public void ReorderLiftGrowsOverARaisedShadowWithTheTokenTimingReadAtCallTime()
+    {
+        Recipes.Tokens = MotionTokens.Standard with { Short = 999 };
+        try
+        {
+            var lift = Recipes.ReorderLift().ToParams();
+            var stronger = Recipes.ReorderLift(scale: 1.1, intensity: 2).ToParams();
+
+            Assert.Equal((TweenValue)999, lift.Duration);
+            Assert.Same(MotionTokens.Standard.Ease.Raw, lift.Ease?.Raw);
+            Assert.Equal(["ShadowBlur", "ShadowY", "ShadowOpacity", "Scale"], lift.Properties.Keys);
+            Assert.Equal(1.03, (double)lift.Properties["Scale"].Raw!, 6);
+            Assert.Equal(16d, lift.Properties["ShadowBlur"].Raw);
+            Assert.Equal(6d, lift.Properties["ShadowY"].Raw);
+            Assert.Equal(0.3, lift.Properties["ShadowOpacity"].Raw);
+            Assert.Equal(1.2, (double)stronger.Properties["Scale"].Raw!, 6);
+            Assert.Equal(32d, stronger.Properties["ShadowBlur"].Raw);
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+    }
+
+    [AvaloniaFact]
+    public void ReducedReorderLiftOnlyRaisesTheShadow()
+    {
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.Equal(["ShadowBlur", "ShadowY", "ShadowOpacity"], Recipes.ReorderLift().ToParams().Properties.Keys);
     }
 
     [AvaloniaFact]

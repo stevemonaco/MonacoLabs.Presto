@@ -24,7 +24,7 @@
 
                 <Border Classes="stage" Width="110" Height="244">
                     <Border x:Name="Dot" Classes="swatch" Width="28" Height="28"
-                            HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16" />
+                            HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                 </Border>
             </StackPanel>
 
@@ -37,7 +37,7 @@
                 <StackPanel Spacing="2">
                     <TextBlock Classes="caption" Text="EaseParser.Parse(…) — overrides the picker while it has text" />
                     <TextBox x:Name="EaseNameBox" Width="280" TextChanged="EaseTyped"
-                             PlaceholderText="inOutQuint, out(2), outElastic(1.2, .4)" />
+                             PlaceholderText="inOutQuint, out(2), wiggle(6, anticipate)" />
                 </StackPanel>
             </StackPanel>
 

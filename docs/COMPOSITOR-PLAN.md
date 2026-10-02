@@ -361,7 +361,9 @@ Scope and caveats, all to be stated in the XML docs:
 
 - `LayoutAnimateMode.Position` (default) translates only; `.PositionAndSize` adds the scale correction. Scaling an
   element scales its rendered content with it — Motion counter-scales children, which here would mean writing every
-  child's visual, so v1 scales the element and documents it rather than pretending otherwise.
+  child's visual, so v1 scales the element and documents it rather than pretending otherwise. *Resolved by Phase 43*
+  ([GAPS-PLAN](GAPS-PLAN.md) §3): `.PositionAndSizeCorrected` counter-scales direct children, and `Animate.ContentSize`
+  eases the real layout size instead of scaling.
 - Enter and leave transitions are out of scope: they need a presenter/lifetime hook, not a layout hook.
 - Hit testing goes through the UI-thread `Visual` tree, which knows nothing about compositor `Translation`, so during a
   transition the element is *hit* at its new layout position while *drawn* on the way there.

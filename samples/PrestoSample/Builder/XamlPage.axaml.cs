@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
@@ -29,6 +30,11 @@ public partial class XamlPage : ShowcasePage
                   presto:Animate.OnAttached="{Binding Emphasis}" />
         """;
 
+    public const string ReorderXaml = """
+        <ListBox x:Name="DefaultLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}" presto:Animate.ItemLayout="{presto:Reflow}" />
+        <ListBox x:Name="StrongLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder Intensity=2}" presto:Animate.ItemLayout="{presto:Reflow}" />
+        """;
+
     public static readonly AnimationBuilder FadeUp;
     private static readonly string FadeUpCode;
 
@@ -46,6 +52,9 @@ public partial class XamlPage : ShowcasePage
         ExtensionCode.Text = "// {presto:Fade Direction=Up, Distance=48, Delay=100} provides, once per element\nRecipes.FadeUp(distance: 48, delay: 100)";
         BindingCode.Text = "// EmphasisViewModel: IsAlert swaps Emphasis between these two\n" +
             $"{Snippet.Declare(nameof(EmphasisViewModel.Idle), EmphasisViewModel.Idle.Code)}\n{Snippet.Declare(nameof(EmphasisViewModel.Alert), EmphasisViewModel.Alert.Code)}";
+        ReorderCode.Text = "// {presto:Reorder} and {presto:Reorder Intensity=2} provide, once per list\nRecipes.ReorderLift()\nRecipes.ReorderLift(intensity: 2)";
+        DefaultLift.ItemsSource = new ObservableCollection<string>(["Inbox", "Drafts", "Sent", "Archive"]);
+        StrongLift.ItemsSource = new ObservableCollection<string>(["Inbox", "Drafts", "Sent", "Archive"]);
     }
 
     private void Replay(object? sender, RoutedEventArgs e)

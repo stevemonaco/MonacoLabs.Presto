@@ -1,9 +1,15 @@
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -121,6 +127,78 @@ public abstract class CompositorTestBase : BridgeTestBase
         Extent(visual, Colors.Red) ?? throw new InvalidOperationException("The red element is not in the rendered frame.");
 
     protected static double Top(Visual visual) => Box(visual).Top;
+
+    protected static List<Canvas> Ghosts(Visual visual) => OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<Canvas>().ToList();
+
+    /// <summary>Shows <paramref name="content"/> at the top of a white 200x200 window, ticked once.</summary>
+    protected static void ShowWhite(Control content)
+    {
+        new Window { Content = new StackPanel { Children = { content } }, Background = Brushes.White, Width = 200, Height = 200 }.Show();
+        Tick();
+    }
+
+    /// <summary>Shows <paramref name="content"/> in a white 100x200 window, ticked once.</summary>
+    protected static T ShowInWindow<T>(T content) where T : Control
+    {
+        new Window { Content = content, Background = Brushes.White, Width = 100, Height = 200 }.Show();
+        Tick();
+        return content;
+    }
+
+    protected const double RowHeight = 20;
+
+    protected static Border Row(ItemsControl list, IBrush background) =>
+        list.GetVisualDescendants().OfType<Border>().Single(row => row.Background == background && row.IsEffectivelyVisible);
+
+    /// <summary>A 100-high list box of <see cref="Rows"/> whose containers are exactly as high as their rows.</summary>
+    protected static ListBox VirtualizedList(ObservableCollection<string> items, Func<string, double>? height = null, Action<Border>? decorate = null) => new()
+    {
+        Height = 100,
+        VerticalAlignment = VerticalAlignment.Top,
+        ItemsSource = items,
+        ItemTemplate = Rows(height, decorate),
+        Styles =
+        {
+            new Style(x => x.OfType<ListBoxItem>())
+            {
+                Setters = { new Setter(TemplatedControl.PaddingProperty, new Thickness(0)), new Setter(Layoutable.MinHeightProperty, 0d) },
+            },
+        },
+    };
+
+    /// <summary>Blue 40-wide rows, but red for the item "red" and a lime 60-wide one for "green"; only red always keeps <see cref="RowHeight"/>.</summary>
+    protected static FuncDataTemplate<string> Rows(Func<string, double>? height = null, Action<Border>? decorate = null) => new((item, _) =>
+    {
+        var row = new Border
+        {
+            Width = item == "green" ? 60 : 40,
+            Height = item is null or "red" ? RowHeight : height?.Invoke(item) ?? RowHeight,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = item switch { "red" => Brushes.Red, "green" => Brushes.Lime, _ => Brushes.Blue },
+        };
+        decorate?.Invoke(row);
+        return row;
+    }, supportsRecycling: false);
+
+    /// <summary>A point inside the "red" row of <see cref="ReorderList"/>.</summary>
+    protected static readonly Point OnRed = new(10, 30);
+
+    /// <summary>
+    /// Shows rows "a", "red", "green", "d", "e" in a <see cref="VirtualizedList"/> or a non-virtualizing <see cref="ItemsControl"/>,
+    /// whose <paramref name="template"/> replaces <see cref="Rows"/>; <paramref name="itemLayout"/> sets <see cref="HeldMove"/> as its item layout.
+    /// </summary>
+    protected static (ItemsControl List, ObservableCollection<string> Items) ReorderList(
+        bool virtualized, bool itemLayout = false, Action<Border>? decorate = null, FuncDataTemplate<string>? template = null)
+    {
+        ObservableCollection<string> items = ["a", "red", "green", "d", "e"];
+        var list = virtualized
+            ? VirtualizedList(items, decorate: decorate)
+            : new ItemsControl { ItemsSource = items, ItemTemplate = template ?? Rows(decorate: decorate), VerticalAlignment = VerticalAlignment.Top };
+        if (itemLayout) Animate.SetItemLayout(list, HeldMove);
+        return (ShowInWindow(list), items);
+    }
+
+    protected static Window WindowOf(Visual visual) => (Window)TopLevel.GetTopLevel(visual)!;
 
     /// <summary>The layout slot of <paramref name="control"/> in window coordinates.</summary>
     protected static Rect SlotOf(Control control) =>

@@ -29,6 +29,9 @@ public static class Presto
     /// <summary>Creates a timer that fires callbacks over time without animating anything (upstream <c>createTimer()</c>).</summary>
     public static Timer CreateTimer(TimerParams? parameters = null) => new Timer(parameters ?? new(), null, 0).Init();
 
+    /// <summary>Creates a source <see cref="MotionValue"/> that derived values follow (Motion's <c>motionValue()</c>).</summary>
+    public static MotionValue CreateMotionValue(double initial = 0) => new(initial);
+
     /// <summary>Creates a timeline that sequences animations, timers and callbacks on a shared playhead (upstream <c>createTimeline()</c>).</summary>
     public static Timeline CreateTimeline(TimelineParams? parameters = null) => new Timeline(parameters ?? new()).Init();
 

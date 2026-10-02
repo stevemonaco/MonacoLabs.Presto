@@ -73,6 +73,16 @@ public sealed class RecipeMarkupTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ReorderParsesItsIntensityAndDuration()
+    {
+        var lift = Motion.GetPress(new RecipeXamlView().Pressed)!.ToParams();
+
+        Assert.Equal((TweenValue)200, lift.Duration);
+        Assert.Equal(1.045, (double)lift.Properties["Scale"].Raw!, 6);
+        Assert.Equal(24d, lift.Properties["ShadowBlur"].Raw);
+    }
+
+    [AvaloniaFact]
     public void ReflowTakesItsDurationPositionallyAndParsesItsEase()
     {
         var reflow = Presence.GetEnter(new RecipeXamlView().Reflowed)!.ToParams();

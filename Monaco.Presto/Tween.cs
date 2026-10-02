@@ -60,6 +60,15 @@ public sealed class Tween
         Accessor = accessor;
     }
 
+    /// <summary>A tween outside any animation, which only carries channels for a <see cref="MotionObjectValue"/> to encode.</summary>
+    internal Tween()
+    {
+        Parent = null!;
+        Property = "";
+        Target = null!;
+        Accessor = null!;
+    }
+
     /// <summary>Process-wide sequence number, assigned in creation order.</summary>
     public int Id { get; }
 

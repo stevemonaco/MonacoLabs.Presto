@@ -166,3 +166,49 @@ decisions and the spike that settled them are in [GAPS-PLAN.md §1](GAPS-PLAN.md
   control it matches; templates work because their content is built per instance.
 
 The *Value-driven* Reference page in the sample shows each entry point.
+
+## 6. Derived values: the `MotionValue` graph
+
+Phase 42 (`MotionValue`, `MotionObjectValue`, the bridge sources and sinks) joins a live source to several properties
+through ranges, eases and springs. The API and measurements are in [GAPS-PLAN.md §2](GAPS-PLAN.md); this is the shape in
+brief.
+
+- **Lazy, versioned evaluation.** A `Set` only bumps the source's version and marks its dependents dirty. Nothing
+  computes until something reads. A dirty value compares each source's version with the one it last saw, recomputes only
+  if one moved, and bumps its own version only if the result changed. So a diamond computes once per change, an
+  unchanged result stops propagating, and a value read between frames is already fresh. Only observed values link into
+  their sources, so a chain nobody listens to costs nothing and can be collected.
+- **Sinks flush from an engine after-update list, not as tickables.** A tickable would sit in the child list beside the
+  animations that feed it, so its place in that list would decide whether it saw this frame's values or last frame's.
+  It would also inherit timer state (play, pause, completion) that a cell does not have. Instead sinks flush after the
+  children and `Additive.Update()`, and a value set during a flush waits for the next frame.
+- **`Follow.*` over a `MotionValue` ignores `Follow.Timing`.** A graph already states its smoothing (`.Spring(...)`), and
+  a follower easing on top would lag a scroll- or drag-locked value and double-smooth a sprung one. So the shorthand
+  writes each flushed value through the composers, keeping the decision-13 base layer. `Follow.Bind` is the one sink that
+  takes options, because it is called with a value explicitly and can say so. `{presto:Follow}` smooths unless it is
+  given `Duration=0`.
+
+The *Derived values* Reference page in the sample shows one source driving five properties.
+
+## 7. Scroll storytelling: GSAP-shaped extensions on a ported observer
+
+Phase 45 (`ScrollObserverParams.Pin`/`PinSpacing`/`Snap`, `ScrollSnap`, `Scroll.Speed`, `Scroll.Smooth`) is a deliberate
+deviation from the port: anime.js 4.5.0 has no pinning, snapping, parallax or wheel smoothing, so these follow GSAP
+ScrollTrigger and ScrollSmoother instead. They sit on top of the ported `ScrollObserver` without changing its upstream
+behaviour, and the ported `ScrollObserverTests` pass unchanged. Decisions are in [GAPS-PLAN.md §5](GAPS-PLAN.md) and
+PLAN §7 decisions 44–48.
+
+## 8. Small items: physics and eases from outside anime.js
+
+Phase 49 adds GSAP-, Compose- and SwiftUI-shaped pieces with no anime.js 4.5.0 upstream, so parity does not constrain
+them. Decisions are in [GAPS-PLAN.md §9](GAPS-PLAN.md) and PLAN §7 decisions 57–63; two deviations touch ported code.
+
+- **`Projectile` rides `Inertia`'s slot in the `Animation` constructor.** It is resolved once the from-number is known,
+  into an ordinary tween (or two, split at the apex) with a computed end and ease. So it composes by replace, is seeked
+  and reversed, and hands over to the next `Animate` exactly as any tween does, with no per-frame simulation. It differs from
+  `Inertia` in one place: its duration is read from the params before resolving, so `ReduceAll` collapses a resolved
+  trajectory instead of skipping it. `Animatable` gained no projectile counterpart to `Fling`.
+- **Ease strings take identifiers.** Upstream's `parseEaseString` only parses numbers. `EaseParser`'s factories now
+  receive the raw argument text and its comma tokens, so `fromPath(M0,0 C…)`, `wiggle(6, anticipate)`,
+  `slowMo(.5, .7, true)` and `expoScale(1, 10, outQuad)` parse. Numeric forms are unchanged, and the parser seeds the
+  random eases with a fixed seed because it caches what it returns.

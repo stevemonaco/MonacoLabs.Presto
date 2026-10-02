@@ -10,8 +10,8 @@ using Monaco.Presto.AvaloniaBridge.Compositor;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// The items a list has just added and removed, and whether it has just reset, kept until the layout pass that realizes
-/// them has finished. A list is watched from the first lifecycle arrival in it; until that pass ends it cannot yet tell
+/// The items a list has just added, moved and removed, and whether it has just reset, kept until the layout pass that
+/// realizes them has finished. A list is watched from the first lifecycle arrival in it; until that pass ends it cannot yet tell
 /// an added item from a realized one, so <see cref="Of"/> answers null and the arrival is classified by the general rule.
 /// It also remembers the items whose rows have been shown, for <see cref="Presence.RevealOnceProperty"/>, until they leave
 /// the list, the rows realized for a reveal until a layout pass shows them, and where the list was scrolled when the last
@@ -44,6 +44,8 @@ internal sealed class ItemChanges
 
     public HashSet<object> Removed { get; } = [];
 
+    public HashSet<object> Moved { get; } = [];
+
     public HashSet<object> Seen { get; } = [];
 
     /// <summary>Rows realized for a reveal and not yet in view, in realization order; the layout pass that shows one reveals it.</summary>
@@ -51,8 +53,8 @@ internal sealed class ItemChanges
 
     public bool Reset { get; private set; }
 
-    /// <summary>Whether items were added, removed or reset and the layout pass that realizes them has not yet finished.</summary>
-    public bool Pending => Reset || Added.Count > 0 || Removed.Count > 0;
+    /// <summary>Whether items were added, removed, moved or reset and the layout pass that realizes them has not yet finished.</summary>
+    public bool Pending => Reset || Added.Count > 0 || Removed.Count > 0 || Moved.Count > 0;
 
     public bool Jumped => Scroller is { } scroll &&
         (Math.Abs(scroll.Offset.X - _offset.X) > scroll.Viewport.Width || Math.Abs(scroll.Offset.Y - _offset.Y) > scroll.Viewport.Height);
@@ -116,13 +118,14 @@ internal sealed class ItemChanges
             Reset = true;
             Seen.Clear();
         }
-        if (e.NewItems is { } added) foreach (var item in added) if (item is not null) Added.Add(item);
-        if (e.OldItems is { } removed)
+        var moved = e.Action == NotifyCollectionChangedAction.Move;
+        if (e.NewItems is { } added) foreach (var item in added) if (item is not null) (moved ? Moved : Added).Add(item);
+        if (e.OldItems is { } removed && !moved)
             foreach (var item in removed)
                 if (item is not null)
                 {
                     Removed.Add(item);
-                    if (e.Action != NotifyCollectionChangedAction.Move) Seen.Remove(item);
+                    Seen.Remove(item);
                 }
         Clear();
     }
@@ -197,6 +200,7 @@ internal sealed class ItemChanges
         {
             Added.Clear();
             Removed.Clear();
+            Moved.Clear();
             Reset = false;
             _anchor = null;
             _clearing = false;
