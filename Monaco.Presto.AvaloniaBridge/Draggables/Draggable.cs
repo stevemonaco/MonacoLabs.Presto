@@ -229,6 +229,7 @@ public sealed class Draggable : IRevertible
         _overshootOut?.Cancel();
         _overshootBack?.Cancel();
         _scrolling?.Cancel();
+        _overshootOut = _overshootBack = _scrolling = null;
         return this;
     }
 
@@ -782,6 +783,7 @@ public sealed class Draggable : IRevertible
         _overshootTicker.Pause();
         _overshootOut?.Cancel();
         _overshootBack?.Cancel();
+        _overshootOut = _overshootBack = null;
         // The overshoot ticker leaves _manual set, which would swallow the settle this write ends in.
         _manual = false;
         _destX = _snappedX = destX;

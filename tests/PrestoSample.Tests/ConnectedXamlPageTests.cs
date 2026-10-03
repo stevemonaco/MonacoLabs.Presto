@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.VisualTree;
+using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Showcase.Pages;
 
@@ -39,12 +41,15 @@ public sealed class ConnectedXamlPageTests
         var card = Cards(page)[Picked];
         var from = SceneHarness.Slot(Photo(card), window);
 
+        var flying = Stopwatch.StartNew();
         SceneHarness.Click(window, card);
         var hero = Flood(Hero(page));
         TestFrames.Tick(2);
 
         var early = SceneHarness.Extent(page, Tint);
-        Assert.True(early is { } box && box.Width < from.Width * 1.5, $"the hero was drawn at {early} two frames in, not near the card at {from}");
+        // The flight runs on the compositor's wall clock, so it can be no further along than the time since the click.
+        var reach = from.Width + ((hero.Width - from.Width) * Eases.OutQuint(Math.Min(flying.Elapsed.TotalMilliseconds / 620, 1)));
+        Assert.True(early is { } box && box.Width < reach + 2, $"the hero was drawn at {early} {flying.ElapsedMilliseconds} ms in, wider than {reach:F0} from the card at {from}");
 
         await SceneHarness.Settle();
         Assert.True(SceneHarness.Extent(page, Tint) is { } landed && SceneHarness.Near(landed, SceneHarness.Slot(hero, window)), "the hero did not land in its slot");

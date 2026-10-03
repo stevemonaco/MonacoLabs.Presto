@@ -411,3 +411,16 @@ cleared; an event landing at 0 kept the offset there. The pill click snapped to 
 **Open: manual wheel/drag check on Desktop.** Neither bug reproduced from DevTools-set offsets, and Bug B's cause
 (Background jobs starved while wheel or drag input is pending) is inferred from dispatcher priorities, not observed. A
 manual pass with a mouse wheel, touchpad and thumb drag on the Desktop Activity feed is still needed to confirm both fixes.
+
+**Phase 50: the scroll-to-top failures were the wall clock, not a regression.** The feed seeds back from
+`DateTime.Now`, so the live timer's phase against the final settle varies with the time of day, and every failure ends
+at `0, 0` with the newest event still sliding in from above. The allowance stays, bounded to one Enter (`Tokens.Medium`),
+pinned by `ALiveEventLandingAtTheTopSlidesInFromAboveAndIsShownWithinItsEnter`, and `ActivityFeedPageTests` seed from 18:00.
+No bisect against the Phase 39 commit was run, because the workflow may not check out other commits. The fixed-seed
+evidence replaces it: with the 18:00 seed the three cases pass at HEAD, and the failures predate Phase 41.
+
+`ConnectedXamlPageTests.OpeningADestinationFliesItsPhotoFromTheCardIntoTheHero(crossFade: True)` was flaky too (2 of
+20 runs alone), and for the same kind of reason: the flight plays on the compositor's wall clock, so "two frames in"
+meant however long three `TestFrames.Tick`s took, and a slow run drew the hero wider than the fixed `1.5×` card width.
+The early check now bounds the width by the Arc's `OutQuint` at the wall time since the click, which the flight can
+never be ahead of; the product was not racy. It then passed 25 runs alone, 20 with its class and 20 full suites.

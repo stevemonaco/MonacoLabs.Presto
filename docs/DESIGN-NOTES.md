@@ -212,3 +212,27 @@ them. Decisions are in [GAPS-PLAN.md §9](GAPS-PLAN.md) and PLAN §7 decisions 5
   receive the raw argument text and its comma tokens, so `fromPath(M0,0 C…)`, `wiggle(6, anticipate)`,
   `slowMo(.5, .7, true)` and `expoScale(1, 10, outQuad)` parse. Numeric forms are unchanged, and the parser seeds the
   random eases with a fixed seed because it caches what it returns.
+
+## 9. Idempotent sibling removal (Phase 51)
+
+Flinging on the Draggable page could hang the UI thread. Upstream 4.5.0's `removeChild` assumes the child is in the list:
+called again on an unlinked tween it sets head and tail to null, and `timer.cancel()` calls `removeTweenSliblings` on every
+call. `Draggable` cancels its overshoot animations on every grab, so a blended tween left its additive siblings twice. That
+orphaned the other blended tweens and left a stale tail. The next blend then appended a new lookup tween onto that tail
+through its `_prev`/`_next` links, splicing the additive animation's list into another animation's, and a reverse
+`ForEachChildren` walk looped forever. Upstream has the same shape and may have the same bug.
+
+Two deviations close it, each covered by `TweenListIntegrityTests`:
+
+- **`TweenList.RemoveChild` skips a tween that is not in the list**, that is a tween with no previous link that is not the
+  head, or no next link that is not the tail.
+- **A repeat cancel is a no-op for composition.** `Timer.DetachTweens` only removes the tweens' siblings while the timer is
+  not already cancelled. This applies to `Cancel`, `Complete`, `Revert` and the engine's detach of completed timers.
+  `Reset` and `Seek` re-compose and clear the flag as before.
+
+`Draggable` also drops its overshoot and scroll animations once it cancels them, so later grabs do not cancel them again.
+Upstream holds no references and removes the overshoot target instead (`DraggableTests` covers the fling).
+
+In Debug builds every `TweenList` add, remove and walk checks the list it touches. A cycle, or a head or tail that
+disagrees with its links, throws `InvalidOperationException` instead of hanging. The check is bounded by a tortoise-and-hare
+walk, allocates nothing, and compiles out of Release.

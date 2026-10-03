@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Draggables;
+using Monaco.Presto.Core;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -577,6 +578,48 @@ public sealed class DraggableTests : BridgeTestBase
         Assert.Equal(0d, draggable.X);
         Assert.Equal(0d, other.Opacity);
         Assert.Equal(1, completed);
+    }
+
+    /// <summary>PLAN Phase 51: a grab cancelling an overshoot whose out leg had completed corrupted the additive lists into a cycle.</summary>
+    [AvaloniaFact]
+    public void RegrabbingAnOvershootingThrowRepeatedlyKeepsTheTweenListsAcyclic()
+    {
+        var (window, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+        });
+        var timers = new List<Timer>();
+
+        // Some grabs land after the out leg completed, so cancelling it removes its tweens from their siblings a second time.
+        for (var wait = 100; wait <= 2000; wait += 150)
+        {
+            var x = draggable.X + 25;
+            window.MouseDown(new Point(x, 25), MouseButton.Left);
+            for (var step = 1; step <= 4; step++)
+            {
+                window.MouseMove(new Point(x + (step * 20), 25));
+                Frames.Advance(20);
+            }
+            window.MouseUp(new Point(x + 80, 25), MouseButton.Left);
+            Frames.Advance(wait, 20);
+        }
+        Assert.NotNull(Presto.Engine.Additive.Animation);
+        for (var (timer, steps) = (Presto.Engine._head, 0); timer != null; timer = timer._next, steps++)
+        {
+            Assert.True(steps < 10_000, "The engine's timer list has a cycle.");
+            timers.Add(timer);
+        }
+        Presto.Remove(target);
+        Presto.Remove(draggable);
+
+        timers.Add(Presto.Engine.Additive.Animation!);
+        foreach (var timer in timers) TweenList.CheckIntact(timer);
+        foreach (var properties in Presto.Engine.Additive.Lookups.Values)
+        {
+            foreach (var siblings in properties.Values) TweenList.CheckIntact(siblings);
+        }
     }
 
     /// <summary>Upstream "Removing the parent should not throw an error".</summary>

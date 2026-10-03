@@ -404,7 +404,8 @@ public class Timer : Clock, IRevertible
     internal Timer DetachTweens()
     {
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
-        else TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
+        // Unlike upstream, a repeat cancel leaves composition alone: the tweens already left their sibling lists.
+        else if (!_cancelled) TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
         _cancelled = true;
         return Pause();
     }

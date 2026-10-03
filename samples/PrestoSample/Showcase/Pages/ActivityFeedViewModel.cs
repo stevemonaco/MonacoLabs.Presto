@@ -24,10 +24,15 @@ public sealed partial class ActivityFeedViewModel : ObservableObject
     private static readonly string[] Services = ["api", "web", "billing", "search", "notifications"];
 
     private readonly RandomGenerator _random = Utils.CreateSeededRandom(2027);
-    private DateTime _oldest = DateTime.Now;
+    private DateTime _oldest;
 
-    public ActivityFeedViewModel()
+    public ActivityFeedViewModel() : this(DateTime.Now)
     {
+    }
+
+    public ActivityFeedViewModel(DateTime newest)
+    {
+        _oldest = newest;
         Append(SeedSize);
         UnreadCount = Items.OfType<ActivityEvent>().Count(item => item.Unread);
     }

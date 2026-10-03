@@ -301,7 +301,7 @@ public sealed class ActivityFeedPageTests
         if (drag) window.MouseUp(grab, MouseButton.Left);
         TestFrames.Tick(30);
         // A live event landing while the feed settles slides in from above the top; let its Enter finish.
-        if (page.ViewModel.Items[1] != settling) TestFrames.Tick(60);
+        if (page.ViewModel.Items[1] != settling) TestFrames.Tick(EnterFrames);
 
         var trace = string.Join(" ", log);
         Assert.True(feed.Scroll.Offset == default, $"ended at {feed.Scroll.Offset.Y}: {trace}");
@@ -309,6 +309,32 @@ public sealed class ActivityFeedPageTests
         Assert.True(feed.ContainerFromItem(newest) is not null && Top(Row(page, newest), feed) >= 0, $"the newest event is not shown: {trace}");
         SceneHarness.Close(window);
     }
+
+    [AvaloniaFact]
+    public void ALiveEventLandingAtTheTopSlidesInFromAboveAndIsShownWithinItsEnter()
+    {
+        var (window, page) = Loaded();
+        var feed = Feed(page);
+        ScrollDownAndInsert(window, page, 300, 3);
+        while (feed.Scroll!.Offset.Y > 0)
+        {
+            window.MouseWheel(SceneHarness.Centre(feed, window), new Vector(0, 10));
+            TestFrames.Tick();
+        }
+        var count = page.ViewModel.Items.Count;
+
+        TickUntil(() => page.ViewModel.Items.Count > count);
+        var live = page.ViewModel.Items[1];
+        Assert.True(Top(Row(page, live), feed) < 0);
+
+        TestFrames.Tick(EnterFrames);
+        Assert.Equal(default, feed.Scroll.Offset);
+        Assert.True(Top(Row(page, live), feed) >= 0);
+        Assert.Empty(Presto.GetAnimations(Row(page, live)));
+        SceneHarness.Close(window);
+    }
+
+    private static int EnterFrames => (int)Math.Ceiling(Recipes.Tokens.Medium / 16);
 
     private static void Scroll(Window window, ListBox feed, ref Point grab, bool drag, double by)
     {
@@ -365,7 +391,8 @@ public sealed class ActivityFeedPageTests
 
     private static (Window Window, ActivityFeedPage Page) Loaded()
     {
-        var page = new ActivityFeedPage();
+        // The seed's time of day moves the first day header, and with it every offset these tests scroll through.
+        var page = new ActivityFeedPage { DataContext = new ActivityFeedViewModel(DateTime.Today.AddHours(18)) };
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(90);
         return (window, page);
