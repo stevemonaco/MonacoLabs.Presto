@@ -52,18 +52,10 @@
             </Border>
 
             <TextBlock Classes="caption" Text="The app-wide settings every recipe reads when it is called" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="TokensCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="TokensCode" />
 
             <TextBlock Classes="caption" Text="What ran" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="PlayCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="PlayCode" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

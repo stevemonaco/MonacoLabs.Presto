@@ -44,7 +44,7 @@ public partial class TypographyPage : ShowcasePage
     public TypographyPage()
     {
         InitializeComponent();
-        foreach (var _ in TerminalScript) TerminalLines.Children.Add(new TextBlock { Classes = { "code" } });
+        foreach (var _ in TerminalScript) TerminalLines.Children.Add(new TextBlock { Classes = { "mono" } });
     }
 
     protected override void OnAttached()

@@ -11,11 +11,7 @@
             <Border Classes="stage">
                 <UniformGrid x:Name="Cells" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" />
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="CodeText" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="CodeText" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

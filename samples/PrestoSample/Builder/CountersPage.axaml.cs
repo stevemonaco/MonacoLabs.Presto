@@ -73,7 +73,7 @@ public partial class CountersPage : ShowcasePage
         for (var i = 0; i < Metrics.Length; i++)
         {
             var next = Metrics[i].Min + (_random.NextDouble() * (Metrics[i].Max - Metrics[i].Min));
-            (counters[i], CountersCode.Text) = Snippet.Of(_readouts[i].Animate(Presto.Build()
+            (counters[i], CountersCode.Code) = Snippet.Of(_readouts[i].Animate(Presto.Build()
                 .Property("Text", from: _values[i], to: next, textModifier: Metrics[i].Format)
                 .Delay(i * 120)
                 .Duration(1600)
@@ -82,7 +82,7 @@ public partial class CountersPage : ShowcasePage
             Animate.SetWatch(_tiles[i], next);
         }
         Counters = counters;
-        CountersCode.Text += $";\n\nAnimate.SetOnChanged(_tiles[i], {_bumpCode});\nAnimate.SetWatch(_tiles[i], next);";
+        CountersCode.Code += $";\n\nAnimate.SetOnChanged(_tiles[i], {_bumpCode});\nAnimate.SetWatch(_tiles[i], next);";
 
         var value = OdometerValue = _random.Next((int)Math.Pow(10, Digits));
         var (odometer, code) = Snippet.Of(Presto.Build()
@@ -96,7 +96,7 @@ public partial class CountersPage : ShowcasePage
             code += "\n    .Modifier(SnapToDigit)";
         }
         Roll = odometer.Animate(_strips);
-        OdometerCode.Text = $"// value = {value.ToString("#,0", CultureInfo.InvariantCulture)}\n{code}\n    .Animate(_strips);";
+        OdometerCode.Code = $"// value = {value.ToString("#,0", CultureInfo.InvariantCulture)}\n{code}\n    .Animate(_strips);";
     }
 
     private static int DigitAt(int value, int column) => value / (int)Math.Pow(10, Digits - 1 - column) % 10;

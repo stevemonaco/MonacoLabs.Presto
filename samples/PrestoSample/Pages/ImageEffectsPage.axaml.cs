@@ -8,7 +8,6 @@ using Avalonia.Platform;
 using Avalonia.Styling;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using PrestoSample.Builder;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
@@ -16,31 +15,10 @@ namespace PrestoSample.Pages;
 /// <summary>
 /// The colour filters of <see cref="FilteredImage"/>: a slider per filter printing the XAML and builder it amounts to,
 /// thumbnails that colorize on hover, a develop entrance, a duotone that follows its theme variant and a looping hue
-/// cycle, a slideshow with a transition picker and a card that dissolves in and pixelates out. The thumbnail, develop,
-/// hue and card XAML are constants pinned to the markup by a test.
+/// cycle, a slideshow with a transition picker and a card that dissolves in and pixelates out.
 /// </summary>
 public partial class ImageEffectsPage : ShowcasePage
 {
-    public const string ThumbXaml = """
-        <presto:FilteredImage Classes="thumb" Source="/Assets/Photos/mongolia.jpg" Grayscale="1"
-                              presto:Motion.Hover="{x:Static local:ImageEffectsPage.Colorize}" />
-        """;
-
-    public const string DevelopXaml = """
-        <presto:FilteredImage x:Name="Developed" Classes="thumb" Source="/Assets/Photos/port-blanc.jpg"
-                              presto:Presence.Initial="{x:Static local:ImageEffectsPage.Develop}" />
-        """;
-
-    public const string HueXaml = """
-        <presto:FilteredImage x:Name="HuePhoto" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg"
-                              presto:Animate.OnAttached="{x:Static local:ImageEffectsPage.HueCycle}" />
-        """;
-
-    public const string CardXaml = """
-        <presto:FilteredImage x:Name="Card" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg"
-                              presto:Presence.Enter="{x:Static local:ImageEffectsPage.DissolveIn}" />
-        """;
-
     public static readonly AnimationBuilder Colorize;
     public static readonly AnimationBuilder Develop;
     public static readonly AnimationBuilder HueCycle;
@@ -105,10 +83,10 @@ public partial class ImageEffectsPage : ShowcasePage
         Photo.PropertyChanged += PhotoChanged;
         DuotonePhoto.ActualThemeVariantChanged += (_, _) => FollowTheme();
         PrintFilters();
-        ColorizeCode.Text = $"{ThumbXaml}\n\n{ColorizeSnippet}";
-        DevelopCode.Text = $"{DevelopXaml}\n\n{DevelopSnippet}";
-        HueCode.Text = $"{HueXaml}\n\n{HueCycleSnippet}";
-        CardCode.Text = $"{CardXaml}\n\n{CardSnippet}";
+        ColorizeCode.CSharp = ColorizeSnippet;
+        DevelopCode.CSharp = DevelopSnippet;
+        HueCode.CSharp = HueCycleSnippet;
+        CardCode.CSharp = CardSnippet;
         KindBox.ItemsSource = Enum.GetValues<ImageTransitionKind>();
         KindBox.SelectedItem = ImageTransitionKind.Dissolve;
         KindBox.SelectionChanged += (_, _) => TransitionChanged();
@@ -142,7 +120,7 @@ public partial class ImageEffectsPage : ShowcasePage
         var builder = string.Concat(changed.Select(filter => filter.Value.StartsWith('#')
             ? $".{filter.Name}(Color.Parse(\"{filter.Value}\"))"
             : $".{filter.Name}({filter.Value})"));
-        FilterCode.Text = changed.Count == 0
+        FilterCode.Code = changed.Count == 0
             ? "<presto:FilteredImage Source=\"/Assets/Photos/mongolia.jpg\" />\n\n// Every filter at its identity: the photo draws plain."
             : $"<presto:FilteredImage Source=\"/Assets/Photos/mongolia.jpg\"{xaml} />\n\nPresto.Build(){builder}.Animate(Photo);";
     }
@@ -190,7 +168,7 @@ public partial class ImageEffectsPage : ShowcasePage
             _ => "",
         };
         var xaml = tuning == "" ? $"\n\n// or in XAML: SourceTransition=\"{kind} {DurationSlider.Value:0}\"" : "";
-        SlideshowCode.Text = $$"""
+        SlideshowCode.Code = $$"""
             Slideshow.SourceTransition = new ImageTransition
             {
                 Kind = ImageTransitionKind.{{kind}},
@@ -232,6 +210,6 @@ public partial class ImageEffectsPage : ShowcasePage
             .Duration(800)
             .Ease(Eases.InOutQuad)
             .Animate(DuotonePhoto)));
-        DuotoneCode.Text = $"// ActualThemeVariantChanged: {DuotonePhoto.ActualThemeVariant}\n{code};";
+        DuotoneCode.Code = $"// ActualThemeVariantChanged: {DuotonePhoto.ActualThemeVariant}\n{code};";
     }
 }

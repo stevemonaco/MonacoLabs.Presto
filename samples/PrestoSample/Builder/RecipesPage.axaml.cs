@@ -31,18 +31,18 @@ public partial class RecipesPage : ShowcasePage
     protected override void OnAttached()
     {
         Pop.Duration(DurationSlider.Value);
-        RecipeCode.Text = Declaration;
+        RecipeCode.Code = Declaration;
         Stagger();
     }
 
     private void Stagger() =>
-        (Staggered, StaggeredCode.Text) = Snippet.Of(Pop.With(b => b.Delay(Presto.Stagger(60))).Animate(Row.Children));
+        (Staggered, StaggeredCode.Code) = Snippet.Of(Pop.With(b => b.Delay(Presto.Stagger(60))).Animate(Row.Children));
 
     private void PlayOne(object? sender, RoutedEventArgs e)
     {
         var button = (Button)sender!;
         (Played, var code) = Snippet.Of(button.Animate(Pop));
-        RecipeCode.Text = $"{Declaration}\n\n{code};";
+        RecipeCode.Code = $"{Declaration}\n\n{code};";
     }
 
     private void PlayStaggered(object? sender, RoutedEventArgs e) => Stagger();

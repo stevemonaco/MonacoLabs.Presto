@@ -36,11 +36,7 @@
             </Border>
 
             <TextBlock Classes="caption" Text="Nine recipes; the click handler awaits them in turn, and a Presto timer stands in for the request" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="RecipesCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="RecipesCode" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

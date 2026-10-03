@@ -25,7 +25,7 @@ public static class CardView
                     Children =
                     {
                         new TextBlock { Classes = { "caption" }, Text = $"#{record.Id:00} · {record.Owner}" },
-                        new TextBlock { Classes = { "code" }, Text = $"{record.Value}", Foreground = accent },
+                        new TextBlock { Classes = { "mono" }, Text = $"{record.Value}", Foreground = accent },
                     },
                 },
             },

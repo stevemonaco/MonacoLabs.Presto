@@ -19,7 +19,7 @@
         <Style Selector="Border.card TextBlock.eyebrow">
             <Setter Property="FontSize" Value="9" />
         </Style>
-        <Style Selector="Border.card TextBlock.caption, Border.card TextBlock.code">
+        <Style Selector="Border.card TextBlock.caption, Border.card TextBlock.mono">
             <Setter Property="FontSize" Value="11" />
         </Style>
 
@@ -56,7 +56,7 @@
         <Style Selector="Border.card.expanded TextBlock.title">
             <Setter Property="FontSize" Value="34" />
         </Style>
-        <Style Selector="Border.card.expanded TextBlock.caption, Border.card.expanded TextBlock.code">
+        <Style Selector="Border.card.expanded TextBlock.caption, Border.card.expanded TextBlock.mono">
             <Setter Property="FontSize" Value="16" />
         </Style>
 

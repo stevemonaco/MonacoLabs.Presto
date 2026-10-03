@@ -64,11 +64,7 @@
                 </StackPanel>
             </Grid>
 
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="Code" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="Code" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

@@ -21,19 +21,19 @@ public partial class PropertiesPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        (_settings, SettingsCode.Text) = Snippet.Of(SettingsBox.Animate(Presto.Build()
+        (_settings, SettingsCode.Code) = Snippet.Of(SettingsBox.Animate(Presto.Build()
             .X(from: -120, to: 120, ease: Eases.OutElastic())
             .Rotate(360, duration: 1600, delay: 400)
             .Duration(1200)
             .Loop()
             .Alternate()));
 
-        (_tweenKeyframes, TweenKeyframesCode.Text) = Snippet.Of(Ball.Animate(Presto.Build()
+        (_tweenKeyframes, TweenKeyframesCode.Code) = Snippet.Of(Ball.Animate(Presto.Build()
             .Y(k => k.To(-40, duration: 300, ease: Eases.OutQuad).To(0, duration: 600, ease: Eases.OutBounce))
             .Loop()
             .LoopDelay(400)));
 
-        (_keyframes, KeyframesCode.Text) = Snippet.Of(KeyframesBox.Animate(Presto.Build()
+        (_keyframes, KeyframesCode.Code) = Snippet.Of(KeyframesBox.Animate(Presto.Build()
             .Keyframes(k => k
                 .At(0, f => f.X(-120).Scale(1))
                 .At(30, f => f.X(0).Scale(1.4).Rotate(90))
@@ -43,7 +43,7 @@ public partial class PropertiesPage : ShowcasePage
             .Loop()
             .Alternate()));
 
-        (_card, CardCode.Text) = Snippet.Of(Card.Animate(Presto.Build()
+        (_card, CardCode.Code) = Snippet.Of(Card.Animate(Presto.Build()
             .Background(Palette.Violet)
             .CornerRadius(new CornerRadius(4, 40, 4, 40))
             .Property(Border.BorderThicknessProperty, TweenValue.Of(new Thickness(6)))

@@ -16,8 +16,8 @@ public sealed class FpsMeter : UserControl
 {
     private const double WindowMs = 500;
 
-    private readonly TextBlock _uiText = new() { Classes = { "code" }, Text = Format("ui", 0) };
-    private readonly TextBlock _sceneText = new() { Classes = { "code" }, IsVisible = false };
+    private readonly TextBlock _uiText = new() { Classes = { "mono" }, Text = Format("ui", 0) };
+    private readonly TextBlock _sceneText = new() { Classes = { "mono" }, IsVisible = false };
 
     private double _windowStart;
     private int _frames;

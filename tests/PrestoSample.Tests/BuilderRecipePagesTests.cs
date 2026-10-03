@@ -7,6 +7,7 @@ using Avalonia.LogicalTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using PrestoSample.Builder;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Tests;
 
@@ -22,7 +23,7 @@ public sealed class BuilderRecipePagesTests
 
         Assert.Same(MotionTokens.Standard, Recipes.Tokens);
         Assert.All(page.Played, animation => Assert.True(animation.CurrentTime > 0));
-        Assert.Contains("Recipes.FadeUp(stagger: true).Animate(Rows.Children);", page.GetControl<SelectableTextBlock>("PlayCode").Text);
+        Assert.Contains("Recipes.FadeUp(stagger: true).Animate(Rows.Children);", page.GetControl<CodePanel>("PlayCode").Code);
 
         var standard = page.Played;
         page.GetControl<ComboBox>("TokensBox").SelectedIndex = 1;
@@ -39,7 +40,7 @@ public sealed class BuilderRecipePagesTests
             TestFrames.Tick();
 
             Assert.Equal(MotionTokens.Expressive.Short, page.Played[1].Duration);
-            var settings = page.GetControl<SelectableTextBlock>("TokensCode").Text;
+            var settings = page.GetControl<CodePanel>("TokensCode").Code;
             Assert.Contains("Recipes.Tokens = MotionTokens.Expressive;", settings);
             Assert.Contains("Presto.Defaults.ReducedMotion = true;", settings);
 
@@ -67,7 +68,8 @@ public sealed class BuilderRecipePagesTests
 
         var specimen = (Control)page.Played!.Targets[0];
         Assert.True(Get(specimen, "Y") > 0);
-        Assert.Contains("target.Animate(Recipes.FadeUp(duration: duration))", page.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+        Assert.Contains("target.Animate(Recipes.FadeUp(duration: duration))", page.GetLogicalDescendants().OfType<CodePanel>().Select(panel => panel.Code));
+        Assert.Equal($"{Snippets.RecipeGalleryShowcase}\n\n{Snippets.RecipeGalleryRow}",page.GetControl<CodePanel>("XamlCode").Code);
 
         page.GetControl<ComboBox>("TokensBox").SelectedIndex = 1;
         Presto.Defaults.ReducedMotion = true;
@@ -90,27 +92,23 @@ public sealed class BuilderRecipePagesTests
         }
     }
 
-    [Fact]
-    public void RecipeGalleryPageSnippetsMatchItsMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(RecipeGalleryPage), "samples/PrestoSample/Builder/RecipeGalleryPage.axaml", 2);
-
     [AvaloniaFact]
     public void PlaygroundPrintsTheChainItPlaysAndRebuildsAfterAChange()
     {
         var page = new PlaygroundPage();
         var window = SceneHarness.Show(page, 1280, 900);
         var first = page.Animation;
-        var code = page.GetControl<SelectableTextBlock>("CodeText");
+        var code = page.GetControl<CodePanel>("CodeText");
 
-        Assert.Contains(".Ease(\"outBack\")", code.Text);
-        Assert.Contains("From = StaggerFrom.Center", code.Text);
-        Assert.DoesNotContain(".X(", code.Text);
+        Assert.Contains(".Ease(\"outBack\")", code.Code);
+        Assert.Contains("From = StaggerFrom.Center", code.Code);
+        Assert.DoesNotContain(".X(", code.Code);
 
         page.GetControl<Slider>("XSlider").Value = 120;
         TestFrames.Tick(15);
 
         Assert.NotSame(first, page.Animation);
-        Assert.Contains(".X(120)", code.Text);
+        Assert.Contains(".X(120)", code.Code);
         Assert.Equal(6, page.Animation!.Targets.Count);
         SceneHarness.Close(window);
     }
@@ -130,7 +128,7 @@ public sealed class BuilderRecipePagesTests
         Assert.Equal(16 * 9, page.Animation!.Targets.Count);
         Assert.InRange(Scale(cells[0]), 0, .4);
         Assert.Equal(1, Scale(cells[^1]), 3);
-        Assert.Contains("From = from", page.GetControl<SelectableTextBlock>("CodeText").Text);
+        Assert.Contains("From = from", page.GetControl<CodePanel>("CodeText").Code);
         SceneHarness.Close(window);
     }
 
@@ -149,8 +147,8 @@ public sealed class BuilderRecipePagesTests
         Assert.True(page.Flow!.IsCompletedSuccessfully);
         Assert.Equal(label, page.GetControl<TextBlock>("Label").Text);
         Assert.Equal(200, page.GetControl<Button>("Submit").Width, 1);
-        Assert.Contains("static readonly AnimationBuilder DrawIn = Presto.Build()", page.GetControl<SelectableTextBlock>("RecipesCode").Text);
-        Assert.Contains("Celebrate = button => Recipes.Confetti(button, count: 80);", page.GetControl<SelectableTextBlock>("RecipesCode").Text);
+        Assert.Contains("static readonly AnimationBuilder DrawIn = Presto.Build()", page.GetControl<CodePanel>("RecipesCode").Code);
+        Assert.Contains("Celebrate = button => Recipes.Confetti(button, count: 80);", page.GetControl<CodePanel>("RecipesCode").Code);
         SceneHarness.Close(window);
     }
 
@@ -208,7 +206,7 @@ public sealed class BuilderRecipePagesTests
         var digits = page.OdometerValue.ToString("0000000", CultureInfo.InvariantCulture);
         var strips = page.Roll!.Targets;
         for (var i = 0; i < digits.Length; i++) Assert.Equal(-(digits[i] - '0') * 48, Convert.ToDouble(Presto.Get(strips[i], "Y"), CultureInfo.InvariantCulture), 1);
-        Assert.Contains("textModifier: Metrics[i].Format", page.GetControl<SelectableTextBlock>("CountersCode").Text);
+        Assert.Contains("textModifier: Metrics[i].Format", page.GetControl<CodePanel>("CountersCode").Code);
         SceneHarness.Close(window);
     }
 
@@ -226,7 +224,7 @@ public sealed class BuilderRecipePagesTests
         TestFrames.Tick(8);
 
         Assert.All(tiles, tile => Assert.True(Scale(tile) > 1));
-        Assert.Contains("Animate.SetOnChanged(_tiles[i], Presto.Build()", page.GetControl<SelectableTextBlock>("CountersCode").Text);
+        Assert.Contains("Animate.SetOnChanged(_tiles[i], Presto.Build()", page.GetControl<CodePanel>("CountersCode").Code);
 
         TestFrames.Tick(30);
 
@@ -274,12 +272,9 @@ public sealed class BuilderRecipePagesTests
         TestFrames.Tick(340);
 
         Assert.Empty(page.ViewModel.Toasts);
+        Assert.Equal(Snippets.ToastsTemplate, page.GetControl<CodePanel>("TemplateCode").Code);
         SceneHarness.Close(window);
     }
-
-    [Fact]
-    public void ToastsPageSnippetMatchesItsMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ToastsPage), "samples/PrestoSample/Builder/ToastsPage.axaml", 1);
 
     [AvaloniaFact]
     public void FormStatesPlayEachStateAndReturnToRest()
@@ -322,12 +317,9 @@ public sealed class BuilderRecipePagesTests
         Assert.Empty(Presto.GetAnimations(card));
         Assert.Equal(0, Get(card, "Y"), 3);
         Assert.Equal(1, Scale(card), 3);
+        Assert.Equal($"{Snippets.FormStatesCard}\n    …\n\n{Snippets.FormStatesBadge}\n    …",page.GetControl<CodeTabs>("StatesCode").Xaml);
         SceneHarness.Close(window);
     }
-
-    [Fact]
-    public void FormStatesPageSnippetsMatchItsMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(FormStatesPage), "samples/PrestoSample/Builder/FormStatesPage.axaml", 2);
 
     [AvaloniaFact]
     public void StoryboardWaitsForPlaySeeksAndKeepsItsTimeAcrossARebuild()
@@ -352,7 +344,7 @@ public sealed class BuilderRecipePagesTests
         Assert.NotSame(before, page.Animation);
         Assert.Equal(time, page.Animation.CurrentTime, 1);
         Assert.False(page.Animation.Paused);
-        Assert.Contains("fps = 6", page.GetControl<SelectableTextBlock>("CodeText").Text);
+        Assert.Contains("fps = 6", page.GetControl<CodePanel>("CodeText").Code);
         SceneHarness.Close(window);
     }
 

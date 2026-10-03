@@ -49,6 +49,6 @@ public partial class RippleGridPage : ShowcasePage
             .Duration(1100)
             .Ease(Eases.InOutQuad)
             .Animate(_cells));
-        CodeText.Text = $"{Snippet.Declare("var wave", waveCode)}\n\n{code};";
+        CodeText.Code = $"{Snippet.Declare("var wave", waveCode)}\n\n{code};";
     }
 }

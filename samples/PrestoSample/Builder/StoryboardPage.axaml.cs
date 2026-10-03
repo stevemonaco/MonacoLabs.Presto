@@ -53,7 +53,7 @@ public partial class StoryboardPage : ShowcasePage
             .Autoplay(false)
             .OnUpdate(_ => ShowProgress())
             .OnLoop(_ => LoopsText.Text = (++Loops).ToString(CultureInfo.InvariantCulture))));
-        CodeText.Text = $"// playbackEase = \"{playbackEase}\", fps = {fps}, rate = {rate.ToString(CultureInfo.InvariantCulture)}\n{code};";
+        CodeText.Code = $"// playbackEase = \"{playbackEase}\", fps = {fps}, rate = {rate.ToString(CultureInfo.InvariantCulture)}\n{code};";
 
         Animation.Seek(time);
         if (playing) Animation.Play();

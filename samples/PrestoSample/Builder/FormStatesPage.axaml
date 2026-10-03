@@ -41,6 +41,7 @@
         <StackPanel Spacing="16">
             <TextBlock Classes="caption" Text="Submit without an @ to see Error, with one to see Success; typing again returns to Idle" />
             <Border Classes="stage" MinHeight="300">
+                <!-- snippet: FormStatesCard -->
                 <Border Classes="form" presto:Motion.State="{Binding State}">
                     <presto:Motion.States>
                         <presto:MotionStates>
@@ -49,8 +50,10 @@
                             <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.CardSuccess}" />
                         </presto:MotionStates>
                     </presto:Motion.States>
+                    <!-- /snippet -->
                     <StackPanel Spacing="16">
                         <StackPanel Orientation="Horizontal" Spacing="14">
+                            <!-- snippet: FormStatesBadge -->
                             <Border Classes="badge" Background="{Binding Tint}" presto:Motion.State="{Binding State}">
                                 <presto:Motion.States>
                                     <presto:MotionStates>
@@ -60,6 +63,7 @@
                                         <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.BadgeSuccess}" />
                                     </presto:MotionStates>
                                 </presto:Motion.States>
+                                <!-- /snippet -->
                                 <TextBlock Text="{Binding Glyph}" />
                             </Border>
                             <StackPanel VerticalAlignment="Center" Spacing="2">
@@ -74,18 +78,8 @@
                 </Border>
             </Border>
 
-            <TextBlock Classes="caption" Text="The states: each view-model State is a bare-name condition on Motion.State" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="StatesCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
-            <TextBlock Classes="caption" Text="What they play: plain builders in FormMotions.cs" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="BuildersCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <TextBlock Classes="caption" Text="Each view-model State is a bare-name condition on Motion.State; what it plays is a plain builder in FormMotions.cs" />
+            <showcase:CodeTabs x:Name="StatesCode" SelectedLanguage="Xaml" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             xmlns:showcase="clr-namespace:PrestoSample.Showcase"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1100"
              x:Class="PrestoSample.Pages.PageTransitionsPage">
     <ScrollViewer>
@@ -32,11 +33,7 @@
                     </StackPanel>
                 </Grid>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="HostCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="HostCode" />
 
             <TextBlock Classes="caption" Text="A Carousel with IsSwipeEnabled under {presto:PageSlide Edge=Right}: drag a page sideways to scrub the transition" />
             <Border Classes="stage" MinHeight="0">

@@ -85,6 +85,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="local:Destination">
+                                <!-- snippet: ConnectedXamlCard -->
                                 <Button Classes="place" CommandParameter="{Binding}"
                                         Command="{Binding $parent[ItemsControl].((local:DestinationsViewModel)DataContext).OpenCommand}">
                                     <StackPanel>
@@ -98,6 +99,7 @@
                                         <TextBlock Classes="caption" Text="{Binding Country}" Margin="2,1,0,0" />
                                     </StackPanel>
                                 </Button>
+                                <!-- /snippet -->
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -106,6 +108,7 @@
         </DataTemplate>
 
         <DataTemplate x:DataType="local:DestinationViewModel">
+            <!-- snippet: ConnectedXamlDetail -->
             <Grid ColumnDefinitions="330,*" ColumnSpacing="24" Margin="5">
                 <Border Classes="photo hero"
                         presto:Connected.Key="{Binding Destination.Id, StringFormat=photo-{0}}"
@@ -122,6 +125,7 @@
                     </StackPanel>
                 </StackPanel>
             </Grid>
+            <!-- /snippet -->
         </DataTemplate>
     </showcase:ShowcasePage.DataTemplates>
 
@@ -131,34 +135,20 @@
                           OffContent="Cross-fade pages (TransitioningContentControl)" />
             <Border Width="712" Height="440" Padding="16" CornerRadius="12" HorizontalAlignment="Left"
                     Background="{x:Static showcase:Palette.Surface}">
+                <!-- snippet: ConnectedXamlHosts -->
                 <Panel>
                     <ContentControl Content="{Binding SwappedPage}" />
                     <TransitioningContentControl Content="{Binding FadedPage}" PageTransition="{presto:PageFade Duration=300}" />
                 </Panel>
+                <!-- /snippet -->
             </Border>
             <TextBlock Classes="caption" Text="A gallery card: the photo and city name are keyed by the destination's Id" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ConnectedXamlPage.CardXaml}" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="CardCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlCard}" />
             <TextBlock Classes="caption" Text="The detail view: the same keys, the arc recipe for the hero, and the text anchored to the photo's flight" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ConnectedXamlPage.DetailXaml}" />
-                </ScrollViewer>
-            </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="ArcCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="DetailCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlDetail}" />
+            <showcase:CodePanel x:Name="ArcCode" />
             <TextBlock Classes="caption" Text="The hosts: the switch moves the pages from one to the other" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ConnectedXamlPage.HostsXaml}" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="HostsCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlHosts}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

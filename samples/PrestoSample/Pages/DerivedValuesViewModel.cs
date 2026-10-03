@@ -1,5 +1,5 @@
 using Monaco.Presto;
-using PrestoSample.Builder;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 

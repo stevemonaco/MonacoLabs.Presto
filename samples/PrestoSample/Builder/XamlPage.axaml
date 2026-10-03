@@ -36,44 +36,30 @@
                     <TextBlock Classes="caption" Text="{}{x:Static}: a fixed, named builder any view can reuse, written out in full" />
                     <Border Classes="stage" MinHeight="140">
                         <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <!-- snippet: XamlStatic -->
                             <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                            <!-- /snippet -->
                             <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
                             <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
                             <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
                         </StackPanel>
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.StaticXaml}" />
-                        </ScrollViewer>
-                    </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock x:Name="StaticCode" Classes="code" />
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodeTabs x:Name="StaticCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlStatic}" />
                 </StackPanel>
 
                 <StackPanel Spacing="12">
                     <TextBlock Classes="caption" Text="Recipe markup extension: {presto:Fade} provides a fresh Recipes.FadeUp builder per element, parameterised in the markup" />
                     <Border Classes="stage" MinHeight="0">
                         <StackPanel Spacing="8">
+                            <!-- snippet: XamlExtension -->
                             <TextBlock Classes="row" Text="Inbox" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=0}" />
                             <TextBlock Classes="row" Text="Drafts" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=100}" />
                             <TextBlock Classes="row" Text="Sent" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=200}" />
                             <TextBlock Classes="row" Text="Archive" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=300}" />
+                            <!-- /snippet -->
                         </StackPanel>
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.ExtensionXaml}" />
-                        </ScrollViewer>
-                    </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock x:Name="ExtensionCode" Classes="code" />
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodeTabs x:Name="ExtensionCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlExtension}" />
                 </StackPanel>
 
                 <StackPanel Spacing="12">
@@ -83,40 +69,26 @@
                             <StackPanel.DataContext>
                                 <local:EmphasisViewModel />
                             </StackPanel.DataContext>
+                            <!-- snippet: XamlBinding -->
                             <ToggleSwitch IsChecked="{Binding IsAlert}" OffContent="Idle" OnContent="Alert" />
                             <PathIcon Data="{StaticResource StarIcon}" Width="48" Height="48" Foreground="{x:Static showcase:Palette.Amber}" presto:Animate.OnAttached="{Binding Emphasis}" />
+                            <!-- /snippet -->
                         </StackPanel>
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.BindingXaml}" />
-                        </ScrollViewer>
-                    </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock x:Name="BindingCode" Classes="code" />
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodeTabs x:Name="BindingCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlBinding}" />
                 </StackPanel>
 
                 <StackPanel Spacing="12">
                     <TextBlock Classes="caption" TextWrapping="Wrap" Text="Reorder: drag a row to move it. {presto:Reorder} on the left is the default lift, and Intensity=2 on the right doubles its scale-up and shadow. Alt+Up/Down moves the focused row and Escape cancels a drag." />
                     <Border Classes="stage" MinHeight="0">
                         <UniformGrid Columns="2" ColumnSpacing="16">
+                            <!-- snippet: XamlReorder -->
                             <ListBox x:Name="DefaultLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}" presto:Animate.ItemLayout="{presto:Reflow}" />
                             <ListBox x:Name="StrongLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder Intensity=2}" presto:Animate.ItemLayout="{presto:Reflow}" />
+                            <!-- /snippet -->
                         </UniformGrid>
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock Classes="code" Text="{x:Static local:XamlPage.ReorderXaml}" />
-                        </ScrollViewer>
-                    </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock x:Name="ReorderCode" Classes="code" />
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodeTabs x:Name="ReorderCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlReorder}" />
                 </StackPanel>
             </StackPanel>
         </StackPanel>

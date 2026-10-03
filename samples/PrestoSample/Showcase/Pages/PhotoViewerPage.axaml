@@ -9,11 +9,11 @@
     <DockPanel>
         <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,60,Auto,60,Auto,60,*,Auto" ColumnSpacing="8" Margin="0,0,0,10">
             <TextBlock Classes="eyebrow showcase" Text="SCALE" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" x:Name="ScaleText" Classes="code" Text="1.00" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" x:Name="ScaleText" Classes="mono" Text="1.00" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Classes="eyebrow showcase" Text="ROTATION" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="3" x:Name="RotationText" Classes="code" Text="0.0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" x:Name="RotationText" Classes="mono" Text="0.0" VerticalAlignment="Center" />
             <TextBlock Grid.Column="4" Classes="eyebrow showcase" Text="RELEASE PX/MS" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="5" x:Name="VelocityText" Classes="code" Text="0.00" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="5" x:Name="VelocityText" Classes="mono" Text="0.00" VerticalAlignment="Center" />
             <Button Grid.Column="7" x:Name="ResetButton" Classes="specimen" Content="Reset" Click="ResetClicked" />
         </Grid>
 

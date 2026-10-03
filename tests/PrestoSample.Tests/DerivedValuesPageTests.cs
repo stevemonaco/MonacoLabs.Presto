@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Monaco.Presto;
 using PrestoSample.Pages;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Tests;
 
@@ -35,9 +36,9 @@ public sealed class DerivedValuesPageTests
         SceneHarness.Close(window);
     }
 
-    [Fact]
-    public void DerivedValuesSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(DerivedValuesPage), "samples/PrestoSample/Pages/DerivedValuesPage.axaml", 1);
+    [AvaloniaFact]
+    public void TheHeaderTabsPrintTheHeaderMarkup() =>
+        Assert.Equal(Snippets.DerivedValuesHeader, new DerivedValuesPage().GetControl<CodeTabs>("HeaderTabs").Xaml);
 
     private static double Get(Border card, string property) => Convert.ToDouble(Presto.Get(card, property, withUnit: false));
 }

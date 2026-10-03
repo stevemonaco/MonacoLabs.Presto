@@ -7,6 +7,7 @@ using Avalonia.Media.Immutable;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -99,9 +100,16 @@ public sealed class ConnectedXamlPageTests
         SceneHarness.Close(window);
     }
 
-    [Fact]
-    public void SnippetsMatchItsMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ConnectedXamlPage), "samples/PrestoSample/Showcase/Pages/ConnectedXamlPage.axaml", 3);
+    [AvaloniaFact]
+    public void ThePagePrintsItsSnippets()
+    {
+        var page = new ConnectedXamlPage();
+
+        Assert.Equal(Snippets.ConnectedXamlCard, page.GetControl<CodePanel>("CardCode").Code);
+        Assert.Equal(Snippets.ConnectedXamlDetail, page.GetControl<CodePanel>("DetailCode").Code);
+        Assert.Equal(Snippets.ConnectedXamlHosts, page.GetControl<CodePanel>("HostsCode").Code);
+        Assert.Contains("public static readonly AnimationBuilder Arc", page.GetControl<CodePanel>("ArcCode").Code);
+    }
 
     // Waits out flights claimed from keys an earlier test's window prepared as it closed.
     private static async Task<Window> Show(ConnectedXamlPage page)

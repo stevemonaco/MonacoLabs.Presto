@@ -41,11 +41,7 @@
             <Border Classes="stage" MinHeight="0">
                 <UniformGrid x:Name="Tiles" Columns="4" />
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="CountersCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="CountersCode" />
 
             <TextBlock Classes="caption" Text="An odometer: one Y tween over every digit strip, the target digit supplied per index by a function value" />
             <Border Classes="stage" MinHeight="0">
@@ -55,11 +51,7 @@
                               IsCheckedChanged="Refresh" />
                 </StackPanel>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="OdometerCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="OdometerCode" />
 
             <TextBlock Classes="caption" Text="Recipes.RollDigits: only the characters that change roll, each in its own clipped column, right to left" />
             <Border Classes="stage" MinHeight="0">
@@ -68,11 +60,7 @@
                     <Button Content="Roll to a random value" Click="RollDigits" HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="Rolled = Recipes.RollDigits(RollReadout, _random.Next(1_000_000));" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel Code="Rolled = Recipes.RollDigits(RollReadout, _random.Next(1_000_000));" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

@@ -32,9 +32,9 @@ public partial class TimelineBuilderPage : ShowcasePage
             .Add(CardB, fadeUp, "-=400")
             .Add(CardC, fadeUp, "-=400")
             .Add(CardD, b => b.Opacity(from: 0, to: 1).Y(from: 40, to: 0).Scale(from: 0.6, to: 1).Duration(600), "<"));
-        TimelineCode.Text = $"{Snippet.Declare("var fadeUp", fadeUpCode)}\n\n{timelineCode};";
+        TimelineCode.Code = $"{Snippet.Declare("var fadeUp", fadeUpCode)}\n\n{timelineCode};";
 
-        (Spin, SpinCode.Text) = Snippet.Of(Gear.AnimateOnCompositor(Presto.Build()
+        (Spin, SpinCode.Code) = Snippet.Of(Gear.AnimateOnCompositor(Presto.Build()
             .Rotate(360)
             .Duration(2400)
             .Ease(Eases.None)

@@ -18,27 +18,6 @@ namespace PrestoSample.Builder;
 /// </summary>
 public partial class RecipeGalleryPage : ShowcasePage
 {
-    public const string ShowcaseXaml = """
-        <WrapPanel ItemSpacing="24" LineSpacing="16">
-            <Border Classes="swatch" presto:Presence.Arrive="{presto:Fade Direction=Up}" />
-            <Border Classes="swatch" presto:Presence.Arrive="{presto:Pop}" />
-            <Border Classes="swatch" presto:Animate.OnAttached="{presto:Shake Intensity=1.5}" />
-            <Button Classes="specimen" Content="Hover me" presto:Motion.Hover="{presto:Lift}" />
-            <Border Classes="specimen" presto:Tilt.Enabled="True">
-                <TextBlock Text="Move over me" />
-            </Border>
-        </WrapPanel>
-        """;
-
-    public const string RowXaml = """
-        <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
-            <DockPanel>
-                <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
-                <TextBlock Text="Quarterly report is ready" />
-            </DockPanel>
-        </Border>
-        """;
-
     private static readonly (string Name, Replay Replay, Tile[] Tiles)[] Catalogue =
     [
         ("Entrances", Replay.Once,
@@ -128,7 +107,7 @@ public partial class RecipeGalleryPage : ShowcasePage
             FamilyPanel.Children.Add(wrap);
         }
         _rows = [.. XamlRows.Children];
-        XamlCode.Text = $"{ShowcaseXaml}\n\n{RowXaml}";
+        XamlCode.Code = $"{Snippets.RecipeGalleryShowcase}\n\n{Snippets.RecipeGalleryRow}";
         TokensBox.SelectionChanged += (_, _) => SettingsChanged();
         DurationSlider.ValueChanged += (_, _) => SettingsChanged();
         IntensitySlider.ValueChanged += (_, _) => SettingsChanged();
@@ -193,7 +172,7 @@ public partial class RecipeGalleryPage : ShowcasePage
         {
             _applied.Add((tile, specimen));
         }
-        panel.Children.Add(new TextBlock { Classes = { "code" }, Text = tile.Code });
+        panel.Children.Add(new CodePanel { Classes = { "compact" }, Code = tile.Code });
         return new Border { Classes = { "tile" }, Child = panel };
     }
 
@@ -207,7 +186,7 @@ public partial class RecipeGalleryPage : ShowcasePage
         var settings = RecipeSettings.Apply(TokensBox);
         foreach (var (tile, specimen) in _applied) tile.Apply!(specimen, Duration, Intensity);
         var duration = Duration?.ToString(CultureInfo.InvariantCulture) ?? "null";
-        SettingsCode.Text = $"""
+        SettingsCode.Code = $"""
             {settings}
             double? duration = {duration}; // null: each recipe takes its duration from the tokens
             double intensity = {Intensity.ToString(CultureInfo.InvariantCulture)};

@@ -34,7 +34,7 @@
                         <TextBlock x:Name="Headline" Text="PRESTO" HorizontalAlignment="Center"
                                    FontSize="68" FontWeight="Bold" LetterSpacing="12" />
 
-                        <TextBlock x:Name="Subtitle" Classes="code" Margin="0" Opacity="0"
+                        <TextBlock x:Name="Subtitle" Classes="mono" Margin="0" Opacity="0"
                                    HorizontalAlignment="Center" FontSize="14" Text="animation for avalonia" />
 
                         <StackPanel x:Name="Cards" Orientation="Horizontal" Spacing="12"
@@ -70,7 +70,7 @@
                     <Button Content="title" Tag="title" Click="SeekLabel" />
                     <Button Content="cards" Tag="cards" Click="SeekLabel" />
                     <Button Content="out" Tag="out" Click="SeekLabel" />
-                    <TextBlock x:Name="BeatText" Classes="code" Margin="10,0,0,0" Text="out · 0 crossings" />
+                    <TextBlock x:Name="BeatText" Classes="mono" Margin="10,0,0,0" Text="out · 0 crossings" />
                 </StackPanel>
             </Border>
 

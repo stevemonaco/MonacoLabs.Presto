@@ -11,6 +11,7 @@ The implementation plan and architecture live in [docs/PLAN.md](docs/PLAN.md). R
 | `Monaco.Presto/` | **Core.** Framework-agnostic engine: clock, engine, timer, animation, timeline, tweens, values, eases, stagger, utils. No Avalonia dependency, ever. |
 | `Monaco.Presto.AvaloniaBridge/` | **Avalonia adapter.** Frame pump, `AvaloniaObject`/`AvaloniaProperty` targets, render-transform composition, color/brush/thickness interpolation, control helpers. Root namespace `Monaco.Presto.AvaloniaBridge` (deliberately not `...Avalonia`, which would shadow the `Avalonia.*` namespaces). |
 | `samples/PrestoSample*/` | Gallery app (shared project + Desktop/Browser/Android/iOS heads). Each demo page mirrors an anime.js documentation example; `Builder/` holds fluent-builder pages that print their own code, plus the XAML attach demo. Desktop is the primary dev target. |
+| `samples/PrestoSample.SnippetGenerator/` | Sample-only source generator: `<!-- snippet: Name -->` (XAML) and `#region snippet Name` (C#) regions become `PrestoSample.Showcase.Snippets` consts. |
 | `tests/Monaco.Presto.Tests/` | xunit v3 tests for the core. Bridge tests (Avalonia.Headless) will live in `tests/Monaco.Presto.AvaloniaBridge.Tests/`. |
 | `docs/` | Plan, design notes, API reference as it grows. |
 

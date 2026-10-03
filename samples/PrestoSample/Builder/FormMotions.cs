@@ -1,5 +1,6 @@
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
 

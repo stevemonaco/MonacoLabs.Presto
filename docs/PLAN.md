@@ -190,7 +190,7 @@ Phases 9–12 are the compositor work; [docs/COMPOSITOR-PLAN.md](COMPOSITOR-PLAN
 - [x] **Phase 11a — Compositor animations, fire-and-forget (bridge).** `CompositorAnimation`/`CompositorAnimationParams`: mirror animation sampled into `KeyFrameAnimation`s on `Translation`/`Scale`/`RotationAngle`/`Opacity`, `CenterPoint` expression, `Opacity` ownership, compositor-only registry, `Cancel`/`Revert`/`Then`. Pixel tests including the invalidate-mid-fade guard. Sample: a `PathIcon` spun on the compositor beside the scene; README: the `waapi.*` row.
 - [x] **Phase 11b — Compositor animations, playback control (bridge).** `Pause`/`Resume`/`Play`/`Reverse`/`Alternate`/`Seek`/`Restart`/`Complete`/`Progress`/`Speed` by recompiling from the mirror's position; phase rotation for infinite loops. Sample: the spun `PathIcon` gets Pause/Resume/Reverse buttons and a speed slider.
 - [x] **Phase 12 — FLIP layout transitions (bridge).** `PrestoAvalonia.AnimateLayout` and `AnimateSharedElement`: First/Last measured on the UI thread, inverted onto the element visual's `Translation` (plus `Scale` in `.PositionAndSize`) and played to identity on the compositor, with a mirror for interruption and `Then()`. Sample (cards, growing panel, shared-element move) and tests that assert interpolation, watched on the Desktop head. The specs are live in `tests/Monaco.Presto.AvaloniaBridge.Tests/LayoutTransitionTests.cs` and the layout cases of `CompositorRegistryTests`, held behind a `LAYOUT_TRANSITION` compile symbol until the implementation lands again.
-- [ ] **Phase 13 — Advanced sample gallery.** A second "Showcase" section of nine demos that use many features at once — motion-design set-pieces, real-world UI patterns and the render-thread/scale/blend proofs — plus a restyle of the shell and the shared classes the reference pages already use. The plan, per-demo specs and its own phase checklist live in [docs/SAMPLES-PLAN.md](SAMPLES-PLAN.md); the API gaps it turns up land in §7 below.
+- [x] **Phase 13 — Advanced sample gallery.** A second "Showcase" section of nine demos that use many features at once — motion-design set-pieces, real-world UI patterns and the render-thread/scale/blend proofs — plus a restyle of the shell and the shared classes the reference pages already use. The plan, per-demo specs and its own phase checklist live in [docs/SAMPLES-PLAN.md](SAMPLES-PLAN.md); the API gaps it turns up land in §7 below.
 - [x] **Phase 14 — Fluent builder.** `Presto.Build()` → `AnimationBuilder`, a reusable recipe that snapshots into `AnimationParams` and ends in a live `Animation`; typed shorthand/property extensions in the bridge, timeline and compositor overloads. Beside the indexer, not replacing it. Design, API shape and tests in [docs/FLUENT-BUILDER-PLAN.md](FLUENT-BUILDER-PLAN.md).
 - [x] **Phase 15 — Builder samples and XAML attach.** A "Builder" gallery section whose pages print the builder code they run (captured with `[CallerArgumentExpression]`), and a minimal bridge `Animate.OnAttached` attached property that takes a builder from `x:Static`, a markup extension or a binding. Plan in [docs/BUILDER-SAMPLES-PLAN.md](BUILDER-SAMPLES-PLAN.md).
 - [x] **Phase 16 — Connected animations.** Shared elements measured on screen so scrolled sources and targets land right, keyed `PrepareSharedElement`/`AnimateSharedElement(key, …)` for navigation where both views never coexist, and builder overloads for layout transitions with per-axis eases (arc flights) and delay. Plan in [docs/CONNECTED-ANIMATIONS-PLAN.md](CONNECTED-ANIMATIONS-PLAN.md).
@@ -311,12 +311,14 @@ Bugs found during Phase 41.
 
   Sample-only. Gaps that need library work go to §7. Sub-phases run in order, and each one is a separate `implement-plan` run.
 
+  Decided: mirror pages keep the dictionary form, printed exactly; snippets come from a build-time source generator, not runtime `.axaml` reads; no pages are merged or dropped beyond the "Recipes" rename and moving Reorder off the XAML page.
+
   - [ ] **53a — Code display infrastructure.**
     - **`CodePanel`** (a `TemplatedControl` in `Showcase/`):
       - `Code` is bindable, so live snippets keep updating; it also has `Language` (`CSharp`/`Xaml`), optional `Header` and `IsExpanded`.
       - It has a Copy button (`TopLevel.Clipboard`) and a horizontal scroll.
       - Keyword, string, number and comment highlighting (C#), and tag, attribute and markup-extension highlighting (XAML), is drawn into `SelectableTextBlock.Inlines` from `Palette` tokens. It uses a small regex tokenizer, not a dependency.
-    - **`CodeTabs`:** C#/XAML side by side, replacing the ad-hoc TabControls on Recipe gallery, XamlPage and FormStates.
+    - **`CodeTabs`:** C#/XAML side by side, replacing the ad-hoc TabControls on Recipe gallery, XamlPage and FormStates. Recipe gallery keeps its C#/XAML `TabControl` because it switches live demos, not code; only its printed XAML moved to a `CodePanel`.
     - **Compact one-line variant:** a style for tiles (Recipe gallery, Loaders).
     - **`Snippet` moves** from `PrestoSample.Builder` to a shared `PrestoSample.Showcase` namespace. Nine files outside Builder already use it.
     - **Snippet source generator:** a sample-only analyzer project reads the sample's `.axaml` and `.cs` as `AdditionalFiles` and emits a `Snippets` class of `const string`s. It covers what `CallerArgumentExpression` cannot: XAML, multi-statement code and declarations. Two kinds of region:
@@ -390,7 +392,7 @@ Bugs found during Phase 41.
     - Gate the vestibular triggers: ScrollStory's `Scroll.Speed` parallax, Carousel autoplay, and the infinite loops in MorphLab, Typography, TitleSequence and Dashboard.
     - The anime.js-mirror pages stay exempt on purpose, because anime.js has no such switch. Each says so in one caption line that links its Builder twin.
     - Rewrite the sidebar tooltip from the result.
-    - **Open:** whether the sidebar's Reduced mode should also set `Presto.Defaults.ReduceAll`, so the mirror pages honour it too.
+    - Decided: the sidebar does not set `Presto.Defaults.ReduceAll`; the mirror pages stay exempt, like anime.js.
   - [ ] **53f — Verify.** Walk every page on Desktop with DevTools in both motion modes:
     - Panels copy and highlight, and no `TextBlock.code` holds code (add a headless test that fails on one).
     - Every printed snippet compiles in spirit: pick five and paste them into a scratch page.

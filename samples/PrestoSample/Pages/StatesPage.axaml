@@ -27,6 +27,7 @@
             <Setter Property="StrokeThickness" Value="2" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <!-- snippet: StatesArrow -->
         <Style Selector="Path.arrow">
             <Setter Property="presto:Motion.States">
                 <presto:MotionStates>
@@ -37,6 +38,8 @@
         <Style Selector="Border.card:pointerover Path.arrow">
             <Setter Property="presto:Motion.State" Value="hot" />
         </Style>
+        <!-- /snippet -->
+        <!-- snippet: StatesCheckBox -->
         <Style Selector="CheckBox.task">
             <Setter Property="presto:Motion.Focus" Value="{x:Static local:StatesPage.Ring}" />
             <Setter Property="presto:Motion.States">
@@ -45,6 +48,7 @@
                 </presto:MotionStates>
             </Setter>
         </Style>
+        <!-- /snippet -->
         <Style Selector="Border.status">
             <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="14,5" />
@@ -66,6 +70,7 @@
         <Style Selector="Border.item > TextBlock">
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
         </Style>
+        <!-- snippet: StatesMenuItem -->
         <Style Selector="Border.item">
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="CornerRadius" Value="8" />
@@ -76,6 +81,7 @@
                 </presto:MotionStates>
             </Setter>
         </Style>
+        <!-- /snippet -->
         <Style Selector="Border.status > TextBlock">
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -89,15 +95,18 @@
                 <Border x:Name="Stage" Classes="stage">
                     <StackPanel Spacing="26">
                         <WrapPanel ItemSpacing="12" LineSpacing="12">
+                            <!-- snippet: StatesButton -->
                             <Button x:Name="SaveButton" Classes="specimen" Content="Save"
                                     presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
                                     presto:Motion.Press="{x:Static local:StatesPage.Squish}"
                                     presto:Motion.Focus="{x:Static local:StatesPage.Ring}" />
+                            <!-- /snippet -->
                             <Button x:Name="ShareButton" Classes="specimen" Content="Share"
                                     presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
                                     presto:Motion.Press="{x:Static local:StatesPage.Squish}"
                                     presto:Motion.Focus="{x:Static local:StatesPage.Ring}" />
                         </WrapPanel>
+                        <!-- snippet: StatesTextBox -->
                         <TextBox x:Name="SearchBox" Width="180" HorizontalAlignment="Left" PlaceholderText="Search">
                             <presto:Motion.States>
                                 <presto:MotionStates>
@@ -105,8 +114,10 @@
                                 </presto:MotionStates>
                             </presto:Motion.States>
                         </TextBox>
+                        <!-- /snippet -->
 
                         <WrapPanel ItemSpacing="12" LineSpacing="12">
+                            <!-- snippet: StatesCard -->
                             <Border x:Name="InboxCard" Classes="card"
                                     presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
                                     presto:Motion.Press="{x:Static local:StatesPage.Squish}">
@@ -115,6 +126,7 @@
                                     <TextBlock Text="Inbox" />
                                 </DockPanel>
                             </Border>
+                            <!-- /snippet -->
                             <Border x:Name="DraftsCard" Classes="card"
                                     presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
                                     presto:Motion.Press="{x:Static local:StatesPage.Squish}">
@@ -140,6 +152,7 @@
                                 <CheckBox x:Name="GraceCheck" Classes="task" Content="Reply to Grace" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <!-- snippet: StatesChip -->
                                 <Border x:Name="StatusChip" Classes="status" presto:Motion.State="{Binding $parent[local:StatesPage].Status}">
                                     <presto:Motion.States>
                                         <presto:MotionStates>
@@ -150,6 +163,7 @@
                                     </presto:Motion.States>
                                     <TextBlock Text="{Binding $parent[local:StatesPage].Status}" />
                                 </Border>
+                                <!-- /snippet -->
                                 <Button Content="Next status" Click="NextStatus" />
                             </StackPanel>
                         </Grid>
@@ -158,6 +172,7 @@
                             <StackPanel.DataContext>
                                 <local:UploadViewModel />
                             </StackPanel.DataContext>
+                            <!-- snippet: StatesUpload -->
                             <Border x:Name="UploadCard" Classes="card" Width="220"
                                     Classes.starred="{Binding IsStarred}" presto:Motion.State="{Binding Phase}">
                                 <presto:Motion.States>
@@ -177,6 +192,7 @@
                                     </presto:Motion.States>
                                 </TextBlock>
                             </Border>
+                            <!-- /snippet -->
                             <Button Content="Next phase" Command="{Binding NextPhaseCommand}" VerticalAlignment="Center" />
                             <ToggleButton Content="★ Star" IsChecked="{Binding IsStarred}" VerticalAlignment="Center" />
                         </StackPanel>
@@ -195,6 +211,7 @@
                                     <ComboBoxItem Content="From center" />
                                 </ComboBox>
                             </StackPanel>
+                            <!-- snippet: StatesMenu -->
                             <Border x:Name="MenuPanel" Classes="menu" Opacity="0" RenderTransformOrigin="50%,0%"
                                     presto:Motion.StaggerChildren="40" presto:Motion.DelayChildren="60" presto:Motion.Order="BeforeChildren">
                                 <presto:Motion.States>
@@ -210,6 +227,7 @@
                                     <Border Classes="item"><TextBlock Text="Settings" /></Border>
                                 </StackPanel>
                             </Border>
+                            <!-- /snippet -->
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -220,7 +238,7 @@
                         <ItemsControl x:Name="Log">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
-                                    <TextBlock Classes="code" Text="{Binding}" />
+                                    <TextBlock Classes="mono" Text="{Binding}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -238,11 +256,7 @@
                        Text="The menu button sets Motion.State=&quot;Open&quot; on the panel only. Its items declare an Open state but no state of their own, so they follow the panel's: StaggerChildren starts each one 40 ms after the one above, DelayChildren holds them all back by 60, and Order picks whether the panel unfolds before, with or after them. The From picker runs the stagger from the top, the bottom or the middle." />
 
             <TextBlock Classes="caption" Text="The XAML" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="XamlCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="XamlCode" Language="Xaml" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -77,7 +77,7 @@
                 <Button Content="Pause" Click="Pause" />
                 <Button Content="Restart" Click="Restart" />
                 <Button Content="Reverse" Click="Reverse" />
-                <TextBlock x:Name="ReadoutText" Classes="code" FontSize="13" VerticalAlignment="Center" />
+                <TextBlock x:Name="ReadoutText" Classes="mono" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

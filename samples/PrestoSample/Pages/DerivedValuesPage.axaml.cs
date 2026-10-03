@@ -2,22 +2,16 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using PrestoSample.Builder;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
 /// <summary>
 /// Derived values: one pointer <see cref="MotionValue"/> mapped, sprung and differentiated into five properties of a card,
-/// and a header whose opacity <see cref="DerivedValuesViewModel"/> derives. The printed XAML constant is pinned to the markup by a test.
+/// and a header whose opacity <see cref="DerivedValuesViewModel"/> derives.
 /// </summary>
 public partial class DerivedValuesPage : ShowcasePage
 {
-    public const string HeaderXaml = """
-        <TextBlock x:Name="Header" Text="Sweep across the stage" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"
-                   Opacity="{presto:Follow {Binding HeaderOpacity}, Duration=0}" />
-        """;
-
     public DerivedValuesPage() => InitializeComponent();
 
     protected override void OnAttached()
@@ -37,7 +31,7 @@ public partial class DerivedValuesPage : ShowcasePage
         Follow.SetBlur(Card, graph.Blur);
         pointer.Changed += value => model.Sweep.Set(value.Value);
 
-        GraphCode.Text = $"""
+        GraphCode.Code = $"""
             var pointer = PrestoAvalonia.PointerValue(Stage, Orientation.Horizontal, relativeToBounds: true);
             var graph = {code};
             """;

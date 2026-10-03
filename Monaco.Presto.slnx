@@ -4,6 +4,7 @@
     <Project Path="samples/PrestoSample.Browser/PrestoSample.Browser.csproj" />
     <Project Path="samples/PrestoSample.Desktop/PrestoSample.Desktop.csproj" />
     <Project Path="samples/PrestoSample.iOS/PrestoSample.iOS.csproj" />
+    <Project Path="samples/PrestoSample.SnippetGenerator/PrestoSample.SnippetGenerator.csproj" />
     <Project Path="samples/PrestoSample/PrestoSample.csproj" />
   </Folder>
   <Folder Name="/tests/">

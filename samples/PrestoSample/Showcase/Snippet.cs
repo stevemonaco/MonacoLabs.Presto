@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace PrestoSample.Builder;
+namespace PrestoSample.Showcase;
 
 /// <summary>Pairs a value with the source text that produced it, so a page prints exactly the code it ran.</summary>
 public static class Snippet

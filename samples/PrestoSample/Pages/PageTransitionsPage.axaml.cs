@@ -5,7 +5,6 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using PrestoSample.Builder;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
@@ -78,7 +77,7 @@ public partial class PageTransitionsPage : UserControl
         };
         if (transition == null) return;
         Host.PageTransition = transition;
-        HostCode.Text = $"host.PageTransition = {call};"
+        HostCode.Code = $"host.PageTransition = {call};"
             + (markup == null ? "" : $"\n\n<TransitioningContentControl\n    ClipToBounds=\"True\"\n    PageTransition=\"{markup}\" />");
     }
 

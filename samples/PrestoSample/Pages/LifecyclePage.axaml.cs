@@ -8,7 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using PrestoSample.Builder;
+using PrestoSample.Showcase;
 using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Pages;
@@ -20,17 +20,6 @@ namespace PrestoSample.Pages;
 /// </summary>
 public partial class LifecyclePage : UserControl
 {
-    public const string WizardXaml = """
-        <ContentControl x:Name="Wizard" Width="300" Height="140" presto:Presence.Mode="Wait" />
-        """;
-
-    public const string StepXaml = """
-        <DataTemplate x:Key="AccountStep">
-            <Border Classes="step"
-                    presto:Presence.Enter="{presto:Slide Edge=Right, Distance=48}"
-                    presto:Presence.Exit="{presto:Slide Edge=Left, Distance=48}">
-        """;
-
     private const int MaxMoments = 12;
 
     private static readonly IBrush InitialTint = Brush.Parse("#93c5fd");
@@ -73,7 +62,7 @@ public partial class LifecyclePage : UserControl
         ];
         Host.Content = _views[0].View;
         Swapper.Content = _panels[0];
-        WizardCode.Text = $"{WizardXaml}\n\n{StepXaml}\n        …";
+        WizardCode.Text = $"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}\n        …";
         ModePicker.SelectedIndex = (int)Presence.GetMode(Wizard);
         ShowStep(0);
     }

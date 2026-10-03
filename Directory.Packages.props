@@ -22,6 +22,10 @@
 
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 
+    <!-- Sample-only snippet generator; must be no newer than the SDK's compiler. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
 
     <!-- Pinned to 3.2.x: Avalonia.Headless.XUnit targets xunit.v3.extensibility.core 3.2.2, and [AvaloniaFact] fails discovery with MissingMethodException on 4.x. -->

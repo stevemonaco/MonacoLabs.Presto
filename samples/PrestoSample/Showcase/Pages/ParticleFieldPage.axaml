@@ -13,7 +13,7 @@
 
         <Border Grid.Row="1" Classes="rail showcase">
             <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
-                <TextBlock Grid.Column="0" Classes="code" Margin="0" Width="118"
+                <TextBlock Grid.Column="0" Classes="mono" Margin="0" Width="118"
                            Text="{Binding #CountSlider.Value, StringFormat='{}{0:0} particles'}" />
                 <Slider Grid.Column="1" x:Name="CountSlider" Minimum="500" Maximum="20000"
                         TickFrequency="500" IsSnapToTickEnabled="True"

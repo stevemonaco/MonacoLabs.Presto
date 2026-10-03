@@ -33,15 +33,13 @@
                     <Border Classes="stage">
                         <Border Width="300" Height="28" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Center"
                                 Background="{x:Static showcase:Palette.SurfaceHigh}">
+                            <!-- snippet: ValueDrivenBar -->
                             <Border x:Name="Bar" HorizontalAlignment="Left" CornerRadius="6" Background="{x:Static showcase:Palette.Accent}"
                                     Width="{presto:Follow {Binding BarWidth}, Spring=Snappy}" />
+                            <!-- /snippet -->
                         </Border>
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock Classes="code" Text="{x:Static local:ValueDrivenPage.BarXaml}" />
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodePanel x:Name="BarCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenBar}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Spacing="8">
@@ -52,46 +50,37 @@
                     <Border Classes="stage">
                         <Grid Width="220" Height="120">
                             <Path Data="M 10,110 A 100,100 0 0 1 210,110" Stroke="{x:Static showcase:Palette.Border}" StrokeThickness="8" StrokeLineCap="Round" />
+                            <!-- snippet: ValueDrivenGauge -->
                             <Border x:Name="Needle" Width="4" Height="96" Margin="0,0,0,10" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
                                     Background="{x:Static showcase:Palette.Amber}" RenderTransformOrigin="50%,100%"
                                     presto:Follow.Rotate="{Binding Angle}" presto:Follow.Timing="{Binding Timing}" />
+                            <!-- /snippet -->
                         </Grid>
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <StackPanel Spacing="8">
-                                <SelectableTextBlock Classes="code" Text="{x:Static local:ValueDrivenPage.GaugeXaml}" />
-                                <SelectableTextBlock Classes="code" Text="{Binding TimingCode}" />
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodeTabs x:Name="GaugeCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ValueDrivenGauge}" CSharp="{Binding TimingCode}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Spacing="8">
                     <TextBlock Classes="caption" Text="A swatch's Background brush, eased channel by channel on the default spring" />
                     <Border Classes="stage">
+                        <!-- snippet: ValueDrivenSwatch -->
                         <Border x:Name="Swatch" Width="160" Height="80" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center"
                                 Background="{presto:Follow {Binding Fill}}" />
+                        <!-- /snippet -->
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock Classes="code" Text="{x:Static local:ValueDrivenPage.SwatchXaml}" />
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodePanel x:Name="SwatchCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenSwatch}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
                     <TextBlock Classes="caption" Text="A card's Margin, a Thickness on a bouncy spring" />
                     <Border Classes="stage">
+                        <!-- snippet: ValueDrivenCard -->
                         <Border x:Name="Card" Classes="specimen" Margin="{presto:Follow {Binding CardMargin}, Spring=Bouncy}">
+                        <!-- /snippet -->
                             <TextBlock Text="Card" />
                         </Border>
                     </Border>
-                    <Border Classes="codeblock">
-                        <ScrollViewer>
-                            <SelectableTextBlock Classes="code" Text="{x:Static local:ValueDrivenPage.CardXaml}" />
-                        </ScrollViewer>
-                    </Border>
+                    <showcase:CodePanel x:Name="CardCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenCard}" />
                 </StackPanel>
             </Grid>
 
@@ -108,7 +97,9 @@
                             <DataTemplate x:DataType="local:ValueDrivenRow">
                                 <Grid ColumnDefinitions="90,*,48" ColumnSpacing="12">
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                    <!-- snippet: ValueDrivenRow -->
                                     <ProgressBar Grid.Column="1" Maximum="100" Value="{presto:Follow {Binding Progress}}" />
+                                    <!-- /snippet -->
                                     <TextBlock Grid.Column="2" Text="{Binding Progress, StringFormat='{}{0:0}%'}" VerticalAlignment="Center" />
                                 </Grid>
                             </DataTemplate>
@@ -116,11 +107,7 @@
                     </ListBox>
                 </DockPanel>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ValueDrivenPage.RowXaml}" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="RowCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenRow}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

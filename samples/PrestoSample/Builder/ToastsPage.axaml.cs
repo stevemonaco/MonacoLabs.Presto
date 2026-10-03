@@ -12,26 +12,11 @@ namespace PrestoSample.Builder;
 
 /// <summary>
 /// A toast stack whose item template attaches its entrance and countdown from XAML; the page only plays the exit, then
-/// removes the item. The template snippet is a constant pinned to the markup by a test.
+/// removes the item.
 /// </summary>
 public partial class ToastsPage : ShowcasePage
 {
     private const int MaxToasts = 4;
-
-    public const string TemplateXaml = """
-        <DataTemplate x:DataType="local:Toast">
-            <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}">
-                <Grid ColumnDefinitions="16,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
-                    <Border Grid.Column="1" Grid.RowSpan="2" Classes="accent" Background="{Binding Accent}" />
-                    <TextBlock Grid.Column="2" Classes="title" Text="{Binding Title}" />
-                    <TextBlock Grid.Column="2" Grid.Row="1" Classes="message" Text="{Binding Message}" />
-                    <Button Grid.Column="3" Classes="close" Content="✕" Click="Close" />
-                    <Border Grid.Row="2" Grid.ColumnSpan="4" Classes="countdown" Background="{Binding Accent}"
-                            presto:Animate.OnAttached="{x:Static local:ToastsPage.Countdown}" />
-                </Grid>
-            </Border>
-        </DataTemplate>
-        """;
 
     public static readonly AnimationBuilder Countdown;
     private static readonly Func<Control, AnimationBuilder> Leave;
@@ -61,7 +46,7 @@ public partial class ToastsPage : ShowcasePage
     public ToastsPage()
     {
         InitializeComponent();
-        RecipesCode.Text = Recipes;
+        RecipesCode.Code = Recipes;
         ViewModel.Toasts.CollectionChanged += TrimStack;
     }
 

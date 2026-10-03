@@ -33,7 +33,7 @@
                                presto:Animate.OnAttached="{presto:WordFade LineStep=120, PieceStep=30, Duration=1100, Ease=outExpo}"
                                Text="Every word of this paragraph is its own mask, and the words rise into them one line after another. Drag the width while it plays: the text re-wraps under the reveal and carries on from where it was." />
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Classes="code" Text="{Binding #WidthSlider.Value, StringFormat='width {0:0}px'}" />
+                        <TextBlock Classes="mono" Text="{Binding #WidthSlider.Value, StringFormat='width {0:0}px'}" />
                         <Slider x:Name="WidthSlider" Width="320" Minimum="280" Maximum="640" Value="600" />
                     </StackPanel>
                 </StackPanel>
@@ -80,12 +80,12 @@
                         <StackPanel Spacing="8">
                             <StackPanel x:Name="TerminalLines" Spacing="6" />
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,8,0,0">
-                                <TextBlock Classes="code" Text="status" />
-                                <TextBlock x:Name="Status" Grid.Column="1" Classes="code"
+                                <TextBlock Classes="mono" Text="status" />
+                                <TextBlock x:Name="Status" Grid.Column="1" Classes="mono"
                                            Foreground="{x:Static showcase:Palette.Aqua}" />
-                                <TextBlock x:Name="Percent" Grid.Column="2" Classes="code" Margin="0"
+                                <TextBlock x:Name="Percent" Grid.Column="2" Classes="mono" Margin="0"
                                            Foreground="{x:Static showcase:Palette.Ink}" />
-                                <TextBlock Grid.Column="3" Classes="code" Text="%" />
+                                <TextBlock Grid.Column="3" Classes="mono" Text="%" />
                             </Grid>
                         </StackPanel>
                     </Border>

@@ -53,9 +53,9 @@
                         <Border x:Name="BlendPuck" Classes="puck" Background="{x:Static showcase:Palette.AccentPale}" />
                     </Canvas>
                 </Border>
-                <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ReplaceCount" Classes="code" />
-                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="NoneCount" Classes="code" />
-                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="BlendCount" Classes="code" />
+                <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ReplaceCount" Classes="mono" />
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="NoneCount" Classes="mono" />
+                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="BlendCount" Classes="mono" />
             </Grid>
 
             <Border Classes="rail showcase">

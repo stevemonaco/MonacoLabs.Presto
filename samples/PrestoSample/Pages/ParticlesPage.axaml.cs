@@ -51,7 +51,7 @@ public partial class ParticlesPage : ShowcasePage
             (ParticleShape.Bitmap(new Bitmap(AssetLoader.Open(new Uri("avares://PrestoSample/Assets/Icon.png")))), "ParticleShape.Bitmap(icon)", 24),
             (ParticleShape.FromGeometry((Geometry)Application.Current!.FindResource("HeartIcon")!, new Size(16, 16)), "ParticleShape.FromGeometry(heart, new Size(16, 16))", 16),
         ];
-        Code.Text = Format(Params());
+        Code.Code = Format(Params());
     }
 
     protected override void OnAttached()
@@ -118,7 +118,7 @@ public partial class ParticlesPage : ShowcasePage
     {
         if (_shapes is null) return;
         var p = Params();
-        Code.Text = Format(p);
+        Code.Code = Format(p);
         if (_streaming) Emit(p with { Burst = 0 });
     }
 
@@ -171,7 +171,7 @@ public partial class ParticlesPage : ShowcasePage
         var delta = e.GetPosition(Particles) - _origin!.Value;
         if (Math.Abs(delta.X) + Math.Abs(delta.Y) < 8) return;
         _angle = Math.Round(Utils.RadToDeg(Math.Atan2(delta.Y, delta.X)));
-        Code.Text = Format(Params());
+        Code.Code = Format(Params());
     }
 
     private void StageReleased(object? sender, PointerReleasedEventArgs e)

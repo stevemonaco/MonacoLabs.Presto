@@ -34,7 +34,7 @@
             <Setter Property="Height" Value="56" />
             <Setter Property="Padding" Value="9,7" />
         </Style>
-        <Style Selector="Border.card TextBlock.caption, Border.card TextBlock.code">
+        <Style Selector="Border.card TextBlock.caption, Border.card TextBlock.mono">
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Margin" Value="0" />
         </Style>
@@ -88,11 +88,11 @@
             <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="18">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
                     <TextBlock Classes="caption" Text="drop" VerticalAlignment="Center" />
-                    <TextBlock x:Name="DropText" Classes="code" Text="—" />
+                    <TextBlock x:Name="DropText" Classes="mono" Text="—" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                     <TextBlock Classes="caption" Text="velocity" VerticalAlignment="Center" />
-                    <TextBlock x:Name="VelocityText" Classes="code" Text="0.00" />
+                    <TextBlock x:Name="VelocityText" Classes="mono" Text="0.00" />
                 </StackPanel>
             </Grid>
         </Border>

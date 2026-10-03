@@ -103,7 +103,7 @@
                     <Grid RowDefinitions="Auto,*" RowSpacing="14">
                         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                             <TextBlock Grid.Column="0" Classes="eyebrow showcase" Text="PINNED · SCRUBBED BY SCROLL" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" x:Name="PinLabel" Classes="code" Margin="0,0,10,0" Text="step1" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" x:Name="PinLabel" Classes="mono" Margin="0,0,10,0" Text="step1" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2" x:Name="PinNumber" Classes="readout" FontSize="20" Text="0" />
                             <TextBlock Grid.Column="3" Classes="caption" Text="%" VerticalAlignment="Bottom" Margin="0,0,0,3" />
                         </Grid>
@@ -122,7 +122,7 @@
                     <Border x:Name="RailFill" Width="0" CornerRadius="2" HorizontalAlignment="Left"
                             Background="{x:Static showcase:Palette.Accent}" />
                 </Border>
-                <TextBlock Grid.Column="1" x:Name="RailText" Classes="code" Margin="0" Text="0% · 0.000 px/ms · forward" />
+                <TextBlock Grid.Column="1" x:Name="RailText" Classes="mono" Margin="0" Text="0% · 0.000 px/ms · forward" />
                 <TextBlock Grid.Column="2" x:Name="CrossingText" Classes="caption" VerticalAlignment="Center" Text="no crossing yet" />
                 <Path Grid.Column="3" x:Name="Vane" Data="M 0,0 L 14,0 L 7,11 Z" VerticalAlignment="Center"
                       Fill="{x:Static showcase:Palette.AccentBright}" />

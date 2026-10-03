@@ -80,7 +80,7 @@ public partial class SubmitFlowPage : ShowcasePage
     public SubmitFlowPage()
     {
         InitializeComponent();
-        RecipesCode.Text = Code;
+        RecipesCode.Code = Code;
     }
 
     /// <summary>Completes when the flow the last click started has sprung back; <see langword="null"/> before the first click.</summary>

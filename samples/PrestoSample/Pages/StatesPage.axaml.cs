@@ -14,113 +14,10 @@ namespace PrestoSample.Pages;
 /// <c>Motion</c> states on real controls: hover, press and focus sugar, <c>:checked</c> and <c>:focus</c> through
 /// <c>Motion.States</c>, a parent's hover reaching a child through a style setter on <c>Motion.State</c>, a bound status
 /// chip, a card driven by a view model's enum and a class binding, and a menu whose items follow the panel's state in a stagger. The log is written from the controls' own class and
-/// property changes. The XAML snippets are constants pinned to the markup by a test.
+/// property changes.
 /// </summary>
 public partial class StatesPage : UserControl
 {
-    public const string ButtonXaml = """
-        <Button x:Name="SaveButton" Classes="specimen" Content="Save"
-                presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
-                presto:Motion.Press="{x:Static local:StatesPage.Squish}"
-                presto:Motion.Focus="{x:Static local:StatesPage.Ring}" />
-        """;
-
-    public const string TextBoxXaml = """
-        <TextBox x:Name="SearchBox" Width="180" HorizontalAlignment="Left" PlaceholderText="Search">
-            <presto:Motion.States>
-                <presto:MotionStates>
-                    <presto:MotionState When=":focus" Motion="{x:Static local:StatesPage.Grow}" />
-                </presto:MotionStates>
-            </presto:Motion.States>
-        </TextBox>
-        """;
-
-    public const string CheckBoxXaml = """
-        <Style Selector="CheckBox.task">
-            <Setter Property="presto:Motion.Focus" Value="{x:Static local:StatesPage.Ring}" />
-            <Setter Property="presto:Motion.States">
-                <presto:MotionStates>
-                    <presto:MotionState When=":checked" Motion="{x:Static local:StatesPage.Done}" />
-                </presto:MotionStates>
-            </Setter>
-        </Style>
-        """;
-
-    public const string ArrowXaml = """
-        <Style Selector="Path.arrow">
-            <Setter Property="presto:Motion.States">
-                <presto:MotionStates>
-                    <presto:MotionState When="hot" Motion="{x:Static local:StatesPage.Nudge}" />
-                </presto:MotionStates>
-            </Setter>
-        </Style>
-        <Style Selector="Border.card:pointerover Path.arrow">
-            <Setter Property="presto:Motion.State" Value="hot" />
-        </Style>
-        """;
-
-    public const string CardXaml = """
-        <Border x:Name="InboxCard" Classes="card"
-                presto:Motion.Hover="{x:Static local:StatesPage.Lift}"
-                presto:Motion.Press="{x:Static local:StatesPage.Squish}">
-        """;
-
-    public const string ChipXaml = """
-        <Border x:Name="StatusChip" Classes="status" presto:Motion.State="{Binding $parent[local:StatesPage].Status}">
-            <presto:Motion.States>
-                <presto:MotionStates>
-                    <presto:MotionState When="Syncing" Motion="{x:Static local:StatesPage.Pulse}" />
-                    <presto:MotionState When="Failed" Motion="{x:Static local:StatesPage.Alarm}" Leave="{x:Static local:StatesPage.Calm}" />
-                    <presto:MotionState When="Done" Motion="{x:Static local:StatesPage.Success}" />
-                </presto:MotionStates>
-            </presto:Motion.States>
-        """;
-
-    public const string UploadXaml = """
-        <Border x:Name="UploadCard" Classes="card" Width="220"
-                Classes.starred="{Binding IsStarred}" presto:Motion.State="{Binding Phase}">
-            <presto:Motion.States>
-                <presto:MotionStates>
-                    <presto:MotionState When="Uploading" Motion="{x:Static local:StatesPage.Pulse}" />
-                    <presto:MotionState When="Paused" Motion="{x:Static local:StatesPage.Dim}" />
-                    <presto:MotionState When="Uploaded" Motion="{x:Static local:StatesPage.Success}" />
-                    <presto:MotionState When=".starred" Motion="{x:Static local:StatesPage.Star}" />
-                    <presto:MotionState When="Uploaded.starred" Motion="{x:Static local:StatesPage.Trophy}" />
-                </presto:MotionStates>
-            </presto:Motion.States>
-            <TextBlock Text="{Binding Phase, StringFormat='report.pdf · {0}'}" presto:Motion.State="{Binding Phase}">
-                <presto:Motion.States>
-                    <presto:MotionStates>
-                        <presto:MotionState When="Uploaded" Motion="{x:Static local:StatesPage.DarkInk}" />
-                    </presto:MotionStates>
-                </presto:Motion.States>
-            </TextBlock>
-        </Border>
-        """;
-
-    public const string MenuXaml = """
-        <Border x:Name="MenuPanel" Classes="menu" Opacity="0" RenderTransformOrigin="50%,0%"
-                presto:Motion.StaggerChildren="40" presto:Motion.DelayChildren="60" presto:Motion.Order="BeforeChildren">
-            <presto:Motion.States>
-                <presto:MotionStates>
-                    <presto:MotionState When="Open" Motion="{x:Static local:StatesPage.Unfold}" />
-                </presto:MotionStates>
-            </presto:Motion.States>
-        """;
-
-    public const string MenuItemXaml = """
-        <Style Selector="Border.item">
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Opacity" Value="0" />
-            <Setter Property="presto:Motion.States">
-                <presto:MotionStates>
-                    <presto:MotionState When="Open" Motion="{x:Static local:StatesPage.SlideIn}" />
-                </presto:MotionStates>
-            </Setter>
-        </Style>
-        """;
-
     public static readonly StyledProperty<string> StatusProperty =
         AvaloniaProperty.Register<StatesPage, string>(nameof(Status), "Idle");
 
@@ -168,7 +65,7 @@ public partial class StatesPage : UserControl
                 if (e.Property == Motion.StateProperty) Record($"{name}  State = {e.NewValue ?? "none"}");
             };
         }
-        XamlCode.Text = string.Join("\n\n", ButtonXaml, TextBoxXaml, CheckBoxXaml, ArrowXaml, $"{CardXaml}\n    …", $"{ChipXaml}\n    …", UploadXaml, $"{MenuXaml}\n    …", MenuItemXaml);
+        XamlCode.Code = string.Join("\n\n", Snippets.StatesButton, Snippets.StatesTextBox, Snippets.StatesCheckBox, Snippets.StatesArrow, Snippets.StatesCard, Snippets.StatesChip, Snippets.StatesUpload, Snippets.StatesMenu, Snippets.StatesMenuItem);
         OrderPicker.SelectedIndex = (int)Motion.GetOrder(MenuPanel);
         FromPicker.SelectedIndex = 0;
     }

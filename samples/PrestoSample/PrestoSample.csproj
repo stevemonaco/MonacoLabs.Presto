@@ -32,5 +32,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge\Monaco.Presto.AvaloniaBridge.csproj" />
+    <ProjectReference Include="..\PrestoSample.SnippetGenerator\PrestoSample.SnippetGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- The Avalonia SDK already passes every .axaml as AdditionalFiles, so only the C# sources are added here. -->
+  <ItemGroup>
+    <AdditionalFiles Include="@(Compile)" />
   </ItemGroup>
 </Project>

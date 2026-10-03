@@ -26,7 +26,7 @@
             <Border Classes="rail showcase">
                 <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-                        <TextBlock Classes="code" Margin="0" Width="110" VerticalAlignment="Center"
+                        <TextBlock Classes="mono" Margin="0" Width="110" VerticalAlignment="Center"
                                    Text="{Binding #CountSlider.Value, StringFormat='{}{0:N0} targets'}" />
                         <Slider Grid.Column="1" x:Name="CountSlider" Minimum="100" Maximum="20000"
                                 TickFrequency="100" IsSnapToTickEnabled="True"
@@ -52,9 +52,9 @@
             <Border Classes="rail showcase">
                 <WrapPanel ItemSpacing="24" LineSpacing="6">
                     <showcase:FpsMeter VerticalAlignment="Center" />
-                    <TextBlock x:Name="GcReadout" Classes="code" Margin="0" VerticalAlignment="Center" />
-                    <TextBlock x:Name="BuildReadout" Classes="code" Margin="0" VerticalAlignment="Center" />
-                    <TextBlock x:Name="WorkerReadout" Classes="code" Margin="0" VerticalAlignment="Center" Text="worker off" />
+                    <TextBlock x:Name="GcReadout" Classes="mono" Margin="0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="BuildReadout" Classes="mono" Margin="0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="WorkerReadout" Classes="mono" Margin="0" VerticalAlignment="Center" Text="worker off" />
                 </WrapPanel>
             </Border>
         </StackPanel>

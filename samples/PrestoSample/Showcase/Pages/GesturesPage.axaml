@@ -17,7 +17,7 @@
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Padding" Value="12" />
         </Style>
-        <Style Selector="Border.panel TextBlock.code">
+        <Style Selector="Border.panel TextBlock.mono">
             <Setter Property="Margin" Value="0" />
         </Style>
         <Style Selector="Border.row">
@@ -49,7 +49,7 @@
         <Border Grid.Column="0" Classes="panel">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="PullVelocity" Classes="code" Text="0.00" />
+                    <TextBlock DockPanel.Dock="Right" x:Name="PullVelocity" Classes="mono" Text="0.00" />
                     <TextBlock Classes="eyebrow showcase" Text="PULL TO REFRESH" />
                 </DockPanel>
                 <Panel x:Name="PullViewport" ClipToBounds="True" Background="{x:Static showcase:Palette.Surface}">
@@ -69,7 +69,7 @@
         <Border Grid.Column="1" Classes="panel">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="InboxVelocity" Classes="code" Text="0.00" />
+                    <TextBlock DockPanel.Dock="Right" x:Name="InboxVelocity" Classes="mono" Text="0.00" />
                     <TextBlock Classes="eyebrow showcase" Text="SWIPE TO DISMISS" />
                 </DockPanel>
                 <Button DockPanel.Dock="Bottom" x:Name="UndoButton" Classes="specimen" Content="Undo"
@@ -81,7 +81,7 @@
         <Border Grid.Column="2" Classes="panel">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="CurtainVelocity" Classes="code" Text="0.00" />
+                    <TextBlock DockPanel.Dock="Right" x:Name="CurtainVelocity" Classes="mono" Text="0.00" />
                     <TextBlock Classes="eyebrow showcase" Text="CURTAIN" />
                 </DockPanel>
                 <Panel x:Name="CurtainStage" ClipToBounds="True">
@@ -111,7 +111,7 @@
         <Border Grid.Column="3" Classes="panel">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="SheetVelocity" Classes="code" Text="0.00" />
+                    <TextBlock DockPanel.Dock="Right" x:Name="SheetVelocity" Classes="mono" Text="0.00" />
                     <TextBlock Classes="eyebrow showcase" Text="BOTTOM SHEET" />
                 </DockPanel>
                 <Panel ClipToBounds="True">

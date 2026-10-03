@@ -42,7 +42,7 @@
                 <Slider x:Name="StretchSlider" Minimum="600" Maximum="6000" Value="2700" ValueChanged="StretchChanged" />
             </StackPanel>
 
-            <TextBlock x:Name="ReadoutText" Classes="code" FontSize="13" />
+            <TextBlock x:Name="ReadoutText" Classes="mono" FontSize="13" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

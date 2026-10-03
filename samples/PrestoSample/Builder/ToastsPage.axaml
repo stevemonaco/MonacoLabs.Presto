@@ -56,6 +56,7 @@
             <Border Classes="stage" MinHeight="420">
                 <ItemsControl x:Name="ToastList" ItemsSource="{Binding Toasts}" Width="340" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <ItemsControl.ItemTemplate>
+                        <!-- snippet: ToastsTemplate -->
                         <DataTemplate x:DataType="local:Toast">
                             <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}">
                                 <Grid ColumnDefinitions="16,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
@@ -68,22 +69,15 @@
                                 </Grid>
                             </Border>
                         </DataTemplate>
+                        <!-- /snippet -->
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Border>
 
             <TextBlock Classes="caption" Text="The item template" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ToastsPage.TemplateXaml}" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="TemplateCode" Language="Xaml" Code="{x:Static showcase:Snippets.ToastsTemplate}" />
             <TextBlock Classes="caption" Text="The countdown it points at, and the builder the page plays to take a toast away" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="RecipesCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="RecipesCode" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

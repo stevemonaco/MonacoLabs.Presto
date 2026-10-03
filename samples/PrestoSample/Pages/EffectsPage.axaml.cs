@@ -6,26 +6,16 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using PrestoSample.Builder;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
 /// <summary>
 /// The effect shorthands on real controls: blur, a live drop shadow, <c>BoxShadow</c> beside <c>DropShadowEffect</c>, a
-/// <c>RotateY</c> flip, a pointer tilt, clip and mask reveals and a blur-out exit. Each stage prints the code it ran, and
-/// the list's and row's XAML are constants pinned to the markup by a test.
+/// <c>RotateY</c> flip, a pointer tilt, clip and mask reveals and a blur-out exit. Each stage prints the code it ran.
 /// </summary>
 public partial class EffectsPage : UserControl
 {
-    public const string ListXaml = """
-        <ItemsControl x:Name="Rows" Width="300" HorizontalAlignment="Left" ClipToBounds="False"
-                      presto:Animate.ItemLayout="{presto:Reflow 320, Ease=outQuint}">
-        """;
-
-    public const string RowXaml = """
-        <Border Classes="row" presto:Presence.Exit="{x:Static local:EffectsPage.BlurOut}">
-        """;
-
     public static readonly AnimationBuilder BlurOut;
     private static readonly string BlurOutCode;
 
@@ -50,7 +40,8 @@ public partial class EffectsPage : UserControl
         _scope = PrestoAvalonia.CreateScope(this);
         Rows.ItemsSource = Items;
         Refill();
-        ExitCode.Text = $"{ListXaml}\n    {RowXaml}\n\n{BlurOutCode}";
+        ExitCode.Xaml = $"{Snippets.EffectsList}\n    {Snippets.EffectsRow}";
+        ExitCode.CSharp = BlurOutCode;
 
         (_tilt, var tilt) = _scope.Execute(_ => Snippet.Of(TiltCard.CreateAnimatable(new()
         {
@@ -59,7 +50,7 @@ public partial class EffectsPage : UserControl
             Ease = new Spring(stiffness: 120, damping: 10),
         })));
         var (_, depth) = _scope.Execute(_ => Snippet.Of(Presto.Set(TiltCard, b => b.Perspective(500))));
-        TiltCode.Text = _tiltCode = $"var tilt = {tilt};\n{depth};";
+        TiltCode.Code = _tiltCode = $"var tilt = {tilt};\n{depth};";
     }
 
     public ObservableCollection<string> Items { get; } = [];
@@ -96,7 +87,7 @@ public partial class EffectsPage : UserControl
         var (offsetY, blur, color, y) = _raised ? (18, 36, "#cc4c8dff", -8) : (2, 6, "#664c8dff", 0);
         var (_, box) = Snippet.Of(BoxCard.Animate(Presto.Build().BoxShadow(BoxShadows.Parse($"0 {offsetY} {blur} 0 {color}")).Y(y).Duration(400).Ease(Eases.OutQuart)));
         var (_, effect) = Snippet.Of(EffectCard.Animate(Presto.Build().Shadow(0, offsetY, blur, Color.Parse(color)).Y(y).Duration(400).Ease(Eases.OutQuart)));
-        CompareCode.Text = $"{box};\n{effect};";
+        CompareCode.Code = $"{box};\n{effect};";
     });
 
     private void FlipClicked(object? sender, RoutedEventArgs e)
@@ -117,13 +108,13 @@ public partial class EffectsPage : UserControl
         var (_, code) = Snippet.Of(_tilt
             .Set("RotateY", Utils.MapRange(point.X, 0, TiltStage.Bounds.Width, -20, 20))
             .Set("RotateX", Utils.MapRange(point.Y, 0, TiltStage.Bounds.Height, 20, -20)));
-        TiltCode.Text = $"{_tiltCode}\n\n// PointerMoved\n{code};";
+        TiltCode.Code = $"{_tiltCode}\n\n// PointerMoved\n{code};";
     }
 
     private void TiltExited(object? sender, PointerEventArgs e)
     {
         var (_, code) = Snippet.Of(_tilt.Set("RotateX", 0).Set("RotateY", 0));
-        TiltCode.Text = $"{_tiltCode}\n\n// PointerExited\n{code};";
+        TiltCode.Code = $"{_tiltCode}\n\n// PointerExited\n{code};";
     }
 
     private void InsetClicked(object? sender, RoutedEventArgs e) => Reveal(() =>
@@ -154,9 +145,9 @@ public partial class EffectsPage : UserControl
         foreach (var chore in Chores) if (!Items.Contains(chore)) Items.Add(chore);
     }
 
-    private static Animation Show(SelectableTextBlock output, (Animation Value, string Code) run)
+    private static Animation Show(CodePanel output, (Animation Value, string Code) run)
     {
-        output.Text = $"{run.Code};";
+        output.Code = $"{run.Code};";
         return run.Value;
     }
 }

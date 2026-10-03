@@ -28,13 +28,13 @@
         <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,10">
             <TextBlock Classes="code" Text="PrestoAvalonia.OnScroll(new() { Target = SyncCard, Sync = true }).Link(timeline)" />
             <Grid ColumnDefinitions="Auto,80,Auto,80,Auto,90,Auto,*" ColumnSpacing="8">
-                <TextBlock Grid.Column="0" Classes="code" Text="Progress" />
+                <TextBlock Grid.Column="0" Classes="mono" Text="Progress" />
                 <TextBlock Grid.Column="1" x:Name="ProgressText" Classes="value" />
-                <TextBlock Grid.Column="2" Classes="code" Text="Velocity" />
+                <TextBlock Grid.Column="2" Classes="mono" Text="Velocity" />
                 <TextBlock Grid.Column="3" x:Name="VelocityText" Classes="value" />
-                <TextBlock Grid.Column="4" Classes="code" Text="Direction" />
+                <TextBlock Grid.Column="4" Classes="mono" Text="Direction" />
                 <TextBlock Grid.Column="5" x:Name="DirectionText" Classes="value" />
-                <TextBlock Grid.Column="6" Classes="code" Text="Thresholds" />
+                <TextBlock Grid.Column="6" Classes="mono" Text="Thresholds" />
                 <TextBlock Grid.Column="7" x:Name="StateText" Classes="value" />
             </Grid>
         </StackPanel>

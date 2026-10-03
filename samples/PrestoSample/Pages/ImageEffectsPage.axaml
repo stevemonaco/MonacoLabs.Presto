@@ -55,18 +55,16 @@
                     </StackPanel>
                 </Grid>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="FilterCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="FilterCode" />
 
             <TextBlock Classes="caption" Text="Gray thumbnails that colorize on hover and turn gray again when the pointer leaves" />
             <Border Classes="stage" MinHeight="0">
                 <StackPanel Orientation="Horizontal" Spacing="16">
                     <Border Classes="frame">
+                        <!-- snippet: ImageEffectsThumb -->
                         <presto:FilteredImage Classes="thumb" Source="/Assets/Photos/mongolia.jpg" Grayscale="1"
                                               presto:Motion.Hover="{x:Static local:ImageEffectsPage.Colorize}" />
+                        <!-- /snippet -->
                     </Border>
                     <Border Classes="frame">
                         <presto:FilteredImage Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg" Grayscale="1"
@@ -78,27 +76,21 @@
                     </Border>
                 </StackPanel>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="ColorizeCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodeTabs x:Name="ColorizeCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsThumb}" />
 
             <TextBlock Classes="caption" Text="A photo that develops in on Presence.Initial: sepia, brightness and blur settle as it fades in" />
             <Border Classes="stage" MinHeight="0">
                 <Grid ColumnDefinitions="*,Auto">
                     <Border Classes="frame" HorizontalAlignment="Left">
+                        <!-- snippet: ImageEffectsDevelop -->
                         <presto:FilteredImage x:Name="Developed" Classes="thumb" Source="/Assets/Photos/port-blanc.jpg"
                                               presto:Presence.Initial="{x:Static local:ImageEffectsPage.Develop}" />
+                        <!-- /snippet -->
                     </Border>
                     <Button Grid.Column="1" Content="Replay" Click="ReplayClicked" VerticalAlignment="Center" />
                 </Grid>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="DevelopCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodeTabs x:Name="DevelopCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsDevelop}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="A duotone card whose shadow and highlight colours animate whenever its theme variant changes; the switch puts the card in a light ThemeVariantScope" />
@@ -118,24 +110,18 @@
                                   VerticalAlignment="Center" IsCheckedChanged="LightChanged" />
                 </Grid>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="DuotoneCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="DuotoneCode" />
 
             <TextBlock Classes="caption" Text="A hue cycle looped from Animate.OnAttached" />
             <Border Classes="stage" MinHeight="0">
                 <Border Classes="frame" HorizontalAlignment="Left">
+                    <!-- snippet: ImageEffectsHue -->
                     <presto:FilteredImage x:Name="HuePhoto" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg"
                                           presto:Animate.OnAttached="{x:Static local:ImageEffectsPage.HueCycle}" />
+                    <!-- /snippet -->
                 </Border>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="HueCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodeTabs x:Name="HueCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsHue}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="A slideshow whose SourceTransition plays on every Source change; click quickly and each swap starts from the composite on screen" />
@@ -160,28 +146,22 @@
                     </StackPanel>
                 </Grid>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="SlideshowCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="SlideshowCode" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="A card that dissolves in on Presence.Enter; an exit ghost is a snapshot, so Hide pixelates the live card, awaits Then() and only then removes it" />
             <Border Classes="stage" MinHeight="0">
                 <Grid ColumnDefinitions="*,Auto">
                     <Border x:Name="CardFrame" Classes="frame" HorizontalAlignment="Left" Width="200" Height="130">
+                        <!-- snippet: ImageEffectsCard -->
                         <presto:FilteredImage x:Name="Card" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg"
                                               presto:Presence.Enter="{x:Static local:ImageEffectsPage.DissolveIn}" />
+                        <!-- /snippet -->
                     </Border>
                     <Button x:Name="CardButton" Grid.Column="1" Content="Hide" Click="CardClicked" VerticalAlignment="Center" />
                 </Grid>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="CardCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodeTabs x:Name="CardCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsCard}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

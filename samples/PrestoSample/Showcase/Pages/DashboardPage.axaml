@@ -25,7 +25,7 @@
                     <Button Grid.Column="0" x:Name="NewData" Content="New data" Click="PushRound" />
                     <ToggleSwitch Grid.Column="2" x:Name="Live" VerticalAlignment="Center"
                                   OffContent="live off" OnContent="live · 800 ms" IsCheckedChanged="LiveChanged" />
-                    <TextBlock Grid.Column="3" x:Name="FeedText" Classes="code" Margin="0"
+                    <TextBlock Grid.Column="3" x:Name="FeedText" Classes="mono" Margin="0"
                                VerticalAlignment="Center" Text="round 0 · feed 0 ms" />
                 </Grid>
             </Border>

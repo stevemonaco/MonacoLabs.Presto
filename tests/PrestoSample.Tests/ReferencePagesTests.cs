@@ -205,8 +205,8 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
-    public void LifecycleSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(LifecyclePage), "samples/PrestoSample/Pages/LifecyclePage.axaml", 2);
+    public void TheLifecycleWizardPrintsItsMarkup() =>
+        Assert.StartsWith($"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}", new LifecyclePage().GetControl<TextBlock>("WizardCode").Text);
 
     private static IEnumerable<Canvas> Ghosts(Visual host) => OverlayLayer.GetOverlayLayer(host)!.Children.OfType<Canvas>();
 
@@ -305,8 +305,13 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
-    public void StatesSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(StatesPage), "samples/PrestoSample/Pages/StatesPage.axaml", 9);
+    public void TheStatesPagePrintsEverySnippet()
+    {
+        var code = new StatesPage().GetControl<CodePanel>("XamlCode").Code;
+        string[] snippets = [Snippets.StatesButton, Snippets.StatesTextBox, Snippets.StatesCheckBox, Snippets.StatesArrow, Snippets.StatesCard,
+            Snippets.StatesChip, Snippets.StatesUpload, Snippets.StatesMenu, Snippets.StatesMenuItem];
+        Assert.All(snippets, snippet => Assert.Contains(snippet, code));
+    }
 
     [AvaloniaFact]
     public void EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
@@ -335,9 +340,9 @@ public sealed class ReferencePagesTests
         Assert.IsType<Avalonia.Media.DropShadowEffect>(page.GetControl<Border>("EffectCard").Effect);
     }
 
-    [Fact]
-    public void EffectsSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(EffectsPage), "samples/PrestoSample/Pages/EffectsPage.axaml", 2);
+    [AvaloniaFact]
+    public void TheEffectsExitPrintsTheListAndRowMarkup() =>
+        Assert.Equal($"{Snippets.EffectsList}\n    {Snippets.EffectsRow}", new EffectsPage().GetControl<CodeTabs>("ExitCode").Xaml);
 
     [AvaloniaFact]
     public void TheImageEffectsSlidersPrintTheirFiltersAndResetDrawsPlain()
@@ -345,21 +350,27 @@ public sealed class ReferencePagesTests
         var page = new ImageEffectsPage();
         var window = SceneHarness.Show(page, 1100, 2000);
         var photo = page.GetControl<FilteredImage>("Photo");
-        var code = page.GetControl<SelectableTextBlock>("FilterCode");
+        var code = page.GetControl<CodePanel>("FilterCode");
 
         page.GetControl<Slider>("GrayscaleSlider").Value = 0.5;
         Assert.Equal(0.5, photo.Grayscale);
-        Assert.Contains("Grayscale=\"0.5\"", code.Text);
-        Assert.Contains(".Grayscale(0.5)", code.Text);
+        Assert.Contains("Grayscale=\"0.5\"", code.Code);
+        Assert.Contains(".Grayscale(0.5)", code.Code);
         SceneHarness.Click(window, Button(page, "Reset"));
         Assert.Equal(0, photo.Grayscale);
-        Assert.Contains("draws plain", code.Text);
+        Assert.Contains("draws plain", code.Code);
         SceneHarness.Close(window);
     }
 
-    [Fact]
-    public void ImageEffectsSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ImageEffectsPage), "samples/PrestoSample/Pages/ImageEffectsPage.axaml", 4);
+    [AvaloniaFact]
+    public void TheImageEffectsStagesPrintTheirMarkup()
+    {
+        var page = new ImageEffectsPage();
+        Assert.Equal(Snippets.ImageEffectsThumb, page.GetControl<CodeTabs>("ColorizeCode").Xaml);
+        Assert.Equal(Snippets.ImageEffectsDevelop, page.GetControl<CodeTabs>("DevelopCode").Xaml);
+        Assert.Equal(Snippets.ImageEffectsHue, page.GetControl<CodeTabs>("HueCode").Xaml);
+        Assert.Equal(Snippets.ImageEffectsCard, page.GetControl<CodeTabs>("CardCode").Xaml);
+    }
 
     [AvaloniaFact]
     public void TheSlideshowDissolvesToTheNextPhotoAndPrintsThePickedKind()
@@ -367,18 +378,18 @@ public sealed class ReferencePagesTests
         var page = new ImageEffectsPage();
         var window = SceneHarness.Show(page, 1100, 3000);
         var slideshow = page.GetControl<FilteredImage>("Slideshow");
-        var code = page.GetControl<SelectableTextBlock>("SlideshowCode");
+        var code = page.GetControl<CodePanel>("SlideshowCode");
         var first = slideshow.Source;
 
         SceneHarness.Click(window, Button(page, "Next"));
 
         Assert.NotSame(first, slideshow.Source);
         Assert.Equal(ImageTransitionKind.Dissolve, slideshow.SourceTransition!.Kind);
-        Assert.Contains("ImageTransitionKind.Dissolve", code.Text);
+        Assert.Contains("ImageTransitionKind.Dissolve", code.Code);
         page.GetControl<ComboBox>("KindBox").SelectedItem = ImageTransitionKind.Wipe;
         page.GetControl<Slider>("AngleSlider").Value = 45;
-        Assert.Contains("ImageTransitionKind.Wipe", code.Text);
-        Assert.Contains("Angle = 45", code.Text);
+        Assert.Contains("ImageTransitionKind.Wipe", code.Code);
+        Assert.Contains("Angle = 45", code.Code);
         Assert.Equal(45, slideshow.SourceTransition.Angle);
         SceneHarness.Close(window);
     }
@@ -415,7 +426,7 @@ public sealed class ReferencePagesTests
 
         Assert.True(await SceneHarness.Pump(() => live.Text is not "0 live"), "the burst never showed in the live count");
         page.GetControl<Slider>("GravitySlider").Value = 0.002;
-        Assert.Contains("Gravity = 0.002,", page.GetControl<SelectableTextBlock>("Code").Text);
+        Assert.Contains("Gravity = 0.002,", page.GetControl<CodePanel>("Code").Code);
         SceneHarness.Close(window);
     }
 
@@ -447,9 +458,16 @@ public sealed class ReferencePagesTests
         }
     }
 
-    [Fact]
-    public void ValueDrivenSnippetsMatchTheMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ValueDrivenPage), "samples/PrestoSample/Pages/ValueDrivenPage.axaml", 5);
+    [AvaloniaFact]
+    public void TheValueDrivenStagesPrintTheirMarkup()
+    {
+        var page = new ValueDrivenPage();
+        Assert.Equal(Snippets.ValueDrivenBar, page.GetControl<CodePanel>("BarCode").Code);
+        Assert.Equal(Snippets.ValueDrivenGauge, page.GetControl<CodeTabs>("GaugeCode").Xaml);
+        Assert.Equal(Snippets.ValueDrivenSwatch, page.GetControl<CodePanel>("SwatchCode").Code);
+        Assert.Equal(Snippets.ValueDrivenCard, page.GetControl<CodePanel>("CardCode").Code);
+        Assert.Equal(Snippets.ValueDrivenRow, page.GetControl<CodePanel>("RowCode").Code);
+    }
 
     private static List<string> Log(ItemsControl moments) =>
         moments.Items.Cast<(string Moment, Avalonia.Media.IBrush Tint, string Detail)>().Select(entry => $"{entry.Moment} {entry.Detail}").ToList();

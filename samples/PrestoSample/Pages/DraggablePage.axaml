@@ -16,10 +16,6 @@
             <Setter Property="Foreground" Value="#101010" />
             <Setter Property="MinHeight" Value="28" />
         </Style>
-
-        <Style Selector="TextBlock.readout">
-            <Setter Property="FontSize" Value="15" />
-        </Style>
     </UserControl.Styles>
 
     <ScrollViewer>
@@ -64,20 +60,20 @@
             </Border>
 
             <Grid ColumnDefinitions="Auto,70,Auto,70,Auto,70,Auto,70" ColumnSpacing="8">
-                <TextBlock Grid.Column="0" Classes="code" Text="X" />
-                <TextBlock Grid.Column="1" x:Name="XText" Classes="readout" />
-                <TextBlock Grid.Column="2" Classes="code" Text="Y" />
-                <TextBlock Grid.Column="3" x:Name="YText" Classes="readout" />
-                <TextBlock Grid.Column="4" Classes="code" Text="ProgressX" />
-                <TextBlock Grid.Column="5" x:Name="ProgressXText" Classes="readout" />
-                <TextBlock Grid.Column="6" Classes="code" Text="ProgressY" />
-                <TextBlock Grid.Column="7" x:Name="ProgressYText" Classes="readout" />
+                <TextBlock Grid.Column="0" Classes="mono" Text="X" />
+                <TextBlock Grid.Column="1" x:Name="XText" Classes="readout small" />
+                <TextBlock Grid.Column="2" Classes="mono" Text="Y" />
+                <TextBlock Grid.Column="3" x:Name="YText" Classes="readout small" />
+                <TextBlock Grid.Column="4" Classes="mono" Text="ProgressX" />
+                <TextBlock Grid.Column="5" x:Name="ProgressXText" Classes="readout small" />
+                <TextBlock Grid.Column="6" Classes="mono" Text="ProgressY" />
+                <TextBlock Grid.Column="7" x:Name="ProgressYText" Classes="readout small" />
             </Grid>
 
-            <TextBlock x:Name="CountsText" Classes="code" />
+            <TextBlock x:Name="CountsText" Classes="mono" />
 
             <Border Background="#18808080" CornerRadius="6" Padding="10" Height="120">
-                <TextBlock x:Name="LogText" Classes="code" VerticalAlignment="Top" />
+                <TextBlock x:Name="LogText" Classes="mono" VerticalAlignment="Top" />
             </Border>
 
             <TextBlock Classes="caption" TextWrapping="Wrap"

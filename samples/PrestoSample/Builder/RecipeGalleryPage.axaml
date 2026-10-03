@@ -80,11 +80,7 @@
                 </StackPanel>
             </WrapPanel>
 
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="SettingsCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="SettingsCode" />
 
             <TabControl>
                 <TabItem Header="C#">
@@ -95,6 +91,7 @@
                         <Button Content="Replay" Click="ReplayXaml" HorizontalAlignment="Left" />
                         <Border x:Name="XamlHost" Classes="stage" MinHeight="0">
                             <StackPanel Spacing="20">
+                                <!-- snippet: RecipeGalleryShowcase -->
                                 <WrapPanel ItemSpacing="24" LineSpacing="16">
                                     <Border Classes="swatch" presto:Presence.Arrive="{presto:Fade Direction=Up}" />
                                     <Border Classes="swatch" presto:Presence.Arrive="{presto:Pop}" />
@@ -104,13 +101,16 @@
                                         <TextBlock Text="Move over me" />
                                     </Border>
                                 </WrapPanel>
+                                <!-- /snippet -->
                                 <StackPanel x:Name="XamlRows" Spacing="6">
+                                    <!-- snippet: RecipeGalleryRow -->
                                     <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
                                         <DockPanel>
                                             <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
                                             <TextBlock Text="Quarterly report is ready" />
                                         </DockPanel>
                                     </Border>
+                                    <!-- /snippet -->
                                     <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
                                         <DockPanel>
                                             <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
@@ -127,11 +127,7 @@
                             </StackPanel>
                         </Border>
                         <TextBlock Classes="caption" Text="The XAML: each markup extension provides a new recipe builder per element, and on Presence.Exit it provides the exit form" />
-                        <Border Classes="codeblock">
-                            <ScrollViewer>
-                                <SelectableTextBlock x:Name="XamlCode" Classes="code" />
-                            </ScrollViewer>
-                        </Border>
+                        <showcase:CodePanel x:Name="XamlCode" Language="Xaml" />
                     </StackPanel>
                 </TabItem>
             </TabControl>

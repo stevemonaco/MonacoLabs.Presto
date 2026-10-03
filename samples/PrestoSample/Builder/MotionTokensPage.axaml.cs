@@ -27,12 +27,12 @@ public partial class MotionTokensPage : ShowcasePage
     private void Play()
     {
         foreach (var played in Played) played.Revert();
-        TokensCode.Text = RecipeSettings.Apply(TokensBox);
+        TokensCode.Code = RecipeSettings.Apply(TokensBox);
         var (rows, rowsCode) = Snippet.Of(Recipes.FadeUp(stagger: true).Animate(Rows.Children));
         var (panel, panelCode) = Snippet.Of(Panel.Animate(Recipes.SlideIn(Edge.Right)));
         var (fab, fabCode) = Snippet.Of(Fab.Animate(Recipes.PopIn(delay: Recipes.Tokens.Long)));
         Played = [rows, panel, fab];
-        PlayCode.Text = $"{rowsCode};\n{panelCode};\n{fabCode};";
+        PlayCode.Code = $"{rowsCode};\n{panelCode};\n{fabCode};";
     }
 
     private void SettingsChanged()

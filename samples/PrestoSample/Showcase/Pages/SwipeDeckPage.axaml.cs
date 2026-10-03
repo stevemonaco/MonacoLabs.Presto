@@ -7,7 +7,6 @@ using Avalonia.Media.Immutable;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Draggables;
-using PrestoSample.Builder;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -147,7 +146,7 @@ public partial class SwipeDeckPage : ShowcasePage
         Action<MotionValue> lean = value => PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["RotateY"] = value.Value });
         graph.RotateY.Changed += lean;
 
-        GraphCode.Text = $$"""
+        GraphCode.Code = $$"""
             var x = drag.XValue;
             var graph = {{code}};
             Follow.SetRotate(card, graph.Rotate);
