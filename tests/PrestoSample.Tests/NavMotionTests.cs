@@ -1,0 +1,141 @@
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.ViewModels;
+using static PrestoSample.Tests.NavScene;
+
+namespace PrestoSample.Tests;
+
+/// <summary>The gallery nav's motion: hover fades, sections that fold on an eased height, and the rows' initial rise.</summary>
+public sealed class NavMotionTests
+{
+    [AvaloniaFact]
+    public void CollapsingASectionShrinksItsHostToZeroAndTheNextHeaderEndsBelowIt() => With((window, gallery, nav) =>
+    {
+        TestFrames.Tick(60);
+        var (section, next) = (Container(nav, gallery.VisibleSections[0]), Container(nav, gallery.VisibleSections[1]));
+        var host = Part<Border>(section, "ItemsHost");
+        var heights = new List<double> { host.Bounds.Height };
+
+        gallery.VisibleSections[0].IsExpanded = false;
+        for (var i = 0; i < 40; i++)
+        {
+            TestFrames.Tick();
+            heights.Add(host.Bounds.Height);
+        }
+
+        Assert.True(heights[0] > 100);
+        Assert.Contains(heights, height => height > 0 && height < heights[0]);
+        for (var i = 1; i < heights.Count; i++) Assert.True(heights[i] <= heights[i - 1] + .01, $"Frame {i} grew from {heights[i - 1]} to {heights[i]}.");
+        Assert.Equal(0, heights[^1]);
+        var header = Part<Border>(section, "PART_LayoutRoot");
+        Assert.Equal(SceneHarness.Slot(header, window).Bottom, SceneHarness.Slot(Part<Border>(next, "PART_LayoutRoot"), window).Top, 2.5);
+    });
+
+    [AvaloniaFact]
+    public void ExpandingRestoresTheHostAndFadesEveryPageBackIn() => With((_, gallery, nav) =>
+    {
+        TestFrames.Tick(60);
+        var section = Container(nav, gallery.VisibleSections[0]);
+        var host = Part<Border>(section, "ItemsHost");
+        var full = host.Bounds.Height;
+
+        gallery.VisibleSections[0].IsExpanded = false;
+        TestFrames.Tick(40);
+        var pages = section.GetLogicalChildren().OfType<TreeViewItem>().ToList();
+        Assert.All(pages, page => Assert.Equal(0, page.Opacity));
+
+        gallery.VisibleSections[0].IsExpanded = true;
+        TestFrames.Tick(4);
+        Assert.InRange(host.Bounds.Height, 1, full - 1);
+        TestFrames.Tick(40);
+
+        Assert.Equal(full, host.Bounds.Height, 0.5);
+        Assert.All(pages, page => Assert.Equal(1, page.Opacity));
+    });
+
+    [AvaloniaFact]
+    public void TheChevronLandsOnItsRotation() => With((_, gallery, nav) =>
+    {
+        var chevron = Part<Avalonia.Controls.Shapes.Path>(Container(nav, gallery.VisibleSections[0]), "Chevron");
+        gallery.VisibleSections[0].IsExpanded = false;
+        TestFrames.Tick(4);
+        Assert.InRange(Rotation(chevron), -89, -1);
+        TestFrames.Tick(60);
+        Assert.Equal(-90, Rotation(chevron), 0.5);
+
+        gallery.VisibleSections[0].IsExpanded = true;
+        TestFrames.Tick(60);
+        Assert.Equal(0, Rotation(chevron), 0.5);
+    });
+
+    [AvaloniaFact]
+    public void ClickingASectionHeaderCollapsesItAndKeepsTheOpenPage() => With((window, gallery, nav) =>
+    {
+        TestFrames.Tick(60);
+        var header = Part<Border>(Container(nav, gallery.VisibleSections[0]), "PART_LayoutRoot");
+        SceneHarness.Click(window, header);
+        Assert.False(gallery.VisibleSections[0].IsExpanded);
+        Assert.Equal(gallery.Sections[0].Pages[0], gallery.SelectedPage);
+    });
+
+    [AvaloniaFact]
+    public void EveryRowRisesInWithinTheCascadeCap() => With((_, _, nav) =>
+    {
+        var headers = nav.GetVisualDescendants().OfType<Grid>().Where(grid => grid.Name == "PART_Header").ToList();
+        Assert.True(headers.Count > 60);
+        Assert.Contains(headers, header => header.Opacity < 1);
+
+        // Shown one frame in; the last row starts by 300 ms.
+        TestFrames.Tick(19);
+        Assert.All(headers, header => Assert.True(header.Opacity > 0));
+        TestFrames.Tick(30);
+        Assert.All(headers, header => Assert.Equal(1, header.Opacity));
+    });
+
+    [AvaloniaFact]
+    public void HoveringAPageFadesItsFillInAndNudgesItsTitle() => With((window, gallery, nav) =>
+    {
+        TestFrames.Tick(60);
+        var page = Container(nav, gallery.VisibleSections[0].Pages[2]);
+        var fill = Part<Border>(page, "HoverFill");
+        var title = page.GetLogicalDescendants().OfType<TextBlock>().First();
+        window.MouseMove(SceneHarness.Centre(Part<Border>(page, "PART_LayoutRoot"), window));
+        TestFrames.Tick(2);
+        Assert.InRange(fill.Opacity, .01, .99);
+        TestFrames.Tick(10);
+
+        Assert.Equal(1, fill.Opacity);
+        Assert.Equal(3, Convert.ToDouble(PrestoAvalonia.Get(title, "X")), 0.01);
+    });
+
+    [AvaloniaFact]
+    public void UnderReducedMotionCollapseAndExpandLandWithinAFrame() => With((_, gallery, nav) =>
+    {
+        TestFrames.Tick(60);
+        var section = Container(nav, gallery.VisibleSections[0]);
+        var host = Part<Border>(section, "ItemsHost");
+        var chevron = Part<Avalonia.Controls.Shapes.Path>(section, "Chevron");
+        var pages = section.GetLogicalChildren().OfType<TreeViewItem>().ToList();
+        var full = host.Bounds.Height;
+
+        gallery.VisibleSections[0].IsExpanded = false;
+        TestFrames.Tick(2);
+        Assert.Equal(0, host.Bounds.Height);
+        Assert.Equal(-90, Rotation(chevron), 0.5);
+        Assert.All(pages, page => Assert.Equal(0, page.Opacity));
+
+        gallery.VisibleSections[0].IsExpanded = true;
+        TestFrames.Tick(2);
+        Assert.Equal(full, host.Bounds.Height, 0.5);
+        Assert.Equal(0, Rotation(chevron), 0.5);
+        Assert.All(pages, page => Assert.Equal(1, page.Opacity));
+    }, reduced: true);
+
+    private static double Rotation(Avalonia.Controls.Shapes.Path chevron) => double.Parse(Convert.ToString(PrestoAvalonia.Get(chevron, "Rotate"), CultureInfo.InvariantCulture)!.Replace("deg", ""), CultureInfo.InvariantCulture);
+}

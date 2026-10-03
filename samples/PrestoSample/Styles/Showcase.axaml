@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="using:Avalonia.Controls.Converters"
         xmlns:pages="clr-namespace:PrestoSample.Pages"
         xmlns:showcase="clr-namespace:PrestoSample.Showcase">
     <Styles.Resources>
@@ -207,15 +208,98 @@
         <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
         <Setter Property="BorderThickness" Value="0,0,1,0" />
         <Setter Property="Padding" Value="6,12" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <!-- Fluent's TreeView template with a pill layer under the items, inside the ScrollViewer so the pill scrolls with them. -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ScrollViewer Background="{TemplateBinding Background}"
+                                  HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                  IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                  IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}"
+                                  AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                  BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
+                        <Panel Margin="{TemplateBinding Padding}">
+                            <Canvas>
+                                <Border Name="SelectionPill" Opacity="0" Height="0" Canvas.Top="0" CornerRadius="6"
+                                        IsHitTestVisible="False" BorderThickness="3,0,0,0"
+                                        Background="{x:Static showcase:Palette.AccentDeep}"
+                                        BorderBrush="{x:Static showcase:Palette.Accent}" />
+                            </Canvas>
+                            <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                        </Panel>
+                    </ScrollViewer>
+                </Border>
+            </ControlTemplate>
+        </Setter>
     </Style>
 
+    <!-- Fluent's TreeViewItem template: hit-testable root, hover fill, rotating chevron, clipped items host. -->
+
     <Style Selector="TreeView.nav.showcase TreeViewItem">
-        <Setter Property="IsExpanded" Value="True" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <StackPanel Background="Transparent">
+                    <Border Name="PART_LayoutRoot"
+                            Classes="TreeViewItemLayoutRoot"
+                            Focusable="True"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            MinHeight="{TemplateBinding MinHeight}"
+                            TemplatedControl.IsTemplateFocusTarget="True">
+                        <Panel>
+                            <Border Name="HoverFill" CornerRadius="6" Opacity="0" IsHitTestVisible="False"
+                                    Background="{x:Static showcase:Palette.SurfaceHigh}" />
+                            <Grid Name="PART_Header" ColumnDefinitions="Auto, *">
+                                <Grid.Margin>
+                                    <MultiBinding Converter="{x:Static converters:TreeViewItemIndentConverter.Instance}">
+                                        <Binding Path="Level" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        <DynamicResource ResourceKey="TreeViewItemIndent" />
+                                    </MultiBinding>
+                                </Grid.Margin>
+                                <Panel Name="PART_ExpandCollapseChevronContainer" Margin="12,0">
+                                    <Path Name="Chevron" Width="12" Height="12" Stretch="Uniform"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Data="M0,1 L10,10 20,1 19,0 10,8 1,0 Z" Fill="{x:Static showcase:Palette.InkDim}" />
+                                </Panel>
+                                <ContentPresenter Name="PART_HeaderPresenter"
+                                                  IsHitTestVisible="False"
+                                                  Grid.Column="1"
+                                                  Focusable="False"
+                                                  Background="Transparent"
+                                                  Content="{TemplateBinding Header}"
+                                                  ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalAlignment}"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Grid>
+                        </Panel>
+                    </Border>
+                    <Border Name="ItemsHost" ClipToBounds="True">
+                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </Border>
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="TreeView.nav.showcase TreeViewItem:empty /template/ Path#Chevron">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <Style Selector="TreeView.nav.showcase TreeViewItem[IsExpanded=False] /template/ ItemsPresenter#PART_ItemsPresenter">
+        <Setter Property="MaxHeight" Value="0" />
     </Style>
 
     <Style Selector="TreeView.nav.showcase TextBlock">
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
     <Style Selector="TreeView.nav.showcase TextBlock.section">
@@ -233,14 +317,15 @@
         <Setter Property="Margin" Value="0,1" />
     </Style>
 
-    <Style Selector="TreeView.nav.showcase TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
+    <!-- A page's hover fades in through MainView's motion states; a section header only reacts to its own border, since :pointerover holds on ancestors. -->
+    <Style Selector="TreeView.nav.showcase TreeViewItem:not(:empty) /template/ Border#PART_LayoutRoot:pointerover">
         <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
     </Style>
 
+    <!-- After the hover rule, so the selected item shows the selection pill beneath it rather than a hover or Fluent's selected background. -->
     <Style Selector="TreeView.nav.showcase TreeViewItem:selected /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="{x:Static showcase:Palette.AccentDeep}" />
-        <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Accent}" />
-        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
 
 </Styles>

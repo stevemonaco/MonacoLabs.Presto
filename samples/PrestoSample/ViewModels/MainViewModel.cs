@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -179,8 +180,23 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial string SystemMotion { get; private set; } = "";
 
+    /// <summary>The sections the nav shows, filtered in place by <see cref="SearchText"/> so surviving rows keep their containers.</summary>
+    public ObservableCollection<NavSection> VisibleSections { get; }
+
+    private readonly NavSection[] _nav;
+
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = "";
+
+    public bool HasNoMatches => VisibleSections.Count == 0;
+
+    /// <summary><see cref="SelectedPage"/> while the nav shows it, otherwise null: the page stays open while the search filters it out.</summary>
+    public GalleryPage? NavSelectedPage => SelectedPage is { } page && VisibleSections.Any(section => section.Pages.Contains(page)) ? page : null;
+
     public MainViewModel()
     {
+        _nav = [.. Sections.Select(section => new NavSection(section))];
+        VisibleSections = [.. _nav];
         SelectedPage = Sections[0].Pages[0];
         PrestoAvalonia.WatchSystemReducedMotion(reduced => SystemMotion = reduced switch
         {
@@ -194,6 +210,21 @@ public partial class MainViewModel : ObservableObject
     {
         IsBack = oldValue is not null && Order(newValue) < Order(oldValue);
         CurrentPage = newValue?.Create();
+        OnPropertyChanged(nameof(NavSelectedPage));
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        var query = value?.Trim() ?? "";
+        NavSection.Sync(VisibleSections, _nav, section => section.Filter(query));
+        OnPropertyChanged(nameof(HasNoMatches));
+        OnPropertyChanged(nameof(NavSelectedPage));
+    }
+
+    /// <summary>Opens the first page the nav shows; Enter in the search box.</summary>
+    public void OpenFirstMatch()
+    {
+        if (VisibleSections.Count > 0) SelectedPage = VisibleSections[0].Pages[0];
     }
 
     private int Order(GalleryPage? page) => Sections.SelectMany(section => section.Pages).TakeWhile(entry => entry != page).Count();
