@@ -26,7 +26,6 @@
                           ItemsSource="{Binding VisibleSections}"
                           SelectedItem="{Binding NavSelectedPage, Mode=OneWay}"
                           SelectionChanged="NavSelectionChanged"
-                          Tapped="NavTapped"
                           Classes.searching="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                           presto:Animate.ItemLayout="{presto:Reflow}">
                     <TreeView.Styles>

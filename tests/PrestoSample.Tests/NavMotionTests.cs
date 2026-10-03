@@ -85,6 +85,21 @@ public sealed class NavMotionTests
     });
 
     [AvaloniaFact]
+    public void ClickingASectionHeaderWithTheOpenPageOffscreenCollapsesItWithoutScrolling() => With((window, gallery, nav) =>
+    {
+        nav.SelectedItem = gallery.Sections[^1].Pages[^1];
+        TestFrames.Tick(60);
+        var scroller = nav.GetVisualDescendants().OfType<ScrollViewer>().First();
+        scroller.Offset = default;
+        TestFrames.Tick();
+
+        SceneHarness.Click(window, Part<Border>(Container(nav, gallery.VisibleSections[0]), "PART_LayoutRoot"));
+        Assert.False(gallery.VisibleSections[0].IsExpanded);
+        Assert.Equal(0, scroller.Offset.Y);
+        Assert.Equal(gallery.Sections[^1].Pages[^1], gallery.SelectedPage);
+    });
+
+    [AvaloniaFact]
     public void EveryRowRisesInWithinTheCascadeCap() => With((_, _, nav) =>
     {
         var headers = nav.GetVisualDescendants().OfType<Grid>().Where(grid => grid.Name == "PART_Header").ToList();

@@ -45,6 +45,7 @@ public partial class MainView : UserControl
     {
         InitializeComponent();
         new NavSelectionPill(Nav);
+        Nav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);
         _pane = new SidebarPane(Shell.ColumnDefinitions[0], Sidebar);
     }
 
@@ -95,10 +96,13 @@ public partial class MainView : UserControl
         else Nav.SelectedItem = viewModel.NavSelectedPage;
     }
 
-    private void NavTapped(object? sender, TappedEventArgs e)
+    // Tunnelling and handled, so the TreeView never selects the section and scrolls the open page back into view.
+    private void NavPressed(object? sender, PointerPressedEventArgs e)
     {
-        if ((e.Source as Visual)?.FindAncestorOfType<TreeViewItem>(includeSelf: true) is { DataContext: NavSection section })
-            section.IsExpanded = !section.IsExpanded;
+        if (!e.GetCurrentPoint(Nav).Properties.IsLeftButtonPressed
+            || (e.Source as Visual)?.FindAncestorOfType<TreeViewItem>(includeSelf: true) is not { DataContext: NavSection section }) return;
+        section.IsExpanded = !section.IsExpanded;
+        e.Handled = true;
     }
 
     // The whole nav cascades in over RiseCascade ms however many rows it shows.

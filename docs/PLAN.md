@@ -293,7 +293,110 @@ Bugs found during Phase 41.
   - **Verify** on the Desktop head with DevTools: hover sweep top to bottom with no header flash, selection glide across sections and while scrolled, collapse and expand of sections and of the pane, splitter limits, search with live filtering, and all of it again with Reduced motion.
     - Confirmed on Desktop, with Full and then Reduced motion: a page's hover shows without lighting its header, and a header lights only on its own row; the pill glides across sections and while the nav is scrolled (snaps under Reduced); sections collapse and expand, with the pill hidden while folded; the pane collapses and expands from its button and the header chevron, restoring the dragged width; the splitter stops at 180 and 420 (driven by its arrow keys); search filters live, matches descriptions, Enter opens the first match, Escape clears it, "No samples match" shows, and the open page stays open with the pill hidden while filtered out.
     - Fixed: below ~225 px the nav scrolled sideways and the pill ran to the column edge, because the template's ScrollViewer kept Fluent's horizontal `Auto`. The nav now disables horizontal scrolling and trims long titles (`NavPaneTests.AtItsNarrowestTheNavDoesNotScrollSideways`).
+    - Fixed after review: with the open page scrolled offscreen, pressing a section header selected the section, `NavSelectionChanged` put the page back and the TreeView scrolled it into view, so the header left the pointer and never toggled. Section headers now toggle on a tunnelling, handled `PointerPressed` (`MainView.NavPressed`), so the TreeView never selects them (`NavMotionTests.ClickingASectionHeaderWithTheOpenPageOffscreenCollapsesItWithoutScrolling`).
     - **Open: manual check.** DevTools cannot move the pointer, double-click, drag or send modifier keys. So the real pointer sweep (`NavHoverTests` covers it headlessly; on Desktop the hover was checked by setting `:pointerover`), a splitter drag, splitter double-click (`NavPaneTests.DoubleClickingTheSplitterCollapsesThePane`), Ctrl+B and Ctrl+F are covered only by headless tests. Someone has to do them by hand in `samples/PrestoSample.Desktop`, in both motion modes, before this phase is ticked.
+
+- [ ] **Phase 53 — Gallery code and sample review (sample).** A read-only review of all ~70 pages after 50 phases found two code-display eras and a lot of drift.
+  - **Two ways of showing code:**
+    - The Builder pages and the newer Reference pages print exact, selectable code with `Snippet.Of`.
+    - The anime.js-mirror pages (Timer through Animatable) and a few Showcase pages use 135 hand-typed, unselectable `TextBlock.code`/`caption` fragments. These are partial and often wrong, and no test pins them. Examples:
+      - Shapes omits Duration, Ease and Loop, and claims `MorphTo(StarGeometry)` while the page toggles star and circle.
+      - ValueTypes hides the `Looping()` settings and prints non-C# pseudo-syntax.
+      - Scroll uses JS-style `enter:`/`sync:`.
+      - Loaders prints `Animate` while Render thread runs `AnimateOnCompositor` with different values.
+      - Draggable's composed string omits the release settings that always apply.
+  - **Hand-made code blocks:** the `Border.codeblock > ScrollViewer > SelectableTextBlock.code` triple is copied 61 times, with no copy button or highlighting.
+  - **Duplicated XAML:** XAML shown as text is a hand-copied `const` that a whitespace-collapsed `Contains` test pins.
+  - **Overloaded class:** `TextBlock.code` also means "monospace label" and "live readout".
+
+  Sample-only. Gaps that need library work go to §7. Sub-phases run in order, and each one is a separate `implement-plan` run.
+
+  - [ ] **53a — Code display infrastructure.**
+    - **`CodePanel`** (a `TemplatedControl` in `Showcase/`):
+      - `Code` is bindable, so live snippets keep updating; it also has `Language` (`CSharp`/`Xaml`), optional `Header` and `IsExpanded`.
+      - It has a Copy button (`TopLevel.Clipboard`) and a horizontal scroll.
+      - Keyword, string, number and comment highlighting (C#), and tag, attribute and markup-extension highlighting (XAML), is drawn into `SelectableTextBlock.Inlines` from `Palette` tokens. It uses a small regex tokenizer, not a dependency.
+    - **`CodeTabs`:** C#/XAML side by side, replacing the ad-hoc TabControls on Recipe gallery, XamlPage and FormStates.
+    - **Compact one-line variant:** a style for tiles (Recipe gallery, Loaders).
+    - **`Snippet` moves** from `PrestoSample.Builder` to a shared `PrestoSample.Showcase` namespace. Nine files outside Builder already use it.
+    - **Snippet source generator:** a sample-only analyzer project reads the sample's `.axaml` and `.cs` as `AdditionalFiles` and emits a `Snippets` class of `const string`s. It covers what `CallerArgumentExpression` cannot: XAML, multi-statement code and declarations. Two kinds of region:
+      - XAML: `<!-- snippet: Name -->…<!-- /snippet -->`.
+      - C#: `#region snippet Name`…`#endregion`.
+
+      Regions are dedented, and nested snippet markers are stripped. This replaces every hand-copied XAML `const`, along with `AssertSnippetsMatchMarkup` and its `Reference` twin. Generated text is the source, so it cannot drift. Test the generator's dedent and marker handling directly.
+    - **Readout styling:** add `TextBlock.mono` (monospace label) and a shared `TextBlock.readout` size variant, so that `.code` means code only. Callbacks and Draggable currently shrink `readout` locally.
+    - **Migration:** convert all 61 codeblock triples to `CodePanel`. Keep the visuals; the tests that read `CodeText` follow.
+  - [ ] **53b — Reference pages (`Pages/`).**
+    - **Rule:** the anime.js-mirror pages keep the dictionary form, because they exist for comparison with the anime.js docs. Every fragment is replaced by the *exact* code, captured with `Snippet.Of(target.Animate(new() { … }))` or a C# snippet region. Per-page helpers (`Looping`, `Ripple`, `Tiles`) are inlined into each call, or printed once, so every snippet is self-contained. Pages:
+      - Shapes, ValueTypes, Keyframes, Stagger, Text and Scroll.
+      - Animatable.
+      - Timeline: one panel for the whole chain, replacing the nine `…` lane labels, which become `mono` labels.
+      - Draggable: print the real params, including the snap card and rails.
+      - Eases.
+      - PageTransitions: drop the duplicated `(Recipes.PageFade(), "Recipes.PageFade()")` strings.
+      - Lifecycle: its two `TextBlock.code` snippets become panels.
+      - States: also print the `Motion.States` builders next to its XAML.
+    - **Builder twin:** where a later API is clearly simpler, add a one-line "Builder form" panel next to the mirror rather than replacing it. Shapes gets `.Draw(…)`/`.Data(…)`. The AnimationBasics/BuilderBasics pairing is the model.
+    - **Lifecycle:** move the 12 manual `OnAttached/DetachedFromVisualTree` + `List<Animation>` pages, the `OnLoaded` ones and the ad-hoc `CreateScope` ones to `ShowcasePage.OnAttached`. Fold Animatable's manual `_toss` into the scope. EffectsPage becomes a `ShowcasePage`.
+    - **Fixes:**
+      - Shapes reverts the old `_morph` before replacing it.
+      - Drop the local `Border.stage`/`Border.demo` overrides in favour of shared variants.
+      - Dedupe Controls/Timeline's slider-sync readout helper and the Compositor/Layout `Freeze` handler.
+      - Correct the ValueDriven description, which mentions a reduced-motion toggle the page no longer has, and the Layout description, which omits the ContentSize cards.
+  - [ ] **53c — Builder pages.**
+    - **Remove hand-maintained strings:**
+      - `Snippet.Declare` names give way to snippet regions.
+      - XamlPage's `ExtensionCode`/`ReorderCode`.
+      - Counters' appended `SetOnChanged`/`.Modifier(SnapToDigit)` strings and its duplicated XAML at `CountersPage.axaml:73`.
+      - Storyboard's hand-built parameter comment.
+    - **Bugs:**
+      - Counters overwrites `CountersCode.Text` in its loop, so only the last tile shows.
+      - Recipes' printed `Pop` omits the slider's `.Duration`.
+      - Recipe gallery's `Body()` cuts block lambdas to `{ … }`, and its tile code is unselectable.
+      - FormStates' XAML consts are cut off mid-element.
+    - **Paste-ability:** keep page plumbing (`SyncScrub`, `ShowProgress`, `_readouts[i]`) out of printed code by attaching it after the snippet, or by printing a region with local names. Playground stays generated, with a test that the printed builder replays to the same tween values.
+    - **Modernise:**
+      - Toast stack: replace its code-driven height collapse with `Presence.Exit` + `{presto:Reflow}`, and rename the `Recipes` field that shadows the library type.
+      - Submit flow: use library `Recipes.Shake`/`Pulse`, and print `Send` through a region.
+      - Move Reorder off the XAML page, onto its own page or Board.
+      - Rename "Recipes" to "Reusable builders".
+    - **Catalog descriptions:** fix the XamlPage text ("Animate.OnAttached, three ways" is now mostly `Presence.Arrive`) and the Toasts text ("Initial and Enter" is now `Arrive`).
+  - [ ] **53d — Showcase pages.**
+    - **Code-display model:** no inline fragments, because these are app-like demos. Each page gets an optional collapsed "How it's built" `CodePanel` at the foot with the one to three key calls, captured exactly.
+      - Exceptions where the code *is* the demo: ConnectedXaml (keep), SwipeDeck (capture all of it; today only `graph` is captured and the rest is renamed by hand) and Loaders.
+      - Drop the MorphLab and MicroInteractions paraphrases.
+    - **Loaders:** each loader currently exists three times (a const, a compositor branch and a UI branch). Make it one `AnimationBuilder` per loader, played through `Animate` or `AnimateOnCompositor`, so the printed code is right on either thread (~100 lines less).
+    - **Captions:** remove the bottom captions that repeat the header's catalog Description (11 pages), and fold anything unique into the Description. Fix ScrollStory's "Nothing on this page plays on its own", which its `SetOnAttached` line mask contradicts.
+    - **Modernise**, where the imperative code is not itself the point:
+      - MicroInteractions: replace its hand-built toasts (~65 lines) with the Toast stack pattern, and its shake with `Recipes.Shake`.
+      - Typography: rebuild the word rotator from `Animate.ContentSize` + `TextReveal`, and use `Recipes.CountUp` for its counter.
+      - Carousel and Gestures: replace the `OnUpdate` → transform mappings with `XValue`/`YValue.Map` + `Follow`.
+      - ScrollStory: build its rail from `ScrollValue`.
+      - ChartMorph: move its states into XAML.
+      - GalleryFlip: either convert its enter/exit/arrive to `Presence`, or relabel it as the imperative `AnimateLayout` counterpart to Storefront. It overlaps Storefront heavily.
+    - **Dedupe:**
+      - The Freeze-UI-thread helper (ParticleField, Loaders, ConnectedNav).
+      - The one-shot `LayoutUpdated` placement (MicroInteractions, Bloom, Gestures, GalleryFlip).
+      - Three tab-indicator implementations.
+      - The `Border.panel`/`Button.bare` styles and the Connected place/photo styles.
+      - The ConnectedNav `Flight` and ConnectedXaml `Arc` builders.
+      - Split `ConnectedXamlViewModels.cs` into one type per file.
+    - **Small fixes:**
+      - Storefront: use `Burst(reduced:)` instead of its manual check.
+      - ActivityFeed: give `RowExit` a `WhenReduced`.
+      - Log the missing `Follow.RotateY` shorthand in §7, since SwipeDeck works around it.
+  - [ ] **53e — Reduced motion across the gallery.** Today only builders with `WhenReduced`, recipes and the declarative arms honour the sidebar; dictionary-form calls never read `ReducedMotion`, and the tooltip names only Particles and Loaders as exceptions, when nearly every Showcase page and every hand-built Builder loop is one.
+    - Add `WhenReduced` to the looping and flashy builders: FormMotions, BuilderBasics, SubmitFlow, Ripple and the Toasts countdown.
+    - Gate the vestibular triggers: ScrollStory's `Scroll.Speed` parallax, Carousel autoplay, and the infinite loops in MorphLab, Typography, TitleSequence and Dashboard.
+    - The anime.js-mirror pages stay exempt on purpose, because anime.js has no such switch. Each says so in one caption line that links its Builder twin.
+    - Rewrite the sidebar tooltip from the result.
+    - **Open:** whether the sidebar's Reduced mode should also set `Presto.Defaults.ReduceAll`, so the mirror pages honour it too.
+  - [ ] **53f — Verify.** Walk every page on Desktop with DevTools in both motion modes:
+    - Panels copy and highlight, and no `TextBlock.code` holds code (add a headless test that fails on one).
+    - Every printed snippet compiles in spirit: pick five and paste them into a scratch page.
+    - The gallery tests pass.
+
+  Also stale: Phase 13 is still unticked although its ~22 Showcase pages exist. Check SAMPLES-PLAN.md's own checklist and tick it or record what remains.
 
 ## 6. Testing strategy
 
