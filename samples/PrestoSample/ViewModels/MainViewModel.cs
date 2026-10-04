@@ -15,7 +15,8 @@ namespace PrestoSample.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    public IReadOnlyList<GallerySection> Sections { get; } =
+    /// <summary>Every page, by section; static so launch options can resolve a page before the app starts.</summary>
+    public static IReadOnlyList<GallerySection> Catalog { get; } =
     [
         Section("Reference",
             new("Timer", "createTimer: a one second timer looping at 30 fps, reporting its current time and loop count.",
@@ -156,6 +157,8 @@ public partial class MainViewModel : ObservableObject
                 () => new StoryboardPage())),
     ];
 
+    public IReadOnlyList<GallerySection> Sections => Catalog;
+
     [ObservableProperty]
     public partial GalleryPage? SelectedPage { get; set; }
 
@@ -200,11 +203,16 @@ public partial class MainViewModel : ObservableObject
     /// <summary><see cref="SelectedPage"/> while the nav shows it, otherwise null: the page stays open while the search filters it out.</summary>
     public GalleryPage? NavSelectedPage => SelectedPage is { } page && VisibleSections.Any(section => section.Pages.Contains(page)) ? page : null;
 
-    public MainViewModel()
+    public MainViewModel() : this(null)
+    {
+    }
+
+    /// <summary>Opens <paramref name="start"/>, or the first page when it is null.</summary>
+    public MainViewModel(GalleryPage? start)
     {
         _nav = [.. Sections.Select(section => new NavSection(section))];
         VisibleSections = [.. _nav];
-        SelectedPage = Sections[0].Pages[0];
+        SelectedPage = start ?? Sections[0].Pages[0];
         PrestoAvalonia.WatchSystemReducedMotion(reduced => SystemMotion = reduced switch
         {
             true => "OS preference: reduced motion",
