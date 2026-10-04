@@ -2,7 +2,7 @@
                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                       xmlns:compositor="using:Monaco.Presto.AvaloniaBridge.Compositor"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
                        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="900"
                        x:Class="PrestoSample.Pages.ParticlesPage">
@@ -13,7 +13,7 @@
                         Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}"
                         PointerPressed="StagePressed" PointerMoved="StageMoved" PointerReleased="StageReleased">
                     <Panel>
-                        <compositor:CompositorCanvas x:Name="Particles" />
+                        <presto:CompositorCanvas x:Name="Particles" />
                         <TextBlock x:Name="LiveCount" Classes="caption" Text="0 live" Margin="12,8" IsHitTestVisible="False" />
                     </Panel>
                 </Border>

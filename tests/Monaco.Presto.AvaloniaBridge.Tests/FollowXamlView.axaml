@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Monaco.Presto.AvaloniaBridge.Tests"
-             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
              x:Class="Monaco.Presto.AvaloniaBridge.Tests.FollowXamlView"
              x:DataType="local:LevelViewModel">
   <UserControl.Resources>

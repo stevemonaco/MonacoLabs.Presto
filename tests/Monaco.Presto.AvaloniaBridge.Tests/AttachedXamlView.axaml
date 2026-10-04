@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
              xmlns:local="using:Monaco.Presto.AvaloniaBridge.Tests"
              x:Class="Monaco.Presto.AvaloniaBridge.Tests.AttachedXamlView"
              x:DataType="local:AttachedXamlViewModel">

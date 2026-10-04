@@ -2,7 +2,7 @@ using Monaco.Presto.AvaloniaBridge.Lottie.Prebuilt;
 
 namespace Monaco.Presto.AvaloniaBridge.Lottie;
 
-/// <summary><c>{lottie:PlayLottie}</c>: <see cref="LottieRecipes.PlayLottie"/>, which has no exit form. <see cref="RecipeExtension.Duration"/> and <see cref="RecipeExtension.Ease"/> override the frame timing when set.</summary>
+/// <summary><c>{presto:PlayLottie}</c>: <see cref="LottieRecipes.PlayLottie"/>, which has no exit form. <see cref="RecipeExtension.Duration"/> and <see cref="RecipeExtension.Ease"/> override the frame timing when set.</summary>
 public sealed class PlayLottieExtension : RecipeExtension
 {
     /// <summary>The marker to play, or the whole composition when unset.</summary>

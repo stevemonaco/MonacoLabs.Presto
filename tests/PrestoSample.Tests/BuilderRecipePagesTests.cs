@@ -511,7 +511,7 @@ public sealed class BuilderRecipePagesTests
 
         var root = XDocument.Parse($"""
             <Root xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                  xmlns:presto="using:Monaco.Presto.AvaloniaBridge" xmlns:local="using:PrestoSample.Builder">{body}</Root>
+                  xmlns:presto="https://github.com/stevemonaco/Monaco.Presto" xmlns:local="using:PrestoSample.Builder">{body}</Root>
             """).Root!;
 
         Assert.Equal("Border", Assert.Single(root.Elements()).Name.LocalName);

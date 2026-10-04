@@ -166,7 +166,7 @@ var spin = icon.AnimateOnCompositor(Presto.Build().Rotate(360).Duration(1200).Ea
 
 #### From XAML
 
-The attached properties (`xmlns:presto="using:Monaco.Presto.AvaloniaBridge"`) take a builder three ways:
+The attached properties (`xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"`, which also covers the Lottie package) take a builder three ways:
 
 ```xml
 <Border presto:Presence.Arrive="{x:Static local:Motions.FadeUp}" />
@@ -1315,7 +1315,7 @@ Each markup extension provides a new builder per element from its recipe:
 | `{presto:Lift}`, `{presto:PressIn}`, `{presto:Glow}` | the same | `Intensity` | |
 | `{presto:Shimmer}` | `Shimmer` | | |
 | `{presto:PlayFrames}` | `PlayFrames` | `Fps`, `Loop`, `Reverse` | |
-| `{lottie:PlayLottie}` ([Lottie package](#lottie)) | `PlayLottie` | `Segment`, `Loop`, `Reverse`, `Speed` | |
+| `{presto:PlayLottie}` ([Lottie package](#lottie)) | `PlayLottie` | `Segment`, `Loop`, `Reverse`, `Speed` | |
 | `{presto:LineRise}`, `{presto:LineMask}`, `{presto:LineWipe}`, `{presto:WordFade}`, `{presto:WordBlur}`, `{presto:CharCascade}` | the same | `LineStep`, `PieceStep` | |
 | `{presto:Reflow}` | `Reflow` | `Duration` also positional: `{presto:Reflow 320}`; no `Stagger` | |
 | `{presto:Reorder}` | `ReorderLift` | `Intensity` | |
@@ -1435,9 +1435,8 @@ properties, so a tween, a timeline child, `Seek`, `Reverse`, a scroll-synced ani
 [image filters](#image-filters).
 
 ```xml
-<!-- xmlns:lottie="using:Monaco.Presto.AvaloniaBridge.Lottie" -->
-<lottie:LottieView Composition="avares://MyApp/Assets/Lottie/spinner.json" Width="120" Height="120"
-                   presto:Animate.OnAttached="{lottie:PlayLottie}" />
+<presto:LottieView Composition="avares://MyApp/Assets/Lottie/spinner.json" Width="120" Height="120"
+                   presto:Animate.OnAttached="{presto:PlayLottie}" />
 ```
 
 ```csharp
@@ -1462,9 +1461,8 @@ unknown marker throws `ArgumentException` listing the markers there are.
 **Recipe.** `Recipes.PlayLottie(segment, loop, reverse, speed, delay)` is the same as a builder, reading each target's
 composition; with `using Monaco.Presto.AvaloniaBridge.Lottie;` it is an extension member of `Recipes`, and otherwise
 `LottieRecipes.PlayLottie` in `Monaco.Presto.AvaloniaBridge.Lottie.Prebuilt`. It loops by default, and a target that is
-not a `LottieView` plays nothing. `{lottie:PlayLottie}` adds `Segment`, `Loop`, `Reverse` and `Speed`, and an explicit
-`Duration` or `Ease` replaces the frame timing. It takes the `lottie:` prefix because it lives in the Lottie package's
-namespace, not the bridge's. Reduced, it jumps to the segment's end frame and holds it, unlike `PlayFrames`' frame 0: a
+not a `LottieView` plays nothing. `{presto:PlayLottie}` adds `Segment`, `Loop`, `Reverse` and `Speed`, and an explicit
+`Duration` or `Ease` replaces the frame timing. Reduced, it jumps to the segment's end frame and holds it, unlike `PlayFrames`' frame 0: a
 segment ends on the state it plays into, such as a toggle's "on".
 
 **dotLottie.** `FromStream`, `Load` and the XAML converter recognise a `.lottie` archive and read its default animation:
