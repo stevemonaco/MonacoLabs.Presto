@@ -11,6 +11,7 @@ using Avalonia.Logging;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Draggables;
 using Monaco.Presto.AvaloniaBridge.Transforms;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -180,6 +181,7 @@ internal sealed class ReorderList
         _pointer!.Capture(_list);
         Raise(_pressed!);
         _scroller = _list.ItemsPanelRoot?.FindAncestorOfType<ScrollViewer>();
+        using var origin = PrestoDiagnostics.Origin("Reorder");
         _scrolling = Presto.CreateTimer(new TimerParams { OnUpdate = _ => AutoScroll() });
         _root?.AddHandler(InputElement.KeyDownEvent, HandleKeyDown, RoutingStrategies.Tunnel);
         if (Reorder.GetCommand(_list) is null && MoverOf(_list.ItemsSource) is null)
@@ -309,6 +311,7 @@ internal sealed class ReorderList
         _raised =container.SetValue(Panel.ZIndexProperty, int.MaxValue, BindingPriority.Animation);
         container.Focus();
         PrestoAvalonia.EnsureInitialized();
+        using var origin = PrestoDiagnostics.Origin("Reorder");
         _lift = Presto.Animate(container, (Reorder.GetLift(_list) ?? Recipes.ReorderLift()).ToParams());
     }
 
@@ -351,6 +354,7 @@ internal sealed class ReorderList
         }
         if (!dragged || _container is not { } container) return;
         _lift?.Reverse();
+        using var origin = PrestoDiagnostics.Origin("Reorder");
         _settle = Presto.Animate(container, new AnimationParams { [Shorthand.ToString()] = 0, Ease = Eases.Spring(), OnComplete = _ => Finish() });
     }
 

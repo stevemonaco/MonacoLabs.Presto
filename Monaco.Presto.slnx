@@ -20,6 +20,7 @@
     <File Path="docs/PLAN.md" />
   </Folder>
   <Project Path="Monaco.Presto.AvaloniaBridge/Monaco.Presto.AvaloniaBridge.csproj" />
+  <Project Path="Monaco.Presto.AvaloniaBridge.DevTools/Monaco.Presto.AvaloniaBridge.DevTools.csproj" />
   <Project Path="Monaco.Presto.AvaloniaBridge.Lottie/Monaco.Presto.AvaloniaBridge.Lottie.csproj" />
   <Project Path="Monaco.Presto/Monaco.Presto.csproj" />
 </Solution>

@@ -1,3 +1,6 @@
+using Monaco.Presto.Diagnostics;
+using Monaco.Presto.Values;
+
 namespace Monaco.Presto;
 
 public static partial class Eases
@@ -19,7 +22,8 @@ public static partial class Eases
             WiggleType.Random => RandomSwings(2 * wiggles, random ?? Random.Shared),
             _ => throw new ArgumentOutOfRangeException(nameof(type)),
         };
-        return t => t <= 0 || t >= 1 ? 0 : amplitude(t) * Math.Sin(frequency * t);
+        Ease ease = t => t <= 0 || t >= 1 ? 0 : amplitude(t) * Math.Sin(frequency * t);
+        return PrestoDiagnostics.Active ? Name(ease, $"wiggle({wiggles}, {type})") : ease;
     }
 
     private static Ease RandomSwings(int swings, Random random)
@@ -39,7 +43,7 @@ public static partial class Eases
         ArgumentOutOfRangeException.ThrowIfLessThan(points, 1);
         random ??= Random.Shared;
         template ??= None;
-        strength *= .4;
+        var maxBump = strength * .4;
         var jagged = new List<LinearStop>(points + 2) { new(0, 0) };
         for (var i = points - 1; i >= 0; i--)
         {
@@ -48,17 +52,17 @@ public static partial class Eases
             var edge = Math.Min(x, 1 - x) * 2;
             var bump = taper switch
             {
-                RoughTaper.Out => (1 - x) * (1 - x) * strength,
-                RoughTaper.In => x * x * strength,
-                RoughTaper.Both => edge * edge * .5 * strength,
-                _ => strength,
+                RoughTaper.Out => (1 - x) * (1 - x) * maxBump,
+                RoughTaper.In => x * x * maxBump,
+                RoughTaper.Both => edge * edge * .5 * maxBump,
+                _ => maxBump,
             };
             var y = template(x) + (randomize ? random.NextDouble() * bump - bump * .5 : i % 2 == 1 ? bump * .5 : -bump * .5);
             jagged.Add(new(clamp ? Math.Clamp(y, 0, 1) : y, x));
         }
         jagged.Sort((a, b) => a.Position!.Value.CompareTo(b.Position!.Value));
         jagged.Add(new(1, 1));
-        return Linear([.. jagged]);
+        return Named(Linear([.. jagged]), "rough", points, strength);
     }
 
     /// <summary>
@@ -71,7 +75,7 @@ public static partial class Eases
         var pow = linearRatio < 1 ? power : 0;
         var p1 = (1 - linearRatio) / 2;
         var p3 = p1 + linearRatio;
-        return p =>
+        Ease ease = p =>
         {
             var r = p + (.5 - p) * pow;
             if (p < p1)
@@ -86,6 +90,9 @@ public static partial class Eases
             }
             return yoyoMode ? 1 : r;
         };
+        return PrestoDiagnostics.Active
+            ? Name(ease, $"slowMo({JsNumber.Format(linearRatio)}, {JsNumber.Format(power)}{(yoyoMode ? ", true" : "")})")
+            : ease;
     }
 
     /// <summary>
@@ -101,6 +108,9 @@ public static partial class Eases
         ease ??= None;
         var logRatio = Math.Log(endScale / startScale);
         var range = endScale - startScale;
-        return p => (startScale * Math.Exp(logRatio * ease(p)) - startScale) / range;
+        Ease scaled = p => (startScale * Math.Exp(logRatio * ease(p)) - startScale) / range;
+        if (!PrestoDiagnostics.Active) return scaled;
+        var inner = TryGetName(ease, out var innerName) ? $", {innerName}" : "";
+        return Name(scaled, $"expoScale({JsNumber.Format(startScale)}, {JsNumber.Format(endScale)}{inner})");
     }
 }

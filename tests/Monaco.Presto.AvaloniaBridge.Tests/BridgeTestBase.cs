@@ -13,6 +13,7 @@ public abstract class BridgeTestBase : Monaco.Presto.Tests.EngineTestBase
     {
         PrestoAvalonia.EnsureInitialized();
         Presto.Engine.FrameSource = Frames; // EnsureInitialized installs the Avalonia source over the base's manual one
+        Presto.Engine._timeOffset = 0;
     }
 
     /// <summary>Shows <paramref name="content"/> in a 200x200 window and runs the queued jobs.</summary>

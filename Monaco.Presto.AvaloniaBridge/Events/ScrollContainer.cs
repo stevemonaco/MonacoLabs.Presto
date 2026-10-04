@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Events;
 
@@ -36,6 +37,7 @@ public sealed class ScrollContainer
     private ScrollContainer(ScrollViewer scroller)
     {
         Scroller = scroller;
+        using var origin = PrestoDiagnostics.Origin("ScrollObserver");
         _dataTimer = Presto.CreateTimer(new TimerParams
         {
             Autoplay = false,

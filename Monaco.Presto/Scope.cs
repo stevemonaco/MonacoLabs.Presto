@@ -53,6 +53,7 @@ public class Scope : IRevertible
     /// <remarks>Animations cancelled by a replacing animation are dropped as the list grows, their original values handed to the animation that replaced them.</remarks>
     public void Register(IRevertible revertible)
     {
+        if (revertible is Timer { _diagnostics: { } diagnostics }) diagnostics.Scope = this;
         var revertibles = _once ? _revertiblesOnce : _revertibles;
         revertibles.Add(revertible);
         var count = revertibles.Count;

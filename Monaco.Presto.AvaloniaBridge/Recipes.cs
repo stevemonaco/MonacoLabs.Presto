@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Monaco.Presto.AvaloniaBridge.Prebuilt;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -271,6 +272,7 @@ public static class Recipes
     /// </remarks>
     public static Animation Typewriter(TextBlock textBlock, double? charDelay = null, double? duration = null, double? delay = null, EaseValue? ease = null)
     {
+        using var origin = PrestoDiagnostics.Origin("Recipe");
         if (Engine.Current.Defaults.ReducedMotion) return Fade(delay: delay).Animate(textBlock);
         var step = charDelay ?? Tokens.StaggerStep;
         var split = PrestoAvalonia.SplitText(textBlock, new() { Words = null, Chars = new() });
@@ -294,6 +296,7 @@ public static class Recipes
         Func<double, string> text = value => value.ToString(format, CultureInfo.CurrentCulture);
         var from = double.TryParse(textBlock.Text, NumberStyles.Any, CultureInfo.CurrentCulture, out var shown) ? shown : 0;
         var tokens = Tokens;
+        using var origin = PrestoDiagnostics.Origin("Recipe");
         return Start(tokens, duration ?? tokens.Long, delay, ease ?? tokens.Ease, stagger: false)
             .Property("Text", to: to, from: from, textModifier: text)
             .WhenReduced(r => r.Property("Text", to: to, textModifier: text).Duration(0))
@@ -355,6 +358,7 @@ public static class Recipes
         textBlock.Text = null;
         textBlock.Inlines = [new InlineUIContainer(row)];
 
+        using var origin = PrestoDiagnostics.Origin("Recipe");
         var roll = Presto.Build()
             .Duration(duration ?? tokens.Medium)
             .Ease(ease ?? tokens.Ease)

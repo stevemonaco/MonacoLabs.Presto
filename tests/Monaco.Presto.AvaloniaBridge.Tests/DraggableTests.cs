@@ -309,6 +309,24 @@ public sealed class DraggableTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void VelocityIsMeasuredInDilatedEngineTime()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { Y = new DraggableAxisParams { Enabled = false } });
+        Presto.Engine.TimeDilation = .5;
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        for (var i = 1; i <= 4; i++)
+        {
+            window.MouseMove(new Point(25 + (i * 20), 25));
+            Frames.Advance(40);
+        }
+
+        // 20 units per 40 ms frame, which is 20 ms of engine time.
+        Assert.Equal(1d, draggable.Velocity);
+    }
+
+    [AvaloniaFact]
     public void ANegativeMultiplierKeepsTheZeroSeedsUntilThreeSamplesAreTaken()
     {
         var (window, _, target) = Show();

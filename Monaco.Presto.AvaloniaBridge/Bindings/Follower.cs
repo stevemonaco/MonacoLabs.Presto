@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.Utilities;
+using Monaco.Presto.Diagnostics;
 using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge.Bindings;
@@ -121,6 +122,7 @@ internal sealed class Follower : INotifyPropertyChanged, IDisposable
     {
         Halt();
         _holder = Activator.CreateInstance(typeof(FollowerHolder<>).MakeGenericType(ChannelType(start)!), start, _rendered)!;
+        using var origin = PrestoDiagnostics.Origin("Follow");
         _animatable = Presto.CreateAnimatable(_holder, new AvaloniaAnimatableParams { [HolderProperty] = _timing });
     }
 

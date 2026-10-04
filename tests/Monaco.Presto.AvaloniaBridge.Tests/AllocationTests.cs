@@ -19,9 +19,12 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// </summary>
 public sealed class AllocationTests : CompositorTestBase
 {
-    [AvaloniaFact]
-    public void StyledPropertyTweenTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StyledPropertyTweenTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var border = new Border { Opacity = 0 };
         border.Animate(new() { ["Opacity"] = 1, Duration = 400, Loop = true, Alternate = true });
 
@@ -31,9 +34,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void AFollowBoundWidthTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AFollowBoundWidthTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var model = new LevelViewModel { Level = 0 };
         var border = new Border { DataContext = model };
         Follow.Bind(border, Layoutable.WidthProperty, new Binding(nameof(LevelViewModel.Level)), new() { Duration = 100000, Ease = "linear" });
@@ -45,9 +51,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 128, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void AnAnimatedMarkupWidthTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnAnimatedMarkupWidthTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var model = new LevelViewModel { Level = 0 };
         var border = new Border { DataContext = model };
         var extension = new FollowExtension(new Binding(nameof(LevelViewModel.Level))) { Duration = 100000, Ease = "linear" };
@@ -60,9 +69,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 192, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void AMotionValueBoundWidthTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AMotionValueBoundWidthTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var progress = Presto.CreateTimer(new() { Duration = 100000 }).ProgressValue;
         Follow.Bind(new Border(), Layoutable.WidthProperty, progress.Map(p => p * 100000));
 
@@ -72,9 +84,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void AMotionValueFollowedXTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AMotionValueFollowedXTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var progress = Presto.CreateTimer(new() { Duration = 100000 }).ProgressValue;
         Follow.SetX(new Border(), progress.Map(p => p * 100000));
 
@@ -84,9 +99,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void APlayingSpriteSheetTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void APlayingSpriteSheetTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         new SpriteSheet { Columns = 4, Rows = 2 }.Play(fps: 24);
 
         var bytes = BytesPerTick();
@@ -96,10 +114,13 @@ public sealed class AllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
-    [InlineData("Grayscale", 1)]
-    [InlineData("Pixelate", 8)]
-    public void AnImageFilterTweenTicksWithinBudget(string filter, double to)
+    [InlineData("Grayscale", 1, false)]
+    [InlineData("Grayscale", 1, true)]
+    [InlineData("Pixelate", 8, false)]
+    [InlineData("Pixelate", 8, true)]
+    public void AnImageFilterTweenTicksWithinBudget(string filter, double to, bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         new FilteredImage().Animate(new() { [filter] = to, Duration = 400, Loop = true, Alternate = true });
 
         var bytes = BytesPerTick();
@@ -109,10 +130,13 @@ public sealed class AllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
-    [InlineData("Rotate")]
-    [InlineData("RotateY")]
-    public void TransformShorthandTweenTicksWithinBudget(string rotation)
+    [InlineData("Rotate", false)]
+    [InlineData("Rotate", true)]
+    [InlineData("RotateY", false)]
+    [InlineData("RotateY", true)]
+    public void TransformShorthandTweenTicksWithinBudget(string rotation, bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var border = new Border();
         border.Animate(new() { ["X"] = 100, [rotation] = 90, Duration = 400, Loop = true, Alternate = true });
 
@@ -123,10 +147,13 @@ public sealed class AllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
-    [InlineData("Blur")]
-    [InlineData("ShadowBlur")]
-    public void EffectShorthandTweenTicksWithinBudget(string shorthand)
+    [InlineData("Blur", false)]
+    [InlineData("Blur", true)]
+    [InlineData("ShadowBlur", false)]
+    [InlineData("ShadowBlur", true)]
+    public void EffectShorthandTweenTicksWithinBudget(string shorthand, bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var border = new Border();
         border.Animate(new() { [shorthand] = new[] { 2, 8 }, Duration = 400, Loop = true, Alternate = true });
 
@@ -136,9 +163,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void MaskSweepTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MaskSweepTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var border = new Border();
         border.Animate(new() { ["MaskSweep"] = new[] { 0, 0.9 }, Duration = 400, Loop = true, Alternate = true });
 
@@ -148,9 +178,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 256, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void BrushTweenTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BrushTweenTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var border = new Border { Background = new SolidColorBrush(Colors.Red) };
         border.Animate(new() { ["Background"] = "#0000ff", Duration = 400, Loop = true, Alternate = true });
 
@@ -160,9 +193,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void DrawTweenTicksWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DrawTweenTicksWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var path = new Path
         {
             Data = Geometry.Parse("M 0,0 L 100,0 L 100,100"),
@@ -179,9 +215,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 320, $"{bytes:0.##} bytes per tick");
     }
 
-    [AvaloniaFact]
-    public void AHoverAllocatesOnlyAtItsTransitions()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AHoverAllocatesOnlyAtItsTransitions(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var box = Box();
         Motion.SetHover(box, Presto.Build().Scale(1.1).Duration(100));
         var window = Show(box);
@@ -198,9 +237,12 @@ public sealed class AllocationTests : CompositorTestBase
             $"{idle:0.##} bytes per tick idle, {hovered:0.##} hovered, {rested:0.##} at rest");
     }
 
-    [AvaloniaFact]
-    public void AnIdleTiltAllocatesNothingPerFrame()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnIdleTiltAllocatesNothingPerFrame(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var box = Box();
         Tilt.SetEnabled(box, true);
         var window = Show(box);
@@ -214,9 +256,12 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(idle == 0 && tilted == 0, $"{idle:0.##} bytes per tick idle, {tilted:0.##} tilted and still");
     }
 
-    [AvaloniaFact]
-    public void APinchMoveAllocatesOnlyItsWrites()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void APinchMoveAllocatesOnlyItsWrites(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var target = new Border { Background = Brushes.Red };
         var bystander = new Border();
         var window = Show(new Panel { Children = { target, bystander } });
@@ -253,9 +298,12 @@ public sealed class AllocationTests : CompositorTestBase
     /// blocks with the median difference kept: every window earlier tests left open is rendered with each frame too, which in
     /// a full run drifts the baseline of about 4.6 KB per frame by ±100 bytes, more than the budget.
     /// </remarks>
-    [AvaloniaFact]
-    public void CompositorSceneFramesWithinBudget()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CompositorSceneFramesWithinBudget(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         const int blocks = 11;
         var (_, canvas) = ShowScene(new DotScene());
         // Scene time is the compositor's own clock, so warming up takes wall time: two alternate cycles fill the brush cache.
@@ -279,9 +327,12 @@ public sealed class AllocationTests : CompositorTestBase
     /// Drawing is priced as a frame with 500 live particles minus a frame with none, in alternating blocks with the median
     /// kept as above; each block re-adds the same seeded burst, so the brush cache is warm from the second block on.
     /// </remarks>
-    [AvaloniaFact]
-    public void AParticleSceneOf500DrawsWithoutAllocating()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AParticleSceneOf500DrawsWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         const int blocks = 11;
         var burst = new EmitterParams
         {

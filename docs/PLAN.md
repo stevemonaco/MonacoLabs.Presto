@@ -245,7 +245,7 @@ Phases 41–49 close the gaps from the post-Phase-40 review against GSAP, Motion
 - [x] **Phase 45 — Scroll storytelling (bridge).** `ScrollObserver` pin with spacing, snap to increments or labels, `Scroll.Speed` parallax; smoothed wheel scrolling shipped as opt-in `Scroll.Smooth`, Win32 only (§5.2).
 - [x] **Phase 46 — Drag-to-reorder lists (bridge).** `Reorder.*` on an `ItemsControl` over `Animate.ItemLayout` (owns the pointer itself; Draggable's threshold and edge-scroll helper shared): lift, live `Move`, neighbour FLIP, edge auto-scroll, spring into slot, Escape to cancel, keyboard moves.
 - [x] **Phase 47 — Orchestration (bridge).** `Motion.State` propagates to children with `StaggerChildren`/`DelayChildren`/`Order`; `Presence.Mode` (`Sync`/`Wait`).
-- [ ] **Phase 48 — Presto DevTools overlay (bridge).** Live list of running tickables with scrub/pause/reverse, global speed, frame stepping, target highlighting.
+- [ ] **Phase 48 — Presto DevTools overlay (bridge).** Live list of running tickables with scrub/pause/reverse, global speed, frame stepping, target highlighting. Needs core observability and an engine time base first; design and the 48a–48f breakdown in [docs/DEVTOOLS-PLAN.md](DEVTOOLS-PLAN.md), measurements and follow-ups in its §4.1. **Open: the Ctrl+Shift+F12 gesture, hover outlines and drag-scrubbing were not driven by hand (DevTools input sends no modifiers, hover or drags).**
 - [x] **Phase 49 — Small items (core + bridge).** Path-defined, wiggle, rough, slow-mo and expo-scale eases; motion path through points; opt-in OS reduced-motion detection; rolling-digit counter; projectile to-value.
 
 Bugs found during Phase 41.

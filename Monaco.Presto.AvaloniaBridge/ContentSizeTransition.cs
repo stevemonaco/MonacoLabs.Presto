@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -159,6 +160,7 @@ public sealed class ContentSizeTransition : IRevertible
         _inset.Right = right;
         _inset.Bottom = bottom;
         _mirror?.Cancel();
+        using var origin = PrestoDiagnostics.Origin("ContentSizeTransition");
         var mirror = _mirror = Presto.Animate(_inset, new AnimationParams
         {
             ["Right"] = 0d,

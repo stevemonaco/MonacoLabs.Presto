@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -73,6 +74,7 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     private (HostRun? Incoming, HostRun? Outgoing) Begin(Visual? from, Visual? to, bool forward, bool seekable)
     {
         PrestoAvalonia.EnsureInitialized();
+        using var origin = PrestoDiagnostics.Origin("PageTransition");
         var enter = to == null ? null : forward ? Enter?.ToParams() : BackEnter?.ToParams() ?? Reversed(Exit);
         var exit = from == null ? null : forward ? Exit?.ToParams() : BackExit?.ToParams() ?? Reversed(Enter);
         var compositor = !seekable && (UseCompositor ?? ((enter == null || PrestoAvalonia.FitsCompositor(enter)) && (exit == null || PrestoAvalonia.FitsCompositor(exit))));

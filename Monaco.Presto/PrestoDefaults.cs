@@ -33,7 +33,7 @@ public sealed record PrestoDefaults
     public double LoopDelay { get; set; }
 
     /// <summary>Default easing for every tween, <c>out(2)</c> (upstream <c>ease</c>).</summary>
-    public EaseValue Ease { get; set; } = Eases.Out(2);
+    public EaseValue Ease { get; set; } = Eases.Default;
 
     /// <summary>Easing applied to the playhead itself rather than to the tween values; null keeps playback linear (upstream <c>playbackEase</c>).</summary>
     public EaseValue? PlaybackEase { get; set; }

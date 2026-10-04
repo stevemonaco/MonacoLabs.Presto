@@ -1,4 +1,5 @@
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto;
 
@@ -12,6 +13,7 @@ public static partial class Eases
     {
         Func<double, double> roundMethod = fromStart ? Math.Ceiling : Math.Floor;
         var stepSize = 1.0 / steps;
-        return t => roundMethod(Helpers.Clamp(t, 0, 1) * steps) * stepSize;
+        Ease ease = t => roundMethod(Helpers.Clamp(t, 0, 1) * steps) * stepSize;
+        return PrestoDiagnostics.Active ? Name(ease, fromStart ? $"steps({steps}, true)" : $"steps({steps})") : ease;
     }
 }

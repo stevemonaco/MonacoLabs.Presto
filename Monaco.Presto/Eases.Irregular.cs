@@ -22,6 +22,6 @@ public static partial class Eases
             values[i] = Helpers.Clamp(spacing * (1 - randomness) + randomVariation * randomness, previousValue, 1);
         }
         values[^1] = 1;
-        return Linear(values);
+        return Named(Linear(values), "irregular", length, randomness);
     }
 }

@@ -23,7 +23,7 @@ public sealed class MotionValue
     private double _flushedValue;
     private double _sampledValue;
     private double _springVelocity;
-    private double _time;
+    internal double _time;
     private int _version;
     private int _observedDependents;
     private bool _dirty;
@@ -104,6 +104,15 @@ public sealed class MotionValue
             return _tracker!.Velocity / Globals.TimeScale;
         }
     }
+
+    /// <summary>True while the engine steps this value every frame, as a moving spring or a velocity sample.</summary>
+    public bool IsAnimating => _active;
+
+    /// <summary>The spring a value made by <see cref="Spring(Monaco.Presto.Spring)"/> follows its source through, or null.</summary>
+    public Spring? FollowSpring => _spring;
+
+    /// <summary>The value a <see cref="FollowSpring"/> follower is settling towards, or null when this is not one.</summary>
+    public double? SpringTarget => _spring != null ? _sources[0].Value : null;
 
     // Time-driven values stay linked to their sources, so they keep moving whether or not anything observes them.
     private bool IsObserved => _changed != null || _observedDependents > 0 || _tracker != null || _spring != null;

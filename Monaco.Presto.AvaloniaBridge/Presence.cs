@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Transforms;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -340,6 +341,7 @@ public static class Presence
     {
         PrestoAvalonia.EnsureInitialized();
         var parameters = builder.ToParams();
+        using var origin = PrestoDiagnostics.Origin("Presence");
         if (PieceTargets.Play(control, parameters) is { } reveal) return reveal;
         Visual key = control.FindAncestorOfType<Panel>() ?? (Visual?)TopLevel.GetTopLevel(control) ?? control;
         if (!s_batches.TryGetValue(key, out var batch))
@@ -594,6 +596,7 @@ public static class Presence
         var host = new Canvas { IsHitTestVisible = false, Children = { box } };
         overlay.Children.Add(host);
 
+        using var origin = PrestoDiagnostics.Origin("Presence");
         var animation = ghost.Animate(exit);
         var completed = animation.OnComplete;
         var paused = animation.OnPause;

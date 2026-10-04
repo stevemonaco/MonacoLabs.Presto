@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.DevTools;
 using PrestoSample.ViewModels;
 
 namespace PrestoSample.Views;
@@ -87,6 +88,8 @@ public partial class MainView : UserControl
         ExpandPane.IsVisible = _pane.IsCollapsed;
         Splitter.IsVisible = !_pane.IsCollapsed;
     }
+
+    private void ToggleDevTools(object? sender, RoutedEventArgs e) => PrestoDevTools.Toggle(TopLevel.GetTopLevel(this)!);
 
     private void NavSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {

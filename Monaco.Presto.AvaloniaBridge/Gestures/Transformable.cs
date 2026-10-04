@@ -269,7 +269,7 @@ public sealed class Transformable : IRevertible
     private void Write(Vector translation, double scale, double rotation)
     {
         Animate.Set("X", translation.X, 0).Set("Y", translation.Y, 0).Set("Scale", scale, 0).Set("Rotate", rotation, 0);
-        var now = _engine.FrameSource.Now;
+        var now = _engine.Now;
         _velocityX.Add(translation.X, now);
         _velocityY.Add(translation.Y, now);
         _velocityRotation.Add(rotation, now);

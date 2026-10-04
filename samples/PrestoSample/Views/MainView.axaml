@@ -132,12 +132,15 @@
                                             <TextBlock TextWrapping="Wrap" Text="• Showcase pages stop their autoplay, parallax and endless loops" />
                                         </StackPanel>
                                         <TextBlock TextWrapping="Wrap" FontStyle="Italic"
-                                                   Text="The anime.js Reference pages play in full on purpose, as anime.js does, and each links its Builder twin. Other hand-written loops, such as Loaders, Particle field, Stress bench, Compositor and Properties and keyframes, also play as normal. A page picks up a change when it is reopened or replayed." />
+                                                   Text="The anime.js Reference pages play in full on purpose, as anime.js does, and each links its Builder twin. Other hand-written loops, such as Loaders, Particle field, Stress bench, DevTools, Compositor and Properties and keyframes, also play as normal. A page picks up a change when it is reopened or replayed." />
                                     </StackPanel>
                                 </ToolTip.Tip>
                             </Border>
                         </Grid>
                         <TextBlock Classes="caption" Text="{Binding SystemMotion}" />
+                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Margin="0,4,0,0" Content="Presto DevTools" Click="ToggleDevTools"
+                                ToolTip.Tip="Show or hide the Presto animation inspector (Ctrl+Shift+F12)" />
                     </StackPanel>
                 </Border>
             </Grid>

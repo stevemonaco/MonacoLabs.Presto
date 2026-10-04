@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Text;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -315,6 +316,7 @@ public static class Animate
             if (!_visual.IsAttachedToVisualTree() || _visual.GetValue(_builder) is not { } builder) return;
             PrestoAvalonia.EnsureInitialized();
             var parameters = builder.ToParams();
+            using var origin = PrestoDiagnostics.Origin("Animate");
             // A text reveal reverts itself when it completes.
             if (_builder != OnChangedProperty && PieceTargets.Play(_visual, parameters) is { } reveal)
             {

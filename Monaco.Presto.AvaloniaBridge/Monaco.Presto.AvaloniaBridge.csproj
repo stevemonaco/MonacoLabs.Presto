@@ -21,6 +21,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.Tests" />
     <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.Lottie" />
+    <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.DevTools" />
   </ItemGroup>
 
 </Project>

@@ -6,6 +6,7 @@ using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Gestures;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Draggables;
 
@@ -125,8 +126,9 @@ public sealed class Draggable : IRevertible
         _releaseSpringX = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseSpringY = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseEase = parameters.ReleaseEase is { } releaseEase ? releaseEase.Resolve(target, 0, 1, out _) : Eases.OutQuint;
-        _velocityTracker.AddDisplacement(0, _engine.FrameSource.Now);
+        _velocityTracker.AddDisplacement(0, _engine.Now);
 
+        using var origin = PrestoDiagnostics.Origin("Draggable");
         Animate = target.CreateAnimatable(new AvaloniaAnimatableParams
         {
             [_xProp] = new AnimatableProperty { Duration = 0, Modifier = x?.Modifier, Composition = x?.Composition },
@@ -291,6 +293,7 @@ public sealed class Draggable : IRevertible
         _scroll.X = offset.X;
         _scroll.Y = offset.Y;
         _scrollLocked = true;
+        using var origin = PrestoDiagnostics.Origin("Draggable");
         _scrolling = Presto.Animate(_scroll, new AnimationParams
         {
             ["X"] = ClampScroll(offset.X + overflow.X, scroller.Extent.Width, scroller.Viewport.Width),
@@ -456,7 +459,7 @@ public sealed class Draggable : IRevertible
 
     private double ComputeVelocity(double dx, double dy)
     {
-        if (_velocityTracker.AddDisplacement(Math.Sqrt(dx * dx + dy * dy), _engine.FrameSource.Now, _velocityMultiplier, _minVelocity, _maxVelocity))
+        if (_velocityTracker.AddDisplacement(Math.Sqrt(dx * dx + dy * dy), _engine.Now, _velocityMultiplier, _minVelocity, _maxVelocity))
             Velocity = _velocityTracker.Velocity;
         return Velocity;
     }
@@ -680,6 +683,7 @@ public sealed class Draggable : IRevertible
         if (!_hasReleaseSpring && outOfBounds && friction != 0 && (durationX != 0 || durationY != 0))
         {
             // Two blended tweens: out to where the throw would have landed, then back to the clamped destination.
+            using var origin = PrestoDiagnostics.Origin("Draggable");
             _overshootOut = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = cushionedX, Duration = durationX * .65 },

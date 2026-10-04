@@ -84,6 +84,63 @@ public sealed class Tween
     /// <summary>The accessor that reads and writes <see cref="Property"/> on <see cref="Target"/>.</summary>
     public IPropertyAccessor Accessor { get; }
 
+    /// <summary>Wait before the change starts, already included in <see cref="StartTime"/>.</summary>
+    public double Delay => _delay;
+
+    /// <summary>When the change starts, relative to the start of the parent's iteration.</summary>
+    public double StartTime => _startTime;
+
+    /// <summary>How long the change lasts.</summary>
+    public double Duration => _updateDuration;
+
+    /// <summary>When the change starts in engine time, the axis composition compares tweens on.</summary>
+    public double AbsoluteStart => _absoluteStartTime;
+
+    /// <summary>When the change ends in engine time.</summary>
+    public double AbsoluteEnd => _absoluteEndTime;
+
+    /// <summary>The ease applied to this tween's progress.</summary>
+    public Ease Ease => _ease;
+
+    /// <summary>How this tween composes with the other tweens on the same property.</summary>
+    public Composition Composition => _composition;
+
+    /// <summary>True once a newer tween on the same property has taken over completely, so this one no longer renders.</summary>
+    public bool IsOverridden => _isOverridden;
+
+    /// <summary>True once a newer tween on the same property starts before this one ends, cutting it short.</summary>
+    public bool IsOverlapped => _isOverlapped;
+
+    /// <summary>What kind of value is interpolated, which decides how it is recomposed.</summary>
+    public ValueKind ValueKind => _valueType;
+
+    /// <summary>The unit suffix of a <see cref="ValueKind.Unit"/> value, such as <c>"px"</c>.</summary>
+    public string? Unit => _unit;
+
+    /// <summary>The value the tween starts from. Allocates; meant for tools.</summary>
+    public TweenSnapshot GetFrom() => Snapshot(_fromNumber, _fromNumbers);
+
+    /// <summary>The value the tween ends at. Allocates; meant for tools.</summary>
+    public TweenSnapshot GetTo() => Snapshot(_toNumber, _toNumbers);
+
+    /// <summary>The value the tween last rendered. Allocates; meant for tools.</summary>
+    /// <remarks>A <see cref="Composition.None"/> tween does not track its number, so a number or unit value reads as its from value.</remarks>
+    public TweenSnapshot GetCurrent() => Snapshot(_number, _numbers);
+
+    private TweenSnapshot Snapshot(double number, double[] numbers)
+    {
+        var current = _numbers;
+        _numbers = numbers;
+        try
+        {
+            return new(number, [.. numbers], ComposeString(number));
+        }
+        finally
+        {
+            _numbers = current;
+        }
+    }
+
     /// <summary>Lerps every channel of a complex value into <c>_numbers</c>, the numeric half of upstream <c>composeComplexValue</c>.</summary>
     internal void ComposeComplexNumbers(double progress, double time, int precision)
     {

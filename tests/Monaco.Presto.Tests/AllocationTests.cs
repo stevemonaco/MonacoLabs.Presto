@@ -6,9 +6,12 @@ namespace Monaco.Presto.Tests;
 /// </summary>
 public sealed class AllocationTests : EngineTestBase
 {
-    [Fact]
-    public void LoopingTimerTicksWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LoopingTimerTicksWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var updates = 0;
         Presto.CreateTimer(new() { Duration = 400, Loop = true, OnUpdate = _ => updates++ });
 
@@ -18,9 +21,12 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
-    [Fact]
-    public void NumberTweenTicksWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NumberTweenTicksWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var targets = new TestObject[10];
         for (var i = 0; i < targets.Length; i++) targets[i] = new TestObject();
         Presto.Animate(targets, new() { ["PlainValue"] = 100, Delay = Presto.Stagger(10), Duration = 400, Loop = true, Alternate = true });
@@ -30,9 +36,12 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
-    [Fact]
-    public void BouncingInertiaTweenTicksWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BouncingInertiaTweenTicksWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         Presto.Animate(new StyleTarget(), new() { ["X"] = new Inertia(2) { Max = 300 }, Loop = true });
 
         var bytes = BytesPerTick();
@@ -40,9 +49,12 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
-    [Fact]
-    public void ColorTweenTicksWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ColorTweenTicksWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var target = new ColorTarget();
         Presto.Animate(target, new() { ["Background"] = "#FF4B4B", Duration = 400, Loop = true, Alternate = true });
 
@@ -51,9 +63,12 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
-    [Fact]
-    public void ChannelMomentumTicksWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChannelMomentumTicksWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         // A barely damped spring, so the animatable is still moving for the whole measurement.
         var animatable = Presto.CreateAnimatable(new ColorTarget(), new()
         {
@@ -69,9 +84,12 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
-    [Fact]
-    public void ParticleSystemStepsWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ParticleSystemStepsWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var system = new ParticleSystem(new()
         {
             Burst = 500, Rate = 5000, Lifetime = (100, 200), Gravity = .001, Drag = 1, Spin = (-1, 1), Flutter = 2,
@@ -88,9 +106,12 @@ public sealed class AllocationTests : EngineTestBase
         Assert.Equal(0, bytes);
     }
 
-    [Fact]
-    public void MotionValueGraphFlushesWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MotionValueGraphFlushesWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var source = Presto.CreateMotionValue();
         var other = Presto.CreateMotionValue(1);
         var mapped = source.Map([0, 250, 500], [0, 1, 0], Eases.OutQuad);
@@ -104,9 +125,12 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
-    [Fact]
-    public void SettlingSpringAndVelocityOfStepWithoutAllocating()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SettlingSpringAndVelocityOfStepWithoutAllocating(bool diagnostics)
     {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var source = Presto.CreateMotionValue();
         var raised = 0;
         source.Spring(new Spring(stiffness: 120, damping: 12)).VelocityOf().Changed += _ => raised++;
@@ -120,8 +144,53 @@ public sealed class AllocationTests : EngineTestBase
     }
 
     [Fact]
-    public void TimelineTicksWithinItsLoopBoundaryBudget()
+    public void CreatingATimerWithDiagnosticsOffNeverTouchesTheRegistry()
     {
+        TimerParams parameters = new() { Autoplay = false };
+        Presto.CreateTimer(parameters);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var untracked = Presto.CreateTimer(parameters);
+        var offBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        Presto.Engine.Diagnostics.Enabled = true;
+        before = GC.GetAllocatedBytesForCurrentThread();
+        Presto.CreateTimer(parameters);
+        var onBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Null(untracked._diagnostics);
+        Assert.DoesNotContain(untracked, Presto.Engine.Diagnostics.Roots);
+        Assert.True(offBytes < onBytes, $"{offBytes} bytes off, {onBytes} on");
+    }
+
+    [Fact]
+    public void EaseFactoriesAndParserAllocateNoMoreWithDiagnosticsInactive()
+    {
+        Eases.Out(2);
+        EaseParser.Parse("out(1.5)");
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        Eases.Out(3);
+        var factoryBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        // The minimum of three, so a cache resize during one parse does not count against the budget.
+        var parserBytes = long.MaxValue;
+        foreach (var ease in new[] { "out(3.25)", "out(3.5)", "out(3.75)" })
+        {
+            before = GC.GetAllocatedBytesForCurrentThread();
+            EaseParser.Parse(ease);
+            parserBytes = Math.Min(parserBytes, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        // measured before ease names existed: 176 and 352.
+        Assert.True(factoryBytes <= 176, $"{factoryBytes} bytes per factory call");
+        Assert.True(parserBytes <= 352, $"{parserBytes} bytes per parse");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TimelineTicksWithinItsLoopBoundaryBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
         var targets = new[] { new TestObject(), new TestObject(), new TestObject() };
         Presto.CreateTimeline(new() { Loop = true, Defaults = new() { Duration = 200 } })
             .Add(targets[0], new() { ["PlainValue"] = 100 })

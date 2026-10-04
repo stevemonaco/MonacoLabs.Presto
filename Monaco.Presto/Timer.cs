@@ -1,5 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto;
 
@@ -34,12 +36,20 @@ public class Timer : Clock, IRevertible
     private MotionValue? _scrub;
     private Action<MotionValue>? _onScrub;
     internal int _priority;
+    internal TimerDiagnostics? _diagnostics;
 
     internal Timer(TimerParams parameters, Timer? parent, double parentPosition, Engine? engine = null) : base(0)
     {
         var timerId = Interlocked.Increment(ref s_timerId);
 
         engine = _engine = engine ?? parent?.OwnerEngine ?? Engine.Current;
+        if (engine.Diagnostics.Enabled && parent == null)
+        {
+            var diagnostics = engine.Diagnostics.Register(this);
+            diagnostics.Origin = PrestoDiagnostics.CurrentOrigin;
+            if (PrestoDiagnostics.CaptureCreationTrace) diagnostics.CreationTrace = new StackTrace(1, true);
+        }
+        // After the diagnostics register, so the scope finds them to record itself on.
         engine.CurrentScope?.Register(this);
 
         var timerInitTime = parent != null ? 0 : engine._lastTickTime;
@@ -95,6 +105,45 @@ public class Timer : Clock, IRevertible
 
     /// <summary>The timeline this timer was added to, or null when it runs directly on the engine.</summary>
     public Timer? Parent { get; }
+
+    /// <summary>The engine this timer runs on.</summary>
+    public Engine Engine => OwnerEngine;
+
+    /// <summary>Wait before the first iteration, as <see cref="TimerParams.Delay"/> resolved.</summary>
+    public double Delay => _delay;
+
+    /// <summary>Wait between iterations, as <see cref="TimerParams.LoopDelay"/> resolved.</summary>
+    public double LoopDelay => _loopDelay;
+
+    /// <summary>Whether every other iteration plays backwards (<see cref="TimerParams.Alternate"/>); <see cref="Alternate()"/> is the method that flips direction.</summary>
+    public bool IsAlternating => _alternate;
+
+    /// <summary>Start position in the parent timeline, or for a root timer the engine time it was created at.</summary>
+    public double Offset => _offset;
+
+    /// <summary>The ease applied to the whole playhead (upstream <c>playbackEase</c>), or null.</summary>
+    public Ease? PlaybackEase => _ease;
+
+    /// <inheritdoc cref="TimerParams.Priority"/>
+    public int Priority => _priority;
+
+    /// <summary>True while the timer is linked into the engine's list of ticked timers.</summary>
+    public bool IsScheduled => _running;
+
+    /// <summary>The timeline children in order, enumerated without allocating; empty for a timer that is not a timeline.</summary>
+    public TimerChildren Children => new(this);
+
+    /// <summary>The tweens in order, enumerated without allocating.</summary>
+    public TimerTweens Tweens => new(this);
+
+    /// <summary>The bridge feature or core part that created this timer's root, as tagged by <see cref="PrestoDiagnostics.Origin"/>; null for app code or while diagnostics were off.</summary>
+    public string? Origin => _diagnostics?.Origin ?? Parent?.Origin;
+
+    /// <summary>Where this root timer was created, recorded while <see cref="PrestoDiagnostics.CaptureCreationTrace"/> and diagnostics were on.</summary>
+    public StackTrace? CreationTrace => _diagnostics?.CreationTrace;
+
+    /// <summary>The scope this root timer registered with while diagnostics were on.</summary>
+    public Scope? Scope => _diagnostics?.Scope;
 
     /// <summary>The defaults the children of this timer inherit; a timeline overrides it with its own.</summary>
     internal virtual PrestoDefaults ChildDefaults => OwnerEngine.Defaults;
@@ -292,6 +341,7 @@ public class Timer : Clock, IRevertible
         if (!internalRender && _hasChildren) Renderer.Tick(this, Duration, true, internalRender, TickMode.Force);
         Reset(internalRender);
         if (_autoplay) Resume();
+        Announce();
         return this;
     }
 
@@ -338,7 +388,15 @@ public class Timer : Clock, IRevertible
             _startTime -= 12;
             engine.Wake();
         }
+        Announce();
         return this;
+    }
+
+    private void Announce()
+    {
+        if (_diagnostics is not { Announced: false } diagnostics) return;
+        diagnostics.Announced = true;
+        OwnerEngine.Diagnostics.Announce(this);
     }
 
     /// <summary>Rewinds to 0 and plays from there (upstream <c>timer.restart()</c>).</summary>
@@ -396,6 +454,7 @@ public class Timer : Clock, IRevertible
     /// <summary>Pauses and detaches the tweens from their targets, leaving the animated values where they stand; <see cref="Reset"/> and <see cref="Seek"/> revive it (upstream <c>timer.cancel()</c>).</summary>
     public Timer Cancel()
     {
+        if (_diagnostics != null && !_cancelled) OwnerEngine.Diagnostics.Ended(this);
         Scrub(null);
         return DetachTweens();
     }

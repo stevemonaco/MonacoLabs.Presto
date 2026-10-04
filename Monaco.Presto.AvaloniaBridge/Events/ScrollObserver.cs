@@ -7,6 +7,7 @@ using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge.Events;
@@ -94,6 +95,7 @@ public sealed class ScrollObserver : IRevertible
         Target = parameters.Target;
         if (parameters.Snap is { } snap)
         {
+            using var origin = PrestoDiagnostics.Origin("ScrollObserver");
             _snapWait = Presto.CreateTimer(new TimerParams
             {
                 Autoplay = false,

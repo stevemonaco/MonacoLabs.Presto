@@ -4,6 +4,8 @@ using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Targets;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Transforms;
 
@@ -150,7 +152,7 @@ internal sealed class RenderTransformComposer
         {
             if (!s_composers.TryGetValue(visual, out var composer) || composer != this) return;
             _existing = AsTransform(visual.GetBaseValue(Visual.RenderTransformProperty).GetValueOrDefault());
-            Rebuild();
+            Rebuild(visual);
         }, DispatcherPriority.Send);
     }
 
@@ -166,7 +168,7 @@ internal sealed class RenderTransformComposer
         mask |= 1 << (int)shorthand;
         if (shown) return;
         CompositorRegistry.WarnIfCompositorDrives(visual, shorthand);
-        Rebuild();
+        Rebuild(visual);
     }
 
     private void Release(Visual visual, TransformShorthand shorthand)
@@ -176,7 +178,7 @@ internal sealed class RenderTransformComposer
         Apply(shorthand, value);
         if ((_animated | _followed) != 0)
         {
-            Rebuild();
+            Rebuild(visual);
             return;
         }
         visual.PropertyChanged -= OnPropertyChanged;
@@ -184,7 +186,7 @@ internal sealed class RenderTransformComposer
         s_composers.Remove(visual);
     }
 
-    private void Rebuild()
+    private void Rebuild(Visual visual)
     {
         var children = _group.Children;
         children.Clear();
@@ -194,6 +196,9 @@ internal sealed class RenderTransformComposer
         if (Shows(TransformShorthand.RotateX) || Shows(TransformShorthand.RotateY) || Shows(TransformShorthand.Perspective)) children.Add(_rotate3D ??= new Rotate3DTransform());
         if (Shows(TransformShorthand.Rotate)) children.Add(_rotate ??= new RotateTransform());
         if (Shows(TransformShorthand.X) || Shows(TransformShorthand.Y)) children.Add(_translate ??= new TranslateTransform());
+        if (!PrestoDiagnostics.Active) return;
+        TargetOwner.Record(_group, visual);
+        for (var i = 0; i < children.Count; i++) TargetOwner.Record(children[i], visual);
     }
 
     private void Apply(TransformShorthand shorthand, double value)

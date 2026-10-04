@@ -1,4 +1,5 @@
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto;
 
@@ -30,7 +31,7 @@ public static partial class Eases
         }
         table[PathSamples] = (ys[^1] - y0) / height;
 
-        return t =>
+        Ease ease = t =>
         {
             if (t <= 0) return 0;
             if (t >= 1) return table[PathSamples];
@@ -38,5 +39,6 @@ public static partial class Eases
             var index = (int)position;
             return table[index] + (table[index + 1] - table[index]) * (position - index);
         };
+        return PrestoDiagnostics.Active ? Name(ease, $"fromPath({pathData})") : ease;
     }
 }

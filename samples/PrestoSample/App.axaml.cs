@@ -1,6 +1,8 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Monaco.Presto.AvaloniaBridge.DevTools;
 using PrestoSample.ViewModels;
 using PrestoSample.Views;
 
@@ -13,6 +15,9 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
 #if DEBUG
         this.AttachDeveloperTools();
+        #region snippet DevToolsAttach
+        Control.LoadedEvent.AddClassHandler<TopLevel>((top, _) => PrestoDevTools.Attach(top));
+        #endregion
 #endif
 #if PRESTO_HOTRELOAD
         AvaloniaUI.DiagnosticsSupport.HotReload.HotReloadDiagnostics.EntryLogged +=

@@ -8,6 +8,7 @@ using Monaco.Presto.AvaloniaBridge.Effects;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -321,6 +322,7 @@ internal sealed class MotionTracker
             // Replacement only trims a tween that has begun; one still waiting out its delay would start later over this one.
             if (_drivers.GetValueOrDefault(property) is { Began: false, Completed: false, Cancelled: false } pending) Presto.Remove(_control, pending, property);
         }
+        using var origin = PrestoDiagnostics.Origin("Motion");
         var animation = Presto.Animate(_control, parameters);
         foreach (var property in properties) _drivers[property] = animation;
         return animation;

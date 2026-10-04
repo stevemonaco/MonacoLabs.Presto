@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Data;
 using Avalonia.Layout;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Text;
 
@@ -45,6 +46,7 @@ public sealed class TextSplitter : IRevertible
         _host = host;
         _parameters = parameters;
         _text = host.Text ?? "";
+        using var origin = PrestoDiagnostics.Origin("TextSplitter");
         _resize = Presto.CreateTimer(new TimerParams
         {
             Duration = ResizeDebounce,

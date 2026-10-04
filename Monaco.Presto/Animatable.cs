@@ -1,4 +1,5 @@
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 using Monaco.Presto.Values;
 
 namespace Monaco.Presto;
@@ -25,16 +26,21 @@ public sealed class Animatable : IRevertible
 
     internal Animatable(object? targets, AnimatableParams parameters)
     {
-        Engine.Current.CurrentScope?.Register(this);
+        var engine = Engine.Current;
+        engine.CurrentScope?.Register(this);
+        if (engine.Diagnostics.Enabled) engine.Diagnostics.Register(this);
 
-        _callbacks = Presto.Animate(new CallbacksTarget(), new AnimationParams
+        using (PrestoDiagnostics.Origin(PrestoDiagnostics.CurrentOrigin ?? "Animatable"))
         {
-            ["V"] = 1,
-            Autoplay = false,
-            OnBegin = Wrap(parameters.OnBegin),
-            OnUpdate = Wrap(parameters.OnUpdate),
-            OnComplete = Wrap(parameters.OnComplete),
-        });
+            _callbacks = Presto.Animate(new CallbacksTarget(), new AnimationParams
+            {
+                ["V"] = 1,
+                Autoplay = false,
+                OnBegin = Wrap(parameters.OnBegin),
+                OnUpdate = Wrap(parameters.OnUpdate),
+                OnComplete = Wrap(parameters.OnComplete),
+            });
+        }
 
         foreach (var (property, settings) in parameters.Properties)
         {

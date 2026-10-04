@@ -16,8 +16,12 @@ public abstract class EngineTestBase
         // The engine is reused across tests, so a blend tween left by an earlier one would keep rendering into this one.
         engine.Additive.Lookups.Clear();
         if (engine.Additive.Animation is { } additive) additive._headTween = additive._tailTween = null;
+        engine.Diagnostics.Enabled = false;
+        engine.TimeDilation = 1;
+        engine.Thaw();
         engine.Pause();
         engine.Paused = true;
+        engine._timeOffset = 0;
         engine._currentTime = engine._lastTickTime = engine._startTime = engine._lastTime = Frames.Now;
         engine.TimeUnit = TimeUnit.Milliseconds;
         engine.Defaults = new();

@@ -7,6 +7,7 @@ using Avalonia.VisualTree;
 using Monaco.Presto.Core;
 using Monaco.Presto.AvaloniaBridge.Events;
 using Monaco.Presto.AvaloniaBridge.Transforms;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -168,6 +169,7 @@ public static class Scroll
         public Smoother(ScrollViewer scroller)
         {
             _scroller = scroller;
+            using var origin = PrestoDiagnostics.Origin("ScrollObserver");
             _ease = Presto.CreateTimer(new TimerParams
             {
                 Autoplay = false,

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -142,6 +143,7 @@ public static class Connected
     {
         var registration = Register(key, control);
         var motion = GetMotion(control) ?? s_defaultMotion;
+        using var origin = PrestoDiagnostics.Origin("Connected");
         var flight = Other(key, control) is { } source
             ? PrestoAvalonia.AnimateSharedElement(source, control, motion)
             : PrestoAvalonia.AnimateSharedElement(key, control, motion);
@@ -211,6 +213,7 @@ public static class Connected
         public void Play()
         {
             Stop();
+            using var origin = PrestoDiagnostics.Origin("Connected");
             _animation = PrestoAvalonia.AnimateOnCompositor(_control, GetMotion(_control) ?? s_defaultAnchorMotion);
         }
 

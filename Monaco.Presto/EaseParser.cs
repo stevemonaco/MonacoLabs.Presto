@@ -13,19 +13,6 @@ public static class EaseParser
 
     private static readonly string[] _deprecated = ["steps(", "irregular(", "linear(", "cubicBezier("];
 
-    private static readonly Dictionary<string, Ease> _fixed = new()
-    {
-        ["linear"] = Eases.None, ["none"] = Eases.None,
-        ["inQuad"] = Eases.InQuad, ["outQuad"] = Eases.OutQuad, ["inOutQuad"] = Eases.InOutQuad, ["outInQuad"] = Eases.OutInQuad,
-        ["inCubic"] = Eases.InCubic, ["outCubic"] = Eases.OutCubic, ["inOutCubic"] = Eases.InOutCubic, ["outInCubic"] = Eases.OutInCubic,
-        ["inQuart"] = Eases.InQuart, ["outQuart"] = Eases.OutQuart, ["inOutQuart"] = Eases.InOutQuart, ["outInQuart"] = Eases.OutInQuart,
-        ["inQuint"] = Eases.InQuint, ["outQuint"] = Eases.OutQuint, ["inOutQuint"] = Eases.InOutQuint, ["outInQuint"] = Eases.OutInQuint,
-        ["inSine"] = Eases.InSine, ["outSine"] = Eases.OutSine, ["inOutSine"] = Eases.InOutSine, ["outInSine"] = Eases.OutInSine,
-        ["inCirc"] = Eases.InCirc, ["outCirc"] = Eases.OutCirc, ["inOutCirc"] = Eases.InOutCirc, ["outInCirc"] = Eases.OutInCirc,
-        ["inExpo"] = Eases.InExpo, ["outExpo"] = Eases.OutExpo, ["inOutExpo"] = Eases.InOutExpo, ["outInExpo"] = Eases.OutInExpo,
-        ["inBounce"] = Eases.InBounce, ["outBounce"] = Eases.OutBounce, ["inOutBounce"] = Eases.InOutBounce, ["outInBounce"] = Eases.OutInBounce,
-    };
-
     private static readonly Dictionary<string, Func<EaseArgs, Ease>> _parameterised = new()
     {
         ["in"] = a => a.Length == 0 ? Eases.In() : Eases.In(a[0]),
@@ -82,6 +69,12 @@ public static class EaseParser
     /// </remarks>
     public static Ease Parse(string ease) => _cache.GetOrAdd(ease.Trim(), Create);
 
+    // Strings parsed while diagnostics were inactive got no name from their factory; the cache key is that name.
+    internal static void NameCached()
+    {
+        foreach (var (text, ease) in _cache) Eases.NameIfUnnamed(ease, text);
+    }
+
     private static Ease Create(string input)
     {
         foreach (var prefix in _deprecated)
@@ -94,7 +87,7 @@ public static class EaseParser
         if (name.Length > 0 && char.IsUpper(name[0])) name = char.ToLowerInvariant(name[0]) + name[1..];
         var args = open < 0 ? EaseArgs.Empty : ParseArgs(input, open);
 
-        if (_fixed.TryGetValue(name, out var ease))
+        if (Eases.Fixed.TryGetValue(name, out var ease))
         {
             return args.Length == 0 ? ease : throw new FormatException($"Ease \"{name}\" takes no arguments.");
         }

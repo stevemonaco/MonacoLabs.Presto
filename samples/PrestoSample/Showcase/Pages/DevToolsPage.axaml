@@ -1,0 +1,77 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.DevToolsPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Height" Value="170" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="Border.stage > :is(Control)">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="StackPanel#Bars > Border">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Accent}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Border Classes="rail showcase">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                               Text="Press Ctrl+Shift+F12 (debug builds) to open the Presto inspector over this window: freeze, step or slow every animation, scrub one, read its tweens and outline what it moves. It only discovers paused animations and springs created while it is open, so Toggle inspector also rebuilds this page." />
+                    <Button Grid.Column="1" Content="Toggle inspector" Click="ToggleInspector" />
+                </Grid>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="LOOPING TIMELINE" />
+                    <Border Classes="stage">
+                        <Canvas Width="180" Height="60">
+                            <Border x:Name="Square" Width="40" Height="40" Canvas.Top="10" CornerRadius="6"
+                                    Background="{x:Static showcase:Palette.AccentBright}" />
+                            <Ellipse x:Name="Circle" Width="24" Height="24" Canvas.Left="150" Canvas.Top="18"
+                                     Fill="{x:Static showcase:Palette.Aqua}" />
+                        </Canvas>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="STAGGER" />
+                    <Border Classes="stage">
+                        <StackPanel x:Name="Bars" Orientation="Horizontal" Spacing="6">
+                            <Border /><Border /><Border /><Border /><Border /><Border /><Border />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="SPRING" />
+                    <Border Classes="stage">
+                        <Ellipse x:Name="Ball" Width="28" Height="28" Fill="{x:Static showcase:Palette.AccentPale}" />
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="PAUSED" />
+                    <Border Classes="stage">
+                        <Border x:Name="Gear" Width="48" Height="48" CornerRadius="10"
+                                Background="{x:Static showcase:Palette.AccentDim}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>
