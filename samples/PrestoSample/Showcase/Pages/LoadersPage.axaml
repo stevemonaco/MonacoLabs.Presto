@@ -3,7 +3,6 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:pages="clr-namespace:PrestoSample.Showcase.Pages"
                        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="900"
                        x:Class="PrestoSample.Showcase.Pages.LoadersPage">
     <showcase:ShowcasePage.Styles>
@@ -67,9 +66,6 @@
                 </WrapPanel>
             </Border>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Render thread rebuilds the equaliser, orbiting dots, grid wave, bouncing ball, typing and ripples with AnimateOnCompositor using the parameters shown, so those six keep moving through the freeze. The blob morph, drawing ring and progress counter animate Data, Draw and Text, which have no composition property, so they stay on the UI thread and stop with it." />
-
             <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
                 <StackPanel Spacing="8">
                     <TextBlock Classes="eyebrow showcase" Text="EQUALISER" />
@@ -84,7 +80,7 @@
                             <Border Classes="bar" Background="{x:Static showcase:Palette.AccentDim}" />
                         </StackPanel>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.EqualiserCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderEqualiser}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Spacing="8">
@@ -98,7 +94,7 @@
                             <Panel Classes="orbit"><Border Width="4" Height="4" CornerRadius="2" Opacity=".4" /></Panel>
                         </Panel>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.OrbitCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderOrbit}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Spacing="8">
@@ -106,7 +102,7 @@
                     <Border Classes="stage">
                         <UniformGrid x:Name="Squares" Columns="5" Rows="5" />
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.GridCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderGrid}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Spacing="8">
@@ -115,7 +111,7 @@
                         <Path x:Name="Blob" Width="60" Height="60" Fill="{x:Static showcase:Palette.Accent}"
                               Data="M30,4 C44,4 56,16 56,30 C56,44 44,56 30,56 C16,56 4,44 4,30 C4,16 16,4 30,4 Z" />
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.BlobCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderBlob}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
@@ -128,7 +124,7 @@
                                   Data="M28,2.5 A25.5,25.5 0 1 1 28,53.5 A25.5,25.5 0 1 1 28,2.5" />
                         </Panel>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.RingCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderRing}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="2" Spacing="8">
@@ -140,7 +136,7 @@
                             <Border Height="2" CornerRadius="1" Background="{x:Static showcase:Palette.Border}" />
                         </StackPanel>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.BallCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderBall}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="2" Spacing="8">
@@ -154,7 +150,7 @@
                             </StackPanel>
                         </Border>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.TypingCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderTyping}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="2" Grid.Column="1" Spacing="8">
@@ -169,7 +165,7 @@
                             <Ellipse Width="14" Height="14" Fill="{x:Static showcase:Palette.Aqua}" />
                         </Panel>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.RippleCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderRipples}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="2" Grid.Column="2" Spacing="8">
@@ -180,7 +176,7 @@
                             <ProgressBar x:Name="Meter" Maximum="100" Foreground="{x:Static showcase:Palette.Accent}" />
                         </StackPanel>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static pages:LoadersPage.CounterCode}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderCounter}" />
                 </StackPanel>
             </Grid>
         </StackPanel>

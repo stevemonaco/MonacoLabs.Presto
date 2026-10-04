@@ -42,6 +42,7 @@ public partial class StressBenchPage : ShowcasePage
             WorkerToggle.IsEnabled = false;
         }
         CountSlider.Value = DefaultCount;
+        HowCode.Code = $"{Snippets.StressBenchModes}\n\n{Snippets.StressBenchWorker}";
     }
 
     /// <summary>What the current count, mode and property set run: animations, the bench scene and the worker's engine.</summary>
@@ -68,6 +69,7 @@ public partial class StressBenchPage : ShowcasePage
         var mode = ModeBox.SelectedIndex;
         var targets = mode is UiThread or PerVisual ? AddTargets(count) : [];
         var build = Stopwatch.StartNew();
+        #region snippet StressBenchModes
         switch (mode)
         {
             case UiThread:
@@ -86,6 +88,7 @@ public partial class StressBenchPage : ShowcasePage
                 _workload.Add(scene);
                 break;
         }
+        #endregion
         BuildReadout.Text = string.Create(CultureInfo.InvariantCulture, $"build {build.Elapsed.TotalMilliseconds:0.0} ms");
 
         var stopWorker = WorkerToggle.IsChecked == true ? StartWorker(count, set) : null;
@@ -115,10 +118,24 @@ public partial class StressBenchPage : ShowcasePage
     private CancellationTokenSource StartWorker(int count, int set)
     {
         var stop = new CancellationTokenSource();
-        var engine = new Engine(new StopwatchFrameSource()) { UseDefaultMainLoop = false };
         var cells = Enumerable.Range(0, count).Select(_ => new BenchScene.Cell()).ToArray();
         var frames = 0;
         var windowStart = 0d;
+
+        #region snippet StressBenchWorker
+        var engine = new Engine(new StopwatchFrameSource()) { UseDefaultMainLoop = false };
+        // Started from the thread pool, which has no synchronization context, so the pump ticks the engine on its own thread.
+        Task.Run(() =>
+        {
+            using (engine.MakeCurrent())
+            {
+                Presto.Animate(cells, Motion(set, "Tint", 1));
+                Presto.CreateTimer(new() { OnUpdate = Report });
+            }
+            engine.UseDefaultMainLoop = true;
+            engine.Wake();
+        });
+        #endregion
 
         void Report(Timer timer)
         {
@@ -137,17 +154,6 @@ public partial class StressBenchPage : ShowcasePage
             });
         }
 
-        // Started from the thread pool, which has no synchronization context, so the pump ticks the engine on its own thread.
-        Task.Run(() =>
-        {
-            using (engine.MakeCurrent())
-            {
-                Presto.Animate(cells, Motion(set, "Tint", 1));
-                Presto.CreateTimer(new() { OnUpdate = Report });
-            }
-            engine.UseDefaultMainLoop = true;
-            engine.Wake();
-        });
         _workload.Add(engine);
         return stop;
     }

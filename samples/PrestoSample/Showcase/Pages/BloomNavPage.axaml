@@ -36,22 +36,26 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <Border CornerRadius="12" ClipToBounds="True" BorderThickness="1"
-            BorderBrush="{x:Static showcase:Palette.Border}">
-        <DockPanel>
-            <Border x:Name="Header" DockPanel.Dock="Top" Padding="12,0">
-                <StackPanel HorizontalAlignment="Left">
-                    <StackPanel x:Name="Tabs" Orientation="Horizontal" />
-                    <Canvas Height="3">
-                        <Border x:Name="Underline" Height="3" CornerRadius="1.5"
-                                Background="{x:Static showcase:Palette.Ink}" />
-                    </Canvas>
-                </StackPanel>
-            </Border>
-            <Panel x:Name="Stage" ClipToBounds="True">
-                <Border x:Name="Screen" Padding="12" />
-                <Canvas x:Name="Overlay" IsHitTestVisible="False" />
-            </Panel>
-        </DockPanel>
-    </Border>
+    <DockPanel>
+        <showcase:CodePanel DockPanel.Dock="Bottom" Header="How it's built" IsExpanded="False" MaxHeight="280" Margin="0,12,0,0"
+                            Code="{x:Static showcase:Snippets.BloomNavBloom}" />
+        <Border CornerRadius="12" ClipToBounds="True" BorderThickness="1"
+                BorderBrush="{x:Static showcase:Palette.Border}">
+            <DockPanel>
+                <Border x:Name="Header" DockPanel.Dock="Top" Padding="12,0">
+                    <StackPanel HorizontalAlignment="Left">
+                        <StackPanel x:Name="Tabs" Orientation="Horizontal" />
+                        <Canvas Height="3">
+                            <Border x:Name="Underline" Height="3" CornerRadius="1.5"
+                                    Background="{x:Static showcase:Palette.Ink}" />
+                        </Canvas>
+                    </StackPanel>
+                </Border>
+                <Panel x:Name="Stage" ClipToBounds="True">
+                    <Border x:Name="Screen" Padding="12" />
+                    <Canvas x:Name="Overlay" IsHitTestVisible="False" />
+                </Panel>
+            </DockPanel>
+        </Border>
+    </DockPanel>
 </showcase:ShowcasePage>

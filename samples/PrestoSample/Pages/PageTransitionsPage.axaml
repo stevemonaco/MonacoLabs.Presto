@@ -28,12 +28,14 @@
                             <Button Classes="accent" Content="Next" Click="NextClicked" />
                         </StackPanel>
                         <Button Content="Next, freeze UI thread 2 s" Click="FreezeClicked" />
-                        <Button Content="Next, again mid-flight on the other thread" Click="CrossThreadClicked" />
+                        <Button Click="CrossThreadClicked">
+                            <TextBlock Text="Next, again mid-flight on the other thread" TextWrapping="Wrap" />
+                        </Button>
                         <ProgressBar IsIndeterminate="True" />
                     </StackPanel>
                 </Grid>
             </Border>
-            <showcase:CodePanel x:Name="HostCode" />
+            <showcase:CodeTabs x:Name="HostCode" />
 
             <TextBlock Classes="caption" Text="A Carousel with IsSwipeEnabled under {presto:PageSlide Edge=Right}: drag a page sideways to scrub the transition" />
             <Border Classes="stage" MinHeight="0">

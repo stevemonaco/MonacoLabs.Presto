@@ -35,8 +35,11 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Classes="caption" Text="Nine recipes; the click handler awaits them in turn, and a Presto timer stands in for the request" />
-            <showcase:CodePanel x:Name="RecipesCode" />
+            <TextBlock Classes="caption" Text="The recipes: static builders, plus the library's Pulse, Shake and Confetti" />
+            <showcase:CodePanel x:Name="RecipesCode" Code="{x:Static showcase:Snippets.SubmitFlowRecipes}" />
+
+            <TextBlock Classes="caption" Text="The click handler awaits them in turn, and a Presto timer stands in for the request" />
+            <showcase:CodePanel x:Name="SendCode" Code="{x:Static showcase:Snippets.SubmitFlowSend}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

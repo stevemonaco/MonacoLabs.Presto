@@ -2,9 +2,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PrestoSample.Showcase;
@@ -83,6 +86,45 @@ public sealed class CodePanelTests
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(panel.Code, await window.Clipboard!.TryGetTextAsync());
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void CompactCodeIsHitTestableBesideItsGlyphsAndSelectsOnADrag()
+    {
+        var panel = new CodePanel { Classes = { "compact" }, Code = "x.Y(1);\nlonger.Line(2, 3);", Width = 300, VerticalAlignment = VerticalAlignment.Top };
+        var window = SceneHarness.Show(panel, 600, 300);
+        var text = Part<SelectableTextBlock>(panel, "PART_Text");
+        var start = text.TranslatePoint(new Point(text.Bounds.Width - 2, text.Bounds.Height - 2), window)!.Value;
+
+        Assert.Same(text, window.InputHitTest(start));
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(new Point(0, start.Y), RawInputModifiers.LeftMouseButton);
+        window.MouseUp(new Point(0, start.Y), MouseButton.Left);
+
+        Assert.Equal("longer.Line(2, 3);", text.SelectedText);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void APanelCappedShorterThanItsCodeScrollsVertically()
+    {
+        var panel = new CodePanel { Code = string.Join('\n', Enumerable.Range(1, 30).Select(i => $"var x{i} = {i};")), MaxHeight = 120 };
+        var window = Show(panel);
+        var scroll = Part<ScrollViewer>(panel, "PART_ScrollViewer");
+
+        Assert.True(scroll.Extent.Height > scroll.Viewport.Height);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void CompactCodeTrimmedToOneLineHoldsItAllInItsTooltip()
+    {
+        var panel = new CodePanel { Classes = { "compact" }, Code = "target.Animate(Recipes.FadeUp(duration: duration))", Width = 120 };
+        var window = Show(panel);
+
+        Assert.Equal(panel.Code, ToolTip.GetTip(panel));
         window.Close();
     }
 

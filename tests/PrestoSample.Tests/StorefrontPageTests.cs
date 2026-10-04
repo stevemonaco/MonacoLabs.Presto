@@ -90,24 +90,20 @@ public sealed class StorefrontPageTests
     }
 
     [AvaloniaFact]
-    public void WithReducedMotionOnAddingToTheCartBumpsTheBadgeWithoutParticles()
+    public void WithReducedMotionOnAddingToTheCartFadesTheBadgeWithoutParticles()
     {
         var (window, page) = Loaded();
         var badge = page.GetControl<Border>("Badge");
-        Presto.Defaults.ReducedMotion = true;
-        try
-        {
-            SceneHarness.Click(window, Button(Cards(page).First(), "Add"));
+        using var reduced = ReducedMotion.On();
 
-            Assert.Equal(1, page.ViewModel.CartCount);
-            Assert.NotEmpty(Presto.GetAnimations(badge));
-            Assert.Empty(SceneHarness.ParticleOverlays(page));
-        }
-        finally
-        {
-            Presto.Defaults.ReducedMotion = false;
-            SceneHarness.Close(window);
-        }
+        SceneHarness.Click(window, Button(Cards(page).First(), "Add"));
+        TestFrames.Tick(2);
+
+        Assert.Equal(1, page.ViewModel.CartCount);
+        Assert.InRange(badge.Opacity, 0, 0.99);
+        Assert.Equal(1, (double)(PrestoAvalonia.Get(badge, "Scale") ?? 1d), 6);
+        Assert.Empty(SceneHarness.ParticleOverlays(page));
+        SceneHarness.Close(window);
     }
 
     [AvaloniaFact]
@@ -136,18 +132,12 @@ public sealed class StorefrontPageTests
         var (window, page) = Loaded();
         var card = Cards(page).First();
 
-        Presto.Defaults.ReducedMotion = true;
-        try
-        {
-            window.MouseMove(Top(card, window));
-            TestFrames.Tick(30);
-            Assert.Equal(0, (double)(PrestoAvalonia.Get(card, "Y") ?? 0d), 6);
-        }
-        finally
-        {
-            Presto.Defaults.ReducedMotion = false;
-            SceneHarness.Close(window);
-        }
+        using var reduced = ReducedMotion.On();
+
+        window.MouseMove(Top(card, window));
+        TestFrames.Tick(30);
+        Assert.Equal(0, (double)(PrestoAvalonia.Get(card, "Y") ?? 0d), 6);
+        SceneHarness.Close(window);
     }
 
     [AvaloniaFact]

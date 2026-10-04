@@ -45,7 +45,7 @@ public partial class LifecyclePage : UserControl
         var (initial, initialCode) = Snippet.Of(Recipes.FadeUp(distance: 18, duration: 460, ease: Eases.OutQuart).Delay(Presto.Stagger(70)));
         var (enter, enterCode) = Snippet.Of(Recipes.SlideIn(Edge.Left, distance: 40, duration: 380, ease: Eases.OutBack(1.4)));
         var (exit, exitCode) = Snippet.Of(Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad));
-        RowCode.Text = $"""
+        RowCode.Code = $"""
             Presence.SetInitial(row, {initialCode});
             Presence.SetEnter(row, {enterCode});
             Presence.SetExit(row, {exitCode});
@@ -62,7 +62,8 @@ public partial class LifecyclePage : UserControl
         ];
         Host.Content = _views[0].View;
         Swapper.Content = _panels[0];
-        WizardCode.Text = $"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}\n        …";
+        WizardCode.Code = $"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}";
+        SwapCode.Code = Snippets.LifecycleSwap;
         ModePicker.SelectedIndex = (int)Presence.GetMode(Wizard);
         ShowStep(0);
     }
@@ -131,8 +132,6 @@ public partial class LifecyclePage : UserControl
         Host.Content = view;
     }
 
-    private void Swap(object? sender, RoutedEventArgs e) => Swapper.Content = _panels[_panel = 1 - _panel];
-
     private void WizardBack(object? sender, RoutedEventArgs e) => ShowStep(_step - 1);
 
     private void WizardNext(object? sender, RoutedEventArgs e) => ShowStep(_step + 1);
@@ -147,6 +146,9 @@ public partial class LifecyclePage : UserControl
 
     private void ModeChanged(object? sender, SelectionChangedEventArgs e) => Presence.SetMode(Wizard, (PresenceMode)ModePicker.SelectedIndex);
 
+    #region snippet LifecycleSwap
+    private void Swap(object? sender, RoutedEventArgs e) => Swapper.Content = _panels[_panel = 1 - _panel];
+
     private static Control Panel(string title, string color)
     {
         var panel = new Border
@@ -159,6 +161,7 @@ public partial class LifecyclePage : UserControl
         Presence.SetExit(panel, Recipes.FadeOutUp(distance: 16, duration: 360, ease: Eases.InQuad));
         return panel;
     }
+    #endregion
 
     private void AddRow(object? sender, RoutedEventArgs e)
     {

@@ -76,8 +76,7 @@
 
             <showcase:TransportBar x:Name="Bar" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Press Loop and watch one timeline draw the mark, stagger the title out from the centre and scramble the subtitle before the cards fade up once the headline has landed. The SEEK buttons jump straight to a beat by its label; scrub, reverse or drag the speed and duration sliders to retime the whole sequence without a jump." />
+            <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.TitleSequenceTimeline}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

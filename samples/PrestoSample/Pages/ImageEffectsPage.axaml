@@ -55,7 +55,7 @@
                     </StackPanel>
                 </Grid>
             </Border>
-            <showcase:CodePanel x:Name="FilterCode" />
+            <showcase:CodeTabs x:Name="FilterCode" SelectedLanguage="Xaml" />
 
             <TextBlock Classes="caption" Text="Gray thumbnails that colorize on hover and turn gray again when the pointer leaves" />
             <Border Classes="stage" MinHeight="0">

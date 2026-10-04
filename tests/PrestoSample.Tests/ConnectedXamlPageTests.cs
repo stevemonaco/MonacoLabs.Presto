@@ -108,7 +108,7 @@ public sealed class ConnectedXamlPageTests
         Assert.Equal(Snippets.ConnectedXamlCard, page.GetControl<CodePanel>("CardCode").Code);
         Assert.Equal(Snippets.ConnectedXamlDetail, page.GetControl<CodePanel>("DetailCode").Code);
         Assert.Equal(Snippets.ConnectedXamlHosts, page.GetControl<CodePanel>("HostsCode").Code);
-        Assert.Contains("public static readonly AnimationBuilder Arc", page.GetControl<CodePanel>("ArcCode").Code);
+        Assert.Contains("public static AnimationBuilder Arc =>", page.GetControl<CodePanel>("ArcCode").Code);
     }
 
     // Waits out flights claimed from keys an earlier test's window prepared as it closed.

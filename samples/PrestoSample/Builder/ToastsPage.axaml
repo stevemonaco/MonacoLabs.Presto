@@ -52,13 +52,15 @@
         <StackPanel Spacing="16">
             <Button Content="Notify" Command="{Binding NotifyCommand}" HorizontalAlignment="Left" />
 
-            <TextBlock Classes="caption" Text="Each toast slides in from its template, counts down on a bar and collapses out of the stack; ✕ dismisses it early" />
+            <TextBlock Classes="caption" Text="Each toast slides in from its template, counts down on a bar and slides out as the stack closes up; ✕ dismisses it early" />
             <Border Classes="stage" MinHeight="420">
-                <ItemsControl x:Name="ToastList" ItemsSource="{Binding Toasts}" Width="340" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <!-- snippet: ToastsTemplate -->
+                <ItemsControl x:Name="ToastList" ItemsSource="{Binding Toasts}" Width="340" HorizontalAlignment="Right" VerticalAlignment="Top"
+                              presto:Animate.ItemLayout="{presto:Reflow 360, Ease=outQuint}">
                     <ItemsControl.ItemTemplate>
-                        <!-- snippet: ToastsTemplate -->
                         <DataTemplate x:DataType="local:Toast">
-                            <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}">
+                            <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}"
+                                    presto:Presence.Exit="{presto:Slide Edge=Right, Distance=120, Duration=320, Ease=inQuad}">
                                 <Grid ColumnDefinitions="16,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
                                     <Border Grid.Column="1" Grid.RowSpan="2" Classes="accent" Background="{Binding Accent}" />
                                     <TextBlock Grid.Column="2" Classes="title" Text="{Binding Title}" />
@@ -69,15 +71,15 @@
                                 </Grid>
                             </Border>
                         </DataTemplate>
-                        <!-- /snippet -->
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <!-- /snippet -->
             </Border>
 
-            <TextBlock Classes="caption" Text="The item template" />
+            <TextBlock Classes="caption" Text="The list and its item template" />
             <showcase:CodePanel x:Name="TemplateCode" Language="Xaml" Code="{x:Static showcase:Snippets.ToastsTemplate}" />
-            <TextBlock Classes="caption" Text="The countdown it points at, and the builder the page plays to take a toast away" />
-            <showcase:CodePanel x:Name="RecipesCode" />
+            <TextBlock Classes="caption" Text="The countdown it points at; the exit and the reflow come from XAML, so the page only removes the toast" />
+            <showcase:CodePanel x:Name="BuildersCode" Code="{x:Static showcase:Snippets.ToastsBuilders}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

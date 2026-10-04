@@ -24,8 +24,17 @@ public partial class TitleSequencePage : ShowcasePage
         PrestoAvalonia.CreateDrawable(Monogram);
         // The character pieces only exist once the block has been measured, and a re-split replaces them, so the whole
         // sequence is built from the split effect: KeepTime hands the playhead to the rebuilt one (SAMPLES-PLAN §8).
-        PrestoAvalonia.SplitText(Headline, new SplitTextParams { Chars = new SplitPieceParams { Class = "wordmark-char" } })
-            .AddEffect(BuildSequence);
+        var split = PrestoAvalonia.SplitText(Headline, new SplitTextParams { Chars = new SplitPieceParams { Class = "wordmark-char" } });
+        if (Presto.Defaults.ReducedMotion) split.AddEffect(LandSequence);
+        else split.AddEffect(BuildSequence);
+    }
+
+    // One jump from the start would render the cards' Set at 0 after their fade-up, so the playhead passes the cards label first.
+    private Action LandSequence(TextSplitter split)
+    {
+        var timeline = BuildSequence(split);
+        timeline.Pause().Seek(timeline.Labels["cards"]).Seek(timeline.IterationDuration);
+        return () => timeline.Revert();
     }
 
     private void BuildDotField()
@@ -50,6 +59,7 @@ public partial class TitleSequencePage : ShowcasePage
 
     private Timeline BuildSequence(TextSplitter split)
     {
+        #region snippet TitleSequenceTimeline
         var timeline = Presto.CreateTimeline()
             .Label("draw", 0)
             .Add(Monogram, new()
@@ -88,10 +98,11 @@ public partial class TitleSequencePage : ShowcasePage
             // Added after the fade-up, which would otherwise land on this 0 rather than the cards' resting opacity.
             .Set(Cards.Children, b => b.Opacity(0), 0)
             .Label("out", "+=400")
-            .Call(_ => BeatText.Text = $"out · {++_crossings} crossings", "out")
             .Add(new TimerParams { Duration = 800 }, "out")
             .Sync(BuildDrift(), 0);
+        #endregion
 
+        timeline.Call(_ => BeatText.Text = $"out · {++_crossings} crossings", "out");
         _timeline = timeline;
         Bar.Timer = timeline;
         return timeline;
@@ -118,6 +129,8 @@ public partial class TitleSequencePage : ShowcasePage
 
     private void SeekLabel(object? sender, RoutedEventArgs e)
     {
-        if (_timeline is { } timeline && sender is Button { Tag: string label }) timeline.Seek(timeline.Labels[label]);
+        if (_timeline is not { } timeline || sender is not Button { Tag: string label }) return;
+        timeline.Seek(timeline.Labels[label]);
+        Bar.Refresh();
     }
 }

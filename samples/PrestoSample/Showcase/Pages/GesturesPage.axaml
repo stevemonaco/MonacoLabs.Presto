@@ -10,13 +10,6 @@
         <StreamGeometry x:Key="DeleteIcon">M5.5,1 L10.5,1 L10.5,3 L14.5,3 L14.5,5 L1.5,5 L1.5,3 L5.5,3 Z M2.5,6 L13.5,6 L12.5,15 L3.5,15 Z</StreamGeometry>
     </showcase:ShowcasePage.Resources>
     <showcase:ShowcasePage.Styles>
-        <Style Selector="Border.panel">
-            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
-            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="12" />
-        </Style>
         <Style Selector="Border.panel TextBlock.mono">
             <Setter Property="Margin" Value="0" />
         </Style>
@@ -45,92 +38,96 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
-        <Border Grid.Column="0" Classes="panel">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="PullVelocity" Classes="mono" Text="0.00" />
-                    <TextBlock Classes="eyebrow showcase" Text="PULL TO REFRESH" />
-                </DockPanel>
-                <Panel x:Name="PullViewport" ClipToBounds="True" Background="{x:Static showcase:Palette.Surface}">
-                    <Panel Height="64" VerticalAlignment="Top">
-                        <Ellipse x:Name="Ring" Width="28" Height="28" StrokeThickness="3"
-                                 Stroke="{x:Static showcase:Palette.Accent}" StrokeLineCap="Round" />
-                        <Path x:Name="Arrow" Data="M6,1 L6,11 M2,7 L6,11 L10,7" StrokeThickness="2"
-                              Stroke="{x:Static showcase:Palette.AccentBright}" StrokeLineCap="Round" StrokeJoin="Round"
-                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <ScrollViewer>
+        <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="420,Auto" ColumnSpacing="12" RowSpacing="12">
+            <Border Grid.Column="0" Classes="panel showcase">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" x:Name="PullVelocity" Classes="mono" Text="0.00" />
+                        <TextBlock Classes="eyebrow showcase" Text="PULL TO REFRESH" />
+                    </DockPanel>
+                    <Panel x:Name="PullViewport" ClipToBounds="True" Background="{x:Static showcase:Palette.Surface}">
+                        <Panel Height="64" VerticalAlignment="Top">
+                            <Ellipse x:Name="Ring" Width="28" Height="28" StrokeThickness="3"
+                                     Stroke="{x:Static showcase:Palette.Accent}" StrokeLineCap="Round" />
+                            <Path x:Name="Arrow" Data="M6,1 L6,11 M2,7 L6,11 L10,7" StrokeThickness="2"
+                                  Stroke="{x:Static showcase:Palette.AccentBright}" StrokeLineCap="Round" StrokeJoin="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+                        <StackPanel x:Name="Feed" Spacing="4" VerticalAlignment="Top"
+                                    Background="{x:Static showcase:Palette.Surface}" />
                     </Panel>
-                    <StackPanel x:Name="Feed" Spacing="4" VerticalAlignment="Top"
-                                Background="{x:Static showcase:Palette.Surface}" />
-                </Panel>
-            </DockPanel>
-        </Border>
-
-        <Border Grid.Column="1" Classes="panel">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="InboxVelocity" Classes="mono" Text="0.00" />
-                    <TextBlock Classes="eyebrow showcase" Text="SWIPE TO DISMISS" />
                 </DockPanel>
-                <Button DockPanel.Dock="Bottom" x:Name="UndoButton" Classes="specimen" Content="Undo"
-                        IsEnabled="False" Click="UndoClicked" />
-                <StackPanel x:Name="Inbox" />
-            </DockPanel>
-        </Border>
+            </Border>
 
-        <Border Grid.Column="2" Classes="panel">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="CurtainVelocity" Classes="mono" Text="0.00" />
-                    <TextBlock Classes="eyebrow showcase" Text="CURTAIN" />
+            <Border Grid.Column="1" Classes="panel showcase">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" x:Name="InboxVelocity" Classes="mono" Text="0.00" />
+                        <TextBlock Classes="eyebrow showcase" Text="SWIPE TO DISMISS" />
+                    </DockPanel>
+                    <Button DockPanel.Dock="Bottom" x:Name="UndoButton" Classes="specimen" Content="Undo"
+                            IsEnabled="False" Click="UndoClicked" />
+                    <StackPanel x:Name="Inbox" ClipToBounds="True" />
                 </DockPanel>
-                <Panel x:Name="CurtainStage" ClipToBounds="True">
-                    <StackPanel x:Name="Home" Spacing="4" Margin="0,36,0,0">
-                        <TextBlock Text="09:41" FontSize="40" FontWeight="Light" HorizontalAlignment="Center"
-                                   Foreground="{x:Static showcase:Palette.Ink}" />
-                    </StackPanel>
-                    <Border x:Name="Scrim" Background="{x:Static showcase:Palette.Background}" Opacity="0"
-                            IsHitTestVisible="False" />
-                    <Border x:Name="Shade" Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="0,0,10,10"
-                            Margin="0,-40,0,0">
-                        <DockPanel>
-                            <Border x:Name="Handle" DockPanel.Dock="Bottom" Height="28" Background="Transparent"
-                                    Cursor="Hand">
-                                <Border Width="36" Height="4" CornerRadius="2"
-                                        Background="{x:Static showcase:Palette.AccentBright}" />
-                            </Border>
-                            <StackPanel x:Name="Notifications" Spacing="4" Margin="8,0" VerticalAlignment="Bottom">
-                                <TextBlock Classes="eyebrow showcase" Text="NOTIFICATIONS" />
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                </Panel>
-            </DockPanel>
-        </Border>
+            </Border>
 
-        <Border Grid.Column="3" Classes="panel">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="SheetVelocity" Classes="mono" Text="0.00" />
-                    <TextBlock Classes="eyebrow showcase" Text="BOTTOM SHEET" />
+            <Border Grid.Column="2" Classes="panel showcase">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" x:Name="CurtainVelocity" Classes="mono" Text="0.00" />
+                        <TextBlock Classes="eyebrow showcase" Text="CURTAIN" />
+                    </DockPanel>
+                    <Panel x:Name="CurtainStage" ClipToBounds="True">
+                        <StackPanel x:Name="Home" Spacing="4" Margin="0,36,0,0">
+                            <TextBlock Text="09:41" FontSize="40" FontWeight="Light" HorizontalAlignment="Center"
+                                       Foreground="{x:Static showcase:Palette.Ink}" />
+                        </StackPanel>
+                        <Border x:Name="Scrim" Background="{x:Static showcase:Palette.Background}" Opacity="0"
+                                IsHitTestVisible="False" />
+                        <Border x:Name="Shade" Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="0,0,10,10"
+                                Margin="0,-40,0,0">
+                            <DockPanel>
+                                <Border x:Name="Handle" DockPanel.Dock="Bottom" Height="28" Background="Transparent"
+                                        Cursor="Hand">
+                                    <Border Width="36" Height="4" CornerRadius="2"
+                                            Background="{x:Static showcase:Palette.AccentBright}" />
+                                </Border>
+                                <StackPanel x:Name="Notifications" Spacing="4" Margin="8,0" VerticalAlignment="Bottom">
+                                    <TextBlock Classes="eyebrow showcase" Text="NOTIFICATIONS" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </Panel>
                 </DockPanel>
-                <Panel ClipToBounds="True">
-                    <TextBlock Text="Flick it" FontSize="28" FontWeight="Light" Margin="0,36,0,0"
-                               HorizontalAlignment="Center" Foreground="{x:Static showcase:Palette.InkDim}" />
-                    <Border x:Name="Sheet" Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="10,10,0,0"
-                            Margin="0,24,0,0">
-                        <DockPanel>
-                            <Border DockPanel.Dock="Top" Height="28" Background="Transparent" Cursor="Hand">
-                                <Border Width="36" Height="4" CornerRadius="2"
-                                        Background="{x:Static showcase:Palette.AccentBright}" />
-                            </Border>
-                            <StackPanel x:Name="Queue" Spacing="4" Margin="8,0">
-                                <TextBlock Classes="eyebrow showcase" Text="UP NEXT" />
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                </Panel>
-            </DockPanel>
-        </Border>
-    </Grid>
+            </Border>
+
+            <Border Grid.Column="3" Classes="panel showcase">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" x:Name="SheetVelocity" Classes="mono" Text="0.00" />
+                        <TextBlock Classes="eyebrow showcase" Text="BOTTOM SHEET" />
+                    </DockPanel>
+                    <Panel ClipToBounds="True">
+                        <TextBlock Text="Flick it" FontSize="28" FontWeight="Light" Margin="0,36,0,0"
+                                   HorizontalAlignment="Center" Foreground="{x:Static showcase:Palette.InkDim}" />
+                        <Border x:Name="Sheet" Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="10,10,0,0"
+                                Margin="0,24,0,0">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Top" Height="28" Background="Transparent" Cursor="Hand">
+                                    <Border Width="36" Height="4" CornerRadius="2"
+                                            Background="{x:Static showcase:Palette.AccentBright}" />
+                                </Border>
+                                <StackPanel x:Name="Queue" Spacing="4" Margin="8,0">
+                                    <TextBlock Classes="eyebrow showcase" Text="UP NEXT" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </Panel>
+                </DockPanel>
+            </Border>
+
+            <showcase:CodePanel Grid.Row="1" Grid.ColumnSpan="4" x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+        </Grid>
+    </ScrollViewer>
 </showcase:ShowcasePage>

@@ -1,9 +1,10 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
-             x:Class="PrestoSample.Pages.ControlsPage">
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoSample.Pages.ControlsPage">
     <ScrollViewer>
         <StackPanel Spacing="12">
             <Border Classes="stage" MinHeight="140" Padding="16">
@@ -14,8 +15,7 @@
 
             <StackPanel Spacing="2">
                 <TextBlock Classes="caption" Text="Seek — the slider is the animation's Progress" />
-                <Slider x:Name="ScrubSlider" Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"
-                        ValueChanged="Scrub" />
+                <Slider x:Name="ScrubSlider" Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -45,4 +45,4 @@
             <TextBlock x:Name="ReadoutText" Classes="mono" FontSize="13" />
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</showcase:ShowcasePage>

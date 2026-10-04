@@ -10,78 +10,66 @@ namespace PrestoSample.Builder;
 /// <summary>A submit button that collapses to a spinner, draws a tick and throws confetti or draws a cross on the outcome and springs back, one awaited recipe per step.</summary>
 public partial class SubmitFlowPage : ShowcasePage
 {
-    private static readonly AnimationBuilder Collapse;
-    private static readonly AnimationBuilder Expand;
-    private static readonly AnimationBuilder Hide;
-    private static readonly AnimationBuilder Show;
-    private static readonly AnimationBuilder Spin;
-    private static readonly AnimationBuilder DrawIn;
-    private static readonly AnimationBuilder Erase;
-    private static readonly AnimationBuilder Succeed;
-    private static readonly AnimationBuilder Fail;
-    private static readonly Func<Control, ParticleEffect> Celebrate;
-    private static readonly string Code;
-    private bool _busy;
+    #region snippet SubmitFlowRecipes
+    private static readonly AnimationBuilder Collapse = Presto.Build()
+        .Width(48)
+        .CornerRadius(new CornerRadius(24))
+        .Duration(380)
+        .Ease(Eases.InOutQuint)
+        .WhenReduced(reduced => reduced.Width(48).CornerRadius(new CornerRadius(24)).Duration(0));
 
-    static SubmitFlowPage()
-    {
-        var declarations = new List<string>();
-        AnimationBuilder Recipe(string name, (AnimationBuilder Builder, string Code) recipe)
-        {
-            declarations.Add(Snippet.Declare($"static readonly AnimationBuilder {name}", recipe.Code));
-            return recipe.Builder;
-        }
+    private static readonly AnimationBuilder Hide = Presto.Build()
+        .Opacity(0)
+        .Scale(.6)
+        .Duration(160)
+        .WhenReduced(reduced => reduced.Opacity(0));
 
-        Collapse = Recipe(nameof(Collapse), Snippet.Of(Presto.Build()
-            .Width(48)
-            .CornerRadius(new CornerRadius(24))
-            .Duration(380)
-            .Ease(Eases.InOutQuint)));
-        Hide = Recipe(nameof(Hide), Snippet.Of(Presto.Build()
-            .Opacity(0)
-            .Scale(.6)
-            .Duration(160)));
-        Show = Recipe(nameof(Show), Snippet.Of(Presto.Build()
-            .Opacity(from: 0, to: 1)
-            .Scale(from: .6, to: 1)
-            .Duration(220)));
-        Spin = Recipe(nameof(Spin), Snippet.Of(Presto.Build()
-            .Rotate(from: 0, to: 360)
-            .Duration(700)
-            .Ease(Eases.None)
-            .Loop()));
-        Succeed = Recipe(nameof(Succeed), Snippet.Of(Presto.Build()
-            .Background(Palette.Aqua)
-            .Scale(k => k.To(1.15).To(1))
-            .Duration(420)
-            .Ease(Eases.OutQuad)));
-        Fail = Recipe(nameof(Fail), Snippet.Of(Presto.Build()
-            .Background(Palette.Coral)
-            .X(k => k.To(-10).To(10).To(-6).To(6).To(0))
-            .Duration(460)));
-        DrawIn = Recipe(nameof(DrawIn), Snippet.Of(Presto.Build()
-            .Draw(from: "0 0", to: "0 1")
-            .Duration(420)
-            .Ease(Eases.OutQuad)));
-        Erase = Recipe(nameof(Erase), Snippet.Of(Presto.Build()
-            .Draw("1 1")
-            .Duration(260)
-            .Ease(Eases.InQuad)));
-        Expand = Recipe(nameof(Expand), Snippet.Of(Presto.Build()
-            .Width(200)
-            .CornerRadius(new CornerRadius(8))
-            .Background(Palette.Accent)
-            .Ease(Eases.Spring(bounce: .35, duration: 650))));
-        (Celebrate, var celebrate) = Snippet.Of<Func<Control, ParticleEffect>>(button => Recipes.Confetti(button, count: 80));
-        declarations.Add(Snippet.Declare("static readonly Func<Control, ParticleEffect> Celebrate", celebrate));
-        Code = string.Join("\n\n", declarations);
-    }
+    private static readonly AnimationBuilder Show = Presto.Build()
+        .Opacity(from: 0, to: 1)
+        .Scale(from: .6, to: 1)
+        .Duration(220)
+        .WhenReduced(reduced => reduced.Opacity(from: 0, to: 1));
 
-    public SubmitFlowPage()
-    {
-        InitializeComponent();
-        RecipesCode.Code = Code;
-    }
+    private static readonly AnimationBuilder Spin = Presto.Build()
+        .Rotate(from: 0, to: 360)
+        .Duration(700)
+        .Ease(Eases.None)
+        .Loop()
+        .WhenReduced(reduced => reduced.Loop(false));
+
+    private static readonly AnimationBuilder Succeed = Presto.Build()
+        .Background(Palette.Aqua)
+        .Duration(420);
+
+    private static readonly AnimationBuilder Pop = Recipes.Pulse(intensity: 2.5);
+
+    private static readonly AnimationBuilder Fail = Presto.Build()
+        .Background(Palette.Coral)
+        .Duration(460);
+
+    private static readonly AnimationBuilder Shake = Recipes.Shake();
+
+    private static readonly AnimationBuilder DrawIn = Presto.Build()
+        .Draw(from: "0 0", to: "0 1")
+        .Duration(420)
+        .Ease(Eases.OutQuad);
+
+    private static readonly AnimationBuilder Erase = Presto.Build()
+        .Draw("1 1")
+        .Duration(260)
+        .Ease(Eases.InQuad);
+
+    private static readonly AnimationBuilder Expand = Presto.Build()
+        .Width(200)
+        .CornerRadius(new CornerRadius(8))
+        .Background(Palette.Accent)
+        .Ease(Eases.Spring(bounce: .35, duration: 650))
+        .WhenReduced(reduced => reduced.Width(200).CornerRadius(new CornerRadius(8)).Background(Palette.Accent).Duration(0).Ease(Eases.None));
+
+    private static readonly Func<Control, ParticleEffect> Celebrate = button => Recipes.Confetti(button, count: 80);
+    #endregion
+
+    public SubmitFlowPage() => InitializeComponent();
 
     /// <summary>Completes when the flow the last click started has sprung back; <see langword="null"/> before the first click.</summary>
     public Task? Flow { get; private set; }
@@ -94,13 +82,13 @@ public partial class SubmitFlowPage : ShowcasePage
 
     private void SubmitClicked(object? sender, RoutedEventArgs e)
     {
-        if (_busy) return;
+        if (Flow is { IsCompleted: false }) return;
         Flow = Send(FailBox.IsChecked == true);
     }
 
+    #region snippet SubmitFlowSend
     private async Task Send(bool fail)
     {
-        _busy = true;
         Label.Animate(Hide);
         await Submit.Animate(Collapse);
         Spinner.Animate(Show);
@@ -112,6 +100,7 @@ public partial class SubmitFlowPage : ShowcasePage
         Spinner.Animate(Hide);
         var mark = fail ? Cross : Tick;
         Submit.Animate(fail ? Fail : Succeed);
+        Submit.Animate(fail ? Shake : Pop);
         if (!fail) _ = Celebrate(Submit);
         await mark.Animate(DrawIn);
         await Presto.CreateTimer(new() { Duration = 700 });
@@ -120,6 +109,6 @@ public partial class SubmitFlowPage : ShowcasePage
         Label.Text = fail ? "Try again" : "Send another";
         Label.Animate(Show);
         await Submit.Animate(Expand);
-        _busy = false;
     }
+    #endregion
 }

@@ -27,6 +27,7 @@ public partial class StatesPage : UserControl
     private static readonly string[] Watched = [":pointerover", ":pressed", ":focus", ":focus-visible", ":checked", "starred"];
     private static readonly StaggerFrom[] Froms = [StaggerFrom.First, StaggerFrom.Last, StaggerFrom.Center];
 
+    #region snippet StatesBuilders
     public static readonly AnimationBuilder Lift = Presto.Build().Y(-4).Duration(220).Ease(Eases.OutQuart);
     public static readonly AnimationBuilder Squish = Presto.Build().Scale(.95).Duration(120).Ease(Eases.OutQuad);
     public static readonly AnimationBuilder Ring = Presto.Build().Scale(1.06).Duration(240).Ease(Eases.OutBack(2));
@@ -37,7 +38,8 @@ public partial class StatesPage : UserControl
         .Opacity(k => k.To(.35).To(1))
         .Duration(900)
         .Ease(Eases.InOutSine)
-        .Loop();
+        .Loop()
+        .WhenReduced(reduced => reduced.Loop(false));
     public static readonly AnimationBuilder Alarm = Presto.Build()
         .Background(Palette.Coral)
         .X(k => k.To(-6).To(6).To(-3).To(0))
@@ -50,6 +52,8 @@ public partial class StatesPage : UserControl
     public static readonly AnimationBuilder Trophy = Presto.Build().Scale(1.06).Duration(420).Ease(Eases.OutBack(2));
     public static readonly AnimationBuilder Unfold = Presto.Build().Opacity(1).ScaleY(1, from: .6).Duration(220).Ease(Eases.OutQuart);
     public static readonly AnimationBuilder SlideIn = Presto.Build().Opacity(1).Y(0, from: 14).Duration(320).Ease(Eases.OutQuart);
+    #endregion
+
     private readonly ObservableCollection<string> _entries = [];
 
     public StatesPage()
@@ -65,7 +69,8 @@ public partial class StatesPage : UserControl
                 if (e.Property == Motion.StateProperty) Record($"{name}  State = {e.NewValue ?? "none"}");
             };
         }
-        XamlCode.Code = string.Join("\n\n", Snippets.StatesButton, Snippets.StatesTextBox, Snippets.StatesCheckBox, Snippets.StatesArrow, Snippets.StatesCard, Snippets.StatesChip, Snippets.StatesUpload, Snippets.StatesMenu, Snippets.StatesMenuItem);
+        Code.CSharp = Snippets.StatesBuilders;
+        Code.Xaml = string.Join("\n\n", Snippets.StatesButton, Snippets.StatesTextBox, Snippets.StatesCheckBox, Snippets.StatesArrow, Snippets.StatesCard, Snippets.StatesChip, Snippets.StatesUpload, Snippets.StatesMenu, Snippets.StatesMenuItem);
         OrderPicker.SelectedIndex = (int)Motion.GetOrder(MenuPanel);
         FromPicker.SelectedIndex = 0;
     }

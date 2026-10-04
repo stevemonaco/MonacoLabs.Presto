@@ -36,6 +36,7 @@ public partial class InterruptionPage : ShowcasePage
     public InterruptionPage()
     {
         InitializeComponent();
+        HowCode.Code = $"{Snippets.InterruptionRetarget}\n\n{Snippets.InterruptionCancelNewest}\n\n{Snippets.InterruptionHover}";
         _panes = [ReplacePane, NonePane, BlendPane];
         _pucks = [ReplacePuck, NonePuck, BlendPuck];
         _counts = [ReplaceCount, NoneCount, BlendCount];
@@ -77,10 +78,12 @@ public partial class InterruptionPage : ShowcasePage
     /// <summary>Cancels each pane's most recent animation that is still running.</summary>
     public void CancelNewest()
     {
+        #region snippet InterruptionCancelNewest
         foreach (var puck in _pucks)
         {
             if (Presto.GetAnimations(puck) is [.., var newest]) newest.Cancel();
         }
+        #endregion
     }
 
     protected override void OnAttached()
@@ -128,6 +131,7 @@ public partial class InterruptionPage : ShowcasePage
             var pane = _panes[i];
             var puck = _pucks[i];
             var mode = Modes[i];
+            #region snippet InterruptionRetarget
             Scope.Execute(_ => Presto.Animate(puck, new AvaloniaAnimationParams
             {
                 ["X"] = (relative.X * pane.Bounds.Width) - Canvas.GetLeft(puck) - (puck.Width / 2),
@@ -136,6 +140,7 @@ public partial class InterruptionPage : ShowcasePage
                 Ease = Eases.OutQuad,
                 Composition = mode,
             }));
+            #endregion
         }
     }
 
@@ -147,6 +152,7 @@ public partial class InterruptionPage : ShowcasePage
     {
         var (fromY, toY, fromScale, toScale) = raised ? (0d, HoverLift, 1d, HoverScale) : (HoverLift, 0d, HoverScale, 1d);
         var restart = HoverMode.IsChecked == true;
+        #region snippet InterruptionHover
         Scope.Execute(_ => Presto.Animate(tile, new AvaloniaAnimationParams
         {
             ["Y"] = restart ? TweenValue.FromTo(fromY, toY) : toY,
@@ -154,6 +160,7 @@ public partial class InterruptionPage : ShowcasePage
             Duration = HoverDuration,
             Ease = Eases.OutQuint,
         }));
+        #endregion
     }
 
     private void PanePressed(object? sender, PointerPressedEventArgs e)

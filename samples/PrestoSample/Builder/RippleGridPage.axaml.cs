@@ -16,6 +16,7 @@ public partial class RippleGridPage : ShowcasePage
     public RippleGridPage()
     {
         InitializeComponent();
+        CodeText.Code = Snippets.RippleWave;
         Cells.Columns = Columns;
         for (var i = 0; i < Columns * Rows; i++)
         {
@@ -40,15 +41,17 @@ public partial class RippleGridPage : ShowcasePage
 
     private void Ripple(StaggerFrom from)
     {
-        var (wave, waveCode) = Snippet.Of(new StaggerParams { Grid = [Columns, Rows], From = from });
-        (Animation, var code) = Snippet.Of(Presto.Build()
+        #region snippet RippleWave
+        var wave = new StaggerParams { Grid = [Columns, Rows], From = from };
+        Animation = Presto.Build()
             .Scale(k => k.To(Presto.Stagger(new[] { .2, .9 }, wave)).To(1))
             .Rotate(k => k.To(Presto.Stagger(new[] { 90, 0 }, wave)).To(0))
             .Background(k => k.To(TweenValue.Of(Palette.AccentPale)).To(TweenValue.Of(Palette.AccentDeep)))
             .Delay(Presto.Stagger(45, wave))
             .Duration(1100)
             .Ease(Eases.InOutQuad)
-            .Animate(_cells));
-        CodeText.Code = $"{Snippet.Declare("var wave", waveCode)}\n\n{code};";
+            .WhenReduced(reduced => reduced.Background(k => k.To(TweenValue.Of(Palette.AccentPale)).To(TweenValue.Of(Palette.AccentDeep))))
+            .Animate(_cells);
+        #endregion
     }
 }

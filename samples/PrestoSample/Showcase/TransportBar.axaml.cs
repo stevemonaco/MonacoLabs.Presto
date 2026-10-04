@@ -58,6 +58,12 @@ public partial class TransportBar : UserControl
         }
     }
 
+    /// <summary>Re-reads the timer after a seek made elsewhere: one that lands on 0 renders without an <see cref="Timer.OnUpdate"/>.</summary>
+    public void Refresh()
+    {
+        if (_timer is { } timer) Sync(timer);
+    }
+
     private void Sync(Timer timer)
     {
         if (!_scrubbing)

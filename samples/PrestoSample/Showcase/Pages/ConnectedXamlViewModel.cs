@@ -1,6 +1,4 @@
-using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -34,29 +32,4 @@ public sealed partial class ConnectedXamlViewModel : ObservableObject
 
     // Runs before the hosts rebuild: a new list clamps an offset it has no extent for yet and writes the clamp back.
     partial void OnCrossFadeChanged(bool value) => Gallery.Offset = default;
-}
-
-/// <summary>A destination as both views bind it; <see cref="Id"/> builds their connected keys.</summary>
-public sealed record Destination(int Id, string City, string Country, double Hue, string Blurb);
-
-/// <summary>The scrolling list of destinations, which keeps its scroll position while a destination is open.</summary>
-public sealed partial class DestinationsViewModel(Action<Destination> open) : ObservableObject
-{
-    public IReadOnlyList<Destination> Destinations { get; } =
-        [.. Datasets.Places.Select((place, i) => new Destination(i, place.City, place.Country, place.Hue, place.Blurb))];
-
-    [ObservableProperty]
-    public partial Vector Offset { get; set; }
-
-    [RelayCommand]
-    private void Open(Destination destination) => open(destination);
-}
-
-/// <summary>One destination in detail.</summary>
-public sealed partial class DestinationViewModel(Destination destination, Action back) : ObservableObject
-{
-    public Destination Destination => destination;
-
-    [RelayCommand]
-    private void Back() => back();
 }

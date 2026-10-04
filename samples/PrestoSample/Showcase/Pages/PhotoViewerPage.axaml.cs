@@ -33,6 +33,7 @@ public partial class PhotoViewerPage : ShowcasePage
 
     protected override void OnAttached()
     {
+        #region snippet PhotoViewerTransformable
         _viewers = [.. _photos.Select(photo => photo.CreateTransformable(new TransformableParams
         {
             Rotate = true,
@@ -44,6 +45,7 @@ public partial class PhotoViewerPage : ShowcasePage
             },
             OnRelease = viewer => VelocityText.Text = Utils.RoundPad(viewer.Velocity, 2),
         }))];
+        #endregion
     }
 
     private void PhotoChanged(object? sender, SelectionChangedEventArgs e)

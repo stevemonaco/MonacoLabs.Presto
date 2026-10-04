@@ -30,15 +30,18 @@ public partial class ConnectedPage : ShowcasePage
         _tiles = [.. Datasets.Albums.Select(BuildTile)];
         foreach (var tile in _tiles) Albums.Children.Add(tile.Card);
         PrestoAvalonia.Set(Play, new AvaloniaAnimationParams { ["Scale"] = 0 });
+        HowCode.Code = $"{Snippets.ConnectedLayout}\n\n{Snippets.ConnectedScatter}";
     }
 
     protected override void OnAttached()
     {
+        #region snippet ConnectedLayout
         foreach (var tile in _tiles)
         {
             tile.Art.AnimateLayout(ArtDuration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize);
             tile.Title.AnimateLayout(TitleDuration, Eases.OutExpo, LayoutAnimateMode.PositionAndSize);
         }
+        #endregion
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -175,6 +178,7 @@ public partial class ConnectedPage : ShowcasePage
         _scattered = index;
         var tile = _tiles[index];
         var centre = tile.Card.Bounds.Center;
+        #region snippet ConnectedScatter
         _scatter = PrestoAvalonia.AnimateOnCompositor(_tiles.Where(other => other != tile).Select(other => other.Card).ToArray(), new CompositorAnimationParams
         {
             ["Opacity"] = 0,
@@ -185,6 +189,7 @@ public partial class ConnectedPage : ShowcasePage
             Delay = (FunctionValue)((_, i, _) => 22 * Math.Abs((i >= index ? i + 1 : i) - index)),
             Ease = Eases.OutQuint,
         });
+        #endregion
         _shell = PrestoAvalonia.AnimateOnCompositor((Control[])[tile.Shell, tile.Artist], new CompositorAnimationParams
         {
             ["Opacity"] = 0,

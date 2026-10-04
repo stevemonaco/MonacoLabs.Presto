@@ -25,15 +25,12 @@ public partial class ChartMorphPage : ShowcasePage
     private const double UndrawDuration = 240;
     private const int TickCount = 5;
 
-    private static readonly MotionStates Lift =
-    [
-        new MotionState
-        {
-            When = ":pointerover",
-            Motion = Presto.Build().Scale(1.08).Duration(380).Ease(Eases.OutBack()),
-            Leave = Presto.Build().Duration(260).Ease(Eases.OutQuad),
-        },
-    ];
+    #region snippet ChartMorphLift
+    /// <summary>The scale a hovered point lifts to, from the <c>:pointerover</c> state in the page's styles.</summary>
+    public static readonly AnimationBuilder Lift = Presto.Build().Scale(1.08).Duration(380).Ease(Eases.OutBack());
+    /// <summary>The timing a point settles back with once the pointer leaves it.</summary>
+    public static readonly AnimationBuilder Drop = Presto.Build().Duration(260).Ease(Eases.OutQuad);
+    #endregion
 
     private readonly Path[] _points = new Path[Datasets.ChartPoints[0].Count];
     private readonly TextBlock[] _ticks = new TextBlock[TickCount];
@@ -44,16 +41,17 @@ public partial class ChartMorphPage : ShowcasePage
     public ChartMorphPage()
     {
         InitializeComponent();
+        HowCode.Code = $"{Snippets.ChartMorphPoints}\n\n{Snippets.ChartMorphLift}";
         var column = Plot.Width / _points.Length;
         for (var i = 0; i < _points.Length; i++)
         {
             var index = i;
             _points[i] = new Path
             {
+                Classes = { "point" },
                 Fill = Palette.Categorical[i],
                 Data = ChartGeometry.Bar(Column(i), Plot.Height - 1, Plot.Height, BarWidth, BarRadius),
             };
-            Motion.SetStates(_points[i], Lift);
             _points[i].PropertyChanged += (_, e) =>
             {
                 if (e.Property == IsPointerOverProperty) Scope.Execute(_ => ShowTip(index, e.GetNewValue<bool>()));
@@ -123,14 +121,16 @@ public partial class ChartMorphPage : ShowcasePage
         {
             timeline.Add(LineStroke, new AvaloniaAnimationParams { ["Draw"] = "0 0", Duration = UndrawDuration, Ease = Eases.InQuad }, 0);
         }
+        #region snippet ChartMorphPoints
+        timeline.Add(_points, new AvaloniaAnimationParams
+        {
+            ["Data"] = (ChainedFunctionValue)((target, i, total, previous) => PrestoAvalonia.MorphTo(shapes[i])(target, i, total, previous)),
+            Duration = MorphDuration,
+            Ease = Eases.OutQuart,
+            Delay = Presto.Stagger(45, new StaggerParams { From = view == ChartView.Donut ? StaggerFrom.First : StaggerFrom.Center }),
+        }, start);
+        #endregion
         timeline
-            .Add(_points, new AvaloniaAnimationParams
-            {
-                ["Data"] = (ChainedFunctionValue)((target, i, total, previous) => PrestoAvalonia.MorphTo(shapes[i])(target, i, total, previous)),
-                Duration = MorphDuration,
-                Ease = Eases.OutQuart,
-                Delay = Presto.Stagger(45, new StaggerParams { From = view == ChartView.Donut ? StaggerFrom.First : StaggerFrom.Center }),
-            }, start)
             .Add(_ticks, new AvaloniaAnimationParams
             {
                 ["Text"] = new TweenParams

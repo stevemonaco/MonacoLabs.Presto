@@ -45,21 +45,13 @@ public partial class BloomNavPage : ShowcasePage
         Screen.Child = Build(0);
     }
 
-    protected override void OnAttached() => Tabs.LayoutUpdated += PlaceUnderline;
-
-    private void PlaceUnderline(object? sender, EventArgs e)
+    protected override void OnAttached() => AfterFirstArrange(Tabs, () =>
     {
-        if (Tabs.Bounds.Width == 0) return;
-        Tabs.LayoutUpdated -= PlaceUnderline;
-        var (x, width) = Slot(_selected);
-        PrestoAvalonia.Set(Underline, new AvaloniaAnimationParams { ["X"] = x, ["Width"] = width });
-    }
+        var slot = Slot(_selected);
+        PrestoAvalonia.Set(Underline, new AvaloniaAnimationParams { ["X"] = slot.X, ["Width"] = slot.Width });
+    });
 
-    private (double X, double Width) Slot(int tab)
-    {
-        var bounds = Tabs.Children[tab].Bounds;
-        return (bounds.X + TabInset, bounds.Width - (2 * TabInset));
-    }
+    private Rect Slot(int tab) => TabIndicator.Under(Tabs.Children[tab], Tabs, TabInset);
 
     // A keyboard click has no pointer press behind it, so the bloom grows from the tab's centre.
     private void Select(int tab, Button button)
@@ -88,6 +80,7 @@ public partial class BloomNavPage : ShowcasePage
         {
             PrestoAvalonia.Set(bloom, new AvaloniaAnimationParams { ["Scale"] = 0 });
             PrestoAvalonia.Set(content.Children, new AvaloniaAnimationParams { ["Y"] = Rise, ["Opacity"] = 0 });
+            #region snippet BloomNavBloom
             Presto.CreateTimeline(new TimelineParams { OnComplete = _ => Overlay.Children.RemoveRange(0, Overlay.Children.IndexOf(bloom) + 1) })
                 .Add(bloom, new() { ["Scale"] = 1, Duration = BloomDuration, Ease = Eases.InOutQuart })
                 .Call(_ =>
@@ -104,9 +97,10 @@ public partial class BloomNavPage : ShowcasePage
                     Ease = Eases.OutQuart,
                     Delay = Presto.Stagger(40, new StaggerParams { From = StaggerFrom.Center }),
                 }, "<<");
+            #endregion
 
-            var (x, width) = Slot(tab);
-            Underline.Animate(new() { ["X"] = x, ["Width"] = width, Duration = 420, Ease = Eases.OutExpo });
+            var slot = Slot(tab);
+            Underline.Animate(new() { ["X"] = slot.X, ["Width"] = slot.Width, Duration = 420, Ease = Eases.OutExpo });
             _labels[old].Animate(new() { ["Foreground"] = TweenValue.Of(Palette.InkDim), Duration = 300 });
             _labels[tab].Animate(new() { ["Foreground"] = TweenValue.Of(Palette.Ink), Duration = 300 });
             Header.Animate(new() { ["Background"] = TweenValue.Of(Tint(hue.Color)), Duration = BloomDuration, Ease = Eases.OutQuad });

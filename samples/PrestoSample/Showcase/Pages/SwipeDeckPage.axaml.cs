@@ -126,14 +126,15 @@ public partial class SwipeDeckPage : ShowcasePage
         return drag;
     }
 
+    #region snippet SwipeDeckBind
     private Action Bind(Border card, MotionValue x)
     {
-        var (graph, code) = Snippet.Of((
+        var graph = (
             Rotate: x.Map(v => v * Tilt),
             RotateY: x.Map([-MaxLean / Lean, MaxLean / Lean], [-MaxLean, MaxLean]),
             LikeOpacity: x.Map([0, StampAt], [0, 1]),
             NopeOpacity: x.Map([-StampAt, 0], [1, 0]),
-            Tint: x.Map([-StampAt, 0, StampAt], [NopeTint, Palette.SurfaceHigh, LikeTint])));
+            Tint: x.Map([-StampAt, 0, StampAt], [NopeTint, Palette.SurfaceHigh, LikeTint]));
         Follow.SetRotate(card, graph.Rotate);
         IDisposable[] bindings =
         [
@@ -145,17 +146,6 @@ public partial class SwipeDeckPage : ShowcasePage
         PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["Perspective"] = Depth });
         Action<MotionValue> lean = value => PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["RotateY"] = value.Value });
         graph.RotateY.Changed += lean;
-
-        GraphCode.Code = $$"""
-            var x = drag.XValue;
-            var graph = {{code}};
-            Follow.SetRotate(card, graph.Rotate);
-            Follow.Bind(likeStamp, OpacityProperty, graph.LikeOpacity);
-            Follow.Bind(nopeStamp, OpacityProperty, graph.NopeOpacity);
-            Follow.Bind(card, Border.BackgroundProperty, graph.Tint);
-            graph.RotateY.Changed += lean =>
-                PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["RotateY"] = lean.Value });
-            """;
         return () =>
         {
             graph.RotateY.Changed -= lean;
@@ -163,6 +153,7 @@ public partial class SwipeDeckPage : ShowcasePage
             foreach (var binding in bindings) binding.Dispose();
         };
     }
+    #endregion
 
     private void Lift(double x)
     {

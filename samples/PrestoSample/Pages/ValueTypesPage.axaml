@@ -1,21 +1,21 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
-             xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-             x:Class="PrestoSample.Pages.ValueTypesPage">
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoSample.Pages.ValueTypesPage">
     <ScrollViewer>
-        <StackPanel Spacing="8">
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;X&quot;] = 220" />
+        <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="NumberCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Button x:Name="NumberButton" Classes="specimen" Content="Number" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Rotate&quot;] = &quot;1turn&quot;" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="TurnCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Button x:Name="TurnButton" Classes="specimen" Padding="10">
                         <PathIcon Data="{StaticResource StarIcon}" />
@@ -23,51 +23,51 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;X&quot;] = &quot;+=140&quot;&#10;[&quot;Scale&quot;] = &quot;*=1.5&quot;" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="RelativeCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Button x:Name="RelativeButton" Classes="specimen" Content="Relative" Margin="60,0,0,0" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;X&quot;] = new double[] { 0, 220 }&#10;[&quot;Opacity&quot;] = new double[] { .2, 1 }" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="FromToCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Button x:Name="FromToButton" Classes="specimen" Content="From → to" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Value&quot;] = &quot;75%&quot;" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="PercentCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <ProgressBar x:Name="PercentBar" Width="260" Height="10"
                                  HorizontalAlignment="Left" VerticalAlignment="Center" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Background&quot;] = &quot;#f5c542&quot;" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="HexCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Button x:Name="HexButton" Classes="specimen" Content="Hex" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Background&quot;] = &quot;rgb(74, 222, 128)&quot;" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="RgbCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Button x:Name="RgbButton" Classes="specimen" Content="RGB" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Background&quot;] = &quot;hsl(280, 70%, 60%)&quot;" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="HslCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Button x:Name="HslButton" Classes="specimen" Content="HSL" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Background&quot;] = TweenValue.Of(new LinearGradientBrush {&#10;    StartPoint = new(0, 1), EndPoint = new(1, 0),&#10;    GradientStops = { amber @ 0, rose @ .5, violet @ 1 } })" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="GradientCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Border x:Name="GradientCard" Width="260" Height="44" CornerRadius="10"
                             HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -83,8 +83,8 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;BoxShadow&quot;] = &quot;0 14 28 2 #804c8dff&quot;&#10;[&quot;Y&quot;] = -6" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="ElevationCode" />
                 <Border Grid.Column="1" Classes="demo" Height="96">
                     <Border x:Name="ElevationCard" Width="160" Height="44" CornerRadius="10" Background="#f8fafc"
                             BoxShadow="0 1 3 0 #40000000" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
@@ -94,10 +94,10 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
                 <StackPanel VerticalAlignment="Center" Spacing="6">
-                    <TextBlock Classes="code" Text="[&quot;ShadowY&quot;] = 12&#10;[&quot;ShadowBlur&quot;] = 24&#10;[&quot;ShadowColor&quot;] = &quot;rgba(76, 141, 255, .8)&quot;" />
-                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,12,0"
+                    <showcase:CodePanel x:Name="GlowCode" />
+                    <TextBlock Classes="caption" TextWrapping="Wrap"
                                Text="A DropShadowEffect through the Shadow shorthands. Blur, 3D tilt and clip and mask reveals are on the Effects page." />
                 </StackPanel>
                 <Border Grid.Column="1" Classes="demo" Height="96">
@@ -109,10 +109,10 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
                 <StackPanel VerticalAlignment="Center" Spacing="8">
-                    <TextBlock Classes="code" Text="[SolidColorBrush.ColorProperty] =&#10;    TweenValue.Of(Colors.OrangeRed)" />
-                    <TextBlock Classes="code" Text="[&quot;BorderThickness&quot;] = new Thickness(10)&#10;[&quot;CornerRadius&quot;] = new CornerRadius(30)" />
+                    <showcase:CodePanel x:Name="AvatarCode" />
+                    <showcase:CodePanel x:Name="ProfileCode" />
                 </StackPanel>
                 <Border Grid.Column="1" Classes="demo" Height="104">
                     <Border x:Name="ProfileCard" Classes="specimen" Width="280" Height="84"
@@ -135,16 +135,16 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;EndPoint&quot;] = new Point(240, 44)" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="PointCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <Line x:Name="PointLine" StartPoint="0,0" EndPoint="40,0" Stroke="#4c8dff" StrokeThickness="4"
                           HorizontalAlignment="Left" VerticalAlignment="Center" />
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Size&quot;] = new Size(100, 40)" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel Code="{x:Static showcase:Snippets.ValueTypesArc}" />
                 <Border Grid.Column="1" Classes="demo">
                     <Path x:Name="ArcPath" Stroke="#4c8dff" StrokeThickness="4"
                           HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -159,8 +159,8 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Rect&quot;] = new Rect(184, 4, 56, 44)" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel Code="{x:Static showcase:Snippets.ValueTypesRect}" />
                 <Border Grid.Column="1" Classes="demo">
                     <Path x:Name="RectPath" Fill="#4c8dff" HorizontalAlignment="Left" VerticalAlignment="Center">
                         <Path.Data>
@@ -170,8 +170,8 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Offset&quot;] = new Vector(200, 0)" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="OffsetCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <ScrollViewer x:Name="OffsetScroller" HorizontalScrollBarVisibility="Hidden"
                                   VerticalScrollBarVisibility="Disabled" MaxWidth="260"
@@ -190,8 +190,8 @@
                 </Border>
             </Grid>
 
-            <Grid ColumnDefinitions="300,*">
-                <TextBlock Classes="code" Text="[&quot;Y&quot;] = new FunctionValue((t, i, n) =&gt; -10 - i * 6)&#10;Delay = new FunctionValue((t, i, n) =&gt; i * 80)" />
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="DotsCode" />
                 <Border Grid.Column="1" Classes="demo">
                     <StackPanel x:Name="DotsPanel" Orientation="Horizontal" Spacing="12"
                                 HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -206,4 +206,4 @@
             </Grid>
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</showcase:ShowcasePage>

@@ -269,7 +269,7 @@ Bugs found during Phase 41.
   3. Add a debug-only cycle and consistency assert to `TweenList` walks, so the next corruption fails fast rather than hanging.
   4. Re-check the Draggable page on Desktop by flinging and re-grabbing repeatedly. **Open: manual check.** DevTools input cannot drag, so only the headless `DraggableTests.RegrabbingAnOvershootingThrowRepeatedlyKeepsTheTweenListsAcyclic` covers it so far. Someone has to fling and re-grab cards in `samples/PrestoSample.Desktop` before this phase is ticked.
 
-- [ ] **Phase 52 — Gallery navigation (sample).** The sample's sidebar (`Views/MainView.axaml`, the `TreeView.nav.showcase` styles in `Styles/Showcase.axaml`) gets a hover fix, Presto-driven nav motion, a resizable and collapsible pane, and a sample search. Sample-only: no bridge or core changes unless a step below finds a gap, which then lands in §7.
+- [x] **Phase 52 — Gallery navigation (sample).** The sample's sidebar (`Views/MainView.axaml`, the `TreeView.nav.showcase` styles in `Styles/Showcase.axaml`) gets a hover fix, Presto-driven nav motion, a resizable and collapsible pane, and a sample search. Sample-only: no bridge or core changes unless a step below finds a gap, which then lands in §7.
   - **Hover flicker, diagnosed in the live tree.** Each `TreeViewItem` template is `StackPanel { Border#PART_LayoutRoot, ItemsPresenter }`, so a section's item contains its pages. Two things combine:
     - Our hover style is `TreeViewItem:pointerover /template/ Border#PART_LayoutRoot`. `:pointerover` holds on every ancestor of the hovered element, so hovering any page also lights its *section header*. Fluent keys hover off the border's own `Border#PART_LayoutRoot:pointerover`, which we override.
     - `Margin="0,1"` on `PART_LayoutRoot` leaves a 2 px gap between pills that nothing hit-tests (the template's `StackPanel` has no background). The pointer falls through to the `TreeView` there, so the page and its section both lose `:pointerover` for a frame. Moving down the list therefore blinks the header on and off and de-hovers everything at each gap.
@@ -296,7 +296,7 @@ Bugs found during Phase 41.
     - Fixed after review: with the open page scrolled offscreen, pressing a section header selected the section, `NavSelectionChanged` put the page back and the TreeView scrolled it into view, so the header left the pointer and never toggled. Section headers now toggle on a tunnelling, handled `PointerPressed` (`MainView.NavPressed`), so the TreeView never selects them (`NavMotionTests.ClickingASectionHeaderWithTheOpenPageOffscreenCollapsesItWithoutScrolling`).
     - **Open: manual check.** DevTools cannot move the pointer, double-click, drag or send modifier keys. So the real pointer sweep (`NavHoverTests` covers it headlessly; on Desktop the hover was checked by setting `:pointerover`), a splitter drag, splitter double-click (`NavPaneTests.DoubleClickingTheSplitterCollapsesThePane`), Ctrl+B and Ctrl+F are covered only by headless tests. Someone has to do them by hand in `samples/PrestoSample.Desktop`, in both motion modes, before this phase is ticked.
 
-- [ ] **Phase 53 — Gallery code and sample review (sample).** A read-only review of all ~70 pages after 50 phases found two code-display eras and a lot of drift.
+- [x] **Phase 53 — Gallery code and sample review (sample).** A read-only review of all ~70 pages after 50 phases found two code-display eras and a lot of drift.
   - **Two ways of showing code:**
     - The Builder pages and the newer Reference pages print exact, selectable code with `Snippet.Of`.
     - The anime.js-mirror pages (Timer through Animatable) and a few Showcase pages use 135 hand-typed, unselectable `TextBlock.code`/`caption` fragments. These are partial and often wrong, and no test pins them. Examples:
@@ -313,7 +313,7 @@ Bugs found during Phase 41.
 
   Decided: mirror pages keep the dictionary form, printed exactly; snippets come from a build-time source generator, not runtime `.axaml` reads; no pages are merged or dropped beyond the "Recipes" rename and moving Reorder off the XAML page.
 
-  - [ ] **53a — Code display infrastructure.**
+  - [x] **53a — Code display infrastructure.**
     - **`CodePanel`** (a `TemplatedControl` in `Showcase/`):
       - `Code` is bindable, so live snippets keep updating; it also has `Language` (`CSharp`/`Xaml`), optional `Header` and `IsExpanded`.
       - It has a Copy button (`TopLevel.Clipboard`) and a horizontal scroll.
@@ -328,7 +328,8 @@ Bugs found during Phase 41.
       Regions are dedented, and nested snippet markers are stripped. This replaces every hand-copied XAML `const`, along with `AssertSnippetsMatchMarkup` and its `Reference` twin. Generated text is the source, so it cannot drift. Test the generator's dedent and marker handling directly.
     - **Readout styling:** add `TextBlock.mono` (monospace label) and a shared `TextBlock.readout` size variant, so that `.code` means code only. Callbacks and Draggable currently shrink `readout` locally.
     - **Migration:** convert all 61 codeblock triples to `CodePanel`. Keep the visuals; the tests that read `CodeText` follow.
-  - [ ] **53b — Reference pages (`Pages/`).**
+    - Done: `CodePanel`, `CodeTabs` and `CodeHighlighter` live in `Showcase/` beside the moved `Snippet`; `PrestoSample.SnippetGenerator` emits `Snippets` from snippet regions (`SnippetGeneratorTests`); `TextBlock.mono` and `TextBlock.readout`/`.readout.small` are shared classes, and no `Border.codeblock` triple is left.
+  - [x] **53b — Reference pages (`Pages/`).**
     - **Rule:** the anime.js-mirror pages keep the dictionary form, because they exist for comparison with the anime.js docs. Every fragment is replaced by the *exact* code, captured with `Snippet.Of(target.Animate(new() { … }))` or a C# snippet region. Per-page helpers (`Looping`, `Ripple`, `Tiles`) are inlined into each call, or printed once, so every snippet is self-contained. Pages:
       - Shapes, ValueTypes, Keyframes, Stagger, Text and Scroll.
       - Animatable.
@@ -345,7 +346,8 @@ Bugs found during Phase 41.
       - Drop the local `Border.stage`/`Border.demo` overrides in favour of shared variants.
       - Dedupe Controls/Timeline's slider-sync readout helper and the Compositor/Layout `Freeze` handler.
       - Correct the ValueDriven description, which mentions a reduced-motion toggle the page no longer has, and the Layout description, which omits the ContentSize cards.
-  - [ ] **53c — Builder pages.**
+    - Done: every mirror page prints its exact dictionary-form call through `Snippet.Of` or a snippet region, Shapes has its Builder-form twin, and every page (EffectsPage included) is a `ShowcasePage` with no manual detach or animation lists; `ReferencePageCodeTests` pins the captures.
+  - [x] **53c — Builder pages.**
     - **Remove hand-maintained strings:**
       - `Snippet.Declare` names give way to snippet regions.
       - XamlPage's `ExtensionCode`/`ReorderCode`.
@@ -363,7 +365,8 @@ Bugs found during Phase 41.
       - Move Reorder off the XAML page, onto its own page or Board.
       - Rename "Recipes" to "Reusable builders".
     - **Catalog descriptions:** fix the XamlPage text ("Animate.OnAttached, three ways" is now mostly `Presence.Arrive`) and the Toasts text ("Initial and Enter" is now `Arrive`).
-  - [ ] **53d — Showcase pages.**
+    - Done: Reorder now has its own Builder › Reorder page.
+  - [x] **53d — Showcase pages.**
     - **Code-display model:** no inline fragments, because these are app-like demos. Each page gets an optional collapsed "How it's built" `CodePanel` at the foot with the one to three key calls, captured exactly.
       - Exceptions where the code *is* the demo: ConnectedXaml (keep), SwipeDeck (capture all of it; today only `graph` is captured and the rest is renamed by hand) and Loaders.
       - Drop the MorphLab and MicroInteractions paraphrases.
@@ -376,6 +379,7 @@ Bugs found during Phase 41.
       - ScrollStory: build its rail from `ScrollValue`.
       - ChartMorph: move its states into XAML.
       - GalleryFlip: either convert its enter/exit/arrive to `Presence`, or relabel it as the imperative `AnimateLayout` counterpart to Storefront. It overlaps Storefront heavily.
+        - Decided: relabel. Converting would make it a near-copy of Storefront's `Presence`/`Animate.ItemLayout` grid, so it stays imperative and its Description points at Storefront for the declarative form.
     - **Dedupe:**
       - The Freeze-UI-thread helper (ParticleField, Loaders, ConnectedNav).
       - The one-shot `LayoutUpdated` placement (MicroInteractions, Bloom, Gestures, GalleryFlip).
@@ -387,18 +391,28 @@ Bugs found during Phase 41.
       - Storefront: use `Burst(reduced:)` instead of its manual check.
       - ActivityFeed: give `RowExit` a `WhenReduced`.
       - Log the missing `Follow.RotateY` shorthand in §7, since SwipeDeck works around it.
-  - [ ] **53e — Reduced motion across the gallery.** Today only builders with `WhenReduced`, recipes and the declarative arms honour the sidebar; dictionary-form calls never read `ReducedMotion`, and the tooltip names only Particles and Loaders as exceptions, when nearly every Showcase page and every hand-built Builder loop is one.
+    - Done: every Showcase page except ConnectedXaml, SwipeDeck and Loaders ends in one collapsed "How it's built" panel of snippet regions, enforced catalog-wide by `ShowcaseCodeTests`; the Freeze button stays a one-line handler per page, and the text-reveal exit and `Follow.RotateY` gaps went to §7.
+  - [x] **53e — Reduced motion across the gallery.** Today only builders with `WhenReduced`, recipes and the declarative arms honour the sidebar; dictionary-form calls never read `ReducedMotion`, and the tooltip names only Particles and Loaders as exceptions, when nearly every Showcase page and every hand-built Builder loop is one.
     - Add `WhenReduced` to the looping and flashy builders: FormMotions, BuilderBasics, SubmitFlow, Ripple and the Toasts countdown.
     - Gate the vestibular triggers: ScrollStory's `Scroll.Speed` parallax, Carousel autoplay, and the infinite loops in MorphLab, Typography, TitleSequence and Dashboard.
     - The anime.js-mirror pages stay exempt on purpose, because anime.js has no such switch. Each says so in one caption line that links its Builder twin.
     - Rewrite the sidebar tooltip from the result.
     - Decided: the sidebar does not set `Presto.Defaults.ReduceAll`; the mirror pages stay exempt, like anime.js.
-  - [ ] **53f — Verify.** Walk every page on Desktop with DevTools in both motion modes:
+    - Done: the five Builder pages carry `WhenReduced` forms, and ScrollStory, Carousel, MorphLab, Typography, TitleSequence and Dashboard gate their loops, autoplay and parallax on `ReducedMotion`. Each mirror page has an "Ignores Reduced motion" caption linking its Builder twin, and the tooltip lists what stays calm and what plays in full. The library gaps are the `Scroll.Speed` and dictionary-params rows in §7.
+  - [x] **53f — Verify.** Walk every page on Desktop with DevTools in both motion modes:
     - Panels copy and highlight, and no `TextBlock.code` holds code (add a headless test that fails on one).
     - Every printed snippet compiles in spirit: pick five and paste them into a scratch page.
     - The gallery tests pass.
+    - Done:
+      - `GalleryCodeTests` shows every page in both motion modes. It fails on any `TextBlock.code` or code-shaped TextBlock text, and on any visible `CodePanel` that is not highlighted, does not rebuild its `Code` or cannot copy. It replaces the per-section checks in `ReferencePageCodeTests` and `ShowcaseCodeTests`.
+      - `GalleryPageTests` runs every page in both modes. Under Reduced it fails on any endless loop outside the mirror pages and its `PlaysInFullWhenReduced` list (Frames). That turned up Playground, Timeline and compositor, and Image effects, which are now calm.
+      - `SnippetCompileTests` compiles five live snippets with Roslyn against the real API, and all five compiled unchanged: AnimationBasics' `Snippet.Of` call, the Timeline page's chain, BuilderBasics' fluent builder, Carousel's "How it's built" region and Draggable's `SpringCode`.
+      - Desktop walks covered all 65 pages in Full and Reduced. Reference-page defects were fixed in the pages, the tooltip, the `CodePanel` template and the catalog. Builder/Showcase fixes: scrollable long "How it's built" panels, full-snippet tooltips on one-line tile code, the TitleSequence bar refreshing after a seek to 0, ScrollStory fading without the 52 px rise under Reduced, and Reorder's duplicated caption. Library gaps went to §7. The Particle field load time is Phase 54.
 
-  Also stale: Phase 13 is still unticked although its ~22 Showcase pages exist. Check SAMPLES-PLAN.md's own checklist and tick it or record what remains.
+  Phase 13's checklist: 13e–13i stay open on the items listed in SAMPLES-PLAN.md §5.
+
+- [ ] **Phase 54 — Particle field is very slow to load (sample).** Reported after Phase 53a (commit `4fc7be1`): navigating to Showcase › Particle field takes a very long time before the page appears. This is a recent regression; it did not happen before. Not yet investigated. Bisect between `1f6647d` and `HEAD`, profile the page's construction and `OnAttached` (scene setup, emitter warm-up, image or geometry loading), pin the load time with a headless test, then fix.
+  - Timed in the 53f Desktop walk (Debug, 1400×1000 window, 5 000 particles): on the first visit the page stayed blank for over 4 s and had drawn within about 8 s of the click; on a repeat visit the navigation itself held the UI thread for 4.1 s (the DevTools input call returned only after it), and the scene's fps readout started at 0. Not fixed in 53f.
 
 ## 6. Testing strategy
 
@@ -493,6 +507,14 @@ Open (confirm before the relevant phase):
 - A layout transition trails a content size resize beside one of its ancestors (Phase 52). `ContentSizeTransition.ResizingBeside` lands a control's move in one frame only when the control itself sits beside the resizing host; `LayoutTransition` measures in window space, so a page reflowing inside the next section of the gallery nav sees its section pushed a few pixels each frame and flies after it while the section header has already landed. The nav therefore arms page reflow only while a search filters and the section's `Animate.ContentSize` only otherwise. Decide whether `ResizingBeside` should also hold when any ancestor up to the host's parent is beside the host.
 - No `GridLength` codec in the bridge (Phase 52). `ColumnDefinition.Width`/`RowDefinition.Height` cannot be animated directly, so the gallery's collapsible sidebar (`Views/SidebarPane.cs`) animates a `double` it owns and writes `new GridLength(width)` to the column in `OnUpdate`, lifting the column's `MinWidth` while it runs. A pixel-only codec (star and auto lengths do not interpolate) would make that one `Animate` call on the `ColumnDefinition`; a candidate, not built.
 - Expanding a section does not re-enter its pages (Phase 52). Pages under a section whose height eases stay attached while it is collapsed, so expanding it never fires `Presence.Enter` for them. The gallery nav instead gives the pages a `Motion` state named `collapsed` whose `Leave` (`MainView.PageUnfolded`) fades them back in, staggered by page order. Decide whether `Presence` should treat being revealed by an ancestor's expand as an Enter.
+- A text reveal has no exit form (Phase 53d). `Presence.Exit` plays on a ghost snapshot, so a word cannot leave letter by letter. The Typography rotator therefore splits the outgoing word with `SplitText` and drops its characters imperatively before swapping in the next one, whose rise is a declarative `TextReveal.Pieces="Chars"` arrival under an `Animate.ContentSize` host. An exit that plays on the leaving element's split pieces before removing it would make the rotator fully declarative.
+- No `Follow.RotateY` shorthand (Phase 53d). `Follow` covers only the 2D transform shorthands and `Blur`, so the Swipe deck card's lean subscribes to its mapped `MotionValue`'s `Changed` and writes `RotateY` with `PrestoAvalonia.Set`, unsubscribing by hand when the card leaves (`SwipeDeckPage.Bind`). Gestures writes its pull ring's `Draw` from `OnUpdate` for the same reason. `RotateX`/`RotateY`/`Perspective` (and possibly `Draw`) shorthands would make both one `Follow.Set*` call; a candidate, not built.
+- `Presto.GetAnimations` omits paused animations (Phase 53d). A paused animation cannot be found from its target, so MicroInteractions keeps each toast's countdown in `Control.Tag` (`MicroInteractionsPage.ToastLoaded`) for `HoldToast`/`ReleaseToast` to pause and resume. Decide whether a paused animation should still be listed on its target.
+- `AnimateSharedElement` accepts no reduced alternative (Phase 53d). It has no reduced form, so Storefront wraps the cart flight in a manual `Presto.Defaults.ReducedMotion` check (`StorefrontPage.AddClicked`). A reduced overload (or an option such as a crossfade) would remove the check.
+- `Scroll.Speed` ignores `ReducedMotion` (Phase 53e). The parallax keeps moving each layer by (1 − speed) times the scroll, so ScrollStory resets its hero layers' speeds to 1 itself in `OnAttached` (`ScrollStoryPage`). Honouring the flag in the bridge would remove the reset.
+- Dictionary-form params have no reduced alternative (Phase 53e). `AvaloniaAnimationParams` (and `TimerParams`/`TimelineParams`) have nothing like `WhenReduced`, so the Showcase pages read `Presto.Defaults.ReducedMotion` by hand when they attach (MorphLab, Typography, TitleSequence, Dashboard, Carousel). Decide later whether params should gain a reduced form.
+- Timeline forward jump from 0 renders a later-added `.Set` out of order (Phase 53e, possible core bug). In Title sequence, `.Set(Cards.Children, b => b.Opacity(0), 0)` is added after the cards' fade-up. A jump that starts at time 0 and lands past both (`Complete()`, `Seek(Duration)`, `KeepTime`'s re-seek) renders the `Set` last, so the cards end hidden. The page works around it under reduced motion (`TitleSequencePage.LandSequence` seeks through the `cards` label, then to `IterationDuration`). Reproduce in a core test against anime.js 4.5.0 `seek` behaviour before deciding whether it is a parity bug or upstream semantics.
+- The duration overloads of `AnimateLayout`, `AnimateContentSize` and `AnimateSharedElement` ignore `ReducedMotion` (Phase 53f). `(duration, ease)` builds a `LayoutMotion` directly, while the builder overloads resolve `WhenReduced`, so Layout's cards, panels and square kept easing under Reduced until the page switched to `Recipes.Reflow(...)` builders (`LayoutPage.Move`). The builder overload of `AnimateSharedElement` is the reduced alternative the 53d entry above asks for. Decide whether the duration overloads should land at once under the flag, as `Reflow` does.
 ## 8. Prebuilts (later)
 
 Ready-made effects on top of the engine: named, parameterised recipes and the few bridge pieces they need, so common UI

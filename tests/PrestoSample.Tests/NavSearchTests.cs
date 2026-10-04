@@ -30,7 +30,7 @@ public sealed class NavSearchTests
     }
 
     [AvaloniaTheory]
-    [InlineData("presence.EXIT", "Effects")]
+    [InlineData("maskSWEEP", "Effects")]
     [InlineData("Scroll.Speed", "Scroll story")]
     public void ATermOnlyInADescriptionFindsItsPage(string term, string title)
     {

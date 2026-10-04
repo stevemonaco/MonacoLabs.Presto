@@ -91,6 +91,29 @@ public sealed class DashboardPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void UnderReducedMotionTheRevealAndEachPushLandAtOnce()
+    {
+        TestFrames.Install();
+        using var reduced = ReducedMotion.On();
+        Assert.True(Presto.Defaults.ReducedMotion);
+        var page = new DashboardPage();
+        var window = SceneHarness.Show(page, 1100, 900, frames: 2);
+        TestFrames.Tick();
+        var counter = Readouts(page)[0];
+        var bar = (Border)page.GetControl<StackPanel>("BarField").Children[^1];
+        var metric = Datasets.Metrics[0];
+        Assert.Equal(Utils.RoundPad(metric.Readings[0], metric.Decimals), counter.Text);
+        Assert.Equal(Datasets.Bars[0][^1] / 100 * 168, bar.Height, 1);
+
+        SceneHarness.Click(window, page.GetControl<Button>("NewData"));
+        TestFrames.Tick();
+
+        Assert.Equal(Utils.RoundPad(metric.Readings[1], metric.Decimals), counter.Text);
+        Assert.Equal(Datasets.Bars[1][^1] / 100 * 168, bar.Height, 1);
+        SceneHarness.Close(window);
+    }
+
     private static void AssertCarriesOn(string what, double start, double before, double after, double landing)
     {
         Assert.True(

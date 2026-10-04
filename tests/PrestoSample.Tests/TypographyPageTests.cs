@@ -87,18 +87,27 @@ public sealed class TypographyPageTests
     {
         var page = new TypographyPage();
         var window = SceneHarness.Show(page, 1000, 1400, frames: 100);
-        var word = page.GetControl<TextBlock>("Word");
-        var outgoing = Pieces(word);
+        var slot = page.GetControl<Border>("Slot");
+        var outgoing = (TextBlock)slot.Child!;
         var last = new Dictionary<TextBlock, double>();
+        var arrived = new List<TextBlock>();
 
         for (var frame = 0; frame < 160; frame++)
         {
             TestFrames.Tick();
-            Assert.True(word.Inlines is { Count: > 0 } && string.IsNullOrEmpty(word.Text), $"frame {frame} shows the word unsplit");
-            foreach (var piece in Pieces(word))
+            var word = (TextBlock)slot.Child!;
+            var leaving = word == outgoing;
+            var pieces = Pieces(word);
+            if (pieces.Length == 0)
+            {
+                // Whole, a word may only be the one waiting to leave, the one held hidden to rise in, or one that has fully risen.
+                var settled = leaving ? last.Count == 0 : word.Opacity == 0 || arrived.Count > 0 && arrived.All(piece => last[piece] >= 1 - 1e-6);
+                Assert.True(settled, $"frame {frame} shows '{word.Text}' whole mid-swap");
+            }
+            foreach (var piece in pieces)
             {
                 Assert.InRange(piece.Opacity, -1e-6, 1 + 1e-6);
-                var leaving = outgoing.Contains(piece);
+                if (!leaving && !arrived.Contains(piece)) arrived.Add(piece);
                 if (last.TryGetValue(piece, out var before))
                 {
                     Assert.True(leaving ? piece.Opacity <= before : piece.Opacity >= before,
@@ -108,7 +117,30 @@ public sealed class TypographyPageTests
             }
         }
 
-        Assert.DoesNotContain(Pieces(word), outgoing.Contains);
+        Assert.NotEmpty(arrived);
+        Assert.NotSame(outgoing, slot.Child);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheRotatorHostEasesItsWidthBetweenTheTwoWordsRatherThanSnapping()
+    {
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 100);
+        var slot = page.GetControl<Border>("Slot");
+        var from = slot.Bounds.Width;
+        var widths = new List<double>();
+
+        for (var frame = 0; frame < 160; frame++)
+        {
+            TestFrames.Tick();
+            widths.Add(slot.Bounds.Width);
+        }
+
+        var to = widths[^1];
+        Assert.True(from - to > 40, $"'timelines' at {from:0.#} and 'text' at {to:0.#} are too close to tell an ease from a snap");
+        var between = widths.Count(width => width < from - 2 && width > to + 2);
+        Assert.True(between >= 5, $"the slot passed through only {between} widths between {from:0.#} and {to:0.#}");
         SceneHarness.Close(window);
     }
 
@@ -123,6 +155,26 @@ public sealed class TypographyPageTests
 
         Assert.True(SceneHarness.Number(page.GetControl<TextBlock>("Percent")) > 0, "the counter never moved");
         Assert.Equal("$ presto decode --stream intercept.bin", firstLine.Text);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void UnderReducedMotionTheRotatorHoldsItsFirstWordAndTheTerminalTypesOnce()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
+        var slot = page.GetControl<Border>("Slot");
+        var status = page.GetControl<TextBlock>("Status");
+
+        TestFrames.Tick(600);
+        Assert.Equal("timelines", ((TextBlock)slot.Child!).Text);
+        Assert.Equal("decoded · 0 errors", status.Text);
+
+        TestFrames.Tick(200);
+        Assert.Equal("timelines", ((TextBlock)slot.Child!).Text);
+        Assert.Equal("decoded · 0 errors", status.Text);
+        Assert.Equal(100, SceneHarness.Number(page.GetControl<TextBlock>("Percent")));
         SceneHarness.Close(window);
     }
 

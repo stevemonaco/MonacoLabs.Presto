@@ -71,6 +71,21 @@ public sealed class ActivityFeedPageTests
     }
 
     [AvaloniaFact]
+    public void WithReducedMotionOnADismissedRowFadesOutWithoutCollapsing()
+    {
+        var (window, page) = Loaded();
+        using var reduced = ReducedMotion.On();
+
+        SceneHarness.Click(window, Rows(page).First().GetVisualDescendants().OfType<Button>().Single());
+        TestFrames.Tick(4);
+
+        var ghost = OverlayLayer.GetOverlayLayer(page)!.GetVisualDescendants().OfType<Image>().Single();
+        Assert.InRange(ghost.Opacity, 0, 0.99);
+        Assert.Equal(1, (double)(PrestoAvalonia.Get(ghost, "ScaleY") ?? 1d), 6);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void TheLiveTimerInsertsAnEventAtTheTopAndPulsesTheUnreadBadge()
     {
         var (window, page) = Loaded();
@@ -273,9 +288,10 @@ public sealed class ActivityFeedPageTests
             log.Add($"{before:0}->{feed.Scroll.Offset.Y:0}");
         }
 
+        // On the tall feed a quarter-pixel thumb step can jump from above 120 straight to the top.
         while (feed.Scroll!.Offset.Y > 120) Step(() =>
         {
-            Scroll(window, feed, ref grab, dragging, dragging ? .25 : 1);
+            Scroll(window, feed, ref grab, dragging, dragging ? .1 : 1);
             TestFrames.Tick(20);
         });
         if (unqueued)

@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 using Timer = Monaco.Presto.Timer;
 
@@ -95,6 +97,23 @@ public sealed class LoadersPageTests
         pauseAll.IsChecked = false;
         TestFrames.Tick(5);
         Assert.All(page.Loaders, loader => Assert.False(loader.Paused));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void EachTilePrintsItsBuilderSnippet()
+    {
+        var page = new LoadersPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        string[] snippets =
+        [
+            Snippets.LoaderEqualiser, Snippets.LoaderOrbit, Snippets.LoaderGrid,
+            Snippets.LoaderBlob, Snippets.LoaderRing, Snippets.LoaderBall,
+            Snippets.LoaderTyping, Snippets.LoaderRipples, Snippets.LoaderCounter,
+        ];
+
+        Assert.Equal(snippets, page.GetLogicalDescendants().OfType<CodePanel>().Select(panel => panel.Code));
+        Assert.All(snippets, snippet => Assert.Contains("Presto.Build()", snippet));
         SceneHarness.Close(window);
     }
 }

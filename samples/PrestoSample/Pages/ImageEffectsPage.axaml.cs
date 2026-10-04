@@ -19,16 +19,40 @@ namespace PrestoSample.Pages;
 /// </summary>
 public partial class ImageEffectsPage : ShowcasePage
 {
-    public static readonly AnimationBuilder Colorize;
-    public static readonly AnimationBuilder Develop;
-    public static readonly AnimationBuilder HueCycle;
-    public static readonly AnimationBuilder DissolveIn;
-    public static readonly AnimationBuilder PixelateOut;
+    #region snippet ImageEffectsColorizeBuilder
+    public static readonly AnimationBuilder Colorize = Recipes.Colorize();
+    #endregion
 
-    private static readonly string ColorizeSnippet;
-    private static readonly string DevelopSnippet;
-    private static readonly string HueCycleSnippet;
-    private static readonly string CardSnippet;
+    #region snippet ImageEffectsDevelopBuilder
+    public static readonly AnimationBuilder Develop = Recipes.Develop();
+    #endregion
+
+    #region snippet ImageEffectsHueBuilder
+    public static readonly AnimationBuilder HueCycle = Presto.Build().HueRotate(from: 0, to: 360).Duration(6000).Ease(Eases.None).Loop()
+        .WhenReduced(reduced => reduced.Loop(false));
+    #endregion
+
+    #region snippet ImageEffectsCardBuilders
+    public static readonly AnimationBuilder DissolveIn = Presto.Build().Dissolve(from: 1, to: 0).Duration(900).Ease(Eases.OutQuad);
+
+    public static readonly AnimationBuilder PixelateOut = Presto.Build()
+        .Pixelate(to: 32, ease: Eases.InQuad)
+        .Opacity(to: 0, delay: 300, duration: 400)
+        .Duration(700);
+    #endregion
+
+    private const string CardSnippet = $"""
+        {Snippets.ImageEffectsCardBuilders}
+
+        // Hide
+        var exit = Card.Animate(PixelateOut);
+        await exit;
+        CardFrame.Child = null;
+        exit.Revert();
+
+        // Show: Presence.Enter plays DissolveIn
+        CardFrame.Child = Card;
+        """;
 
     private readonly Bitmap[] _photos = new[] { "mongolia.jpg", "margarita-sunset.jpg", "port-blanc.jpg" }
         .Select(file => new Bitmap(AssetLoader.Open(new Uri($"avares://PrestoSample/Assets/Photos/{file}")))).ToArray();
@@ -47,35 +71,6 @@ public partial class ImageEffectsPage : ShowcasePage
         (PrestoImageBase.DuotoneProperty, 0),
     ];
 
-    static ImageEffectsPage()
-    {
-        (Colorize, var colorize) = Snippet.Of(Recipes.Colorize());
-        ColorizeSnippet = Snippet.Declare("public static readonly AnimationBuilder Colorize", colorize);
-        (Develop, var develop) = Snippet.Of(Recipes.Develop());
-        DevelopSnippet = Snippet.Declare("public static readonly AnimationBuilder Develop", develop);
-        (HueCycle, var hue) = Snippet.Of(Presto.Build().HueRotate(from: 0, to: 360).Duration(6000).Ease(Eases.None).Loop());
-        HueCycleSnippet = Snippet.Declare("public static readonly AnimationBuilder HueCycle", hue);
-        (DissolveIn, var dissolveIn) = Snippet.Of(Presto.Build().Dissolve(from: 1, to: 0).Duration(900).Ease(Eases.OutQuad));
-        (PixelateOut, var pixelateOut) = Snippet.Of(Presto.Build()
-            .Pixelate(to: 32, ease: Eases.InQuad)
-            .Opacity(to: 0, delay: 300, duration: 400)
-            .Duration(700));
-        CardSnippet = $"""
-            {Snippet.Declare("public static readonly AnimationBuilder DissolveIn", dissolveIn)}
-
-            {Snippet.Declare("public static readonly AnimationBuilder PixelateOut", pixelateOut)}
-
-            // Hide
-            var exit = Card.Animate(PixelateOut);
-            await exit;
-            CardFrame.Child = null;
-            exit.Revert();
-
-            // Show: Presence.Enter plays DissolveIn
-            CardFrame.Child = Card;
-            """;
-    }
-
     public ImageEffectsPage()
     {
         InitializeComponent();
@@ -83,9 +78,9 @@ public partial class ImageEffectsPage : ShowcasePage
         Photo.PropertyChanged += PhotoChanged;
         DuotonePhoto.ActualThemeVariantChanged += (_, _) => FollowTheme();
         PrintFilters();
-        ColorizeCode.CSharp = ColorizeSnippet;
-        DevelopCode.CSharp = DevelopSnippet;
-        HueCode.CSharp = HueCycleSnippet;
+        ColorizeCode.CSharp = Snippets.ImageEffectsColorizeBuilder;
+        DevelopCode.CSharp = Snippets.ImageEffectsDevelopBuilder;
+        HueCode.CSharp = Snippets.ImageEffectsHueBuilder;
         CardCode.CSharp = CardSnippet;
         KindBox.ItemsSource = Enum.GetValues<ImageTransitionKind>();
         KindBox.SelectedItem = ImageTransitionKind.Dissolve;
@@ -120,9 +115,8 @@ public partial class ImageEffectsPage : ShowcasePage
         var builder = string.Concat(changed.Select(filter => filter.Value.StartsWith('#')
             ? $".{filter.Name}(Color.Parse(\"{filter.Value}\"))"
             : $".{filter.Name}({filter.Value})"));
-        FilterCode.Code = changed.Count == 0
-            ? "<presto:FilteredImage Source=\"/Assets/Photos/mongolia.jpg\" />\n\n// Every filter at its identity: the photo draws plain."
-            : $"<presto:FilteredImage Source=\"/Assets/Photos/mongolia.jpg\"{xaml} />\n\nPresto.Build(){builder}.Animate(Photo);";
+        FilterCode.Xaml = $"<presto:FilteredImage Source=\"/Assets/Photos/mongolia.jpg\"{xaml} />";
+        FilterCode.CSharp = changed.Count == 0 ? "// Every filter at its identity: the photo draws plain." : $"Presto.Build(){builder}.Animate(Photo);";
     }
 
     private void TintHueChanged(object? sender, RangeBaseValueChangedEventArgs e) => Photo.TintColor = TintColor(e.NewValue);

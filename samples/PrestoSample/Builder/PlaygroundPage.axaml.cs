@@ -17,7 +17,11 @@ public partial class PlaygroundPage : ShowcasePage
     private static readonly StaggerFrom[] Origins = [StaggerFrom.First, StaggerFrom.Center, StaggerFrom.Last, StaggerFrom.Random];
     private Timer? _debounce;
 
-    public PlaygroundPage() => InitializeComponent();
+    public PlaygroundPage()
+    {
+        InitializeComponent();
+        LoopBox.IsChecked = !Presto.Defaults.ReducedMotion;
+    }
 
     public Animation? Animation { get; private set; }
 

@@ -1,15 +1,16 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
-             x:Class="PrestoSample.Pages.AnimatablePage">
-    <UserControl.Styles>
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoSample.Pages.AnimatablePage">
+    <showcase:ShowcasePage.Styles>
         <!-- A circle would hide the Rotate the animatable writes. -->
         <Style Selector="Border.dot">
             <Setter Property="CornerRadius" Value="3" />
         </Style>
-    </UserControl.Styles>
+    </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
         <StackPanel Spacing="12">
@@ -18,7 +19,7 @@
                              HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
 
-            <TextBlock Classes="code" Text="var duration = Presto.Stagger(50, new() { Ease = &quot;in(1)&quot;, From = StaggerFrom.Center, Grid = [11, 11] });&#10;Presto.CreateAnimatable(dots, new AvaloniaAnimatableParams {&#10;    [&quot;X&quot;] = new() { Duration = duration },&#10;    [&quot;Y&quot;] = new() { Duration = duration },&#10;    [&quot;Rotate&quot;] = new() { Duration = 0 },&#10;    Ease = &quot;outElastic(.3, 1.4)&quot; });" />
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.AnimatableParticles}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="Move the pointer over the grid. One animatable drives all 121 dots: their X and Y durations come from a centre-out stagger of 50 ms per grid step, so the middle dot is written straight through, the edges take 250 ms and the corners about 350 ms, each settling on outElastic(.3, 1.4). Rotate is registered with Duration = 0 and so is never animated — the bridge's Rotate shorthand is in degrees, so the angle to the cursor goes through Utils.RadToDeg." />
@@ -28,7 +29,7 @@
                         HorizontalAlignment="Center" />
             </Border>
 
-            <TextBlock Classes="code" Text="dot.CreateAnimatable(new() { [&quot;X&quot;] = 500, [&quot;Y&quot;] = 500, Ease = Eases.Out(3) })" />
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.AnimatableFollower}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The same API with one duration for both axes: every pointer move re-aims a 500 ms Out(3) tween from wherever the dot currently is. Set takes its own duration and ease when a single move should differ, and Revert drops the animation-priority values and leaves later Set calls as no-ops." />
@@ -39,7 +40,7 @@
                 <Button Content="Revert()" Click="RevertFollower" />
             </StackPanel>
 
-            <TextBlock Classes="code" Text="dot.Fling(&quot;X&quot;, new Inertia(0) { Min = -edge, Max = edge }).Fling(&quot;Y&quot;, …)" />
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.AnimatableFling}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="Press Set, then Fling while the dot moves: Fling measures the running tween's velocity and coasts from it, bouncing off the stage edge." />
@@ -51,7 +52,7 @@
 
             <Button Content="Toss" Click="Toss" />
 
-            <TextBlock Classes="code" Text="var (x, y) = Projectile.Launch(speed: .6, angleDegrees: -60, gravity: .0015);&#10;ball.Animate(new() { [&quot;X&quot;] = x, [&quot;Y&quot;] = y, Duration = 2 * -y.Velocity / .0015 });" />
+            <showcase:CodePanel x:Name="TossCode" Code="{x:Static showcase:Snippets.AnimatableToss}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="A Projectile to-value flies from a launch velocity under constant acceleration, resolved in closed form when the tween starts, the way Inertia is. Launch splits the throw into X and Y with gravity on Y only, and a duration of twice the time to the top brings the ball back down to the floor it left. Each Toss starts again from the corner." />
@@ -65,10 +66,10 @@
                 </Grid>
             </Border>
 
-            <TextBlock Classes="code" Text="var spring = new Spring(stiffness: 90, damping: 9);&#10;momentumDot.CreateAnimatable(new() { [&quot;X&quot;] = new(), Ease = spring, PreserveVelocity = true });&#10;restDot.CreateAnimatable(new() { [&quot;X&quot;] = new(), Ease = spring });" />
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.AnimatableSprings}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="Flick the pointer left and right across the stage. Both dots follow it on the same spring, but only the top one keeps its momentum: PreserveVelocity starts each retargeted spring with the velocity the dot already has, so it swings through the turn the way a thrown weight would. The faded dot starts every new spring from rest and stops dead each time the pointer changes direction. anime.js has no equivalent; it is opt-in here." />
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</showcase:ShowcasePage>

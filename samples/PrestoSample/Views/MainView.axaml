@@ -126,10 +126,13 @@
                                             <TextBlock TextWrapping="Wrap" Text="• Page transitions crossfade" />
                                             <TextBlock TextWrapping="Wrap" Text="• Text reveals fade the whole block" />
                                             <TextBlock TextWrapping="Wrap" Text="• Hover tilt stays flat" />
+                                            <TextBlock TextWrapping="Wrap" Text="• Frame players hold their first frame" />
                                             <TextBlock TextWrapping="Wrap" Text="• Bindings, gesture releases and layout moves land at once" />
+                                            <TextBlock TextWrapping="Wrap" Text="• Builder pages' loops, spins and shakes play calm WhenReduced forms" />
+                                            <TextBlock TextWrapping="Wrap" Text="• Showcase pages stop their autoplay, parallax and endless loops" />
                                         </StackPanel>
                                         <TextBlock TextWrapping="Wrap" FontStyle="Italic"
-                                                   Text="Hand-written animations without a WhenReduced form, such as the Particles and Loaders pages, play as normal. Pages already playing pick it up on their next replay." />
+                                                   Text="The anime.js Reference pages play in full on purpose, as anime.js does, and each links its Builder twin. Other hand-written loops, such as Loaders, Particle field, Stress bench, Compositor and Properties and keyframes, also play as normal. A page picks up a change when it is reopened or replayed." />
                                     </StackPanel>
                                 </ToolTip.Tip>
                             </Border>
@@ -151,6 +154,14 @@
                     <TextBlock Text="{Binding SelectedPage.Section}" Classes="eyebrow showcase" />
                     <TextBlock Text="{Binding SelectedPage.Title}" FontSize="22" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding SelectedPage.Description}" Classes="caption" TextWrapping="Wrap" />
+                    <StackPanel x:Name="TwinLine" Orientation="Horizontal" Spacing="4"
+                                IsVisible="{Binding SelectedPage.Twin, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
+                        <TextBlock Classes="caption" VerticalAlignment="Center"
+                                   Text="Ignores Reduced motion, as anime.js does. Builder version:" />
+                        <HyperlinkButton Padding="0" FontSize="12" VerticalAlignment="Center"
+                                         Content="{Binding SelectedPage.Twin}" Command="{Binding OpenCommand}"
+                                         CommandParameter="{Binding SelectedPage.Twin}" />
+                    </StackPanel>
                 </StackPanel>
             </Grid>
             <TransitioningContentControl Grid.Row="1" ClipToBounds="True" Content="{Binding CurrentPage}"

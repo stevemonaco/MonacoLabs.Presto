@@ -54,5 +54,7 @@
                   Stroke="{x:Static showcase:Palette.Aqua}" StrokeThickness="2" StrokeLineCap="Round"
                   Data="M16,1 L24,1 A7,7 0 0 1 24,15 L8,15 A7,7 0 0 1 8,1 Z" />
         </Panel>
+
+        <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.CarouselParallax}" />
     </StackPanel>
 </showcase:ShowcasePage>

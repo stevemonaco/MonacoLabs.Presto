@@ -11,8 +11,8 @@ public partial class FormStatesPage : ShowcasePage
     public FormStatesPage()
     {
         InitializeComponent();
-        StatesCode.Xaml = $"{Snippets.FormStatesCard}\n    …\n\n{Snippets.FormStatesBadge}\n    …";
-        StatesCode.CSharp = $"// FormMotions.cs\n{FormMotions.Code}";
+        StatesCode.Xaml = $"{Snippets.FormStatesCard}\n\n{Snippets.FormStatesBadge}";
+        StatesCode.CSharp = $"// FormMotions.cs\n{Snippets.FormMotions}";
     }
 
     public FormViewModel ViewModel => (FormViewModel)DataContext!;

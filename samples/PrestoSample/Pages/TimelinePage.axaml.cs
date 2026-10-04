@@ -1,28 +1,27 @@
-using System;
 using System.Globalization;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class TimelinePage : UserControl
+public partial class TimelinePage : ShowcasePage
 {
+    private readonly SliderSync _scrub;
     private Timeline? _timeline;
-    private Animation? _synced;
-    private bool _syncingSlider;
     private int _callHits;
 
-    public TimelinePage() => InitializeComponent();
-
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    public TimelinePage()
     {
-        base.OnAttachedToVisualTree(e);
+        InitializeComponent();
+        _scrub = new SliderSync(ScrubSlider, () => _timeline, UpdateReadouts);
+    }
 
-        _synced = SyncedButton.Animate(new()
+    protected override void OnAttached()
+    {
+        #region snippet TimelinePageChain
+        var synced = SyncedButton.Animate(new()
         {
             ["X"] = 300,
             ["Background"] = "#ff6b6b",
@@ -49,18 +48,11 @@ public partial class TimelinePage : UserControl
                 OnUpdate = timer => TimerChildText.Text = timer.CurrentTime.ToString("0", CultureInfo.InvariantCulture),
             }, 20)
             .Call(_ => CallText.Text = $"{++_callHits} hits", "flash")
-            .Sync(_synced, 0);
+            .Sync(synced, 0);
+        #endregion
 
+        Code.Code = Snippets.TimelinePageChain;
         UpdateReadouts();
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _timeline?.Revert();
-        _timeline = null;
-        _synced?.Revert();
-        _synced = null;
     }
 
     private void Play(object? sender, RoutedEventArgs e) => Run(static t => t.Play());
@@ -70,12 +62,6 @@ public partial class TimelinePage : UserControl
     private void Restart(object? sender, RoutedEventArgs e) => Run(static t => t.Restart());
 
     private void Reverse(object? sender, RoutedEventArgs e) => Run(static t => t.Reverse());
-
-    private void Scrub(object? sender, RangeBaseValueChangedEventArgs e)
-    {
-        if (_syncingSlider) return;
-        Run(t => t.Progress = e.NewValue);
-    }
 
     private void Run(Action<Timeline> control)
     {
@@ -89,9 +75,6 @@ public partial class TimelinePage : UserControl
         if (_timeline is not { } timeline) return;
         ReadoutText.Text = string.Create(CultureInfo.InvariantCulture,
             $"{timeline.CurrentTime,6:0} / {timeline.Duration:0} ms · flash = {timeline.Labels["flash"]:0} ms");
-
-        _syncingSlider = true;
-        ScrubSlider.Value = timeline.Progress;
-        _syncingSlider = false;
+        _scrub.Show(timeline);
     }
 }

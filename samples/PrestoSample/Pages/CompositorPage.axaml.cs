@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Compositor;
@@ -67,9 +66,7 @@ public partial class CompositorPage : ShowcasePage
         ];
     }
 
-    // Posted below Render priority so the button paints its pressed state before the dispatcher stops answering.
-    private void Freeze(object? sender, RoutedEventArgs e) =>
-        Dispatcher.UIThread.Post(() => Thread.Sleep(2000), DispatcherPriority.Background);
+    private void Freeze(object? sender, RoutedEventArgs e) => UiThread.Freeze(TimeSpan.FromSeconds(2));
 
     private void PauseMotions(object? sender, RoutedEventArgs e)
     {

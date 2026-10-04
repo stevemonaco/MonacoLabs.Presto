@@ -26,7 +26,9 @@ public partial class ActivityFeedPage : ShowcasePage
         _attached = Recipes.FadeUp(distance: 12).OnBegin(_ => ViewModel.AttachedPlayed++);
         Resources["RowInitial"] = Recipes.FadeUp().Delay(Presto.Stagger(40)).OnBegin(_ => ViewModel.InitialPlayed++);
         Resources["RowEnter"] = Recipes.SlideIn(Edge.Top).OnBegin(_ => ViewModel.EnterPlayed++);
-        Resources["RowExit"] = Presto.Build().ScaleY(0).Opacity(0).Duration(260).Ease(Eases.InQuad).OnBegin(_ => ViewModel.ExitPlayed++);
+        Resources["RowExit"] = Presto.Build().ScaleY(0).Opacity(0).Duration(260).Ease(Eases.InQuad)
+            .WhenReduced(reduced => reduced.Opacity(0))
+            .OnBegin(_ => ViewModel.ExitPlayed++);
         Resources["SkeletonShimmer"] = Recipes.Shimmer().OnBegin(_ => ViewModel.AttachedPlayed++);
         Resources["BadgePop"] = Recipes.PopIn().OnBegin(_ => ViewModel.ChangedPlayed++);
         InitializeComponent();

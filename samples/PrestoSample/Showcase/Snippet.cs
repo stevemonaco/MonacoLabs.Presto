@@ -26,7 +26,4 @@ public static class Snippet
         }
         return (value, string.Join('\n', lines));
     }
-
-    /// <summary>Formats <paramref name="code"/> as the initializer of <paramref name="declaration"/>.</summary>
-    public static string Declare(string declaration, string code) => $"{declaration} = {code};";
 }

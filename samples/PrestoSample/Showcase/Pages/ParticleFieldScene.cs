@@ -112,6 +112,7 @@ public sealed class ParticleFieldScene : CompositorScene
             };
         }
         _particles = particles;
+        #region snippet ParticleFieldDrift
         _drift = Presto.Animate(particles, new AnimationParams
         {
             ["X"] = (FunctionValue)((_, _, _) => random(-Wander, Wander, 1)),
@@ -130,6 +131,7 @@ public sealed class ParticleFieldScene : CompositorScene
             Loop = true,
             Alternate = true,
         });
+        #endregion
     }
 
     private void Burst(Point at)
@@ -140,6 +142,7 @@ public sealed class ParticleFieldScene : CompositorScene
             if (Offset(particle, at).Length < BurstRadius) hit.Add(particle);
         }
         if (hit.Count == 0) return;
+        #region snippet ParticleFieldBurst
         Presto.Animate(hit, new AnimationParams
         {
             ["X"] = new TweenParams[]
@@ -154,6 +157,7 @@ public sealed class ParticleFieldScene : CompositorScene
             },
             Composition = Composition.Blend,
         });
+        #endregion
     }
 
     private void Part(double deltaTime)

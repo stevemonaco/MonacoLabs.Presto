@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -94,6 +95,22 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void UnderReducedMotionNextViewLandsAtTheNewViewsSizeAtOnce()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new LayoutPage();
+        var window = SceneHarness.Show(page, 900, 1200);
+        var host = page.GetControl<Border>("SwapHost");
+
+        SceneHarness.Click(window, Button(page, "Next view"));
+        TestFrames.Tick();
+
+        var view = host.Child!;
+        Assert.Equal(view.Bounds.Height + host.Padding.Top + host.Padding.Bottom, host.Bounds.Height, 6);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public async Task TheCorrectedAvatarKeepsItsSizeWhileItsCardGrows()
     {
         var page = new LayoutPage();
@@ -133,7 +150,7 @@ public sealed class ReferencePagesTests
         Assert.Contains("Enter", moments);
         Assert.Contains("Exit", moments);
         Assert.Contains("Unload", moments);
-        Assert.Contains("Presence.SetEnter(row, Recipes.SlideIn(Edge.Left", page.GetControl<TextBlock>("RowCode").Text);
+        Assert.Contains("Presence.SetEnter(row, Recipes.SlideIn(Edge.Left", page.GetControl<CodePanel>("RowCode").Code);
         SceneHarness.Close(window);
     }
 
@@ -206,7 +223,7 @@ public sealed class ReferencePagesTests
 
     [AvaloniaFact]
     public void TheLifecycleWizardPrintsItsMarkup() =>
-        Assert.StartsWith($"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}", new LifecyclePage().GetControl<TextBlock>("WizardCode").Text);
+        Assert.Equal($"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}", new LifecyclePage().GetControl<CodePanel>("WizardCode").Code);
 
     private static IEnumerable<Canvas> Ghosts(Visual host) => OverlayLayer.GetOverlayLayer(host)!.Children.OfType<Canvas>();
 
@@ -272,6 +289,22 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void UnderReducedMotionTheSyncingChipPulsesOnceAndRests()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new StatesPage();
+        var window = SceneHarness.Show(page, 1100, 900);
+        var chip = page.GetControl<Border>("StatusChip");
+
+        page.Status = "Syncing";
+        TestFrames.Tick(70);
+
+        Assert.Empty(Presto.GetAnimations(chip));
+        Assert.Equal(1, chip.Opacity, 6);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void TheStatesMenuStaggersItsItemsInAfterThePanelAndClosesToRest()
     {
         var page = new StatesPage();
@@ -307,10 +340,11 @@ public sealed class ReferencePagesTests
     [AvaloniaFact]
     public void TheStatesPagePrintsEverySnippet()
     {
-        var code = new StatesPage().GetControl<CodePanel>("XamlCode").Code;
+        var code = new StatesPage().GetControl<CodeTabs>("Code");
         string[] snippets = [Snippets.StatesButton, Snippets.StatesTextBox, Snippets.StatesCheckBox, Snippets.StatesArrow, Snippets.StatesCard,
             Snippets.StatesChip, Snippets.StatesUpload, Snippets.StatesMenu, Snippets.StatesMenuItem];
-        Assert.All(snippets, snippet => Assert.Contains(snippet, code));
+        Assert.All(snippets, snippet => Assert.Contains(snippet, code.Xaml));
+        Assert.Contains(Snippets.StatesBuilders, code.CSharp);
     }
 
     [AvaloniaFact]
@@ -350,15 +384,16 @@ public sealed class ReferencePagesTests
         var page = new ImageEffectsPage();
         var window = SceneHarness.Show(page, 1100, 2000);
         var photo = page.GetControl<FilteredImage>("Photo");
-        var code = page.GetControl<CodePanel>("FilterCode");
+        var code = page.GetControl<CodeTabs>("FilterCode");
 
         page.GetControl<Slider>("GrayscaleSlider").Value = 0.5;
         Assert.Equal(0.5, photo.Grayscale);
-        Assert.Contains("Grayscale=\"0.5\"", code.Code);
-        Assert.Contains(".Grayscale(0.5)", code.Code);
+        Assert.Contains("Grayscale=\"0.5\"", code.Xaml);
+        Assert.Contains(".Grayscale(0.5)", code.CSharp);
         SceneHarness.Click(window, Button(page, "Reset"));
         Assert.Equal(0, photo.Grayscale);
-        Assert.Contains("draws plain", code.Code);
+        Assert.Equal("<presto:FilteredImage Source=\"/Assets/Photos/mongolia.jpg\" />", code.Xaml);
+        Assert.Contains("draws plain", code.CSharp);
         SceneHarness.Close(window);
     }
 
@@ -586,6 +621,39 @@ public sealed class ReferencePagesTests
 
         Assert.Equal("1", page.GetControl<TextBlock>("LikeCount").Text);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void AnimationBasicsPrintsTheCallItRan()
+    {
+        var page = new AnimationBasicsPage();
+        var window = SceneHarness.Show(page, 900, 600);
+        var code = page.GetControl<CodePanel>("Code").Code;
+        Assert.StartsWith("LikeButton.Animate(new()", code);
+        Assert.Contains("[\"X\"] = 320", code);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheTimerStopsWhenThePageDetachesAndAFreshOneRunsWhenItReturns()
+    {
+        var page = new TimerPage();
+        var window = SceneHarness.Show(page, 900, 600, frames: 10);
+        var currentTime = page.GetControl<TextBlock>("CurrentTimeText");
+        window.Content = null;
+        var stopped = currentTime.Text;
+        TestFrames.Tick(10);
+        Assert.Equal(stopped, currentTime.Text);
+
+        window.Content = page;
+        TestFrames.Tick(10);
+        Assert.InRange(double.Parse(currentTime.Text!, CultureInfo.InvariantCulture), 1, 200);
+
+        window.Content = null;
+        var second = currentTime.Text;
+        TestFrames.Tick(10);
+        Assert.Equal(second, currentTime.Text);
+        window.Close();
     }
 
     private static void Smoke(UserControl page, string targetName, bool play = false)

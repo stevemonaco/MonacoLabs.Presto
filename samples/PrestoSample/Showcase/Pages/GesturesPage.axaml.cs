@@ -29,6 +29,7 @@ public partial class GesturesPage : ShowcasePage
     public GesturesPage()
     {
         InitializeComponent();
+        HowCode.Code = $"{Snippets.GesturesCurtain}\n\n{Snippets.GesturesInboxReveal}";
         foreach (var album in Datasets.Albums.Take(_fresh)) Feed.Children.Add(FeedRow(album));
         foreach (var card in Datasets.Cards.Take(8)) Inbox.Children.Add(Slot(card));
         foreach (var album in Datasets.Albums.Skip(8).Take(4)) Home.Children.Add(FeedRow(album));
@@ -46,7 +47,7 @@ public partial class GesturesPage : ShowcasePage
     protected override void OnAttached()
     {
         PrestoAvalonia.CreateDrawable(Ring);
-        PrestoAvalonia.CreateDraggable(Feed, new DraggableParams
+        var pull = PrestoAvalonia.CreateDraggable(Feed, new DraggableParams
         {
             Trigger = PullViewport,
             X = new DraggableAxisParams { Enabled = false },
@@ -61,9 +62,8 @@ public partial class GesturesPage : ShowcasePage
             OnUpdate = drag =>
             {
                 PullVelocity.Text = Utils.RoundPad(drag.Velocity, 2);
-                var progress = Math.Clamp(drag.Y / Threshold, 0, 1);
-                PrestoAvalonia.Set(Arrow, new AvaloniaAnimationParams { ["Rotate"] = 180 * progress });
-                PrestoAvalonia.Set(Ring, new AvaloniaAnimationParams { ["Draw"] = $"0 {progress * .8}" });
+                // Follow has no Draw shorthand.
+                PrestoAvalonia.Set(Ring, new AvaloniaAnimationParams { ["Draw"] = $"0 {Math.Clamp(drag.Y / Threshold, 0, 1) * .8}" });
             },
             OnSettle = drag =>
             {
@@ -71,6 +71,7 @@ public partial class GesturesPage : ShowcasePage
                 if (drag.Y >= Threshold) Refresh(drag);
             },
         });
+        Follow.SetRotate(Arrow, pull.YValue.Map([0, Threshold], [0, 180]));
         foreach (var slot in Inbox.Children.OfType<Panel>()) Swipeable(slot);
         _curtain = PrestoAvalonia.CreateDraggable(Shade, new DraggableParams
         {
@@ -79,13 +80,7 @@ public partial class GesturesPage : ShowcasePage
             ContainerFriction = .7,
             Snap = y => Rest(Math.Round(2 + 2 * y / Travel)),
             OnDrag = _ => _handleTapped = false,
-            OnUpdate = drag =>
-            {
-                CurtainVelocity.Text = Utils.RoundPad(drag.Velocity, 2);
-                var progress = drag.ProgressY;
-                PrestoAvalonia.Set(Home, new AvaloniaAnimationParams { ["Y"] = .3 * progress * Travel, ["Scale"] = 1 - .06 * progress });
-                PrestoAvalonia.Set(Scrim, new AvaloniaAnimationParams { ["Opacity"] = Math.Clamp(.6 * progress, 0, .6) });
-            },
+            OnUpdate = drag => CurtainVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
             OnRelease = drag =>
             {
                 if (!_handleTapped) return;
@@ -94,6 +89,12 @@ public partial class GesturesPage : ShowcasePage
             },
             OnSettle = drag => CurtainVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
         });
+        #region snippet GesturesCurtain
+        var pulled = _curtain.YValue.Map(y => Travel > 0 ? 1 + (y / Travel) : 0);
+        Follow.SetY(Home, pulled.Map(p => .3 * p * Travel));
+        Follow.SetScale(Home, pulled.Map([0, 1], [1, .94]));
+        Follow.Bind(Scrim, OpacityProperty, pulled.Map([0, 1], [0, .6]));
+        #endregion
         _sheet = PrestoAvalonia.CreateDraggable(Sheet, new DraggableParams
         {
             X = new DraggableAxisParams { Enabled = false },
@@ -104,15 +105,11 @@ public partial class GesturesPage : ShowcasePage
             OnUpdate = drag => SheetVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
             OnSettle = drag => SheetVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
         });
-        CurtainStage.LayoutUpdated += CloseDrawers;
-    }
-
-    private void CloseDrawers(object? sender, EventArgs e)
-    {
-        if (Travel == 0) return;
-        CurtainStage.LayoutUpdated -= CloseDrawers;
-        _curtain!.Refresh().Y = Rest(0);
-        _sheet!.Refresh().Y = SheetTravel;
+        AfterFirstArrange(CurtainStage, () =>
+        {
+            _curtain!.Refresh().Y = Rest(0);
+            _sheet!.Refresh().Y = SheetTravel;
+        });
     }
 
     private void Refresh(Draggable drag)
@@ -156,35 +153,28 @@ public partial class GesturesPage : ShowcasePage
     {
         var strip = (Border)slot.Children[0];
         var icons = ((Panel)strip.Child!).Children;
-        var past = false;
-        PrestoAvalonia.Set(icons, new AvaloniaAnimationParams { ["Scale"] = .5 });
-        return PrestoAvalonia.CreateDraggable(slot.Children[1], new DraggableParams
+        var drag = PrestoAvalonia.CreateDraggable(slot.Children[1], new DraggableParams
         {
             Y = new DraggableAxisParams { Enabled = false },
             Snap = x => Math.Abs(x) > DismissAt * slot.Bounds.Width ? Math.Sign(x) * slot.Bounds.Width : 0,
             ReleaseStiffness = 180,
             ReleaseDamping = 22,
-            OnUpdate = drag =>
-            {
-                InboxVelocity.Text = Utils.RoundPad(drag.Velocity, 2);
-                strip.Background = drag.X > 0 ? Palette.Aqua : drag.X < 0 ? Palette.Coral : null;
-                icons[0].IsVisible = drag.X >= 0;
-                icons[1].IsVisible = drag.X < 0;
-                if (Math.Abs(drag.X) > DismissAt * slot.Bounds.Width == past) return;
-                past = !past;
-                Scope.Execute(_ => Presto.Animate(icons, new AvaloniaAnimationParams
-                {
-                    ["Scale"] = past ? 1 : .5,
-                    Duration = 320,
-                    Ease = Eases.OutBack(),
-                }));
-            },
+            OnUpdate = drag => InboxVelocity.Text = Utils.RoundPad(drag.Velocity, 2),
             OnSettle = drag =>
             {
                 InboxVelocity.Text = Utils.RoundPad(drag.Velocity, 2);
                 if (Math.Abs(drag.X) >= slot.Bounds.Width - 1) Dismiss(slot, drag);
             },
         });
+        #region snippet GesturesInboxReveal
+        var x = drag.XValue;
+        Follow.Bind(strip, Border.BackgroundProperty, x.Map([-1, 0, 1], [Palette.Coral, Brushes.Transparent, Palette.Aqua]));
+        Follow.Bind(icons[0], OpacityProperty, x.Map([-1, 0], [0, 1]));
+        Follow.Bind(icons[1], OpacityProperty, x.Map([-1, 0], [1, 0]));
+        var pop = x.Map(v => Math.Abs(v) > DismissAt * slot.Bounds.Width ? 1 : .5).Spring(Springs.Bouncy);
+        foreach (var icon in icons) Follow.SetScale(icon, pop);
+        #endregion
+        return drag;
     }
 
     private void Dismiss(Panel slot, Draggable drag)

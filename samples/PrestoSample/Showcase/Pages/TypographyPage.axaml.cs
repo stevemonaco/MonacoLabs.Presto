@@ -35,8 +35,7 @@ public partial class TypographyPage : ShowcasePage
     private readonly List<Animatable> _letters = [];
     private readonly Spring _relax = Eases.Spring(bounce: .45, duration: 450);
     private int _wordIndex;
-    private TextSplitter? _word;
-    private Timeline? _rotation;
+    private TextSplitter? _leaving;
     private Timer? _cycle;
     private TextSplitter? _wordmark;
     private Timeline? _terminal;
@@ -49,10 +48,10 @@ public partial class TypographyPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        _wordIndex = 0;
-        Slot.Width = Measure(Word, RotatorWords[0]).Width;
-        ShowWord(RotatorWords[0]);
-        _cycle = Presto.CreateTimer(new TimerParams { Duration = CycleDuration, Loop = LoopCount.Infinite, OnLoop = _ => Rotate() });
+        ShowFirstWord();
+        _cycle = Presto.Defaults.ReducedMotion
+            ? null
+            : Presto.CreateTimer(new TimerParams { Duration = CycleDuration, Loop = LoopCount.Infinite, OnLoop = _ => Rotate() });
 
         _wordmark = PrestoAvalonia.SplitText(Wordmark, new SplitTextParams { Words = null, Chars = new SplitPieceParams() })
             .AddEffect(split =>
@@ -74,47 +73,70 @@ public partial class TypographyPage : ShowcasePage
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        // Each rotation is a timeline built outside Scope, which prunes superseded animations but not timelines (SAMPLES-PLAN §8 row 18).
-        _rotation?.Revert();
-        _word?.Revert();
+        // The drop-out is split and built from a timer callback, outside Scope.
+        _leaving?.Revert();
     }
+
+    private void ShowFirstWord()
+    {
+        _leaving?.Revert();
+        Slot.Child = Headline(RotatorWords[_wordIndex = 0]);
+    }
+
+    #region snippet TypographyRotatorAndWordmark
+    private static readonly AnimationBuilder RiseIn = Presto.Build()
+        .Y(from: Drop).Opacity(from: 0, duration: 300, ease: Eases.OutQuad)
+        .Duration(700).Ease(Eases.OutBack()).Delay(Presto.Stagger(35));
+
+    private static readonly AnimationBuilder DropOut = Presto.Build()
+        .Y(Drop).Opacity(0)
+        .Duration(380).Ease(Eases.InBack()).Delay(Presto.Stagger(25));
 
     private void Rotate()
     {
-        _rotation?.Cancel();
+        _leaving?.Revert();
         var next = RotatorWords[_wordIndex = (_wordIndex + 1) % RotatorWords.Length];
-        _rotation = Presto.CreateTimeline()
-            .Add(_word!.Chars, new()
-            {
-                ["Y"] = Drop,
-                ["Opacity"] = 0,
-                Duration = 380,
-                Ease = Eases.InBack(),
-                Delay = Presto.Stagger(25),
-            })
-            .Call(_ => ShowWord(next))
-            .Add(Slot, new() { ["Width"] = Measure(Word, next).Width, Duration = 600, Ease = Eases.OutExpo }, "<");
+        _leaving = PrestoAvalonia.SplitText((TextBlock)Slot.Child!, new() { Words = null, Chars = new() })
+            .AddEffect(split => Presto.CreateTimeline()
+                .Add(split.Chars, DropOut)
+                .Call(_ => Slot.Child = Headline(next)));
     }
 
-    private void ShowWord(string word)
+    private static TextBlock Headline(string word)
     {
-        _word?.Revert();
-        Word.Text = word;
-        // The word block has a fixed width so the swap never resizes it, which would re-split it 150 ms later.
-        _word = PrestoAvalonia.SplitText(Word, new SplitTextParams { Words = null, Chars = new SplitPieceParams() })
-            .AddEffect(split => Presto.Animate(split.Chars, new AnimationParams
-            {
-                ["Y"] = TweenValue.FromTo(Drop, 0),
-                ["Opacity"] = new TweenParams { From = 0, To = 1, Duration = 300, Ease = Eases.OutQuad },
-                Duration = 700,
-                Ease = Eases.OutBack(),
-                Delay = Presto.Stagger(35, new() { From = StaggerFrom.First }),
-            }));
+        var headline = new TextBlock
+        {
+            Text = word,
+            Classes = { "headline" },
+            Foreground = Palette.Accent,
+            // Keeps the rising letters inside the clip the resizing slot draws; the slot's negative margin takes it back.
+            Padding = new(0, 0, 0, Drop),
+        };
+        TextReveal.SetPieces(headline, TextPieces.Chars);
+        Presence.SetArrive(headline, RiseIn);
+        return headline;
     }
+
+    private void LeanWordmark(object? sender, PointerEventArgs e)
+    {
+        var pointer = e.GetPosition(WordmarkStage);
+        for (var i = 0; i < _letters.Count; i++)
+        {
+            var letter = _wordmark!.Chars[i];
+            // Bounds is the layout slot, so the lift and scale a letter already has never feed back into its own pull.
+            var centre = ((Visual)letter.Parent!).TranslatePoint(letter.Bounds.Center, WordmarkStage)!.Value;
+            var pull = Eases.InOutQuad(Math.Clamp(1 - (Point.Distance(pointer, centre) / Falloff), 0, 1));
+            _letters[i]
+                .Set("Y", -Lift * pull, Follow, Eases.OutQuint)
+                .Set("Scale", 1 + (Swell * pull), Follow, Eases.OutQuint)
+                .Set("Foreground", Tint(pull), Follow, Eases.OutQuint);
+        }
+    }
+    #endregion
 
     private Timeline BuildTerminal()
     {
-        var timeline = Presto.CreateTimeline(new() { Loop = LoopCount.Infinite, LoopDelay = TerminalHold });
+        var timeline = Presto.CreateTimeline(new() { Loop = !Presto.Defaults.ReducedMotion, LoopDelay = TerminalHold });
         for (var i = 0; i < TerminalScript.Length; i++)
         {
             timeline
@@ -134,29 +156,8 @@ public partial class TypographyPage : ShowcasePage
         }
 
         return timeline
-            .Add(Percent, new()
-            {
-                ["Text"] = new TweenParams { From = 0, To = 100, TextModifier = value => Utils.RoundPad(value, 0) },
-                Duration = timeline.IterationDuration,
-                Ease = Eases.InOutSine,
-            }, 0)
+            .Sync(Recipes.CountUp(Percent, 100, "0", timeline.IterationDuration, ease: Eases.InOutSine), 0)
             .Add(Status, new() { ["Text"] = PrestoAvalonia.ScrambleText(new() { Text = "decoded · 0 errors", Chars = "blocks" }) });
-    }
-
-    private void LeanWordmark(object? sender, PointerEventArgs e)
-    {
-        var pointer = e.GetPosition(WordmarkStage);
-        for (var i = 0; i < _letters.Count; i++)
-        {
-            var letter = _wordmark!.Chars[i];
-            // Bounds is the layout slot, so the lift and scale a letter already has never feed back into its own pull.
-            var centre = ((Visual)letter.Parent!).TranslatePoint(letter.Bounds.Center, WordmarkStage)!.Value;
-            var pull = Eases.InOutQuad(Math.Clamp(1 - (Point.Distance(pointer, centre) / Falloff), 0, 1));
-            _letters[i]
-                .Set("Y", -Lift * pull, Follow, Eases.OutQuint)
-                .Set("Scale", 1 + (Swell * pull), Follow, Eases.OutQuint)
-                .Set("Foreground", Tint(pull), Follow, Eases.OutQuint);
-        }
     }
 
     private void RelaxWordmark(object? sender, PointerEventArgs e)
@@ -180,20 +181,6 @@ public partial class TypographyPage : ShowcasePage
         return [Utils.Lerp(low.R, high.R, t), Utils.Lerp(low.G, high.G, t), Utils.Lerp(low.B, high.B, t), 1];
     }
 
-    private static Size Measure(TextBlock style, string text)
-    {
-        var probe = new TextBlock
-        {
-            Text = text,
-            FontFamily = style.FontFamily,
-            FontSize = style.FontSize,
-            FontWeight = style.FontWeight,
-            LetterSpacing = style.LetterSpacing,
-        };
-        probe.Measure(Size.Infinity);
-        return probe.DesiredSize;
-    }
-
     private void ReplayReveal(object? sender, RoutedEventArgs e)
     {
         var reveal = Animate.GetOnAttached(Paragraph);
@@ -203,8 +190,7 @@ public partial class TypographyPage : ShowcasePage
 
     private void ReplayRotator(object? sender, RoutedEventArgs e)
     {
-        _wordIndex = RotatorWords.Length - 1;
-        Rotate();
+        ShowFirstWord();
         _cycle?.Restart();
     }
 

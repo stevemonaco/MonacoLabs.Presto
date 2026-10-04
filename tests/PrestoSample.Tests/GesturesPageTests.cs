@@ -66,6 +66,25 @@ public sealed class GesturesPageTests
     }
 
     [AvaloniaFact]
+    public void PullingTheCurtainHalfwaySinksShrinksAndDimsTheContentByHalf()
+    {
+        var page = new GesturesPage();
+        var window = SceneHarness.Show(page, 712, 440);
+        TestFrames.Tick(30);
+        var home = page.GetControl<StackPanel>("Home");
+        var travel = page.GetControl<Panel>("CurtainStage").Bounds.Height - 28;
+
+        Drag(window, SceneHarness.Centre(page.GetControl<Border>("Handle"), window), new Vector(0, travel / 2));
+        TestFrames.Tick(60);
+
+        Assert.Equal(-travel / 2, TranslateY(page.GetControl<Border>("Shade")), 1);
+        Assert.Equal(.3 * travel / 2, TranslateY(home), 1);
+        Assert.Equal(.97, Convert.ToDouble(PrestoAvalonia.Get(home, "Scale")), 3);
+        Assert.Equal(.3, page.GetControl<Border>("Scrim").Opacity, 3);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void AFlickUpCoastsTheSheetOpenPastItsStopAndBouncesBackOntoIt()
     {
         var page = new GesturesPage();

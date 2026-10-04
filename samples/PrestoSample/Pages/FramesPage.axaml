@@ -8,8 +8,6 @@
                        x:Class="PrestoSample.Pages.FramesPage">
     <ScrollViewer>
         <StackPanel Spacing="12">
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="SpriteSheet cuts one cell out of a 9 × 3 sheet of 24 poses; drag the scrub slider to pause it on any frame, and the hue slider to recolour every frame through the HueRotate filter it inherits. The zombie is started from XAML alone, and the image sequence below is played by a timeline that writes the caption." />
             <Grid ColumnDefinitions="*,260,*" ColumnSpacing="16">
                 <Border Height="280" CornerRadius="10" BorderThickness="1"
                         Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}">

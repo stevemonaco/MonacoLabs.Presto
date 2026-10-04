@@ -1,20 +1,21 @@
-using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Text;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class TextPage : UserControl
+public partial class TextPage : ShowcasePage
 {
-    private readonly TextSplitter _split;
+    private TextSplitter? _split;
 
-    public TextPage()
+    public TextPage() => InitializeComponent();
+
+    protected override void OnAttached()
     {
-        InitializeComponent();
-
-        _split = PrestoAvalonia.CreateScope(this).Execute(_ => PrestoAvalonia.SplitText(Headline, new SplitTextParams
+        #region snippet TextSplit
+        _split = PrestoAvalonia.SplitText(Headline, new SplitTextParams
         {
             Lines = new SplitPieceParams { Wrap = true },
             Chars = new SplitPieceParams { Class = "split-char" },
@@ -30,12 +31,15 @@ public partial class TextPage : UserControl
                 Delay = Presto.Stagger(18),
             });
             return () => animation.Revert();
-        }));
+        });
+        #endregion
     }
 
-    private void OnRefresh(object? sender, RoutedEventArgs e) => _split.Refresh();
+    private void OnRefresh(object? sender, RoutedEventArgs e) => _split?.Refresh();
 
-    private void OnScramble(object? sender, RoutedEventArgs e) =>
+    private void OnScramble(object? sender, RoutedEventArgs e)
+    {
+        #region snippet TextScramble
         Transmission.Animate(new()
         {
             ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams
@@ -45,12 +49,24 @@ public partial class TextPage : UserControl
                 Cursor = "_",
             }),
         });
+        #endregion
+        ScrambleCode.Code = Snippets.TextScramble;
+    }
 
-    private void OnChangeText(object? sender, RoutedEventArgs e) =>
+    private void OnChangeText(object? sender, RoutedEventArgs e)
+    {
+        #region snippet TextChangeText
         Transmission.Animate(new()
         {
-            ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", Chars = "blocks" }),
+            ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams
+            {
+                Text = "Signal acquired",
+                Chars = "blocks",
+            }),
         });
+        #endregion
+        ScrambleCode.Code = Snippets.TextChangeText;
+    }
 
     private void OnReplay(object? sender, RoutedEventArgs e)
     {

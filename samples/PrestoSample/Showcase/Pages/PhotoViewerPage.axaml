@@ -17,6 +17,9 @@
             <Button Grid.Column="7" x:Name="ResetButton" Classes="specimen" Content="Reset" Click="ResetClicked" />
         </Grid>
 
+        <showcase:CodePanel DockPanel.Dock="Bottom" Header="How it's built" IsExpanded="False" MaxHeight="280" Margin="0,12,0,0"
+                            Code="{x:Static showcase:Snippets.PhotoViewerTransformable}" />
+
         <ListBox DockPanel.Dock="Bottom" x:Name="Filmstrip" Margin="0,10,0,0" HorizontalAlignment="Center"
                  Background="Transparent" SelectedIndex="{Binding #Photos.SelectedIndex, Mode=TwoWay}">
             <ListBox.ItemsPanel>

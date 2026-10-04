@@ -133,7 +133,6 @@
             </ScrollViewer>
         </Border>
 
-        <TextBlock Grid.Row="3" Classes="caption" TextWrapping="Wrap"
-                   Text="Drag a card across the lanes: the lane under it opens a gap at the slot it would land in, and the gap follows the card as you move or fling it. Let go gently and it drops straight into that gap with nothing else moving; flick it and the throw carries it on a lane, or over the bin, where it spins away. Hold a card near the bottom edge to auto-scroll the board. Press Escape mid-drag and the card springs back to its slot. Priorities reorders: drag one by its grip and it lifts while the others slide aside, Escape puts it back, and Alt+Left/Right moves the focused one." />
+        <showcase:CodePanel Grid.Row="3" x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />
     </Grid>
 </showcase:ShowcasePage>

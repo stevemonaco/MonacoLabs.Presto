@@ -3,50 +3,49 @@ using System.Collections.Generic;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class EasesPage : UserControl
+public partial class EasesPage : ShowcasePage
 {
     private const int Samples = 241;
     private const double PlotPadding = 16;
     private const double DotTravel = -140;
     private const double DotBase = 16;
-    private const double DotDuration = 1600;
 
     private static readonly EaseEntry[] Catalogue =
     [
-        new("linear", Eases.None),
-        new("inQuad", Eases.InQuad), new("outQuad", Eases.OutQuad), new("inOutQuad", Eases.InOutQuad), new("outInQuad", Eases.OutInQuad),
-        new("inCubic", Eases.InCubic), new("outCubic", Eases.OutCubic), new("inOutCubic", Eases.InOutCubic), new("outInCubic", Eases.OutInCubic),
-        new("inQuart", Eases.InQuart), new("outQuart", Eases.OutQuart), new("inOutQuart", Eases.InOutQuart), new("outInQuart", Eases.OutInQuart),
-        new("inQuint", Eases.InQuint), new("outQuint", Eases.OutQuint), new("inOutQuint", Eases.InOutQuint), new("outInQuint", Eases.OutInQuint),
-        new("inSine", Eases.InSine), new("outSine", Eases.OutSine), new("inOutSine", Eases.InOutSine), new("outInSine", Eases.OutInSine),
-        new("inCirc", Eases.InCirc), new("outCirc", Eases.OutCirc), new("inOutCirc", Eases.InOutCirc), new("outInCirc", Eases.OutInCirc),
-        new("inExpo", Eases.InExpo), new("outExpo", Eases.OutExpo), new("inOutExpo", Eases.InOutExpo), new("outInExpo", Eases.OutInExpo),
-        new("inBounce", Eases.InBounce), new("outBounce", Eases.OutBounce), new("inOutBounce", Eases.InOutBounce), new("outInBounce", Eases.OutInBounce),
-        new("Eases.In() — power 1.68", Eases.In()), new("Eases.Out(3)", Eases.Out(3)),
-        new("Eases.InBack(1.7)", Eases.InBack()), new("Eases.OutBack(2.6)", Eases.OutBack(2.6)),
-        new("Eases.InOutBack(1.7)", Eases.InOutBack()), new("Eases.OutInBack(1.7)", Eases.OutInBack()),
-        new("Eases.InElastic(1, .3)", Eases.InElastic()), new("Eases.OutElastic(1.4, .5)", Eases.OutElastic(1.4, .5)),
-        new("Eases.InOutElastic(1, .3)", Eases.InOutElastic()), new("Eases.OutInElastic(1, .3)", Eases.OutInElastic()),
-        new("Eases.CubicBezier(.6, -.3, .3, 1.3)", Eases.CubicBezier(.6, -.3, .3, 1.3)),
-        new("Eases.Steps(6)", Eases.Steps(6)),
-        new("Eases.Steps(6, fromStart: true)", Eases.Steps(6, fromStart: true)),
-        new("Eases.Irregular(8, .8)", Eases.Irregular(8, .8, new Random(7))),
-        new("Eases.Linear(0, \"0.25 75%\", 1)", Eases.Linear(0, "0.25 75%", 1)),
-        new("Eases.Spring(1, 80, 8, 0)", Eases.Spring(1, 80, 8, 0)),
-        new("Eases.Spring(1, 220, 14, 2)", Eases.Spring(1, 220, 14, 2)),
-        new("Eases.Spring(4, 140, 18, 0)", Eases.Spring(4, 140, 18, 0)),
-        new("Eases.FromPath(\"M0,0 C.1,.6 .3,1.3 .5,1 .7,.8 .85,1.05 1,1\")", Eases.FromPath("M0,0 C.1,.6 .3,1.3 .5,1 .7,.8 .85,1.05 1,1")),
-        new("Eases.Wiggle(6)", Eases.Wiggle(6)),
-        new("Eases.Wiggle(6, WiggleType.Anticipate)", Eases.Wiggle(6, WiggleType.Anticipate)),
-        new("Eases.Rough(20, 1)", Eases.Rough(20, 1, random: new Random(3))),
-        new("Eases.SlowMo(.5, .8)", Eases.SlowMo(.5, .8)),
-        new("Eases.ExpoScale(.5, 4)", Eases.ExpoScale(.5, 4)),
+        new("linear", Snippet.Of(Eases.None)),
+        new("inQuad", Snippet.Of(Eases.InQuad)), new("outQuad", Snippet.Of(Eases.OutQuad)), new("inOutQuad", Snippet.Of(Eases.InOutQuad)), new("outInQuad", Snippet.Of(Eases.OutInQuad)),
+        new("inCubic", Snippet.Of(Eases.InCubic)), new("outCubic", Snippet.Of(Eases.OutCubic)), new("inOutCubic", Snippet.Of(Eases.InOutCubic)), new("outInCubic", Snippet.Of(Eases.OutInCubic)),
+        new("inQuart", Snippet.Of(Eases.InQuart)), new("outQuart", Snippet.Of(Eases.OutQuart)), new("inOutQuart", Snippet.Of(Eases.InOutQuart)), new("outInQuart", Snippet.Of(Eases.OutInQuart)),
+        new("inQuint", Snippet.Of(Eases.InQuint)), new("outQuint", Snippet.Of(Eases.OutQuint)), new("inOutQuint", Snippet.Of(Eases.InOutQuint)), new("outInQuint", Snippet.Of(Eases.OutInQuint)),
+        new("inSine", Snippet.Of(Eases.InSine)), new("outSine", Snippet.Of(Eases.OutSine)), new("inOutSine", Snippet.Of(Eases.InOutSine)), new("outInSine", Snippet.Of(Eases.OutInSine)),
+        new("inCirc", Snippet.Of(Eases.InCirc)), new("outCirc", Snippet.Of(Eases.OutCirc)), new("inOutCirc", Snippet.Of(Eases.InOutCirc)), new("outInCirc", Snippet.Of(Eases.OutInCirc)),
+        new("inExpo", Snippet.Of(Eases.InExpo)), new("outExpo", Snippet.Of(Eases.OutExpo)), new("inOutExpo", Snippet.Of(Eases.InOutExpo)), new("outInExpo", Snippet.Of(Eases.OutInExpo)),
+        new("inBounce", Snippet.Of(Eases.InBounce)), new("outBounce", Snippet.Of(Eases.OutBounce)), new("inOutBounce", Snippet.Of(Eases.InOutBounce)), new("outInBounce", Snippet.Of(Eases.OutInBounce)),
+        new(Snippet.Of(Eases.In())), new(Snippet.Of(Eases.Out(3))),
+        new(Snippet.Of(Eases.InBack())), new(Snippet.Of(Eases.OutBack(2.6))),
+        new(Snippet.Of(Eases.InOutBack())), new(Snippet.Of(Eases.OutInBack())),
+        new(Snippet.Of(Eases.InElastic())), new(Snippet.Of(Eases.OutElastic(1.4, .5))),
+        new(Snippet.Of(Eases.InOutElastic())), new(Snippet.Of(Eases.OutInElastic())),
+        new(Snippet.Of(Eases.CubicBezier(.6, -.3, .3, 1.3))),
+        new(Snippet.Of(Eases.Steps(6))),
+        new(Snippet.Of(Eases.Steps(6, fromStart: true))),
+        new(Snippet.Of(Eases.Irregular(8, .8, new Random(7)))),
+        new(Snippet.Of(Eases.Linear(0, "0.25 75%", 1))),
+        new(Snippet.Of(Eases.Spring(1, 80, 8, 0))),
+        new(Snippet.Of(Eases.Spring(1, 220, 14, 2))),
+        new(Snippet.Of(Eases.Spring(4, 140, 18, 0))),
+        new(Snippet.Of(Eases.FromPath("M0,0 C.1,.6 .3,1.3 .5,1 .7,.8 .85,1.05 1,1"))),
+        new(Snippet.Of(Eases.Wiggle(6))),
+        new(Snippet.Of(Eases.Wiggle(6, WiggleType.Anticipate))),
+        new(Snippet.Of(Eases.Rough(20, 1, random: new Random(3)))),
+        new(Snippet.Of(Eases.SlowMo(.5, .8))),
+        new(Snippet.Of(Eases.ExpoScale(.5, 4))),
     ];
 
     private Animation? _animation;
@@ -58,38 +57,29 @@ public partial class EasesPage : UserControl
         EaseBox.SelectedIndex = 0;
     }
 
-    protected override void OnLoaded(RoutedEventArgs e)
-    {
-        base.OnLoaded(e);
-        Rebuild();
-    }
+    protected override void OnAttached() => Rebuild();
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _animation?.Revert();
-        _animation = null;
-    }
+    private void EaseSelected(object? sender, SelectionChangedEventArgs e) => Scope.Execute(_ => Rebuild());
 
-    private void EaseSelected(object? sender, SelectionChangedEventArgs e) => Rebuild();
-
-    private void EaseTyped(object? sender, TextChangedEventArgs e) => Rebuild();
+    private void EaseTyped(object? sender, TextChangedEventArgs e) => Scope.Execute(_ => Rebuild());
 
     private void Rebuild()
     {
-        if (!IsLoaded) return;
+        if (VisualRoot == null) return;
 
         var entry = (EaseEntry)EaseBox.SelectedItem!;
         var typed = EaseNameBox.Text;
         Ease curve;
         EaseValue ease;
+        string easeCode;
         if (string.IsNullOrWhiteSpace(typed))
         {
             curve = entry.Curve;
             ease = entry.Spring is { } spring ? spring : entry.Curve;
+            easeCode = entry.Code;
             StatusText.Text = entry.Spring is { } settling
                 ? string.Create(CultureInfo.InvariantCulture, $"{entry.Name} — the spring computes the duration: {settling.SettlingDuration:0} ms")
-                : string.Create(CultureInfo.InvariantCulture, $"{entry.Name} — duration {DotDuration:0} ms");
+                : $"{entry.Name} — duration 1600 ms";
         }
         else
         {
@@ -103,7 +93,8 @@ public partial class EasesPage : UserControl
                 return;
             }
             ease = curve;
-            StatusText.Text = $"EaseParser.Parse(\"{typed.Trim()}\") — a name the parser does not know resolves to linear.";
+            easeCode = $"EaseParser.Parse(\"{typed.Trim()}\")";
+            StatusText.Text = $"{easeCode} — a name the parser does not know resolves to linear.";
         }
 
         var (lowest, highest) = Plot(curve);
@@ -111,14 +102,15 @@ public partial class EasesPage : UserControl
         Dot.Margin = new Thickness(0, 0, 0, DotBase + (lowest * travel));
 
         _animation?.Revert();
-        _animation = Dot.Animate(new()
+        (_animation, var call) = Snippet.Of(Dot.Animate(new()
         {
             ["Y"] = travel,
             Ease = ease,
-            Duration = DotDuration,
+            Duration = 1600,
             Loop = true,
             Alternate = true,
-        });
+        }));
+        Code.Code = string.Create(CultureInfo.InvariantCulture, $"var travel = {travel:0.#};\nvar ease = {easeCode};\n\n{call};");
     }
 
     private (double Lowest, double Highest) Plot(Ease ease)
@@ -147,9 +139,13 @@ public partial class EasesPage : UserControl
         return (lowest, highest);
     }
 
-    private sealed record EaseEntry(string Name, Ease Curve, Spring? Spring = null)
+    private sealed record EaseEntry(string Name, string Code, Ease Curve, Spring? Spring = null)
     {
-        private EaseEntry(string name, Spring spring) : this(name, spring.Ease, spring) { }
+        public EaseEntry(string name, (Ease Curve, string Code) ease) : this(name, ease.Code, ease.Curve) { }
+
+        public EaseEntry((Ease Curve, string Code) ease) : this(ease.Code, ease) { }
+
+        public EaseEntry((Spring Spring, string Code) spring) : this(spring.Code, spring.Code, spring.Spring.Ease, spring.Spring) { }
 
         public override string ToString() => Name;
     }

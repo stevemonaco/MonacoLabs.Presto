@@ -48,10 +48,7 @@
                     </Grid>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14" Margin="0,12">
                         <TextBlock Classes="headline" Text="Animate" Foreground="{x:Static showcase:Palette.Ink}" />
-                        <Canvas x:Name="Slot" Height="60">
-                            <TextBlock x:Name="Word" Classes="headline" Width="400"
-                                       Foreground="{x:Static showcase:Palette.Accent}" />
-                        </Canvas>
+                        <Border x:Name="Slot" Margin="0,0,0,-28" presto:Animate.ContentSize="{presto:Reflow 600, Ease=outExpo}" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -92,8 +89,8 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Watch the paragraph's words rise out of their own masks line by line, then drag the width slider mid-reveal: the text re-wraps into new lines and the reveal carries on instead of starting over. Below it, the last word of the headline drops out letter by letter and the next one rises in while the gap it sits in eases to the new word's width, so the headline never jumps. Sweep the pointer across MOTION to lift and brighten the letters nearest it, then leave and watch them spring back, while the terminal types, decodes and counts to 100 on a loop." />
+            <showcase:CodePanel Header="How it's built" IsExpanded="False"
+                                Code="{x:Static showcase:Snippets.TypographyRotatorAndWordmark}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

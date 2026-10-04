@@ -43,9 +43,12 @@
                             </ToggleButton>
                             <Button Name="PART_Copy" Grid.Column="1" Grid.RowSpan="2" Content="Copy" VerticalAlignment="Top"
                                     Margin="12,0,0,0" Padding="8,2" FontSize="11" FontFamily="{x:Static FontFamily.Default}" />
+                            <!-- The padding, taken back from the border's, gives the overlay scrollbar a band below the last line. -->
                             <ScrollViewer Name="PART_ScrollViewer" Grid.Row="1" IsVisible="{TemplateBinding IsExpanded}"
-                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                                <SelectableTextBlock Name="PART_Text" TextWrapping="NoWrap" />
+                                          Margin="0,0,0,-10" Padding="0,0,0,10"
+                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                <!-- Without a background only the glyphs hit-test, so a drag starting beside them selects nothing. -->
+                                <SelectableTextBlock Name="PART_Text" TextWrapping="NoWrap" Background="Transparent" />
                             </ScrollViewer>
                         </Grid>
                     </Border>
@@ -59,8 +62,9 @@
                 <Setter Property="RenderTransform" Value="rotate(-90deg)" />
             </Style>
 
-            <!-- A tile's one-liner: no chrome, header or Copy, trimmed rather than scrolled. -->
+            <!-- A tile's code: no chrome, header or Copy, trimmed rather than scrolled, and whole in its tooltip. -->
             <Style Selector="^.compact">
+                <Setter Property="ToolTip.Tip" Value="{Binding Code, RelativeSource={RelativeSource Self}}" />
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Padding" Value="0" />
@@ -72,10 +76,11 @@
                 </Style>
                 <Style Selector="^ /template/ ScrollViewer#PART_ScrollViewer">
                     <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="Padding" Value="0" />
                 </Style>
                 <Style Selector="^ /template/ SelectableTextBlock#PART_Text">
                     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                    <Setter Property="MaxLines" Value="1" />
                 </Style>
             </Style>
         </ControlTheme>
@@ -109,6 +114,15 @@
         <Setter Property="ClipToBounds" Value="True" />
     </Style>
 
+    <Style Selector="Border.stage.compact">
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="MinHeight" Value="0" />
+    </Style>
+
+    <Style Selector="Border.stage.short">
+        <Setter Property="MinHeight" Value="150" />
+    </Style>
+
     <Style Selector="TextBlock.readout">
         <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
         <Setter Property="FontSize" Value="28" />
@@ -124,7 +138,7 @@
         <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
     </Style>
 
-    <Style Selector="TextBlock.code, TextBlock.mono">
+    <Style Selector="TextBlock.mono">
         <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="TextWrapping" Value="Wrap" />
@@ -141,6 +155,16 @@
         <Setter Property="Padding" Value="10" />
         <Setter Property="Height" Value="76" />
         <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+
+    <Style Selector="Border.demo.lane">
+        <Setter Property="Height" Value="48" />
+        <Setter Property="Padding" Value="6" />
+    </Style>
+
+    <Style Selector="Border.demo.lane > :is(Control)">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style Selector="Border.swatch">
@@ -223,7 +247,70 @@
         <Setter Property="Foreground" Value="{x:Static showcase:Palette.Background}" />
     </Style>
 
+    <Style Selector="Button.bare">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.bare:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="Button.bare:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- Fluent clips Buttons and ItemsControls, which would hide a photo flying into its card. -->
+    <Style Selector="Button.place">
+        <Setter Property="ClipToBounds" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Classes="place showcase">
+                    <ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Border.photo">
+        <Setter Property="Width" Value="144" />
+        <Setter Property="Height" Value="94" />
+        <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="ClipToBounds" Value="True" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <Style Selector="Border.photo.hero">
+        <Setter Property="Width" Value="330" />
+        <Setter Property="Height" Value="215" />
+        <Setter Property="CornerRadius" Value="18" />
+    </Style>
+
     <!-- Showcase-only classes; the extra `showcase` class keeps them off reference pages that define the same class names locally. -->
+    <Style Selector="Border.panel.showcase">
+        <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+        <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style Selector="Border.place.showcase">
+        <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="Margin" Value="5" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
     <Style Selector="Border.rail.showcase">
         <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
         <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />

@@ -24,30 +24,37 @@ public partial class CountersPage : ShowcasePage
         ("Uptime", v => v.ToString("0.000'%'", CultureInfo.InvariantCulture), 99, 100),
     ];
 
-    private readonly TextBlock[] _readouts = new TextBlock[Metrics.Length];
-    private readonly Border[] _tiles = new Border[Metrics.Length];
+    private readonly (TextBlock Readout, Border Tile)[] _tiles = new (TextBlock, Border)[Metrics.Length];
     private readonly double[] _values = new double[Metrics.Length];
     private readonly List<StackPanel> _strips = [];
     private readonly Random _random = new(7);
-    private readonly string _bumpCode;
 
     public CountersPage()
     {
         InitializeComponent();
-        (var bump, _bumpCode) = Snippet.Of(Presto.Build()
-            .Scale(k => k.To(1.06).To(1))
-            .Duration(420)
-            .Ease(Eases.OutQuad));
         for (var i = 0; i < Metrics.Length; i++)
         {
-            _readouts[i] = new TextBlock { Classes = { "readout" }, Text = Metrics[i].Format(0) };
-            Tiles.Children.Add(_tiles[i] = new Border
+            var readout = new TextBlock { Classes = { "readout" }, Text = Metrics[i].Format(0) };
+            var tile = new Border
             {
                 Classes = { "tile" },
-                Child = new StackPanel { Spacing = 4, Children = { new TextBlock { Classes = { "caption" }, Text = Metrics[i].Title }, _readouts[i] } },
-            });
-            Animate.SetOnChanged(_tiles[i], bump);
+                Child = new StackPanel { Spacing = 4, Children = { new TextBlock { Classes = { "caption" }, Text = Metrics[i].Title }, readout } },
+            };
+            Tiles.Children.Add(tile);
+            _tiles[i] = (readout, tile);
         }
+
+        #region snippet CountersBump
+        var bump = Presto.Build()
+            .Scale(k => k.To(1.06).To(1))
+            .Duration(420)
+            .Ease(Eases.OutQuad);
+        foreach (var (_, tile) in _tiles)
+            Animate.SetOnChanged(tile, bump);
+        #endregion
+
+        CountersCode.Code = $"{Snippets.CountersBump}\n\n{Snippets.CountersTiles}";
+
         for (var i = 0; i < Digits; i++)
         {
             var strip = new StackPanel();
@@ -69,34 +76,35 @@ public partial class CountersPage : ShowcasePage
 
     private void Refresh()
     {
+        #region snippet CountersTiles
         var counters = new Animation[Metrics.Length];
         for (var i = 0; i < Metrics.Length; i++)
         {
-            var next = Metrics[i].Min + (_random.NextDouble() * (Metrics[i].Max - Metrics[i].Min));
-            (counters[i], CountersCode.Code) = Snippet.Of(_readouts[i].Animate(Presto.Build()
-                .Property("Text", from: _values[i], to: next, textModifier: Metrics[i].Format)
+            var metric = Metrics[i];
+            var (readout, tile) = _tiles[i];
+            var next = metric.Min + (_random.NextDouble() * (metric.Max - metric.Min));
+            counters[i] = readout.Animate(Presto.Build()
+                .Property("Text", from: _values[i], to: next, textModifier: metric.Format)
                 .Delay(i * 120)
                 .Duration(1600)
-                .Ease(Eases.OutExpo)));
+                .Ease(Eases.OutExpo));
             _values[i] = next;
-            Animate.SetWatch(_tiles[i], next);
+            Animate.SetWatch(tile, next);
         }
+        #endregion
         Counters = counters;
-        CountersCode.Code += $";\n\nAnimate.SetOnChanged(_tiles[i], {_bumpCode});\nAnimate.SetWatch(_tiles[i], next);";
 
-        var value = OdometerValue = _random.Next((int)Math.Pow(10, Digits));
-        var (odometer, code) = Snippet.Of(Presto.Build()
+        #region snippet CountersOdometer
+        var value = _random.Next((int)Math.Pow(10, Digits));
+        var odometer = Presto.Build()
             .Y((_, i, _) => -DigitAt(value, i) * DigitHeight)
             .Delay(Presto.Stagger(90, new() { From = StaggerFrom.Last }))
             .Duration(1400)
-            .Ease(Eases.OutQuart));
-        if (MechanicalBox.IsChecked == true)
-        {
-            odometer.Modifier(SnapToDigit);
-            code += "\n    .Modifier(SnapToDigit)";
-        }
+            .Ease(Eases.OutQuart);
+        if (MechanicalBox.IsChecked == true) odometer.Modifier(SnapToDigit);
         Roll = odometer.Animate(_strips);
-        OdometerCode.Code = $"// value = {value.ToString("#,0", CultureInfo.InvariantCulture)}\n{code}\n    .Animate(_strips);";
+        #endregion
+        OdometerValue = value;
     }
 
     private static int DigitAt(int value, int column) => value / (int)Math.Pow(10, Digits - 1 - column) % 10;
@@ -105,5 +113,10 @@ public partial class CountersPage : ShowcasePage
 
     private void Refresh(object? sender, RoutedEventArgs e) => Refresh();
 
-    private void RollDigits(object? sender, RoutedEventArgs e) => Rolled = Recipes.RollDigits(RollReadout, _random.Next(1_000_000));
+    private void RollDigits(object? sender, RoutedEventArgs e)
+    {
+        #region snippet CountersRollDigits
+        Rolled = Recipes.RollDigits(RollReadout, _random.Next(1_000_000));
+        #endregion
+    }
 }

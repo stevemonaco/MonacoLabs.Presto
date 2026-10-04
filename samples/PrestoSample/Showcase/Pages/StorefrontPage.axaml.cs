@@ -64,11 +64,10 @@ public partial class StorefrontPage : ShowcasePage
         var thumb = new Border { Classes = { "thumb" }, Child = new Scenery { Hue = product.Hue, Index = product.Index } };
         CartShelf.Children.Insert(0, thumb);
         if (CartShelf.Children.Count > ShelfSize) CartShelf.Children.RemoveAt(ShelfSize);
+        // A shared-element flight has no reduced form.
         if (!Presto.Defaults.ReducedMotion)
-        {
             Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(card.GetVisualDescendants().OfType<FilteredImage>().First(), thumb, 700, Eases.InOutCubic));
-            Recipes.Burst(Badge, count: 12, color: Palette.Accent.Color);
-        }
+        Recipes.Burst(Badge, count: 12, color: Palette.Accent.Color, reduced: Recipes.Fade());
         ViewModel.CartCount++;
     }
 

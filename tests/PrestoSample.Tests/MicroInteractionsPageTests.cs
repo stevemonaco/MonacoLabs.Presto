@@ -1,10 +1,14 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Builder;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -49,18 +53,89 @@ public sealed class MicroInteractionsPageTests
     {
         var page = new MicroInteractionsPage();
         var window = SceneHarness.Show(page, 1280, 900);
-        var toasts = page.GetControl<StackPanel>("Toasts");
+        var toasts = page.GetControl<ItemsControl>("Toasts");
 
         SceneHarness.Click(window, page.GetControl<Button>("Notify"));
-        Assert.Single(toasts.Children);
+        Assert.Single(toasts.Items);
 
         TestFrames.Tick(200);
-        Assert.Single(toasts.Children);
-        var bar = toasts.GetLogicalDescendants().OfType<ProgressBar>().Single();
+        Assert.Single(toasts.Items);
+        var bar = toasts.GetVisualDescendants().OfType<ProgressBar>().Single();
         Assert.InRange(bar.Value, 0.05, 0.4);
 
         TestFrames.Tick(90);
-        Assert.Empty(toasts.Children);
+        Assert.Empty(toasts.Items);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void HoveringAToastHoldsItsCountdownUntilThePointerLeaves()
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var toasts = page.GetControl<ItemsControl>("Toasts");
+        SceneHarness.Click(window, page.GetControl<Button>("Notify"));
+        TestFrames.Tick(40);
+        var toast = toasts.GetVisualDescendants().OfType<Border>().First(border => border.Classes.Contains("toast"));
+        var bar = toast.GetVisualDescendants().OfType<ProgressBar>().Single();
+
+        window.MouseMove(SceneHarness.Centre(toast, window));
+        var held = bar.Value;
+        TestFrames.Tick(300);
+        Assert.Equal(held, bar.Value, 6);
+        Assert.Single(toasts.Items);
+
+        window.MouseMove(new Point(1, 1));
+        TestFrames.Tick(300);
+        Assert.Empty(toasts.Items);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1)]
+    [InlineData(-1)]
+    public void SwipingAToastPastTheThresholdDismissesItTowardsTheSwipe(int direction)
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var toasts = page.GetControl<ItemsControl>("Toasts");
+        SceneHarness.Click(window, page.GetControl<Button>("Notify"));
+        TestFrames.Tick(40);
+        var toast = toasts.GetVisualDescendants().OfType<Border>().First(border => border.Classes.Contains("toast"));
+        var model = Assert.IsType<ToastsViewModel>(toasts.DataContext);
+        var left = toast.TranslatePoint(default, page)!.Value.X;
+        var grab = SceneHarness.Centre(toast, window);
+
+        window.MouseDown(grab, MouseButton.Left);
+        for (var i = 1; i <= 12; i++)
+        {
+            window.MouseMove(grab.WithX(grab.X + (direction * i * 10)));
+            TestFrames.Tick();
+        }
+        window.MouseUp(grab.WithX(grab.X + (direction * 120)), MouseButton.Left);
+        TestFrames.Tick(6);
+
+        Assert.Empty(model.Toasts);
+        var ghost = OverlayLayer.GetOverlayLayer(page)!.GetVisualDescendants().OfType<Image>().Single();
+        Assert.Equal(direction, Math.Sign(ghost.TranslatePoint(default, page)!.Value.X - left));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void SubscribingWithAnInvalidAddressShakesTheField()
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var email = page.GetControl<TextBox>("Email");
+        email.Text = "nobody";
+
+        SceneHarness.Click(window, page.GetLogicalDescendants().OfType<Button>().First(button => Equals(button.Content, "Subscribe")));
+        TestFrames.Tick(4);
+        Assert.NotEqual(0, (double)PrestoAvalonia.Get(email, "X")!, 3);
+        Assert.Contains("invalid", email.Classes);
+
+        TestFrames.Tick(60);
+        Assert.Equal(0, (double)PrestoAvalonia.Get(email, "X")!, 6);
         SceneHarness.Close(window);
     }
 

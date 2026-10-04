@@ -1,12 +1,14 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Draggables;
+using PrestoSample.Builder;
 using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Showcase.Pages;
@@ -20,21 +22,17 @@ public partial class MicroInteractionsPage : ShowcasePage
     private const double TabInset = 10;
     private const double StretchDuration = 170;
     private const double ContractDuration = 320;
-    private const double RestackDuration = 380;
     private const double ToastLife = 4000;
-    private const double ToastTravel = 320;
     private const double SwipeThreshold = 90;
 
     private static readonly Geometry Arc = Geometry.Parse("M 10,2 A 8,8 0 1 1 2,10");
     private static readonly Geometry Check = Geometry.Parse("M 3,10.5 L 8,15 L 17,5");
-    private static readonly string[] Messages = ["Order #1042 shipped", "Backup finished", "3 new comments", "Invite accepted"];
 
     private Timeline? _submitting;
     private Animatable? _underline;
     private Timer? _contract;
     private int _likes = 1203;
     private bool _liked;
-    private int _notified;
 
     public MicroInteractionsPage()
     {
@@ -46,7 +44,10 @@ public partial class MicroInteractionsPage : ShowcasePage
     {
         _underline = Underline.CreateAnimatable(new() { ["X"] = StretchDuration, ["Width"] = StretchDuration, Ease = Eases.OutCubic });
         _contract = Presto.CreateTimer(new TimerParams { Duration = StretchDuration, Autoplay = false, OnComplete = _ => Contract() });
-        Tabs.LayoutUpdated += PlaceUnderline;
+        AfterFirstArrange(Tabs, () =>
+        {
+            if (SelectedTab() is { } tab) _underline!.Set("X", tab.X, 0).Set("Width", tab.Width, 0);
+        });
     }
 
     private static string Count(double likes) => likes.ToString("N0", CultureInfo.InvariantCulture);
@@ -89,16 +90,7 @@ public partial class MicroInteractionsPage : ShowcasePage
     }
 
     private Rect? SelectedTab() =>
-        Tabs.ContainerFromIndex(Tabs.SelectedIndex) is { } tab && tab.TranslatePoint(default, Rail) is { } at
-            ? new Rect(at.X + TabInset, 0, tab.Bounds.Width - (2 * TabInset), 0)
-            : null;
-
-    private void PlaceUnderline(object? sender, EventArgs e)
-    {
-        if (SelectedTab() is not { } tab || _underline is null) return;
-        Tabs.LayoutUpdated -= PlaceUnderline;
-        _underline.Set("X", tab.X, 0).Set("Width", tab.Width, 0);
-    }
+        Tabs.ContainerFromIndex(Tabs.SelectedIndex) is { } tab ? TabIndicator.Under(tab, Rail, TabInset) : null;
 
     // Both edges first reach out to cover the old tab and the new one, then the trailing edge catches up.
     private void TabChanged(object? sender, SelectionChangedEventArgs e)
@@ -124,74 +116,6 @@ public partial class MicroInteractionsPage : ShowcasePage
         }
     }
 
-    private void NotifyClicked(object? sender, RoutedEventArgs e) => Scope.Execute(_ =>
-    {
-        var bar = new ProgressBar { Maximum = 1, Value = 1 };
-        var toast = new Border
-        {
-            Classes = { "toast" },
-            Child = new StackPanel
-            {
-                Spacing = 6,
-                Children =
-                {
-                    new TextBlock { Text = Messages[_notified++ % Messages.Length], FontWeight = FontWeight.SemiBold, Foreground = Palette.Ink },
-                    new TextBlock { Classes = { "caption" }, Text = "Hover to hold it, swipe it away" },
-                    bar,
-                },
-            },
-        };
-        // The slot carries the restack and the toast its own entry, so a toast pushed down mid-entry keeps sliding in.
-        var slot = new Panel { Children = { toast } };
-        slot.AnimateLayout(RestackDuration, Eases.OutQuint);
-        Toasts.Children.Insert(0, slot);
-        toast.AnimateOnCompositor(new CompositorAnimationParams
-        {
-            ["X"] = TweenValue.FromTo(ToastTravel, 0),
-            ["Opacity"] = TweenValue.FromTo(0, 1),
-            Duration = 420,
-            Ease = Eases.OutQuint,
-        });
-
-        var gone = false;
-        var life = Presto.CreateTimer(new TimerParams
-        {
-            Duration = ToastLife,
-            OnUpdate = timer => bar.Value = 1 - timer.Progress,
-            OnComplete = _ => Dismiss(1),
-        });
-        PrestoAvalonia.CreateDraggable(toast, new DraggableParams
-        {
-            Y = new DraggableAxisParams { Enabled = false },
-            Snap = _ => 0,
-            OnRelease = drag =>
-            {
-                if (Math.Abs(drag.X) < SwipeThreshold) return;
-                drag.Disable();
-                Dismiss(Math.Sign(drag.X));
-            },
-        });
-        toast.PointerEntered += (_, _) => life.Pause();
-        toast.PointerExited += (_, _) =>
-        {
-            if (!gone) life.Resume();
-        };
-
-        void Dismiss(double direction)
-        {
-            if (gone) return;
-            gone = true;
-            Scope.Execute(_ => toast.Animate(new()
-            {
-                ["X"] = direction * ToastTravel,
-                ["Opacity"] = 0,
-                Duration = 260,
-                Ease = Eases.InQuad,
-                OnComplete = _ => Toasts.Children.Remove(slot),
-            }));
-        }
-    });
-
     private void SubscribeClicked(object? sender, RoutedEventArgs e)
     {
         var text = Email.Text ?? "";
@@ -200,16 +124,40 @@ public partial class MicroInteractionsPage : ShowcasePage
         Email.Classes.Set("invalid", !valid);
         Hint.Classes.Set("error", !valid);
         Hint.Text = valid ? $"Subscribed {text}." : "That doesn't look like an email address.";
-        if (!valid)
-        {
-            Scope.Execute(_ => Email.Animate(new()
-            {
-                ["X"] = TweenValue.Keyframes(-10, 10, -7, 7, -3, 0),
-                Duration = 420,
-                Ease = Eases.InOutSine,
-            }));
-        }
+        if (!valid) Scope.Execute(_ => Email.Animate(Recipes.Shake()));
     }
+
+    private void ToastLoaded(object? sender, RoutedEventArgs e)
+    {
+        var toast = (Control)sender!;
+        Scope.Execute(_ =>
+        {
+            toast.Tag = toast.FindDescendantOfType<ProgressBar>()!.Animate(countdown => countdown
+                .Property("Value", from: 1, to: 0)
+                .Duration(ToastLife)
+                .Ease(Eases.None)
+                .OnComplete(_ => Dismiss(toast)));
+            PrestoAvalonia.CreateDraggable(toast, new DraggableParams
+            {
+                Y = new DraggableAxisParams { Enabled = false },
+                Snap = _ => 0,
+                OnRelease = drag =>
+                {
+                    if (Math.Abs(drag.X) < SwipeThreshold) return;
+                    drag.Disable();
+                    if (drag.X < 0) Presence.SetExit((Control)toast.Parent!, Recipes.SlideOut(Edge.Left, 320, 260, ease: Eases.InQuad));
+                    Dismiss(toast);
+                },
+            });
+        });
+    }
+
+    // Held through Tag because GetAnimations drops a paused animation.
+    private void HoldToast(object? sender, PointerEventArgs e) => (((Control)sender!).Tag as Animation)?.Pause();
+
+    private void ReleaseToast(object? sender, PointerEventArgs e) => (((Control)sender!).Tag as Animation)?.Resume();
+
+    private void Dismiss(Control toast) => ((ToastsViewModel)Toasts.DataContext!).Toasts.Remove((Toast)toast.DataContext!);
 
     private void EmailChanged(object? sender, TextChangedEventArgs e) => Email.Classes.Remove("invalid");
 }

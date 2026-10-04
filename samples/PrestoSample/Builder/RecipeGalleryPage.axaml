@@ -19,6 +19,9 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
         </Style>
+        <Style Selector="Border.tile showcase|CodePanel /template/ SelectableTextBlock#PART_Text">
+            <Setter Property="MaxLines" Value="0" />
+        </Style>
         <Style Selector="Border.well">
             <Setter Property="Height" Value="96" />
             <Setter Property="CornerRadius" Value="8" />

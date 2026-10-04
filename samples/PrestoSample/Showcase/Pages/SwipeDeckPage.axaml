@@ -85,7 +85,7 @@
                     </StackPanel>
                 </Panel>
             </Border>
-            <showcase:CodePanel x:Name="GraphCode" />
+            <showcase:CodePanel x:Name="GraphCode" Code="{x:Static showcase:Snippets.SwipeDeckBind}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

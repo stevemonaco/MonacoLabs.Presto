@@ -13,18 +13,6 @@
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
             <Setter Property="Padding" Value="14,10" />
         </Style>
-        <Style Selector="ListBox.reorder">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="ItemTemplate">
-                <DataTemplate x:DataType="x:String">
-                    <TextBlock Classes="row" Text="{Binding}" />
-                </DataTemplate>
-            </Setter>
-        </Style>
-        <Style Selector="ListBox.reorder ListBoxItem">
-            <Setter Property="Padding" Value="0,0,0,8" />
-            <Setter Property="MinHeight" Value="0" />
-        </Style>
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
@@ -44,7 +32,7 @@
                             <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
                         </StackPanel>
                     </Border>
-                    <showcase:CodeTabs x:Name="StaticCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlStatic}" />
+                    <showcase:CodeTabs x:Name="StaticCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlStatic}" CSharp="{x:Static showcase:Snippets.XamlFadeUp}" />
                 </StackPanel>
 
                 <StackPanel Spacing="12">
@@ -59,7 +47,7 @@
                             <!-- /snippet -->
                         </StackPanel>
                     </Border>
-                    <showcase:CodeTabs x:Name="ExtensionCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlExtension}" />
+                    <showcase:CodePanel x:Name="ExtensionCode" Language="Xaml" Code="{x:Static showcase:Snippets.XamlExtension}" />
                 </StackPanel>
 
                 <StackPanel Spacing="12">
@@ -75,20 +63,7 @@
                             <!-- /snippet -->
                         </StackPanel>
                     </Border>
-                    <showcase:CodeTabs x:Name="BindingCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlBinding}" />
-                </StackPanel>
-
-                <StackPanel Spacing="12">
-                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Reorder: drag a row to move it. {presto:Reorder} on the left is the default lift, and Intensity=2 on the right doubles its scale-up and shadow. Alt+Up/Down moves the focused row and Escape cancels a drag." />
-                    <Border Classes="stage" MinHeight="0">
-                        <UniformGrid Columns="2" ColumnSpacing="16">
-                            <!-- snippet: XamlReorder -->
-                            <ListBox x:Name="DefaultLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}" presto:Animate.ItemLayout="{presto:Reflow}" />
-                            <ListBox x:Name="StrongLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder Intensity=2}" presto:Animate.ItemLayout="{presto:Reflow}" />
-                            <!-- /snippet -->
-                        </UniformGrid>
-                    </Border>
-                    <showcase:CodeTabs x:Name="ReorderCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlReorder}" />
+                    <showcase:CodeTabs x:Name="BindingCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlBinding}" CSharp="{x:Static showcase:Snippets.XamlEmphasis}" />
                 </StackPanel>
             </StackPanel>
         </StackPanel>

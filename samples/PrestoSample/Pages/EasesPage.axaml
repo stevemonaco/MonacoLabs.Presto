@@ -1,20 +1,14 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
-             x:Class="PrestoSample.Pages.EasesPage">
-    <UserControl.Styles>
-        <Style Selector="Border.stage">
-            <Setter Property="Padding" Value="12" />
-            <Setter Property="MinHeight" Value="0" />
-        </Style>
-    </UserControl.Styles>
-
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoSample.Pages.EasesPage">
     <ScrollViewer>
         <StackPanel Spacing="12">
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <Border Classes="stage">
+                <Border Classes="stage compact">
                     <Canvas x:Name="PlotCanvas" Width="380" Height="220">
                         <Line x:Name="ZeroLine" Stroke="#60808080" StrokeThickness="1" StrokeDashArray="4,4" />
                         <Line x:Name="OneLine" Stroke="#60808080" StrokeThickness="1" StrokeDashArray="4,4" />
@@ -22,7 +16,7 @@
                     </Canvas>
                 </Border>
 
-                <Border Classes="stage" Width="110" Height="244">
+                <Border Classes="stage compact" Width="110" Height="244">
                     <Border x:Name="Dot" Classes="swatch" Width="28" Height="28"
                             HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                 </Border>
@@ -42,6 +36,8 @@
             </StackPanel>
 
             <TextBlock x:Name="StatusText" Classes="caption" TextWrapping="Wrap" />
+
+            <showcase:CodePanel x:Name="Code" />
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</showcase:ShowcasePage>

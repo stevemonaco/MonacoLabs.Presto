@@ -8,8 +8,6 @@
                        x:Class="PrestoSample.Pages.ParticlesPage">
     <ScrollViewer>
         <StackPanel Spacing="12">
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Press on the stage to move the origin, drag to aim, and release to emit; with a rate above 0 the stream follows every change." />
             <Grid ColumnDefinitions="*,260" ColumnSpacing="16">
                 <Border x:Name="Stage" MinHeight="460" CornerRadius="10" ClipToBounds="True" BorderThickness="1"
                         Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}"

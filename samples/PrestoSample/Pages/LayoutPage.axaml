@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
-             xmlns:showcase="using:PrestoSample.Showcase"
-             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
-             x:Class="PrestoSample.Pages.LayoutPage">
-    <UserControl.Resources>
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:showcase="using:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
+                       x:Class="PrestoSample.Pages.LayoutPage">
+    <showcase:ShowcasePage.Resources>
         <DataTemplate x:Key="ShortView">
             <TextBlock presto:Presence.Exit="{presto:Fade}" presto:Presence.Enter="{presto:Fade}" Text="Saved." />
         </DataTemplate>
@@ -24,9 +24,9 @@
                 <PathIcon Data="{StaticResource HeartIcon}" />
             </UniformGrid>
         </DataTemplate>
-    </UserControl.Resources>
+    </showcase:ShowcasePage.Resources>
 
-    <UserControl.Styles>
+    <showcase:ShowcasePage.Styles>
         <Style Selector="Border.card">
             <Setter Property="Width" Value="96" />
             <Setter Property="Height" Value="68" />
@@ -62,7 +62,7 @@
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="Opacity" Value="0.6" />
         </Style>
-    </UserControl.Styles>
+    </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
         <StackPanel Spacing="16">
@@ -106,10 +106,14 @@
                 <Button Content="Move between containers" Click="MoveShared" />
                 <Button Content="Next view" Click="NextView" />
                 <Button Content="Freeze UI thread for 2 s" Click="Freeze" />
-                <TextBlock Classes="caption" Text="slow" VerticalAlignment="Center" />
-                <ToggleSwitch x:Name="Slow" VerticalAlignment="Center" IsCheckedChanged="Rearm" />
-                <TextBlock Classes="caption" Text="uncorrected avatar" VerticalAlignment="Center" />
-                <ToggleSwitch x:Name="Uncorrected" VerticalAlignment="Center" IsCheckedChanged="Rearm" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Classes="caption" Text="slow" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="Slow" VerticalAlignment="Center" IsCheckedChanged="Rearm" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Classes="caption" Text="uncorrected avatar" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="Uncorrected" VerticalAlignment="Center" IsCheckedChanged="Rearm" />
+                </StackPanel>
             </WrapPanel>
 
             <Border Classes="stage">
@@ -131,4 +135,4 @@
                        Text="Every card was handed to AnimateLayout when it was created, so a Shuffle, an Add or a Remove moves it in one layout pass and the pixels ease after it. This is FLIP played on the compositor: where the card was and where layout has just put it are measured on the UI thread, the difference is written to the composition Translation so the frame still renders it where it was, and the render thread eases that back to zero. Bounds is already right throughout, which is why a card is clicked where layout put it rather than where it is drawn. The panel grows under LayoutAnimateMode.PositionAndSize, which inverts the size onto the composition scale about the top left corner — its content scales with it. The avatar card beside it grows under PositionAndSizeCorrected, which counter-scales its direct children on the render thread so the avatar stays round and the name unstretched; its corner radius still scales, since radius is not a composition property. Switch it to plain PositionAndSize to compare. The FAQ card and the swapping panel below take the other road: Animate.ContentSize eases their real layout size on the UI thread and clips meanwhile, so corners, shadow and text stay true and the text never rewraps, at the cost of a layout pass per frame. Next view swaps the panel's content: the old view fades out as a ghost, the new one fades in, and the box resizes in between. Moving between containers is AnimateSharedElement: the square is measured in the window before it is reparented and eased from there into whatever slot its new parent gives it. The paler card is armed from XAML instead, with presto:Animate.Layout=&quot;{presto:Reflow}&quot;, so it moves with the others at the token duration whatever the slow switch says. Freezing sleeps the dispatcher for two seconds; start a slow move first and it keeps easing throughout, because nothing but the first measurement needs the UI thread." />
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</showcase:ShowcasePage>

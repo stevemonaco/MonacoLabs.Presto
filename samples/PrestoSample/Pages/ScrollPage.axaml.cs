@@ -1,13 +1,12 @@
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Events;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class ScrollPage : UserControl
+public partial class ScrollPage : ShowcasePage
 {
     private static readonly IBrush s_entered = new SolidColorBrush(Color.Parse("#304c8dff"));
 
@@ -15,43 +14,56 @@ public partial class ScrollPage : UserControl
 
     public ScrollPage() => InitializeComponent();
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    protected override void OnAttached()
     {
-        base.OnAttachedToVisualTree(e);
         _idle = ThresholdCard.Background;
 
-        PrestoAvalonia.CreateScope(this).Execute(_ =>
+        #region snippet ScrollReveal
+        var reveal = RevealCard.Animate(new()
         {
-            var reveal = RevealCard.Animate(new()
-            {
-                ["Y"] = TweenValue.FromTo(60, 0),
-                ["Opacity"] = TweenValue.FromTo(0, 1),
-                Duration = 700,
-                Ease = Eases.OutQuad,
-                Autoplay = false,
-            });
-            PrestoAvalonia.OnScroll(new() { Target = RevealCard }).Link(reveal);
-
-            PrestoAvalonia.OnScroll(new()
-            {
-                Target = ThresholdCard,
-                Enter = "bottom-=120 top",
-                Leave = "top center",
-                OnEnter = _ => ShowThresholdState(true),
-                OnLeave = _ => ShowThresholdState(false),
-            });
-
-            var scrub = Presto.CreateTimeline(new TimelineParams { Autoplay = false })
-                .Add(Rider, new AvaloniaAnimationParams { ["X"] = 260, ["Rotate"] = 360, Duration = 1000, Ease = Eases.None })
-                .Add(Rider, new AvaloniaAnimationParams { ["CornerRadius"] = 16, Duration = 1000, Ease = Eases.None }, 0);
-
-            PrestoAvalonia.OnScroll(new()
-            {
-                Target = SyncCard,
-                Sync = true,
-                OnUpdate = ShowState,
-            }).Link(scrub);
+            ["Y"] = TweenValue.FromTo(60, 0),
+            ["Opacity"] = TweenValue.FromTo(0, 1),
+            Duration = 700,
+            Ease = Eases.OutQuad,
+            Autoplay = false,
         });
+        PrestoAvalonia.OnScroll(new() { Target = RevealCard }).Link(reveal);
+        #endregion
+
+        #region snippet ScrollThreshold
+        PrestoAvalonia.OnScroll(new()
+        {
+            Target = ThresholdCard,
+            Enter = "bottom-=120 top",
+            Leave = "top center",
+            OnEnter = _ => ShowThresholdState(true),
+            OnLeave = _ => ShowThresholdState(false),
+        });
+        #endregion
+
+        #region snippet ScrollScrub
+        var scrub = Presto.CreateTimeline(new TimelineParams { Autoplay = false })
+            .Add(Rider, new AvaloniaAnimationParams
+            {
+                ["X"] = 260,
+                ["Rotate"] = 360,
+                Duration = 1000,
+                Ease = Eases.None,
+            })
+            .Add(Rider, new AvaloniaAnimationParams
+            {
+                ["CornerRadius"] = 16,
+                Duration = 1000,
+                Ease = Eases.None,
+            }, 0);
+
+        PrestoAvalonia.OnScroll(new()
+        {
+            Target = SyncCard,
+            Sync = true,
+            OnUpdate = ShowState,
+        }).Link(scrub);
+        #endregion
     }
 
     private void ShowState(ScrollObserver observer)

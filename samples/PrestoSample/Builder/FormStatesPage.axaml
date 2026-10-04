@@ -50,7 +50,7 @@
                             <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.CardSuccess}" />
                         </presto:MotionStates>
                     </presto:Motion.States>
-                    <!-- /snippet -->
+                    <!-- snippet-skip -->
                     <StackPanel Spacing="16">
                         <StackPanel Orientation="Horizontal" Spacing="14">
                             <!-- snippet: FormStatesBadge -->
@@ -63,9 +63,9 @@
                                         <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.BadgeSuccess}" />
                                     </presto:MotionStates>
                                 </presto:Motion.States>
-                                <!-- /snippet -->
                                 <TextBlock Text="{Binding Glyph}" />
                             </Border>
+                            <!-- /snippet -->
                             <StackPanel VerticalAlignment="Center" Spacing="2">
                                 <TextBlock Text="Join the beta" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
                                 <TextBlock Classes="caption" Text="{Binding Status}" />
@@ -75,7 +75,9 @@
                         <Button Classes="specimen" Content="Submit" Command="{Binding SubmitCommand}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                     </StackPanel>
+                    <!-- /snippet-skip -->
                 </Border>
+                <!-- /snippet -->
             </Border>
 
             <TextBlock Classes="caption" Text="Each view-model State is a bare-name condition on Motion.State; what it plays is a plain builder in FormMotions.cs" />

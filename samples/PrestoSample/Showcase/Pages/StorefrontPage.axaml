@@ -134,12 +134,15 @@
                 </ItemsControl>
 
                 <ScrollViewer x:Name="Catalogue" IsVisible="False">
+                    <!-- snippet: StorefrontCards -->
                     <ItemsControl x:Name="Products" ItemsSource="{Binding Shown}" presto:Animate.ItemLayout="{presto:Reflow 500, Ease=outQuint}">
+                        <!-- snippet-skip -->
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
+                        <!-- /snippet-skip -->
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="local:Product">
                                 <Border Classes="product" Classes.soldout="{Binding SoldOut}"
@@ -153,6 +156,7 @@
                                         <Border Classes="art" presto:Tilt.Enabled="True">
                                             <presto:FilteredImage Source="{Binding Picture}" Stretch="UniformToFill" />
                                         </Border>
+                                        <!-- snippet-skip -->
                                         <TextBlock Classes="name" Text="{Binding Name}" />
                                         <DockPanel>
                                             <Button DockPanel.Dock="Right" Content="Add" Click="AddClicked" IsEnabled="{Binding !SoldOut}"
@@ -160,11 +164,13 @@
                                             <Button DockPanel.Dock="Right" Content="Quick view" Margin="0,0,6,0" Click="QuickViewClicked" />
                                             <TextBlock Classes="price" Text="{Binding Price}" />
                                         </DockPanel>
+                                        <!-- /snippet-skip -->
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <!-- /snippet -->
                 </ScrollViewer>
 
                 <ContentControl x:Name="QuickHost" Margin="-16" Content="{Binding QuickView}">
@@ -194,7 +200,7 @@
             </Panel>
         </Border>
 
-        <TextBlock Grid.Row="2" Classes="caption" TextWrapping="Wrap"
-                   Text="A shop front built from recipes. The grid shimmers as a skeleton while a timer stands in for the fetch, then the cards fade up in order through Presence.Initial. Hover a card to lift it, press it to squeeze it, hover a sold-out card's gray picture to colorize it through a FilteredImage, move over its picture to tilt it, and Tab to a card for a glow. Pick category chips to recolour them through a :checked state and reflow the grid through Animate.ItemLayout while cards scale in and out. Add pops the button, flies the picture to the cart and bumps the badge with a burst of particles; Quick view opens a dialog over the blurred grid with a circle reveal from the card, and closing it blurs it out through Presence.Exit. Flip Reduced motion in the sidebar to see every recipe's reduced form in place." />
+        <showcase:CodePanel Grid.Row="2" Header="How it's built" IsExpanded="False"
+                            Language="Xaml" Code="{x:Static showcase:Snippets.StorefrontCards}" />
     </Grid>
 </showcase:ShowcasePage>

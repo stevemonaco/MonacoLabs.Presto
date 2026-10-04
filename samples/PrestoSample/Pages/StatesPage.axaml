@@ -255,8 +255,8 @@
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The menu button sets Motion.State=&quot;Open&quot; on the panel only. Its items declare an Open state but no state of their own, so they follow the panel's: StaggerChildren starts each one 40 ms after the one above, DelayChildren holds them all back by 60, and Order picks whether the panel unfolds before, with or after them. The From picker runs the stagger from the top, the bottom or the middle." />
 
-            <TextBlock Classes="caption" Text="The XAML" />
-            <showcase:CodePanel x:Name="XamlCode" Language="Xaml" />
+            <TextBlock Classes="caption" Text="The builders and the XAML" />
+            <showcase:CodeTabs x:Name="Code" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

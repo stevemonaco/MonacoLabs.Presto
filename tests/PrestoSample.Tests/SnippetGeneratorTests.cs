@@ -103,6 +103,70 @@ public sealed class SnippetGeneratorTests
     }
 
     [Fact]
+    public void AXamlSkipRegionIsPrintedAsOneEllipsisLineIndentedLikeItsMarker()
+    {
+        var (snippets, errors) = SnippetExtractor.Extract("""
+            <Root>
+                <!-- snippet: Card -->
+                <Border>
+                    <Border.Tag>1</Border.Tag>
+                    <!-- snippet-skip -->
+                    <StackPanel>
+                        <TextBlock />
+                    </StackPanel>
+                    <!-- /snippet-skip -->
+                </Border>
+                <!-- /snippet -->
+            </Root>
+            """, SnippetSyntax.Xaml);
+
+        Assert.Empty(errors);
+        Assert.Equal("<Border>\n    <Border.Tag>1</Border.Tag>\n    …\n</Border>", Assert.Single(snippets).Text);
+    }
+
+    [Fact]
+    public void ASnippetInsideASkipRegionIsStillExtractedAndItsSkipsApplyAtEveryLevel()
+    {
+        var (snippets, errors) = SnippetExtractor.Extract("""
+            <!-- snippet: Outer -->
+            <A>
+                <!-- snippet-skip -->
+                <!-- snippet: Middle -->
+                <B>
+                    <!-- snippet: Inner -->
+                    <C>
+                        <!-- snippet-skip -->
+                        <D />
+                        <!-- /snippet-skip -->
+                    </C>
+                    <!-- /snippet -->
+                </B>
+                <!-- /snippet -->
+                <!-- /snippet-skip -->
+            </A>
+            <!-- /snippet -->
+            """, SnippetSyntax.Xaml);
+
+        Assert.Empty(errors);
+        Assert.Equal("<A>\n    …\n</A>", snippets.Single(s => s.Name == "Outer").Text);
+        Assert.Equal("<B>\n    <C>\n        …\n    </C>\n</B>", snippets.Single(s => s.Name == "Middle").Text);
+        Assert.Equal("<C>\n    …\n</C>", snippets.Single(s => s.Name == "Inner").Text);
+    }
+
+    [Fact]
+    public void ASkipRegionOutsideASnippetProducesNothing()
+    {
+        var (snippets, errors) = SnippetExtractor.Extract("<!-- snippet-skip -->\n<A />\n<!-- /snippet-skip -->", SnippetSyntax.Xaml);
+
+        Assert.Empty(snippets);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void AnUnclosedSkipRegionIsAnError() =>
+        Assert.Equal(1, Assert.Single(SnippetExtractor.Extract("<!-- snippet-skip -->\n<A />", SnippetSyntax.Xaml).Errors).Line);
+
+    [Fact]
     public void ASampleRegionIsGeneratedAsASnippetsConstant() =>
         Assert.Equal("""<Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />""", Snippets.XamlStatic);
 }

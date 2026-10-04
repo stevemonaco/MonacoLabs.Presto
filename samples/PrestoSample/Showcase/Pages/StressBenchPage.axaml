@@ -57,6 +57,8 @@
                     <TextBlock x:Name="WorkerReadout" Classes="mono" Margin="0" VerticalAlignment="Center" Text="worker off" />
                 </WrapPanel>
             </Border>
+
+            <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

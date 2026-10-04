@@ -51,7 +51,7 @@
                               IsCheckedChanged="Refresh" />
                 </StackPanel>
             </Border>
-            <showcase:CodePanel x:Name="OdometerCode" />
+            <showcase:CodePanel x:Name="OdometerCode" Code="{x:Static showcase:Snippets.CountersOdometer}" />
 
             <TextBlock Classes="caption" Text="Recipes.RollDigits: only the characters that change roll, each in its own clipped column, right to left" />
             <Border Classes="stage" MinHeight="0">
@@ -60,7 +60,7 @@
                     <Button Content="Roll to a random value" Click="RollDigits" HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
-            <showcase:CodePanel Code="Rolled = Recipes.RollDigits(RollReadout, _random.Next(1_000_000));" />
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.CountersRollDigits}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

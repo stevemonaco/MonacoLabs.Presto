@@ -28,7 +28,8 @@ public partial class BuilderBasicsPage : ShowcasePage
             .Delay(250)
             .Ease(Eases.InOutQuint)
             .Loop()
-            .Alternate()));
+            .Alternate()
+            .WhenReduced(reduced => reduced.Background(Palette.Coral).Loop(false).Alternate(false))));
     }
 
     private void Replay(object? sender, RoutedEventArgs e) => Animation?.Restart();

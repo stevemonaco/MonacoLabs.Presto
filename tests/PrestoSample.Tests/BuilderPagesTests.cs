@@ -28,6 +28,22 @@ public sealed class BuilderPagesTests
     }
 
     [AvaloniaFact]
+    public void BuilderBasicsPlaysOnceWithoutTravelUnderReducedMotion()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new BuilderBasicsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        TestFrames.Tick(100);
+
+        var button = page.GetControl<Button>("LikeButton");
+        Assert.Equal(1, page.Animation!.IterationCount);
+        Assert.True(page.Animation.Completed);
+        Assert.All(["X", "Y", "Rotate"], property => Assert.Equal(0, Convert.ToDouble(Presto.Get(button, property, withUnit: false)), 3));
+        Assert.Contains(".WhenReduced(", page.GetControl<CodePanel>("CodeText").Code);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void PropertiesPrintsEveryBuilderAndRunsThemOnAttach()
     {
         var page = new PropertiesPage();
@@ -48,7 +64,9 @@ public sealed class BuilderPagesTests
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(30);
 
-        Assert.Contains("Presto.Build()", page.GetControl<CodePanel>("RecipeCode").Code);
+        var recipe = page.GetControl<CodePanel>("RecipeCode").Code;
+        Assert.Contains("Pop = Presto.Build()", recipe);
+        Assert.Contains("Pop.Duration(600);", recipe);
         Assert.Contains("Pop.With(b => b.Delay(Presto.Stagger(60)))", page.GetControl<CodePanel>("StaggeredCode").Code);
         Assert.True(page.Staggered!.CurrentTime > 0);
         SceneHarness.Close(window);
@@ -69,7 +87,9 @@ public sealed class BuilderPagesTests
 
         Assert.Equal(600, first.Duration);
         Assert.Equal(1200, page.Played!.Duration);
-        Assert.Contains("button.Animate(Pop)", page.GetControl<CodePanel>("RecipeCode").Code);
+        var recipe = page.GetControl<CodePanel>("RecipeCode").Code;
+        Assert.Contains("Pop.Duration(1200);", recipe);
+        Assert.Contains("button.Animate(Pop)", recipe);
         SceneHarness.Close(window);
     }
 
@@ -84,9 +104,11 @@ public sealed class BuilderPagesTests
         Assert.Contains("var fadeUp = Presto.Build()", timelineCode);
         Assert.Contains(".Add(CardB, fadeUp, \"-=400\")", timelineCode);
         Assert.Contains(".Add(CardD, b => b.Opacity(", timelineCode);
+        Assert.DoesNotContain("SyncScrub", timelineCode);
         Assert.Contains("Gear.AnimateOnCompositor(Presto.Build()", page.GetControl<CodePanel>("SpinCode").Code);
         Assert.True(page.Timeline!.CurrentTime > 0);
         Assert.True(page.Spin!.CurrentTime > 0);
+        Assert.Equal(page.Timeline.IterationProgress, page.GetControl<Slider>("ScrubSlider").Value, 6);
         SceneHarness.Close(window);
     }
 
@@ -100,9 +122,11 @@ public sealed class BuilderPagesTests
         var attached = AttachedElements(page);
         Assert.Equal(9, attached.Count);
         Assert.All(attached, visual => Assert.Single(Presto.GetAnimations(visual)));
-        Assert.Contains("Presto.Build()", page.GetControl<CodeTabs>("StaticCode").CSharp);
-        Assert.Equal(Snippets.XamlStatic, page.GetControl<CodeTabs>("StaticCode").Xaml);
-        Assert.Contains("Recipes.FadeUp(distance: 48, delay: 100)", page.GetControl<CodeTabs>("ExtensionCode").CSharp);
+        var staticCode = page.GetControl<CodeTabs>("StaticCode");
+        Assert.Equal(Snippets.XamlFadeUp, staticCode.CSharp);
+        Assert.Contains("Presto.Build()", staticCode.CSharp);
+        Assert.Equal(Snippets.XamlStatic, staticCode.Xaml);
+        Assert.Equal(Snippets.XamlExtension, page.GetControl<CodePanel>("ExtensionCode").Code);
         var bindingCode = page.GetControl<CodeTabs>("BindingCode").CSharp;
         Assert.Contains("Idle = Recipes.Float()", bindingCode);
         Assert.Contains("Alert = Recipes.Shake().Loop().LoopDelay(700)", bindingCode);
@@ -129,9 +153,9 @@ public sealed class BuilderPagesTests
     [AvaloniaTheory]
     [InlineData("DefaultLift")]
     [InlineData("StrongLift")]
-    public void XamlPageReorderListsLiftWithTheirRecipeAndReorder(string name)
+    public void ReorderPageListsLiftWithTheirRecipeAndReorder(string name)
     {
-        var page = new XamlPage();
+        var page = new ReorderPage();
         var window = SceneHarness.Show(page, 1280, 900);
         var list = page.GetControl<ListBox>(name);
         list.BringIntoView();

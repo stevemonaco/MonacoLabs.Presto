@@ -113,6 +113,15 @@ public sealed class SwipeDeckPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void TheGraphPanelPrintsTheBindingCodeThatRan()
+    {
+        var page = new SwipeDeckPage();
+
+        Assert.Equal(Snippets.SwipeDeckBind, page.GetControl<CodePanel>("GraphCode").Code);
+        Assert.Contains("Follow.Bind(Stamp(card, true), OpacityProperty, graph.LikeOpacity)", Snippets.SwipeDeckBind);
+    }
+
     private static Border Top(Panel deck) => (Border)deck.Children[^1];
 
     private static double Get(Border card, string property) => Convert.ToDouble(PrestoAvalonia.Get(card, property));

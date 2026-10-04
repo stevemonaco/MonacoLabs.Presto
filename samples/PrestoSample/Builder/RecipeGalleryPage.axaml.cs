@@ -133,7 +133,27 @@ public partial class RecipeGalleryPage : ShowcasePage
         [CallerArgumentExpression(nameof(apply))] string code = "") =>
         new(name, () => new Button { Classes = { "specimen" }, Content = hint }, Body(Snippet.Of(apply, code).Code), Apply: apply);
 
-    private static string Body(string lambda) => lambda[(lambda.IndexOf("=> ", StringComparison.Ordinal) + 3)..];
+    internal static string Body(string lambda)
+    {
+        var body = lambda[(lambda.IndexOf("=>", StringComparison.Ordinal) + 2)..].Trim();
+        if (!body.StartsWith('{')) return body;
+        var statements = new List<string>();
+        var (depth, start) = (0, 1);
+        for (var i = 1; i < body.Length - 1; i++)
+        {
+            switch (body[i])
+            {
+                case '(' or '[' or '{': depth++; break;
+                case ')' or ']' or '}': depth--; break;
+                case ';' when depth == 0:
+                    statements.Add(body[start..(i + 1)].Trim());
+                    start = i + 1;
+                    break;
+            }
+        }
+        if (body[start..^1].Trim() is { Length: > 0 } rest) statements.Add(rest);
+        return string.Join('\n', statements);
+    }
 
     private static Control Dots() => new StackPanel
     {

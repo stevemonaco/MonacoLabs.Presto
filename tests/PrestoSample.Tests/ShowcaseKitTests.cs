@@ -28,6 +28,29 @@ public sealed class ShowcaseKitTests
     }
 
     [AvaloniaFact]
+    public void AfterFirstArrangeRunsOnceTheControlHasASizeAndNotForADetachedPage()
+    {
+        var page = new ArrangeProbePage();
+        var window = new Window { Content = page, Width = 400, Height = 300 };
+        window.Show();
+        Assert.Equal(0, page.Runs);
+
+        window.Content = null;
+        page.Target.Width = 50;
+        window.UpdateLayout();
+        window.Content = page;
+        window.UpdateLayout();
+        Assert.Equal(1, page.Runs);
+
+        page.Target.Width = 80;
+        window.UpdateLayout();
+        Assert.Equal(1, page.Runs);
+
+        window.Content = null;
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void TransportBarFollowsItsTimerAndSeeksIt()
     {
         TestFrames.Install();
@@ -127,5 +150,16 @@ public sealed class ShowcaseKitTests
         public int Reverts { get; private set; }
 
         protected override void OnAttached() => Builds++;
+    }
+
+    private sealed class ArrangeProbePage : ShowcasePage
+    {
+        public ArrangeProbePage() => Content = Target;
+
+        public Border Target { get; } = new() { Width = 0 };
+
+        public int Runs { get; private set; }
+
+        protected override void OnAttached() => AfterFirstArrange(Target, () => Runs++);
     }
 }

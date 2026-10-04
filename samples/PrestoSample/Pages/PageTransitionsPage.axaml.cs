@@ -63,22 +63,28 @@ public partial class PageTransitionsPage : UserControl
 
     private void Apply()
     {
-        var (transition, call, markup) = (RecipePicker.SelectedIndex, OptionPicker.SelectedItem) switch
+        ((PrestoPageTransition? Value, string Code) Call, string? Markup) choice = (RecipePicker.SelectedIndex, OptionPicker.SelectedItem) switch
         {
-            (0, _) => (Recipes.PageFade(), "Recipes.PageFade()", "{presto:PageFade}"),
-            (1, _) => (Recipes.PageFadeThrough(), "Recipes.PageFadeThrough()", "{presto:PageFadeThrough}"),
-            (2, PageAxis axis) => (Recipes.PageSharedAxis(axis), $"Recipes.PageSharedAxis(PageAxis.{axis})", $"{{presto:PageSharedAxis Axis={axis}}}"),
-            (3, Edge edge) => (Recipes.PageSlide(edge), $"Recipes.PageSlide(Edge.{edge})", $"{{presto:PageSlide Edge={edge}}}"),
-            (4, Edge edge) => (Recipes.PagePush(edge), $"Recipes.PagePush(Edge.{edge})", $"{{presto:PagePush Edge={edge}}}"),
-            (5, _) => (Custom.Value, Custom.Code, null),
-            (6, _) => (BlurSlide.Value, BlurSlide.Code, null),
+            (0, _) => (Snippet.Of(Recipes.PageFade()), "{presto:PageFade}"),
+            (1, _) => (Snippet.Of(Recipes.PageFadeThrough()), "{presto:PageFadeThrough}"),
+            (2, PageAxis axis) => (Snippet.Of(Recipes.PageSharedAxis(axis)), $"{{presto:PageSharedAxis Axis={axis}}}"),
+            (3, Edge edge) => (Snippet.Of(Recipes.PageSlide(edge)), $"{{presto:PageSlide Edge={edge}}}"),
+            (4, Edge edge) => (Snippet.Of(Recipes.PagePush(edge)), $"{{presto:PagePush Edge={edge}}}"),
+            (5, _) => (Custom, null),
+            (6, _) => (BlurSlide, null),
             // The option picker is between item sources.
-            _ => default((PrestoPageTransition?, string, string?)),
+            _ => default,
         };
-        if (transition == null) return;
-        Host.PageTransition = transition;
-        HostCode.Code = $"host.PageTransition = {call};"
-            + (markup == null ? "" : $"\n\n<TransitioningContentControl\n    ClipToBounds=\"True\"\n    PageTransition=\"{markup}\" />");
+        if (choice.Call.Value == null) return;
+        Host.PageTransition = choice.Call.Value;
+        var option = OptionPicker.SelectedItem switch
+        {
+            PageAxis axis => $"var axis = PageAxis.{axis};\n",
+            Edge edge => $"var edge = Edge.{edge};\n",
+            _ => "",
+        };
+        HostCode.CSharp = $"{option}host.PageTransition = {choice.Call.Code};";
+        HostCode.Xaml = choice.Markup == null ? null : $"<TransitioningContentControl\n    ClipToBounds=\"True\"\n    PageTransition=\"{choice.Markup}\" />";
     }
 
     private void NextClicked(object? sender, RoutedEventArgs e) => Go(1);
@@ -96,7 +102,7 @@ public partial class PageTransitionsPage : UserControl
     private void FreezeClicked(object? sender, RoutedEventArgs e)
     {
         Go(1);
-        TopLevel.GetTopLevel(this)?.RequestAnimationFrame(_ => Dispatcher.UIThread.Post(() => Thread.Sleep(2000), DispatcherPriority.Background));
+        TopLevel.GetTopLevel(this)?.RequestAnimationFrame(_ => UiThread.Freeze(TimeSpan.FromSeconds(2)));
     }
 
     // Restored at Background priority, after the layout pass that starts the second transition.

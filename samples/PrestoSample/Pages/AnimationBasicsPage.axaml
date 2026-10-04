@@ -1,9 +1,10 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
-             x:Class="PrestoSample.Pages.AnimationBasicsPage">
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
+                       x:Class="PrestoSample.Pages.AnimationBasicsPage">
     <StackPanel Spacing="16">
         <Border Classes="stage">
             <Button x:Name="LikeButton" Classes="specimen" Padding="16,10" FontSize="16" Click="Like">
@@ -16,5 +17,7 @@
         </Border>
 
         <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
+
+        <showcase:CodePanel x:Name="Code" />
     </StackPanel>
-</UserControl>
+</showcase:ShowcasePage>

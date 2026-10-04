@@ -38,15 +38,9 @@ public partial class GalleryFlipPage : ShowcasePage
     {
         foreach (var record in Datasets.Cards) _cards[record] = BuildCard(record);
         Reorder(Wanted());
-        Field.LayoutUpdated += Arrive;
-    }
-
-    // AutoGrid staggers from where the first layout pass put the cards, and starting inside that pass renders the
-    // from-values before the first frame shows them.
-    private void Arrive(object? sender, EventArgs e)
-    {
-        Field.LayoutUpdated -= Arrive;
-        Enter(_shown, PrestoAvalonia.Stagger(20));
+        // AutoGrid staggers from where the first layout pass put the cards, and starting inside that pass renders the
+        // from-values before the first frame shows them.
+        AfterFirstArrange(Field, () => Enter(_shown, PrestoAvalonia.Stagger(20)));
     }
 
     private Border BuildCard(Datasets.Card record)
@@ -56,11 +50,6 @@ public partial class GalleryFlipPage : ShowcasePage
         card.PointerPressed += Expand;
         return card;
     }
-
-    private void Arm(Border card) => card.AnimateLayout(
-        ReflowDuration,
-        Eases.OutQuint,
-        Sized.IsChecked == true ? LayoutAnimateMode.PositionAndSize : LayoutAnimateMode.Position);
 
     private void Rebuild(object? sender, RoutedEventArgs e)
     {
@@ -183,6 +172,12 @@ public partial class GalleryFlipPage : ShowcasePage
         }
     }
 
+    #region snippet GalleryFlipLayout
+    private void Arm(Border card) => card.AnimateLayout(
+        ReflowDuration,
+        Eases.OutQuint,
+        Sized.IsChecked == true ? LayoutAnimateMode.PositionAndSize : LayoutAnimateMode.Position);
+
     private void Enter(IReadOnlyList<Control> coming, Stagger delay) => Scope.Execute(_ =>
         PrestoAvalonia.AnimateOnCompositor(coming, new CompositorAnimationParams
         {
@@ -211,4 +206,5 @@ public partial class GalleryFlipPage : ShowcasePage
                 }
             },
         }));
+    #endregion
 }

@@ -18,10 +18,7 @@
                 </StackPanel>
             </Border>
 
-            <StackPanel Spacing="2">
-                <TextBlock Classes="caption" Text="{Binding #DurationSlider.Value, StringFormat='Pop.Duration({0:0})'}" />
-                <Slider x:Name="DurationSlider" Minimum="200" Maximum="2000" Value="600" ValueChanged="DurationChanged" />
-            </StackPanel>
+            <Slider x:Name="DurationSlider" Minimum="200" Maximum="2000" Value="600" TickFrequency="50" IsSnapToTickEnabled="True" ValueChanged="DurationChanged" />
 
             <showcase:CodePanel x:Name="RecipeCode" />
 

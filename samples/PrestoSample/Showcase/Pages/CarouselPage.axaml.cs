@@ -27,13 +27,13 @@ public partial class CarouselPage : ShowcasePage
     private static readonly (string Title, string Blurb, string Icon, ImmutableSolidColorBrush Tint)[] Slides =
     [
         ("Throw it", "An x-only draggable coasts on inertia and lands on a slide: flick hard to skip a few.", "PlayIcon", Palette.Accent),
-        ("Parallax", "Every layer reads the strip's X in OnUpdate and moves at its own rate.", "StarIcon", Palette.Aqua),
+        ("Parallax", "Every layer follows its own Map of the strip's XValue, so each moves at its own rate.", "StarIcon", Palette.Aqua),
         ("Indicators", "The active dot widens through a Width tween while the ring draws the autoplay.", "HeartIcon", Palette.Coral),
         ("Autoplay", "A looping Draw animation advances every four seconds and holds while hovered.", "GearIcon", Palette.AccentBright),
         ("Keyboard", "Left and Right, or the arrows, spring the draggable's own X to a slide.", "StarIcon", Palette.AccentDim),
     ];
 
-    private readonly List<(TranslateTransform Background, TranslateTransform Art, TranslateTransform Title)> _layers = [];
+    private readonly List<(Control Background, Control Art, Control Title)> _layers = [];
     private Draggable? _drag;
     private Animation? _autoplay;
     private Animation? _travel;
@@ -41,6 +41,7 @@ public partial class CarouselPage : ShowcasePage
     private int _active;
     private bool _hovered;
     private bool _dragging;
+    private bool _still;
 
     public CarouselPage()
     {
@@ -57,12 +58,14 @@ public partial class CarouselPage : ShowcasePage
 
     protected override void OnAttached()
     {
+        _still = Presto.Defaults.ReducedMotion;
         _autoplay = PrestoAvalonia.CreateDrawable(Ring).Animate(new()
         {
             ["Draw"] = TweenValue.FromTo("0 0", "0 1"),
             Duration = AutoplayInterval,
             Ease = Eases.None,
             Loop = true,
+            Autoplay = !_still,
             OnLoop = _ => GoTo(_active + 1),
         });
         _drag = PrestoAvalonia.CreateDraggable(Strip, new DraggableParams
@@ -78,7 +81,6 @@ public partial class CarouselPage : ShowcasePage
                 Viewport.Focus();
                 Hold();
             },
-            OnUpdate = drag => Parallax(drag.X),
             OnSettle = drag => Mark((int)Math.Round(-drag.X / _slideWidth)),
             OnRelease = _ =>
             {
@@ -87,6 +89,15 @@ public partial class CarouselPage : ShowcasePage
                 Hold();
             },
         });
+        #region snippet CarouselParallax
+        foreach (var (slide, (background, art, title)) in _layers.Index())
+        {
+            var offset = _drag.XValue.Map(x => x + (slide * _slideWidth));
+            Follow.SetX(background, offset.Map(v => v * BackgroundDepth));
+            Follow.SetX(art, offset.Map(v => v * ArtDepth));
+            Follow.SetX(title, offset.Map(v => v * TitleLead));
+        }
+        #endregion
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -100,87 +111,63 @@ public partial class CarouselPage : ShowcasePage
     private Panel BuildSlide(int index)
     {
         var (title, blurb, icon, tint) = Slides[index];
-        var background = new TranslateTransform();
-        var art = new TranslateTransform();
-        var text = new TranslateTransform();
+        var background = new Panel
+        {
+            Background = new LinearGradientBrush
+            {
+                StartPoint = RelativePoint.TopLeft,
+                EndPoint = RelativePoint.BottomRight,
+                GradientStops = { new GradientStop(Color.FromArgb(0x55, tint.Color.R, tint.Color.G, tint.Color.B), 0), new GradientStop(Palette.Surface.Color, .75) },
+            },
+            Children =
+            {
+                new Ellipse { Width = 420, Height = 420, Margin = new Thickness(0, -140, -120, 0), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Fill = tint, Opacity = .12 },
+                new Ellipse { Width = 160, Height = 160, Margin = new Thickness(-40, 0, 0, -60), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Fill = tint, Opacity = .18 },
+            },
+        };
+        var text = new StackPanel
+        {
+            Spacing = 10,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                new TextBlock { Classes = { "eyebrow", "showcase" }, Text = $"0{index + 1} / 0{Slides.Length}" },
+                new TextBlock { Text = title, FontSize = 40, FontWeight = FontWeight.SemiBold, Foreground = Palette.Ink },
+                new TextBlock { Text = blurb, FontSize = 14, TextWrapping = TextWrapping.Wrap, Foreground = Palette.InkDim },
+            },
+        };
+        var art = new Border
+        {
+            [Grid.ColumnProperty] = 1,
+            Width = 220,
+            Height = 160,
+            CornerRadius = new CornerRadius(16),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Background = new LinearGradientBrush
+            {
+                StartPoint = RelativePoint.TopLeft,
+                EndPoint = RelativePoint.BottomRight,
+                GradientStops = { new GradientStop(tint.Color, 0), new GradientStop(Palette.AccentDeep.Color, 1) },
+            },
+            Child = new PathIcon
+            {
+                Width = 56,
+                Height = 56,
+                Foreground = Palette.Ink,
+                Data = (Geometry)Application.Current!.FindResource(icon)!,
+            },
+        };
         _layers.Add((background, art, text));
         return new Panel
         {
             ClipToBounds = true,
             Children =
             {
-                new Panel
-                {
-                    RenderTransform = background,
-                    Background = new LinearGradientBrush
-                    {
-                        StartPoint = RelativePoint.TopLeft,
-                        EndPoint = RelativePoint.BottomRight,
-                        GradientStops = { new GradientStop(Color.FromArgb(0x55, tint.Color.R, tint.Color.G, tint.Color.B), 0), new GradientStop(Palette.Surface.Color, .75) },
-                    },
-                    Children =
-                    {
-                        new Ellipse { Width = 420, Height = 420, Margin = new Thickness(0, -140, -120, 0), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Fill = tint, Opacity = .12 },
-                        new Ellipse { Width = 160, Height = 160, Margin = new Thickness(-40, 0, 0, -60), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Fill = tint, Opacity = .18 },
-                    },
-                },
-                new Grid
-                {
-                    ColumnDefinitions = new ColumnDefinitions("*,*"),
-                    Margin = new Thickness(96, 0),
-                    Children =
-                    {
-                        new StackPanel
-                        {
-                            RenderTransform = text,
-                            Spacing = 10,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            Children =
-                            {
-                                new TextBlock { Classes = { "eyebrow", "showcase" }, Text = $"0{index + 1} / 0{Slides.Length}" },
-                                new TextBlock { Text = title, FontSize = 40, FontWeight = FontWeight.SemiBold, Foreground = Palette.Ink },
-                                new TextBlock { Text = blurb, FontSize = 14, TextWrapping = TextWrapping.Wrap, Foreground = Palette.InkDim },
-                            },
-                        },
-                        new Border
-                        {
-                            [Grid.ColumnProperty] = 1,
-                            RenderTransform = art,
-                            Width = 220,
-                            Height = 160,
-                            CornerRadius = new CornerRadius(16),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            Background = new LinearGradientBrush
-                            {
-                                StartPoint = RelativePoint.TopLeft,
-                                EndPoint = RelativePoint.BottomRight,
-                                GradientStops = { new GradientStop(tint.Color, 0), new GradientStop(Palette.AccentDeep.Color, 1) },
-                            },
-                            Child = new PathIcon
-                            {
-                                Width = 56,
-                                Height = 56,
-                                Foreground = Palette.Ink,
-                                Data = (Geometry)Application.Current!.FindResource(icon)!,
-                            },
-                        },
-                    },
-                },
+                background,
+                new Grid { ColumnDefinitions = new ColumnDefinitions("*,*"), Margin = new Thickness(96, 0), Children = { text, art } },
             },
         };
-    }
-
-    private void Parallax(double x)
-    {
-        for (var i = 0; i < _layers.Count; i++)
-        {
-            var offset = x + (i * _slideWidth);
-            var (background, art, title) = _layers[i];
-            background.X = offset * BackgroundDepth;
-            art.X = offset * ArtDepth;
-            title.X = offset * TitleLead;
-        }
     }
 
     private void Step(int step)
@@ -198,7 +185,8 @@ public partial class CarouselPage : ShowcasePage
         _travel = Scope.Execute(_ => Presto.Animate(_drag, new()
         {
             ["X"] = -index * _slideWidth,
-            Ease = Eases.Spring(bounce: .2, duration: 700),
+            Ease = _still ? Eases.None : Eases.Spring(bounce: .2, duration: 700),
+            Duration = _still ? 0 : null,
         }));
     }
 
@@ -221,7 +209,7 @@ public partial class CarouselPage : ShowcasePage
 
     private void Hold()
     {
-        if (_hovered || _dragging) _autoplay?.Pause();
+        if (_still || _hovered || _dragging) _autoplay?.Pause();
         else _autoplay?.Resume();
     }
 
@@ -237,7 +225,6 @@ public partial class CarouselPage : ShowcasePage
         _travel?.Pause();
         _drag.Refresh();
         _drag.X = -_active * _slideWidth;
-        Parallax(_drag.X);
     }
 
     private void ViewportEntered(object? sender, PointerEventArgs e)

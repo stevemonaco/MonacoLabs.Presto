@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -10,7 +11,7 @@ namespace PrestoSample.Showcase;
 
 /// <summary>
 /// A page's printed code, syntax highlighted, with a Copy button and an optional collapsible header.
-/// The <c>compact</c> class shrinks it to a bare highlighted line for tiles.
+/// The <c>compact</c> class strips it to bare highlighted code for tiles.
 /// </summary>
 public sealed class CodePanel : TemplatedControl
 {
@@ -91,6 +92,14 @@ public sealed class CodePanel : TemplatedControl
 
     private async void Copy(object? sender, RoutedEventArgs e)
     {
-        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(Code ?? "");
+        if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard) return;
+        try
+        {
+            await clipboard.SetTextAsync(Code ?? "");
+        }
+        catch (COMException)
+        {
+            // Another process holds the Windows clipboard (CLIPBRD_E_CANT_OPEN); a missed copy beats a crash.
+        }
     }
 }

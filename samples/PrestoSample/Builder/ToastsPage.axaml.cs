@@ -11,42 +11,24 @@ using Timer = Monaco.Presto.Timer;
 namespace PrestoSample.Builder;
 
 /// <summary>
-/// A toast stack whose item template attaches its entrance and countdown from XAML; the page only plays the exit, then
-/// removes the item.
+/// A toast stack whose item template attaches its entrance, countdown and exit from XAML; the page only removes items.
 /// </summary>
 public partial class ToastsPage : ShowcasePage
 {
     private const int MaxToasts = 4;
 
-    public static readonly AnimationBuilder Countdown;
-    private static readonly Func<Control, AnimationBuilder> Leave;
-    private static readonly string Recipes;
-
-    private readonly HashSet<Toast> _leaving = [];
-
-    static ToastsPage()
-    {
-        (Countdown, var countdown) = Snippet.Of(Presto.Build()
-            .ScaleX(from: 1, to: 0)
-            .Duration(5000)
-            .Ease(Eases.None)
-            .OnComplete(Expire));
-        (Leave, var leave) = Snippet.Of<Func<Control, AnimationBuilder>>(container => Presto.Build()
-            .Height(from: container.Bounds.Height, to: 0)
-            .Opacity(0)
-            .X(80)
-            .Duration(360)
-            .Ease(Eases.InOutQuad));
-        const string field = "public static readonly AnimationBuilder";
-        Recipes = string.Join("\n\n",
-            Snippet.Declare($"{field} Countdown", countdown),
-            Snippet.Declare("static readonly Func<Control, AnimationBuilder> Leave", leave));
-    }
+    #region snippet ToastsBuilders
+    public static readonly AnimationBuilder Countdown = Presto.Build()
+        .ScaleX(from: 1, to: 0)
+        .Duration(5000)
+        .Ease(Eases.None)
+        .OnComplete(Expire)
+        .WhenReduced(reduced => reduced.Opacity(from: 1, to: .35));
+    #endregion
 
     public ToastsPage()
     {
         InitializeComponent();
-        RecipesCode.Code = Recipes;
         ViewModel.Toasts.CollectionChanged += TrimStack;
     }
 
@@ -57,38 +39,24 @@ public partial class ToastsPage : ShowcasePage
         if (ViewModel.Toasts.Count == 0) ViewModel.NotifyCommand.Execute(null);
     }
 
-    /// <summary>Plays <see cref="Leave"/> on the toast's container and removes the toast once it has collapsed.</summary>
-    public Task Dismiss(Toast toast) => _leaving.Add(toast) ? CollapseAndRemove(toast) : Task.CompletedTask;
-
-    private async Task CollapseAndRemove(Toast toast)
-    {
-        // A toast added and trimmed before any layout pass has no container yet, so it simply goes.
-        if (ToastList.ContainerFromItem(toast) is Control container)
-        {
-            container.ClipToBounds = true;
-            await container.Animate(Leave(container));
-        }
-        _leaving.Remove(toast);
-        ViewModel.Toasts.Remove(toast);
-    }
-
     private static void Expire(Timer timer)
     {
         if (((Animation)timer).Targets[0] is Control { DataContext: Toast toast } bar && bar.FindAncestorOfType<ToastsPage>() is { } page)
-            _ = page.Dismiss(toast);
+            page.ViewModel.Toasts.Remove(toast);
     }
 
     private void TrimStack(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action != NotifyCollectionChangedAction.Add) return;
-        var staying = ViewModel.Toasts.Where(toast => !_leaving.Contains(toast)).ToList();
-        if (staying.Count <= MaxToasts || !_leaving.Add(staying[0])) return;
+        if (e.Action != NotifyCollectionChangedAction.Add || ViewModel.Toasts.Count <= MaxToasts) return;
         // Posted because the collection may not change inside its own CollectionChanged.
-        Dispatcher.UIThread.Post(() => _ = CollapseAndRemove(staying[0]));
+        Dispatcher.UIThread.Post(() =>
+        {
+            while (ViewModel.Toasts.Count > MaxToasts) ViewModel.Toasts.RemoveAt(0);
+        });
     }
 
     private void Close(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control { DataContext: Toast toast }) _ = Dismiss(toast);
+        if (sender is Control { DataContext: Toast toast }) ViewModel.Toasts.Remove(toast);
     }
 }

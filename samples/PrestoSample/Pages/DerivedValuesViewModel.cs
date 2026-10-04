@@ -8,14 +8,14 @@ public sealed class DerivedValuesViewModel
 {
     public DerivedValuesViewModel()
     {
-        var (opacity, code) = Snippet.Of(Sweep.Map([0, .5, 1], [.25, 1, .25]));
-        HeaderOpacity = opacity;
-        HeaderCode = Snippet.Declare("HeaderOpacity", code);
+        #region snippet DerivedValuesHeaderOpacity
+        HeaderOpacity = Sweep.Map([0, .5, 1], [.25, 1, .25]);
+        #endregion
     }
 
     public MotionValue Sweep { get; } = Presto.CreateMotionValue();
 
     public MotionValue HeaderOpacity { get; }
 
-    public string HeaderCode { get; }
+    public string HeaderCode => Snippets.DerivedValuesHeaderOpacity;
 }

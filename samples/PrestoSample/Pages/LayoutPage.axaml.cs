@@ -3,21 +3,20 @@ using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class LayoutPage : UserControl
+public partial class LayoutPage : ShowcasePage
 {
     private static readonly (string Icon, string Title)[] Kinds =
         [("HeartIcon", "Liked"), ("StarIcon", "Starred"), ("PlayIcon", "Playing")];
 
     private static readonly string[] Views = ["ShortView", "ParagraphView", "IconsView"];
 
-    private readonly Scope _scope = new();
     private int _next;
     private int _view;
     private bool _moved;
@@ -28,16 +27,11 @@ public partial class LayoutPage : UserControl
         for (var i = 0; i < 8; i++) AddCard();
         SlotA.Child = NewSquare();
         SwapHost.Child = BuildView();
-        Arm();
     }
 
-    private double Duration => Slow.IsChecked == true ? 4000 : 400;
+    private AnimationBuilder Move => Recipes.Reflow(Slow.IsChecked == true ? 4000 : 400, ease: Eases.OutQuint);
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _scope.Revert();
-    }
+    protected override void OnAttached() => Arm();
 
     private void Shuffle(object? sender, RoutedEventArgs e)
     {
@@ -68,14 +62,12 @@ public partial class LayoutPage : UserControl
         if (from.Child is not Border square) return;
 
         _moved = !_moved;
-        _scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(square, square, Duration, Eases.OutQuint));
+        Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(square, square, Move));
         from.Child = null;
         to.Child = square;
     }
 
-    // Posted below Render priority so the button paints its pressed state before the dispatcher stops answering.
-    private void Freeze(object? sender, RoutedEventArgs e) =>
-        Dispatcher.UIThread.Post(() => Thread.Sleep(2000), DispatcherPriority.Background);
+    private void Freeze(object? sender, RoutedEventArgs e) => UiThread.Freeze(TimeSpan.FromSeconds(2));
 
     private void Rearm(object? sender, RoutedEventArgs e) => Arm();
 
@@ -83,16 +75,16 @@ public partial class LayoutPage : UserControl
     {
         foreach (var card in Cards.Children)
         {
-            if (card != XamlCard) _scope.Execute(_ => card.AnimateLayout(Duration, Eases.OutQuint));
+            if (card != XamlCard) Scope.Execute(_ => card.AnimateLayout(Move));
         }
         var avatarMode = Uncorrected.IsChecked == true ? LayoutAnimateMode.PositionAndSize : LayoutAnimateMode.PositionAndSizeCorrected;
-        _scope.Execute(_ =>
+        Scope.Execute(_ =>
         {
-            GrowBox.AnimateLayout(Duration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize);
-            AvatarCard.AnimateLayout(Duration, Eases.OutQuint, avatarMode);
-            SwapHost.AnimateContentSize(Duration, Eases.OutQuint);
+            GrowBox.AnimateLayout(Move, LayoutAnimateMode.PositionAndSize);
+            AvatarCard.AnimateLayout(Move, avatarMode);
+            SwapHost.AnimateContentSize(Move);
         });
-        Animate.SetContentSize(Faq, Recipes.Reflow(Duration, ease: Eases.OutQuint));
+        Animate.SetContentSize(Faq, Move);
     }
 
     private void AddCard()
@@ -112,7 +104,7 @@ public partial class LayoutPage : UserControl
                 },
             },
         };
-        _scope.Execute(_ => card.AnimateLayout(Duration, Eases.OutQuint));
+        Scope.Execute(_ => card.AnimateLayout(Move));
         Cards.Children.Add(card);
     }
 

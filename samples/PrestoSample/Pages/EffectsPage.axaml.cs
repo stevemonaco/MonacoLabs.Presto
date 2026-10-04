@@ -14,65 +14,56 @@ namespace PrestoSample.Pages;
 /// The effect shorthands on real controls: blur, a live drop shadow, <c>BoxShadow</c> beside <c>DropShadowEffect</c>, a
 /// <c>RotateY</c> flip, a pointer tilt, clip and mask reveals and a blur-out exit. Each stage prints the code it ran.
 /// </summary>
-public partial class EffectsPage : UserControl
+public partial class EffectsPage : ShowcasePage
 {
-    public static readonly AnimationBuilder BlurOut;
-    private static readonly string BlurOutCode;
+    #region snippet EffectsBlurOut
+    public static readonly AnimationBuilder BlurOut = Presto.Build().Blur(12).Opacity(0).Scale(.96).Duration(420).Ease(Eases.OutQuad);
+    #endregion
 
     private static readonly string[] Chores = ["Water the plants", "Reply to Grace", "Book the dentist", "Fix the bike light"];
 
-    private readonly ControlScope _scope;
-    private readonly Animatable _tilt;
-    private readonly string _tiltCode;
+    private Animatable _tilt = null!;
+    private string _tiltCode = "";
     private Animation? _reveal;
     private bool _raised;
     private bool _flipped;
 
-    static EffectsPage()
-    {
-        (BlurOut, var code) = Snippet.Of(Presto.Build().Blur(12).Opacity(0).Scale(.96).Duration(420).Ease(Eases.OutQuad));
-        BlurOutCode = Snippet.Declare("public static readonly AnimationBuilder BlurOut", code);
-    }
-
     public EffectsPage()
     {
         InitializeComponent();
-        _scope = PrestoAvalonia.CreateScope(this);
         Rows.ItemsSource = Items;
         Refill();
         ExitCode.Xaml = $"{Snippets.EffectsList}\n    {Snippets.EffectsRow}";
-        ExitCode.CSharp = BlurOutCode;
-
-        (_tilt, var tilt) = _scope.Execute(_ => Snippet.Of(TiltCard.CreateAnimatable(new()
-        {
-            ["RotateX"] = new(),
-            ["RotateY"] = new(),
-            Ease = new Spring(stiffness: 120, damping: 10),
-        })));
-        var (_, depth) = _scope.Execute(_ => Snippet.Of(Presto.Set(TiltCard, b => b.Perspective(500))));
-        TiltCode.Code = _tiltCode = $"var tilt = {tilt};\n{depth};";
+        ExitCode.CSharp = Snippets.EffectsBlurOut;
     }
 
     public ObservableCollection<string> Items { get; } = [];
 
-    protected override void OnLoaded(RoutedEventArgs e)
+    protected override void OnAttached()
     {
-        base.OnLoaded(e);
+        (_tilt, var tilt) = Snippet.Of(TiltCard.CreateAnimatable(new()
+        {
+            ["RotateX"] = new(),
+            ["RotateY"] = new(),
+            Ease = new Spring(stiffness: 120, damping: 10),
+        }));
+        var (_, depth) = Snippet.Of(Presto.Set(TiltCard, b => b.Perspective(500)));
+        TiltCode.Code = _tiltCode = $"var tilt = {tilt};\n{depth};";
         ApplyShadow();
     }
 
     private void BlurOutClicked(object? sender, RoutedEventArgs e) =>
-        Show(BlurCode, _scope.Execute(_ => Snippet.Of(Presto.Build().Blur(12).Opacity(.4).Duration(600).Ease(Eases.OutQuad).Animate(BlurRow.Children))));
+        Show(BlurCode, Scope.Execute(_ => Snippet.Of(Presto.Build().Blur(12).Opacity(.4).Duration(600).Ease(Eases.OutQuad).Animate(BlurRow.Children))));
 
     private void BlurInClicked(object? sender, RoutedEventArgs e) =>
-        Show(BlurCode, _scope.Execute(_ => Snippet.Of(Presto.Build().Blur(0).Opacity(1).Duration(600).Ease(Eases.OutQuad).Animate(BlurRow.Children))));
+        Show(BlurCode, Scope.Execute(_ => Snippet.Of(Presto.Build().Blur(0).Opacity(1).Duration(600).Ease(Eases.OutQuad).Animate(BlurRow.Children))));
 
     private void ShadowChanged(object? sender, RangeBaseValueChangedEventArgs e) => ApplyShadow();
 
     private void ApplyShadow()
     {
         var (x, y, blur, hue, opacity) = (ShadowXSlider.Value, ShadowYSlider.Value, ShadowBlurSlider.Value, ShadowHueSlider.Value, ShadowOpacitySlider.Value);
-        Show(ShadowCode, _scope.Execute(_ => Snippet.Of(ShadowCard.Animate(Presto.Build()
+        Show(ShadowCode, Scope.Execute(_ => Snippet.Of(ShadowCard.Animate(Presto.Build()
             .ShadowX(x)
             .ShadowY(y)
             .ShadowBlur(blur)
@@ -81,7 +72,7 @@ public partial class EffectsPage : UserControl
             .Duration(160)))));
     }
 
-    private void RaiseClicked(object? sender, RoutedEventArgs e) => _scope.Execute(_ =>
+    private void RaiseClicked(object? sender, RoutedEventArgs e) => Scope.Execute(_ =>
     {
         _raised = !_raised;
         var (offsetY, blur, color, y) = _raised ? (18, 36, "#cc4c8dff", -8) : (2, 6, "#664c8dff", 0);
@@ -93,7 +84,7 @@ public partial class EffectsPage : UserControl
     private void FlipClicked(object? sender, RoutedEventArgs e)
     {
         _flipped = !_flipped;
-        Show(FlipCode, _scope.Execute(_ => Snippet.Of(Presto.Build()
+        Show(FlipCode, Scope.Execute(_ => Snippet.Of(Presto.Build()
             .RotateY(_flipped ? 180 : 0)
             .Perspective(600)
             .Duration(900)
@@ -130,7 +121,7 @@ public partial class EffectsPage : UserControl
     private void Reveal(Func<(Animation Value, string Code)> run)
     {
         _reveal?.Revert();
-        _reveal = Show(RevealCode, _scope.Execute(_ => run()));
+        _reveal = Show(RevealCode, Scope.Execute(_ => run()));
     }
 
     private void RemoveRow(object? sender, RoutedEventArgs e)

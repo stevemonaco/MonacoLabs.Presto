@@ -72,7 +72,7 @@
                 <Slider x:Name="RateSlider" Grid.Column="7" Minimum="0.25" Maximum="2" Value="1" ValueChanged="RateChanged" />
             </Grid>
 
-            <showcase:CodePanel x:Name="CodeText" />
+            <showcase:CodePanel x:Name="CodeText" Code="{x:Static showcase:Snippets.StoryboardHop}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

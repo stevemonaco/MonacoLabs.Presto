@@ -51,7 +51,7 @@
                 </Border>
 
                 <TextBlock Classes="caption" TextWrapping="Wrap"
-                           Text="Nothing on this page plays on its own. Every animation below is created paused and handed to an observer, which either seeks it to the scroll position or plays it at a threshold." />
+                           Text="Everything below is driven by the scroll: observers seek animations to its position or start them at a threshold, and the rail across the top follows it as a MotionValue." />
 
                 <ToggleSwitch x:Name="SmoothWheel" Content="Smooth mouse-wheel scrolling (Scroll.Smooth, Windows only)" />
 
@@ -92,7 +92,7 @@
                         <TextBlock x:Name="Heading3" Classes="title" Text="Re-measured on every resize"
                                    presto:TextReveal.Pieces="Lines" presto:TextReveal.Mask="True" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
-                                   Text="Every threshold here is a pixel offset measured once against this article and its viewport. Resize the window mid-scroll and the page calls Refresh() on all seven observers, so the pinned scrub below carries on from the scroll position it is actually at instead of the one the old measurement said it was." />
+                                   Text="Every threshold here is a pixel offset measured once against this article and its viewport. Resize the window mid-scroll and the page calls Refresh() on all six observers, so the pinned scrub below carries on from the scroll position it is actually at instead of the one the old measurement said it was." />
                     </StackPanel>
                 </Border>
 
@@ -111,15 +111,15 @@
                     </Grid>
                 </Border>
 
-                <TextBlock Classes="caption" TextWrapping="Wrap"
-                           Text="Seven observers over one ScrollViewer: the pinned strip is a timeline created with Autoplay = false and handed to Link(), which is how autoplay: onScroll() is spelled here, and its observer also pins the stage and snaps to the timeline's labels; the hero title's fade and the quote are single animations, one smoothed and one synced through an ease; the three chapters are played and paused by the default &quot;play pause&quot; sync at their own named thresholds; and the rail reads Progress, Velocity and Backward off an observer watching the whole article, feeding the vane through an Animatable so it eases rather than jumping. The hero's depth needs no observer at all: it is three Scroll.Speed attached properties." />            </StackPanel>
+                <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+            </StackPanel>
         </ScrollViewer>
 
         <Border Classes="rail showcase" VerticalAlignment="Top" IsHitTestVisible="False" CornerRadius="0,0,10,10">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
-                <Border Grid.Column="0" x:Name="RailTrack" Height="4" CornerRadius="2" VerticalAlignment="Center"
+                <Border Grid.Column="0" Height="4" CornerRadius="2" VerticalAlignment="Center"
                         Background="{x:Static showcase:Palette.Border}">
-                    <Border x:Name="RailFill" Width="0" CornerRadius="2" HorizontalAlignment="Left"
+                    <Border x:Name="RailFill" CornerRadius="2" RenderTransformOrigin="0%,50%"
                             Background="{x:Static showcase:Palette.Accent}" />
                 </Border>
                 <TextBlock Grid.Column="1" x:Name="RailText" Classes="mono" Margin="0" Text="0% · 0.000 px/ms · forward" />

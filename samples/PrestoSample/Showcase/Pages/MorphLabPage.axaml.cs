@@ -31,6 +31,7 @@ public partial class MorphLabPage : ShowcasePage
     public MorphLabPage()
     {
         InitializeComponent();
+        HowCode.Code = $"{Snippets.MorphLabLoop}\n\n{Snippets.MorphLabSignature}\n\n{Snippets.MorphLabTrail}";
         EaseBox.ItemsSource = EaseNames;
         EaseBox.SelectedIndex = 1;
     }
@@ -39,14 +40,20 @@ public partial class MorphLabPage : ShowcasePage
     {
         RebuildLoop();
 
-        PrestoAvalonia.CreateDrawable(Signature).Animate(new()
+        // Played once, the draw would end erased, so reduced motion leaves the signature drawn.
+        if (!Presto.Defaults.ReducedMotion)
         {
-            ["Draw"] = TweenValue.Keyframes("0 0", "0 1", "1 1"),
-            Duration = 4000,
-            Ease = Eases.InOutQuad,
-            LoopDelay = 500,
-            Loop = true,
-        });
+            #region snippet MorphLabSignature
+            PrestoAvalonia.CreateDrawable(Signature).Animate(new()
+            {
+                ["Draw"] = TweenValue.Keyframes("0 0", "0 1", "1 1"),
+                Duration = 4000,
+                Ease = Eases.InOutQuad,
+                LoopDelay = 500,
+                Loop = true,
+            });
+            #endregion
+        }
 
         BuildTrail();
     }
@@ -63,7 +70,8 @@ public partial class MorphLabPage : ShowcasePage
         PrecisionText.Text = string.Create(CultureInfo.InvariantCulture, $"Precision {precision:0.000} per unit of contour · up to {points} sample points");
         _loop = Scope.Execute(_ =>
         {
-            var timeline = Presto.CreateTimeline(new TimelineParams { Loop = true });
+            #region snippet MorphLabLoop
+            var timeline = Presto.CreateTimeline(new TimelineParams { Loop = !Presto.Defaults.ReducedMotion });
             // Each child morphs from wherever the previous one left the path, and the last one closes the ring.
             for (var i = 1; i <= Shapes.Length; i++)
             {
@@ -74,6 +82,7 @@ public partial class MorphLabPage : ShowcasePage
                     Ease = ease,
                 });
             }
+            #endregion
             return timeline;
         });
     }
@@ -88,11 +97,10 @@ public partial class MorphLabPage : ShowcasePage
             ["Rotate"] = lead.Rotate,
             Duration = RideDuration,
             Ease = Eases.None,
-            Loop = true,
+            Loop = !Presto.Defaults.ReducedMotion,
         });
 
         var followers = new Border[FollowerCount];
-        var trails = new (TweenParams X, TweenParams Y, TweenParams Rotate)[FollowerCount];
         for (var i = 0; i < FollowerCount; i++)
         {
             followers[i] = new Border
@@ -105,10 +113,11 @@ public partial class MorphLabPage : ShowcasePage
             Canvas.SetLeft(followers[i], -10);
             Canvas.SetTop(followers[i], -4);
             TrackStage.Children.Add(followers[i]);
-            trails[i] = PrestoAvalonia.CreateMotionPath(Track, -0.045 * (i + 1));
         }
 
         Presto.Set(followers, new() { ["Opacity"] = Presto.Stagger(new double[] { 0.85, 0.25 }) });
+        #region snippet MorphLabTrail
+        var trails = followers.Select((_, i) => PrestoAvalonia.CreateMotionPath(Track, -0.045 * (i + 1))).ToArray();
         Presto.Animate(followers, new()
         {
             ["X"] = (FunctionValue)((_, i, _) => trails[i].X),
@@ -116,8 +125,9 @@ public partial class MorphLabPage : ShowcasePage
             ["Rotate"] = (FunctionValue)((_, i, _) => trails[i].Rotate),
             Duration = RideDuration,
             Ease = Eases.None,
-            Loop = true,
+            Loop = !Presto.Defaults.ReducedMotion,
         });
+        #endregion
     }
 
     private void Rebuild(object? sender, RoutedEventArgs e)

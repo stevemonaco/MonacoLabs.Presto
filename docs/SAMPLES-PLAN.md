@@ -318,24 +318,34 @@ An overlay has an "animations played" counter per trigger (fed from each builder
 - [x] **13c — Real-world.** Card gallery, Board, Dashboard, Scroll story.
 - [x] **13d — Hard parts.** Interruption lab, Stress bench (+ `FrameGraphScene`).
 - [ ] **13f — Polish round.** Title sequence beat, board insertion gap, interruption lab rebuild, Typography page.
-      Implemented; pending a full `slnx` build and a Desktop
-      hand-check of the board drag and gap, the hover tiles and the wordmark.
+      *53f Desktop pass:* build clean; Title sequence and the wordmark Replay passed. Remaining: the board drag and insertion gap, the hover tiles and the pointer-driven wordmark
+      need real pointer input, which DevTools cannot send, so they rest on `BoardPageTests`, `InterruptionPageTests`
+      and `TypographyPageTests`. A headless reversal from the end still leaves the cards at 0.4–4% opacity 300 ms
+      before their label, which a plain timeline with the same recipe does not, so it looks page-specific (probably
+      the split's KeepTime rebuild). It is not fixed.
 - [ ] **13g — Round 2.** Typography clip and rotator blink, card-gallery load, real controls on the reference pages,
       compositor page rebuild, four new pages (Micro-interactions, Loaders, Carousel, Stress bench).
-      Implemented; pending a full `slnx` build and
-      `dotnet test --solution` (blocked by a locked Desktop bin), and a Desktop hand-check of the Card gallery
-      first-load wave and a pointer drag on the Carousel.
+      *53f Desktop pass:* the build is clean and `PrestoSample.Tests` passes (540). The Card gallery opens with every
+      card in its slot. The wave itself (about 0.8 s) finishes before a DevTools screenshot can land, so it rests on
+      `GalleryFlipPageTests`. Carousel autoplay advanced a slide in Full and stayed put in Reduced. Loaders runs on both
+      threads with the same static builders it prints. Remaining: the Carousel pointer drag, which DevTools cannot send.
+      Cosmetic: at 127 px a grid card's `#06 · C. Lindqvist 711` line runs into its right border.
 - [ ] **13h — Round 3.** Six new pages (Connected animation, Colour bloom, Gestures, Liquid navigation, Swipe deck,
-      Chart morph). Implemented, §8 rows 29–30; the
-      three test projects pass, pending a full `slnx` build (blocked by a locked Desktop bin) and a Desktop pass over
-      each page against its "done when" clause.
+      Chart morph). Implemented, §8 rows 29–30.
+      *53f Desktop pass:* all six pages passed their button-driven checks in both motion modes. Remaining: Connected and Connected navigation open a card on `PointerPressed`, and Gestures is drags only, so
+      DevTools cannot drive them. They rest on their `*PageTests`.
 - [ ] **13i — Activity feed.** §4.11, built with PLAN Phase 27 rather than on its own. Implemented, with the overlay,
       `ActivityFeedPageTests` and §8 row 33 (no scroll anchor, so live events wait behind the pill while scrolled
-      down). The overlay's counters are plain counts and the Reveal memory drops items as they leave `Items`; pending a
-      Desktop pass over the "done when" clause, including the ten-minute run of live events and paging that checks
-      both stay bounded, and a look at upward reveals for [LIFECYCLE-PLAN.md](LIFECYCLE-PLAN.md) §10.5.
+      down). The overlay's counters are plain counts and the Reveal memory drops items as they leave `Items`.
+      *53f Desktop pass:* a 4.5 min run paged and counted live events correctly, and the pill returned to the top.
+      Remaining: the Reveal
+      memory cannot be read from DevTools, so its bound rests on `ActivityFeedPageTests`. The full ten-minute run
+      and the upward-reveal look for [LIFECYCLE-PLAN.md](LIFECYCLE-PLAN.md) §10.5 have not been done.
 - [ ] **13e — Docs.** README showcase section with captures, `CLAUDE.md` layout table updated with the
       `Showcase/` folder, this checklist ticked, findings from §8 folded into [PLAN.md](PLAN.md) §7.
+      Done: the `CLAUDE.md` layout row names `Showcase/`, and every §8 row's Outcome is fixed, documented or a
+      PLAN.md §7 entry. Remaining: the README has no showcase section or captures. The Browser/Android heads have
+      not been checked against the showcase pages (§6), so the README Platforms table is unchanged.
 
 Each demo is independently shippable; the order within a phase does not matter.
 

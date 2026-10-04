@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -171,6 +172,43 @@ public sealed class ScrollStoryPageTests
     }
 
     [AvaloniaFact]
+    public void UnderReducedMotionTheHeroLayersScrollTogether()
+    {
+        using var _ = ReducedMotion.On();
+        var (window, page, scroller) = Show();
+
+        ScrollTo(scroller, 200);
+
+        foreach (var name in (string[])["HeroSky", "HeroRidge", "HeroTitle"])
+        {
+            Assert.Equal(0, Convert.ToDouble(PrestoAvalonia.Get(page.GetControl<Control>(name), "Y")), 3);
+        }
+
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void UnderReducedMotionAChapterFadesInWithoutRising()
+    {
+        using var _ = ReducedMotion.On();
+        var (window, page, scroller) = Show();
+        var chapter = page.GetControl<Control>("Chapter1");
+
+        for (var offset = SweepStep; offset < scroller.Extent.Height && !page.Crossings.Contains("chapter 1 enter forward"); offset += SweepStep)
+        {
+            ScrollTo(scroller, offset);
+        }
+        for (var frame = 0; frame < 60; frame++)
+        {
+            Assert.Equal(0, Convert.ToDouble(PrestoAvalonia.Get(chapter, "Y")), 3);
+            TestFrames.Tick();
+        }
+
+        Assert.Equal(1, chapter.Opacity, 3);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void AChapterHeadingMasksInByLineAsItsChapterEntersAndIsRejoinedAfter()
     {
         var (window, page, scroller) = Show();
@@ -188,6 +226,24 @@ public sealed class ScrollStoryPageTests
         TestFrames.Tick(60);
         Assert.Equal(text, heading.Text);
         Assert.Null(heading.Inlines);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ScrollingHalfwayFillsHalfTheRail()
+    {
+        var (window, page, scroller) = Show();
+
+        ScrollTo(scroller, (scroller.Extent.Height - scroller.Viewport.Height) / 2);
+
+        Assert.Equal(.5, Convert.ToDouble(PrestoAvalonia.Get(page.GetControl<Border>("RailFill"), "ScaleX")), 2);
+        Assert.StartsWith("50%", page.GetControl<TextBlock>("RailText").Text);
+        var half = scroller.Offset.Y;
+        for (var step = 1; step <= 4; step++) ScrollTo(scroller, half - (step * 40));
+        Assert.EndsWith("backward", page.GetControl<TextBlock>("RailText").Text);
+        TestFrames.Tick(60);
+        var rotate = Convert.ToString(PrestoAvalonia.Get(page.GetControl<Control>("Vane"), "Rotate"), CultureInfo.InvariantCulture)!;
+        Assert.Equal(180, double.Parse(rotate.Replace("deg", ""), CultureInfo.InvariantCulture), 1);
         SceneHarness.Close(window);
     }
 

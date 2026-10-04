@@ -91,8 +91,7 @@
                 </Grid>
             </Border>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Click any pane, or press Burst for five quick retargets, and compare the trails: replace and none trace the same sharp path, while blend rounds every corner and arrives first. Then press Cancel newest mid-burst: replace just stops where it is, but none is yanked back toward the older targets it was still animating to underneath. Sweep the pointer quickly across the tiles: retarget eases each one back from wherever it had got to, while restart snaps it to fully raised before it falls." />
+            <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

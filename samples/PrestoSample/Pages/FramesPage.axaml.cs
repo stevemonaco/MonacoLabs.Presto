@@ -31,7 +31,7 @@ public partial class FramesPage : ShowcasePage
     protected override void OnAttached()
     {
         Run();
-        _story = Presto.CreateTimeline(new() { Loop = true })
+        _story = Presto.CreateTimeline(new() { Loop = !Presto.Defaults.ReducedMotion })
             .Add(Sequence, Recipes.PlayFrames(SequenceFps, loop: false), 0);
         foreach (var (frame, text) in Beats)
         {

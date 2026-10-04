@@ -63,8 +63,7 @@
 
             <showcase:TransportBar Grid.Row="3" x:Name="Bar" />
 
-            <TextBlock Grid.Row="4" Classes="caption" TextWrapping="Wrap"
-                       Text="Every widget is retargeted where it stands: a counter is a Text tween with a TextModifier over Utils.RoundPad, a bar is its Height, a donut slice is the pair of contour fractions CreateDrawable reveals, and the sparkline morphs its Data into the next series. Pushing new data while the last push is still easing is the default replace composition doing its job — the new tween reads the value on screen as its from, so nothing snaps back to a starting value, and the tweens it overrides are retired. The transport drives the reveal timeline, which counts up from zero and draws the arcs and the stroke; replaying it after a push rewinds to the values it was built with. The four counters need an animation each because a TextModifier belongs to the tween rather than the target, so one function value cannot give them their own precision (SAMPLES-PLAN §8)." />
+            <showcase:CodePanel Grid.Row="4" x:Name="HowCode" Header="How it's built" IsExpanded="False" />
         </Grid>
     </ScrollViewer>
 </showcase:ShowcasePage>

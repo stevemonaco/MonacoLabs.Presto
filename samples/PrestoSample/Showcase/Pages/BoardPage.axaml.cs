@@ -28,6 +28,7 @@ public partial class BoardPage : ShowcasePage
     public BoardPage()
     {
         InitializeComponent();
+        HowCode.Code = $"{Snippets.BoardDraggable}\n\n{Snippets.BoardLand}";
         Priorities.ItemsSource = new ObservableCollection<string>(Datasets.Board[1].Take(5).Select(card => card.Title));
     }
 
@@ -72,6 +73,7 @@ public partial class BoardPage : ShowcasePage
     {
         var card = CardView.Build(record, eyebrow: false);
         Scope.Execute(_ => card.AnimateLayout(ReflowDuration, Eases.OutQuint));
+        #region snippet BoardDraggable
         PrestoAvalonia.CreateDraggable(card, new DraggableParams
         {
             Container = Board,
@@ -92,6 +94,7 @@ public partial class BoardPage : ShowcasePage
             OnRelease = drag => VelocityText.Text = Utils.RoundPad(drag.Velocity, 2),
             OnSettle = drag => Land(card, drag),
         });
+        #endregion
         return card;
     }
 
@@ -147,6 +150,7 @@ public partial class BoardPage : ShowcasePage
             return;
         }
 
+        #region snippet BoardLand
         // Measured where the drag left the card drawn, before the reparent and Reset() move it, so it settles from the release.
         Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(
             card, card, ReflowDuration, Eases.OutQuint, LayoutAnimateMode.Position, once: false));
@@ -154,6 +158,7 @@ public partial class BoardPage : ShowcasePage
         _canvases[target].Children.Add(card);
         _lanes[target].Insert(slot, card);
         drag.Reset();
+        #endregion
         Layout(source);
         Layout(target);
     }
