@@ -609,7 +609,9 @@ real width and height too, overriding min/max, with a 1px tolerance.
 `SkiaSharp.Skottie` 3.119.x matches the SkiaSharp 3.119.4 that Avalonia 12.1.2 resolves here, and targets net8,
 Android, iOS and macOS. `Avalonia.Skia.Lottie` exists, but only for Avalonia 11 (11.0.0), so it is not a drop-in.
 
-### 4.2 Design sketch
+### 4.2 Design sketch (implemented)
+
+Built as sketched, with the deviations in §4.4; decisions in PLAN.md §7 (64–70).
 
 - **Packaging:** a separate package, `Monaco.Presto.AvaloniaBridge.Lottie`, so the bridge does not take a Skottie
   dependency.
@@ -627,11 +629,39 @@ Android, iOS and macOS. `Avalonia.Skia.Lottie` exists, but only for Avalonia 11 
 - **Out of scope:** per-layer recolouring (Skottie's property observers are not in SkiaSharp's public API),
   expressions (Skottie does not run them), and Lottie's text and effects beyond what Skottie draws.
 
-### 4.3 Spike first
+### 4.3 Spike results
 
-- The Browser head: is Skottie compiled into SkiaSharp's WASM native build?
-- Parse and render cost of a typical 200 KB file.
-- Seeking backwards at frame rate.
+`SkiaSharp.Skottie` 3.119.4 is published and matches the resolved SkiaSharp exactly, so it is pinned at that version.
+
+- **Browser: works, with no extra flags.** A temporary startup probe in the Browser head loaded `toggle.json` through
+  `LottieComposition.Load` (avares), parsed it with `Animation.TryParse` and rendered frame 40 into a 100 × 100
+  `SKSurface`. The centre pixel came back as the toggle's fill (`#2EBF73`) and the corner as transparent. This held under
+  `dotnet run` (Debug) and under a trimmed `dotnet publish -c Release`, which relinks `dotnet.native.wasm` with the
+  `wasm-tools` workload. The publish raised no trim warnings from Skottie or the Lottie package. The probe was removed.
+- **Parse cost: negligible.** A synthetic 197 KB file (91 shape layers, each with animated opacity, rotation, position
+  and an eight-vertex path morphing across three keyframes) parses in about 1 ms cold and 0.8 ms warm on the Desktop
+  head (Release). Parsing at load on the UI thread is fine.
+- **Render cost: driven by pixels covered, not by file size.** Per-frame `SeekFrame` plus `Render` into a 512 × 512
+  CPU raster surface took a median of 5.4 ms with shapes about 48 px across, 10.7 ms at about 128 px, and 46 ms when every
+  layer is a 512 px polygon overlapping all the others. `SeekFrame` alone is 0.07 ms. A typical icon or spinner is far
+  below the first case, and Avalonia's GPU backends rasterize paths faster than this CPU surface.
+- **Seeking backwards: same cost as forwards.** Stepping one 60 Hz tick at a time in descending order gave a median of
+  5.8 ms against 5.4 ms forwards, random seeks 5.8 ms, and `SeekFrame` alone 0.07 ms either way. Skottie evaluates
+  keyframes per seek and keeps no forward-only state, so reversing and scrubbing need no special handling.
+- **dotLottie: easy.** A `.lottie` file is a zip holding `manifest.json`, `animations/<id>.json` and `images/`, which
+  `System.IO.Compression.ZipArchive` reads on every head. Skottie's `ResourceProvider` cannot be subclassed from C#
+  (it is abstract with no public constructor), so images cannot be served straight from the zip. Instead, each image
+  asset's `p` is rewritten to a base64 `data:` URI with `e: 1`, and the view builds its animation through
+  `Animation.CreateBuilder().SetResourceProvider(new DataUriResourceProvider(preDecode: true))`. That was verified: an
+  embedded PNG drew red with the provider and nothing without it. The composition keeps only the rewritten JSON, so
+  nothing else changes. Themes and state machines stay out of scope (§4.1).
+
+### 4.4 Deviations
+
+- **No `Source` on the view.** `LottieView.Composition` takes a `LottieComposition`, an immutable `IImage` read once by
+  `FromJson`, `FromStream`, `FromDotLottie`, `Load(Uri)` or the XAML converter, so views share one parse. The inherited
+  `Source` is unused.
+- **dotLottie** was folded in, one animation per composition.
 
 ## 5. Phase 45 — Scroll storytelling
 

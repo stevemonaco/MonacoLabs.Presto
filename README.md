@@ -12,6 +12,7 @@ the anime.js names in PascalCase.
 |---|---|
 | `Monaco.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
 | `Monaco.Presto.AvaloniaBridge` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, colour/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
+| `Monaco.Presto.AvaloniaBridge.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
 
 ## Install
 
@@ -20,7 +21,7 @@ dotnet add package Monaco.Presto
 dotnet add package Monaco.Presto.AvaloniaBridge
 ```
 
-The bridge is built against **Avalonia 12.1.2** and both packages target **net10.0**. The core has no package
+The bridge is built against **Avalonia 12.1.2** and every package targets **net10.0**. The core has no package
 dependencies at all; take it alone if you are driving a game loop, a view model or your own renderer.
 
 ## Quick start
@@ -1259,6 +1260,7 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `Dots` (staggers a panel's children itself) | `distance` | yes | 〃, still staggered |
 | | `Indeterminate` | `distance`, the track width (required) | yes | 〃 |
 | `Sprites` | `PlayFrames`, for a [`SpriteSheet` or `ImageSequence`](#sprite-sheets-and-image-sequences) | `fps` (24), `loop`, `reverse` | no | frame 0, still |
+| `LottieRecipes` ([Lottie package](#lottie)) | `PlayLottie`, for a `LottieView` | `segment` (the whole composition), `loop`, `reverse`, `speed` (1) | no | the segment's end frame, still |
 | `TextReveals` | `LineRise`, `LineMask`, `LineWipe`, `WordFade`, `WordBlur`, `CharCascade`, for a [text reveal](#text-reveals) | `lineStep` (3 × `StaggerStep`), `pieceStep`; no `stagger` | no | whole block fades, no split |
 | `Layouts` | `Reflow`, for [`Animate.Layout`](#layout-animation-from-xaml), `AnimateLayout` and [`Animate.ContentSize`](#content-size) | | layout only | an instant move |
 | `Pages` ([`IPageTransition`](#page-transitions)) | `PageFade`, `PageFadeThrough` | `duration` only | yes | a crossfade over `Short` |
@@ -1313,6 +1315,7 @@ Each markup extension provides a new builder per element from its recipe:
 | `{presto:Lift}`, `{presto:PressIn}`, `{presto:Glow}` | the same | `Intensity` | |
 | `{presto:Shimmer}` | `Shimmer` | | |
 | `{presto:PlayFrames}` | `PlayFrames` | `Fps`, `Loop`, `Reverse` | |
+| `{lottie:PlayLottie}` ([Lottie package](#lottie)) | `PlayLottie` | `Segment`, `Loop`, `Reverse`, `Speed` | |
 | `{presto:LineRise}`, `{presto:LineMask}`, `{presto:LineWipe}`, `{presto:WordFade}`, `{presto:WordBlur}`, `{presto:CharCascade}` | the same | `LineStep`, `PieceStep` | |
 | `{presto:Reflow}` | `Reflow` | `Duration` also positional: `{presto:Reflow 320}`; no `Stagger` | |
 | `{presto:Reorder}` | `ReorderLift` | `Intensity` | |
@@ -1415,6 +1418,70 @@ var run = sheet.Play(fps: 12);                            // loops; Play(fps, lo
 `Recipes.PlayFrames(fps, loop, reverse)` is the same as a builder, reading each target's frame count, and
 `{presto:PlayFrames}` adds `Fps`, `Loop` and `Reverse`; an explicit `Duration` or `Ease` replaces the frame timing.
 Reduced, it holds frame 0.
+
+#### Lottie
+
+Lottie files play through a separate package, so the bridge itself takes no Skottie dependency:
+
+```powershell
+dotnet add package Monaco.Presto.AvaloniaBridge.Lottie
+```
+
+`LottieView` shows one frame of its `Composition`, drawn by SkiaSharp.Skottie; Presto drives the frame and does not
+interpret Lottie itself. `Frame` is a `double` drawn as given, not floored, since Lottie is vector, and is clamped to
+`InPoint`..`OutPoint`. `Progress` follows it from 0 to 1 and can be written instead. Both are ordinary styled
+properties, so a tween, a timeline child, `Seek`, `Reverse`, a scroll-synced animation, a binding or a `MotionValue`
+(through `Follow.Bind`) drives them like any other. The view sizes and stretches like an image and inherits the
+[image filters](#image-filters).
+
+```xml
+<!-- xmlns:lottie="using:Monaco.Presto.AvaloniaBridge.Lottie" -->
+<lottie:LottieView Composition="avares://MyApp/Assets/Lottie/spinner.json" Width="120" Height="120"
+                   presto:Animate.OnAttached="{lottie:PlayLottie}" />
+```
+
+```csharp
+toggle.Composition = LottieComposition.Load(new Uri("avares://MyApp/Assets/Lottie/toggle.json"));
+toggle.Play();                                    // the whole composition once, at its frame rate
+toggle.Play("on");                                // a marker's segment, ignoring case
+toggle.PlaySegment(60, 0, loop: true, speed: 2);  // a frame range, backwards when to is the lower
+toggle.Animate(b => b.Property("Progress", to: 0.5).Duration(400));
+timeline.Add(toggle, Recipes.PlayLottie("on", loop: false), 0);
+```
+
+`LottieComposition` is immutable and can be shared between views. `FromJson`, `FromStream`, `FromDotLottie` and
+`Load(Uri)` (`avares://`, `file://` or a path) read it, and in XAML a URI string converts to one. It exposes `Width`,
+`Height`, `FrameRate`, `InPoint`, `OutPoint`, `Duration` (ms) and `Segments`; input Skottie cannot play throws
+`FormatException`.
+
+**Segments.** Each JSON marker (`cm` name, `tm` start, `dr` length) is a named segment in `Segments`; a marker of length
+0 runs to the next marker or to `OutPoint`. `Play()`, `Play(marker)` and `PlaySegment(from, to)` tween `Frame` linearly
+over |to − from| / `FrameRate` × 1000 / `speed` ms and return the `Animation`; a new play replaces a running one. An
+unknown marker throws `ArgumentException` listing the markers there are.
+
+**Recipe.** `Recipes.PlayLottie(segment, loop, reverse, speed, delay)` is the same as a builder, reading each target's
+composition; with `using Monaco.Presto.AvaloniaBridge.Lottie;` it is an extension member of `Recipes`, and otherwise
+`LottieRecipes.PlayLottie` in `Monaco.Presto.AvaloniaBridge.Lottie.Prebuilt`. It loops by default, and a target that is
+not a `LottieView` plays nothing. `{lottie:PlayLottie}` adds `Segment`, `Loop`, `Reverse` and `Speed`, and an explicit
+`Duration` or `Ease` replaces the frame timing. It takes the `lottie:` prefix because it lives in the Lottie package's
+namespace, not the bridge's. Reduced, it jumps to the segment's end frame and holds it, unlike `PlayFrames`' frame 0: a
+segment ends on the state it plays into, such as a toggle's "on".
+
+**dotLottie.** `FromStream`, `Load` and the XAML converter recognise a `.lottie` archive and read its default animation:
+the manifest's initial or active one, otherwise the first. `FromDotLottie(stream, animationId)` picks another, and
+`AnimationIds` lists them. Images the animation references in the archive are embedded, so they draw. One composition
+holds one animation.
+
+**Render thread.** With `RenderThread="True"` the view draws on the render thread, and `PlayOnRenderThread(segment,
+loop, speed)` plays it there on its own engine, timed as `Play` is, so a spinner keeps moving while the UI thread is
+blocked. `StopRenderThread()` holds the frame reached. `Frame` is not updated while the render thread plays, and writing
+`Frame` or `Composition` seeks the drawing and stops that playback. A request made before the view is attached starts
+when it is. In the Browser the render loop is the UI thread, so nothing survives a blocked UI thread there
+([Platforms and status](#platforms-and-status)).
+
+**Out of scope:** recolouring single layers (Skottie's property observers are not in SkiaSharp's public API; the
+filters recolour the whole view), expressions (Skottie does not run them), dotLottie themes and state machines, and text
+and effects beyond what Skottie draws.
 
 ### Reduced motion
 
@@ -1561,17 +1628,17 @@ build; what has actually been *run* differs, and the table says so rather than i
 
 | Head | Verified |
 |------|----------|
-| **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. |
-| **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. |
+| **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here ([GAPS-PLAN §4.3](docs/GAPS-PLAN.md#43-spike-results)). |
+| **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish, with no trim warnings. The Lottie page has not been driven there. |
 | **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. The gallery has not been driven on a device, so touch input and per-page rendering are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
 
 Five platform notes:
 
 - **On WebAssembly the render loop is not a thread.** `BrowserRenderTimer` drives the compositor from the single WASM
-  thread that also runs the UI, so a `CompositorScene` runs and draws there but does **not** survive a blocked UI
-  thread — the busy-indicator guarantee is a desktop and mobile one. The same goes for any platform that opts into
-  `ShouldRenderOnUIThread` (a Win32 and X11 option). Everywhere else the render loop has a thread of its own: Windows,
+  thread that also runs the UI, so a `CompositorScene` or a `LottieView` with `RenderThread` set runs and draws there
+  but does **not** survive a blocked UI thread — the busy-indicator guarantee is a desktop and mobile one. The same
+  goes for any platform that opts into `ShouldRenderOnUIThread` (a Win32 and X11 option). Everywhere else the render loop has a thread of its own: Windows,
   macOS, Linux X11, Android (`ChoreographerTimer`) and iOS (`DisplayLinkTimer`).
 - **Hot reload does not work on WebAssembly.** The file watcher cannot start there, and the browser head logs that at
   startup; `.axaml` edits need a rebuild.

@@ -31,7 +31,8 @@ internal static class TweenList
 
     private static void AddChild(ref Tween? head, ref Tween? tail, Tween child, TweenLink link, Func<Tween, Tween, bool>? sortMethod)
     {
-        AssertIntact(head, tail, link);
+        // Checked only before a walk: a whole-list check on every unsorted insert or removal made a 20 000-tween Debug build quadratic.
+        if (sortMethod != null) AssertIntact(head, tail, link);
         var prev = tail;
         while (prev != null && sortMethod != null && sortMethod(prev, child)) prev = Prev(prev, link);
         var next = prev != null ? Next(prev, link) : head;
@@ -39,7 +40,6 @@ internal static class TweenList
         if (next != null) Prev(next, link) = child; else tail = child;
         Prev(child, link) = prev;
         Next(child, link) = next;
-        AssertIntact(head, tail, link);
     }
 
     // Unlike upstream, removing a tween that is not in the list is a no-op instead of clearing or repointing head and tail.
@@ -52,7 +52,6 @@ internal static class TweenList
         if (next != null) Prev(next, link) = prev; else tail = prev;
         Prev(child, link) = null;
         Next(child, link) = null;
-        AssertIntact(head, tail, link);
     }
 
     /// <summary>Throws when the tween list is not a well-formed, acyclic chain from head to tail.</summary>

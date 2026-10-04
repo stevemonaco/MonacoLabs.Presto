@@ -256,6 +256,22 @@ public sealed class ReferencePageCodeTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void LottiePrintsItsMarkupAndThePlayCallItRan()
+    {
+        var page = new LottiePage();
+        var window = SceneHarness.Show(page, 1100, 2000);
+
+        var player = page.GetControl<CodeTabs>("PlayerCode");
+
+        page.GetControl<Slider>("SpeedSlider").Value = 1.5;
+        page.GetControl<ToggleSwitch>("ReverseToggle").IsChecked = true;
+
+        Assert.Contains("Player.Play(loop: true, reverse: true, speed: 1.5)", player.CSharp);
+        Assert.Contains("1 - Player.Progress", player.CSharp);
+        SceneHarness.Close(window);
+    }
+
     // Returns the page's readout after the slider moves to 0.37, asserting the echo left the slider there.
     private static string Scrub(Control page, out Window window)
     {

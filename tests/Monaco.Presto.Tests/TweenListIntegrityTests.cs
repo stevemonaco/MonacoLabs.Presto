@@ -67,4 +67,16 @@ public sealed class TweenListIntegrityTests : EngineTestBase
         AssertAllIntact(target, first, second, third);
         Assert.Same(second._headTween, third._headTween!._prevAdd);
     }
+
+    [Fact]
+    public void BlendingAndCancellingTwentyThousandTargetsStaysFast()
+    {
+        var targets = new StyleTarget[20_000];
+        for (var i = 0; i < targets.Length; i++) targets[i] = new StyleTarget();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+
+        Presto.Animate(targets, new() { ["X"] = 100, Duration = 100, Composition = Composition.Blend }).Cancel();
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), $"took {clock.Elapsed.TotalMilliseconds:0} ms");
+    }
 }

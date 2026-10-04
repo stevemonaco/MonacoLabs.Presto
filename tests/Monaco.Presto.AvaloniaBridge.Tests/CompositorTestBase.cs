@@ -88,6 +88,14 @@ public abstract class CompositorTestBase : BridgeTestBase
         return until();
     }
 
+    /// <summary>Asserts each channel of <paramref name="actual"/> is within <paramref name="tolerance"/> of <paramref name="expected"/>.</summary>
+    protected static void AssertNear(Color expected, Color actual, int tolerance = 2)
+    {
+        Assert.InRange(actual.R, expected.R - tolerance, expected.R + tolerance);
+        Assert.InRange(actual.G, expected.G - tolerance, expected.G + tolerance);
+        Assert.InRange(actual.B, expected.B - tolerance, expected.B + tolerance);
+    }
+
     /// <summary>The pixels of the last frame the window holding <paramref name="visual"/> rendered.</summary>
     protected static byte[] Capture(Visual visual) => Read(visual).Pixels;
 

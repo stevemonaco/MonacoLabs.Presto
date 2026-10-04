@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Rendering.SceneGraph;
 using Avalonia.Threading;
 
 namespace Monaco.Presto.AvaloniaBridge;
@@ -300,11 +301,9 @@ public abstract class PrestoImageBase : Control
     private protected void DrawImage(DrawingContext context, IImage image, Rect sourceRect, Stretch stretch, StretchDirection direction,
         in ImageEffect effect, Raster? owner = null)
     {
-        var bounds = Bounds.Size;
-        if (bounds.Width <= 0 || bounds.Height <= 0) return;
-        var viewport = new Rect(bounds);
-        var scale = stretch.CalculateScaling(bounds, sourceRect.Size, direction);
-        var destination = viewport.CenterRect(new Rect(sourceRect.Size * scale)).Intersect(viewport);
+        if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        var (placed, scale) = Place(sourceRect.Size, stretch, direction);
+        var destination = placed.Intersect(new Rect(Bounds.Size));
         var source = sourceRect.CenterRect(new Rect(destination.Size / scale));
         // Filtered scaling samples up to half a source pixel past the rect, which would pull in a neighbouring sheet cell.
         if (scale != new Vector(1, 1) && sourceRect != new Rect(image.Size))
@@ -331,6 +330,13 @@ public abstract class PrestoImageBase : Control
                 Draw(context, new ImageEffectDrawOperation(raster.Bitmap, new Rect(destination.Size), destination, effect, raster.Retain()));
                 break;
         }
+    }
+
+    /// <summary>Where content of <paramref name="size"/> lands when <paramref name="stretch"/> centres it in the bounds, before clipping to them.</summary>
+    private protected (Rect Placed, Vector Scale) Place(Size size, Stretch stretch, StretchDirection direction)
+    {
+        var scale = stretch.CalculateScaling(Bounds.Size, size, direction);
+        return (new Rect(Bounds.Size).CenterRect(new Rect(size * scale)), scale);
     }
 
     /// <summary>How many times a non-bitmap source has been rasterized for filtering.</summary>
@@ -391,7 +397,7 @@ public abstract class PrestoImageBase : Control
     }
 
     // An offscreen context renders custom operations synchronously and never disposes them.
-    private void Draw(DrawingContext context, ImageEffectDrawOperation operation)
+    private protected void Draw(DrawingContext context, ICustomDrawOperation operation)
     {
         context.Custom(operation);
         if (_offscreen) operation.Dispose();

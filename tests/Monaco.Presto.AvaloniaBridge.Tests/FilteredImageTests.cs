@@ -366,13 +366,6 @@ public sealed class FilteredImageTests : CompositorTestBase
         return Row(Place(image), 5)[5];
     }
 
-    private static void AssertNear(Color expected, Color actual)
-    {
-        Assert.InRange(actual.R, expected.R - 2, expected.R + 2);
-        Assert.InRange(actual.G, expected.G - 2, expected.G + 2);
-        Assert.InRange(actual.B, expected.B - 2, expected.B + 2);
-    }
-
     private static RenderTargetBitmap Solid(Color color)
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(10, 10));

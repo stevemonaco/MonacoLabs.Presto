@@ -13,7 +13,6 @@ public sealed class ParticleFieldLoadTests
     private const double Width = 1400;
     private const double Height = 1000;
 
-    // Before 2d4df43 a first visit took about 0.6 s here; with it, 6.5 s.
     private static readonly TimeSpan FirstVisitBudget = TimeSpan.FromSeconds(1.5);
     private static readonly TimeSpan RepeatVisitBudget = TimeSpan.FromSeconds(1);
 

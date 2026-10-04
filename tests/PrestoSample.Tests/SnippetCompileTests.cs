@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Lottie;
 using PrestoSample.Builder;
 using PrestoSample.Pages;
 using PrestoSample.Showcase;
@@ -50,6 +51,11 @@ public sealed class SnippetCompileTests
         """,
         Printed(new DraggablePage(), panel => panel.Name == "SpringCode") + ";");
 
+    [AvaloniaFact]
+    public void LottiePrintsCompilingPlayback() => AssertCompiles(
+        "LottieView Toggle, Switch, RenderSpinner; TextBlock SwitchLabel, MarkerList; StackPanel MarkerButtons; ControlScope Scope;",
+        $"{Snippets.LottieMarkers}\n{Snippets.LottieTimeline}\n{Snippets.LottieRenderThread}");
+
     private static string Printed(Control page, Func<CodePanel, bool> panel)
     {
         var window = SceneHarness.Show(page, 1280, 900, frames: 5);
@@ -69,6 +75,7 @@ public sealed class SnippetCompileTests
             using Monaco.Presto;
             using Monaco.Presto.AvaloniaBridge;
             using Monaco.Presto.AvaloniaBridge.Draggables;
+            using Monaco.Presto.AvaloniaBridge.Lottie;
             using PrestoSample.Showcase;
 
             sealed class Scratch
@@ -82,7 +89,7 @@ public sealed class SnippetCompileTests
             }
             """;
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
-            .Concat(new[] { typeof(object), typeof(Presto), typeof(PrestoAvalonia), typeof(AvaloniaObject), typeof(Control), typeof(CodePanel) }
+            .Concat(new[] { typeof(object), typeof(Presto), typeof(PrestoAvalonia), typeof(AvaloniaObject), typeof(Control), typeof(CodePanel), typeof(LottieView) }
                 .Select(type => type.Assembly.Location))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Select(path => MetadataReference.CreateFromFile(path));

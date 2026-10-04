@@ -21,10 +21,10 @@ public sealed class ImageTransitionTests : CompositorTestBase
 
         Seek(animation, 0);
         Assert.Equal(0, image.TransitionProgress);
-        Assert.All(Pixels(image), pixel => AssertNear(Colors.Red, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Red, pixel, 3));
 
         Seek(animation, 100);
-        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel, 3));
     }
 
     [AvaloniaFact]
@@ -34,7 +34,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
 
         Seek(animation, 50);
 
-        Assert.All(Pixels(image), pixel => AssertNear(Color.FromRgb(128, 0, 128), pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Color.FromRgb(128, 0, 128), pixel, 3));
     }
 
     [AvaloniaTheory]
@@ -125,7 +125,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
         var animation = image.TransitionTo(Halves(), ImageTransitionKind.Pixelate, Linear);
 
         Seek(animation, 25);
-        Assert.All(Row(image, 45)[..60], pixel => AssertNear(Colors.Red, pixel));
+        Assert.All(Row(image, 45)[..60], pixel => AssertNear(Colors.Red, pixel, 3));
 
         // Blocks of 12.5 DIPs put x = 29 and 31 in the block sampled at x = 25, either side of the halves' seam.
         Seek(animation, 75);
@@ -145,7 +145,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
 
         Seek(animation, time);
 
-        Assert.All(Pixels(image), pixel => AssertNear(time < 50 ? Colors.Red : Colors.Blue, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(time < 50 ? Colors.Red : Colors.Blue, pixel, 3));
     }
 
     [AvaloniaFact]
@@ -201,7 +201,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Frames.Advance(150, 10);
         Tick();
         Assert.Null(image.Outgoing);
-        Assert.All(Pixels(image), pixel => AssertNear(Colors.Lime, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Lime, pixel, 3));
     }
 
     [AvaloniaFact]
@@ -231,7 +231,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
 
         Assert.Null(image.Outgoing);
         Assert.Equal(1, image.TransitionProgress);
-        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel, 3));
     }
 
     [AvaloniaFact]
@@ -263,7 +263,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Frames.Advance(150, 10);
         Tick();
         Assert.Null(image.Outgoing);
-        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel, 3));
     }
 
     [AvaloniaFact]
@@ -276,7 +276,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
 
         Assert.Null(image.Outgoing);
         Assert.Equal(1, image.TransitionProgress);
-        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel, 3));
     }
 
     [AvaloniaFact]
@@ -288,7 +288,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Place(image);
 
         Assert.Null(image.Outgoing);
-        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel));
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel, 3));
     }
 
     [AvaloniaFact]
@@ -353,13 +353,6 @@ public sealed class ImageTransitionTests : CompositorTestBase
         var pixels = new List<Color>();
         for (var y = 0; y < control.Bounds.Height; y++) pixels.AddRange(Row(control, y)[..(int)control.Bounds.Width]);
         return pixels;
-    }
-
-    private static void AssertNear(Color expected, Color actual)
-    {
-        Assert.InRange(actual.R, expected.R - 3, expected.R + 3);
-        Assert.InRange(actual.G, expected.G - 3, expected.G + 3);
-        Assert.InRange(actual.B, expected.B - 3, expected.B + 3);
     }
 
     private static int ShownOutside(Control control)

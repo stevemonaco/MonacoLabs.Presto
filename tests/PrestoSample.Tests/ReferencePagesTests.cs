@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Lottie;
 using PrestoSample.Pages;
 using PrestoSample.Showcase;
 
@@ -631,6 +632,53 @@ public sealed class ReferencePagesTests
         var code = page.GetControl<CodePanel>("Code").Code;
         Assert.StartsWith("LikeButton.Animate(new()", code);
         Assert.Contains("[\"X\"] = 320", code);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void LottieRunsAndReverts()
+    {
+        var page = new LottiePage();
+        var window = SceneHarness.Show(page, 1100, 2000, frames: 20);
+        var player = page.GetControl<LottieView>("Player");
+        var toggle = page.GetControl<LottieView>("Toggle");
+        Assert.InRange(player.Frame, 1, 59);
+        Assert.Equal("hover 0–20   on 20–40   off 40–60", page.GetControl<TextBlock>("MarkerList").Text);
+
+        SceneHarness.Click(window, Button(page, "on"));
+        TestFrames.Tick(30);
+        Assert.Equal(40, toggle.Frame);
+
+        var hover = page.GetControl<LottieView>("HoverIcon");
+        window.MouseMove(SceneHarness.Centre(hover, window));
+        TestFrames.Tick(30);
+        Assert.Equal(20, hover.Frame);
+        window.MouseMove(default);
+        TestFrames.Tick(30);
+        Assert.Equal(0, hover.Frame);
+
+        SceneHarness.Close(window);
+
+        Assert.Empty(Presto.GetAnimations(player));
+        Assert.Empty(Presto.GetAnimations(toggle));
+    }
+
+    [AvaloniaFact]
+    public void TheLottieRenderThreadToggleHandsTheSpinnerToTheRenderThreadAndBack()
+    {
+        var page = new LottiePage();
+        var window = SceneHarness.Show(page, 1100, 2000);
+        var spinner = page.GetControl<LottieView>("RenderSpinner");
+        var toggle = page.GetControl<ToggleSwitch>("RenderToggle");
+        Assert.NotEmpty(Presto.GetAnimations(spinner));
+
+        toggle.IsChecked = true;
+        Assert.True(spinner.RenderThread);
+        Assert.Empty(Presto.GetAnimations(spinner));
+
+        toggle.IsChecked = false;
+        Assert.False(spinner.RenderThread);
+        Assert.NotEmpty(Presto.GetAnimations(spinner));
         SceneHarness.Close(window);
     }
 

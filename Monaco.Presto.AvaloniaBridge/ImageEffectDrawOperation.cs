@@ -29,7 +29,7 @@ internal sealed class ImageEffectDrawOperation : ICustomDrawOperation
         Bounds = destination;
         _effect = effect;
         _owner = owner;
-        _layerPaint = new SKPaint { ImageFilter = Filter(_effect, destination.ToSKRect()) };
+        _layerPaint = new SKPaint { ImageFilter = CreateFilter(_effect, destination.ToSKRect()) };
     }
 
     public Rect Bounds { get; }
@@ -52,7 +52,7 @@ internal sealed class ImageEffectDrawOperation : ICustomDrawOperation
     }
 
     // Each stage takes the previous one as input (null is the layer itself), which holds its own native reference.
-    private static SKImageFilter? Filter(in ImageEffect effect, SKRect bounds)
+    internal static SKImageFilter? CreateFilter(in ImageEffect effect, SKRect bounds)
     {
         SKImageFilter? filter = null;
         if (!effect.Matrix.IsIdentity)

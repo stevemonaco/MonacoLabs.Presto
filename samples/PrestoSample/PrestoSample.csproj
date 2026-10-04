@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge\Monaco.Presto.AvaloniaBridge.csproj" />
+    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge.Lottie\Monaco.Presto.AvaloniaBridge.Lottie.csproj" />
     <ProjectReference Include="..\PrestoSample.SnippetGenerator\PrestoSample.SnippetGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
