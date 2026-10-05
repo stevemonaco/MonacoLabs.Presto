@@ -11,6 +11,8 @@ public abstract class BridgeTestBase : Monaco.Presto.Tests.EngineTestBase
 {
     protected BridgeTestBase()
     {
+        // A plain [Fact] resets the engine off the UI thread, cancelling an earlier test's leftovers from the wrong thread.
+        Assert.True(Dispatcher.UIThread.CheckAccess(), $"{GetType().Name} touches Avalonia; mark its tests [AvaloniaFact] or [AvaloniaTheory].");
         PrestoAvalonia.EnsureInitialized();
         Presto.Engine.FrameSource = Frames; // EnsureInitialized installs the Avalonia source over the base's manual one
         Presto.Engine._timeOffset = 0;

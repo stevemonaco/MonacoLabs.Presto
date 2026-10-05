@@ -16,12 +16,12 @@ public sealed class CompositorRegistryTests : CompositorTestBase
     {
         var bar = ShowBar();
         var first = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 4000, Ease = "linear" });
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Left > 32), "the first animation never started");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Left > 32), "the first animation never started");
 
         var second = bar.AnimateOnCompositor(new() { ["X"] = -20, Duration = 200, Ease = "linear" });
         var replaced = first.Then();
 
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Left == 10), "the pixels did not follow the second animation");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Left == 10), "the pixels did not follow the second animation");
         Frames.Advance(5000);
         Assert.Same(second, await second.Then());
         Assert.False(first.Completed, "the replaced animation kept running");
@@ -29,7 +29,7 @@ public sealed class CompositorRegistryTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task AnimationsOnDifferentPropertiesOfOneControlCoexist()
+    public void AnimationsOnDifferentPropertiesOfOneControlCoexist()
     {
         var bar = ShowBar();
 
@@ -37,36 +37,36 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         _ = bar.AnimateOnCompositor(new() { ["Rotate"] = 90, Duration = 2000, Ease = "linear" });
 
         Assert.True(
-            await Pump(() => Extent(bar, Colors.Red) is { Height: > 24 } turning && turning.Center.X > 52),
+            Pump(() => Extent(bar, Colors.Red) is { Height: > 24 } turning && turning.Center.X > 52),
             "the translation and the rotation did not run at once");
     }
 
     [AvaloniaFact]
-    public async Task RemoveCancelsACompositorAnimation()
+    public void RemoveCancelsACompositorAnimation()
     {
         var bar = ShowBar();
         _ = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 2000, Ease = "linear" });
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Left > 32), "the translation never started");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Left > 32), "the translation never started");
 
         Presto.Remove(bar);
         var frozen = Extent(bar, Colors.Red);
 
-        Assert.False(await Pump(() => Extent(bar, Colors.Red) != frozen, rounds: 8), "the removed animation kept running");
+        Assert.False(Pump(() => Extent(bar, Colors.Red) != frozen, rounds: 8), "the removed animation kept running");
     }
 
     [AvaloniaFact]
-    public async Task RemovingOnePropertyLeavesTheOtherRunning()
+    public void RemovingOnePropertyLeavesTheOtherRunning()
     {
         var bar = ShowBar();
         _ = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 2000, Ease = "linear" });
         _ = bar.AnimateOnCompositor(new() { ["Rotate"] = 90, Duration = 2000, Ease = "linear" });
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Center.X > 52), "the translation never started");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Center.X > 52), "the translation never started");
 
         PrestoAvalonia.Remove(bar, property: "X");
         Tick();
         var stopped = Extent(bar, Colors.Red)!.Value.Center.X;
 
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Height > 30), "removing X stopped the rotation too");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Height > 30), "removing X stopped the rotation too");
         Assert.InRange(Extent(bar, Colors.Red)!.Value.Center.X, stopped - 1, stopped + 1);
     }
 
@@ -75,7 +75,7 @@ public sealed class CompositorRegistryTests : CompositorTestBase
     /// each other through the registry whichever starts second.
     /// </summary>
     [AvaloniaFact]
-    public async Task ACompositorAnimationTakesTheTranslationFromALayoutTransition()
+    public void ACompositorAnimationTakesTheTranslationFromALayoutTransition()
     {
         var bar = ShowBar();
         _ = bar.AnimateLayout(60000, Eases.None);
@@ -85,16 +85,16 @@ public sealed class CompositorRegistryTests : CompositorTestBase
 
         _ = bar.AnimateOnCompositor(new() { ["Y"] = -20, Duration = 200, Ease = "linear" });
 
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Top == 60), "the held translation never followed the compositor animation");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Top == 60), "the held translation never followed the compositor animation");
     }
 
     /// <inheritdoc cref="ACompositorAnimationTakesTheTranslationFromALayoutTransition"/>
     [AvaloniaFact]
-    public async Task ALayoutTransitionTakesTheTranslationFromACompositorAnimation()
+    public void ALayoutTransitionTakesTheTranslationFromACompositorAnimation()
     {
         var bar = ShowBar();
         var replaced = bar.AnimateOnCompositor(new() { ["Y"] = 40, Duration = 200, Ease = "linear" });
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Top > 48), "the compositor animation never started");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Top > 48), "the compositor animation never started");
 
         _ = bar.AnimateLayout(60000, Eases.None);
         Canvas.SetTop(bar, 80);
@@ -106,19 +106,19 @@ public sealed class CompositorRegistryTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task RemoveEndsALayoutTransition()
+    public void RemoveEndsALayoutTransition()
     {
         var bar = ShowBar();
         _ = bar.AnimateLayout(2000, Eases.None);
         Canvas.SetTop(bar, 80);
-        Assert.True(await Pump(() => Extent(bar, Colors.Red)?.Top > 44, rounds: 60), "the move never started");
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Top > 44, rounds: 60), "the move never started");
 
         Presto.Remove(bar);
         Tick();
         var frozen = Extent(bar, Colors.Red);
 
         Assert.InRange(frozen!.Value.Top, 41, 79);
-        Assert.False(await Pump(() => Extent(bar, Colors.Red) != frozen, rounds: 8), "the removed transition kept moving the control");
+        Assert.False(Pump(() => Extent(bar, Colors.Red) != frozen, rounds: 8), "the removed transition kept moving the control");
     }
 
 #if DEBUG

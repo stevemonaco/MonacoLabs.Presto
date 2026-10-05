@@ -349,13 +349,17 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
-    public void EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
+    public async Task EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
     {
         var page = new EffectsPage();
         var window = SceneHarness.Show(page, 1100, 2600);
         foreach (var content in new[] { "Blur out", "Raise", "Flip", "Inset", "Circle", "Sweep" }) SceneHarness.Click(window, Button(page, content));
         page.GetControl<Slider>("ShadowXSlider").Value = -20;
-        SceneHarness.Click(window, page.GetLogicalDescendants().OfType<Button>().First(button => Equals(button.Content, "✕")));
+        var remove = Button(page, "✕");
+        // The stages above push the rows down, and a row takes clicks only once it is drawn in its new slot.
+        Assert.True(await SceneHarness.Pump(() =>
+            (window.InputHitTest(SceneHarness.Centre(remove, window)) as Visual)?.FindAncestorOfType<Button>(includeSelf: true) == remove));
+        SceneHarness.Click(window, remove);
         window.MouseMove(SceneHarness.Centre(page.GetControl<Border>("TiltCard"), window) + new Point(40, 30));
         TestFrames.Tick(20);
 

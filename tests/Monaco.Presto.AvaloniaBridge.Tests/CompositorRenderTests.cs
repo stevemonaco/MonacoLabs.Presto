@@ -20,14 +20,14 @@ public sealed class CompositorRenderTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task AnAnimatingSceneRedrawsItselfEveryFrame()
+    public void AnAnimatingSceneRedrawsItselfEveryFrame()
     {
         var scene = new PixelScene(animate: true);
         var (_, canvas) = ShowScene(scene);
 
-        Assert.True(await Pump(() => scene.X > 4), "the scene animation never advanced");
+        Assert.True(Pump(() => scene.X > 4), "the scene animation never advanced");
         var first = Capture(canvas);
-        Assert.True(await Pump(() => scene.X > 24), "the scene animation stopped advancing");
+        Assert.True(Pump(() => scene.X > 24), "the scene animation stopped advancing");
 
         Assert.NotEqual(first, Capture(canvas));
     }

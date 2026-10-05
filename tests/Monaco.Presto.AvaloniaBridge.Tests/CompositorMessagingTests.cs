@@ -39,18 +39,18 @@ public sealed class CompositorMessagingTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task AThrowingOnAttachedLeavesTheAnimationItCreatedRunning()
+    public void AThrowingOnAttachedLeavesTheAnimationItCreatedRunning()
     {
         var scene = new ProbeScene(4000, throwOnAttached: true);
 
         ShowScene(scene);
 
         Assert.Same(Presto.Engine, Engine.Current);
-        Assert.True(await Pump(() => scene.Target.Opacity < 1), "the scene animation never advanced");
+        Assert.True(Pump(() => scene.Target.Opacity < 1), "the scene animation never advanced");
     }
 
     [AvaloniaFact]
-    public async Task AThrowingOnMessageStopsNeitherLaterMessagesNorLaterFrames()
+    public void AThrowingOnMessageStopsNeitherLaterMessagesNorLaterFrames()
     {
         var scene = new ProbeScene(4000);
         var (_, canvas) = ShowScene(scene);
@@ -61,7 +61,7 @@ public sealed class CompositorMessagingTests : CompositorTestBase
 
         Assert.Equal<object>(["after"], scene.Messages);
         Assert.Same(Presto.Engine, Engine.Current);
-        Assert.True(await Pump(() => scene.Target.Opacity < 1), "the scene animation stopped advancing");
+        Assert.True(Pump(() => scene.Target.Opacity < 1), "the scene animation stopped advancing");
     }
 
     [AvaloniaFact]

@@ -16,16 +16,16 @@ public sealed class LottieSegmentTests : BridgeTestBase
 
     private static LottieView View() => new() { Composition = Composition() };
 
-    [Fact]
+    [AvaloniaFact]
     public void MarkersBecomeSegmentsAndZeroDurationMarkersRunToTheNextMarkerOrTheOutPoint() =>
         Assert.Equal(
             [new LottieSegment("intro", 0, 20), new LottieSegment("outro", 40, 60), new LottieSegment("idle", 20, 40)],
             Composition().Segments);
 
-    [Fact]
+    [AvaloniaFact]
     public void MissingMarkersGiveNoSegments() => Assert.Empty(Composition(markers: "").Segments);
 
-    [Fact]
+    [AvaloniaFact]
     public void TryGetSegmentIgnoresCase()
     {
         var composition = Composition();

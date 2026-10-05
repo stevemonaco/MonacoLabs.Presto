@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -20,17 +19,28 @@ public sealed class AvaloniaFrameSource : IFrameSource
     private static readonly TimeSpan s_fallbackInterval = TimeSpan.FromMilliseconds(1000d / 60);
     private static WeakReference<Visual>? s_animated;
 
-    private readonly long _origin = Stopwatch.GetTimestamp();
+    private readonly TimeProvider _timeProvider;
+    private readonly long _origin;
     private readonly Action<TimeSpan> _requestedFrame;
     private Action? _onFrame;
     private DispatcherTimer? _timer;
     private bool _requested;
 
     /// <summary>Creates a frame source; <see cref="PrestoAvalonia.EnsureInitialized"/> already gives the engine one, so applications rarely construct their own.</summary>
-    public AvaloniaFrameSource() => _requestedFrame = RequestedFrame;
+    public AvaloniaFrameSource() : this(TimeProvider.System)
+    {
+    }
 
-    /// <summary>Milliseconds since this source was created, read from a monotonic stopwatch so it is also valid outside a frame.</summary>
-    public double Now => Stopwatch.GetElapsedTime(_origin).TotalMilliseconds;
+    /// <summary>Creates a frame source that reads <see cref="Now"/> from <paramref name="timeProvider"/> instead of the system clock.</summary>
+    public AvaloniaFrameSource(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+        _origin = timeProvider.GetTimestamp();
+        _requestedFrame = RequestedFrame;
+    }
+
+    /// <summary>Milliseconds since this source was created, read from its <see cref="TimeProvider"/> so it is also valid outside a frame.</summary>
+    public double Now => _timeProvider.GetElapsedTime(_origin).TotalMilliseconds;
 
     /// <summary>True while frames come from the <see cref="DispatcherTimer"/> fallback instead of a <see cref="TopLevel"/>.</summary>
     internal bool IsUsingFallbackTimer => _timer is not null;

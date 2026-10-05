@@ -330,9 +330,8 @@ public sealed class AllocationTests : CompositorTestBase
         Presto.Engine.Diagnostics.Enabled = diagnostics;
         const int blocks = 11;
         var (_, canvas) = ShowScene(new DotScene());
-        // Scene time is the compositor's own clock, so warming up takes wall time: two alternate cycles fill the brush cache.
-        var warmUp = System.Diagnostics.Stopwatch.StartNew();
-        while (warmUp.ElapsedMilliseconds < 1000) Tick();
+        // Two alternate cycles of the scene fill the brush cache.
+        TickFor(1000);
 
         var differences = new double[blocks];
         for (var i = 0; i < blocks; i++)
@@ -391,9 +390,9 @@ public sealed class AllocationTests : CompositorTestBase
     private static double BytesPerFrame()
     {
         const int measured = 100;
-        for (var i = 0; i < 10; i++) Tick();
+        for (var i = 0; i < 10; i++) Tick(Frame);
         var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < measured; i++) Tick();
+        for (var i = 0; i < measured; i++) Tick(Frame);
         return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;
     }
 

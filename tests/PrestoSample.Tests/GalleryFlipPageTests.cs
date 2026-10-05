@@ -19,7 +19,7 @@ public sealed class GalleryFlipPageTests
     private static readonly Color ProbeColor = Colors.Magenta;
 
     [AvaloniaFact]
-    public async Task OpeningThePageFadesEveryCardUpOnceWhereLayoutPutsIt()
+    public void OpeningThePageFadesEveryCardUpOnceWhereLayoutPutsIt()
     {
         TestFrames.Install();
         var gallery = new MainViewModel();
@@ -38,7 +38,6 @@ public sealed class GalleryFlipPageTests
         for (var frame = 0; frame < 90; frame++)
         {
             TestFrames.Tick();
-            await Task.Delay(8);
             var (pixels, stride) = SceneHarness.Capture(window);
             for (var i = 0; i < cards.Length; i++)
             {

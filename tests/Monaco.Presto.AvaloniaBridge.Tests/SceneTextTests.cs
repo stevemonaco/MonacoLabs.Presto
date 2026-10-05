@@ -17,13 +17,13 @@ public sealed class SceneTextTests : CompositorTestBase
     private static readonly Point Origin = new(8, 6);
 
     [AvaloniaFact]
-    public async Task GlyphsLandInsideTheMeasuredBoxAndAnEmptyStringLeavesItUntouched()
+    public void GlyphsLandInsideTheMeasuredBoxAndAnEmptyStringLeavesItUntouched()
     {
         const string Text = "1024 fps";
 
         var (drawn, drawnScene) = ShowText(Text);
         var (blank, blankScene) = ShowText("");
-        Assert.True(await Pump(() => drawnScene.Renders > 0 && blankScene.Renders > 0), "the scenes never rendered");
+        Assert.True(Pump(() => drawnScene.Renders > 0 && blankScene.Renders > 0), "the scenes never rendered");
 
         var metrics = new SceneText(FontSize);
         var box = new Rect(Origin, new Size(metrics.Measure(Text), metrics.Height));
@@ -34,15 +34,15 @@ public sealed class SceneTextTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task TheReadoutFollowsTheStringTheSceneHolds()
+    public void TheReadoutFollowsTheStringTheSceneHolds()
     {
         var (canvas, scene) = ShowText("0 fps");
-        Assert.True(await Pump(() => scene.Renders > 0), "the scene never rendered");
+        Assert.True(Pump(() => scene.Renders > 0), "the scene never rendered");
         var first = Capture(canvas);
 
         canvas.Post("240 fps");
 
-        Assert.True(await Pump(() => !Capture(canvas).AsSpan().SequenceEqual(first)), "the readout never changed");
+        Assert.True(Pump(() => !Capture(canvas).AsSpan().SequenceEqual(first)), "the readout never changed");
     }
 
     private static (CompositorCanvas Canvas, TextScene Scene) ShowText(string text)

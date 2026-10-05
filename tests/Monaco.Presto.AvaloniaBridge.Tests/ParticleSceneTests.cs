@@ -23,7 +23,7 @@ public sealed class ParticleSceneTests : CompositorTestBase
     private static readonly Point Origin = new(32, 32);
 
     [AvaloniaFact]
-    public async Task ABurstDrawsAroundItsOriginAndNothingOnceItFinishes()
+    public void ABurstDrawsAroundItsOriginAndNothingOnceItFinishes()
     {
         var scene = new ParticleScene();
         var canvas = ShowParticles(scene);
@@ -31,9 +31,9 @@ public sealed class ParticleSceneTests : CompositorTestBase
 
         canvas.Invoke<ParticleScene>(s => s.Add(Still with { Burst = 12, Lifetime = (500, 500) }, new Point(20, 24), () => finished = true));
 
-        Assert.True(await Pump(() => CountPixels(canvas, new Rect(10, 14, 20, 20), Colors.Black) > 0), "the burst never drew");
+        Assert.True(Pump(() => CountPixels(canvas, new Rect(10, 14, 20, 20), Colors.Black) > 0), "the burst never drew");
         Assert.Equal(0, CountPixels(canvas, new Rect(40, 0, 24, 64), Colors.Black));
-        Assert.True(await Pump(() => finished, 300), "the burst never finished");
+        Assert.True(Pump(() => finished, 300), "the burst never finished");
         Tick();
         Assert.Equal(0, CountPixels(canvas, new Rect(canvas.Bounds.Size), Colors.Black));
     }
@@ -64,7 +64,7 @@ public sealed class ParticleSceneTests : CompositorTestBase
     [InlineData("Glyph")]
     [InlineData("Bitmap")]
     [InlineData("FromGeometry")]
-    public async Task EveryShapeDraws(string name)
+    public void EveryShapeDraws(string name)
     {
         var shape = name switch
         {
@@ -81,11 +81,11 @@ public sealed class ParticleSceneTests : CompositorTestBase
 
         canvas.Invoke<ParticleScene>(s => s.Add(Still with { Burst = 1, Size = new(16, 16), Spin = (0.1, 0.1), Shape = shape }, Origin));
 
-        Assert.True(await Pump(() => CountPixels(canvas, new Rect(8, 8, 48, 48), Colors.Black) > 0), $"{name} drew nothing");
+        Assert.True(Pump(() => CountPixels(canvas, new Rect(8, 8, 48, 48), Colors.Black) > 0), $"{name} drew nothing");
     }
 
     [AvaloniaFact]
-    public async Task EachSystemReportsItsFinishOnTheUIThreadAndIsDropped()
+    public void EachSystemReportsItsFinishOnTheUIThreadAndIsDropped()
     {
         var scene = new ParticleScene();
         var canvas = ShowParticles(scene);
@@ -94,7 +94,7 @@ public sealed class ParticleSceneTests : CompositorTestBase
         canvas.Invoke<ParticleScene>(s => s.Add(Still with { Burst = 1, Lifetime = (100, 100) }, Origin, () => finishes.Add(("short", Dispatcher.UIThread.CheckAccess()))));
         canvas.Invoke<ParticleScene>(s => s.Add(Still with { Burst = 1, Lifetime = (400, 400) }, Origin, () => finishes.Add(("long", Dispatcher.UIThread.CheckAccess()))));
 
-        Assert.True(await Pump(() => finishes.Count == 2, 300), "a system never finished");
+        Assert.True(Pump(() => finishes.Count == 2, 300), "a system never finished");
         Assert.Equal([("short", true), ("long", true)], finishes);
         Assert.Equal(0, scene.SystemCount);
     }

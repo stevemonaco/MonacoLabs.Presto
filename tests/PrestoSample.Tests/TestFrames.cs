@@ -1,7 +1,10 @@
+using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Tests;
 
 namespace PrestoSample.Tests;
 
@@ -13,18 +16,29 @@ internal static class TestFrames
 {
     private static readonly ManualFrameSource Source = new();
 
-    /// <summary>Points the engine at the test source; <see cref="PrestoAvalonia.EnsureInitialized"/> installs the Avalonia one, which no test can step.</summary>
+    private static Application? s_session;
+
+    /// <summary>
+    /// Points the engine at the test source, as <see cref="PrestoAvalonia.EnsureInitialized"/> installs the Avalonia one, which
+    /// no test can step, and freezes this test's compositor clock so that only <see cref="Tick()"/> moves it.
+    /// </summary>
     public static void Install()
     {
         PrestoAvalonia.EnsureInitialized();
         Presto.Engine.FrameSource = Source;
+        CompositorClock.Install();
+        if (ReferenceEquals(s_session, Application.Current)) return;
+        s_session = Application.Current;
+        // A loop an earlier test's page left running would keep the engine busy, and so every Settle at its cap.
+        DropChildren(Presto.Engine);
     }
 
-    /// <summary>Advances one 60 fps frame and lets the dispatcher and the headless renderer catch up with it.</summary>
+    /// <summary>Advances the engine and the compositor's clock one 60 fps frame together and lets the dispatcher and the headless renderer catch up.</summary>
     public static void Tick()
     {
         Source.Advance(16);
         Dispatcher.UIThread.RunJobs();
+        CompositorClock.Advance(16);
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     }
 
@@ -33,4 +47,7 @@ internal static class TestFrames
     {
         for (var i = 0; i < frames; i++) Tick();
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "DropChildren")]
+    private static extern void DropChildren(Engine engine);
 }

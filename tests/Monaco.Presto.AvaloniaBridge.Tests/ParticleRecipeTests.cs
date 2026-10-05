@@ -23,7 +23,7 @@ public sealed class ParticleRecipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task OneOverlayIsSharedPerWindowAndRemovedOnceIdle()
+    public void OneOverlayIsSharedPerWindowAndRemovedOnceIdle()
     {
         var anchor = ShowAnchor();
 
@@ -33,7 +33,7 @@ public sealed class ParticleRecipeTests : CompositorTestBase
         Assert.False(overlay.IsHitTestVisible);
         Tick();
         Assert.False(first.Then().IsCompleted);
-        Assert.True(await Pump(() => first.Then().IsCompleted && second.Then().IsCompleted, 300), "the bursts never finished");
+        Assert.True(Pump(() => first.Then().IsCompleted && second.Then().IsCompleted, 300), "the bursts never finished");
 
         RunUntil(() => false, max: ParticleOverlay.IdleTime - 100);
         Assert.Single(Overlays(anchor));
@@ -42,16 +42,16 @@ public sealed class ParticleRecipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task SparklesRunUntilStopped()
+    public void SparklesRunUntilStopped()
     {
         var anchor = ShowAnchor();
 
         var effect = Recipes.Sparkles(anchor, rate: 200);
-        await Pump(() => false, 10);
+        Pump(() => false, 10);
         Assert.False(effect.Then().IsCompleted);
         effect.Stop();
 
-        Assert.True(await Pump(() => effect.Then().IsCompleted, 300), "the sparkles never finished");
+        Assert.True(Pump(() => effect.Then().IsCompleted, 300), "the sparkles never finished");
     }
 
     [AvaloniaFact]

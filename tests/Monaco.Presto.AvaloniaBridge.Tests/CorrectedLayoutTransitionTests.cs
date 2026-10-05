@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -20,13 +19,13 @@ public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
     private const double Avatar = 10;
 
     [AvaloniaFact]
-    public async Task APlainGrowShrinksTheChildMidFlight()
+    public void APlainGrowShrinksTheChildMidFlight()
     {
         var (card, _) = ShowCard(HorizontalAlignment.Left, VerticalAlignment.Top);
         _ = card.AnimateLayout(Duration, Eases.None, LayoutAnimateMode.PositionAndSize);
 
         Grow(card);
-        var (_, halfway) = await Halfway(card);
+        var (_, halfway) = Halfway(card);
 
         Assert.InRange(halfway.Width, 0, Avatar * .9);
     }
@@ -35,16 +34,16 @@ public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
     [InlineData(HorizontalAlignment.Left, VerticalAlignment.Top)]
     [InlineData(HorizontalAlignment.Center, VerticalAlignment.Center)]
     [InlineData(HorizontalAlignment.Right, VerticalAlignment.Bottom)]
-    public async Task TheChildKeepsItsAlignmentInsideTheCardAsItIsDrawn(HorizontalAlignment horizontal, VerticalAlignment vertical)
+    public void TheChildKeepsItsAlignmentInsideTheCardAsItIsDrawn(HorizontalAlignment horizontal, VerticalAlignment vertical)
     {
         var (card, avatar) = ShowCard(horizontal, vertical);
         _ = card.AnimateLayout(Duration, Eases.None, LayoutAnimateMode.PositionAndSizeCorrected);
 
         Grow(card);
-        var (drawn, halfway) = await Halfway(card);
+        var (drawn, halfway) = Halfway(card);
 
         AssertAligned(drawn, halfway, horizontal, vertical);
-        Assert.True(await Pump(() => Extent(card, Colors.Blue) == new Rect(20, 20, 80, 40)), "the card never reached its layout size");
+        Assert.True(Pump(() => Extent(card, Colors.Blue) == new Rect(20, 20, 80, 40)), "the card never reached its layout size");
         Assert.Equal(SlotOf(avatar), Box(card));
     }
 
@@ -61,7 +60,7 @@ public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
         await transition.Then();
 
         AssertReleased(avatar);
-        Assert.True(await Pump(() => Box(card) == SlotOf(avatar)), "the avatar did not land in its slot");
+        Assert.True(Pump(() => Box(card) == SlotOf(avatar)), "the avatar did not land in its slot");
     }
 
     [AvaloniaTheory]
@@ -85,16 +84,16 @@ public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task AGrowInterruptedMidFlightKeepsTheCorrection()
+    public void AGrowInterruptedMidFlightKeepsTheCorrection()
     {
         var (card, _) = ShowCard(HorizontalAlignment.Center, VerticalAlignment.Center);
         _ = card.AnimateLayout(Duration, Eases.None, LayoutAnimateMode.PositionAndSizeCorrected);
         Grow(card);
-        await Halfway(card);
+        Halfway(card);
 
         card.Width = 100;
         card.Height = 60;
-        var (drawn, halfway) = await Halfway(card);
+        var (drawn, halfway) = Halfway(card);
 
         AssertAligned(drawn, halfway, HorizontalAlignment.Center, VerticalAlignment.Center);
     }
@@ -112,15 +111,15 @@ public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ACorrectedGrowTakesTheScaleOverFromACompositorAnimationOnTheChild()
+    public void ACorrectedGrowTakesTheScaleOverFromACompositorAnimationOnTheChild()
     {
         var (card, avatar) = ShowCard(HorizontalAlignment.Center, VerticalAlignment.Center);
         _ = avatar.AnimateOnCompositor(new() { ["Scale"] = 2, Duration = 100, Ease = "linear" });
-        Assert.True(await Pump(() => Box(card).Width == Avatar * 2), "the avatar never scaled up");
+        Assert.True(Pump(() => Box(card).Width == Avatar * 2), "the avatar never scaled up");
         var transition = card.AnimateLayout(Duration, Eases.None, LayoutAnimateMode.PositionAndSizeCorrected);
 
         Grow(card);
-        var (_, halfway) = await Halfway(card);
+        var (_, halfway) = Halfway(card);
 
         Assert.Same(transition, CompositorRegistry.Holder(avatar, CompositorTrackKind.Scale));
         AssertAvatarSized(halfway);
@@ -144,20 +143,13 @@ public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
         card.Height = 40;
     }
 
-    /// <summary>The card's and the avatar's boxes in one frame halfway through a <see cref="Duration"/> move.</summary>
-    private static async Task<(Rect Card, Rect Avatar)> Halfway(Visual card)
+    /// <summary>The card's and the avatar's boxes in the first frame past halfway through a <see cref="Duration"/> move, ticking on to 70% of it.</summary>
+    private static (Rect Card, Rect Avatar) Halfway(Visual card)
     {
-        var at = Stopwatch.GetTimestamp();
-        (Rect, Rect)? halfway = null;
-        while (Stopwatch.GetElapsedTime(at).TotalMilliseconds < Duration * .7)
-        {
-            Tick();
-            await Task.Delay(8);
-            if (Stopwatch.GetElapsedTime(at).TotalMilliseconds > Duration / 2) halfway ??= (Extent(card, Colors.Blue)!.Value, Box(card));
-        }
-
-        Assert.NotNull(halfway);
-        return halfway.Value;
+        TickFor(Duration / 2 + Frame);
+        var halfway = (Extent(card, Colors.Blue)!.Value, Box(card));
+        TickFor(Duration * .2 - Frame);
+        return halfway;
     }
 
     private static void AssertAvatarSized(Rect avatar)

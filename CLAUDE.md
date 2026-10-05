@@ -23,6 +23,7 @@ Build configuration is shared through root `Directory.Build.props` (language/nul
 dotnet build Monaco.Presto.slnx
 dotnet test --project tests/Monaco.Presto.Tests          # MTP mode (global.json); note --project, not a bare path
 dotnet test --solution Monaco.Presto.slnx
+tests/PrestoSample.Tests/bin/Debug/net10.0/PrestoSample.Tests.exe --report-xunit --results-directory <dir>   # per-test times (after a build)
 dotnet run --project samples/PrestoSample.Desktop
 dotnet watch --project samples/PrestoSample.Desktop      # hot reload (see below)
 ```

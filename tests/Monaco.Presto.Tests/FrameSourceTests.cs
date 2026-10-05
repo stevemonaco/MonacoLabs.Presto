@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Monaco.Presto.Tests;
 
@@ -74,6 +75,17 @@ public sealed class FrameSourceTests
 
         Assert.Equal(1, first);
         Assert.Equal(0, second);
+    }
+
+    [Fact]
+    public void StopwatchNowFollowsTheTimeProvider()
+    {
+        var time = new FakeTimeProvider();
+        var source = new StopwatchFrameSource(time);
+
+        time.Advance(TimeSpan.FromMilliseconds(250));
+
+        Assert.Equal(250, source.Now);
     }
 
     [Fact]

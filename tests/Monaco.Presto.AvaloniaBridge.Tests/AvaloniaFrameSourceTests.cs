@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -14,9 +15,21 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
         {
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
+            // The fallback is a real DispatcherTimer, which only fires once real time has passed.
             await Task.Delay(16);
         }
         return until();
+    }
+
+    [AvaloniaFact]
+    public void NowFollowsTheTimeProvider()
+    {
+        var time = new FakeTimeProvider();
+        var source = new AvaloniaFrameSource(time);
+
+        time.Advance(TimeSpan.FromMilliseconds(250));
+
+        Assert.Equal(250, source.Now);
     }
 
     [AvaloniaFact]

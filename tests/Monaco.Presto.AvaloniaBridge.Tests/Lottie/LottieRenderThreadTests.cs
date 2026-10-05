@@ -16,19 +16,19 @@ public sealed class LottieRenderThreadTests : CompositorTestBase
 
     private static double Left(LottieView view) => Extent(view, Colors.Red)?.Left ?? -1;
 
-    private static async Task<double> Moved(LottieView view)
+    private static double Moved(LottieView view)
     {
-        Assert.True(await Pump(() => Left(view) >= 20), "render-thread playback never advanced");
+        Assert.True(Pump(() => Left(view) >= 20), "render-thread playback never advanced");
         return Left(view);
     }
 
-    private static async Task<double> Holds(LottieView view)
+    private static double Holds(LottieView view)
     {
         // A message sent from Render reaches the handler with the next frame's batch.
         Tick();
         Tick();
         var left = Left(view);
-        await Task.Delay(100);
+        TickFor(100);
         Tick();
         Tick();
         Assert.Equal(left, Left(view));
@@ -36,46 +36,46 @@ public sealed class LottieRenderThreadTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task FramesAdvanceWithoutTheUIThreadEngine()
+    public void FramesAdvanceWithoutTheUIThreadEngine()
     {
         var view = Playing();
 
-        var first = await Moved(view);
-        Assert.True(await Pump(() => Left(view) != first), "render-thread playback stopped advancing");
+        var first = Moved(view);
+        Assert.True(Pump(() => Left(view) != first), "render-thread playback stopped advancing");
 
         Assert.Equal(0, view.Frame);
     }
 
     [AvaloniaFact]
-    public async Task StopHoldsTheFrame()
+    public void StopHoldsTheFrame()
     {
         var view = Playing();
-        await Moved(view);
+        Moved(view);
 
         view.StopRenderThread();
 
-        Assert.InRange(await Holds(view), 1, 80);
+        Assert.InRange(Holds(view), 1, 80);
     }
 
     [AvaloniaFact]
-    public async Task WritingFrameSeeksAndStopsPlayback()
+    public void WritingFrameSeeksAndStopsPlayback()
     {
         var view = Playing();
-        await Moved(view);
+        Moved(view);
 
         view.Frame = 5;
 
-        Assert.Equal(40, await Holds(view));
+        Assert.Equal(40, Holds(view));
     }
 
     [AvaloniaFact]
-    public async Task TogglingOffReturnsToFrameDrivenDrawing()
+    public void TogglingOffReturnsToFrameDrivenDrawing()
     {
         var view = Playing();
-        await Moved(view);
+        Moved(view);
 
         view.RenderThread = false;
-        Assert.Equal(0, await Holds(view));
+        Assert.Equal(0, Holds(view));
 
         view.Frame = 5;
         Tick();
@@ -83,11 +83,11 @@ public sealed class LottieRenderThreadTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task DetachingReleasesTheRenderThreadPlayer()
+    public void DetachingReleasesTheRenderThreadPlayer()
     {
         var before = LottiePlayerHandle.Live;
         var view = Playing();
-        await Moved(view);
+        Moved(view);
         Assert.Equal(before + 1, LottiePlayerHandle.Live);
 
         WindowOf(view).Content = null;

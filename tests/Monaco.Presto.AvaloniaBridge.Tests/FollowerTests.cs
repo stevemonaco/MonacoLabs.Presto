@@ -251,7 +251,7 @@ public sealed class FollowerTests : BridgeTestBase
         Assert.True(BytesPerTick() <= 24, $"{BytesPerTick()} B per tick");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void EachTimingSourceResolves()
     {
         var durationEase = FollowTiming.Resolve(new() { Duration = 300, Ease = "linear" }, reduced: false);
@@ -277,7 +277,7 @@ public sealed class FollowerTests : BridgeTestBase
         Assert.Equal(80, reduced.Duration!.Value.AsDouble);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ConflictingTimingSourcesThrow()
     {
         Assert.Throws<ArgumentException>(() => FollowTiming.Resolve(new() { Builder = Presto.Build(), Duration = 100 }, false));
@@ -287,7 +287,7 @@ public sealed class FollowerTests : BridgeTestBase
         Assert.Throws<FormatException>(() => new Follower(typeof(double), new() { Spring = "Wobbly" }, null));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void SpringPresetsParseByNameOrBounceAndDuration()
     {
         Assert.Equal((0, 250), Shape(Springs.Parse(" stiff ")));

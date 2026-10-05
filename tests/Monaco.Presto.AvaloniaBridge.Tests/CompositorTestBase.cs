@@ -16,10 +16,17 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
 /// Drives compositor frames from a headless test: the render timer runs a whole compositor frame synchronously on the
-/// UI thread, and scene time is the compositor's own stopwatch, so the pumps let real time pass between frames.
+/// UI thread, and the compositor's clock is frozen, so the pumps move it on by <see cref="Frame"/> per frame instead of waiting.
+/// The engine's frame source still moves only on <c>Frames.Advance</c>, so a test that needs the two in step advances both.
 /// </summary>
-public abstract class CompositorTestBase : BridgeTestBase
+public abstract class CompositorTestBase : BridgeTestBase, IDisposable
 {
+    protected const double Frame = 16;
+
+    protected CompositorTestBase() => CompositorClock.Install();
+
+    public void Dispose() => CompositorClock.Uninstall();
+
     /// <summary>Shows <paramref name="canvas"/> in a window and ticks once, which is when the batched attach message reaches the handler.</summary>
     protected static (StackPanel Panel, CompositorCanvas Canvas) Show(CompositorCanvas canvas)
     {
@@ -44,10 +51,7 @@ public abstract class CompositorTestBase : BridgeTestBase
         return bar;
     }
 
-    /// <summary>
-    /// Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them, even in the
-    /// first test of a run, whose first compositor frame also counts the JIT time since the frame before it.
-    /// </summary>
+    /// <summary>Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them.</summary>
     protected const double Held = 600000;
 
     protected static AnimationBuilder HeldMove => Presto.Build().Duration(Held).Ease(Eases.None);
@@ -70,21 +74,28 @@ public abstract class CompositorTestBase : BridgeTestBase
         return done();
     });
 
-    /// <summary>Commits what the UI thread has queued for the compositor, as a real frame does, then runs one compositor frame.</summary>
-    protected static void Tick()
+    /// <summary>
+    /// Commits what the UI thread has queued for the compositor, as a real frame does, then runs one compositor frame
+    /// <paramref name="ms"/> after the commit.
+    /// </summary>
+    protected static void Tick(double ms = 0)
     {
         Dispatcher.UIThread.RunJobs();
+        // Avalonia draws a key frame animation at exactly zero elapsed as its last key, so no frame lands on its commit.
+        CompositorClock.Advance(ms + .001);
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     }
 
-    /// <summary>Ticks until <paramref name="until"/> holds or <paramref name="rounds"/> run out.</summary>
-    protected static async Task<bool> Pump(Func<bool> until, int rounds = 120)
+    /// <summary>Ticks through <paramref name="ms"/> of virtual time.</summary>
+    protected static void TickFor(double ms)
     {
-        for (var i = 0; i < rounds && !until(); i++)
-        {
-            Tick();
-            await Task.Delay(8);
-        }
+        for (var elapsed = 0d; elapsed < ms; elapsed += Frame) Tick(Frame);
+    }
+
+    /// <summary>Ticks a <see cref="Frame"/> at a time until <paramref name="until"/> holds or <paramref name="rounds"/> run out.</summary>
+    protected static bool Pump(Func<bool> until, int rounds = 120)
+    {
+        for (var i = 0; i < rounds && !until(); i++) Tick(Frame);
         return until();
     }
 

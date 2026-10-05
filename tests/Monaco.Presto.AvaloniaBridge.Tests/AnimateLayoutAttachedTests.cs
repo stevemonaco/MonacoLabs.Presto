@@ -70,7 +70,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ChangingTheBuilderMidMoveRevertsAndTheNextMoveUsesTheNewOne()
+    public void ChangingTheBuilderMidMoveRevertsAndTheNextMoveUsesTheNewOne()
     {
         var (_, bar) = ShowBarInPanel(HeldMove);
         var start = Top(bar);
@@ -83,7 +83,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
 
         MoveDown(bar);
         Assert.True(Top(bar) < start + (2 * Shift), "the move with the new builder jumped");
-        Assert.True(await Pump(() => Top(bar) == start + (2 * Shift), rounds: 40), "the new builder's move never landed");
+        Assert.True(Pump(() => Top(bar) == start + (2 * Shift), rounds: 40), "the new builder's move never landed");
 
         Animate.SetLayout(bar, null);
         MoveDown(bar);
@@ -111,7 +111,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt(bool layoutFirst)
+    public void AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt(bool layoutFirst)
     {
         // A row's window stays open, so sharing the key would make the next row's leaving fly from this row's arriving.
         var key = $"{nameof(AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt)}{layoutFirst}";
@@ -134,7 +134,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
         Assert.Equal(drawn, Box(arriving));
 
         Frames.Advance(Held + 1);
-        Assert.True(await Pump(() => Box(arriving) == SlotOf(arriving), rounds: 8), "the layout property did not take over after the flight");
+        Assert.True(Pump(() => Box(arriving) == SlotOf(arriving), rounds: 8), "the layout property did not take over after the flight");
 
         var start = Top(arriving);
         arriving.Margin += new Thickness(0, Shift, 0, 0);
@@ -143,7 +143,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ClearingAndRestoringTheSameBuilderMidFlightLeavesOneTransitionThatDetachReverts()
+    public void ClearingAndRestoringTheSameBuilderMidFlightLeavesOneTransitionThatDetachReverts()
     {
         var key = nameof(ClearingAndRestoringTheSameBuilderMidFlightLeavesOneTransitionThatDetachReverts);
         var root = new Panel();
@@ -166,7 +166,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
 
         // The restored arm re-arms at its next layout pass; the released one must not fill the gap before it.
         Frames.Advance(Held + 1);
-        await Pump(() => LayoutTransition.Live(arriving) is { Once: false }, rounds: 8);
+        Pump(() => LayoutTransition.Live(arriving) is { Once: false }, rounds: 8);
         root.Children.Remove(arriving);
         Assert.False(LayoutTransition.Live(arriving) is { Once: false }, "a released arm re-armed after the flight and outlived the detach");
 

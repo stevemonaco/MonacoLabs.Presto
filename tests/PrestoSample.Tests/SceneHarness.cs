@@ -8,7 +8,10 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using Avalonia.Platform;
+using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Tests;
 
 namespace PrestoSample.Tests;
 
@@ -51,19 +54,24 @@ internal static class SceneHarness
         TestFrames.Tick();
     }
 
-    /// <summary>Ticks until <paramref name="until"/> holds or <paramref name="rounds"/> run out, letting real time pass so the compositor's own clock advances.</summary>
-    public static async Task<bool> Pump(Func<bool> until, int rounds = 60)
+    /// <summary>Ticks until <paramref name="until"/> holds or <paramref name="rounds"/> run out; it never waits, as each tick moves both clocks.</summary>
+    public static Task<bool> Pump(Func<bool> until, int rounds = 60)
     {
-        for (var i = 0; i < rounds && !until(); i++)
-        {
-            TestFrames.Tick();
-            await Task.Delay(8);
-        }
-        return until();
+        for (var i = 0; i < rounds && !until(); i++) TestFrames.Tick();
+        return Task.FromResult(until());
     }
 
-    /// <summary>Ticks past a whole reflow, which is the only way to wait for every card at once: they overlap while they move.</summary>
-    public static Task Settle(int rounds = 120) => Pump(() => false, rounds);
+    /// <summary>
+    /// Ticks at least once, then until no engine or compositor animation is running, which is the only way to wait for every
+    /// card of a reflow at once; <paramref name="rounds"/> caps it, for a page that never comes to rest.
+    /// </summary>
+    public static Task Settle(int rounds = 120)
+    {
+        TestFrames.Tick();
+        return Pump(Idle, rounds - 1);
+    }
+
+    private static bool Idle() => !Presto.Engine.IsRunning && !CompositorClock.IsAnimating();
 
     /// <summary>Ticks until <paramref name="card"/> is drawn in the slot layout has given it, which is both its entry and its reflow finishing.</summary>
     public static Task<bool> Settles(Visual page, Window window, Border card) =>
@@ -79,7 +87,7 @@ internal static class SceneHarness
     public static IEnumerable<Border> Cards(Visual page) =>
         page.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("card"));
 
-    /// <summary>The pixels of the last frame the window holding <paramref name="visual"/> rendered, with the row stride.</summary>
+    /// <summary>The RGBA pixels of the last frame the window holding <paramref name="visual"/> rendered, with the row stride.</summary>
     public static (byte[] Pixels, int Stride) Capture(Visual visual)
     {
         var window = TopLevel.GetTopLevel(visual)!;
@@ -87,6 +95,7 @@ internal static class SceneHarness
         using var locked = frame.Lock();
         var pixels = new byte[locked.RowBytes * locked.Size.Height];
         Marshal.Copy(locked.Address, pixels, 0, pixels.Length);
+        for (var i = 0; i < pixels.Length; i += 4) (pixels[i], pixels[i + 2]) = (pixels[i + 2], pixels[i]);
         return (pixels, locked.RowBytes);
     }
 

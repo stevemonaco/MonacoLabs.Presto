@@ -69,7 +69,13 @@ public sealed class PresencePageTransitionTests : CompositorTestBase
 
         Swap(host, new Border());
 
-        Assert.True(await Pump(() => !page.IsAttachedToVisualTree()), "the old page never left");
+        for (var i = 0; i < 120 && page.IsAttachedToVisualTree(); i++)
+        {
+            Tick(Frame);
+            // CrossFade runs on Avalonia's own animation clock, which moves only in real time with the dispatcher free.
+            await Task.Delay(8);
+        }
+        Assert.False(page.IsAttachedToVisualTree(), "the old page never left");
         Assert.Empty(Ghosts(host));
     }
 

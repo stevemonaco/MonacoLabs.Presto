@@ -49,7 +49,7 @@ public sealed class DotLottieTests : CompositorTestBase
         return stream;
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void TheFirstAnimationIsReadByDefaultAndTheManifestIdsAreListed()
     {
         var composition = LottieComposition.FromDotLottie(Archive());
@@ -59,7 +59,7 @@ public sealed class DotLottieTests : CompositorTestBase
         Assert.Empty(LottieComposition.FromJson(Blank).AnimationIds);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void TheManifestsInitialAnimationIsReadByDefault()
     {
         var manifest = """{"animations":[{"id":"badge"},{"id":"blank"}],"initial":{"animation":"blank"}}""";
@@ -67,11 +67,11 @@ public sealed class DotLottieTests : CompositorTestBase
         Assert.Equal(50, LottieComposition.FromDotLottie(Archive(manifest)).Width);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void AnAnimationIsReadById() =>
         Assert.Equal(60, LottieComposition.FromDotLottie(Archive(), "blank").OutPoint);
 
-    [Fact]
+    [AvaloniaFact]
     public void FromStreamDetectsTheZipSignature() =>
         Assert.Equal(["badge", "blank"], LottieComposition.FromStream(Archive()).AnimationIds);
 
@@ -98,7 +98,7 @@ public sealed class DotLottieTests : CompositorTestBase
         Assert.Equal(Colors.Black, Row(view, 60)[30]);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void AMissingManifestThrowsFormatException()
     {
         var error = Assert.Throws<FormatException>(() => LottieComposition.FromDotLottie(Archive(manifest: null)));
@@ -106,7 +106,7 @@ public sealed class DotLottieTests : CompositorTestBase
         Assert.Contains("manifest.json", error.Message);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void AnUnknownAnimationIdThrowsListingTheAvailableIds()
     {
         var error = Assert.Throws<ArgumentException>(() => LottieComposition.FromDotLottie(Archive(), "missing"));

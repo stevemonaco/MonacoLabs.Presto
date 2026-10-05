@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
@@ -16,11 +15,11 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 public sealed class CompositorPlaybackTests : CompositorTestBase
 {
     [AvaloniaFact]
-    public async Task PauseFreezesThePixelsAndResumeCarriesOnFromThere()
+    public void PauseFreezesThePixelsAndResumeCarriesOnFromThere()
     {
         var bar = ShowBar();
         var animation = bar.AnimateOnCompositor(new() { ["X"] = 60, Duration = 2000, Ease = "linear" });
-        await Run();
+        Run();
         var moved = Left(bar);
         Assert.True(moved > 31, "the translation never started");
 
@@ -29,11 +28,11 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
         var frozen = Left(bar);
 
         Assert.True(Math.Abs(frozen - moved) <= 3, $"pausing moved the bar from {moved} to {frozen}");
-        Assert.False(await Pump(() => Left(bar) != frozen, rounds: 8), "the paused animation kept running");
+        Assert.False(Pump(() => Left(bar) != frozen, rounds: 8), "the paused animation kept running");
 
         _ = animation.Resume();
 
-        Assert.True(await Pump(() => Left(bar) > frozen), "the resumed animation never moved on");
+        Assert.True(Pump(() => Left(bar) > frozen), "the resumed animation never moved on");
         Assert.True(Left(bar) < frozen + 20, "the resumed animation jumped ahead instead of carrying on");
     }
 
@@ -63,37 +62,35 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ReverseMidFlightWalksThePixelsBackTowardsTheStart()
+    public void ReverseMidFlightWalksThePixelsBackTowardsTheStart()
     {
         var bar = ShowBar();
         var animation = bar.AnimateOnCompositor(new() { ["X"] = 60, Duration = 2000, Ease = "linear" });
-        await Run();
+        Run();
         var forward = Left(bar);
         Assert.True(forward > 31, "the translation never started");
 
         _ = animation.Reverse();
 
-        Assert.True(await Pump(() => Left(bar) < forward - 1), "the reversed animation did not walk back");
+        Assert.True(Pump(() => Left(bar) < forward - 1), "the reversed animation did not walk back");
     }
 
     [AvaloniaFact]
-    public async Task DoublingTheSpeedCoversTwiceTheDistance()
+    public void DoublingTheSpeedCoversTwiceTheDistance()
     {
         var bar = ShowBar();
         var opaque = Capture(bar);
         var animation = bar.AnimateOnCompositor(new() { ["Opacity"] = 0, Duration = 3000, Ease = "linear" });
 
-        var slowMs = await Run();
+        Run();
         var slow = Difference(opaque, Capture(bar));
         Assert.True(slow > 0, "the fade never started");
 
         animation.Speed = 2;
-        var fastMs = await Run();
+        Run();
         var fast = Difference(opaque, Capture(bar)) - slow;
 
-        Assert.True(
-            fast / fastMs > 1.5 * (slow / slowMs),
-            $"{fast} of fade over {fastMs} ms is not twice {slow} over {slowMs} ms");
+        Assert.True(fast > 1.5 * slow, $"{fast} of fade is not twice {slow}");
     }
 
     /// <remarks>
@@ -121,11 +118,11 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task RestartAndCompleteLandOnTheStartAndEndValues()
+    public void RestartAndCompleteLandOnTheStartAndEndValues()
     {
         var bar = ShowBar();
         var animation = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 2000, Ease = "linear" });
-        await Run();
+        Run();
         Assert.True(Left(bar) > 31, "the translation never started");
 
         _ = animation.Complete();
@@ -175,22 +172,13 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
 
     private static double Left(Visual visual) => Extent(visual, Colors.Red)!.Value.Left;
 
-    /// <summary>
-    /// Runs 24 compositor frames, advancing the mirror by the real time each one took, since the render thread reads its
-    /// own stopwatch and the engine reads the test's frame source. Returns the elapsed ms.
-    /// </summary>
-    private async Task<double> Run()
+    /// <summary>Runs 24 frames, each moving the mirror and the render thread on together.</summary>
+    private void Run()
     {
-        var elapsed = 0d;
         for (var i = 0; i < 24; i++)
         {
-            var at = Stopwatch.GetTimestamp();
-            Tick();
-            await Task.Delay(8);
-            var frame = Stopwatch.GetElapsedTime(at).TotalMilliseconds;
-            Frames.Advance(frame);
-            elapsed += frame;
+            Frames.Advance(Frame);
+            Tick(Frame);
         }
-        return elapsed;
     }
 }

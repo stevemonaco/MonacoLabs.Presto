@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Monaco.Presto;
 
 /// <summary>
@@ -9,11 +7,24 @@ namespace Monaco.Presto;
 /// </summary>
 public sealed class StopwatchFrameSource : IFrameSource
 {
-    private readonly long _origin = Stopwatch.GetTimestamp();
+    private readonly TimeProvider _timeProvider;
+    private readonly long _origin;
     private volatile Pump? _pump;
 
+    /// <summary>Creates a frame source that reads <see cref="Now"/> from <see cref="TimeProvider.System"/>.</summary>
+    public StopwatchFrameSource() : this(TimeProvider.System)
+    {
+    }
+
+    /// <summary>Creates a frame source that reads <see cref="Now"/> from <paramref name="timeProvider"/>; frames are still paced in real time.</summary>
+    public StopwatchFrameSource(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+        _origin = timeProvider.GetTimestamp();
+    }
+
     /// <inheritdoc/>
-    public double Now => Stopwatch.GetElapsedTime(_origin).TotalMilliseconds;
+    public double Now => _timeProvider.GetElapsedTime(_origin).TotalMilliseconds;
 
     /// <inheritdoc/>
     public void Start(Action onFrame)

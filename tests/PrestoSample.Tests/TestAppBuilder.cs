@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 
@@ -8,10 +9,13 @@ namespace PrestoSample.Tests;
 
 public static class TestAppBuilder
 {
-    /// <summary>Skia replaces the headless drawing stub, whose geometries report a <c>ContourLength</c> of 0.</summary>
+    /// <summary>
+    /// Skia replaces the headless drawing stub, whose geometries report a <c>ContourLength</c> of 0. The framebuffer
+    /// takes Skia's own pixel order: converting every frame from it took a quarter of the suite's time.
+    /// </summary>
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
         .UseSkia()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, FrameBufferFormat = PixelFormat.Bgra8888 });
 }
 
 /// <summary>

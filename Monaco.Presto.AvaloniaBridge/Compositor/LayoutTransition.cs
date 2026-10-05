@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -26,6 +25,8 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private static readonly ConditionalWeakTable<Control, LayoutTransition> s_live = new();
     private static readonly Dictionary<string, (Rect OnScreen, long At)> s_prepared = new();
     private static readonly Vector3D s_one = new(1, 1, 1);
+
+    internal static TimeProvider TimeProvider { get; set; } = TimeProvider.System;
 
     private readonly Control _control;
     private readonly LayoutMotion _motion;
@@ -159,13 +160,13 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     }
 
     /// <summary>Records <paramref name="drawn"/> under <paramref name="key"/>, replacing any earlier entry.</summary>
-    internal static void Prepare(string key, Rect drawn) => s_prepared[key] = (drawn, Stopwatch.GetTimestamp());
+    internal static void Prepare(string key, Rect drawn) => s_prepared[key] = (drawn, TimeProvider.GetTimestamp());
 
     /// <summary>Removes and returns the rect prepared under <paramref name="key"/>, unless there is none or it has expired.</summary>
     internal static Rect? TakePrepared(string key)
     {
         if (!s_prepared.Remove(key, out var prepared)) return null;
-        return Stopwatch.GetElapsedTime(prepared.At) <= s_preparedLifetime ? prepared.OnScreen : null;
+        return TimeProvider.GetElapsedTime(prepared.At) <= s_preparedLifetime ? prepared.OnScreen : null;
     }
 
     private static Rect? Measure(Control control, bool onScreen)

@@ -213,7 +213,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ABuilderRunsOnTheCompositorAsTheEquivalentParamsDo()
+    public void ABuilderRunsOnTheCompositorAsTheEquivalentParamsDo()
     {
         var byParams = ShowBar();
         var byBuilder = ShowBar();
@@ -222,7 +222,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         var actual = byBuilder.AnimateOnCompositor(Presto.Build().X(20).Y(30).Opacity(1).Duration(150).Ease("linear").Loop(1));
 
         var end = new Rect(50, 70, 40, 20);
-        Assert.True(await Pump(() => Extent(byParams, Colors.Red) == end && Extent(byBuilder, Colors.Red) == end), "the translations never arrived");
+        Assert.True(Pump(() => Extent(byParams, Colors.Red) == end && Extent(byBuilder, Colors.Red) == end), "the translations never arrived");
 
         Frames.Advance(200);
         Assert.False(actual.Completed);
@@ -267,7 +267,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ALambdaRunsOnTheCompositorAsItsBuilderDoes()
+    public void ALambdaRunsOnTheCompositorAsItsBuilderDoes()
     {
         var byBuilder = ShowBar();
         var byLambda = ShowBar();
@@ -276,7 +276,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         var actual = PrestoAvalonia.AnimateOnCompositor(byLambda, b => b.X(20).Y(30).Duration(150).Ease("linear"));
 
         var end = new Rect(50, 70, 40, 20);
-        Assert.True(await Pump(() => Extent(byBuilder, Colors.Red) == end && Extent(byLambda, Colors.Red) == end), "the translations never arrived");
+        Assert.True(Pump(() => Extent(byBuilder, Colors.Red) == end && Extent(byLambda, Colors.Red) == end), "the translations never arrived");
         Frames.Advance(200);
         Assert.True(expected.Completed);
         Assert.True(actual.Completed);

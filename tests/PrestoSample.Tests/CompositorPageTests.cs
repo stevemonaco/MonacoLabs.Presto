@@ -37,6 +37,8 @@ public sealed class CompositorPageTests
         canvas.Post(new OrbitScene.Heartbeat(Stopwatch.GetTimestamp()));
         Assert.True(await SceneHarness.Pump(() => FrozenFor(canvas) == 0), "a fresh heartbeat did not clear the freeze");
 
+        // The heartbeat is a wall-clock timestamp, so only real time makes it stale; virtual frames take none.
+        await Task.Delay(300);
         Assert.True(await SceneHarness.Pump(() => FrozenFor(canvas) > 0), "the scene never noticed the heartbeat stop");
     }
 

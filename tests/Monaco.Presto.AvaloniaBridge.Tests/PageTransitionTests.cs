@@ -60,7 +60,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task TheIncomingHostsFirstFrameIsAtTheEntrancesStartValues(bool compositor)
+    public void TheIncomingHostsFirstFrameIsAtTheEntrancesStartValues(bool compositor)
     {
         var transition = new PrestoPageTransition { Enter = Presto.Build().Opacity(from: 0).Duration(300).Ease("linear"), UseCompositor = compositor };
         var host = new TransitioningContentControl { PageTransition = transition, Content = new Border { Background = Brushes.White } };
@@ -75,7 +75,7 @@ public sealed class PageTransitionTests : CompositorTestBase
         Assert.Null(Extent(host, Colors.Red));
         Frames.Advance(400);
         Dispatcher.UIThread.RunJobs();
-        Assert.True(await Pump(() => Extent(host, Colors.Red) != null), "the incoming page never showed");
+        Assert.True(Pump(() => Extent(host, Colors.Red) != null), "the incoming page never showed");
     }
 
     [AvaloniaFact]
@@ -360,7 +360,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ASharedAxisScaleOnTheCompositorHonoursTheHostsOrigin()
+    public void ASharedAxisScaleOnTheCompositorHonoursTheHostsOrigin()
     {
         var (from, to) = ShowPair();
         from.IsVisible = false;
@@ -371,7 +371,7 @@ public sealed class PageTransitionTests : CompositorTestBase
         _ = Recipes.PageSharedAxis(PageAxis.Z).Start(null, to, true, CancellationToken.None);
 
         var far = new Rect(to.Bounds.Width - 2, to.Bounds.Height - 2, 2, 2);
-        Assert.True(await Pump(() => CountPixels(to, new Rect(0, 0, 2, 2), Colors.White) > 0 && CountPixels(to, far, Colors.White) == 0),
+        Assert.True(Pump(() => CountPixels(to, new Rect(0, 0, 2, 2), Colors.White) > 0 && CountPixels(to, far, Colors.White) == 0),
             "the incoming page did not grow from its top left corner");
     }
 
