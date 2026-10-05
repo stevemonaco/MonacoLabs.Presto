@@ -684,7 +684,96 @@ and Android. Record the choice as a decision.
 - Whether the ripple draws over or under the content is a decision (Compose draws its indication over content).
 - **Reduced:** the state-layer tint only.
 
-### 8.4 Tests and sample
+### 8.4 Spike (done)
+
+Pinned by `RippleSpikeTests` (Avalonia 12.1.3, re-run on the bump from 12.1.2 with the same allocations). The Win32
+numbers come from the Desktop sample's Ripple bench page with the auto-presser on (a press every 20 ms, so 50 a second,
+with the 20 most recent held), driven and read through DevTools after 5 s on each setting. DevTools needs `DEBUG`, so
+the sample was built as Debug with `Optimize=true` rather than Release; the window was 1400x1000 on a 180 Hz display.
+Bytes are what the whole process allocated per UI frame, over one-second windows; the page idles at 9.0–9.1 KB per
+frame with no gen-0 collections (its frame graph and readouts), with or without 50 idle hosts carrying B per-host visuals.
+
+**Win32**, ui fps / render fps / gen-0 per second / bytes per UI frame (above idle):
+
+| Candidate | 50 buttons | 200 list rows |
+|---|---|---|
+| A: UI-thread layer | 180 / 178 / 1 / 34.9 KB (+25.9) | 180 / 180 / 0 / 32.0 KB (+23.0) |
+| B: custom visual per host | 180 / 180 / 0 / 22.5 KB (+13.5) | 178 / 180 / 0 / 10.3 KB (+1.3) |
+| B: window overlay | 176–178 / 174–178 / 0–1 / 14.4 KB (+5.4) | 180 / 180 / 0–1 / 13.1 KB (+4.1) |
+| C: compositor ellipses | 180 / 180 / 0 / 19.8 KB (+10.8) | 180 / 180 / 0 / 16.3 KB (+7.3) |
+| B per host, soft edge | 178 / 180 / 1 / 35.0 KB (+26.0) | — |
+
+**Browser: not measured.** The avalonia_devtools tools, the only input and inspection this spike may use, attach only to
+desktop processes (`attach-to-app` lists none other), the Browser head has no launch options to pick a candidate or start
+the auto-presser, and reading its readouts would mean capturing a browser window. **Android: not measured,** for the
+same reasons, and because `samples/PrestoSample.Android` does not build on this machine: D8 fails with
+`Type androidx.core.animation.AnimatorKt$addListener$1 is defined multiple times` across the `androidx.core` and
+`androidx.core-ktx` libraries (seen after the dependency bump; nothing in this phase touches the head). Both stay open
+for the sample item: the choice below assumes a separate render thread, which a single-threaded Browser build may not
+have, so measure there before Phase 62 closes.
+
+Findings:
+
+- **No candidate costs a frame on Win32.** Every setting held the display's 180 fps on both threads, so the choice
+  rests on allocations, on which thread does the per-frame work and on what each can clip.
+- **A allocates most and works on the UI thread.** Each live host records a new drawing every frame: +23–26 KB per
+  frame on Win32, and 40 KB per growing frame for 50 hosts headless.
+- **B per host costs only what is drawn.** With most of the pressed rows scrolled out of view, 200 rows cost +1.3 KB
+  against +13.5 KB for 50 visible buttons. Its scene timer cancels once the ink has faded, so idle hosts allocate
+  nothing. A radial-gradient soft edge doubles its cost (+26.0 KB), so the solid circle stays the default.
+- **The window overlay is cheapest but escapes clips.** It places ink by the host's window position at the press and
+  clips only to the host's own rounded rectangle, so the ink of a row scrolled out of view drew over the frame graph below
+  the scroller, and held ink would stay behind while the list scrolls. Fixing that means walking every
+  ancestor clip and following scrolls, which the per-host visual gets for free.
+- **C pays per press.** Each press adds an `Ellipse` to the tree and a compositor animation with its UI-thread mirror:
+  growing frames are cheap (7.5 KB headless), but a press-and-release cycle costs 33.8 KB per frame headless, near A.
+- **A custom visual needs no layer control.** `ElementComposition.SetElementChildVisual` takes any visual, and the child
+  visual is composed after the host's visual children, so it draws over the content
+  (`AnElementChildVisualDrawsOverTheHostsChildren`). Its clip is `ClipToBounds` only, with no geometry, so the rounded
+  corners are a clip the handler pushes itself (`AGrownRippleCoversTheHostButNotItsRoundedCorners`).
+- **A custom visual draws outside its size only when unclipped and within widened render bounds.** It starts with
+  `ClipToBounds` on, and unclipped it is still drawn only within `GetRenderBounds`, which defaults to its size
+  (`AnElementChildVisualDrawsOutsideItsSizeOnlyUnclippedAndWithinWidenedRenderBounds`).
+- **A touch scroll takes the pointer from the pressed child.** When a touch drag starts a scroll, the
+  `ScrollGestureRecognizer` captures the pointer: the child gets `PointerCaptureLost` and never `PointerReleased`
+  (`ATouchDragThatStartsAScrollTakesThePointerFromThePressedChild`).
+
+Decisions for the API items:
+
+- **Candidate: B per host** (PLAN decision 100). Each host gets one `CompositionCustomVisual` through
+  `SetElementChildVisual`, sized to the host's bounds and resized with them, which draws its ripples on the render thread
+  under the host's rounded clip; the UI thread only posts press, release and cancel. The host's
+  child-visual slot is the ripple's, so a `CompositorCanvas` cannot carry one.
+- **Over the content** (PLAN decision 101), as Compose's indication is: the child visual composes after the host's
+  children, and drawing under the content of an arbitrary control would take a template change. Ink and state layer are
+  translucent, so text stays readable.
+- **Switched on by an explicit `Ripple.Enabled`** (bool, default false), so a style can turn ripples on without picking
+  a colour, and `Ripple.Color` (`Color?`, default null) stays an override of the theme default.
+- **Default colour: the theme accent.** `SystemAccentColor` on the light variant and `SystemAccentColorLight2` on the
+  dark one (a lighter shade that still reads on dark surfaces), looked up on the host for its `ActualThemeVariant` at each press, so a
+  theme switch applies to the next press. Ink is drawn at 24 % alpha; the state layer at Material 3's 8 % hover, 10 %
+  focus and 10 % pressed, fading between them over `Tokens.Short`. Without the resource, the host's
+  `TextElement.Foreground` colour stands in. An explicit `Ripple.Color` keeps its own alpha.
+- **Bounded (the default):** the ink grows from the press point, which stays put, from radius 0 to the distance to the
+  host's farthest corner, clipped to the host's rounded rectangle (`CornerRadius` from `Border` or `TemplatedControl`,
+  square otherwise). Compose and Flutter also start at about 30 % of that radius and drift the centre to the middle; the
+  bench did neither and read as a ripple, so neither is built.
+- **Unbounded (`Ripple.Bounded` false):** the ink grows from the host's centre, whatever the press point, to half the
+  host's diagonal, with no clip of the host's own: the visual turns `ClipToBounds` off and widens `GetRenderBounds` to
+  the circle, so only ancestors' clips apply.
+- **Timing from `Recipes.Tokens`:** the radius grows over `Medium` with `Ease` (450 ms `OutCubic` in `Standard`, as the
+  bench), and release fades the ink over `Short` (200 ms), linear, while the radius keeps growing; a ripple released
+  early finishes growing as it fades.
+- **Press and cancel:** pointer and key events are handled with `handledEventsToo`, since `Button` marks its presses
+  handled. Enter or Space down ripples from the centre and the key up releases. Moving the pointer out of the host or
+  `PointerCaptureLost` cancels, which fades the ink like a release.
+- **Tap timeout:** a touch press inside a `ScrollViewer` waits 100 ms (Android's `ViewConfiguration.getTapTimeout()`,
+  which Compose also uses) before its ink appears. A scroll that starts first takes the capture and shows nothing; a
+  release first shows the ink from the press point and fades it at once. Mouse and pen presses never wait.
+- **Reduced motion** (read at the press): no ink; the pressed tint shows at once for as long as the press is held,
+  whatever `Ripple.StateLayer` says, and `StateLayer` adds the hover and focus tints without fading.
+
+### 8.5 Tests and sample
 
 - **Tests:**
   - Origin at the press point, and at the centre for a key press.
@@ -694,6 +783,14 @@ and Android. Record the choice as a decision.
   - Many concurrent ripples within the allocation budget.
   - Reduced.
 - **Sample:** ripples on the Micro-interactions buttons and on a list.
+
+**Built against the sketch:** everything in §8.3, plus the explicit `Ripple.Enabled` switch that §8.4 decided on;
+nothing sketched was dropped. The ink is a solid circle with no soft edge and no Compose-style start radius or centre
+drift. The sample has a Ripple reference page (filled, default-colour and unbounded buttons, focusable cards in three
+colours, and a bounded, state-layered ripple on a 20-row `ListBox`), and the Micro-interactions buttons keep white ink
+through one `Button.specimen` style. The Ripple bench page, its candidates and the measurements of them
+were removed; the tests that pin Avalonia behaviour stay, and `AllocationTests.FiftyConcurrentRipplesDrawWithinTheirBudget`
+replaced the per-candidate budget. Browser and Android are still unmeasured.
 
 ## 9. Phase 63 — Prebuilts 3: selection indicator, swipe actions, sheets and drawers
 

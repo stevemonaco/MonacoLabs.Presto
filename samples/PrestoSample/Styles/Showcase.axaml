@@ -120,7 +120,7 @@
                             <ToggleButton Name="PART_CSharpTab" Content="C#" Padding="10,2" FontSize="12" />
                             <ToggleButton Name="PART_XamlTab" Content="XAML" Padding="10,2" FontSize="12" />
                         </StackPanel>
-                        <showcase:CodePanel Name="PART_Panel" />
+                        <showcase:CodePanel Name="PART_Panel" Header="{TemplateBinding Header}" IsExpanded="{TemplateBinding IsExpanded, Mode=TwoWay}" />
                     </StackPanel>
                 </ControlTemplate>
             </Setter>

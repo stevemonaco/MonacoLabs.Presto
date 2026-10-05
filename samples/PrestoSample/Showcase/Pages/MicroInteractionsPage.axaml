@@ -31,6 +31,7 @@
             <Setter Property="Height" Value="3" />
             <Setter Property="Background" Value="{x:Static showcase:Palette.Border}" />
         </Style>
+        <!-- snippet: MicroInteractionsTabs -->
         <Style Selector="TabStripItem">
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Padding" Value="10,0" />
@@ -41,16 +42,25 @@
         <Style Selector="TabStripItem:selected /template/ Border#PART_SelectedPipe">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+        <!-- /snippet -->
+        <!-- snippet: MicroInteractionsAccordion -->
         <Style Selector="StackPanel#Accordion > Expander">
             <Setter Property="presto:Animate.Layout" Value="{presto:Reflow 380, Ease=outQuint}" />
             <Setter Property="presto:Animate.LayoutMode" Value="PositionAndSize" />
         </Style>
+        <!-- /snippet -->
         <Style Selector="TextBox.invalid /template/ Border#PART_BorderElement">
             <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Coral}" />
         </Style>
         <Style Selector="TextBlock.error">
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Coral}" />
         </Style>
+        <!-- snippet: MicroInteractionsRipple -->
+        <Style Selector="Button.specimen">
+            <Setter Property="presto:Ripple.Enabled" Value="True" />
+            <Setter Property="presto:Ripple.Color" Value="#47FFFFFF" />
+        </Style>
+        <!-- /snippet -->
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
@@ -74,6 +84,7 @@
             <StackPanel Grid.Column="1" Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="LIKE" />
                 <Border Classes="stage">
+                    <!-- snippet: MicroInteractionsLike -->
                     <Button x:Name="Like" Classes="specimen" Background="{x:Static showcase:Palette.SurfaceHigh}"
                             BorderBrush="{x:Static showcase:Palette.Border}" Padding="16,10"
                             HorizontalAlignment="Center" Click="LikeClicked"
@@ -85,6 +96,7 @@
                             <TextBlock x:Name="LikeCount" VerticalAlignment="Center" FontSize="16" />
                         </StackPanel>
                     </Button>
+                    <!-- /snippet -->
                 </Border>
             </StackPanel>
 
@@ -175,8 +187,7 @@
                 </Border>
             </StackPanel>
 
-            <showcase:CodePanel Grid.Row="2" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False"
-                                Language="Xaml" Code="{x:Static showcase:Snippets.MicroInteractionsToasts}" />
+            <showcase:CodeTabs x:Name="Code" Grid.Row="2" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
         </Grid>
     </ScrollViewer>
 </showcase:ShowcasePage>

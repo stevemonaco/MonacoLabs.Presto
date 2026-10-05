@@ -172,13 +172,5 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
 
     private static double Left(Visual visual) => Extent(visual, Colors.Red)!.Value.Left;
 
-    /// <summary>Runs 24 frames, each moving the mirror and the render thread on together.</summary>
-    private void Run()
-    {
-        for (var i = 0; i < 24; i++)
-        {
-            Frames.Advance(Frame);
-            Tick(Frame);
-        }
-    }
+    private void Run() => Run(24);
 }

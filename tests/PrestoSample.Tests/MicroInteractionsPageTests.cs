@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
@@ -178,5 +179,28 @@ public sealed class MicroInteractionsPageTests
         TestFrames.Tick(60);
         Assert.Equal(1, (double)PrestoAvalonia.Get(like, "Scale")!, 3);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void PressingSubmitGrowsInkFromThePressPoint()
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var submit = page.GetControl<Button>("Submit");
+        var near = submit.TranslatePoint(new Point(12, 6), window)!.Value;
+        var far = submit.TranslatePoint(new Point(submit.Bounds.Width - 12, 6), window)!.Value;
+
+        window.MouseDown(near, MouseButton.Left);
+        TestFrames.Tick(3);
+        var frame = SceneHarness.Capture(window);
+
+        Assert.NotEqual(Pixel(frame, far), Pixel(frame, near));
+        SceneHarness.Close(window);
+
+        static Color Pixel((byte[] Pixels, int Stride) frame, Point at)
+        {
+            var i = ((int)at.Y * frame.Stride) + ((int)at.X * 4);
+            return Color.FromRgb(frame.Pixels[i], frame.Pixels[i + 1], frame.Pixels[i + 2]);
+        }
     }
 }

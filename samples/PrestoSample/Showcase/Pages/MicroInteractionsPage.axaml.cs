@@ -15,9 +15,11 @@ namespace PrestoSample.Showcase.Pages;
 
 public partial class MicroInteractionsPage : ShowcasePage
 {
+    #region snippet MicroInteractionsBuilders
     public static readonly AnimationBuilder PressIn = Presto.Build().Scale(.92).Duration(120).Ease(Eases.OutQuad);
     public static readonly AnimationBuilder Pop = Presto.Build().Scale(k => k.To(1.1, duration: 110).To(1, duration: 420, ease: Eases.OutBack()));
     public static readonly AnimationBuilder TabLift = Presto.Build().Y(-2).Duration(180).Ease(Eases.OutQuad);
+    #endregion
 
     private const double TabInset = 10;
     private const double StretchDuration = 170;
@@ -38,6 +40,10 @@ public partial class MicroInteractionsPage : ShowcasePage
     {
         InitializeComponent();
         LikeCount.Text = Count(_likes);
+        Code.Xaml = string.Join("\n\n", Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs,
+            Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts);
+        Code.CSharp = string.Join("\n\n", Snippets.MicroInteractionsBuilders, Snippets.MicroInteractionsSubmit, Snippets.MicroInteractionsLikeHandler,
+            Snippets.MicroInteractionsTabIndicator, Snippets.MicroInteractionsAccordionHandler, Snippets.MicroInteractionsToastSwipe, Snippets.MicroInteractionsValidation);
     }
 
     protected override void OnAttached()
@@ -52,6 +58,7 @@ public partial class MicroInteractionsPage : ShowcasePage
 
     private static string Count(double likes) => likes.ToString("N0", CultureInfo.InvariantCulture);
 
+    #region snippet MicroInteractionsSubmit
     private void SubmitClicked(object? sender, RoutedEventArgs e)
     {
         if (_submitting is { Completed: false }) return;
@@ -70,7 +77,9 @@ public partial class MicroInteractionsPage : ShowcasePage
             .Add(Submit, new() { ["Width"] = width, ["CornerRadius"] = TweenValue.Of(new CornerRadius(8)), Ease = Eases.Spring(bounce: .4, duration: 600) }, "<<")
             .Add(SubmitLabel, new() { ["Opacity"] = 1, Duration = 240 }, "-=400"));
     }
+    #endregion
 
+    #region snippet MicroInteractionsLikeHandler
     private void LikeClicked(object? sender, RoutedEventArgs e)
     {
         var from = _likes;
@@ -88,7 +97,9 @@ public partial class MicroInteractionsPage : ShowcasePage
             if (_liked) Recipes.Burst(Heart, color: Palette.Coral.Color, reduced: Recipes.Fade());
         });
     }
+    #endregion
 
+    #region snippet MicroInteractionsTabIndicator
     private Rect? SelectedTab() =>
         Tabs.ContainerFromIndex(Tabs.SelectedIndex) is { } tab ? TabIndicator.Under(tab, Rail, TabInset) : null;
 
@@ -107,7 +118,9 @@ public partial class MicroInteractionsPage : ShowcasePage
     {
         if (SelectedTab() is { } tab) _underline?.Set("X", tab.X, ContractDuration).Set("Width", tab.Width, ContractDuration);
     }
+    #endregion
 
+    #region snippet MicroInteractionsAccordionHandler
     private void Expanding(object? sender, CancelRoutedEventArgs e)
     {
         foreach (var section in Accordion.Children)
@@ -115,7 +128,9 @@ public partial class MicroInteractionsPage : ShowcasePage
             if (section != sender && section is Expander expander) expander.IsExpanded = false;
         }
     }
+    #endregion
 
+    #region snippet MicroInteractionsValidation
     private void SubscribeClicked(object? sender, RoutedEventArgs e)
     {
         var text = Email.Text ?? "";
@@ -126,7 +141,9 @@ public partial class MicroInteractionsPage : ShowcasePage
         Hint.Text = valid ? $"Subscribed {text}." : "That doesn't look like an email address.";
         if (!valid) Scope.Execute(_ => Email.Animate(Recipes.Shake()));
     }
+    #endregion
 
+    #region snippet MicroInteractionsToastSwipe
     private void ToastLoaded(object? sender, RoutedEventArgs e)
     {
         var toast = (Control)sender!;
@@ -156,6 +173,7 @@ public partial class MicroInteractionsPage : ShowcasePage
     private void HoldToast(object? sender, PointerEventArgs e) => (((Control)sender!).Tag as Animation)?.Pause();
 
     private void ReleaseToast(object? sender, PointerEventArgs e) => (((Control)sender!).Tag as Animation)?.Resume();
+    #endregion
 
     private void Dismiss(Control toast) => ((ToastsViewModel)Toasts.DataContext!).Toasts.Remove((Toast)toast.DataContext!);
 

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -401,11 +402,46 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 64, $"{bytes:0.##} bytes per frame, median of {string.Join(", ", measured.Select(d => d.ToString("0")))}");
     }
 
-    /// <summary>Bytes the render loop allocates per compositor frame, after the frames that deliver what was posted.</summary>
-    private static double BytesPerFrame()
+    /// <remarks>
+    /// Each block presses 50 hosts from the keyboard and prices the frames where all 50 grow, then releases them and prices
+    /// as many idle frames once they have faded; the median difference is kept, as above.
+    /// </remarks>
+    [AvaloniaFact]
+    public void FiftyConcurrentRipplesDrawWithinTheirBudget()
     {
-        const int measured = 100;
-        for (var i = 0; i < 10; i++) Tick(Frame);
+        const int blocks = 7;
+        var grid = new UniformGrid { Columns = 10, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        for (var i = 0; i < 50; i++)
+        {
+            var host = new Border { Width = 36, Height = 20, CornerRadius = new CornerRadius(6), Background = Brushes.White };
+            Ripple.SetEnabled(host, true);
+            grid.Children.Add(host);
+        }
+        new Window { Content = grid, Background = Brushes.White, Width = 400, Height = 200 }.Show();
+        Tick();
+
+        var differences = new double[blocks + 1];
+        for (var i = 0; i < differences.Length; i++)
+        {
+            foreach (var host in grid.Children) host.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter, Source = host });
+            Tick(Frame);
+            var growing = BytesPerFrame(2, 20);
+            foreach (var host in grid.Children) host.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = Key.Enter, Source = host });
+            TickFor(500);
+            differences[i] = growing - BytesPerFrame(2, 20);
+        }
+        var measured = differences[1..];
+        Array.Sort(measured);
+        var bytes = measured[blocks / 2];
+
+        // measured 16 900: about 280 per host is Avalonia redrawing an invalidated custom visual, and about 58 the rounded clip.
+        Assert.True(bytes <= 20_000, $"{bytes:0.##} bytes per frame, median of {string.Join(", ", measured.Select(d => d.ToString("0")))}");
+    }
+
+    /// <summary>Bytes the render loop allocates per compositor frame, after the frames that deliver what was posted.</summary>
+    private static double BytesPerFrame(int warmUp = 10, int measured = 100)
+    {
+        for (var i = 0; i < warmUp; i++) Tick(Frame);
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < measured; i++) Tick(Frame);
         return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;

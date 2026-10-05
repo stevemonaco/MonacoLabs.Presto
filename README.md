@@ -1381,6 +1381,34 @@ text up from the right. Each changed character rolls out upwards under a clip as
 or the other way when counting down, staggered right to left by `StaggerStep`. The plain text comes back at the end,
 and calling it again mid-roll finishes the running roll first. Reduced, it sets the text as `CountUp` does.
 
+#### Ripple
+
+`Ripple` is Material's press ink, attached to any `Control`. A held press grows a circle from the press point until it
+covers the element, and releasing fades it over `Tokens.Short` while it keeps growing over `Tokens.Medium`. Enter or
+Space on the focused element ripples from its centre.
+
+```xml
+<Style Selector="Button.primary">
+    <Setter Property="presto:Ripple.Enabled" Value="True" />
+    <Setter Property="presto:Ripple.Color" Value="#47FFFFFF" />
+</Style>
+<ListBoxItem presto:Ripple.Enabled="True" presto:Ripple.StateLayer="True" />
+```
+
+- `Enabled` (default false) turns it on, so a style can add ripples without picking a colour.
+- `Color` (default null) is the theme accent at 24 % alpha, `SystemAccentColor` in light themes and
+  `SystemAccentColorLight2` in dark ones, read at each press. An explicit colour keeps its own alpha.
+- `Bounded` (default true) clips the ink to the element's rounded corners. Set false and it grows from the centre to
+  an unclipped circle around the element.
+- `StateLayer` (default false) adds Material's tint in the ink's hue: 8 % on hover, 10 % on keyboard focus or press.
+
+The ink draws over the content, as Compose's indication does. It is drawn on the render thread by a composition visual
+of the element's own, so it never lays the element out or takes its input; that visual uses the element's child-visual
+slot. Dragging out of the element, losing the pointer capture or scrolling an ancestor `ScrollViewer` cancels the press.
+Inside a scroller a touch press waits 100 ms (Android's tap timeout) before it shows, so a fling never ripples, and a tap
+released sooner still gets a short ripple. Under reduced motion there is no ink: a press shows only the pressed tint,
+at once, even with `StateLayer` off.
+
 #### Confetti, sparkles and bursts
 
 Particle recipes emit into one render-thread overlay per window, laid over the anchor in the window's `OverlayLayer`,

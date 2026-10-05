@@ -93,6 +93,16 @@ public abstract class CompositorTestBase : BridgeTestBase, IDisposable
         for (var elapsed = 0d; elapsed < ms; elapsed += Frame) Tick(Frame);
     }
 
+    /// <summary>Advances the engine and the compositor together, a <see cref="Frame"/> at a time.</summary>
+    protected void Run(int frames)
+    {
+        for (var i = 0; i < frames; i++)
+        {
+            Frames.Advance(Frame);
+            Tick(Frame);
+        }
+    }
+
     /// <summary>Ticks a <see cref="Frame"/> at a time until <paramref name="until"/> holds or <paramref name="rounds"/> run out.</summary>
     protected static bool Pump(Func<bool> until, int rounds = 120)
     {

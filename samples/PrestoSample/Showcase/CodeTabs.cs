@@ -11,6 +11,10 @@ public sealed class CodeTabs : TemplatedControl
 
     public static readonly StyledProperty<string?> XamlProperty = AvaloniaProperty.Register<CodeTabs, string?>(nameof(Xaml));
 
+    public static readonly StyledProperty<string?> HeaderProperty = CodePanel.HeaderProperty.AddOwner<CodeTabs>();
+
+    public static readonly StyledProperty<bool> IsExpandedProperty = CodePanel.IsExpandedProperty.AddOwner<CodeTabs>();
+
     public static readonly StyledProperty<CodeLanguage> SelectedLanguageProperty =
         AvaloniaProperty.Register<CodeTabs, CodeLanguage>(nameof(SelectedLanguage));
 
@@ -29,6 +33,19 @@ public sealed class CodeTabs : TemplatedControl
     {
         get => GetValue(XamlProperty);
         set => SetValue(XamlProperty, value);
+    }
+
+    /// <summary>A title above the code; with one the code collapses, and the switch shows only while expanded.</summary>
+    public string? Header
+    {
+        get => GetValue(HeaderProperty);
+        set => SetValue(HeaderProperty, value);
+    }
+
+    public bool IsExpanded
+    {
+        get => GetValue(IsExpandedProperty);
+        set => SetValue(IsExpandedProperty, value);
     }
 
     public CodeLanguage SelectedLanguage
@@ -52,7 +69,7 @@ public sealed class CodeTabs : TemplatedControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == CSharpProperty || change.Property == XamlProperty || change.Property == SelectedLanguageProperty) Show();
+        if (change.Property == CSharpProperty || change.Property == XamlProperty || change.Property == SelectedLanguageProperty || change.Property == IsExpandedProperty) Show();
     }
 
     private void Select(CodeLanguage language)
@@ -68,7 +85,7 @@ public sealed class CodeTabs : TemplatedControl
         var language = both ? SelectedLanguage : string.IsNullOrEmpty(CSharp) ? CodeLanguage.Xaml : CodeLanguage.CSharp;
         _panel.Language = language;
         _panel.Code = language == CodeLanguage.Xaml ? Xaml : CSharp;
-        _tabs?.IsVisible = both;
+        _tabs?.IsVisible = both && IsExpanded;
         _cSharpTab?.IsChecked = language == CodeLanguage.CSharp;
         _xamlTab?.IsChecked = language == CodeLanguage.Xaml;
     }
