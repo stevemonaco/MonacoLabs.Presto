@@ -2,9 +2,8 @@
   <!-- https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AvaloniaVersion>12.1.2</AvaloniaVersion>
+    <AvaloniaVersion>12.1.3</AvaloniaVersion>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
@@ -18,18 +17,13 @@
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
     <!-- Must match the SkiaSharp Avalonia resolves: Skottie P/Invokes into that libSkiaSharp. -->
     <PackageVersion Include="SkiaSharp.Skottie" Version="3.119.4" />
-
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
-    <PackageVersion Include="AvaloniaUI.DiagnosticsSupport.HotReload" Version="1.0.0" />
-
+    <PackageVersion Include="AvaloniaUI.DiagnosticsSupport.HotReload" Version="1.0.1" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-
     <!-- Sample-only snippet generator; must be no newer than the SDK's compiler. -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
-
-    <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
-
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
+    <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0.3" />
     <!-- Pinned to 3.2.x: Avalonia.Headless.XUnit targets xunit.v3.extensibility.core 3.2.2, and [AvaloniaFact] fails discovery with MissingMethodException on 4.x. -->
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
