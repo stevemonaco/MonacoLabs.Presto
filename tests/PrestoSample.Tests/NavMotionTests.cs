@@ -1,6 +1,7 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
@@ -38,25 +39,60 @@ public sealed class NavMotionTests
     });
 
     [AvaloniaFact]
-    public void ExpandingRestoresTheHostAndFadesEveryPageBackIn() => With((_, gallery, nav) =>
+    public void CollapsingFadesThePagesInPlaceAndThenHidesThem() => With((_, gallery, nav) =>
+    {
+        TestFrames.Tick(60);
+        var section = Container(nav, gallery.VisibleSections[0]);
+        var (host, presenter) = (Part<Border>(section, "ItemsHost"), Part<ItemsPresenter>(section, "PART_ItemsPresenter"));
+        var full = host.Bounds.Height;
+
+        gallery.VisibleSections[0].IsExpanded = false;
+        TestFrames.Tick(3);
+        Assert.True(presenter.IsVisible);
+        Assert.InRange(presenter.Opacity, .01, .99);
+        Assert.Equal(full, host.Bounds.Height, 0.5);
+
+        TestFrames.Tick(40);
+        Assert.False(presenter.IsVisible);
+        Assert.Equal(0, host.Bounds.Height);
+    });
+
+    [AvaloniaFact]
+    public void ExpandingRestoresTheHostAndStaggersItsPagesBackIn() => With((_, gallery, nav) =>
     {
         TestFrames.Tick(60);
         var section = Container(nav, gallery.VisibleSections[0]);
         var host = Part<Border>(section, "ItemsHost");
         var full = host.Bounds.Height;
-
+        var pages = section.GetLogicalChildren().OfType<TreeViewItem>().ToList();
         gallery.VisibleSections[0].IsExpanded = false;
         TestFrames.Tick(40);
-        var pages = section.GetLogicalChildren().OfType<TreeViewItem>().ToList();
-        Assert.All(pages, page => Assert.Equal(0, page.Opacity));
 
         gallery.VisibleSections[0].IsExpanded = true;
         TestFrames.Tick(4);
         Assert.InRange(host.Bounds.Height, 1, full - 1);
+        Assert.InRange(pages[0].Opacity, .01, .99);
+        Assert.True(pages[0].Opacity > pages[^1].Opacity, $"the first page was at {pages[0].Opacity:0.00} and the last at {pages[^1].Opacity:0.00}");
         TestFrames.Tick(40);
 
         Assert.Equal(full, host.Bounds.Height, 0.5);
         Assert.All(pages, page => Assert.Equal(1, page.Opacity));
+    });
+
+    [AvaloniaFact]
+    public void ExpandingASectionReplaysNothingInTheOthers() => With((_, gallery, nav) =>
+    {
+        TestFrames.Tick(60);
+        gallery.VisibleSections[0].IsExpanded = false;
+        TestFrames.Tick(40);
+        var others = gallery.VisibleSections.Skip(1).SelectMany(section => Container(nav, section).GetLogicalChildren().OfType<TreeViewItem>()).ToList();
+
+        gallery.VisibleSections[0].IsExpanded = true;
+        for (var i = 0; i < 20; i++)
+        {
+            TestFrames.Tick();
+            Assert.All(others, page => Assert.Equal(1, page.Opacity));
+        }
     });
 
     [AvaloniaFact]
@@ -143,7 +179,7 @@ public sealed class NavMotionTests
         TestFrames.Tick(2);
         Assert.Equal(0, host.Bounds.Height);
         Assert.Equal(-90, Rotation(chevron), 0.5);
-        Assert.All(pages, page => Assert.Equal(0, page.Opacity));
+        Assert.False(Part<ItemsPresenter>(section, "PART_ItemsPresenter").IsVisible);
 
         gallery.VisibleSections[0].IsExpanded = true;
         TestFrames.Tick(2);

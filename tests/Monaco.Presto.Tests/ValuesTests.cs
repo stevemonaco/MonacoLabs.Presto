@@ -386,6 +386,22 @@ public sealed class ValuesTests : EngineTestBase
     }
 
     [Fact]
+    public void NonNumericStringsStayComplexAndWriteTheEndStringFromTheFirstFrame()
+    {
+        var target = new TextTarget { Text = "left" };
+        var animation = Presto.Animate(target, new() { ["Text"] = "right", Duration = 100, Ease = "linear", Autoplay = false });
+
+        var tween = TestHelpers.GetTweenAtIndex(animation, 0)!;
+        Assert.Null(tween.Accessor.Codec);
+        Assert.Equal(ValueKind.Complex, tween._valueType);
+        Assert.Empty(tween._toNumbers);
+        animation.Seek(1);
+        Assert.Equal("right", target.Text);
+        animation.Seek(100);
+        Assert.Equal("right", target.Text);
+    }
+
+    [Fact]
     public void NumberTypeValuesFromRelativeValuesOperators()
     {
         var target = new Dictionary<string, object?>

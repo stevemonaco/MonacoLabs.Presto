@@ -35,6 +35,30 @@ public sealed class AllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData("HorizontalAlignment", false)]
+    [InlineData("HorizontalAlignment", true)]
+    [InlineData("IsVisible", false)]
+    [InlineData("IsVisible", true)]
+    public void ADiscreteTweenTicksWithinBudget(string property, bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var border = new Border { Opacity = 0 };
+        border.Animate(new()
+        {
+            ["Opacity"] = 1,
+            [property] = TweenValue.Of(property == "IsVisible" ? false : HorizontalAlignment.Right),
+            Duration = 400,
+            Loop = true,
+            Alternate = true,
+        });
+
+        var bytes = BytesPerTick();
+
+        // measured 80 (IsVisible) and 83 (HorizontalAlignment): the opacity's 80, plus the alignment's change args at each flip.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
     public void AFollowBoundWidthTicksWithinBudget(bool diagnostics)

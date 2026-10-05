@@ -29,7 +29,9 @@ public partial class LayoutPage : ShowcasePage
         SwapHost.Child = BuildView();
     }
 
-    private AnimationBuilder Move => Recipes.Reflow(Slow.IsChecked == true ? 4000 : 400, ease: Eases.OutQuint);
+    private double Duration => Slow.IsChecked == true ? 4000 : 400;
+
+    private AnimationBuilder Move => Recipes.Reflow(Duration, ease: Eases.OutQuint);
 
     protected override void OnAttached() => Arm();
 
@@ -75,14 +77,14 @@ public partial class LayoutPage : ShowcasePage
     {
         foreach (var card in Cards.Children)
         {
-            if (card != XamlCard) Scope.Execute(_ => card.AnimateLayout(Move));
+            if (card != XamlCard) Scope.Execute(_ => card.AnimateLayout(Duration, Eases.OutQuint));
         }
         var avatarMode = Uncorrected.IsChecked == true ? LayoutAnimateMode.PositionAndSize : LayoutAnimateMode.PositionAndSizeCorrected;
         Scope.Execute(_ =>
         {
-            GrowBox.AnimateLayout(Move, LayoutAnimateMode.PositionAndSize);
-            AvatarCard.AnimateLayout(Move, avatarMode);
-            SwapHost.AnimateContentSize(Move);
+            GrowBox.AnimateLayout(Duration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize);
+            AvatarCard.AnimateLayout(Duration, Eases.OutQuint, avatarMode);
+            SwapHost.AnimateContentSize(Duration, Eases.OutQuint);
         });
         Animate.SetContentSize(Faq, Move);
     }
@@ -104,7 +106,7 @@ public partial class LayoutPage : ShowcasePage
                 },
             },
         };
-        Scope.Execute(_ => card.AnimateLayout(Move));
+        Scope.Execute(_ => card.AnimateLayout(Duration, Eases.OutQuint));
         Cards.Children.Add(card);
     }
 

@@ -29,8 +29,6 @@ public partial class DashboardPage : ShowcasePage
     private readonly Path[] _arcs = new Path[Datasets.Categories.Count];
 
     private int _round;
-    // Scales every duration and stagger: 0 under reduced motion, so the reveal and each push land at once.
-    private double _pace;
 
     public DashboardPage()
     {
@@ -43,7 +41,6 @@ public partial class DashboardPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        _pace = Presto.Defaults.ReducedMotion ? 0 : 1;
         BuildTiles();
         BuildBars();
         BuildDonut();
@@ -163,22 +160,30 @@ public partial class DashboardPage : ShowcasePage
         return timeline
             .Add(_bars, BarsTo(1100), 0)
             .Add(_arcs, ArcsTo(1200), 0)
-            .Add(Spark, new AvaloniaAnimationParams { ["Draw"] = "0 1", Duration = 1400 * _pace, Ease = Eases.InOutQuad }, 0);
+            .Add(Spark, new AvaloniaAnimationParams
+            {
+                ["Draw"] = "0 1",
+                Duration = 1400,
+                Ease = Eases.InOutQuad,
+                WhenReduced = new() { ["Draw"] = "0 1", Duration = 0 },
+            }, 0);
     }
 
     #region snippet DashboardCounter
     private AvaloniaAnimationParams CounterTo(int index, double duration)
     {
         var metric = Datasets.Metrics[index];
+        var reading = new TweenParams
+        {
+            To = metric.Readings[_round % metric.Readings.Count],
+            TextModifier = value => Utils.RoundPad(value, metric.Decimals),
+        };
         return new AvaloniaAnimationParams
         {
-            ["Text"] = new TweenParams
-            {
-                To = metric.Readings[_round % metric.Readings.Count],
-                TextModifier = value => Utils.RoundPad(value, metric.Decimals),
-            },
-            Duration = duration * _pace,
+            ["Text"] = reading,
+            Duration = duration,
             Ease = Eases.OutQuad,
+            WhenReduced = new() { ["Text"] = reading, Duration = 0 },
         };
     }
     #endregion
@@ -186,33 +191,42 @@ public partial class DashboardPage : ShowcasePage
     private AvaloniaAnimationParams BarsTo(double duration)
     {
         var values = Datasets.Bars[_round % Datasets.Bars.Count];
+        FunctionValue height = (_, i, _) => values[i] / 100 * BarHeight;
         return new AvaloniaAnimationParams
         {
-            ["Height"] = (FunctionValue)((_, i, _) => values[i] / 100 * BarHeight),
-            Duration = duration * _pace,
+            ["Height"] = height,
+            Duration = duration,
             Ease = Eases.OutQuad,
-            Delay = Presto.Stagger(26 * _pace),
+            Delay = Presto.Stagger(26),
+            WhenReduced = new() { ["Height"] = height, Duration = 0, Delay = 0 },
         };
     }
 
     private AvaloniaAnimationParams ArcsTo(double duration)
     {
         var spans = Spans(Datasets.Slices[_round % Datasets.Slices.Count]);
+        FunctionValue slice = (_, i, _) => Slice(spans, i);
         return new AvaloniaAnimationParams
         {
-            ["Draw"] = (FunctionValue)((_, i, _) => Slice(spans, i)),
-            Duration = duration * _pace,
+            ["Draw"] = slice,
+            Duration = duration,
             Ease = Eases.OutQuad,
-            Delay = Presto.Stagger(70 * _pace),
+            Delay = Presto.Stagger(70),
+            WhenReduced = new() { ["Draw"] = slice, Duration = 0, Delay = 0 },
         };
     }
 
-    private AvaloniaAnimationParams SparkTo() => new()
+    private AvaloniaAnimationParams SparkTo()
     {
-        ["Data"] = PrestoAvalonia.MorphTo(SparkGeometry(_round % Datasets.Sparklines.Count)),
-        Duration = PushDuration * _pace,
-        Ease = Eases.OutQuad,
-    };
+        var morph = PrestoAvalonia.MorphTo(SparkGeometry(_round % Datasets.Sparklines.Count));
+        return new()
+        {
+            ["Data"] = morph,
+            Duration = PushDuration,
+            Ease = Eases.OutQuad,
+            WhenReduced = new() { ["Data"] = morph, Duration = 0 },
+        };
+    }
 
     private void Push()
     {

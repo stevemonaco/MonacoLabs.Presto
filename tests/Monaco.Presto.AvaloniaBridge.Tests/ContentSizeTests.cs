@@ -214,6 +214,22 @@ public sealed class ContentSizeTests : CompositorTestBase
         Assert.Equal(Large, Box(host).Height);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ADurationResizeLandsInOneFrameOnlyUnderReducedMotion(bool reduced)
+    {
+        var (host, inner) = ShowHost(Small);
+        var transition = host.AnimateContentSize(Held, "linear");
+        Presto.Defaults.ReducedMotion = reduced;
+
+        inner.Height = Large;
+        Tick();
+
+        Assert.Equal(reduced ? Large : Small, Box(host).Height);
+        Assert.Equal(reduced, transition.Completed);
+    }
+
     [AvaloniaFact]
     public void ThenCompletesWhenTheResizeLands()
     {

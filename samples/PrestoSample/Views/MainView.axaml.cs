@@ -25,13 +25,13 @@ public partial class MainView : UserControl
         .Rotate(-90).Ease(Springs.Snappy)
         .WhenReduced(reduced => reduced.Rotate(-90).Duration(0).Ease(Eases.None));
 
-    public static readonly AnimationBuilder PageFolded = Presto.Build()
+    public static readonly AnimationBuilder PagesFolded = Presto.Build()
         .Opacity(0).Duration(120).Ease(Eases.OutQuad)
         .WhenReduced(reduced => reduced.Opacity(0).Duration(0));
 
     public static readonly AnimationBuilder PageUnfolded = Presto.Build()
-        .Duration(200).Delay((FunctionValue)PageOrder).Ease(Eases.OutQuad)
-        .WhenReduced(reduced => reduced.Duration(0).Delay(0));
+        .Opacity(1, from: 0).Duration(200).Delay((FunctionValue)PageOrder).Ease(Eases.OutQuad)
+        .WhenReduced(reduced => reduced.Opacity(1).Duration(0).Delay(0));
 
     public static readonly AnimationBuilder HoverFade = Presto.Build()
         .Opacity(1).Duration(120).Ease(Eases.OutQuad)

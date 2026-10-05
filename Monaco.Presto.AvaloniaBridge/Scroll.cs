@@ -18,7 +18,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <remarks>
 /// The parallax offset, <c>(1 − speed) × max(0, scroll − entry)</c>, drives the <c>"Y"</c> shorthand, or <c>"X"</c> when the scroller
 /// only scrolls horizontally, and is written in the scroller's offset notification so it never trails the content by a frame.
-/// Detaching the element or setting the speed back to 1 reverts it.
+/// Detaching the element or setting the speed back to 1 reverts it. While <see cref="PrestoDefaults.ReducedMotion"/> is set
+/// the element stays at its layout position; the flag is read at each scroll, so a change takes effect at the next one.
 /// </remarks>
 public static class Scroll
 {
@@ -132,7 +133,8 @@ public static class Scroll
         {
             var offset = _container!.Scroller.Offset;
             var scroll = _shorthand == TransformShorthand.X ? offset.X : offset.Y;
-            RenderTransformComposer.Set(_control, _shorthand, (1 - GetSpeed(_control)) * Math.Max(0, scroll - _entry));
+            var speed = Engine.Current.Defaults.ReducedMotion ? 1 : GetSpeed(_control);
+            RenderTransformComposer.Set(_control, _shorthand, (1 - speed) * Math.Max(0, scroll - _entry));
         }
 
         private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs? e)

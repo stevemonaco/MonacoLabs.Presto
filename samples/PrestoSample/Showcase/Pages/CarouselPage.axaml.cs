@@ -41,7 +41,6 @@ public partial class CarouselPage : ShowcasePage
     private int _active;
     private bool _hovered;
     private bool _dragging;
-    private bool _still;
 
     public CarouselPage()
     {
@@ -58,15 +57,14 @@ public partial class CarouselPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        _still = Presto.Defaults.ReducedMotion;
         _autoplay = PrestoAvalonia.CreateDrawable(Ring).Animate(new()
         {
             ["Draw"] = TweenValue.FromTo("0 0", "0 1"),
             Duration = AutoplayInterval,
             Ease = Eases.None,
             Loop = true,
-            Autoplay = !_still,
             OnLoop = _ => GoTo(_active + 1),
+            WhenReduced = new() { ["Draw"] = "0 0", Duration = 0, Loop = false },
         });
         _drag = PrestoAvalonia.CreateDraggable(Strip, new DraggableParams
         {
@@ -185,8 +183,8 @@ public partial class CarouselPage : ShowcasePage
         _travel = Scope.Execute(_ => Presto.Animate(_drag, new()
         {
             ["X"] = -index * _slideWidth,
-            Ease = _still ? Eases.None : Eases.Spring(bounce: .2, duration: 700),
-            Duration = _still ? 0 : null,
+            Ease = Eases.Spring(bounce: .2, duration: 700),
+            WhenReduced = new() { ["X"] = -index * _slideWidth, Duration = 0, Ease = Eases.None },
         }));
     }
 
@@ -209,7 +207,7 @@ public partial class CarouselPage : ShowcasePage
 
     private void Hold()
     {
-        if (_still || _hovered || _dragging) _autoplay?.Pause();
+        if (_hovered || _dragging) _autoplay?.Pause();
         else _autoplay?.Resume();
     }
 

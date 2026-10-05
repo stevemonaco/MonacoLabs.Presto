@@ -20,8 +20,6 @@ namespace PrestoSample.Pages;
 /// </summary>
 public partial class LifecyclePage : UserControl
 {
-    private const int MaxMoments = 12;
-
     private static readonly IBrush InitialTint = Brush.Parse("#93c5fd");
     private static readonly IBrush EnterTint = Brush.Parse("#86efac");
     private static readonly IBrush ExitTint = Brush.Parse("#fca5a5");
@@ -29,7 +27,6 @@ public partial class LifecyclePage : UserControl
     private static readonly string[] Steps = ["AccountStep", "PlanStep", "DoneStep"];
 
     private readonly (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View)[] _views;
-    private readonly ObservableCollection<(string Moment, IBrush Tint, string Detail)> _moments = [];
     private readonly Control[] _panels = [Panel("Inbox", "#7dd3fc"), Panel("Archive", "#fca5a5")];
     private int _view;
     private int _panel;
@@ -39,9 +36,6 @@ public partial class LifecyclePage : UserControl
     public LifecyclePage()
     {
         InitializeComponent();
-        Moments.ItemsSource = _moments;
-        Moments.ItemTemplate = new FuncDataTemplate<(string Moment, IBrush Tint, string Detail)>((entry, _) => MomentLine(entry));
-
         var (initial, initialCode) = Snippet.Of(Recipes.FadeUp(distance: 18, duration: 460, ease: Eases.OutQuart).Delay(Presto.Stagger(70)));
         var (enter, enterCode) = Snippet.Of(Recipes.SlideIn(Edge.Left, distance: 40, duration: 380, ease: Eases.OutBack(1.4)));
         var (exit, exitCode) = Snippet.Of(Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad));
@@ -50,9 +44,9 @@ public partial class LifecyclePage : UserControl
             Presence.SetEnter(row, {enterCode});
             Presence.SetExit(row, {exitCode});
             """;
-        initial.OnBegin(timer => Record("Initial", InitialTint, RowOf(timer)));
-        enter.OnBegin(timer => Record("Enter", EnterTint, RowOf(timer)));
-        exit.OnBegin(_ => Record("Exit", ExitTint, "a ghost of the removed row"));
+        initial.OnBegin(timer => Moments.Record("Initial", InitialTint, RowOf(timer)));
+        enter.OnBegin(timer => Moments.Record("Enter", EnterTint, RowOf(timer)));
+        exit.OnBegin(_ => Moments.Record("Exit", ExitTint, "a ghost of the removed row"));
 
         _views =
         [
@@ -98,27 +92,9 @@ public partial class LifecyclePage : UserControl
     private static string RowOf(Timer timer) =>
         ((Animation)timer).Targets[0] is Control { DataContext: string text } ? $"\"{text}\"" : "a row";
 
-    private void Record(string moment, IBrush tint, string detail)
-    {
-        _moments.Insert(0, (moment, tint, detail));
-        while (_moments.Count > MaxMoments) _moments.RemoveAt(_moments.Count - 1);
-    }
-
-    private static Control MomentLine((string Moment, IBrush Tint, string Detail) entry) => new StackPanel
-    {
-        Orientation = Orientation.Horizontal,
-        Spacing = 10,
-        Margin = new Thickness(0, 0, 0, 4),
-        Children =
-        {
-            new Border { Classes = { "moment" }, Background = entry.Tint, Child = new TextBlock { Text = entry.Moment } },
-            new TextBlock { Text = entry.Detail, VerticalAlignment = VerticalAlignment.Center, Opacity = .8 },
-        },
-    };
-
     private void Navigate(object? sender, RoutedEventArgs e)
     {
-        Record("Unload", UnloadTint, $"{Current.Title} left: nothing plays");
+        Moments.Record("Unload", UnloadTint, $"{Current.Title} left: nothing plays");
         _view = (_view + 1) % _views.Length;
         Host.Content = Current.View;
     }
@@ -126,7 +102,7 @@ public partial class LifecyclePage : UserControl
     private void ShowAgain(object? sender, RoutedEventArgs e)
     {
         var view = Current.View;
-        Record("Unload", UnloadTint, $"{Current.Title} left: nothing plays");
+        Moments.Record("Unload", UnloadTint, $"{Current.Title} left: nothing plays");
         // Detaching unloads the view at once, so putting it straight back loads it again without an empty frame between.
         Host.Content = null;
         Host.Content = view;

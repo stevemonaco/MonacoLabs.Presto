@@ -147,6 +147,19 @@
         <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
     </Style>
 
+    <Style Selector="showcase|MomentLog Border.moment">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="6,1" />
+        <Setter Property="Width" Value="58" />
+    </Style>
+
+    <Style Selector="showcase|MomentLog Border.moment TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#0f172a" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
     <Style Selector="Border.demo">
         <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
         <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
@@ -435,8 +448,11 @@
                             </Grid>
                         </Panel>
                     </Border>
+                    <!-- The Panel is ContentSize's sole child, since a hidden child would drop the size the fold holds. -->
                     <Border Name="ItemsHost" ClipToBounds="True">
-                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                        <Panel>
+                            <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                        </Panel>
                     </Border>
                 </StackPanel>
             </ControlTemplate>
@@ -448,7 +464,7 @@
     </Style>
 
     <Style Selector="TreeView.nav.showcase TreeViewItem[IsExpanded=False] /template/ ItemsPresenter#PART_ItemsPresenter">
-        <Setter Property="MaxHeight" Value="0" />
+        <Setter Property="IsVisible" Value="False" />
     </Style>
 
     <Style Selector="TreeView.nav.showcase TextBlock">

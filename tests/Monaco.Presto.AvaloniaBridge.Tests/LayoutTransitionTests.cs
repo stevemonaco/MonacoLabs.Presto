@@ -456,6 +456,82 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         Assert.True(transition.Completed);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ADurationLayoutMoveLandsInOneFrameOnlyUnderReducedMotion(bool reduced)
+    {
+        var (spacer, bar) = ShowStack();
+        Presto.Defaults.ReducedMotion = reduced;
+        var transition = bar.AnimateLayout(Held, Eases.None);
+        var start = Top(bar);
+
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.Equal(reduced ? start + Shift : start, Top(bar));
+        Assert.Equal(reduced, transition.Completed);
+    }
+
+    [AvaloniaFact]
+    public void APersistentDurationLayoutTransitionLandsOnceReducedMotionIsSet()
+    {
+        var (spacer, bar) = ShowStack();
+        var transition = bar.AnimateLayout(Held, Eases.None);
+        var start = Top(bar);
+        spacer.Height += Shift;
+        Tick();
+        Assert.Equal(start, Top(bar));
+
+        Presto.Defaults.ReducedMotion = true;
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.Equal(start + (2 * Shift), Top(bar));
+        Assert.True(transition.Completed);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ADurationSharedElementMoveLandsInOneFrameOnlyUnderReducedMotion(bool reduced)
+    {
+        var (left, right, bar) = ShowColumns();
+        var start = Box(bar);
+        Presto.Defaults.ReducedMotion = reduced;
+
+        _ = PrestoAvalonia.AnimateSharedElement(bar, bar, Held, Eases.None);
+        left.Children.Remove(bar);
+        bar.Margin = new Thickness(0, 10, 0, 0);
+        right.Children.Add(bar);
+        Tick();
+
+        Assert.Equal(reduced ? start.Translate(new Vector(Shift, -Shift)) : start, Box(bar));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ADurationKeyedSharedElementLandsInOneFrameOnlyUnderReducedMotion(bool reduced)
+    {
+        var key = $"reduced-{reduced}";
+        var (list, panel) = ShowScrolledList();
+        var source = new Border { Background = Brushes.Blue, Width = 40, Height = 20 };
+        list.Children.Insert(1, source);
+        Tick();
+        var drawn = Extent(source, Colors.Blue)!.Value;
+        Assert.True(PrestoAvalonia.PrepareSharedElement(key, source));
+        list.Children.Remove(source);
+        Presto.Defaults.ReducedMotion = reduced;
+
+        var target = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+        Assert.NotNull(PrestoAvalonia.AnimateSharedElement(key, target, Held, Eases.None));
+        panel.Children.Add(target);
+        Tick();
+
+        Assert.Equal(reduced ? SlotOf(target) : drawn, Box(target));
+    }
+
     /// <summary>A red 40x20 bar under a spacer whose height is what moves it, in a 100x100 window ticked once so it has a composition visual.</summary>
     private static (Border Spacer, Border Bar) ShowStack()
     {

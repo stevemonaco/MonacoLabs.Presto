@@ -44,6 +44,10 @@ public sealed class Tween
     internal bool _isOverlapped;
     internal bool _isOverridden;
     internal object? _inlineValue;
+    // Set only on a discrete tween, whose channel runs 0 to 1 and picks one of these whole.
+    internal DiscreteRule? _discrete;
+    internal object? _fromObject;
+    internal object? _toObject;
     internal Tween? _prevRep;
     internal Tween? _nextRep;
     internal Tween? _prevAdd;
@@ -165,7 +169,9 @@ public sealed class Tween
     }
 
     /// <summary>Builds the value a target receives for the current <c>_number</c>/<c>_numbers</c>: a plain number only when the tween is numeric and has no text modifier.</summary>
-    internal object ComposeValue(double number) => _valueType == ValueKind.Number && _textModifier == null ? number : ComposeString(number);
+    internal object ComposeValue(double number) =>
+        _discrete != null ? DiscreteCodec.Pick(number, this)! :
+        _valueType == ValueKind.Number && _textModifier == null ? number : ComposeString(number);
 
     /// <summary>The always-string form of <see cref="ComposeValue"/>, for targets whose property is typed as a string.</summary>
     internal string ComposeString(double number) => _textModifier != null ? _textModifier(number) : _valueType switch

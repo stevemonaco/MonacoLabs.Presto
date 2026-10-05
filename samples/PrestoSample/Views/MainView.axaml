@@ -54,13 +54,12 @@
                                 </presto:MotionStates>
                             </Setter>
                         </Style>
+                        <Style Selector="TreeViewItem /template/ ItemsPresenter#PART_ItemsPresenter">
+                            <Setter Property="presto:Presence.Exit" Value="{x:Static local:MainView.PagesFolded}" />
+                            <Setter Property="presto:Presence.EnterOnShow" Value="True" />
+                        </Style>
                         <Style Selector="TreeViewItem:empty">
-                            <Setter Property="presto:Motion.States">
-                                <presto:MotionStates>
-                                    <presto:MotionState When="collapsed" Motion="{x:Static local:MainView.PageFolded}"
-                                                        Leave="{x:Static local:MainView.PageUnfolded}" />
-                                </presto:MotionStates>
-                            </Setter>
+                            <Setter Property="presto:Presence.Enter" Value="{x:Static local:MainView.PageUnfolded}" />
                         </Style>
                         <!-- The selected page shows the selection pill instead of a hover. -->
                         <Style Selector="TreeViewItem:empty:pointerover:not(:selected) /template/ Border#PART_LayoutRoot">

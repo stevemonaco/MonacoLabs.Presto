@@ -40,20 +40,17 @@ public partial class MorphLabPage : ShowcasePage
     {
         RebuildLoop();
 
-        // Played once, the draw would end erased, so reduced motion leaves the signature drawn.
-        if (!Presto.Defaults.ReducedMotion)
+        #region snippet MorphLabSignature
+        PrestoAvalonia.CreateDrawable(Signature).Animate(new()
         {
-            #region snippet MorphLabSignature
-            PrestoAvalonia.CreateDrawable(Signature).Animate(new()
-            {
-                ["Draw"] = TweenValue.Keyframes("0 0", "0 1", "1 1"),
-                Duration = 4000,
-                Ease = Eases.InOutQuad,
-                LoopDelay = 500,
-                Loop = true,
-            });
-            #endregion
-        }
+            ["Draw"] = TweenValue.Keyframes("0 0", "0 1", "1 1"),
+            Duration = 4000,
+            Ease = Eases.InOutQuad,
+            LoopDelay = 500,
+            Loop = true,
+            WhenReduced = new() { ["Draw"] = "0 1", Duration = 0, Loop = false },
+        });
+        #endregion
 
         BuildTrail();
     }
@@ -97,7 +94,8 @@ public partial class MorphLabPage : ShowcasePage
             ["Rotate"] = lead.Rotate,
             Duration = RideDuration,
             Ease = Eases.None,
-            Loop = !Presto.Defaults.ReducedMotion,
+            Loop = true,
+            WhenReduced = new() { ["X"] = lead.X, ["Y"] = lead.Y, ["Rotate"] = lead.Rotate, Duration = 0, Loop = false },
         });
 
         var followers = new Border[FollowerCount];
@@ -125,7 +123,8 @@ public partial class MorphLabPage : ShowcasePage
             ["Rotate"] = (FunctionValue)((_, i, _) => trails[i].Rotate),
             Duration = RideDuration,
             Ease = Eases.None,
-            Loop = !Presto.Defaults.ReducedMotion,
+            Loop = true,
+            WhenReduced = new() { ["Opacity"] = 0, Duration = 0, Loop = false },
         });
         #endregion
     }

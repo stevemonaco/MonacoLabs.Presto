@@ -92,27 +92,36 @@ public sealed class StorefrontPageTests
     [AvaloniaFact]
     public void WithReducedMotionOnAddingToTheCartFadesTheBadgeWithoutParticles()
     {
+        var probe = Color.FromRgb(255, 0, 211);
         var (window, page) = Loaded();
         var badge = page.GetControl<Border>("Badge");
         using var reduced = ReducedMotion.On();
 
         SceneHarness.Click(window, Button(Cards(page).First(), "Add"));
+        var thumb = (Border)page.GetControl<StackPanel>("CartShelf").Children[0];
+        thumb.Child = null;
+        SceneHarness.Flood(thumb, probe);
         TestFrames.Tick(2);
 
         Assert.Equal(1, page.ViewModel.CartCount);
         Assert.InRange(badge.Opacity, 0, 0.99);
         Assert.Equal(1, (double)(PrestoAvalonia.Get(badge, "Scale") ?? 1d), 6);
         Assert.Empty(SceneHarness.ParticleOverlays(page));
+        Assert.True(SceneHarness.Extent(page, probe) is { } drawn && SceneHarness.Near(drawn, SceneHarness.Slot(thumb, window)), "the cart thumbnail did not land in the shelf at once");
         SceneHarness.Close(window);
     }
 
     [AvaloniaFact]
-    public void QuickViewOpensOverABlurredGridAndLeavesThroughItsExit()
+    public void ClickingACardOpensItsQuickViewOverABlurredGridAndLeavesThroughItsExit()
     {
         var (window, page) = Loaded();
-        var product = page.ViewModel.Shown[0];
+        var card = Cards(page).First(card => !((Product)card.DataContext!).SoldOut);
+        var product = (Product)card.DataContext!;
 
-        SceneHarness.Click(window, Button(Cards(page).First(), "Quick view"));
+        SceneHarness.Click(window, Button(card, "Add"));
+        Assert.Null(page.ViewModel.QuickView);
+
+        SceneHarness.Click(window, card);
         Assert.Equal(product, page.ViewModel.QuickView);
         TestFrames.Tick(60);
         Assert.True(page.GetControl<ScrollViewer>("Catalogue").Effect is BlurEffect { Radius: > 5 }, "the grid behind the quick view was not blurred");

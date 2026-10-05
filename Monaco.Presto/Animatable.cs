@@ -1,5 +1,6 @@
 using Monaco.Presto.Core;
 using Monaco.Presto.Diagnostics;
+using Monaco.Presto.Targets;
 using Monaco.Presto.Values;
 
 namespace Monaco.Presto;
@@ -47,9 +48,10 @@ public sealed class Animatable : IRevertible
             var animation = Presto.Animate(targets, new AnimationParams
             {
                 // The relative zero starts and ends the tween on the target's current value, which is what carries its unit over.
+                // A discrete value has no relative form and no unit, so it starts and ends there with no to value at all.
                 [property] = new TweenParams
                 {
-                    To = "+=0" + settings.Unit,
+                    To = IsDiscrete(targets, property) ? (TweenValue?)null : "+=0" + settings.Unit,
                     Duration = settings.Duration,
                     Ease = settings.Ease,
                     Modifier = settings.Modifier,
@@ -116,6 +118,8 @@ public sealed class Animatable : IRevertible
         var index = 0;
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
+            // Both ends at the new value, so a discrete property snaps to it.
+            if (tween.Accessor.Codec is DiscreteCodec discrete) tween._fromObject = tween._toObject = discrete.Coerce(to);
             tween._fromNumber = tween._modifier(tween._number);
             tween._toNumber = to;
             if (ease is { } easeValue) tween._ease = easeValue.Resolve(tween.Target, 0, 1, out _);
@@ -294,6 +298,9 @@ public sealed class Animatable : IRevertible
         var after = Math.Min(1, progress + VelocityStep);
         return (ease(after) - ease(before)) / ((after - before) * duration) * distance;
     }
+
+    private static bool IsDiscrete(object? targets, string property) =>
+        TargetParser.Parse(targets) is [var first, ..] && Presto.ResolveAccessor(first, Presto.Canonicalise(first, property)).Codec is DiscreteCodec;
 
     private Action<Timer>? Wrap(Action<Animatable>? callback) => callback == null ? null : _ => callback(this);
 

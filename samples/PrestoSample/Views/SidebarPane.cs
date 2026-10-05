@@ -24,11 +24,13 @@ internal sealed class SidebarPane(ColumnDefinition column, Control content)
         if (!IsCollapsed && column.MinWidth > 0) _expanded = Width = column.ActualWidth;
         IsCollapsed = !IsCollapsed;
         column.MinWidth = 0;
+        var width = IsCollapsed ? 0 : _expanded;
         Presto.Animate(this, new AnimationParams
         {
-            ["Width"] = IsCollapsed ? 0 : _expanded,
-            Duration = Presto.Defaults.ReducedMotion ? 0 : 280,
+            ["Width"] = width,
+            Duration = 280,
             Ease = Eases.OutQuart,
+            WhenReduced = new() { ["Width"] = width, Duration = 0 },
             OnUpdate = _ =>
             {
                 column.Width = new GridLength(Width);

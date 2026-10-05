@@ -15,8 +15,10 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
 {
     private static readonly ConcurrentDictionary<(Type Type, string Property), IPropertyAccessor> s_accessors = new();
 
-    /// <summary>Private, static and write-only members are not reached.</summary>
-    /// <exception cref="NotSupportedException">The member's type is not numeric, <see cref="string"/>, <see cref="object"/> or <see cref="PrestoColor"/>, and no codec is registered for it in <see cref="Presto.Codecs"/>.</exception>
+    /// <summary>
+    /// Private, static and write-only members are not reached. A member whose type is not numeric, <see cref="string"/>,
+    /// <see cref="object"/> or <see cref="PrestoColor"/> and has no codec in <see cref="Presto.Codecs"/> is discrete (<see cref="DiscreteCodec"/>).
+    /// </summary>
     public IPropertyAccessor Resolve(object target, string property)
     {
         if (target is IDictionary<string, object?>) return new DictionaryAccessor(property);
@@ -69,10 +71,7 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
                 MemberWrite.Codec;
 
             IValueCodec? memberCodec = null;
-            if (memberWrite == MemberWrite.Codec && !Presto.Codecs.TryGetValue(memberType, out memberCodec))
-            {
-                throw new NotSupportedException($"{type}.{name} is a {memberType}, which has no codec registered in Presto.Codecs.");
-            }
+            if (memberWrite == MemberWrite.Codec && !Presto.Codecs.TryGetValue(memberType, out memberCodec)) memberCodec = new DiscreteCodec(memberType);
 
             var target = Expression.Parameter(typeof(object), "target");
             var access = Expression.MakeMemberAccess(Expression.Convert(target, type), member);

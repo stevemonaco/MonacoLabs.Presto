@@ -45,6 +45,7 @@
             <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Focusable" Value="True" />
+            <Setter Property="Cursor" Value="Hand" />
         </Style>
         <Style Selector="Border.art">
             <Setter Property="Height" Value="112" />
@@ -151,7 +152,8 @@
                                         presto:Presence.Exit="{presto:Scale}"
                                         presto:Motion.Hover="{presto:Lift}"
                                         presto:Motion.Press="{presto:PressIn}"
-                                        presto:Motion.Focus="{presto:Glow}">
+                                        presto:Motion.Focus="{presto:Glow}"
+                                        Tapped="CardTapped" KeyDown="CardKeyDown">
                                     <StackPanel Spacing="8">
                                         <Border Classes="art" presto:Tilt.Enabled="True">
                                             <presto:FilteredImage Source="{Binding Picture}" Stretch="UniformToFill" />
@@ -161,7 +163,6 @@
                                         <DockPanel>
                                             <Button DockPanel.Dock="Right" Content="Add" Click="AddClicked" IsEnabled="{Binding !SoldOut}"
                                                     presto:Animate.OnTapped="{presto:Pop}" />
-                                            <Button DockPanel.Dock="Right" Content="Quick view" Margin="0,0,6,0" Click="QuickViewClicked" />
                                             <TextBlock Classes="price" Text="{Binding Price}" />
                                         </DockPanel>
                                         <!-- /snippet-skip -->

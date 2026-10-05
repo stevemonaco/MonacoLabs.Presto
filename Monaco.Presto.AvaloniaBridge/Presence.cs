@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Diagnostics;
@@ -39,6 +40,13 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <para>
 /// A host whose <see cref="ModeProperty"/> is <see cref="PresenceMode.Wait"/> holds what arrives under it at opacity 0,
 /// its entrance not yet played, while a ghost of something that left it is still exiting.
+/// </para>
+/// <para>
+/// An element's own <see cref="Visual.IsVisible"/> flip is a moment too: shown, it plays <see cref="EnterProperty"/>, or
+/// <see cref="InitialProperty"/> while its view is still loading; hidden while drawn on screen, it plays
+/// <see cref="ExitProperty"/> as <see cref="HideModeProperty"/> says. Only flips of the value set below
+/// <see cref="BindingPriority.Animation"/> count, so Presto's own visibility writes play nothing.
+/// A host with <see cref="EnterOnShowProperty"/> shown also replays the entrances of the descendants it reveals.
 /// </para>
 /// <para>
 /// <see cref="Animate.OnAttachedProperty"/> is the raw trigger beside these: it plays on every attach, unclassified.
@@ -106,7 +114,8 @@ public static class Presence
     /// </summary>
     /// <remarks>
     /// Set it on an item's template root, or on its container through an item container theme or a style. An element
-    /// that attaches again while its ghost is still exiting dismisses the ghost.
+    /// that attaches again while its ghost is still exiting dismisses the ghost. It also plays when the element's own
+    /// <see cref="Visual.IsVisible"/> turns false; see <see cref="HideModeProperty"/>.
     /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> ExitProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Exit", typeof(Presence));
@@ -126,6 +135,37 @@ public static class Presence
     public static readonly AttachedProperty<PresenceMode> ModeProperty =
         AvaloniaProperty.RegisterAttached<Control, PresenceMode>("Mode", typeof(Presence));
 
+    /// <summary>
+    /// Where <see cref="ExitProperty"/> plays when the element's own <see cref="Visual.IsVisible"/> turns false. Defaults to
+    /// <see cref="PresenceHideMode.Hold"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="PresenceHideMode.Hold"/> keeps the element visible at <see cref="BindingPriority.Animation"/> while the
+    /// exit plays on it, then lets the hidden value show; <see cref="Animate.ItemLayoutProperty"/> or
+    /// <see cref="Animate.ContentSizeProperty"/> can close the slot afterwards. Showing it again mid-exit plays the exit back
+    /// from where it stands. A held hide leaves no ghost, so it starts no <see cref="PresenceMode.Wait"/>.
+    /// <see cref="PresenceHideMode.Ghost"/> plays the exit on a ghost, as a departure does, and showing the element again
+    /// dismisses the ghost and plays its entrance.
+    /// </remarks>
+    public static readonly AttachedProperty<PresenceHideMode> HideModeProperty =
+        AvaloniaProperty.RegisterAttached<Control, PresenceHideMode>("HideMode", typeof(Presence));
+
+    /// <summary>
+    /// Whether the element's own <see cref="Visual.IsVisible"/> turning true replays the entrances of the descendants it
+    /// reveals, which get no notification of their own. Defaults to false.
+    /// </summary>
+    /// <remarks>
+    /// Its visible descendants with <see cref="EnterProperty"/> or <see cref="ArriveProperty"/> play that builder as one
+    /// batch in visual-tree order once the pass that shows them has laid them out, so <c>Delay(Presto.Stagger(40))</c>
+    /// ripples them in. A descendant hidden itself is skipped, and one under a nested host shown in the same pass plays
+    /// once. The host's own entrance is not part of the batch and starts in the same frame. Hiding the host plays only its
+    /// own <see cref="ExitProperty"/>. In the Fluent templates set it, through a <c>/template/</c> style, on the part that
+    /// collapses: an <see cref="Expander"/>'s <c>Border#ExpanderContent</c> or a <see cref="TreeViewItem"/>'s
+    /// <c>PART_ItemsPresenter</c>.
+    /// </remarks>
+    public static readonly AttachedProperty<bool> EnterOnShowProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("EnterOnShow", typeof(Presence));
+
     private static readonly AttachedProperty<Tracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, Tracker?>("Tracker", typeof(Presence));
 
@@ -135,6 +175,9 @@ public static class Presence
     // Arrivals under one panel in one pass; cleared once the pass has rendered.
     private static readonly Dictionary<Visual, List<object>> s_batches = [];
 
+    // EnterOnShow hosts shown and waiting for the layout pass that reveals their descendants.
+    private static readonly HashSet<Control> s_revealing = [];
+
     static Presence()
     {
         InitialProperty.Changed.AddClassHandler<Control>(HandleChanged);
@@ -142,6 +185,7 @@ public static class Presence
         ArriveProperty.Changed.AddClassHandler<Control>(HandleChanged);
         RevealProperty.Changed.AddClassHandler<Control>(HandleChanged);
         ExitProperty.Changed.AddClassHandler<Control>(HandleChanged);
+        EnterOnShowProperty.Changed.AddClassHandler<Control>(HandleChanged);
         ScrollAnchorProperty.Changed.AddClassHandler<ItemsControl>((list, _) => ItemChanges.For(list));
         ModeProperty.Changed.AddClassHandler<Control>((host, _) =>
         {
@@ -197,30 +241,42 @@ public static class Presence
     /// <summary>Sets whether arrivals under <paramref name="host"/> wait for its exits to end.</summary>
     public static void SetMode(Control host, PresenceMode value) => host.SetValue(ModeProperty, value);
 
+    /// <summary>Gets where the exit of <paramref name="control"/> plays when it is hidden.</summary>
+    public static PresenceHideMode GetHideMode(Control control) => control.GetValue(HideModeProperty);
+
+    /// <summary>Sets where the exit of <paramref name="control"/> plays when it is hidden.</summary>
+    public static void SetHideMode(Control control, PresenceHideMode value) => control.SetValue(HideModeProperty, value);
+
+    /// <summary>Gets whether showing <paramref name="host"/> replays the entrances of the descendants it reveals.</summary>
+    public static bool GetEnterOnShow(Control host) => host.GetValue(EnterOnShowProperty);
+
+    /// <summary>Sets whether showing <paramref name="host"/> replays the entrances of the descendants it reveals.</summary>
+    public static void SetEnterOnShow(Control host, bool value) => host.SetValue(EnterOnShowProperty, value);
+
     /// <summary>
     /// What <paramref name="control"/>, which has just attached, arrived as. The content of an item container enters only
     /// when its item was just added: a virtualizing list realizes and recycles containers as it scrolls, which is neither.
     /// </summary>
     internal static PresenceMoment ClassifyArrival(Control control)
     {
-        var moment = PresenceMoment.Initial;
-        for (var visual = control.GetVisualParent(); visual is not null; visual = visual.GetVisualParent())
-        {
-            if (visual is not Control ancestor) continue;
-            if (IsPrestoPage(ancestor)) return PresenceMoment.Initial;
-            if (ancestor.IsLoaded)
-            {
-                moment = PresenceMoment.Enter;
-                break;
-            }
-            // A panel realizing its first item has one child for a moment, so only a child count outside panels means a wrapper.
-            if (ancestor is Panel || ancestor.GetVisualChildren().Count() != 1) break;
-        }
-
+        var moment = LoadMoment(control);
         if (OwnerOfItem(control.GetVisualParent()) is not { } owner || ItemChanges.Of(owner) is not { } changes) return moment;
         if (moment == PresenceMoment.Initial || changes.Added.Contains(control.DataContext!)) return moment;
         if (changes.Moved.Contains(control.DataContext!)) return PresenceMoment.Move;
         return changes.Reset ? PresenceMoment.Initial : PresenceMoment.Realize;
+    }
+
+    private static PresenceMoment LoadMoment(Control control)
+    {
+        for (var visual = control.GetVisualParent(); visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is not Control ancestor) continue;
+            if (IsPrestoPage(ancestor)) return PresenceMoment.Initial;
+            if (ancestor.IsLoaded) return PresenceMoment.Enter;
+            // A panel realizing its first item has one child for a moment, so only a child count outside panels means a wrapper.
+            if (ancestor is Panel || ancestor.GetVisualChildren().Count() != 1) break;
+        }
+        return PresenceMoment.Initial;
     }
 
     /// <summary>
@@ -327,7 +383,8 @@ public static class Presence
     }
 
     private static bool IsUnused(Control control) =>
-        GetInitial(control) is null && GetEnter(control) is null && GetArrive(control) is null && GetReveal(control) is null && GetExit(control) is null;
+        GetInitial(control) is null && GetEnter(control) is null && GetArrive(control) is null && GetReveal(control) is null && GetExit(control) is null &&
+        !GetEnterOnShow(control);
 
     /// <summary>
     /// Animates <paramref name="control"/> as the next arrival of its panel's batch, which gives the animation its index and
@@ -335,15 +392,16 @@ public static class Presence
     /// </summary>
     /// <remarks>
     /// The panel, not the ancestor that classified the arrival, keys the batch: an item container that has loaded classifies
-    /// its own content. A text reveal (<see cref="TextReveal"/>) plays on its pieces instead, which are its own batch.
+    /// its own content, and an <see cref="EnterOnShowProperty"/> host keys what it reveals. A text reveal
+    /// (<see cref="TextReveal"/>) plays on its pieces instead, which are its own batch.
     /// </remarks>
-    private static IRevertible Arrive(Control control, AnimationBuilder builder, bool laidOut = false)
+    private static IRevertible Arrive(Control control, AnimationBuilder builder, bool laidOut = false, Visual? batchKey = null)
     {
         PrestoAvalonia.EnsureInitialized();
         var parameters = builder.ToParams();
         using var origin = PrestoDiagnostics.Origin("Presence");
         if (PieceTargets.Play(control, parameters) is { } reveal) return reveal;
-        Visual key = control.FindAncestorOfType<Panel>() ?? (Visual?)TopLevel.GetTopLevel(control) ?? control;
+        var key = batchKey ?? control.FindAncestorOfType<Panel>() ?? (Visual?)TopLevel.GetTopLevel(control) ?? control;
         if (!s_batches.TryGetValue(key, out var batch))
         {
             s_batches[key] = batch = [];
@@ -364,12 +422,16 @@ public static class Presence
         private Animation? _ghost;
         private Point? _slot;
         private bool _recording;
+        private bool _baseVisible;
+        private Animation? _hide;
 
         public Tracker(Control control)
         {
             _control = control;
+            _baseVisible = BaseVisible(control);
             control.AttachedToVisualTree += HandleAttached;
             control.DetachedFromVisualTree += HandleDetached;
+            control.PropertyChanged += HandleProperty;
         }
 
         /// <summary>The exit a style setter held until the element left the logical tree, on its way to the visual detach.</summary>
@@ -379,6 +441,9 @@ public static class Presence
         {
             _control.AttachedToVisualTree -= HandleAttached;
             _control.DetachedFromVisualTree -= HandleDetached;
+            _control.PropertyChanged -= HandleProperty;
+            CancelRevealed();
+            EndHide();
             Leave();
             StopRecording();
             _arrival?.Revert();
@@ -412,6 +477,8 @@ public static class Presence
 
         private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e)
         {
+            // A template binding activating on attach can set the base value the control already shows, which raises no change.
+            _baseVisible = BaseVisible(_control);
             // The ghost stood in for this control, which is back.
             _ghost?.Cancel();
             _ghost = null;
@@ -465,14 +532,14 @@ public static class Presence
 
         private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e)
         {
+            CancelRevealed();
+            EndHide();
             Leave();
             var withdrawn = Withdrawn;
             Withdrawn = null;
-            if ((GetExit(_control) ?? withdrawn) is { } exit && ClassifyDeparture(_control, e.AttachmentPoint) is (PresenceMoment.Exit, var position))
+            if (_baseVisible && (GetExit(_control) ?? withdrawn) is { } exit && ClassifyDeparture(_control, e.AttachmentPoint) is (PresenceMoment.Exit, var position))
             {
-                var waiting = ModeHost(e.AttachmentPoint) is { } host && GetMode(host) == PresenceMode.Wait ? Waiting.Start(host, e.AttachmentPoint!) : null;
-                _ghost = Ghost(_control, e.AttachmentPoint!, _slot ?? position, exit, waiting is null ? null : waiting.Ended);
-                if (_ghost is null) waiting?.Ended();
+                _ghost = PlayGhost(e.AttachmentPoint!, _slot ?? position, exit);
             }
             StopRecording();
             _arrival?.Revert();
@@ -481,7 +548,141 @@ public static class Presence
             Release();
             _control.ClearValue(TrackerProperty);
         }
+
+        private Animation? PlayGhost(Visual anchor, Point position, AnimationBuilder exit)
+        {
+            var waiting = ModeHost(anchor) is { } host && GetMode(host) == PresenceMode.Wait ? Waiting.Start(host, anchor) : null;
+            var ghost = Ghost(_control, anchor, position, exit, waiting is null ? null : waiting.Ended);
+            if (ghost is null) waiting?.Ended();
+            return ghost;
+        }
+
+        private void HandleProperty(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == Visual.IsVisibleProperty && e.Priority != BindingPriority.Animation) Sync();
+        }
+
+        // A hold hides base flips from notifications, so the held exit's OnUpdate calls this each frame.
+        private void Sync()
+        {
+            var visible = BaseVisible(_control);
+            if (visible == _baseVisible) return;
+            _baseVisible = visible;
+            if (!_control.IsAttachedToVisualTree()) return;
+            if (visible) Show();
+            // A hide plays only when the element was drawn.
+            else if (GetExit(_control) is { } exit && _control.IsLoaded && _control.Opacity != 0 && _control.GetVisualParent() is { } parent && IsOnScreen(parent)) Hide(exit);
+        }
+
+        private void Show()
+        {
+            if (_hide is { } hide)
+            {
+                VisibilityHold.Release(_control, this);
+                hide.Reverse();
+                return;
+            }
+            _ghost?.Cancel();
+            _ghost = null;
+            _arrival?.Revert();
+            _arrival = null;
+            var builder = LoadMoment(_control) == PresenceMoment.Initial ? GetInitial(_control) ?? GetArrive(_control) : GetEnter(_control) ?? GetArrive(_control);
+            if (builder is not null) _arrival = Arrive(_control, builder);
+            if (GetEnterOnShow(_control) && s_revealing.Add(_control)) _control.LayoutUpdated += EnterRevealed;
+        }
+
+        private void EnterRevealed(object? sender, EventArgs e)
+        {
+            _control.LayoutUpdated -= EnterRevealed;
+            if (!s_revealing.Remove(_control) || !_control.IsEffectivelyVisible) return;
+            // A host shown in the same pass as one above it is part of that one's batch.
+            for (var visual = _control.GetVisualParent(); visual is not null; visual = visual.GetVisualParent())
+            {
+                if (visual is Control host && s_revealing.Contains(host)) return;
+            }
+            EnterUnder(_control);
+        }
+
+        private void EnterUnder(Visual parent)
+        {
+            foreach (var child in parent.GetVisualChildren())
+            {
+                if (!child.IsVisible || child is not Control control) continue;
+                var tracker = control.GetValue(TrackerProperty);
+                tracker?.CancelRevealed();
+                tracker?.Reenter(_control);
+                EnterUnder(control);
+            }
+        }
+
+        private void Reenter(Visual batchKey)
+        {
+            if (_hide is not null || (GetEnter(_control) ?? GetArrive(_control)) is not { } builder) return;
+            _arrival?.Revert();
+            _arrival = Arrive(_control, builder, laidOut: true, batchKey);
+        }
+
+        private void CancelRevealed()
+        {
+            if (s_revealing.Remove(_control)) _control.LayoutUpdated -= EnterRevealed;
+        }
+
+        private void Hide(AnimationBuilder exit)
+        {
+            VisibilityHold.Hold(_control, this, true);
+            if (GetHideMode(_control) == PresenceHideMode.Ghost)
+            {
+                // Held for the snapshot only, since a hidden element draws nothing.
+                var parent = _control.GetVisualParent()!;
+                if (parent.TranslatePoint(_control.Bounds.Position, TopLevel.GetTopLevel(_control)!) is { } position) _ghost = PlayGhost(parent, position, exit);
+                VisibilityHold.Release(_control, this);
+                _arrival?.Revert();
+                _arrival = null;
+                return;
+            }
+            if (_hide is { } shown)
+            {
+                shown.Play();
+                return;
+            }
+
+            using var origin = PrestoDiagnostics.Origin("Presence");
+            var hide = _hide = _control.Animate(exit);
+            var updated = hide.OnUpdate;
+            var completed = hide.OnComplete;
+            var paused = hide.OnPause;
+            hide.OnUpdate = timer =>
+            {
+                updated?.Invoke(timer);
+                Sync();
+            };
+            hide.OnComplete = timer =>
+            {
+                completed?.Invoke(timer);
+                if (_hide == hide) EndHide();
+            };
+            hide.OnPause = timer =>
+            {
+                paused?.Invoke(timer);
+                if (timer.Cancelled && _hide == hide) EndHide();
+            };
+            // An instant exit, as PrestoDefaults.ReduceAll makes every one, completes inside Animate.
+            if (hide.Completed) EndHide();
+        }
+
+        private void EndHide()
+        {
+            if (_hide is not { } hide) return;
+            _hide = null;
+            VisibilityHold.Release(_control, this);
+            hide.Revert();
+            if (_baseVisible) return;
+            _arrival?.Revert();
+            _arrival = null;
+        }
     }
+
+    private static bool BaseVisible(Visual visual) => visual.GetBaseValue(Visual.IsVisibleProperty).GetValueOrDefault(true);
 
     /// <summary>
     /// The exits in flight under a host in <see cref="PresenceMode.Wait"/>, and what arrived under it meanwhile, held at

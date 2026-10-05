@@ -39,6 +39,20 @@ public sealed class AllocationTests : EngineTestBase
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void DiscreteTweenTicksWithoutAllocating(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var target = new ToggleTarget();
+        Presto.Animate(target, new() { ["On"] = TweenValue.Of(true), Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void BouncingInertiaTweenTicksWithoutAllocating(bool diagnostics)
     {
         Presto.Engine.Diagnostics.Enabled = diagnostics;
@@ -201,5 +215,10 @@ public sealed class AllocationTests : EngineTestBase
 
         // measured .72: each loop boundary re-renders its children internally, and an internal render composes Tween._value.
         Assert.True(bytes <= 2, $"{bytes:0.##} bytes per tick");
+    }
+
+    private sealed class ToggleTarget
+    {
+        public bool On { get; set; }
     }
 }

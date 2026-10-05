@@ -166,6 +166,25 @@ public sealed class ScrollParallaxTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void UnderReducedMotionTheElementKeepsItsLayoutPositionAndResumesAtTheScrollAfterItClears()
+    {
+        var target = Target(.5);
+        var (scroller, _) = Show(target);
+        Presto.Defaults.ReducedMotion = true;
+
+        foreach (var offset in new[] { 150d, 300 })
+        {
+            scroller.Offset = new Vector(0, offset);
+            Assert.Equal(0, Translate(target));
+        }
+
+        Presto.Defaults.ReducedMotion = false;
+        scroller.Offset = new Vector(0, 400);
+
+        Assert.Equal(.5 * (400 - Entry), Translate(target), 6);
+    }
+
+    [AvaloniaFact]
     public void AHorizontalScrollerTranslatesAlongX()
     {
         var target = Target(.5);

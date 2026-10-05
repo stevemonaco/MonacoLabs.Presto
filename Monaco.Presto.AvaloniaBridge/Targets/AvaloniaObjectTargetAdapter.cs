@@ -25,7 +25,9 @@ namespace Monaco.Presto.AvaloniaBridge.Targets;
 /// property had underneath. A direct property binding ignores the priority and writes through the setter, so the value the
 /// property held before the first frame is captured and written back on revert instead. A <see cref="double"/> property is
 /// bound typed, so a frame pushes it unboxed and what is left per frame is the property-changed args Avalonia raises.
-/// <see cref="Visual.OpacityProperty"/> is clamped to 0-1, so an overshooting ease holds at the ends.
+/// <see cref="Visual.OpacityProperty"/> is clamped to 0-1, so an overshooting ease holds at the ends. A property type with no
+/// codec is discrete (<see cref="DiscreteCodec"/>), switching at the midpoint except <see cref="Visual.IsVisibleProperty"/>,
+/// which stays true throughout.
 /// </remarks>
 public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
 {
@@ -44,7 +46,6 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     /// its own (<c>"1turn"</c>, <c>".5rad"</c>); every other name is looked up in the <see cref="AvaloniaPropertyRegistry"/>.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="target"/>'s type has no Avalonia property registered under <paramref name="property"/>.</exception>
-    /// <exception cref="NotSupportedException">That property's type has no codec registered in <see cref="Presto.Codecs"/>.</exception>
     public IPropertyAccessor? Resolve(object target, string property)
     {
         if (target is not AvaloniaObject) return null;
@@ -241,7 +242,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             else if (type == typeof(int)) _number = static n => (int)Helpers.Round(n, 0);
             else if (type == typeof(string)) _isString = true;
             else if (Presto.Codecs.TryGetValue(type, out var codec)) Codec = codec;
-            else throw new NotSupportedException($"{property.OwnerType}.{property.Name} is a {type}, which has no codec registered in Presto.Codecs.");
+            else Codec = new DiscreteCodec(type, property == Visual.IsVisibleProperty ? DiscreteRule.TrueThroughout : DiscreteRule.Midpoint);
         }
 
         public IValueCodec? Codec { get; }

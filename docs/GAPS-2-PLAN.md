@@ -9,7 +9,7 @@ behaviour nobody has verified yet.
 | Phase | Gap | Scope | Size |
 |---|---|---|---|
 | 55 | Reduced-motion holes | core + bridge | small |
-| 56 | Discrete values and `AutoAlpha` | core + bridge | small–medium |
+| 56 | Discrete values | core + bridge | small–medium |
 | 57 | Show and hide through `IsVisible` | bridge | medium |
 | 58 | Text exits | bridge | small–medium |
 | 59 | Animated scrolling | bridge | medium |
@@ -48,11 +48,11 @@ PLAN §7 lists four places where `PrestoDefaults.ReducedMotion` is ignored, each
 
 ### 1.2 Design sketch
 
-- **`Scroll.Speed`** behaves as speed 1 (no translation) while the flag is set. The flag has no change notification
-  today (`PrestoDefaults.ReducedMotion` is a plain property), so either add one, or re-read it on the next `Offset`
-  notification, so a flipped flag takes effect at the next scroll. Decide here; Phases 57–63 need the same notification.
+- **`Scroll.Speed`** behaves as speed 1 (no translation) while the flag is set.
+- **Decided (PLAN §7 decision 71): no change notification;** the flag is read when each trigger fires (`Offset`
+  notification, move start).
 - **Duration overloads** land at once under the flag, as `Recipes.Reflow`'s reduced form does.
-- **Dictionary params** gain `WhenReduced`, an `AnimationParams?` (and an `AvaloniaAnimationParams?` in the bridge)
+- **Dictionary params** (PLAN §7 decision 72) gain `WhenReduced`, an `AnimationParams?` (and an `AvaloniaAnimationParams?` in the bridge)
   with the builder's semantics (decision 35): when the flag is set, its property tweens replace this one's, and the
   settings it sets override this one's. Timers have no properties, and a timeline's children each pick their own form,
   so `TimerParams` and `TimelineParams` get nothing.
@@ -67,7 +67,7 @@ PLAN §7 lists four places where `PrestoDefaults.ReducedMotion` is ignored, each
 - **Sample:** remove the workarounds in ScrollStory, Storefront, Layout, MorphLab, Typography, TitleSequence,
   Dashboard and Carousel. `GalleryPageTests` already runs every page under Reduced.
 
-## 2. Phase 56 — Discrete values and `AutoAlpha`
+## 2. Phase 56 — Discrete values
 
 ### 2.1 Gap
 
@@ -88,21 +88,27 @@ GSAP's `autoAlpha` fades opacity and switches `visibility` with it.
 - **A core `DiscreteCodec`** is the fallback for any type the codecs do not cover, in both adapters, replacing the
   throw. It holds one channel that runs 0 → 1, keeps the from and to objects, and its `Encode` picks one of them.
   Boxed values are cached per tween, so a frame allocates nothing.
-- **Strings are not affected.** Non-numeric strings keep upstream's complex-value path. Step 1 checks what upstream
-  4.5.0 renders for a non-numeric string tween and pins it with a test.
-- **Flip rule, to decide.** The candidate is CSS's default: flip at progress 0.5. `IsVisible` (like CSS `visibility`)
-  instead stays `true` for the whole tween when either end is `true`, so a fade-out stays visible until it ends and a
-  fade-in shows from its first frame. `IsHitTestVisible` and `IsEnabled` may want the reverse (`false` throughout), so a
-  fading-out element stops taking clicks at once. Decide between:
-  - a fixed per-property table in the bridge;
-  - a `TweenParams.Discrete` rule (`Midpoint`, `AtStart`, `AtEnd`, `TrueThroughout`, `FalseThroughout`).
+- **Strings are not affected.** Non-numeric strings keep upstream's complex-value path. *Checked:* upstream 4.5.0
+  decomposes `'left'` → `'right'` as a complex value with no numbers and writes the end string `'right'` from the first
+  frame; `ValuesTests.NonNumericStringsStayComplexAndWriteTheEndStringFromTheFirstFrame` pins it.
+- **Flip rule, decided (PLAN decision 73): a hybrid.** A `TweenParams.Discrete` rule (`DiscreteRule`: `Midpoint`,
+  `AtStart`, `AtEnd`, `TrueThroughout`, `FalseThroughout`) overrides, per property or keyframe, the default the
+  property's `DiscreteCodec` was built with. The core's default is CSS's `Midpoint` (switch at eased progress 0.5); the
+  bridge builds its codecs with its own defaults (`IsVisible` → `TrueThroughout`, so a fade-out stays visible until it
+  ends and a fade-in shows from its first frame). *Decided (PLAN decision 74):* every other bridge property, including
+  `IsHitTestVisible` and `IsEnabled`, keeps `Midpoint`; a tween that wants hit-testing off for its whole run sets
+  `Discrete = FalseThroughout`. The throughout rules apply only when exactly one end is that `bool`, and act as
+  `Midpoint` otherwise.
 - **Keyframes** flip per segment by the same rule. Seeks and reversals work unchanged, because the value is a function
   of progress.
 - **What rejects discrete values:** relative values (`+=`) and `Blend` composition throw with a clear message. An
-  `Animatable` retarget snaps. A compositor animation throws, as it does today for any UI-thread-only property.
-- **`AutoAlpha` shorthand** (name to settle) in the bridge: one tween over `Opacity` that holds `IsVisible = false` at
-  `Animation` priority while the opacity is 0, and clears the hold otherwise. The `{presto:Fade}` family can opt in.
-  This is the hold Phase 57 builds on.
+  `Animatable` retarget snaps (its tween starts and ends on the current value with no relative `"+=0"`, and `Set`
+  writes the new value to both ends; a number given for a `bool` or an enum is converted to it). A compositor animation throws, as it does today for any UI-thread-only property.
+- **No `AutoAlpha` shorthand (PLAN decision 74).** GSAP's `autoAlpha` was built and then removed: `IsVisible = false`
+  takes the element out of layout, unlike CSS `visibility: hidden`, so a fade that ends hidden jumps, and Phase 57's
+  `Hold` mode covers the same need from the `IsVisible` side. The internal `VisibilityHold` it was built on stays: an
+  owner-keyed `Animation`-priority binding where the owner that last changed its value wins, and releasing the last one
+  disposes the binding and uncovers the base value. Phase 57's hide holds `true` through it.
 
 ### 2.3 Tests and sample
 
@@ -110,10 +116,8 @@ GSAP's `autoAlpha` fades opacity and switches `visibility` with it.
   - Midpoint flip in both directions; `IsVisible` true throughout; seek and reverse across the flip; keyframes.
   - `Revert` restores the value; `Presto.Set` on a `bool` and an enum; a plain object's `bool` in the core.
   - Relative values and `Blend` throw.
-  - `AutoAlpha` hides at 0 and shows above it.
   - Both allocation suites stay at budget.
-- **Sample:** Value types page rows for `IsHitTestVisible`, `FontWeight` and `HorizontalAlignment`, and an
-  `AutoAlpha` hide.
+- **Sample:** Value types page rows for `IsHitTestVisible`, `FontWeight` and `HorizontalAlignment`.
 
 ## 3. Phase 57 — Show and hide through `IsVisible`
 
@@ -134,21 +138,51 @@ around it with a `collapsed` state whose `Leave` is `MainView.PageUnfolded`.
   frame renders the element hidden, holds `IsVisible = true` at `Animation` priority (Phase 56's hold), plays the exit,
   then releases the hold, which uncovers the base `false`. The slot stays in layout during the exit, as with CSS;
   `Animate.ItemLayout` or `Animate.ContentSize` closes the gap afterwards.
-- **`Presence.HideMode`, to decide:** `Hold` (the live path above) or `Ghost` (layout collapses at once and the exit
-  plays on a ghost, as for a detach, so neighbours close up during the exit). Pick the default here.
-- **Shown again mid-exit** retargets from where the element stands (replace composition), with no snap.
-- **Revealed by an ancestor (closes the §7 item).** When a host's own `IsVisible` flips to true (an expander, a
-  collapsed section), its descendants with `Presence.Enter` or `Arrive` replay as one batch, so order staggers work
-  (decision 23). This is opt-in on the host (`Presence.EnterOnShow`), so expanding a deep subtree does not replay
-  everything by default. Hiding an ancestor plays nothing beyond the host's own `Exit`.
+- **`Presence.HideMode`, decided (PLAN decision 75): `Hold` by default.** The spike (§3.3) found the live path
+  workable, so `Ghost` (layout collapses at once and the exit plays on a ghost, as for a detach, so neighbours close up
+  during the exit) is opt-in. A hidden element snapshots as nothing, so `Ghost` takes its snapshot under a momentary
+  hold in the same notification; this is the one exception to Phase 31's "an element leaving invisible is never
+  ghosted", and an element already hidden by an ancestor or at opacity 0 still plays nothing. Phase 56's
+  `VisibilityHold` stays as built.
+- **Self-inflicted flips are ignored by the base value (PLAN decision 76).** The tracker records
+  `GetBaseValue(IsVisible)` (the default `true` when nothing below `Animation` is set) and, on each `IsVisible` change,
+  skips args at `Animation` priority and otherwise acts only when the base differs from the one recorded. Neither test
+  works alone: a hold's release carries the priority of the value it uncovers (`LocalValue`, `Template`, `Unset`), and
+  a hold pushed inside a template-priority flip still reads the old base in its nested notification. Nothing reports a
+  base change under a hold, so while it holds its own exit the tracker reads the base each frame and at the end.
+- **Shown again mid-exit** retargets from where the element stands, with no snap: under `Hold` the held exit plays back
+  (`Reverse`) to the values it started from, since an entrance's `from` would snap and a from-less one would land on the
+  mid-exit value; under `Ghost` the ghost is dismissed and `Enter` plays (PLAN decision 78).
+- **Revealed by an ancestor (closes the §7 item), decided (PLAN decision 77).** When a host's own base `IsVisible`
+  flips to true, its descendants with `Presence.Enter` or `Arrive` (`Enter ?? Arrive`) that are effectively visible
+  after the flip replay as one batch keyed by the host, in visual-tree order, so order staggers work (decision 23).
+  This is opt-in on the host (`Presence.EnterOnShow`), so expanding a deep subtree does not replay everything by
+  default; a descendant gets no notification of its own when an ancestor shows it. Hiding an ancestor plays nothing
+  beyond the host's own `Exit`. In the Fluent templates the host is a template part (`Expander` →
+  `Border#ExpanderContent`, `TreeViewItem` → `PART_ItemsPresenter`), set through a `/template/` style. The batch plays
+  laid out, in the pass that shows it; the host's own entrance is not part of it and starts in the same frame. A host
+  shown in the same pass as an `EnterOnShow` ancestor joins that ancestor's batch, so nothing replays twice.
 - **Reduced:** `ReduceAll` hides and shows at once; builders pick their `WhenReduced`.
 
-### 3.3 Spike first
+### 3.3 Spike (done)
 
-- Re-asserting `IsVisible` at `Animation` priority inside its change notification: no hidden frame is rendered, and no
-  layout invalidation loop.
-- A style setter or binding on `IsVisible` that changes during the hold wins when the hold is released.
-- What the 12.1.2 Fluent `Expander` and `TreeViewItem` templates actually toggle (`IsVisible`, height or a transition).
+Pinned by `VisibilitySpikeTests` (Avalonia 12.1.2):
+
+- **Re-asserting `IsVisible` at `Animation` priority inside its change notification works.** The element is
+  effectively visible again before anything renders, keeps its slot, and costs at most one extra measure, after which
+  layout settles. `PropertyChanged` handlers subscribed after the one that holds see the nested `true` before the
+  outer `false`; Avalonia's bindings and `GetObservable` read the current value and stay right.
+- **A value changed under the hold wins when it is released.** A local value, style trigger or template binding
+  changed during the hold raises no change notification (`Animatable` seals `OnPropertyChangedCore`, and
+  `Visual.IsEffectivelyVisibleChanged` is internal), and the release uncovers it.
+- **Telling a base flip from Presto's own writes** needs the base value and the priority together (§3.2).
+- **The Fluent templates toggle `IsVisible` on a template part, at `Template` priority.** An `Expander` hides
+  `Border#ExpanderContent`; its `PART_ContentPresenter` and content stay attached and visible, and its `ContentTransition`
+  is null by default. A `TreeViewItem` hides `PART_ItemsPresenter`
+  and keeps its child containers attached, which is why expanding never re-enters them. Holding the part keeps the
+  collapsing content drawn.
+- **The gallery nav flips nothing.** Its custom `TreeViewItem` template collapses with `MaxHeight = 0` on
+  `PART_ItemsPresenter` (`Showcase.axaml`), so dropping its `collapsed` workaround means collapsing through `IsVisible`.
 
 ### 3.4 Tests and sample
 
@@ -162,6 +196,12 @@ around it with a `collapsed` state whose `Leave` is `MainView.PageUnfolded`.
   - Detaching mid-hold releases the hold.
 - **Sample:** a Visibility page (a bound toggle, an expander-style settings list), and the gallery nav drops its
   `collapsed` state workaround.
+  - Done: the Visibility page binds a `Hold` card and a `Ghost` card to their switches and replays a Fluent
+    `Expander`'s rows through `EnterOnShow`, logging each moment. The nav hides a section's `PART_ItemsPresenter`
+    instead of `MaxHeight = 0`, wrapped in a `Panel` because `ContentSize` cannot hold the size of a hidden sole
+    child; the presenter's held `Exit` fades the pages before the fold, and `EnterOnShow` replays each page's
+    `Presence.Enter`. An `Expander` opened for the first time replays nothing, since its rows attach in that pass
+    (PLAN §7), so the page's list starts open.
 
 ## 4. Phase 58 — Text exits
 

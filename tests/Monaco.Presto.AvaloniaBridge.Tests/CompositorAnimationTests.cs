@@ -221,4 +221,26 @@ public sealed class CompositorAnimationTests : CompositorTestBase
         Assert.False(animation.Completed);
         Assert.InRange(animation.Progress, 0.3, 0.7);
     }
+
+    [AvaloniaFact]
+    public void DictionaryParamsOnTheCompositorPlayTheirReducedForm()
+    {
+        var bar = ShowBar();
+        var completed = false;
+        Presto.Defaults.ReducedMotion = true;
+
+        var animation = PrestoAvalonia.RunOnCompositor(bar, new AvaloniaAnimationParams
+        {
+            ["X"] = 20,
+            Duration = 1000,
+            OnComplete = _ => completed = true,
+            WhenReduced = new() { [Visual.OpacityProperty] = 0.5, Duration = 300, Ease = "linear" },
+        });
+        Frames.Advance(150);
+        Assert.InRange(animation.Progress, 0.3, 0.7);
+
+        Frames.Advance(300);
+        Assert.True(completed);
+        Assert.Equal(0.5, bar.Opacity);
+    }
 }

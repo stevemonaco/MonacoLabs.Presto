@@ -40,10 +40,6 @@ public partial class ScrollStoryPage : ShowcasePage
     protected override void OnAttached()
     {
         BuildStrip();
-        if (Presto.Defaults.ReducedMotion)
-        {
-            foreach (var layer in (Control[])[HeroSky, HeroRidge, HeroTitle]) Scroll.SetSpeed(layer, 1);
-        }
 
         Watch("hero", Hero, new ScrollObserverParams { Enter = "start start", Sync = 0.35 }).Link(HeroTitle.Animate(new()
         {
@@ -97,11 +93,12 @@ public partial class ScrollStoryPage : ShowcasePage
                 OnLeave = observer => Crossed(observer, "leave"),
             }).Link(chapter.Animate(new()
             {
-                ["Y"] = TweenValue.FromTo(Presto.Defaults.ReducedMotion ? 0 : 52, 0),
+                ["Y"] = TweenValue.FromTo(52, 0),
                 ["Opacity"] = TweenValue.FromTo(0, 1),
                 Duration = RevealDuration,
                 Ease = Eases.OutQuint,
                 Autoplay = false,
+                WhenReduced = new() { ["Opacity"] = TweenValue.FromTo(0, 1) },
             }));
         }
 

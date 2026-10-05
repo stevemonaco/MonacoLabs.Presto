@@ -161,13 +161,14 @@ public sealed class ContentSizeTransition : IRevertible
         _inset.Bottom = bottom;
         _mirror?.Cancel();
         using var origin = PrestoDiagnostics.Origin("ContentSizeTransition");
+        var motion = _motion.Current;
         var mirror = _mirror = Presto.Animate(_inset, new AnimationParams
         {
             ["Right"] = 0d,
             ["Bottom"] = 0d,
-            Duration = _motion.Duration,
-            Delay = _motion.Delay,
-            Ease = _motion.Ease,
+            Duration = motion.Duration,
+            Delay = motion.Delay,
+            Ease = motion.Ease,
             OnRender = _push,
             OnComplete = _release,
         });

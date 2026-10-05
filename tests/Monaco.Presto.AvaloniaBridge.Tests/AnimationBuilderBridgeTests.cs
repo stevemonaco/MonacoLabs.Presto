@@ -2,6 +2,7 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Monaco.Presto.AvaloniaBridge.Compositor;
@@ -328,4 +329,22 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
 
     private static object MotionOf(LayoutTransition transition) =>
         typeof(LayoutTransition).GetField("_motion", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(transition)!;
+
+    [AvaloniaFact]
+    public void ATypedWhenReducedReplacesTheProperties()
+    {
+        var border = new Border { Width = 10 };
+        Presto.Defaults.ReducedMotion = true;
+
+        Presto.Animate(border, new AvaloniaAnimationParams
+        {
+            [Layoutable.WidthProperty] = 100,
+            Duration = 400,
+            WhenReduced = new() { [Visual.OpacityProperty] = 0.5 },
+        });
+        Frames.Advance(1500);
+
+        Assert.Equal(10, border.Width);
+        Assert.Equal(0.5, border.Opacity);
+    }
 }

@@ -18,4 +18,11 @@ public sealed record AvaloniaAnimationParams : AnimationParams
         get => Properties[AvaloniaObjectTargetAdapter.Encode(property)];
         init => Properties[AvaloniaObjectTargetAdapter.Encode(property)] = value;
     }
+
+    /// <inheritdoc cref="AnimationParams.WhenReduced"/>
+    public new AvaloniaAnimationParams? WhenReduced
+    {
+        get => base.WhenReduced as AvaloniaAnimationParams;
+        init => base.WhenReduced = value;
+    }
 }

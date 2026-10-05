@@ -204,6 +204,31 @@
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <StackPanel VerticalAlignment="Center" Spacing="6">
+                    <showcase:CodePanel x:Name="HitTestCode" />
+                    <TextBlock Classes="caption" TextWrapping="Wrap"
+                               Text="A bool has no in-between, so it flips at the midpoint: past halfway the button stops taking hover and clicks." />
+                </StackPanel>
+                <Border Grid.Column="1" Classes="demo">
+                    <Button x:Name="HitTestButton" Classes="specimen" Content="Clicks: 0" Click="HitTestClicked" />
+                </Border>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="WeightCode" />
+                <Border Grid.Column="1" Classes="demo">
+                    <Button x:Name="WeightButton" Classes="specimen" Content="Font weight" />
+                </Border>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
+                <showcase:CodePanel x:Name="AlignmentCode" />
+                <Border Grid.Column="1" Classes="demo">
+                    <Button x:Name="AlignmentButton" Classes="specimen" Content="Alignment" />
+                </Border>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

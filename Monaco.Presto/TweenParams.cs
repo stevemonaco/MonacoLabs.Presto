@@ -30,4 +30,7 @@ public sealed class TweenParams
 
     /// <summary>Overrides the animation's composition mode for this property, deciding how it meets tweens already running on it.</summary>
     public Composition? Composition { get; init; }
+
+    /// <summary>When a discrete property, one whose type has no codec, switches to its to value; unset, the property's own rule decides.</summary>
+    public DiscreteRule? Discrete { get; init; }
 }

@@ -253,14 +253,15 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
             _scratch.ScaleY = scale[1];
         }
 
-        var ease = CompositorCompiler.Pure(_motion.Ease ?? Engine.Current.Defaults.Ease, _control, 0, 1, out var spring);
-        var easeX = Axis(_motion.EaseX, ease);
-        var easeY = Axis(_motion.EaseY, ease);
-        var easeScale = Axis(_motion.EaseScale, ease);
+        var motion = _motion.Current;
+        var ease = CompositorCompiler.Pure(motion.Ease ?? Engine.Current.Defaults.Ease, _control, 0, 1, out var spring);
+        var easeX = Axis(motion.EaseX, ease);
+        var easeY = Axis(motion.EaseY, ease);
+        var easeScale = Axis(motion.EaseScale, ease);
         var mirrorParams = new AnimationParams
         {
-            Duration = spring != null ? (TweenValue)spring.SettlingDuration : _motion.Duration,
-            Delay = _motion.Delay,
+            Duration = spring != null ? (TweenValue)spring.SettlingDuration : motion.Duration,
+            Delay = motion.Delay,
             Ease = ease,
             OnComplete = _mode == LayoutAnimateMode.PositionAndSizeCorrected ? _ => Uncorrect() : null,
         };

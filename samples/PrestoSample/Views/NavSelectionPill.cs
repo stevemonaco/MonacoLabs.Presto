@@ -69,7 +69,7 @@ internal sealed class NavSelectionPill
         _pill.Opacity = 1;
     }
 
-    // A collapsing section keeps its pages laid out under a clipped host whose height eases, so the pill hides once that clip reaches the item.
+    // An expanding section lays its pages out under a clipped host whose height eases, so the pill waits until that clip reaches the item.
     private static bool Folded(Border target) =>
         target.GetVisualAncestors().OfType<Border>().FirstOrDefault(border => border.Name == "ItemsHost") is { } host
         && target.TranslatePoint(new Point(0, target.Bounds.Height), host) is { Y: var bottom } && bottom > host.Bounds.Height + .5;

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Monaco.Presto;
@@ -10,7 +11,7 @@ namespace PrestoSample.Showcase.Pages;
 
 /// <summary>
 /// A shop front that uses Phases 22–25 together: recipes from XAML for the grid's entrance, hover, press, focus and exits,
-/// a <c>:checked</c> chip state, an <c>Animate.ItemLayout</c> reflow, a shared-element fly to the cart, a quick view revealed with
+/// a <c>:checked</c> chip state, an <c>Animate.ItemLayout</c> reflow, a shared-element fly to the cart, a quick view opened by clicking a card and revealed with
 /// <c>ClipCircle</c> over a blurred grid, a <c>Shimmer</c> skeleton, sold-out pictures that colorize on hover and a live reduced-motion switch.
 /// </summary>
 public partial class StorefrontPage : ShowcasePage
@@ -64,16 +65,25 @@ public partial class StorefrontPage : ShowcasePage
         var thumb = new Border { Classes = { "thumb" }, Child = new Scenery { Hue = product.Hue, Index = product.Index } };
         CartShelf.Children.Insert(0, thumb);
         if (CartShelf.Children.Count > ShelfSize) CartShelf.Children.RemoveAt(ShelfSize);
-        // A shared-element flight has no reduced form.
-        if (!Presto.Defaults.ReducedMotion)
-            Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(card.GetVisualDescendants().OfType<FilteredImage>().First(), thumb, 700, Eases.InOutCubic));
+        Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(card.GetVisualDescendants().OfType<FilteredImage>().First(), thumb, 700, Eases.InOutCubic));
         Recipes.Burst(Badge, count: 12, color: Palette.Accent.Color, reduced: Recipes.Fade());
         ViewModel.CartCount++;
     }
 
-    private void QuickViewClicked(object? sender, RoutedEventArgs e)
+    private void CardTapped(object? sender, TappedEventArgs e)
     {
-        var card = Card(sender);
+        if ((e.Source as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is null) OpenQuickView((Border)sender!);
+    }
+
+    private void CardKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Enter or Key.Space)) return;
+        e.Handled = true;
+        OpenQuickView((Border)sender!);
+    }
+
+    private void OpenQuickView(Border card)
+    {
         var centre = card.TranslatePoint(new Point(card.Bounds.Width / 2, card.Bounds.Height / 2), QuickHost)!.Value;
         var from = new RelativePoint(centre, RelativeUnit.Absolute);
         ViewModel.QuickView = (Product)card.DataContext!;

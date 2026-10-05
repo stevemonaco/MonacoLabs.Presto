@@ -1,6 +1,9 @@
 namespace Monaco.Presto;
 
-/// <summary>Parameters for <see cref="Presto.CreateTimeline"/>; a timeline's own duration comes from its children, never from <see cref="TimerParams.Duration"/>.</summary>
+/// <summary>
+/// Parameters for <see cref="Presto.CreateTimeline"/>; a timeline's own duration comes from its children, never from
+/// <see cref="TimerParams.Duration"/>. There is no reduced-motion form: each child picks its own through <see cref="AnimationParams.WhenReduced"/>.
+/// </summary>
 public record TimelineParams : TimerParams
 {
     /// <summary>Overrides of <see cref="Presto.Defaults"/> inherited by every child added to the timeline.</summary>

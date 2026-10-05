@@ -1,4 +1,6 @@
 using Avalonia;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
@@ -8,6 +10,8 @@ namespace PrestoSample.Pages;
 
 public partial class ValueTypesPage : ShowcasePage
 {
+    private int _clicks;
+
     public ValueTypesPage() => InitializeComponent();
 
     protected override void OnAttached()
@@ -185,5 +189,33 @@ public partial class ValueTypesPage : ShowcasePage
             Loop = true,
             Alternate = true,
         })).Code;
+
+        HitTestCode.Code = Snippet.Of(HitTestButton.Animate(new()
+        {
+            ["X"] = 200,
+            ["IsHitTestVisible"] = TweenValue.Of(false),
+            Duration = 1400,
+            Ease = Eases.InOutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        WeightCode.Code = Snippet.Of(WeightButton.Animate(new()
+        {
+            ["FontWeight"] = TweenValue.Of(FontWeight.Black),
+            Duration = 1400,
+            Ease = Eases.InOutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        AlignmentCode.Code = Snippet.Of(AlignmentButton.Animate(new()
+        {
+            ["HorizontalAlignment"] = TweenValue.Of(HorizontalAlignment.Right),
+            Duration = 1400,
+            Ease = Eases.InOutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
     }
+
+    private void HitTestClicked(object? sender, RoutedEventArgs e) => HitTestButton.Content = $"Clicks: {++_clicks}";
 }

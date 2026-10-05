@@ -122,6 +122,7 @@ public static class PrestoAvalonia
     /// <summary>Whether <paramref name="p"/> can run on the render thread: no setting the compositor lacks and a composition counterpart for every property.</summary>
     internal static bool FitsCompositor(AnimationParams p)
     {
+        p = p.Resolve(Engine.Current);
         if (UnsupportedOnCompositor(p) != null) return false;
         foreach (var name in p.Properties.Keys)
         {
@@ -132,6 +133,7 @@ public static class PrestoAvalonia
 
     internal static CompositorAnimation RunOnCompositor(object? targets, AnimationParams p)
     {
+        p = p.Resolve(Engine.Current);
         if (UnsupportedOnCompositor(p) is { } unsupported) throw new NotSupportedException($"{unsupported} has no counterpart on the compositor.");
 
         var parameters = new CompositorAnimationParams
@@ -181,6 +183,8 @@ public static class PrestoAvalonia
     /// The move is inverted onto the composition transform, so <see cref="Visual.Bounds"/> is still right in the layout pass
     /// that moved it and only the pixels lag behind. A control outside the visual tree starts when it is attached to one, and
     /// its first laid-out pass records where it is without easing, which is why a control appearing is not a layout move.
+    /// A move that starts while <see cref="PrestoDefaults.ReducedMotion"/> is set lands in one frame, as
+    /// <see cref="Recipes.Reflow"/>'s reduced form does.
     /// </remarks>
     public static LayoutTransition AnimateLayout(
         Control control,
@@ -189,7 +193,7 @@ public static class PrestoAvalonia
         LayoutAnimateMode mode = LayoutAnimateMode.Position)
     {
         EnsureInitialized();
-        return new LayoutTransition(control, first: null, firstOnScreen: false, new LayoutMotion(duration, Ease: ease), mode, once: false);
+        return new LayoutTransition(control, first: null, firstOnScreen: false, new LayoutMotion(duration, Ease: ease, LandsWhenReduced: true), mode, once: false);
     }
 
     /// <summary>
@@ -218,12 +222,13 @@ public static class PrestoAvalonia
     /// <remarks>
     /// Unlike a <see cref="LayoutAnimateMode.PositionAndSize"/> layout transition nothing is scaled, so corner radius, shadow
     /// and text stay true, but the host is laid out again every frame, which suits a panel rather than hundreds of rows. Its
-    /// first laid-out pass records its size without easing.
+    /// first laid-out pass records its size without easing, and a resize that starts while
+    /// <see cref="PrestoDefaults.ReducedMotion"/> is set lands in one frame.
     /// </remarks>
     public static ContentSizeTransition AnimateContentSize(Control host, double duration, EaseValue? ease = null)
     {
         EnsureInitialized();
-        return new ContentSizeTransition(host, new LayoutMotion(duration, Ease: ease), record: true);
+        return new ContentSizeTransition(host, new LayoutMotion(duration, Ease: ease, LandsWhenReduced: true), record: true);
     }
 
     /// <summary>
@@ -251,6 +256,7 @@ public static class PrestoAvalonia
     /// where it is seen. The two have to share a window. By default a one-shot, off again once the move is under way;
     /// passing <paramref name="once"/> false keeps easing later layout changes as
     /// <see cref="AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/> does. Passing the same control twice reparents it.
+    /// A move that starts while <see cref="PrestoDefaults.ReducedMotion"/> is set lands in one frame.
     /// </remarks>
     public static LayoutTransition AnimateSharedElement(
         Control source,
@@ -261,7 +267,7 @@ public static class PrestoAvalonia
         bool once = true)
     {
         EnsureInitialized();
-        return new LayoutTransition(target, LayoutTransition.MeasureDrawn(source), firstOnScreen: true, new LayoutMotion(duration, Ease: ease), mode, once);
+        return new LayoutTransition(target, LayoutTransition.MeasureDrawn(source), firstOnScreen: true, new LayoutMotion(duration, Ease: ease, LandsWhenReduced: true), mode, once);
     }
 
     /// <summary>
@@ -304,6 +310,7 @@ public static class PrestoAvalonia
     /// <summary>
     /// Flies <paramref name="target"/> from where <see cref="PrepareSharedElement"/> recorded <paramref name="key"/> into
     /// the slot layout gives it next, taking the entry: the Toolkit's <c>GetAnimation(key)?.TryStart(target)</c>.
+    /// A move that starts while <see cref="PrestoDefaults.ReducedMotion"/> is set lands in one frame.
     /// </summary>
     /// <returns>The transition, or <c>null</c> when nothing live is prepared under the key.</returns>
     public static LayoutTransition? AnimateSharedElement(
@@ -313,7 +320,7 @@ public static class PrestoAvalonia
         EaseValue? ease = null,
         LayoutAnimateMode mode = LayoutAnimateMode.PositionAndSize,
         bool once = true) =>
-        AnimateSharedElement(key, target, new LayoutMotion(duration, Ease: ease), mode, once);
+        AnimateSharedElement(key, target, new LayoutMotion(duration, Ease: ease, LandsWhenReduced: true), mode, once);
 
     /// <summary>The keyed <see cref="AnimateSharedElement(string, Control, double, EaseValue?, LayoutAnimateMode, bool)"/> with its motion taken from <paramref name="builder"/>.</summary>
     /// <inheritdoc cref="AnimateSharedElement(string, Control, double, EaseValue?, LayoutAnimateMode, bool)" path="/returns"/>
