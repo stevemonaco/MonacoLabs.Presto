@@ -1,11 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -19,6 +21,67 @@ public sealed class PopoverPopupTests : CompositorTestBase
     private static AnimationBuilder ScaleIn => Recipes.ScaleIn(duration: 200, ease: "linear");
 
     private static AnimationBuilder FadeOut => Recipes.FadeOut(duration: 200, ease: "linear");
+
+    private readonly Func<Action, Action> _dispatcherPolling = PopoverRun.StartPolling;
+
+    // Steps the poll with the engine's frames, so the tests below need no real time.
+    public PopoverPopupTests() => PopoverRun.StartPolling = poll =>
+    {
+        var timer = Presto.CreateTimer(new TimerParams { OnUpdate = _ => poll() });
+        return () => timer.Cancel();
+    };
+
+    public override void Dispose()
+    {
+        PopoverRun.StartPolling = _dispatcherPolling;
+        base.Dispose();
+    }
+
+    [AvaloniaFact]
+    public async Task AnOpenHeldPopupLetsTheEngineIdleAndAWriteUnderTheHoldStillStartsClose()
+    {
+        PopoverRun.StartPolling = _dispatcherPolling;
+        var stage = Stage(comboBox: false, close: FadeOut);
+        stage.Open();
+        Tick();
+
+        Assert.Null(Presto.Engine._head);
+        Assert.False(Frames.IsRunning);
+
+        stage.Close();
+        Assert.True(await PumpRealTime(() => Presto.Engine._head is not null), "the dispatcher poll never started Close");
+        Assert.True(stage.Popup().IsOpen);
+
+        RunUntil(() => !stage.Popup().IsOpen);
+        Assert.False(stage.Popup().IsOpen);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ABoundIsOpenFollowsEveryCloseAndReopensFromTheViewModel(bool lightDismiss)
+    {
+        var stage = Stage(comboBox: false, close: FadeOut);
+        var popup = stage.Popup();
+        var model = new OpenModel();
+        popup.Bind(Popup.IsOpenProperty, new Binding(nameof(OpenModel.IsOpen)) { Source = model, Mode = BindingMode.TwoWay });
+        model.IsOpen = true;
+        Tick();
+
+        if (lightDismiss) Press(stage.Window, new Point(190, 10));
+        else model.IsOpen = false;
+        RunUntil(() => !popup.IsOpen && Overlay(stage.Window).Children.Count == 0);
+        Tick();
+
+        Assert.False(popup.IsOpen);
+        Assert.False(model.IsOpen);
+
+        model.IsOpen = true;
+        Tick();
+
+        Assert.True(popup.IsOpen);
+        Assert.NotNull(Extent(stage.Window, Colors.Lime));
+    }
 
     [AvaloniaTheory]
     [InlineData(false, false)]
@@ -259,6 +322,34 @@ public sealed class PopoverPopupTests : CompositorTestBase
         Assert.False(stage.Popup().IsOpen);
         Tick();
         Assert.Null(Extent(stage.Window, Colors.Lime));
+    }
+
+    private sealed class OpenModel : System.ComponentModel.INotifyPropertyChanged
+    {
+        private bool _isOpen;
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+        public bool IsOpen
+        {
+            get => _isOpen;
+            set
+            {
+                if (_isOpen == value) return;
+                _isOpen = value;
+                PropertyChanged?.Invoke(this, new(nameof(IsOpen)));
+            }
+        }
+    }
+
+    private static async Task<bool> PumpRealTime(Func<bool> until, int rounds = 60)
+    {
+        for (var i = 0; i < rounds && !until(); i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(16);
+        }
+        return until();
     }
 
     private sealed record Staged(Window Window, Button Anchor, Func<Popup> Popup, Action Open, Action Close, Func<bool> IsOpen);

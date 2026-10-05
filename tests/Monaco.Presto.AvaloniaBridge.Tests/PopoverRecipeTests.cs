@@ -1,7 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
+using Avalonia.Styling;
+using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -45,6 +48,39 @@ public sealed class PopoverRecipeTests : CompositorTestBase
         Assert.True(flyout.IsOpen);
         Assert.InRange(sign * Get(presenter, axis), 3, 7);
         Assert.Equal(0, Get(presenter, across));
+    }
+
+    [AvaloniaFact]
+    public void AContextMenuAtThePointerSlidesDownFromItsTopEdge()
+    {
+        var (_, anchor) = PopupStage();
+        var menu = new ContextMenu { Items = { new MenuItem { Header = "a" } } };
+        Popover.SetOpen(menu, Recipes.PopoverIn(distance: 10, duration: 200, ease: "linear"));
+        anchor.ContextMenu = menu;
+
+        menu.Open(anchor);
+
+        Assert.Equal(-10, Get(menu, "Y"));
+        Assert.Equal(0, Get(menu, "X"));
+    }
+
+    [AvaloniaFact]
+    public void AComboBoxDropDownStyledThroughItsTemplateSlidesDownFromItsTopEdge()
+    {
+        var (window, _) = PopupStage();
+        window.Styles.Add(new Style(x => x.OfType<ComboBox>().Template().OfType<Popup>().Name("PART_Popup"))
+        {
+            Setters = { new Setter(Popover.OpenProperty, Recipes.PopoverIn(distance: 10, duration: 200, ease: "linear")) },
+        });
+        var combo = new ComboBox { ItemsSource = new[] { "a", "b" }, Width = 100, VerticalAlignment = VerticalAlignment.Center };
+        ((Panel)window.Content!).Children.Add(combo);
+        Tick();
+
+        combo.IsDropDownOpen = true;
+        var child = combo.GetVisualDescendants().OfType<Popup>().Single().Child!;
+
+        Assert.Equal(-10, Get(child, "Y"));
+        Assert.Equal(0, Get(child, "X"));
     }
 
     private static double Get(Visual visual, string property) => Convert.ToDouble(PrestoAvalonia.Get(visual, property));

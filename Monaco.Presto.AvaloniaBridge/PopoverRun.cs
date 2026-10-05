@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.Diagnostics;
@@ -14,7 +15,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <summary>
 /// One open of a popup that uses <see cref="Popover"/>: plays Open on the presenter, then turns the first cancellable
 /// close into Close, closing the popup for real through <see cref="Popup.Close"/> once Close ends. A <see cref="Popup"/>
-/// owner is held open instead, its base <c>IsOpen</c> read each frame. A <see cref="ToolTip"/>, and a held popup closed
+/// owner is held open instead, its base <c>IsOpen</c> read by <see cref="StartPolling"/>. A <see cref="ToolTip"/>, and a held popup closed
 /// past <c>IsOpen</c>, close at once while Close plays on a ghost.
 /// </summary>
 internal sealed class PopoverRun
@@ -24,12 +25,19 @@ internal sealed class PopoverRun
     private readonly Popup _popup;
     private readonly IDisposable? _transitions;
     private readonly AnimatedValue<bool>? _hold;
-    private readonly Timer? _poll;
+    private readonly Action? _stopPolling;
     private Point? _drawnAt;
     private Animation? _open;
     private Animation? _close;
     private bool _closing;
     private bool _releasing;
+
+    /// <summary>
+    /// Starts reading a held popup's base <c>IsOpen</c>, which no notification reports, and returns how to stop. A
+    /// dispatcher timer rather than an engine timer, so an open popup lets the engine idle.
+    /// </summary>
+    internal static Func<Action, Action> StartPolling = poll =>
+        new DispatcherTimer(TimeSpan.FromMilliseconds(30), DispatcherPriority.Background, Dispatcher.UIThread, (_, _) => poll()).Stop;
 
     public PopoverRun(AvaloniaObject owner, Control presenter, Popup popup)
     {
@@ -47,8 +55,7 @@ internal sealed class PopoverRun
             // Pushed at open, since a hold taken in IsOpen's change notification comes after the popup has closed.
             _hold = new AnimatedValue<bool>(popup, Popup.IsOpenProperty);
             _hold.Push(true);
-            PrestoAvalonia.EnsureInitialized();
-            _poll = Presto.CreateTimer(new TimerParams { OnUpdate = _ => Poll() });
+            _stopPolling = StartPolling(Poll);
         }
         if (presenter is ToolTip || _hold is not null) presenter.LayoutUpdated += RecordPosition;
         if (presenter.Transitions is { } transitions && transitions.Any(IsOpacity))
@@ -80,7 +87,7 @@ internal sealed class PopoverRun
         _close?.Revert();
         _open?.Revert();
         _transitions?.Dispose();
-        _poll?.Cancel();
+        _stopPolling?.Invoke();
         _hold?.Dispose();
         if (bypassed) _popup.ClearValue(Popup.IsOpenProperty);
     }

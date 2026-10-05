@@ -565,7 +565,7 @@ Verified against the 12.1.2 assemblies (reflection and XML docs):
 - **`Popup` uses the `IsOpen` hold, held from the open.** A hold pushed in `IsOpen`'s change notification comes too late
   (§7.3), so `Popover` pushes `IsOpen = true` at `Animation` priority when the popup opens. A write underneath (a local
   value, a binding, a `ComboBox`'s `IsDropDownOpen` through its template binding) then raises nothing, so while the
-  popup is open `Popover` reads the base value each frame; when it turns false `Close` plays on the child and the hold
+  popup is open `Popover` reads the base value on a 30 ms dispatcher timer, so the engine can idle; when it turns false `Close` plays on the child and the hold
   is released at the end, which closes the popup. Light dismiss and an owner detaching close at once, since they bypass
   `IsOpen`; as built, light dismiss also plays `Close` on a ghost, as a tooltip does (PLAN decision 95). A `ClearValue` under the hold is lost, so `IsOpen` must be closed by writing false.
 - **`ToolTip` uses a ghost in the anchor window's overlay**, since neither hold works for it (§7.3). In `ToolTip.IsOpen`'s

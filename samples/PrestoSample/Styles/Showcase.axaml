@@ -2,7 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="using:Avalonia.Controls.Converters"
         xmlns:pages="clr-namespace:PrestoSample.Pages"
-        xmlns:showcase="clr-namespace:PrestoSample.Showcase">
+        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+        xmlns:presto="https://github.com/stevemonaco/Monaco.Presto">
     <Styles.Resources>
         <StreamGeometry x:Key="HeartIcon">M8,14 L2.3,8.3 A3.5,3.5 0 0 1 8,3.6 A3.5,3.5 0 0 1 13.7,8.3 Z</StreamGeometry>
         <StreamGeometry x:Key="StarIcon">M8,1 L10,6 L15,6 L11,9.5 L12.5,15 L8,11.8 L3.5,15 L5,9.5 L1,6 L6,6 Z</StreamGeometry>
@@ -41,8 +42,34 @@
                                                FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.InkDim}" />
                                 </StackPanel>
                             </ToggleButton>
-                            <Button Name="PART_Copy" Grid.Column="1" Grid.RowSpan="2" Content="Copy" VerticalAlignment="Top"
-                                    Margin="12,0,0,0" Padding="8,2" FontSize="11" FontFamily="{x:Static FontFamily.Default}" />
+                            <!-- A bare icon at rest; CodePanel peels its back sheet on hover and morphs the front one into a check on copy. -->
+                            <Button Name="PART_Copy" Grid.Column="1" Grid.RowSpan="2" VerticalAlignment="Top" Margin="12,-4,-6,0"
+                                    Padding="6,4" Cursor="Hand" ToolTip.Tip="Copy" Background="#002DD4BF" BorderBrush="#002DD4BF"
+                                    presto:Motion.Press="{x:Static showcase:CodePanel.PressIn}">
+                                <Button.Template>
+                                    <ControlTemplate>
+                                        <ContentPresenter Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                                          BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                                          Content="{TemplateBinding Content}" />
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Name="PART_CopiedClip" Width="0" ClipToBounds="True">
+                                        <TextBlock Name="PART_Copied" Text="Copied" FontSize="11" FontWeight="SemiBold"
+                                                   FontFamily="{x:Static FontFamily.Default}" Margin="0,0,6,0"
+                                                   VerticalAlignment="Center" Opacity="0"
+                                                   Foreground="{x:Static showcase:Palette.Aqua}" />
+                                    </Border>
+                                    <Panel Width="16" Height="16">
+                                        <Path Name="PART_CopyBack" Data="{x:Static showcase:CodePanel.BackSheet}"
+                                              Stroke="{x:Static showcase:Palette.InkDim}" StrokeThickness="1.4"
+                                              StrokeLineCap="Round" StrokeJoin="Round" />
+                                        <Path Name="PART_CopyFront" Data="{x:Static showcase:CodePanel.FrontSheet}"
+                                              Stroke="{x:Static showcase:Palette.InkDim}" StrokeThickness="1.4"
+                                              StrokeLineCap="Round" StrokeJoin="Round" />
+                                    </Panel>
+                                </StackPanel>
+                            </Button>
                             <!-- The padding, taken back from the border's, gives the overlay scrollbar a band below the last line. -->
                             <ScrollViewer Name="PART_ScrollViewer" Grid.Row="1" IsVisible="{TemplateBinding IsExpanded}"
                                           Margin="0,0,0,-10" Padding="0,0,0,10"

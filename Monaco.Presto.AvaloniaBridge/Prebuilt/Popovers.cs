@@ -25,12 +25,12 @@ public static class Popovers
     public static AnimationBuilder PopoverIn(double? distance = null, double? scale = null, double? duration = null, double? delay = null, EaseValue? ease = null)
     {
         var tokens = Recipes.Tokens;
-        var travel = distance ?? tokens.Distance / 2;
+        var (x, y) = Travel(distance ?? tokens.Distance / 2, placed: false);
         return Recipes.Start(tokens, duration ?? tokens.Short, delay, ease ?? tokens.Ease, stagger: false)
             .Opacity(from: 0)
             .Scale(from: scale ?? tokens.Scale)
-            .Property("X", from: Travel("X", travel, placed: false))
-            .Property("Y", from: Travel("Y", travel, placed: false))
+            .Property("X", from: x)
+            .Property("Y", from: y)
             .WhenReduced(reduced => reduced.Opacity(from: 0).Duration(tokens.Short));
     }
 
@@ -38,12 +38,12 @@ public static class Popovers
     public static AnimationBuilder PopoverOut(double? distance = null, double? scale = null, double? duration = null, double? delay = null, EaseValue? ease = null)
     {
         var tokens = Recipes.Tokens;
-        var travel = distance ?? tokens.Distance / 2;
+        var (x, y) = Travel(distance ?? tokens.Distance / 2, placed: true);
         return Recipes.Start(tokens, duration ?? tokens.Short, delay, ease ?? tokens.Ease, stagger: false)
             .Opacity(0)
             .Scale(scale ?? tokens.Scale)
-            .Property("X", Travel("X", travel, placed: true))
-            .Property("Y", Travel("Y", travel, placed: true))
+            .Property("X", x)
+            .Property("Y", y)
             .WhenReduced(reduced => reduced.Opacity(0).Duration(tokens.Short));
     }
 
@@ -94,6 +94,26 @@ public static class Popovers
         _ => Edge.Top,
     };
 
-    private static FunctionValue Travel(string axis, double distance, bool placed) => (target, _, _) =>
-        AnchoredEdge(target, placed) is { } edge && Recipes.Offset(edge, distance) is var (property, offset) && property == axis ? offset : 0;
+    private static (FunctionValue X, FunctionValue Y) Travel(double distance, bool placed)
+    {
+        // X resolves before Y for each target, so Y takes the offset X found rather than finding the edge again.
+        (object? Target, double Y) pending = default;
+        (double X, double Y) Resolve(object target) =>
+            AnchoredEdge(target, placed) is { } edge && Recipes.Offset(edge, distance) is var (property, offset)
+                ? property == "X" ? (offset, 0) : (0, offset)
+                : default;
+        return (
+            (target, _, _) =>
+            {
+                var (x, y) = Resolve(target);
+                pending = (target, y);
+                return x;
+            },
+            (target, _, _) =>
+            {
+                var y = ReferenceEquals(pending.Target, target) ? pending.Y : Resolve(target).Y;
+                pending = default;
+                return y;
+            });
+    }
 }
