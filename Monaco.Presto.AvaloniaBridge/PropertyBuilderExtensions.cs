@@ -808,6 +808,36 @@ public static class PropertyBuilderExtensions
     /// <summary>Animates the ripple noise size in DIPs through the keyframes <paramref name="keyframes"/> adds.</summary>
     public static T RippleScale<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => builder.Property(PrestoImageBase.RippleScaleProperty, keyframes);
 
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/> horizontally to the <c>"ScrollX"</c> offset <paramref name="to"/>.</summary>
+    public static T ScrollX<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ScrollX", to);
+
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/>'s <c>"ScrollX"</c> offset with its own tween settings.</summary>
+    public static T ScrollX<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ScrollX", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/>'s <c>"ScrollX"</c> offset to a value computed per target.</summary>
+    public static T ScrollX<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ScrollX", to);
+
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/>'s <c>"ScrollX"</c> offset through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ScrollX<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ScrollX", keyframes);
+
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/> vertically to the <c>"ScrollY"</c> offset <paramref name="to"/>.</summary>
+    public static T ScrollY<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("ScrollY", to);
+
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/>'s <c>"ScrollY"</c> offset with its own tween settings.</summary>
+    public static T ScrollY<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("ScrollY", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/>'s <c>"ScrollY"</c> offset to a value computed per target.</summary>
+    public static T ScrollY<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("ScrollY", to);
+
+    /// <summary>Scrolls a <see cref="Avalonia.Controls.ScrollViewer"/>'s <c>"ScrollY"</c> offset through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T ScrollY<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("ScrollY", keyframes);
+
     /// <summary>Animates <c>"Background"</c> to a solid brush of <paramref name="to"/>.</summary>
     public static T Background<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("Background", SolidBrush(to));
 

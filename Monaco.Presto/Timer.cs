@@ -37,6 +37,7 @@ public class Timer : Clock, IRevertible
     private Action<MotionValue>? _onScrub;
     internal int _priority;
     internal TimerDiagnostics? _diagnostics;
+    internal readonly object? _hostLifetime;
 
     internal Timer(TimerParams parameters, Timer? parent, double parentPosition, Engine? engine = null) : base(0)
     {
@@ -98,6 +99,7 @@ public class Timer : Clock, IRevertible
         _fps = parameters.FrameRate ?? timerDefaults.FrameRate;
         _speed = parameters.PlaybackRate ?? timerDefaults.PlaybackRate;
         _priority = parameters.Priority;
+        _hostLifetime = parameters.HostLifetime;
     }
 
     /// <inheritdoc cref="TimerParams.Id"/>

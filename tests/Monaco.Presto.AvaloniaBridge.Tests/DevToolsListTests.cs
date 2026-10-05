@@ -130,6 +130,35 @@ public sealed class DevToolsListTests : BridgeTestBase, IDisposable
         Assert.Same(tween.Tween, _list.SelectedTween);
     }
 
+    [AvaloniaFact]
+    public void ALoopOnARemovedControlShowsDetachedUntilItIsReattached()
+    {
+        var loop = Animate(new() { ["Opacity"] = 0, Duration = 200, Loop = true });
+        Frames.Advance(100, 16);
+        var panel = (Panel)_box.Parent!;
+
+        panel.Children.Remove(_box);
+        _list.Refresh();
+        Assert.Equal(TickableState.Detached, RowOf(loop).State);
+        Assert.Equal("detached", RowOf(loop).StateText);
+
+        panel.Children.Add(_box);
+        Frames.Advance(100, 16);
+        _list.Refresh();
+        Assert.Equal(TickableState.Running, RowOf(loop).State);
+    }
+
+    [AvaloniaFact]
+    public void AUserPausedRowStaysPausedWhenItsControlIsRemoved()
+    {
+        var paused = Animate(new() { ["Opacity"] = 0, Duration = 200, Loop = true }).Pause();
+
+        ((Panel)_box.Parent!).Children.Remove(_box);
+        _list.Refresh();
+
+        Assert.Equal(TickableState.Paused, RowOf(paused).State);
+    }
+
     private Animation Animate(AvaloniaAnimationParams parameters) => Presto.Animate(_box, parameters);
 
     private TickableRow RowOf(Timer timer) => Assert.Single(_list.Items, r => r.Timer == timer);

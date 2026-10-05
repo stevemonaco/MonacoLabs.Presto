@@ -14,6 +14,7 @@ internal sealed class CompositorSceneHandler : CompositionCustomVisualHandler, I
     private Engine? _engine;
     private Scope? _scope;
     private Action? _onFrame;
+    private bool _hidden;
 
     /// <inheritdoc/>
     public double Now => CompositionNow.TotalMilliseconds;
@@ -36,6 +37,7 @@ internal sealed class CompositorSceneHandler : CompositionCustomVisualHandler, I
     {
         if (message is AttachMessage attach) Attach(attach.Scene);
         else if (ReferenceEquals(message, DetachMessage)) Detach();
+        else if (message is HiddenMessage hidden) Hide(hidden.Hidden);
         else Dispatch(message);
     }
 
@@ -70,7 +72,7 @@ internal sealed class CompositorSceneHandler : CompositionCustomVisualHandler, I
     private void Attach(CompositorScene scene)
     {
         _scene = scene;
-        var engine = _engine = new Engine(this);
+        var engine = _engine = new Engine(this) { Hidden = _hidden };
         using (engine.MakeCurrent())
         {
             var scope = _scope = new Scope();
@@ -86,6 +88,12 @@ internal sealed class CompositorSceneHandler : CompositionCustomVisualHandler, I
         if (_scene is not { } scene || _scope is not { } scope) return;
         if (message is Action<CompositorScene> invoke) scope.Execute(_ => invoke(scene));
         else scope.Execute(_ => scene.RaiseMessage(message));
+    }
+
+    private void Hide(bool hidden)
+    {
+        _hidden = hidden;
+        if (_engine is { } engine) engine.Hidden = hidden;
     }
 
     private void Detach()
@@ -104,4 +112,6 @@ internal sealed class CompositorSceneHandler : CompositionCustomVisualHandler, I
     }
 
     internal sealed record AttachMessage(CompositorScene Scene);
+
+    internal sealed record HiddenMessage(bool Hidden);
 }

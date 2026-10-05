@@ -18,6 +18,9 @@ public abstract class EngineTestBase
         if (engine.Additive.Animation is { } additive) additive._headTween = additive._tailTween = null;
         engine.Diagnostics.Enabled = false;
         engine.TimeDilation = 1;
+        engine.PauseOnHidden = true;
+        engine.Hidden = false;
+        engine.TimerCreated = null;
         engine.Thaw();
         engine.Pause();
         engine.Paused = true;

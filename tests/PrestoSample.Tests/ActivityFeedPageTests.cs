@@ -149,12 +149,12 @@ public sealed class ActivityFeedPageTests
             Assert.Equal(events + i, page.ViewModel.Items.OfType<ActivityEvent>().Count());
             Assert.Equal(top, Top(Row(page, reading), feed), 1);
         }
-        var pill = page.GetControl<ContentControl>("PillHost").GetVisualDescendants().OfType<Button>().Single();
+        var pill = PillHost(page).GetVisualDescendants().OfType<Button>().Single();
         Assert.Equal("2 new above", pill.Content);
 
         TestFrames.Tick(30);
         SceneHarness.Click(window, pill);
-        TestFrames.Tick();
+        TestFrames.Tick(JumpFrames);
         Assert.Equal(0, feed.Scroll.Offset.Y);
         Assert.Null(page.ViewModel.Unseen);
         var live = page.ViewModel.Items.Skip(1).Take(2).ToList();
@@ -162,6 +162,34 @@ public sealed class ActivityFeedPageTests
         Assert.All(live, item => Row(page, item));
         SceneHarness.Close(window);
     }
+
+    [AvaloniaFact]
+    public void ThePillJumpsFromFarDownToTheNewestEventWhenOneLandsMidFlight()
+    {
+        var (window, page) = Loaded();
+        var feed = Feed(page);
+        feed.Scroll!.Offset = new Vector(0, 40_000);
+        TestFrames.Tick(30);
+        TickUntil(() => page.ViewModel.Unseen == 1);
+        TestFrames.Tick(30);
+
+        SceneHarness.Click(window, PillHost(page).GetVisualDescendants().OfType<Button>().Single());
+        TestFrames.Tick(3);
+        Assert.InRange(feed.Scroll.Offset.Y, 1, 40_000);
+        page.ViewModel.AddLive(above: true);
+        TestFrames.Tick(JumpFrames + EnterFrames);
+
+        Assert.Equal(default, feed.Scroll.Offset);
+        Assert.Null(page.ViewModel.Unseen);
+        var newest = page.ViewModel.Items[1];
+        Assert.True(Top(Row(page, newest), feed) >= 0);
+        Assert.Empty(PillHost(page).GetVisualDescendants().OfType<Button>());
+        SceneHarness.Close(window);
+    }
+
+    private static int JumpFrames => (int)Math.Ceiling(Recipes.Tokens.Long / 16) + 2;
+
+    private static ContentControl PillHost(ActivityFeedPage page) => page.GetControl<ContentControl>("PillHost");
 
     [AvaloniaFact]
     public void NearTheBottomSkeletonRowsShimmerUntilTheNextPageIsAppended()

@@ -24,7 +24,18 @@
     <TextBlock x:Name="Masked" Width="180" FontSize="20" TextWrapping="Wrap"
                Text="The quick brown fox jumps over the lazy dog near the river"
                presto:Presence.Initial="{presto:LineMask}" />
+    <TextBlock x:Name="Cascaded" Text="Hello"
+               presto:Presence.Enter="{presto:CharCascade}" presto:Presence.Exit="{presto:CharCascade}" />
+    <TextBlock x:Name="Risen" Text="Hello"
+               presto:Presence.Enter="{presto:LineRise}" presto:Presence.Exit="{presto:LineRise}" />
     <TextBlock x:Name="Explicit" Text="Hello" presto:TextReveal.Pieces="Chars" presto:Presence.Initial="{presto:WordFade}" />
+    <Button x:Name="Popped" Content="Menu">
+      <Button.Flyout>
+        <Flyout presto:Popover.Open="{presto:Popover Distance=10}" presto:Popover.Close="{presto:Popover}">
+          <TextBlock Text="Popped" />
+        </Flyout>
+      </Button.Flyout>
+    </Button>
     <TransitioningContentControl x:Name="FadePage" PageTransition="{presto:PageFade Duration=300}" />
     <TransitioningContentControl x:Name="FadeThroughPage" PageTransition="{presto:PageFadeThrough Duration=300}" />
     <TransitioningContentControl x:Name="AxisPage" PageTransition="{presto:PageSharedAxis Axis=Y, Distance=40}" />

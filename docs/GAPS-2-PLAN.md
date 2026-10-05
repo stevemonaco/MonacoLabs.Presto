@@ -212,21 +212,34 @@ rotator splits the outgoing word with `SplitText` and drops its characters imper
 
 ### 4.2 Design sketch
 
-- **One ghost per piece.** When a leaving element has `TextReveal.Pieces` and an exit builder, the tracker records the
-  pieces' slots while attached (Presence already records slots). On detach it snapshots each piece into its own ghost
-  in one overlay host, and applies the exit builder to the set of ghosts as its targets, so index staggers and
-  `StaggerByLine` work. Line masks snapshot the splitter's per-piece clipping wrapper, so each ghost keeps its line box.
-- **Cost cap, to decide:** beyond some number of pieces, fall back to words, then lines, then a single ghost.
-- **Hidden text** (Phase 57, `Hold`) plays on the live pieces instead, with no ghost.
-- **Recipes:** `LineRise`, `LineMask`, `LineWipe`, `WordFade`, `WordBlur` and `CharCascade` gain exit forms, which
-  their markup extensions already pick under `Presence.Exit` (decision 34).
-- **Reduced:** the recipes' existing reduced forms (a plain fade on the whole ghost).
+- **One ghost per piece (PLAN decision 80).** `Presence.Ghost` snapshots each piece of a leaving split `TextBlock`
+  into its own ghost in one frame canvas, in reading order, so index staggers, `StaggerByLine` and `LineHeightOf` work;
+  the detached block is split for the call (`PieceGhosts.Snapshot`) and reverted, so no styled clone was needed.
+- **Cost cap, decided (PLAN decision 80):** at most 256 per-piece ghosts (`PieceGhosts.Max`). Above it the split
+  coarsens chars → words → lines, then falls back to the single whole-element ghost.
+- **One host, dismissed once (PLAN decision 81).** The host and every ghost's bitmap are dismissed together when the
+  exit completes, that is when the last ghost's tween ends, at once when the exit is cancelled, and inside the call
+  for an instant exit (`ReduceAll`).
+- **Hidden text (PLAN decision 82).** Under `Hold` the exit plays on the block's live split pieces with no ghost, and
+  the block is whole again once hidden; shown again mid-hide, the piece exit plays back (decision 78). Under `Ghost`
+  the hide goes through the per-piece ghosts.
+- **Recipes:** `LineRiseOut` (lines fade and rise one line height), `LineMaskOut` (lines rise one line height behind
+  their clips, without fading), `LineWipeOut` (each line's `ClipInset` left inset opens to 100%), `WordFadeOut` (words
+  fade and rise `Distance`), `WordBlurOut` (words fade and blur to `BlurRadius`) and `CharCascadeOut` (characters fade
+  and drop `Distance` on `EmphasizedEase`). Each states only to-values and keeps its entrance's signature, token
+  defaults and `StaggerByLine` spacing; the markup extensions return them under `Presence.Exit` (decision 34).
+- **Reduced:** an exit built from its `WhenReduced` form plays on one whole-element ghost, and the recipes' reduced
+  form is a plain fade of it over `Tokens.Short`. A held hide's reduced form plays on the unsplit block.
 
 ### 4.3 Tests and sample
 
 - **Tests:** ghost positions match the pieces' slots; stagger order by index and by line; the cap falls back; the host
   is dismissed when the last ghost completes; `ReduceAll`.
 - **Sample:** the Typography rotator becomes declarative and loses its imperative drop.
+  - Done: `PresenceTextExitTests` pins the ghost slots per piece kind, both staggers, the cap, the host dismissal,
+    masks, leaving mid-reveal, the six exit recipes and their reduced forms, and `Hold`/`Ghost` hides;
+    `RecipeMarkupTests` pins the markup pick-up. The rotator is declarative: each headline sets `Presence.Exit` to the
+    page's staggered `DropOut` under a `Presence.Mode="Wait"` slot, and `Rotate` only swaps `Slot.Child`.
 
 ## 5. Phase 59 — Animated scrolling
 
@@ -243,22 +256,127 @@ a chat log that follows new messages. Other libraries: GSAP's ScrollToPlugin (wi
 - **`ScrollX`/`ScrollY` shorthands on a `ScrollViewer`** write with `SetCurrentValue`, so they are ordinary tween
   targets in builders and timelines. Any offset change the tween did not write cancels it (`autoKill`), the same rule
   as Snap and Smooth, which share one helper. The value is clamped to the extent every frame.
+  **Settled (decision 83):** Snap, Smooth and the ScrollX/ScrollY shorthands share one autoKill helper,
+  `Events/ScrollWriter`. It writes with `SetCurrentValue` and remembers, per scroller and axis, the last owner and value
+  written. A notification carrying that value is the owner's own, one cutting it back to a shrunken `ScrollBarMaximum`
+  is a clamp, and anything else, another writer included, is foreign (the §5.3 rule). A foreign change removes only
+  that axis's tweens; a clamp keeps the tween running. Snap and Smooth keep treating a clamp as foreign, as before. A
+  revert leaves the offset. Pinned by `ScrollShorthandTests`, `ScrollSnapTests`, `ScrollSmoothTests` and the §5.3
+  spike tests.
 - **Code API:**
   - `PrestoAvalonia.ScrollTo(scroller, offset, builder?)`.
   - `ScrollIntoView(element, alignment: Start/Center/End/Nearest, margin, builder?)`, through the nearest scroller
-    first. Nested scrollers are a decision for this section.
+    first. **Settled (decision 86):** every ancestor `ScrollViewer` scrolls, innermost first and all at once, as
+    browser `scrollIntoView` and Flutter `ensureVisible` do. Each outer scroller aims at the element's rect at the inner
+    scroller's final offset, cut to the inner viewport, not at the inner scroller's bounds. Rects come from summed
+    layout slots (as `LayoutTransition.Measure` does), so render transforms do not count. Start/End align the
+    margin-inflated rect's leading/trailing edge, Center centres it, and Nearest does nothing when it is fully in view,
+    otherwise scrolls the least distance, Start when it is larger than the viewport; all clamp to
+    `ScrollBarMaximum`. One `Animation` drives the scrollers that move through function-based ScrollX/ScrollY values,
+    with decision 84's motion over the largest distance in viewports; a scroll on one scroller stops only its tweens.
+    When nothing moves, the animation is returned already completed. Reduced motion jumps. Pinned by
+    `ScrollIntoViewTests`.
   - `ScrollToIndex(list, index, alignment, builder?)` for a virtualized list. The item is not realized yet, so: jump
-    close when it is far (Compose's approach; the threshold is to settle), animate the last stretch, and retarget as
-    realization corrects the extent.
+    close when it is far (Compose's approach), animate the last stretch, and retarget as realization corrects the
+    extent. **Settled (decision 87):** on a `VirtualizingStackPanel` (any other panel scrolls its container into view),
+    the item's aligned offset is measured from its container's layout slot once realized, and estimated before that from
+    the nearest realized container plus the mean realized size per item. When that estimate is more than 2 viewports
+    from the offset, the call jumps through `ScrollWriter` to 1 viewport short of `index × mean size` aligned, the
+    coordinates in which the panel places a jump clear of its realized items (§5.3), and lays out at once, up to 3
+    passes (the first layout's stale extent can clamp the first jump). The last stretch rides decision 84's tween
+    aimed every frame at the measured or estimated offset, and on completion it lays out and writes the measured
+    offset until it holds, so it ends exactly aligned. The item is tracked, not the index: an insert or removal
+    before it is followed. Nearest fixes to Start or End by the side the item comes from. The first item's slot starts
+    at 0 and the last's ends at the extent, so they land at the extremes. The panel never writes the offset (§5.3), so
+    only input cancels. Reduced motion jumps on the first frame, then settles. An index out of range throws
+    `ArgumentOutOfRangeException`. Pinned by `ScrollToIndexTests`.
   - Each returns an `Animation`.
-- **Default motion:** a token duration scaled by distance and capped, or a spring; to settle.
+- **Default motion. Settled (decision 84):** `Recipes.Tokens.Short` + 150 ms per viewport of distance (distance ÷
+  viewport length on the moving axis, the larger of the two when both move), capped at `Tokens.Long`, scaled by
+  `Globals.TimeScale`, on `Tokens.Ease`; no spring. Under `MotionTokens.Standard` that is 200 ms + 150 ms per viewport,
+  capped at 650 ms, on OutCubic. A builder's Duration or Ease wins. The rule lives in `Events/ScrollMotion` for the
+  later calls. Each moving axis tweens its eased progress 0 to 1 and maps it to the offset, aiming every frame at the
+  requested offset held to the extent, so a shrink clamps and a regrowth carries on to the requested offset; when that
+  aim moves, the start is rebased so the offset never jumps. A new `ScrollTo` replaces the running one through
+  `Replace` composition. Pinned by `ScrollToTests`.
 - **`Scroll.StickToEnd`** on a `ScrollViewer`: while the view is at the end, growth of the extent eases to the new end.
   Scrolling away releases it, and returning to the end re-arms it. It must not fight `Presence.ScrollAnchor`.
+  **Settled (decision 88):** the axis is vertical, or horizontal when only that scrolls. It is armed while the offset
+  is within 1 DIP of `ScrollBarMaximum`, judged by position on every offset change whoever wrote it, so content
+  shorter than the viewport counts as at the end and any return to the end re-arms it. While armed, a
+  `ScrollBarMaximum` change that leaves the view short of the end starts decision 84's tween aimed at the maximum
+  every frame, so a burst of growth mid-ease retargets the one running ease; reduced motion jumps. An offset change
+  short of the end releases it unless that running ease wrote it (`ScrollWriter.TweenWrote`); a wheel, a drag, a
+  `ScrollTo` (which replaces the ease) or an anchor correction all count. Turning it off reverts a running ease,
+  which leaves the offset where it is. With `Presence.ScrollAnchor`, `ItemChanges` records no anchor while the
+  scroller is armed, and the follower only eases while armed, so one change is never handled by both: at the end
+  StickToEnd follows any growth, an insert above included; scrolled up, the anchor holds the row. Appends never
+  record an anchor anyway, since they land after the first visible row. Pinned by `ScrollStickToEndTests`.
 - **Interplay:** a running `ScrollTo` cancels a pending snap, and a snap waits for a `ScrollTo` to end. `ScrollObserver`
   needs nothing, because it reads `Offset`.
-- **Reduced:** jump.
+  **Settled (decision 85):** the scroll tween's first write is foreign to a snap, which cancels it and restarts the
+  wait; `StartSnap` returns while `ScrollWriter.Tweening` says a shorthand tween holds the observer's axis, and the
+  shorthand restarts every observer's wait when it lets go, whether it ended, reverted or was stopped by input, so the
+  snap comes the snap Delay after the scroll to ends. Smooth's ease stops at a scroll to's write, as at any write it did
+  not make. Pinned by `ScrollToTests.ASnapWaitsForTheScrollToAndSnapsAfterItsDelayOnceItEnds` and `ScrollSnapTests`.
+- **Reduced:** jump. **Settled (decision 84):** read at call time (decision 71), the scroll to lands on the first frame
+  with no delay and the engine idles afterwards; a builder's `WhenReduced` form plays instead, with its unset duration
+  and ease taken from the default motion.
 
-### 5.3 Tests and sample
+### 5.3 Spike (done)
+
+Pinned by `ScrollSpikeTests` (Avalonia 12.1.2); `VirtualListStage` is the virtualized stage for later items:
+
+- **A `SetCurrentValue` offset holds and reads back exactly.** `123.37` survives layout passes, an extent shrink that
+  still holds it, and a viewport resize, with no rounding and no further notification. Thumb drags write
+  fractional offsets themselves (`142.16666666666669`). The wheel (50 per notch), a thumb drag, `PageDown` (one viewport)
+  and focusing a child (`BringIntoView`, nearest edge) all still move it, so decisions 46 and 48 hold. `ScrollViewer`
+  handles neither `End` nor `Home` (with or without Ctrl). A `ListBox` handles both: it selects the item and scrolls to
+  the end or the top.
+- **`OffsetProperty` is a styled property that coerces inside the write.** A write outside `[0, ScrollBarMaximum]` is
+  clamped before its notification, which carries the clamped value (`5000` → `800`, `-5` → `0`). A writer must
+  clamp before it writes and remember the clamped value. Otherwise its own notification reads as foreign.
+- **An extent shrink below the offset clamps it inside the presenter's arrange.** The `Offset` notification arrives
+  inside `ScrollContentPresenter.ArrangeOverride`, before the `Extent` notification, but `Extent` and `ScrollBarMaximum`
+  already read the new values there. Growing the extent back does not restore the old offset. Neither public arrange
+  flag tells this apart from input, because both see the `ScrollViewer` arrange valid and the presenter's invalid.
+- **Priority never tells writers apart.** `SetCurrentValue`, the wheel, a drag, keys and `BringIntoView` all notify at
+  `Unset` while the offset has no local value. Once it has one, every change notifies at `LocalValue`, `SetCurrentValue`
+  included.
+- **A writer sees its own change inside its call, and a write from the handler nests.** The notification arrives
+  synchronously inside `SetCurrentValue` with exactly the value written. A `SetCurrentValue` from inside the handler
+  raises its own nested notification, and the nested value wins.
+- **The rule for the shared helper.** Remember the last clamped value written. A notification whose new value equals
+  it is the helper's own write. A value below it that equals the current `ScrollBarMaximum` is an extent-shrink clamp.
+  Anything else is foreign. Exact comparison suffices, so no tolerance is needed.
+- **Snap and Smooth today compare exactly against their last write and treat a clamp as foreign.** `Smoother` cancels
+  when `Offset != _written` (whole `Vector`) while it has a target. `ScrollObserver.HandleOffsetChanged` restarts
+  `WaitToSnap` when the axis offset `!= _snapWritten`, which is `NaN` when no snap runs, and a pointer release also
+  restarts it. Both clamp their targets to `ScrollBarMaximum` first. When an extent shrink clamps its next write,
+  Smooth stops at the new end and does not resume when the extent regrows. A snap stops too, waits again, and
+  re-snaps to a step inside the new range. The helper keeps both behaviours unless §5.2 decides that a clamp only
+  retargets.
+- **The panel's first layout reports a stale extent, and the next measure corrects it.** With heights of 20 + 10 ×
+  (index mod 5), the first extent is 100 100, about 20 per item, although the realized containers average 40. Any
+  later measure (a re-measure or a scroll step) brings it to `Count` × the realized average (200 000). Before that
+  measure, an offset past the stale extent is clamped to it: 3000 × 40 lands at 99 900. The panel's
+  estimate is private (`EstimateElementSizeU`, `_lastEstimatedElementSizeU`). The practical estimate is
+  `Extent / Count` after a measure, which equals the average `Bounds` of the realized containers
+  (`GetRealizedContainers`).
+- **A jump by offset settles in one layout pass, and the panel never writes the offset.** With 50 items of 20 and
+  the rest 80, a `SetCurrentValue` to 3000 × 20 realizes item 3000 at the top of the viewport in the next pass. The extent
+  is then 100 180, `ContainerFromIndex` returns non-null, and further passes change nothing. The item's true position is
+  237 000, so the estimate is about 4 times too short.
+- **Realized items keep their positions while the extent estimate swings.** Stepping 30 at a time through the
+  varied-height list, only the helper's own `Offset` notifications arrive. The extent swings by up to about 6 % either
+  side of 200 000 as the realized average changes. An item's content position (`Top + Offset`) is unchanged after
+  scrolling 600 away and back. The last stretch of a `ScrollToIndex` can therefore aim at the realized container,
+  with retargeting only when it first realizes, while clamping copes with the moving maximum.
+- **`ItemsControl.ScrollIntoView(index)` realizes and aligns inside the call.** The offset change arrives
+  synchronously, outside arrange, and the container is laid out before the call returns. It aligns to the nearest edge:
+  an item below ends at the viewport bottom, and an item above starts at its top.
+
+### 5.4 Tests and sample
 
 - **Tests:**
   - Lands exactly.
@@ -270,6 +388,18 @@ a chat log that follows new messages. Other libraries: GSAP's ScrollToPlugin (wi
   - Reduced jumps; the engine idles afterwards.
 - **Sample:** "Back to top" and section jumps on the Scroll page; "Jump to newest" on the Activity feed; a chat-style
   log.
+  - Done: the Scroll page's Back to top calls `ScrollTo(scroller, 0)`, since `default` is ambiguous between the
+    `Vector` and `double` overloads, and its card buttons call `ScrollIntoView` at `Start` with a 12 px top margin. The
+    named thresholds fire and the sync timeline scrubs along the eased scroll. The Activity feed's "N new above" pill
+    calls `ScrollToIndex(Feed, 0)`. On the 2,000-row feed it jumps close and eases the rest, and a live insert mid-flight
+    still lands at the top with the newest event shown.
+  - Done: the Chat log page sets `StickToEnd` on its virtualized `ListBox` through a `/template/ ScrollViewer` style.
+    Timer and sent messages of one to three lines slide in from their side through `Presence.Enter` while the log
+    follows them. A wheel up releases it and shows a Jump to newest pill, which calls
+    `ScrollToIndex(log, last, ScrollAlignment.End)` and lands where `StickToEnd` re-arms. `ScrollToIndex` follows the
+    item it was given, so a message landing mid-jump makes the page call it again for the new last. The page tracks the pill
+    itself, since the armed state is internal: an upward offset change short of the end shows it, and reaching the end
+    hides it.
 
 ## 6. Phase 60 — Lifetime and idling
 
@@ -290,27 +420,88 @@ a chat log that follows new messages. Other libraries: GSAP's ScrollToPlugin (wi
   - `Pause`: pause once every visual target has left the visual tree, and resume from where it stood on reattach.
   - `Revert`: cancel and revert, i.e. auto-scoping.
 
-  Default to decide; `Pause` is the candidate, recorded as a deviation from decision 8 in DESIGN-NOTES.
+  **Settled (decision 89):** the default is `Pause`, a deviation from decision 8 recorded in DESIGN-NOTES §10. The
+  bridge tracks each root as `Engine.TimerCreated` reports it, unless its effective `WhenDetached` is `Continue`, and
+  pauses or reverts it when the last of its attached visual targets detaches. Only that transition counts, so an
+  animation created before its control attaches keeps running and pauses on a later detach. A root the user paused
+  before the detach stays paused on reattach; the bridge resumes only what it paused. `Revert` is opt-in auto-scoping.
+  The params and builder overrides win over the default, and a reduced form keeps the override. Pinned by
+  `WhenDetachedTests`.
   - A paused animation leaves the engine's list, so a control that never comes back becomes collectable with its
     animation. The reattach hook must therefore hang off the control (a handler or attached value), never a static
     table.
+    **Settled (decision 89):** the trackers live in an attached value on each watched visual, with one shared
+    `AttachedToVisualTree`/`DetachedFromVisualTree` handler pair, and the root-to-tracker table is a
+    `ConditionalWeakTable`. A control detached for good is collected with its paused animation. Pinned by
+    `WhenDetachedTests`.
   - Targets the bridge creates for a visual (brushes, transforms, effects) need an owner mapping that is always on;
     `TargetOwner` records only while diagnostics are active. Measure what keeping it on costs.
+    **Settled (decision 89):** `TargetOwner.Record` is always on, as the §6.3 spike recommends (90 bytes and about
+    110 ns per created target), so a brush the bridge made follows its visual. Pinned by
+    `WhenDetachedTests` and `LifetimeSpikeTests`.
   - A timeline pauses when all its children's visual targets are detached. Plain-object targets always continue.
+    **Settled (decision 90):** a root timeline gathers its child animations' visuals as `Timeline.AddChild` adds them.
+    It pauses or reverts once every one has detached, and resumes when any reattaches. A child never pauses on its
+    own. A target that is neither a visual nor a bridge-made target of one makes its animation, or the timeline
+    holding it, continue for good, resuming it if the tracker had paused it. Pinned by `WhenDetachedTests`.
   - Presence, Motion, page transitions, Connected and ghosts manage their own animations and are unaffected.
+    **Settled (decision 90):** each of them passes `WhenDetached.Continue` at its call site; `LayoutTransition` and the
+    compositor mirrors animate a plain `CompositorScratch`, so the tracker already lets them continue. Pinned by
+    `WhenDetachedTests`.
 - **`Engine.PauseOnHidden`**, upstream's `pauseOnDocumentHidden` (default `true`, as upstream). The bridge drives it:
   - every window `Minimized`;
   - the app moved to the background (`IActivatableLifetime.Deactivated` with a background kind, on mobile);
   - the Browser page hidden.
 
-  `Engine.Pause`/`Resume` already carry upstream's time-base handling, so playback resumes without a jump. Whether
-  compositor scene engines pause too is a decision here.
+  `Engine.Pause`/`Resume` already carry upstream's time-base handling, so playback resumes without a jump.
+  **Settled (decision 91):** the host sets `Engine.Hidden`, and with `PauseOnHidden` hiding pauses the engine and
+  showing calls `Resume`, as upstream's `visibilitychange` handler does, even after a manual pause. The bridge's
+  `HiddenSignal` sets it while every desktop window is `Minimized` or a `Background` activation is outstanding;
+  per §6.3 the latter covers mobile and the Browser page, and `File`/`OpenUri` activations are ignored. Two
+  deviations from upstream: while hidden, `Wake` does not start the frame source, because a minimized Win32 window
+  keeps delivering frames (§6.3); and hiding an idle engine marks it paused, so the show rebases timers created
+  while hidden. Compositor scene engines follow: an attached `CompositorCanvas` posts the state to its scene handler,
+  which sets `Hidden` on its engine, including one created while hidden. Pinned by `EngineHiddenTests` and
+  `LifetimeHiddenTests`.
 
-### 6.3 Spike first
+### 6.3 Spike (done)
 
-- Per platform: what `RequestAnimationFrame` delivers while minimized, and the CPU cost.
-- Whether `IActivatableLifetime` fires on desktop minimize (expected not, hence `WindowState`).
-- Whether the Browser lifetime reports page visibility.
+Pinned by `LifetimeSpikeTests` (Avalonia 12.1.2); the Win32 numbers come from the Desktop sample on the Loaders page
+(nine infinite loops) with a throwaway `RequestAnimationFrame` counter, minimized and restored through DevTools:
+
+- **A minimized Win32 window keeps delivering every frame.** `RequestAnimationFrame` ran at 180 per second (the
+  display's refresh rate) restored and minimized alike, so `AvaloniaFrameSource` and the engine keep ticking at full
+  rate. Process CPU fell from 0.31–0.33 to 0.056 cores per second while minimized: Avalonia skips the drawing, and what
+  is left is the frame callbacks (the counter's own included), the engine's ticks and the property writes. Pausing therefore saves about 5 % of a
+  core per minimized app with a few loops running, plus the wake-ups that keep the machine from idling.
+- **The headless window behaves the same way.** It takes `WindowState.Minimized`, raises the `WindowStateProperty`
+  change synchronously (`Minimized`, then `Normal`), stays `IsVisible`, raises no `Activated`/`Deactivated`, and keeps
+  delivering `RequestAnimationFrame` callbacks on each render timer tick. A headless test can therefore drive the
+  hidden state through `WindowState`, but cannot show that frames stop.
+- **Desktop minimize goes through `WindowState`, not `IActivatableLifetime`.** `TryGetFeature<IActivatableLifetime>()`
+  returns null under the Win32 classic desktop lifetime (Avalonia.Win32 binds none) and headlessly, where
+  `ApplicationLifetime` is null too. Minimizing raised only the state change. `Activated`/`Deactivated` are focus
+  events: restoring activated the window and it deactivated again as focus moved on, so they cannot stand for
+  visibility. On macOS, Avalonia.Native binds a lifetime that raises `Background` when the application is hidden
+  (Cmd+H), not when a window is minimized.
+- **The Browser reports page visibility.** `BrowserActivatableLifetime` (internal, bound as the `IActivatableLifetime`
+  singleton) is fed by a `visibilitychange` listener in `avalonia.js` through `DomHelper.DocumentVisibilityChanged`. A
+  `visibilityState` of `"visible"` raises `Activated(ActivationKind.Background)` and any other value raises
+  `Deactivated(Background)`. The script also reports `"visible"` once at startup when the page is visible, so the
+  first event can be an `Activated` with nothing hidden before it. The Browser head was not built.
+- **Mobile backgrounding arrives as `ActivationKind.Background`.** Android's `AvaloniaActivity.OnStop`/`OnStart` raise
+  `Deactivated`/`Activated(Background)` through `AndroidActivatableLifetime` (main activity), and iOS raises them on
+  `DidEnterBackground`/`WillEnterForeground`. `File` and `OpenUri` activations share the events, so the driver must
+  filter on `Kind == Background`. `ActivatableLifetimeBase` raises both through `Dispatcher.UIThread.Send`, so
+  handlers run on the UI thread.
+- **An always-on owner mapping is cheap.** `TargetOwner.Record` costs 90 bytes and about 110 ns per brush or
+  transform with the table on (one `ConditionalWeakTable` entry plus a `WeakReference<Visual>`, amortized over 10 000
+  records), against 0 bytes and about 5 ns off. A `SolidColorBrush` alone is 616 bytes, and a record happens once per
+  created target, never per frame. **Verdict:** no need to stay lazy or to record only for animations whose effective
+  `WhenDetached` is not `Continue`. Recording can be always on, which keeps `TargetOwner` a single path.
+- **A per-visual detach subscription is cheaper still.** Adding one shared `DetachedFromVisualTree` handler allocates
+  nothing (about 50 ns). A capturing closure per visual costs 96 bytes (about 120 ns). Every subscription fired once
+  when 10 000 children were removed.
 
 ### 6.4 Tests and sample
 
@@ -320,7 +511,15 @@ a chat log that follows new messages. Other libraries: GSAP's ScrollToPlugin (wi
   - `Revert` reverts and `Continue` is unchanged.
   - The timeline rule.
   - A minimized window pauses the engine and resumes where it was (headless, through a hook); `Then()` still completes.
+  - Done: `WhenDetachedTests` pins the pause and idle, reattaching at the same progress, collection, `Revert`,
+    `Continue`, the overrides, user pauses, the timeline and plain-object rules and the exemptions.
+    `EngineHiddenTests` pins `Engine.Hidden` and `PauseOnHidden` in the core, and `LifetimeHiddenTests` pins
+    minimizing through `WindowState`, a `Then()` completing after the show and scene engines.
+    `HostHookTests` pins the `HostLifetime` slot and `Engine.TimerCreated`.
 - **Sample:** the DevTools overlay labels detached-paused rows.
+  - Done: a root the bridge paused on detach shows as `detached`, and the transport bar shows "hidden · paused"
+    while the engine is hidden. Pinned by `DevToolsListTests` (`ALoopOnARemovedControlShowsDetachedUntilItIsReattached`,
+    `AUserPausedRowStaysPausedWhenItsControlIsRemoved`).
 
 ## 7. Phase 61 — Popups and flyouts
 
@@ -328,7 +527,9 @@ a chat log that follows new messages. Other libraries: GSAP's ScrollToPlugin (wi
 
 Nothing in the bridge handles `Popup`, flyouts, `ContextMenu` or `ToolTip`.
 
-- **Open:** a popup's content probably classifies as `Initial`, so `Presence.Initial` may already play. Unverified.
+- **Open:** `Presence` already plays on a popup's content, since every open attaches it into a new popup host, but the
+  moment depends on the template: `Initial` on a window's first popup and inside the Fluent flyout and menu templates,
+  `Enter` when a `Popup` child or tooltip content is opened again (§7.3). It never plays on the presenter itself.
 - **Close:** the popup host is hidden at once. `Presence.Ghost` draws in `OverlayLayer.GetOverlayLayer(anchor)`, which a
   native (non-overlay) popup does not have.
 
@@ -344,27 +545,99 @@ Verified against the 12.1.2 assemblies (reflection and XML docs):
 
 ### 7.2 Design sketch
 
-- **Attached properties on the popup owners:** `Popover.Open` and `Popover.Close` builders (names to settle), settable
-  on `FlyoutBase` (an `AvaloniaObject`, not a `Control`), `ContextMenu`, `Popup` and `ToolTip`, and from styles.
-- **Open** plays on the presenter, with its start values applied in the turn it opens (the page-transition rule), so
-  the first rendered frame is never at rest.
-- **Close where cancellable** (`PopupFlyoutBase`, `ContextMenu`): cancel the first `Closing`, play `Close` on the live
-  presenter, then close for real and let the second `Closing` through. Reopening mid-close retargets.
-- **`Popup`** (no `Closing`): hold `IsOpen` at `Animation` priority while `Close` plays (Phase 57's technique), if
-  the spike shows that works. **`ToolTip`**: the same hold on `ToolTip.IsOpen`, or a ghost in the anchor window's
-  overlay.
-- **Placement-aware recipes:** `Recipes.PopoverIn/Out` read the placement, so the presenter scales and slides from the
-  anchored edge. They are transform and opacity only, so they run on the compositor (decision 34).
-- **Theme conflicts:** check the 12.1.2 Fluent presenter and tooltip templates for built-in transitions, and document
-  them.
+- **A static `Popover` class with attached `Popover.Open` and `Popover.Close` builders**, settable on `FlyoutBase` (an
+  `AvaloniaObject`, not a `Control`), `ContextMenu`, `Popup` and `ToolTip`. `FlyoutBase` is not a `StyledElement`, so
+  styles reach a flyout through its presenter: a style on `FlyoutPresenter` or `MenuFlyoutPresenter`, narrowed by a
+  class from the flyout's `FlyoutPresenterClasses`, sets the builders on the presenter, which accepts them too; a value
+  on the flyout itself wins. `ContextMenu` and `ToolTip` are styled directly, and a templated `Popup` through
+  `/template/`, such as `ComboBox /template/ Popup#PART_Popup`.
+- **Open plays on the presenter** (`FlyoutPresenter`, `MenuFlyoutPresenter`, the `ContextMenu`, the `Popup`'s child, the
+  `ToolTip`), with its start values applied in the turn it opens (the page-transition rule), so the first rendered frame
+  is never at rest. Presenters are reused across opens and hosts are not, so state is kept on the presenter.
+- **Cancellable close** (`PopupFlyoutBase`, `ContextMenu`): cancel the first `Closing`, play `Close` on the live
+  presenter, then close for real through `Popup.Close()` (the flyout's `Popup`, the context menu's logical parent),
+  letting the second `Closing` through. `Hide()` and `ContextMenu.Close()` cannot be used for that: after Escape or a
+  cancelled `ContextMenu.Close()` the popup's `IsOpen` is already false. Reopening mid-close plays `Close` back from
+  where the presenter stands (`Reverse`, as decision 78) and drops the pending close. As built (PLAN decision 96), only
+  `ContextMenu` can: a flyout's `Hide()` or a `ShowAt` on the same target mid-close counts as a repeated close, and a
+  `ShowAt` on another target closes it at once and replays `Open` as a fresh open. An owner detaching mid-close closes
+  at once, and Avalonia closes it then whatever `Closing` says.
+- **`Popup` uses the `IsOpen` hold, held from the open.** A hold pushed in `IsOpen`'s change notification comes too late
+  (§7.3), so `Popover` pushes `IsOpen = true` at `Animation` priority when the popup opens. A write underneath (a local
+  value, a binding, a `ComboBox`'s `IsDropDownOpen` through its template binding) then raises nothing, so while the
+  popup is open `Popover` reads the base value each frame; when it turns false `Close` plays on the child and the hold
+  is released at the end, which closes the popup. Light dismiss and an owner detaching close at once, since they bypass
+  `IsOpen`; as built, light dismiss also plays `Close` on a ghost, as a tooltip does (PLAN decision 95). A `ClearValue` under the hold is lost, so `IsOpen` must be closed by writing false.
+- **`ToolTip` uses a ghost in the anchor window's overlay**, since neither hold works for it (§7.3). In `ToolTip.IsOpen`'s
+  change notification the closed `ToolTip` is detached but keeps its bounds; it is snapshotted with `Opacity` held at 1
+  (losing `:open` has dropped it to 0 in Fluent), at the window position recorded while it was open, and `Close` plays on
+  the ghost. A window without an overlay layer closes at once. The ghost is clipped to the window, unlike a native tooltip.
+- **Placement-aware recipes:** `Recipes.PopoverIn/Out` scale and slide the presenter from the anchored edge, and are
+  transform and opacity only, so they run on the compositor (decision 34). The placement comes from
+  `PopupFlyoutBase.Placement`, `Popup.Placement`, `ContextMenu.Placement` or the attached `ToolTip.Placement`; nothing
+  reports a constraint flip, so the recipes take the edge from the presenter's and the anchor's rects at open.
+- **Theme conflicts:** only the Fluent `ToolTip` animates its own open (§7.3). Where `Popover.Open` or `Popover.Close` is
+  set, its `Opacity` transition is cleared and `Opacity` held at 1 while `Popover` runs; nothing else is touched.
 - **Reduced:** close at once; open with the recipes' reduced fade.
 
-### 7.3 Spike first
+### 7.3 Spike (done)
 
-- What `Presence` classifies popup content as on open.
-- Native and overlay popups on Win32, and overlay-only heads (Browser, Android).
-- Cancel and re-close on `PopupFlyoutBase` for each dismiss path: light dismiss, Escape, `Hide()`, the owner detaching.
-- The `Popup.IsOpen` and `ToolTip.IsOpen` holds.
+Pinned by `PopupSpikeTests` (Avalonia 12.1.2); the platform findings come from the 12.1.2 assemblies (decompiled, the
+heads not built), and the Win32 ones from the Desktop sample on the Visibility page with a throwaway flyout, context menu
+and tooltip, inspected through DevTools and console output:
+
+- **`Presence` plays on popup content, as a moment the template decides.** Every open attaches the content into a new
+  host. The first popup in a window creates its `PopupOverlayLayer`, so it arrives as `Initial`; opened again, a
+  `Popup` child or tooltip content arrives as `Enter`, while flyout and menu content stays `Initial`, because a
+  `ScrollViewer` or the items panel in the Fluent template stops the walk first. On Win32 every open is a new
+  `PopupRoot`. `Presence` is therefore no route to popup motion, and the presenter gets nothing.
+- **Presenters are reused, hosts are not.** A flyout creates its presenter once, as `Popup.Child`, and a `ContextMenu` and
+  a tooltip's `ToolTip` are reused; each open creates a new `OverlayPopupHost` or `PopupRoot`.
+- **Headless, Browser, Android and iOS popups live in the window's overlay.** `CreatePopup()` returns null in
+  `HeadlessWindowImpl`, `BrowserTopLevelImpl`, Android's `TopLevelImpl` and iOS's `AvaloniaView.TopLevelImpl`, so every
+  popup there is an `OverlayPopupHost` in the window's `PopupOverlayLayer`: `ShouldUseOverlayLayer` is false,
+  `IsUsingOverlayLayer` true, and the presenter's `TopLevel` is the window.
+- **Win32 uses native popups by default.** `WindowImpl.CreatePopup()` returns a native `PopupImpl` unless
+  `Win32PlatformOptions.OverlayPopups` is set (default false), as does Avalonia.Native with its own `OverlayPopups`. In
+  the Desktop sample a `Flyout`, a `ContextMenu`, a tooltip and the `ComboBox` drop-down each opened in a `PopupRoot`,
+  with `IsUsingOverlayLayer` false; the main window drew none of them, and DevTools lists no popup roots.
+- **Cancelling the first `Closing` keeps a flyout drawn, and a second `Hide()` closes it.** For a `Flyout` and a
+  `MenuFlyout`, light dismiss, Escape and `Hide()` each raise `Closing` once; cancelled, the presenter stays attached
+  and drawn, and `Hide()` raises `Closing` again and closes. Escape leaves `Popup.IsOpen` false under the open popup,
+  since `FlyoutPresenter` and the menu handler write it before the cancelled `Closing`. On Win32 a cancelled native
+  flyout and context menu stayed visible until the second close.
+- **A cancelled `ContextMenu` closes again only through its `Popup`.** Light dismiss, Escape and `Close()` each raise
+  `Closing` once and leave `Popup.IsOpen` false; a second `ContextMenu.Close()` does nothing, since it only writes that
+  false again. `Popup.Close()` (the menu's logical parent) raises `Closing` again and closes; it also works for flyouts.
+- **An owner detaching closes whatever `Closing` says.** A flyout raises `Closing` once and ignores the cancel
+  (`HideCore(canCancel: false)`); a `ContextMenu` raises it three times and closes.
+- **A hold in `IsOpen`'s change notification comes too late.** The owners' class handlers (`Popup.IsOpenChanged`,
+  `ToolTip.IsOpenChanged`) run before any `PropertyChanged` handler, so the popup has closed by then and the hold
+  reopens it in a new host: the content detaches and attaches again, and `Closed` and `Opened` are raised. For a
+  `Popup` or `ComboBox` the reopen also outlives the hold, so releasing it leaves the popup open. For a tooltip the
+  release closes it.
+- **A hold pushed while the popup is open works for writes.** Setting `Popup.IsOpen` or `ComboBox.IsDropDownOpen` to
+  false under it raises nothing and keeps the same host; releasing closes the popup. So do `ToolTip.SetIsOpen(false)`
+  and the pointer leaving the anchor for a tooltip. A `ClearValue` under the hold is lost: the base value still reads
+  true, so releasing leaves the popup open. `ToolTipService` clears `IsOpen` on a pointer press and when the pointer
+  leaves the window, so a held tooltip stays open for good after those. The service has no timeout close in 12.1.2.
+- **Light dismiss closes a `Popup` at once under either hold.** It calls the popup's close directly, not through
+  `IsOpen`; a hold made in the notification is ignored and leaves `IsOpen` reading true over the closed popup.
+- **A closed tooltip is still snapshot-ready.** In `ToolTip.IsOpen`'s change notification the `ToolTip` is detached,
+  keeps its bounds and has `Opacity` 0. `ToolTipClosing` is not raised on close; only reopening raises it, for the
+  popup it closes first.
+- **Each owner carries its own placement**: `PopupFlyoutBase.Placement` (default `Bottom`), `Popup.Placement`
+  (`Bottom`), `ContextMenu.Placement` (`Pointer`) and the attached `ToolTip.Placement` (`Pointer`). A constraint flip
+  is not reported: a `Bottom` flyout with no room below opens above its anchor with `Placement` still `Bottom`, which
+  only the presenter's and the anchor's rects show.
+- **`FlyoutBase` cannot be styled.** It is an `AvaloniaObject`, not a `StyledElement`; styles on `FlyoutPresenter`, and
+  on `MenuFlyoutPresenter` with a class from `FlyoutPresenterClasses`, reach the presenters, whose `Popup` is parented to
+  the placement target.
+- **Only the Fluent `ToolTip` animates its own open.** Its theme sets `Opacity` 0 with a 150 ms `DoubleTransition` on
+  `Opacity` and `Opacity` 1 on `:open`, so it fades in and drops to 0 as it closes. The `FlyoutPresenter`,
+  `MenuFlyoutPresenter`, `ContextMenu`, `OverlayPopupHost` and `PopupRoot` themes and the `ComboBox` drop-down have no
+  transitions, animations or `:open` setters. The `ComboBox`'s `PART_Popup` binds `IsOpen` two-way to
+  `IsDropDownOpen` through a template binding, with `IsLightDismissEnabled` and `InheritsTransform` set.
 
 ### 7.4 Tests and sample
 
@@ -558,7 +831,7 @@ Too narrow for now, already covered, or waiting on another phase. Revisit after 
 - **Pointer proximity / magnetic pull** (Typography 120–134 and 163–182; the Animatable page's follower).
 - **Scroll progress bar** (`ScrollValue(progress: true)` into `Follow.SetScaleX`, about 3 lines; a `Scroll.Progress`
   convenience at most).
-- **Rotating headline word** (Typography 86–118). It becomes a few lines of XAML once Phase 58 lands.
+- **Rotating headline word** (Typography). Declarative since Phase 58: `Presence.Exit` per headline, a `Wait` slot.
 - **Scatter siblings from the selected item** (Connected 176–199, ConnectedNav 117–132). Needs a stagger "from element or
   point".
 - **Skeleton → content** (Storefront 40–52, Activity feed). `Shimmer` plus `Presence.Exit` already compose; an

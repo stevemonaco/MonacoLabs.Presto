@@ -1,9 +1,12 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -47,5 +50,15 @@ internal sealed record ScrollStage(Window Window, ScrollViewer Scroller, Border 
     {
         scroller.Offset = orientation == Orientation.Horizontal ? new Vector(offset, 0) : new Vector(0, offset);
         Dispatcher.UIThread.RunJobs();
+    }
+
+    public static void DragThumb(Window window, ScrollViewer scroller, double by)
+    {
+        var bar = scroller.GetVisualDescendants().OfType<ScrollBar>().Single(bar => bar.Orientation == Orientation.Vertical);
+        var thumb = bar.GetVisualDescendants().OfType<Thumb>().Single();
+        var grab = thumb.TranslatePoint(new Point(thumb.Bounds.Width / 2, thumb.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(grab, MouseButton.Left);
+        window.MouseMove(grab + new Vector(0, by));
+        window.MouseUp(grab + new Vector(0, by), MouseButton.Left);
     }
 }

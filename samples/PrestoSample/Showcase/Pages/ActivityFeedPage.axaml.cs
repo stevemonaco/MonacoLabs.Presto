@@ -69,5 +69,5 @@ public partial class ActivityFeedPage : ShowcasePage
 
     private void DismissClicked(object? sender, RoutedEventArgs e) => ViewModel.Dismiss((ActivityEvent)((Control)sender!).DataContext!);
 
-    private void PillClicked(object? sender, RoutedEventArgs e) => Feed.Scroll!.Offset = default;
+    private void PillClicked(object? sender, RoutedEventArgs e) => PrestoAvalonia.ScrollToIndex(Feed, 0);
 }

@@ -4,9 +4,10 @@ using Avalonia.Markup.Xaml;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// The base of the text reveal markup extensions, such as <c>{presto:LineMask}</c>, which have no exit form. Set on a
-/// <see cref="TextBlock"/>, each also sets the <see cref="TextReveal.PiecesProperty"/> and <see cref="TextReveal.MaskProperty"/>
-/// its recipe needs unless they are already set; in a style <c>Setter</c> the block has to set <see cref="TextReveal.PiecesProperty"/> itself.
+/// The base of the text reveal markup extensions, such as <c>{presto:LineMask}</c>, whose exit forms play on the block's
+/// per-piece ghosts. Set on a <see cref="TextBlock"/>, <see cref="Presence.ExitProperty"/> included, each also sets the
+/// <see cref="TextReveal.PiecesProperty"/> and <see cref="TextReveal.MaskProperty"/> its recipe needs unless they are already
+/// set, so the block's arrivals play on pieces too; in a style <c>Setter</c> the block has to set <see cref="TextReveal.PiecesProperty"/> itself.
 /// </summary>
 public abstract class TextRevealExtension(TextPieces pieces, bool mask = false) : RecipeExtension
 {

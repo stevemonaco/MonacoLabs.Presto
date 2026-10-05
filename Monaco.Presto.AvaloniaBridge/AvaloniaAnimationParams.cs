@@ -19,6 +19,13 @@ public sealed record AvaloniaAnimationParams : AnimationParams
         init => Properties[AvaloniaObjectTargetAdapter.Encode(property)] = value;
     }
 
+    /// <summary>What the animation does when its visuals leave the visual tree; <c>null</c> takes <see cref="PrestoAvalonia.WhenDetached"/>.</summary>
+    public WhenDetached? WhenDetached
+    {
+        get => HostLifetime as WhenDetached?;
+        init => HostLifetime = value;
+    }
+
     /// <inheritdoc cref="AnimationParams.WhenReduced"/>
     public new AvaloniaAnimationParams? WhenReduced
     {

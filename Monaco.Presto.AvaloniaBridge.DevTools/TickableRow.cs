@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
+using Monaco.Presto.AvaloniaBridge.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge.DevTools;
 
@@ -126,7 +127,7 @@ internal sealed partial class TickableRow : INotifyPropertyChanged
         State = timer.Completed ? TickableState.Completed
             : timer.Cancelled ? TickableState.Cancelled
             : parent is { } state && state != TickableState.Running ? state
-            : parent is null && timer.Paused ? TickableState.Paused
+            : parent is null && timer.Paused ? (DetachTracker.IsDetachPaused(timer) ? TickableState.Detached : TickableState.Paused)
             : timer.Began ? TickableState.Running
             : timer.CurrentTime < 0 || (parent is null && timer.Delay > 0) ? TickableState.Delay
             : TickableState.Pending;

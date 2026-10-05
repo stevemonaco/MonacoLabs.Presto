@@ -323,7 +323,7 @@ internal sealed class MotionTracker
             if (_drivers.GetValueOrDefault(property) is { Began: false, Completed: false, Cancelled: false } pending) Presto.Remove(_control, pending, property);
         }
         using var origin = PrestoDiagnostics.Origin("Motion");
-        var animation = Presto.Animate(_control, parameters);
+        var animation = Presto.Animate(_control, parameters with { HostLifetime = WhenDetached.Continue });
         foreach (var property in properties) _drivers[property] = animation;
         return animation;
     }

@@ -236,3 +236,27 @@ Upstream holds no references and removes the overshoot target instead (`Draggabl
 In Debug builds every `TweenList` add, remove and walk checks the list it touches. A cycle, or a head or tail that
 disagrees with its links, throws `InvalidOperationException` instead of hanging. The check is bounded by a tortoise-and-hare
 walk, allocates nothing, and compiles out of Release.
+
+## 10. Animations follow their controls out of the tree (Phase 60)
+
+Decision 8 kept scoping explicit: `Animate` never auto-scoped, and only `CreateScope` reverted on detach. Phase 60
+deviates from it. An animation on `Presto.Engine` now pauses by default once every visual it animates has left the
+visual tree, and resumes from the same progress when one returns. Decisions are in [GAPS-2-PLAN.md §6](GAPS-2-PLAN.md)
+and PLAN §7 decisions 89–91.
+
+- **Why not `Continue`.** SwiftUI, Compose and Flutter tie an animation to the lifetime of its view, and users expect
+  the same here. Under `Continue`, a loop on a dropped control kept ticking: the engine never idled, and its child list
+  kept the control alive.
+- **Why not `Revert`.** A detach is often brief: a reparent, a tab switch or a recycled container. Reverting writes the
+  base values back and loses the progress, so the control comes back in the wrong state. Pausing can be undone, and
+  reverting cannot. `Revert` stays available as opt-in auto-scoping.
+- **Collectability.** A paused animation leaves the engine's list. The tracker hangs off each visual in an attached
+  value, and the root-to-tracker table is weak, so nothing static holds the pair. A control detached for good is
+  collected together with its paused animation.
+- **Owner mapping cost.** A brush or transform the bridge creates for a visual must map back to that visual, so
+  `TargetOwner` now records always, not only under diagnostics. The §6.3 spike measured 90 bytes and about 110 ns per
+  created target, once per target and never per frame. That is cheap enough to keep one path.
+- **Wake while hidden.** Upstream's `wake()` restarts the frame loop even while the document is hidden, which costs
+  nothing in a browser that stops `requestAnimationFrame` in hidden tabs. A minimized Win32 window keeps delivering
+  frames at the display rate, so `Engine.Wake` does not start the frame source while hidden. Hiding an idle engine also
+  marks it paused, unlike upstream's `pause()`, so the show's `Resume` rebases timers created while hidden.

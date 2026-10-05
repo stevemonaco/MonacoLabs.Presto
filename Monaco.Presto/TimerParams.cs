@@ -43,6 +43,9 @@ public record TimerParams
 
     internal const int DefaultPriority = 1;
 
+    /// <summary>A host's lifetime choice for the timer, opaque to the core; the Avalonia bridge keeps its <c>WhenDetached</c> here.</summary>
+    internal object? HostLifetime { get; init; }
+
     /// <inheritdoc cref="Timer.OnBegin"/>
     public Action<Timer>? OnBegin { get; init; }
 

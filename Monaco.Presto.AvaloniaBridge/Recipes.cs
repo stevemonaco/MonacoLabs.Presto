@@ -109,6 +109,14 @@ public static class Recipes
     public static AnimationBuilder FlipOut(double angle = -90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Exits.FlipOut(angle, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Popovers.PopoverIn"/>
+    public static AnimationBuilder PopoverIn(double? distance = null, double? scale = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Popovers.PopoverIn(distance, scale, duration, delay, ease);
+
+    /// <inheritdoc cref="Popovers.PopoverOut"/>
+    public static AnimationBuilder PopoverOut(double? distance = null, double? scale = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Popovers.PopoverOut(distance, scale, duration, delay, ease);
+
     /// <inheritdoc cref="Attention.Shake"/>
     public static AnimationBuilder Shake(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Attention.Shake(intensity, duration, delay, ease, stagger);
@@ -247,6 +255,30 @@ public static class Recipes
     /// <inheritdoc cref="TextReveals.CharCascade"/>
     public static AnimationBuilder CharCascade(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
         TextReveals.CharCascade(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineRiseOut"/>
+    public static AnimationBuilder LineRiseOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineRiseOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineMaskOut"/>
+    public static AnimationBuilder LineMaskOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineMaskOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineWipeOut"/>
+    public static AnimationBuilder LineWipeOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineWipeOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordFadeOut"/>
+    public static AnimationBuilder WordFadeOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordFadeOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordBlurOut"/>
+    public static AnimationBuilder WordBlurOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordBlurOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.CharCascadeOut"/>
+    public static AnimationBuilder CharCascadeOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.CharCascadeOut(duration, delay, ease, lineStep, pieceStep);
 
     /// <inheritdoc cref="Particles.Confetti"/>
     public static ParticleEffect Confetti(Control anchor, int count = 120, IReadOnlyList<Color>? colors = null, Edge? from = null, AnimationBuilder? reduced = null) =>

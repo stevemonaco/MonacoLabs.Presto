@@ -28,7 +28,18 @@ public static class PrestoAvalonia
     private static readonly List<SystemMotionReader> s_systemMotionReaders = [];
     private static bool s_reducedMotionHooked;
 
-    /// <summary>Points the engine at an <see cref="AvaloniaFrameSource"/> and registers the Avalonia adapter and codecs the first time it is called; later calls do nothing.</summary>
+    /// <summary>
+    /// What an animation on <see cref="Presto.Engine"/> does once every visual it animates has left the visual tree, unless
+    /// <see cref="AvaloniaAnimationParams.WhenDetached"/> says otherwise. An animation with a target that is not a visual, nor
+    /// a brush or transform the bridge made for one, always continues.
+    /// </summary>
+    public static WhenDetached WhenDetached { get; set; } = WhenDetached.Pause;
+
+    /// <summary>
+    /// Points the engine at an <see cref="AvaloniaFrameSource"/>, registers the Avalonia adapter and codecs, starts
+    /// setting <see cref="Engine.Hidden"/> while the app cannot be seen and applies <see cref="WhenDetached"/>, the first
+    /// time it is called; later calls do nothing.
+    /// </summary>
     public static void EnsureInitialized()
     {
         if (Initialized) return;
@@ -63,6 +74,8 @@ public static class PrestoAvalonia
             static v => [v.X, v.Y],
             static n => new Vector(n[0], n[1]));
         Presto.Codecs[typeof(RelativePoint)] = new RelativePointCodec();
+        HiddenSignal.Install();
+        Presto.Engine.TimerCreated = DetachTracker.Track;
     }
 
     /// <summary>
@@ -563,6 +576,108 @@ public static class PrestoAvalonia
     {
         if (ScrollContainer.Containers.TryGetValue(scroller, out var container)) container.Refresh();
     }
+
+    /// <summary>
+    /// Eases <paramref name="scroller"/> to <paramref name="offset"/> through the <c>"ScrollX"</c>/<c>"ScrollY"</c>
+    /// shorthands, for the axes that move, with the settings, callbacks and other properties of <paramref name="builder"/>.
+    /// </summary>
+    /// <remarks>
+    /// Without a duration or ease from the builder it takes <see cref="MotionTokens.Short"/> plus 150 ms per viewport
+    /// travelled, capped at <see cref="MotionTokens.Long"/>, on <see cref="MotionTokens.Ease"/>. The offset is held to the
+    /// extent every frame, and reaches <paramref name="offset"/> if the extent grows to fit it. Any scroll it did not write
+    /// stops it, a later scroll to replaces it, and a <see cref="ScrollObserverParams.Snap"/> waits until it has ended.
+    /// Under <see cref="PrestoDefaults.ReducedMotion"/> it jumps, unless the builder has a <c>WhenReduced</c> form.
+    /// </remarks>
+    public static Animation ScrollTo(ScrollViewer scroller, Vector offset, AnimationBuilder? builder = null)
+    {
+        EnsureInitialized();
+        var p = builder?.ToParams() ?? new AnimationParams();
+        var from = scroller.Offset;
+        var max = scroller.ScrollBarMaximum;
+        var to = new Vector(Math.Clamp(offset.X, 0, max.X), Math.Clamp(offset.Y, 0, max.Y));
+        var properties = new OrderedDictionary<string, TweenValue>(p.Properties);
+        if (to.X != from.X) properties["ScrollX"] = ScrollMotion.Tween(scroller, horizontal: true, from.X, offset.X);
+        if (to.Y != from.Y) properties["ScrollY"] = ScrollMotion.Tween(scroller, horizontal: false, from.Y, offset.Y);
+        return Presto.Animate(scroller, ScrollMotion.Apply(p with { Properties = properties }, ScrollMotion.Viewports(to - from, scroller.Viewport)));
+    }
+
+    /// <inheritdoc cref="ScrollTo(ScrollViewer, Vector, AnimationBuilder?)"/>
+    public static Animation ScrollTo(ScrollViewer scroller, Vector offset, Action<AnimationBuilder> build) =>
+        ScrollTo(scroller, offset, Presto.Build(build));
+
+    /// <summary>
+    /// <see cref="ScrollTo(ScrollViewer, Vector, AnimationBuilder?)"/> along one <paramref name="axis"/>, leaving the other
+    /// where it is: <c>ScrollTo(scroller, 0)</c> is back to top.
+    /// </summary>
+    public static Animation ScrollTo(ScrollViewer scroller, double offset, ScrollAxis axis = ScrollAxis.Vertical, AnimationBuilder? builder = null) =>
+        ScrollTo(scroller, axis == ScrollAxis.Horizontal ? scroller.Offset.WithX(offset) : scroller.Offset.WithY(offset), builder);
+
+    /// <inheritdoc cref="ScrollTo(ScrollViewer, double, ScrollAxis, AnimationBuilder?)"/>
+    public static Animation ScrollTo(ScrollViewer scroller, double offset, Action<AnimationBuilder> build, ScrollAxis axis = ScrollAxis.Vertical) =>
+        ScrollTo(scroller, offset, axis, Presto.Build(build));
+
+    /// <summary>
+    /// Eases every ancestor <see cref="ScrollViewer"/> of <paramref name="element"/> at once, innermost first, so the element
+    /// sits in each viewport as <paramref name="alignment"/> says, <paramref name="margin"/> clear of its edges.
+    /// </summary>
+    /// <remarks>
+    /// Each outer scroller aims at the part of the element its inner one will show. One animation drives them all with the
+    /// motion of <see cref="ScrollTo(ScrollViewer, Vector, AnimationBuilder?)"/> over the largest distance, and a scroll on
+    /// one scroller stops only that scroller. When nothing needs to scroll, the returned animation has already completed.
+    /// </remarks>
+    public static Animation ScrollIntoView(Control element, ScrollAlignment alignment = ScrollAlignment.Nearest, Thickness margin = default, AnimationBuilder? builder = null)
+    {
+        EnsureInitialized();
+        var p = builder?.ToParams() ?? new AnimationParams();
+        var moves = ScrollGeometry.Targets(element, alignment, margin);
+        var properties = new OrderedDictionary<string, TweenValue>(p.Properties);
+        var viewports = 0d;
+        foreach (var (scroller, to) in moves)
+        {
+            viewports = Math.Max(viewports, ScrollMotion.Viewports(to - scroller.Offset, scroller.Viewport));
+            if (to.X != scroller.Offset.X) properties["ScrollX"] = (FunctionValue)((_, i, _) => Tween(i, horizontal: true));
+            if (to.Y != scroller.Offset.Y) properties["ScrollY"] = (FunctionValue)((_, i, _) => Tween(i, horizontal: false));
+        }
+        var animation = Presto.Animate(moves.ConvertAll(move => move.Scroller), ScrollMotion.Apply(p with { Properties = properties }, viewports));
+        if (moves.Count == 0) animation.Complete();
+        return animation;
+
+        TweenValue Tween(int index, bool horizontal)
+        {
+            var (scroller, to) = moves[index];
+            return ScrollMotion.Tween(scroller, horizontal, ScrollWriter.Along(scroller.Offset, horizontal), ScrollWriter.Along(to, horizontal));
+        }
+    }
+
+    /// <inheritdoc cref="ScrollIntoView(Control, ScrollAlignment, Thickness, AnimationBuilder?)"/>
+    public static Animation ScrollIntoView(Control element, Action<AnimationBuilder> build, ScrollAlignment alignment = ScrollAlignment.Nearest, Thickness margin = default) =>
+        ScrollIntoView(element, alignment, margin, Presto.Build(build));
+
+    /// <summary>
+    /// Eases <paramref name="list"/> until the item at <paramref name="index"/> sits in its viewport as <paramref name="alignment"/>
+    /// says, realized or not, with the motion of <see cref="ScrollTo(ScrollViewer, Vector, AnimationBuilder?)"/>.
+    /// </summary>
+    /// <remarks>
+    /// On a <see cref="VirtualizingStackPanel"/> an item more than two viewports away is first jumped to from a viewport short of
+    /// it, then the last stretch is animated, aimed each frame at the item's measured position once it is realized and at the
+    /// item itself when inserts or removals move its index; it ends exactly aligned. Any other panel scrolls its container into
+    /// view. User input stops it, and under <see cref="PrestoDefaults.ReducedMotion"/> it jumps.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is not an index of <paramref name="list"/>'s items.</exception>
+    public static Animation ScrollToIndex(ItemsControl list, int index, ScrollAlignment alignment = ScrollAlignment.Start, AnimationBuilder? builder = null)
+    {
+        EnsureInitialized();
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, list.ItemCount);
+        if (list.ItemsPanelRoot is not VirtualizingStackPanel panel)
+            return ScrollIntoView(list.ContainerFromIndex(index) ?? throw new InvalidOperationException("The list has no container for that index yet."), alignment, default, builder);
+        var scroller = panel.FindAncestorOfType<ScrollViewer>() ?? throw new InvalidOperationException("The list has no ScrollViewer.");
+        return new IndexScroller(list, panel, scroller, index, alignment).Start(builder?.ToParams() ?? new AnimationParams());
+    }
+
+    /// <inheritdoc cref="ScrollToIndex(ItemsControl, int, ScrollAlignment, AnimationBuilder?)"/>
+    public static Animation ScrollToIndex(ItemsControl list, int index, Action<AnimationBuilder> build, ScrollAlignment alignment = ScrollAlignment.Start) =>
+        ScrollToIndex(list, index, alignment, Presto.Build(build));
 
     /// <summary>
     /// A <see cref="MotionValue"/> holding <paramref name="scroller"/>'s offset along <paramref name="axis"/>, rounded to whole

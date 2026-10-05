@@ -189,6 +189,7 @@ public sealed class Timeline : Timer
         Helpers.AddChild(this, child);
         FitChildren();
         if (Composition) Init(true);
+        OwnerEngine.TimerCreated?.Invoke(child);
     }
 
     internal void FitChildren()

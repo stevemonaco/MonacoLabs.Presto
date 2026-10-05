@@ -35,7 +35,6 @@ public partial class TypographyPage : ShowcasePage
     private readonly List<Animatable> _letters = [];
     private readonly Spring _relax = Eases.Spring(bounce: .45, duration: 450);
     private int _wordIndex;
-    private TextSplitter? _leaving;
     private Timer? _cycle;
     private TextSplitter? _wordmark;
     private Timeline? _terminal;
@@ -70,18 +69,7 @@ public partial class TypographyPage : ShowcasePage
         _terminal = BuildTerminal();
     }
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        // The drop-out is split and built from a timer callback, outside Scope.
-        _leaving?.Revert();
-    }
-
-    private void ShowFirstWord()
-    {
-        _leaving?.Revert();
-        Slot.Child = Headline(RotatorWords[_wordIndex = 0]);
-    }
+    private void ShowFirstWord() => Slot.Child = Headline(RotatorWords[_wordIndex = 0]);
 
     #region snippet TypographyRotatorAndWordmark
     private static readonly AnimationBuilder RiseIn = Presto.Build()
@@ -92,15 +80,7 @@ public partial class TypographyPage : ShowcasePage
         .Y(Drop).Opacity(0)
         .Duration(380).Ease(Eases.InBack()).Delay(Presto.Stagger(25));
 
-    private void Rotate()
-    {
-        _leaving?.Revert();
-        var next = RotatorWords[_wordIndex = (_wordIndex + 1) % RotatorWords.Length];
-        _leaving = PrestoAvalonia.SplitText((TextBlock)Slot.Child!, new() { Words = null, Chars = new() })
-            .AddEffect(split => Presto.CreateTimeline()
-                .Add(split.Chars, DropOut)
-                .Call(_ => Slot.Child = Headline(next)));
-    }
+    private void Rotate() => Slot.Child = Headline(RotatorWords[_wordIndex = (_wordIndex + 1) % RotatorWords.Length]);
 
     private static TextBlock Headline(string word)
     {
@@ -114,6 +94,7 @@ public partial class TypographyPage : ShowcasePage
         };
         TextReveal.SetPieces(headline, TextPieces.Chars);
         Presence.SetArrive(headline, RiseIn);
+        Presence.SetExit(headline, DropOut);
         return headline;
     }
 

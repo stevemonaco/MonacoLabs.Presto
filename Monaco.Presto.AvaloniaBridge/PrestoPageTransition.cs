@@ -171,7 +171,7 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
                     otherThread.Revert();
                     _stood = Presto.Set(host, stood);
                 }
-                _animation = Presto.Animate(host, seekable ? parameters with { Autoplay = false } : parameters);
+                _animation = Presto.Animate(host, parameters with { Autoplay = seekable ? false : parameters.Autoplay, HostLifetime = WhenDetached.Continue });
                 _ = _animation.Then(_ => _done.TrySetResult());
             }
         }

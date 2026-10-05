@@ -68,8 +68,15 @@ public sealed class TextSplitter : IRevertible
     public static readonly AttachedProperty<int> LineIndexProperty =
         AvaloniaProperty.RegisterAttached<TextSplitter, Control, int>("LineIndex");
 
-    private static readonly AttachedProperty<int> IndexInLineProperty =
+    internal static readonly AttachedProperty<int> IndexInLineProperty =
         AvaloniaProperty.RegisterAttached<TextSplitter, Control, int>("IndexInLine");
+
+    /// <summary>The <see cref="LineHeight"/> of a control standing in for a piece, such as an exit ghost.</summary>
+    internal static readonly AttachedProperty<double> LineHeightProperty =
+        AvaloniaProperty.RegisterAttached<TextSplitter, Control, double>("LineHeight");
+
+    private static readonly AttachedProperty<TextSplitter?> SplitProperty =
+        AvaloniaProperty.RegisterAttached<TextSplitter, TextBlock, TextSplitter?>("Split");
 
     private static readonly AttachedProperty<TextSplitter?> OwnerProperty =
         AvaloniaProperty.RegisterAttached<TextSplitter, Control, TextSplitter?>("Owner");
@@ -102,7 +109,10 @@ public sealed class TextSplitter : IRevertible
     }
 
     /// <summary>The <see cref="LineHeight"/> of the split <paramref name="piece"/> belongs to, or 0 when it is not a split piece.</summary>
-    public static double LineHeightOf(Control piece) => piece.GetValue(OwnerProperty)?.LineHeight ?? 0;
+    public static double LineHeightOf(Control piece) => piece.GetValue(OwnerProperty)?.LineHeight ?? piece.GetValue(LineHeightProperty);
+
+    /// <summary>The splitter <paramref name="block"/> is split by, or null when it is not split.</summary>
+    internal static TextSplitter? Of(TextBlock block) => block.GetValue(SplitProperty);
 
     /// <summary>
     /// Registers <paramref name="effect"/> over the pieces, running it at once when they already exist and again after
@@ -145,6 +155,7 @@ public sealed class TextSplitter : IRevertible
         _host.Inlines = null;
         _host.Text = _text;
         _host.ClearValue(AutomationProperties.NameProperty);
+        if (Of(_host) == this) _host.ClearValue(SplitProperty);
         _unclip?.Dispose();
         _unclip = null;
         _width = 0;
@@ -185,6 +196,7 @@ public sealed class TextSplitter : IRevertible
         AutomationProperties.SetName(_host, _text);
         // Above local priority so a local or style value is never overwritten, only covered until Revert.
         _unclip ??= _host.SetValue(Visual.ClipToBoundsProperty, false, BindingPriority.Animation);
+        _host.SetValue(SplitProperty, this);
         _ready = true;
 
         for (var i = 0; i < _effects.Count; i++) _cleanups[i] = _effects[i](this);

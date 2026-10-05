@@ -7,6 +7,7 @@ internal enum TickableState
     Delay,
     Running,
     Paused,
+    Detached,
     Completed,
     Cancelled,
 }

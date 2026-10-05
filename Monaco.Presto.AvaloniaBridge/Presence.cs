@@ -123,7 +123,8 @@ public static class Presence
     /// <summary>
     /// Whether the list scrolls to keep the first row in view where it is when items are added or removed above it, so a
     /// live list can take inserts while it is read. At the top it does not, and new items stay in view. A scroll that
-    /// lands before the list has laid the change out ends the anchoring, so the scroll is kept.
+    /// lands before the list has laid the change out ends the anchoring, so the scroll is kept. Nor does it while
+    /// <see cref="Scroll.StickToEndProperty"/> holds the list at its end.
     /// </summary>
     public static readonly AttachedProperty<bool> ScrollAnchorProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, bool>("ScrollAnchor", typeof(Presence));
@@ -398,7 +399,7 @@ public static class Presence
     private static IRevertible Arrive(Control control, AnimationBuilder builder, bool laidOut = false, Visual? batchKey = null)
     {
         PrestoAvalonia.EnsureInitialized();
-        var parameters = builder.ToParams();
+        var parameters = builder.ToParams() with { HostLifetime = WhenDetached.Continue };
         using var origin = PrestoDiagnostics.Origin("Presence");
         if (PieceTargets.Play(control, parameters) is { } reveal) return reveal;
         var key = batchKey ?? control.FindAncestorOfType<Panel>() ?? (Visual?)TopLevel.GetTopLevel(control) ?? control;
@@ -423,7 +424,8 @@ public static class Presence
         private Point? _slot;
         private bool _recording;
         private bool _baseVisible;
-        private Animation? _hide;
+        // The held exit: an Animation of the element, or one of its split pieces.
+        private IRevertible? _hide;
 
         public Tracker(Control control)
         {
@@ -576,10 +578,10 @@ public static class Presence
 
         private void Show()
         {
-            if (_hide is { } hide)
+            if (_hide is not null)
             {
                 VisibilityHold.Release(_control, this);
-                hide.Reverse();
+                HideAnimation?.Reverse();
                 return;
             }
             _ghost?.Cancel();
@@ -640,35 +642,49 @@ public static class Presence
                 _arrival = null;
                 return;
             }
-            if (_hide is { } shown)
+            if (_hide is not null)
             {
-                shown.Play();
+                HideAnimation?.Play();
                 return;
             }
 
             using var origin = PrestoDiagnostics.Origin("Presence");
-            var hide = _hide = _control.Animate(exit);
-            var updated = hide.OnUpdate;
-            var completed = hide.OnComplete;
-            var paused = hide.OnPause;
-            hide.OnUpdate = timer =>
+            PrestoAvalonia.EnsureInitialized();
+            var parameters = exit.ToParams();
+            var updated = parameters.OnUpdate;
+            var completed = parameters.OnComplete;
+            var paused = parameters.OnPause;
+            parameters = parameters with
             {
-                updated?.Invoke(timer);
-                Sync();
+                HostLifetime = WhenDetached.Continue,
+                OnUpdate = timer =>
+                {
+                    updated?.Invoke(timer);
+                    Sync();
+                },
+                OnComplete = timer =>
+                {
+                    completed?.Invoke(timer);
+                    if (timer == HideAnimation) EndHide();
+                },
+                OnPause = timer =>
+                {
+                    paused?.Invoke(timer);
+                    if (timer.Cancelled && timer == HideAnimation) EndHide();
+                },
             };
-            hide.OnComplete = timer =>
+            // A block still split by its reveal would split its emptied text again.
+            if (_arrival is PieceTargets)
             {
-                completed?.Invoke(timer);
-                if (_hide == hide) EndHide();
-            };
-            hide.OnPause = timer =>
-            {
-                paused?.Invoke(timer);
-                if (timer.Cancelled && _hide == hide) EndHide();
-            };
+                _arrival.Revert();
+                _arrival = null;
+            }
+            _hide = (IRevertible?)PieceTargets.Play(_control, parameters, exit: true) ?? Presto.Animate(_control, parameters);
             // An instant exit, as PrestoDefaults.ReduceAll makes every one, completes inside Animate.
-            if (hide.Completed) EndHide();
+            if (HideAnimation is not { Completed: false }) EndHide();
         }
+
+        private Animation? HideAnimation => _hide as Animation ?? (_hide as PieceTargets)?.Animation;
 
         private void EndHide()
         {
@@ -759,6 +775,8 @@ public static class Presence
     /// <summary>
     /// Snapshots <paramref name="element"/> into the overlay of <paramref name="anchor"/>'s window at <paramref name="position"/>,
     /// clipped to the boxes of <paramref name="anchor"/> and its ancestors that clip, and plays <paramref name="exit"/> on it.
+    /// A <see cref="TextBlock"/> with <see cref="TextReveal.PiecesProperty"/> leaves as one ghost per piece, the exit's
+    /// targets in reading order, unless <paramref name="exit"/> is a reduced form or there are more than <see cref="PieceGhosts.Max"/>.
     /// </summary>
     /// <returns>The exit animation, whose completion or cancellation removes the ghost; null when there is nothing to draw or nowhere to draw it.</returns>
     internal static Animation? Ghost(Control element, Visual anchor, Point position, AnimationBuilder exit, Action? dismissed = null)
@@ -767,27 +785,23 @@ public static class Presence
         if (size.Width <= 0 || size.Height <= 0 || TopLevel.GetTopLevel(anchor) is not { } top || OverlayLayer.GetOverlayLayer(anchor) is not { } overlay) return null;
         if (overlay.TranslatePoint(default, top) is not { } overlayOrigin) return null;
 
-        var scaling = top.RenderScaling;
-        var snapshot = new RenderTargetBitmap(
-            new PixelSize((int)Math.Ceiling(size.Width * scaling), (int)Math.Ceiling(size.Height * scaling)),
-            new Vector(96 * scaling, 96 * scaling));
-        Matrix? transform = null;
+        var parameters = exit.ToParams() with { HostLifetime = WhenDetached.Continue };
+        Control ghost = null!;
+        Image[] ghosts = [];
         Styled(element, anchor, () =>
         {
-            transform = RenderTransformComposer.Untransformed(element, () => snapshot.Render(element));
-            if (transform is null) snapshot.Render(element);
+            if (element is TextBlock block && TextReveal.GetPieces(block) is var pieces and not TextPieces.None && !parameters.IsReducedMotion &&
+                PieceGhosts.Snapshot(block, pieces, top.RenderScaling) is { } split)
+            {
+                (ghost, ghosts) = split;
+                return;
+            }
+            var whole = Snapshot(element, top.RenderScaling);
+            (ghost, ghosts) = (whole, [whole]);
         });
 
         // An item container leaves with its item, or is recycled for another, so only what is outside it clips the ghost.
         var clip = Clip(ItemContainerOf(anchor)?.GetVisualParent() ?? anchor, top);
-        var ghost = new Image
-        {
-            Source = snapshot,
-            Width = size.Width,
-            Height = size.Height,
-            RenderTransformOrigin = element.RenderTransformOrigin,
-            RenderTransform = transform is { IsIdentity: false } matrix ? new MatrixTransform(matrix) : null,
-        };
         Canvas.SetLeft(ghost, position.X - clip.X);
         Canvas.SetTop(ghost, position.Y - clip.Y);
         var box = new Canvas { Width = clip.Width, Height = clip.Height, ClipToBounds = true, Children = { ghost } };
@@ -798,22 +812,45 @@ public static class Presence
         overlay.Children.Add(host);
 
         using var origin = PrestoDiagnostics.Origin("Presence");
-        var animation = ghost.Animate(exit);
+        PrestoAvalonia.EnsureInitialized();
+        var animation = Presto.Animate(ghosts, parameters);
         var completed = animation.OnComplete;
         var paused = animation.OnPause;
         animation.OnComplete = timer =>
         {
             completed?.Invoke(timer);
-            Dismiss(overlay, host, snapshot, dismissed);
+            Dismiss(overlay, host, ghosts, dismissed);
         };
         animation.OnPause = timer =>
         {
             paused?.Invoke(timer);
-            if (timer.Cancelled) Dismiss(overlay, host, snapshot, dismissed);
+            if (timer.Cancelled) Dismiss(overlay, host, ghosts, dismissed);
         };
         // An instant exit, as PrestoDefaults.ReduceAll makes every one, completes inside Animate.
-        if (animation.Completed) Dismiss(overlay, host, snapshot, dismissed);
+        if (animation.Completed) Dismiss(overlay, host, ghosts, dismissed);
         return animation;
+    }
+
+    /// <summary>
+    /// An image of <paramref name="visual"/> cropped to its untransformed box. The transform the shorthands hold moves
+    /// onto the image, so an exit animates it on from where it stands.
+    /// </summary>
+    internal static Image Snapshot(Visual visual, double scaling)
+    {
+        var size = visual.Bounds.Size;
+        var snapshot = new RenderTargetBitmap(
+            new PixelSize(Math.Max(1, (int)Math.Ceiling(size.Width * scaling)), Math.Max(1, (int)Math.Ceiling(size.Height * scaling))),
+            new Vector(96 * scaling, 96 * scaling));
+        var transform = RenderTransformComposer.Untransformed(visual, () => snapshot.Render(visual));
+        if (transform is null) snapshot.Render(visual);
+        return new Image
+        {
+            Source = snapshot,
+            Width = size.Width,
+            Height = size.Height,
+            RenderTransformOrigin = visual.RenderTransformOrigin,
+            RenderTransform = transform is { IsIdentity: false } matrix ? new MatrixTransform(matrix) : null,
+        };
     }
 
     /// <summary>
@@ -860,10 +897,10 @@ public static class Presence
         return clip;
     }
 
-    private static void Dismiss(OverlayLayer overlay, Control host, RenderTargetBitmap snapshot, Action? dismissed)
+    private static void Dismiss(OverlayLayer overlay, Control host, Image[] ghosts, Action? dismissed)
     {
         if (!overlay.Children.Remove(host)) return;
-        snapshot.Dispose();
+        foreach (var ghost in ghosts) ((RenderTargetBitmap)ghost.Source!).Dispose();
         dismissed?.Invoke();
     }
 }

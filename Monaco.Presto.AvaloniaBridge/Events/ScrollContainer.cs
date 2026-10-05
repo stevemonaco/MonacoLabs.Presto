@@ -224,8 +224,10 @@ public sealed class ScrollContainer
     {
         if (!PointerDown) return;
         PointerDown = false;
-        ForEachObserver(static observer => observer.WaitToSnap());
+        WaitToSnap();
     }
+
+    internal void WaitToSnap() => ForEachObserver(static observer => observer.WaitToSnap());
 
     private void UpdateScrollCoords()
     {

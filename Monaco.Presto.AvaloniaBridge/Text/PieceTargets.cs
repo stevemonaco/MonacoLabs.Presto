@@ -13,19 +13,22 @@ internal sealed class PieceTargets : IRevertible
     private IDisposable? _hold;
     private TextSplitter? _split;
 
-    private PieceTargets(TextBlock block, TextPieces pieces, AnimationParams parameters)
+    private PieceTargets(TextBlock block, TextPieces pieces, AnimationParams parameters, bool exit)
     {
-        _hold = block.SetValue(Visual.OpacityProperty, 0d, BindingPriority.Animation);
-        var mask = TextReveal.GetMask(block);
-        var completed = parameters.OnComplete;
-        parameters = parameters with
+        if (!exit)
         {
-            OnComplete = timer =>
+            _hold = block.SetValue(Visual.OpacityProperty, 0d, BindingPriority.Animation);
+            var completed = parameters.OnComplete;
+            parameters = parameters with
             {
-                completed?.Invoke(timer);
-                Revert();
-            },
-        };
+                OnComplete = timer =>
+                {
+                    completed?.Invoke(timer);
+                    Revert();
+                },
+            };
+        }
+        var mask = TextReveal.GetMask(block);
         _split = PrestoAvalonia.SplitText(block, pieces switch
         {
             TextPieces.Lines => new() { Lines = new() { Wrap = mask }, Words = null },
@@ -40,16 +43,28 @@ internal sealed class PieceTargets : IRevertible
                 TextPieces.Words => split.Words,
                 _ => split.Chars,
             }, parameters);
+            // A re-split reverts the animation it replaces before this one exists.
+            animation._onRevert += _ =>
+            {
+                if (Animation == animation) Animation = null;
+            };
+            Animation = animation;
             _hold?.Dispose();
             _hold = null;
             return animation;
         });
     }
 
-    /// <summary>Plays <paramref name="parameters"/> on <paramref name="target"/>'s pieces; null when it is not a <see cref="TextBlock"/> asking for pieces, or the parameters are a reduced form.</summary>
-    public static PieceTargets? Play(Visual target, AnimationParams parameters) =>
+    /// <summary>The animation over the current pieces, rebuilt on every re-split; null once reverted.</summary>
+    public Animation? Animation { get; private set; }
+
+    /// <summary>
+    /// Plays <paramref name="parameters"/> on <paramref name="target"/>'s pieces; null when it is not a <see cref="TextBlock"/> asking
+    /// for pieces, or the parameters are a reduced form. An exit splits at once with no hold and keeps the split until <see cref="Revert"/>.
+    /// </summary>
+    public static PieceTargets? Play(Visual target, AnimationParams parameters, bool exit = false) =>
         target is TextBlock block && TextReveal.GetPieces(block) is var pieces and not TextPieces.None && !parameters.IsReducedMotion
-            ? new PieceTargets(block, pieces, parameters)
+            ? new PieceTargets(block, pieces, parameters, exit)
             : null;
 
     public void Revert()

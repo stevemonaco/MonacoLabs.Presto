@@ -65,7 +65,6 @@ public sealed class ScrollObserver : IRevertible
     private Thickness _margin;
     private double _snapFrom;
     private double _snapTo;
-    private double _snapWritten = double.NaN;
 
     internal ScrollObserver(ScrollObserverParams parameters)
     {
@@ -108,7 +107,7 @@ public sealed class ScrollObserver : IRevertible
                 Autoplay = false,
                 Duration = snap.Duration ?? DefaultSnapDuration * Globals.TimeScale,
                 OnUpdate = self => WriteSnap(self.Progress == 1 ? _snapTo : Utils.Lerp(_snapFrom, _snapTo, snapEase(self.Progress))),
-                OnComplete = _ => _snapWritten = double.NaN,
+                OnComplete = _ => ScrollWriter.Of(Container!.Scroller).Release(this),
             });
         }
 
@@ -252,15 +251,16 @@ public sealed class ScrollObserver : IRevertible
     internal void HandleOffsetChanged()
     {
         UpdatePin();
-        if (ScrollerOffset() != _snapWritten) WaitToSnap();
+        if (!ScrollWriter.Of(Container!.Scroller).Wrote(this, Horizontal, ScrollerOffset())) WaitToSnap();
     }
 
     /// <summary>Stops a running snap and waits for the scroll position to settle again.</summary>
     internal void WaitToSnap()
     {
-        _snapTween?.Cancel();
-        _snapWritten = double.NaN;
-        _snapWait?.Restart();
+        if (_snapWait == null) return;
+        _snapTween!.Cancel();
+        ScrollWriter.Of(Container!.Scroller).Release(this);
+        _snapWait.Restart();
     }
 
     private void UpdatePin()
@@ -508,7 +508,7 @@ public sealed class ScrollObserver : IRevertible
 
     private void StartSnap()
     {
-        if (!Ready || Container!.PointerDown) return;
+        if (!Ready || Container!.PointerDown || ScrollWriter.Of(Container.Scroller).Tweening(Horizontal)) return;
         var scroll = ScrollerOffset();
         if (scroll < OffsetStart || scroll > OffsetEnd || Distance == 0) return;
         var max = Container.Scroller.ScrollBarMaximum;
@@ -520,13 +520,7 @@ public sealed class ScrollObserver : IRevertible
         _snapTween!.Restart();
     }
 
-    private void WriteSnap(double value)
-    {
-        var scroller = Container!.Scroller;
-        var offset = scroller.Offset;
-        _snapWritten = value;
-        scroller.SetCurrentValue(ScrollViewer.OffsetProperty, Horizontal ? offset.WithX(value) : offset.WithY(value));
-    }
+    private void WriteSnap(double value) => ScrollWriter.Of(Container!.Scroller).Write(this, Horizontal, value);
 
     private void InvokeSyncMethod(int index)
     {

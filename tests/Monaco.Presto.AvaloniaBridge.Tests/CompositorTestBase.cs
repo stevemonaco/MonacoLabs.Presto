@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -25,7 +26,7 @@ public abstract class CompositorTestBase : BridgeTestBase, IDisposable
 
     protected CompositorTestBase() => CompositorClock.Install();
 
-    public void Dispose() => CompositorClock.Uninstall();
+    public virtual void Dispose() => CompositorClock.Uninstall();
 
     /// <summary>Shows <paramref name="canvas"/> in a window and ticks once, which is when the batched attach message reaches the handler.</summary>
     protected static (StackPanel Panel, CompositorCanvas Canvas) Show(CompositorCanvas canvas)
@@ -154,6 +155,70 @@ public abstract class CompositorTestBase : BridgeTestBase, IDisposable
     {
         new Window { Content = new StackPanel { Children = { content } }, Background = Brushes.White, Width = 200, Height = 200 }.Show();
         Tick();
+    }
+
+    /// <summary>A lime 40x20 bar, the popup content the popup tests look for in the rendered frame.</summary>
+    protected static Border Lime() => new() { Width = 40, Height = 20, Background = Brushes.Lime };
+
+    /// <summary>Shows a white 200x200 window with a 60x30 button at its top left, ticked once.</summary>
+    protected static (Window Window, Button Anchor) PopupStage()
+    {
+        var anchor = new Button { Width = 60, Height = 30, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        var window = new Window { Content = new Panel { Children = { anchor } }, Background = Brushes.White, Width = 200, Height = 200 };
+        window.Show();
+        Tick();
+        return (window, anchor);
+    }
+
+    protected static void Press(Window window, Point at)
+    {
+        window.MouseDown(at, MouseButton.Left);
+        window.MouseUp(at, MouseButton.Left);
+    }
+
+    /// <summary>Dismisses an open popup by <paramref name="path"/>: <c>"light"</c> presses outside it, <c>"escape"</c> sends Escape to it, and anything else calls <paramref name="close"/>.</summary>
+    protected static void Dismiss(Window window, Control presenter, string path, Action close)
+    {
+        switch (path)
+        {
+            case "light":
+                Press(window, new Point(150, 150));
+                break;
+            case "escape":
+                var target = presenter is MenuBase menu ? menu.Items.OfType<MenuItem>().First() : presenter;
+                target.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape, Source = target });
+                break;
+            default:
+                close();
+                break;
+        }
+    }
+
+    /// <summary>Gives <paramref name="anchor"/> a <see cref="Lime"/> tip with no delay and hovers it open, returning the open <see cref="ToolTip"/>.</summary>
+    protected static ToolTip Hover(Window window, Control anchor)
+    {
+        ToolTip.SetTip(anchor, Lime());
+        ToolTip.SetShowDelay(anchor, 0);
+        window.MouseMove(new Point(20, 10));
+        Tick();
+        return window.GetVisualDescendants().OfType<ToolTip>().Single();
+    }
+
+    /// <summary>Closes the tip over <paramref name="anchor"/> by <paramref name="path"/>: <c>"local"</c> writes <c>IsOpen</c>, <c>"leave"</c> moves the pointer away, and anything else presses the anchor.</summary>
+    protected static void CloseTip(Window window, Control anchor, string path)
+    {
+        switch (path)
+        {
+            case "local":
+                ToolTip.SetIsOpen(anchor, false);
+                break;
+            case "leave":
+                window.MouseMove(new Point(150, 150));
+                break;
+            default:
+                Press(window, new Point(20, 10));
+                break;
+        }
     }
 
     /// <summary>Shows <paramref name="content"/> in a white 100x200 window, ticked once.</summary>

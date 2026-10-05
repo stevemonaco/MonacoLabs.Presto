@@ -48,7 +48,9 @@
                     </Grid>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14" Margin="0,12">
                         <TextBlock Classes="headline" Text="Animate" Foreground="{x:Static showcase:Palette.Ink}" />
-                        <Border x:Name="Slot" Margin="0,0,0,-28" presto:Animate.ContentSize="{presto:Reflow 600, Ease=outExpo}" />
+                        <!-- The delay lets the leaving word's first letters drop before Animate slides over where they stand. -->
+                        <Border x:Name="Slot" Margin="0,0,0,-28" presto:Presence.Mode="Wait"
+                                presto:Animate.ContentSize="{presto:Reflow 600, Delay=380, Ease=outExpo}" />
                     </StackPanel>
                 </StackPanel>
             </Border>

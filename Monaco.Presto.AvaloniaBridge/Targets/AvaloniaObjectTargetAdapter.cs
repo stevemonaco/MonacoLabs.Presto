@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Data;
 using Avalonia.Media;
@@ -16,7 +17,7 @@ namespace Monaco.Presto.AvaloniaBridge.Targets;
 
 /// <summary>
 /// Resolves the properties of an <see cref="AvaloniaObject"/>: the transform shorthands ("X", "Rotate", "ScaleX"), the
-/// effect shorthands ("Blur", "ShadowX"), the reveal shorthands ("ClipInset", "ClipCircle", "MaskSweep"), a <see cref="Shape"/>'s "Draw", plain names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
+/// effect shorthands ("Blur", "ShadowX"), the reveal shorthands ("ClipInset", "ClipCircle", "MaskSweep"), a <see cref="Shape"/>'s "Draw", a <see cref="ScrollViewer"/>'s "ScrollX" and "ScrollY", plain names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
 /// instances <see cref="AvaloniaAnimationParams"/> encodes. Any other target is left to the next adapter.
 /// </summary>
 /// <remarks>
@@ -38,6 +39,8 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     private static readonly IPropertyAccessor?[] s_clips = new IPropertyAccessor?[Enum.GetValues<ClipShorthand>().Length];
     private static readonly IPropertyAccessor?[] s_masks = new IPropertyAccessor?[Enum.GetValues<MaskShorthand>().Length];
     private static IPropertyAccessor? s_draw;
+    private static IPropertyAccessor? s_scrollX;
+    private static IPropertyAccessor? s_scrollY;
 
     internal static string Encode(AvaloniaProperty property) => $"{property.OwnerType.Name}.{property.Name}";
 
@@ -69,6 +72,8 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             }
             if (EffectShorthands.ParseMask(property) is { } mask) return s_masks[(int)mask] ??= new MaskAccessor(mask);
             if (visual is Shape && property == "Draw") return s_draw ??= new DrawAccessor();
+            if (visual is ScrollViewer && property == "ScrollX") return s_scrollX ??= new ScrollOffsetAccessor(horizontal: true);
+            if (visual is ScrollViewer && property == "ScrollY") return s_scrollY ??= new ScrollOffsetAccessor(horizontal: false);
         }
 
         var type = target.GetType();
@@ -91,7 +96,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     public string? Canonicalise(object target, string property)
     {
         if (target is not AvaloniaObject) return null;
-        if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is Shape && property == "Draw"))) return property;
+        if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is Shape && property == "Draw") || (target is ScrollViewer && property is "ScrollX" or "ScrollY"))) return property;
         return ResolveProperty(target.GetType(), property) is { } resolved ? Encode(resolved) : null;
     }
 

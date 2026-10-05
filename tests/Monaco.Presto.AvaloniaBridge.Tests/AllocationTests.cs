@@ -205,6 +205,21 @@ public sealed class AllocationTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
+    public void AScrollYTweenTicksWithinBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var scroller = ScrollStage.Show(trail: 600).Scroller;
+        scroller.Animate(new() { ["ScrollY"] = 800, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        // measured 800, as much as a timer writing the offset with SetCurrentValue itself: all of it is the ScrollViewer reacting to the change.
+        Assert.True(bytes <= 896, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void BrushTweenTicksWithinBudget(bool diagnostics)
     {
         Presto.Engine.Diagnostics.Enabled = diagnostics;

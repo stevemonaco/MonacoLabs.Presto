@@ -14,17 +14,17 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// <summary><see cref="TextReveal"/>: the triggers play their builder on a split block's pieces instead of the block (PREBUILTS-2-PLAN §3.4).</summary>
 public sealed class TextRevealTests : BridgeTestBase
 {
-    private const string Sentence = "The quick brown fox jumps over the lazy dog near the river bank at dawn";
+    internal const string Sentence = "The quick brown fox jumps over the lazy dog near the river bank at dawn";
 
     private static readonly AnimationBuilder Long = Presto.Build().Opacity(from: 0).Duration(2000).Ease("linear");
 
-    private static TextBlock Block(TextPieces pieces) => new()
+    internal static TextBlock Block(TextPieces pieces) => new()
     {
         Text = Sentence, TextWrapping = TextWrapping.Wrap, FontSize = 20, Background = Brushes.Transparent,
         [TextReveal.PiecesProperty] = pieces,
     };
 
-    private static Window Show(TextBlock block)
+    internal static Window Show(TextBlock block)
     {
         var window = new Window { Content = new StackPanel { Children = { block } }, Width = 260, Height = 400 };
         window.Show();

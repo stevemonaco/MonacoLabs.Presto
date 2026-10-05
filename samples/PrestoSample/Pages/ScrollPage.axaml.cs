@@ -1,3 +1,6 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
@@ -65,6 +68,13 @@ public partial class ScrollPage : ShowcasePage
         }).Link(scrub);
         #endregion
     }
+
+    #region snippet ScrollJumps
+    private void BackToTop(object? sender, RoutedEventArgs e) => PrestoAvalonia.ScrollTo(Scroller, 0);
+
+    private void JumpTo(object? sender, RoutedEventArgs e) =>
+        PrestoAvalonia.ScrollIntoView((Control)((Button)sender!).Tag!, ScrollAlignment.Start, new Thickness(0, 12, 0, 0));
+    #endregion
 
     private void ShowState(ScrollObserver observer)
     {

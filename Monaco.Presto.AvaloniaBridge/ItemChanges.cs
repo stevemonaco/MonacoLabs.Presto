@@ -132,7 +132,7 @@ internal sealed class ItemChanges
 
     private void RecordAnchor(NotifyCollectionChangedEventArgs e)
     {
-        if (Scroller is not { } scroll || scroll.Offset == default || LayoutTransition.MeasureOnScreen(scroll) is not { } viewport) return;
+        if (Scroller is not { } scroll || scroll.Offset == default || Scroll.StuckToEnd(scroll) || LayoutTransition.MeasureOnScreen(scroll) is not { } viewport) return;
         // The panel hears of the change after this, so containers keep their old indices and slots while Items is already new.
         var first = int.MaxValue;
         Control? anchor = null;

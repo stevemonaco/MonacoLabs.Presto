@@ -1,13 +1,12 @@
 using System.Runtime.CompilerServices;
 using Avalonia;
-using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Targets;
 
 /// <summary>
-/// Maps a tween target back to the <see cref="Visual"/> it draws on, for inspectors: a visual is its own owner, and the
-/// brushes and transforms the bridge creates for a visual are recorded as they are made, but only while
-/// <see cref="PrestoDiagnostics.Active"/>. Split text pieces are visuals inside their block, so they need no record.
+/// Maps a tween target back to the <see cref="Visual"/> it draws on, for <see cref="DetachTracker"/> and inspectors: a
+/// visual is its own owner, and the brushes and transforms the bridge creates for a visual are recorded as they are made.
+/// Split text pieces are visuals inside their block, so they need no record.
 /// </summary>
 internal static class TargetOwner
 {
@@ -18,6 +17,6 @@ internal static class TargetOwner
 
     public static void Record(object owned, object owner)
     {
-        if (PrestoDiagnostics.Active && owner is Visual visual) s_owners.AddOrUpdate(owned, new WeakReference<Visual>(visual));
+        if (owner is Visual visual) s_owners.AddOrUpdate(owned, new WeakReference<Visual>(visual));
     }
 }

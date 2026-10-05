@@ -6,8 +6,6 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 public sealed class TargetOwnerTests : BridgeTestBase
 {
-    public TargetOwnerTests() => Presto.Engine.Diagnostics.Enabled = true;
-
     [AvaloniaFact]
     public void AComposedRenderTransformResolvesToItsVisual()
     {

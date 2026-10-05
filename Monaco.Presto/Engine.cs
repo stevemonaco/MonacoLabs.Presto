@@ -21,6 +21,8 @@ public sealed class Engine : Clock
     private double _dilation = 1;
     // Engine time at which Pause stopped the pump; NaN once the pump runs again.
     private double _pausedAt = double.NaN;
+    private bool _hidden;
+    private bool _pauseOnHidden = true;
 
     /// <summary>Creates an independent engine driven by its own frame source, starting from a copy of <see cref="Presto.Defaults"/>; the main engine is <see cref="Presto.Engine"/>.</summary>
     public Engine(IFrameSource frameSource) : this(frameSource, Presto.Defaults with { })
@@ -90,6 +92,37 @@ public sealed class Engine : Clock
     /// <summary>When false, the engine never starts its frame source and must be driven through <see cref="Update()"/>.</summary>
     public bool UseDefaultMainLoop { get; set; } = true;
 
+    /// <summary>Whether setting <see cref="Hidden"/> pauses and resumes the engine (upstream <c>engine.pauseOnDocumentHidden</c>); turning it off while hidden resumes.</summary>
+    public bool PauseOnHidden
+    {
+        get => _pauseOnHidden;
+        set
+        {
+            AssertThreadAffinity();
+            if (_pauseOnHidden == value) return;
+            _pauseOnHidden = value;
+            if (_hidden) ApplyHidden(value);
+        }
+    }
+
+    /// <summary>Set by the host when nothing it shows can be seen (minimized, backgrounded, page hidden); with <see cref="PauseOnHidden"/> it pauses the engine and showing resumes it.</summary>
+    /// <remarks>
+    /// While hidden, <see cref="Wake"/> does not start the frame source, so a timer created or resumed then waits for the show instead of
+    /// ticking on frames a minimized host may still deliver. Like upstream's <c>visibilitychange</c> handler, showing calls <see cref="Resume"/>
+    /// even when the engine was paused by hand before hiding. Showing while <see cref="Frozen"/> leaves the restart to <see cref="Thaw"/>.
+    /// </remarks>
+    public bool Hidden
+    {
+        get => _hidden;
+        set
+        {
+            AssertThreadAffinity();
+            if (_hidden == value) return;
+            _hidden = value;
+            if (_pauseOnHidden) ApplyHidden(value);
+        }
+    }
+
     /// <summary>Whether <see cref="Pause"/> has stopped the engine; like upstream <c>engine.paused</c> it also reads true before the first <see cref="Resume"/>.</summary>
     public bool Paused { get; internal set; } = true;
 
@@ -100,6 +133,9 @@ public sealed class Engine : Clock
     public PrestoDefaults Defaults { get; internal set; }
 
     internal Scope? CurrentScope { get; set; }
+
+    /// <summary>A host hook told of each root timer once the <see cref="Presto"/> factories have initialised it, and of each child a timeline adds.</summary>
+    internal Action<Timer>? TimerCreated { get; set; }
 
     internal Additive Additive { get; }
 
@@ -192,10 +228,10 @@ public sealed class Engine : Clock
         return flushed;
     }
 
-    /// <summary>Starts the frame source unless it is already pumping, the engine is <see cref="Frozen"/> or <see cref="UseDefaultMainLoop"/> is off; resuming a timer calls it (upstream <c>engine.wake()</c>).</summary>
+    /// <summary>Starts the frame source unless it is already pumping, the engine is <see cref="Frozen"/> or paused by <see cref="Hidden"/>, or <see cref="UseDefaultMainLoop"/> is off; resuming a timer calls it (upstream <c>engine.wake()</c>).</summary>
     public Engine Wake()
     {
-        if (UseDefaultMainLoop && !IsRunning && !Frozen)
+        if (UseDefaultMainLoop && !IsRunning && !Frozen && !(_hidden && _pauseOnHidden))
         {
             _pausedAt = double.NaN;
             // Immediately request a tick so timers created before the first frame compute an accurate offset.
@@ -230,6 +266,18 @@ public sealed class Engine : Clock
         _frameSource.Stop();
         _pausedAt = Now;
         return this;
+    }
+
+    // Paused is set even when the pump was idle, so the show's Resume rebases timers created while hidden.
+    private void ApplyHidden(bool hide)
+    {
+        if (!hide)
+        {
+            Resume();
+            return;
+        }
+        Pause();
+        Paused = true;
     }
 
     /// <summary>Holds engine time still and stops the frame source, without pausing anything or firing <see cref="Timer.OnPause"/>.</summary>
@@ -296,6 +344,7 @@ public sealed class Engine : Clock
         {
             var paused = Now - _pausedAt;
             foreach (var value in _activeValues) value._time += paused;
+            _pausedAt = double.NaN;
         }
         return Wake();
     }

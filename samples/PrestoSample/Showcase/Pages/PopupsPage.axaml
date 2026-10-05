@@ -1,0 +1,75 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.PopupsPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.target">
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Accent}" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid RowDefinitions="*,Auto" RowSpacing="10">
+        <Border Grid.Row="0" Classes="stage">
+            <!-- snippet: PopupsOwners -->
+            <WrapPanel x:Name="Owners" HorizontalAlignment="Center" VerticalAlignment="Center" ItemSpacing="24" LineSpacing="24">
+                <WrapPanel.Styles>
+                    <Style Selector="MenuFlyoutPresenter, ContextMenu, ToolTip, ComboBox /template/ Popup#PART_Popup">
+                        <Setter Property="presto:Popover.Open" Value="{presto:Popover}" />
+                        <Setter Property="presto:Popover.Close" Value="{presto:Popover Out=True}" />
+                    </Style>
+                </WrapPanel.Styles>
+
+                <Button x:Name="MenuButton" Content="File">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="New" />
+                            <MenuItem Header="Open…" />
+                            <MenuItem Header="Save" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Button x:Name="DetailsButton" Content="Details">
+                    <Button.Flyout>
+                        <Flyout Placement="Right"
+                                presto:Popover.Open="{presto:Popover Distance=16}"
+                                presto:Popover.Close="{presto:Popover Distance=16}">
+                            <TextBlock MaxWidth="220" TextWrapping="Wrap"
+                                       Text="A value on the flyout wins over the presenter style, so this one slides further." />
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Border x:Name="ContextTarget" Classes="target">
+                    <Border.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Copy" />
+                            <MenuItem Header="Paste" />
+                        </ContextMenu>
+                    </Border.ContextMenu>
+                    <TextBlock Text="Right-click me" />
+                </Border>
+
+                <Button x:Name="TipButton" Content="Hover me" ToolTip.Tip="Tooltips close at once and fade a ghost." />
+
+                <ComboBox x:Name="Picker" SelectedIndex="0" Width="140">
+                    <ComboBoxItem Content="Ease" />
+                    <ComboBoxItem Content="Spring" />
+                    <ComboBoxItem Content="Steps" />
+                </ComboBox>
+            </WrapPanel>
+            <!-- /snippet -->
+        </Border>
+
+        <showcase:CodePanel Grid.Row="1" Header="How it's built" IsExpanded="False"
+                            Language="Xaml" Code="{x:Static showcase:Snippets.PopupsOwners}" />
+    </Grid>
+</showcase:ShowcasePage>

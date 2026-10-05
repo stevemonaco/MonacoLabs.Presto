@@ -5,7 +5,6 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Targets;
-using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Transforms;
 
@@ -196,7 +195,6 @@ internal sealed class RenderTransformComposer
         if (Shows(TransformShorthand.RotateX) || Shows(TransformShorthand.RotateY) || Shows(TransformShorthand.Perspective)) children.Add(_rotate3D ??= new Rotate3DTransform());
         if (Shows(TransformShorthand.Rotate)) children.Add(_rotate ??= new RotateTransform());
         if (Shows(TransformShorthand.X) || Shows(TransformShorthand.Y)) children.Add(_translate ??= new TranslateTransform());
-        if (!PrestoDiagnostics.Active) return;
         TargetOwner.Record(_group, visual);
         for (var i = 0; i < children.Count; i++) TargetOwner.Record(children[i], visual);
     }

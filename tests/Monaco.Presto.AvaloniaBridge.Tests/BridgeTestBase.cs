@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Monaco.Presto.AvaloniaBridge.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -16,6 +17,8 @@ public abstract class BridgeTestBase : Monaco.Presto.Tests.EngineTestBase
         PrestoAvalonia.EnsureInitialized();
         Presto.Engine.FrameSource = Frames; // EnsureInitialized installs the Avalonia source over the base's manual one
         Presto.Engine._timeOffset = 0;
+        Presto.Engine.TimerCreated = DetachTracker.Track; // the base clears the hook EnsureInitialized installed
+        PrestoAvalonia.WhenDetached = WhenDetached.Pause;
     }
 
     /// <summary>Shows <paramref name="content"/> in a 200x200 window and runs the queued jobs.</summary>

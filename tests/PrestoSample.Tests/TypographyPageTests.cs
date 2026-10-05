@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
@@ -83,40 +84,58 @@ public sealed class TypographyPageTests
     }
 
     [AvaloniaFact]
-    public void TheRotatorFadesTheOldWordOutAndTheNewOneInWithoutFlashing()
+    public void TheRotatorDropsTheOldWordAsCharGhostsThenRisesTheNewOneWithoutFlashing()
     {
         var page = new TypographyPage();
         var window = SceneHarness.Show(page, 1000, 1400, frames: 100);
         var slot = page.GetControl<Border>("Slot");
         var outgoing = (TextBlock)slot.Child!;
-        var last = new Dictionary<TextBlock, double>();
+        var last = new Dictionary<Visual, double>();
         var arrived = new List<TextBlock>();
+        var dropped = false;
 
         for (var frame = 0; frame < 160; frame++)
         {
             TestFrames.Tick();
+            var hosts = GhostHosts(window);
+            if (hosts.Length > 0)
+            {
+                var ghosts = Assert.Single(hosts).GetVisualDescendants().OfType<Image>().ToArray();
+                Assert.Equal(outgoing.Text!.Length, ghosts.Length);
+                dropped = true;
+                foreach (var ghost in ghosts)
+                {
+                    if (last.TryGetValue(ghost, out var before))
+                    {
+                        Assert.True(ghost.Opacity <= before, $"frame {frame}: a ghost went from {before:0.000} to {ghost.Opacity:0.000} while dropping");
+                    }
+                    last[ghost] = ghost.Opacity;
+                }
+            }
+
             var word = (TextBlock)slot.Child!;
-            var leaving = word == outgoing;
+            if (word == outgoing) continue;
             var pieces = Pieces(word);
             if (pieces.Length == 0)
             {
-                // Whole, a word may only be the one waiting to leave, the one held hidden to rise in, or one that has fully risen.
-                var settled = leaving ? last.Count == 0 : word.Opacity == 0 || arrived.Count > 0 && arrived.All(piece => last[piece] >= 1 - 1e-6);
+                // Whole, the new word may only be held hidden until the ghosts leave, or have fully risen.
+                var settled = word.Opacity == 0 || arrived.Count > 0 && arrived.All(piece => last[piece] >= 1 - 1e-6);
                 Assert.True(settled, $"frame {frame} shows '{word.Text}' whole mid-swap");
             }
             foreach (var piece in pieces)
             {
                 Assert.InRange(piece.Opacity, -1e-6, 1 + 1e-6);
-                if (!leaving && !arrived.Contains(piece)) arrived.Add(piece);
+                if (!arrived.Contains(piece)) arrived.Add(piece);
                 if (last.TryGetValue(piece, out var before))
                 {
-                    Assert.True(leaving ? piece.Opacity <= before : piece.Opacity >= before,
-                        $"frame {frame}: '{piece.Text}' went from {before:0.000} to {piece.Opacity:0.000} while {(leaving ? "leaving" : "arriving")}");
+                    Assert.True(piece.Opacity >= before, $"frame {frame}: '{piece.Text}' went from {before:0.000} to {piece.Opacity:0.000} while arriving");
                 }
                 last[piece] = piece.Opacity;
             }
         }
 
+        Assert.True(dropped, "the old word left no char ghosts");
+        Assert.Empty(GhostHosts(window));
         Assert.NotEmpty(arrived);
         Assert.NotSame(outgoing, slot.Child);
         SceneHarness.Close(window);
@@ -180,6 +199,8 @@ public sealed class TypographyPageTests
 
     private static Control[] WordmarkLetters(TypographyPage page) =>
         [.. page.GetControl<TextBlock>("Wordmark").GetVisualDescendants().OfType<TextBlock>().Where(text => text.Text?.Length == 1)];
+
+    private static Canvas[] GhostHosts(Window window) => [.. OverlayLayer.GetOverlayLayer(window)!.Children.OfType<Canvas>()];
 
     private static TextBlock[] Pieces(TextBlock block) => [.. block.GetVisualDescendants().OfType<TextBlock>()];
 

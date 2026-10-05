@@ -84,6 +84,7 @@ public record AnimationParams : TimerParams
             OnLoop = r.OnLoop ?? OnLoop,
             OnPause = r.OnPause ?? OnPause,
             OnComplete = r.OnComplete ?? OnComplete,
+            HostLifetime = r.HostLifetime ?? HostLifetime,
             WhenReduced = null,
             IsReducedMotion = true,
         };

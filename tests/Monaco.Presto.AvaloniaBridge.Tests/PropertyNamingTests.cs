@@ -95,6 +95,8 @@ public class PropertyNamingTests : BridgeTestBase
 
         Assert.Equal("X", adapter.Canonicalise(border, "X"));
         Assert.Equal("Rotate", adapter.Canonicalise(border, "Rotate"));
+        Assert.Equal("ScrollY", adapter.Canonicalise(new ScrollViewer(), "ScrollY"));
+        Assert.Null(adapter.Canonicalise(border, "ScrollY"));
         Assert.Null(adapter.Canonicalise(border, "NotAProperty"));
         Assert.Null(adapter.Canonicalise(new object(), "Opacity"));
     }

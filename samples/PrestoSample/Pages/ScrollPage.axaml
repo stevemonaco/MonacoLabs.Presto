@@ -36,9 +36,16 @@
                 <TextBlock Grid.Column="6" Classes="mono" Text="Thresholds" />
                 <TextBlock Grid.Column="7" x:Name="StateText" Classes="value" Text="ThresholdCard out of view" />
             </Grid>
+            <WrapPanel ItemSpacing="8" LineSpacing="8">
+                <Button Content="Back to top" Click="BackToTop" />
+                <Button Content="Default thresholds" Tag="{Binding #RevealCard}" Click="JumpTo" />
+                <Button Content="Named thresholds" Tag="{Binding #ThresholdCard}" Click="JumpTo" />
+                <Button Content="Scrubbed timeline" Tag="{Binding #SyncCard}" Click="JumpTo" />
+            </WrapPanel>
+            <showcase:CodePanel Header="Jumps" IsExpanded="False" Code="{x:Static showcase:Snippets.ScrollJumps}" />
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1">
+        <ScrollViewer x:Name="Scroller" Grid.Row="1">
             <StackPanel Spacing="16" Margin="0,0,16,16">
                 <TextBlock Classes="caption" TextWrapping="Wrap"
                            Text="Scroll this panel. The readout above follows the third card's observer; velocity and direction are shared by every observer of the same ScrollViewer." />

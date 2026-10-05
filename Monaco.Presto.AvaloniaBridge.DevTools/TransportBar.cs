@@ -13,6 +13,7 @@ internal sealed class TransportBar : StackPanel
     private readonly Sparkline _sparkline = new() { Width = 120, Height = 18 };
     private readonly TextBlock _counters = new() { VerticalAlignment = VerticalAlignment.Center, FontSize = 12 };
     private readonly TextBlock _speed = new() { VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Opacity = 0.7 };
+    private readonly TextBlock _hidden = new() { VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Text = "hidden · paused" };
     private double _shownFrame = double.NaN;
     private double _shownSpeed = double.NaN;
 
@@ -49,6 +50,7 @@ internal sealed class TransportBar : StackPanel
         Children.Add(new Border { Child = _sparkline, Margin = new Thickness(8, 0), VerticalAlignment = VerticalAlignment.Center });
         Children.Add(_counters);
         Children.Add(_speed);
+        Children.Add(_hidden);
         Refresh();
     }
 
@@ -63,6 +65,7 @@ internal sealed class TransportBar : StackPanel
     {
         var engine = Presto.Engine;
         Freeze.IsChecked = engine.Frozen;
+        _hidden.IsVisible = engine.Hidden && engine.PauseOnHidden;
         for (var i = 0; i < Presets.Length; i++) Presets[i].IsChecked = engine.TimeDilation == s_dilations[i];
         if (engine.Speed != _shownSpeed)
         {

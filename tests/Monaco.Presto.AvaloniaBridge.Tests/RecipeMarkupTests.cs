@@ -48,6 +48,20 @@ public sealed class RecipeMarkupTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void PopoverIsAnEntranceOnOpenAndAnExitOnClose()
+    {
+        var flyout = Assert.IsType<Avalonia.Controls.Flyout>(new RecipeXamlView().Popped.Flyout);
+
+        var open = Popover.GetOpen(flyout)!.ToParams();
+        var close = Popover.GetClose(flyout)!.ToParams();
+
+        Assert.Equal(0d, From(open, "Opacity"));
+        Assert.Equal(MotionTokens.Standard.Scale, From(open, "Scale"));
+        Assert.Equal(0d, close.Properties["Opacity"].Raw);
+        Assert.Equal(MotionTokens.Standard.Scale, close.Properties["Scale"].Raw);
+    }
+
+    [AvaloniaFact]
     public void OutTrueGivesTheExitFormInAStyleSetter()
     {
         var view = new RecipeXamlView();
@@ -137,24 +151,31 @@ public sealed class RecipeMarkupTests : BridgeTestBase
     }
 
     [AvaloniaTheory]
-    [InlineData(nameof(Recipes.LineRise))]
-    [InlineData(nameof(Recipes.LineMask))]
-    [InlineData(nameof(Recipes.LineWipe))]
-    [InlineData(nameof(Recipes.WordFade))]
-    [InlineData(nameof(Recipes.WordBlur))]
-    [InlineData(nameof(Recipes.CharCascade))]
-    public void TextRevealExtensionsProvideTheirRecipe(string recipe)
+    [InlineData(nameof(Recipes.LineRise), false)]
+    [InlineData(nameof(Recipes.LineMask), false)]
+    [InlineData(nameof(Recipes.LineWipe), false)]
+    [InlineData(nameof(Recipes.WordFade), false)]
+    [InlineData(nameof(Recipes.WordBlur), false)]
+    [InlineData(nameof(Recipes.CharCascade), false)]
+    [InlineData(nameof(Recipes.LineRise), true)]
+    [InlineData(nameof(Recipes.LineMask), true)]
+    [InlineData(nameof(Recipes.LineWipe), true)]
+    [InlineData(nameof(Recipes.WordFade), true)]
+    [InlineData(nameof(Recipes.WordBlur), true)]
+    [InlineData(nameof(Recipes.CharCascade), true)]
+    public void TextRevealExtensionsProvideTheirRecipe(string recipe, bool exit)
     {
         var ease = EaseParser.Parse("outQuad");
         (TextRevealExtension extension, AnimationBuilder expected) = recipe switch
         {
-            nameof(Recipes.LineRise) => ((TextRevealExtension)new LineRiseExtension(), Recipes.LineRise(321, null, ease)),
-            nameof(Recipes.LineMask) => (new LineMaskExtension(), Recipes.LineMask(321, null, ease)),
-            nameof(Recipes.LineWipe) => (new LineWipeExtension(), Recipes.LineWipe(321, null, ease)),
-            nameof(Recipes.WordFade) => (new WordFadeExtension(), Recipes.WordFade(321, null, ease)),
-            nameof(Recipes.WordBlur) => (new WordBlurExtension(), Recipes.WordBlur(321, null, ease)),
-            _ => (new CharCascadeExtension(), Recipes.CharCascade(321, null, ease)),
+            nameof(Recipes.LineRise) => ((TextRevealExtension)new LineRiseExtension(), exit ? Recipes.LineRiseOut(321, null, ease) : Recipes.LineRise(321, null, ease)),
+            nameof(Recipes.LineMask) => (new LineMaskExtension(), exit ? Recipes.LineMaskOut(321, null, ease) : Recipes.LineMask(321, null, ease)),
+            nameof(Recipes.LineWipe) => (new LineWipeExtension(), exit ? Recipes.LineWipeOut(321, null, ease) : Recipes.LineWipe(321, null, ease)),
+            nameof(Recipes.WordFade) => (new WordFadeExtension(), exit ? Recipes.WordFadeOut(321, null, ease) : Recipes.WordFade(321, null, ease)),
+            nameof(Recipes.WordBlur) => (new WordBlurExtension(), exit ? Recipes.WordBlurOut(321, null, ease) : Recipes.WordBlur(321, null, ease)),
+            _ => (new CharCascadeExtension(), exit ? Recipes.CharCascadeOut(321, null, ease) : Recipes.CharCascade(321, null, ease)),
         };
+        extension.Out = exit;
         extension.Duration = 321;
         extension.Ease = "outQuad";
 
@@ -166,6 +187,24 @@ public sealed class RecipeMarkupTests : BridgeTestBase
         Assert.Equal(expected.ToParams().Duration, actual.Duration);
         Assert.Same(ease, actual.Ease?.Raw);
         Assert.Equal(Values(expected.ToParams()), Values(actual));
+    }
+
+    [AvaloniaFact]
+    public void TextRevealsAreTheirExitFormOnExitAndTheirEntranceOnEnter()
+    {
+        var view = new RecipeXamlView();
+        var tokens = MotionTokens.Standard;
+
+        foreach (var block in new[] { view.Cascaded, view.Risen })
+        {
+            var enter = Presence.GetEnter(block)!.ToParams();
+            var exit = Presence.GetExit(block)!.ToParams();
+            Assert.Equal(0d, From(enter, "Opacity"));
+            Assert.Equal(0d, exit.Properties["Opacity"].Raw);
+        }
+        Assert.Equal(tokens.Distance, Presence.GetExit(view.Cascaded)!.ToParams().Properties["Y"].Raw);
+        Assert.IsType<FunctionValue>(Presence.GetExit(view.Risen)!.ToParams().Properties["Y"].Raw);
+        Assert.Equal(TextPieces.Chars, TextReveal.GetPieces(view.Cascaded));
     }
 
     [AvaloniaFact]

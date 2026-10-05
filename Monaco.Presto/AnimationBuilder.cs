@@ -79,6 +79,8 @@ public sealed class AnimationBuilder : PropertyBuilder<AnimationBuilder>
     /// <inheritdoc cref="AnimationParams.OnRender"/>
     public AnimationBuilder OnRender(Action<Timer> callback) { _settings = _settings with { OnRender = callback }; return this; }
 
+    internal AnimationBuilder HostLifetime(object? lifetime) { _settings = _settings with { HostLifetime = lifetime }; return this; }
+
     /// <summary>Sets the animation-level keyframes <paramref name="keyframes"/> adds, replacing any set before.</summary>
     public AnimationBuilder Keyframes(Action<KeyframesBuilder> keyframes)
     {
