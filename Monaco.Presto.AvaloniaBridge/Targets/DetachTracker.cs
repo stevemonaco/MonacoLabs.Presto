@@ -75,7 +75,7 @@ internal sealed class DetachTracker(Timer root, WhenDetached mode)
         if (visual.IsAttachedToVisualTree()) Changed(1);
     }
 
-    private bool Ended => _continues || root.Cancelled;
+    private bool Ended => _continues || root.Canceled;
 
     private static void OnAttached(object? sender, VisualTreeAttachmentEventArgs e) => Changed((Visual)sender!, 1);
 

@@ -367,7 +367,7 @@ public sealed class AnimatablesTests : EngineTestBase
     }
 
     [Fact]
-    public void AChannelRetargetKeepsEachColourChannelsMomentum()
+    public void AChannelRetargetKeepsEachColorChannelsMomentum()
     {
         var animatable = ChannelFollower(new StyleTarget(), "BackgroundColor", preserveVelocity: true);
 

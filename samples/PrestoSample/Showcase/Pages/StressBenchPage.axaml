@@ -41,7 +41,7 @@
                         <ComboBox x:Name="SetBox" SelectedIndex="1" Width="170" SelectionChanged="Rebuild">
                             <ComboBoxItem>Opacity only</ComboBoxItem>
                             <ComboBoxItem>Transform</ComboBoxItem>
-                            <ComboBoxItem>Transform + colour</ComboBoxItem>
+                            <ComboBoxItem>Transform + color</ComboBoxItem>
                         </ComboBox>
                         <ToggleSwitch x:Name="WorkerToggle" OnContent="Worker engine" OffContent="Worker engine"
                                       IsCheckedChanged="Rebuild" />

@@ -114,7 +114,7 @@ public sealed class ConnectedNavPageTests
     }
 
     private static bool Hittable(Window window, Button button) =>
-        window.GetInputElementsAt(SceneHarness.Centre(button, window)).Any(hit => hit is Visual visual && (visual == button || button.IsVisualAncestorOf(visual)));
+        window.GetInputElementsAt(SceneHarness.Center(button, window)).Any(hit => hit is Visual visual && (visual == button || button.IsVisualAncestorOf(visual)));
 
     private static Border[] Cards(ConnectedNavPage page) =>
         [.. page.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("place"))];

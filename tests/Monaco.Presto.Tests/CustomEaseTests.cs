@@ -49,7 +49,7 @@ public sealed class CustomEaseTests
     }
 
     [Fact]
-    public void PathIsNormalisedToTheUnitSquare()
+    public void PathIsNormalizedToTheUnitSquare()
     {
         AssertClose(Eases.FromPath("M0,0 C0.2,0 0.4,1 1,1"), Eases.FromPath("M10,5 C30,5 50,105 110,105"), 1e-9);
     }

@@ -30,7 +30,7 @@ public sealed class RippleTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(Key.Enter)]
     [InlineData(Key.Space)]
-    public void EnterAndSpaceRippleFromTheCentre(Key key)
+    public void EnterAndSpaceRippleFromTheCenter(Key key)
     {
         var host = ShowHost(new Size(160, 100));
 
@@ -113,7 +113,7 @@ public sealed class RippleTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false, "SystemAccentColor")]
     [InlineData(true, "SystemAccentColorLight2")]
-    public void TheDefaultColourIsTheThemeAccentAtLowAlpha(bool dark, string resource)
+    public void TheDefaultColorIsTheThemeAccentAtLowAlpha(bool dark, string resource)
     {
         var host = ShowHost(new Size(60, 40));
         Ripple.SetColor(host, null);

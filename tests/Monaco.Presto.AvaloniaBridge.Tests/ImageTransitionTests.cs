@@ -197,7 +197,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Assert.IsType<RenderTargetBitmap>(image.Outgoing);
         Tick();
         Assert.True(Difference(before, Capture(image)) < 1);
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
 
         Frames.Advance(150, 10);
         Tick();
@@ -206,7 +206,7 @@ public sealed class ImageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void ColourFiltersApplyToBothImagesMidTransition()
+    public void ColorFiltersApplyToBothImagesMidTransition()
     {
         var (image, animation) = RedToBlue(ImageTransitionKind.Crossfade);
         image.Grayscale = 1;

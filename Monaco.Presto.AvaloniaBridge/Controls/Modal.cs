@@ -9,7 +9,7 @@ namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// A dialog over a scrim that covers its host: <see cref="Open(Visual?)"/> reveals its content in a circle grown from an
-/// element's centre, and Escape, a tap on the scrim or <see cref="Close"/> closes it and gives focus back to the opener.
+/// element's center, and Escape, a tap on the scrim or <see cref="Close"/> closes it and gives focus back to the opener.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -100,7 +100,7 @@ public sealed class Modal : Control
         set => SetValue(BackdropProperty, value);
     }
 
-    /// <summary>Opens the modal, revealing its content from the centre of <paramref name="from"/>, or at once without it.</summary>
+    /// <summary>Opens the modal, revealing its content from the center of <paramref name="from"/>, or at once without it.</summary>
     public void Open(Visual? from = null) => Reveal(from?.TranslatePoint(new Point(from.Bounds.Width / 2, from.Bounds.Height / 2), this));
 
     /// <summary>Opens the modal, revealing its content from <paramref name="origin"/>, in the modal's coordinates.</summary>
@@ -172,7 +172,7 @@ public sealed class Modal : Control
 
     private static AnimationBuilder Shrink(Point at)
     {
-        var centre = TweenValue.Of(new RelativePoint(at, RelativeUnit.Absolute));
-        return Presto.Build().ClipCircle(0).ClipCircleCenter(from: centre, to: centre).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease);
+        var center = TweenValue.Of(new RelativePoint(at, RelativeUnit.Absolute));
+        return Presto.Build().ClipCircle(0).ClipCircleCenter(from: center, to: center).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease);
     }
 }

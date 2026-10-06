@@ -4,7 +4,7 @@ using PrestoSample.Showcase;
 namespace PrestoSample.Pages;
 
 /// <summary>
-/// <see cref="Ripple"/> on buttons in three forms, on focusable cards in three colours with the state layer, and on the
+/// <see cref="Ripple"/> on buttons in three forms, on focusable cards in three colors with the state layer, and on the
 /// rows of a scrolling <c>ListBox</c>.
 /// </summary>
 public partial class RipplePage : ShowcasePage

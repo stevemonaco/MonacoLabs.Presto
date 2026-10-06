@@ -67,7 +67,7 @@
                     <StackPanel Spacing="6">
                         <TextBlock Text="Named thresholds" FontSize="18" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
-                                   Text="Enters 120 units before the bottom edge reaches its top, and leaves when the top edge reaches its centre." />
+                                   Text="Enters 120 units before the bottom edge reaches its top, and leaves when the top edge reaches its center." />
                         <showcase:CodePanel Code="{x:Static showcase:Snippets.ScrollThreshold}" />
                     </StackPanel>
                 </Border>

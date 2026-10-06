@@ -53,7 +53,7 @@ public static class Popover
 
     static Popover()
     {
-        // The current value, not the notification's, since a cancelled hide re-opens inside the owner's own handler.
+        // The current value, not the notification's, since a canceled hide re-opens inside the owner's own handler.
         FlyoutBase.IsOpenProperty.Changed.AddClassHandler<PopupFlyoutBase>((flyout, _) =>
         {
             if (!flyout.IsOpen) End(flyout);

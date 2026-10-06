@@ -144,7 +144,7 @@ public sealed class BuilderPagesTests
         page.GetVisualDescendants().OfType<ToggleSwitch>().Single().IsChecked = true;
         TestFrames.Tick();
 
-        Assert.True(idle.Cancelled);
+        Assert.True(idle.Canceled);
         Assert.Single(Presto.GetAnimations(bound, "X"));
         Assert.Empty(Presto.GetAnimations(bound, "Y"));
         SceneHarness.Close(window);
@@ -162,7 +162,7 @@ public sealed class BuilderPagesTests
         TestFrames.Tick();
         var items = (ObservableCollection<string>)list.ItemsSource!;
         var row = list.ContainerFromIndex(0)!;
-        var grab = SceneHarness.Centre(row, window);
+        var grab = SceneHarness.Center(row, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 4; i++)

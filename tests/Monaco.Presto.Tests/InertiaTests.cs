@@ -127,7 +127,7 @@ public sealed class InertiaTests : EngineTestBase
     }
 
     [Fact]
-    public void AColourPropertyThrows() =>
+    public void AColorPropertyThrows() =>
         Assert.Throws<ArgumentException>(() => Presto.Animate(new StyleTarget(), new() { ["BackgroundColor"] = new Inertia(1) }));
 
     [Fact]

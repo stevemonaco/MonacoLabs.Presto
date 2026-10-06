@@ -19,7 +19,7 @@ public sealed record ParticleCurve
     /// <summary>The value at age 1.</summary>
     public double To { get; init; }
 
-    /// <summary>The ease applied to the normalised age; linear when unset.</summary>
+    /// <summary>The ease applied to the normalized age; linear when unset.</summary>
     public EaseValue Ease
     {
         get;

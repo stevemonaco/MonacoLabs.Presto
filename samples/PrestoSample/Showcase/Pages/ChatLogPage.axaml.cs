@@ -38,7 +38,7 @@ public partial class ChatLogPage : ShowcasePage
         if (scroll.Offset.Y >= scroll.ScrollBarMaximum.Y - EndTolerance) ViewModel.Behind = false;
         else if (e.OffsetDelta.Y < 0) ViewModel.Behind = true;
         // ScrollToIndex follows the item it was given, so a message landing mid-jump needs a new target.
-        if (_jump is { Completed: false, Cancelled: false } && _jumpIndex != ViewModel.Messages.Count - 1) JumpToNewest();
+        if (_jump is { Completed: false, Canceled: false } && _jumpIndex != ViewModel.Messages.Count - 1) JumpToNewest();
     }
 
     private void JumpToNewest(object? sender, RoutedEventArgs e) => JumpToNewest();

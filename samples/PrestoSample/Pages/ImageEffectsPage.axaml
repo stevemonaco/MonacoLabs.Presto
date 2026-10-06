@@ -93,7 +93,7 @@
             <showcase:CodeTabs x:Name="DevelopCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsDevelop}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="A duotone card whose shadow and highlight colours animate whenever its theme variant changes; the switch puts the card in a light ThemeVariantScope" />
+                       Text="A duotone card whose shadow and highlight colors animate whenever its theme variant changes; the switch puts the card in a light ThemeVariantScope" />
             <Border Classes="stage" MinHeight="0">
                 <Grid ColumnDefinitions="*,Auto">
                     <ThemeVariantScope x:Name="DuotoneScope" HorizontalAlignment="Left">

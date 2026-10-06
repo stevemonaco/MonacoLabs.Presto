@@ -20,13 +20,13 @@ is a deliberate, opt-in deviation.
   Opt-in because it changes what a spring-eased animatable does, and because `Draggable` drives its own release springs
   through an `Animatable` and sets their velocity itself.
 - Applies to `Set(property, double, …)` when the property's ease is a `Spring` — its own, the animatable's, or the one
-  passed to `Set`. Any other ease, and the channel form `Set(property, IReadOnlyList<double>, …)`, keep today's behaviour.
+  passed to `Set`. Any other ease, and the channel form `Set(property, IReadOnlyList<double>, …)`, keep today's behavior.
 - At retarget, per tween:
   1. **Measure** the value's velocity in units per engine-time unit from the running ease: a central difference of the
      ease at the tween's current time, times the tween's distance, over its duration. A spring's own `Ease` is sampled
      through its `PureEase` so the measurement never raises the spring's `OnComplete`. A paused, completed or not-yet-started
      tween has zero velocity.
-  2. **Normalise** it into the spring solver's unit — progress per solver second, `v * K * TimeScale / (to - from)` — which
+  2. **Normalize** it into the spring solver's unit — progress per solver second, `v * K * TimeScale / (to - from)` — which
      is exactly the `Spring.Velocity` the solver takes (its `x'(0)`). A retarget to the current value (zero distance)
      cannot carry velocity in an ease-based model and starts at rest.
   3. **Build** a `Spring` with the source spring's mass, stiffness and damping and that velocity. Its settling duration
@@ -40,7 +40,7 @@ is a deliberate, opt-in deviation.
 
 - A retarget mid-flight with `PreserveVelocity` keeps moving the old way for a few frames before turning back, and the
   per-frame step either side of the retarget matches within tolerance.
-- Without the flag the first frame after a retarget moves (almost) nothing, which pins today's behaviour.
+- Without the flag the first frame after a retarget moves (almost) nothing, which pins today's behavior.
 - Retargeting a settled, or never-started, property starts at rest.
 - A non-spring ease ignores the flag.
 - The property settles exactly on the new target and the animatable's `OnComplete` fires once.
@@ -63,7 +63,7 @@ Two things the current codec contract cannot express:
 
 1. A value whose *shape* differs between its two ends (a 2-stop and a 3-stop gradient, one shadow and two) must be made
    to agree before interpolation. The core only knows how to pad the shorter channel list with zeros, which is wrong for
-   colours and offsets.
+   colors and offsets.
 2. A string end value the core would misparse. `"0 4 16 0 #40000000"` becomes a complex value whose "numbers" include the
    hex digits.
 
@@ -72,7 +72,7 @@ New optional interface in `Monaco.Presto.Targets`:
 ```csharp
 public interface IReconcilingValueCodec : IValueCodec
 {
-    // Claims a string end value before the core parses it; false leaves it to the core (plain colours, relative values).
+    // Claims a string end value before the core parses it; false leaves it to the core (plain colors, relative values).
     bool TryParse(string text, DecomposedValue into);
 
     // Makes both ends the same kind and channel count, once both are decomposed and relative values resolved.
@@ -81,7 +81,7 @@ public interface IReconcilingValueCodec : IValueCodec
 ```
 
 - `ValueParser.Decompose` asks a reconciling codec first for a non-relative string.
-- `Animation` calls `Reconcile` just before `Homogenise`/`PadShorterValue`, which then have nothing left to do.
+- `Animation` calls `Reconcile` just before `Homogenize`/`PadShorterValue`, which then have nothing left to do.
 - Discrete fields (gradient kind, spread method, units, inset) ride as channels and are read by `Encode` from the tween's
   `_toNumbers`, the way `RelativePointCodec` takes the end value's unit.
 
@@ -98,19 +98,19 @@ A gradient decomposes as a complex value:
 | 4–9 | geometry: linear `Start.X, Start.Y, End.X, End.Y, 0, 0`; radial `Center.X, Center.Y, Origin.X, Origin.Y, RadiusX, RadiusY`; conic `Center.X, Center.Y, Angle, 0, 0, 0` |
 | 10… | one `(offset, r, g, b, a)` per gradient stop, sorted by offset |
 
-A solid brush still decodes as a colour, and a missing brush as the number 0. `Reconcile`:
+A solid brush still decodes as a color, and a missing brush as the number 0. `Reconcile`:
 
-- **solid ↔ gradient:** the solid end takes the gradient's shape, every stop in its colour (a missing brush uses the
-  gradient's own stop colours at alpha 0, so it fades in without a dark fringe). A gradient → solid tween marks its end
+- **solid ↔ gradient:** the solid end takes the gradient's shape, every stop in its color (a missing brush uses the
+  gradient's own stop colors at alpha 0, so it fades in without a dark fringe). A gradient → solid tween marks its end
   kind 0, and `Encode` writes a `SolidColorBrush` on the final frame so the property ends on the brush type it was aimed at.
 - **gradient ↔ gradient:** stops are resampled onto the union of both ends' offsets, so a 2-stop → 3-stop tween
-  interpolates colour at each offset instead of padding. A kind mismatch snaps the geometry to the end value's (geometry
+  interpolates color at each offset instead of padding. A kind mismatch snaps the geometry to the end value's (geometry
   is not convertible between kinds) while stops still interpolate. A unit mismatch lerps the raw numbers in the end value's
   units, as `RelativePointCodec` does.
 
 `Encode` keeps one gradient brush per tween and rewrites its stops in place (the solid path already does this), because
 the brush being animated from is often immutable or shared. A brush's `Transform` is not carried. Strings are not parsed
-as gradients (Avalonia's `Brush.Parse` reads colours only), so an end value is a brush instance: `TweenValue.Of(brush)`,
+as gradients (Avalonia's `Brush.Parse` reads colors only), so an end value is a brush instance: `TweenValue.Of(brush)`,
 a resource or the builder's typed overloads.
 
 ### Box-shadow codec (`BoxShadowsCodec`, new, registered for `BoxShadows`)
@@ -118,7 +118,7 @@ a resource or the builder's typed overloads.
 - Each shadow is `(inset, offsetX, offsetY, blur, spread, r, g, b, a)`; an empty `BoxShadows` is a complex value with no
   channels.
 - `TryParse` claims strings through `BoxShadows.Parse` (`"0 4 16 0 #40000000"`, comma-separated lists, `inset`).
-- `Reconcile` pads the shorter list as CSS does, with a zero shadow, but in the counterpart's colour at alpha 0 so
+- `Reconcile` pads the shorter list as CSS does, with a zero shadow, but in the counterpart's color at alpha 0 so
   that growing or dropping a shadow fades instead of flashing black. Inset is discrete and taken from the end value.
 
 ### Builder
@@ -128,7 +128,7 @@ shorthand set (`TweenValue` string, tween params, keyframes) plus a typed `BoxSh
 
 ### Tests (`CodecTests`, bridge)
 
-Linear stop colours and points at 50 %; 2 → 3 stop resampling; solid → gradient and gradient → solid (ends as a
+Linear stop colors and points at 50 %; 2 → 3 stop resampling; solid → gradient and gradient → solid (ends as a
 `SolidColorBrush`); null → gradient fades in via alpha; radial and conic geometry; the kind mismatch snap; one brush
 instance reused per tween; shadow string parse, single shadow interpolation, 1 → 2 shadow padding, inset from the end
 value, empty → shadow.
@@ -181,8 +181,8 @@ subtree was cut from.
     transform held by the shorthands is suspended by emptying the composer's group for the render, which changes no
     property and so does not trip its re-assert, and moves onto the ghost as a `MatrixTransform`. Any other render
     transform stays baked in.
-- **Lifetime:** the ghost leaves the overlay when its animation completes or is cancelled/reverted (`OnPause` with
-  `Cancelled`), so a scope reverting on page unload also clears ghosts. Timer callbacks are chained, not replaced.
+- **Lifetime:** the ghost leaves the overlay when its animation completes or is canceled/reverted (`OnPause` with
+  `Canceled`), so a scope reverting on page unload also clears ghosts. Timer callbacks are chained, not replaced.
 - **What a builder may animate:** the ghost is an `Image`, so an exit animates the transform shorthands and `Opacity`
   (and anything else an `Image` has). A property only the original control has, such as `Background`, throws as it
   would on any other target. This is documented on `Exit`.
@@ -198,7 +198,7 @@ subtree was cut from.
 - Closing the window leaves no ghost (`AttachmentPoint` is null).
 - A ghost from a scrolled `ScrollViewer` is clipped to the viewport.
 - `AnimateExit` ghosts an attached control and returns null for a detached one.
-- Cancelling or reverting the exit animation removes the ghost; the scope of the caller reverts it.
+- Canceling or reverting the exit animation removes the ghost; the scope of the caller reverts it.
 
 ### Sample
 

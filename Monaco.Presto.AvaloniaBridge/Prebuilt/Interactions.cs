@@ -5,7 +5,7 @@ namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 /// <summary>
 /// Interaction recipes for <see cref="Motion.HoverProperty"/>, <see cref="Motion.PressProperty"/>,
 /// <see cref="Motion.FocusProperty"/> and <see cref="MotionState"/>: absolute to-values that the state holds and returns
-/// from. While <see cref="PrestoDefaults.ReducedMotion"/> is set each keeps its colour, opacity and shadow but drops its
+/// from. While <see cref="PrestoDefaults.ReducedMotion"/> is set each keeps its color, opacity and shadow but drops its
 /// travel and scale.
 /// </summary>
 /// <remarks>
@@ -45,7 +45,7 @@ public static class Interactions
         Start(duration, delay, ease, b => b.Opacity(1 - (0.4 * intensity)));
 
     /// <summary>
-    /// Brings a <see cref="Controls.PrestoImageBase"/> to full colour, <see cref="Controls.PrestoImageBase.Grayscale"/> 0 and
+    /// Brings a <see cref="Controls.PrestoImageBase"/> to full color, <see cref="Controls.PrestoImageBase.Grayscale"/> 0 and
     /// <see cref="Controls.PrestoImageBase.Saturate"/> 1, from the grayscale its resting values set. Reduced: the same change.
     /// </summary>
     public static AnimationBuilder Colorize(double? duration = null, double? delay = null, EaseValue? ease = null) =>

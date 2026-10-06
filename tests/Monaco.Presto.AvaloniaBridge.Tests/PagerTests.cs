@@ -130,7 +130,7 @@ public sealed class PagerTests : CompositorTestBase
         Frames.Advance(600, 20);
         Assert.Equal(1, pager.SelectedIndex);
 
-        if (hold == "hover") window.MouseMove(Centre(pager, window));
+        if (hold == "hover") window.MouseMove(Center(pager, window));
         else pager.Focus(NavigationMethod.Tab);
         Frames.Advance(3000, 20);
 

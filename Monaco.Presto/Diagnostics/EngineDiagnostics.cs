@@ -46,13 +46,13 @@ public sealed class EngineDiagnostics
     /// <summary>The engine's moving <see cref="MotionValue"/>s.</summary>
     public IReadOnlyList<MotionValue> ActiveValues => _engine._activeValues;
 
-    /// <summary>The latest roots that completed, were cancelled or were reverted, oldest first and capped at 32.</summary>
+    /// <summary>The latest roots that completed, were canceled or were reverted, oldest first and capped at 32.</summary>
     public IReadOnlyList<Timer> RecentlyEnded => _recentlyEnded;
 
     /// <summary>Statistics of the latest engine update.</summary>
     public ref readonly FrameStats LastFrame => ref _lastFrame;
 
-    /// <summary>Raised once per root timer created while enabled, after a factory has initialised it.</summary>
+    /// <summary>Raised once per root timer created while enabled, after a factory has initialized it.</summary>
     public event Action<Timer>? TimerCreated;
 
     internal TimerDiagnostics Register(Timer root)

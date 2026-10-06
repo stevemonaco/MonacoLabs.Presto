@@ -5,7 +5,7 @@ using Avalonia.VisualTree;
 namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
-/// An <see cref="Avalonia.Controls.Image"/> with animatable CSS-style colour filters such as <see cref="PrestoImageBase.Grayscale"/>
+/// An <see cref="Avalonia.Controls.Image"/> with animatable CSS-style color filters such as <see cref="PrestoImageBase.Grayscale"/>
 /// and <see cref="PrestoImageBase.HueRotate"/>, which can swap its source through an <see cref="ImageTransition"/>.
 /// </summary>
 public sealed class FilteredImage : PrestoImageBase

@@ -1,188 +1,188 @@
-# Colour interpolation spaces
+# Color interpolation spaces
 
-Phase 30 in [PLAN.md](PLAN.md), split into 30a (core, solid colours) and 30b (bridge, colours inside gradients and
-shadows). Status: **planned**. This plan follows the post-Phase-27 gap review: every colour tween interpolates in one
-fixed RGB space, so red → green passes through a dark olive, blue → yellow through gray, and a theme change from one
-brand hue to another dips in lightness halfway. CSS (`color-mix`, `in oklch` gradients), Framer Motion and GSAP all offer
-a perceptual space; Presto offers none.
+Phase 30 in [PLAN.md](PLAN.md). Status: **planned**. This plan replaces an earlier design that added a color space to
+every tween (per-tween space buffers, blend composition and `Animatable` retargets in the space, color slots in
+gradient and shadow codecs). Measuring that design against today's behavior showed it bought little. The plan is now
+CSS Color 4 color math as a public utility, plus a keyframe expander that makes any color tween follow a perceptual
+path through the existing renderer.
 
 | Phase | Scope | Size |
 |---|---|---|
-| 30a | Core: `ColorSpace` and `HueInterpolation` on tweens, animations, keyframes, animatables and defaults; conversion, hue, alpha and gamut rules for `ValueKind.Color`; blend composition; `Animatable` channel retargets | medium |
-| 30b | Bridge: colour slots inside complex values, so gradient stops (including resampled ones) and box-shadow colours follow the space; `ShadowColor` and solid brushes come free from 30a | small–medium |
+| 30 | Core: CSS Color 4 conversions, gamut mapping and mixing on `PrestoColor`; OKLCH adjusters; a color-path keyframe expander; `culori` fixtures. Sample: hue-cycle and status-flip demos | small–medium |
 
-## 0. What the code does today (verified)
+## 0. Why the per-tween design was dropped (measured)
 
-- **Solid colours** (`ValueKind.Color`, four channels R, G, B in 0–255 and A in 0–1) are lerped in the colour branch of
-  `Renderer.Render` pseudo-linearly with premultiplied alpha (PLAN decision 117):
-  `sqrt(lerp(a₀·from², a₁·to², p) / lerp(a₀, a₁, p))` per RGB channel, alpha linear. With equal alphas that is
-  upstream anime.js 4.5.0's `sqrt(from² · (1 − p) + to² · p)` to the bit (`src/core/render.js`, "pseudo-linear space …
-  to approximate gamma-correct blending"), which the generated fixtures and ported `colors` tests depend on.
-- **Every consumer reads RGB from `tween._numbers`:** `ColorCodec.Encode`, `BrushCodec`'s solid path,
-  `EffectAccessor` for `ShadowColor`, `Tween._value` (`PrestoColor.FormatRgba`) for string targets, and
-  `Animatable.GetChannels`. `Animatable.Set(property, channels)` writes RGB into `_fromNumbers`/`_toNumbers` directly.
-- **Gradients and box shadows are `ValueKind.Complex`,** with colours embedded as four-number slots (`BrushCodec`:
-  five numbers per stop after ten header numbers; `BoxShadowsCodec`: channels at offset 5 per shadow). The core lerps
-  complex numbers plainly (`Tween.ComposeComplexNumbers`), so these colours are interpolated in gamma sRGB, *not* the
-  pseudo-linear space solid colours use, and with straight alpha until 30b. `BrushCodec.ColorAt`, which resamples
-  stops onto the union of offsets (decision 21), lerps in gamma sRGB with premultiplied alpha. The core itself never produces colour slots in complex values: embedded hex
-  or `rgb()` inside a complex string is not parsed as a colour.
-- **Blend composition** (`Composer.ComposeBlendedTween`) turns a blended tween's channels into deltas from the additive
-  lookup (`from = base − to`, `to = 0`) and `Additive.Update` sums `_numbers` across siblings. A colour delta still goes
-  through the straight-alpha pseudo-linear branch, which computes `|from| · sqrt(1 − p)`: a negative delta loses its sign and the curve
-  is not linear. Upstream has the same arithmetic. Pin this with a test before 30a changes the branch (§4).
-- **Relative values** (`+=`, `-=`, `*=`) apply to numbers only; a colour string cannot be relative.
-- **The compositor carries no colour.** `CompositorTrackKind` is `Translation`, `Scale`, `RotationAngle` and `Opacity`
-  only, so nothing in `Compositor/` changes.
-- **Per-tween options already flow one way:** `Composition` is on `TweenParams`, `Keyframe`, `AnimatableProperty`,
-  `AnimationParams`, `AnimationBuilder.Composition(...)`, `PropertyBuilder(composition:)` and
-  `DefaultsParams`/`PrestoDefaults`, resolved per tween in the `Animation` constructor (`key?.Composition ??
-  tComposition`). The new options follow the same path.
+- **`Default` is not plain sRGB.** Solid colors blend pseudo-linearly with premultiplied alpha (PLAN decision 117),
+  `sqrt(lerp(c²))`, which approximates linear light. Red → green at 50% renders (180,180,0), OKLab L .75, exactly the
+  lightness an OKLab blend gives, (208,168,0). The olive dip (128,128,0), L .58, is plain sRGB, which only gradient and
+  shadow color slots use.
+- **OKLab vs `Default` is a wash in practice.** Across red → green, indigo → rose, blue-600 → orange-500 and slate →
+  teal, the midpoints differ by a small hue shift and at most .01 in L; `Default` is sometimes the more saturated one.
+  No one sees this in a 300 ms transition.
+- **Complementary pairs go gray in every straight-line space.** Blue → yellow is C 0 in sRGB and `Default`, and C .08
+  in OKLab. Only OKLCH, which travels around the hue wheel, keeps the color saturated.
+- **So the new capability is the hue path, not the space.** OKLCH arcs and even-lightness hue sweeps are something
+  Presto cannot do today. Both can be expressed as color keyframes, and with short enough segments `Default`'s blend
+  between them is indistinguishable from the true curve (§4 pins the bound). Per-tween buffers, blend-composition deltas
+  in the space, retarget rules and codec color slots are not needed for that.
 
 ## 1. Decisions
 
-1. **Spaces.** `ColorSpace.Default` (upstream pseudo-linear, premultiplied), `Srgb` (plain gamma lerp, what gradients do
-   today), `LinearSrgb`, `Oklab` and `Oklch`. OKLab is the recommended perceptual choice: straight, even lightness,
-   no hue surprises. OKLCH is for sweeps that should travel around the hue wheel. HSL and CIE Lab/LCH are left out;
-   OKLab and OKLCH supersede them, and CSS keeps them mainly for compatibility (§5).
-2. **Default stays as it is.** `PrestoDefaults.ColorSpace` is `Default` (upstream's pseudo-linear blend with
-   premultiplied alpha, PLAN decision 117), so every existing test, fixture and sample is untouched. An app opts in globally through `Presto.Defaults`, per animation, or per property.
-3. **Convert once at setup, back once per frame.** When a tween's space is not `Default`, the `Animation` constructor
-   converts both ends into the space once and keeps them in two new per-tween buffers (`_spaceFrom`, `_spaceTo`,
-   allocated only for non-default spaces). The renderer lerps those and converts the result back into `_numbers` as RGB.
-   Everything that reads `_numbers` (codecs, `ShadowColor`, strings, `GetChannels`) is unchanged, and the default path
-   gains one branch on an enum.
-4. **Ends are exact.** At progress 0 and 1 the renderer copies the RGB ends instead of converting back, so a
-   completed tween, `Presto.Set`, `ReduceAll` and `Revert` land on the declared colour to the bit, not on a round trip.
-5. **Hue interpolation follows CSS Color 4.** `HueInterpolation.Shorter` (default), `Longer`, `Increasing`,
-   `Decreasing`, applied only in `Oklch`. The unwrap happens at setup: the end hue is shifted by ±360 so a plain lerp
-   takes the chosen arc, and the per-frame path has no branches for it.
-6. **Achromatic hue is powerless.** When one end's OKLCH chroma is below 4e-4 (CSS's powerless threshold, roughly
-   where sRGB grays land), its hue takes the other end's; both achromatic take 0. So white → blue stays blue-ish
-   instead of passing through a hue that is neither.
-7. **Alpha is premultiplied in the new spaces.** As CSS does, the colour channels (L, a, b; or L, C, not h) are
-   multiplied by alpha before the lerp and divided after, so transparent → red fades in red instead of through dark.
-   `Default` premultiplies too (PLAN decision 117).
-8. **Gamut mapping is a clip in linear sRGB.** OKLab lines between two sRGB colours stay nearly in gamut; OKLCH arcs can
-   leave it. The conversion back clamps each linear channel to [0, 1] before encoding. CSS Color 4's chroma-reduction
-   mapping is more faithful but iterative; it is an open question, not a default (§5).
-9. **Blend composition sums deltas in the space.** A blended tween's deltas are computed from `_spaceFrom`/`_spaceTo`,
-   lerped linearly (not through the pseudo-linear branch), summed by `Additive.Update` in the space, and the lookup tween
-   converts the sum back. OKLCH hue deltas sum as angles. Siblings with different spaces under one lookup take the
-   lookup's (the first blended tween's) space; the docs say to keep one space per blended property.
-10. **Animatable retargets stay in the space.** The channel form of `Set` takes RGB (as `GetChannels` returns), converts
-    the new end into the space, starts from the current `_spaceNumbers` (not a round trip through `_numbers`), and
-    re-runs the hue unwrap. The scalar `PreserveVelocity` path is untouched.
-11. **No relative colours, no function-based space.** Relative colour values do not exist today and stay out. The
-    space is a plain enum, like `Composition` (PLAN §7 open question on function-based `composition`).
-12. **Reduced motion is unaffected.** `ReduceAll` collapses durations; decision 4 makes the landing exact.
-13. **30b marks colour slots through the codec.** `IReconcilingValueCodec` gains an optional
-    `ReadOnlySpan<int> ColorSlots(DecomposedValue)` (offsets of four-channel colours inside the numbers). The tween
-    records them at setup; `ComposeComplexNumbers` lerps other numbers as today and routes each slot through the colour
-    path of decision 3. `BrushCodec.ColorAt` resamples stops in the tween's space so a resampled stop lies on the curve
-    the tween will follow. `Default` for complex colours keeps today's gamma-sRGB lerp, not pseudo-linear, so gradients
-    do not change behaviour silently.
+1. **Own implementation, no package.** The core has no package references and stays that way. CSS Color 4 specifies
+   every formula, and Björn Ottosson publishes the OKLab matrices; the whole thing is about 300 lines in one internal
+   static class. Considered and rejected: Wacton.Unicolor (complete and MIT, but large, object-per-color, and it would
+   be the core's first dependency), Colorful (color science, not CSS mixing), and Avalonia's `HslColor`/`HsvColor`
+   (bridge-only, wrong spaces).
+2. **`culori` is the reference.** It implements CSS Color 4 interpolation and gamut mapping. It joins `animejs` in
+   `tools/anime-fixtures/` as a dev dependency only, writes `colors.json`, and the C# tests assert against it within
+   1e-6, the same parity method as the anime.js port.
+3. **Spaces: `Srgb`, `LinearSrgb`, `Oklab`, `Oklch`.** These are the CSS `srgb`, `srgb-linear`, `oklab` and `oklch`
+   interpolation spaces. HSL, HWB and CIE Lab/LCH are left out; OKLab and OKLCH supersede them for interpolation, and
+   they are cheap to add later from the same conversion table (§6). Display-P3 and other wide gamuts are out: Avalonia
+   renders in sRGB. There is no `Default` member; the expander is opt-in, and a plain color tween is today's blend.
+4. **Hue interpolation follows CSS Color 4.** `HueInterpolation.Shorter` (default), `Longer`, `Increasing`,
+   `Decreasing`, applied in `Oklch` only. The end hue is unwrapped by ±360 once, so the lerp takes the chosen arc.
+5. **Powerless hue.** When one end's OKLCH chroma is below 4e-4 (CSS's achromatic threshold, roughly where sRGB grays
+   land), its hue takes the other end's; both achromatic take 0. White → blue stays blue-ish instead of passing through
+   an unrelated hue. culori marks achromatic hues as missing only at exactly zero chroma, so the fixture generator applies
+   the same threshold before calling it, documented in the generator.
+6. **Premultiplied alpha.** As CSS does and as `Default` does since decision 117: the color channels (L, a, b; or L, C,
+   not h; or R, G, B) are multiplied by alpha before the lerp and divided after. Alpha lerps linearly.
+7. **Gamut mapping is CSS Color 4's, not a clip.** OKLCH arcs and OKLCH adjusters leave the sRGB gamut easily, and a
+   per-channel clip shifts hue and flattens sweeps. Out-of-gamut results use the spec's algorithm: L ≥ 1 is white,
+   L ≤ 0 is black, otherwise binary-search the chroma down (ε 1e-4) until the clipped color is within deltaEOK 0.02
+   (the JND) of the reduced one, and return the clipped color. Colors already in gamut skip the search. `Srgb` and
+   `LinearSrgb` mixes of in-gamut colors never leave the gamut and skip it entirely.
+8. **Mix extrapolates.** `t` outside [0, 1] is allowed (overshooting eases go past the ends), and the result is gamut
+   mapped. Ends are exact: `t = 0` and `t = 1` return the inputs, not a round trip through the space.
+9. **The expander keeps the ease exact.** Expanding a color tween into N equal-duration segments with the tween's ease
+   on each segment would restart the ease N times. Instead, with the tween ease E, segment i's end color is
+   `Mix(from, to, E((i+1)/N))` and its ease is the slice of E rescaled to 0–1:
+   `e_i(s) = (E((i+s)/N) − E(i/N)) / (E((i+1)/N) − E(i/N))`. Timing is exactly E's; only the color between segment
+   ends is approximated by the pseudo-linear blend. A flat slice (`Steps`, a hold) gets a hold ease. A spring resolves to
+   its ease and its settling duration first, as a plain tween does. The color path is approximate only between segment
+   ends, and the segment count bounds it (decision 10).
+10. **Segment count is adaptive.** `Srgb`, `LinearSrgb` and `Oklab`: 4 (the blend between segment ends is
+    pseudo-linear, so even `Srgb` needs a few). `Oklch`: `ceil(arc / 30°)`, at least 4, at most 24. An explicit
+    `segments:` overrides. §4 pins the worst deviation of the rendered path from the true mix below deltaEOK
+    0.02 for the defaults.
+11. **Both ends must be known.** The expander runs at build time and cannot read a target's current color, so `from`
+    is required. "From the current color" needs a per-tween setup hook, which is the dropped design (§6). Function
+    values are allowed for `from` and `to` (`Stagger`, per-target colors); the expander then produces function-valued
+    keyframes that resolve per target.
+12. **Relative colors (CSS Color 5) become two helpers, not syntax.** `WithOklch` replaces channels and `ShiftOklch`
+    adds to them, both gamut mapped. They are for deriving hover, pressed and muted states from one base color in
+    recipes and `MotionTokens`, so derived states stay visibly related. There is no relative-color string syntax.
+13. **Nothing changes for existing tweens.** No renderer, codec, composition, `Animatable` or compositor change; every
+    existing test and fixture is untouched. Gradients and box shadows keep lerping their color slots in plain sRGB; the
+    expander does not apply to complex values (§6).
 
 ## 2. API
 
 ```csharp
-public enum ColorSpace { Default, Srgb, LinearSrgb, Oklab, Oklch }
+public enum ColorSpace { Srgb, LinearSrgb, Oklab, Oklch }
 public enum HueInterpolation { Shorter, Longer, Increasing, Decreasing }
 
-// TweenParams, Keyframe, AnimatableProperty, AnimatableParams, AnimationParams, DefaultsParams:
-public ColorSpace? ColorSpace { get; init; }
-public HueInterpolation? HueInterpolation { get; init; }
-// PrestoDefaults:
-public ColorSpace ColorSpace { get; set; } = ColorSpace.Default;
-public HueInterpolation HueInterpolation { get; set; } = HueInterpolation.Shorter;
+public readonly record struct OklchColor(double L, double C, double H, double A = 1);   // L 0–1, C ≥ 0, H degrees
+public readonly record struct OklabColor(double L, double A, double B, double Alpha = 1);
+
+// PrestoColor
+public static PrestoColor Mix(PrestoColor from, PrestoColor to, double t,
+                              ColorSpace space = ColorSpace.Oklab, HueInterpolation hue = HueInterpolation.Shorter);
+public OklchColor ToOklch();
+public OklabColor ToOklab();
+public static PrestoColor FromOklch(double l, double c, double h, double alpha = 1);    // gamut mapped
+public static PrestoColor FromOklab(double l, double a, double b, double alpha = 1);    // gamut mapped
+public PrestoColor WithOklch(double? l = null, double? c = null, double? h = null);     // relative: replace
+public PrestoColor ShiftOklch(double dl = 0, double dc = 0, double dh = 0);             // relative: add
+// TweenValue
+public static implicit operator TweenValue(PrestoColor value);                         // as its rgba() string
+
+// TweenKeyframesBuilder: expands one from → to color tween into segments (decisions 9–11)
+public TweenKeyframesBuilder Color(TweenValue from, TweenValue to, ColorSpace space = ColorSpace.Oklab,
+                                   HueInterpolation hue = HueInterpolation.Shorter, TweenValue? duration = null,
+                                   TweenValue? delay = null, EaseValue? ease = null, int? segments = null);
+
+// MotionTokens (bridge): the space and hue recipes pass to Color(...) for their color states
+ColorSpace ColorSpace = ColorSpace.Oklab, HueInterpolation Hue = HueInterpolation.Shorter
 ```
 
 ```csharp
-card.Animate(b => b.Property("Background", "#e11d48").ColorSpace(ColorSpace.Oklab));       // whole animation
-card.Animate(b => b.Property("Foreground", to: "#22c55e", colorSpace: ColorSpace.Oklch,     // one property
-                             hue: HueInterpolation.Longer));
-Presto.Defaults.ColorSpace = ColorSpace.Oklab;                                              // app-wide
+// Status pill: blue → amber without passing through gray
+pill.Animate(b => b.Property("Background", k => k.Color("#2563eb", "#f59e0b", ColorSpace.Oklch, duration: 600, ease: Eases.OutCubic)));
+
+// Even-brightness hue cycle: a full turn at fixed L and C, looped
+var start = PrestoColor.FromOklch(0.7, 0.15, 0);
+glow.Animate(b => b.Property("Background", k => k.Color(start, start, ColorSpace.Oklch, HueInterpolation.Increasing,
+                                                        duration: 8000, ease: Eases.None))
+                   .Loop());
+
+// Derived states
+var hover = accent.ShiftOklch(dl: 0.06);
+var muted = accent.WithOklch(c: 0.04);
 ```
 
-`AnimationBuilder.ColorSpace(ColorSpace, HueInterpolation = Shorter)`, and parameters on
-`PropertyBuilder`'s full overload (`colorSpace:`, `hue:`) and `KeyframeBuilder`. `MotionTokens` gains a `ColorSpace` so recipes and `Motion`
-states restyle with the tokens. XAML needs nothing new: builders reach XAML as values already, and the enums convert
-from strings.
+**A full turn.** CSS gives `Increasing` between equal hues a zero arc. A full turn is the hue-cycle demo's whole point,
+so when `from` and `to` have the same hue (within 1e-9) and the mode is `Increasing` or `Decreasing`, the expander and
+`Mix` take 360°. This deviates from CSS and is recorded in §7 when built; the fixture generator skips that case.
+
+`Mix` and the adjusters are pure and allocation-free. The expander allocates keyframes at build time only.
 
 ## 3. Implementation steps
 
-**30a (core)**
-
 1. **`ColorConversions` (internal, static, allocation-free).** sRGB ↔ linear sRGB (the piecewise transfer function),
-   linear sRGB ↔ OKLab (Björn Ottosson's matrices and cube roots), OKLab ↔ OKLCH, premultiply and unpremultiply,
-   linear clip. Spans in, spans out.
-2. **Parameters.** The enums, the properties in §2, resolution per tween beside `Composition` in the `Animation`
-   constructor and `KeyframeExpander`, builder and `PropertyBuilder` overloads, `DefaultsParams` → `PrestoDefaults`.
-3. **Tween state.** `_colorSpace`, `_hue`, and `_spaceFrom`/`_spaceTo`/`_spaceNumbers` allocated at setup for
-   non-default spaces only; the hue unwrap and the achromatic rule at setup.
-4. **Renderer.** In the colour branch, `Default` keeps its code; any other space lerps the space buffers and converts
-   into `_numbers`, with the exact-ends rule.
-5. **Composition.** Blend deltas in the space (decision 9); `Additive.Update` sums the space buffers and the lookup
-   converts. Replace composition needs nothing: an interrupting tween reads the target's current RGB as its from.
-6. **Animatable** channel `Set` (decision 10).
-7. **Fixtures.** Add `culori` to `tools/anime-fixtures/` and dump conversions and interpolation midpoints (all spaces,
-   all hue modes, premultiplied alpha) to a `colors.json` beside `eases.json`; the C# tests assert within 1e-6.
-   `culori` implements CSS Color 4 interpolation, so it is the reference for the rules above.
+   linear sRGB ↔ OKLab (Ottosson's matrices and cube roots), OKLab ↔ OKLCH, premultiply/unpremultiply, the hue unwrap
+   and powerless rule, deltaEOK, and the CSS Color 4 gamut map. Doubles in, doubles out; no spans needed for four values.
+2. **Public surface on `PrestoColor`** (§2), the enums and the two color structs, each in its own file under `Values/`.
+3. **Expander** on `TweenKeyframesBuilder`: resolve the ease (and a spring's duration), pick N, emit N `TweenParams`
+   with the segment colors and slice eases. Function-valued ends produce function-valued keyframes that resolve both
+   ends per target, then mix.
+4. **`MotionTokens`** gains `ColorSpace` and `Hue`; the recipes with color states use `Color(...)` with them.
+5. **Fixtures.** Add `culori` to `tools/anime-fixtures/package.json`; `generate.js` writes `colors.json`: conversions for
+   a color set (primaries, secondaries, grays, near-grays, a few brand colors, alpha variants), mixes at 0, .25, .5,
+   .75, 1 and two extrapolated values for every space and hue mode, gamut-mapped OKLCH colors. Update the README.
 
-**30b (bridge)**
+## 4. Tests (`ColorConversionTests`, `ColorMixTests`, `ColorKeyframesTests`)
 
-8. `ColorSlots` on `IReconcilingValueCodec` (default: none), recorded on the tween; `ComposeComplexNumbers` routes
-   slots through the colour path; `BrushCodec` and `BoxShadowsCodec` report their slots; `ColorAt` resamples in the
-   tween's space.
-9. README: a Colour spaces section with the red → green strip, and the cheat-sheet note that anime.js has no equivalent
-   (the CSS `color-interpolation` row).
-
-## 4. Tests
-
-**30a (`ColorSpaceTests`, `ColorsTests`, `CompositionTests`, `AnimatablesTests`, `AllocationTests`)**
-
-- Before any change: a characterisation test pinning today's blended colour delta behaviour (§0), so the decision to
-  keep or fix it in `Default` is made against a test, not by accident.
-- Conversions round-trip sRGB → OKLab → sRGB and → OKLCH → sRGB within 1e-9 for a colour set; values match `colors.json`.
-- Red → green at 50%: `Default` matches the ported upstream value; `Oklab` matches the fixture and has an OKLab
-  lightness between the ends.
-- Ends are exact in every space (decision 4), including after `ReduceAll`.
-- `Oklch` hue from 350° to 10°: `Shorter` passes 0°, `Longer` passes 180°, `Increasing` and `Decreasing` go the stated
-  way; white → blue keeps blue's hue throughout.
-- Transparent → red in `Oklab` renders red at alpha 0.5 halfway; so does `Default`.
-- An out-of-gamut OKLCH midpoint clips into [0, 255] with no NaN.
-- Precedence: property over animation over defaults; keyframes inherit the animation's space.
-- Blend: two blended `Oklab` colour tweens sum their deltas in the space and the lookup renders the fixture value.
-- Replace mid-flight: an interrupting `Oklab` tween starts from the rendered RGB.
-- Animatable channel `Set` in `Oklch` continues from the current colour and ends exactly.
-- `AllocationTests`: an `Oklab` colour tween holds the existing per-frame budget (zero on the core path).
-- Every existing parity suite unchanged.
-
-**30b (`BrushCodecTests`, `BoxShadowsCodecTests`)**
-
-- A two-stop gradient tween in `Oklab` samples each stop's colour at the fixture value; `Default` is unchanged.
-- Resampled stops (different offsets at the two ends) lie on the `Oklab` curve.
-- Solid → gradient and gradient → solid in `Oklch` end exactly.
-- A box-shadow colour follows the space; its offsets and blur lerp as numbers.
-- Bridge `AllocationTests` hold for a gradient tween in `Oklab`.
+- Conversions match `colors.json`, and sRGB → OKLab → sRGB and → OKLCH → sRGB round-trip within 1e-9.
+- `Mix` matches the fixture in every space and hue mode, including premultiplied alpha (transparent → red is red at
+  alpha .5 halfway) and the powerless rule (white → blue keeps blue's hue).
+- `Oklch` from 350° to 10°: `Shorter` passes 0°, `Longer` passes 180°, `Increasing` and `Decreasing` go the stated
+  way; equal hues with `Increasing` make a full turn.
+- Gamut mapping matches culori's `toGamut('rgb', 'oklch')` for out-of-gamut OKLCH colors; no channel is NaN or outside
+  0–255; in-gamut colors pass through unchanged.
+- Ends are exact: `Mix(a, b, 0) == a` and `Mix(a, b, 1) == b` to the bit; an expanded tween completes on `to` exactly,
+  including under `ReduceAll`.
+- The expander preserves timing: for `OutCubic`, `InOutBack` and a spring, the rendered color at 20 sample times is
+  within deltaEOK 0.02 of `Mix(from, to, E(t))`, using the default segment counts. `Steps(4)` holds between steps.
+- Function-valued ends resolve per target under `Stagger`.
+- `WithOklch` and `ShiftOklch` match the fixture and stay in gamut.
+- `AllocationTests`: `Mix` allocates nothing.
 
 ## 5. Samples
 
-- **Value types page:** a *Colour spaces* card: five strips (one per space) drawn by sampling a paused tween, and a
-  swatch that animates between two picked colours in the selected space, with the builder printed. Red → green and
-  blue → yellow as presets.
-- **Motion tokens page:** the tokens' `ColorSpace` switch restyles the recipes' colour states.
-- **Storefront:** the theme accent change uses `Oklab`.
+- **Hue cycle (the headline demo).** Two looping glows side by side: one through RGB keyframes red → yellow → green →
+  cyan → blue → magenta, one an OKLCH full turn at fixed L and C. The RGB one visibly pulses (yellow L .97, blue L .45);
+  the OKLCH one glows evenly, and white text on it stays readable all the way round. A small readout shows each one's
+  current L and contrast ratio. The builder is printed.
+- **Status flip.** A pill switching syncing (blue) → warning (amber) → error (red), with a space picker. `Default` passes
+  through gray on the blue → amber leg; `Oklch` stays saturated.
+- **Strips.** On the Value types page, a *Color spaces* card with one strip per space plus `Default`, drawn with `Mix`,
+  for two picked colors; red → green and blue → yellow as presets.
+- **Motion tokens page.** The tokens' `ColorSpace` switch restyles the recipes' color states; hover and pressed shades
+  derived with `ShiftOklch`.
 
-## 6. Open questions (confirm before the relevant phase)
+## 6. Open questions and deferred work
 
-- Whether to fix the blended colour delta sign (§0) in `Default` as a documented deviation, or leave upstream's
-  behaviour and only get it right in the new spaces.
-- HSL and CIE Lab/LCH for CSS completeness. Cheap once the conversion table exists; left out until something asks.
-- CSS Color 4 chroma-reduction gamut mapping instead of the clip, as an opt-in, if OKLCH sweeps visibly flatten.
-- Whether `Default` should eventually mean `Oklab` in the bridge (a UI library default) while the core keeps parity.
-  That would change every sample's colour motion and needs its own decision.
+- **Per-tween color spaces** (the dropped design: from the current color, `Animatable` retargets and blend composition
+  in the space). Revisit only if someone needs "animate from wherever it is now" along an OKLCH path.
+- **Gradients and box shadows.** Their color slots still lerp in plain sRGB (decision 117's gap). A gradient-aware
+  expander would need codec color slots; Avalonia also renders between stops in sRGB, so an OKLCH-looking gradient
+  would need synthesized extra stops. Deferred.
+- HSL, HWB and CIE Lab/LCH for CSS completeness, once something asks.
+- Parsing `oklch()`/`oklab()` strings in `PrestoColor.TryParse` so XAML and string values can name them. Cheap, but it
+  extends the upstream parser's accepted forms; decide when the sample needs it.
 
 ## 7. Deviations as built
 
-(Filled in as the phases land.)
+(Filled in as the phase lands.)

@@ -42,7 +42,7 @@ public sealed record ParticleShape
         return new(ShapeKind.Glyph) { Text = new SceneText(GlyphFontSize), Character = glyph.ToString() };
     }
 
-    /// <summary>A bitmap scaled to the particle's size, keeping its aspect ratio; opacity applies, colour does not.</summary>
+    /// <summary>A bitmap scaled to the particle's size, keeping its aspect ratio; opacity applies, color does not.</summary>
     public static ParticleShape Bitmap(Bitmap image) => new(ShapeKind.Bitmap) { Image = image };
 
     /// <summary>Rasterizes <paramref name="geometry"/>, in a box of <paramref name="size"/>, once and draws it as a <see cref="Bitmap"/>; call on the UI thread.</summary>

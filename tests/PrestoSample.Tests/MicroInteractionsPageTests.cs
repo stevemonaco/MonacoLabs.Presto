@@ -81,7 +81,7 @@ public sealed class MicroInteractionsPageTests
         var toast = toasts.GetVisualDescendants().OfType<Border>().First(border => border.Classes.Contains("toast"));
         var bar = toast.GetVisualDescendants().OfType<ProgressBar>().Single();
 
-        window.MouseMove(SceneHarness.Centre(toast, window));
+        window.MouseMove(SceneHarness.Center(toast, window));
         var held = bar.Value;
         TestFrames.Tick(300);
         Assert.Equal(held, bar.Value, 6);
@@ -105,7 +105,7 @@ public sealed class MicroInteractionsPageTests
         TestFrames.Tick(40);
         var container = toasts.ContainerFromIndex(0)!;
         var travel = direction * container.Bounds.Width * .7;
-        var grab = SceneHarness.Centre(container, window);
+        var grab = SceneHarness.Center(container, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 12; i++)
@@ -169,13 +169,13 @@ public sealed class MicroInteractionsPageTests
         var page = new MicroInteractionsPage();
         var window = SceneHarness.Show(page, 1280, 900);
         var like = page.GetControl<Button>("Like");
-        var centre = SceneHarness.Centre(like, window);
+        var center = SceneHarness.Center(like, window);
 
-        window.MouseDown(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
         TestFrames.Tick(20);
         Assert.Equal(.92, (double)PrestoAvalonia.Get(like, "Scale")!, 3);
 
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
         TestFrames.Tick(60);
         Assert.Equal(1, (double)PrestoAvalonia.Get(like, "Scale")!, 3);
         SceneHarness.Close(window);

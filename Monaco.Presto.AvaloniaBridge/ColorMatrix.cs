@@ -4,7 +4,7 @@ using Avalonia.Media;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// A 5×4 colour matrix in the row-major layout <c>SKColorFilter.CreateColorMatrix</c> takes: four rows (R, G, B, A) of
+/// A 5×4 color matrix in the row-major layout <c>SKColorFilter.CreateColorMatrix</c> takes: four rows (R, G, B, A) of
 /// four channel weights and an offset. Offsets are in normalized 0..1 units, which is what Skia applies (verified by
 /// drawing; SkiaSharp's doc remark about 0..255 is stale). The CSS factories follow Filter Effects Level 1 §13.
 /// </summary>
@@ -92,7 +92,7 @@ internal struct ColorMatrix
         return Rows([d, 0, 0, 0, a, 0, d, 0, 0, a, 0, 0, d, 0, a, 0, 0, 0, 1, 0]);
     }
 
-    /// <summary>Maps luminance onto <paramref name="color"/> (black stays black, white becomes the colour), blended with the identity by <paramref name="amount"/>.</summary>
+    /// <summary>Maps luminance onto <paramref name="color"/> (black stays black, white becomes the color), blended with the identity by <paramref name="amount"/>.</summary>
     public static ColorMatrix Tint(double amount, Color color) => Duotone(amount, Colors.Black, color);
 
     /// <summary>Maps luminance onto the segment from <paramref name="shadow"/> to <paramref name="highlight"/>, blended with the identity by <paramref name="amount"/>.</summary>

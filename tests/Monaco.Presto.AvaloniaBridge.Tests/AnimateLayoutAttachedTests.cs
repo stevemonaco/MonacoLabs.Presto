@@ -239,7 +239,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
 
     [AvaloniaTheory]
     [MemberData(nameof(Unsupported))]
-    public void ABuilderALayoutTransitionCannotHonourThrowsWhenApplied(AnimationBuilder builder) =>
+    public void ABuilderALayoutTransitionCannotHonorThrowsWhenApplied(AnimationBuilder builder) =>
         Assert.Throws<NotSupportedException>(() => Animate.SetLayout(new Border(), builder));
 
     /// <summary>A red 40x20 bar at the top left of a 100x200 window, ticked once so it has a composition visual.</summary>

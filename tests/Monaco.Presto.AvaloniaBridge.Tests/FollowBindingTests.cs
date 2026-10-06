@@ -244,7 +244,7 @@ public sealed class FollowBindingTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void ColourBrushThicknessAndCornerRadiusAnimate()
+    public void ColorBrushThicknessAndCornerRadiusAnimate()
     {
         var border = Unsized();
         var brush = new SolidColorBrush(Colors.Red);

@@ -152,7 +152,7 @@ Resolve the input first:
 - anything else → the input is the plan text itself.
 Read docs/PLAN.md in full either way for architecture and API conventions, then read the parts of the codebase the plan touches (existing types, tests, samples) so items refer to what actually exists.
 
-Produce 3–10 work items in dependency order. Each must be implementable by one agent in one sitting: merge tiny items, split anything touching more than ~8 files. Each \`brief\` is self-contained — what to build, which existing files it extends or must stay consistent with, which upstream anime.js 4.5.0 files (src/...) and test suites (tests/suites/...) to read and port, and concrete acceptance criteria. Tests belong inside the item that implements the behaviour. Mark \`visual: true\` only when the result must be seen in the Desktop sample (bridge/sample work); core work is verified by tests.${READ_ONLY_RULES}`
+Produce 3–10 work items in dependency order. Each must be implementable by one agent in one sitting: merge tiny items, split anything touching more than ~8 files. Each \`brief\` is self-contained — what to build, which existing files it extends or must stay consistent with, which upstream anime.js 4.5.0 files (src/...) and test suites (tests/suites/...) to read and port, and concrete acceptance criteria. Tests belong inside the item that implements the behavior. Mark \`visual: true\` only when the result must be seen in the Desktop sample (bridge/sample work); core work is verified by tests.${READ_ONLY_RULES}`
 
 function implementPrompt(plan, item, done, remaining) {
   const doneText = done.length
@@ -179,13 +179,13 @@ How to work:
 1. Read the existing code you are extending before writing anything.
 2. Implement only this item, minimally: no abstractions with one implementation, no options nothing uses, no helper types for one call site, no comments that restate code. Match the surrounding style.
 3. \`dotnet build Monaco.Presto.slnx\` must succeed with no new warnings.
-4. Port/write the tests the brief names and run the affected test project (\`dotnet test --project tests/Monaco.Presto.Tests\`, or \`dotnet test --solution Monaco.Presto.slnx\` when more than one is affected); they must pass. If the item has no testable behaviour, say so in \`verified\`.
+4. Port/write the tests the brief names and run the affected test project (\`dotnet test --project tests/Monaco.Presto.Tests\`, or \`dotnet test --solution Monaco.Presto.slnx\` when more than one is affected); they must pass. If the item has no testable behavior, say so in \`verified\`.
 5. If part of the item is impossible or conflicts with what exists, do the rest and list the gap in \`blockers\` — never silently narrow it.
 ${item.visual ? HOT_RELOAD : ''}${EDIT_RULES}`
 }
 
 function concisionPrompt(scope, purpose) {
-  return `You are a read-only reviewer with one job: make this change smaller without losing required behaviour.${READ_ONLY_RULES}
+  return `You are a read-only reviewer with one job: make this change smaller without losing required behavior.${READ_ONLY_RULES}
 
 CHANGE UNDER REVIEW: ${scope}
 WHAT IT WAS MEANT TO DO:
@@ -197,7 +197,7 @@ Sprawl to look for:
 - speculative features, public surface the plan did not ask for, dead or unused members, guards against impossible states
 - comments that restate code, label sections, narrate steps or address the reviewer; XML docs on private members (the CLAUDE.md comment rules)
 - LINQ or allocations in tick/render hot paths (the repo keeps upstream's linked lists)
-- tests that duplicate each other or test the language instead of behaviour
+- tests that duplicate each other or test the language instead of behavior
 Do NOT flag: structure ported faithfully from anime.js (parity is deliberate even when it looks redundant), naming or formatting taste, or missing functionality.
 
 Report only findings a maintainer would act on, each with a concrete \`fix\` that deletes or merges something. confidence: high = certain it is removable, medium = probably, low = a suggestion. Fewer, sharper findings beat a long list.`
@@ -222,7 +222,7 @@ function tightenPrompt(findings, context) {
 
 ${list}
 
-Apply each one unless it would remove behaviour the plan requires or break a test; then skip it and say why. Make no unrelated changes. When done, \`dotnet build Monaco.Presto.slnx\` and \`dotnet test --solution Monaco.Presto.slnx\` must pass — if a fix breaks them and cannot be repaired within the finding's scope, undo that fix and mark it skipped.${EDIT_RULES}`
+Apply each one unless it would remove behavior the plan requires or break a test; then skip it and say why. Make no unrelated changes. When done, \`dotnet build Monaco.Presto.slnx\` and \`dotnet test --solution Monaco.Presto.slnx\` must pass — if a fix breaks them and cannot be repaired within the finding's scope, undo that fix and mark it skipped.${EDIT_RULES}`
 }
 
 const TEST_PROMPT = `Run the full verification for Monaco.Presto and report the results exactly as observed.${READ_ONLY_RULES}
@@ -240,7 +240,7 @@ function testFixPrompt(tests, plan) {
 ${tests.buildOk ? 'Failing tests' : 'Build errors'}:
 ${problems}
 
-For each failure decide whether the implementation or the test is wrong by checking the plan and the upstream anime.js behaviour, then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or upstream contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build Monaco.Presto.slnx\` and \`dotnet test --solution Monaco.Presto.slnx\` green.${EDIT_RULES}`
+For each failure decide whether the implementation or the test is wrong by checking the plan and the upstream anime.js behavior, then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or upstream contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build Monaco.Presto.slnx\` and \`dotnet test --solution Monaco.Presto.slnx\` green.${EDIT_RULES}`
 }
 
 function checklistPrompt(plan) {

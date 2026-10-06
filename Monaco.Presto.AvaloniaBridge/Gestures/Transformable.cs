@@ -89,7 +89,7 @@ public sealed class Transformable : IRevertible
 
     /// <summary>
     /// Zooms to <paramref name="scale"/>, clamped to the scale limits, keeping the content under <paramref name="focal"/>
-    /// (in the parent's space, the container's centre when null) fixed. Animated moves play through <see cref="TransformableParams.Settle"/>.
+    /// (in the parent's space, the container's center when null) fixed. Animated moves play through <see cref="TransformableParams.Settle"/>.
     /// </summary>
     public Transformable ZoomTo(double scale, Point? focal = null, bool animate = true)
     {
@@ -108,7 +108,7 @@ public sealed class Transformable : IRevertible
 
     /// <summary>
     /// Rotates to <paramref name="degrees"/> clockwise, keeping the content under <paramref name="focal"/> (in the parent's
-    /// space, the container's centre when null) fixed. Animated moves play through <see cref="TransformableParams.Settle"/>.
+    /// space, the container's center when null) fixed. Animated moves play through <see cref="TransformableParams.Settle"/>.
     /// </summary>
     public Transformable RotateTo(double degrees, Point? focal = null, bool animate = true)
     {
@@ -206,7 +206,7 @@ public sealed class Transformable : IRevertible
         TransformMath.FocalTranslation(_target.Bounds.Position, _target.RenderTransformOrigin.ToPixels(_target.Bounds.Size),
             translation, scale, rotation, focal, newScale, newRotation);
 
-    // Scales and rotates about `focal`, or the container's centre, with the translation clamped into the pan bounds.
+    // Scales and rotates about `focal`, or the container's center, with the translation clamped into the pan bounds.
     private Transformable Transform(Visual parent, double scale, double rotation, Point? focal, bool animate)
     {
         var translation = FocalTranslation(new Vector(Animate.Get("X"), Animate.Get("Y")), Animate.Get("Scale"), Animate.Get("Rotate"),
@@ -470,7 +470,7 @@ public sealed class Transformable : IRevertible
     {
         if (velocity is { } v) Animate.Fling(property, v, settings);
         else Animate.Fling(property, settings);
-        var tween = Animate.Animations[Presto.Canonicalise(_target, property)]._headTween!;
+        var tween = Animate.Animations[Presto.Canonicalize(_target, property)]._headTween!;
         // The ease's end rather than the to-number: a release on a bound moving outward peaks there and comes back.
         return tween._fromNumber + (tween._toNumber - tween._fromNumber) * tween._ease(1);
     }

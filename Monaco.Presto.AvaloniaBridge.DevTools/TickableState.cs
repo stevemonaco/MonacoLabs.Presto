@@ -9,5 +9,5 @@ internal enum TickableState
     Paused,
     Detached,
     Completed,
-    Cancelled,
+    Canceled,
 }

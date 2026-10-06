@@ -120,8 +120,8 @@ public sealed class DevToolsShellTests : BridgeTestBase, IDisposable
 
     private void Click(Control button)
     {
-        var centre = Centre(button, _window);
-        _window.MouseDown(centre, MouseButton.Left);
-        _window.MouseUp(centre, MouseButton.Left);
+        var center = Center(button, _window);
+        _window.MouseDown(center, MouseButton.Left);
+        _window.MouseUp(center, MouseButton.Left);
     }
 }

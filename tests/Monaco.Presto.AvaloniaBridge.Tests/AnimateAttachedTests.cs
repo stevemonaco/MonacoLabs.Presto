@@ -87,7 +87,7 @@ public sealed class AnimateAttachedTests : BridgeTestBase
 
         Animate.SetOnAttached(border, Presto.Build().Opacity(0).Duration(100).Ease(Eases.None));
 
-        Assert.True(first.Cancelled);
+        Assert.True(first.Canceled);
         Assert.Equal(0d, PrestoAvalonia.Get(border, "X"));
         Assert.Single(Presto.GetAnimations(border, "Opacity"));
         Frames.Advance(200, 16);
@@ -183,7 +183,7 @@ public sealed class AnimateAttachedTests : BridgeTestBase
 
         Tap(border);
 
-        Assert.True(first.Cancelled);
+        Assert.True(first.Canceled);
         Assert.NotSame(first, Assert.Single(Presto.GetAnimations(border)));
         Frames.Advance(20, 10);
         Assert.InRange((double)PrestoAvalonia.Get(border, "X")!, 1, 50);
@@ -222,7 +222,7 @@ public sealed class AnimateAttachedTests : BridgeTestBase
         Frames.Advance(50, 10);
 
         model.Count = 3;
-        Assert.True(first.Cancelled);
+        Assert.True(first.Canceled);
         Assert.Single(Presto.GetAnimations(border));
         Frames.Advance(200, 16);
         Assert.Empty(Presto.GetAnimations(border));

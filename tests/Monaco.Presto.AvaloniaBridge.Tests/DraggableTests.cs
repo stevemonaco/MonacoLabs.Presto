@@ -598,7 +598,7 @@ public sealed class DraggableTests : BridgeTestBase
         Assert.Equal(1, completed);
     }
 
-    /// <summary>PLAN Phase 51: a grab cancelling an overshoot whose out leg had completed corrupted the additive lists into a cycle.</summary>
+    /// <summary>PLAN Phase 51: a grab canceling an overshoot whose out leg had completed corrupted the additive lists into a cycle.</summary>
     [AvaloniaFact]
     public void RegrabbingAnOvershootingThrowRepeatedlyKeepsTheTweenListsAcyclic()
     {
@@ -610,7 +610,7 @@ public sealed class DraggableTests : BridgeTestBase
         });
         var timers = new List<Timer>();
 
-        // Some grabs land after the out leg completed, so cancelling it removes its tweens from their siblings a second time.
+        // Some grabs land after the out leg completed, so canceling it removes its tweens from their siblings a second time.
         for (var wait = 100; wait <= 2000; wait += 150)
         {
             var x = draggable.X + 25;

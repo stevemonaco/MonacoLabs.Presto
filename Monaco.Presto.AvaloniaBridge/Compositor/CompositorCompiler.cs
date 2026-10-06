@@ -20,7 +20,7 @@ internal static class CompositorCompiler
 
     private static readonly Easing s_linear = new LinearEasing();
 
-    // The default modifier is a cached static lambda, so a tween that inherited it is recognisable by reference.
+    // The default modifier is a cached static lambda, so a tween that inherited it is recognizable by reference.
     private static readonly Func<double, double> s_noModifier = new PrestoDefaults().Modifier;
 
     /// <summary>

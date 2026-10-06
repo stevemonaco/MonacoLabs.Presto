@@ -335,7 +335,7 @@ internal static class Renderer
     }
 
     /// <summary>
-    /// A colour channel at <paramref name="progress"/>, premultiplied by the channel's own alpha as CSS Color 4 does. A frame whose
+    /// A color channel at <paramref name="progress"/>, premultiplied by the channel's own alpha as CSS Color 4 does. A frame whose
     /// alpha eases to zero or below has nothing to divide by and falls back to the straight blend.
     /// </summary>
     private static double ColorLerp(double from, double to, double fromAlpha, double toAlpha, bool premultiplied, double progress)

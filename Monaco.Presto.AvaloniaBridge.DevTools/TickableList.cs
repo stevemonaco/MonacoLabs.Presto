@@ -111,7 +111,7 @@ internal sealed class TickableList : DockPanel
         Sync();
     }
 
-    private static bool HasEnded(Timer root) => root.Completed || root.Cancelled;
+    private static bool HasEnded(Timer root) => root.Completed || root.Canceled;
 
     private void AddRoot(Timer root, bool ended)
     {

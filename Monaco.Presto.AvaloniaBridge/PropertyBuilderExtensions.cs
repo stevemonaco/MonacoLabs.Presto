@@ -8,7 +8,7 @@ using Monaco.Presto.AvaloniaBridge.Targets;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// Typed names for the <see cref="PropertyBuilder{TSelf}"/> properties: the transform, effect and reveal shorthands, the <see cref="PrestoImageBase"/> colour filters, the Avalonia properties
+/// Typed names for the <see cref="PropertyBuilder{TSelf}"/> properties: the transform, effect and reveal shorthands, the <see cref="PrestoImageBase"/> color filters, the Avalonia properties
 /// animated most often, the Draw/Text/Data pseudo-properties and any <see cref="AvaloniaProperty"/>. Each writes the
 /// key the <see cref="AvaloniaAnimationParams"/> indexers write, and installs the bridge first when nothing else has.
 /// </summary>

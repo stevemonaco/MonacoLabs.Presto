@@ -181,11 +181,11 @@ public sealed class BuilderRecipePagesTests
         var window = SceneHarness.Show(page, 1280, 900);
         var cells = page.GetControl<UniformGrid>("Cells").Children;
 
-        var centre = page.Animation;
+        var center = page.Animation;
         SceneHarness.Click(window, cells[0]);
         TestFrames.Tick(30);
 
-        Assert.NotSame(centre, page.Animation);
+        Assert.NotSame(center, page.Animation);
         Assert.Equal(16 * 9, page.Animation!.Targets.Count);
         Assert.InRange(Scale(cells[0]), 0, .4);
         Assert.Equal(1, Scale(cells[^1]), 3);
@@ -194,7 +194,7 @@ public sealed class BuilderRecipePagesTests
     }
 
     [AvaloniaFact]
-    public void RippleGridOnlyRecoloursUnderReducedMotion()
+    public void RippleGridOnlyRecolorsUnderReducedMotion()
     {
         using var reduced = ReducedMotion.On();
         var page = new RippleGridPage();

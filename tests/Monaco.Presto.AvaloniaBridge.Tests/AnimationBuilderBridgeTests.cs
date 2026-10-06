@@ -161,8 +161,8 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
 
         Frames.Advance(50);
 
-        Assert.True(byName.Cancelled);
-        Assert.False(byHandle.Cancelled);
+        Assert.True(byName.Canceled);
+        Assert.False(byHandle.Canceled);
         Assert.Equal([AvaloniaObjectTargetAdapter.Encode(Visual.OpacityProperty)],
             Presto.Build().Property(Visual.OpacityProperty, to: 1.0, duration: 50).ToParams().Properties.Keys);
     }

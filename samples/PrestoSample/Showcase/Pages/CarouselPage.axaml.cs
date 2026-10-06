@@ -15,7 +15,7 @@ public partial class CarouselPage : ShowcasePage
 {
     private const double DotPitch = 16;
     private const double MarkDuration = 420;
-    // Each layer's offset as a share of its slide's distance from centre: negative lags behind the strip, positive leads it.
+    // Each layer's offset as a share of its slide's distance from center: negative lags behind the strip, positive leads it.
     private const double BackgroundDepth = -.5;
     private const double ArtDepth = -.2;
     private const double TitleLead = .35;

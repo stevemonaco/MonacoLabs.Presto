@@ -203,7 +203,7 @@ The Lifecycle or Activity feed page gains a short note that layout goes on the c
   no longer plays from the event's snapshot.
 - **`ReduceAll` needed a fix.** A move whose compiled compositor track has zero duration and zero delay is no longer
   started, because a zero-length composition animation can draw its first key for a frame. It lands in one frame.
-- **`Reflow` lives in a new `Prebuilt/Layouts` family,** not `Interactions`, whose "short, reduced keeps colour" summary
+- **`Reflow` lives in a new `Prebuilt/Layouts` family,** not `Interactions`, whose "short, reduced keeps color" summary
   would not fit. `ReflowExtension` takes the duration positionally. `Stagger` makes the delay per-target, which
   `LayoutMotion.From` rejects.
 - **Invalid builders throw where they are set.** `Animate.Layout` validates even while detached, and `Animate.ItemLayout`

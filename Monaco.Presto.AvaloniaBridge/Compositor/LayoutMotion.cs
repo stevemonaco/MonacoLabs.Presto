@@ -16,7 +16,7 @@ internal readonly record struct LayoutMotion(
     /// <summary>The motion for a move starting now: one frame while <see cref="LandsWhenReduced"/> and <see cref="PrestoDefaults.ReducedMotion"/> are both set.</summary>
     public LayoutMotion Current => LandsWhenReduced && Engine.Current.Defaults.ReducedMotion ? new(0, Ease: Eases.None) : this;
 
-    /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honour.</exception>
+    /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honor.</exception>
     public static LayoutMotion From(AnimationBuilder builder)
     {
         var p = builder.ToParams();

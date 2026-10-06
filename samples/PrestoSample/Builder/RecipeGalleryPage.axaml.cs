@@ -18,7 +18,7 @@ namespace PrestoSample.Builder;
 /// </summary>
 public partial class RecipeGalleryPage : ShowcasePage
 {
-    private static readonly (string Name, Replay Replay, Tile[] Tiles)[] Catalogue =
+    private static readonly (string Name, Replay Replay, Tile[] Tiles)[] Catalog =
     [
         ("Entrances", Replay.Once,
         [
@@ -99,7 +99,7 @@ public partial class RecipeGalleryPage : ShowcasePage
     public RecipeGalleryPage()
     {
         InitializeComponent();
-        foreach (var (name, replay, tiles) in Catalogue)
+        foreach (var (name, replay, tiles) in Catalog)
         {
             var wrap = new WrapPanel { ItemSpacing = 12, LineSpacing = 12 };
             foreach (var tile in tiles) wrap.Children.Add(BuildTile(tile, replay));

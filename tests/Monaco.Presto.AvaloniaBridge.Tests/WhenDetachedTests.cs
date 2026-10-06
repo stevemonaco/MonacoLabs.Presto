@@ -73,7 +73,7 @@ public sealed class WhenDetachedTests : BridgeTestBase
         Detach(box);
 
         Assert.Equal(1, box.Opacity);
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
     }
 
     [AvaloniaFact]
@@ -269,7 +269,7 @@ public sealed class WhenDetachedTests : BridgeTestBase
         Detach(first);
         Detach(second);
 
-        Assert.True(timeline.Cancelled);
+        Assert.True(timeline.Canceled);
         Assert.Equal(1, first.Opacity);
         Assert.Equal(1, second.Opacity);
     }
@@ -300,7 +300,7 @@ public sealed class WhenDetachedTests : BridgeTestBase
 
         Detach(box);
 
-        Assert.True(enter!.Cancelled);
+        Assert.True(enter!.Canceled);
         Assert.Equal(1, box.Opacity);
     }
 

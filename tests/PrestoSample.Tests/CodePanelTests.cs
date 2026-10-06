@@ -97,7 +97,7 @@ public sealed class CodePanelTests
         var window = SceneHarness.Show(panel, 600, 300);
         var copy = Part<Button>(panel, "PART_Copy");
 
-        window.MouseMove(SceneHarness.Centre(copy, window));
+        window.MouseMove(SceneHarness.Center(copy, window));
         TestFrames.Tick(6);
 
         AssertGrayMidFade(copy);
@@ -110,7 +110,7 @@ public sealed class CodePanelTests
         var panel = new CodePanel { Code = "var x = 1;" };
         var window = SceneHarness.Show(panel, 600, 300);
         var copy = Part<Button>(panel, "PART_Copy");
-        window.MouseMove(SceneHarness.Centre(copy, window));
+        window.MouseMove(SceneHarness.Center(copy, window));
         await SceneHarness.Settle();
 
         copy.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -129,7 +129,7 @@ public sealed class CodePanelTests
         var window = SceneHarness.Show(panel, 600, 300);
         var copy = Part<Button>(panel, "PART_Copy");
         var back = Part<Avalonia.Controls.Shapes.Path>(panel, "PART_CopyBack");
-        var (over, away) = (SceneHarness.Centre(copy, window), new Point(5, 250));
+        var (over, away) = (SceneHarness.Center(copy, window), new Point(5, 250));
         var last = 0.0;
 
         foreach (var (at, frames) in new[] { (over, 25), (away, 20), (over, 4), (away, 4), (over, 25) })

@@ -209,13 +209,13 @@ public sealed class ProgressRing : Control, ICustomHitTest
     private void ShapeArcs()
     {
         var radius = Math.Max(0, (Math.Min(_built.Width, _built.Height) - Thickness) / 2);
-        var centre = new Point(_built.Width / 2, _built.Height / 2);
+        var center = new Point(_built.Width / 2, _built.Height / 2);
         var count = _fills.Length;
         var span = 360d / count;
         var gap = count > 1 ? Math.Min(Gap, span) : 0;
         for (var i = 0; i < count; i++)
         {
-            var geometry = ArcGeometry(centre, radius, (i * span) + (gap / 2), ((i + 1) * span) - (gap / 2));
+            var geometry = ArcGeometry(center, radius, (i * span) + (gap / 2), ((i + 1) * span) - (gap / 2));
             ((Path)VisualChildren[i]).Data = geometry;
             _fills[i].Data = geometry;
         }
@@ -228,9 +228,9 @@ public sealed class ProgressRing : Control, ICustomHitTest
         for (var i = 0; i < count; i++) DrawAccessor.Apply(_fills[i], 0, Math.Clamp((Value * count) - i, 0, 1));
     }
 
-    private static StreamGeometry ArcGeometry(Point centre, double radius, double from, double to)
+    private static StreamGeometry ArcGeometry(Point center, double radius, double from, double to)
     {
-        Point At(double degrees) => centre + new Vector(Math.Sin(degrees * Math.PI / 180), -Math.Cos(degrees * Math.PI / 180)) * radius;
+        Point At(double degrees) => center + new Vector(Math.Sin(degrees * Math.PI / 180), -Math.Cos(degrees * Math.PI / 180)) * radius;
 
         var geometry = new StreamGeometry();
         using var context = geometry.Open();

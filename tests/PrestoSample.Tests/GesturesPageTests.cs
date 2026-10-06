@@ -19,7 +19,7 @@ public sealed class GesturesPageTests
         var window = SceneHarness.Show(page, 712, 440);
         var feed = page.GetControl<StackPanel>("Feed");
 
-        Drag(window, SceneHarness.Centre(feed.Children[0], window), new Vector(0, 200));
+        Drag(window, SceneHarness.Center(feed.Children[0], window), new Vector(0, 200));
         TestFrames.Tick(150);
 
         Assert.Equal(11, feed.Children.Count);
@@ -35,7 +35,7 @@ public sealed class GesturesPageTests
         var first = inbox.Items[0];
         var row = inbox.ContainerFromIndex(0)!;
 
-        Drag(window, SceneHarness.Centre(row, window), new Vector(row.Bounds.Width * .6, 0));
+        Drag(window, SceneHarness.Center(row, window), new Vector(row.Bounds.Width * .6, 0));
         TestFrames.Tick(90);
         Assert.Equal(7, inbox.ItemCount);
 
@@ -79,7 +79,7 @@ public sealed class GesturesPageTests
         var height = page.GetControl<Panel>("CurtainStage").Bounds.Height;
         var pulled = (height / 2 - 28) / (height - 28);
 
-        Drag(window, SceneHarness.Centre(page.GetControl<Border>("Handle"), window), new Vector(0, (height - 28) / 2));
+        Drag(window, SceneHarness.Center(page.GetControl<Border>("Handle"), window), new Vector(0, (height - 28) / 2));
         TestFrames.Tick(150);
 
         Assert.Equal(height / 2, curtain.Position.Value, 1);

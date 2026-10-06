@@ -105,8 +105,8 @@ public partial class TypographyPage : ShowcasePage
         {
             var letter = _wordmark!.Chars[i];
             // Bounds is the layout slot, so the lift and scale a letter already has never feed back into its own pull.
-            var centre = ((Visual)letter.Parent!).TranslatePoint(letter.Bounds.Center, WordmarkStage)!.Value;
-            var pull = Eases.InOutQuad(Math.Clamp(1 - (Point.Distance(pointer, centre) / Falloff), 0, 1));
+            var center = ((Visual)letter.Parent!).TranslatePoint(letter.Bounds.Center, WordmarkStage)!.Value;
+            var pull = Eases.InOutQuad(Math.Clamp(1 - (Point.Distance(pointer, center) / Falloff), 0, 1));
             _letters[i]
                 .Set("Y", -Lift * pull, Follow, Eases.OutQuint)
                 .Set("Scale", 1 + (Swell * pull), Follow, Eases.OutQuint)

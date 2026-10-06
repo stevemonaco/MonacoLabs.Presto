@@ -144,7 +144,7 @@ No public API is removed, so nothing breaks.
 
 ## 6. Verification before building
 
-The model rests on two Avalonia behaviours that need a spike, as the Phase 20 ghost rules did:
+The model rests on two Avalonia behaviors that need a spike, as the Phase 20 ghost rules did:
 
 - `IsLoaded` is false on an `ItemsControl`'s items panel while that control's first layout realizes its containers.
   It is true for a container realized later, and false again for a cached view re-attached after an `Unloaded`.
@@ -160,13 +160,13 @@ The model rests on two Avalonia behaviours that need a spike, as the Phase 20 gh
 - A three-item `AddRange` and a first-load list each stagger by arrival order.
 - Removing an element mid-entrance: the ghost starts from the drawn, mid-entrance look, and the control is reverted.
 - A panel child removed and re-added while exiting: the ghost is dismissed and the Enter plays.
-- `Animate.OnAttached` behaviour is unchanged (existing `AnimateAttachedTests` stay green).
+- `Animate.OnAttached` behavior is unchanged (existing `AnimateAttachedTests` stay green).
 - Sample: the Presence page opens with a staggered Initial, adds and removes with Enter/Exit, and swaps views,
   all checked on the Desktop head.
 
 ## 8. As built
 
-The spike (§6) confirmed both behaviours: `IsLoaded` is false across a view's first layout and after an `Unloaded`, and an
+The spike (§6) confirmed both behaviors: `IsLoaded` is false across a view's first layout and after an `Unloaded`, and an
 animation created at attach writes its from-values before the first frame. Implementation then refined the rule in four places.
 
 1. **Arrivals stop at panels.** An `ItemsControl` realizing its first item holds one child for a moment, so the

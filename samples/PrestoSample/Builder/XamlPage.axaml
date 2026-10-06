@@ -36,7 +36,7 @@
                 </StackPanel>
 
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="caption" Text="Recipe markup extension: {presto:Fade} provides a fresh Recipes.FadeUp builder per element, parameterised in the markup" />
+                    <TextBlock Classes="caption" Text="Recipe markup extension: {presto:Fade} provides a fresh Recipes.FadeUp builder per element, parameterized in the markup" />
                     <Border Classes="stage" MinHeight="0">
                         <StackPanel Spacing="8">
                             <!-- snippet: XamlExtension -->

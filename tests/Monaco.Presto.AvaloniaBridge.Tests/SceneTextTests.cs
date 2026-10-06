@@ -8,7 +8,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
 /// Glyph runs cached on the UI thread and drawn by a scene through <c>ImmediateDrawingContext.DrawGlyphRun</c> really
-/// rasterise, and follow the string the scene holds.
+/// rasterize, and follow the string the scene holds.
 /// </summary>
 public sealed class SceneTextTests : CompositorTestBase
 {

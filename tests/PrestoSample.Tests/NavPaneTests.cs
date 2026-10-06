@@ -36,7 +36,7 @@ public sealed class NavPaneTests
     public void DoubleClickingTheSplitterCollapsesThePane() => WithView((window, column, _) =>
     {
         var splitter = window.GetLogicalDescendants().OfType<GridSplitter>().Single();
-        var at = SceneHarness.Centre(splitter, window);
+        var at = SceneHarness.Center(splitter, window);
         for (var i = 0; i < 2; i++)
         {
             window.MouseDown(at, MouseButton.Left);
@@ -109,7 +109,7 @@ public sealed class NavPaneTests
     private static void Drag(Window window, double by)
     {
         var splitter = window.GetLogicalDescendants().OfType<GridSplitter>().Single();
-        var from = SceneHarness.Centre(splitter, window);
+        var from = SceneHarness.Center(splitter, window);
         window.MouseDown(from, MouseButton.Left);
         window.MouseMove(from + new Point(by, 0), RawInputModifiers.LeftMouseButton);
         window.MouseUp(from + new Point(by, 0), MouseButton.Left);

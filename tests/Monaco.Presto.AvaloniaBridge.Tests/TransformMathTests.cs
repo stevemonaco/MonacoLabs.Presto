@@ -46,7 +46,7 @@ public sealed class TransformMathTests
     }
 
     [Fact]
-    public void ContainCentresContentSmallerThanTheContainer()
+    public void ContainCentersContentSmallerThanTheContainer()
     {
         var range = TransformMath.PanRange(PanBounds.Contain, new Rect(0, 0, 400, 300), default, new Size(100, 50),
             new Point(50, 25), 1, 0);

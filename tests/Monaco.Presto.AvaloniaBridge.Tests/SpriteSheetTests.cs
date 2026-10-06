@@ -31,7 +31,7 @@ public sealed class SpriteSheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void APartialLastRowHonoursFrameCount()
+    public void APartialLastRowHonorsFrameCount()
     {
         var sheet = ShowSheet(Sheet());
         sheet.FrameCount = 7;
@@ -145,7 +145,7 @@ public sealed class SpriteSheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void DefaultInterpolationKeepsNeighbouringCellsOutOfTheFrameEdges()
+    public void DefaultInterpolationKeepsNeighboringCellsOutOfTheFrameEdges()
     {
         var sheet = ShowSheet(Sheet(), Stretch.Fill, 40, BitmapInterpolationMode.Unspecified);
 
@@ -157,7 +157,7 @@ public sealed class SpriteSheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void AFilteredFrameIsFilteredWithoutNeighbouringCells()
+    public void AFilteredFrameIsFilteredWithoutNeighboringCells()
     {
         var sheet = ShowSheet(Sheet(), Stretch.Fill, 40, BitmapInterpolationMode.Unspecified);
 
@@ -183,7 +183,7 @@ public sealed class SpriteSheetTests : CompositorTestBase
         return sheet;
     }
 
-    /// <summary>A 4x2 grid of <paramref name="cell"/>-sized cells, each holding a square of its <see cref="Cells"/> colour <paramref name="frame"/> wide at its top left, gray elsewhere.</summary>
+    /// <summary>A 4x2 grid of <paramref name="cell"/>-sized cells, each holding a square of its <see cref="Cells"/> color <paramref name="frame"/> wide at its top left, gray elsewhere.</summary>
     private static RenderTargetBitmap Sheet(int cell = 10, int? frame = null)
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(cell * 4, cell * 2));

@@ -9,7 +9,7 @@ public static partial class Eases
 
     /// <summary>
     /// Ease drawn by SVG path data (M, L, H, V and C commands) with x as progress and y as the eased value, y up, like
-    /// GSAP's CustomEase. The path is normalised to start at (0, 0) and end at (1, 1); y may overshoot in between.
+    /// GSAP's CustomEase. The path is normalized to start at (0, 0) and end at (1, 1); y may overshoot in between.
     /// </summary>
     /// <exception cref="FormatException">The path uses another command or is malformed.</exception>
     /// <exception cref="ArgumentException">The path's x decreases somewhere or spans no width.</exception>

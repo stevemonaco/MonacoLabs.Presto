@@ -20,7 +20,7 @@ public sealed class DevToolsPageTests
 
         SceneHarness.Close(window);
 
-        Assert.True(page.Sequence.Cancelled);
-        Assert.True(page.Wave.Cancelled);
+        Assert.True(page.Sequence.Canceled);
+        Assert.True(page.Wave.Canceled);
     }
 }

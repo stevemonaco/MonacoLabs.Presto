@@ -174,7 +174,7 @@ public static partial class PrestoAvalonia
   so a builder that names a shorthand works on a control without `UsePresto()`. `control.Animate(builder)` does too,
   which covers a builder that only used the core `Property(string, …)`.
 - Typed values (`Color`, `IBrush`, `Thickness`, `CornerRadius`) go through `TweenValue.Of`, the path the samples
-  already use for `Palette` colours.
+  already use for `Palette` colors.
 - The compositor terminal copies the subset `CompositorAnimationParams` has. A builder that set something it lacks
   (`Keyframes`, `FrameRate`, `PlaybackEase`, `Composition`, `Modifier`, `OnUpdate`, …) throws `NotSupportedException`
   naming the setting, rather than dropping it; unsupported *properties* already throw inside `CompositorAnimation`.
@@ -208,7 +208,7 @@ public static partial class PrestoAvalonia
 - Equivalence: for a table of cases (bare values, from/to, per-property duration/delay/ease, function values,
   staggers, per-property keyframes, duration- and percentage-based animation keyframes, every timer setting), the
   builder's `ToParams()` has the same property order, the same raw values and the same settings as the indexer form.
-- Behavioural equivalence: the same two animations on two plain objects, one per spelling, read the same values at
+- Behavioral equivalence: the same two animations on two plain objects, one per spelling, read the same values at
   several `Advance` points, including across a loop and an alternate.
 - `Property(name, to)` alone writes a bare value; adding any other argument writes a `TweenParams`.
 - Duplicate property: last value wins, first position kept. Duplicate setting and callback: last wins.
@@ -224,8 +224,8 @@ public static partial class PrestoAvalonia
   from the builder side).
 - `Property(AvaloniaProperty, …)` composes with a string-keyed animation on the same property.
 - Shorthand methods chain on `KeyframeBuilder` inside `Keyframes(...)`.
-- `Background(Color)` and `Background(IBrush)` animate to the right colour.
-- `control.Animate(builder)` works on a fresh app with only core `Property("Opacity", …)` calls (initialisation).
+- `Background(Color)` and `Background(IBrush)` animate to the right color.
+- `control.Animate(builder)` works on a fresh app with only core `Property("Opacity", …)` calls (initialization).
 - `AnimateOnCompositor(builder)` runs a translate/opacity animation; a builder with `Keyframes` or `OnUpdate` throws
   `NotSupportedException` naming it.
 - `AllocationTests` unchanged: the builder is configuration-time only and never runs on the tick.
@@ -240,7 +240,7 @@ refactor-safe, so the list does not need to grow to cover every control.
 
 ## 6. Out of scope
 
-- Builders for `Timer`, `Timeline`, `Animatable`, `Draggable`, `ScrollObserver` params. Their object initialisers have
+- Builders for `Timer`, `Timeline`, `Animatable`, `Draggable`, `ScrollObserver` params. Their object initializers have
   no string keys, so a builder buys little. Revisit if users ask.
 - Sample pages for the builder (a follow-up phase), and migrating existing samples and README examples to it. The indexer stays the primary, documented spelling.
 - A typed `PrestoProperty` handle in the params surface (DESIGN-NOTES §1 option 3). The builder gets typed names

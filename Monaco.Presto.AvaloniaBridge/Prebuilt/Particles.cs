@@ -22,7 +22,7 @@ public static class Particles
 
     /// <summary>
     /// Launches <paramref name="count"/> fluttering, spinning rectangles and streaks in <paramref name="colors"/> (default an
-    /// accent palette) upward from <paramref name="anchor"/>'s centre, or from along the window's <paramref name="from"/> edge,
+    /// accent palette) upward from <paramref name="anchor"/>'s center, or from along the window's <paramref name="from"/> edge,
     /// and lets gravity bring them down.
     /// </summary>
     public static ParticleEffect Confetti(Control anchor, int count = 120, IReadOnlyList<Color>? colors = null, Edge? from = null, AnimationBuilder? reduced = null)
@@ -35,7 +35,7 @@ public static class Particles
             Edge.Top => (new Point(window.Width / 2, 0), (window.Width, 0d), 90d),
             Edge.Right => (new Point(window.Width, window.Height / 2), (0d, window.Height), -135d),
             Edge.Bottom => (new Point(window.Width / 2, window.Height), (window.Width, 0d), -90d),
-            _ => (Centre(anchor, overlay.Top), default, -90d),
+            _ => (Center(anchor, overlay.Top), default, -90d),
         };
         var pieces = new EmitterParams
         {
@@ -77,12 +77,12 @@ public static class Particles
             Colors = [(color ?? Colors.Gold).ToPresto()],
             Area = (anchor.Bounds.Width, anchor.Bounds.Height),
         };
-        return overlay.Play([(sparkles, Centre(anchor, overlay.Top))]);
+        return overlay.Play([(sparkles, Center(anchor, overlay.Top))]);
     }
 
     /// <summary>
     /// Bursts <paramref name="count"/> circles in <paramref name="color"/> (default the first accent) out of
-    /// <paramref name="anchor"/>'s centre in a ring that slows and fades, as for a press or a like.
+    /// <paramref name="anchor"/>'s center in a ring that slows and fades, as for a press or a like.
     /// </summary>
     public static ParticleEffect Burst(Control anchor, int count = 24, Color? color = null, AnimationBuilder? reduced = null)
     {
@@ -99,7 +99,7 @@ public static class Particles
             Opacity = new(1, 0, tokens.Ease),
             Colors = [color?.ToPresto() ?? s_accents[0]],
         };
-        return overlay.Play([(burst, Centre(anchor, overlay.Top))]);
+        return overlay.Play([(burst, Center(anchor, overlay.Top))]);
     }
 
     private static ParticleOverlay? Overlay(Control anchor, AnimationBuilder? reduced)
@@ -109,6 +109,6 @@ public static class Particles
         return null;
     }
 
-    private static Point Centre(Control anchor, TopLevel top) =>
+    private static Point Center(Control anchor, TopLevel top) =>
         anchor.TranslatePoint(new Point(anchor.Bounds.Width / 2, anchor.Bounds.Height / 2), top) ?? default;
 }

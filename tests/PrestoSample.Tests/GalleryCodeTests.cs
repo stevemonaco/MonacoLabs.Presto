@@ -75,8 +75,8 @@ public sealed partial class GalleryCodeTests
             var runs = inlines.OfType<Run>().ToList();
             if (string.Concat(runs.Select(run => run.Text)) != panel.Code)
                 yield return $"{name} shows different text from its Code";
-            var colourable = CodeHighlighter.Tokenize(panel.Code, panel.Language).Any(token => token.Kind != CodeTokenKind.Plain);
-            if (colourable && !runs.Any(run => run.IsSet(TextElement.ForegroundProperty)))
+            var colorable = CodeHighlighter.Tokenize(panel.Code, panel.Language).Any(token => token.Kind != CodeTokenKind.Plain);
+            if (colorable && !runs.Any(run => run.IsSet(TextElement.ForegroundProperty)))
                 yield return $"{name} is not highlighted";
             if (panel.GetVisualDescendants().OfType<Button>().SingleOrDefault(part => part.Name == "PART_Copy") is not { IsEnabled: true })
                 yield return $"{name} has no enabled Copy button";

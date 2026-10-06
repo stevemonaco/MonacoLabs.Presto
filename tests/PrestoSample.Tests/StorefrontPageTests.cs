@@ -126,14 +126,14 @@ public sealed class StorefrontPageTests
         Assert.Equal(product, page.ViewModel.QuickView);
         Assert.True(quick.IsOpen);
         TestFrames.Tick(60);
-        Assert.True(page.GetControl<ScrollViewer>("Catalogue").Effect is BlurEffect { Radius: > 5 }, "the grid behind the quick view was not blurred");
+        Assert.True(page.GetControl<ScrollViewer>("Catalog").Effect is BlurEffect { Radius: > 5 }, "the grid behind the quick view was not blurred");
 
         SceneHarness.Click(window, Button(quick, "Close"));
         Assert.False(quick.IsOpen);
 
         TestFrames.Tick(60);
         Assert.False(quick.Content!.IsEffectivelyVisible);
-        Assert.Null(page.GetControl<ScrollViewer>("Catalogue").Effect);
+        Assert.Null(page.GetControl<ScrollViewer>("Catalog").Effect);
         SceneHarness.Close(window);
     }
 

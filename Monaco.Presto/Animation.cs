@@ -85,7 +85,7 @@ public sealed class Animation : Timer
             {
                 var (declaredName, propertyValue) = properties[propertyIndex];
                 // Keyed by the canonical name so the other spellings of this property compose against these tweens.
-                var propertyName = Presto.Canonicalise(target, declaredName);
+                var propertyName = Presto.Canonicalize(target, declaredName);
                 var accessor = Presto.ResolveAccessor(target, propertyName);
                 var codec = accessor.Codec;
                 var frames = NormalizeKeyframes(propertyValue, fastSet);
@@ -162,7 +162,7 @@ public sealed class Animation : Timer
                     // The update start in local time: the previous keyframe's end, or zero for the first one.
                     var tweenUpdateStartLocal = prevTween != null ? lastTweenChangeEndTime : 0;
                     var tweenStartTime = prevTween != null ? lastTweenChangeEndTime + tweenDelay : tweenDelay;
-                    // Rounding minimises the floating point errors of working in seconds.
+                    // Rounding minimizes the floating point errors of working in seconds.
                     var absoluteStartTime = Helpers.Round(absoluteOffsetTime + tweenStartTime, 12);
                     // Matches the rounding of prevSibling._absoluteEndTime so keyframes touching at a boundary compare cleanly.
                     var absoluteUpdateStartTime = Helpers.Round(absoluteOffsetTime + tweenUpdateStartLocal, 12);
@@ -257,7 +257,7 @@ public sealed class Animation : Timer
 
                     if (codec is DiscreteCodec) (ScratchFrom.Number, ScratchTo.Number) = (0, 1);
                     if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(ScratchFrom, ScratchTo);
-                    if (ScratchFrom.Kind != ScratchTo.Kind) Homogenise(ScratchFrom, ScratchTo);
+                    if (ScratchFrom.Kind != ScratchTo.Kind) Homogenize(ScratchFrom, ScratchTo);
 
                     if (ScratchFrom.Unit != ScratchTo.Unit)
                     {
@@ -281,7 +281,7 @@ public sealed class Animation : Timer
                         if (plan.Then is { } then) frames = [frame, new TweenParams { To = then.To, Duration = then.Duration, Ease = then.Ease }];
                     }
 
-                    // Rounding minimises the floating point errors of working in seconds.
+                    // Rounding minimizes the floating point errors of working in seconds.
                     var tweenUpdateDuration = Helpers.Round(tweenDuration == 0 || double.IsNaN(tweenDuration) ? Constants.MinValue : tweenDuration, 12);
                     lastTweenChangeEndTime = Helpers.Round(tweenStartTime + tweenUpdateDuration, 12);
 
@@ -533,7 +533,7 @@ public sealed class Animation : Timer
         _ => null,
     };
 
-    private static void Homogenise(DecomposedValue from, DecomposedValue to)
+    private static void Homogenize(DecomposedValue from, DecomposedValue to)
     {
         if (from.Kind == ValueKind.Complex || to.Kind == ValueKind.Complex)
         {

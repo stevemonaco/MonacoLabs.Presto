@@ -38,7 +38,7 @@ public sealed class ReorderContainerTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public void AMoveEasesTheNeighboursAndLandsTheMovedContainerInOneFrame(bool virtualized)
+    public void AMoveEasesTheNeighborsAndLandsTheMovedContainerInOneFrame(bool virtualized)
     {
         var (list, items) = ReorderList(virtualized, itemLayout: true);
         var green = Extent(list, Colors.Lime);

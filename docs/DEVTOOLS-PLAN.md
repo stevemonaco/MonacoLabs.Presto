@@ -13,7 +13,7 @@ the state an inspector needs behind `internal`. §2 is therefore the bulk of the
 
 | Need | Today | Gap |
 |---|---|---|
-| Enumerate tickables | `Engine._head` holds only running, unpaused roots; `Engine.Update` unlinks a timer the frame after it pauses or completes. `Presto.GetAnimations(target)` walks the same list. | A paused, not-yet-played (`Autoplay = false`), completed or cancelled timer is invisible. No registry. |
+| Enumerate tickables | `Engine._head` holds only running, unpaused roots; `Engine.Update` unlinks a timer the frame after it pauses or completes. `Presto.GetAnimations(target)` walks the same list. | A paused, not-yet-played (`Autoplay = false`), completed or canceled timer is invisible. No registry. |
 | Timeline structure | `Timer._head/_next` child list is internal. | No public `Children`. |
 | Tween detail | `Tween` exposes `Id`, `Parent`, `Property`, `Target`, `Accessor`; from/to, timings, ease, composition and override state are internal fields. | No read-only view of a tween's span, values or whether a newer tween overrode it. |
 | Timer timings | `Duration`, `IterationDuration`, `IterationCount`, `CurrentTime`, `Progress`, state flags are public. | `Delay`, `LoopDelay`, alternate flag, offset in parent, playback ease, `Priority`, the owning engine and whether it is in the engine list are internal. |
@@ -64,7 +64,7 @@ exactly one frame; dilation 0.5 halves timer progress *and* spring progress; tha
 - `IReadOnlyList<Timer> Roots` — live root timers (any state) via `WeakReference<Timer>`, compacted lazily. Children are
   reached through `Timer.Children` (§2.3), so only roots are registered. Weak so the inspector never extends a lifetime:
   a completed, unreferenced animation disappears when collected.
-- `RecentlyEnded` — a bounded ring (default 32) of strong references to roots that completed, were cancelled or reverted,
+- `RecentlyEnded` — a bounded ring (default 32) of strong references to roots that completed, were canceled or reverted,
   so short animations remain inspectable after they finish. Cleared on disable.
 - `IReadOnlyList<MotionValue> ActiveValues` and a weak list of `Animatable`s, for the springs section.
 - `event Action<Timer>? TimerCreated` — raised from the `Timer` constructor (after `Init` for factory timers).
@@ -90,7 +90,7 @@ Public getters only; no new setters except where a control already exists.
   (number or channel array copy, plus the composed display string). Snapshot methods allocate and are for tools only.
 - `MotionValue`: `IsAnimating` (in the engine's active list), `Spring` (the follower's spring, if any).
 - Ease names: `Eases.TryGetName(Ease, out string)` backed by a `ConditionalWeakTable<Ease, string>`. The fixed eases are
-  registered once at static init. Parameterised factories (`Eases.Out(3)`, `Eases.Spring(...)`) and `EaseParser` register
+  registered once at static init. Parameterized factories (`Eases.Out(3)`, `Eases.Spring(...)`) and `EaseParser` register
   only while a process-wide `Diagnostics.Active` flag is set (any engine's diagnostics enabled): those factories mint a new
   delegate per call, often in loops, and must not pay a locked table insert in a release app. Eases created before
   enabling show as `custom`; the overlay always draws a sampled curve thumbnail anyway.
@@ -102,7 +102,7 @@ Public getters only; no new setters except where a control already exists.
   Reorder, Presence, Motion states, page transitions, Connected, Follow, recipes) and the core tags the additive lookup
   animation. Untagged means app code. With diagnostics inactive, `Origin()` returns an empty struct whose `Dispose` does
   nothing, and the constructor reads the `[ThreadStatic]` tag only behind the `Enabled` branch.
-- `Diagnostics.CaptureCreationTrace` (off by default, only honoured while `Enabled`): stores `new StackTrace(skip, true)`
+- `Diagnostics.CaptureCreationTrace` (off by default, only honored while `Enabled`): stores `new StackTrace(skip, true)`
   so the overlay can show the app frame that created an animation. Expensive by design; the overlay toggles it.
 - Grouping by `Scope`/`ControlScope`: `Scope.Register` already sees every timer created inside a scope; record the scope so
   the list can group "everything this control's scope owns".
@@ -146,7 +146,7 @@ Public getters only; no new setters except where a control already exists.
    read-only so an app-set rate is not mistaken for the inspector's.
 2. **Tickable list** — tree of roots → timeline children → tweens. Row: kind glyph (timer/animation/timeline), `Id`,
    origin chip, target summary (`Name` or type + index, "3 targets"), properties, state (pending/delay/running/paused/
-   completed/cancelled), live progress bar with iteration count. Filters: state, hide bridge-internal origins (on by
+   completed/canceled), live progress bar with iteration count. Filters: state, hide bridge-internal origins (on by
    default), text search over id/target/property. Recently ended roots shown dimmed.
 3. **Inspector for the selected root** — a scrub track showing delay, iterations and loop delays; for timelines, labels
    and a Gantt of child spans; per-timer play/pause/reverse/restart/seek/speed. Scrubbing pauses the root and seeks it;
@@ -182,7 +182,7 @@ The rest need a bridge resolver, `TargetOwner.Find(object) → Visual?`:
 
 ### 3.4 Hazards to design around
 
-- **Scrubbing revives.** `Seek` on a completed or cancelled timer calls `ReviveTimer`, which re-composes its tweens and can
+- **Scrubbing revives.** `Seek` on a completed or canceled timer calls `ReviveTimer`, which re-composes its tweens and can
   override a newer animation on the same property. The inspector allows scrubbing a recently ended root only with an
   explicit "revive" affordance, and shows when doing so would override a live tween.
 - **Reverting from the overlay** is destructive to app state; offer it, but not one click from scrub.
@@ -218,10 +218,10 @@ The rest need a bridge resolver, `TargetOwner.Find(object) → Visual?`:
 - **Re-ended roots.** A revived root, such as an `Animatable`'s property animation on every `Set`, ended twice and
   appeared twice in `RecentlyEnded`, which crashed the list's `ObservableCollection.Move`. `Ended` now moves it to the end.
 - **Compositor-played transitions** (the gallery's `PageSlide`) appear as `CompositorScratch` rows that go from pending
-  to cancelled, and they ignore freeze and dilation (§5 item 4). The gallery's own crossfade holds while frozen.
+  to canceled, and they ignore freeze and dilation (§5 item 4). The gallery's own crossfade holds while frozen.
 - **Follow-ups seen in the walk, all fixed:** the overlay now shows tween values with at most three decimals; the default
   ease (`Eases.Default`, `out(2)`) is named at static init and strings `EaseParser` cached before diagnostics turned on
-  are named from their cache key when the first engine enables them; the springs panel's colour `NaN` and the untagged
+  are named from their cache key when the first engine enables them; the springs panel's color `NaN` and the untagged
   `Animatable` `CallbacksTarget` root were fixed in the final review. The gallery's Settings area has a "Presto DevTools"
   toggle button.
 - **Open: manual check.** DevTools input cannot send modifier chords, hover or drag, so the `Ctrl+Shift+F12` gesture,

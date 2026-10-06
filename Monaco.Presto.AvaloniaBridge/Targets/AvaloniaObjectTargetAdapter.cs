@@ -93,7 +93,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     /// Every spelling of one property — <c>"Opacity"</c>, <c>"Visual.Opacity"</c>, <see cref="Visual.OpacityProperty"/> — resolves
     /// to the same <see cref="AvaloniaProperty"/> and so shares its encoded name, which is what tweens are keyed by.
     /// </summary>
-    public string? Canonicalise(object target, string property)
+    public string? Canonicalize(object target, string property)
     {
         if (target is not AvaloniaObject) return null;
         if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is Shape && property == "Draw") || (target is ScrollViewer && property is "ScrollX" or "ScrollY"))) return property;
@@ -172,7 +172,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
 
         public void SetValue(object target, double number, Tween tween)
         {
-            // Rebuilt here rather than through the codec, whose Encode boxes the colour.
+            // Rebuilt here rather than through the codec, whose Encode boxes the color.
             if (shorthand == EffectShorthand.ShadowColor) EffectComposer.SetColor((Visual)target, PrestoColor.FromChannels(tween._numbers).ToAvalonia());
             else EffectComposer.Set((Visual)target, shorthand, number, tween._currentTime >= tween._changeDuration);
         }

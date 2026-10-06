@@ -78,7 +78,7 @@ public sealed class Animatable : IRevertible
     }
 
     /// <summary>The canonical name of <paramref name="property"/>, so a property declared by one spelling is read and set by any.</summary>
-    private string Key(string property) => _targets.Count == 0 ? property : Presto.Canonicalise(_targets[0], property);
+    private string Key(string property) => _targets.Count == 0 ? property : Presto.Canonicalize(_targets[0], property);
 
     /// <summary>The targets every property animation shares, empty once <see cref="Revert"/> has run.</summary>
     public IReadOnlyList<object> Targets => _targets;
@@ -90,7 +90,7 @@ public sealed class Animatable : IRevertible
     public double Get(string property) =>
         _animations.TryGetValue(Key(property), out var animation) && animation._headTween is { } tween ? tween._modifier(tween._number) : 0;
 
-    /// <summary>The channels of a colour or complex property, empty for a scalar one.</summary>
+    /// <summary>The channels of a color or complex property, empty for a scalar one.</summary>
     public double[] GetChannels(string property) =>
         _animations.TryGetValue(Key(property), out var animation) && animation._headTween is { } tween ? tween._numbers : [];
 
@@ -171,7 +171,7 @@ public sealed class Animatable : IRevertible
     }
 
     /// <inheritdoc cref="Set(string, double, double?, EaseValue?)"/>
-    /// <remarks>The channel form, for the colour and complex properties <see cref="GetChannels"/> reads.</remarks>
+    /// <remarks>The channel form, for the color and complex properties <see cref="GetChannels"/> reads.</remarks>
     public Animatable Set(string property, IReadOnlyList<double> to, double? duration = null, EaseValue? ease = null)
     {
         var key = Key(property);
@@ -248,7 +248,7 @@ public sealed class Animatable : IRevertible
     }
 
     /// <summary>
-    /// The channel form of <see cref="CarryMomentum"/>: each channel of each tween gets its own thrown spring. Colour RGB
+    /// The channel form of <see cref="CarryMomentum"/>: each channel of each tween gets its own thrown spring. Color RGB
     /// channels carry their velocity in the squared space the renderer blends them in; a channel that does not move stays at rest.
     /// </summary>
     private Animatable CarryChannelMomentum(Animation animation, Spring spring, IReadOnlyList<double> to, double? duration)
@@ -275,8 +275,8 @@ public sealed class Animatable : IRevertible
                     var ease = tween._channelEases?[i] ?? tween._ease;
                     var (oldFrom, oldTo) = (tween._fromNumbers[i], tween._toNumbers[i]);
                     var oldAlpha = !squared || blended ? 0 : Helpers.Lerp(oldFromAlpha, oldToAlpha, Pure(ease)(tween._currentTime / tween._updateDuration));
-                    var travelled = squared ? SquaredTravel(oldFrom, oldTo, oldFromAlpha, oldToAlpha, oldAlpha, from) : oldTo - oldFrom;
-                    var velocity = animation.Paused ? 0 : Velocity(tween, ease, travelled) * Constants.K * Globals.TimeScale / distance;
+                    var traveled = squared ? SquaredTravel(oldFrom, oldTo, oldFromAlpha, oldToAlpha, oldAlpha, from) : oldTo - oldFrom;
+                    var velocity = animation.Paused ? 0 : Velocity(tween, ease, traveled) * Constants.K * Globals.TimeScale / distance;
                     thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);
                     span = Math.Max(span, thrown.SolverDuration);
                     settling = Math.Max(settling, thrown.SettlingDuration);
@@ -305,7 +305,7 @@ public sealed class Animatable : IRevertible
     }
 
     /// <summary>
-    /// How far a colour channel's square moves per unit of progress at <paramref name="current"/>, where the channel's alpha is
+    /// How far a color channel's square moves per unit of progress at <paramref name="current"/>, where the channel's alpha is
     /// <paramref name="alpha"/>: the slope of the renderer's premultiplied blend, or its straight one when the alphas match or
     /// <paramref name="alpha"/> leaves nothing to divide by.
     /// </summary>
@@ -318,7 +318,7 @@ public sealed class Animatable : IRevertible
     private static Ease Pure(Ease ease) => ease.Target is Spring spring && ease == spring.Ease ? spring.PureEase : ease;
 
     private static bool IsDiscrete(object? targets, string property) =>
-        TargetParser.Parse(targets) is [var first, ..] && Presto.ResolveAccessor(first, Presto.Canonicalise(first, property)).Codec is DiscreteCodec;
+        TargetParser.Parse(targets) is [var first, ..] && Presto.ResolveAccessor(first, Presto.Canonicalize(first, property)).Codec is DiscreteCodec;
 
     private Action<Timer>? Wrap(Action<Animatable>? callback) => callback == null ? null : _ => callback(this);
 

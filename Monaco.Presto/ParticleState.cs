@@ -32,7 +32,7 @@ public struct ParticleState
     /// <summary>Flutter phase in radians; a renderer scales one axis by its cosine.</summary>
     public double FlutterPhase { get; internal set; }
 
-    /// <summary>The colour picked from <see cref="EmitterParams.Colors"/> at spawn.</summary>
+    /// <summary>The color picked from <see cref="EmitterParams.Colors"/> at spawn.</summary>
     public PrestoColor BaseColor { get; internal set; }
 
     /// <summary>The current size, sampled from <see cref="EmitterParams.Size"/>.</summary>
@@ -41,6 +41,6 @@ public struct ParticleState
     /// <summary>The current opacity, sampled from <see cref="EmitterParams.Opacity"/>.</summary>
     public double Opacity { get; internal set; }
 
-    /// <summary>The current colour: <see cref="BaseColor"/> mixed toward <see cref="EmitterParams.EndColor"/> by <see cref="EmitterParams.ColorMix"/>.</summary>
+    /// <summary>The current color: <see cref="BaseColor"/> mixed toward <see cref="EmitterParams.EndColor"/> by <see cref="EmitterParams.ColorMix"/>.</summary>
     public PrestoColor Color { get; internal set; }
 }

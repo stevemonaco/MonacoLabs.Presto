@@ -327,7 +327,7 @@ public sealed class ActivityFeedPageTests
             if (drag) grab = PressThumb(window, feed);
             page.ViewModel.AddLive(above: true);
             Step(window.UpdateLayout);
-            Step(() => Unqueued(window, drag ? "MouseMove" : "MouseWheel", drag ? [grab -= new Vector(0, 100), RawInputModifiers.LeftMouseButton] : [SceneHarness.Centre(feed, window), new Vector(0, 10), RawInputModifiers.None]));
+            Step(() => Unqueued(window, drag ? "MouseMove" : "MouseWheel", drag ? [grab -= new Vector(0, 100), RawInputModifiers.LeftMouseButton] : [SceneHarness.Center(feed, window), new Vector(0, 10), RawInputModifiers.None]));
             Step(window.UpdateLayout);
         }
         else
@@ -362,7 +362,7 @@ public sealed class ActivityFeedPageTests
         ScrollDownAndInsert(window, page, 300, 3);
         while (feed.Scroll!.Offset.Y > 0)
         {
-            window.MouseWheel(SceneHarness.Centre(feed, window), new Vector(0, 10));
+            window.MouseWheel(SceneHarness.Center(feed, window), new Vector(0, 10));
             TestFrames.Tick();
         }
         var count = page.ViewModel.Items.Count;
@@ -383,7 +383,7 @@ public sealed class ActivityFeedPageTests
     private static void Scroll(Window window, ListBox feed, ref Point grab, bool drag, double by)
     {
         if (drag) window.MouseMove(grab -= new Vector(0, by));
-        else window.MouseWheel(SceneHarness.Centre(feed, window), new Vector(0, by));
+        else window.MouseWheel(SceneHarness.Center(feed, window), new Vector(0, by));
     }
 
     // Headless input extensions drain Background jobs first; a desktop lets input outrank them.
@@ -393,7 +393,7 @@ public sealed class ActivityFeedPageTests
     private static List<object> ScrollDownAndInsert(Window window, ActivityFeedPage page, double offset, int events)
     {
         var feed = Feed(page);
-        if (offset < 1000) window.MouseWheel(SceneHarness.Centre(feed, window), new Vector(0, -offset / 50));
+        if (offset < 1000) window.MouseWheel(SceneHarness.Center(feed, window), new Vector(0, -offset / 50));
         else feed.Scroll!.Offset = new Vector(0, offset);
         TestFrames.Tick(30);
         var inserted = new List<object>();
@@ -409,7 +409,7 @@ public sealed class ActivityFeedPageTests
     private static Point PressThumb(Window window, ListBox feed)
     {
         var bar = ((ScrollViewer)feed.Scroll!).GetVisualDescendants().OfType<ScrollBar>().Single(bar => bar.Orientation == Orientation.Vertical);
-        var grab = SceneHarness.Centre(bar.GetVisualDescendants().OfType<Thumb>().Single(), window);
+        var grab = SceneHarness.Center(bar.GetVisualDescendants().OfType<Thumb>().Single(), window);
         window.MouseDown(grab, MouseButton.Left);
         return grab;
     }

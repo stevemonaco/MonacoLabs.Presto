@@ -9,7 +9,7 @@ using Monaco.Presto.AvaloniaBridge.Controls;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>A <see cref="FilteredImage"/> laid out as <see cref="Image"/> is, drawn plain at rest and through its colour matrix otherwise.</summary>
+/// <summary>A <see cref="FilteredImage"/> laid out as <see cref="Image"/> is, drawn plain at rest and through its color matrix otherwise.</summary>
 public sealed class FilteredImageTests : CompositorTestBase
 {
     public static TheoryData<Stretch, StretchDirection> Stretches()
@@ -218,7 +218,7 @@ public sealed class FilteredImageTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void ColourFiltersApplyToThePixelsADissolveKeeps()
+    public void ColorFiltersApplyToThePixelsADissolveKeeps()
     {
         var pixels = Pixels(Dissolved(image => (image.Dissolve, image.Grayscale) = (0.5, 1)));
 
@@ -427,7 +427,7 @@ public sealed class FilteredImageTests : CompositorTestBase
         }
     }
 
-    // Four coloured quadrants, so any misplaced or resampled pixel changes the frame.
+    // Four colored quadrants, so any misplaced or resampled pixel changes the frame.
     private static RenderTargetBitmap Picture()
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(20, 10));

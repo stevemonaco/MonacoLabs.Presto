@@ -12,7 +12,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// <see cref="LayoutAnimateMode.PositionAndSizeCorrected"/>: a blue card doubling in size from 40x20 at (20, 20) keeps its
 /// red 10x10 avatar at its size and at the same alignment inside the card as it is drawn.
 /// </summary>
-/// <remarks>The pixel probes count only exact colours, so an edge blended on a fractional pixel can lose one pixel.</remarks>
+/// <remarks>The pixel probes count only exact colors, so an edge blended on a fractional pixel can lose one pixel.</remarks>
 public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
 {
     private const double Duration = 800;
@@ -66,7 +66,7 @@ public sealed class CorrectedLayoutTransitionTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public void CancellingOrRevertingMidFlightRestoresTheChild(bool revert)
+    public void CancelingOrRevertingMidFlightRestoresTheChild(bool revert)
     {
         var (card, avatar) = ShowCard(HorizontalAlignment.Center, VerticalAlignment.Center);
         var transition = card.AnimateLayout(Held, Eases.None, LayoutAnimateMode.PositionAndSizeCorrected);

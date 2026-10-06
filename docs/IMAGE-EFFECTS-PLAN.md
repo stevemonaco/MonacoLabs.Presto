@@ -1,19 +1,19 @@
 # Image effects — color filters and pixel transitions
 
 Phases 28–29 in [PLAN.md](PLAN.md). Status: **built** (deviations in §5). This plan follows the post-Phase-27 gap review, which found that
-the colour and image effects every web animation library leans on (CSS `filter`: grayscale, saturate, sepia, hue-rotate,
+the color and image effects every web animation library leans on (CSS `filter`: grayscale, saturate, sepia, hue-rotate,
 brightness, contrast, invert; plus dissolve, pixelate and ripple transitions) cannot be expressed in Avalonia at all.
 Phase 24 covered what `Visual.Effect` offers; this covers what it does not, without writing shaders.
 
 | Phase | Scope | Size |
 |---|---|---|
-| 28 | `FilteredImage`: an `Image`-compatible control with animatable CSS-style colour filters, drawn through Skia colour filters | medium |
+| 28 | `FilteredImage`: an `Image`-compatible control with animatable CSS-style color filters, drawn through Skia color filters | medium |
 | 29 | Pixel transitions on `FilteredImage`: crossfade, dissolve, pixelate, ripple and wipe between two sources, and the same effects as standalone properties | medium |
 
 ## 0. What Avalonia 12.1.2 offers (verified against the source)
 
 - **`Visual.Effect`** has two implementations, `BlurEffect` and `DropShadowEffect` (plus `DropShadowDirectionEffect`).
-  There is no colour-matrix, hue or saturation effect, and `IEffect` is not implementable in a way the Skia backend
+  There is no color-matrix, hue or saturation effect, and `IEffect` is not implementable in a way the Skia backend
   consumes: `DrawingContextImpl.Effects.cs` switches on the known types.
 - **`RenderOptions.BitmapBlendingMode`** (all the CSS blend modes) applies only inside `DrawingContextImpl.DrawBitmap`
   (`paint.BlendMode = RenderOptions.BitmapBlendingMode.ToSKBlendMode()`), i.e. to an `Image` or an image brush tile
@@ -22,7 +22,7 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
   `ImmediateDrawingContext.TryGetFeature`. The lease hands out the live `SKCanvas`, `SKSurface` and `GRContext` and, on
   dispose, restores the canvas matrix it found. `ImmediateDrawingContext.DrawBitmap(Bitmap, Rect[, Rect])` draws an
   Avalonia bitmap on the same canvas outside a lease.
-- **Skia's built-in filters need no shader code:** `SKColorFilter.CreateColorMatrix` (every CSS colour filter is a 5×4
+- **Skia's built-in filters need no shader code:** `SKColorFilter.CreateColorMatrix` (every CSS color filter is a 5×4
   matrix in the Filter Effects spec), `SKShader.CreatePerlinNoiseFractalNoise`/`Turbulence`,
   `SKImageFilter.CreateDisplacementMapEffect`, `SKImageFilter.CreateShader`, and blend modes on `SaveLayer` paints.
   Skia is the renderer on every head this repo ships, and the bridge test project already renders headless through
@@ -47,8 +47,8 @@ Phase 24 covered what `Visual.Effect` offers; this covers what it does not, with
 2. **Filters are CSS names and CSS semantics.** `Brightness`, `Contrast`, `Saturate`, `Grayscale`, `Sepia`,
    `HueRotate` (degrees), `Invert`, matching the Filter Effects Level 1 matrices and ranges, so an anime.js
    `filter: 'grayscale(1)'` has a one-to-one port. Two additions CSS lacks, both still affine and so still one matrix:
-   `Tint` (amount) with `TintColor`, a monotone that maps luminance onto the colour; and `Duotone` (amount) with
-   `DuotoneShadow` and `DuotoneHighlight`, which maps luminance onto the segment between the two colours.
+   `Tint` (amount) with `TintColor`, a monotone that maps luminance onto the color; and `Duotone` (amount) with
+   `DuotoneShadow` and `DuotoneHighlight`, which maps luminance onto the segment between the two colors.
 3. **One matrix, fixed order.** The filters compose into a single 5×4 matrix per render, in a documented fixed order:
    `Brightness` → `Contrast` → `Saturate` → `Grayscale` → `Sepia` → `HueRotate` → `Tint` → `Duotone` → `Invert`.
    CSS chains are user-ordered; properties cannot be, and a fixed order is what lets each filter animate on its own. A
@@ -116,13 +116,13 @@ photo.Animate(b => b.Property(FilteredImage.SepiaProperty, from: 0.8, to: 0).Pro
 
 Typed builder methods (`.Grayscale(1)`, `.HueRotate(180)`, …) are generated in `PropertyBuilderExtensions` with the
 usual four overloads, resolving to the `FilteredImage` properties by name. New recipes: `Recipes.Colorize` (a hover
-from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia, brightness and blur settling), and
+from grayscale to color), `Recipes.Develop` (a photo-developing entrance: sepia, brightness and blur settling), and
 `Recipes.FlashTint` (attention). Each supplies a `WhenReduced` alternative per decision 35.
 
 ### 1.3 Implementation steps
 
 1. **Spike (half a day, throwaway).** In the Desktop sample: a custom draw op that leases, `SaveLayer`s with a grayscale
-   colour filter, releases, calls `DrawBitmap`, leases and restores. Confirm the image is filtered, clipping and
+   color filter, releases, calls `DrawBitmap`, leases and restores. Confirm the image is filtered, clipping and
    opacity of ancestors still apply, render scaling is right, and it works in the headless test app. Record which
    drawing path (decision 4) won in §5 of this document.
 2. **`ColorMatrix` (internal, pure).** A 5×4 `float` matrix struct with `Multiply`, `IsIdentity` and one factory per
@@ -142,7 +142,7 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   `Grayscale(a)` equals `Saturate(1 - a)`; `HueRotate(360)` is the identity within 1e-6; composition order is the
   documented one (brightness then invert differs from invert then brightness, and the control uses the former).
 - Pixel tests, headless Skia: a red bitmap at `Grayscale = 1` renders the spec luminance gray; `Invert = 1` renders
-  cyan; `HueRotate = 180` rotates a known colour to its spec value; `Tint = 1` with blue renders luminance × blue;
+  cyan; `HueRotate = 180` rotates a known color to its spec value; `Tint = 1` with blue renders luminance × blue;
   all defaults render identical to a plain `Image` with the same `Source`, `Stretch` and size.
 - Layout: measure and arrange match `Image` for each `Stretch`/`StretchDirection` over the same source.
 - Animation: `Presto.Animate` on `GrayscaleProperty` renders intermediate frames and `Revert` restores the local value.
@@ -157,26 +157,26 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
 
 - **New Reference page "Image effects":** one photo with a slider per filter and the builder or XAML it corresponds to
   printed beside it; a row of thumbnails that colorize on hover (`Motion.Hover` + `Recipes.Colorize`); a "develop"
-  entrance on `Presence.Initial`; a duotone card whose two colours animate with the app theme; a hue cycle loop on
+  entrance on `Presence.Initial`; a duotone card whose two colors animate with the app theme; a hue cycle loop on
   `Animate.OnAttached`.
 - **Storefront:** out-of-stock products render grayscale and colorize on hover.
 - **Assets:** three or four CC0 photographs added under `samples/PrestoSample/Assets/Photos/`, with their source and
-  licence in a `README.md` beside them.
+  license in a `README.md` beside them.
 
 ## 2. Phase 29 — Pixel transitions
 
 ### 2.1 Decisions
 
 1. **Transitions live on `FilteredImage`.** They are the "shader and pixel transitions" of PLAN §8, built from Skia's
-   built-in noise, displacement and blend modes instead of shaders. Colour filters apply to both images during a
+   built-in noise, displacement and blend modes instead of shaders. Color filters apply to both images during a
    transition.
 2. **Each effect is also a standalone property,** so it can reveal or hide a single image through `Presence` without a
    second source:
    - `Dissolve` (0 = visible, 1 = gone) with `DissolveScale` and `DissolveSoftness`: alpha is thresholded against
-     fractal noise, a clamped affine function of the noise and so one colour matrix over the noise shader, applied as a
+     fractal noise, a clamped affine function of the noise and so one color matrix over the noise shader, applied as a
      `DstIn` mask layer.
    - `Pixelate` (block size in DIPs, 1 = identity): the bitmap drawn into a scaled-down layer and back up with
-     nearest-neighbour sampling.
+     nearest-neighbor sampling.
    - `Ripple` (displacement in DIPs, 0 = identity) with `RippleScale`: a displacement map image filter over turbulence.
 3. **Source swaps are opt-in through one property.** `SourceTransition` (an `ImageTransition` value: kind plus an
    `AnimationBuilder` for timing) plays whenever `Source` changes: the old bitmap is held as the outgoing image, the
@@ -234,7 +234,7 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
 
 - **`ColorMatrix` luminance weights.** `Saturate` uses the `grayscale()` weights 0.2126/0.7152/0.0722 rather than
   `feColorMatrix`'s rounded 0.213/0.715/0.072, so `Grayscale(a)` equals `Saturate(1 - a)` exactly; `HueRotate` keeps
-  the published matrix. Skia's colour-matrix offsets are normalized 0..1 (checked by drawing), despite SkiaSharp's
+  the published matrix. Skia's color-matrix offsets are normalized 0..1 (checked by drawing), despite SkiaSharp's
   0..255 doc remark.
 - **`ImageSequence` ignores the inherited `Source`.** It draws `Frames[CurrentFrame]` and sizes by `Frames[0]` (through an
   internal `MeasuredImage` hook on the base); setting `Source` on it has no effect. `TintColor` defaults to white (a
@@ -246,11 +246,11 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   filtered and that ancestor opacity, clip and transforms still apply; device render scaling is 1 in the headless
   app, so only a scale transform was checked. The cached-`SKImage` fallback was not needed. The native filter and paint
   are created per render and disposed with the operation; no per-control cache (decision 10) has been needed yet.
-- **One image-filter chain, in a fixed order (Phase 29).** The layer paint carries a single `SKImageFilter`: the colour
+- **One image-filter chain, in a fixed order (Phase 29).** The layer paint carries a single `SKImageFilter`: the color
   matrix (`CreateColorFilter`), then `Ripple`, then `Pixelate`, then the `Dissolve` mask as a `DstIn`
-  `CreateBlendMode` over a colour-filtered noise `CreateShader`, so the mask is neither rippled nor pixelated. The mask
+  `CreateBlendMode` over a color-filtered noise `CreateShader`, so the mask is neither rippled nor pixelated. The mask
   moved from a `DrawRect` inside the layer into the chain for that reason; stages that are at identity are skipped.
-- **Pixelate is two nearest-neighbour matrix filters.** `CreateMatrix` scales by `1/Pixelate` and back by `Pixelate`
+- **Pixelate is two nearest-neighbor matrix filters.** `CreateMatrix` scales by `1/Pixelate` and back by `Pixelate`
   about the destination's top-left, both with `SKFilterMode.Nearest`, so each block is one sampled pixel rather than an
   average; Skia keeps the small intermediate (the spike test found no transform folding in SkiaSharp 3.119) and blocks
   align to the destination's top-left. The input is first edge-extended by one block and the result cropped to the
@@ -260,9 +260,9 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   merges the input with `CreateTile`s of its outermost column into side pads, then of the widened outermost row into
   top and bottom pads, which clamps the corners too.
 - **Ripple uses fractal noise over an edge-extended input.** The displacement input is `CreatePerlinNoiseFractalNoise`
-  (centred on 0.5), not turbulence, which sums absolute noise, is not centred on 0.5 and so would shift the whole image.
+  (centered on 0.5), not turbulence, which sums absolute noise, is not centered on 0.5 and so would shift the whole image.
   Its scale is `Ripple` itself, not multiplied by render scaling: Skia maps both the scale and the noise through the
-  canvas matrix. The colour input is edge-extended by `Ripple` DIPs, so edge pixels displaced from outside read the
+  canvas matrix. The color input is edge-extended by `Ripple` DIPs, so edge pixels displaced from outside read the
   image's edge rather than transparency, and the output is cropped to the destination, so the ripple never
   draws past the control's image rect.
 - **Rasterized sources are cached per draw and reference-counted.** A non-bitmap source is rasterized at the
@@ -280,8 +280,8 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   `PrestoImageBase.GrayscaleProperty` key, the same as the `AvaloniaAnimationParams` indexer, so they resolve on every
   subclass. `TintColor`, `DuotoneShadow` and `DuotoneHighlight` also take a `Color`, as `ShadowColor` does.
 - **Recipes.** `Develop` is an ordinary entrance (it fades in too) lasting `Long`; `FlashTint` sets `TintColor` with
-  a zero-duration tween and keeps the Attention family's reduced opacity blink; `Colorize` keeps its colour change when
-  reduced, as the other interactions keep colour. No `{presto:Colorize}`/`{presto:Develop}`/`{presto:FlashTint}`
+  a zero-duration tween and keeps the Attention family's reduced opacity blink; `Colorize` keeps its color change when
+  reduced, as the other interactions keep color. No `{presto:Colorize}`/`{presto:Develop}`/`{presto:FlashTint}`
   extensions were added: none of the three families has an extension for every recipe (`Grow`, `Dim`, `FlipIn`,
   `Pulse`… have none).
 - **Samples.** The duotone card follows `ActualThemeVariantChanged`, but the gallery app is fixed to Dark, so the page
@@ -294,7 +294,7 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   smoke-run, so the README has no Platforms note yet.
 - **Transitions draw each image through its own layer (Phase 29).** `FilteredImage` overrides `Render` while a
   transition runs and draws the outgoing and incoming images each through the same `ImageEffectDrawOperation` path,
-  with its own `Stretch` placement and the colour filters: `Dissolve` and `Wipe` draw the incoming image over the
+  with its own `Stretch` placement and the color filters: `Dissolve` and `Wipe` draw the incoming image over the
   outgoing one with its `Dissolve` or wipe mask at `1 - p` or `p`; `Pixelate` draws only the outgoing image before
   mid-way and only the incoming after, blocks peaking at `PeakPixelate`; `Crossfade` and `Ripple` draw the outgoing
   image opaque and the incoming one over it at opacity `p` (Phase 40), so an opaque pair never darkens mid-way (red →
@@ -312,7 +312,7 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   `DissolveSoftness`, `RippleScale`) comes from the image's own properties rather than `ImageTransition`.
 - **Interruption snapshots the control.** A source change mid-transition renders the current composite into a
   `RenderTargetBitmap` the size of the control, which becomes the outgoing image drawn with `Stretch.Fill` and no
-  colour filters (it already shows them); it is reference-counted like the rasterized sources and released on
+  color filters (it already shows them); it is reference-counted like the rasterized sources and released on
   completion, revert or detach (detaching completes the animation).
 - **`SourceTransition` has a string form.** `ImageTransition.Parse` takes a kind and an optional duration in ms
   (`"Dissolve"`, `"Wipe 800"`, eased `InOutQuad`); the Avalonia XAML compiler finds the static `Parse` for attributes
@@ -331,7 +331,7 @@ from grayscale to colour), `Recipes.Develop` (a photo-developing entrance: sepia
   selects it; the carousel pages lost their opaque background so it shows around the photo.
 - **Phase 40 (as built).** Each fix was pinned first by a headless Skia pixel test on a black window. Subclasses that override `Render` get
   `protected DrawImage(context, image, sourceRect)`, which draws with the control's own `Stretch`,
-  `StretchDirection`, colour filters and effects; the full overload stays `private protected` because `ImageEffect`
+  `StretchDirection`, color filters and effects; the full overload stays `private protected` because `ImageEffect`
   and the raster type are internal. Verified on Desktop only: each `ImageTransitionKind` in the Image effects
   slideshow was screenshotted mid-way at a 16 s duration (set through DevTools) with no darkening, translucent or
   ragged edges, or end snap, and Pixelate's right and bottom partial blocks sampled fully opaque; the

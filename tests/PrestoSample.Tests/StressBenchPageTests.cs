@@ -119,7 +119,7 @@ public sealed class StressBenchPageTests
             switch (item)
             {
                 case Animation animation:
-                    Assert.True(animation.Cancelled, "a UI-thread animation of the previous set is still running");
+                    Assert.True(animation.Canceled, "a UI-thread animation of the previous set is still running");
                     break;
                 case CompositorAnimation compositor:
                     // Reverting rewinds the playback model to before its longest delay.

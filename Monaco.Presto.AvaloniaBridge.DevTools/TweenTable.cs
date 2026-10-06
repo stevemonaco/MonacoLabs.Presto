@@ -19,7 +19,7 @@ internal sealed class TweenTable : StackPanel
         var root = RootInspector.RootOf(tween.Parent);
         foreach (var other in root.Engine.Diagnostics.Roots)
         {
-            if (other != root && !other.Completed && !other.Cancelled && Takes(other, tween)) return other;
+            if (other != root && !other.Completed && !other.Canceled && Takes(other, tween)) return other;
         }
         return null;
     }

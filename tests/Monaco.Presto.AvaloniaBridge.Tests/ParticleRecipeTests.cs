@@ -10,7 +10,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 public sealed class ParticleRecipeTests : CompositorTestBase
 {
     [AvaloniaFact]
-    public void ConfettiLaunchesFromTheAnchorsCentreInTopLevelCoordinates()
+    public void ConfettiLaunchesFromTheAnchorsCenterInTopLevelCoordinates()
     {
         var anchor = ShowAnchor();
 

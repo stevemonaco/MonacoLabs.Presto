@@ -217,7 +217,7 @@ public static class PrestoAvalonia
     /// <see cref="Animate.LayoutProperty"/> or <see cref="Animate.ItemLayoutProperty"/>.
     /// </summary>
     /// <exception cref="NotSupportedException">
-    /// The builder gives X, Y or Scale a value, which is layout's to decide, or sets anything else a layout transition cannot honour.
+    /// The builder gives X, Y or Scale a value, which is layout's to decide, or sets anything else a layout transition cannot honor.
     /// </exception>
     public static LayoutTransition AnimateLayout(Control control, AnimationBuilder builder, LayoutAnimateMode mode = LayoutAnimateMode.Position)
     {
@@ -249,7 +249,7 @@ public static class PrestoAvalonia
     /// <see cref="AnimateContentSize(Control, double, EaseValue?)"/> with the duration, delay and ease taken from
     /// <paramref name="builder"/>. From XAML, set <see cref="Animate.ContentSizeProperty"/>.
     /// </summary>
-    /// <exception cref="NotSupportedException">The builder animates a property, which is layout's to decide, or sets anything else a layout transition cannot honour.</exception>
+    /// <exception cref="NotSupportedException">The builder animates a property, which is layout's to decide, or sets anything else a layout transition cannot honor.</exception>
     public static ContentSizeTransition AnimateContentSize(Control host, AnimationBuilder builder)
     {
         EnsureInitialized();
@@ -584,7 +584,7 @@ public static class PrestoAvalonia
     /// </summary>
     /// <remarks>
     /// Without a duration or ease from the builder it takes <see cref="MotionTokens.Short"/> plus 150 ms per viewport
-    /// travelled, capped at <see cref="MotionTokens.Long"/>, on <see cref="MotionTokens.Ease"/>. The offset is held to the
+    /// traveled, capped at <see cref="MotionTokens.Long"/>, on <see cref="MotionTokens.Ease"/>. The offset is held to the
     /// extent every frame, and reaches <paramref name="offset"/> if the extent grows to fit it. Any scroll it did not write
     /// stops it, a later scroll to replaces it, and a <see cref="ScrollObserverParams.Snap"/> waits until it has ended.
     /// Under <see cref="PrestoDefaults.ReducedMotion"/> it jumps, unless the builder has a <c>WhenReduced</c> form.

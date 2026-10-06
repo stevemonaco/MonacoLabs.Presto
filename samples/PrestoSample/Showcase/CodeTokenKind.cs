@@ -1,6 +1,6 @@
 namespace PrestoSample.Showcase;
 
-/// <summary>What a <see cref="CodeHighlighter"/> token is, which decides its colour.</summary>
+/// <summary>What a <see cref="CodeHighlighter"/> token is, which decides its color.</summary>
 public enum CodeTokenKind
 {
     Plain,

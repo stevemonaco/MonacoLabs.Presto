@@ -4,7 +4,7 @@ Phases 55–65 in [PLAN.md](PLAN.md). This plan comes from the post-Phase-54 rev
 (3D and shaders excluded), checked against the committed code (`fe128fe`) and the Avalonia 12.1.2 assemblies. Every
 phase is a design sketch: it settles its open decisions in its section here, or in its own plan document if it
 outgrows one, before it starts. Phases 57, 59, 60, 61 and 62 begin with a spike, because they rest on Avalonia
-behaviour nobody has verified yet.
+behavior nobody has verified yet.
 
 | Phase | Gap | Scope | Size |
 |---|---|---|---|
@@ -30,7 +30,7 @@ Phase 55 comes first because each later phase states its reduced form against it
 - **Shaders** stay a non-goal (IMAGE-EFFECTS-PLAN §3). Phase 62 builds the ripple without them and measures first.
 - **Codecs and shorthands already listed in PLAN §7** (`GridLength`, `Matrix`, `Follow.RotateX/RotateY/Draw`) stay
   there as candidates.
-- **Colour interpolation spaces** stay Phase 30 ([COLOR-SPACES-PLAN.md](COLOR-SPACES-PLAN.md)).
+- **Color interpolation spaces** stay Phase 30 ([COLOR-SPACES-PLAN.md](COLOR-SPACES-PLAN.md)).
 - **The rest of PLAN §7's open items** that this plan does not name stay where they are.
 
 ## 1. Phase 55 — Reduced-motion holes
@@ -139,7 +139,7 @@ around it with a `collapsed` state whose `Leave` is `MainView.PageUnfolded`.
   then releases the hold, which uncovers the base `false`. The slot stays in layout during the exit, as with CSS;
   `Animate.ItemLayout` or `Animate.ContentSize` closes the gap afterwards.
 - **`Presence.HideMode`, decided (PLAN decision 75): `Hold` by default.** The spike (§3.3) found the live path
-  workable, so `Ghost` (layout collapses at once and the exit plays on a ghost, as for a detach, so neighbours close up
+  workable, so `Ghost` (layout collapses at once and the exit plays on a ghost, as for a detach, so neighbors close up
   during the exit) is opt-in. A hidden element snapshots as nothing, so `Ghost` takes its snapshot under a momentary
   hold in the same notification; this is the one exception to Phase 31's "an element leaving invisible is never
   ghosted", and an element already hidden by an ancestor or at opacity 0 still plays nothing. Phase 56's
@@ -218,7 +218,7 @@ rotator splits the outgoing word with `SplitText` and drops its characters imper
 - **Cost cap, decided (PLAN decision 80):** at most 256 per-piece ghosts (`PieceGhosts.Max`). Above it the split
   coarsens chars → words → lines, then falls back to the single whole-element ghost.
 - **One host, dismissed once (PLAN decision 81).** The host and every ghost's bitmap are dismissed together when the
-  exit completes, that is when the last ghost's tween ends, at once when the exit is cancelled, and inside the call
+  exit completes, that is when the last ghost's tween ends, at once when the exit is canceled, and inside the call
   for an instant exit (`ReduceAll`).
 - **Hidden text (PLAN decision 82).** Under `Hold` the exit plays on the block's live split pieces with no ghost, and
   the block is whole again once hidden; shown again mid-hide, the piece exit plays back (decision 78). Under `Ghost`
@@ -270,7 +270,7 @@ a chat log that follows new messages. Other libraries: GSAP's ScrollToPlugin (wi
     browser `scrollIntoView` and Flutter `ensureVisible` do. Each outer scroller aims at the element's rect at the inner
     scroller's final offset, cut to the inner viewport, not at the inner scroller's bounds. Rects come from summed
     layout slots (as `LayoutTransition.Measure` does), so render transforms do not count. Start/End align the
-    margin-inflated rect's leading/trailing edge, Center centres it, and Nearest does nothing when it is fully in view,
+    margin-inflated rect's leading/trailing edge, Center centers it, and Nearest does nothing when it is fully in view,
     otherwise scrolls the least distance, Start when it is larger than the viewport; all clamp to
     `ScrollBarMaximum`. One `Animation` drives the scrollers that move through function-based ScrollX/ScrollY values,
     with decision 84's motion over the largest distance in viewports; a scroll on one scroller stops only its tweens.
@@ -354,7 +354,7 @@ Pinned by `ScrollSpikeTests` (Avalonia 12.1.2); `VirtualListStage` is the virtua
   `WaitToSnap` when the axis offset `!= _snapWritten`, which is `NaN` when no snap runs, and a pointer release also
   restarts it. Both clamp their targets to `ScrollBarMaximum` first. When an extent shrink clamps its next write,
   Smooth stops at the new end and does not resume when the extent regrows. A snap stops too, waits again, and
-  re-snaps to a step inside the new range. The helper keeps both behaviours unless §5.2 decides that a clamp only
+  re-snaps to a step inside the new range. The helper keeps both behaviors unless §5.2 decides that a clamp only
   retargets.
 - **The panel's first layout reports a stale extent, and the next measure corrects it.** With heights of 20 + 10 ×
   (index mod 5), the first extent is 100 100, about 20 per item, although the realized containers average 40. Any
@@ -416,7 +416,7 @@ Pinned by `ScrollSpikeTests` (Avalonia 12.1.2); `VirtualListStage` is the virtua
 
 - **`WhenDetached`**: a bridge default `PrestoAvalonia.WhenDetached`, overridable per animation through
   `AvaloniaAnimationParams.WhenDetached` and the builder. Values:
-  - `Continue`: today's behaviour.
+  - `Continue`: today's behavior.
   - `Pause`: pause once every visual target has left the visual tree, and resume from where it stood on reattach.
   - `Revert`: cancel and revert, i.e. auto-scoping.
 
@@ -557,7 +557,7 @@ Verified against the 12.1.2 assemblies (reflection and XML docs):
 - **Cancellable close** (`PopupFlyoutBase`, `ContextMenu`): cancel the first `Closing`, play `Close` on the live
   presenter, then close for real through `Popup.Close()` (the flyout's `Popup`, the context menu's logical parent),
   letting the second `Closing` through. `Hide()` and `ContextMenu.Close()` cannot be used for that: after Escape or a
-  cancelled `ContextMenu.Close()` the popup's `IsOpen` is already false. Reopening mid-close plays `Close` back from
+  canceled `ContextMenu.Close()` the popup's `IsOpen` is already false. Reopening mid-close plays `Close` back from
   where the presenter stands (`Reverse`, as decision 78) and drops the pending close. As built (PLAN decision 96), only
   `ContextMenu` can: a flyout's `Hide()` or a `ShowAt` on the same target mid-close counts as a repeated close, and a
   `ShowAt` on another target closes it at once and replays `Open` as a fresh open. An owner detaching mid-close closes
@@ -601,12 +601,12 @@ and tooltip, inspected through DevTools and console output:
   `Win32PlatformOptions.OverlayPopups` is set (default false), as does Avalonia.Native with its own `OverlayPopups`. In
   the Desktop sample a `Flyout`, a `ContextMenu`, a tooltip and the `ComboBox` drop-down each opened in a `PopupRoot`,
   with `IsUsingOverlayLayer` false; the main window drew none of them, and DevTools lists no popup roots.
-- **Cancelling the first `Closing` keeps a flyout drawn, and a second `Hide()` closes it.** For a `Flyout` and a
-  `MenuFlyout`, light dismiss, Escape and `Hide()` each raise `Closing` once; cancelled, the presenter stays attached
+- **Canceling the first `Closing` keeps a flyout drawn, and a second `Hide()` closes it.** For a `Flyout` and a
+  `MenuFlyout`, light dismiss, Escape and `Hide()` each raise `Closing` once; canceled, the presenter stays attached
   and drawn, and `Hide()` raises `Closing` again and closes. Escape leaves `Popup.IsOpen` false under the open popup,
-  since `FlyoutPresenter` and the menu handler write it before the cancelled `Closing`. On Win32 a cancelled native
+  since `FlyoutPresenter` and the menu handler write it before the canceled `Closing`. On Win32 a canceled native
   flyout and context menu stayed visible until the second close.
-- **A cancelled `ContextMenu` closes again only through its `Popup`.** Light dismiss, Escape and `Close()` each raise
+- **A canceled `ContextMenu` closes again only through its `Popup`.** Light dismiss, Escape and `Close()` each raise
   `Closing` once and leave `Popup.IsOpen` false; a second `ContextMenu.Close()` does nothing, since it only writes that
   false again. `Popup.Close()` (the menu's logical parent) raises `Closing` again and closes; it also works for flyouts.
 - **An owner detaching closes whatever `Closing` says.** A flyout raises `Closing` once and ignores the cancel
@@ -678,7 +678,7 @@ and Android. Record the choice as a decision.
 
 - `Ripple.Color` (default: theme accent at low alpha), `Ripple.Bounded` and `Ripple.StateLayer`, attached to any
   `Control`.
-- Holding the press grows the ripple to cover the host, and release fades it. Enter or Space ripples from the centre.
+- Holding the press grows the ripple to cover the host, and release fades it. Enter or Space ripples from the center.
 - Dragging out or starting a scroll cancels it. Inside a scroller, touch waits briefly before showing (Android's tap
   timeout), so a fling does not ripple.
 - Whether the ripple draws over or under the content is a decision (Compose draws its indication over content).
@@ -748,24 +748,24 @@ Decisions for the API items:
   children, and drawing under the content of an arbitrary control would take a template change. Ink and state layer are
   translucent, so text stays readable.
 - **Switched on by an explicit `Ripple.Enabled`** (bool, default false), so a style can turn ripples on without picking
-  a colour, and `Ripple.Color` (`Color?`, default null) stays an override of the theme default.
-- **Default colour: the theme accent.** `SystemAccentColor` on the light variant and `SystemAccentColorLight2` on the
+  a color, and `Ripple.Color` (`Color?`, default null) stays an override of the theme default.
+- **Default color: the theme accent.** `SystemAccentColor` on the light variant and `SystemAccentColorLight2` on the
   dark one (a lighter shade that still reads on dark surfaces), looked up on the host for its `ActualThemeVariant` at each press, so a
   theme switch applies to the next press. Ink is drawn at 24 % alpha; the state layer at Material 3's 8 % hover, 10 %
   focus and 10 % pressed, fading between them over `Tokens.Short`. Without the resource, the host's
-  `TextElement.Foreground` colour stands in. An explicit `Ripple.Color` keeps its own alpha.
+  `TextElement.Foreground` color stands in. An explicit `Ripple.Color` keeps its own alpha.
 - **Bounded (the default):** the ink grows from the press point, which stays put, from radius 0 to the distance to the
   host's farthest corner, clipped to the host's rounded rectangle (`CornerRadius` from `Border` or `TemplatedControl`,
-  square otherwise). Compose and Flutter also start at about 30 % of that radius and drift the centre to the middle; the
+  square otherwise). Compose and Flutter also start at about 30 % of that radius and drift the center to the middle; the
   bench did neither and read as a ripple, so neither is built.
-- **Unbounded (`Ripple.Bounded` false):** the ink grows from the host's centre, whatever the press point, to half the
+- **Unbounded (`Ripple.Bounded` false):** the ink grows from the host's center, whatever the press point, to half the
   host's diagonal, with no clip of the host's own: the visual turns `ClipToBounds` off and widens `GetRenderBounds` to
   the circle, so only ancestors' clips apply.
 - **Timing from `Recipes.Tokens`:** the radius grows over `Medium` with `Ease` (450 ms `OutCubic` in `Standard`, as the
   bench), and release fades the ink over `Short` (200 ms), linear, while the radius keeps growing; a ripple released
   early finishes growing as it fades.
 - **Press and cancel:** pointer and key events are handled with `handledEventsToo`, since `Button` marks its presses
-  handled. Enter or Space down ripples from the centre and the key up releases. Moving the pointer out of the host or
+  handled. Enter or Space down ripples from the center and the key up releases. Moving the pointer out of the host or
   `PointerCaptureLost` cancels, which fades the ink like a release.
 - **Tap timeout:** a touch press inside a `ScrollViewer` waits 100 ms (Android's `ViewConfiguration.getTapTimeout()`,
   which Compose also uses) before its ink appears. A scroll that starts first takes the capture and shows nothing; a
@@ -776,20 +776,20 @@ Decisions for the API items:
 ### 8.5 Tests and sample
 
 - **Tests:**
-  - Origin at the press point, and at the centre for a key press.
+  - Origin at the press point, and at the center for a key press.
   - Clipped to the corner radius.
   - Hold, then release.
-  - A cancelled drag or scroll shows nothing.
+  - A canceled drag or scroll shows nothing.
   - Many concurrent ripples within the allocation budget.
   - Reduced.
 - **Sample:** ripples on the Micro-interactions buttons and on a list.
 
 **Built against the sketch:** everything in §8.3, plus the explicit `Ripple.Enabled` switch that §8.4 decided on;
-nothing sketched was dropped. The ink is a solid circle with no soft edge and no Compose-style start radius or centre
-drift. The sample has a Ripple reference page (filled, default-colour and unbounded buttons, focusable cards in three
-colours, and a bounded, state-layered ripple on a 20-row `ListBox`), and the Micro-interactions buttons keep white ink
+nothing sketched was dropped. The ink is a solid circle with no soft edge and no Compose-style start radius or center
+drift. The sample has a Ripple reference page (filled, default-color and unbounded buttons, focusable cards in three
+colors, and a bounded, state-layered ripple on a 20-row `ListBox`), and the Micro-interactions buttons keep white ink
 through one `Button.specimen` style. The Ripple bench page, its candidates and the measurements of them
-were removed; the tests that pin Avalonia behaviour stay, and `AllocationTests.FiftyConcurrentRipplesDrawWithinTheirBudget`
+were removed; the tests that pin Avalonia behavior stay, and `AllocationTests.FiftyConcurrentRipplesDrawWithinTheirBudget`
 replaced the per-candidate budget. Browser and Android are still unmeasured.
 
 ## 9. Phase 63 — Prebuilts 3: selection indicator, swipe actions, sheets and drawers
@@ -824,7 +824,7 @@ a spring sets the duration). The indicator is a child of the list's `ItemsPresen
 102, which also settles the `Connected` alternative against it), placed from the selected container's slot, or a
 `TreeViewItem`'s `PART_LayoutRoot` row, taken from the container's parent. It is re-placed on every `LayoutUpdated`;
 only a selection change glides, and any other change of slot snaps. It hides while the container is unrealized, not
-effectively visible or not wholly inside a clipping ancestor below the presenter, which generalises the nav's `Folded`
+effectively visible or not wholly inside a clipping ancestor below the presenter, which generalizes the nav's `Folded`
 check. A `VirtualizingStackPanel` keeps a `ListBox`'s selected container realized as its tab-once element, so there it
 hides only once that element moves. `Stretch` follows Material's elastic tab indicator rather than the old two-step
 reach-and-contract. **Reduced:** read at each selection change, the indicator lands on the new item at once, as layout
@@ -864,13 +864,13 @@ way. The axis lock is Draggable's 3-unit threshold on the first move: vertical f
 captured or handled and a touch scroll reaches the `ScrollViewer`; horizontal first captures and prevents gesture
 recognition, as Transformable does. `GestureOwners` is claimed, so a `Draggable` on the same element throws. One element
 per list (its nearest `ItemsControl`, or its parent outside one) is open; a grab or open closes the other, and while one
-is open a tunnelling press outside it, a tap on it, or Escape (which refocuses it when focus was in its actions) closes
+is open a tunneling press outside it, a tap on it, or Escape (which refocuses it when focus was in its actions) closes
 it. The accessible path is the context request rather than the keyboard alone: `ContextRequested` (the menu key,
 Shift+F10, a right-click or a touch hold) cycles trailing, leading, closed, and a keyboard request focuses the first
 focusable action; an element with its own `ContextMenu` or `ContextFlyout` keeps it. A re-attached, recycled
 (`DataContext` changed) or re-shown element snaps closed. **Reduced:** read at each release, the element lands on its
 snap at once and a dismiss commits at once. The Gestures inbox is now an `ItemsControl` of rows with archive and delete
-buttons as their actions, the full swipe dismissing and Undo re-inserting; the velocity readout and the colour mapping
+buttons as their actions, the full swipe dismissing and Undo re-inserting; the velocity readout and the color mapping
 of the old strip went with the hand-built `Draggable`.
 
 ### 9.3 Sheets and drawers (63c)
@@ -909,7 +909,7 @@ while the sheet is open, and a tap on it, Escape on the window (bubbling, so a f
 again, with `Presence.EnterOnShow` on the panel, replays the entrances of the content inside; the sheet's own slide is
 the glide, not a `Presence` builder. A `Drawer` takes presses on a 20-DIP strip along its edge while closed and hidden,
 so a swipe in from the edge opens it. **Reduced:** read at each release or change of `DetentIndex`, the sheet lands on its
-detent at once and the scrim fades to match over `Tokens.Short`; `FollowBinding` now honours a `WhenReduced` timing on an
+detent at once and the scrim fades to match over `Tokens.Short`; `FollowBinding` now honors a `WhenReduced` timing on an
 otherwise immediate binding, which it used to snap. The Gestures curtain (`Edge="Top"`, `"28,0.5,1"`, the handle's tap
 cycling `DetentIndex`) and bottom sheet (`"52,1"`) migrated, their velocity readouts reading `Position.VelocityOf()`;
 the curtain's half stop is now half the stage rather than half the travel, and its scrim is the sheet's own.
@@ -948,7 +948,7 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
   bounds: each slide is laid out at the copy of its column nearest the page shown, so a drag past the last slide reveals
   the first, and paging takes the shorter way round. `Position` is a `MotionValue` of the page shown, in slide widths,
   set from the strip's render rather than through `XValue.Changed`, so `OffsetOf(slide)` (that slide's distance from the
-  centre in slide widths, wrapped when looping) moves parallax layers in the same frame as the strip. `AutoplayInterval`
+  center in slide widths, wrapped when looping) moves parallax layers in the same frame as the strip. `AutoplayInterval`
   runs a looping timer that advances one slide per interval (a pager that does not loop rewinds from its last slide to
   its first). The timer restarts when the user pages, and holds while the pointer is over the pager, while it is dragged
   and while focus inside it came from the keyboard: a click focuses the pager, and pausing on any focus would stop
@@ -993,7 +993,7 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
 - **64c Modal / dialog host.** Three copies of ≈40–50 lines: Storefront 74–96, GalleryFlip 81–126, Connected 47–53
   and 78–159.
   - A scrim and a background blur.
-  - A reveal from an origin (`ClipCircle` from a card's centre).
+  - A reveal from an origin (`ClipCircle` from a card's center).
   - Escape and click-outside to close; hit-testing and `IsVisible` toggled in `OnComplete`.
 
   The prebuilt is an overlay host with `Open`/`Close` builders, reveal-from-element and focus return, closing through
@@ -1003,7 +1003,7 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
   `Modal.Open(content, from:)` or an attached `IsOpen` on an overlay (PLAN decision 108). It fills its host and draws a
   scrim (`Scrim`, 32 % black by default, null for none) under its `Content`, which places itself by its own alignment, and
   it measures as its content even while closed, so opening never changes an auto-sized host's layout. `Open(element)`
-  reveals the content in a `ClipCircle` grown from the element's centre over `Tokens.Long` (`Open(point)` takes a point
+  reveals the content in a `ClipCircle` grown from the element's center over `Tokens.Long` (`Open(point)` takes a point
   in the modal's coordinates) and closing shrinks it back over `Tokens.Medium`. `Open()` with no origin, or setting
   `IsOpen`, shows the content at once, for content that animates in by itself (Gallery's card flight, Connected's
   hero), and closing fades it out. The scrim fades with `Recipes.Fade`/`FadeOut`, and `Backdrop`, when set, blurs over
@@ -1094,7 +1094,7 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
   and `Recipes.DrawOut` erases it to `"1 1"`, over `Tokens.Medium` (family `Prebuilt.Draws`, which also holds the
   `Check` and `Cross` marks in a 20 × 20 box). The submit button is the attached `SubmitButton.State`
   (Idle/Busy/Succeeded/Failed), driven by a view model or by `SubmitButton.Run(button, work)`, which shows busy until
-  the task ends, the outcome (success unless it faulted, was cancelled or returned false) for `Tokens.Medium +
+  the task ends, the outcome (success unless it faulted, was canceled or returned false) for `Tokens.Medium +
   Tokens.Long`, then idle (PLAN decision 112). Busy collapses the button to a circle over `Tokens.Medium`, fades its
   content and spins an arc in its `Foreground`; the outcome fades the spinner and draws a check or a cross with
   `DrawIn`, tinting the background with `SuccessBrush`/`FailureBrush` when set; idle erases the mark and springs back on
@@ -1130,23 +1130,23 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
   the refresh runs. Migrated: the Gestures feed, whose refresh is an awaited Presto timer and whose three new rows
   stagger in through `Presence.Enter` (height and opacity, 70 ms apart) instead of a hand-built `Set` and `Animate`.
 - **65d Circular reveal transition.** `BloomNavPage.axaml.cs` 56–108 (≈50 lines): a scaled `Ellipse` from the pointer
-  (the centre for keyboard), the content swapped at 65 %, the new tiles staggered centre-out, and stacked blooms cleaned
+  (the center for keyboard), the content swapped at 65 %, the new tiles staggered center-out, and stacked blooms cleaned
   up. The prebuilt is a `PageBloom` page transition and a `CircularReveal` recipe from a point or element, built on
   `ClipCircle`/`ClipCircleCenter`; also a theme-toggle reveal.
 
   **Built against the sketch:** `Recipes.PageBloom()` (`{presto:PageBloom}`) is a `PrestoPageTransition` like the other
-  page recipes, not a transition type of its own (PLAN decision 115), so a cancelled bloom is taken over from where it
+  page recipes, not a transition type of its own (PLAN decision 115), so a canceled bloom is taken over from where it
   stands as theirs are. The incoming host is revealed by `Recipes.CircularReveal` over `Tokens.Long` on `InOutQuart`,
   stacked above the outgoing one both ways, and both directions bloom. Its origin is the last pointer press in the host's
-  window, recorded by a tunnelling class handler on `TopLevel` and spent by the bloom it starts; a key pressed since
-  clears it, so a keyboard navigation, or one with no press behind it, blooms from the host's centre (not the tab's, as
+  window, recorded by a tunneling class handler on `TopLevel` and spent by the bloom it starts; a key pressed since
+  clears it, so a keyboard navigation, or one with no press behind it, blooms from the host's center (not the tab's, as
   the page did). "Swaps the content at 65 %" became: at 65 % the children of the incoming page's first `Panel` rise
-  `Tokens.Distance` and fade in, staggered `Tokens.StaggerStep` from the centre out over `Tokens.Medium`; the page's own
-  background is what the circle shows until then, so no coloured disc sits over the old page. Interrupted blooms do not
+  `Tokens.Distance` and fade in, staggered `Tokens.StaggerStep` from the center out over `Tokens.Medium`; the page's own
+  background is what the circle shows until then, so no colored disk sits over the old page. Interrupted blooms do not
   stack: the outgoing side plays `ClipCircle` to 1 over `Tokens.Short`, which finishes a part-revealed page's circle
   under the new one and leaves a full one unchanged, and each host's clip is reverted when its transition ends.
   `Recipes.CircularReveal(origin)`/`CircularReveal(element)` (family `Prebuilt.Reveals`) grow `ClipCircle` 0 → 1 from a
-  `RelativePoint` or an element's centre, read per target. `Recipes.ThemeReveal(surface, change, from)` draws the
+  `RelativePoint` or an element's center, read per target. `Recipes.ThemeReveal(surface, change, from)` draws the
   surface to a bitmap before and after `change` runs (such as setting `RequestedThemeVariant`) and reveals the second
   picture over the first in the surface's overlay layer, removing both at the end; a second reveal on the surface
   replaces the first, starting from what a `TopLevel` surface had on screen. **Reduced:** no bloom; the incoming page

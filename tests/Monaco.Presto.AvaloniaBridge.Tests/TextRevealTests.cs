@@ -80,7 +80,7 @@ public sealed class TextRevealTests : BridgeTestBase
         Dispatcher.UIThread.RunJobs();
         Frames.Advance(400, 16);
 
-        Assert.True(before.Cancelled);
+        Assert.True(before.Canceled);
         var after = Assert.Single(Presto.GetAnimations(Words(block)[0]));
         Assert.NotSame(first, Words(block)[0]);
         Assert.InRange(after.CurrentTime, elapsed + 350, elapsed + 450);
@@ -264,7 +264,7 @@ public sealed class TextRevealTests : BridgeTestBase
 
         Tap(block, new Point(60, 40));
 
-        Assert.True(reveal.Cancelled);
+        Assert.True(reveal.Canceled);
         var restarted = Words(block)[0];
         Assert.NotSame(first, restarted);
         Assert.InRange(Assert.Single(Presto.GetAnimations(restarted)).CurrentTime, 0, 50);
@@ -281,7 +281,7 @@ public sealed class TextRevealTests : BridgeTestBase
 
         panel.Children.Remove(block);
 
-        Assert.True(reveal.Cancelled);
+        Assert.True(reveal.Canceled);
         Assert.Null(block.Inlines);
         Assert.Equal(Sentence, block.Text);
     }

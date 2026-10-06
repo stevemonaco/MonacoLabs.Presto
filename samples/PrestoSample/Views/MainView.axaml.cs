@@ -90,7 +90,7 @@ public partial class MainView : UserControl
         else Nav.SelectedItem = viewModel.NavSelectedPage;
     }
 
-    // Tunnelling and handled, so the TreeView never selects the section and scrolls the open page back into view.
+    // Tunneling and handled, so the TreeView never selects the section and scrolls the open page back into view.
     private void NavPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(Nav).Properties.IsLeftButtonPressed

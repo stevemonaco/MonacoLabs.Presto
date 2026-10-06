@@ -58,7 +58,7 @@ public sealed class LoadersPageTests
 
         Assert.All(retired, loader => Assert.True(loader switch
         {
-            Timer timer => timer.Cancelled,
+            Timer timer => timer.Canceled,
             // Reverting rewinds the playback model to before its longest delay.
             CompositorAnimation compositor => compositor.CurrentTime <= 0,
             _ => false,
@@ -107,7 +107,7 @@ public sealed class LoadersPageTests
         var window = SceneHarness.Show(page, 1280, 900);
         string[] snippets =
         [
-            Snippets.LoaderEqualiser, Snippets.LoaderOrbit, Snippets.LoaderGrid,
+            Snippets.LoaderEqualizer, Snippets.LoaderOrbit, Snippets.LoaderGrid,
             Snippets.LoaderBlob, Snippets.LoaderRing, Snippets.LoaderBall,
             Snippets.LoaderTyping, Snippets.LoaderRipples, Snippets.LoaderCounter,
         ];

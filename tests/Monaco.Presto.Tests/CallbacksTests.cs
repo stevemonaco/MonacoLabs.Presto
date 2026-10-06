@@ -49,7 +49,7 @@ public sealed class CallbacksTests : EngineTestBase
         Frames.Advance(16);
 
         Assert.True(timer.Paused);
-        Assert.True(timer.Cancelled);
+        Assert.True(timer.Canceled);
         Assert.Equal(0, paused);
     }
 

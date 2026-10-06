@@ -11,18 +11,18 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// <summary>An <see cref="ImageSequence"/> drawing the image its <see cref="ImageSequence.Frame"/> selects.</summary>
 public sealed class ImageSequenceTests : CompositorTestBase
 {
-    private static readonly Color[] Colours = [Colors.Red, Colors.Lime, Colors.Blue, Colors.Yellow, Colors.Cyan];
+    private static readonly Color[] Fills = [Colors.Red, Colors.Lime, Colors.Blue, Colors.Yellow, Colors.Cyan];
 
     [AvaloniaFact]
     public void EachFrameDrawsItsImage()
     {
         var sequence = ShowSequence(Solid());
 
-        for (var i = 0; i < Colours.Length; i++)
+        for (var i = 0; i < Fills.Length; i++)
         {
             sequence.Frame = i;
             Tick();
-            Assert.Equal(Colours[i], Row(sequence, 5)[5]);
+            Assert.Equal(Fills[i], Row(sequence, 5)[5]);
         }
     }
 
@@ -51,7 +51,7 @@ public sealed class ImageSequenceTests : CompositorTestBase
         Assert.Equal(new Size(30, 30), sequence.DesiredSize);
 
         var shown = ShowSequence(Solid(), Stretch.Fill, 40);
-        Assert.Equal(new Rect(0, 0, 40, 40), Extent(shown, Colours[0]));
+        Assert.Equal(new Rect(0, 0, 40, 40), Extent(shown, Fills[0]));
     }
 
     [AvaloniaFact]
@@ -80,11 +80,11 @@ public sealed class ImageSequenceTests : CompositorTestBase
         return sequence;
     }
 
-    private static IImage[] Solid() => Array.ConvertAll(Colours, colour =>
+    private static IImage[] Solid() => Array.ConvertAll(Fills, color =>
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(10, 10));
         using (var context = bitmap.CreateDrawingContext())
-            context.FillRectangle(new SolidColorBrush(colour), new Rect(0, 0, 10, 10));
+            context.FillRectangle(new SolidColorBrush(color), new Rect(0, 0, 10, 10));
         return (IImage)bitmap;
     });
 }

@@ -286,7 +286,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         }
         Start(element, move, ref _translating);
         if (!scaled) return;
-        // The inverse scale is anchored on the corner the offset maths used, not on the middle a §4.3 rotation centres on.
+        // The inverse scale is anchored on the corner the offset math used, not on the middle a §4.3 rotation centers on.
         element.StopAnimation("CenterPoint");
         Anchor(element, default);
         Start(element, CompositorCompiler.Segment(CompositorTrackKind.Scale, scale, [1, 1, 1], mirror, [easeScale]), ref _scaling);
@@ -295,7 +295,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
 
     /// <remarks>
     /// Each child is anchored at the point of itself that sits as far across it as the child sits across the room the
-    /// parent leaves it: a child flush top left stays there, a centred one stays centred, and a margin scales with the parent.
+    /// parent leaves it: a child flush top left stays there, a centered one stays centered, and a margin scales with the parent.
     /// </remarks>
     private void Correct(CompositionVisual parent)
     {

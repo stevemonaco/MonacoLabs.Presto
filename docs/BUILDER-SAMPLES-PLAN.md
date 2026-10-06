@@ -21,7 +21,7 @@ the value lands in an attached property typed `AnimationBuilder`:
 | Spelling | XAML | What it is good for |
 |---|---|---|
 | Static recipe | `presto:Animate.OnAttached="{x:Static local:Motions.FadeUp}"` | A fixed, named animation reused across views. Safe to share because every terminal snapshots the builder (FLUENT-BUILDER-PLAN decision 4). |
-| Markup extension | `presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=100}"` | A recipe the markup parameterises. `ProvideValue` returns a fresh builder per element. This is the "builder as a class" option, done without unsealing `AnimationBuilder`. |
+| Markup extension | `presto:Animate.OnAttached="{local:FadeUp Distance=48, Delay=100}"` | A recipe the markup parameterizes. `ProvideValue` returns a fresh builder per element. This is the "builder as a class" option, done without unsealing `AnimationBuilder`. |
 | Binding | `presto:Animate.OnAttached="{Binding Emphasis}"` | View state picks the animation: the view model swaps the property and the element re-animates. The builder is core-only, so a view model needs no Avalonia reference for it (only the bridge's typed shorthands would pull one in). |
 
 ## 2. Decisions
@@ -31,7 +31,7 @@ the value lands in an attached property typed `AnimationBuilder`:
    when to pick it. No `IAnimationRecipe` interface or unsealed builder is needed.
 2. **The attached property ships in the bridge, not the sample.** A XAML attach that only exists in a sample is copy-paste
    for every user, and its lifetime rules (below) need bridge tests. This settles the PLAN §7 open item "attached
-   property triggers vs behaviors package" in favour of attached properties, deliberately minimal: one trigger.
+   property triggers vs behaviors package" in favor of attached properties, deliberately minimal: one trigger.
 3. **The trigger is attachment to the visual tree, named `Animate.OnAttached`.** Not `Loaded`, for the reason PLAN §7
    decision 8 records (`Unloaded` never fires for a root detached before its `Loaded` job runs). Other triggers
    (pointer enter, click, property change) stay open.
@@ -68,7 +68,7 @@ Tests, `tests/Monaco.Presto.AvaloniaBridge.Tests/AnimateAttachedTests.cs`:
 - Detaching reverts the animated property to its own value; re-attaching plays again from the start.
 - Changing the value reverts the first animation (its property is back to its own value) and plays the second.
 - Setting `null` reverts, and a later attach/detach starts nothing.
-- One static builder on two controls gives two independent animations; cancelling one leaves the other running.
+- One static builder on two controls gives two independent animations; canceling one leaves the other running.
 - A XAML-loaded control using each of the three spellings (`x:Static`, a test markup extension, a binding) animates.
 - Design mode is a no-op, if `Design.IsDesignMode` can be set from a test; otherwise note that it cannot and skip.
 
@@ -83,7 +83,7 @@ Tests, `tests/Monaco.Presto.AvaloniaBridge.Tests/AnimateAttachedTests.cs`:
   radius, both themes via `Palette`) around a `SelectableTextBlock.code` (the existing monospace `code` class, no wrap,
   horizontal scroll when wide). Reused by every Builder page.
 - Pages go in `samples/PrestoSample/Builder/` (namespace `PrestoSample.Builder`), derive from `ShowcasePage` so their
-  scope reverts them, take colours from `Palette`, and are registered in a new **Builder** section of
+  scope reverts them, take colors from `Palette`, and are registered in a new **Builder** section of
   `MainViewModel` after Showcase, each with a 2–3 sentence caption saying what to try.
 
 ### 4.2 Pages
@@ -97,7 +97,7 @@ Each demo is a stage, a Replay (or the page's own interaction), and the code blo
    - per-property settings: `.X(from: -120, to: 120, ease: …)` beside `.Rotate(360, duration: …, delay: …)`;
    - per-property keyframes (`.Y(k => k.To(-40, duration: 300).To(0, …))`) and animation-level keyframes
      (`.Keyframes(k => k.At(0, …).At(30, …).At(100, …))`);
-   - typed values and any property: `.Background(Palette colour)`, `.CornerRadius(new CornerRadius(…))` and
+   - typed values and any property: `.Background(Palette color)`, `.CornerRadius(new CornerRadius(…))` and
      `.Property(Border.BorderThicknessProperty, …)` on a card.
 3. **Recipes.** One `static readonly AnimationBuilder` "pop" played on whichever of a row of buttons is clicked, and
    the same recipe with `.Delay(Presto.Stagger(60))` over the whole row. A duration slider mutates the recipe: the next
@@ -106,7 +106,7 @@ Each demo is a stage, a Replay (or the page's own interaction), and the code blo
    a scrub slider, and a control spun by `AnimateOnCompositor(builder)` beside a "Freeze UI thread for 2 s" button (the
    same one the Compositor page has), so it keeps turning while the UI thread is blocked.
 5. **XAML.** Three panels, one per spelling in §1, each showing its XAML and the C# it points at:
-   - `{x:Static}`: a `Motions` class of static recipes (captured with `Snippet.Of` in their initialisers), used on a
+   - `{x:Static}`: a `Motions` class of static recipes (captured with `Snippet.Of` in their initializers), used on a
      row of cards;
    - markup extension: a `FadeUpExtension` with `Distance` and `Delay` properties, used on a list with increasing
      `Delay`s so the items cascade in;
@@ -125,7 +125,7 @@ Each demo is a stage, a Replay (or the page's own interaction), and the code blo
   - Builder basics, Properties and Recipes start their animations on attach, and a Recipes play after the slider
     moves uses the new duration while the running one keeps the old;
   - the XAML page's elements each have a running animation after attach, the ToggleSwitch swaps the bound animation,
-    and every XAML snippet appears in `XamlPage.axaml` (whitespace-normalised), found through `[CallerFilePath]`.
+    and every XAML snippet appears in `XamlPage.axaml` (whitespace-normalized), found through `[CallerFilePath]`.
 - `GalleryPageTests` already covers "runs a second and reverts on detach" for every registered page.
 
 ## 5. Docs

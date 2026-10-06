@@ -28,10 +28,10 @@ The three are independent; 37 is the cheapest and can go first.
    a fixed population but allocates an `Animation` and its tweens per spawn. An emitter spawns and retires particles
    every frame, so its particles are integrated directly: semi-implicit Euler for velocity and gravity, exponential drag
    (`v *= e^(−drag·dt)`, frame-rate independent), linear spin. Presto supplies what it is good at: every over-life
-   curve (size, opacity, colour, spin rate) is a `from → to` pair with an `EaseValue`, sampled at the particle's
-   normalised age.
+   curve (size, opacity, color, spin rate) is a `from → to` pair with an `EaseValue`, sampled at the particle's
+   normalized age.
 2. **The simulation lives in the core, the drawing in the bridge.** `ParticleSystem` and `EmitterParams` have no
-   Avalonia dependency (colours are `PrestoColor`), so they are unit-testable with plain `Step(dt)` calls and usable by
+   Avalonia dependency (colors are `PrestoColor`), so they are unit-testable with plain `Step(dt)` calls and usable by
    a custom renderer, per PLAN §1. Public core types sit in the root `Monaco.Presto` namespace, as `Spring` and
    `VelocityTracker` do, so one `using` still suffices.
 3. **Pooled, allocation-free.** A system owns one preallocated `ParticleState[]` (a struct array) sized to its cap;
@@ -46,8 +46,8 @@ The three are independent; 37 is the cheapest and can go first.
    `Bitmap`. An arbitrary path is rasterized once on the UI thread (`ParticleShape.FromGeometry(geometry, size)`) and
    drawn as a bitmap. Rotation and confetti flutter (a scale on one axis following `cos(phase)`) go through
    `PushPreTransform`, which returns a struct.
-6. **Colours stay in the brush cache.** `CompositorScene.Brush` keys on the exact colour and quantizes only opacity
-   (clearing at 1 024 brushes, SAMPLES-PLAN §8 row 9). A palette is drawn from as-is; a colour-over-life curve is
+6. **Colors stay in the brush cache.** `CompositorScene.Brush` keys on the exact color and quantizes only opacity
+   (clearing at 1 024 brushes, SAMPLES-PLAN §8 row 9). A palette is drawn from as-is; a color-over-life curve is
    quantized to 4 bits per channel, as the field sample's `Quantize` does, so its brushes are reused.
 7. **One-call helpers use a shared overlay canvas.** `Recipes.Confetti(anchor)`, `Sparkles(anchor)` and
    `Burst(anchor)` measure the anchor on the UI thread and post an emitter to one `CompositorCanvas` per `TopLevel`,
@@ -85,7 +85,7 @@ public sealed record EmitterParams
     public ParticleCurve Size { get; init; }          // from, to, ease over life
     public ParticleCurve Opacity { get; init; }
     public IReadOnlyList<PrestoColor> Colors { get; init; }
-    public ParticleCurve? ColorMix { get; init; }     // lerp from a particle's colour toward EndColor
+    public ParticleCurve? ColorMix { get; init; }     // lerp from a particle's color toward EndColor
     public PrestoColor? EndColor { get; init; }
     public double Flutter { get; init; }              // confetti flip rate, 0 = none
     public int MaxParticles { get; init; } = 500;
@@ -108,7 +108,7 @@ Recipes.Burst(Control anchor, int count = 24, Color? color = null, AnimationBuil
 ```
 
 `Confetti` defaults to rectangles and streaks in the accent palette with flutter, spin and gravity, launched upward
-from the anchor's centre (or from an `Edge`, e.g. the bottom of the window). `Sparkles` emits small glyph or circle
+from the anchor's center (or from an `Edge`, e.g. the bottom of the window). `Sparkles` emits small glyph or circle
 particles around the anchor's bounds with no gravity and a quick fade. `Burst` is a radial ring of circles for a
 press or a like.
 
@@ -134,7 +134,7 @@ press or a like.
 - `AllocationTests`: stepping 500 live particles allocates 0 bytes; drawing a scene of 500 allocates 0 bytes after the
   brush cache has warmed.
 - Pixel test: a burst renders non-background pixels around the origin and none once finished.
-- `Recipes.Confetti` places its origin at the anchor's centre in top-level coordinates, removes the overlay canvas
+- `Recipes.Confetti` places its origin at the anchor's center in top-level coordinates, removes the overlay canvas
   after the idle period, and under `ReducedMotion` spawns nothing, plays `reduced` and completes `Then()` at once.
 
 ### 1.5 Samples
@@ -190,8 +190,8 @@ Recipes.PlayFrames(double fps = 24, bool loop = true, bool reverse = false)
 
 ### 2.3 Tests (`SpriteSheetTests`, `ImageSequenceTests`)
 
-- Frame 0..N−1 draws the matching grid cell (pixel test on a sheet whose cells are solid, distinct colours); a partial
-  last row honours `FrameCount`; `FrameSize` with margins picks the right rects.
+- Frame 0..N−1 draws the matching grid cell (pixel test on a sheet whose cells are solid, distinct colors); a partial
+  last row honors `FrameCount`; `FrameSize` with margins picks the right rects.
 - A linear tween 0 → N at N frames gives every frame the same number of ticks (±1) on a `ManualFrameSource`, and the
   final frame is N−1; `Wrap` shows frame 0 at N.
 - `Play(fps)` duration is `N · 1000 / fps`; `Reverse` and `Seek` show the expected frames; `Revert` restores `Frame`.
@@ -204,7 +204,7 @@ Recipes.PlayFrames(double fps = 24, bool loop = true, bool reverse = false)
 - **New Reference page "Frames":** a sprite-sheet character with fps and direction controls and a scrub slider bound
   to `Frame`, and an image sequence (a short exported loop) played by a timeline alongside a text caption.
 - **Assets:** one CC0 sprite sheet and one short PNG sequence under `samples/PrestoSample/Assets/Sprites/`, with source
-  and licence in a `README.md` beside them.
+  and license in a `README.md` beside them.
 
 ## 3. Phase 38 — Per-line text reveals
 
@@ -214,7 +214,7 @@ Recipes.PlayFrames(double fps = 24, bool loop = true, bool reverse = false)
    (`None`, `Lines`, `Words`, `Chars`) on a `TextBlock`, tells the triggers to play their builder on the block's split
    pieces instead of the block: `Presence.Initial`/`Enter`/`Arrive`/`Reveal`, `Animate.OnAttached` and `OnTapped`.
    So `{presto:FadeUp Stagger=True}` on a block with `TextReveal.Pieces="Words"` rises word by word, and the existing
-   recipe catalogue needs no text variants. `Motion` states are excluded: their per-property rest (decision 26) is
+   recipe catalog needs no text variants. `Motion` states are excluded: their per-property rest (decision 26) is
    defined on the element, and pieces come and go on re-split.
 2. **The split waits for layout; the block waits hidden.** A split needs a measured width (SAMPLES-PLAN §8 rows 4 and
    23), and the triggers fire at attach. The block is held at `Opacity` 0 at `Animation` priority from the trigger until
@@ -304,7 +304,7 @@ Recipes.LineRise / LineMask / LineWipe / WordFade / WordBlur / CharCascade (dura
 - Phase 37: whether `SpriteSheet` derives from `FilteredImage` (decision 2.6), decided when the later of 28 and 37
   starts. **Deferred to Phase 28:** 37 landed first, so `SpriteSheet` derives from `Control` (§5), and its frame logic is
   confined to its private `SourceRect` method. Phase 28 decides whether to switch the base class.
-- Phase 38: whether `Typewriter` should gain the deferred-split behaviour in a later API pass, accepting the break.
+- Phase 38: whether `Typewriter` should gain the deferred-split behavior in a later API pass, accepting the break.
   **Open:** `Typewriter` is unchanged and points to `CharCascade` as its trigger form.
 - Phase 38: whether the retarget hook should also reach `Animate.OnChanged`, where the text itself is what changed and
   a re-split per change is the point (a ticker or rotator). **Open:** Phase 38 leaves `OnChanged` on the block.
@@ -316,7 +316,7 @@ Recipes.LineRise / LineMask / LineWipe / WordFade / WordBlur / CharCascade (dura
 - **Namespaces.** `ParticleScene` and `ParticleShape` are in `Monaco.Presto.AvaloniaBridge.Compositor`, beside
   `CompositorScene`. `ParticleEffect` is in the root bridge namespace. The recipes live in `Prebuilt.Particles`, and
   `Recipes.Confetti`/`Sparkles`/`Burst` forward to it.
-- **`EmitterParams.Area`.** A new `(Width, Height)` spawn box centred on the origin, default zero (spawn at the
+- **`EmitterParams.Area`.** A new `(Width, Height)` spawn box centered on the origin, default zero (spawn at the
   origin). `Sparkles` sets it to the anchor's bounds, and `Confetti` with an `Edge` sets it to the length of that edge.
 - **`EmitterParams` defaults.** `Size` defaults to `new(6, 6)`, `Opacity` to `new(1, 0)` (linear fade), and `Colors` to
   white. §1.2 left these unset. `Flutter` is in flips per second.
@@ -334,7 +334,7 @@ Recipes.LineRise / LineMask / LineWipe / WordFade / WordBlur / CharCascade (dura
   callback then runs on the UI thread through `PostToUI`. The overload of `Add` that takes `finished` is internal.
   `Live` is public and read on the render thread; the Particles page uses it for its count.
 - **Shapes.** `Glyph` accepts only printable ASCII (`!`…`~`), because it draws through `SceneText`. `Bitmap` takes a
-  `Bitmap`, not any `IImage`, and applies opacity but not colour. `FromGeometry(geometry, size)` rasterizes the geometry
+  `Bitmap`, not any `IImage`, and applies opacity but not color. `FromGeometry(geometry, size)` rasterizes the geometry
   in white and has no fill parameter.
 - **`ParticleEffect`.** `Pause`/`Resume` are per effect: each system carries an internal `Paused` flag, so only this effect's emitters
   freeze and other effects in the same overlay keep running. `Cancel` resumes, stops and clears its systems, and
@@ -393,7 +393,7 @@ Recipes.LineRise / LineMask / LineWipe / WordFade / WordBlur / CharCascade (dura
   cells of 80 × 110 px, 24 poses, so `FrameCount="24"`) and eight of its separate female pose images renamed
   `female_000`…`female_007` as the sequence. The zombie is started from XAML with `{presto:PlayFrames Fps=12}`.
 - **Cell bleed.** Filtered sampling reads up to half a source pixel past the source rect, so when a cell is scaled
-  `SpriteSheet` insets its source rect by half a pixel to keep the neighbouring cell out of the frame's edges.
+  `SpriteSheet` insets its source rect by half a pixel to keep the neighboring cell out of the frame's edges.
 
 ### Phase 38
 

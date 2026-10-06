@@ -144,7 +144,7 @@
                             <TextBlock TextWrapping="Wrap" Text="Send anything back within 30 days, unworn and in its box, for a full refund." />
                         </Expander>
                         <Expander Header="Warranty" HorizontalAlignment="Stretch">
-                            <TextBlock TextWrapping="Wrap" Text="Two years on parts and labour, extendable to five when you register the product." />
+                            <TextBlock TextWrapping="Wrap" Text="Two years on parts and labor, extendable to five when you register the product." />
                         </Expander>
                     </StackPanel>
                 </Border>

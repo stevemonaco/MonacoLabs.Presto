@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Monaco.Presto.Tests;
 
 /// <summary>
-/// No upstream suite covers the parser directly; the expected behaviour is that of <c>parseEaseString</c> and
+/// No upstream suite covers the parser directly; the expected behavior is that of <c>parseEaseString</c> and
 /// <c>parseEase</c> in src/easings/eases/parser.js.
 /// </summary>
 public sealed class EaseParserTests

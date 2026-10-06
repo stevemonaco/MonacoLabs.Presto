@@ -54,10 +54,10 @@ the open item there.
 is present, with the fixed expression `Vector3(this.Target.Size.X * 0.5, this.Target.Size.Y * 0.5, 0)`
 (`Compositor/CompositorAnimation.cs:230`, `:268-272`). The control's `RenderTransformOrigin` is never read, so the
 Loaders page's ball (`RenderTransformOrigin="50%,100%"`) squashes about its middle on the render thread and lifts off
-the floor. The UI-thread shorthands honour the origin, because Avalonia applies `RenderTransformOrigin` to
+the floor. The UI-thread shorthands honor the origin, because Avalonia applies `RenderTransformOrigin` to
 `RenderTransform`.
 
-**Other compositor paths.** `LayoutTransition` anchors its inverse scale on the corner on purpose (FLIP maths,
+**Other compositor paths.** `LayoutTransition` anchors its inverse scale on the corner on purpose (FLIP math,
 `Compositor/LayoutTransition.cs:271-273`), so it is correct and stays as it is. `PrestoPageTransition` plays through
 `PrestoAvalonia.RunOnCompositor` → `CompositorAnimation`, so it inherits this fix.
 
@@ -69,10 +69,10 @@ removed on revert.
 
 **Tests (`CompositorAnimationTests`).**
 - Pixel: a `ScaleY` 1 → 0.5 on the compositor with origin `50%,100%` keeps the bottom edge; with the default origin it
-  keeps the centre, as today.
+  keeps the center, as today.
 - An absolute origin (`0,0`) scales from the corner.
 - Changing the origin mid-animation moves the pivot at the next frame.
-- `PageTransitionTests`: a `PageSharedAxis` scale honours a host's origin.
+- `PageTransitionTests`: a `PageSharedAxis` scale honors a host's origin.
 
 ## 3. `Animate.Layout` stale re-arm
 
@@ -99,7 +99,7 @@ is ≥ 0 and the limits do not change, which is why the parity tests pass. They 
 - **`Draggable.Refresh` changing the multiplier or the limits mid-drag.** Upstream keeps the samples it already
   clamped; Presto re-clamps the whole window with the new values.
 
-**Fix.** Keep `VelocityTracker`'s public behaviour, which is signed and strongest by magnitude and right for
+**Fix.** Keep `VelocityTracker`'s public behavior, which is signed and strongest by magnitude and right for
 `Animatable.Fling`. Give `Draggable` upstream's semantics through an internal overload,
 `AddDisplacement(distance, time, multiplier, min, max)`. It stores the clamped, rounded sample and reports the plain
 maximum, so the clamp applies once per sample at the time it is taken. No allocation.
@@ -109,14 +109,14 @@ multiplier and a mid-sequence limit change against the upstream replica. `Veloci
 
 ## 5. Page-transition takeover across threads
 
-**Today.** A cancelled `HostRun` is stopped, not reverted: a UI-thread `Animation` is cancelled in place and a
+**Today.** A canceled `HostRun` is stopped, not reverted: a UI-thread `Animation` is canceled in place and a
 `CompositorAnimation` is paused (`PrestoPageTransition.cs:175-181`). The next run starts from where the host stands:
 - **Compositor to compositor:** `CompositorScratch.Seed` reads the paused animation's mirror
   (`Compositor/CompositorScratch.cs:34-54`).
 - **UI thread to UI thread:** the new run reads the shorthands' current values.
 
 Two cases were left open (Phase 31 report):
-- **UI thread → compositor.** `Seed` picks up the UI-thread shorthand values correctly, but the cancelled
+- **UI thread → compositor.** `Seed` picks up the UI-thread shorthand values correctly, but the canceled
   run's `RenderTransform` stays applied until the old run is reverted at completion (`_previous`, `:131-133`). The
   composition `Translation` therefore adds on top of it, and the page is drawn offset twice.
 - **Compositor → UI thread.** The UI-thread animation reads the shorthands, which are at rest, so it starts from
@@ -144,7 +144,7 @@ showed. Two later attempts, one with `Animate.ItemLayout` off and one with it ba
 **Hypotheses,** in the order to test them:
 1. **Selection.** A pointer press inside a `ListBoxItem` selects the row, and `ListBox.AutoScrollToSelectedItem`
    (true by default) scrolls to it when inserts or the removal shift `SelectedIndex`.
-2. **Focus.** The clicked row's `Button` holds focus. When its container is removed, focus moves to a neighbour,
+2. **Focus.** The clicked row's `Button` holds focus. When its container is removed, focus moves to a neighbor,
    and `BringIntoView` or `VirtualizingStackPanel`'s focused-element handling moves the offset.
 3. **Avalonia's anchoring** (item 7) engaging on a pass where the offset was already past its edge tolerance.
 4. The `ItemLayout` FLIP measuring a container during the change. This is unlikely, since the transition writes only
@@ -191,7 +191,7 @@ How it cooperates with the rest of Presto:
 
 **Step 1 (repro first).** Port row 33's measurement into a bridge test: a list scrolled to 3000 with uneven rows and
 one insert at index 1. Assert the first visible item's viewport Y before and after, once without the helper (this
-pins the Avalonia behaviour) and once with it. If Avalonia's own anchoring turns out to hold with some panel setting,
+pins the Avalonia behavior) and once with it. If Avalonia's own anchoring turns out to hold with some panel setting,
 document that setting instead of building the helper.
 
 **Tests.**

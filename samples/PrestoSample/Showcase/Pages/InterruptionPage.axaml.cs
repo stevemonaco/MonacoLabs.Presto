@@ -109,7 +109,7 @@ public partial class InterruptionPage : ShowcasePage
         }
     }
 
-    /// <summary>Where <paramref name="mode"/>'s puck centre is drawn in its pane: its canvas slot plus the tweened translation.</summary>
+    /// <summary>Where <paramref name="mode"/>'s puck center is drawn in its pane: its canvas slot plus the tweened translation.</summary>
     public Point Drawn(Composition mode)
     {
         var puck = _pucks[Array.IndexOf(Modes, mode)];
@@ -118,10 +118,10 @@ public partial class InterruptionPage : ShowcasePage
             Canvas.GetTop(puck) + (double)Presto.Get(puck, "Y")! + (puck.Height / 2));
     }
 
-    private static void Place(Ellipse dot, Point centre)
+    private static void Place(Ellipse dot, Point center)
     {
-        Canvas.SetLeft(dot, centre.X - (TrailDot / 2));
-        Canvas.SetTop(dot, centre.Y - (TrailDot / 2));
+        Canvas.SetLeft(dot, center.X - (TrailDot / 2));
+        Canvas.SetTop(dot, center.Y - (TrailDot / 2));
     }
 
     private void Retarget(Point relative)

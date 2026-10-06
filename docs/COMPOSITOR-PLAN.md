@@ -18,10 +18,10 @@ Three things are realistic, in this order of value:
 1. **Render-thread scenes** (custom visuals). A `CompositionCustomVisualHandler` is ticked by the render loop every
    frame while it asks to be, entirely independently of the UI thread. A whole Presto `Engine` can live inside one: every
    core feature (tweens, keyframes, springs, stagger, timelines, callbacks, `Seek`, composition) works unchanged because
-   the targets are plain objects and the maths is pure. The user draws the scene with `ImmediateDrawingContext`. This is
+   the targets are plain objects and the math is pure. The user draws the scene with `ImmediateDrawingContext`. This is
    the busy indicator, and the only path where Presto's full model survives the UI thread stalling. **It needs one core
    change: the engine must stop being a process-wide singleton** (§4.1).
-2. **Compositor-driven transform and opacity on existing controls.** Avalonia never synchronises `Translation`,
+2. **Compositor-driven transform and opacity on existing controls.** Avalonia never synchronizes `Translation`,
    `Scale`, `RotationAngle`, `CenterPoint` and `AnchorPoint` of an element's composition visual, and a server animation on
    `Opacity` survives as long as `Visual.Opacity` itself does not change. Presto can compile an animation on `X`, `Y`,
    `Rotate`, `Scale*` and `Opacity` into server-side `KeyFrameAnimation`s. It is the anime.js `waapi.animate()` story:
@@ -32,7 +32,7 @@ Three things are realistic, in this order of value:
    on the element visual's `Offset`, which snaps on the Win32 backend (evidence in §4.4), and then FLIP inverted onto
    `Translation`, which was built and removed at the user's request (§6). §4.4 keeps the design, §6 the status.
 
-Not realistic: anything that is an `AvaloniaProperty` write. Layout properties, brushes and colours of controls, text,
+Not realistic: anything that is an `AvaloniaProperty` write. Layout properties, brushes and colors of controls, text,
 `Draw`, `MorphTo`, split/scramble text, `Draggable`, `ScrollObserver`, view-model targets and `Blend` composition all
 stay on the UI thread, by necessity rather than by effort (§3).
 
@@ -40,7 +40,7 @@ stay on the UI thread, by necessity rather than by effort (§3).
 
 ### 2.1 Two threads, one batch queue, a self-sustaining render loop
 
-- UI-thread `CompositionObject`s serialise their changed fields into a `CompositionBatch` on commit
+- UI-thread `CompositionObject`s serialize their changed fields into a `CompositionBatch` on commit
   (`Compositor.CommitCore`); the render thread applies batches in `ServerCompositor.ApplyPendingBatches`, then runs
   `Animations.Process()`, then renders (`ServerCompositor.RenderCore`).
 - After a frame the loop asks for another tick while `Animations.NeedNextTick` is true, i.e. while any server animation
@@ -165,7 +165,7 @@ interpolates linearly in RGBA bytes, not in Presto's square-root space (only rel
 | `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY` on controls | yes | n/a | **yes** |
 | `SkewX`, `SkewY` on controls | yes | n/a | no (no server property) |
 | `Opacity` on controls | yes | n/a | **yes**, Presto owns `Visual.Opacity` for the duration |
-| Colours, brushes, `Margin`, `Width`/`Height`, `Thickness`, `CornerRadius`, any other `AvaloniaProperty` | yes | in a scene, if the scene draws them itself | no |
+| Colors, brushes, `Margin`, `Width`/`Height`, `Thickness`, `CornerRadius`, any other `AvaloniaProperty` | yes | in a scene, if the scene draws them itself | no |
 | `Draw` (stroke dash), `MorphTo`, split/scramble text | yes | a scene can draw the equivalent with Skia | no |
 | `Draggable`, `ScrollObserver` | yes | no (pointer and scroll are UI-thread) | no |
 | View-model / INotifyPropertyChanged targets | yes | only render-thread-owned objects | no |
@@ -241,7 +241,7 @@ Mechanics:
 Allocation budget: the scene tick is the core tick, already allocation-free; `Invalidate()` per frame is a flag. Add the
 scene case to the bridge `AllocationTests` (headless, Skia).
 
-Sample page "Compositor": a ring of dots with a centre-out opacity stagger looping forever (the anime.js "staggering"
+Sample page "Compositor": a ring of dots with a center-out opacity stagger looping forever (the anime.js "staggering"
 example rendered as a busy indicator) beside the identical animation on the UI-thread path, a `PathIcon` spun through
 §4.3, a `ProgressBar IsIndeterminate` for reference, and a **"Freeze UI thread for 2 s"** button (`Thread.Sleep` on the
 dispatcher). Expected: the compositor items keep moving, the UI-thread ones stop — including the indeterminate
@@ -254,7 +254,7 @@ values advance across ticks (real `ServerNow`, so assert monotonic progress, not
 pixels of `GetLastRenderedFrame`; messages arrive in order; a throwing `OnAttached`/`OnMessage` does not stop later
 frames; detach reverts the scope and the engine has no children; the frame source stops renewing when idle.
 
-### 4.3 Bridge: compositor animations for controls (`CompositorAnimation`, the `waapi.animate` analogue)
+### 4.3 Bridge: compositor animations for controls (`CompositorAnimation`, the `waapi.animate` analog)
 
 Entry point `PrestoAvalonia.AnimateOnCompositor(targets, CompositorAnimationParams)` (or `control.AnimateOnCompositor(…)`).
 `CompositorAnimationParams` accepts the same indexer and the anime.js WAAPI parameter set: per-property `To`/`From`/
@@ -268,13 +268,13 @@ Compile, per target:
 
 1. Build a **mirror**: a normal Presto `Animation` on a private scratch object with one `double` per shorthand, using
    the same params with `Autoplay = false`. It never touches the control; it is the sampler and, later, the playback
-   model (its `Seek` is exact anime.js maths, so keyframes, per-keyframe eases, modifiers, springs and staggers all fall
+   model (its `Seek` is exact anime.js math, so keyframes, per-keyframe eases, modifiers, springs and staggers all fall
    out for free).
 2. **Sample** one iteration of the mirror (`Seek(t)` for `t` over `[0, IterationDuration]`, default 100 samples per
    iteration like upstream's `easingToLinear`, capped; `LoopDelay` appends hold samples, and an alternating loop with a
    loop delay samples two iterations) into a `Vector3DKeyFrameAnimation` for `Translation` (`X`, `Y`), one for `Scale`
    (`Scale*ScaleX`, `Scale*ScaleY`, 1), a `ScalarKeyFrameAnimation` for `RotationAngle` (radians) and one for `Opacity`,
-   each key frame `LinearEasing`. Optimisation for the common case: a property with a single two-value tween and no
+   each key frame `LinearEasing`. Optimization for the common case: a property with a single two-value tween and no
    modifier compiles to one segment with `PrestoEasing(tween ease)` (springs via a pure `Solve` wrapper), exact.
    Within one `AnimateOnCompositor` call, params with nothing per target (no function values or staggers outside the
    top-level `Delay`) are sampled once per distinct seed (the control's starting transform and opacity); targets with
@@ -304,7 +304,7 @@ Compile, per target:
 Tests (headless + Skia, pixel assertions on `GetLastRenderedFrame`): a red `Border` fading through the compositor loses
 alpha across ticks; calling `InvalidateVisual()` on it mid-way (forces `SynchronizeCompositionProperties`) does not
 stop the fade, which is the test that pins the Avalonia semantics §2.2 relies on; `X` moves the pixels; `Rotate` rotates
-about the centre after a resize; `Cancel` freezes, `Revert` restores; `Then()` completes; two compositor animations on
+about the center after a resize; `Cancel` freezes, `Revert` restores; `Then()` completes; two compositor animations on
 one property replace; an unsupported property throws.
 
 ### 4.4 Bridge: FLIP layout transitions played on the compositor
@@ -318,7 +318,7 @@ properties, so the transition runs on the render thread and survives a blocked U
 
 **Why not `ImplicitAnimations["Offset"]`.** That was the original design here, and on paper it is strictly less work: the
 server already holds both ends, so nothing needs measuring or inverting (`Generator.cs:392` passes the newly assigned
-value in as `FinalValue`; `ServerObjectAnimations.OnSetAnimatedValue` initialises `StartingValue` from the backing
+value in as `FinalValue`; `ServerObjectAnimations.OnSetAnimatedValue` initializes `StartingValue` from the backing
 field, so even an interrupted move resumes from its current visual position). It was built, and **it does not animate on
 the Windows desktop backend**: with a 10 s transition, every captured frame after a shuffle shows the cards already on
 their new cells. The implicit collection is installed, `ElementComposition.GetElementVisual` is non-null, and the client
@@ -341,7 +341,7 @@ The cycle, per animated element:
    allocates nothing and touches no composition object).
 3. **Invert.** Write `Translation = first - last` on the element visual, and for `LayoutAnimateMode.PositionAndSize`
    also `Scale = (firstW/lastW, firstH/lastH, 1)` with `CenterPoint = (0,0,0)` — the inverse scale must be anchored at
-   the same corner the offset maths used, which is why this path sets `CenterPoint` directly instead of §4.3's centring
+   the same corner the offset math used, which is why this path sets `CenterPoint` directly instead of §4.3's centering
    `ExpressionAnimation`. This must land in the same commit as layout's new `Offset`, or one frame renders in the new
    position before the invert arrives; the "no first-frame jump" test below is what pins it.
 4. **Play.** `StartAnimation` a `Vector3DKeyFrameAnimation` to `Vector3D.Zero` on `Translation` (and to `(1,1,1)` on

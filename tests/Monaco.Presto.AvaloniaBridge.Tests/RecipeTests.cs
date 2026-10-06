@@ -541,7 +541,7 @@ public sealed class RecipeTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ColorizeHoversAGrayscaleImageToFullColourAndBack(bool reduced)
+    public void ColorizeHoversAGrayscaleImageToFullColorAndBack(bool reduced)
     {
         var image = Photo();
         image.Grayscale = 1;
@@ -581,7 +581,7 @@ public sealed class RecipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void FlashTintRaisesTheTintInItsColourAndEndsAtIdentity()
+    public void FlashTintRaisesTheTintInItsColorAndEndsAtIdentity()
     {
         var image = Photo();
 

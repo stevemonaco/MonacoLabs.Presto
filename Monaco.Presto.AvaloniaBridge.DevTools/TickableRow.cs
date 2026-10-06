@@ -125,7 +125,7 @@ internal sealed partial class TickableRow : INotifyPropertyChanged
         }
         var timer = Timer!;
         State = timer.Completed ? TickableState.Completed
-            : timer.Cancelled ? TickableState.Cancelled
+            : timer.Canceled ? TickableState.Canceled
             : parent is { } state && state != TickableState.Running ? state
             : parent is null && timer.Paused ? (DetachTracker.IsDetachPaused(timer) ? TickableState.Detached : TickableState.Paused)
             : timer.Began ? TickableState.Running

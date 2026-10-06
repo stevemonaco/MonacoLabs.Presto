@@ -56,7 +56,7 @@ public sealed class DevToolsHighlightTests : BridgeTestBase, IDisposable
         _window.UpdateLayout();
         var layer = AdornerLayer.GetAdornerLayer(_box)!;
 
-        _window.MouseMove(Centre((Control)List.Rows.ContainerFromIndex(0)!, _window));
+        _window.MouseMove(Center((Control)List.Rows.ContainerFromIndex(0)!, _window));
         Assert.Same(animation, List.HoveredRow?.Timer);
         _overlay.Highlighter.Update(_window, List.HoveredRow, List.SelectedRow);
         Assert.Contains(_overlay.Highlighter, layer.Children);
@@ -77,8 +77,8 @@ public sealed class DevToolsHighlightTests : BridgeTestBase, IDisposable
         _box.PointerPressed += (_, _) => reached = true;
 
         List.Pick.Toggle.IsChecked = true;
-        _window.MouseDown(Centre(_box, _window), MouseButton.Left);
-        _window.MouseUp(Centre(_box, _window), MouseButton.Left);
+        _window.MouseDown(Center(_box, _window), MouseButton.Left);
+        _window.MouseUp(Center(_box, _window), MouseButton.Left);
         List.Refresh();
 
         Assert.False(reached);

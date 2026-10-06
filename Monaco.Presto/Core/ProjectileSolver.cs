@@ -3,7 +3,7 @@ namespace Monaco.Presto.Core;
 /// <summary>
 /// Resolves a projectile to-value once its from-number is known: <c>x' = v</c>, <c>v' = a − k·v</c> in closed form. A
 /// flight that turns back is split at its apex, so each tween is monotonic and one landing on its start still has a
-/// distance to normalise by.
+/// distance to normalize by.
 /// </summary>
 internal static class ProjectileSolver
 {

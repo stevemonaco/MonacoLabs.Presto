@@ -68,7 +68,7 @@ public sealed class ScrollShorthandTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void AnExtentShrinkMidFlightClampsEveryFrameWithoutCancelling()
+    public void AnExtentShrinkMidFlightClampsEveryFrameWithoutCanceling()
     {
         var (_, scroller, _, trail) = ScrollStage.Show(trail: 600);
         Presto.Animate(scroller, new AvaloniaAnimationParams { ["ScrollY"] = 700, Duration = 400, Ease = Eases.None });

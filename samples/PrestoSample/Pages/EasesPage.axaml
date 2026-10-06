@@ -24,7 +24,7 @@
 
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <StackPanel Spacing="2">
-                    <TextBlock Classes="caption" Text="Eases catalogue" />
+                    <TextBlock Classes="caption" Text="Eases catalog" />
                     <ComboBox x:Name="EaseBox" Width="300" SelectionChanged="EaseSelected" />
                 </StackPanel>
 

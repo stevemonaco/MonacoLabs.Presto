@@ -13,7 +13,7 @@ using Avalonia.Threading;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>Pins the Avalonia 12 behaviour <c>Motion</c>'s tracker relies on (MOTION-KIT-PLAN §2.4 step 1).</summary>
+/// <summary>Pins the Avalonia 12 behavior <c>Motion</c>'s tracker relies on (MOTION-KIT-PLAN §2.4 step 1).</summary>
 public sealed class MotionProbeTests : BridgeTestBase
 {
     [AvaloniaFact]
@@ -90,8 +90,8 @@ public sealed class MotionProbeTests : BridgeTestBase
         Assert.True(first.IsFocused);
         Assert.Contains(":focus-visible", first.Classes);
 
-        window.MouseDown(Centre(second, window), MouseButton.Left);
-        window.MouseUp(Centre(second, window), MouseButton.Left);
+        window.MouseDown(Center(second, window), MouseButton.Left);
+        window.MouseUp(Center(second, window), MouseButton.Left);
 
         Assert.True(second.IsFocused);
         Assert.Contains(":focus", second.Classes);
@@ -106,7 +106,7 @@ public sealed class MotionProbeTests : BridgeTestBase
         bool? handled = null;
         button.AddHandler(InputElement.PointerPressedEvent, (_, e) => handled = e.Handled, RoutingStrategies.Bubble, handledEventsToo: true);
 
-        window.MouseDown(Centre(button, window), MouseButton.Left);
+        window.MouseDown(Center(button, window), MouseButton.Left);
 
         Assert.True(handled);
         Assert.Contains(":pressed", button.Classes);

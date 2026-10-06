@@ -129,7 +129,7 @@ public sealed class ParticleScene : CompositorScene
         }
     }
 
-    // A colour mixed over life takes a new value every frame, so it is coarsened to 4 bits per channel to reuse its brushes.
+    // A color mixed over life takes a new value every frame, so it is coarsened to 4 bits per channel to reuse its brushes.
     private static Color Quantize(Color color) => Color.FromArgb(Quantize(color.A), Quantize(color.R), Quantize(color.G), Quantize(color.B));
 
     private static byte Quantize(byte channel) => (byte)((channel + 8) / 17 * 17);

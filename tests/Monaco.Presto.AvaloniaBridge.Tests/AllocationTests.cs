@@ -479,8 +479,8 @@ public sealed class AllocationTests : CompositorTestBase
             for (var i = 0; i < _dots.Length; i++)
             {
                 var angle = i * Math.Tau / _dots.Length;
-                var centre = new Point(size.Width / 2 + Math.Cos(angle) * 18, size.Height / 2 + Math.Sin(angle) * 18);
-                context.DrawEllipse(Brush(Colors.SteelBlue, _animated ? _dots[i].Opacity : 1), null, centre, 3, 3);
+                var center = new Point(size.Width / 2 + Math.Cos(angle) * 18, size.Height / 2 + Math.Sin(angle) * 18);
+                context.DrawEllipse(Brush(Colors.SteelBlue, _animated ? _dots[i].Opacity : 1), null, center, 3, 3);
             }
         }
     }

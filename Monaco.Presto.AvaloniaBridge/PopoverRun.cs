@@ -141,7 +141,7 @@ internal sealed class PopoverRun
         if (!_closing) return;
         _closing = false;
         _close!.Reverse();
-        // Escape and ContextMenu.Close leave IsOpen false under the cancelled close, where a later close would write nothing.
+        // Escape and ContextMenu.Close leave IsOpen false under the canceled close, where a later close would write nothing.
         _popup.SetCurrentValue(Popup.IsOpenProperty, true);
     }
 
@@ -159,7 +159,7 @@ internal sealed class PopoverRun
             OnPause = timer =>
             {
                 paused?.Invoke(timer);
-                if (timer.Cancelled && _closing && timer == _close) CloseNow();
+                if (timer.Canceled && _closing && timer == _close) CloseNow();
             },
         };
     }

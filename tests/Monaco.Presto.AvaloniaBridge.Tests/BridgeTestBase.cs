@@ -12,7 +12,7 @@ public abstract class BridgeTestBase : Monaco.Presto.Tests.EngineTestBase
 {
     protected BridgeTestBase()
     {
-        // A plain [Fact] resets the engine off the UI thread, cancelling an earlier test's leftovers from the wrong thread.
+        // A plain [Fact] resets the engine off the UI thread, canceling an earlier test's leftovers from the wrong thread.
         Assert.True(Dispatcher.UIThread.CheckAccess(), $"{GetType().Name} touches Avalonia; mark its tests [AvaloniaFact] or [AvaloniaTheory].");
         PrestoAvalonia.EnsureInitialized();
         Presto.Engine.FrameSource = Frames; // EnsureInitialized installs the Avalonia source over the base's manual one
@@ -45,6 +45,6 @@ public abstract class BridgeTestBase : Monaco.Presto.Tests.EngineTestBase
         return animation;
     }
 
-    protected static Point Centre(Control control, Window window) =>
+    protected static Point Center(Control control, Window window) =>
         control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
 }

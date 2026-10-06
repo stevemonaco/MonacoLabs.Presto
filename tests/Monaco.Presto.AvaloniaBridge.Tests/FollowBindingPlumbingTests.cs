@@ -12,7 +12,7 @@ using Avalonia.VisualTree;
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
-/// The Avalonia 12 behaviour Phase 41's value-driven bindings are built on (GAPS-PLAN §1.7): what <c>IProvideValueTarget</c>
+/// The Avalonia 12 behavior Phase 41's value-driven bindings are built on (GAPS-PLAN §1.7): what <c>IProvideValueTarget</c>
 /// names, the priority a returned observable binding lands at, how a companion property resolves the wrapped binding, and
 /// the order a <c>DataContext</c> change and the value it causes arrive in.
 /// </summary>

@@ -9,7 +9,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// <summary>
 /// Covers <c>PrestoAvalonia.CreateDrawable</c>, <c>PrestoAvalonia.CreateMotionPath</c> and <c>PrestoAvalonia.MorphTo</c>, the
 /// parts of tests/suites/svg.test.js that do not need a browser: the "stroke-linecap" drawable test, the
-/// "svg.createMotionPath with offset" test and the morphTo tests, plus the Avalonia-specific stroke dash and revert behaviour.
+/// "svg.createMotionPath with offset" test and the morphTo tests, plus the Avalonia-specific stroke dash and revert behavior.
 /// </summary>
 public sealed class ShapesTests : BridgeTestBase
 {

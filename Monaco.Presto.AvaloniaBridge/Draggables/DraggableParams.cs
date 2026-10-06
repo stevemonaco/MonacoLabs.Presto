@@ -94,7 +94,7 @@ public sealed record DraggableParams
     /// <summary>Runs on every frame the target actually moves on.</summary>
     public Action<Draggable>? OnUpdate { get; init; }
 
-    /// <summary>Runs when the pointer lets go, once the release animations exist so they can still be cancelled.</summary>
+    /// <summary>Runs when the pointer lets go, once the release animations exist so they can still be canceled.</summary>
     public Action<Draggable>? OnRelease { get; init; }
 
     /// <summary>Runs once the axis animations have nothing left to play.</summary>

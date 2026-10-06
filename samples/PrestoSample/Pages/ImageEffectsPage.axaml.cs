@@ -14,7 +14,7 @@ using PrestoSample.Showcase;
 namespace PrestoSample.Pages;
 
 /// <summary>
-/// The colour filters of <see cref="FilteredImage"/>: a slider per filter printing the XAML and builder it amounts to,
+/// The color filters of <see cref="FilteredImage"/>: a slider per filter printing the XAML and builder it amounts to,
 /// thumbnails that colorize on hover, a develop entrance, a duotone that follows its theme variant and a looping hue
 /// cycle, a slideshow with a transition picker and a card that dissolves in and pixelates out.
 /// </summary>

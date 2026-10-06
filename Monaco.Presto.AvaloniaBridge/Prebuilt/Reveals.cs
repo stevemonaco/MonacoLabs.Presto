@@ -20,20 +20,20 @@ public static class Reveals
 {
     private static readonly ConditionalWeakTable<Visual, Action> s_running = new();
 
-    /// <summary>Reveals the element from <paramref name="origin"/>, its centre when null.</summary>
+    /// <summary>Reveals the element from <paramref name="origin"/>, its center when null.</summary>
     public static AnimationBuilder CircularReveal(RelativePoint? origin = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Circle(TweenValue.Of(origin ?? RelativePoint.Center), duration, delay, ease);
 
-    /// <summary>Reveals the element from the centre of <paramref name="from"/>, such as the button that opened it.</summary>
+    /// <summary>Reveals the element from the center of <paramref name="from"/>, such as the button that opened it.</summary>
     public static AnimationBuilder CircularReveal(Visual from, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Circle((FunctionValue)((target, _, _) => TweenValue.Of(
-            from.TranslatePoint(new Point(from.Bounds.Width / 2, from.Bounds.Height / 2), (Visual)target) is { } centre
-                ? new RelativePoint(centre, RelativeUnit.Absolute)
+            from.TranslatePoint(new Point(from.Bounds.Width / 2, from.Bounds.Height / 2), (Visual)target) is { } center
+                ? new RelativePoint(center, RelativeUnit.Absolute)
                 : RelativePoint.Center)), duration, delay, ease);
 
     /// <summary>
-    /// Reveals a change to <paramref name="surface"/>, such as a theme switch, in a circle grown from the centre of
-    /// <paramref name="from"/> (the surface's centre when null): the surface is drawn before and after
+    /// Reveals a change to <paramref name="surface"/>, such as a theme switch, in a circle grown from the center of
+    /// <paramref name="from"/> (the surface's center when null): the surface is drawn before and after
     /// <paramref name="change"/> runs, and the new picture is revealed over the old one in the surface's overlay layer,
     /// both removed when the reveal ends.
     /// </summary>
@@ -81,12 +81,12 @@ public static class Reveals
         return reveal;
     }
 
-    internal static AnimationBuilder Circle(TweenValue centre, double? duration, double? delay, EaseValue? ease)
+    internal static AnimationBuilder Circle(TweenValue center, double? duration, double? delay, EaseValue? ease)
     {
         var tokens = Recipes.Tokens;
         return Recipes.Start(tokens, duration ?? tokens.Long, delay, ease ?? tokens.Ease, stagger: false)
             .ClipCircle(to: 1, from: 0)
-            .ClipCircleCenter(to: centre, from: centre)
+            .ClipCircleCenter(to: center, from: center)
             .WhenReduced(reduced => reduced.Opacity(from: 0).Duration(tokens.Short));
     }
 

@@ -249,23 +249,23 @@ internal sealed class ReorderList
         RenderTransformComposer.Set(container, Shorthand, _offset - (Slot(container) - _slotAtGrab));
     }
 
-    // One step per crossed neighbour midpoint, so several crossings in one pointer move arrive in order.
+    // One step per crossed neighbor midpoint, so several crossings in one pointer move arrive in order.
     private void Swap()
     {
         while (_dragging && _container is { } container)
         {
             var index = _list.IndexFromContainer(container);
-            var centre = _slotAtGrab + _offset + (Size(container) / 2);
-            var to = Crosses(index + 1, centre) ? index + 1 : index > 0 && Crosses(index - 1, centre) ? index - 1 : -1;
+            var center = _slotAtGrab + _offset + (Size(container) / 2);
+            var to = Crosses(index + 1, center) ? index + 1 : index > 0 && Crosses(index - 1, center) ? index - 1 : -1;
             if (to < 0 || !Step(index, to)) return;
         }
     }
 
-    private bool Crosses(int index, double centre)
+    private bool Crosses(int index, double center)
     {
-        if (_list.ContainerFromIndex(index) is not { } neighbour) return false;
-        var mid = Slot(neighbour) + (Size(neighbour) / 2);
-        return index > _list.IndexFromContainer(_container!) ? centre > mid : centre < mid;
+        if (_list.ContainerFromIndex(index) is not { } neighbor) return false;
+        var mid = Slot(neighbor) + (Size(neighbor) / 2);
+        return index > _list.IndexFromContainer(_container!) ? center > mid : center < mid;
     }
 
     private bool Step(int from, int to)

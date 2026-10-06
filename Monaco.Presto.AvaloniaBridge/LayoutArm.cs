@@ -34,7 +34,7 @@ internal sealed class LayoutArm
     /// Reverts the live transition and, while the control is attached, arms a new one. It measures where the control is now,
     /// unless the control is <paramref name="attaching"/> or not yet laid out, whose bounds may be stale: then its first pass only records.
     /// </summary>
-    /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honour.</exception>
+    /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honor.</exception>
     public void Arm(bool attaching)
     {
         Disarm();

@@ -54,7 +54,7 @@ public sealed class TargetUtilsTests : BridgeTestBase
         Frames.Advance(100, 16);
 
         Assert.Equal([border], removed);
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
         Assert.Equal(stopped, border.Opacity);
     }
 }

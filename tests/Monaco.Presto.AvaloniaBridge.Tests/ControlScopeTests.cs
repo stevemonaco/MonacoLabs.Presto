@@ -39,7 +39,7 @@ public sealed class ControlScopeTests : BridgeTestBase
 
         Assert.Equal(0d, PrestoAvalonia.Get(border, "X"));
         Assert.Equal(.25, border.Opacity);
-        Assert.True(animation!.Cancelled);
+        Assert.True(animation!.Canceled);
         Assert.Equal(0, animatable.Get("Opacity"));
     }
 

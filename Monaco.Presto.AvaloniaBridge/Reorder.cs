@@ -8,8 +8,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// Drag-to-reorder for an <see cref="ItemsControl"/>: a container dragged along <see cref="AxisProperty"/> lifts, follows the
-/// pointer, moves its item one step each time its centre crosses a neighbour's midpoint, and springs into its slot on release.
-/// Set <see cref="Animate.ItemLayoutProperty"/> on the list too and the neighbours ease out of the way.
+/// pointer, moves its item one step each time its center crosses a neighbor's midpoint, and springs into its slot on release.
+/// Set <see cref="Animate.ItemLayoutProperty"/> on the list too and the neighbors ease out of the way.
 /// </summary>
 public static class Reorder
 {

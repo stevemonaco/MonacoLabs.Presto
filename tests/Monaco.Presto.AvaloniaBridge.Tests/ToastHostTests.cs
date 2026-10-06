@@ -57,7 +57,7 @@ public sealed class ToastHostTests : CompositorTestBase
         var root = Root(host, "a");
         var button = root.GetVisualDescendants().OfType<Button>().Single();
 
-        if (how == "hover") window.MouseMove(Centre(root, window));
+        if (how == "hover") window.MouseMove(Center(root, window));
         else button.Focus();
         var held = ScaleX(Bar(host, "a"));
         Run(60);
@@ -78,7 +78,7 @@ public sealed class ToastHostTests : CompositorTestBase
         Run(12);
         var container = host.ContainerFromIndex(0)!;
 
-        new Touch(window).Drag(Frames, Centre(container, window), new Vector(-130, 0));
+        new Touch(window).Drag(Frames, Center(container, window), new Vector(-130, 0));
         Run(2);
         Assert.True(X(container) < -130);
 

@@ -26,7 +26,7 @@ public sealed class SwipeTests : CompositorTestBase
     {
         var (window, rows) = Stage();
 
-        new Touch(window).Drag(Frames, Centre(rows[0], window), new Vector(-40, 0));
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
         Frames.Advance(3000, 20);
 
         Assert.Equal(-Open, X(rows[0]), 3);
@@ -40,7 +40,7 @@ public sealed class SwipeTests : CompositorTestBase
     {
         var (window, rows) = Stage();
 
-        new Touch(window).Drag(Frames, Centre(rows[0], window), new Vector(-20, 0));
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-20, 0));
         Frames.Advance(3000, 20);
 
         Assert.Equal(0, X(rows[0]), 3);
@@ -52,7 +52,7 @@ public sealed class SwipeTests : CompositorTestBase
     {
         var (window, rows) = Stage();
 
-        new Touch(window).Drag(Frames, Centre(rows[0], window), new Vector(24, 0), steps: 2, hold: false);
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(24, 0), steps: 2, hold: false);
         Frames.Advance(3000, 20);
 
         Assert.Equal(Open, X(rows[0]), 3);
@@ -64,7 +64,7 @@ public sealed class SwipeTests : CompositorTestBase
         var command = new Recorder();
         var (window, rows) = Stage(row => Swipe.SetCommand(row, command));
 
-        new Touch(window).Drag(Frames, Centre(rows[0], window), new Vector(-130, 0));
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-130, 0));
         Frames.Advance(3000, 20);
 
         Assert.Equal(new object?[] { Edge.Left }, command.Runs);
@@ -94,7 +94,7 @@ public sealed class SwipeTests : CompositorTestBase
         var window = ShowWindow(list);
         var below = list.ContainerFromIndex(2)!;
 
-        new Touch(window).Drag(Frames, Centre(RowOf(list, "red"), window), new Vector(-130, 0));
+        new Touch(window).Drag(Frames, Center(RowOf(list, "red"), window), new Vector(-130, 0));
         Run(20);
 
         Assert.Equal(["a", "c"], items);
@@ -127,10 +127,10 @@ public sealed class SwipeTests : CompositorTestBase
     public void ASecondRowOpeningClosesTheFirst()
     {
         var (window, rows) = Stage();
-        new Touch(window).Drag(Frames, Centre(rows[0], window), new Vector(-40, 0));
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
         Frames.Advance(3000, 20);
 
-        new Touch(window).Drag(Frames, Centre(rows[1], window), new Vector(-40, 0));
+        new Touch(window).Drag(Frames, Center(rows[1], window), new Vector(-40, 0));
         Frames.Advance(3000, 20);
 
         Assert.Equal(0, X(rows[0]), 3);
@@ -144,7 +144,7 @@ public sealed class SwipeTests : CompositorTestBase
     public void EscapeOrATapClosesTheOpenRow(string how)
     {
         var (window, rows) = Stage();
-        new Touch(window).Drag(Frames, Centre(rows[0], window), new Vector(-40, 0));
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
         Frames.Advance(3000, 20);
 
         switch (how)
@@ -177,7 +177,7 @@ public sealed class SwipeTests : CompositorTestBase
         Frames.Advance(3000, 20);
         Assert.Equal(-Open, X(rows[0]), 3);
 
-        Press(window, Centre(action, window));
+        Press(window, Center(action, window));
         Assert.Single(command.Runs);
 
         rows[0].RaiseEvent(new ContextRequestedEventArgs());
@@ -200,10 +200,10 @@ public sealed class SwipeTests : CompositorTestBase
         });
         Presto.Defaults.ReducedMotion = true;
 
-        new Touch(window).Drag(Frames, Centre(rows[0], window), new Vector(-40, 0));
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
         Assert.Equal(-Open, X(rows[0]), 3);
 
-        new Touch(window).Drag(Frames, Centre(rows[1], window), new Vector(130, 0));
+        new Touch(window).Drag(Frames, Center(rows[1], window), new Vector(130, 0));
         Assert.Equal(new object?[] { Edge.Right }, command.Runs);
         Assert.False(rows[1].IsVisible);
     }

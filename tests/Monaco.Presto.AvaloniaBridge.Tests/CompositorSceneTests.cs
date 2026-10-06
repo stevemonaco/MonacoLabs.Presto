@@ -78,7 +78,7 @@ public sealed class CompositorSceneTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void TheBrushCacheNeverGrowsPastItsBoundAndHandsBackTheSameBrushForOneColour()
+    public void TheBrushCacheNeverGrowsPastItsBoundAndHandsBackTheSameBrushForOneColor()
     {
         var scene = new BrushScene();
 

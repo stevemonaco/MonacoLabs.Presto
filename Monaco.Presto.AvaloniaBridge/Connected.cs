@@ -15,7 +15,7 @@ public static class Connected
     /// </summary>
     /// <remarks>
     /// A keyed element measures itself on every layout pass, one parent walk each; fine for a page or a list of dozens, but a
-    /// virtualising list of thousands should key only the items it needs.
+    /// virtualizing list of thousands should key only the items it needs.
     /// </remarks>
     public static readonly AttachedProperty<string?> KeyProperty =
         AvaloniaProperty.RegisterAttached<Control, string?>("Key", typeof(Connected));

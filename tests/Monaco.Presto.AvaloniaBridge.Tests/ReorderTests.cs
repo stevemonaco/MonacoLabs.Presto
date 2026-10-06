@@ -60,7 +60,7 @@ public sealed class ReorderTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public void NeighboursEaseWithItemLayoutAndSnapWithout(bool itemLayout)
+    public void NeighborsEaseWithItemLayoutAndSnapWithout(bool itemLayout)
     {
         var (list, _, moves) = Show(virtualized: false, itemLayout);
         var window = WindowOf(list);
@@ -122,7 +122,7 @@ public sealed class ReorderTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void CancellingMovingLeavesTheCollectionUntouched()
+    public void CancelingMovingLeavesTheCollectionUntouched()
     {
         var (list, items, moves) = Show(virtualized: false);
         var window = WindowOf(list);

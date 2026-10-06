@@ -13,7 +13,7 @@ public static class EaseParser
 
     private static readonly string[] _deprecated = ["steps(", "irregular(", "linear(", "cubicBezier("];
 
-    private static readonly Dictionary<string, Func<EaseArgs, Ease>> _parameterised = new()
+    private static readonly Dictionary<string, Func<EaseArgs, Ease>> _parameterized = new()
     {
         ["in"] = a => a.Length == 0 ? Eases.In() : Eases.In(a[0]),
         ["out"] = a => a.Length == 0 ? Eases.Out() : Eases.Out(a[0]),
@@ -91,7 +91,7 @@ public static class EaseParser
         {
             return args.Length == 0 ? ease : throw new FormatException($"Ease \"{name}\" takes no arguments.");
         }
-        return _parameterised.TryGetValue(name, out var factory) ? factory(args) : Eases.None;
+        return _parameterized.TryGetValue(name, out var factory) ? factory(args) : Eases.None;
     }
 
     private static EaseArgs ParseArgs(string input, int open)

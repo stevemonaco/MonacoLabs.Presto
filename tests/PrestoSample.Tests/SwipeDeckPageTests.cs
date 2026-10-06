@@ -53,7 +53,7 @@ public sealed class SwipeDeckPageTests
         var page = new SwipeDeckPage();
         var window = SceneHarness.Show(page, 712, 440);
         var top = Top(page.GetControl<Panel>("Deck"));
-        var grab = SceneHarness.Centre(top, window);
+        var grab = SceneHarness.Center(top, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 6; i++)
@@ -76,7 +76,7 @@ public sealed class SwipeDeckPageTests
         var page = new SwipeDeckPage();
         var window = SceneHarness.Show(page, 712, 440);
         var top = Top(page.GetControl<Panel>("Deck"));
-        var grab = SceneHarness.Centre(top, window);
+        var grab = SceneHarness.Center(top, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 6; i++)

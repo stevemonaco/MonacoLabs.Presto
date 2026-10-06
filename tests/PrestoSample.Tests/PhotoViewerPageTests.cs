@@ -34,7 +34,7 @@ public sealed class PhotoViewerPageTests
         var window = SceneHarness.Show(page, 712, 440);
         var scale = page.GetControl<TextBlock>("ScaleText");
 
-        window.MouseWheel(SceneHarness.Centre(Photo(page), window), new Vector(0, 2), RawInputModifiers.Control);
+        window.MouseWheel(SceneHarness.Center(Photo(page), window), new Vector(0, 2), RawInputModifiers.Control);
         TestFrames.Tick();
         Assert.True(SceneHarness.Number(scale) > 1, $"the readout shows {scale.Text}");
 

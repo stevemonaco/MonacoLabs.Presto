@@ -48,7 +48,7 @@ public sealed class CarouselPageTests
     {
         var page = new CarouselPage();
         var window = SceneHarness.Show(page, 1100, 600);
-        var at = SceneHarness.Centre(Dots(page)[dot], window);
+        var at = SceneHarness.Center(Dots(page)[dot], window);
 
         window.MouseDown(at, MouseButton.Left);
         window.MouseUp(at, MouseButton.Left);
@@ -97,7 +97,7 @@ public sealed class CarouselPageTests
     {
         var page = new CarouselPage();
         var window = SceneHarness.Show(page, 1100, 600);
-        window.MouseMove(SceneHarness.Centre(page.GetControl<Border>("Viewport"), window));
+        window.MouseMove(SceneHarness.Center(page.GetControl<Border>("Viewport"), window));
 
         TestFrames.Tick(300);
 
@@ -110,7 +110,7 @@ public sealed class CarouselPageTests
     {
         var page = new CarouselPage();
         var window = SceneHarness.Show(page, 1100, 600);
-        var grab = SceneHarness.Centre(page.GetControl<Border>("Viewport"), window);
+        var grab = SceneHarness.Center(page.GetControl<Border>("Viewport"), window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 4; i++)
@@ -133,7 +133,7 @@ public sealed class CarouselPageTests
     {
         var page = new CarouselPage();
         var window = SceneHarness.Show(page, 1100, 600);
-        var grab = SceneHarness.Centre(page.GetControl<Border>("Viewport"), window);
+        var grab = SceneHarness.Center(page.GetControl<Border>("Viewport"), window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 10; i++)

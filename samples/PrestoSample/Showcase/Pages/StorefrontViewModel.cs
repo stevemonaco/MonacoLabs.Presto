@@ -3,10 +3,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace PrestoSample.Showcase.Pages;
 
-/// <summary>The storefront's catalogue, the products the picked filter chips let through, the quick-view product and the cart count.</summary>
+/// <summary>The storefront's catalog, the products the picked filter chips let through, the quick-view product and the cart count.</summary>
 public sealed partial class StorefrontViewModel : ObservableObject
 {
-    private static readonly IReadOnlyList<Product> Catalogue =
+    private static readonly IReadOnlyList<Product> Catalog =
     [
         new("Trail lantern", "Outdoor", "$48", 30, 0),
         new("Canvas daypack", "Travel", "$86", 200, 1),
@@ -26,8 +26,8 @@ public sealed partial class StorefrontViewModel : ObservableObject
 
     public static IReadOnlyList<string> Categories { get; } = ["Outdoor", "Travel", "Home"];
 
-    /// <summary>The products on show, in catalogue order; filtering removes and inserts items rather than resetting, so the cards that stay keep their containers.</summary>
-    public ObservableCollection<Product> Shown { get; } = [.. Catalogue];
+    /// <summary>The products on show, in catalog order; filtering removes and inserts items rather than resetting, so the cards that stay keep their containers.</summary>
+    public ObservableCollection<Product> Shown { get; } = [.. Catalog];
 
     [ObservableProperty]
     public partial int CartCount { get; set; }
@@ -41,7 +41,7 @@ public sealed partial class StorefrontViewModel : ObservableObject
         if (picked) _picked.Add(category);
         else _picked.Remove(category);
 
-        List<Product> wanted = [.. Catalogue.Where(product => _picked.Count == 0 || _picked.Contains(product.Category))];
+        List<Product> wanted = [.. Catalog.Where(product => _picked.Count == 0 || _picked.Contains(product.Category))];
         for (var i = Shown.Count - 1; i >= 0; i--)
         {
             if (!wanted.Contains(Shown[i])) Shown.RemoveAt(i);

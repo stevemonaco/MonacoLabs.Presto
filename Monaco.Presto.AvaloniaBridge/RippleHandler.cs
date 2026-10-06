@@ -9,7 +9,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// Draws one host's <see cref="Ripple"/> state-layer tint and ink on the render thread, each ripple growing from its
-/// centre and fading once released, and asks for animation frames only while a ripple is live or the tint is fading.
+/// center and fading once released, and asks for animation frames only while a ripple is live or the tint is fading.
 /// </summary>
 internal sealed class RippleHandler : CompositionCustomVisualHandler
 {
@@ -76,11 +76,11 @@ internal sealed class RippleHandler : CompositionCustomVisualHandler
             var brush = Brush(ripple.Press.Color, opacity);
             if (ripple.Press.Clip is { } clip)
             {
-                using (context.PushClip(clip)) context.DrawEllipse(brush, null, ripple.Press.Centre, radius, radius);
+                using (context.PushClip(clip)) context.DrawEllipse(brush, null, ripple.Press.Center, radius, radius);
             }
             else
             {
-                context.DrawEllipse(brush, null, ripple.Press.Centre, radius, radius);
+                context.DrawEllipse(brush, null, ripple.Press.Center, radius, radius);
             }
         }
     }
@@ -90,7 +90,7 @@ internal sealed class RippleHandler : CompositionCustomVisualHandler
         var bounds = base.GetRenderBounds();
         foreach (ref readonly var ripple in CollectionsMarshal.AsSpan(_ripples))
         {
-            if (ripple.Press.Clip is null) bounds = bounds.Union(new Rect(ripple.Press.Centre, ripple.Press.Centre).Inflate(ripple.Press.Reach));
+            if (ripple.Press.Clip is null) bounds = bounds.Union(new Rect(ripple.Press.Center, ripple.Press.Center).Inflate(ripple.Press.Reach));
         }
         return bounds;
     }
@@ -118,8 +118,8 @@ internal sealed class RippleHandler : CompositionCustomVisualHandler
         return brush;
     }
 
-    /// <summary>A ripple at <paramref name="Centre"/> growing to <paramref name="Reach"/>, under <paramref name="Clip"/> when bounded, all in host coordinates.</summary>
-    internal sealed record Press(Point Centre, double Reach, RoundedRect? Clip, Color Color, double GrowMs, Ease Ease, double FadeMs);
+    /// <summary>A ripple at <paramref name="Center"/> growing to <paramref name="Reach"/>, under <paramref name="Clip"/> when bounded, all in host coordinates.</summary>
+    internal sealed record Press(Point Center, double Reach, RoundedRect? Clip, Color Color, double GrowMs, Ease Ease, double FadeMs);
 
     /// <summary>The state layer fading from where it stands to <paramref name="Opacity"/> of the opaque <paramref name="Color"/>, under the host's <paramref name="Corners"/>.</summary>
     internal sealed record Tint(Color Color, double Opacity, CornerRadius Corners, double FadeMs);

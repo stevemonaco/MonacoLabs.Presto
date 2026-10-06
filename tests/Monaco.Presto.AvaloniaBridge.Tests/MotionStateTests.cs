@@ -307,7 +307,7 @@ public sealed class MotionStateTests : BridgeTestBase
         Assert.Throws<NotSupportedException>(() => Motion.SetHover(Box(), Presto.Build().X("+=4")));
 
     [AvaloniaFact]
-    public void PressIsSynthesisedOnABorder()
+    public void PressIsSynthesizedOnABorder()
     {
         var box = Box();
         var window = Show(box);
@@ -342,11 +342,11 @@ public sealed class MotionStateTests : BridgeTestBase
         var window = Show(button);
         Motion.SetPress(button, Linear().Opacity(0.5));
 
-        window.MouseDown(Centre(button, window), MouseButton.Left);
+        window.MouseDown(Center(button, window), MouseButton.Left);
         Frames.Advance(200, 10);
         Assert.Equal(0.5, button.Opacity, 6);
 
-        window.MouseUp(Centre(button, window), MouseButton.Left);
+        window.MouseUp(Center(button, window), MouseButton.Left);
         Frames.Advance(200, 10);
         Assert.Equal(1, button.Opacity, 6);
     }
@@ -381,11 +381,11 @@ public sealed class MotionStateTests : BridgeTestBase
         Frames.Advance(200, 10);
         Assert.Equal(0.5, first.Opacity, 6);
 
-        Click(window, Centre(second, window));
+        Click(window, Center(second, window));
         Frames.Advance(200, 10);
         Assert.Equal(1, first.Opacity, 6);
 
-        Click(window, Centre(first, window));
+        Click(window, Center(first, window));
         Frames.Advance(200, 10);
         Assert.True(first.IsFocused);
         Assert.Equal(1, first.Opacity, 6);
@@ -403,11 +403,11 @@ public sealed class MotionStateTests : BridgeTestBase
         Frames.Advance(200, 10);
         Assert.Equal(0.5, first.Opacity, 6);
 
-        Click(window, Centre(second, window));
+        Click(window, Center(second, window));
         Frames.Advance(200, 10);
         Assert.Equal(1, first.Opacity, 6);
 
-        Click(window, Centre(first, window));
+        Click(window, Center(first, window));
         Frames.Advance(200, 10);
         Assert.Equal(0.5, first.Opacity, 6);
     }
@@ -503,7 +503,7 @@ public sealed class MotionStateTests : BridgeTestBase
         var card = view.FindControl<Border>("Card")!;
         var arrow = view.FindControl<Path>("Arrow")!;
 
-        window.MouseMove(Centre(card, window));
+        window.MouseMove(Center(card, window));
         Frames.Advance(200, 10);
         Assert.Equal("hot", Motion.GetState(arrow));
         Assert.Equal(10, Get(arrow, "X"), 6);

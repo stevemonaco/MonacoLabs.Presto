@@ -220,14 +220,14 @@ public sealed class Draggable : IRevertible
     public double Angle { get; private set; }
 
     /// <summary>Stops the drag and every animation running on the target's axes, leaving it where it is.</summary>
-    /// <remarks>Only the draggable's own release, overshoot and scroll animations are cancelled; animations on other targets keep running.</remarks>
+    /// <remarks>Only the draggable's own release, overshoot and scroll animations are canceled; animations on other targets keep running.</remarks>
     public Draggable Stop()
     {
         _updateTicker.Pause();
         _overshootTicker.Pause();
         foreach (var animation in Animate.Animations.Values) animation.Pause();
         Presto.Remove(this);
-        // Cancelled rather than removed: unlinking the engine's next child mid-frame drops every child after it.
+        // Canceled rather than removed: unlinking the engine's next child mid-frame drops every child after it.
         _overshootOut?.Cancel();
         _overshootBack?.Cancel();
         _scrolling?.Cancel();
@@ -747,7 +747,7 @@ public sealed class Draggable : IRevertible
         var settings = template with { ModifyTarget = template.ModifyTarget ?? snap, Min = min, Max = max };
         if (velocity is { } v) Animate.Fling(property, v, settings);
         else Animate.Fling(property, settings);
-        var animation = Animate.Animations[Presto.Canonicalise(_target, property)];
+        var animation = Animate.Animations[Presto.Canonicalize(_target, property)];
         longest = Math.Max(longest, animation.Duration);
         var tween = animation._headTween!;
         // The ease's end rather than the to-number: a release on a bound moving outward peaks there and comes back.

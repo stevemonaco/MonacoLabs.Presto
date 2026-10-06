@@ -10,7 +10,7 @@ internal static class ScrollMotion
     private const double PerViewport = 150;
 
     /// <summary>
-    /// Fills what <paramref name="p"/> leaves unset: <see cref="MotionTokens.Short"/> plus 150 ms per viewport travelled,
+    /// Fills what <paramref name="p"/> leaves unset: <see cref="MotionTokens.Short"/> plus 150 ms per viewport traveled,
     /// capped at <see cref="MotionTokens.Long"/>, on <see cref="MotionTokens.Ease"/>.
     /// Under reduced motion, unless <paramref name="p"/> is already a <c>WhenReduced</c> form, the scroll jumps.
     /// </summary>

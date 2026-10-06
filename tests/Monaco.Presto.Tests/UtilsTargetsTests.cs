@@ -196,15 +196,15 @@ public sealed class UtilsTargetsTests : EngineTestBase
     }
 
     [Fact]
-    public void GetAnimationsSkipsCompletedAndCancelledAnimations()
+    public void GetAnimationsSkipsCompletedAndCanceledAnimations()
     {
         var target = new StyleTarget();
         var completed = Presto.Animate(target, new() { ["X"] = 100, Duration = 10 });
-        var cancelled = Presto.Animate(target, new() { ["Y"] = 100, Duration = 1000 });
+        var canceled = Presto.Animate(target, new() { ["Y"] = 100, Duration = 1000 });
         var running = Presto.Animate(target, new() { ["Opacity"] = 1, Duration = 1000 });
 
         Frames.Advance(50, 16);
-        cancelled.Cancel();
+        canceled.Cancel();
 
         Assert.True(completed.Completed);
         Assert.Equal([running], Presto.GetAnimations(target));
@@ -247,7 +247,7 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Presto.Remove(target);
 
         Assert.Equal(0, TestHelpers.GetTweenCount(animation));
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
         Assert.True(animation.Paused);
     }
 
@@ -261,7 +261,7 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Presto.Remove(first);
 
         Assert.Equal(1, TestHelpers.GetTweenCount(animation));
-        Assert.False(animation.Cancelled);
+        Assert.False(animation.Canceled);
     }
 
     [Fact]
@@ -274,7 +274,7 @@ public sealed class UtilsTargetsTests : EngineTestBase
 
         Assert.Equal(1, TestHelpers.GetTweenCount(animation));
         Assert.Equal("Y", TestHelpers.GetTweenAtIndex(animation, 0)!.Property);
-        Assert.False(animation.Cancelled);
+        Assert.False(animation.Canceled);
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Presto.Remove(target, animation, "Y");
 
         Assert.Equal(0, TestHelpers.GetTweenCount(animation));
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
         Assert.True(animation.Paused);
     }
 }

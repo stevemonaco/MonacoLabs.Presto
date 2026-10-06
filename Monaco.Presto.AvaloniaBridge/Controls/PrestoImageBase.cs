@@ -8,8 +8,8 @@ using Avalonia.Threading;
 namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
-/// An <see cref="Image"/>-like control whose drawing subclasses can change: it sizes, stretches and centres one
-/// <see cref="CurrentImage"/> region, and carries CSS-style colour filters that compose in the fixed order Brightness →
+/// An <see cref="Image"/>-like control whose drawing subclasses can change: it sizes, stretches and centers one
+/// <see cref="CurrentImage"/> region, and carries CSS-style color filters that compose in the fixed order Brightness →
 /// Contrast → Saturate → Grayscale → Sepia → HueRotate → Tint → Duotone → Invert, followed by a <see cref="Ripple"/>, a
 /// <see cref="Pixelate"/> and a noise <see cref="Dissolve"/>.
 /// </summary>
@@ -131,7 +131,7 @@ public abstract class PrestoImageBase : Control
         set => SetValue(StretchDirectionProperty, value);
     }
 
-    /// <summary>A linear multiplier on each colour channel, as CSS <c>brightness()</c>: 1 leaves the image unchanged, 0 is black.</summary>
+    /// <summary>A linear multiplier on each color channel, as CSS <c>brightness()</c>: 1 leaves the image unchanged, 0 is black.</summary>
     public double Brightness
     {
         get => GetValue(BrightnessProperty);
@@ -173,7 +173,7 @@ public abstract class PrestoImageBase : Control
         set => SetValue(HueRotateProperty, value);
     }
 
-    /// <summary>How far the colours are inverted, as CSS <c>invert()</c>, from 0 (unchanged) to 1.</summary>
+    /// <summary>How far the colors are inverted, as CSS <c>invert()</c>, from 0 (unchanged) to 1.</summary>
     public double Invert
     {
         get => GetValue(InvertProperty);
@@ -187,7 +187,7 @@ public abstract class PrestoImageBase : Control
         set => SetValue(TintProperty, value);
     }
 
-    /// <summary>The colour white maps to under <see cref="Tint"/>; defaults to white, a plain grayscale.</summary>
+    /// <summary>The color white maps to under <see cref="Tint"/>; defaults to white, a plain grayscale.</summary>
     public Color TintColor
     {
         get => GetValue(TintColorProperty);
@@ -201,14 +201,14 @@ public abstract class PrestoImageBase : Control
         set => SetValue(DuotoneProperty, value);
     }
 
-    /// <summary>The colour black maps to under <see cref="Duotone"/>; defaults to black.</summary>
+    /// <summary>The color black maps to under <see cref="Duotone"/>; defaults to black.</summary>
     public Color DuotoneShadow
     {
         get => GetValue(DuotoneShadowProperty);
         set => SetValue(DuotoneShadowProperty, value);
     }
 
-    /// <summary>The colour white maps to under <see cref="Duotone"/>; defaults to white.</summary>
+    /// <summary>The color white maps to under <see cref="Duotone"/>; defaults to white.</summary>
     public Color DuotoneHighlight
     {
         get => GetValue(DuotoneHighlightProperty);
@@ -305,7 +305,7 @@ public abstract class PrestoImageBase : Control
         var (placed, scale) = Place(sourceRect.Size, stretch, direction);
         var destination = placed.Intersect(new Rect(Bounds.Size));
         var source = sourceRect.CenterRect(new Rect(destination.Size / scale));
-        // Filtered scaling samples up to half a source pixel past the rect, which would pull in a neighbouring sheet cell.
+        // Filtered scaling samples up to half a source pixel past the rect, which would pull in a neighboring sheet cell.
         if (scale != new Vector(1, 1) && sourceRect != new Rect(image.Size))
             source = source.Intersect(sourceRect.Deflate(0.5));
 
@@ -332,7 +332,7 @@ public abstract class PrestoImageBase : Control
         }
     }
 
-    /// <summary>Where content of <paramref name="size"/> lands when <paramref name="stretch"/> centres it in the bounds, before clipping to them.</summary>
+    /// <summary>Where content of <paramref name="size"/> lands when <paramref name="stretch"/> centers it in the bounds, before clipping to them.</summary>
     private protected (Rect Placed, Vector Scale) Place(Size size, Stretch stretch, StretchDirection direction)
     {
         var scale = stretch.CalculateScaling(Bounds.Size, size, direction);

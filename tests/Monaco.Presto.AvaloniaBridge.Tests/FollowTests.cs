@@ -79,7 +79,7 @@ public sealed class FollowTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void TimingIsHonouredAndAChangeTakesEffectFromTheNextValue()
+    public void TimingIsHonoredAndAChangeTakesEffectFromTheNextValue()
     {
         var border = Shown();
         Follow.SetX(border, 0);

@@ -24,7 +24,7 @@ public static class Motion
 
     /// <summary>
     /// The builder played while the left button, a touch or a pen presses the element, until release or capture loss; it wins
-    /// over hover and focus. Presto synthesises this <c>:pressed</c> for every element, not only buttons.
+    /// over hover and focus. Presto synthesizes this <c>:pressed</c> for every element, not only buttons.
     /// </summary>
     public static readonly AttachedProperty<AnimationBuilder?> PressProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Press", typeof(Motion));

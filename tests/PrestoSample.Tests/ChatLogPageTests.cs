@@ -97,7 +97,7 @@ public sealed class ChatLogPageTests
     {
         for (var i = 0; i < 5; i++)
         {
-            window.MouseWheel(SceneHarness.Centre(Log(page), window), new Vector(0, 3));
+            window.MouseWheel(SceneHarness.Center(Log(page), window), new Vector(0, 3));
             TestFrames.Tick();
         }
         TestFrames.Tick(30);

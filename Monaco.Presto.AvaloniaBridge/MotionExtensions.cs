@@ -14,7 +14,7 @@ public static class MotionExtensions
     /// <inheritdoc cref="WhileHover(Control, AnimationBuilder)"/>
     public static IDisposable WhileHover(this Control control, Action<AnimationBuilder> motion) => control.While(":pointerover", motion);
 
-    /// <summary>Plays <paramref name="motion"/> while this control is pressed (the synthesised <c>:pressed</c>).</summary>
+    /// <summary>Plays <paramref name="motion"/> while this control is pressed (the synthesized <c>:pressed</c>).</summary>
     public static IDisposable WhilePressed(this Control control, AnimationBuilder motion) => control.While(":pressed", motion);
 
     /// <inheritdoc cref="WhilePressed(Control, AnimationBuilder)"/>

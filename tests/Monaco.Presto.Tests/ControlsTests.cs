@@ -101,7 +101,7 @@ public sealed class ControlsTests : EngineTestBase
 
         timer1.Complete();
 
-        Assert.True(timer1.Cancelled);
+        Assert.True(timer1.Canceled);
         Assert.True(timer1.Paused);
         Assert.Equal(1000, timer1.CurrentTime);
     }
@@ -114,7 +114,7 @@ public sealed class ControlsTests : EngineTestBase
 
         animation1.Complete();
 
-        Assert.True(animation1.Cancelled);
+        Assert.True(animation1.Canceled);
         Assert.True(animation1.Paused);
         Assert.Equal(1000, animation1.CurrentTime);
         Assert.Equal("200px", target["Height"]);
@@ -128,7 +128,7 @@ public sealed class ControlsTests : EngineTestBase
 
         timer1.Seek(500).Cancel();
 
-        Assert.True(timer1.Cancelled);
+        Assert.True(timer1.Canceled);
         Assert.True(timer1.Paused);
     }
 
@@ -140,7 +140,7 @@ public sealed class ControlsTests : EngineTestBase
 
         animation1.Seek(500).Cancel();
 
-        Assert.True(animation1.Cancelled);
+        Assert.True(animation1.Canceled);
         Assert.True(animation1.Paused);
         Assert.Equal("150px", target["Height"]);
         Assert.Equal(16d, target["Width"]);
@@ -155,7 +155,7 @@ public sealed class ControlsTests : EngineTestBase
         timer1.Revert();
 
         Assert.Equal(0, timer1.CurrentTime);
-        Assert.True(timer1.Cancelled);
+        Assert.True(timer1.Canceled);
         Assert.True(timer1.Paused);
     }
 
@@ -169,7 +169,7 @@ public sealed class ControlsTests : EngineTestBase
 
         animation1.Revert();
 
-        Assert.True(animation1.Cancelled);
+        Assert.True(animation1.Canceled);
         Assert.True(animation1.Paused);
         Assert.Equal(0, target.X);
         Assert.Equal("0px", target.TranslateX);
@@ -187,9 +187,9 @@ public sealed class ControlsTests : EngineTestBase
 
         tl.Revert();
 
-        Assert.True(tl.Cancelled);
-        Assert.True(TestHelpers.GetChildAtIndex(tl, 0)!.Cancelled);
-        Assert.True(TestHelpers.GetChildAtIndex(tl, 1)!.Cancelled);
+        Assert.True(tl.Canceled);
+        Assert.True(TestHelpers.GetChildAtIndex(tl, 0)!.Canceled);
+        Assert.True(TestHelpers.GetChildAtIndex(tl, 1)!.Canceled);
         Assert.True(tl.Paused);
         Assert.Equal(0, target.X);
         Assert.Equal("0px", target.TranslateX);
@@ -280,10 +280,10 @@ public sealed class ControlsTests : EngineTestBase
     }
 
     [Fact]
-    public void ResetACancelledTimer()
+    public void ResetACanceledTimer()
     {
         var timer1 = Presto.CreateTimer(new() { Duration = 1000, Loop = 1 });
-        Assert.False(timer1.Cancelled);
+        Assert.False(timer1.Canceled);
         Assert.Equal(0, timer1.CurrentTime);
         Assert.False(timer1.Paused);
         Assert.False(timer1.Began);
@@ -292,7 +292,7 @@ public sealed class ControlsTests : EngineTestBase
 
         timer1.Seek(1500);
         timer1.Cancel();
-        Assert.True(timer1.Cancelled);
+        Assert.True(timer1.Canceled);
         Assert.Equal(1500, timer1.CurrentTime);
         Assert.True(timer1.Paused);
         Assert.True(timer1.Began);
@@ -300,7 +300,7 @@ public sealed class ControlsTests : EngineTestBase
         Assert.Equal(1, timer1.CurrentIteration);
 
         timer1.Reset();
-        Assert.False(timer1.Cancelled);
+        Assert.False(timer1.Canceled);
         Assert.Equal(0, timer1.CurrentTime);
         Assert.True(timer1.Paused);
         Assert.False(timer1.Began);
@@ -315,10 +315,10 @@ public sealed class ControlsTests : EngineTestBase
     }
 
     [Fact]
-    public void ResetACancelledAnimation()
+    public void ResetACanceledAnimation()
     {
         var animation1 = Presto.Animate(new StyleTarget(), new() { ["X"] = 200, ["Y"] = 200, Duration = 1000, Loop = 1 });
-        Assert.False(animation1.Cancelled);
+        Assert.False(animation1.Canceled);
         Assert.Equal(0, animation1.CurrentTime);
         Assert.False(animation1.Paused);
         Assert.False(animation1.Began);
@@ -327,7 +327,7 @@ public sealed class ControlsTests : EngineTestBase
 
         animation1.Seek(1500);
         animation1.Cancel();
-        Assert.True(animation1.Cancelled);
+        Assert.True(animation1.Canceled);
         Assert.Equal(1500, animation1.CurrentTime);
         Assert.True(animation1.Paused);
         Assert.True(animation1.Began);
@@ -335,7 +335,7 @@ public sealed class ControlsTests : EngineTestBase
         Assert.Equal(1, animation1.CurrentIteration);
 
         animation1.Reset();
-        Assert.False(animation1.Cancelled);
+        Assert.False(animation1.Canceled);
         Assert.Equal(0, animation1.CurrentTime);
         Assert.True(animation1.Paused);
         Assert.False(animation1.Began);
@@ -770,17 +770,17 @@ public sealed class ControlsTests : EngineTestBase
     }
 
     [Fact]
-    public void GetAndSetCancelledOnATimer()
+    public void GetAndSetCanceledOnATimer()
     {
         var timer = Presto.CreateTimer(new() { Delay = 10, Duration = 55, LoopDelay = 10, Loop = 1, Autoplay = false });
-        Assert.False(timer.Cancelled);
+        Assert.False(timer.Canceled);
 
-        timer.Cancelled = true;
-        Assert.True(timer.Cancelled);
+        timer.Canceled = true;
+        Assert.True(timer.Canceled);
         Assert.True(timer.Paused);
 
-        timer.Cancelled = false;
-        Assert.False(timer.Cancelled);
+        timer.Canceled = false;
+        Assert.False(timer.Canceled);
         Assert.False(timer.Paused);
     }
 
@@ -808,9 +808,9 @@ public sealed class ControlsTests : EngineTestBase
 
         tl.Complete();
 
-        Assert.True(tl.Cancelled);
-        Assert.True(child0.Cancelled);
-        Assert.True(child1.Cancelled);
+        Assert.True(tl.Canceled);
+        Assert.True(child0.Canceled);
+        Assert.True(child1.Canceled);
         Assert.True(tl.Paused);
         Assert.True(child0.Paused);
         Assert.True(child1.Paused);
@@ -834,9 +834,9 @@ public sealed class ControlsTests : EngineTestBase
         tl.Seek(1000);
         tl.Cancel();
 
-        Assert.True(tl.Cancelled);
-        Assert.True(child0.Cancelled);
-        Assert.True(child1.Cancelled);
+        Assert.True(tl.Canceled);
+        Assert.True(child0.Canceled);
+        Assert.True(child1.Canceled);
         Assert.True(tl.Paused);
         Assert.True(child0.Paused);
         Assert.True(child1.Paused);
@@ -900,13 +900,13 @@ public sealed class ControlsTests : EngineTestBase
     }
 
     [Fact]
-    public void ResetACancelledTimeline()
+    public void ResetACanceledTimeline()
     {
         var tl = BoxTimeline(BoxTarget(), new() { Duration = 1000, Loop = 1 });
         var child0 = TestHelpers.GetChildAtIndex(tl, 0)!;
         var child1 = TestHelpers.GetChildAtIndex(tl, 1)!;
 
-        Assert.False(tl.Cancelled);
+        Assert.False(tl.Canceled);
         Assert.Equal(0, tl.CurrentTime);
         Assert.Equal(0, tl.Progress);
         Assert.False(tl.Paused);
@@ -915,7 +915,7 @@ public sealed class ControlsTests : EngineTestBase
         Assert.Equal(0, tl.CurrentIteration);
         foreach (var child in new[] { child0, child1 })
         {
-            Assert.False(child.Cancelled);
+            Assert.False(child.Canceled);
             Assert.Equal(0, child.CurrentTime);
             Assert.Equal(0, child.Progress);
             Assert.True(child.Paused);
@@ -925,7 +925,7 @@ public sealed class ControlsTests : EngineTestBase
 
         tl.Seek(3000);
         tl.Cancel();
-        Assert.True(tl.Cancelled);
+        Assert.True(tl.Canceled);
         Assert.Equal(3000, tl.CurrentTime);
         Assert.Equal(.75, tl.Progress);
         Assert.True(tl.Paused);
@@ -934,12 +934,12 @@ public sealed class ControlsTests : EngineTestBase
         Assert.Equal(1, tl.CurrentIteration);
         foreach (var child in new[] { child0, child1 })
         {
-            Assert.True(child.Cancelled);
+            Assert.True(child.Canceled);
             Assert.True(child.Paused);
         }
 
         tl.Reset();
-        Assert.False(tl.Cancelled);
+        Assert.False(tl.Canceled);
         AssertTimelineIsAtTheStart(tl, child0, child1);
         tl.Pause();
     }
@@ -954,7 +954,7 @@ public sealed class ControlsTests : EngineTestBase
         Assert.Equal(0, tl.CurrentIteration);
         foreach (var child in children)
         {
-            Assert.False(child.Cancelled);
+            Assert.False(child.Canceled);
             Assert.Equal(0, child.CurrentTime);
             Assert.Equal(0, child.Progress);
             Assert.True(child.Paused);

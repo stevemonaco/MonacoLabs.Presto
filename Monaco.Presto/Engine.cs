@@ -134,7 +134,7 @@ public sealed class Engine : Clock
 
     internal Scope? CurrentScope { get; set; }
 
-    /// <summary>A host hook told of each root timer once the <see cref="Presto"/> factories have initialised it, and of each child a timeline adds.</summary>
+    /// <summary>A host hook told of each root timer once the <see cref="Presto"/> factories have initialized it, and of each child a timeline adds.</summary>
     internal Action<Timer>? TimerCreated { get; set; }
 
     internal Additive Additive { get; }
@@ -170,7 +170,7 @@ public sealed class Engine : Clock
                 Helpers.RemoveChild(this, activeTickable);
                 _hasChildren = _tail != null;
                 activeTickable._running = false;
-                if (activeTickable.Completed && !activeTickable._cancelled)
+                if (activeTickable.Completed && !activeTickable._canceled)
                 {
                     activeTickable.DetachTweens();
                     Diagnostics.Ended(activeTickable);

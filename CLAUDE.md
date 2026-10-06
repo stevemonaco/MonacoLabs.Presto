@@ -63,7 +63,7 @@ The DevTools MCP server separately reads `AVALONIA_TOOLS_LICENSE_KEY`. Never com
 - **Core knows nothing about Avalonia.** It animates "targets" through small adapter interfaces (property accessors + value interpolation) and is driven by an externally supplied frame source. Anything that touches `Avalonia.*` belongs in the bridge.
 - **Single-threaded by design**, exactly like anime.js. Everything runs on the UI thread; the core has no locks. The bridge guarantees ticks happen on `Dispatcher.UIThread`.
 - **Time is `double` milliseconds** (anime.js `timeUnit: 'ms'` default). Seconds mode is a scale factor on the engine, not a second code path.
-- **Port behaviour faithfully first, idiomatically second.** anime.js's tick/loop/alternate/seek math is subtle and well tested; keep its structure (Clock → Timer → Animation/Timeline, linked-list children, `tick()` in render) so the upstream tests can be ported one-to-one. Rename to C# conventions, but do not "improve" semantics until parity tests pass.
+- **Port behavior faithfully first, idiomatically second.** anime.js's tick/loop/alternate/seek math is subtle and well tested; keep its structure (Clock → Timer → Animation/Timeline, linked-list children, `tick()` in render) so the upstream tests can be ported one-to-one. Rename to C# conventions, but do not "improve" semantics until parity tests pass.
 - **Reference source is anime.js 4.5.0.** A git-ignored checkout lives at `tools/anime/` (`src/`, `tests/suites/`); recreate it with `git clone --depth 1 --branch v4.5.0 https://github.com/juliangarnier/anime tools/anime` if missing. When porting a module, read the upstream file and its test suite first.
 
 ## API conventions
@@ -79,5 +79,5 @@ The DevTools MCP server separately reads `AVALONIA_TOOLS_LICENSE_KEY`. Never com
 - File-scoped namespaces; folder structure equals namespace; one public type per file.
 - Types are `sealed` unless designed for inheritance. Internal plumbing is `internal` and exposed to tests via `InternalsVisibleTo`.
 - Hot-path code (tick, tween render) avoids allocations and LINQ; keep the upstream linked-list approach.
-- Test names describe behaviour and, when porting, cite the upstream suite in the class name (e.g. `TimingsTests` ↔ `timings.test.js`).
+- Test names describe behavior and, when porting, cite the upstream suite in the class name (e.g. `TimingsTests` ↔ `timings.test.js`).
 - After changes to the core, the tests are the verification step. After changes to the bridge or sample, verify visually via the Desktop sample (DevTools screenshots are fine).

@@ -111,16 +111,16 @@ public sealed class GalleryFlipPageTests
         SceneHarness.Click(window, probe);
 
         var pane = SceneHarness.Slot(page.GetControl<Border>("Host"), window);
-        var lifted = SceneHarness.Extent(page, SceneHarness.Colour(probe));
+        var lifted = SceneHarness.Extent(page, SceneHarness.CardColor(probe));
         Assert.True(
             lifted is { } first && first.X > (cell.X + pane.X) / 2 && first.Width < (cell.Width + pane.Width) / 2,
             $"layout put the card in {pane} and it was already drawn at {lifted} rather than easing out of {cell}");
         Assert.True(
             await SceneHarness.Pump(
-                () => SceneHarness.Extent(page, SceneHarness.Colour(probe)) is { } next && next.X < lifted.Value.X - 40 && next.Width > lifted.Value.Width + 40,
+                () => SceneHarness.Extent(page, SceneHarness.CardColor(probe)) is { } next && next.X < lifted.Value.X - 40 && next.Width > lifted.Value.Width + 40,
                 rounds: 60),
-            $"the card stopped at {SceneHarness.Extent(page, SceneHarness.Colour(probe))} instead of carrying on towards {pane}");
-        var flight = SceneHarness.Extent(page, SceneHarness.Colour(probe))!.Value;
+            $"the card stopped at {SceneHarness.Extent(page, SceneHarness.CardColor(probe))} instead of carrying on towards {pane}");
+        var flight = SceneHarness.Extent(page, SceneHarness.CardColor(probe))!.Value;
         Assert.True(flight.X > pane.X && flight.Width < pane.Width, $"the card had already arrived at {flight}");
 
         SceneHarness.Click(window, probe);
@@ -211,7 +211,7 @@ public sealed class GalleryFlipPageTests
     {
         foreach (var card in SceneHarness.Cards(page))
         {
-            var box = SceneHarness.Extent(page, SceneHarness.Colour(card));
+            var box = SceneHarness.Extent(page, SceneHarness.CardColor(card));
             Assert.True(box != null && SceneHarness.Near(box.Value, SceneHarness.Slot(card, window)), $"{CardView.Record(card).Title} was left drawn at {box} instead of {SceneHarness.Slot(card, window)}");
         }
     }
@@ -250,7 +250,7 @@ public sealed class GalleryFlipPageTests
     private static ListBoxItem Chip(Control page, string name) =>
         page.GetControl<ListBox>("Filters").GetLogicalDescendants().OfType<ListBoxItem>().First(item => (string?)item.Content == name);
 
-    private static Rect? Drawn(Visual page, Border card) => SceneHarness.Extent(page, SceneHarness.Colour(card));
+    private static Rect? Drawn(Visual page, Border card) => SceneHarness.Extent(page, SceneHarness.CardColor(card));
 
     private static double Distance(Point from, Point to) => new Vector(to.X - from.X, to.Y - from.Y).Length;
 }

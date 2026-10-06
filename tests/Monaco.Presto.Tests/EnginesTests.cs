@@ -129,7 +129,7 @@ public sealed class EnginesTests : EngineTestBase
             scope.Revert();
 
             Assert.Equal(0, target.X);
-            Assert.True(inside.Cancelled);
+            Assert.True(inside.Canceled);
         }
 
         Assert.Same(mainDefaults, Presto.Defaults);
@@ -155,7 +155,7 @@ public sealed class EnginesTests : EngineTestBase
         scope.Revert();
 
         Assert.Equal(0, target.X);
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
     }
 
     [Fact]

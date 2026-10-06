@@ -3,7 +3,7 @@
 A .NET port of the [anime.js](https://animejs.com/documentation) v4.5.0 animation model: a framework-agnostic core that
 animates any property of any object, plus an Avalonia adapter that makes controls first-class targets.
 
-The core is a faithful port of anime.js's timing model — the same clock, the same `tick()` maths for
+The core is a faithful port of anime.js's timing model — the same clock, the same `tick()` math for
 delay/loop/alternate/reverse/seek/stretch, the same composition rules — so the upstream test suites port across
 one-to-one. The API is C#-idiomatic: `init`-only parameter records, a string indexer for the properties you animate, and
 the anime.js names in PascalCase.
@@ -11,7 +11,7 @@ the anime.js names in PascalCase.
 | Package | What it is |
 |---|---|
 | `Monaco.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
-| `Monaco.Presto.AvaloniaBridge` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, colour/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
+| `Monaco.Presto.AvaloniaBridge` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, color/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
 | `Monaco.Presto.AvaloniaBridge.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
 
 ## Install
@@ -71,7 +71,7 @@ Square.Animate(new()
     ["Rotate"] = new TweenParams { From = -180 },
     ["Scale"] = 1.4,
     [Visual.OpacityProperty] = 0.4,             // typed AvaloniaProperty
-    ["Background"] = "#ff6b6b",                 // brush, from a CSS colour string
+    ["Background"] = "#ff6b6b",                 // brush, from a CSS color string
     Duration = 1250,
     Delay = 250,
     Ease = Eases.InOutQuint,
@@ -174,7 +174,7 @@ The attached properties (`xmlns:presto="https://github.com/stevemonaco/Monaco.Pr
 <PathIcon presto:Animate.OnAttached="{Binding Emphasis}" />
 ```
 
-Use `x:Static` for a fixed recipe shared as-is, a markup extension when the markup parameterises it per element, and a
+Use `x:Static` for a fixed recipe shared as-is, a markup extension when the markup parameterizes it per element, and a
 binding when the view model decides which animation runs. `Presence.Arrive`, `Initial`, `Enter`, `Reveal` and `Exit` play only
 for their own moment of an element's lifecycle ([Lifecycle animations](#lifecycle-animations)), so entrances belong
 there. `Animate.OnAttached` plays each time the visual attaches to the visual tree, including a virtualizing list's
@@ -250,7 +250,7 @@ await animation.Then(a => Log(a.Id));
 ```
 
 Gradients with different stop counts are resampled onto the union of their offsets, a solid brush takes the gradient's
-shape, and a gradient eased to a colour ends on a `SolidColorBrush`. Two kinds of gradient interpolate their stops, while
+shape, and a gradient eased to a color ends on a `SolidColorBrush`. Two kinds of gradient interpolate their stops, while
 the geometry snaps to the end value's.
 
 ### Keyframes
@@ -350,7 +350,7 @@ EaseParser.Parse("wiggle(6, anticipate)");
 An `Ease` is just `double → double`, and anywhere one is accepted a string works too (`Ease = "inOutQuint"`). Avalonia's
 own `Easing` types convert both ways through `PrestoEasing`.
 
-The GSAP-style eases have no anime.js counterpart. `FromPath` takes M/L/H/V/C path data, normalised to run from (0, 0)
+The GSAP-style eases have no anime.js counterpart. `FromPath` takes M/L/H/V/C path data, normalized to run from (0, 0)
 to (1, 1), and y may overshoot in between. `Wiggle` is 0 at both ends, so the to-value is the swing amplitude and the
 property comes back to its start. `Rough` and a `WiggleType.Random` wiggle use `Random.Shared` unless given a `Random`.
 In strings (`fromPath(…)`, `wiggle(n, type)`, `rough(points, strength)`, `slowMo(ratio, power, yoyo)`,
@@ -419,7 +419,7 @@ where it was grabbed, then `OnRelease` and `OnSettle` run as for a release.
 
 `Reorder` makes an `ItemsControl` or `ListBox` drag-to-reorder, as Motion's `Reorder` and Flutter's
 `ReorderableListView` do. Grabbing a container (or, when its template has one, a `Reorder.Handle`) lifts it and it follows
-the pointer. Each neighbour midpoint it crosses moves its item one step, and on release it springs into its slot:
+the pointer. Each neighbor midpoint it crosses moves its item one step, and on release it springs into its slot:
 
 ```xml
 <ListBox ItemsSource="{Binding Tasks}" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}"
@@ -435,7 +435,7 @@ the pointer. Each neighbour midpoint it crosses moves its item one step, and on 
 </ListBox>
 ```
 
-`Animate.ItemLayout` slides the neighbours aside; the dragged container is left out of it. `Reorder.Lift` defaults to
+`Animate.ItemLayout` slides the neighbors aside; the dragged container is left out of it. `Reorder.Lift` defaults to
 `Recipes.ReorderLift()` (scale 1.03 and a raised shadow), `{presto:Reorder Intensity=2}` doubles it, and `Reorder.Axis`
 is `Vertical` unless set. An `ObservableCollection<T>` is moved in place with `Move(old, new)`. Each step first raises
 the bubbling `Reorder.Moving` (`Item`, `OldIndex`, `NewIndex`, settable `Cancel`), and when `Reorder.Command` is set it
@@ -530,7 +530,7 @@ ResetButton.Click += (_, _) => viewer.Reset();
 - **One gesture owner per control.** Creating a `Transformable` on a control that a live `Draggable` drives throws, and
   so does the reverse. `Revert()` frees the control.
 - **The transform is the `X`, `Y`, `Scale` and `Rotate` shorthands**, about `RenderTransformOrigin`. A `RenderTransform`
-  of your own stays underneath them and is not part of the maths. A `Motion` hover on the same control would animate
+  of your own stays underneath them and is not part of the math. A `Motion` hover on the same control would animate
   the same shorthands, so put hover motion on an inner element.
 
 ### onScroll
@@ -727,7 +727,7 @@ starts a core `ParticleSystem` drawn as a `ParticleShape` (rect, rounded rect, c
 at `MaxLive` particles; the [particle recipes](#confetti-sparkles-and-bursts) use it.
 
 A scene only draws itself. To move an *existing* control on the render thread — through the composition visual Avalonia
-already gives it — there is `AnimateOnCompositor`, the anime.js `waapi.animate` analogue:
+already gives it — there is `AnimateOnCompositor`, the anime.js `waapi.animate` analog:
 
 ```csharp
 var spin = icon.AnimateOnCompositor(new() { ["Rotate"] = 360, Duration = 1200, Ease = Eases.None, Loop = true });
@@ -828,7 +828,7 @@ panel.Child = nextView;                          // a view with presto:Presence.
 
 Swapping the host's `Content` or `Child` resizes it from the size drawn to the new content's while `Presence` ghosts the
 old content out, clipped to the old box, and enters the new one (≈ `AnimatedContent` with `SizeTransform`). The host owns
-its size: `Animate.Layout` on it eases only its moves, and its neighbours' layout moves land with the resize rather than
+its size: `Animate.Layout` on it eases only its moves, and its neighbors' layout moves land with the resize rather than
 trailing it. The builder takes timing and an ease only.
 
 #### Connected animations from XAML
@@ -970,7 +970,7 @@ public static readonly AnimationBuilder Calm = Presto.Build().Duration(900).Ease
 |---|---|
 | `Hover` | `:pointerover` |
 | `Focus` | `:focus-visible`: keyboard focus only, so a click does not play it (`When=":focus"` plays on both) |
-| `Press` | `:pressed`, which Presto synthesises for every element, not only buttons: a left button, touch or pen press until release or capture loss, so a touch that turns into a scroll ends it |
+| `Press` | `:pressed`, which Presto synthesizes for every element, not only buttons: a left button, touch or pen press until release or capture loss, so a touch that turns into a scroll ends it |
 | `States` | each `MotionState`'s `When` |
 | `State` | *(not a state)* an `object?` whose `ToString()`, split on whitespace and commas, names the bare-name conditions that hold; an enum matches by name |
 
@@ -997,7 +997,7 @@ States layer by declaration order: `Hover`, then `Focus`, then `Press`, then the
 from code, and a later state wins the properties it shares with an earlier one. So press wins a shared `Scale` over
 hover, and letting go returns it to hover's value. A property no holding state names returns to rest: an
 `AvaloniaProperty` to its base value (the style, binding or local value beneath the animation, read as it returns, so
-one changed mid-hover is honoured), a transform shorthand to its identity. When that return finishes, the animated
+one changed mid-hover is honored), a transform shorthand to its identity. When that return finishes, the animated
 value is reverted, uncovering the equal value beneath. The return uses the leaving state's `Leave` builder if it has
 one, otherwise the state's own timing; `Leave` takes only duration, delay and eases (`.Scale(ease: …)`), and a value
 there throws. State values are absolute: a relative `"+=4"` or a `From` without a `To` throws, since a state re-enters.
@@ -1081,13 +1081,13 @@ photo.Animate(new() { ["MaskSweep"] = new double[] { 0, 1 }, ["MaskSweepAngle"] 
 |---|---|---|
 | `Blur` | `BlurEffect.Radius` | DIPs |
 | `ShadowX`, `ShadowY`, `ShadowBlur` | `DropShadowEffect.OffsetX` / `OffsetY` / `BlurRadius` | DIPs |
-| `ShadowColor` | `DropShadowEffect.Color` | colour string, `Color` |
+| `ShadowColor` | `DropShadowEffect.Color` | color string, `Color` |
 | `ShadowOpacity` | `DropShadowEffect.Opacity` | 0–1 |
 | `RotateX`, `RotateY` | `Rotate3DTransform.AngleX` / `AngleY` | degrees (`turn` / `rad` accepted, as `Rotate`) |
 | `Perspective` | `Rotate3DTransform.Depth` | DIPs; 0 is no perspective |
 | `ClipInset` | `Visual.Clip` rectangle | left, top, right, bottom in `Thickness` order (`"10%"`, `"0 20"`, `"0 0 100% 0"`, a `Thickness`), each in DIPs or `%` of the bounds |
-| `ClipCircle` | `Visual.Clip` ellipse | radius fraction, 1 reaching the corner farthest from the centre |
-| `ClipCircleCenter` | the circle's centre | `RelativePoint`, default 50%, 50% |
+| `ClipCircle` | `Visual.Clip` ellipse | radius fraction, 1 reaching the corner farthest from the center |
+| `ClipCircleCenter` | the circle's center | `RelativePoint`, default 50%, 50% |
 | `MaskSweep` | `Visual.OpacityMask` gradient | progress, 0 hidden to 1 shown |
 | `MaskSweepAngle` | the sweep's direction | degrees, 0 sweeping left to right (`turn` / `rad` accepted) |
 | `MaskSweepFeather` | the soft edge's width | fraction of the sweep, default 0.2 |
@@ -1109,20 +1109,20 @@ starts black, opaque, unblurred and at no offset, so animating `ShadowBlur` alon
 
 #### Image filters
 
-CSS colour filters are properties of `PrestoImageBase`, an `Image`-like control (`Source`, `Stretch`,
+CSS color filters are properties of `PrestoImageBase`, an `Image`-like control (`Source`, `Stretch`,
 `StretchDirection`) whose `Render` subclasses can override. `FilteredImage` is its plain form, and `SpriteSheet` and
 `ImageSequence` derive from it too, so frames are filtered the same way. A subclass that overrides `Render` can draw
 any image, or several cells of one, through the protected `DrawImage(context, image, sourceRect)`, which applies the
 filters and places the cell by `Stretch` within the control. The filters are ordinary styled properties, so
 they animate, bind, style and revert like any other; each has a typed builder method with the usual four overloads, and
-the colours also take a `Color`.
+the colors also take a `Color`.
 
 ```xml
 <presto:FilteredImage Source="/Assets/Photos/port-blanc.jpg" Grayscale="1" Stretch="UniformToFill" />
 ```
 
 ```csharp
-Motion.SetHover(photo, Recipes.Colorize());       // to full colour while hovered, back to grayscale after
+Motion.SetHover(photo, Recipes.Colorize());       // to full color while hovered, back to grayscale after
 photo.Animate(b => b.Sepia(from: 0.8).Brightness(from: 1.6).Duration(900));
 photo.Animate(b => b.HueRotate(360).Duration(4000).Loop());
 photo.Animate(b => b.Duotone(1).DuotoneShadow(Colors.Navy).DuotoneHighlight(Colors.Gold));
@@ -1138,9 +1138,9 @@ photo.Animate(b => b.Duotone(1).DuotoneShadow(Colors.Navy).DuotoneHighlight(Colo
 | `HueRotate` | 0 | degrees | `hue-rotate()` |
 | `Invert` | 0 | 0–1 | `invert()` |
 | `Tint`, with `TintColor` (white) | 0 | 0–1: maps luminance onto `TintColor`, black staying black | none |
-| `Duotone`, with `DuotoneShadow` (black) and `DuotoneHighlight` (white) | 0 | 0–1: maps luminance from the shadow to the highlight colour | none |
+| `Duotone`, with `DuotoneShadow` (black) and `DuotoneHighlight` (white) | 0 | 0–1: maps luminance from the shadow to the highlight color | none |
 
-The filters compose into one colour matrix in a fixed order, Brightness → Contrast → Saturate → Grayscale → Sepia →
+The filters compose into one color matrix in a fixed order, Brightness → Contrast → Saturate → Grayscale → Sepia →
 HueRotate → Tint → Duotone → Invert, rather than CSS's per-declaration order, so each can animate on its own. With every
 filter at its identity the image draws plain, with no offscreen layer. A source that is not a bitmap (a `DrawingImage`)
 is rasterized once per size to be filtered, and a renderer without Skia draws the image unfiltered. Filters run on the
@@ -1159,7 +1159,7 @@ or hide a single image on its own:
 | `Ripple` | 0 | `RippleScale` (noise size in DIPs, 32) | displacement in DIPs over noise; the image never draws past its own rect |
 
 `Seed` (an `int`) picks the noise for both `Dissolve` and `Ripple`, so the same seed draws the same pattern every frame
-and every run. The effects apply after the colour filters, in the order Ripple → Pixelate → Dissolve, so the dissolve
+and every run. The effects apply after the color filters, in the order Ripple → Pixelate → Dissolve, so the dissolve
 mask is never rippled or pixelated; at identity the image still draws plain.
 
 ```xml
@@ -1202,7 +1202,7 @@ hero.SourceTransition = new ImageTransition { Kind = ImageTransitionKind.Ripple,
 | `Ripple` | a crossfade under a displacement that peaks mid-way | `PeakRipple` (20), the image's `RippleScale` |
 | `Wipe` | the new image is revealed behind a soft edge sweeping across the old one, as `MaskSweep` | `Angle` (0, left to right), `Feather` (0.2) |
 
-`Builder` gives the timing; without one a transition runs 600 ms on `Eases.InOutQuad`. The colour filters apply to both
+`Builder` gives the timing; without one a transition runs 600 ms on `Eases.InOutQuad`. The color filters apply to both
 images, and each keeps its own `Stretch` placement. Changing `Source` while a transition is running starts the next one
 from what is on screen: the current composite is captured and becomes the outgoing image, so nothing jumps. The
 outgoing image is released when the transition completes or is reverted, and detaching mid-transition completes it.
@@ -1213,7 +1213,7 @@ properties. Play the effect on the live element, await it, then remove the eleme
 
 ### Recipes
 
-`Recipes` is a catalogue of everyday motion. Each recipe is a factory that returns a new `AnimationBuilder`, so chaining
+`Recipes` is a catalog of everyday motion. Each recipe is a factory that returns a new `AnimationBuilder`, so chaining
 on one never touches another caller's copy, and it goes wherever a builder goes: `Animate`, `Presence.*`, `Motion.*`,
 `Animate.OnAttached`, and `AnimateOnCompositor` where the table allows.
 
@@ -1222,7 +1222,7 @@ card.Animate(Recipes.FadeUp());
 Recipes.SlideIn(Edge.Left, stagger: true).Animate(panel.Children);
 using var hover = card.WhileHover(Recipes.Lift());
 badge.Animate(Recipes.Shake(intensity: 1.5));
-var spinner = icon.Animate(Recipes.Spinner());     // loops until cancelled
+var spinner = icon.Animate(Recipes.Spinner());     // loops until canceled
 ```
 
 Every recipe also takes `duration`, `delay` and `ease`, defaulting to the [tokens](#motion-tokens), and all but the
@@ -1232,7 +1232,7 @@ so `using Monaco.Presto.AvaloniaBridge;` is enough.
 
 Entrances state only where the element starts (`.Opacity(from: 0)`), so they land on its own resting values: a card at
 `Opacity` 0.6 fades up to 0.6. Every entrance and exit fades as well as moving. Exits, attention, loops and interactions
-use to-values; attention recipes end back at identity, and loops and loaders run until cancelled.
+use to-values; attention recipes end back at identity, and loops and loaders run until canceled.
 
 | Family | Recipe | Own arguments | Compositor | Reduced form |
 |---|---|---|---|---|
@@ -1385,7 +1385,7 @@ and calling it again mid-roll finishes the running roll first. Reduced, it sets 
 
 `Ripple` is Material's press ink, attached to any `Control`. A held press grows a circle from the press point until it
 covers the element, and releasing fades it over `Tokens.Short` while it keeps growing over `Tokens.Medium`. Enter or
-Space on the focused element ripples from its centre.
+Space on the focused element ripples from its center.
 
 ```xml
 <Style Selector="Button.primary">
@@ -1395,10 +1395,10 @@ Space on the focused element ripples from its centre.
 <ListBoxItem presto:Ripple.Enabled="True" presto:Ripple.StateLayer="True" />
 ```
 
-- `Enabled` (default false) turns it on, so a style can add ripples without picking a colour.
+- `Enabled` (default false) turns it on, so a style can add ripples without picking a color.
 - `Color` (default null) is the theme accent at 24 % alpha, `SystemAccentColor` in light themes and
-  `SystemAccentColorLight2` in dark ones, read at each press. An explicit colour keeps its own alpha.
-- `Bounded` (default true) clips the ink to the element's rounded corners. Set false and it grows from the centre to
+  `SystemAccentColorLight2` in dark ones, read at each press. An explicit color keeps its own alpha.
+- `Bounded` (default true) clips the ink to the element's rounded corners. Set false and it grows from the center to
   an unclipped circle around the element.
 - `StateLayer` (default false) adds Material's tint in the ink's hue: 8 % on hover, 10 % on keyboard focus or press.
 
@@ -1415,7 +1415,7 @@ Particle recipes emit into one render-thread overlay per window, laid over the a
 ignoring hit tests, and removed once it has drawn nothing for a second:
 
 ```csharp
-await Recipes.Confetti(submit);                           // 120 rects and streaks from the button's centre
+await Recipes.Confetti(submit);                           // 120 rects and streaks from the button's center
 Recipes.Confetti(submit, from: Edge.Bottom);              // or launched along a window edge
 var sparkles = Recipes.Sparkles(badge, rate: 30);         // twinkles over its bounds until stopped
 sparkles.Stop();                                          // stop emitting; live particles finish
@@ -1493,7 +1493,7 @@ not a `LottieView` plays nothing. `{presto:PlayLottie}` adds `Segment`, `Loop`, 
 `Duration` or `Ease` replaces the frame timing. Reduced, it jumps to the segment's end frame and holds it, unlike `PlayFrames`' frame 0: a
 segment ends on the state it plays into, such as a toggle's "on".
 
-**dotLottie.** `FromStream`, `Load` and the XAML converter recognise a `.lottie` archive and read its default animation:
+**dotLottie.** `FromStream`, `Load` and the XAML converter recognize a `.lottie` archive and read its default animation:
 the manifest's initial or active one, otherwise the first. `FromDotLottie(stream, animationId)` picks another, and
 `AnimationIds` lists them. Images the animation references in the archive are embedded, so they draw. One composition
 holds one animation.
@@ -1505,8 +1505,8 @@ blocked. `StopRenderThread()` holds the frame reached. `Frame` is not updated wh
 when it is. In the Browser the render loop is the UI thread, so nothing survives a blocked UI thread there
 ([Platforms and status](#platforms-and-status)).
 
-**Out of scope:** recolouring single layers (Skottie's property observers are not in SkiaSharp's public API; the
-filters recolour the whole view), expressions (Skottie does not run them), dotLottie themes and state machines, and text
+**Out of scope:** recoloring single layers (Skottie's property observers are not in SkiaSharp's public API; the
+filters recolor the whole view), expressions (Skottie does not run them), dotLottie themes and state machines, and text
 and effects beyond what Skottie draws.
 
 ### Reduced motion
@@ -1646,7 +1646,7 @@ A handful of places where the JS shape does not survive the type system:
 ## Platforms and status
 
 Version 0.1.0, pre-release: the API is settled enough to build against but not frozen, and a pass over it is planned
-before 1.0. Behavioural parity with anime.js 4.5.0 is covered by the upstream suites ported into
+before 1.0. Behavioral parity with anime.js 4.5.0 is covered by the upstream suites ported into
 `tests/Monaco.Presto.Tests` and `tests/Monaco.Presto.AvaloniaBridge.Tests`.
 
 The core is pure .NET and runs anywhere net10.0 does, and the bridge uses no desktop-only API. All four sample heads
@@ -1701,10 +1701,10 @@ The implementation plan, architecture notes and the phase checklist live in [doc
 ## Credits
 
 Presto is a port of **[anime.js](https://github.com/juliangarnier/anime)** by Julian Garnier, used under the MIT
-licence. The timing model, the parameter vocabulary and most of the test suites come from anime.js 4.5.0; the bugs are
+license. The timing model, the parameter vocabulary and most of the test suites come from anime.js 4.5.0; the bugs are
 mine. If you write JavaScript, use the original — its
 [documentation](https://animejs.com/documentation) is also the best reference for this library.
 
-## Licence
+## License
 
 Presto is MIT licensed — see [LICENSE](LICENSE), which also carries anime.js's own MIT notice.

@@ -4,7 +4,7 @@ Findings from the investigation after Phase 8, ahead of the API quality pass. Ea
 
 ## 1. String-keyed properties
 
-> **Fixed.** `ITargetAdapter.Canonicalise` now resolves every spelling of a property to one key, applied where a caller-supplied
+> **Fixed.** `ITargetAdapter.Canonicalize` now resolves every spelling of a property to one key, applied where a caller-supplied
 > name meets a target: tween construction (`Animation`), the `Remove` filter (`Composer`) and `Animatable`'s lookups. Covered by
 > `PropertyNamingTests`, each case confirmed to fail with the fix disabled. The history below is kept for the rationale.
 
@@ -25,7 +25,7 @@ Reproduced on the current tree with a throwaway bridge test (since deleted):
 var a = border.Animate(new() { ["Opacity"] = 0.0, Duration = 100, Ease = Eases.None });
 var b = border.Animate(new AvaloniaAnimationParams { [Visual.OpacityProperty] = 1.0, Duration = 100, Ease = Eases.None });
 Frames.Advance(50);
-// a.Cancelled == false  (expected true: b should have overridden it)
+// a.Canceled == false  (expected true: b should have overridden it)
 // border.Opacity == 1    (a alone would give 0.5)
 ```
 
@@ -38,7 +38,7 @@ Two consequences already recorded elsewhere are the same root cause:
 
 ### Options
 
-1. **Canonicalise the key (smallest fix).** Have the bridge encode both spellings to one key — resolve the name to its `AvaloniaProperty` first, then encode. Fixes composition, `Remove`, and the `Animatable` accessors together, and needs no change to the core. The core stays string-keyed, which keeps the upstream port intact and keeps plain-object targets working.
+1. **Canonicalize the key (smallest fix).** Have the bridge encode both spellings to one key — resolve the name to its `AvaloniaProperty` first, then encode. Fixes composition, `Remove`, and the `Animatable` accessors together, and needs no change to the core. The core stays string-keyed, which keeps the upstream port intact and keeps plain-object targets working.
 2. **Key on the resolved accessor instead of the string.** `Composer` would key on `IPropertyAccessor` (or a `PropertyKey` struct) rather than `string`. Structurally cleaner, but it moves the port away from upstream's `composition.js` and touches `Tween`, `Animation`, `Composer` and `Animatable`.
 3. **Typed property handles in the params surface.** A `PrestoProperty` abstraction over "string name | AvaloniaProperty | transform shorthand" that the indexer and the builder both take. Gets compile-time safety for shorthands. Largest change; subsumes option 1.
 
@@ -89,7 +89,7 @@ Open question for the pass: whether the builder replaces the indexer or sits bes
 > plans the work. Two corrections: a direct write to an *animated* composition property does remove a running server
 > animation (the non-removing `SetValue` path quoted below is only used for non-animated properties), and `Opacity`
 > animations survive Avalonia's per-frame sync because the generated client setter skips unchanged values, not because the
-> write is harmless. `Translation`, `Scale`, `RotationAngle` and `CenterPoint` are never synchronised at all, which is
+> write is harmless. `Translation`, `Scale`, `RotationAngle` and `CenterPoint` are never synchronized at all, which is
 > what the plan builds on. The history below is kept for the rationale.
 
 Today every animation ticks on the UI thread from `TopLevel.RequestAnimationFrame` and writes `AvaloniaProperty` values at `BindingPriority.Animation`. That matches PLAN §1, which lists composition-thread animation as a non-goal. What follows is what it would actually take to change that.
@@ -131,7 +131,7 @@ Easing does carry over: `IEasing` is `[NotClientImplementable]`, but the existin
 
 1. **Stay as-is (recommended default).** The tick is already allocation-free in the core and 64–160 B/frame in the bridge (Phase 8 measurements). The UI thread is the only place the full model works. Revisit if profiling shows jank that is actually caused by the animation writes rather than by layout.
 2. **Compositor for a qualifying subset.** Detect animations that touch only transform/opacity, have no per-frame callbacks and are never seeked, and compile those into `KeyFrameAnimation`s. Real jank immunity for the common 300 ms fade/slide. Costs an eligibility check, a second code path, and a fallback when the user later calls `Seek`.
-3. **Child visuals for effects.** `ElementComposition.SetElementChildVisual` attaches a visual Avalonia does **not** synchronise, so compositor animation there is safe and durable. This is the right foundation for future effect work (blur, shadow, acrylic), not for animating existing controls.
+3. **Child visuals for effects.** `ElementComposition.SetElementChildVisual` attaches a visual Avalonia does **not** synchronize, so compositor animation there is safe and durable. This is the right foundation for future effect work (blur, shadow, acrylic), not for animating existing controls.
 
 Option 1 today; option 3 is the natural home if compositor-backed effects are ever wanted; option 2 only if a measured jank problem justifies the second path.
 
@@ -154,8 +154,8 @@ decisions and the spike that settled them are in [GAPS-PLAN.md §1](GAPS-PLAN.md
 - **Output, a follower.** Each use gets an `Follower`, which runs its own core `Animatable` over an internal
   holder and exposes the displayed value as an observable. `{presto:Follow}` returns it as `ToBinding()`, and
   `Follow.Bind` binds it directly, both at `LocalValue`. Springs retarget from the displayed value with its velocity,
-  per channel for colours, brushes and thicknesses. It snaps on the first value, on a new item (a `DataContext` change
-  first, which is how a recycled row is recognised), while detached, under reduced motion without `WhenReduced`, and for
+  per channel for colors, brushes and thicknesses. It snaps on the first value, on a new item (a `DataContext` change
+  first, which is how a recycled row is recognized), while detached, under reduced motion without `WhenReduced`, and for
   values it cannot ease.
 - **Layering.** The follower never registers the control's property with Presto's composition. So a
   `control.Animate(...)` of the same property runs at `Animation` priority over the followed `LocalValue`, and reverting
@@ -195,7 +195,7 @@ The *Derived values* Reference page in the sample shows one source driving five 
 Phase 45 (`ScrollObserverParams.Pin`/`PinSpacing`/`Snap`, `ScrollSnap`, `Scroll.Speed`, `Scroll.Smooth`) is a deliberate
 deviation from the port: anime.js 4.5.0 has no pinning, snapping, parallax or wheel smoothing, so these follow GSAP
 ScrollTrigger and ScrollSmoother instead. They sit on top of the ported `ScrollObserver` without changing its upstream
-behaviour, and the ported `ScrollObserverTests` pass unchanged. Decisions are in [GAPS-PLAN.md §5](GAPS-PLAN.md) and
+behavior, and the ported `ScrollObserverTests` pass unchanged. Decisions are in [GAPS-PLAN.md §5](GAPS-PLAN.md) and
 PLAN §7 decisions 44–48.
 
 ## 8. Small items: physics and eases from outside anime.js
@@ -227,7 +227,7 @@ Two deviations close it, each covered by `TweenListIntegrityTests`:
 - **`TweenList.RemoveChild` skips a tween that is not in the list**, that is a tween with no previous link that is not the
   head, or no next link that is not the tail.
 - **A repeat cancel is a no-op for composition.** `Timer.DetachTweens` only removes the tweens' siblings while the timer is
-  not already cancelled. This applies to `Cancel`, `Complete`, `Revert` and the engine's detach of completed timers.
+  not already canceled. This applies to `Cancel`, `Complete`, `Revert` and the engine's detach of completed timers.
   `Reset` and `Seek` re-compose and clear the flag as before.
 
 `Draggable` also drops its overshoot and scroll animations once it cancels them, so later grabs do not cancel them again.
@@ -261,10 +261,10 @@ and PLAN §7 decisions 89–91.
   frames at the display rate, so `Engine.Wake` does not start the frame source while hidden. Hiding an idle engine also
   marks it paused, unlike upstream's `pause()`, so the show's `Resume` rebases timers created while hidden.
 
-## 11. Premultiplied colour interpolation (Phase 68)
+## 11. Premultiplied color interpolation (Phase 68)
 
-anime.js lerps each RGB channel as `sqrt(lerp(c₀², c₁², p))` with straight alpha, so a fade from a transparent colour
-shows that colour's RGB at half opacity: transparent teal → gray reads green on the way. Avalonia's brush transitions
+anime.js lerps each RGB channel as `sqrt(lerp(c₀², c₁², p))` with straight alpha, so a fade from a transparent color
+shows that color's RGB at half opacity: transparent teal → gray reads green on the way. Avalonia's brush transitions
 share the flaw. Presto weights each end by its alpha, as CSS Color 4 does, and deviates from upstream here (PLAN
 decision 117):
 
@@ -275,4 +275,4 @@ decision 117):
 - **Ends are exact,** and a frame whose lerped alpha is 0 or below falls back to the straight lerp, so nothing divides by
   zero.
 - **Blend composition** sums straight per-channel deltas and stays straight. `BrushCodec.ColorAt` resamples gradient
-  stops with the same weighting in plain gamma; colour slots in complex values stay straight until Phase 30b.
+  stops with the same weighting in plain gamma; color slots in complex values stay straight (deferred in COLOR-SPACES-PLAN §6).

@@ -444,7 +444,7 @@ public sealed class TextSplitTests : BridgeTestBase
         Assert.False(animation!.Paused);
 
         split.Revert();
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
     }
 
     [AvaloniaFact]

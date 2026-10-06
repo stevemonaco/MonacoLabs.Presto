@@ -176,7 +176,7 @@ public sealed class ScrollObserver : IRevertible
     /// <summary>The scroll position along the watched axis.</summary>
     public double Scroll => Container == null ? 0 : Horizontal ? Container.ScrollX : Container.ScrollY;
 
-    /// <summary>How far the scroll position has travelled between the two thresholds, 0 to 1.</summary>
+    /// <summary>How far the scroll position has traveled between the two thresholds, 0 to 1.</summary>
     public double Progress
     {
         get

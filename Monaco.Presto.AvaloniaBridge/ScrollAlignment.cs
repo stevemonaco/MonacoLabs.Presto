@@ -9,7 +9,7 @@ public enum ScrollAlignment
     /// <summary>Aligns the element's leading edge with the viewport's.</summary>
     Start,
 
-    /// <summary>Centres the element in the viewport.</summary>
+    /// <summary>Centers the element in the viewport.</summary>
     Center,
 
     /// <summary>Aligns the element's trailing edge with the viewport's.</summary>

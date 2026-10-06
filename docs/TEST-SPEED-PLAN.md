@@ -79,7 +79,7 @@ testable, but on its own saves only a second or two; the compositor clock (§2.1
   - Real-time pumps wait on elapsed `Stopwatch` time rather than counting `Task.Delay(8)` rounds, so a frame is not
     paid twice; consider `Thread.Sleep(1)`/spin waits with `timeBeginPeriod` only if measurements justify it.
   - Tests that need a compositor animation to finish run it at a short duration or through `Engine` speed where the
-    behaviour under test does not depend on the duration (confirm the compositor path honours speed, as
+    behavior under test does not depend on the duration (confirm the compositor path honors speed, as
     `CompositorPlaybackTests.DoublingTheSpeedCoversTwiceTheDistance` suggests).
 - **Parallelism stays off.** Per-test engines (an `AsyncLocal` or per-session `Presto.Engine`) would let the idle waits
   overlap, but they touch every static entry point; revisit only if virtual time is not enough.
@@ -241,7 +241,7 @@ The §2.1 seam, not the §2.3 fallbacks (§3.3 bridge, §3.4 sample); Presto's o
 The sample suite's 60 s target is not met (§3.5) and was accepted as missed when the phase closed.
 
 The faster bridge runs surfaced an order-dependent failure: a plain `[Fact]` in a `BridgeTestBase` subclass
-(`DotLottieTests`, `FollowerTests`, `LottieSegmentTests`) reset the engine off the UI thread and cancelled an earlier
+(`DotLottieTests`, `FollowerTests`, `LottieSegmentTests`) reset the engine off the UI thread and canceled an earlier
 test's leftover exit ghost from the wrong thread. Those tests are now `[AvaloniaFact]`, and `BridgeTestBase` asserts it
 runs on the UI thread, so a new plain `[Fact]` there fails every time instead of now and then.
 

@@ -77,20 +77,20 @@ public sealed class EngineDiagnosticsTests : EngineTestBase
     }
 
     [Fact]
-    public void CompletedCancelledAndRevertedRootsEnd()
+    public void CompletedCanceledAndRevertedRootsEnd()
     {
         Diagnostics.Enabled = true;
         var completed = Presto.CreateTimer(new() { Duration = 50 });
-        var cancelled = Presto.CreateTimer(new() { Duration = 1000 });
+        var canceled = Presto.CreateTimer(new() { Duration = 1000 });
         var reverted = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 1000 });
         Frames.Advance(16);
 
-        cancelled.Cancel();
+        canceled.Cancel();
         reverted.Revert();
         RunUntil(() => completed.Completed);
         Frames.Advance(16);
 
-        Assert.Equal(new Timer[] { cancelled, reverted, completed }, Diagnostics.RecentlyEnded);
+        Assert.Equal(new Timer[] { canceled, reverted, completed }, Diagnostics.RecentlyEnded);
     }
 
     [Fact]

@@ -272,7 +272,7 @@ public static class Scroll
         private bool Horizontal => _scroller.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled
             && _scroller.HorizontalScrollBarVisibility != ScrollBarVisibility.Disabled;
 
-        private bool Easing => _ease is { Completed: false, Cancelled: false };
+        private bool Easing => _ease is { Completed: false, Canceled: false };
 
         public void Release()
         {

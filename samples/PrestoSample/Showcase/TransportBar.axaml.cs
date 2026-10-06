@@ -26,7 +26,7 @@ public partial class TransportBar : UserControl
     public TransportBar()
     {
         InitializeComponent();
-        // Tunnelling: the thumb handles both events and captures the pointer, so neither one bubbles back up here.
+        // Tunneling: the thumb handles both events and captures the pointer, so neither one bubbles back up here.
         Scrubber.AddHandler(PointerPressedEvent, (_, _) => _scrubbing = true, RoutingStrategies.Tunnel);
         Scrubber.AddHandler(PointerReleasedEvent, (_, _) => _scrubbing = false, RoutingStrategies.Tunnel);
     }

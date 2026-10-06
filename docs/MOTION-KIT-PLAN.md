@@ -17,7 +17,7 @@ throughout the bridge. Lambdas are added as sugar at one-shot call sites.
 | 22 | Builder groundwork: `Clone`/`With`, `Action<AnimationBuilder>` overloads | small |
 | 23 | State triggers: `Motion.Hover`/`Press`/`Focus`/`States`/`State`, code API, one-shot `Animate.OnTapped`/`OnChanged` | large |
 | 24 | Effects: blur, drop shadow, 3D rotation, clip and mask reveals | medium |
-| 25 | Recipes and reduced motion: the prebuilt catalogue, XAML markup extensions, motion tokens, reduced-motion flag | medium |
+| 25 | Recipes and reduced motion: the prebuilt catalog, XAML markup extensions, motion tokens, reduced-motion flag | medium |
 
 Following the OS "reduce motion" setting was split out of Phase 25 and then dropped: the app reads it and writes the flag (PLAN decision 36).
 
@@ -161,12 +161,12 @@ Motion.SetState(card, FormState.Error);
    |---|---|---|
    | `Hover` | `:pointerover` | `IsPointerOverProperty` |
    | `Focus` | `:focus-visible` | `IsFocusedProperty` plus the `:focus-visible` pseudo-class |
-   | `Press` | `:pressed` | synthesised pointer press (below) |
+   | `Press` | `:pressed` | synthesized pointer press (below) |
 
    The sugar states sit before `States` entries in the order Hover < Focus < Press, so press wins over hover for a
    shared property. `:focus-visible` is the default so that a mouse click doesn't play the focus motion. `When=":focus"`
-   is available for the other behaviour.
-5. **Pressed is synthesised for every element.** Only `Button` and its subclasses set `:pressed`. The tracker sets its
+   is available for the other behavior.
+5. **Pressed is synthesized for every element.** Only `Button` and its subclasses set `:pressed`. The tracker sets its
    own pressed flag from `PointerPressed` (left button or touch/pen contact) until `PointerReleased` or
    `PointerCaptureLost`, subscribed with `handledEventsToo` so that a Button that handles its own press still counts.
 6. **Other pseudo-classes and classes come from `Classes.CollectionChanged`.** Avalonia keeps pseudo-classes in the same
@@ -181,7 +181,7 @@ Motion.SetState(card, FormState.Error);
      throws `NotSupportedException`, as `LayoutMotion` does.
 8. **Rest:**
    - For an `AvaloniaProperty`, rest is its base value (everything below `Animation` priority), read when the property
-     returns. A binding or style that changed mid-hover is therefore honoured.
+     returns. A binding or style that changed mid-hover is therefore honored.
    - Once the return completes, the tracker reverts its animation-priority value. Nothing snaps, because the values are
    already equal.
    - For a transform or effect shorthand, rest is the shorthand's identity: 0, 1, or no effect.
@@ -242,7 +242,7 @@ public static class MotionExtensions                               // code API; 
 
    Record the findings in §6.
 2. **`MotionTracker`.**
-   - Token set: the synthesised flags, `Classes`, and `Motion.State` tokens.
+   - Token set: the synthesized flags, `Classes`, and `Motion.State` tokens.
    - Ordered state list: sugar first, then `States`, then code-added states.
    - The resolved target per property.
    - A diff on every token change, which plays one animation per entering state and one per leaving state for the
@@ -267,7 +267,7 @@ public static class MotionExtensions                               // code API; 
   - Leaving both returns to rest.
 - Interruption: leaving mid-enter starts the return from the current value, with no jump.
 - Pressed:
-  - Synthesised on a `Border`.
+  - Synthesized on a `Border`.
   - A `Button`'s own handled press still counts.
   - Capture loss ends it.
 - Focus: `:focus-visible` from the keyboard plays; a pointer click does not; `When=":focus"` plays on both.
@@ -339,7 +339,7 @@ public static class MotionExtensions                               // code API; 
 5. **Reveals are shorthands over a bridge-owned `Clip` or `OpacityMask`:**
    - `ClipInset` takes four channels (left, top, right, bottom, in DIPs or `%`) and drives a `RectangleGeometry` on
      `Visual.Clip`.
-   - `ClipCircle` takes a radius fraction and a centre point, and drives an `EllipseGeometry`.
+   - `ClipCircle` takes a radius fraction and a center point, and drives an `EllipseGeometry`.
    - `MaskSweep` takes progress, angle and feather, and drives a `LinearGradientBrush` `OpacityMask` built through the
      Phase 19 gradient codec.
    - As in point 3, each reveal is removed at full visibility.
@@ -352,12 +352,12 @@ public static class MotionExtensions                               // code API; 
 |---|---|---|
 | `Blur` | `BlurEffect.Radius` | DIPs |
 | `ShadowX`, `ShadowY`, `ShadowBlur` | `DropShadowEffect.OffsetX/OffsetY/BlurRadius` | DIPs |
-| `ShadowColor` | `DropShadowEffect.Color` | colour string, `Color` |
+| `ShadowColor` | `DropShadowEffect.Color` | color string, `Color` |
 | `ShadowOpacity` | `DropShadowEffect.Opacity` | 0–1 |
 | `RotateX`, `RotateY` | `Rotate3DTransform.AngleX/AngleY` | degrees (`turn`/`rad` accepted, as `Rotate`) |
 | `Perspective` | `Rotate3DTransform.Depth` | DIPs |
 | `ClipInset` | `Visual.Clip` rectangle | 4 channels, DIPs or `%` |
-| `ClipCircle` | `Visual.Clip` ellipse | radius fraction, centre `RelativePoint` |
+| `ClipCircle` | `Visual.Clip` ellipse | radius fraction, center `RelativePoint` |
 | `MaskSweep` | `Visual.OpacityMask` gradient | progress 0–1, `angle`, `feather` |
 
 The typed builder methods are generated in `PropertyBuilderExtensions` with the usual four overloads: bare, full,
@@ -418,7 +418,7 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
 
 1. **Recipes are factories, not static builders.** `Recipes.FadeUp(distance: 24)` returns a new `AnimationBuilder` on
    every call, so a caller can chain `.Delay(…)` without touching anyone else's copy.
-2. **The catalogue is in the bridge** (namespace `Monaco.Presto.AvaloniaBridge.Recipes`), because nearly every recipe
+2. **The catalog is in the bridge** (namespace `Monaco.Presto.AvaloniaBridge.Recipes`), because nearly every recipe
    names shorthands. One class per family, one public type per file:
 
    | Class | Recipes |
@@ -457,7 +457,7 @@ The typed builder methods are generated in `PropertyBuilderExtensions` with the 
      - entrances and exits become short fades;
      - attention becomes a brief opacity blink or nothing;
      - loops become static;
-     - interactions keep colour and shadow but drop travel and scale.
+     - interactions keep color and shadow but drop travel and scale.
    - Animations without an alternative are unaffected, unless the app also sets `PrestoDefaults.ReduceAll`. That
      clamps durations to 0, which gives instant sets.
    - The app sets the flag, including from the OS "reduce motion" setting if it wants to follow it; Presto ships no
@@ -524,7 +524,7 @@ A real-world page that uses Phases 22–25 together. It goes into the Showcase s
   - Cards enter with `{presto:Fade Direction=Up}` and a stagger over `Presence.Initial`.
   - Each card has `Motion.Hover="{presto:Lift}"`, `Motion.Press="{presto:PressIn}"`, a `Tilt` on the image, and a
     `:focus-visible` glow for keyboard browsing.
-- **Filter chips.** A `:checked` state recolours the chip; the grid reflows through `AnimateLayout`.
+- **Filter chips.** A `:checked` state recolors the chip; the grid reflows through `AnimateLayout`.
 - **Add to cart.**
   - `Animate.OnTapped` pops the button.
   - The cart badge bumps through `Animate.OnChanged` watched on the count.
@@ -550,7 +550,7 @@ headless harness) and a Desktop visual check through DevTools screenshots.
 - **Compositor states.** `Motion.*` could play transform- and opacity-only states through `AnimateOnCompositor`.
   Input arrives on the UI thread anyway, so the gain is smoothness under load, not responsiveness. Left out unless a
   sample shows the need. *Settled by Phase 23: left out; every state plays on the UI thread.*
-- **Press on touch.** Synthesised pressed ends on capture loss. Should a touch that turns into a scroll (a
+- **Press on touch.** Synthesized pressed ends on capture loss. Should a touch that turns into a scroll (a
   `ScrollViewer` taking capture) cancel the press state immediately? That is the proposed default. *Settled by Phase
   23: yes; `PointerCaptureLost` ends the press at once.*
 - **Mobile reduced-motion sources.** *Dropped with the rest of the OS sources; the app writes the flag.*
@@ -606,7 +606,7 @@ Filled in as each phase lands, as in the other plans.
 - One scalar cannot carry §3.2's extra reveal parameters, so they are companion shorthands, each with its own builder
   methods, identity and revert:
   - `ClipCircleCenter`, a `RelativePoint` defaulting to 50%, 50%. `ClipCircle` is the radius fraction alone, 1
-    reaching the corner farthest from the centre.
+    reaching the corner farthest from the center.
   - `MaskSweepAngle`, in degrees with `turn`/`rad` accepted, 0 sweeping left to right.
   - `MaskSweepFeather`, the edge's width as a fraction of the sweep, default 0.2.
 - Shadow identities: without a user `DropShadowEffect`, a shadow starts black, at opacity 1, blur 0 and offset 0, so

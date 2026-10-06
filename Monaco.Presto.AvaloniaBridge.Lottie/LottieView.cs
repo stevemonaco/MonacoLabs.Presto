@@ -7,7 +7,7 @@ namespace Monaco.Presto.AvaloniaBridge.Lottie;
 
 /// <summary>
 /// Shows one <see cref="Frame"/> of a Lottie <see cref="Composition"/>, sized and stretched as an image and drawn through the
-/// base's colour filters, so tweening, seeking or binding <see cref="Frame"/> or <see cref="Progress"/> plays it.
+/// base's color filters, so tweening, seeking or binding <see cref="Frame"/> or <see cref="Progress"/> plays it.
 /// </summary>
 /// <remarks>The inherited <see cref="PrestoImageBase.Source"/> is not used.</remarks>
 public sealed class LottieView : PrestoImageBase

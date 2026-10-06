@@ -14,7 +14,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// Material's press ripple: ink grows from the press point while the press is held until it covers the element, and
-/// fades on release. Enter or Space on the focused element ripples from its centre.
+/// fades on release. Enter or Space on the focused element ripples from its center.
 /// </summary>
 /// <remarks>
 /// The ink is drawn over the element's content by a composition visual of its own on the render thread, so it never
@@ -39,13 +39,13 @@ public static class Ripple
     public static readonly AttachedProperty<bool> EnabledProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("Enabled", typeof(Ripple));
 
-    /// <summary>The ink colour, alpha included; null (the default) uses the theme accent at 24 % alpha, read at each press.</summary>
+    /// <summary>The ink color, alpha included; null (the default) uses the theme accent at 24 % alpha, read at each press.</summary>
     public static readonly AttachedProperty<Color?> ColorProperty =
         AvaloniaProperty.RegisterAttached<Control, Color?>("Color", typeof(Ripple));
 
     /// <summary>
     /// Whether the ink grows from the press point and is clipped to the element's rounded rectangle (the default), or
-    /// grows from the centre to an unclipped circle around the element.
+    /// grows from the center to an unclipped circle around the element.
     /// </summary>
     public static readonly AttachedProperty<bool> BoundedProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("Bounded", typeof(Ripple), true);
@@ -68,10 +68,10 @@ public static class Ripple
     /// <summary>Sets whether <paramref name="control"/> ripples when pressed.</summary>
     public static void SetEnabled(Control control, bool value) => control.SetValue(EnabledProperty, value);
 
-    /// <summary>Gets the ink colour of <paramref name="control"/>, or null for the theme accent.</summary>
+    /// <summary>Gets the ink color of <paramref name="control"/>, or null for the theme accent.</summary>
     public static Color? GetColor(Control control) => control.GetValue(ColorProperty);
 
-    /// <summary>Sets the ink colour of <paramref name="control"/>, or null for the theme accent.</summary>
+    /// <summary>Sets the ink color of <paramref name="control"/>, or null for the theme accent.</summary>
     public static void SetColor(Control control, Color? value) => control.SetValue(ColorProperty, value);
 
     /// <summary>Gets whether the ink of <paramref name="control"/> is clipped to it.</summary>
@@ -271,12 +271,12 @@ public static class Ripple
             if (_visual is null || _reduced) return;
             var box = new Rect(_host.Bounds.Size);
             var bounded = GetBounded(_host);
-            var centre = bounded ? at : box.Center;
+            var center = bounded ? at : box.Center;
             var tokens = Recipes.Tokens;
             _visual.ClipToBounds = bounded;
             _visual.SendHandlerMessage(new RippleHandler.Press(
-                centre,
-                Farthest(centre, box),
+                center,
+                Farthest(center, box),
                 bounded ? new RoundedRect(box, Corners(_host)) : null,
                 InkColor(_host),
                 tokens.Medium,

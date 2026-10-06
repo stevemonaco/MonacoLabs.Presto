@@ -52,7 +52,7 @@ public static class Animate
     /// detaching reverts, changing the value re-arms, and <see langword="null"/> stops listening. A keyed flight wins its move
     /// and the property takes over again once it has landed.
     /// </summary>
-    /// <remarks>Applying a builder that sets anything a layout transition cannot honour throws <see cref="NotSupportedException"/>.</remarks>
+    /// <remarks>Applying a builder that sets anything a layout transition cannot honor throws <see cref="NotSupportedException"/>.</remarks>
     public static readonly AttachedProperty<AnimationBuilder?> LayoutProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Layout", typeof(Animate));
 
@@ -68,7 +68,7 @@ public static class Animate
     /// <see cref="LayoutModeProperty"/>. A container realized or recycled records where it is rather than flying there, a pass
     /// that only scrolls the list moves its containers in one frame, and <see langword="null"/> reverts every container.
     /// </summary>
-    /// <remarks>Applying a builder that sets anything a layout transition cannot honour throws <see cref="NotSupportedException"/>.</remarks>
+    /// <remarks>Applying a builder that sets anything a layout transition cannot honor throws <see cref="NotSupportedException"/>.</remarks>
     public static readonly AttachedProperty<AnimationBuilder?> ItemLayoutProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, AnimationBuilder?>("ItemLayout", typeof(Animate));
 
@@ -92,7 +92,7 @@ public static class Animate
     /// moves, whatever its <see cref="LayoutModeProperty"/>, and a sibling's layout move under the same parent lands in one
     /// frame while the host resizes, since the resize already eases it.
     /// </para>
-    /// <para>Applying a builder that animates a property or sets anything a layout transition cannot honour throws <see cref="NotSupportedException"/>.</para>
+    /// <para>Applying a builder that animates a property or sets anything a layout transition cannot honor throws <see cref="NotSupportedException"/>.</para>
     /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> ContentSizeProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("ContentSize", typeof(Animate));

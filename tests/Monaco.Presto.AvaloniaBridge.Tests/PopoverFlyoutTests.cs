@@ -12,7 +12,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
 /// <see cref="Popover"/> on flyouts and context menus (GAPS-2-PLAN §7.2): Open plays on the presenter from its first
-/// frame, and Close plays on it in a cancelled <c>Closing</c> before the popup closes for real.
+/// frame, and Close plays on it in a canceled <c>Closing</c> before the popup closes for real.
 /// </summary>
 public sealed class PopoverFlyoutTests : CompositorTestBase
 {

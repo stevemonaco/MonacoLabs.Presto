@@ -2,7 +2,7 @@ using Monaco.Presto.AvaloniaBridge.Lottie.Prebuilt;
 
 namespace Monaco.Presto.AvaloniaBridge.Lottie;
 
-/// <summary>Adds the Lottie recipes to the <see cref="Recipes"/> catalogue.</summary>
+/// <summary>Adds the Lottie recipes to the <see cref="Recipes"/> catalog.</summary>
 public static class RecipesExtensions
 {
     extension(Recipes)

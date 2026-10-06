@@ -11,7 +11,7 @@ public sealed class Scenery : Viewbox
 {
     public static readonly StyledProperty<double> HueProperty = AvaloniaProperty.Register<Scenery, double>(nameof(Hue));
 
-    /// <summary>Places the sun and the far peak, so neighbouring places with close hues still differ.</summary>
+    /// <summary>Places the sun and the far peak, so neighboring places with close hues still differ.</summary>
     public static readonly StyledProperty<int> IndexProperty = AvaloniaProperty.Register<Scenery, int>(nameof(Index));
 
     public Scenery()

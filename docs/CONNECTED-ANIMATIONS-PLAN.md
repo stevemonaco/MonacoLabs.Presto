@@ -40,7 +40,7 @@ PrestoAvalonia.AnimateSharedElement("photo", hero, builder);
 `AnimateLayout(control, builder)` and `AnimateSharedElement(source | key, target, builder)` take an `AnimationBuilder`
 for the motion; the layout still decides where the control goes.
 
-- Honoured: `Duration`, `Delay` (new for layout transitions: the control holds its inverted place during the delay) and
+- Honored: `Duration`, `Delay` (new for layout transitions: the control holds its inverted place during the delay) and
   `Ease`.
 - `X`, `Y` and `Scale` may carry **only an ease** (`.X(ease: Eases.OutSine).Y(ease: Eases.InSine)`): a per-axis ease
   shapes the flight, and different X and Y eases make it an **arc**. Giving any of them a value throws, since the
@@ -58,7 +58,7 @@ animation carries the same per-axis eases, so an interruption mid-arc measures w
 - `PrepareSharedElement` then a keyed start after the source is removed from the tree flies from where it was.
 - A keyed start with nothing prepared returns `null` and moves nothing; a second keyed start after one consumed the
   entry returns `null`. Expiry is not tested, since it needs three seconds of wall time.
-- Builder: duration and delay are honoured (held during the delay, moving after it); an arc's halfway point is off the
+- Builder: duration and delay are honored (held during the delay, moving after it); an arc's halfway point is off the
   straight line between start and end; a value on X/Y/Scale, or an unsupported setting, throws.
 
 Known limit, found while testing: a flying control is still drawn inside its own ancestors, so one flying into a clipped
@@ -132,7 +132,7 @@ detaches the old view synchronously **before** the new one attaches. So:
   It skips preparing when another attached element still holds the key: that element has already flown (coexisting
   views), and an entry left behind would fly the next unrelated arrival.
 - The cost is one parent walk per keyed element per layout pass. That is fine for a page or a list of dozens; note it in
-  the XML docs, and say that a virtualising list of thousands should key only what it needs.
+  the XML docs, and say that a virtualizing list of thousands should key only what it needs.
 
 **Arriving.** On attach, a keyed element claims its key, in this order:
 

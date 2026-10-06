@@ -39,7 +39,7 @@ public sealed class ScrollToTests : BridgeTestBase
     [InlineData(.5, 275)]
     [InlineData(2, 500)]
     [InlineData(10, 650)]
-    public void TheDefaultDurationGrowsWithTheViewportsTravelledAndCaps(double viewports, double duration)
+    public void TheDefaultDurationGrowsWithTheViewportsTraveledAndCaps(double viewports, double duration)
     {
         var (_, scroller, _, _) = ScrollStage.Show(trail: 2000);
 
@@ -198,7 +198,7 @@ public sealed class ScrollToTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void ACancelledScrollToLetsTheSnapFollowAfterItsDelay()
+    public void ACanceledScrollToLetsTheSnapFollowAfterItsDelay()
     {
         var (_, scroller, target, _) = ScrollStage.Show();
         PrestoAvalonia.OnScroll(new ScrollObserverParams { Target = target, Snap = .25 });

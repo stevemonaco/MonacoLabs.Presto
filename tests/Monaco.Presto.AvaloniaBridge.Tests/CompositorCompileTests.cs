@@ -9,7 +9,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
 /// Covers the compile half of COMPOSITOR-PLAN §4.3. tests/suites/waapi.test.js is DOM and WAAPI only and has no portable
-/// counterpart, so these assert the same behaviour against the compiled key frame tracks instead.
+/// counterpart, so these assert the same behavior against the compiled key frame tracks instead.
 /// </summary>
 public sealed class CompositorCompileTests : BridgeTestBase
 {

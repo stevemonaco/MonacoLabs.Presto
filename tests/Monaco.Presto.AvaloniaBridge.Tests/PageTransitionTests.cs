@@ -165,7 +165,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ACancelledHostIsTakenOverFromWhereItStands()
+    public async Task ACanceledHostIsTakenOverFromWhereItStands()
     {
         var (a, b) = ShowPair();
         var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false };
@@ -227,7 +227,7 @@ public sealed class PageTransitionTests : CompositorTestBase
         Frames.Advance(50);
 
         cancel.Cancel();
-        Assert.True(b.IsAnimating(Visual.OpacityProperty), "the cancelled host reverted before a frame passed");
+        Assert.True(b.IsAnimating(Visual.OpacityProperty), "the canceled host reverted before a frame passed");
         Tick();
         Dispatcher.UIThread.RunJobs();
 
@@ -292,7 +292,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void ACompositorTakeOverStartsWhereTheCancelledSlideStood()
+    public void ACompositorTakeOverStartsWhereTheCanceledSlideStood()
     {
         var (a, b) = ShowPair();
         var transition = new PrestoPageTransition
@@ -360,7 +360,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void ASharedAxisScaleOnTheCompositorHonoursTheHostsOrigin()
+    public void ASharedAxisScaleOnTheCompositorHonorsTheHostsOrigin()
     {
         var (from, to) = ShowPair();
         from.IsVisible = false;

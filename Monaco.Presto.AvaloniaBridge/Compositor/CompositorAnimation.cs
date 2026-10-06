@@ -231,7 +231,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
 
         private CompositionVisual? _element;
         private AnimatedValue<double>? _opacity;
-        private bool _centred;
+        private bool _centered;
         private bool _moved;
         private int _running;
 
@@ -263,10 +263,10 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
                 if (track.Kind == CompositorTrackKind.Opacity) Own();
                 element.StartAnimation(track.Kind.ToString(), CompositorTracks.Build(element, track));
                 _running |= 1 << (int)track.Kind;
-                _centred |= track.Kind is CompositorTrackKind.Scale or CompositorTrackKind.RotationAngle;
+                _centered |= track.Kind is CompositorTrackKind.Scale or CompositorTrackKind.RotationAngle;
             }
 
-            if (_centred)
+            if (_centered)
             {
                 Pivot(element);
                 visual.PropertyChanged -= OnPropertyChanged;
@@ -364,7 +364,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
                 });
             }
 
-            if (!_centred) return;
+            if (!_centered) return;
             element.CenterPoint = s_one;
             element.CenterPoint = default;
         }
@@ -389,7 +389,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
             visual.PropertyChanged -= OnPropertyChanged;
             if (_element is not { } element) return;
             foreach (var track in tracks) Release(track.Kind, handOver: false);
-            if (_centred) element.StopAnimation("CenterPoint");
+            if (_centered) element.StopAnimation("CenterPoint");
         }
 
         private void Release(CompositorTrackKind kind, bool handOver)

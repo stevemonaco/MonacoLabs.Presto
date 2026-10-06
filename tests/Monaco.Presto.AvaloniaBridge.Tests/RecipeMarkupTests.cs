@@ -80,7 +80,7 @@ public sealed class RecipeMarkupTests : BridgeTestBase
         var window = Show(view);
 
         Assert.Single(Presto.GetAnimations(view.Shaken));
-        window.MouseMove(Centre(view.Hovered, window));
+        window.MouseMove(Center(view.Hovered, window));
         Frames.Advance(400, 16);
 
         Assert.True((double)PrestoAvalonia.Get(view.Hovered, "Y")! < 0);

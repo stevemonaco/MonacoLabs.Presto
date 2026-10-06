@@ -5,13 +5,13 @@ using Monaco.Presto.Values;
 
 namespace Monaco.Presto;
 
-/// <summary>Catalogue of built-in eases and the in/out/inOut/outIn composition helpers.</summary>
+/// <summary>Catalog of built-in eases and the in/out/inOut/outIn composition helpers.</summary>
 public static partial class Eases
 {
     private const double HalfPI = Math.PI / 2;
     private const double DoublePI = Math.PI * 2;
 
-    // Declared before the eases so a factory naming one during static initialisation finds it.
+    // Declared before the eases so a factory naming one during static initialization finds it.
     private static readonly ConditionalWeakTable<Ease, string> s_names = new();
 
     /// <summary>The identity ease, which <c>"linear"</c> and <c>"none"</c> resolve to.</summary>
@@ -163,7 +163,7 @@ public static partial class Eases
 
     /// <summary>
     /// The anime.js name of <paramref name="ease"/>, such as <c>"outQuad"</c> or <c>"out(3)"</c>. Fixed eases always have one;
-    /// eases from the parameterised factories and <see cref="EaseParser"/> only when created while <see cref="PrestoDiagnostics.Active"/> is set.
+    /// eases from the parameterized factories and <see cref="EaseParser"/> only when created while <see cref="PrestoDiagnostics.Active"/> is set.
     /// </summary>
     public static bool TryGetName(Ease ease, out string name) => s_names.TryGetValue(ease, out name!);
 

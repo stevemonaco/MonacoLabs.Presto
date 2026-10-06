@@ -16,7 +16,7 @@ public partial class EasesPage : ShowcasePage
     private const double DotTravel = -140;
     private const double DotBase = 16;
 
-    private static readonly EaseEntry[] Catalogue =
+    private static readonly EaseEntry[] Catalog =
     [
         new("linear", Snippet.Of(Eases.None)),
         new("inQuad", Snippet.Of(Eases.InQuad)), new("outQuad", Snippet.Of(Eases.OutQuad)), new("inOutQuad", Snippet.Of(Eases.InOutQuad)), new("outInQuad", Snippet.Of(Eases.OutInQuad)),
@@ -53,7 +53,7 @@ public partial class EasesPage : ShowcasePage
     public EasesPage()
     {
         InitializeComponent();
-        EaseBox.ItemsSource = Catalogue;
+        EaseBox.ItemsSource = Catalog;
         EaseBox.SelectedIndex = 0;
     }
 

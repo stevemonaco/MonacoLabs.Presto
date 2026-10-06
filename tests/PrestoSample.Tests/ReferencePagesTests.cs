@@ -119,15 +119,15 @@ public sealed class ReferencePagesTests
         var window = SceneHarness.Show(page, 900, 1200);
         page.GetControl<ToggleSwitch>("Slow").IsChecked = true;
         var card = page.GetControl<Border>("AvatarCard");
-        var cardColour = ((ISolidColorBrush)card.Background!).Color;
-        var avatarColour = ((ISolidColorBrush)page.GetControl<Avalonia.Controls.Shapes.Ellipse>("Avatar").Fill!).Color;
+        var cardColor = ((ISolidColorBrush)card.Background!).Color;
+        var avatarColor = ((ISolidColorBrush)page.GetControl<Avalonia.Controls.Shapes.Ellipse>("Avatar").Fill!).Color;
         TestFrames.Tick();
-        var avatar = SceneHarness.Extent(page, avatarColour)!.Value;
+        var avatar = SceneHarness.Extent(page, avatarColor)!.Value;
 
         SceneHarness.Click(window, Button(page, "Grow panel"));
 
-        Assert.True(await SceneHarness.Pump(() => SceneHarness.Extent(page, cardColour) is { Width: > 170 and < 220 }), "the card never drew mid-flight");
-        var midFlight = SceneHarness.Extent(page, avatarColour)!.Value;
+        Assert.True(await SceneHarness.Pump(() => SceneHarness.Extent(page, cardColor) is { Width: > 170 and < 220 }), "the card never drew mid-flight");
+        var midFlight = SceneHarness.Extent(page, avatarColor)!.Value;
         Assert.InRange(midFlight.Width, avatar.Width - 1, avatar.Width + 1);
         Assert.InRange(midFlight.Height, avatar.Height - 1, avatar.Height + 1);
         SceneHarness.Close(window);
@@ -236,7 +236,7 @@ public sealed class ReferencePagesTests
         var window = SceneHarness.Show(page, 1100, 900);
         var card = page.GetControl<Border>("InboxCard");
 
-        window.MouseMove(SceneHarness.Centre(card, window));
+        window.MouseMove(SceneHarness.Center(card, window));
         TestFrames.Tick(30);
         Assert.Equal(-4, (double)PrestoAvalonia.Get(card, "Y")!, 6);
         Assert.Equal("hot", Motion.GetState(page.GetControl<Avalonia.Controls.Shapes.Path>("InboxArrow")));
@@ -281,7 +281,7 @@ public sealed class ReferencePagesTests
         var page = new StatesPage();
         var window = SceneHarness.Show(page, 1100, 900);
         page.Status = "Syncing";
-        window.MouseMove(SceneHarness.Centre(page.GetControl<Border>("DraftsCard"), window));
+        window.MouseMove(SceneHarness.Center(page.GetControl<Border>("DraftsCard"), window));
         TestFrames.Tick(10);
         Assert.NotEmpty(Presto.GetAnimations(page.GetControl<Border>("StatusChip")));
 
@@ -359,9 +359,9 @@ public sealed class ReferencePagesTests
         var remove = Button(page, "✕");
         // The stages above push the rows down, and a row takes clicks only once it is drawn in its new slot.
         Assert.True(await SceneHarness.Pump(() =>
-            (window.InputHitTest(SceneHarness.Centre(remove, window)) as Visual)?.FindAncestorOfType<Button>(includeSelf: true) == remove));
+            (window.InputHitTest(SceneHarness.Center(remove, window)) as Visual)?.FindAncestorOfType<Button>(includeSelf: true) == remove));
         SceneHarness.Click(window, remove);
-        window.MouseMove(SceneHarness.Centre(page.GetControl<Border>("TiltCard"), window) + new Point(40, 30));
+        window.MouseMove(SceneHarness.Center(page.GetControl<Border>("TiltCard"), window) + new Point(40, 30));
         TestFrames.Tick(20);
 
         Assert.True(page.GetControl<Image>("BlurPicture").IsAnimating(Visual.EffectProperty), "the picture never blurred");
@@ -535,7 +535,7 @@ public sealed class ReferencePagesTests
         var window = SceneHarness.Show(page, 900, 900);
         var card = page.GetControl<Border>("SpringCard");
         page.GetControl<ComboBox>("ReleaseBox").SelectedIndex = 1;
-        var grab = SceneHarness.Centre(card, window);
+        var grab = SceneHarness.Center(card, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 4; i++)
@@ -588,7 +588,7 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
-    public void EveryCatalogueEaseAndTypedEaseFormPlots()
+    public void EveryCatalogEaseAndTypedEaseFormPlots()
     {
         var page = new EasesPage();
         var window = SceneHarness.Show(page, 900, 900);
@@ -655,7 +655,7 @@ public sealed class ReferencePagesTests
         Assert.Equal(40, toggle.Frame);
 
         var hover = page.GetControl<LottieView>("HoverIcon");
-        window.MouseMove(SceneHarness.Centre(hover, window));
+        window.MouseMove(SceneHarness.Center(hover, window));
         TestFrames.Tick(30);
         Assert.Equal(20, hover.Frame);
         window.MouseMove(default);

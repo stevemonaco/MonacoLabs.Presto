@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Monaco.Presto.Core;
 
-/// <summary>The <see cref="Helpers"/> linked-list operations over tweens, parameterised by the link pair they walk.</summary>
+/// <summary>The <see cref="Helpers"/> linked-list operations over tweens, parameterized by the link pair they walk.</summary>
 internal static class TweenList
 {
     public static void ForEachChildren(Timer parent, Action<Tween> callback, bool reverse = false)

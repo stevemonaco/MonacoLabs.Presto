@@ -24,7 +24,7 @@ public partial class StressBenchPage : ShowcasePage
     private const int PerVisual = 1;
     private const int OpacityOnly = 0;
     private const int Transform = 1;
-    private const int TransformAndColour = 2;
+    private const int TransformAndColor = 2;
 
     private static readonly Size Field = new(720, 300);
 
@@ -79,8 +79,8 @@ public partial class StressBenchPage : ShowcasePage
                 _workload.Add(PrestoAvalonia.AnimateOnCompositor(targets, Timed(set == OpacityOnly
                     ? new CompositorAnimationParams { ["Opacity"] = .15 }
                     : new CompositorAnimationParams { ["Scale"] = .35, ["Rotate"] = 90 })));
-                // Colour has no composition track, so it stays on the UI thread.
-                if (set == TransformAndColour) _workload.Add(Presto.Animate(targets, Timed(new AnimationParams { ["Background"] = Aqua })));
+                // Color has no composition track, so it stays on the UI thread.
+                if (set == TransformAndColor) _workload.Add(Presto.Animate(targets, Timed(new AnimationParams { ["Background"] = Aqua })));
                 break;
             default:
                 var scene = new BenchScene(count, Motion(set, "Tint", 1));

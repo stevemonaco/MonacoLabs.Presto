@@ -20,7 +20,7 @@ public sealed class TweenListIntegrityTests : EngineTestBase
     }
 
     [Fact]
-    public void CancellingABlendedAnimationTwiceKeepsTheListsIntactForTheNextBlend()
+    public void CancelingABlendedAnimationTwiceKeepsTheListsIntactForTheNextBlend()
     {
         var target = new StyleTarget();
         var first = Blend(target, 100);
@@ -54,7 +54,7 @@ public sealed class TweenListIntegrityTests : EngineTestBase
     }
 
     [Fact]
-    public void CancellingACompletedBlendedAnimationKeepsTheListsIntact()
+    public void CancelingACompletedBlendedAnimationKeepsTheListsIntact()
     {
         var target = new StyleTarget();
         var first = Blend(target, 100);
@@ -69,7 +69,7 @@ public sealed class TweenListIntegrityTests : EngineTestBase
     }
 
     [Fact]
-    public void BlendingAndCancellingTwentyThousandTargetsStaysFast()
+    public void BlendingAndCancelingTwentyThousandTargetsStaysFast()
     {
         var targets = new StyleTarget[20_000];
         for (var i = 0; i < targets.Length; i++) targets[i] = new StyleTarget();

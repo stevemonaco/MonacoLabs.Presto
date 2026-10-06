@@ -77,13 +77,13 @@ x'(0)  = A' / τ                        equals P·v when nothing snapped
 2. **One tween, even with a bounce.** The spring after the crossing is folded into the same tween's ease rather than a
    second keyframe:
    - For `u·D ≥ t_c` the ease is `1 + (S_v(s) − S_0(s))`, where `s` is solver time since the crossing.
-   - `S_v` and `S_0` are `Spring.Solve` for the bounce spring with and without the crossing velocity. Normalised as
+   - `S_v` and `S_0` are `Spring.Solve` for the bounce spring with and without the crossing velocity. Normalized as
      Phase 18 does, that velocity is `v_c · K · TimeScale / (bound − from)`.
    - The spring is linear in its initial conditions, so the difference is exactly the response to the velocity alone.
      No new solver is written.
    - The tween's to-value is the bound it settles on, so readers of `To` (`Animatable.Get`, composition, `Complete`)
      see the true rest.
-3. **The degenerate bounce, released on a bound moving outward** (`bound == from`), has no distance to normalise by:
+3. **The degenerate bounce, released on a bound moving outward** (`bound == from`), has no distance to normalize by:
    - The tween is built from the bound to the spring's first peak and back.
    - That is two keyframes: out with the impulse response up to its peak, back with a spring from rest.
    - The peak is found by sampling the response, which the solver makes cheap.
@@ -168,15 +168,15 @@ it. A `Duration` set beside an inertia tween is ignored for that tween, as it is
 
 ## 4. Implementation steps
 
-1. **`Inertia` maths (internal, pure).** The target, duration and ease factories, the crossing solve, the ease that
+1. **`Inertia` math (internal, pure).** The target, duration and ease factories, the crossing solve, the ease that
    folds in the spring (decision 2), and the degenerate two-keyframe expansion (decision 3). Unit tests against a
    numerical integration before any wiring.
 2. **`Animation` constructor.**
-   - Recognise an `Inertia` to-value.
+   - Recognize an `Inertia` to-value.
    - Resolve it after the from-number decomposes. Today the tween duration is computed before from is known, so for
      inertia tweens duration and ease are assigned after decomposition and before the tween's change end time.
-   - Reject a non-number property (colour, complex) with `ArgumentException`.
-   - Honour `ReduceAll`.
+   - Reject a non-number property (color, complex) with `ArgumentException`.
+   - Honor `ReduceAll`.
 3. **`VelocityTracker`**, then `Draggable.ComputeVelocity` moved onto it with the parity tests unchanged.
 4. **`Animatable.Fling`**, reusing Phase 18's velocity measurement.
 5. **`DraggableParams.ReleaseInertia`**, per decision 7, including the `Refresh` retarget.
@@ -184,9 +184,9 @@ it. A `Duration` set beside an inertia tween is ignored for that tween, as it is
 
 ## 5. Tests (`InertiaTests`, `VelocityTrackerTests`, `AnimatablesTests`, `DraggableTests`)
 
-- The maths:
+- The math:
   - `x'(0)` equals `P·v` without snapping.
-  - `x(D)` is within `RestDelta` of the target before normalisation, and the eased tween lands exactly on it.
+  - `x(D)` is within `RestDelta` of the target before normalization, and the eased tween lands exactly on it.
   - Doubling `τ` doubles the travel.
   - Negative velocity travels backward.
   - Velocity below `RestDelta / τ` sets the value at once.
@@ -245,7 +245,7 @@ it. A `Duration` set beside an inertia tween is ignored for that tween, as it is
   `[0, 60000]`; a bounce lasts the crossing time plus the thrown spring's settling duration. A start outside the bounds
   springs to the nearest bound with the spring's side-effect-free `PureEase`.
 - **The degenerate bounce** (decision 3) is taken not only at `bound == from` but whenever the crossing velocity
-  normalised by `bound − from` exceeds `K · 10`, i.e. a release just short of a bound. Its peak is found by stepping the
+  normalized by `bound − from` exceeds `K · 10`, i.e. a release just short of a bound. Its peak is found by stepping the
   impulse response in `1e-3` s steps. `Plan.Then` carries the way back:
   - The `Animation` constructor turns it into two consecutive tweens, as planned.
   - `Animatable.Fling` has one tween per target, so it folds both parts into a single ease from the bound out to the

@@ -5,7 +5,7 @@ using Avalonia.Media.Immutable;
 namespace PrestoSample.Showcase;
 
 /// <summary>
-/// The gallery's colour literals as brushes for controls; a compositor scene, which cannot resolve
+/// The gallery's color literals as brushes for controls; a compositor scene, which cannot resolve
 /// <c>StaticResource</c>, reads the <see cref="ISolidColorBrush.Color"/> off one.
 /// </summary>
 public static class Palette
@@ -36,10 +36,10 @@ public static class Palette
     public static readonly IReadOnlyList<ImmutableSolidColorBrush> Categorical =
         [Accent, Aqua, Amber, Coral, Violet, Lime, Rose, AccentPale];
 
-    /// <summary><see cref="AccentBrushRamp"/> as colours, for a scene that draws its own brushes.</summary>
+    /// <summary><see cref="AccentBrushRamp"/> as colors, for a scene that draws its own brushes.</summary>
     public static readonly IReadOnlyList<Color> AccentRamp = [.. AccentBrushRamp.Select(brush => brush.Color)];
 
-    /// <summary>A diagonal gradient from <paramref name="hue"/> (degrees) to a darker neighbour, for album and place art.</summary>
+    /// <summary>A diagonal gradient from <paramref name="hue"/> (degrees) to a darker neighbor, for album and place art.</summary>
     public static LinearGradientBrush HueGradient(double hue) => new()
     {
         StartPoint = RelativePoint.TopLeft,

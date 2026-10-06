@@ -11,7 +11,7 @@ public static class PrestoDiagnostics
     /// <summary>True while any engine has <see cref="EngineDiagnostics.Enabled"/> set.</summary>
     public static bool Active => Volatile.Read(ref s_enabledEngines) > 0;
 
-    /// <summary>Whether root timers record a <see cref="Timer.CreationTrace"/>; honoured only while their engine's diagnostics are enabled.</summary>
+    /// <summary>Whether root timers record a <see cref="Timer.CreationTrace"/>; honored only while their engine's diagnostics are enabled.</summary>
     public static bool CaptureCreationTrace { get; set; }
 
     internal static string? CurrentOrigin => s_origin;

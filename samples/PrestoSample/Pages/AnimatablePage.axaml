@@ -22,7 +22,7 @@
             <showcase:CodePanel Code="{x:Static showcase:Snippets.AnimatableParticles}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Move the pointer over the grid. One animatable drives all 121 dots: their X and Y durations come from a centre-out stagger of 50 ms per grid step, so the middle dot is written straight through, the edges take 250 ms and the corners about 350 ms, each settling on outElastic(.3, 1.4). Rotate is registered with Duration = 0 and so is never animated — the bridge's Rotate shorthand is in degrees, so the angle to the cursor goes through Utils.RadToDeg." />
+                       Text="Move the pointer over the grid. One animatable drives all 121 dots: their X and Y durations come from a center-out stagger of 50 ms per grid step, so the middle dot is written straight through, the edges take 250 ms and the corners about 350 ms, each settling on outElastic(.3, 1.4). Rotate is registered with Duration = 0 and so is never animated — the bridge's Rotate shorthand is in degrees, so the angle to the cursor goes through Utils.RadToDeg." />
 
             <Border x:Name="FollowerStage" Classes="stage" MinHeight="0" Height="150" PointerMoved="MoveFollower">
                 <Border x:Name="Follower" Classes="dot" Width="28" Height="28" CornerRadius="14"

@@ -89,9 +89,9 @@ public static class Pages
 
     /// <summary>
     /// Blooms the incoming page over the outgoing one in a <see cref="Reveals.CircularReveal(RelativePoint?, double?, double?, EaseValue?)"/>
-    /// from the pointer press that led to the navigation, or from the page's centre when a key was pressed since, over
+    /// from the pointer press that led to the navigation, or from the page's center when a key was pressed since, over
     /// <see cref="MotionTokens.Long"/>. At 65% the children of the incoming page's first <see cref="Panel"/> rise in from
-    /// the centre out. Both directions bloom.
+    /// the center out. Both directions bloom.
     /// </summary>
     /// <remarks>
     /// An outgoing page still partly revealed, because its bloom was interrupted, finishes its circle over
@@ -124,7 +124,7 @@ public static class Pages
 
     private static void Bloomed(Visual host, MotionTokens tokens)
     {
-        // The press is spent here rather than in BloomOrigin, which the bloom reads twice, as its centre's start and end.
+        // The press is spent here rather than in BloomOrigin, which the bloom reads twice, as its center's start and end.
         if (TopLevel.GetTopLevel(host) is { } top) s_presses.Remove(top);
         if (Engine.Current.Defaults.ReducedMotion || host.GetVisualDescendants().OfType<Panel>().FirstOrDefault() is not { } tiles) return;
         Presto.Build()

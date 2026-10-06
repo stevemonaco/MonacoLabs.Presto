@@ -68,7 +68,7 @@
 
             <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="eyebrow showcase" Text="EQUALISER" />
+                    <TextBlock Classes="eyebrow showcase" Text="EQUALIZER" />
                     <Border Classes="stage">
                         <StackPanel x:Name="Bars" Orientation="Horizontal" Spacing="6">
                             <Border Classes="bar" Background="{x:Static showcase:Palette.AccentDim}" />
@@ -80,7 +80,7 @@
                             <Border Classes="bar" Background="{x:Static showcase:Palette.AccentDim}" />
                         </StackPanel>
                     </Border>
-                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderEqualiser}" />
+                    <showcase:CodePanel Classes="compact" Code="{x:Static showcase:Snippets.LoaderEqualizer}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Spacing="8">

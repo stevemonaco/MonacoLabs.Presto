@@ -48,12 +48,12 @@ public sealed class TypographyPageTests
         var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
         var letters = WordmarkLetters(page);
 
-        window.MouseMove(SceneHarness.Centre(letters[2], window));
+        window.MouseMove(SceneHarness.Center(letters[2], window));
         TestFrames.Tick(20);
 
-        var centre = Y(letters[2]);
-        Assert.True(centre < Y(letters[0]) - 5 && centre < Y(letters[^1]) - 5,
-            $"the pointed-at letter sits at {centre:0.#} against {Y(letters[0]):0.#} and {Y(letters[^1]):0.#} at the ends");
+        var center = Y(letters[2]);
+        Assert.True(center < Y(letters[0]) - 5 && center < Y(letters[^1]) - 5,
+            $"the pointed-at letter sits at {center:0.#} against {Y(letters[0]):0.#} and {Y(letters[^1]):0.#} at the ends");
 
         window.MouseMove(new Point(1, 1));
         TestFrames.Tick(95);
@@ -76,7 +76,7 @@ public sealed class TypographyPageTests
             foreach (var letter in letters) AssertUnclipped(letter);
         }
 
-        window.MouseMove(SceneHarness.Centre(letters[0], window));
+        window.MouseMove(SceneHarness.Center(letters[0], window));
         TestFrames.Tick(20);
         Assert.True(Y(letters[0]) < -25, $"the pointed-at M only lifted to {Y(letters[0]):0.#}");
         foreach (var letter in letters) AssertUnclipped(letter);

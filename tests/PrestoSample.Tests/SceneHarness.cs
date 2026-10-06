@@ -45,12 +45,12 @@ internal static class SceneHarness
         window.Close();
     }
 
-    /// <summary>Clicks the centre of <paramref name="target"/> with real pointer input and ticks the frame it schedules.</summary>
+    /// <summary>Clicks the center of <paramref name="target"/> with real pointer input and ticks the frame it schedules.</summary>
     public static void Click(Window window, Visual target)
     {
-        var centre = Centre(target, window);
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
+        var center = Center(target, window);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
         TestFrames.Tick();
     }
 
@@ -75,7 +75,7 @@ internal static class SceneHarness
 
     /// <summary>Ticks until <paramref name="card"/> is drawn in the slot layout has given it, which is both its entry and its reflow finishing.</summary>
     public static Task<bool> Settles(Visual page, Window window, Border card) =>
-        Pump(() => Extent(page, Colour(card)) is { } box && Near(box, Slot(card, window)), rounds: 140);
+        Pump(() => Extent(page, CardColor(card)) is { } box && Near(box, Slot(card, window)), rounds: 140);
 
     /// <summary>The overlay canvases the particle recipes draw into over <paramref name="visual"/>'s window.</summary>
     public static CompositorCanvas[] ParticleOverlays(Visual visual) =>
@@ -120,8 +120,8 @@ internal static class SceneHarness
     }
 
     /// <summary>
-    /// Paints a whole card one colour, text included: subpixel glyph antialiasing writes a channel at a time, so a
-    /// neighbour's text over its own background can land on another card's exact tint and widen its extent.
+    /// Paints a whole card one color, text included: subpixel glyph antialiasing writes a channel at a time, so a
+    /// neighbor's text over its own background can land on another card's exact tint and widen its extent.
     /// </summary>
     public static void Flood(Border card, Color color)
     {
@@ -130,18 +130,18 @@ internal static class SceneHarness
         foreach (var text in card.GetLogicalDescendants().OfType<TextBlock>()) text.Foreground = brush;
     }
 
-    /// <summary>The colour <see cref="Flood"/> painted <paramref name="card"/> with.</summary>
-    public static Color Colour(Border card) => ((ImmutableSolidColorBrush)card.Background!).Color;
+    /// <summary>The color <see cref="Flood"/> painted <paramref name="card"/> with.</summary>
+    public static Color CardColor(Border card) => ((ImmutableSolidColorBrush)card.Background!).Color;
 
-    /// <summary>A colour per card that no palette entry uses, so one card's pixels can be told from another's.</summary>
+    /// <summary>A color per card that no palette entry uses, so one card's pixels can be told from another's.</summary>
     public static Color Tint(int index) => Color.FromRgb(255, 0, (byte)(23 + (index * 53 % 197)));
 
     /// <summary>The box layout has given <paramref name="control"/>, in <paramref name="window"/>'s coordinates.</summary>
     public static Rect Slot(Control control, Visual window) =>
         new(control.TranslatePoint(default, window)!.Value, control.Bounds.Size);
 
-    /// <summary>The centre of <paramref name="control"/>, in <paramref name="window"/>'s coordinates.</summary>
-    public static Point Centre(Visual control, Visual window) =>
+    /// <summary>The center of <paramref name="control"/>, in <paramref name="window"/>'s coordinates.</summary>
+    public static Point Center(Visual control, Visual window) =>
         control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
 
     /// <summary>A card's background stops inside its one pixel border, so a slot it fills is a few pixels wider than its pixels.</summary>

@@ -23,7 +23,7 @@ internal sealed class ContentSizeArm
     /// Reverts the live transition and, while the control is attached, arms a new one. It records the size the control has
     /// now, unless the control is <paramref name="attaching"/> or not yet laid out: then its first pass only records.
     /// </summary>
-    /// <exception cref="NotSupportedException">The builder sets something a content size transition cannot honour.</exception>
+    /// <exception cref="NotSupportedException">The builder sets something a content size transition cannot honor.</exception>
     public void Arm(bool attaching)
     {
         Disarm();

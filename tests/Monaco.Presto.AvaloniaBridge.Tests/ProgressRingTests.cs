@@ -42,9 +42,9 @@ public sealed class ProgressRingTests : BridgeTestBase
         var confirmed = 0;
         ring.Confirmed += (_, _) => confirmed++;
         var window = Show(ring);
-        var centre = Centre(ring, window);
+        var center = Center(ring, window);
 
-        window.MouseDown(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
         Frames.Advance(200, 16);
         Assert.InRange(ring.Value, .4, .6);
         Assert.Equal(0, confirmed);
@@ -52,7 +52,7 @@ public sealed class ProgressRingTests : BridgeTestBase
         Assert.Equal(1, ring.Value);
         Assert.Equal(1, confirmed);
 
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
         Frames.Advance(Recipes.Tokens.Short + 32, 16);
         Assert.Equal(0, ring.Value);
         Assert.Equal(1, confirmed);
@@ -69,12 +69,12 @@ public sealed class ProgressRingTests : BridgeTestBase
         var confirmed = false;
         ring.Confirmed += (_, _) => confirmed = true;
         var window = Show(ring);
-        var centre = Centre(ring, window);
+        var center = Center(ring, window);
 
-        window.MouseDown(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
         Frames.Advance(200, 16);
         Assert.InRange(ring.Value, .4, .6);
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
         Frames.Advance(16);
         if (reduced) Assert.Equal(0, ring.Value);
         else Assert.InRange(ring.Value, .01, .6);

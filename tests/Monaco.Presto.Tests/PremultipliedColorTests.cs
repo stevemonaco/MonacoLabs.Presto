@@ -1,7 +1,7 @@
 namespace Monaco.Presto.Tests;
 
 /// <summary>
-/// Colour RGB channels blend with premultiplied alpha as CSS Color 4 does, a deliberate deviation from anime.js 4.5.0's
+/// Color RGB channels blend with premultiplied alpha as CSS Color 4 does, a deliberate deviation from anime.js 4.5.0's
 /// straight alpha. Equal alphas keep upstream's straight pseudo-linear blend bit for bit.
 /// </summary>
 public sealed class PremultipliedColorTests : EngineTestBase
@@ -103,7 +103,7 @@ public sealed class PremultipliedColorTests : EngineTestBase
     }
 
     [Fact]
-    public void BlendedColourTweensKeepTheStraightBlend()
+    public void BlendedColorTweensKeepTheStraightBlend()
     {
         var (animation, tween) = Fade("rgba(45, 212, 191, .2)", Gray, composition: Composition.Blend);
         Assert.NotEqual(tween._fromNumbers[3], tween._toNumbers[3]);

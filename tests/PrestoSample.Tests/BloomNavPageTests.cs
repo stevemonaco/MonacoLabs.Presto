@@ -22,7 +22,7 @@ public sealed class BloomNavPageTests
         TestFrames.Tick(10);
         var presenter = page.GetControl<TransitioningContentControl>("Stage").GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Content == Shown(page));
         var bloom = Assert.IsType<EllipseGeometry>(presenter.Clip).Rect.Center;
-        var clicked = SceneHarness.Centre(Tab(page, 2), presenter);
+        var clicked = SceneHarness.Center(Tab(page, 2), presenter);
         Assert.True(Math.Abs(bloom.X - clicked.X) < 1 && Math.Abs(bloom.Y - clicked.Y) < 1, $"the bloom grew from {bloom}, not the click at {clicked}");
         TestFrames.Tick(80);
 

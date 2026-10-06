@@ -75,7 +75,7 @@ internal sealed class RootInspector : DockPanel
 
     internal Button ConfirmRevert { get; } = DevToolsOverlay.Compact(new Button { Content = "Revert to the start values" });
 
-    /// <summary>Shown while the root has completed or been cancelled; scrubbing it revives it and can override newer animations.</summary>
+    /// <summary>Shown while the root has completed or been canceled; scrubbing it revives it and can override newer animations.</summary>
     internal Button Revive { get; } = DevToolsOverlay.Compact(new Button { Content = "Revive" });
 
     /// <summary>The first app frame of the root's <see cref="Timer.CreationTrace"/>, with the whole trace as its tooltip; hidden without a trace.</summary>
@@ -83,7 +83,7 @@ internal sealed class RootInspector : DockPanel
 
     internal TextBlock Warning { get; } = new() { FontSize = 12, Foreground = Brushes.OrangeRed, IsVisible = false, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0) };
 
-    private bool Blocked => Root is { } root && (root.Completed || root.Cancelled) && root != _revived;
+    private bool Blocked => Root is { } root && (root.Completed || root.Canceled) && root != _revived;
 
     internal static Timer RootOf(Timer timer)
     {

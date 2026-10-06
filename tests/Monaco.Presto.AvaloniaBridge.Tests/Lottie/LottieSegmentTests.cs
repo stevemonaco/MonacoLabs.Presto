@@ -112,7 +112,7 @@ public sealed class LottieSegmentTests : BridgeTestBase
         view.Play("outro");
         Frames.Advance(2100, 10);
 
-        Assert.True(first.Cancelled);
+        Assert.True(first.Canceled);
         Assert.Equal(60, view.Frame);
     }
 

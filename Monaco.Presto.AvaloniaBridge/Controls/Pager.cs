@@ -17,7 +17,7 @@ namespace Monaco.Presto.AvaloniaBridge.Controls;
 /// <para>
 /// Autoplay advances one slide every <see cref="AutoplayInterval"/>, wrapping to the first, and holds while the pointer is
 /// over the pager, while it is dragged and while the keyboard has focus inside it. Paging by hand starts the interval over.
-/// <see cref="OffsetOf"/> gives each slide's distance from the centre, for parallax layers through <see cref="Follow"/>.
+/// <see cref="OffsetOf"/> gives each slide's distance from the center, for parallax layers through <see cref="Follow"/>.
 /// </para>
 /// <para>
 /// Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each move, a release or <see cref="GoTo"/> lands on its slide at
@@ -101,7 +101,7 @@ public sealed class Pager : Control
     /// <summary>How far through the current autoplay interval the pager is, from 0 to 1.</summary>
     public MotionValue AutoplayProgress => _autoplayProgress;
 
-    /// <summary>How far <paramref name="slide"/> stands from the centre, in slide widths: negative to the left, positive to the right.</summary>
+    /// <summary>How far <paramref name="slide"/> stands from the center, in slide widths: negative to the left, positive to the right.</summary>
     public MotionValue OffsetOf(int slide) => _position.Map(p => Slot(slide, p) - p);
 
     /// <summary>Springs to <paramref name="index"/>, which wraps when <see cref="Loop"/> is set and is clamped to the slides otherwise.</summary>
@@ -159,7 +159,7 @@ public sealed class Pager : Control
             OnRelease = Released,
             OnSettle = _ => Settle(),
         });
-        _drag.Animate.Animations[Presto.Canonicalise(_strip, "X")]._onRender += _ => Moved();
+        _drag.Animate.Animations[Presto.Canonicalize(_strip, "X")]._onRender += _ => Moved();
         Place();
         StartAutoplay();
     }

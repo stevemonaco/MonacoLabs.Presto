@@ -1,7 +1,7 @@
 namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 
 /// <summary>
-/// Looping recipes that play until cancelled. Each is static while <see cref="PrestoDefaults.ReducedMotion"/> is set: it
+/// Looping recipes that play until canceled. Each is static while <see cref="PrestoDefaults.ReducedMotion"/> is set: it
 /// animates nothing and plays once, leaving the element at rest.
 /// </summary>
 /// <remarks>

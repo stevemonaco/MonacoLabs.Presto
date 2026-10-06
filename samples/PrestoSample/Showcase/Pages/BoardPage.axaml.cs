@@ -184,12 +184,12 @@ public partial class BoardPage : ShowcasePage
 
     private int Zone(Border card)
     {
-        var centre = card.TranslatePoint(new Point(card.Bounds.Width / 2, 0), Board)?.X ?? 0;
+        var center = card.TranslatePoint(new Point(card.Bounds.Width / 2, 0), Board)?.X ?? 0;
         var nearest = 0;
         var gap = double.MaxValue;
         for (var i = 0; i < _zones.Length; i++)
         {
-            var distance = Math.Abs(_zones[i].Bounds.Center.X - centre);
+            var distance = Math.Abs(_zones[i].Bounds.Center.X - center);
             if (distance >= gap) continue;
             gap = distance;
             nearest = i;

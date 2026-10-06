@@ -762,7 +762,7 @@ public static class Presence
                 OnPause = timer =>
                 {
                     paused?.Invoke(timer);
-                    if (timer.Cancelled && timer == HideAnimation) EndHide();
+                    if (timer.Canceled && timer == HideAnimation) EndHide();
                 },
             };
             // A block still split by its reveal would split its emptied text again.
@@ -944,7 +944,7 @@ public static class Presence
         animation.OnPause = timer =>
         {
             paused?.Invoke(timer);
-            if (timer.Cancelled) Dismiss(overlay, host, ghosts, dismissed);
+            if (timer.Canceled) Dismiss(overlay, host, ghosts, dismissed);
         };
         // An instant exit, as PrestoDefaults.ReduceAll makes every one, completes inside Animate.
         if (animation.Completed) Dismiss(overlay, host, ghosts, dismissed);

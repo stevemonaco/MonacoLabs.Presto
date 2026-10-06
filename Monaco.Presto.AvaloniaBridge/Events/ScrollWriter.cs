@@ -49,7 +49,7 @@ internal sealed class ScrollWriter
     public bool Owns(object owner, bool horizontal) => (horizontal ? _x : _y).Owner == owner;
 
     /// <summary>Whether a live <c>"ScrollX"</c>/<c>"ScrollY"</c> tween holds that axis, from its first write until it ends or is stopped.</summary>
-    /// <remarks>A hold left by a cancelled tween is released here, since <c>Cancel()</c> never reaches the accessor.</remarks>
+    /// <remarks>A hold left by a canceled tween is released here, since <c>Cancel()</c> never reaches the accessor.</remarks>
     public bool Tweening(bool horizontal)
     {
         if ((horizontal ? _x : _y).Owner is not ScrollOffsetAccessor owner) return false;

@@ -12,7 +12,7 @@ using Monaco.Presto.Diagnostics;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// The recipe catalogue in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
+/// The recipe catalog in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
 /// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text reveals are builders
 /// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/>, <see cref="CountUp"/> and <see cref="RollDigits"/> need
 /// the <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/>.

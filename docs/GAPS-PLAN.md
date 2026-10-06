@@ -112,14 +112,14 @@ first. It sits behind a spike (§1.4 step 1).
 
 4. **The follower drives its own animation, not the control's.** Each follower runs a core `Animatable` over an
    internal channel holder. It never registers the control's property with Presto's composition. So a
-   `control.Animate(...)` on the same property neither cancels the follow nor is cancelled by it (decision 3 covers the
+   `control.Animate(...)` on the same property neither cancels the follow nor is canceled by it (decision 3 covers the
    layering).
 
 5. **Retargeting.**
    - **Springs:** a new target starts from the *displayed* value and keeps the current velocity. This is Phase 18's
      `PreserveVelocity`, on by default here.
    - **Velocity per channel:** today `PreserveVelocity` applies only to the scalar `Animatable.Set`. This phase extends
-     it to `Set(property, IReadOnlyList<double>)` per channel, so colours, thicknesses and points keep momentum too.
+     it to `Set(property, IReadOnlyList<double>)` per channel, so colors, thicknesses and points keep momentum too.
      That is the core change in this phase.
    - **Duration-based eases** restart from the displayed value with their full duration, as Compose does.
 
@@ -145,8 +145,8 @@ first. It sits behind a spike (§1.4 step 1).
      (§1.7 Q3). The follower behaves the same.
 
 8. **Types.** Anything a Presto codec handles: `double`/`float`/`int` (ints round), `Color`, solid and gradient brushes,
-   `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint`, and `BoxShadows`. Once Phase 30
-   lands, a `ColorSpace` parameter is passed through.
+   `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint`, and `BoxShadows`. Phase 30 has no
+   per-tween color space, so the follower blends colors as any color tween does (COLOR-SPACES-PLAN §6).
 
 9. **One-way only.** `TwoWay` or `OneWayToSource` on the wrapped binding throws from `ProvideValue`. Writing animated
    intermediate values back to a view model would be wrong.
@@ -169,7 +169,7 @@ first. It sits behind a spike (§1.4 step 1).
 12. **Not in style setters.** One setter is shared by every control it applies to. With `BindingBase` sealed off,
     there is no per-instance hook, so an extension inside a `Setter` throws with a message that points at templates
     instead. Control templates work, because their content is built per instance.
-    - A setter is recognised by `TargetObject is Setter`; its `TargetProperty` is the CLR `Value` property.
+    - A setter is recognized by `TargetObject is Setter`; its `TargetProperty` is the CLR `Value` property.
     - More generally, `ProvideValue` throws unless `TargetObject` is an `AvaloniaObject` and `TargetProperty` is an
       `AvaloniaProperty` (§1.7 Q1).
 
@@ -256,13 +256,13 @@ Core: `PreserveVelocity` applies to the channel form of `Animatable.Set`.
   - `ElementName`, `RelativeSource` and converters resolve.
 - **Bridge (`AllocationTests`):** a followed `double` stays within 192 B per tick through `{presto:Follow}`
   (160 measured) and within 128 B through `Follow.Bind` (104 measured). The follower's core holder adds nothing.
-- **Bridge (`FollowBindingPlumbingTests`, kept from the spike):** pins the Avalonia behaviour listed in §1.7.
+- **Bridge (`FollowBindingPlumbingTests`, kept from the spike):** pins the Avalonia behavior listed in §1.7.
 
 ### 1.6 Sample
 
 A *Value-driven* Reference page:
 
-- A slider and buttons on a view model drive a bar (`Width`), a gauge (`Follow.Rotate`), a colour swatch (`Color`) and
+- A slider and buttons on a view model drive a bar (`Width`), a gauge (`Follow.Rotate`), a color swatch (`Color`) and
   a card's `Margin`.
 - Mashing the buttons shows the momentum.
 - A virtualized list of rows with bound progress bars shows recycling snap rather than sweep.
@@ -273,7 +273,7 @@ better.
 
 ### 1.7 Spike results
 
-Headless probes on Avalonia 12.1.2 with compiled XAML and compiled bindings (`x:DataType`). Probes that pin behaviour
+Headless probes on Avalonia 12.1.2 with compiled XAML and compiled bindings (`x:DataType`). Probes that pin behavior
 the later items rely on are kept in `FollowBindingPlumbingTests`. They run over `FollowBindingXamlView` and a
 test-local `ProbeExtension` that does the plumbing without the animation. Measurements and throwaway variants were
 deleted after their numbers were recorded here.
@@ -388,7 +388,7 @@ in the bridge root namespace, with the values listed in §1.3.
 
 There is no way to say "this value follows that one through a mapping". Pages hand-write `OnUpdate`/`OnScroll`
 handlers that read one value and set several, for example scroll → header height, opacity and blur, or drag X →
-rotation and the colour of an underlying action.
+rotation and the color of an underlying action.
 
 Motion has `useMotionValue`, `useTransform`, `useSpring` and `useVelocity`. GSAP gets most of the way with `quickTo`
 plus `utils.mapRange`/`pipe`. Presto has the pieces: `Animatable` (≈ `quickTo`), `Utils.MapRange`/`Snap`/`Clamp`,
@@ -439,7 +439,7 @@ MotionValue Animatable.ValueOf(string property) // assigned whenever that proper
 - `Map` ranges need two or more ascending breakpoints of equal length (`ArgumentException` otherwise). `clamp: false`
   extrapolates the end segments.
 - `Map` to objects decodes the outputs once, through the `Presto.Codecs` entry found by exact type, base type or
-  interface (so brushes resolve to `IBrush`), or through `ValueParser` for strings. Neighbouring outputs are reconciled
+  interface (so brushes resolve to `IBrush`), or through `ValueParser` for strings. Neighboring outputs are reconciled
   per segment, and mismatched kinds or channels throw. A change eases the segment progress, interpolates the channels and
   encodes.
 - `Scrub` survives the engine's cancel of a completed timer, so it can seek back. `Cancel`, `Revert` and `Scrub(null)`
@@ -505,7 +505,7 @@ Follow.SetX(visual, motionValue)   // X, Y, Scale, ScaleX, ScaleY, Rotate, Blur
   handler) and `MotionValueDynamicsTests` (spring settling, a spring over a derived value, velocity kept across jumps,
   frame-rate independence, `Velocity`/`VelocityOf` matching a `VelocityTracker`, `ProgressValue`, `Scrub`,
   `Animatable.ValueOf`), plus the allocation tests above.
-- **Bridge:** `MotionValueCodecTests` (object maps through colours, thicknesses, brushes and gradients), `MotionValueSourceTests`
+- **Bridge:** `MotionValueCodecTests` (object maps through colors, thicknesses, brushes and gradients), `MotionValueSourceTests`
   and `MotionValueSinkTests`.
 - **Sample:** the Scroll story rail (`ProgressValue` × track width) and vane (scroll velocity, mapped and sprung, to
   `ScaleY`; direction, sprung, to `Rotate`) and the Swipe deck's drag → tilt, lean, stamp opacities and tint run on
@@ -527,7 +527,7 @@ real width and height too, overriding min/max, with a 1px tolerance.
 **43a — `Animate.ContentSize` and `PrestoAvalonia.AnimateContentSize` (UI thread, real layout).**
 
 - **API.** `Animate.ContentSize` takes a builder (only timing and an ease; a property or anything else a layout
-  transition cannot honour throws where it is set) and is meant for a `Decorator`, `ContentControl` or `Border`.
+  transition cannot honor throws where it is set) and is meant for a `Decorator`, `ContentControl` or `Border`.
   `AnimateContentSize(host, duration, ease)` / `(host, builder)` / `(host, build)` and the matching extensions return a
   `ContentSizeTransition` with `Progress`, `Completed`, `Cancel`, `Revert`, `Then` and an awaiter, registered with the
   current scope. Attaching records the size without easing, detaching reverts, and a change of `ReducedMotion` re-arms,
@@ -551,7 +551,7 @@ real width and height too, overriding min/max, with a 1px tolerance.
 - **Layout moves.** ContentSize owns its host's size. On the same host, `Animate.Layout` or a `LayoutTransition` eases
   only position, whatever its mode. While a host resizes, layout moves of controls beside it under the same parent
   land in one frame, because the resize already eases them and a compositor flight would trail behind. Without this,
-  `ItemLayout` neighbours of an expanding row lagged behind it. The host stays in that set through the pass that lays out
+  `ItemLayout` neighbors of an expanding row lagged behind it. The host stays in that set through the pass that lays out
   its last frame.
 - **Cost.** The host is laid out again every frame, so this is meant for a panel, not hundreds of rows.
 
@@ -561,8 +561,8 @@ real width and height too, overriding min/max, with a 1px tolerance.
   `ExpressionAnimation` of `Vector3(1 / parent.Scale.X, 1 / parent.Scale.Y, 1)` on the render thread, so it keeps its
   size and takes its descendants with it.
 - **Anchoring.** The offset fix-up is a static `CenterPoint` on each child, not an expression. The anchor sits as far
-  across the child as the child sits across the room the parent leaves it. A child flush top left stays there, a centred
-  one stays centred, and a margin scales with the parent.
+  across the child as the child sits across the room the parent leaves it. A child flush top left stays there, a centered
+  one stays centered, and a margin scales with the parent.
 - **Ownership.** The child's `Scale` is taken through `CompositorRegistry` with the usual Debug warning, so a corrected
   grow takes it over from a compositor animation on the child. The transition releases it at completion, cancel or
   revert, writing identity and resetting the anchor. A grow interrupted mid-flight keeps the expressions it already
@@ -626,7 +626,7 @@ Built as sketched, with the deviations in §4.4; decisions in PLAN.md §7 (64–
   `Play()`/`Play("hover")`/`PlaySegment(from, to)` return the `Animation`. `Recipes.PlayLottie` and
   `{presto:PlayLottie}` follow the `PlayFrames` shape.
 - **Optional render-thread playback**, as `CompositorScene` does, for spinners that must survive UI-thread stalls.
-- **Out of scope:** per-layer recolouring (Skottie's property observers are not in SkiaSharp's public API),
+- **Out of scope:** per-layer recoloring (Skottie's property observers are not in SkiaSharp's public API),
   expressions (Skottie does not run them), and Lottie's text and effects beyond what Skottie draws.
 
 ### 4.3 Spike results
@@ -635,7 +635,7 @@ Built as sketched, with the deviations in §4.4; decisions in PLAN.md §7 (64–
 
 - **Browser: works, with no extra flags.** A temporary startup probe in the Browser head loaded `toggle.json` through
   `LottieComposition.Load` (avares), parsed it with `Animation.TryParse` and rendered frame 40 into a 100 × 100
-  `SKSurface`. The centre pixel came back as the toggle's fill (`#2EBF73`) and the corner as transparent. This held under
+  `SKSurface`. The center pixel came back as the toggle's fill (`#2EBF73`) and the corner as transparent. This held under
   `dotnet run` (Debug) and under a trimmed `dotnet publish -c Release`, which relinks `dotnet.native.wasm` with the
   `wasm-tools` workload. The publish raised no trim warnings from Skottie or the Lottie package. The probe was removed.
 - **Parse cost: negligible.** A synthetic 197 KB file (91 shape layers, each with animated opacity, rotation, position
@@ -724,7 +724,7 @@ Upstream has none of this, so `scroll.js` and `scroll.test.js` were structural r
 
 **Smoothed wheel — `Scroll.Smooth` (shipped, Win32 only).**
 
-- **Behaviour.** On a `ScrollViewer`, `presto:Scroll.Smooth="True"` catches wheel notches in the tunnel phase and adds
+- **Behavior.** On a `ScrollViewer`, `presto:Scroll.Smooth="True"` catches wheel notches in the tunnel phase and adds
   each to a target 50 units away (Shift turns a vertical wheel horizontal), clamped to `ScrollBarMaximum`. A paused timer
   (300 ms, `OutQuad`) eases `Offset` there with `SetCurrentValue`. A notch at the end of the range passes through to the
   presenter, so scroll chaining to an outer scroller still works. Fractional deltas, touch, scrollbar, keyboard and snap
@@ -790,7 +790,7 @@ the pieces exist, `Draggable` and `Animate.ItemLayout`, but no recipe joins them
 - **`Move` re-hosts the moved item.** Both lists raise `ContainerClearing` and then `ContainerPrepared` for it. The
   `ItemsControl` prepares a **new** container and detaches the old one, while the `ListBox` re-prepares the same
   instance. The other containers keep their identity and only change index.
-- **FLIP.** With `Animate.ItemLayout` the neighbours ease. The moved container is armed as attaching, as a recycled
+- **FLIP.** With `Animate.ItemLayout` the neighbors ease. The moved container is armed as attaching, as a recycled
   one is, so it lands in its new slot in one frame.
 - **Presence.** `Move` used to play the moved row's exit on a ghost and its enter on the new row. `ItemChanges` now
   tracks a `Move`'s items in `Moved` (counted in `Pending`) instead of `Added`/`Removed`. `Presence` classifies the
@@ -835,7 +835,7 @@ it as a removal and an insert. Without a command, the drag still lifts and sprin
   and releases when that capture is lost, and a `Move` takes the capture from the container, or detaches the container
   outright in an `ItemsControl`. Reorder handles `PointerPressed` on the list in the tunnel phase, so a `ListBoxItem`
   cannot swallow it. It applies `Draggable`'s default drag threshold and then captures **the list**, plays the lift and
-  raises the container's `ZIndex` at `Animation` priority so it draws over its neighbours.
+  raises the container's `ZIndex` at `Animation` priority so it draws over its neighbors.
 - **Following the pointer.** Reorder tracks the dragged **item**. After each move's layout pass it re-finds the item's
   container with `ContainerFromItem` and moves the drag state onto it. It writes the `"Y"` (or `"X"`) shorthand
   through `RenderTransformComposer` as `pointer delta − (slot now − slot at grab)`, so the container never jumps. On a
@@ -843,7 +843,7 @@ it as a removal and an insert. Without a command, the drag still lifts and sprin
 - **Excluding the dragged container from FLIP.** The two translations compose, so Reorder keeps the dragged container's
   item `LayoutArm` disarmed from grab until the release spring settles. Reorder suspends the dragged container's item
   `LayoutArm` (`LayoutArm.Suspend` via `Animate.ItemArmOf`) whenever it moves onto a container, so an arm prepared by a
-  move or scroll never arms it. The neighbours keep easing.
+  move or scroll never arms it. The neighbors keep easing.
 - **Keeping it realized.** Capture on the list does not keep the container realized, but focus does. Reorder focuses
   the container on grab and again after every move, because the move takes focus away. A non-focusable container can
   be recycled in a virtualized drag far past the viewport, and the docs on `Enabled` say so.
@@ -853,7 +853,7 @@ it as a removal and an insert. Without a command, the drag still lifts and sprin
   (`Eases.Spring()`), and the lift animation is reversed. Once the spring settles, the container's `LayoutArm` resumes
   as if attaching, so it records its slot rather than flying there.
 - **Escape.** Escape returns the item to its start index through the same path, one step at a time, then releases. A
-  step that is cancelled or refused stops it where it is.
+  step that is canceled or refused stops it where it is.
 - **Keyboard.** Alt+Up/Down (Alt+Left/Right on a horizontal axis) on a focused container moves its item one step
   through the same path, and the container is focused again afterwards.
 
@@ -960,7 +960,7 @@ PLAN.md decisions 57–63 pin the choices below.
 
 - **Path data.** It reads M, L, H, V and C, absolute or relative (lowercase). x is progress and y is the eased value,
   with y pointing **up** and no flip, so a path that runs from `0,0` to `1,1` reads as it would on a graph.
-- **Normalisation.** The path's start maps to (0, 0) and its end to (1, 1), and y may overshoot in between. When the
+- **Normalization.** The path's start maps to (0, 0) and its end to (1, 1), and y may overshoot in between. When the
   start and end y are equal, y is only offset, not scaled.
 - **Sampling.** Each cubic is flattened into 64 chords, and the result is sampled at equal x steps into a 513-entry
   table. Calling the ease looks up the table and interpolates linearly, with no allocation.
@@ -991,10 +991,10 @@ PLAN.md decisions 57–63 pin the choices below.
   velocity lost per **millisecond** in either time unit, below 1.
 - **Duration.** The flight time is `Projectile.Duration`, or the tween's own duration if that is null. Unlike `Inertia`,
   the flight time is not derived from the physics.
-- **End and ease.** The end value is the physical end point. Each tween's ease is the displacement normalised over its
+- **End and ease.** The end value is the physical end point. Each tween's ease is the displacement normalized over its
   own span, so a seek at any time matches the ballistic formula.
 - **Turning back.** A throw that turns back is split at its apex into two tweens through `Plan.Then`, so each tween is
-  monotonic. A throw that lands on its start still has a span to normalise by, and ends exactly there. A projectile
+  monotonic. A throw that lands on its start still has a span to normalize by, and ends exactly there. A projectile
   that does not move at all is a `None`-eased tween to its start.
 - **Launch.** `Launch` splits a 2D throw, with gravity on Y only and positive Y pointing down. The angle runs
   clockwise from +X, so −90 throws straight up.
@@ -1008,7 +1008,7 @@ PLAN.md decisions 57–63 pin the choices below.
 - **Spline.** A uniform Catmull-Rom spline, stored as cubic Béziers whose control points are
   `p ± (next − previous) · curviness / 6`. `curviness` 0 is the straight polyline, 1 the standard Catmull-Rom curve
   (GSAP's default), and larger values loosen it.
-- **Ends.** An open path uses its first and last points as their own missing neighbours. A `closed` path wraps, so its
+- **Ends.** An open path uses its first and last points as their own missing neighbors. A `closed` path wraps, so its
   end tangent meets its start.
 - **Constant speed.** An arc-length table of 64 samples per segment gives constant speed along the path. `Sample` is
   allocation-free. It takes the angle from the curve's derivative, and from the segment's chord where a zero-length
@@ -1056,14 +1056,14 @@ PLAN.md decisions 57–63 pin the choices below.
 ### 9.2 Tests and sample
 
 - **Tests (core):** `CustomEaseTests` (a line is linear, a cubic matches `CubicBezier`, overshoot, exact endpoints,
-  unit-square normalisation, relative equals absolute, H/V steps, backwards x and malformed data throw, no allocation).
+  unit-square normalization, relative equals absolute, H/V steps, backwards x and malformed data throw, no allocation).
   `EasePackTests` (wiggle rests at both ends and crosses zero twice per wiggle, decaying, uniform and anticipating
   envelopes, rough exact at the ends, same seed same curve, clamped, jagged, follows its template at strength 0, slow-mo's
   constant slope and yoyo, expo-scale's geometric midpoint, its ease and its argument checks, no allocation).
   `EaseParserTests` (every new string form matches its factory, identifier and flag errors throw, `fromPath` takes the
   raw path, a string caches one instance). `ProjectileTests` (linear without gravity, the ballistic formula, friction,
   a toss landing on its start ends exactly there, seeks on both sides of the apex, `Launch`, `Duration` overrides,
-  keyframe, from/to and colour errors, seconds mode, `ReduceAll`). `MotionPathTests` (passes through every point,
+  keyframe, from/to and color errors, seconds mode, `ReduceAll`). `MotionPathTests` (passes through every point,
   curviness 0 is the polyline, a closed path's tangent meets its start, equal distances give equal chords, tangent and
   `autoRotate`, offset clamping and wrapping, an animation lands on the last point).
 - **Tests (bridge):** `ShapesTests.PointMotionPathDrivesTheShorthandsThroughThePoints`, `SystemReducedMotionTests`
@@ -1080,7 +1080,7 @@ PLAN.md decisions 57–63 pin the choices below.
     the drawn track.
   - The sidebar has a Follow system switch, which disables the manual Reduced motion switch while it is on.
   - Counters has a "Roll to a random value" readout, and the Recipe gallery a `RollDigits` tile beside `CountUp`.
-  - Pinned by `ReferencePagesTests` (`EveryCatalogueEaseAndTypedEaseFormPlots`,
+  - Pinned by `ReferencePagesTests` (`EveryCatalogEaseAndTypedEaseFormPlots`,
     `TossArcsTheBallUpAndLandsItBackOnTheFloor`), `GalleryPageTests.FollowingTheSystemLocksTheSidebarSwitchUntilTurnedOff`
     and `BuilderRecipePagesTests.RollDigitsRollsTheReadoutAndEndsAsPlainText`.
 

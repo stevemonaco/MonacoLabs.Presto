@@ -41,13 +41,13 @@ public sealed record EmitterParams
     /// <summary>Opacity over life.</summary>
     public ParticleCurve Opacity { get; init; } = new(1, 0);
 
-    /// <summary>The palette each particle's colour is drawn from.</summary>
+    /// <summary>The palette each particle's color is drawn from.</summary>
     public IReadOnlyList<PrestoColor> Colors { get; init; } = [new(255, 255, 255)];
 
-    /// <summary>How far each particle's colour has moved toward <see cref="EndColor"/> over life; unset keeps it.</summary>
+    /// <summary>How far each particle's color has moved toward <see cref="EndColor"/> over life; unset keeps it.</summary>
     public ParticleCurve? ColorMix { get; init; }
 
-    /// <summary>The colour <see cref="ColorMix"/> blends toward.</summary>
+    /// <summary>The color <see cref="ColorMix"/> blends toward.</summary>
     public PrestoColor? EndColor { get; init; }
 
     /// <summary>Confetti flips per second, 0 for none.</summary>
@@ -59,7 +59,7 @@ public sealed record EmitterParams
     /// <summary>Seed for every random draw, so a replay matches; null draws a fresh seed.</summary>
     public int? Seed { get; init; }
 
-    /// <summary>The spawn area centred on the origin; zero spawns at the origin itself.</summary>
+    /// <summary>The spawn area centered on the origin; zero spawns at the origin itself.</summary>
     public (double Width, double Height) Area { get; init; }
 
     /// <summary>What each particle looks like, resolved by the renderer.</summary>

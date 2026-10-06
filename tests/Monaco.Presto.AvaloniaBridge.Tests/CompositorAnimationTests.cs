@@ -45,7 +45,7 @@ public sealed class CompositorAnimationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void RotationTurnsAboutTheCentreOfTheResizedControl()
+    public void RotationTurnsAboutTheCenterOfTheResizedControl()
     {
         var bar = ShowBar();
         _ = bar.AnimateOnCompositor(new() { ["Rotate"] = 90, Duration = 300, Ease = "linear" });
@@ -80,7 +80,7 @@ public sealed class CompositorAnimationTests : CompositorTestBase
     {
         var bar = ShowBar();
         _ = bar.AnimateOnCompositor(new() { ["ScaleY"] = new TweenValue[] { 0.5, 0.5 }, Duration = Held, Ease = "linear" });
-        Assert.True(Pump(() => Extent(bar, Colors.Red) == new Rect(30, 45, 40, 10)), "the bar never scaled about its centre");
+        Assert.True(Pump(() => Extent(bar, Colors.Red) == new Rect(30, 45, 40, 10)), "the bar never scaled about its center");
 
         bar.RenderTransformOrigin = RelativePoint.Parse("50%,100%");
         Tick();
@@ -98,7 +98,7 @@ public sealed class CompositorAnimationTests : CompositorTestBase
         _ = animation.Cancel();
         var frozen = Extent(bar, Colors.Red);
 
-        Assert.False(Pump(() => Extent(bar, Colors.Red) != frozen, rounds: 8), "the cancelled animation kept running");
+        Assert.False(Pump(() => Extent(bar, Colors.Red) != frozen, rounds: 8), "the canceled animation kept running");
     }
 
     [AvaloniaFact]

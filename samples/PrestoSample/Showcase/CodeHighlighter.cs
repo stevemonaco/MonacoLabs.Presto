@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace PrestoSample.Showcase;
 
-/// <summary>A regex tokenizer for the gallery's printed C# and XAML, good enough to colour a snippet, not to parse one.</summary>
+/// <summary>A regex tokenizer for the gallery's printed C# and XAML, good enough to color a snippet, not to parse one.</summary>
 public static class CodeHighlighter
 {
     private const RegexOptions Options = RegexOptions.Compiled | RegexOptions.ExplicitCapture;

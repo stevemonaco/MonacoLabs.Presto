@@ -21,7 +21,7 @@ public class Timer : Clock, IRevertible
     internal bool _running;
     internal bool _reversed;
     internal bool _reverse;
-    internal bool _cancelled;
+    internal bool _canceled;
     internal bool _alternate;
     internal bool _autoplay;
     internal Timer? _prev;
@@ -209,9 +209,9 @@ public class Timer : Clock, IRevertible
     public Action<Timer>? OnComplete { get; set; }
 
     /// <summary>True once <see cref="Cancel"/> has detached the timer; setting it false revives it and plays it from the start.</summary>
-    public bool Cancelled
+    public bool Canceled
     {
-        get => _cancelled;
+        get => _canceled;
         set
         {
             if (value) Cancel(); else Reset(true).Play();
@@ -297,7 +297,7 @@ public class Timer : Clock, IRevertible
 
     private static void ReviveTimer(Timer timer)
     {
-        if (!timer._cancelled) return;
+        if (!timer._canceled) return;
         if (timer._hasChildren)
         {
             Helpers.ForEachChildren(timer, ReviveTimer);
@@ -309,7 +309,7 @@ public class Timer : Clock, IRevertible
                 if (tween._composition != Composition.None) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property));
             });
         }
-        timer._cancelled = false;
+        timer._canceled = false;
     }
 
     internal void UpdateDuration()
@@ -320,7 +320,7 @@ public class Timer : Clock, IRevertible
 
     private static bool SortByPriority(Timer prev, Timer child) => prev._priority > child._priority;
 
-    /// <summary>Rewinds to 0 and clears the began, completed and cancelled state, leaving the timer paused (upstream <c>timer.reset()</c>).</summary>
+    /// <summary>Rewinds to 0 and clears the began, completed and canceled state, leaving the timer paused (upstream <c>timer.reset()</c>).</summary>
     /// <param name="softReset">Rewinds the timing state without writing the start values back to the targets.</param>
     public Timer Reset(bool softReset = false)
     {
@@ -456,7 +456,7 @@ public class Timer : Clock, IRevertible
     /// <summary>Pauses and detaches the tweens from their targets, leaving the animated values where they stand; <see cref="Reset"/> and <see cref="Seek"/> revive it (upstream <c>timer.cancel()</c>).</summary>
     public Timer Cancel()
     {
-        if (_diagnostics != null && !_cancelled) OwnerEngine.Diagnostics.Ended(this);
+        if (_diagnostics != null && !_canceled) OwnerEngine.Diagnostics.Ended(this);
         Scrub(null);
         return DetachTweens();
     }
@@ -466,8 +466,8 @@ public class Timer : Clock, IRevertible
     {
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
         // Unlike upstream, a repeat cancel leaves composition alone: the tweens already left their sibling lists.
-        else if (!_cancelled) TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
-        _cancelled = true;
+        else if (!_canceled) TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
+        _canceled = true;
         return Pause();
     }
 

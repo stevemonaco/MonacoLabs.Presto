@@ -98,7 +98,7 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
-    public void PreviousAnimationIsCancelledOnlyOnceAllItsTweensAreOverlapped()
+    public void PreviousAnimationIsCanceledOnlyOnceAllItsTweensAreOverlapped()
     {
         var target = CreateTarget();
         var animation = CreateAnimation(autoplay: true);
@@ -114,12 +114,12 @@ public sealed class CompositionTests : EngineTestBase
             if (tween._isOverlapped) overlapped++;
         });
         Assert.Equal(1, overlapped);
-        Assert.False(animation._cancelled);
+        Assert.False(animation._canceled);
         Assert.False(animation.Paused);
 
         AddTween(replacement, target, "y", 40, 100);
 
-        Assert.True(animation._cancelled);
+        Assert.True(animation._canceled);
         Assert.True(animation.Paused);
     }
 
@@ -137,7 +137,7 @@ public sealed class CompositionTests : EngineTestBase
 
         Assert.True(firstKeyframe._isOverridden);
         Assert.True(secondKeyframe._isOverridden);
-        Assert.True(looping._cancelled);
+        Assert.True(looping._canceled);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public sealed class CompositionTests : EngineTestBase
 
         animation.Cancel();
 
-        Assert.True(animation._cancelled);
+        Assert.True(animation._canceled);
         Assert.True(animation.Paused);
         Assert.Null(tween._nextRep);
         Assert.Null(later._prevRep);
@@ -227,7 +227,7 @@ public sealed class CompositionTests : EngineTestBase
 
         animation.Seek(0);
 
-        Assert.False(animation._cancelled);
+        Assert.False(animation._canceled);
         Assert.Same(later, tween._nextRep);
         Assert.Same(tween, Composer.GetTweenSiblings(target, "x")._head);
     }

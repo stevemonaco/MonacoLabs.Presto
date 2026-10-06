@@ -141,7 +141,7 @@ public sealed class TransformableTests : BridgeTestBase
         touch.Up(2, new Point(100, 60));
     }
 
-    // Zooms to 2 about the centre of the 200x200 target, where Contain allows X in [-100, 100].
+    // Zooms to 2 about the center of the 200x200 target, where Contain allows X in [-100, 100].
     private static void ZoomToTwo(Touch touch)
     {
         touch.Down(1, new Point(80, 100));
@@ -225,7 +225,7 @@ public sealed class TransformableTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void ACustomSettleDurationIsHonoured()
+    public void ACustomSettleDurationIsHonored()
     {
         var (window, _, target) = Scene();
         var transformable = target.CreateTransformable(s_free with { MaxScale = 1.5, Settle = new AnimationBuilder().Duration(300) });

@@ -72,10 +72,10 @@ public abstract class CompositorScene
     /// <summary>Marks the whole scene for redrawing.</summary>
     protected void Invalidate() => Handler.InvalidateScene();
 
-    /// <summary>A brush this scene caches: the same colour and opacity hand back the same instance, opacity rounded to 256 steps.</summary>
+    /// <summary>A brush this scene caches: the same color and opacity hand back the same instance, opacity rounded to 256 steps.</summary>
     /// <remarks>
     /// Meant for a small palette. The cache is cleared once it holds 1 024 brushes, so a scene
-    /// that tweens colours through more distinct values than that allocates again instead of growing without bound.
+    /// that tweens colors through more distinct values than that allocates again instead of growing without bound.
     /// </remarks>
     protected IImmutableBrush Brush(Color color, double opacity = 1)
     {

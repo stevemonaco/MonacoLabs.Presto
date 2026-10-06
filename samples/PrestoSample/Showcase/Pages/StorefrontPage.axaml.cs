@@ -20,14 +20,14 @@ public partial class StorefrontPage : ShowcasePage
     private const double FetchDuration = 900;
     private const int ShelfSize = 3;
 
-    /// <summary>The chip colours a <c>:checked</c> <see cref="MotionState"/> plays.</summary>
+    /// <summary>The chip colors a <c>:checked</c> <see cref="MotionState"/> plays.</summary>
     public static readonly AnimationBuilder Picked = Presto.Build()
         .Background(Palette.Accent)
         .Foreground(Palette.Background)
         .Duration(200)
         .Ease(Eases.OutQuad);
 
-    /// <summary>The hover that colours a sold-out product's gray picture.</summary>
+    /// <summary>The hover that colors a sold-out product's gray picture.</summary>
     public static readonly AnimationBuilder Colorize = Recipes.Colorize();
 
     public StorefrontPage()
@@ -47,7 +47,7 @@ public partial class StorefrontPage : ShowcasePage
             OnComplete = _ =>
             {
                 Body.Children.Remove(Skeleton);
-                Catalogue.IsVisible = true;
+                Catalog.IsVisible = true;
             },
         });
     }

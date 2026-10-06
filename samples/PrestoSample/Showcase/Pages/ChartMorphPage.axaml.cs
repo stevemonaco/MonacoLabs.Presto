@@ -12,7 +12,7 @@ namespace PrestoSample.Showcase.Pages;
 
 public partial class ChartMorphPage : ShowcasePage
 {
-    /// <summary>The donut's outer radius around the centre of the plot.</summary>
+    /// <summary>The donut's outer radius around the center of the plot.</summary>
     public const double DonutRadius = 132;
 
     private const double DonutHole = 80;
@@ -161,11 +161,11 @@ public partial class ChartMorphPage : ShowcasePage
             case ChartView.Bars:
                 return [.. points.Select((p, i) => ChartGeometry.Bar(Column(i), Y(p.Value, valueMax), Plot.Height, BarWidth, BarRadius))];
             case ChartView.Donut:
-                var centre = new Point(Plot.Width / 2, Plot.Height / 2);
+                var center = new Point(Plot.Width / 2, Plot.Height / 2);
                 return
                 [
                     .. ChartGeometry.Sweeps([.. points.Select(p => p.Value)])
-                        .Select(s => ChartGeometry.Wedge(centre, DonutHole, DonutRadius, s.Start + (WedgeGap / 2), s.Sweep - WedgeGap)),
+                        .Select(s => ChartGeometry.Wedge(center, DonutHole, DonutRadius, s.Start + (WedgeGap / 2), s.Sweep - WedgeGap)),
                 ];
             case ChartView.Scatter:
                 var secondaryMax = NiceMax(points.Max(p => p.Secondary));

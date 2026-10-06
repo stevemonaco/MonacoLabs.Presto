@@ -1,7 +1,7 @@
 namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
-/// What <see cref="ImageEffectDrawOperation"/> applies to an image, in this order: a colour matrix, a ripple, a pixelation,
+/// What <see cref="ImageEffectDrawOperation"/> applies to an image, in this order: a color matrix, a ripple, a pixelation,
 /// a seeded noise dissolve, then a linear wipe mask.
 /// </summary>
 internal readonly struct ImageEffect(in ColorMatrix matrix, double ripple, double rippleScale, double pixelate,

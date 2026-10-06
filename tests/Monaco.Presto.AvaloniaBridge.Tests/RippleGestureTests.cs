@@ -106,7 +106,7 @@ public sealed class RippleGestureTests : CompositorTestBase
     }
 
     /// <remarks>
-    /// A key press ripples from the centre, so for a moment the corner shows the pressed tint alone; hover is 8 % of red
+    /// A key press ripples from the center, so for a moment the corner shows the pressed tint alone; hover is 8 % of red
     /// over white and focus or press 10 %.
     /// </remarks>
     [AvaloniaTheory]

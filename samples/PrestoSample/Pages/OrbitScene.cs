@@ -26,8 +26,8 @@ public sealed class OrbitScene : CompositorScene
     /// <summary>Innermost ring first; each ring takes the next brush.</summary>
     internal static readonly IReadOnlyList<ImmutableSolidColorBrush> RingBrushes = [Palette.AccentPale, Palette.AccentBright, Palette.Accent];
 
-    /// <summary>Every dot's centre within an <see cref="Extent"/> square and the ring it belongs to, in stagger order.</summary>
-    internal static readonly IReadOnlyList<(Point Centre, int Ring)> Dots =
+    /// <summary>Every dot's center within an <see cref="Extent"/> square and the ring it belongs to, in stagger order.</summary>
+    internal static readonly IReadOnlyList<(Point Center, int Ring)> Dots =
     [
         .. new[] { (Radius: 26d, Count: 6), (Radius: 46d, Count: 12), (Radius: 66d, Count: 18) }.SelectMany((ring, r) =>
             Enumerable.Range(0, ring.Count).Select(i =>
@@ -99,16 +99,16 @@ public sealed class OrbitScene : CompositorScene
     {
         for (var i = 0; i < _dots.Length; i++)
         {
-            var (centre, ring) = Dots[i];
+            var (center, ring) = Dots[i];
             var radius = DotRadius * _dots[i].Scale;
-            context.DrawEllipse(Brush(RingBrushes[ring].Color, _dots[i].Opacity), null, centre, radius, radius);
+            context.DrawEllipse(Brush(RingBrushes[ring].Color, _dots[i].Opacity), null, center, radius, radius);
         }
 
         for (var i = _tail.Length - 1; i >= 0; i--)
         {
             var angle = _tail[i].Rotate * Math.PI / 180;
-            var centre = new Point((Extent / 2) + (Math.Sin(angle) * CometOrbit), (Extent / 2) - (Math.Cos(angle) * CometOrbit));
-            context.DrawEllipse(Brush(Palette.Aqua.Color, TailOpacity(i)), null, centre, TailRadius(i), TailRadius(i));
+            var center = new Point((Extent / 2) + (Math.Sin(angle) * CometOrbit), (Extent / 2) - (Math.Cos(angle) * CometOrbit));
+            context.DrawEllipse(Brush(Palette.Aqua.Color, TailOpacity(i)), null, center, TailRadius(i), TailRadius(i));
         }
 
         _text.Draw(context, _fps, FpsOrigin, Brush(Palette.InkDim.Color));

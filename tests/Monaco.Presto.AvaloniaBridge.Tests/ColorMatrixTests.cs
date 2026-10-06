@@ -73,7 +73,7 @@ public sealed class ColorMatrixTests
     }
 
     [Fact]
-    public void FullTintMapsLuminanceOntoTheColour()
+    public void FullTintMapsLuminanceOntoTheColor()
     {
         var (r, g, b, a) = Apply(ColorMatrix.Tint(1, Colors.Blue), 1, 0.5f, 0.25f);
         var luminance = 0.2126f * 1 + 0.7152f * 0.5f + 0.0722f * 0.25f;

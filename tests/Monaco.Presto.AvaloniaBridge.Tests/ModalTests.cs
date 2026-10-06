@@ -16,7 +16,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 public sealed class ModalTests : CompositorTestBase
 {
     [AvaloniaFact]
-    public void OpeningShowsTheScrimBlursTheBackdropAndRevealsFromTheOriginsCentre()
+    public void OpeningShowsTheScrimBlursTheBackdropAndRevealsFromTheOriginsCenter()
     {
         var (_, modal, opener) = Stage();
 

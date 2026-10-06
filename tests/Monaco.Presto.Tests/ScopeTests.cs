@@ -2,7 +2,7 @@ using Monaco.Presto.Core;
 
 namespace Monaco.Presto.Tests;
 
-/// <summary>Port of the portable half of anime.js tests/suites/scope.test.js, plus the registration behaviour it leaves to the DOM suites.</summary>
+/// <summary>Port of the portable half of anime.js tests/suites/scope.test.js, plus the registration behavior it leaves to the DOM suites.</summary>
 public sealed class ScopeTests : EngineTestBase
 {
     [Fact]
@@ -38,8 +38,8 @@ public sealed class ScopeTests : EngineTestBase
 
         Assert.Equal(0, target.X);
         Assert.Equal(0, target.Y);
-        Assert.True(animation!.Cancelled);
-        Assert.True(timer!.Cancelled);
+        Assert.True(animation!.Canceled);
+        Assert.True(timer!.Canceled);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class ScopeTests : EngineTestBase
             for (var i = 0; i < 31; i++) Presto.Animate(targets[i], new() { ["X"] = 100, Duration = 10 });
         });
         Frames.Advance(100, 16);
-        // The 32nd registration triggers a prune, which must spare the completed (and engine-cancelled) animations.
+        // The 32nd registration triggers a prune, which must spare the completed (and engine-canceled) animations.
         scope.Execute(_ => Presto.Animate(targets[31], new() { ["X"] = 100, Duration = 10 }));
 
         Assert.Equal(32, scope.RevertibleCount);
@@ -120,7 +120,7 @@ public sealed class ScopeTests : EngineTestBase
 
         Assert.Equal(500, animation!.Duration);
         scope.Revert();
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
     }
 
     [Fact]
@@ -143,9 +143,9 @@ public sealed class ScopeTests : EngineTestBase
 
         Assert.Equal(2, runs);
         Assert.Equal(1, cleanups);
-        Assert.True(first!.Cancelled);
+        Assert.True(first!.Canceled);
         Assert.NotSame(first, timer);
-        Assert.False(timer!.Cancelled);
+        Assert.False(timer!.Canceled);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public sealed class ScopeTests : EngineTestBase
         scope.Refresh();
 
         Assert.NotSame(first, timer);
-        Assert.True(first.Cancelled);
+        Assert.True(first.Canceled);
         Assert.Equal(1, timer!.CurrentIteration);
         Assert.Equal(.5, timer.IterationProgress, 6);
     }
@@ -201,6 +201,6 @@ public sealed class ScopeTests : EngineTestBase
         parent.Revert();
 
         Assert.Equal(0, target.X);
-        Assert.True(timer!.Cancelled);
+        Assert.True(timer!.Canceled);
     }
 }

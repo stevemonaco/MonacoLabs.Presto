@@ -134,7 +134,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <ScrollViewer x:Name="Catalogue" IsVisible="False">
+                <ScrollViewer x:Name="Catalog" IsVisible="False">
                     <!-- snippet: StorefrontCards -->
                     <ItemsControl x:Name="Products" ItemsSource="{Binding Shown}" presto:Animate.ItemLayout="{presto:Reflow 500, Ease=outQuint}">
                         <!-- snippet-skip -->
@@ -174,7 +174,7 @@
                     <!-- /snippet -->
                 </ScrollViewer>
 
-                <presto:Modal x:Name="QuickHost" Margin="-16" Scrim="#A60B0E14" Backdrop="{Binding #Catalogue}">
+                <presto:Modal x:Name="QuickHost" Margin="-16" Scrim="#A60B0E14" Backdrop="{Binding #Catalog}">
                     <Border Classes="dialog" DataContext="{Binding QuickView}" x:DataType="local:Product">
                         <Grid ColumnDefinitions="200,*" ColumnSpacing="16">
                             <Border Classes="art" Height="130">

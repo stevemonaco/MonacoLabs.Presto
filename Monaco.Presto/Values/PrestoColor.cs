@@ -27,10 +27,10 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
 
     internal static bool IsHex(string s) => HexTest().IsMatch(s);
 
-    /// <summary>Parses a color string; anything unrecognised is opaque black, as upstream.</summary>
+    /// <summary>Parses a color string; anything unrecognized is opaque black, as upstream.</summary>
     public static PrestoColor Parse(string s) => TryParse(s, out var color) ? color : new(0, 0, 0);
 
-    /// <summary>Parses a color string, returning false for anything that is not one of the recognised hex, <c>rgb</c> or <c>hsl</c> forms.</summary>
+    /// <summary>Parses a color string, returning false for anything that is not one of the recognized hex, <c>rgb</c> or <c>hsl</c> forms.</summary>
     public static bool TryParse(string s, out PrestoColor color)
     {
         if (s.StartsWith("rgb", StringComparison.Ordinal)) return TryParseRgb(s, out color);

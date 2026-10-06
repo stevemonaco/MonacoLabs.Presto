@@ -14,8 +14,8 @@ public partial class LoadersPage : ShowcasePage
 {
     private static readonly Geometry Splat = Geometry.Parse("M30,10 C48,2 60,22 50,34 C42,46 40,58 26,54 C10,50 0,40 8,26 C14,14 18,14 30,10 Z");
 
-    #region snippet LoaderEqualiser
-    private static readonly AnimationBuilder Equaliser = Presto.Build()
+    #region snippet LoaderEqualizer
+    private static readonly AnimationBuilder Equalizer = Presto.Build()
         .ScaleY(from: .2, to: 1)
         .Delay(Presto.Stagger(90)).Duration(480)
         .Ease(Eases.InOutSine).Loop().Alternate();
@@ -106,7 +106,7 @@ public partial class LoadersPage : ShowcasePage
     {
         _loaders.Clear();
         _onCompositor.Clear();
-        Play(Bars.Children, Equaliser);
+        Play(Bars.Children, Equalizer);
         Play(Orbit.Children, Orbiting);
         Play(Squares.Children, GridWave);
         Play(Ball, Bounce);

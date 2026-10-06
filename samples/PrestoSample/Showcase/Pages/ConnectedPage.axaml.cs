@@ -169,14 +169,14 @@ public partial class ConnectedPage : ShowcasePage
     {
         _scattered = index;
         var tile = _tiles[index];
-        var centre = tile.Card.Bounds.Center;
+        var center = tile.Card.Bounds.Center;
         #region snippet ConnectedScatter
         _scatter = PrestoAvalonia.AnimateOnCompositor(_tiles.Where(other => other != tile).Select(other => other.Card).ToArray(), new CompositorAnimationParams
         {
             ["Opacity"] = 0,
             ["Scale"] = .85,
-            ["X"] = (FunctionValue)((target, _, _) => Away((Control)target, centre).X),
-            ["Y"] = (FunctionValue)((target, _, _) => Away((Control)target, centre).Y),
+            ["X"] = (FunctionValue)((target, _, _) => Away((Control)target, center).X),
+            ["Y"] = (FunctionValue)((target, _, _) => Away((Control)target, center).Y),
             Duration = ScatterDuration,
             Delay = (FunctionValue)((_, i, _) => 22 * Math.Abs((i >= index ? i + 1 : i) - index)),
             Ease = Eases.OutQuint,
@@ -210,9 +210,9 @@ public partial class ConnectedPage : ShowcasePage
         PrestoAvalonia.Set(Tracks.Children, new AvaloniaAnimationParams { ["Y"] = 16, ["Opacity"] = 0 });
     }
 
-    private static Vector Away(Control card, Point centre)
+    private static Vector Away(Control card, Point center)
     {
-        Vector away = card.Bounds.Center - centre;
+        Vector away = card.Bounds.Center - center;
         return away * (Push / Math.Max(away.Length, 1));
     }
 

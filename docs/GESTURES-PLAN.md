@@ -25,7 +25,7 @@ cannot express. Photo viewers, maps, canvases and diagram editors all need that.
     (`src/Avalonia.Native/TopLevelImpl.cs`). They surface as `InputElement.PointerTouchPadGestureMagnifyEvent`,
     `…RotateEvent` and `…SwipeEvent`, all `PointerDeltaEventArgs`.
   - **Windows:** `Avalonia.Win32` handles `WM_TOUCH` and `WM_MOUSEWHEEL` but no gesture messages, so a precision
-    touchpad pinch reaches Avalonia as the Ctrl+wheel Windows synthesises for it.
+    touchpad pinch reaches Avalonia as the Ctrl+wheel Windows synthesizes for it.
   - **Browser:** browsers deliver a trackpad pinch as a `wheel` event with `ctrlKey`. Avalonia's `input.ts` forwards
     the modifiers and calls `preventDefault()`, so the page does not zoom. The host element also sets
     `touch-action: none` (`dom.ts`), so touch pinches reach the app rather than the browser.
@@ -45,7 +45,7 @@ cannot express. Photo viewers, maps, canvases and diagram editors all need that.
 ## 1. Decisions
 
 1. **A new type, `Transformable`, rather than extending `Draggable`.** `Draggable` is a parity port whose ported
-   `draggables.test.js` suite pins single-pointer behaviour. Its axes are independent, and it has no notion of a scale
+   `draggables.test.js` suite pins single-pointer behavior. Its axes are independent, and it has no notion of a scale
    or an angle to zoom about. `Transformable` shares its idioms instead:
    - a params record;
    - an `Animatable` (duration 0) writing the `X`, `Y`, `Scale` and `Rotate` shorthands;
@@ -61,7 +61,7 @@ cannot express. Photo viewers, maps, canvases and diagram editors all need that.
 3. **One state, four numbers.** The state is translation `t` (the `X`/`Y` shorthands, in parent units), scale `s` and
    rotation `θ` (degrees, clockwise, as `RotateTransform`). The composer applies scale and rotation about the element's
    `RenderTransformOrigin` `o`, then the translation (RenderTransformComposer remarks). A user `RenderTransform` already
-   on the element stays underneath and is not part of the maths; the docs say so.
+   on the element stays underneath and is not part of the math; the docs say so.
 4. **Focal-point zoom and rotate.** Each frame of a two-finger gesture, and each wheel or trackpad step, keeps the
    content point under the focal point `f` fixed. Here `L` is the layout offset, `c = f − L − o`, `k = s′/s` and
    `Δθ = θ′ − θ`. The new translation is `t′ = c − k·Rot(Δθ)·(c − t)`. For two fingers, `f` is the current midpoint,
@@ -71,7 +71,7 @@ cannot express. Photo viewers, maps, canvases and diagram editors all need that.
    - **Scale:** beyond `MinScale`/`MaxScale` during a gesture, scale follows the fingers through a friction factor,
      as `Draggable`'s `ContainerFriction` does. On release it springs back to the limit about the last focal point.
    - **Pan:** `PanBounds` gives three modes. `Contain` (the default) keeps the scaled content covering the
-     container, or centred when smaller. `Inside` keeps it within the container. `Free` sets no bounds. Bounds are
+     container, or centered when smaller. `Inside` keeps it within the container. `Free` sets no bounds. Bounds are
      computed from the scaled, rotated axis-aligned box.
    - **Container:** `Container` (default: the parent) supplies the box, as `Draggable.Container` does.
 6. **Release coasts pan and rotation, not scale.**
@@ -160,7 +160,7 @@ public sealed class Transformable : IRevertible
 
 The entry points are `PrestoAvalonia.CreateTransformable(Control, TransformableParams?)` and the
 `control.CreateTransformable(...)` extension, beside `CreateDraggable`. `focal` is in the target's parent space; null
-means the container's centre.
+means the container's center.
 
 ## 3. Implementation steps
 
@@ -172,7 +172,7 @@ means the container's centre.
 3. **Release:** the scale spring-back, and pan and rotation `Fling` with bounds and snap.
 4. **Other inputs:** double-tap, wheel and trackpad, and `ZoomTo`/`PanTo`/`RotateTo`/`Reset` through `Settle`.
 5. **Test helper:** a `Touch` helper in the bridge test project that raises `PointerPressed`/`Moved`/`Released`
-   for `new Pointer(id, PointerType.Touch, …)` on an element, honouring capture.
+   for `new Pointer(id, PointerType.Touch, …)` on an element, honoring capture.
 6. **Docs:** README section, a cheat-sheet row (no anime.js counterpart; mention Framer's `usePinch`/`useGesture`
    pattern), and a Platforms row per decision 9's findings.
 7. **Samples** (§5), then Android and Browser smoke runs with real touch. iOS only compiles here (PLAN Phase 8).
@@ -183,7 +183,7 @@ means the container's centre.
   - A zoom about `f` keeps the content point under `f` fixed, for any origin, scale and rotation (property test over
     random states).
   - Zoom then unzoom about the same point returns the start state.
-  - `Contain` bounds centre content smaller than the container.
+  - `Contain` bounds center content smaller than the container.
   - Rotated bounds use the axis-aligned box.
 - **Pinch** (synthetic touch):
   - Spreading two fingers doubles the scale and keeps the midpoint's content point fixed.
@@ -201,7 +201,7 @@ means the container's centre.
   `PointerMoved` handler sees it.
 - **Double-tap and settle:**
   - Double-tap zooms to `DoubleTapScale` about the tap point and toggles back.
-  - `Settle` durations are honoured, and reduced motion makes it instant.
+  - `Settle` durations are honored, and reduced motion makes it instant.
 - **Wheel:**
   - Ctrl+wheel via `MouseWheel` zooms about the cursor.
   - Under `WithControl` a plain wheel is not handled and an ancestor `ScrollViewer` scrolls.

@@ -21,7 +21,7 @@ public static class Datasets
 
     private static readonly string[] Moods = ["Neon", "Quiet", "Paper", "Velvet", "Hollow", "Golden", "Static", "Salt", "Midnight", "Glass"];
 
-    private static readonly string[] Nouns = ["Harbour", "Orchard", "Signal", "Coast", "Hours", "Rooms", "Weather", "Engines", "Gardens", "Tides"];
+    private static readonly string[] Nouns = ["Harbor", "Orchard", "Signal", "Coast", "Hours", "Rooms", "Weather", "Engines", "Gardens", "Tides"];
 
     private static readonly string[] Artists =
         ["Lumen Parade", "The Cartographers", "Ada Voss", "Northbound", "Mira Kell", "Low Tide Club",
@@ -39,7 +39,7 @@ public static class Datasets
     private static readonly string[] Openers = ["Slow mornings,", "Come for", "Three days of", "Stay for", "Long evenings of"];
 
     private static readonly string[] Pleasures =
-        ["harbour light", "night markets", "tiled stairways", "mountain air", "street food", "old bookshops",
+        ["harbor light", "night markets", "tiled stairways", "mountain air", "street food", "old bookshops",
          "hot springs", "cliff walks", "late dinners", "river ferries", "quiet gardens", "rooftop bars"];
 
     private static readonly string[] Channels = ["Search", "Social", "Email", "Direct", "Video", "Partner", "Events", "Print"];

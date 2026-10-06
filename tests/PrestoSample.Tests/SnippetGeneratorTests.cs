@@ -33,7 +33,7 @@ public sealed class SnippetGeneratorTests
     }
 
     [Fact]
-    public void CrlfInputIsNormalisedToLf()
+    public void CrlfInputIsNormalizedToLf()
     {
         var (snippets, _) = SnippetExtractor.Extract("<!-- snippet: Lines -->\r\n  <A />\r\n  <B />\r\n<!-- /snippet -->\r\n", SnippetSyntax.Xaml);
 
@@ -41,7 +41,7 @@ public sealed class SnippetGeneratorTests
     }
 
     [Fact]
-    public void EachSyntaxRecognisesOnlyItsOwnMarkers()
+    public void EachSyntaxRecognizesOnlyItsOwnMarkers()
     {
         const string text = "<!-- snippet: Xaml -->\n<A />\n<!-- /snippet -->\n#region snippet CSharp\nvar a = 1;\n#endregion";
 

@@ -194,7 +194,7 @@ public sealed class ContentSizeTests : CompositorTestBase
 
     [AvaloniaTheory]
     [MemberData(nameof(Unsupported))]
-    public void ABuilderAContentSizeTransitionCannotHonourThrowsWhenApplied(AnimationBuilder builder) =>
+    public void ABuilderAContentSizeTransitionCannotHonorThrowsWhenApplied(AnimationBuilder builder) =>
         Assert.Throws<NotSupportedException>(() => Animate.SetContentSize(new Border(), builder));
 
     /// <remarks><see cref="Monaco.Presto.Tests.EngineTestBase"/> gives every test fresh defaults, which resets both flags.</remarks>

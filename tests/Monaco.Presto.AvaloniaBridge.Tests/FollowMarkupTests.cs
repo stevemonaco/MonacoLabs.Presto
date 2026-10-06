@@ -42,7 +42,7 @@ public sealed class FollowMarkupTests : BridgeTestBase
     [InlineData("Timed")]
     [InlineData("Built")]
     [InlineData("Tokened")]
-    public void TheTimingAttributesAreHonoured(string name)
+    public void TheTimingAttributesAreHonored(string name)
     {
         FollowParams options = name switch
         {

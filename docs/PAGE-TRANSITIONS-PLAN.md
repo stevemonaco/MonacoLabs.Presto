@@ -17,7 +17,7 @@ eases or springs, no recipes, no reduced motion, no render-thread playback. This
   pageLength, visibleItems)` for swipe- or offset-driven progress and `Reset(Visual)` to clear what `Update` applied;
   `visibleItems` (`PageTransitionItem`) is non-empty only when a carousel shows several pages at once.
 - **The built-ins own the end state.** `CrossFade.Start` and `PageSlide.Start` set `to.IsVisible = true` first and, when
-  not cancelled, `from.IsVisible = false`; `PageSlide` also clears both `RenderTransform`s. On cancellation they return
+  not canceled, `from.IsVisible = false`; `PageSlide` also clears both `RenderTransform`s. On cancellation they return
   normally and leave values where they stand. `PageSlide` reads its distance from the common visual parent's `Bounds`
   and throws when `from` and `to` have different parents. `CompositePageTransition` runs its children in parallel with
   `Task.WhenAll`.
@@ -69,14 +69,14 @@ eases or springs, no recipes, no reduced motion, no render-thread playback. This
    and then both animations and the `ZIndex` writes are reverted, so the hosts return to their base values without a
    visible snap and nothing is left at `Animation` priority where a host's local reset (`NavigationPage`) could not
    reach it. The task completes normally; it never faults for cancellation.
-8. **Cancellation hands over, it does not revert.** When the token is cancelled, both animations are cancelled where
+8. **Cancellation hands over, it does not revert.** When the token is canceled, both animations are canceled where
    they stand and the task completes. Each host remembers the transition driving it, and a later `Start` that is given
    that host takes it over from its current values: `TransitioningContentControl`'s mid-entrance presenter becomes the
    next `from` and exits from where it is. A host no `Start` claims before the next frame is reverted, so switching a
    host to another transition or to none leaves nothing behind.
 9. **Progress-driven transitions seek.** `Update` creates the two animations paused on first use for a (from, to,
    forward) triple and seeks them to `progress × duration`; `Reset(visual)` reverts that visual's animation. When
-   `visibleItems` is non-empty (a carousel showing peeking neighbours) `Update` does nothing, as `PageSlide` does.
+   `visibleItems` is non-empty (a carousel showing peeking neighbors) `Update` does nothing, as `PageSlide` does.
 10. **Presence sees a page transition as navigation.** Today a view swapped into a `TransitioningContentControl`
     arrives in a loaded presenter and classifies as an `Enter`, and on completion the host nulls the old presenter's
     content while it is still visible at opacity 0, so `ClassifyDeparture` sees a lone element leaving a loaded parent
@@ -188,7 +188,7 @@ or `new PrestoPageTransition { Enter = Recipes.SlideIn(Edge.Right), Exit = ... }
 - Counter-moving keyed elements: while a claimed `Connected` element flies, subtract its host's transition translation
   so the flight path ignores the page motion. Needs the flight and the page transition to share a clock or at least a
   start frame.
-- `Carousel.GetTransitionAxis` only recognises `PageSlide`, so a carousel with a Presto slide lays out horizontally
+- `Carousel.GetTransitionAxis` only recognizes `PageSlide`, so a carousel with a Presto slide lays out horizontally
   whatever the edge. Accept it, or have `PageSlide`/`PagePush` recipes return a `CompositePageTransition` containing a
   zero-duration `PageSlide` with the matching axis purely to steer layout.
 - Multi-page carousels (`visibleItems` non-empty): upstream `CrossFade` maps offsets to opacity; whether Presto should
@@ -196,7 +196,7 @@ or `new PrestoPageTransition { Enter = Recipes.SlideIn(Edge.Right), Exit = ... }
 
 ## 7. Deviations as built
 
-- **Carousel axis (§6):** accepted. `Carousel.GetTransitionAxis` recognises only Avalonia's `PageSlide`, so a carousel
+- **Carousel axis (§6):** accepted. `Carousel.GetTransitionAxis` recognizes only Avalonia's `PageSlide`, so a carousel
   under a Presto transition lays out and swipes horizontally whatever its builders do; no `CompositePageTransition`
   steering.
 - **Peeking carousels (§6):** `Update` with a non-empty `visibleItems` does nothing, as `PageSlide` does; there is no
@@ -204,13 +204,13 @@ or `new PrestoPageTransition { Enter = Recipes.SlideIn(Edge.Right), Exit = ... }
 - **Progress runs:** `Update` keeps one (from, to, forward) run per transition instance. A new triple, or one whose host
   was taken over or `Reset`, reverts the previous run before building the next, and a host a running `Start` holds is
   reverted rather than taken over, because a seek measures from base values. A `Start` given an `Update`-driven host
-  takes it over like a cancelled one. Seeks ignore `Delay` (staging collapses while dragging) and `pageLength`.
+  takes it over like a canceled one. Seeks ignore `Delay` (staging collapses while dragging) and `pageLength`.
 - **Completed swipes:** `VirtualizingCarouselPanel` resets the page it recycles but not the one a swipe lands on, so that
   page keeps its seeked end values (its base values, and `ZIndex`) at `Animation` priority until the next transition or
   recycle takes it over or resets it.
 - **Presence pop (decision 10, step 1):** reproduced headlessly in 12.1.2. After a `CrossFade` the host detaches the old
   page while its presenter is at opacity 0, and its `Presence.Exit` ghosted; under `PrestoPageTransition` the page also
-  ghosted after its presenter was hidden. Both are fixed (`PresencePageTransitionTests`). The page hosts recognised are
+  ghosted after its presenter was hidden. Both are fixed (`PresencePageTransitionTests`). The page hosts recognized are
   `TransitioningContentControl` and `NavigationPage` presenters, a `TabControl`'s content presenter and `Carousel` item
   containers; page content arriving through any wrapper the arrival walk crosses classifies as `Initial`.
 - **Exit detection (step 1):** in compiled XAML a markup extension on a plain object's CLR property sees

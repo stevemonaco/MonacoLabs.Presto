@@ -103,7 +103,7 @@ public static class Presto
 
     /// <summary>
     /// Stops <paramref name="renderable"/>, or every running animation, from animating <paramref name="targets"/> — only their
-    /// <paramref name="property"/> tweens when one is named — cancelling the animations left with no tweens.
+    /// <paramref name="property"/> tweens when one is named — canceling the animations left with no tweens.
     /// </summary>
     /// <returns>The parsed targets.</returns>
     public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
@@ -122,11 +122,11 @@ public static class Presto
     /// The running animations on the current engine, timeline children included, that tween <paramref name="target"/> —
     /// only those tweening its <paramref name="property"/> when one is named.
     /// </summary>
-    /// <remarks>Completed and cancelled animations are skipped, and a paused one drops out once the engine releases it on its next frame.</remarks>
+    /// <remarks>Completed and canceled animations are skipped, and a paused one drops out once the engine releases it on its next frame.</remarks>
     public static IReadOnlyList<Animation> GetAnimations(object target, string? property = null)
     {
         var animations = new List<Animation>();
-        CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(property) ? null : Canonicalise(target, property), animations);
+        CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(property) ? null : Canonicalize(target, property), animations);
         return animations;
     }
 
@@ -134,7 +134,7 @@ public static class Presto
     {
         for (var child = parent._head; child != null; child = child._next)
         {
-            if (child.Completed || child.Cancelled) continue;
+            if (child.Completed || child.Canceled) continue;
             if (child._head != null) CollectAnimations(child, target, property, animations);
             else if (child is Animation animation && Tweens(animation, target, property)) animations.Add(animation);
         }
@@ -172,11 +172,11 @@ public static class Presto
     /// The name a tween on <paramref name="property"/> is keyed by, so that every spelling an adapter accepts for one
     /// property — a bare name, a qualified name, a typed handle — composes against the others.
     /// </summary>
-    internal static string Canonicalise(object target, string property)
+    internal static string Canonicalize(object target, string property)
     {
         for (var i = 0; i < Adapters.Count; i++)
         {
-            if (Adapters[i].Canonicalise(target, property) is { } canonical) return canonical;
+            if (Adapters[i].Canonicalize(target, property) is { } canonical) return canonical;
         }
         return property;
     }

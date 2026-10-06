@@ -74,7 +74,7 @@
                 <StackPanel Spacing="28" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
                         <Button x:Name="Filled" Classes="accent" Content="Filled" Padding="22,10" />
-                        <Button x:Name="Plain" Classes="plain" Content="Default colour" Padding="22,10" />
+                        <Button x:Name="Plain" Classes="plain" Content="Default color" Padding="22,10" />
                         <Button x:Name="Icon" Classes="icon" Width="44" Height="44" CornerRadius="22" Background="Transparent"
                                 VerticalAlignment="Center" Margin="12,0,0,0">
                             <PathIcon Data="{StaticResource HeartIcon}" Width="18" Height="18" />
@@ -107,7 +107,7 @@
             <showcase:CodePanel x:Name="SurfacesCode" Language="Xaml" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Hold a press and the ink grows from your finger until it covers the element; let go and it fades while it keeps growing, so a quick tap still reads. Ripple.Enabled works on any Control: the cards are plain Borders, made focusable so Enter or Space ripples them from the centre. The ink is clipped to each element's rounded corners unless Bounded is false, as on the heart, whose circle grows from the centre past its edges. StateLayer adds Material's tint in the ink's hue, 8 % on hover and 10 % on keyboard focus or press. The ink is drawn on the render thread by a composition visual of the element's own, over its content." />
+                       Text="Hold a press and the ink grows from your finger until it covers the element; let go and it fades while it keeps growing, so a quick tap still reads. Ripple.Enabled works on any Control: the cards are plain Borders, made focusable so Enter or Space ripples them from the center. The ink is clipped to each element's rounded corners unless Bounded is false, as on the heart, whose circle grows from the center past its edges. StateLayer adds Material's tint in the ink's hue, 8 % on hover and 10 % on keyboard focus or press. The ink is drawn on the render thread by a composition visual of the element's own, over its content." />
 
             <Border Classes="stage" Padding="6">
                 <ListBox x:Name="Rows" Height="320" Background="Transparent" />

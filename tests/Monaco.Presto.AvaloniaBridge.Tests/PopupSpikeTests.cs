@@ -17,7 +17,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
 /// The Phase 61 spike (GAPS-2-PLAN §7.3), kept as pinning tests: how Avalonia 12.1.2 opens and closes flyouts, context
-/// menus, popups and tooltips headlessly, what cancelling <c>Closing</c> and holding <c>IsOpen</c> at
+/// menus, popups and tooltips headlessly, what canceling <c>Closing</c> and holding <c>IsOpen</c> at
 /// <see cref="BindingPriority.Animation"/> do, and what the Fluent templates animate.
 /// </summary>
 public sealed class PopupSpikeTests : CompositorTestBase
@@ -79,7 +79,7 @@ public sealed class PopupSpikeTests : CompositorTestBase
     [InlineData("menu", "light")]
     [InlineData("menu", "escape")]
     [InlineData("menu", "hide")]
-    public void CancellingTheFirstClosingKeepsAFlyoutDrawnAndASecondHideClosesIt(string owner, string path)
+    public void CancelingTheFirstClosingKeepsAFlyoutDrawnAndASecondHideClosesIt(string owner, string path)
     {
         var (window, anchor) = PopupStage();
         PopupFlyoutBase flyout = owner == "flyout" ? new Flyout { Content = Lime() } : new MenuFlyout { Items = { new MenuItem { Header = Lime() } } };
@@ -94,7 +94,7 @@ public sealed class PopupSpikeTests : CompositorTestBase
         Assert.Equal(1, closings());
         Assert.True(flyout.IsOpen);
         Assert.Equal(drawn, Extent(window, Colors.Lime));
-        // Escape writes Popup.IsOpen = false before the cancelled Closing, and nothing puts it back.
+        // Escape writes Popup.IsOpen = false before the canceled Closing, and nothing puts it back.
         Assert.Equal(path != "escape", flyout.Popup.IsOpen);
 
         flyout.Hide();
@@ -109,7 +109,7 @@ public sealed class PopupSpikeTests : CompositorTestBase
     [InlineData("light")]
     [InlineData("escape")]
     [InlineData("close")]
-    public void CancellingTheFirstClosingKeepsAContextMenuDrawnButOnlyPopupCloseClosesItAgain(string path)
+    public void CancelingTheFirstClosingKeepsAContextMenuDrawnButOnlyPopupCloseClosesItAgain(string path)
     {
         var (window, anchor) = PopupStage();
         var menu = new ContextMenu { Items = { new MenuItem { Header = Lime() } } };

@@ -103,10 +103,10 @@ public sealed class TweensTests : EngineTestBase
         RunUntil(() => done);
 
         Assert.True(animation1.Paused);
-        Assert.True(animation1._cancelled);
+        Assert.True(animation1._canceled);
         Assert.Null(animation1._headTween!._prevRep);
         Assert.True(animation2.Paused);
-        Assert.True(animation2._cancelled);
+        Assert.True(animation2._canceled);
         Assert.Null(animation2._headTween!._nextRep);
     }
 
@@ -126,8 +126,8 @@ public sealed class TweensTests : EngineTestBase
             Duration = 100 * scale,
             OnComplete = _ =>
             {
-                Assert.True(animation1._cancelled);
-                Assert.True(animation2._cancelled);
+                Assert.True(animation1._canceled);
+                Assert.True(animation2._canceled);
                 animation1.Restart();
                 animation2.Restart();
                 Presto.CreateTimer(new()
@@ -145,10 +145,10 @@ public sealed class TweensTests : EngineTestBase
         RunUntil(() => done);
 
         Assert.True(animation1.Paused);
-        Assert.False(animation1._cancelled);
+        Assert.False(animation1._canceled);
         Assert.NotNull(animation1._headTween!._prevRep);
         Assert.True(animation2.Paused);
-        Assert.False(animation2._cancelled);
+        Assert.False(animation2._canceled);
         Assert.NotNull(animation2._headTween!._nextRep);
     }
 
@@ -170,7 +170,7 @@ public sealed class TweensTests : EngineTestBase
         RunUntil(() => done);
 
         Assert.False(animation1.Completed);
-        Assert.True(animation1._cancelled);
+        Assert.True(animation1._canceled);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public sealed class TweensTests : EngineTestBase
             .Then(_ => done = true);
         RunUntil(() => done);
 
-        Assert.True(tl1._cancelled);
+        Assert.True(tl1._canceled);
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public sealed class TweensTests : EngineTestBase
         RunUntil(() => done);
 
         Assert.False(animation1.Completed);
-        Assert.False(animation1._cancelled);
+        Assert.False(animation1._canceled);
         animation1.Pause();
     }
 
@@ -228,7 +228,7 @@ public sealed class TweensTests : EngineTestBase
             .Then(_ => done = true);
         RunUntil(() => done);
 
-        Assert.False(tl1._cancelled);
+        Assert.False(tl1._canceled);
         tl1.Pause();
     }
 
@@ -255,7 +255,7 @@ public sealed class TweensTests : EngineTestBase
             OnComplete = _ =>
             {
                 Assert.False(animation1.Completed);
-                Assert.False(animation1._cancelled);
+                Assert.False(animation1._canceled);
                 Assert.Equal(4, target.Scale);
                 shortDone = true;
             },
@@ -293,7 +293,7 @@ public sealed class TweensTests : EngineTestBase
             OnComplete = _ =>
             {
                 Assert.False(animation1.Completed);
-                Assert.False(animation1._cancelled);
+                Assert.False(animation1._canceled);
                 Assert.InRange(target.X, 120, 150);
                 Assert.InRange(target.Scale, 3, 3.5);
                 shortDone = true;

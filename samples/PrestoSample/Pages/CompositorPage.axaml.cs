@@ -28,8 +28,8 @@ public partial class CompositorPage : ShowcasePage
                 Height = OrbitScene.DotRadius * 2,
                 Fill = OrbitScene.RingBrushes[dot.Ring],
             };
-            Canvas.SetLeft(ellipse, dot.Centre.X - OrbitScene.DotRadius);
-            Canvas.SetTop(ellipse, dot.Centre.Y - OrbitScene.DotRadius);
+            Canvas.SetLeft(ellipse, dot.Center.X - OrbitScene.DotRadius);
+            Canvas.SetTop(ellipse, dot.Center.Y - OrbitScene.DotRadius);
             return ellipse;
         })];
 

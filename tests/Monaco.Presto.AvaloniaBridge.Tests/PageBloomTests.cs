@@ -35,7 +35,7 @@ public sealed class PageBloomTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void TheKeyboardOriginIsTheCentre()
+    public void TheKeyboardOriginIsTheCenter()
     {
         var (window, host) = ShowBloomHost();
 
@@ -65,7 +65,7 @@ public sealed class PageBloomTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void TheNewPagesChildrenRiseInFromTheCentreAt65Percent()
+    public void TheNewPagesChildrenRiseInFromTheCenterAt65Percent()
     {
         var (_, host) = ShowBloomHost();
         var next = Page(Brushes.Green, tiles: 3);
@@ -128,7 +128,7 @@ public sealed class PageBloomTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void ACircularRevealFromAnElementGrowsFromItsCentre()
+    public void ACircularRevealFromAnElementGrowsFromItsCenter()
     {
         var opener = new Border { Width = 40, Height = 40, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
         var panel = new Border { Background = Brushes.Green };

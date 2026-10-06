@@ -155,7 +155,7 @@ public sealed class NavMotionTests
         var page = Container(nav, gallery.VisibleSections[0].Pages[2]);
         var fill = Part<Border>(page, "HoverFill");
         var title = page.GetLogicalDescendants().OfType<TextBlock>().First();
-        window.MouseMove(SceneHarness.Centre(Part<Border>(page, "PART_LayoutRoot"), window));
+        window.MouseMove(SceneHarness.Center(Part<Border>(page, "PART_LayoutRoot"), window));
         TestFrames.Tick(2);
         Assert.InRange(fill.Opacity, .01, .99);
         TestFrames.Tick(10);

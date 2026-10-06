@@ -12,7 +12,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <summary>An Avalonia page transition that plays <see cref="Enter"/> on the incoming host and <see cref="Exit"/> on the outgoing one.</summary>
 /// <remarks>
 /// It holds builders, not animations, so one instance can serve several hosts and every transition reads
-/// <see cref="Recipes.Tokens"/>, reduced motion and function values afresh. A cancelled transition leaves both hosts where
+/// <see cref="Recipes.Tokens"/>, reduced motion and function values afresh. A canceled transition leaves both hosts where
 /// they stand for the next one to take over; a host no transition claims by the next frame is reverted.
 /// </remarks>
 public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransition

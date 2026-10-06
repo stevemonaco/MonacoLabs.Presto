@@ -183,7 +183,7 @@ internal sealed class MotionTracker
         var properties = new Dictionary<string, KeyValuePair<string, TweenValue>>();
         if (state.Motion != null)
         {
-            foreach (var pair in Expand(state.Motion.ToParams())) properties[Presto.Canonicalise(_control, pair.Key)] = pair;
+            foreach (var pair in Expand(state.Motion.ToParams())) properties[Presto.Canonicalize(_control, pair.Key)] = pair;
         }
         return properties;
     }
@@ -320,7 +320,7 @@ internal sealed class MotionTracker
         foreach (var property in properties)
         {
             // Replacement only trims a tween that has begun; one still waiting out its delay would start later over this one.
-            if (_drivers.GetValueOrDefault(property) is { Began: false, Completed: false, Cancelled: false } pending) Presto.Remove(_control, pending, property);
+            if (_drivers.GetValueOrDefault(property) is { Began: false, Completed: false, Canceled: false } pending) Presto.Remove(_control, pending, property);
         }
         using var origin = PrestoDiagnostics.Origin("Motion");
         var animation = Presto.Animate(_control, parameters with { HostLifetime = WhenDetached.Continue });
@@ -343,8 +343,8 @@ internal sealed class MotionTracker
     {
         foreach (var (property, animation) in _drivers)
         {
-            // Cancelling twice would unlink the tweens' siblings a second time.
-            if (!animation.Cancelled) animation.Cancel();
+            // Canceling twice would unlink the tweens' siblings a second time.
+            if (!animation.Canceled) animation.Cancel();
             Presto.ResolveAccessor(_control, property).Revert(_control, null);
         }
         _drivers.Clear();
@@ -366,7 +366,7 @@ internal sealed class MotionTracker
         return value.Raw is TweenParams { To: { } to } ? Final(to) : value;
     }
 
-    /// <summary>A transform, effect or reveal shorthand's identity, or a property's value beneath the animations, read now so a local value or style set meanwhile is honoured.</summary>
+    /// <summary>A transform, effect or reveal shorthand's identity, or a property's value beneath the animations, read now so a local value or style set meanwhile is honored.</summary>
     private TweenValue Rest(string property)
     {
         if (TransformShorthands.Parse(property) is { } shorthand) return RenderTransformComposer.Identity(shorthand);
@@ -383,7 +383,7 @@ internal sealed class MotionTracker
     {
         foreach (var (name, value) in timing.Properties)
         {
-            if (value.Raw is TweenParams tween && Presto.Canonicalise(_control, name) == property) return tween;
+            if (value.Raw is TweenParams tween && Presto.Canonicalize(_control, name) == property) return tween;
         }
         return null;
     }
