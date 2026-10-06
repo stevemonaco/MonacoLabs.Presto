@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
@@ -213,6 +214,26 @@ public static class Recipes
     public static AnimationBuilder Indeterminate(double distance, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loading.Indeterminate(distance, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Draws.DrawIn"/>
+    public static AnimationBuilder DrawIn(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Draws.DrawIn(duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Draws.DrawOut"/>
+    public static AnimationBuilder DrawOut(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Draws.DrawOut(duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Reveals.CircularReveal(RelativePoint?, double?, double?, EaseValue?)"/>
+    public static AnimationBuilder CircularReveal(RelativePoint? origin = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Reveals.CircularReveal(origin, duration, delay, ease);
+
+    /// <inheritdoc cref="Reveals.CircularReveal(Visual, double?, double?, EaseValue?)"/>
+    public static AnimationBuilder CircularReveal(Visual from, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Reveals.CircularReveal(from, duration, delay, ease);
+
+    /// <inheritdoc cref="Reveals.ThemeReveal"/>
+    public static Animation ThemeReveal(Visual surface, Action change, Visual? from = null, double? duration = null, EaseValue? ease = null) =>
+        Reveals.ThemeReveal(surface, change, from, duration, ease);
+
     /// <inheritdoc cref="Sprites.PlayFrames"/>
     public static AnimationBuilder PlayFrames(double fps = 24, bool loop = true, bool reverse = false, double? delay = null) =>
         Sprites.PlayFrames(fps, loop, reverse, delay);
@@ -231,6 +252,9 @@ public static class Recipes
 
     /// <inheritdoc cref="Pages.PagePush"/>
     public static PrestoPageTransition PagePush(Edge edge) => Pages.PagePush(edge);
+
+    /// <inheritdoc cref="Pages.PageBloom"/>
+    public static PrestoPageTransition PageBloom() => Pages.PageBloom();
 
     /// <inheritdoc cref="TextReveals.LineRise"/>
     public static AnimationBuilder LineRise(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>

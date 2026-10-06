@@ -13,20 +13,20 @@ public sealed class NavPillTests
     [AvaloniaFact]
     public void ThePillStartsOnTheInitialSelection() => WithPill((_, nav, pill) =>
     {
-        Assert.Equal(1, pill.Opacity);
+        Assert.True(pill.IsEffectivelyVisible);
         AssertOn(pill, nav);
     });
 
     [AvaloniaFact]
     public void ThePillGlidesToAPageInAnotherSectionAndSettlesOnIt() => WithPill((gallery, nav, pill) =>
     {
-        var from = Canvas.GetTop(pill);
+        var from = SceneHarness.Slot(pill, nav).Y;
         var target = gallery.Sections[^1].Pages[0];
         nav.SelectedItem = target;
         TestFrames.Tick(4);
 
-        var to = SceneHarness.Slot(Root(nav, target), pill.GetVisualParent()!).Y;
-        var mid = Canvas.GetTop(pill);
+        var to = SceneHarness.Slot(Root(nav, target), nav).Y;
+        var mid = SceneHarness.Slot(pill, nav).Y;
         Assert.InRange(mid, Math.Min(from, to) + 1, Math.Max(from, to) - 1);
 
         TestFrames.Tick(60);
@@ -46,11 +46,11 @@ public sealed class NavPillTests
     {
         gallery.SearchText = "Scroll.Speed";
         TestFrames.Tick(30);
-        Assert.Equal(0, pill.Opacity);
+        Assert.False(pill.IsEffectivelyVisible);
 
         gallery.SearchText = "";
         TestFrames.Tick(30);
-        Assert.Equal(1, pill.Opacity);
+        Assert.True(pill.IsEffectivelyVisible);
         AssertOn(pill, nav);
     });
 
@@ -60,11 +60,11 @@ public sealed class NavPillTests
         var section = gallery.VisibleSections.First(section => section.Pages.Contains(gallery.SelectedPage!));
         section.IsExpanded = false;
         TestFrames.Tick(30);
-        Assert.Equal(0, pill.Opacity);
+        Assert.False(pill.IsEffectivelyVisible);
 
         section.IsExpanded = true;
         TestFrames.Tick(30);
-        Assert.Equal(1, pill.Opacity);
+        Assert.True(pill.IsEffectivelyVisible);
         AssertOn(pill, nav);
     });
 
@@ -100,9 +100,9 @@ public sealed class NavPillTests
 
     private static void AssertOn(Border pill, TreeView nav)
     {
-        var slot = SceneHarness.Slot(Root(nav, nav.SelectedItem!), pill.GetVisualParent()!);
-        Assert.Equal(slot.Y, Canvas.GetTop(pill), 0.5);
-        Assert.Equal(slot.Height, pill.Height, 0.5);
+        var (slot, at) = (SceneHarness.Slot(Root(nav, nav.SelectedItem!), nav), SceneHarness.Slot(pill, nav));
+        Assert.Equal(slot.Y, at.Y, 0.5);
+        Assert.Equal(slot.Height, at.Height, 0.5);
     }
 
     private static Border Root(TreeView nav, object item) => Part<Border>(Container(nav, item), "PART_LayoutRoot");

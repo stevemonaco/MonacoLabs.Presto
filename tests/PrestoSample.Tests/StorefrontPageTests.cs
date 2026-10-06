@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -8,6 +7,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -112,25 +112,27 @@ public sealed class StorefrontPageTests
     }
 
     [AvaloniaFact]
-    public void ClickingACardOpensItsQuickViewOverABlurredGridAndLeavesThroughItsExit()
+    public void ClickingACardOpensItsQuickViewOverABlurredGridAndCloseHidesIt()
     {
         var (window, page) = Loaded();
         var card = Cards(page).First(card => !((Product)card.DataContext!).SoldOut);
         var product = (Product)card.DataContext!;
+        var quick = page.GetControl<Modal>("QuickHost");
 
         SceneHarness.Click(window, Button(card, "Add"));
-        Assert.Null(page.ViewModel.QuickView);
+        Assert.False(quick.IsOpen);
 
         SceneHarness.Click(window, card);
         Assert.Equal(product, page.ViewModel.QuickView);
+        Assert.True(quick.IsOpen);
         TestFrames.Tick(60);
         Assert.True(page.GetControl<ScrollViewer>("Catalogue").Effect is BlurEffect { Radius: > 5 }, "the grid behind the quick view was not blurred");
 
-        SceneHarness.Click(window, Button(page.GetControl<ContentControl>("QuickHost"), "Close"));
-        Assert.Null(page.ViewModel.QuickView);
-        Assert.Single(OverlayLayer.GetOverlayLayer(page)!.Children.OfType<Canvas>());
+        SceneHarness.Click(window, Button(quick, "Close"));
+        Assert.False(quick.IsOpen);
 
         TestFrames.Tick(60);
+        Assert.False(quick.Content!.IsEffectivelyVisible);
         Assert.Null(page.GetControl<ScrollViewer>("Catalogue").Effect);
         SceneHarness.Close(window);
     }

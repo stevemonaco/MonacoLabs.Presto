@@ -5,7 +5,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// Shows one image of <see cref="Frames"/>, sized to the first frame and stretched and aligned as <see cref="Image"/> does.

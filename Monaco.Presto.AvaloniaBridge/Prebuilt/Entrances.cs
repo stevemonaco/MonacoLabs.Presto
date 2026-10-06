@@ -59,8 +59,8 @@ public static class Entrances
         Enter(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(from: angle).Perspective(Recipes.FlipPerspective);
 
     /// <summary>
-    /// Develops a <see cref="PrestoImageBase"/> like a photograph over <see cref="MotionTokens.Long"/>: fades in while settling
-    /// from <see cref="PrestoImageBase.Sepia"/> 0.8, <see cref="PrestoImageBase.Brightness"/> 1.6 and a blur of
+    /// Develops a <see cref="Controls.PrestoImageBase"/> like a photograph over <see cref="MotionTokens.Long"/>: fades in while settling
+    /// from <see cref="Controls.PrestoImageBase.Sepia"/> 0.8, <see cref="Controls.PrestoImageBase.Brightness"/> 1.6 and a blur of
     /// <see cref="MotionTokens.BlurRadius"/>. UI thread only: the compositor cannot filter or blur.
     /// </summary>
     public static AnimationBuilder Develop(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>

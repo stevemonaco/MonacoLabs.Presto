@@ -4,6 +4,7 @@ using Avalonia.Metadata;
 [assembly: XmlnsDefinition("https://github.com/stevemonaco/Monaco.Presto", "Monaco.Presto.AvaloniaBridge")]
 [assembly: XmlnsDefinition("https://github.com/stevemonaco/Monaco.Presto", "Monaco.Presto.AvaloniaBridge.Bindings")]
 [assembly: XmlnsDefinition("https://github.com/stevemonaco/Monaco.Presto", "Monaco.Presto.AvaloniaBridge.Compositor")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/Monaco.Presto", "Monaco.Presto.AvaloniaBridge.Controls")]
 [assembly: XmlnsDefinition("https://github.com/stevemonaco/Monaco.Presto", "Monaco.Presto.AvaloniaBridge.Draggables")]
 [assembly: XmlnsDefinition("https://github.com/stevemonaco/Monaco.Presto", "Monaco.Presto.AvaloniaBridge.Effects")]
 [assembly: XmlnsDefinition("https://github.com/stevemonaco/Monaco.Presto", "Monaco.Presto.AvaloniaBridge.Events")]

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
+using Monaco.Presto.AvaloniaBridge.Controls;
 
 namespace Monaco.Presto.AvaloniaBridge.Lottie;
 

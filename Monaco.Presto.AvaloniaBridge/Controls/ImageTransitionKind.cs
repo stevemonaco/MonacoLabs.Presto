@@ -1,4 +1,4 @@
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>How <see cref="FilteredImage"/> swaps one image for the next.</summary>
 public enum ImageTransitionKind

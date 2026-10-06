@@ -815,6 +815,24 @@ Each of these exists today only as sample code, and each is a separate sub-phase
   (43–51, 92–109), BloomNav (48–54, 102–103), Liquid's squashing pill (77–130) and the shared `Showcase/TabIndicator.cs`.
   Liquid's gooey squash may stay sample-side if the stretch option cannot express it.
 
+**Built against the sketch:** a static `Selection` class with four attached properties on any `ItemsControl`, acting on
+a `SelectingItemsControl` or a `TreeView`: `Indicator` (an `ITemplate<Control?>`, so a style can set it; its `Margin`
+insets it), `IndicatorMode` (`Fill`, or `Underline`: a bar along the bottom edge of a horizontal list's item or the left
+edge of a vertical one's, as thick as the indicator's own `Height` or `Width`), `Stretch` and `Motion` (an
+`AnimationBuilder` for timing and ease only, as `Animate.ContentSize` takes; default `Tokens.Medium` with `Tokens.Ease`;
+a spring sets the duration). The indicator is a child of the list's `ItemsPresenter`, behind the panel (PLAN decision
+102, which also settles the `Connected` alternative against it), placed from the selected container's slot, or a
+`TreeViewItem`'s `PART_LayoutRoot` row, taken from the container's parent. It is re-placed on every `LayoutUpdated`;
+only a selection change glides, and any other change of slot snaps. It hides while the container is unrealized, not
+effectively visible or not wholly inside a clipping ancestor below the presenter, which generalises the nav's `Folded`
+check. A `VirtualizingStackPanel` keeps a `ListBox`'s selected container realized as its tab-once element, so there it
+hides only once that element moves. `Stretch` follows Material's elastic tab indicator rather than the old two-step
+reach-and-contract. **Reduced:** read at each selection change, the indicator lands on the new item at once, as layout
+moves do under the flag. No after-first-arrange hook was needed, so `AfterFirstArrange` stays in `ShowcasePage`. The nav
+(its template now Fluent's own), MicroInteractions' underline and BloomNav (its buttons now a `TabStrip`) migrated;
+`NavSelectionPill` and `TabIndicator` were removed. Liquid's pill stays sample code: its edges lead and trail on
+different durations with a delay, and it squashes vertically, neither of which `Stretch` expresses.
+
 ### 9.2 Swipe actions and swipe-to-dismiss (63b)
 
 - **Gap.** Flutter's `Dismissible`, SwiftUI's `swipeActions`. The Swipe deck throws cards in sample code; there is
@@ -831,6 +849,30 @@ Each of these exists today only as sample code, and each is a separate sub-phase
 - **Sample:** the Gestures inbox (`GesturesPage.axaml.cs` 152–211, ≈60 lines) migrates. The Swipe deck
   (`SwipeDeckPage.axaml.cs` 104–260) stays sample code; it is a card throw, not a row action.
 
+**Built against the sketch:** a static `Swipe` class (`Gestures`) with four attached properties on any `Control`:
+`Leading` and `Trailing` (a `Control` for one element, or an `IDataTemplate` built with its data context, which a style
+can share), `Command` and `Dismiss`. Each side's actions sit in a clipping layer appended as a visual and logical child of
+the element itself and arranged at the strip the element uncovers as it moves through its X shorthand (PLAN decision
+103), so the element must not clip to its bounds. A side opens as wide as its actions measure; a release short of half
+the element's width coasts through `Inertia` to open or closed, snapping at half the actions' width and staying on the
+side it was dragged to, and a fling from a short drag opens. Past the actions, or past 0 on a side without actions, the
+drag rubber-bands with Transformable's 0.35. A release past half the width commits by position alone, never by a
+projected fling: the command runs with the `Edge` the element moved towards (`Right` for leading) and the element
+coasts closed, or with `Dismiss` it slides out over `Tokens.Short` first. A command that removes the item lets
+`Presence.Exit` ghost it; an element still shown is hidden (Phase 57), and `Animate.ItemLayout` closes the gap either
+way. The axis lock is Draggable's 3-unit threshold on the first move: vertical first drops the press, so nothing is
+captured or handled and a touch scroll reaches the `ScrollViewer`; horizontal first captures and prevents gesture
+recognition, as Transformable does. `GestureOwners` is claimed, so a `Draggable` on the same element throws. One element
+per list (its nearest `ItemsControl`, or its parent outside one) is open; a grab or open closes the other, and while one
+is open a tunnelling press outside it, a tap on it, or Escape (which refocuses it when focus was in its actions) closes
+it. The accessible path is the context request rather than the keyboard alone: `ContextRequested` (the menu key,
+Shift+F10, a right-click or a touch hold) cycles trailing, leading, closed, and a keyboard request focuses the first
+focusable action; an element with its own `ContextMenu` or `ContextFlyout` keeps it. A re-attached, recycled
+(`DataContext` changed) or re-shown element snaps closed. **Reduced:** read at each release, the element lands on its
+snap at once and a dismiss commits at once. The Gestures inbox is now an `ItemsControl` of rows with archive and delete
+buttons as their actions, the full swipe dismissing and Undo re-inserting; the velocity readout and the colour mapping
+of the old strip went with the hand-built `Draggable`.
+
 ### 9.3 Sheets and drawers (63c)
 
 - **Gap.** A bottom sheet with detents and a side drawer with edge-swipe-to-open exist only in the Gestures page.
@@ -842,6 +884,35 @@ Each of these exists today only as sample code, and each is a separate sub-phase
   - `Drawer` is the side variant (`Edge.Left`/`Right`), with an edge swipe to open.
 - **Reduced:** snap to detents without easing; the scrim fades.
 - **Sample:** the Gestures curtain (`GesturesPage.axaml.cs` 76–112, three stops and a tapped handle) migrates.
+
+**Built against the sketch:** a `Sheet` control rather than an attached form (PLAN decision 104), with a sealed `Drawer`
+subclass. It fills its host, a page's panel or the window's `OverlayLayer` (whose canvas measures it at the layer's
+size), and holds three children it builds itself: the scrim, a panel holding its `Content`, and an edge strip. Its
+`Edge` (the shared `Edge` enum, `Bottom` by default, `Left` for a `Drawer`) says where the panel slides out from; the panel
+is arranged just past that edge, as deep as the last detent, so its X or Y shorthand is the extent itself, and the sheet
+clips to its bounds. `Detents` is a `SheetDetents` of `GridLength`s, listed from closed to fully open: `n*` and a plain
+number up to 1 are fractions of the host, larger numbers are DIPs and `Auto` is the content's own extent, so
+`"0.25,0.5,1"` and `"200,1*"` both parse, and the default is `"0,Auto"`. `DetentIndex` (two-way) is where it rests and
+setting it glides there; `IsOpen` (two-way) is `DetentIndex > 0`, opening to the second detent and closing to the first,
+so a sheet whose first detent is not 0 closes to a peek rather than away. `Position` is a read-only `MotionValue` of the
+extent as rendered, which the page links content to and reads velocity from. The drag is the sheet's own, built like
+`Swipe`'s rather than on `Draggable`, whose press captures and so could never hand a touch scroll to an inner
+`ScrollViewer`: Draggable's 3-DIP threshold, a cross-axis first move dropping the press, rubber-banding at Transformable's
+0.35 past the first and last detents, and a release that coasts through `Inertia` to the detent nearest
+`extent + velocity · TimeConstant` (a release outside them lands on the nearer end, and a fling past them keeps its
+projected target so it crosses the bound and bounces). Inside a `ScrollViewer` the sheet takes the drag only when the
+scroller cannot scroll the way the pointer moves, or when the drag opens the sheet and it is below its last detent. The
+scrim's opacity follows the extent's progress from the first detent to the last through `Follow.Bind` (immediate, with a
+`WhenReduced` fade), so its brush (`Scrim`, 32 % black by default, null for none) sets the strength; it takes input only
+while the sheet is open, and a tap on it, Escape on the window (bubbling, so a focused control can claim it first) or
+`TopLevel.BackRequested` closes it. Open and close follow Phase 57: a sheet resting at 0 hides its panel, and showing it
+again, with `Presence.EnterOnShow` on the panel, replays the entrances of the content inside; the sheet's own slide is
+the glide, not a `Presence` builder. A `Drawer` takes presses on a 20-DIP strip along its edge while closed and hidden,
+so a swipe in from the edge opens it. **Reduced:** read at each release or change of `DetentIndex`, the sheet lands on its
+detent at once and the scrim fades to match over `Tokens.Short`; `FollowBinding` now honours a `WhenReduced` timing on an
+otherwise immediate binding, which it used to snap. The Gestures curtain (`Edge="Top"`, `"28,0.5,1"`, the handle's tap
+cycling `DetentIndex`) and bottom sheet (`"52,1"`) migrated, their velocity readouts reading `Position.VelocityOf()`;
+the curtain's half stop is now half the stage rather than half the travel, and its scrim is the sheet's own.
 
 ### 9.4 Tests
 
@@ -865,6 +936,31 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
 
   The prebuilt is a `Carousel`-like host (or an attached form on Avalonia's `Carousel`, to decide) with `SelectedIndex`,
   snap, autoplay, looping, a dot or progress indicator, and a parallax `MotionValue` per slide.
+
+  **Built against the sketch:** a `Pager` control rather than an attached form on Avalonia's `Carousel` (PLAN decision
+  105), with a `PagerIndicator` beside it. Its `Slides` lie side by side on an inner strip, each as wide and tall as the
+  pager, which clips. The strip moves through a `Draggable` on its X shorthand, triggered by the pager itself (so a press
+  on a button inside a slide stays the button's), with `Utils.Snap(width)`, `ReleaseInertia` and bounds spanning the
+  slides. On attach and on every arrange that changes its width, it refreshes the draggable and puts the strip back on
+  `SelectedIndex`, so the bounds follow a resize without the page's handler. `SelectedIndex` (two-way) is where it rests
+  or is heading; setting it, or `GoTo(index)`, springs there (the page's `Eases.Spring(bounce: .2, duration: 700)`), and a
+  drag sets it once it settles. Left, Right, Home and End page it while it has focus. `Loop` wraps paging and drops the
+  bounds: each slide is laid out at the copy of its column nearest the page shown, so a drag past the last slide reveals
+  the first, and paging takes the shorter way round. `Position` is a `MotionValue` of the page shown, in slide widths,
+  set from the strip's render rather than through `XValue.Changed`, so `OffsetOf(slide)` (that slide's distance from the
+  centre in slide widths, wrapped when looping) moves parallax layers in the same frame as the strip. `AutoplayInterval`
+  runs a looping timer that advances one slide per interval (a pager that does not loop rewinds from its last slide to
+  its first). The timer restarts when the user pages, and holds while the pointer is over the pager, while it is dragged
+  and while focus inside it came from the keyboard: a click focuses the pager, and pausing on any focus would stop
+  autoplay for good after the first drag. `AutoplayProgress` is the timer's 0–1 progress, which the page's ring draws
+  through `CreateDrawable` until 65b's `Follow.Draw`. `PagerIndicator` follows a `Pager`. In `Dots` mode it shows 8-DIP
+  dots, the selected one 24 wide in `Fill` and the rest in `Track`; their width and brush change over `Tokens.Medium`,
+  staggered out from the selected dot. In `Progress` mode it shows a bar that fills to `(page + 1) / count` of its width
+  as `Position` moves. **Reduced:** read at each `GoTo`, selection change and release, the strip lands at once (a
+  release lands on the slide its fling projects to, `x + v · TimeConstant`, as `Sheet` does) and the dots change at
+  once. Autoplay still pages, the same way, while `AutoplayProgress` stays at 0, so the ring stays empty; the parallax
+  layers move only as the strip does. The Carousel page migrated and now loops; its slides, ring and layer maps stay
+  sample code.
 - **64b Toast / snackbar host.** Two copies: `Builder/ToastsPage.axaml.cs` 21–61 and `MicroInteractionsPage.axaml.cs`
   130–160 (≈70 lines).
   - Entrance and exit through `Presence`, restacking through `{presto:Reflow}`.
@@ -874,6 +970,26 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
   The prebuilt is a host with a queue and the countdown built in. It also clears two workarounds: a trim posted out of
   `CollectionChanged` (ToastsPage:51), and a countdown kept in `Tag` because `GetAnimations` omits paused animations
   (PLAN §7). Decide whether to fix that §7 item here.
+
+  **Built against the sketch:** a `ToastHost` control, an `ItemsControl` that owns its `Items` (PLAN decision 106).
+  `Show(content, duration = 4000)` adds the content as an item, built by the host's `ItemTemplate`, and returns a `Toast`
+  handle whose `Dismiss()` removes it; `ToastHost.GetToast(element)`, inherited from the item container, finds it from
+  inside the template, as the ✕ buttons do. The motion stays the template's: `Presence.Arrive`/`Exit` on its root, and
+  `Animate.ItemLayout` on the host restacks the rest. Past `MaxCount` (default 3) `Show` dismisses the oldest before it
+  adds, so the cap needs no trim posted out of `CollectionChanged`; extra toasts are trimmed rather than queued, as the
+  Toasts page did, since no page waits. The countdown starts when the item container loads: an element of the template
+  marked with the attached `ToastHost.Countdown` (a property or shorthand name, `ScaleX` for a bar, `Value` for a
+  `ProgressBar`) runs it linearly from 1 to 0 over the duration, and its `OnComplete` dismisses the toast; without one, a
+  plain timer does. The pointer over the container or keyboard focus within it pauses the countdown, and leaving resumes
+  it. The host keeps each countdown on its `Toast`, so the §7 `GetAnimations` item is decided as documentation, not a fix
+  (PLAN decision 107), and the `Tag` workaround went with the migration. A swipe reuses 63b's `Swipe` on the container:
+  `Swipe.Dismiss` with no actions now swipes either way, slides the toast out past half its width, and the host removes it
+  at opacity 0, so it leaves without replaying its exit from its slot. **Reduced:** read when each countdown starts, the
+  marked element holds at 1 and fades its opacity to 35 % instead, so it still counts without moving, and the toast still
+  dismisses itself at the end; the entrance and exit take their builders' reduced forms (a `{presto:Slide}` fades in
+  place), and a swipe lands and commits at once as `Swipe` does. Both copies migrated: the Toasts page (`MaxCount="4"`,
+  5-second toasts) and MicroInteractions (default cap, 4-second toasts, a `ProgressBar` countdown), whose swipe now
+  commits past half the toast's width instead of at 90 px. `ToastsViewModel` became the `Notice` sample record.
 - **64c Modal / dialog host.** Three copies of ≈40–50 lines: Storefront 74–96, GalleryFlip 81–126, Connected 47–53
   and 78–159.
   - A scrim and a background blur.
@@ -882,14 +998,63 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
 
   The prebuilt is an overlay host with `Open`/`Close` builders, reveal-from-element and focus return, closing through
   Phase 57's hide.
+
+  **Built against the sketch:** a `Modal` control with `Open`/`Close` methods and a two-way `IsOpen`, rather than a static
+  `Modal.Open(content, from:)` or an attached `IsOpen` on an overlay (PLAN decision 108). It fills its host and draws a
+  scrim (`Scrim`, 32 % black by default, null for none) under its `Content`, which places itself by its own alignment, and
+  it measures as its content even while closed, so opening never changes an auto-sized host's layout. `Open(element)`
+  reveals the content in a `ClipCircle` grown from the element's centre over `Tokens.Long` (`Open(point)` takes a point
+  in the modal's coordinates) and closing shrinks it back over `Tokens.Medium`. `Open()` with no origin, or setting
+  `IsOpen`, shows the content at once, for content that animates in by itself (Gallery's card flight, Connected's
+  hero), and closing fades it out. The scrim fades with `Recipes.Fade`/`FadeOut`, and `Backdrop`, when set, blurs over
+  `Tokens.Medium`. The content's host has `Presence.EnterOnShow`, so entrances inside it replay on
+  each open. The scrim and content close through Phase 57's held hide: the modal sets their `Presence.Enter`/`Exit` at
+  each open and close, then flips their `IsVisible`, so neither takes input once closing starts and reopening mid-close
+  plays the exits back from where they stand (one more frame of the exit plays first, since a held hide sees the show on
+  its next update). Escape on the window (bubbling), `TopLevel.BackRequested` and a tap on the scrim close it, as they do
+  a `Sheet`. Opening records the focused element and moves focus into the content's host; closing gives it back. A
+  `Closed` event tells a page that the modal closed itself, as Gallery and Connected need to put their lifted elements
+  back. **Reduced:** read at each open and close, the content shows and hides at once while the scrim still fades
+  (`Fade`'s reduced form) and the backdrop still blurs. All three copies migrated: Storefront's quick view
+  (`Open(card)`, the dialog now staying bound to the last product while it shrinks back into the card instead of
+  blurring out as a ghost), the Card gallery's detail pane (`Open()`, its Close column fading in through
+  `Presence.Enter`) and Connected's detail view (`Open()`, a transparent scrim, so a click beside the detail now closes
+  it; the page no longer takes focus to see Escape). Their flights and content animations stay page code.
 - **64d Accordion.** `MainView.axaml` 41–62 with `MainView.axaml.cs` 22–34 (`ContentSize` fold plus a chevron state);
   MicroInteractions 111–128 (single-open by hand, and the body itself not size-animated). The prebuilt is an
   `Expander` style or attached form with an eased body (`Animate.ContentSize`), a chevron spring and a single-open
   group, with children revealed through Phase 57's `EnterOnShow`.
+
+  **Built against the sketch:** an attached form, not a style, since the bridge ships no themes (PLAN decision 109).
+  `Accordion.Enabled` on an `Expander` or a `TreeViewItem` eases the item's own size through `Animate.ContentSize`
+  (the item's template root is its sole child and never hides, so no wrapper panel is needed), gives its body (Fluent's
+  `ExpanderContent`, a tree item's `PART_ItemsPresenter`) a `Presence.Exit` fade and `Presence.EnterOnShow`, so the body
+  fades in place, then folds, and the entrances inside replay on each open. The fade and the fold each take
+  `Tokens.Short`. `Accordion.Chevron` (degrees) marks a template element as the chevron, which springs (`Springs.Snappy`)
+  to that angle while the item is expanded and back to 0 while collapsed; it finds its item through the templated-parent
+  chain, so it works from a nested template. On an `Expander`, `Enabled` marks Fluent's chevron border (180°) and gives
+  the chevron path a `TransformOperations` render transform, which Fluent's 62 ms `RotateTransform.Angle` flip skips.
+  `Accordion.Group` on any element closes the other expanders whose nearest group it is when one expands; it covers
+  `Expander` only, since the nav needs no single-open. **Reduced:** the fold has `Duration(0)`, the fade lands at once and
+  the chevron jumps, so the item opens and closes within a frame. Migrated: the gallery nav (its chevron now points right
+  and turns 90°, its `ItemsHost` wrapper is gone, and `Enabled` is set only while not searching, so filtering still
+  reflows instead of folding) and MicroInteractions (the `Expanding` handler and the `Animate.Layout` reflow replaced by
+  `Group` and `Enabled`, the answers fading up on each open).
 - **64e Collapsible pane.** `Views/SidebarPane.cs` (whole file) with `MainView.axaml.cs` 85–90. It tweens a helper
   `double` and writes a `GridLength` and a negative margin in `OnUpdate`. Needs PLAN §7's pixel-only `GridLength` codec,
   built here. The prebuilt is a pane recipe for a `Grid` column or a `SplitView`: collapse, restore the dragged width,
   and clip rather than reflow below `MinWidth`.
+
+  **Built against the sketch:** `GridLengthCodec` tweens a pixel `GridLength` as its pixel count, so a number, a relative
+  number or a pixel length animates `ColumnDefinition.Width` or `RowDefinition.Height`; a star or auto end throws
+  `ArgumentException`, and a value below 0 writes 0 (PLAN decision 110). `Pane.Collapse`/`Expand`/`Toggle(column,
+  content)` are static, keeping per-column state in a weak table, for a `Grid` column only: a `SplitView` already animates
+  its own pane. Collapsing records the column's width when it is at rest (its `MinWidth` still set, so after any splitter
+  drag), lifts `MinWidth` for the run, eases the width to 0 over `Tokens.Short`; expanding eases back over
+  `Tokens.Medium` and restores `MinWidth` at the end. Each frame gives the content a negative right margin below its
+  minimum, so it clips rather than reflows. The column ends on a local width with the animation reverted, so a
+  `GridSplitter` resizes it again. **Reduced:** the width jumps. `SidebarPane` is deleted; `MainView` calls
+  `Pane.Toggle` and reads `Pane.IsCollapsed`.
 
 ### 10.2 Phase 65 — Effects and gestures
 
@@ -897,6 +1062,19 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
   only plays in a virtualizing list) and `ScrollPage.axaml.cs` 21–31: an observer linked to a paused fade per block.
   Make `Presence.Reveal` work for any element inside a plain `ScrollViewer` (once per element, with a viewport
   threshold), or add `Scroll.Reveal`. Decide here; the first keeps one name for one idea.
+
+  **Built against the sketch:** `Presence.Reveal` it is (PLAN decision 113). An element with it under a `ScrollViewer`,
+  with no `VirtualizingPanel` in between (a non-virtualizing `ItemsControl`'s rows included), is held at opacity 0 from
+  its attach and watched by a private `ScrollObserver` on that scroller; `Presence.RevealThreshold` is the observer's
+  `Enter` as a `ScrollThreshold` string (default `"end start"`, its top reaching the viewport's bottom), so one already
+  in view reveals on the observer's first frame. Crossings in one frame play on the next engine tick as one batch per
+  window, sorted top then left, so `Delay(Presto.Stagger(...))` runs down the page. `RevealOnce` (default true) reverts
+  the observer after the reveal; without it, leaving the view reverts the reveal and hides the element for the next
+  crossing. Rows of a virtualizing list keep the realization path unchanged. **Reduced:** the threshold and the batch
+  are unchanged and the builder plays its reduced form, as every `Presence` moment does (a `Recipes.Fade*` plays as a
+  `Tokens.Short` fade). Migrated: ScrollStory's chapters (`{presto:Fade Direction=Up}` at `"bottom-=120 top"`, their
+  observers kept only to report crossings to the rail) and headings (`{presto:LineMask}`, replacing the `OnAttached`
+  set from `OnEnter`), and the Scroll page's default-threshold card.
 - **65b Progress ring, draw recipes and the async button.**
   - Value-bound `Draw` is written by hand in Gestures 62–66 (comment at 65: no `Follow.Draw`), Carousel 62–70,
     Dashboard 64–74/129–157/198–208 and Loaders 68–86. `DrawIn`/`DrawOut` and check/cross geometries are rewritten in
@@ -904,6 +1082,32 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
   - Build: a `Follow.Draw` shorthand (PLAN §7 candidate); a determinate ring / segmented arc control, which also gives
     hold-to-confirm; `Recipes.DrawIn`/`DrawOut`; and a submit-button recipe (collapse to a spinner, morph to a check or
     cross, expand back).
+
+  **Built against the sketch:** `Follow.Draw` on a `Shape` follows one number, the share of the stroke drawn from its
+  start (`"0 p"`, clamped to 0–1), eased like the other shorthands or written as a `MotionValue` flushes (PLAN decision
+  111); releasing it restores the shape's dashes. `RotateX`/`RotateY` stay candidates, since a lean needs `Perspective`
+  beside it. `ProgressRing` is a control that draws `Value` clockwise from the top over a track, whole or split into
+  `Segments` arcs with a `Gap` in degrees, each arc a `Path` drawn through `DrawAccessor`; it draws `Value` as it is and
+  takes its easing from `{presto:Follow}` or `Follow.Bind`, which also binds a `MotionValue`. A `HoldDuration` makes it
+  hold-to-confirm: a press, or Space or Enter while focused, fills it linearly from its value, `Confirmed` is raised at 1,
+  and letting go rewinds it to its value over `Tokens.Short`. `Recipes.DrawIn` draws a stroke from `"0 0"` to `"0 1"`
+  and `Recipes.DrawOut` erases it to `"1 1"`, over `Tokens.Medium` (family `Prebuilt.Draws`, which also holds the
+  `Check` and `Cross` marks in a 20 × 20 box). The submit button is the attached `SubmitButton.State`
+  (Idle/Busy/Succeeded/Failed), driven by a view model or by `SubmitButton.Run(button, work)`, which shows busy until
+  the task ends, the outcome (success unless it faulted, was cancelled or returned false) for `Tokens.Medium +
+  Tokens.Long`, then idle (PLAN decision 112). Busy collapses the button to a circle over `Tokens.Medium`, fades its
+  content and spins an arc in its `Foreground`; the outcome fades the spinner and draws a check or a cross with
+  `DrawIn`, tinting the background with `SuccessBrush`/`FailureBrush` when set; idle erases the mark and springs back on
+  `Springs.Bouncy`. **Reduced:** the ring draws its value at once (`Follow`'s snap), a hold still takes its time, since
+  the wait is the confirmation, and a release lands at once; `DrawIn`/`DrawOut` land on their first frame; the submit
+  button swaps states at once with a still spinner. Migrated: Gestures' pull ring (`Follow.SetDraw` on the pull's mapped
+  `YValue`, replacing the `OnUpdate` write), Carousel's autoplay ring (`Follow.SetDraw(Ring, Pager.AutoplayProgress)`),
+  SubmitFlow's draw and erase builders (`Recipes.DrawIn`/`DrawOut` with its timings) and marks (`Draws.Check`/`Cross`),
+  MicroInteractions' submit timeline (`SubmitButton.Run` over a Presto timer, `SuccessBrush` for the aqua tint; the
+  arc-to-check morph became a drawn check) and ChartMorph's line draw-in. Not direct swaps, so left as page code:
+  Dashboard's donut slices and sparkline reveal (start/end slices tweened in a scrubbable timeline), Loaders' drawing
+  ring and MorphLab's signature (a looping `"0 0"`→`"0 1"`→`"1 1"` keyframe draw), Loaders' counter (a `ProgressBar`,
+  not a ring) and TitleSequence's monogram, whose reduced form would shorten the timeline its labels are placed in.
 - **65c Pull to refresh.** `GesturesPage.axaml.cs` 50–74 and 115–150 (≈60 lines):
   - A y-only `Draggable` with a rubber-band modifier.
   - A threshold, an arrow rotation mapped from the pull, and a ring that turns into a spinner.
@@ -911,13 +1115,59 @@ is a sub-phase that migrates the pages it names, so the sample keeps proving the
 
   Avalonia ships `RefreshContainer`, so decide between restyling it with Presto motion and a Presto attached form. The
   modifier re-applied on release (SAMPLES-PLAN §8; the page's `_pulling` gate) is fixed or documented here.
+
+  **Built against the sketch:** a `PullToRefresh` control (PLAN decision 114) rather than a restyled `RefreshContainer`,
+  whose pull is touch and pen only. It wraps its `Content` and handles the pointer itself, as `Sheet` does: a drag mostly
+  downward starts a pull unless a `ScrollViewer` under the pointer is scrolled away from its top, and the pull is the
+  travel `d` damped to `r(1 − e^(−d / r))` with `r` 2.2 × `Threshold` (default 64). The damping applies to the travel,
+  so a release starts where the content is drawn and lands exactly on the threshold; the `Draggable` modifier issue
+  (SAMPLES-PLAN §8 row 30) stays documented on `DraggableAxisParams.Modifier`, and the page's `_pulling` gate went with
+  its `Draggable`. Above the content, uncovered by the pull, an arrow turns 0–180° and a ring draws 0–0.8 through
+  `Follow.Draw`, both in `Foreground`. Released short, the content springs back (bounce 0.2, 600 ms); past the
+  threshold, it springs to the threshold, the arrow fades, the ring spins, and `Refresh` (`Func<Task>`) is awaited
+  before the spinner stops and the content springs back. `Pull` is a `MotionValue` of the drawn pull for readouts.
+  **Reduced:** read at each release, the content lands at once, the arrow fades at once and the ring holds still while
+  the refresh runs. Migrated: the Gestures feed, whose refresh is an awaited Presto timer and whose three new rows
+  stagger in through `Presence.Enter` (height and opacity, 70 ms apart) instead of a hand-built `Set` and `Animate`.
 - **65d Circular reveal transition.** `BloomNavPage.axaml.cs` 56–108 (≈50 lines): a scaled `Ellipse` from the pointer
   (the centre for keyboard), the content swapped at 65 %, the new tiles staggered centre-out, and stacked blooms cleaned
   up. The prebuilt is a `PageBloom` page transition and a `CircularReveal` recipe from a point or element, built on
   `ClipCircle`/`ClipCircleCenter`; also a theme-toggle reveal.
+
+  **Built against the sketch:** `Recipes.PageBloom()` (`{presto:PageBloom}`) is a `PrestoPageTransition` like the other
+  page recipes, not a transition type of its own (PLAN decision 115), so a cancelled bloom is taken over from where it
+  stands as theirs are. The incoming host is revealed by `Recipes.CircularReveal` over `Tokens.Long` on `InOutQuart`,
+  stacked above the outgoing one both ways, and both directions bloom. Its origin is the last pointer press in the host's
+  window, recorded by a tunnelling class handler on `TopLevel` and spent by the bloom it starts; a key pressed since
+  clears it, so a keyboard navigation, or one with no press behind it, blooms from the host's centre (not the tab's, as
+  the page did). "Swaps the content at 65 %" became: at 65 % the children of the incoming page's first `Panel` rise
+  `Tokens.Distance` and fade in, staggered `Tokens.StaggerStep` from the centre out over `Tokens.Medium`; the page's own
+  background is what the circle shows until then, so no coloured disc sits over the old page. Interrupted blooms do not
+  stack: the outgoing side plays `ClipCircle` to 1 over `Tokens.Short`, which finishes a part-revealed page's circle
+  under the new one and leaves a full one unchanged, and each host's clip is reverted when its transition ends.
+  `Recipes.CircularReveal(origin)`/`CircularReveal(element)` (family `Prebuilt.Reveals`) grow `ClipCircle` 0 → 1 from a
+  `RelativePoint` or an element's centre, read per target. `Recipes.ThemeReveal(surface, change, from)` draws the
+  surface to a bitmap before and after `change` runs (such as setting `RequestedThemeVariant`) and reveals the second
+  picture over the first in the surface's overlay layer, removing both at the end; a second reveal on the surface
+  replaces the first, starting from what a `TopLevel` surface had on screen. **Reduced:** no bloom; the incoming page
+  fades in over `Tokens.Short` above the outgoing one, its children do not move, and `CircularReveal`/`ThemeReveal`
+  fade in over `Tokens.Short`. Migrated: BloomNav, whose stage is a `TransitioningContentControl` with
+  `{presto:PageBloom}` and whose pages carry their own hue; the `Ellipse` overlay, the press tracking and the timeline
+  are gone, and it keeps 63a's indicator.
 - **65e Flip card.** `EffectsPage.axaml.cs` 84–94: `RotateY` and `Perspective`, with the back face's visibility swapped
   past 90° in `OnRender`. `FlipIn`/`FlipOut` exist, but nothing manages two faces. The prebuilt is `Flip.IsFlipped` with
   front and back content.
+
+  **Built against the sketch:** a control, `Flip`, with `Front`, `Back` and `IsFlipped` (PLAN decision 116), not an
+  attached form: the faces need a card to turn and a mirror on the back that belong to the control, not to a panel the
+  page owns. The card turns 0 ↔ 180° through `RotateY`, or `RotateX` when `Orientation` is vertical, with
+  `Perspective(Recipes.FlipPerspective)`, the same 800 as `FlipIn`/`FlipOut`. Every frame shows the front below 90° and
+  the back above, and the back carries `ScaleTransform(-1, 1)` (or `(1, -1)`) so it reads the right way round when
+  turned. `Motion` sets the timing and ease, a spring included, defaulting to `Tokens.Long` on `Tokens.Ease`. Toggling
+  mid-turn starts a new turn from the current angle, and leaving the visual tree mid-turn lands it. **Reduced:** read at
+  each toggle, the card is set to its end angle and the faces swap at once; a card not yet in a visual tree does the
+  same. Migrated: the Effects page's flip, now `IsFlipped` bound to a `ToggleButton` with the page's 900 ms `InOutQuad`
+  as `Motion`, with no code behind.
 
 ### 10.3 Found but not lifted (yet)
 

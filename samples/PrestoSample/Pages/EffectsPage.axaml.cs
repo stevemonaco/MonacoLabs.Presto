@@ -12,7 +12,7 @@ namespace PrestoSample.Pages;
 
 /// <summary>
 /// The effect shorthands on real controls: blur, a live drop shadow, <c>BoxShadow</c> beside <c>DropShadowEffect</c>, a
-/// <c>RotateY</c> flip, a pointer tilt, clip and mask reveals and a blur-out exit. Each stage prints the code it ran.
+/// <see cref="Flip"/> card, a pointer tilt, clip and mask reveals and a blur-out exit. Each stage prints the code it ran.
 /// </summary>
 public partial class EffectsPage : ShowcasePage
 {
@@ -20,13 +20,14 @@ public partial class EffectsPage : ShowcasePage
     public static readonly AnimationBuilder BlurOut = Presto.Build().Blur(12).Opacity(0).Scale(.96).Duration(420).Ease(Eases.OutQuad);
     #endregion
 
+    public static readonly AnimationBuilder FlipMotion = Presto.Build().Duration(900).Ease(Eases.InOutQuad);
+
     private static readonly string[] Chores = ["Water the plants", "Reply to Grace", "Book the dentist", "Fix the bike light"];
 
     private Animatable _tilt = null!;
     private string _tiltCode = "";
     private Animation? _reveal;
     private bool _raised;
-    private bool _flipped;
 
     public EffectsPage()
     {
@@ -80,18 +81,6 @@ public partial class EffectsPage : ShowcasePage
         var (_, effect) = Snippet.Of(EffectCard.Animate(Presto.Build().Shadow(0, offsetY, blur, Color.Parse(color)).Y(y).Duration(400).Ease(Eases.OutQuart)));
         CompareCode.Code = $"{box};\n{effect};";
     });
-
-    private void FlipClicked(object? sender, RoutedEventArgs e)
-    {
-        _flipped = !_flipped;
-        Show(FlipCode, Scope.Execute(_ => Snippet.Of(Presto.Build()
-            .RotateY(_flipped ? 180 : 0)
-            .Perspective(600)
-            .Duration(900)
-            .Ease(Eases.InOutQuad)
-            .OnRender(timer => FlipBack.IsVisible = Presto.Get(FlipCard, "RotateY", withUnit: false) is > 90.0)
-            .Animate(FlipCard))));
-    }
 
     private void TiltMoved(object? sender, PointerEventArgs e)
     {

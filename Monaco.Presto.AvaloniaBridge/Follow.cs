@@ -1,15 +1,17 @@
 using Avalonia;
+using Avalonia.Controls.Shapes;
 using Avalonia.Data;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Bindings;
 using Monaco.Presto.AvaloniaBridge.Effects;
+using Monaco.Presto.AvaloniaBridge.Shapes;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// Attached shorthands that ease a visual's transform or blur to each new value, usually bound to a view-model property:
+/// Attached shorthands that ease a visual's transform, blur or a shape's drawn stroke to each new value, usually bound to a view-model property:
 /// <c>presto:Follow.Rotate="{Binding Angle}"</c>. A value is a number, or a string with a unit such as <c>"45deg"</c>
 /// or <c>"1turn"</c> for <see cref="RotateProperty"/>; <see langword="null"/> or clearing the property releases the shorthand.
 /// </summary>
@@ -17,7 +19,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// The first value snaps, as does a value caused by a new <c>DataContext</c>, one that arrives while detached, and every value
 /// under <see cref="PrestoDefaults.ReducedMotion"/>; detaching lands on the latest value. The followed value is the base of the
 /// shorthand: an animation of the same shorthand overrides it while it holds it, and reverting that animation shows the latest
-/// followed value again.
+/// followed value again. <see cref="DrawProperty"/> is the exception: it writes the shape's dashes as a <c>"Draw"</c> tween
+/// does, so the later write wins, and releasing it restores the dashes the shape had.
 /// <para>
 /// A <see cref="MotionValue"/> is written as each value flushes, ignoring <see cref="TimingProperty"/>: smoothing belongs to
 /// the graph, as in <c>value.Spring(...)</c>. It is listened to only while the visual is attached.
@@ -54,6 +57,13 @@ public static class Follow
         AvaloniaProperty.RegisterAttached<Visual, object?>("Blur", typeof(Follow));
 
     /// <summary>
+    /// How much of a <see cref="Shape"/>'s stroke is drawn from its start, 0 to 1, as the <c>"Draw"</c> property's
+    /// <c>"0 p"</c>; a slice that starts elsewhere is a <c>"Draw"</c> tween or <see cref="PrestoAvalonia.CreateDrawable"/>.
+    /// </summary>
+    public static readonly AttachedProperty<object?> DrawProperty =
+        AvaloniaProperty.RegisterAttached<Shape, object?>("Draw", typeof(Follow));
+
+    /// <summary>
     /// The builder whose duration and ease every shorthand of the visual moves with, from the next value on; unset, they
     /// follow <see cref="Springs.Gentle"/>.
     /// </summary>
@@ -65,7 +75,7 @@ public static class Follow
     private static readonly AttachedProperty<Followed?> FollowedProperty =
         AvaloniaProperty.RegisterAttached<Visual, Followed?>("Followed", typeof(Follow));
 
-    private static readonly AttachedProperty<object?>[] s_properties = [XProperty, YProperty, ScaleProperty, ScaleXProperty, ScaleYProperty, RotateProperty, BlurProperty];
+    private static readonly AttachedProperty<object?>[] s_properties = [XProperty, YProperty, ScaleProperty, ScaleXProperty, ScaleYProperty, RotateProperty, BlurProperty, DrawProperty];
     private static readonly TransformShorthand[] s_transforms =
         [TransformShorthand.X, TransformShorthand.Y, TransformShorthand.Scale, TransformShorthand.ScaleX, TransformShorthand.ScaleY, TransformShorthand.Rotate];
 
@@ -116,6 +126,12 @@ public static class Follow
 
     /// <summary>Sets the value <paramref name="visual"/>'s blur radius follows.</summary>
     public static void SetBlur(Visual visual, object? value) => visual.SetValue(BlurProperty, value);
+
+    /// <summary>Gets the share of <paramref name="shape"/>'s stroke that follows its value.</summary>
+    public static object? GetDraw(Shape shape) => shape.GetValue(DrawProperty);
+
+    /// <summary>Sets the share of <paramref name="shape"/>'s stroke that follows its value.</summary>
+    public static void SetDraw(Shape shape, object? value) => shape.SetValue(DrawProperty, value);
 
     /// <summary>Gets the builder whose timing <paramref name="visual"/>'s shorthands follow with.</summary>
     public static AnimationBuilder? GetTiming(Visual visual) => visual.GetValue(TimingProperty);
@@ -171,6 +187,7 @@ public static class Follow
     private sealed class Followed
     {
         private const int Blur = 6;
+        private const int Draw = 7;
 
         private readonly Visual _visual;
         private readonly Follower?[] _followers = new Follower?[s_properties.Length];
@@ -218,8 +235,7 @@ public static class Follow
             Unlisten(index);
             _followers[index]?.Dispose();
             _followers[index] = null;
-            if (index == Blur) EffectComposer.Unfollow(_visual);
-            else RenderTransformComposer.Unfollow(_visual, s_transforms[index]);
+            Unfollow(index);
             if (Array.Exists(_followers, f => f != null) || Array.Exists(_sources, s => s != null)) return;
 
             _visual.DataContextChanged -= OnDataContextChanged;
@@ -249,14 +265,21 @@ public static class Follow
         private void Show(int index, object? value)
         {
             if (value is double number) Write(index, number);
-            else if (index == Blur) EffectComposer.Unfollow(_visual);
-            else RenderTransformComposer.Unfollow(_visual, s_transforms[index]);
+            else Unfollow(index);
         }
 
         private void Write(int index, double value)
         {
             if (index == Blur) EffectComposer.Follow(_visual, value);
+            else if (index == Draw) DrawAccessor.Apply((Shape)_visual, 0, Math.Clamp(value, 0, 1));
             else RenderTransformComposer.Follow(_visual, s_transforms[index], value);
+        }
+
+        private void Unfollow(int index)
+        {
+            if (index == Blur) EffectComposer.Unfollow(_visual);
+            else if (index == Draw) DrawAccessor.Restore((Shape)_visual);
+            else RenderTransformComposer.Unfollow(_visual, s_transforms[index]);
         }
 
         private void Unlisten(int index)

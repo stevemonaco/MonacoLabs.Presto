@@ -15,23 +15,18 @@ public partial class ScrollPage : ShowcasePage
 
     private IBrush? _idle;
 
-    public ScrollPage() => InitializeComponent();
+    public ScrollPage()
+    {
+        InitializeComponent();
+        #region snippet ScrollReveal
+        Presence.SetReveal(RevealCard, Presto.Build().Y(from: 60, to: 0).Opacity(from: 0, to: 1).Duration(700).Ease(Eases.OutQuad));
+        #endregion
+    }
 
     protected override void OnAttached()
     {
         _idle = ThresholdCard.Background;
 
-        #region snippet ScrollReveal
-        var reveal = RevealCard.Animate(new()
-        {
-            ["Y"] = TweenValue.FromTo(60, 0),
-            ["Opacity"] = TweenValue.FromTo(0, 1),
-            Duration = 700,
-            Ease = Eases.OutQuad,
-            Autoplay = false,
-        });
-        PrestoAvalonia.OnScroll(new() { Target = RevealCard }).Link(reveal);
-        #endregion
 
         #region snippet ScrollThreshold
         PrestoAvalonia.OnScroll(new()

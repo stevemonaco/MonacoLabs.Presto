@@ -1,62 +1,31 @@
-using System.Collections.Specialized;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
-using Avalonia.VisualTree;
-using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using PrestoSample.Showcase;
-using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Builder;
 
 /// <summary>
-/// A toast stack whose item template attaches its entrance, countdown and exit from XAML; the page only removes items.
+/// A <see cref="ToastHost"/> whose item template attaches its entrance, countdown bar and exit from XAML; the page only
+/// shows and closes toasts.
 /// </summary>
 public partial class ToastsPage : ShowcasePage
 {
-    private const int MaxToasts = 4;
+    private int _next;
 
-    #region snippet ToastsBuilders
-    public static readonly AnimationBuilder Countdown = Presto.Build()
-        .ScaleX(from: 1, to: 0)
-        .Duration(5000)
-        .Ease(Eases.None)
-        .OnComplete(Expire)
-        .WhenReduced(reduced => reduced.Opacity(from: 1, to: .35));
-    #endregion
-
-    public ToastsPage()
-    {
-        InitializeComponent();
-        ViewModel.Toasts.CollectionChanged += TrimStack;
-    }
-
-    public ToastsViewModel ViewModel => (ToastsViewModel)DataContext!;
+    public ToastsPage() => InitializeComponent();
 
     protected override void OnAttached()
     {
-        if (ViewModel.Toasts.Count == 0) ViewModel.NotifyCommand.Execute(null);
+        if (ToastList.Items.Count == 0) Notify();
     }
 
-    private static void Expire(Timer timer)
-    {
-        if (((Animation)timer).Targets[0] is Control { DataContext: Toast toast } bar && bar.FindAncestorOfType<ToastsPage>() is { } page)
-            page.ViewModel.Toasts.Remove(toast);
-    }
+    #region snippet ToastsShow
+    private void Notify() => ToastList.Show(Notice.Sample(_next++), duration: 5000);
 
-    private void TrimStack(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action != NotifyCollectionChangedAction.Add || ViewModel.Toasts.Count <= MaxToasts) return;
-        // Posted because the collection may not change inside its own CollectionChanged.
-        Dispatcher.UIThread.Post(() =>
-        {
-            while (ViewModel.Toasts.Count > MaxToasts) ViewModel.Toasts.RemoveAt(0);
-        });
-    }
+    private void NotifyClicked(object? sender, RoutedEventArgs e) => Notify();
 
-    private void Close(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: Toast toast }) ViewModel.Toasts.Remove(toast);
-    }
+    private void Close(object? sender, RoutedEventArgs e) => ToastHost.GetToast((Control)sender!)?.Dismiss();
+    #endregion
 }

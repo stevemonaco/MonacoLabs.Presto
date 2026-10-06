@@ -44,9 +44,9 @@ public sealed class ShowcaseCodeTests
     {
         var code = new MicroInteractionsPage().GetControl<CodeTabs>("Code");
 
-        string[] xaml = [Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs, Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts];
+        string[] xaml = [Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsSubmitButton, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs, Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts];
         string[] cSharp = [Snippets.MicroInteractionsBuilders, Snippets.MicroInteractionsSubmit, Snippets.MicroInteractionsLikeHandler, Snippets.MicroInteractionsTabIndicator,
-            Snippets.MicroInteractionsAccordionHandler, Snippets.MicroInteractionsToastSwipe, Snippets.MicroInteractionsValidation];
+            Snippets.MicroInteractionsToastShow, Snippets.MicroInteractionsValidation];
         Assert.All(xaml, snippet => Assert.Contains(snippet, code.Xaml));
         Assert.All(cSharp, snippet => Assert.Contains(snippet, code.CSharp));
     }

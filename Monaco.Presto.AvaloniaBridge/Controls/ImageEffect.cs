@@ -1,4 +1,4 @@
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// What <see cref="ImageEffectDrawOperation"/> applies to an image, in this order: a colour matrix, a ripple, a pixelation,

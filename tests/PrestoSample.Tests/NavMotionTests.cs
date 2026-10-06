@@ -16,24 +16,23 @@ namespace PrestoSample.Tests;
 public sealed class NavMotionTests
 {
     [AvaloniaFact]
-    public void CollapsingASectionShrinksItsHostToZeroAndTheNextHeaderEndsBelowIt() => With((window, gallery, nav) =>
+    public void CollapsingASectionShrinksItsBodyToZeroAndTheNextHeaderEndsBelowIt() => With((window, gallery, nav) =>
     {
         TestFrames.Tick(60);
         var (section, next) = (Container(nav, gallery.VisibleSections[0]), Container(nav, gallery.VisibleSections[1]));
-        var host = Part<Border>(section, "ItemsHost");
-        var heights = new List<double> { host.Bounds.Height };
+        var heights = new List<double> { Body(section) };
 
         gallery.VisibleSections[0].IsExpanded = false;
         for (var i = 0; i < 40; i++)
         {
             TestFrames.Tick();
-            heights.Add(host.Bounds.Height);
+            heights.Add(Body(section));
         }
 
         Assert.True(heights[0] > 100);
         Assert.Contains(heights, height => height > 0 && height < heights[0]);
         for (var i = 1; i < heights.Count; i++) Assert.True(heights[i] <= heights[i - 1] + .01, $"Frame {i} grew from {heights[i - 1]} to {heights[i]}.");
-        Assert.Equal(0, heights[^1]);
+        Assert.Equal(0, heights[^1], 0.5);
         var header = Part<Border>(section, "PART_LayoutRoot");
         Assert.Equal(SceneHarness.Slot(header, window).Bottom, SceneHarness.Slot(Part<Border>(next, "PART_LayoutRoot"), window).Top, 2.5);
     });
@@ -43,39 +42,38 @@ public sealed class NavMotionTests
     {
         TestFrames.Tick(60);
         var section = Container(nav, gallery.VisibleSections[0]);
-        var (host, presenter) = (Part<Border>(section, "ItemsHost"), Part<ItemsPresenter>(section, "PART_ItemsPresenter"));
-        var full = host.Bounds.Height;
+        var presenter = Part<ItemsPresenter>(section, "PART_ItemsPresenter");
+        var full = Body(section);
 
         gallery.VisibleSections[0].IsExpanded = false;
         TestFrames.Tick(3);
         Assert.True(presenter.IsVisible);
         Assert.InRange(presenter.Opacity, .01, .99);
-        Assert.Equal(full, host.Bounds.Height, 0.5);
+        Assert.Equal(full, Body(section), 0.5);
 
         TestFrames.Tick(40);
         Assert.False(presenter.IsVisible);
-        Assert.Equal(0, host.Bounds.Height);
+        Assert.Equal(0, Body(section), 0.5);
     });
 
     [AvaloniaFact]
-    public void ExpandingRestoresTheHostAndStaggersItsPagesBackIn() => With((_, gallery, nav) =>
+    public void ExpandingRestoresTheBodyAndStaggersItsPagesBackIn() => With((_, gallery, nav) =>
     {
         TestFrames.Tick(60);
         var section = Container(nav, gallery.VisibleSections[0]);
-        var host = Part<Border>(section, "ItemsHost");
-        var full = host.Bounds.Height;
+        var full = Body(section);
         var pages = section.GetLogicalChildren().OfType<TreeViewItem>().ToList();
         gallery.VisibleSections[0].IsExpanded = false;
         TestFrames.Tick(40);
 
         gallery.VisibleSections[0].IsExpanded = true;
         TestFrames.Tick(4);
-        Assert.InRange(host.Bounds.Height, 1, full - 1);
+        Assert.InRange(Body(section), 1, full - 1);
         Assert.InRange(pages[0].Opacity, .01, .99);
         Assert.True(pages[0].Opacity > pages[^1].Opacity, $"the first page was at {pages[0].Opacity:0.00} and the last at {pages[^1].Opacity:0.00}");
         TestFrames.Tick(40);
 
-        Assert.Equal(full, host.Bounds.Height, 0.5);
+        Assert.Equal(full, Body(section), 0.5);
         Assert.All(pages, page => Assert.Equal(1, page.Opacity));
     });
 
@@ -99,15 +97,16 @@ public sealed class NavMotionTests
     public void TheChevronLandsOnItsRotation() => With((_, gallery, nav) =>
     {
         var chevron = Part<Avalonia.Controls.Shapes.Path>(Container(nav, gallery.VisibleSections[0]), "Chevron");
+        Assert.Equal(90, Rotation(chevron), 0.5);
         gallery.VisibleSections[0].IsExpanded = false;
         TestFrames.Tick(4);
-        Assert.InRange(Rotation(chevron), -89, -1);
+        Assert.InRange(Rotation(chevron), 1, 89);
         TestFrames.Tick(60);
-        Assert.Equal(-90, Rotation(chevron), 0.5);
+        Assert.Equal(0, Rotation(chevron), 0.5);
 
         gallery.VisibleSections[0].IsExpanded = true;
         TestFrames.Tick(60);
-        Assert.Equal(0, Rotation(chevron), 0.5);
+        Assert.Equal(90, Rotation(chevron), 0.5);
     });
 
     [AvaloniaFact]
@@ -170,23 +169,29 @@ public sealed class NavMotionTests
     {
         TestFrames.Tick(60);
         var section = Container(nav, gallery.VisibleSections[0]);
-        var host = Part<Border>(section, "ItemsHost");
         var chevron = Part<Avalonia.Controls.Shapes.Path>(section, "Chevron");
         var pages = section.GetLogicalChildren().OfType<TreeViewItem>().ToList();
-        var full = host.Bounds.Height;
+        var full = Body(section);
 
         gallery.VisibleSections[0].IsExpanded = false;
         TestFrames.Tick(2);
-        Assert.Equal(0, host.Bounds.Height);
-        Assert.Equal(-90, Rotation(chevron), 0.5);
+        Assert.Equal(0, Body(section), 0.5);
+        Assert.Equal(0, Rotation(chevron), 0.5);
         Assert.False(Part<ItemsPresenter>(section, "PART_ItemsPresenter").IsVisible);
 
         gallery.VisibleSections[0].IsExpanded = true;
         TestFrames.Tick(2);
-        Assert.Equal(full, host.Bounds.Height, 0.5);
-        Assert.Equal(0, Rotation(chevron), 0.5);
+        Assert.Equal(full, Body(section), 0.5);
+        Assert.Equal(90, Rotation(chevron), 0.5);
         Assert.All(pages, page => Assert.Equal(1, page.Opacity));
     }, reduced: true);
+
+    // The section below its header, which the accordion folds.
+    private static double Body(TreeViewItem section)
+    {
+        var header = Part<Border>(section, "PART_LayoutRoot");
+        return section.Bounds.Height - header.Bounds.Bottom - header.Margin.Bottom;
+    }
 
     private static double Rotation(Avalonia.Controls.Shapes.Path chevron) => double.Parse(Convert.ToString(PrestoAvalonia.Get(chevron, "Rotate"), CultureInfo.InvariantCulture)!.Replace("deg", ""), CultureInfo.InvariantCulture);
 }

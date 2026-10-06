@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// How <see cref="FilteredImage"/> swaps its source: the kind of transition, its timing and the kind's tuning. XAML can give it as a

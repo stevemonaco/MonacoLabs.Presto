@@ -55,21 +55,23 @@
 
                 <ToggleSwitch x:Name="SmoothWheel" Content="Smooth mouse-wheel scrolling (Scroll.Smooth, Windows only)" />
 
-                <Border x:Name="Chapter1" Classes="stage">
+                <Border x:Name="Chapter1" Classes="stage" presto:Presence.RevealThreshold="bottom-=120 top"
+                        presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=52, Duration=640, Ease=outQuint}">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="ONE · THRESHOLDS" />
                         <TextBlock x:Name="Heading1" Classes="title" Text="Where a section counts as in view"
-                                   presto:TextReveal.Pieces="Lines" presto:TextReveal.Mask="True" />
+                                   presto:Presence.Reveal="{presto:LineMask}" presto:Presence.RevealThreshold="bottom-=80 top" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
-                                   Text="This card enters at &quot;bottom-=120 top&quot; — the container's bottom, 120px early, reaching the card's top — and leaves at &quot;top+=40 bottom&quot;. The observer plays the reveal on the way in and pauses it on the way out, and every crossing is reported to the rail with the direction it happened in." />
+                                   Text="This card enters at &quot;bottom-=120 top&quot; — the container's bottom, 120px early, reaching the card's top — and leaves at &quot;top+=40 bottom&quot;. Presence.Reveal plays its fade-up the first time it crosses that threshold, and an observer reports every crossing to the rail with the direction it happened in." />
                     </StackPanel>
                 </Border>
 
-                <Border x:Name="Chapter2" Classes="stage">
+                <Border x:Name="Chapter2" Classes="stage" presto:Presence.RevealThreshold="bottom-=120 top"
+                        presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=52, Duration=640, Ease=outQuint}">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="TWO · DEPTH" />
                         <TextBlock x:Name="Heading2" Classes="title" Text="The hero's layers scroll at their own speeds"
-                                   presto:TextReveal.Pieces="Lines" presto:TextReveal.Mask="True" />
+                                   presto:Presence.Reveal="{presto:LineMask}" presto:Presence.RevealThreshold="bottom-=80 top" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
                                    Text="Scroll back to the top and watch the hero come apart: Scroll.Speed = 0.6, 0.8 and 1.3 on the sky, the ridge and the title move each by (1 − speed) times the scroll, written in the scroller's own offset notification so no layer is ever a frame behind. Only the title's fade is an observer: Sync = 0.35 lerps its progress towards the scroll's a fraction at a time." />
                     </StackPanel>
@@ -86,11 +88,12 @@
                     </StackPanel>
                 </Border>
 
-                <Border x:Name="Chapter3" Classes="stage">
+                <Border x:Name="Chapter3" Classes="stage" presto:Presence.RevealThreshold="bottom-=120 top"
+                        presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=52, Duration=640, Ease=outQuint}">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="THREE · REFRESH" />
                         <TextBlock x:Name="Heading3" Classes="title" Text="Re-measured on every resize"
-                                   presto:TextReveal.Pieces="Lines" presto:TextReveal.Mask="True" />
+                                   presto:Presence.Reveal="{presto:LineMask}" presto:Presence.RevealThreshold="bottom-=80 top" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
                                    Text="Every threshold here is a pixel offset measured once against this article and its viewport. Resize the window mid-scroll and the page calls Refresh() on all six observers, so the pinned scrub below carries on from the scroll position it is actually at instead of the one the old measurement said it was." />
                     </StackPanel>

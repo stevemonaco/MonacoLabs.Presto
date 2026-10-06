@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using PrestoSample.Builder;
 using PrestoSample.Showcase;
 
@@ -246,7 +247,7 @@ public sealed class BuilderRecipePagesTests
         Assert.True(page.Flow!.IsCompletedSuccessfully);
         Assert.Equal(label, page.GetControl<TextBlock>("Label").Text);
         Assert.Equal(200, page.GetControl<Button>("Submit").Width, 1);
-        Assert.Contains("static readonly AnimationBuilder DrawIn = Presto.Build()", page.GetControl<CodePanel>("RecipesCode").Code);
+        Assert.Contains("static readonly AnimationBuilder DrawIn = Recipes.DrawIn(", page.GetControl<CodePanel>("RecipesCode").Code);
         Assert.Contains("Celebrate = button => Recipes.Confetti(button, count: 80);", page.GetControl<CodePanel>("RecipesCode").Code);
         Assert.Contains("Recipes.Shake(", page.GetControl<CodePanel>("RecipesCode").Code);
         Assert.Contains("Recipes.Pulse(", page.GetControl<CodePanel>("RecipesCode").Code);
@@ -385,21 +386,22 @@ public sealed class BuilderRecipePagesTests
         var page = new ToastsPage();
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(50);
+        var list = page.GetControl<ToastHost>("ToastList");
 
-        var first = page.GetControl<ItemsControl>("ToastList").GetLogicalDescendants().OfType<Border>().First(border => border.Classes.Contains("toast"));
+        var first = list.GetLogicalDescendants().OfType<Border>().First(border => border.Classes.Contains("toast"));
         Assert.Equal(1, first.Opacity, 3);
         Assert.Equal(0, first.RenderTransform!.Value.M31, 1);
 
-        for (var i = 0; i < 5; i++) page.ViewModel.NotifyCommand.Execute(null);
+        for (var i = 0; i < 5; i++) SceneHarness.Click(window, page.GetControl<Button>("NotifyButton"));
         TestFrames.Tick(40);
 
-        Assert.Equal(4, page.ViewModel.Toasts.Count);
+        Assert.Equal(4, list.Items.Count);
         Assert.Contains("presto:Presence.Exit=", page.GetControl<CodePanel>("TemplateCode").Code);
         Assert.Contains("presto:Animate.ItemLayout=", page.GetControl<CodePanel>("TemplateCode").Code);
 
         TestFrames.Tick(340);
 
-        Assert.Empty(page.ViewModel.Toasts);
+        Assert.Empty(list.Items);
         SceneHarness.Close(window);
     }
 
@@ -411,13 +413,14 @@ public sealed class BuilderRecipePagesTests
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(50);
 
-        var bar = page.GetControl<ItemsControl>("ToastList").GetVisualDescendants().OfType<Border>().Single(border => border.Classes.Contains("countdown"));
+        var list = page.GetControl<ToastHost>("ToastList");
+        var bar = list.GetVisualDescendants().OfType<Border>().Single(border => border.Classes.Contains("countdown"));
         Assert.Equal(1, Get(bar, "ScaleX"), 3);
         Assert.InRange(bar.Opacity, .35, .99);
 
         TestFrames.Tick(340);
 
-        Assert.Empty(page.ViewModel.Toasts);
+        Assert.Empty(list.Items);
         SceneHarness.Close(window);
     }
 
@@ -427,12 +430,13 @@ public sealed class BuilderRecipePagesTests
         var page = new ToastsPage();
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(50);
-        var toast = Assert.Single(page.ViewModel.Toasts);
-        var close = page.GetControl<ItemsControl>("ToastList").GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("close"));
+        var list = page.GetControl<ToastHost>("ToastList");
+        Assert.Single(list.Items);
+        var close = list.GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("close"));
 
         SceneHarness.Click(window, close);
 
-        Assert.DoesNotContain(toast, page.ViewModel.Toasts);
+        Assert.Empty(list.Items);
         Assert.Single(OverlayLayer.GetOverlayLayer(page)!.Children.OfType<Canvas>());
         SceneHarness.Close(window);
     }

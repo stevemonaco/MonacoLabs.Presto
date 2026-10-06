@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using PrestoSample.Builder;
 using PrestoSample.Showcase.Pages;
 
@@ -95,30 +96,29 @@ public sealed class MicroInteractionsPageTests
     [AvaloniaTheory]
     [InlineData(1)]
     [InlineData(-1)]
-    public void SwipingAToastPastTheThresholdDismissesItTowardsTheSwipe(int direction)
+    public void SwipingAToastPastHalfItsWidthSlidesItOutTowardsTheSwipeAndDismissesIt(int direction)
     {
         var page = new MicroInteractionsPage();
         var window = SceneHarness.Show(page, 1280, 900);
-        var toasts = page.GetControl<ItemsControl>("Toasts");
+        var toasts = page.GetControl<ToastHost>("Toasts");
         SceneHarness.Click(window, page.GetControl<Button>("Notify"));
         TestFrames.Tick(40);
-        var toast = toasts.GetVisualDescendants().OfType<Border>().First(border => border.Classes.Contains("toast"));
-        var model = Assert.IsType<ToastsViewModel>(toasts.DataContext);
-        var left = toast.TranslatePoint(default, page)!.Value.X;
-        var grab = SceneHarness.Centre(toast, window);
+        var container = toasts.ContainerFromIndex(0)!;
+        var travel = direction * container.Bounds.Width * .7;
+        var grab = SceneHarness.Centre(container, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 12; i++)
         {
-            window.MouseMove(grab.WithX(grab.X + (direction * i * 10)));
+            window.MouseMove(grab.WithX(grab.X + (travel * i / 12)));
             TestFrames.Tick();
         }
-        window.MouseUp(grab.WithX(grab.X + (direction * 120)), MouseButton.Left);
-        TestFrames.Tick(6);
+        window.MouseUp(grab.WithX(grab.X + travel), MouseButton.Left);
+        TestFrames.Tick(2);
 
-        Assert.Empty(model.Toasts);
-        var ghost = OverlayLayer.GetOverlayLayer(page)!.GetVisualDescendants().OfType<Image>().Single();
-        Assert.Equal(direction, Math.Sign(ghost.TranslatePoint(default, page)!.Value.X - left));
+        Assert.Equal(direction, Math.Sign(Convert.ToDouble(PrestoAvalonia.Get(container, "X"))));
+        TestFrames.Tick(30);
+        Assert.Empty(toasts.Items);
         SceneHarness.Close(window);
     }
 

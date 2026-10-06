@@ -174,30 +174,23 @@
                     <!-- /snippet -->
                 </ScrollViewer>
 
-                <ContentControl x:Name="QuickHost" Margin="-16" Content="{Binding QuickView}">
-                    <ContentControl.ContentTemplate>
-                        <DataTemplate x:DataType="local:Product">
-                            <Panel presto:Presence.Exit="{presto:Blur}">
-                                <Border Background="#A60B0E14" PointerPressed="CloseQuickView" />
-                                <Border Classes="dialog">
-                                    <Grid ColumnDefinitions="200,*" ColumnSpacing="16">
-                                        <Border Classes="art" Height="130">
-                                            <showcase:Scenery Hue="{Binding Hue}" Index="{Binding Index}" />
-                                        </Border>
-                                        <DockPanel Grid.Column="1">
-                                            <Button DockPanel.Dock="Bottom" Content="Close" Click="CloseQuickView" />
-                                            <StackPanel Spacing="6">
-                                                <TextBlock Classes="eyebrow showcase" Text="{Binding Category}" />
-                                                <TextBlock Classes="name" FontSize="20" Text="{Binding Name}" TextWrapping="Wrap" />
-                                                <TextBlock Classes="price" FontSize="18" Text="{Binding Price}" />
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </Grid>
-                                </Border>
-                            </Panel>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
+                <presto:Modal x:Name="QuickHost" Margin="-16" Scrim="#A60B0E14" Backdrop="{Binding #Catalogue}">
+                    <Border Classes="dialog" DataContext="{Binding QuickView}" x:DataType="local:Product">
+                        <Grid ColumnDefinitions="200,*" ColumnSpacing="16">
+                            <Border Classes="art" Height="130">
+                                <showcase:Scenery Hue="{Binding Hue}" Index="{Binding Index}" />
+                            </Border>
+                            <DockPanel Grid.Column="1">
+                                <Button DockPanel.Dock="Bottom" Content="Close" Click="CloseQuickView" />
+                                <StackPanel Spacing="6">
+                                    <TextBlock Classes="eyebrow showcase" Text="{Binding Category}" />
+                                    <TextBlock Classes="name" FontSize="20" Text="{Binding Name}" TextWrapping="Wrap" />
+                                    <TextBlock Classes="price" FontSize="18" Text="{Binding Price}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+                </presto:Modal>
             </Panel>
         </Border>
 

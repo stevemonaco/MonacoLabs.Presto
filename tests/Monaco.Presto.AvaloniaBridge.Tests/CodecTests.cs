@@ -43,6 +43,36 @@ public sealed class CodecTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void PixelGridLengthsInterpolateFromALengthOrANumber()
+    {
+        Assert.Equal(new GridLength(150), Tweened(new GridLength(100), TweenValue.Of(new GridLength(200)), .5));
+        Assert.Equal(new GridLength(50), Tweened(new GridLength(100), 0, .5));
+    }
+
+    [AvaloniaFact]
+    public void AColumnWidthAndARowHeightAnimateInOneCall()
+    {
+        var (column, row) = (new ColumnDefinition(new GridLength(100)), new RowDefinition(new GridLength(20)));
+
+        Presto.Animate(column, new() { ["Width"] = 40, Duration = 100, Ease = "linear", Autoplay = false }).Seek(50);
+        Presto.Animate(row, new() { ["Height"] = "+=20", Duration = 100, Ease = "linear", Autoplay = false }).Seek(50);
+
+        Assert.Equal(new GridLength(70), column.Width);
+        Assert.Equal(new GridLength(30), row.Height);
+    }
+
+    [AvaloniaFact]
+    public void AStarOrAutoLengthAtEitherEndThrows()
+    {
+        Assert.Throws<ArgumentException>(() => Tweened(GridLength.Star, 100));
+        Assert.Throws<ArgumentException>(() => Tweened(new GridLength(100), TweenValue.Of(GridLength.Auto)));
+    }
+
+    [AvaloniaFact]
+    public void AGridLengthOvershootingZeroWritesZero() =>
+        Assert.Equal(new GridLength(0), Tweened(new GridLength(10), -20));
+
+    [AvaloniaFact]
     public void ColorTweensFromAHexStringAndFromATypedColor()
     {
         Assert.Equal(Color.FromRgb(255, 107, 107), Tweened(Colors.Black, "#ff6b6b"));

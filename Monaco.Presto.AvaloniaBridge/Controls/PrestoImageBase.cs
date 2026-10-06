@@ -5,7 +5,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Threading;
 
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// An <see cref="Image"/>-like control whose drawing subclasses can change: it sizes, stretches and centres one

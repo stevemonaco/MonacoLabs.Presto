@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Media;
 
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// Shows one frame of a <see cref="PrestoImageBase.Source"/> image cut into a <see cref="Columns"/> by <see cref="Rows"/> grid, read left

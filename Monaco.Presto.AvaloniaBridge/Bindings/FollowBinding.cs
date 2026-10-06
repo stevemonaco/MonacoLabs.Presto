@@ -54,8 +54,8 @@ internal sealed class FollowBinding : IObservable<object?>, IDisposable
         _immediate = FollowTiming.Resolve(options, reduced: false).Duration?.AsDouble == 0;
         _follower.PropertyChanged += (_, _) => _observer?.OnNext(_follower.Value);
         _itemSettled = () => _newItem = false;
-        _numberChanged = _ => Show(snap: _immediate);
-        _objectChanged = _ => Show(snap: _immediate);
+        _numberChanged = _ => Show(snap: Immediate);
+        _objectChanged = _ => Show(snap: Immediate);
     }
 
     public IDisposable Subscribe(IObserver<object?> observer)
@@ -121,6 +121,9 @@ internal sealed class FollowBinding : IObservable<object?>, IDisposable
             else value.Changed -= _objectChanged;
         }
     }
+
+    // An immediate binding still eases under reduced motion when it has a WhenReduced timing.
+    private bool Immediate => _immediate && !Engine.Current.Defaults.ReducedMotion;
 
     private void Show(bool snap) => _follower.Target(_listened is MotionValue number ? number.Value : ((MotionObjectValue)_listened!).Value, snap);
 

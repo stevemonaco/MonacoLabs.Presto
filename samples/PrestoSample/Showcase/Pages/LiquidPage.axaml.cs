@@ -74,7 +74,13 @@ public partial class LiquidPage : ShowcasePage
         });
     }
 
-    private Rect Slot(int tab) => TabIndicator.Under(Tabs.Children[tab], Rail, PillInset);
+    // Measured from the parent so a pressed tab's render transform does not shift the slot.
+    private Rect Slot(int tab)
+    {
+        var button = Tabs.Children[tab];
+        var at = Tabs.TranslatePoint(button.Bounds.Position, Rail)!.Value;
+        return new Rect(at.X + PillInset, 0, button.Bounds.Width - (2 * PillInset), 0);
+    }
 
     private void Select(int tab)
     {

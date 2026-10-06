@@ -49,15 +49,9 @@ public partial class SubmitFlowPage : ShowcasePage
 
     private static readonly AnimationBuilder Shake = Recipes.Shake();
 
-    private static readonly AnimationBuilder DrawIn = Presto.Build()
-        .Draw(from: "0 0", to: "0 1")
-        .Duration(420)
-        .Ease(Eases.OutQuad);
+    private static readonly AnimationBuilder DrawIn = Recipes.DrawIn(duration: 420, ease: Eases.OutQuad);
 
-    private static readonly AnimationBuilder Erase = Presto.Build()
-        .Draw("1 1")
-        .Duration(260)
-        .Ease(Eases.InQuad);
+    private static readonly AnimationBuilder Erase = Recipes.DrawOut(duration: 260, ease: Eases.InQuad);
 
     private static readonly AnimationBuilder Expand = Presto.Build()
         .Width(200)

@@ -148,7 +148,7 @@ public partial class ChartMorphPage : ShowcasePage
             var line = ChartGeometry.Line(Markers(points));
             timeline
                 .Call(_ => LineStroke.Data = line, start)
-                .Add(LineStroke, new AvaloniaAnimationParams { ["Draw"] = TweenValue.FromTo("0 0", "0 1"), Duration = 520, Ease = Eases.InOutQuad });
+                .Add(LineStroke, Recipes.DrawIn(duration: 520, ease: Eases.InOutQuad));
         }
         _transition = timeline;
     }

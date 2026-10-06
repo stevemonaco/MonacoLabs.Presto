@@ -404,35 +404,16 @@
         <Setter Property="BorderThickness" Value="0,0,1,0" />
         <Setter Property="Padding" Value="6,12" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-        <!-- Fluent's TreeView template with a pill layer under the items, inside the ScrollViewer so the pill scrolls with them. -->
-        <Setter Property="Template">
-            <ControlTemplate>
-                <Border BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}">
-                    <ScrollViewer Background="{TemplateBinding Background}"
-                                  HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
-                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
-                                  IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
-                                  IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}"
-                                  AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
-                                  BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
-                        <Panel Margin="{TemplateBinding Padding}">
-                            <Canvas>
-                                <Border Name="SelectionPill" Opacity="0" Height="0" Canvas.Top="0" CornerRadius="6"
-                                        IsHitTestVisible="False" BorderThickness="3,0,0,0"
-                                        Background="{x:Static showcase:Palette.AccentDeep}"
-                                        BorderBrush="{x:Static showcase:Palette.Accent}" />
-                            </Canvas>
-                            <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
-                        </Panel>
-                    </ScrollViewer>
-                </Border>
-            </ControlTemplate>
+        <Setter Property="presto:Selection.Indicator">
+            <Template>
+                <Border Name="SelectionPill" CornerRadius="6" BorderThickness="3,0,0,0"
+                        Background="{x:Static showcase:Palette.AccentDeep}"
+                        BorderBrush="{x:Static showcase:Palette.Accent}" />
+            </Template>
         </Setter>
     </Style>
 
-    <!-- Fluent's TreeViewItem template: hit-testable root, hover fill, rotating chevron, clipped items host. -->
+    <!-- Fluent's TreeViewItem template: hit-testable root, hover fill, and a chevron the accordion turns. -->
 
     <Style Selector="TreeView.nav.showcase TreeViewItem">
         <Setter Property="Template">
@@ -460,7 +441,7 @@
                                 <Panel Name="PART_ExpandCollapseChevronContainer" Margin="12,0">
                                     <Path Name="Chevron" Width="12" Height="12" Stretch="Uniform"
                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          Data="M0,1 L10,10 20,1 19,0 10,8 1,0 Z" Fill="{x:Static showcase:Palette.InkDim}" />
+                                          Data="M1,0 L10,10 1,20 0,19 8,10 0,1 Z" Fill="{x:Static showcase:Palette.InkDim}" />
                                 </Panel>
                                 <ContentPresenter Name="PART_HeaderPresenter"
                                                   IsHitTestVisible="False"
@@ -475,12 +456,7 @@
                             </Grid>
                         </Panel>
                     </Border>
-                    <!-- The Panel is ContentSize's sole child, since a hidden child would drop the size the fold holds. -->
-                    <Border Name="ItemsHost" ClipToBounds="True">
-                        <Panel>
-                            <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
-                        </Panel>
-                    </Border>
+                    <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
                 </StackPanel>
             </ControlTemplate>
         </Setter>

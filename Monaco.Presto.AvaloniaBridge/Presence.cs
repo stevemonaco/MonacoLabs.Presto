@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Events;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Transforms;
@@ -19,7 +20,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <summary>
 /// Lifecycle animations: what plays when an element appears with its view (<see cref="InitialProperty"/>), arrives on its
 /// own into a view that has loaded (<see cref="EnterProperty"/>), either of those (<see cref="ArriveProperty"/>), is
-/// scrolled into view in a virtualizing list (<see cref="RevealProperty"/>), or leaves on its own
+/// scrolled into view (<see cref="RevealProperty"/>), or leaves on its own
 /// (<see cref="ExitProperty"/>). An element that leaves with its whole view, such as a page navigated away, plays nothing. Every arrival and departure is classified once, by one rule, so they never disagree about what happened.
 /// </summary>
 /// <remarks>
@@ -86,25 +87,41 @@ public static class Presence
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Arrive", typeof(Presence));
 
     /// <summary>
-    /// Plays the builder on the element when a virtualizing list realizes it for an item the list already had, such as a
-    /// row scrolled into view. It never plays on an initial load, an enter or a recycle.
+    /// Plays the builder on the element when it is scrolled into view: a row a virtualizing list realizes for an item it
+    /// already had, or any other element inside a <see cref="ScrollViewer"/> crossing <see cref="RevealThresholdProperty"/>.
+    /// It never plays on an initial load, an enter or a recycle.
     /// </summary>
     /// <remarks>
-    /// It plays in the layout pass that brings the row into view, so a row realized out of view, as a list does when it
-    /// re-estimates after a change above, reveals when scrolled to. Rows shown in one pass stagger in realization order.
-    /// It does nothing outside an item container of a list. A list that does not virtualize never realizes rows on scroll,
-    /// so scroll reveals there belong to <see cref="Events.ScrollObserver"/>. The animation reverts when the row is
-    /// recycled or detaches.
+    /// <para>
+    /// In a virtualizing list it plays in the layout pass that brings the row into view, so a row realized out of view, as
+    /// a list does when it re-estimates after a change above, reveals when scrolled to. Rows shown in one pass stagger in
+    /// realization order.
+    /// </para>
+    /// <para>
+    /// Anywhere else under a <see cref="ScrollViewer"/>, a list that does not virtualize included, the element is held at
+    /// opacity 0 from its attach until it crosses the threshold, one already in view crossing it on its first frame.
+    /// Elements that cross in the same frame play as one batch in reading order, a frame later, so
+    /// <c>Delay(Presto.Stagger(40))</c> ripples them in. It does nothing outside a <see cref="ScrollViewer"/>.
+    /// </para>
+    /// <para>The animation reverts when the row is recycled or the element detaches.</para>
     /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> RevealProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Reveal", typeof(Presence));
 
     /// <summary>
     /// Whether <see cref="RevealProperty"/> plays only the first time the element's item is shown, so rows scrolled back
-    /// over stay still. Defaults to true.
+    /// over stay still. Defaults to true. Outside a virtualizing list, an element that does reveal again is held hidden
+    /// once it leaves the view.
     /// </summary>
     public static readonly AttachedProperty<bool> RevealOnceProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("RevealOnce", typeof(Presence), defaultValue: true);
+
+    /// <summary>
+    /// Where an element outside a virtualizing list counts as scrolled into view, as a <see cref="Events.ScrollThreshold"/>
+    /// such as <c>"bottom-=120 top"</c>; unset, its top reaching the viewport's bottom.
+    /// </summary>
+    public static readonly AttachedProperty<string?> RevealThresholdProperty =
+        AvaloniaProperty.RegisterAttached<Control, string?>("RevealThreshold", typeof(Presence));
 
     /// <summary>
     /// Plays the builder on a ghost of the element each time it leaves the visual tree on its own: its parent stays attached
@@ -179,6 +196,9 @@ public static class Presence
     // EnterOnShow hosts shown and waiting for the layout pass that reveals their descendants.
     private static readonly HashSet<Control> s_revealing = [];
 
+    // Elements outside virtualizing lists that crossed their reveal threshold this frame.
+    private static readonly List<Tracker> s_scrolledIn = [];
+
     static Presence()
     {
         InitialProperty.Changed.AddClassHandler<Control>(HandleChanged);
@@ -223,6 +243,12 @@ public static class Presence
 
     /// <summary>Sets whether <paramref name="control"/> reveals only the first time its item is shown.</summary>
     public static void SetRevealOnce(Control control, bool value) => control.SetValue(RevealOnceProperty, value);
+
+    /// <summary>Gets where <paramref name="control"/> counts as scrolled into view.</summary>
+    public static string? GetRevealThreshold(Control control) => control.GetValue(RevealThresholdProperty);
+
+    /// <summary>Sets where <paramref name="control"/> counts as scrolled into view.</summary>
+    public static void SetRevealThreshold(Control control, string? value) => control.SetValue(RevealThresholdProperty, value);
 
     /// <summary>Gets the builder played on a ghost of <paramref name="control"/> when it leaves.</summary>
     public static AnimationBuilder? GetExit(Control control) => control.GetValue(ExitProperty);
@@ -426,6 +452,9 @@ public static class Presence
         private bool _baseVisible;
         // The held exit: an Animation of the element, or one of its split pieces.
         private IRevertible? _hide;
+        private ScrollObserver? _watch;
+        // Holds an element outside a virtualizing list hidden until it is scrolled into view.
+        private IDisposable? _unseen;
 
         public Tracker(Control control)
         {
@@ -445,6 +474,7 @@ public static class Presence
             _control.DetachedFromVisualTree -= HandleDetached;
             _control.PropertyChanged -= HandleProperty;
             CancelRevealed();
+            Unwatch();
             EndHide();
             Leave();
             StopRecording();
@@ -515,12 +545,73 @@ public static class Presence
                     _arrival = Arrive(_control, builder);
                 }
             }
+            if (GetReveal(_control) is not null && PlainScroller(_control) is { } scroller) Watch(scroller);
             if (GetExit(_control) is not null) StartRecording();
         }
 
         public void Reveal()
         {
             if (GetReveal(_control) is { } builder) _arrival = Arrive(_control, builder, laidOut: true);
+        }
+
+        private void Watch(ScrollViewer scroller)
+        {
+            _unseen = Unseen(_control);
+            using var origin = PrestoDiagnostics.Origin("Presence");
+            _watch = PrestoAvalonia.OnScroll(new ScrollObserverParams
+            {
+                Target = _control,
+                Container = scroller,
+                Enter = GetRevealThreshold(_control) is { } threshold ? threshold : (ScrollThreshold?)null,
+                OnEnter = _ => ScrolledIn(),
+                OnLeave = _ => ScrolledOut(),
+            });
+        }
+
+        private void ScrolledIn()
+        {
+            if (s_scrolledIn.Count == 0) Utils.Sync(_ => RevealScrolledIn());
+            s_scrolledIn.Add(this);
+        }
+
+        private void ScrolledOut()
+        {
+            s_scrolledIn.Remove(this);
+            if (_unseen is not null) return;
+            _arrival?.Revert();
+            _arrival = null;
+            _unseen = Unseen(_control);
+        }
+
+        private static void RevealScrolledIn()
+        {
+            var crossed = s_scrolledIn.ToArray();
+            s_scrolledIn.Clear();
+            var at = Array.ConvertAll(crossed, tracker => tracker._control.TranslatePoint(default, tracker.Window) ?? default);
+            Array.Sort(at, crossed, Comparer<Point>.Create((a, b) => a.Y != b.Y ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X)));
+            foreach (var tracker in crossed) tracker.RevealScrolled();
+            // Each crossing is its own batch, so the next one does not stagger on from this one's last index.
+            foreach (var tracker in crossed) s_batches.Remove(tracker.Window);
+        }
+
+        private Visual Window => TopLevel.GetTopLevel(_control) ?? _control;
+
+        private void RevealScrolled()
+        {
+            if (GetRevealOnce(_control)) Unwatch();
+            _unseen?.Dispose();
+            _unseen = null;
+            _arrival?.Revert();
+            _arrival = GetReveal(_control) is { } builder ? Arrive(_control, builder, laidOut: true, Window) : null;
+        }
+
+        private void Unwatch()
+        {
+            s_scrolledIn.Remove(this);
+            _watch?.Revert();
+            _watch = null;
+            _unseen?.Dispose();
+            _unseen = null;
         }
 
         private void Leave()
@@ -535,6 +626,7 @@ public static class Presence
         private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e)
         {
             CancelRevealed();
+            Unwatch();
             EndHide();
             Leave();
             var withdrawn = Withdrawn;
@@ -696,6 +788,19 @@ public static class Presence
             _arrival?.Revert();
             _arrival = null;
         }
+    }
+
+    private static IDisposable Unseen(Control control) => control.SetValue(Visual.OpacityProperty, 0d, BindingPriority.Animation)!;
+
+    // A virtualizing panel realizes its rows as they scroll in, and those reveal through ItemChanges instead.
+    private static ScrollViewer? PlainScroller(Control control)
+    {
+        for (var visual = control.GetVisualParent(); visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is VirtualizingPanel) return null;
+            if (visual is ScrollViewer scroller) return scroller;
+        }
+        return null;
     }
 
     private static bool BaseVisible(Visual visual) => visual.GetBaseValue(Visual.IsVisibleProperty).GetValueOrDefault(true);

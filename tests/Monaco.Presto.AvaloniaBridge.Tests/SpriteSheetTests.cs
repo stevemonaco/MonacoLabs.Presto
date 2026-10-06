@@ -4,6 +4,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Monaco.Presto.AvaloniaBridge.Controls;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -162,6 +163,42 @@ public sealed class FollowTests : BridgeTestBase
         Follow.SetX(border, 100);
 
         Assert.Equal(100, Part<TranslateTransform>(border).X);
+    }
+
+    [AvaloniaFact]
+    public void DrawTracksAMotionValueAndReleasingRestoresTheDashes()
+    {
+        var path = new Path { Data = Geometry.Parse("M0,0 L100,0"), Stroke = Brushes.Black, StrokeThickness = 2 };
+        Show(path);
+        var progress = Presto.CreateMotionValue();
+
+        Follow.SetDraw(path, progress);
+        Assert.Equal(0, path.StrokeDashArray![0]);
+        progress.Set(.25);
+        Frames.Advance(16);
+        Assert.Equal([0, .25], (double[])PrestoAvalonia.Get(path, "Draw")!);
+        Assert.Equal(25 / 2d, path.StrokeDashArray![0], 3);
+        progress.Set(1.5);
+        Frames.Advance(16);
+        Assert.Equal([0, 1], (double[])PrestoAvalonia.Get(path, "Draw")!);
+
+        path.ClearValue(Follow.DrawProperty);
+        Assert.Null(path.StrokeDashArray);
+    }
+
+    [AvaloniaFact]
+    public void DrawEasesToANumber()
+    {
+        var path = new Path { Data = Geometry.Parse("M0,0 L100,0"), Stroke = Brushes.Black, StrokeThickness = 2 };
+        Follow.SetTiming(path, Presto.Build().Duration(100).Ease("linear"));
+        Show(path);
+        Follow.SetDraw(path, 0);
+
+        Follow.SetDraw(path, 1);
+        Frames.Advance(48, 16);
+        Assert.InRange(((double[])PrestoAvalonia.Get(path, "Draw")!)[1], .2, .8);
+        Frames.Advance(100, 16);
+        Assert.Equal([0, 1], (double[])PrestoAvalonia.Get(path, "Draw")!);
     }
 
     [AvaloniaFact]

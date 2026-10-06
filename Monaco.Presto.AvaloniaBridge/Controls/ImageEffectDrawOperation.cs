@@ -5,7 +5,7 @@ using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using SkiaSharp;
 
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// Draws a bitmap into a Skia layer whose image filter applies an <see cref="ImageEffect"/>, leasing the canvas only to push

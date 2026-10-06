@@ -1,6 +1,6 @@
 using Avalonia;
 
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>The frame model <see cref="SpriteSheet"/> and <see cref="ImageSequence"/> share: which frame a <c>Frame</c> position shows, and the tween that plays them.</summary>
 internal static class FramePlayer

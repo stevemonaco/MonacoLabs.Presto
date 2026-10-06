@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-namespace Monaco.Presto.AvaloniaBridge;
+namespace Monaco.Presto.AvaloniaBridge.Controls;
 
 /// <summary>
 /// An <see cref="Avalonia.Controls.Image"/> with animatable CSS-style colour filters such as <see cref="PrestoImageBase.Grayscale"/>

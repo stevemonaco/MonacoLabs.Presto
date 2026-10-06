@@ -19,16 +19,6 @@ public partial class MainView : UserControl
         .Opacity(1, from: 0).Y(0, from: 8).Duration(280).Delay((FunctionValue)RowOrder).Ease(Eases.OutQuart)
         .WhenReduced(reduced => reduced.Opacity(1).Duration(0).Delay(0));
 
-    public static readonly AnimationBuilder Fold = Presto.Build().Duration(260).Ease(Eases.OutQuart).WhenReduced(reduced => reduced.Duration(0));
-
-    public static readonly AnimationBuilder ChevronFolded = Presto.Build()
-        .Rotate(-90).Ease(Springs.Snappy)
-        .WhenReduced(reduced => reduced.Rotate(-90).Duration(0).Ease(Eases.None));
-
-    public static readonly AnimationBuilder PagesFolded = Presto.Build()
-        .Opacity(0).Duration(120).Ease(Eases.OutQuad)
-        .WhenReduced(reduced => reduced.Opacity(0).Duration(0));
-
     public static readonly AnimationBuilder PageUnfolded = Presto.Build()
         .Opacity(1, from: 0).Duration(200).Delay((FunctionValue)PageOrder).Ease(Eases.OutQuad)
         .WhenReduced(reduced => reduced.Opacity(1).Duration(0).Delay(0));
@@ -37,18 +27,16 @@ public partial class MainView : UserControl
         .Opacity(1).Duration(120).Ease(Eases.OutQuad)
         .WhenReduced(reduced => reduced.Opacity(1).Duration(0));
 
+    public static readonly AnimationBuilder Glide = Presto.Build().Duration(450).Ease(Eases.Spring(bounce: .2, duration: 450).Ease);
+
     public static readonly AnimationBuilder HoverNudge = Presto.Build().X(3).Duration(120).Ease(Eases.OutQuad).WhenReduced(_ => { });
 
-    private readonly SidebarPane _pane;
     private TopLevel? _top;
 
     public MainView()
     {
         InitializeComponent();
-        new NavSelectionPill(Nav);
-        Nav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);
-        _pane = new SidebarPane(Shell.ColumnDefinitions[0], Sidebar);
-    }
+        Nav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);    }
 
     // On the top level, so Ctrl+F and Ctrl+B work with nothing focused and before a page can handle them.
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -70,7 +58,7 @@ public partial class MainView : UserControl
         var command = (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) != 0;
         if (command && e.Key == Key.F)
         {
-            if (_pane.IsCollapsed) TogglePane(null, e);
+            if (Pane.IsCollapsed(SidebarColumn)) TogglePane(null, e);
             SearchBox.Focus();
             SearchBox.SelectAll();
         }
@@ -84,10 +72,13 @@ public partial class MainView : UserControl
 
     private void TogglePane(object? sender, RoutedEventArgs e)
     {
-        _pane.Toggle();
-        ExpandPane.IsVisible = _pane.IsCollapsed;
-        Splitter.IsVisible = !_pane.IsCollapsed;
+        Pane.Toggle(SidebarColumn, Sidebar);
+        var collapsed = Pane.IsCollapsed(SidebarColumn);
+        ExpandPane.IsVisible = collapsed;
+        Splitter.IsVisible = !collapsed;
     }
+
+    private ColumnDefinition SidebarColumn => Shell.ColumnDefinitions[0];
 
     private void ToggleDevTools(object? sender, RoutedEventArgs e) => PrestoDevTools.Toggle(TopLevel.GetTopLevel(this)!);
 

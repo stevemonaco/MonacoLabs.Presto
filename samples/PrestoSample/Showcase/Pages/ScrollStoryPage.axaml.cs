@@ -10,7 +10,6 @@ public partial class ScrollStoryPage : ShowcasePage
 {
     private const double ScrubDuration = 1000;
     private const double PinDistance = 960;
-    private const double RevealDuration = 640;
     // Four 232px panels 14px apart: 370 wider than the 600px of stage they pan inside.
     private const double StripPan = 370;
 
@@ -75,31 +74,15 @@ public partial class ScrollStoryPage : ShowcasePage
         }));
 
         Control[] chapters = [Chapter1, Chapter2, Chapter3];
-        TextBlock[] headings = [Heading1, Heading2, Heading3];
         for (var i = 0; i < chapters.Length; i++)
         {
-            var chapter = chapters[i];
-            var heading = headings[i];
-            Watch($"chapter {i + 1}", chapter, new ScrollObserverParams
+            Watch($"chapter {i + 1}", chapters[i], new ScrollObserverParams
             {
                 Enter = "bottom-=120 top",
                 Leave = "top+=40 bottom",
-                OnEnter = observer =>
-                {
-                    Crossed(observer, "enter");
-                    // Presence.Reveal only plays in a virtualizing list; set on an attached block, OnAttached plays at once.
-                    if (Animate.GetOnAttached(heading) is null) Animate.SetOnAttached(heading, Recipes.LineMask());
-                },
+                OnEnter = observer => Crossed(observer, "enter"),
                 OnLeave = observer => Crossed(observer, "leave"),
-            }).Link(chapter.Animate(new()
-            {
-                ["Y"] = TweenValue.FromTo(52, 0),
-                ["Opacity"] = TweenValue.FromTo(0, 1),
-                Duration = RevealDuration,
-                Ease = Eases.OutQuint,
-                Autoplay = false,
-                WhenReduced = new() { ["Opacity"] = TweenValue.FromTo(0, 1) },
-            }));
+            });
         }
 
         #region snippet ScrollStoryRail

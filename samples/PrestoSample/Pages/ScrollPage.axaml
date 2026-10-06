@@ -56,7 +56,7 @@
                     <StackPanel Spacing="6">
                         <TextBlock Text="Default thresholds" FontSize="18" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
-                                   Text="No Enter or Leave, so they default to &quot;end start&quot; and &quot;start end&quot;: the paused animation linked to the observer plays on enter and pauses on leave, the default Sync." />
+                                   Text="Presence.Reveal with no RevealThreshold: the card is held hidden until its top reaches the bottom of the viewport, an observer's default &quot;end start&quot; enter threshold, and then fades up once." />
                         <showcase:CodePanel Code="{x:Static showcase:Snippets.ScrollReveal}" />
                     </StackPanel>
                 </Border>

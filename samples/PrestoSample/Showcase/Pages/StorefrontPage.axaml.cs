@@ -6,18 +6,18 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Controls;
 
 namespace PrestoSample.Showcase.Pages;
 
 /// <summary>
 /// A shop front that uses Phases 22–25 together: recipes from XAML for the grid's entrance, hover, press, focus and exits,
-/// a <c>:checked</c> chip state, an <c>Animate.ItemLayout</c> reflow, a shared-element fly to the cart, a quick view opened by clicking a card and revealed with
-/// <c>ClipCircle</c> over a blurred grid, a <c>Shimmer</c> skeleton, sold-out pictures that colorize on hover and a live reduced-motion switch.
+/// a <c>:checked</c> chip state, an <c>Animate.ItemLayout</c> reflow, a shared-element fly to the cart, a quick view opened by clicking a card and revealed by a
+/// <see cref="Modal"/> from the card over a blurred grid, a <c>Shimmer</c> skeleton, sold-out pictures that colorize on hover and a live reduced-motion switch.
 /// </summary>
 public partial class StorefrontPage : ShowcasePage
 {
     private const double FetchDuration = 900;
-    private const double GridBlur = 6;
     private const int ShelfSize = 3;
 
     /// <summary>The chip colours a <c>:checked</c> <see cref="MotionState"/> plays.</summary>
@@ -84,26 +84,11 @@ public partial class StorefrontPage : ShowcasePage
 
     private void OpenQuickView(Border card)
     {
-        var centre = card.TranslatePoint(new Point(card.Bounds.Width / 2, card.Bounds.Height / 2), QuickHost)!.Value;
-        var from = new RelativePoint(centre, RelativeUnit.Absolute);
         ViewModel.QuickView = (Product)card.DataContext!;
-        Scope.Execute(_ =>
-        {
-            Catalogue.Animate(b => b.Blur(GridBlur).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease));
-            QuickHost.Animate(b => b
-                .ClipCircle(from: 0, to: 1)
-                .ClipCircleCenter(from: TweenValue.Of(from), to: TweenValue.Of(from))
-                .Duration(Recipes.Tokens.Long)
-                .Ease(Recipes.Tokens.Ease)
-                .WhenReduced(reduced => reduced.Opacity(from: 0)));
-        });
+        QuickHost.Open(card);
     }
 
-    private void CloseQuickView(object? sender, RoutedEventArgs e)
-    {
-        ViewModel.QuickView = null;
-        Scope.Execute(_ => Catalogue.Animate(b => b.Blur(0).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease)));
-    }
+    private void CloseQuickView(object? sender, RoutedEventArgs e) => QuickHost.Close();
 
     private static Border Card(object? sender) => ((Visual)sender!).FindAncestorOfType<Border>()!;
 }

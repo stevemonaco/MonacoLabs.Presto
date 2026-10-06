@@ -13,9 +13,7 @@ public partial class GalleryFlipPage : ShowcasePage
     private const double ReflowDuration = 700;
     private const double EntryDuration = 600;
     private const double ExitDuration = 240;
-    private const double RevealDuration = 260;
     private const double Rise = 14;
-    private const double FieldBlur = 6;
 
     private readonly ObservableCollection<Control> _shown = [];
     private readonly Dictionary<Datasets.Card, Border> _cards = [];
@@ -95,11 +93,12 @@ public partial class GalleryFlipPage : ShowcasePage
         // where the card is drawn.
         _shown.Remove(card);
         Host.Child = card;
-        Detail.IsVisible = true;
-        Reveal(1);
+        Detail.Open();
     }
 
     private void Dismiss(object? sender, RoutedEventArgs e) => Collapse();
+
+    private void Dismissed(object? sender, EventArgs e) => Collapse();
 
     private void Collapse()
     {
@@ -109,21 +108,8 @@ public partial class GalleryFlipPage : ShowcasePage
         card.Classes.Remove("expanded");
         card.Classes.Set("row", AsRows.IsChecked == true);
         _shown.Insert(Math.Clamp(_slot, 0, _shown.Count), card);
-        Reveal(0);
+        Detail.Close();
     }
-
-    // The blur goes on the field rather than a card: the cards' entry, exit and FLIP moves run on the compositor.
-    private void Reveal(double opacity) => Scope.Execute(_ =>
-    {
-        Field.Animate(new() { ["Blur"] = opacity * FieldBlur, Duration = RevealDuration, Ease = Eases.OutQuad });
-        Presto.Animate((Control[])[Veil, Chrome], new AvaloniaAnimationParams
-        {
-            ["Opacity"] = opacity,
-            Duration = RevealDuration,
-            Ease = Eases.OutQuad,
-            OnComplete = _ => Detail.IsVisible = _open != null,
-        });
-    });
 
     private void Apply()
     {

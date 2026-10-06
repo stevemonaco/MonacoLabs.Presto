@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
@@ -44,14 +43,6 @@ public partial class ConnectedPage : ShowcasePage
         #endregion
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (e.Key != Key.Escape || _open == null) return;
-        Close();
-        e.Handled = true;
-    }
-
     private Tile BuildTile(Datasets.Album album, int index)
     {
         var art = new Border
@@ -84,8 +75,7 @@ public partial class ConnectedPage : ShowcasePage
         Lift(tile.ArtSlot, tile.Art, Hero);
         Lift(tile.TitleSlot, tile.Title, Heading);
         Meta.Text = $"{album.Artist} · {album.Year} · {album.Tracks.Count} tracks";
-        Detail.IsHitTestVisible = true;
-        Focus();
+        Detail.Open();
 
         Scope.Execute(_ =>
         {
@@ -130,7 +120,7 @@ public partial class ConnectedPage : ShowcasePage
         var tile = _tiles[index];
         Drop(tile.ArtSlot, tile.Art, Hero);
         Drop(tile.TitleSlot, tile.Title, Heading);
-        Detail.IsHitTestVisible = false;
+        Detail.Close();
 
         Scope.Execute(_ =>
         {
@@ -159,6 +149,8 @@ public partial class ConnectedPage : ShowcasePage
     }
 
     private void BackClicked(object? sender, RoutedEventArgs e) => Close();
+
+    private void DetailClosed(object? sender, EventArgs e) => Close();
 
     // Replace composition only overrides tweens already under way, so a staggered row still in its delay would play after the reversal.
     private void Cancel()

@@ -24,4 +24,8 @@
     <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.DevTools" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controls\" />
+  </ItemGroup>
+
 </Project>

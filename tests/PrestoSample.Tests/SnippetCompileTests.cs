@@ -39,7 +39,7 @@ public sealed class SnippetCompileTests
     public void CarouselPrintsACompilingParallaxRegion() => AssertCompiles(
         """
         const double BackgroundDepth = -.5, ArtDepth = -.2, TitleLead = .35;
-        List<(Control Background, Control Art, Control Title)> _layers = []; Draggable _drag; double _slideWidth;
+        List<(Control Background, Control Art, Control Title)> _layers = []; Pager Pager;
         """,
         Printed(new Showcase.Pages.CarouselPage(), panel => panel.Header == "How it's built"));
 
@@ -74,6 +74,7 @@ public sealed class SnippetCompileTests
             using Avalonia.Controls;
             using Monaco.Presto;
             using Monaco.Presto.AvaloniaBridge;
+            using Monaco.Presto.AvaloniaBridge.Controls;
             using Monaco.Presto.AvaloniaBridge.Draggables;
             using Monaco.Presto.AvaloniaBridge.Lottie;
             using PrestoSample.Showcase;

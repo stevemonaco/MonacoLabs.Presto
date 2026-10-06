@@ -1,22 +1,18 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Draggables;
+using Monaco.Presto.AvaloniaBridge.Controls;
 
 namespace PrestoSample.Showcase.Pages;
 
 public partial class CarouselPage : ShowcasePage
 {
-    private const double AutoplayInterval = 4000;
-    private const double DotWidth = 8;
-    private const double ActiveDotWidth = 24;
     private const double DotPitch = 16;
     private const double MarkDuration = 420;
     // Each layer's offset as a share of its slide's distance from centre: negative lags behind the strip, positive leads it.
@@ -26,84 +22,38 @@ public partial class CarouselPage : ShowcasePage
 
     private static readonly (string Title, string Blurb, string Icon, ImmutableSolidColorBrush Tint)[] Slides =
     [
-        ("Throw it", "An x-only draggable coasts on inertia and lands on a slide: flick hard to skip a few.", "PlayIcon", Palette.Accent),
-        ("Parallax", "Every layer follows its own Map of the strip's XValue, so each moves at its own rate.", "StarIcon", Palette.Aqua),
-        ("Indicators", "The active dot widens through a Width tween while the ring draws the autoplay.", "HeartIcon", Palette.Coral),
-        ("Autoplay", "A looping Draw animation advances every four seconds and holds while hovered.", "GearIcon", Palette.AccentBright),
-        ("Keyboard", "Left and Right, or the arrows, spring the draggable's own X to a slide.", "StarIcon", Palette.AccentDim),
+        ("Throw it", "The Pager's x-only drag coasts on inertia and lands on a slide: flick hard to skip a few, or past the end to loop.", "PlayIcon", Palette.Accent),
+        ("Parallax", "Every layer follows its own Map of the slide's OffsetOf, so each moves at its own rate.", "StarIcon", Palette.Aqua),
+        ("Indicators", "The PagerIndicator widens the active dot while the ring draws the autoplay's progress.", "HeartIcon", Palette.Coral),
+        ("Autoplay", "The pager advances every four seconds and holds while hovered or focused from the keyboard.", "GearIcon", Palette.AccentBright),
+        ("Keyboard", "Left, Right, Home and End, or the arrows, spring the pager to a slide.", "StarIcon", Palette.AccentDim),
     ];
 
     private readonly List<(Control Background, Control Art, Control Title)> _layers = [];
-    private Draggable? _drag;
-    private Animation? _autoplay;
-    private Animation? _travel;
-    private double _slideWidth;
-    private int _active;
-    private bool _hovered;
-    private bool _dragging;
 
     public CarouselPage()
     {
         InitializeComponent();
-        for (var i = 0; i < Slides.Length; i++)
+        for (var i = 0; i < Slides.Length; i++) Pager.Slides.Add(BuildSlide(i));
+        Pager.PropertyChanged += (_, e) =>
         {
-            Strip.Children.Add(BuildSlide(i));
-            Dots.Children.Add(new Border());
-        }
-        var first = (Border)Dots.Children[0];
-        first.Width = ActiveDotWidth;
-        first.Background = Palette.Accent;
+            if (e.Property != Pager.SelectedIndexProperty) return;
+            Scope.Execute(_ => Ring.Animate(new() { ["X"] = Pager.SelectedIndex * DotPitch, Duration = MarkDuration, Ease = Eases.OutQuint }));
+        };
     }
 
     protected override void OnAttached()
     {
-        _autoplay = PrestoAvalonia.CreateDrawable(Ring).Animate(new()
-        {
-            ["Draw"] = TweenValue.FromTo("0 0", "0 1"),
-            Duration = AutoplayInterval,
-            Ease = Eases.None,
-            Loop = true,
-            OnLoop = _ => GoTo(_active + 1),
-            WhenReduced = new() { ["Draw"] = "0 0", Duration = 0, Loop = false },
-        });
-        _drag = PrestoAvalonia.CreateDraggable(Strip, new DraggableParams
-        {
-            Y = new DraggableAxisParams { Enabled = false },
-            ContainerBounds = _ => new Rect(-(Slides.Length - 1) * _slideWidth, 0, (Slides.Length - 1) * _slideWidth, 0),
-            Snap = x => Utils.Snap(x, _slideWidth),
-            ReleaseInertia = new Inertia(0),
-            OnGrab = _ =>
-            {
-                _travel?.Pause();
-                _dragging = true;
-                Viewport.Focus();
-                Hold();
-            },
-            OnSettle = drag => Mark((int)Math.Round(-drag.X / _slideWidth)),
-            OnRelease = _ =>
-            {
-                _dragging = false;
-                _autoplay.Restart();
-                Hold();
-            },
-        });
+        Follow.SetDraw(Ring, Pager.AutoplayProgress);
         #region snippet CarouselParallax
         foreach (var (slide, (background, art, title)) in _layers.Index())
         {
-            var offset = _drag.XValue.Map(x => x + (slide * _slideWidth));
+            var offset = Pager.OffsetOf(slide).Map(v => v * Pager.Bounds.Width);
             Follow.SetX(background, offset.Map(v => v * BackgroundDepth));
             Follow.SetX(art, offset.Map(v => v * ArtDepth));
             Follow.SetX(title, offset.Map(v => v * TitleLead));
         }
         #endregion
-    }
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (e.Key is not (Key.Left or Key.Right)) return;
-        Step(e.Key == Key.Left ? -1 : 1);
-        e.Handled = true;
     }
 
     private Panel BuildSlide(int index)
@@ -168,76 +118,7 @@ public partial class CarouselPage : ShowcasePage
         };
     }
 
-    private void Step(int step)
-    {
-        GoTo(_active + step);
-        _autoplay?.Restart();
-        Hold();
-    }
+    private void PreviousClicked(object? sender, RoutedEventArgs e) => Pager.GoTo(Pager.SelectedIndex - 1);
 
-    private void GoTo(int index)
-    {
-        if (_drag is null) return;
-        index = (index + Slides.Length) % Slides.Length;
-        Mark(index);
-        _travel = Scope.Execute(_ => Presto.Animate(_drag, new()
-        {
-            ["X"] = -index * _slideWidth,
-            Ease = Eases.Spring(bounce: .2, duration: 700),
-            WhenReduced = new() { ["X"] = -index * _slideWidth, Duration = 0, Ease = Eases.None },
-        }));
-    }
-
-    private void Mark(int index)
-    {
-        if (index == _active) return;
-        _active = index;
-        Scope.Execute(_ =>
-        {
-            Presto.Animate(Dots.Children, new AvaloniaAnimationParams
-            {
-                ["Width"] = (FunctionValue)((_, i, _) => i == index ? ActiveDotWidth : DotWidth),
-                ["Background"] = (FunctionValue)((_, i, _) => TweenValue.Of(i == index ? Palette.Accent : Palette.Border)),
-                Duration = MarkDuration,
-                Ease = Eases.OutQuint,
-            });
-            Ring.Animate(new() { ["X"] = index * DotPitch, Duration = MarkDuration, Ease = Eases.OutQuint });
-        });
-    }
-
-    private void Hold()
-    {
-        if (_hovered || _dragging) _autoplay?.Pause();
-        else _autoplay?.Resume();
-    }
-
-    private void ViewportResized(object? sender, SizeChangedEventArgs e)
-    {
-        _slideWidth = e.NewSize.Width;
-        foreach (var slide in Strip.Children)
-        {
-            slide.Width = _slideWidth;
-            slide.Height = e.NewSize.Height;
-        }
-        if (_drag is null) return;
-        _travel?.Pause();
-        _drag.Refresh();
-        _drag.X = -_active * _slideWidth;
-    }
-
-    private void ViewportEntered(object? sender, PointerEventArgs e)
-    {
-        _hovered = true;
-        Hold();
-    }
-
-    private void ViewportExited(object? sender, PointerEventArgs e)
-    {
-        _hovered = false;
-        Hold();
-    }
-
-    private void PreviousClicked(object? sender, RoutedEventArgs e) => Step(-1);
-
-    private void NextClicked(object? sender, RoutedEventArgs e) => Step(1);
+    private void NextClicked(object? sender, RoutedEventArgs e) => Pager.GoTo(Pager.SelectedIndex + 1);
 }

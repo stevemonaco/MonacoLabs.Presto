@@ -70,7 +70,7 @@ internal static class TransformMath
         max = Math.Max(alignStart, alignEnd);
     }
 
-    private static double Cushion(double value, double min, double max, double friction) =>
+    internal static double Cushion(double value, double min, double max, double friction) =>
         value > max ? max + (value - max) * friction : value < min ? min + (value - min) * friction : value;
 
     private static Vector Rotate(Vector v, double degrees)

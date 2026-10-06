@@ -42,11 +42,26 @@
         <Style Selector="TabStripItem:selected /template/ Border#PART_SelectedPipe">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+        <Style Selector="TabStrip">
+            <Setter Property="presto:Selection.IndicatorMode" Value="Underline" />
+            <Setter Property="presto:Selection.Stretch" Value="True" />
+            <Setter Property="presto:Selection.Motion" Value="{x:Static local:MicroInteractionsPage.TabGlide}" />
+            <Setter Property="presto:Selection.Indicator">
+                <Template>
+                    <Border Height="3" Margin="10,0" CornerRadius="1.5" Background="{x:Static showcase:Palette.Accent}" />
+                </Template>
+            </Setter>
+        </Style>
         <!-- /snippet -->
         <!-- snippet: MicroInteractionsAccordion -->
+        <Style Selector="StackPanel#Accordion">
+            <Setter Property="presto:Accordion.Group" Value="True" />
+        </Style>
         <Style Selector="StackPanel#Accordion > Expander">
-            <Setter Property="presto:Animate.Layout" Value="{presto:Reflow 380, Ease=outQuint}" />
-            <Setter Property="presto:Animate.LayoutMode" Value="PositionAndSize" />
+            <Setter Property="presto:Accordion.Enabled" Value="True" />
+        </Style>
+        <Style Selector="StackPanel#Accordion > Expander > TextBlock">
+            <Setter Property="presto:Presence.Enter" Value="{presto:Fade Direction=Up, Distance=8}" />
         </Style>
         <!-- /snippet -->
         <Style Selector="TextBox.invalid /template/ Border#PART_BorderElement">
@@ -68,16 +83,14 @@
             <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="SUBMIT" />
                 <Border Classes="stage">
+                    <!-- snippet: MicroInteractionsSubmitButton -->
                     <Button x:Name="Submit" Classes="specimen" Width="168" Height="44" Padding="0"
                             HorizontalAlignment="Center" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Click="SubmitClicked">
-                        <Grid>
-                            <TextBlock x:Name="SubmitLabel" Text="Place order" HorizontalAlignment="Center" />
-                            <Path x:Name="Spinner" Width="20" Height="20" Stretch="None" Opacity="0"
-                                  Stroke="{x:Static showcase:Palette.Ink}" StrokeThickness="2.5"
-                                  StrokeLineCap="Round" StrokeJoin="Round" />
-                        </Grid>
+                            VerticalContentAlignment="Center" Click="SubmitClicked"
+                            presto:SubmitButton.SuccessBrush="{x:Static showcase:Palette.Aqua}">
+                        <TextBlock x:Name="SubmitLabel" Text="Place order" />
                     </Button>
+                    <!-- /snippet -->
                 </Border>
             </StackPanel>
 
@@ -104,7 +117,7 @@
                 <TextBlock Classes="eyebrow showcase" Text="TAB INDICATOR" />
                 <Border Classes="stage">
                     <StackPanel VerticalAlignment="Center">
-                        <TabStrip x:Name="Tabs" SelectedIndex="0" SelectionChanged="TabChanged">
+                        <TabStrip x:Name="Tabs" SelectedIndex="0">
                             <TabStrip.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <StackPanel Orientation="Horizontal" />
@@ -115,10 +128,6 @@
                             <TabStripItem Content="Settings" />
                             <TabStripItem Content="Billing" />
                         </TabStrip>
-                        <Canvas x:Name="Rail" Height="3">
-                            <Border x:Name="Underline" Height="3" CornerRadius="1.5"
-                                    Background="{x:Static showcase:Palette.Accent}" />
-                        </Canvas>
                         <Border Height="1" Background="{x:Static showcase:Palette.Border}" />
                     </StackPanel>
                 </Border>
@@ -128,13 +137,13 @@
                 <TextBlock Classes="eyebrow showcase" Text="ACCORDION" />
                 <Border Classes="stage">
                     <StackPanel x:Name="Accordion" Spacing="6">
-                        <Expander Header="Shipping" HorizontalAlignment="Stretch" Expanding="Expanding">
+                        <Expander Header="Shipping" HorizontalAlignment="Stretch">
                             <TextBlock TextWrapping="Wrap" Text="Orders leave the warehouse within one working day and arrive in two to four." />
                         </Expander>
-                        <Expander Header="Returns" HorizontalAlignment="Stretch" Expanding="Expanding">
+                        <Expander Header="Returns" HorizontalAlignment="Stretch">
                             <TextBlock TextWrapping="Wrap" Text="Send anything back within 30 days, unworn and in its box, for a full refund." />
                         </Expander>
-                        <Expander Header="Warranty" HorizontalAlignment="Stretch" Expanding="Expanding">
+                        <Expander Header="Warranty" HorizontalAlignment="Stretch">
                             <TextBlock TextWrapping="Wrap" Text="Two years on parts and labour, extendable to five when you register the product." />
                         </Expander>
                     </StackPanel>
@@ -143,34 +152,28 @@
 
             <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="TOASTS" />
-                <Border Classes="stage" x:DataType="builder:ToastsViewModel">
-                    <Border.DataContext>
-                        <builder:ToastsViewModel />
-                    </Border.DataContext>
+                <Border Classes="stage">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-                            <Button x:Name="Notify" Classes="specimen" Content="Notify" Margin="0,0,12,0" Command="{Binding NotifyCommand}" />
+                            <Button x:Name="Notify" Classes="specimen" Content="Notify" Margin="0,0,12,0" Click="NotifyClicked" />
                             <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" Text="Hover to hold one, swipe it away" />
                         </DockPanel>
                         <!-- snippet: MicroInteractionsToasts -->
-                        <ItemsControl x:Name="Toasts" ItemsSource="{Binding Toasts}"
-                                      presto:Animate.ItemLayout="{presto:Reflow 380, Ease=outQuint}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="builder:Toast">
-                                    <!-- The swipe drags the toast and the entrance slides its slot, so the two never fight over X. -->
-                                    <Panel presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=320, Duration=420, Ease=outQuint}"
-                                           presto:Presence.Exit="{presto:Slide Edge=Right, Distance=320, Duration=260, Ease=inQuad}">
-                                        <Border Classes="toast" Loaded="ToastLoaded" PointerEntered="HoldToast" PointerExited="ReleaseToast">
-                                            <StackPanel Spacing="6">
-                                                <TextBlock Classes="title" Text="{Binding Title}" />
-                                                <TextBlock Classes="caption" Text="{Binding Message}" TextWrapping="Wrap" />
-                                                <ProgressBar Maximum="1" Foreground="{Binding Accent}" />
-                                            </StackPanel>
-                                        </Border>
-                                    </Panel>
+                        <presto:ToastHost x:Name="Toasts" presto:Animate.ItemLayout="{presto:Reflow 380, Ease=outQuint}">
+                            <presto:ToastHost.ItemTemplate>
+                                <DataTemplate x:DataType="builder:Notice">
+                                    <!-- The host's swipe moves the item container and the entrance this root, so the two never fight over X. -->
+                                    <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=320, Duration=420, Ease=outQuint}"
+                                            presto:Presence.Exit="{presto:Slide Edge=Right, Distance=320, Duration=260, Ease=inQuad}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="title" Text="{Binding Title}" />
+                                            <TextBlock Classes="caption" Text="{Binding Message}" TextWrapping="Wrap" />
+                                            <ProgressBar Maximum="1" Foreground="{Binding Accent}" presto:ToastHost.Countdown="Value" />
+                                        </StackPanel>
+                                    </Border>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                            </presto:ToastHost.ItemTemplate>
+                        </presto:ToastHost>
                         <!-- /snippet -->
                     </DockPanel>
                 </Border>

@@ -51,9 +51,9 @@ public static class Attention
         Start(duration, delay, ease, stagger).Y(Frames(0, intensity, -20, 0, -10, 0, -4));
 
     /// <summary>
-    /// Flashes a <see cref="PrestoImageBase"/> towards <paramref name="color"/> (default <see cref="Colors.DodgerBlue"/>):
-    /// <see cref="PrestoImageBase.Tint"/> rises to <paramref name="intensity"/> and falls back to 0, with
-    /// <see cref="PrestoImageBase.TintColor"/> set at the start. Reduced: an opacity blink.
+    /// Flashes a <see cref="Controls.PrestoImageBase"/> towards <paramref name="color"/> (default <see cref="Colors.DodgerBlue"/>):
+    /// <see cref="Controls.PrestoImageBase.Tint"/> rises to <paramref name="intensity"/> and falls back to 0, with
+    /// <see cref="Controls.PrestoImageBase.TintColor"/> set at the start. Reduced: an opacity blink.
     /// </summary>
     public static AnimationBuilder FlashTint(Color? color = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Start(duration, delay, ease, stagger)

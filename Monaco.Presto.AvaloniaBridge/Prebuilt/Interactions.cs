@@ -45,8 +45,8 @@ public static class Interactions
         Start(duration, delay, ease, b => b.Opacity(1 - (0.4 * intensity)));
 
     /// <summary>
-    /// Brings a <see cref="PrestoImageBase"/> to full colour, <see cref="PrestoImageBase.Grayscale"/> 0 and
-    /// <see cref="PrestoImageBase.Saturate"/> 1, from the grayscale its resting values set. Reduced: the same change.
+    /// Brings a <see cref="Controls.PrestoImageBase"/> to full colour, <see cref="Controls.PrestoImageBase.Grayscale"/> 0 and
+    /// <see cref="Controls.PrestoImageBase.Saturate"/> 1, from the grayscale its resting values set. Reduced: the same change.
     /// </summary>
     public static AnimationBuilder Colorize(double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Start(duration, delay, ease, b => b.Grayscale(0).Saturate(1));

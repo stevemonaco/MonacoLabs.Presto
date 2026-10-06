@@ -382,10 +382,6 @@ public sealed class Draggable : IRevertible
         return null;
     }
 
-    // Past the bounds only `factor` of the overshoot is kept.
-    private static double Cushion(double value, double min, double max, double factor) =>
-        value > max ? max + (value - max) * factor : value < min ? min + (value - min) * factor : value;
-
     private static double Snapped(double value, Func<double, double>? snap, double min, double max) =>
         Utils.Clamp(Utils.Round(snap?.Invoke(value) ?? value, 5), min, max);
 
@@ -500,8 +496,8 @@ public sealed class Draggable : IRevertible
         _appliedX = _pointerX;
         _appliedY = _pointerY;
         var friction = 1 - _containerFriction;
-        SetX(Cushion(_coordX, _boundsLeft, _boundsRight, friction), false);
-        SetY(Cushion(_coordY, _boundsTop, _boundsBottom, friction), false);
+        SetX(TransformMath.Cushion(_coordX, _boundsLeft, _boundsRight, friction), false);
+        SetY(TransformMath.Cushion(_coordY, _boundsTop, _boundsBottom, friction), false);
         ComputeVelocity(movedX, movedY);
         Angle = Math.Atan2(_pointerY - _pointerPrevY, _pointerX - _pointerPrevX);
         if ((_snapX != null && _snappedX != snappedX) || (_snapY != null && _snappedY != snappedY)) _parameters.OnSnap?.Invoke(this);
@@ -564,8 +560,8 @@ public sealed class Draggable : IRevertible
         var x = _grabValueX = X;
         var y = _grabValueY = Y;
         // The raw coordinate the cushioned position came from, so the next drag picks up where the friction left off.
-        _coordX = _prevX = friction == 0 ? x : Cushion(x, _boundsLeft, _boundsRight, 1 / friction);
-        _coordY = _prevY = friction == 0 ? y : Cushion(y, _boundsTop, _boundsBottom, 1 / friction);
+        _coordX = _prevX = friction == 0 ? x : TransformMath.Cushion(x, _boundsLeft, _boundsRight, 1 / friction);
+        _coordY = _prevY = friction == 0 ? y : TransformMath.Cushion(y, _boundsTop, _boundsBottom, 1 / friction);
         _pointerX = _pointerPrevX = _appliedX = _grabX = position.X;
         _pointerY = _pointerPrevY = _appliedY = _grabY = position.Y;
         ClearVelocity();
@@ -654,8 +650,8 @@ public sealed class Draggable : IRevertible
         var friction = 1 - _releaseContainerFriction;
         var thrownX = x + Math.Cos(angle) * thrown;
         var thrownY = y + Math.Sin(angle) * thrown;
-        var cushionedX = Cushion(thrownX, _boundsLeft, _boundsRight, friction);
-        var cushionedY = Cushion(thrownY, _boundsTop, _boundsBottom, friction);
+        var cushionedX = TransformMath.Cushion(thrownX, _boundsLeft, _boundsRight, friction);
+        var cushionedY = TransformMath.Cushion(thrownY, _boundsTop, _boundsBottom, friction);
         var destX = _destX = Snapped(cushionedX, _snapX, _boundsLeft, _boundsRight);
         var destY = _destY = Snapped(cushionedY, _snapY, _boundsTop, _boundsBottom);
         var outOfBounds = (!_disabledX && (thrownX < _boundsLeft || thrownX > _boundsRight))

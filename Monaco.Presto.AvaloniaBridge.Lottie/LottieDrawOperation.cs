@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using SkiaSharp;
 
 namespace Monaco.Presto.AvaloniaBridge.Lottie;

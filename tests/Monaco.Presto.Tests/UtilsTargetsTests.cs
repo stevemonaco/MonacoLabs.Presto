@@ -211,6 +211,23 @@ public sealed class UtilsTargetsTests : EngineTestBase
     }
 
     [Fact]
+    public void GetAnimationsDropsAPausedAnimationOnceTheEngineReleasesIt()
+    {
+        var target = new StyleTarget();
+        var paused = Presto.Animate(target, new() { ["X"] = 100, Duration = 1000 });
+        Frames.Advance(50, 16);
+
+        paused.Pause();
+        Assert.Equal([paused], Presto.GetAnimations(target));
+
+        Frames.Advance(16);
+        Assert.Empty(Presto.GetAnimations(target));
+
+        paused.Resume();
+        Assert.Equal([paused], Presto.GetAnimations(target));
+    }
+
+    [Fact]
     public void GetAnimationsFindsTimelineChildren()
     {
         var target = new StyleTarget();

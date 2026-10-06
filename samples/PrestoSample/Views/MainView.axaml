@@ -27,36 +27,25 @@
                           SelectedItem="{Binding NavSelectedPage, Mode=OneWay}"
                           SelectionChanged="NavSelectionChanged"
                           Classes.searching="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                          presto:Animate.ItemLayout="{presto:Reflow}">
+                          presto:Animate.ItemLayout="{presto:Reflow}"
+                          presto:Selection.Motion="{x:Static local:MainView.Glide}">
                     <TreeView.Styles>
                         <Style Selector="TreeView > TreeViewItem" x:DataType="vm:NavSection">
                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                             <Setter Property="presto:Presence.Exit" Value="{presto:Fade Direction=Left, Duration=180, Out=True}" />
                         </Style>
-                        <!-- Reflow only while searching, ContentSize otherwise (PLAN.md §7). -->
-
+                        <!-- Reflow only while searching, the accordion's fold otherwise (PLAN.md §7). -->
                         <Style Selector="TreeView.searching > TreeViewItem">
                             <Setter Property="presto:Animate.ItemLayout" Value="{presto:Reflow}" />
                         </Style>
-                        <Style Selector="TreeView:not(.searching) TreeViewItem:not(:empty) /template/ Border#ItemsHost">
-                            <Setter Property="presto:Animate.ContentSize" Value="{x:Static local:MainView.Fold}" />
+                        <Style Selector="TreeView:not(.searching) TreeViewItem:not(:empty)">
+                            <Setter Property="presto:Accordion.Enabled" Value="True" />
                         </Style>
                         <Style Selector="TreeViewItem /template/ Grid#PART_Header">
                             <Setter Property="presto:Presence.Initial" Value="{x:Static local:MainView.RiseIn}" />
                         </Style>
-                        <Style Selector="TreeViewItem[IsExpanded=False]:not(:empty)">
-                            <Setter Property="presto:Motion.State" Value="collapsed" />
-                        </Style>
                         <Style Selector="TreeViewItem /template/ Path#Chevron">
-                            <Setter Property="presto:Motion.States">
-                                <presto:MotionStates>
-                                    <presto:MotionState When="collapsed" Motion="{x:Static local:MainView.ChevronFolded}" />
-                                </presto:MotionStates>
-                            </Setter>
-                        </Style>
-                        <Style Selector="TreeViewItem /template/ ItemsPresenter#PART_ItemsPresenter">
-                            <Setter Property="presto:Presence.Exit" Value="{x:Static local:MainView.PagesFolded}" />
-                            <Setter Property="presto:Presence.EnterOnShow" Value="True" />
+                            <Setter Property="presto:Accordion.Chevron" Value="90" />
                         </Style>
                         <Style Selector="TreeViewItem:empty">
                             <Setter Property="presto:Presence.Enter" Value="{x:Static local:MainView.PageUnfolded}" />

@@ -6,12 +6,7 @@
                        xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        xmlns:local="using:PrestoSample.Builder"
                        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1200"
-                       x:Class="PrestoSample.Builder.ToastsPage"
-                       x:DataType="local:ToastsViewModel">
-    <showcase:ShowcasePage.DataContext>
-        <local:ToastsViewModel />
-    </showcase:ShowcasePage.DataContext>
-
+                       x:Class="PrestoSample.Builder.ToastsPage">
     <showcase:ShowcasePage.Styles>
         <Style Selector="Border.toast">
             <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
@@ -50,15 +45,15 @@
 
     <ScrollViewer>
         <StackPanel Spacing="16">
-            <Button Content="Notify" Command="{Binding NotifyCommand}" HorizontalAlignment="Left" />
+            <Button x:Name="NotifyButton" Content="Notify" Click="NotifyClicked" HorizontalAlignment="Left" />
 
-            <TextBlock Classes="caption" Text="Each toast slides in from its template, counts down on a bar and slides out as the stack closes up; ✕ dismisses it early" />
+            <TextBlock Classes="caption" Text="Each toast slides in from its template, counts down on a bar and slides out as the stack closes up; hover to hold one, swipe it away or press ✕" />
             <Border Classes="stage" MinHeight="420">
                 <!-- snippet: ToastsTemplate -->
-                <ItemsControl x:Name="ToastList" ItemsSource="{Binding Toasts}" Width="340" HorizontalAlignment="Right" VerticalAlignment="Top"
-                              presto:Animate.ItemLayout="{presto:Reflow 360, Ease=outQuint}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="local:Toast">
+                <presto:ToastHost x:Name="ToastList" MaxCount="4" Width="340" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                  presto:Animate.ItemLayout="{presto:Reflow 360, Ease=outQuint}">
+                    <presto:ToastHost.ItemTemplate>
+                        <DataTemplate x:DataType="local:Notice">
                             <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=120, Duration=650, Ease=outBack(1.2)}"
                                     presto:Presence.Exit="{presto:Slide Edge=Right, Distance=120, Duration=320, Ease=inQuad}">
                                 <Grid ColumnDefinitions="16,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
@@ -67,19 +62,19 @@
                                     <TextBlock Grid.Column="2" Grid.Row="1" Classes="message" Text="{Binding Message}" />
                                     <Button Grid.Column="3" Classes="close" Content="✕" Click="Close" />
                                     <Border Grid.Row="2" Grid.ColumnSpan="4" Classes="countdown" Background="{Binding Accent}"
-                                            presto:Animate.OnAttached="{x:Static local:ToastsPage.Countdown}" />
+                                            presto:ToastHost.Countdown="ScaleX" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                    </presto:ToastHost.ItemTemplate>
+                </presto:ToastHost>
                 <!-- /snippet -->
             </Border>
 
             <TextBlock Classes="caption" Text="The list and its item template" />
             <showcase:CodePanel x:Name="TemplateCode" Language="Xaml" Code="{x:Static showcase:Snippets.ToastsTemplate}" />
-            <TextBlock Classes="caption" Text="The countdown it points at; the exit and the reflow come from XAML, so the page only removes the toast" />
-            <showcase:CodePanel x:Name="BuildersCode" Code="{x:Static showcase:Snippets.ToastsBuilders}" />
+            <TextBlock Classes="caption" Text="The page only shows and closes toasts; the countdown, the cap and the swipe are the host's" />
+            <showcase:CodePanel x:Name="ShowCode" Code="{x:Static showcase:Snippets.ToastsShow}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

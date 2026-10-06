@@ -42,6 +42,28 @@ internal sealed class Touch(Window window)
         return args;
     }
 
+    /// <summary>
+    /// Drags pointer 1 by <paramref name="by"/> in 20 ms steps of <paramref name="frames"/>, held still before letting go
+    /// unless <paramref name="hold"/> is false, so the release carries no throw.
+    /// </summary>
+    public void Drag(ManualFrameSource frames, Point from, Vector by, int steps = 5, bool hold = true)
+    {
+        var pressed = Down(1, from);
+        // Implicitly, as the platform's touch device captures each touch to what it pressed.
+        pressed.Pointer.Capture(pressed.Pointer.Captured ?? (IInputElement)pressed.Source!);
+        for (var i = 1; i <= steps; i++)
+        {
+            frames.Advance(20);
+            Move(1, from + (by * i / steps));
+        }
+        for (var i = 0; hold && i < 4; i++)
+        {
+            frames.Advance(20);
+            Move(1, from + by);
+        }
+        Up(1, from + by);
+    }
+
     // Hit testing reads the last rendered frame, so one is rendered first, as the headless mouse helpers do.
     private Interactive Target(Pointer pointer, Point point)
     {

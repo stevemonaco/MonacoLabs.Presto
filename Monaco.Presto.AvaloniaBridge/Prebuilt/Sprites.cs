@@ -1,3 +1,5 @@
+using Monaco.Presto.AvaloniaBridge.Controls;
+
 namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 
 /// <summary>Frame-by-frame recipes for <see cref="SpriteSheet"/> and <see cref="ImageSequence"/>.</summary>
