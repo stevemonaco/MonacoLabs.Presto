@@ -906,15 +906,30 @@ public static class Presence
         });
 
         // An item container leaves with its item, or is recycled for another, so only what is outside it clips the ghost.
-        var clip = Clip(ItemContainerOf(anchor)?.GetVisualParent() ?? anchor, top);
-        Canvas.SetLeft(ghost, position.X - clip.X);
-        Canvas.SetTop(ghost, position.Y - clip.Y);
-        var box = new Canvas { Width = clip.Width, Height = clip.Height, ClipToBounds = true, Children = { ghost } };
-        Canvas.SetLeft(box, clip.X - overlayOrigin.X);
-        Canvas.SetTop(box, clip.Y - overlayOrigin.Y);
+        var clipping = ItemContainerOf(anchor)?.GetVisualParent() ?? anchor;
+        var from = clipping.TranslatePoint(default, top) ?? default;
+        var clips = Clips(clipping);
+        var box = new Canvas { ClipToBounds = true, Children = { ghost } };
         // A zero-size canvas draws its children unclipped, so this host lays out the same whether or not the overlay positions it.
         var host = new Canvas { IsHitTestVisible = false, Children = { box } };
+        Place(from);
+        // A scroll moves the anchor and its clip by a layout pass, so the ghost follows; the handler leaves with the host.
+        host.LayoutUpdated += (_, _) =>
+        {
+            if (clipping.TranslatePoint(default, top) is { } at) Place(at);
+        };
         overlay.Children.Add(host);
+
+        void Place(Point at)
+        {
+            var clip = Clip(clips, top);
+            Canvas.SetLeft(ghost, position.X + at.X - from.X - clip.X);
+            Canvas.SetTop(ghost, position.Y + at.Y - from.Y - clip.Y);
+            box.Width = clip.Width;
+            box.Height = clip.Height;
+            Canvas.SetLeft(box, clip.X - overlayOrigin.X);
+            Canvas.SetTop(box, clip.Y - overlayOrigin.Y);
+        }
 
         using var origin = PrestoDiagnostics.Origin("Presence");
         PrestoAvalonia.EnsureInitialized();
@@ -942,12 +957,10 @@ public static class Presence
     /// </summary>
     internal static Image Snapshot(Visual visual, double scaling)
     {
-        var size = visual.Bounds.Size;
-        var snapshot = new RenderTargetBitmap(
-            new PixelSize(Math.Max(1, (int)Math.Ceiling(size.Width * scaling)), Math.Max(1, (int)Math.Ceiling(size.Height * scaling))),
-            new Vector(96 * scaling, 96 * scaling));
-        var transform = RenderTransformComposer.Untransformed(visual, () => snapshot.Render(visual));
-        if (transform is null) snapshot.Render(visual);
+        WriteableBitmap snapshot = null!;
+        var transform = RenderTransformComposer.Untransformed(visual, () => snapshot = VisualSnapshot.Render(visual, scaling));
+        if (transform is null) snapshot = VisualSnapshot.Render(visual, scaling);
+        var size = VisualSnapshot.SizeOf(snapshot, scaling);
         return new Image
         {
             Source = snapshot,
@@ -991,13 +1004,26 @@ public static class Presence
         }
     }
 
-    /// <summary>The intersection of the boxes that clip <paramref name="anchor"/>'s content, itself included, in <paramref name="top"/>'s coordinates.</summary>
-    private static Rect Clip(Visual anchor, TopLevel top)
+    private static (Visual Visual, Size Size)[] Clips(Visual anchor)
     {
-        var clip = new Rect(top.Bounds.Size);
+        var clips = new List<(Visual, Size)>();
         for (Visual? visual = anchor; visual is not null and not TopLevel; visual = visual.GetVisualParent())
         {
-            if ((visual.ClipToBounds || ContentSizeTransition.Clips(visual)) && visual.TranslatePoint(default, top) is { } origin) clip = clip.Intersect(new Rect(origin, visual.Bounds.Size));
+            if (visual.ClipToBounds || ContentSizeTransition.Clips(visual)) clips.Add((visual, visual.Bounds.Size));
+        }
+        return clips.ToArray();
+    }
+
+    /// <summary>
+    /// The intersection of <paramref name="clips"/> where they stand now in <paramref name="top"/>'s coordinates. Each keeps the
+    /// size it had when the exit started, so a list shrinking as the element leaves does not cut off its ghost.
+    /// </summary>
+    private static Rect Clip((Visual Visual, Size Size)[] clips, TopLevel top)
+    {
+        var clip = new Rect(top.Bounds.Size);
+        foreach (var (visual, size) in clips)
+        {
+            if (visual.TranslatePoint(default, top) is { } origin) clip = clip.Intersect(new Rect(origin, size));
         }
         return clip;
     }
@@ -1005,7 +1031,7 @@ public static class Presence
     private static void Dismiss(OverlayLayer overlay, Control host, Image[] ghosts, Action? dismissed)
     {
         if (!overlay.Children.Remove(host)) return;
-        foreach (var ghost in ghosts) ((RenderTargetBitmap)ghost.Source!).Dispose();
+        foreach (var ghost in ghosts) ((Bitmap)ghost.Source!).Dispose();
         dismissed?.Invoke();
     }
 }

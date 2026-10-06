@@ -14,21 +14,22 @@ a perceptual space; Presto offers none.
 ## 0. What the code does today (verified)
 
 - **Solid colours** (`ValueKind.Color`, four channels R, G, B in 0–255 and A in 0–1) are lerped in the colour branch of
-  `Renderer.Render` as `sqrt(from² · (1 − p) + to² · p)` per RGB channel and linearly for alpha. That is upstream
-  anime.js 4.5.0 exactly (`src/core/render.js`, "pseudo-linear space … to approximate gamma-correct blending"), so it
-  is the parity default and the generated fixtures and ported `colors` tests depend on it.
+  `Renderer.Render` pseudo-linearly with premultiplied alpha (PLAN decision 117):
+  `sqrt(lerp(a₀·from², a₁·to², p) / lerp(a₀, a₁, p))` per RGB channel, alpha linear. With equal alphas that is
+  upstream anime.js 4.5.0's `sqrt(from² · (1 − p) + to² · p)` to the bit (`src/core/render.js`, "pseudo-linear space …
+  to approximate gamma-correct blending"), which the generated fixtures and ported `colors` tests depend on.
 - **Every consumer reads RGB from `tween._numbers`:** `ColorCodec.Encode`, `BrushCodec`'s solid path,
   `EffectAccessor` for `ShadowColor`, `Tween._value` (`PrestoColor.FormatRgba`) for string targets, and
   `Animatable.GetChannels`. `Animatable.Set(property, channels)` writes RGB into `_fromNumbers`/`_toNumbers` directly.
 - **Gradients and box shadows are `ValueKind.Complex`,** with colours embedded as four-number slots (`BrushCodec`:
   five numbers per stop after ten header numbers; `BoxShadowsCodec`: channels at offset 5 per shadow). The core lerps
   complex numbers plainly (`Tween.ComposeComplexNumbers`), so these colours are interpolated in gamma sRGB, *not* the
-  pseudo-linear space solid colours use. `BrushCodec.ColorAt`, which resamples stops onto the union of offsets
-  (decision 21), also lerps in gamma sRGB. The core itself never produces colour slots in complex values: embedded hex
+  pseudo-linear space solid colours use, and with straight alpha until 30b. `BrushCodec.ColorAt`, which resamples
+  stops onto the union of offsets (decision 21), lerps in gamma sRGB with premultiplied alpha. The core itself never produces colour slots in complex values: embedded hex
   or `rgb()` inside a complex string is not parsed as a colour.
 - **Blend composition** (`Composer.ComposeBlendedTween`) turns a blended tween's channels into deltas from the additive
   lookup (`from = base − to`, `to = 0`) and `Additive.Update` sums `_numbers` across siblings. A colour delta still goes
-  through the pseudo-linear branch, which computes `|from| · sqrt(1 − p)`: a negative delta loses its sign and the curve
+  through the straight-alpha pseudo-linear branch, which computes `|from| · sqrt(1 − p)`: a negative delta loses its sign and the curve
   is not linear. Upstream has the same arithmetic. Pin this with a test before 30a changes the branch (§4).
 - **Relative values** (`+=`, `-=`, `*=`) apply to numbers only; a colour string cannot be relative.
 - **The compositor carries no colour.** `CompositorTrackKind` is `Translation`, `Scale`, `RotationAngle` and `Opacity`
@@ -40,12 +41,12 @@ a perceptual space; Presto offers none.
 
 ## 1. Decisions
 
-1. **Spaces.** `ColorSpace.Default` (upstream pseudo-linear, unchanged), `Srgb` (plain gamma lerp, what gradients do
+1. **Spaces.** `ColorSpace.Default` (upstream pseudo-linear, premultiplied), `Srgb` (plain gamma lerp, what gradients do
    today), `LinearSrgb`, `Oklab` and `Oklch`. OKLab is the recommended perceptual choice: straight, even lightness,
    no hue surprises. OKLCH is for sweeps that should travel around the hue wheel. HSL and CIE Lab/LCH are left out;
    OKLab and OKLCH supersede them, and CSS keeps them mainly for compatibility (§5).
-2. **Default stays parity.** `PrestoDefaults.ColorSpace` is `Default`, so every existing test, fixture and sample is
-   untouched. An app opts in globally through `Presto.Defaults`, per animation, or per property.
+2. **Default stays as it is.** `PrestoDefaults.ColorSpace` is `Default` (upstream's pseudo-linear blend with
+   premultiplied alpha, PLAN decision 117), so every existing test, fixture and sample is untouched. An app opts in globally through `Presto.Defaults`, per animation, or per property.
 3. **Convert once at setup, back once per frame.** When a tween's space is not `Default`, the `Animation` constructor
    converts both ends into the space once and keeps them in two new per-tween buffers (`_spaceFrom`, `_spaceTo`,
    allocated only for non-default spaces). The renderer lerps those and converts the result back into `_numbers` as RGB.
@@ -61,7 +62,7 @@ a perceptual space; Presto offers none.
    instead of passing through a hue that is neither.
 7. **Alpha is premultiplied in the new spaces.** As CSS does, the colour channels (L, a, b; or L, C, not h) are
    multiplied by alpha before the lerp and divided after, so transparent → red fades in red instead of through dark.
-   `Default` keeps upstream's straight alpha.
+   `Default` premultiplies too (PLAN decision 117).
 8. **Gamut mapping is a clip in linear sRGB.** OKLab lines between two sRGB colours stay nearly in gamut; OKLCH arcs can
    leave it. The conversion back clamps each linear channel to [0, 1] before encoding. CSS Color 4's chroma-reduction
    mapping is more faithful but iterative; it is an open question, not a default (§5).
@@ -148,7 +149,7 @@ from strings.
 - Ends are exact in every space (decision 4), including after `ReduceAll`.
 - `Oklch` hue from 350° to 10°: `Shorter` passes 0°, `Longer` passes 180°, `Increasing` and `Decreasing` go the stated
   way; white → blue keeps blue's hue throughout.
-- Transparent → red in `Oklab` renders red at alpha 0.5 halfway; `Default` keeps straight alpha.
+- Transparent → red in `Oklab` renders red at alpha 0.5 halfway; so does `Default`.
 - An out-of-gamut OKLCH midpoint clips into [0, 255] with no NaN.
 - Precedence: property over animation over defaults; keyframes inherit the animation's space.
 - Blend: two blended `Oklab` colour tweens sum their deltas in the space and the lookup renders the fixture value.

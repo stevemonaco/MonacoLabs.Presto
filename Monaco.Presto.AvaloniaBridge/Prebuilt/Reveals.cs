@@ -51,7 +51,7 @@ public static class Reveals
         (surface as Layoutable)?.UpdateLayout();
         var after = Snapshot(surface);
 
-        var size = surface.Bounds.Size;
+        var size = VisualSnapshot.SizeOf(after, TopLevel.GetTopLevel(surface)?.RenderScaling ?? 1);
         var revealed = new Image { Source = after, Width = size.Width, Height = size.Height };
         var pictures = new Panel
         {
@@ -90,14 +90,5 @@ public static class Reveals
             .WhenReduced(reduced => reduced.Opacity(from: 0).Duration(tokens.Short));
     }
 
-    private static RenderTargetBitmap Snapshot(Visual surface)
-    {
-        var scale = TopLevel.GetTopLevel(surface)?.RenderScaling ?? 1;
-        var size = surface.Bounds.Size;
-        var bitmap = new RenderTargetBitmap(
-            new PixelSize(Math.Max(1, (int)Math.Ceiling(size.Width * scale)), Math.Max(1, (int)Math.Ceiling(size.Height * scale))),
-            new Vector(96 * scale, 96 * scale));
-        bitmap.Render(surface);
-        return bitmap;
-    }
+    private static WriteableBitmap Snapshot(Visual surface) => VisualSnapshot.Render(surface, TopLevel.GetTopLevel(surface)?.RenderScaling ?? 1);
 }

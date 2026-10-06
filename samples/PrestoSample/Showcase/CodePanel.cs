@@ -37,8 +37,9 @@ public sealed class CodePanel : TemplatedControl
 
     public static readonly AnimationBuilder PressIn = Presto.Build().Scale(.88).Duration(110).Ease(Eases.OutQuad);
 
+    internal const double Spread = 2;
+
     private static readonly Geometry Check = Geometry.Parse("M 2.5,8.5 L 6.5,12.5 L 13.5,3.5");
-    private static readonly IBrush Rest = new ImmutableSolidColorBrush(Color.FromArgb(0, 0x2D, 0xD4, 0xBF));
     private static readonly IBrush HoverFill = new ImmutableSolidColorBrush(Palette.Border.Color);
     private static readonly IBrush CopiedFill = new ImmutableSolidColorBrush(Color.FromArgb(0x26, 0x2D, 0xD4, 0xBF));
     private static readonly IBrush CopiedEdge = new ImmutableSolidColorBrush(Color.FromArgb(0x80, 0x2D, 0xD4, 0xBF));
@@ -145,15 +146,16 @@ public sealed class CodePanel : TemplatedControl
     {
         if (_copy is null || _front is null || _back is null || _copying is { Completed: false }) return;
         var ink = TweenValue.Of(over ? Palette.Ink : Palette.InkDim);
-        _copy.Animate(new() { ["Background"] = TweenValue.Of(over ? HoverFill : Rest), Duration = 180 });
+        _copy.Animate(new() { ["Background"] = TweenValue.Of(over ? HoverFill : Brushes.Transparent), Duration = 180 });
         _front.Animate(new() { ["Stroke"] = ink, Duration = 180 });
+        // Whole device pixels at 100/150/200% and no overshoot: a sub-pixel bounce makes the thin stroke's anti-aliasing shimmer.
         _back.Animate(new()
         {
             ["Stroke"] = ink,
-            ["X"] = over ? 1.5 : 0,
-            ["Y"] = over ? -1.5 : 0,
+            ["X"] = over ? Spread : 0,
+            ["Y"] = over ? -Spread : 0,
             Duration = over ? 320 : 220,
-            Ease = over ? Eases.OutBack(2.5) : Eases.OutQuad,
+            Ease = over ? Eases.OutCubic : Eases.OutQuad,
         });
     }
 
@@ -182,7 +184,7 @@ public sealed class CodePanel : TemplatedControl
             .Add(_copied, new() { ["Opacity"] = 0, ["X"] = Move(-6), Duration = 160, Ease = Eases.InQuad }, "leave")
             .Add(_copiedClip, new() { ["Width"] = 0, Duration = Move(300), Ease = Eases.InOutQuint }, "leave+=60")
             .Add(_front, new() { ["Data"] = PrestoAvalonia.MorphTo(FrontSheet), ["Stroke"] = TweenValue.Of(Palette.InkDim), Duration = Move(320), Ease = Eases.InOutCubic }, "leave")
-            .Add(_copy, new() { ["Background"] = TweenValue.Of(Rest), ["BorderBrush"] = TweenValue.Of(Rest), Duration = 300 }, "leave")
+            .Add(_copy, new() { ["Background"] = TweenValue.Of(Brushes.Transparent), ["BorderBrush"] = TweenValue.Of(Brushes.Transparent), Duration = 300 }, "leave")
             .Add(_back, new() { ["Opacity"] = 1, ["Scale"] = 1, Duration = Move(320), Ease = Eases.OutBack(2) }, "leave+=180");
     }
 }

@@ -188,7 +188,9 @@ public sealed class TextSplitter : IRevertible
         _width = _host.Bounds.Width;
         // Without this every piece is snapped to a whole pixel and a line ends up wider than the text it was measured from.
         var root = new StackPanel { UseLayoutRounding = false };
-        var lines = MeasureLines();
+        var lines = MeasureLines(out var baseline);
+        // An embedded control sits on the baseline by its bottom edge, which would add a descent below the last line.
+        TextBlock.SetBaselineOffset(root, baseline);
         for (var i = 0; i < lines.Count; i++) root.Children.Add(BuildLine(lines[i].TrimEnd(), i));
 
         _host.Text = null;
@@ -202,7 +204,7 @@ public sealed class TextSplitter : IRevertible
         for (var i = 0; i < _effects.Count; i++) _cleanups[i] = _effects[i](this);
     }
 
-    private List<string> MeasureLines()
+    private List<string> MeasureLines(out double baseline)
     {
         // Measured on a copy: the host's own layout holds the pieces by the time of a re-split.
         var measure = new TextBlock
@@ -218,6 +220,7 @@ public sealed class TextSplitter : IRevertible
         };
         measure.Measure(new Size(_width, double.PositiveInfinity));
         LineHeight = measure.TextLayout.TextLines[0].Height;
+        baseline = measure.TextLayout.TextLines[0].Baseline;
 
         var lines = new List<string>();
         foreach (var line in measure.TextLayout.TextLines)

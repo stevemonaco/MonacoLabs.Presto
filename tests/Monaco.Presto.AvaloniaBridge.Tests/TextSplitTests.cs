@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -196,6 +197,22 @@ public sealed class TextSplitTests : BridgeTestBase
 
         Assert.True(lineHeight > 0);
         Assert.Equal(probe.DesiredSize.Height, lineHeight, tolerance: 1);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SplittingKeepsTheHostTheHeightOfItsPlainText(bool chars)
+    {
+        var block = ShowText(160);
+        block.VerticalAlignment = VerticalAlignment.Top;
+        block.UpdateLayout();
+        var plain = block.Bounds.Height;
+
+        PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = chars ? new() : null });
+        block.UpdateLayout();
+
+        Assert.Equal(plain, block.Bounds.Height, tolerance: 0.5);
     }
 
     private static double DelayOf(FunctionValue delay, Control piece) => (double)delay(piece, 0, 0).Raw!;

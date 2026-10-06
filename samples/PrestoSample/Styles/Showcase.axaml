@@ -44,7 +44,7 @@
                             </ToggleButton>
                             <!-- A bare icon at rest; CodePanel peels its back sheet on hover and morphs the front one into a check on copy. -->
                             <Button Name="PART_Copy" Grid.Column="1" Grid.RowSpan="2" VerticalAlignment="Top" Margin="12,-4,-6,0"
-                                    Padding="6,4" Cursor="Hand" ToolTip.Tip="Copy" Background="#002DD4BF" BorderBrush="#002DD4BF"
+                                    Padding="6,4" Cursor="Hand" ToolTip.Tip="Copy" Background="Transparent" BorderBrush="Transparent"
                                     presto:Motion.Press="{x:Static showcase:CodePanel.PressIn}">
                                 <Button.Template>
                                     <ControlTemplate>

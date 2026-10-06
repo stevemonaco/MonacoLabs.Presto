@@ -178,6 +178,30 @@ public sealed class TypographyPageTests
     }
 
     [AvaloniaFact]
+    public void NoStageChangesHeightThroughARotatorCycleAndATerminalLoopWithItsRestart()
+    {
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
+        var stages = page.GetVisualDescendants().OfType<Border>().Where(border => border.Classes.Contains("stage")).ToArray();
+        var column = (Control)stages[0].GetVisualParent()!;
+        var heights = stages.Select(stage => stage.Bounds.Height).ToArray();
+        var extent = column.Bounds.Height;
+
+        // A rotator cycle is 163 frames; the terminal types for about 7 s, holds 2.4 s and restarts.
+        for (var frame = 0; frame < 600; frame++)
+        {
+            TestFrames.Tick();
+            for (var i = 0; i < stages.Length; i++)
+            {
+                Assert.True(stages[i].Bounds.Height == heights[i],
+                    $"frame {frame}: stage {i} went from {heights[i]:0.##} to {stages[i].Bounds.Height:0.##} tall");
+            }
+            Assert.Equal(extent, column.Bounds.Height);
+        }
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void UnderReducedMotionTheRotatorHoldsItsFirstWordAndTheTerminalTypesOnce()
     {
         using var reduced = ReducedMotion.On();

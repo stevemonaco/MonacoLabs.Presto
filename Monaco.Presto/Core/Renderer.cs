@@ -166,9 +166,11 @@ internal static class Renderer
                             var tn = tween._toNumbers;
                             var channelEases = tween._channelEases;
                             // RGB channels lerp in pseudo-linear space (square inputs, square-root result) to approximate gamma correct blending.
-                            ns[0] = tweenModifier(SquaredLerp(fn[0], tn[0], channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
-                            ns[1] = tweenModifier(SquaredLerp(fn[1], tn[1], channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
-                            ns[2] = tweenModifier(SquaredLerp(fn[2], tn[2], channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
+                            // Blended deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
+                            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Blend;
+                            ns[0] = tweenModifier(ColorLerp(fn[0], tn[0], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
+                            ns[1] = tweenModifier(ColorLerp(fn[1], tn[1], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
+                            ns[2] = tweenModifier(ColorLerp(fn[2], tn[2], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
                             ns[3] = tweenModifier(Helpers.Lerp(fn[3], tn[3], channelEases == null ? tweenProgress : channelEases[3](tweenTime)));
                             number = double.NaN;
                         }
@@ -332,5 +334,20 @@ internal static class Renderer
         }
     }
 
-    private static double SquaredLerp(double from, double to, double progress) => Math.Sqrt(from * from * (1 - progress) + to * to * progress);
+    /// <summary>
+    /// A colour channel at <paramref name="progress"/>, premultiplied by the channel's own alpha as CSS Color 4 does. A frame whose
+    /// alpha eases to zero or below has nothing to divide by and falls back to the straight blend.
+    /// </summary>
+    private static double ColorLerp(double from, double to, double fromAlpha, double toAlpha, bool premultiplied, double progress)
+    {
+        if (!premultiplied) return SquaredLerp(from, to, progress);
+        if (progress == 0) return from;
+        if (progress == 1) return to;
+        var alpha = Helpers.Lerp(fromAlpha, toAlpha, progress);
+        if (alpha <= 0) return SquaredLerp(from, to, progress);
+        return Math.Sqrt(Math.Max(0, Helpers.Lerp(fromAlpha * from * from, toAlpha * to * to, progress) / alpha));
+    }
+
+    // Clamped because an overshooting ease can push the sum below zero.
+    private static double SquaredLerp(double from, double to, double progress) => Math.Sqrt(Math.Max(0, from * from * (1 - progress) + to * to * progress));
 }

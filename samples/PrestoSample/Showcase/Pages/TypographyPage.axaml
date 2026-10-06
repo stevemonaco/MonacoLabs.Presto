@@ -80,7 +80,7 @@
                             <StackPanel x:Name="TerminalLines" Spacing="6" />
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,8,0,0">
                                 <TextBlock Classes="mono" Text="status" />
-                                <TextBlock x:Name="Status" Grid.Column="1" Classes="mono"
+                                <TextBlock x:Name="Status" Grid.Column="1" Classes="mono" LineHeight="16"
                                            Foreground="{x:Static showcase:Palette.Aqua}" />
                                 <TextBlock x:Name="Percent" Grid.Column="2" Classes="mono" Margin="0"
                                            Foreground="{x:Static showcase:Palette.Ink}" />

@@ -258,18 +258,25 @@ public sealed class Animatable : IRevertible
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             var eases = new Ease[tween._numbers.Length];
+            var isColor = tween._valueType == ValueKind.Color;
+            var blended = tween._composition == Composition.Blend;
+            var (oldFromAlpha, oldToAlpha) = isColor ? (tween._fromNumbers[3], tween._toNumbers[3]) : (0, 0);
+            var fromAlpha = isColor ? tween._modifier(tween._numbers[3]) : 0;
+            var toAlpha = to.Count > 3 ? to[3] : fromAlpha;
             for (var i = 0; i < eases.Length; i++)
             {
-                var squared = tween._valueType == ValueKind.Color && i < 3;
+                var squared = isColor && i < 3;
                 var from = tween._modifier(tween._numbers[i]);
                 var target = i < to.Count ? to[i] : from;
-                var distance = squared ? target * target - from * from : target - from;
+                var distance = squared ? SquaredTravel(from, target, fromAlpha, toAlpha, blended ? 0 : fromAlpha, from) : target - from;
                 Spring? thrown = null;
                 if (distance != 0)
                 {
+                    var ease = tween._channelEases?[i] ?? tween._ease;
                     var (oldFrom, oldTo) = (tween._fromNumbers[i], tween._toNumbers[i]);
-                    var travelled = squared ? oldTo * oldTo - oldFrom * oldFrom : oldTo - oldFrom;
-                    var velocity = animation.Paused ? 0 : Velocity(tween, tween._channelEases?[i] ?? tween._ease, travelled) * Constants.K * Globals.TimeScale / distance;
+                    var oldAlpha = !squared || blended ? 0 : Helpers.Lerp(oldFromAlpha, oldToAlpha, Pure(ease)(tween._currentTime / tween._updateDuration));
+                    var travelled = squared ? SquaredTravel(oldFrom, oldTo, oldFromAlpha, oldToAlpha, oldAlpha, from) : oldTo - oldFrom;
+                    var velocity = animation.Paused ? 0 : Velocity(tween, ease, travelled) * Constants.K * Globals.TimeScale / distance;
                     thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);
                     span = Math.Max(span, thrown.SolverDuration);
                     settling = Math.Max(settling, thrown.SettlingDuration);
@@ -289,15 +296,26 @@ public sealed class Animatable : IRevertible
     /// <summary>How fast a value eased by <paramref name="ease"/> over <paramref name="distance"/> is changing at <paramref name="tween"/>'s current time, in units per engine-time unit.</summary>
     private static double Velocity(Tween tween, Ease ease, double distance)
     {
-        // A spring's own ease raises its OnComplete when sampled past its duration; its pure twin does not.
-        if (ease.Target is Spring spring && ease == spring.Ease) ease = spring.PureEase;
-
+        ease = Pure(ease);
         var duration = tween._updateDuration;
         var progress = tween._currentTime / duration;
         var before = Math.Max(0, progress - VelocityStep);
         var after = Math.Min(1, progress + VelocityStep);
         return (ease(after) - ease(before)) / ((after - before) * duration) * distance;
     }
+
+    /// <summary>
+    /// How far a colour channel's square moves per unit of progress at <paramref name="current"/>, where the channel's alpha is
+    /// <paramref name="alpha"/>: the slope of the renderer's premultiplied blend, or its straight one when the alphas match or
+    /// <paramref name="alpha"/> leaves nothing to divide by.
+    /// </summary>
+    private static double SquaredTravel(double from, double to, double fromAlpha, double toAlpha, double alpha, double current) =>
+        fromAlpha == toAlpha || alpha <= 0
+            ? to * to - from * from
+            : (toAlpha * to * to - fromAlpha * from * from - current * current * (toAlpha - fromAlpha)) / alpha;
+
+    // A spring's own ease raises its OnComplete when sampled past its duration; its pure twin does not.
+    private static Ease Pure(Ease ease) => ease.Target is Spring spring && ease == spring.Ease ? spring.PureEase : ease;
 
     private static bool IsDiscrete(object? targets, string property) =>
         TargetParser.Parse(targets) is [var first, ..] && Presto.ResolveAccessor(first, Presto.Canonicalise(first, property)).Codec is DiscreteCodec;

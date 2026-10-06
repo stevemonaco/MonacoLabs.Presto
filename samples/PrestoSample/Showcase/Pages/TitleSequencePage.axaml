@@ -25,7 +25,7 @@
 
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
                         <Canvas Width="132" Height="126" HorizontalAlignment="Center">
-                            <Path x:Name="Monogram" Stretch="None" Fill="#004C8DFF"
+                            <Path x:Name="Monogram" Stretch="None" Fill="Transparent"
                                   Stroke="{x:Static showcase:Palette.Accent}" StrokeThickness="6"
                                   StrokeLineCap="Round" StrokeJoin="Round"
                                   Data="M 44,110 L 44,18 L 76,18 A 26,26 0 0 1 76,70 L 44,70" />

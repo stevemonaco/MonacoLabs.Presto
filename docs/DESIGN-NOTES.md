@@ -260,3 +260,19 @@ and PLAN §7 decisions 89–91.
   nothing in a browser that stops `requestAnimationFrame` in hidden tabs. A minimized Win32 window keeps delivering
   frames at the display rate, so `Engine.Wake` does not start the frame source while hidden. Hiding an idle engine also
   marks it paused, unlike upstream's `pause()`, so the show's `Resume` rebases timers created while hidden.
+
+## 11. Premultiplied colour interpolation (Phase 68)
+
+anime.js lerps each RGB channel as `sqrt(lerp(c₀², c₁², p))` with straight alpha, so a fade from a transparent colour
+shows that colour's RGB at half opacity: transparent teal → gray reads green on the way. Avalonia's brush transitions
+share the flaw. Presto weights each end by its alpha, as CSS Color 4 does, and deviates from upstream here (PLAN
+decision 117):
+
+`c = sqrt(lerp(a₀·c₀², a₁·c₁², p) / lerp(a₀, a₁, p))`, alpha `lerp(a₀, a₁, p)`.
+
+- **Equal alphas** take the original expression rather than the formula, so opaque tweens and the upstream fixtures are
+  unchanged to the bit, not merely within rounding.
+- **Ends are exact,** and a frame whose lerped alpha is 0 or below falls back to the straight lerp, so nothing divides by
+  zero.
+- **Blend composition** sums straight per-channel deltas and stays straight. `BrushCodec.ColorAt` resamples gradient
+  stops with the same weighting in plain gamma; colour slots in complex values stay straight until Phase 30b.

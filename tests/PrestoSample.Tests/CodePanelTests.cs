@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PrestoSample.Showcase;
@@ -90,6 +91,65 @@ public sealed class CodePanelTests
     }
 
     [AvaloniaFact]
+    public void TheCopyButtonsHoverFillFadesInGrayWithoutATealTint()
+    {
+        var panel = new CodePanel { Code = "var x = 1;" };
+        var window = SceneHarness.Show(panel, 600, 300);
+        var copy = Part<Button>(panel, "PART_Copy");
+
+        window.MouseMove(SceneHarness.Centre(copy, window));
+        TestFrames.Tick(6);
+
+        AssertGrayMidFade(copy);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public async Task TheHoverFillReturnsGrayWithoutATealTintAfterACopy()
+    {
+        var panel = new CodePanel { Code = "var x = 1;" };
+        var window = SceneHarness.Show(panel, 600, 300);
+        var copy = Part<Button>(panel, "PART_Copy");
+        window.MouseMove(SceneHarness.Centre(copy, window));
+        await SceneHarness.Settle();
+
+        copy.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.True(await SceneHarness.Pump(() => Fill(copy).A == 0, rounds: 200));
+        Assert.True(await SceneHarness.Pump(() => Fill(copy).A > 0));
+        TestFrames.Tick(4);
+
+        AssertGrayMidFade(copy);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheBackSheetSpreadsMonotonicallyToAWholePixelWithNoRestFrameOnAQuickReHover()
+    {
+        var panel = new CodePanel { Code = "var x = 1;" };
+        var window = SceneHarness.Show(panel, 600, 300);
+        var copy = Part<Button>(panel, "PART_Copy");
+        var back = Part<Avalonia.Controls.Shapes.Path>(panel, "PART_CopyBack");
+        var (over, away) = (SceneHarness.Centre(copy, window), new Point(5, 250));
+        var last = 0.0;
+
+        foreach (var (at, frames) in new[] { (over, 25), (away, 20), (over, 4), (away, 4), (over, 25) })
+        {
+            window.MouseMove(at);
+            var target = at == over ? CodePanel.Spread : 0;
+            for (var i = 0; i < frames; i++)
+            {
+                TestFrames.Tick();
+                var offset = back.RenderTransform!.Value;
+                Assert.Equal(offset.M31, -offset.M32);
+                Assert.InRange(offset.M31, Math.Min(last, target), Math.Max(last, target));
+                last = offset.M31;
+            }
+            if (frames >= 20) Assert.Equal(target, last);
+        }
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void CompactCodeIsHitTestableBesideItsGlyphsAndSelectsOnADrag()
     {
         var panel = new CodePanel { Classes = { "compact" }, Code = "x.Y(1);\nlonger.Line(2, 3);", Width = 300, VerticalAlignment = VerticalAlignment.Top };
@@ -150,6 +210,16 @@ public sealed class CodePanelTests
         window.Close();
     }
 
+    private static Color Fill(Button copy) => ((ISolidColorBrush)copy.Background!).Color;
+
+    private static void AssertGrayMidFade(Button copy)
+    {
+        var (fill, gray) = (Fill(copy), Palette.Border.Color);
+        Assert.InRange(fill.A, 1, 254);
+        Assert.InRange(fill.R, gray.R - 1, gray.R + 1);
+        Assert.InRange(fill.G, gray.G - 1, gray.G + 1);
+        Assert.InRange(fill.B, gray.B - 1, gray.B + 1);
+    }
     private static Window Show(Control content)
     {
         var window = new Window { Content = content, Width = 600, Height = 300 };

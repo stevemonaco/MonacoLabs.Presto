@@ -122,6 +122,18 @@ public sealed class CodecTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AResampledStopBetweenTransparentAndOpaqueTakesTheOpaqueStopsColor()
+    {
+        var gray = Color.FromRgb(128, 128, 128);
+        var from = Linear(new(0, 0), new(1, 0), (0, Color.FromArgb(0, 0, 128, 128)), (1, gray));
+        var to = Linear(new(0, 0), new(1, 0), (0, Color.FromArgb(0, 0, 128, 128)), (.5, Color.FromArgb(128, 128, 128, 128)), (1, gray));
+
+        var middle = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(from, TweenValue.Of(to), .5)).GradientStops[1].Color;
+
+        Assert.Equal(Color.FromArgb(128, 128, 128, 128), middle);
+    }
+
+    [AvaloniaFact]
     public void ASolidBrushTweensIntoAGradient()
     {
         var to = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(0, 200, 0)));
