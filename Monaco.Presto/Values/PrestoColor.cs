@@ -57,6 +57,122 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
     /// <summary>The color in the <see cref="FormatRgba"/> form, which is also what a color tween writes.</summary>
     public override string ToString() => FormatRgba([R, G, B, A]);
 
+    /// <summary>The color in OKLab.</summary>
+    public OklabColor ToOklab()
+    {
+        ColorConversions.SrgbToOklab(R / 255, G / 255, B / 255, out var l, out var a, out var b);
+        return new(l, a, b, A);
+    }
+
+    /// <summary>The color in OKLCH, hue in degrees [0, 360); a mix treats the hue as powerless when the chroma is below 4e-4.</summary>
+    public OklchColor ToOklch()
+    {
+        var lab = ToOklab();
+        ColorConversions.OklabToOklch(lab.A, lab.B, out var c, out var h);
+        return new(lab.L, c, h, A);
+    }
+
+    /// <summary>An OKLab color mapped into sRGB with the CSS Color 4 gamut map; channels are left unrounded.</summary>
+    public static PrestoColor FromOklab(double l, double a, double b, double alpha = 1)
+    {
+        ColorConversions.OklabToSrgbInGamut(l, a, b, out var r, out var g, out var bl);
+        return new(r * 255, g * 255, bl * 255, alpha);
+    }
+
+    /// <summary>An OKLCH color (hue in degrees) mapped into sRGB with the CSS Color 4 gamut map; channels are left unrounded.</summary>
+    public static PrestoColor FromOklch(double l, double c, double h, double alpha = 1)
+    {
+        ColorConversions.OklchToOklab(c, h, out var a, out var b);
+        return FromOklab(l, a, b, alpha);
+    }
+
+    /// <summary>
+    /// The CSS Color 4 mix of two colors at <paramref name="t"/> in <paramref name="space"/>, with premultiplied alpha and,
+    /// in <see cref="ColorSpace.Oklch"/>, the <paramref name="hue"/> arc. A <paramref name="t"/> outside 0-1 extrapolates;
+    /// the result is gamut mapped with unrounded channels, and 0 and 1 return the ends exactly.
+    /// </summary>
+    /// <remarks>Unlike CSS, equal chromatic hues under <see cref="HueInterpolation.Increasing"/> or <see cref="HueInterpolation.Decreasing"/> make a full turn.</remarks>
+    public static PrestoColor Mix(PrestoColor from, PrestoColor to, double t, ColorSpace space = ColorSpace.Oklab, HueInterpolation hue = HueInterpolation.Shorter)
+    {
+        if (t == 0) return from;
+        if (t == 1) return to;
+        var alpha = from.A + (to.A - from.A) * t;
+        var clampedAlpha = Helpers.Clamp(alpha, 0, 1);
+        switch (space)
+        {
+            case ColorSpace.Srgb:
+                return FromSrgb(
+                    Lerp(from.R / 255, to.R / 255, from.A, to.A, alpha, t),
+                    Lerp(from.G / 255, to.G / 255, from.A, to.A, alpha, t),
+                    Lerp(from.B / 255, to.B / 255, from.A, to.A, alpha, t),
+                    clampedAlpha);
+            case ColorSpace.LinearSrgb:
+                return FromSrgb(
+                    ColorConversions.LinearToSrgb(Lerp(ColorConversions.SrgbToLinear(from.R / 255), ColorConversions.SrgbToLinear(to.R / 255), from.A, to.A, alpha, t)),
+                    ColorConversions.LinearToSrgb(Lerp(ColorConversions.SrgbToLinear(from.G / 255), ColorConversions.SrgbToLinear(to.G / 255), from.A, to.A, alpha, t)),
+                    ColorConversions.LinearToSrgb(Lerp(ColorConversions.SrgbToLinear(from.B / 255), ColorConversions.SrgbToLinear(to.B / 255), from.A, to.A, alpha, t)),
+                    clampedAlpha);
+            case ColorSpace.Oklch:
+                var p = from.ToOklch();
+                var q = to.ToOklch();
+                ResolveHues(p, q, hue, out var h1, out var h2);
+                ColorConversions.OklchToOklab(Lerp(p.C, q.C, from.A, to.A, alpha, t), h1 + (h2 - h1) * t, out var oa, out var ob);
+                return FromOklab(Lerp(p.L, q.L, from.A, to.A, alpha, t), oa, ob, clampedAlpha);
+            default:
+                var x = from.ToOklab();
+                var y = to.ToOklab();
+                return FromOklab(
+                    Lerp(x.L, y.L, from.A, to.A, alpha, t),
+                    Lerp(x.A, y.A, from.A, to.A, alpha, t),
+                    Lerp(x.B, y.B, from.A, to.A, alpha, t),
+                    clampedAlpha);
+        }
+    }
+
+    /// <summary>This color with the given OKLCH channels replaced (CSS relative color), gamut mapped and keeping its alpha; a gray's hue counts as 0.</summary>
+    public PrestoColor WithOklch(double? l = null, double? c = null, double? h = null)
+    {
+        var o = ToOklch();
+        return FromOklch(l ?? o.L, Math.Max(c ?? o.C, 0), h ?? PowerlessHue(o), A);
+    }
+
+    /// <summary>This color with the given amounts added to its OKLCH channels, gamut mapped and keeping its alpha; chroma stops at 0.</summary>
+    public PrestoColor ShiftOklch(double dl = 0, double dc = 0, double dh = 0)
+    {
+        var o = ToOklch();
+        return FromOklch(o.L + dl, Math.Max(o.C + dc, 0), PowerlessHue(o) + dh, A);
+    }
+
+    /// <summary>The degrees an <see cref="ColorSpace.Oklch"/> mix travels around the hue wheel, 360 for a full turn.</summary>
+    internal static double HueArc(PrestoColor from, PrestoColor to, HueInterpolation hue)
+    {
+        ResolveHues(from.ToOklch(), to.ToOklch(), hue, out var h1, out var h2);
+        return Math.Abs(h2 - h1);
+    }
+
+    private static void ResolveHues(OklchColor p, OklchColor q, HueInterpolation hue, out double h1, out double h2)
+    {
+        h1 = p.H;
+        h2 = q.H;
+        ColorConversions.ResolvePowerlessHues(p.C, ref h1, q.C, ref h2);
+        var fullTurn = hue is HueInterpolation.Increasing or HueInterpolation.Decreasing && Math.Abs(h2 - h1) < 1e-9 &&
+                       p.C >= ColorConversions.AchromaticChroma && q.C >= ColorConversions.AchromaticChroma;
+        h2 = fullTurn ? h1 + (hue == HueInterpolation.Increasing ? 360 : -360) : ColorConversions.UnwrapHue(h1, h2, hue);
+    }
+
+    private static double PowerlessHue(OklchColor o) => o.C < ColorConversions.AchromaticChroma ? 0 : o.H;
+
+    // Premultiplied; a fully transparent mix takes the nearer end's channels so nothing divides by zero.
+    private static double Lerp(double a, double b, double fromAlpha, double toAlpha, double alpha, double t) =>
+        alpha == 0 ? (t < .5 ? a : b) : (a * fromAlpha + (b * toAlpha - a * fromAlpha) * t) / alpha;
+
+    private static PrestoColor FromSrgb(double r, double g, double b, double alpha)
+    {
+        if (ColorConversions.IsInGamut(r, g, b)) return new(Helpers.Clamp(r, 0, 1) * 255, Helpers.Clamp(g, 0, 1) * 255, Helpers.Clamp(b, 0, 1) * 255, alpha);
+        ColorConversions.SrgbToOklab(r, g, b, out var l, out var oa, out var ob);
+        return FromOklab(l, oa, ob, alpha);
+    }
+
     private static bool TryParseRgb(string s, out PrestoColor color)
     {
         var m = RgbExec().Match(s);

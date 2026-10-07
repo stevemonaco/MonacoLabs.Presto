@@ -1,9 +1,12 @@
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.Values;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
@@ -12,7 +15,11 @@ public partial class ValueTypesPage : ShowcasePage
 {
     private int _clicks;
 
-    public ValueTypesPage() => InitializeComponent();
+    public ValueTypesPage()
+    {
+        InitializeComponent();
+        DrawStrips("#ff0000", "#00ff00");
+    }
 
     protected override void OnAttached()
     {
@@ -218,4 +225,35 @@ public partial class ValueTypesPage : ShowcasePage
     }
 
     private void HitTestClicked(object? sender, RoutedEventArgs e) => HitTestButton.Content = $"Clicks: {++_clicks}";
+
+    private void RedToGreen(object? sender, RoutedEventArgs e) => DrawStrips("#ff0000", "#00ff00");
+
+    private void BlueToYellow(object? sender, RoutedEventArgs e) => DrawStrips("#0000ff", "#ffff00");
+
+    private void DrawStrips(string from, string to)
+    {
+        var (a, b) = (PrestoColor.Parse(from), PrestoColor.Parse(to));
+        string[] names = ["Default", .. Enum.GetNames<ColorSpace>()];
+        Strips.Children.Clear();
+        for (var row = 0; row < names.Length; row++)
+        {
+            var swatches = new UniformGrid { Rows = 1 };
+            for (var i = 0; i < 24; i++)
+            {
+                var t = i / 23d;
+                var c = row == 0
+                    ? new PrestoColor(SquaredLerp(a.R, b.R, t), SquaredLerp(a.G, b.G, t), SquaredLerp(a.B, b.B, t))
+                    : PrestoColor.Mix(a, b, t, (ColorSpace)(row - 1));
+                swatches.Children.Add(new Border { Background = new SolidColorBrush(c.ToAvalonia()) });
+            }
+            var label = new TextBlock { Text = names[row], Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetRow(label, row);
+            Grid.SetRow(swatches, row);
+            Grid.SetColumn(swatches, 1);
+            Strips.Children.Add(label);
+            Strips.Children.Add(swatches);
+        }
+    }
+
+    private static double SquaredLerp(double from, double to, double t) => Math.Sqrt(from * from * (1 - t) + to * to * t);
 }

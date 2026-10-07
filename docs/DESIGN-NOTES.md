@@ -276,3 +276,14 @@ decision 117):
   zero.
 - **Blend composition** sums straight per-channel deltas and stays straight. `BrushCodec.ColorAt` resamples gradient
   stops with the same weighting in plain gamma; color slots in complex values stay straight (deferred in COLOR-SPACES-PLAN §6).
+
+## 12. Color interpolation: the hue path is the capability (Phase 30)
+
+A per-tween color space was designed first and dropped once measured ([COLOR-SPACES-PLAN §0](COLOR-SPACES-PLAN.md#0-why-the-per-tween-design-was-dropped-measured)).
+No straight-line space can keep complementary pairs saturated or sweep the hue at even lightness; only an OKLCH arc can.
+
+- **So the space is a utility, `PrestoColor.Mix`,** and the hue path reaches tweens as keyframes:
+  `TweenKeyframesBuilder.Color` emits segment colors on the mix with sliced eases, through the unchanged renderer.
+- **What it costs:** `from` must be known when the builder runs, and the color between segment ends is the
+  pseudo-linear blend, not the true mix. Segments are fitted until that blend is within deltaEOK 0.02 (at most 16),
+  except where a spring overshoots past the gamut (COLOR-SPACES-PLAN decision 10, §7). PLAN decision 118.

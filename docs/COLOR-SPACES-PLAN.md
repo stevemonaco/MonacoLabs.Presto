@@ -1,6 +1,6 @@
 # Color interpolation spaces
 
-Phase 30 in [PLAN.md](PLAN.md). Status: **planned**. This plan replaces an earlier design that added a color space to
+Phase 30 in [PLAN.md](PLAN.md). Status: **built** (deviations in §7). This plan replaces an earlier design that added a color space to
 every tween (per-tween space buffers, blend composition and `Animatable` retargets in the space, color slots in
 gradient and shadow codecs). Measuring that design against today's behavior showed it bought little. The plan is now
 CSS Color 4 color math as a public utility, plus a keyframe expander that makes any color tween follow a perceptual
@@ -23,7 +23,7 @@ path through the existing renderer.
   in OKLab. Only OKLCH, which travels around the hue wheel, keeps the color saturated.
 - **So the new capability is the hue path, not the space.** OKLCH arcs and even-lightness hue sweeps are something
   Presto cannot do today. Both can be expressed as color keyframes, and with short enough segments `Default`'s blend
-  between them is indistinguishable from the true curve (§4 pins the bound). Per-tween buffers, blend-composition deltas
+  between them is close to the true curve (§7 has the measured gap). Per-tween buffers, blend-composition deltas
   in the space, retarget rules and codec color slots are not needed for that.
 
 ## 1. Decisions
@@ -55,21 +55,24 @@ path through the existing renderer.
    `LinearSrgb` mixes of in-gamut colors never leave the gamut and skip it entirely.
 8. **Mix extrapolates.** `t` outside [0, 1] is allowed (overshooting eases go past the ends), and the result is gamut
    mapped. Ends are exact: `t = 0` and `t = 1` return the inputs, not a round trip through the space.
-9. **The expander keeps the ease exact.** Expanding a color tween into N equal-duration segments with the tween's ease
-   on each segment would restart the ease N times. Instead, with the tween ease E, segment i's end color is
-   `Mix(from, to, E((i+1)/N))` and its ease is the slice of E rescaled to 0–1:
-   `e_i(s) = (E((i+s)/N) − E(i/N)) / (E((i+1)/N) − E(i/N))`. Timing is exactly E's; only the color between segment
+9. **The expander keeps the ease exact.** Expanding a color tween into segments with the tween's ease on each segment
+   would restart the ease every segment. Instead, with the tween ease E and segment i spanning normalized time
+   `[t_i, t_i+1]` (its duration that share of the total), its end color is `Mix(from, to, E(t_i+1))` and its ease is the
+   slice of E rescaled to 0–1: `e_i(s) = (E(t_i + s·(t_i+1 − t_i)) − E(t_i)) / (E(t_i+1) − E(t_i))`. Timing is exactly E's; only the color between segment
    ends is approximated by the pseudo-linear blend. A flat slice (`Steps`, a hold) gets a hold ease. A spring resolves to
    its ease and its settling duration first, as a plain tween does. The color path is approximate only between segment
    ends, and the segment count bounds it (decision 10).
-10. **Segment count is adaptive.** `Srgb`, `LinearSrgb` and `Oklab`: 4 (the blend between segment ends is
-    pseudo-linear, so even `Srgb` needs a few). `Oklch`: `ceil(arc / 30°)`, at least 4, at most 24. An explicit
-    `segments:` overrides. §4 pins the worst deviation of the rendered path from the true mix below deltaEOK
-    0.02 for the defaults.
+10. **Segments are fitted to the path.** Starting from one segment, the segment whose renderer blend strays furthest
+    from the mix (deltaEOK at 7 evenly spaced probes, using the renderer's own `ColorLerp`) is halved until every
+    segment is within 0.02, at most 16. Equal-time segments were measured first and do not converge: gamut-mapping
+    bends and fast-starting eases need up to 48–64 of them on hard pairs while easy pairs need 2, and setup costs
+    about 5.5 µs and 2.3 KB per segment per `Animate` (per-frame cost does not depend on the count). Fitting takes
+    0.01–0.5 ms per builder. With per-target ends, duration or ease the count must be fixed before targets are
+    known, so it stays 4, or `ceil(arc / 30°)` (4–24) in `Oklch`. An explicit `segments:` gives equal-time segments.
 11. **Both ends must be known.** The expander runs at build time and cannot read a target's current color, so `from`
     is required. "From the current color" needs a per-tween setup hook, which is the dropped design (§6). Function
-    values are allowed for `from` and `to` (`Stagger`, per-target colors); the expander then produces function-valued
-    keyframes that resolve per target.
+    values are allowed for `from` and `to` (`FunctionValue` per-target colors; a `Stagger` delay works, but a
+    `Stagger` end or duration throws); the expander then produces function-valued keyframes that resolve per target.
 12. **Relative colors (CSS Color 5) become two helpers, not syntax.** `WithOklch` replaces channels and `ShiftOklch`
     adds to them, both gamut mapped. They are for deriving hover, pressed and muted states from one base color in
     recipes and `MotionTokens`, so derived states stay visibly related. There is no relative-color string syntax.
@@ -124,7 +127,7 @@ var muted = accent.WithOklch(c: 0.04);
 
 **A full turn.** CSS gives `Increasing` between equal hues a zero arc. A full turn is the hue-cycle demo's whole point,
 so when `from` and `to` have the same hue (within 1e-9) and the mode is `Increasing` or `Decreasing`, the expander and
-`Mix` take 360°. This deviates from CSS and is recorded in §7 when built; the fixture generator skips that case.
+`Mix` take 360°. This deviates from CSS (§7); the fixture generator skips that case.
 
 `Mix` and the adjusters are pure and allocation-free. The expander allocates keyframes at build time only.
 
@@ -137,12 +140,13 @@ so when `from` and `to` have the same hue (within 1e-9) and the mode is `Increas
 3. **Expander** on `TweenKeyframesBuilder`: resolve the ease (and a spring's duration), pick N, emit N `TweenParams`
    with the segment colors and slice eases. Function-valued ends produce function-valued keyframes that resolve both
    ends per target, then mix.
-4. **`MotionTokens`** gains `ColorSpace` and `Hue`; the recipes with color states use `Color(...)` with them.
+4. **`MotionTokens`** gains `ColorSpace` and `Hue`; the recipes with color states use `Color(...)` with them (none
+   qualified, §7).
 5. **Fixtures.** Add `culori` to `tools/anime-fixtures/package.json`; `generate.js` writes `colors.json`: conversions for
    a color set (primaries, secondaries, grays, near-grays, a few brand colors, alpha variants), mixes at 0, .25, .5,
    .75, 1 and two extrapolated values for every space and hue mode, gamut-mapped OKLCH colors. Update the README.
 
-## 4. Tests (`ColorConversionTests`, `ColorMixTests`, `ColorKeyframesTests`)
+## 4. Tests (`ColorConversionTests`, `ColorKeyframesTests`)
 
 - Conversions match `colors.json`, and sRGB → OKLab → sRGB and → OKLCH → sRGB round-trip within 1e-9.
 - `Mix` matches the fixture in every space and hue mode, including premultiplied alpha (transparent → red is red at
@@ -153,8 +157,10 @@ so when `from` and `to` have the same hue (within 1e-9) and the mode is `Increas
   0–255; in-gamut colors pass through unchanged.
 - Ends are exact: `Mix(a, b, 0) == a` and `Mix(a, b, 1) == b` to the bit; an expanded tween completes on `to` exactly,
   including under `ReduceAll`.
-- The expander preserves timing: for `OutCubic`, `InOutBack` and a spring, the rendered color at 20 sample times is
-  within deltaEOK 0.02 of `Mix(from, to, E(t))`, using the default segment counts. `Steps(4)` holds between steps.
+- The expander follows the path: for linear, `OutCubic`, `InOutBack` and a spring, the rendered color at 400 sample
+  times is within deltaEOK .025 of `Mix(from, to, E(t))` (0.02 plus 8-bit rounding), except a spring on blue → yellow,
+  which overshoots past the gamut (.07; §7). Fitted durations sum to the total; easy paths take 1–2 segments and the
+  hard spring is capped at 16. `Steps(4)` holds between steps.
 - Function-valued ends resolve per target under `Stagger`.
 - `WithOklch` and `ShiftOklch` match the fixture and stay in gamut.
 - `AllocationTests`: `Mix` allocates nothing.
@@ -169,8 +175,8 @@ so when `from` and `to` have the same hue (within 1e-9) and the mode is `Increas
   through gray on the blue → amber leg; `Oklch` stays saturated.
 - **Strips.** On the Value types page, a *Color spaces* card with one strip per space plus `Default`, drawn with `Mix`,
   for two picked colors; red → green and blue → yellow as presets.
-- **Motion tokens page.** The tokens' `ColorSpace` switch restyles the recipes' color states; hover and pressed shades
-  derived with `ShiftOklch`.
+- **Motion tokens page.** `ColorSpace` and `Hue` pickers restyle a color-state card whose hover, pressed and
+  muted shades are derived from one accent with `ShiftOklch` and `WithOklch`.
 
 ## 6. Open questions and deferred work
 
@@ -185,4 +191,32 @@ so when `from` and `to` have the same hue (within 1e-9) and the mode is `Increas
 
 ## 7. Deviations as built
 
-(Filled in as the phase lands.)
+- **A full turn for equal hues (deviates from CSS).** Under `Increasing` or `Decreasing`, when both ends are chromatic
+  and their hues are within 1e-9, `Mix` and the expander travel ±360° instead of CSS's zero arc, so `Color(start,
+  start, Oklch, Increasing)` cycles the wheel. A gray end does not trigger it. The fixture generator skips that case;
+  `ColorConversionTests.EqualHuesMakeAFullTurnWhenIncreasingOrDecreasing` pins it instead.
+- **Powerless threshold before culori.** culori treats a hue as missing only at exactly zero chroma and clamps `t` in
+  `interpolate`, so `generate.js` lerps by hand on culori's conversions: an end with chroma below 4e-4 takes the other
+  end's hue (both gray take 0) before the CSS hue fixup, then the result goes through `toGamut('rgb', 'oklch')`.
+  Extrapolated alpha is unpremultiplied with its raw value and then clamped to 0–1, as `Mix` does. `colors.json` holds
+  30 colors, 679 mixes, 12 gamut cases and 66 relative cases; all match within 1e-6.
+- **Default duration and ease in the expander.** Every frame carries its own duration and ease, so the animation's
+  `Duration`/`Ease` never reach them. An unset `duration` or `ease` is read from `Engine.Current.Defaults` when
+  `Color(...)` is called, not when the animation is built. A spring ease sets the total to its settling duration. A
+  `Stagger` duration throws (it cannot be split per segment), and so does a `Stagger` end (it yields numbers, not
+  colors); a `FunctionValue` duration, ease or end resolves once per target and is shared by all its frames.
+- **`MotionTokens` audit.** `ColorSpace` (default `Oklab`) and `Hue` (default `Shorter`) are trailing optional record
+  parameters, so the presets are unchanged and source-compatible. No existing recipe had a color state with a known
+  `from` (`Glow`'s `ShadowColor` starts from the current color, `FlashTint`'s `TintColor` is a zero-duration snap, the
+  particle palettes are fixed), so a new one reads the tokens: `Recipes.Recolor(to, property, space, hue, …)` (`Tints`
+  family, `{presto:Recolor}`) resolves each element's current color as a per-target `FunctionValue` `from` and
+  expands through `Color(...)` in `ColorSpace`/`Hue`. It is a one-shot builder rather than an interaction state.
+  Reduced motion keeps it, since a color change is not motion. The Motion tokens page
+  shows the tokens on its own color-state card (rest, hover, pressed and muted shades from one accent via
+  `ShiftOklch`/`WithOklch`).
+- **Expander path tolerance.** The first fixed counts strayed past deltaEOK 0.02 between segment ends (blue → yellow:
+  `Oklab` .05, `Oklch` .08–.13, springs to .19), so segments are now fitted (decision 10). Measured worst over 1000
+  samples, every linear, `OutCubic` and `InOutBack` case on blue → yellow, red → green and blue-600 → amber-500 is
+  .014–.022 with 2–14 segments. The residue is springs on fully saturated pairs (blue → yellow: .051 `Oklab`, .043
+  `Oklch` at the 16 cap): the overshoot leaves the sRGB gamut, where the CSS gamut map's own 0.02 JND makes the target
+  path waver, so no segment count reaches 0.02. Per-target tweens keep the fixed counts and their larger error.

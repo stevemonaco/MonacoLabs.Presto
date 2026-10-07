@@ -1,3 +1,5 @@
+using Monaco.Presto.Values;
+
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>A motion system's named durations, eases and travel, which every recipe reads through <see cref="Recipes.Tokens"/> instead of literals.</summary>
@@ -10,6 +12,8 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <param name="Scale">The scale a scaling entrance starts at and a scaling exit ends at.</param>
 /// <param name="BlurRadius">The blur radius a blur entrance starts at and a blur exit ends at.</param>
 /// <param name="StaggerStep">Milliseconds between the elements of a staggered batch.</param>
+/// <param name="ColorSpace">The space color states interpolate in, through <see cref="TweenKeyframesBuilder.Color"/>.</param>
+/// <param name="Hue">The hue arc color states take when <paramref name="ColorSpace"/> is <see cref="ColorSpace.Oklch"/>.</param>
 public sealed record MotionTokens(
     double Short,
     double Medium,
@@ -19,7 +23,9 @@ public sealed record MotionTokens(
     double Distance,
     double Scale,
     double BlurRadius,
-    double StaggerStep)
+    double StaggerStep,
+    ColorSpace ColorSpace = ColorSpace.Oklab,
+    HueInterpolation Hue = HueInterpolation.Shorter)
 {
     /// <summary>Brisk, understated motion; the default <see cref="Recipes.Tokens"/>.</summary>
     public static MotionTokens Standard { get; } = new(200, 450, 650, Eases.OutCubic, Eases.OutBack(), 24, 0.9, 12, 50);

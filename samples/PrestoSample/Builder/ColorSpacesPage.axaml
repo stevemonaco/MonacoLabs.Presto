@@ -1,0 +1,78 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1100"
+                       x:Class="PrestoSample.Builder.ColorSpacesPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.glow">
+            <Setter Property="Width" Value="150" />
+            <Setter Property="Height" Value="104" />
+            <Setter Property="CornerRadius" Value="14" />
+        </Style>
+        <Style Selector="Border.glow > TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.pill">
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="24,10" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.pill > TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Border.path">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="StackPanel#PillRows TextBlock.mono">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Hue cycle: the strip is each whole path and the curve its OKLCH lightness; the playhead marks where both are now. Both start and end on pure red. RGB keyframes swing from dark blue to bright yellow; an OKLCH full turn from the same red keeps its lightness, trading chroma where sRGB runs out." />
+            <Border Classes="stage">
+                <StackPanel Spacing="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                        <StackPanel Spacing="6">
+                            <Border x:Name="RgbGlow" Classes="glow" Background="#ff0000">
+                                <TextBlock Text="RGB&#x0a;keyframes" />
+                            </Border>
+                            <TextBlock x:Name="RgbReadout" Classes="mono" HorizontalAlignment="Center" />
+                        </StackPanel>
+                        <Canvas x:Name="RgbTrack" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                        <StackPanel Spacing="6">
+                            <Border x:Name="OklchGlow" Classes="glow" Background="#ff0000">
+                                <TextBlock Text="OKLCH&#x0a;full turn" />
+                            </Border>
+                            <TextBlock x:Name="OklchReadout" Classes="mono" HorizontalAlignment="Center" />
+                        </StackPanel>
+                        <Canvas x:Name="OklchTrack" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <showcase:CodePanel x:Name="HueCode" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Status flip: the same flip in every space at once, each row with its whole path. Default is the renderer's own blend (squared channels, a gamma-2 stand-in for LinearSrgb). Straight lines from blue to amber dip through gray; OKLCH goes around the hue wheel and stays saturated." />
+            <Button x:Name="NextButton" Content="Next status" Click="NextStatus" HorizontalAlignment="Left" />
+            <Border Classes="stage">
+                <StackPanel x:Name="PillRows" Spacing="12" VerticalAlignment="Center" />
+            </Border>
+            <showcase:CodePanel x:Name="StatusCode" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

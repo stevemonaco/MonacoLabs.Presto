@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Monaco.Presto.AvaloniaBridge.Prebuilt;
 using Monaco.Presto.Diagnostics;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -193,6 +194,11 @@ public static class Recipes
     /// <inheritdoc cref="Interactions.Colorize"/>
     public static AnimationBuilder Colorize(double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.Colorize(duration, delay, ease);
+
+    /// <inheritdoc cref="Tints.Recolor"/>
+    public static AnimationBuilder Recolor(Color to, string property = "Background", ColorSpace? space = null, HueInterpolation? hue = null,
+                                           double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Tints.Recolor(to, property, space, hue, duration, delay, ease, stagger);
 
     /// <inheritdoc cref="Layouts.Reflow"/>
     public static AnimationBuilder Reflow(double? duration = null, double? delay = null, EaseValue? ease = null) =>

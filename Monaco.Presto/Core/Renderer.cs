@@ -1,4 +1,4 @@
-﻿using Monaco.Presto.Values;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto.Core;
 
@@ -338,7 +338,7 @@ internal static class Renderer
     /// A color channel at <paramref name="progress"/>, premultiplied by the channel's own alpha as CSS Color 4 does. A frame whose
     /// alpha eases to zero or below has nothing to divide by and falls back to the straight blend.
     /// </summary>
-    private static double ColorLerp(double from, double to, double fromAlpha, double toAlpha, bool premultiplied, double progress)
+    internal static double ColorLerp(double from, double to, double fromAlpha, double toAlpha, bool premultiplied, double progress)
     {
         if (!premultiplied) return SquaredLerp(from, to, progress);
         if (progress == 0) return from;

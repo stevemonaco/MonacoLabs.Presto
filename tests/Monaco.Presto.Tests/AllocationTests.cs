@@ -1,3 +1,5 @@
+using Monaco.Presto.Values;
+
 namespace Monaco.Presto.Tests;
 
 /// <summary>
@@ -155,6 +157,25 @@ public sealed class AllocationTests : EngineTestBase
 
         Assert.True(raised >= 50, $"the velocity raised {raised} times");
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
+    }
+
+    [Fact]
+    public void ColorMixAndShiftWithoutAllocating()
+    {
+        var from = new PrestoColor(37, 99, 235);
+        var to = new PrestoColor(245, 158, 11);
+        PrestoColor.Mix(from, to, .5, ColorSpace.Oklch, HueInterpolation.Longer);
+        from.ShiftOklch(dc: .2);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 1; i < 100; i++)
+        {
+            PrestoColor.Mix(from, to, i / 100.0, ColorSpace.Oklch, HueInterpolation.Longer);
+            from.ShiftOklch(dc: .2, dh: i);
+        }
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, bytes);
     }
 
     [Fact]

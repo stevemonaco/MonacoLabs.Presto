@@ -66,6 +66,20 @@
                 </Border>
             </Grid>
 
+            <Border Classes="stage compact">
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="Color spaces" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{x:Static showcase:Palette.Ink}" />
+                        <Button Content="Red → green" Click="RedToGreen" />
+                        <Button Content="Blue → yellow" Click="BlueToYellow" />
+                    </StackPanel>
+                    <Grid x:Name="Strips" ColumnDefinitions="90,*" RowDefinitions="28,28,28,28,28" RowSpacing="4" />
+                    <TextBlock Classes="caption" TextWrapping="Wrap"
+                               Text="PrestoColor.Mix at 24 steps. Default is the pseudo-linear blend a plain color tween draws, sqrt(lerp(c²)); TweenKeyframesBuilder.Color follows any of the others." />
+                </StackPanel>
+            </Border>
+
             <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
                 <showcase:CodePanel x:Name="GradientCode" />
                 <Border Grid.Column="1" Classes="demo">

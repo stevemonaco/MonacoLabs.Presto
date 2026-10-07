@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Controls;
 using Monaco.Presto.AvaloniaBridge.Targets;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -611,6 +612,59 @@ public sealed class RecipeTests : CompositorTestBase
             Assert.False(image.IsFiltering);
         }
     }
+
+    [AvaloniaFact]
+    public void RecolorFollowsTheTokensSpaceFromTheCurrentBackgroundAndEndsExactly()
+    {
+        var border = new Border { Background = new SolidColorBrush(Color.Parse("#2563eb")) };
+        var amber = Color.Parse("#f59e0b");
+        Recipes.Tokens = MotionTokens.Standard with { ColorSpace = ColorSpace.Oklch };
+        try
+        {
+            var animation = Recipes.Recolor(amber, duration: 400, ease: "linear").Autoplay(false).Animate(border);
+            animation.Seek(0);
+            Assert.Equal(Color.Parse("#2563eb"), Background(border));
+            animation.Seek(200);
+            Assert.True(Background(border).ToPresto().ToOklch().C > 0.12, $"{Background(border)} lost its chroma");
+            animation.Seek(400);
+            Assert.Equal(amber, Background(border));
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+    }
+
+    [AvaloniaFact]
+    public void RecolorStartsEachElementFromItsOwnColorAndStaggers()
+    {
+        var red = new Border { Background = Brushes.Red };
+        var bare = new Border();
+        var animation = Recipes.Recolor(Colors.Blue, duration: 400, stagger: true).Autoplay(false).Animate(new[] { red, bare });
+
+        animation.Seek(0);
+        Assert.Equal(Colors.Red, Background(red));
+        Assert.Equal(0, Background(bare).A);
+        animation.Seek(400 + MotionTokens.Standard.StaggerStep);
+        Assert.Equal(Colors.Blue, Background(red));
+        Assert.Equal(Colors.Blue, Background(bare));
+    }
+
+    [AvaloniaFact]
+    public void RecolorIsTheSameUnderReducedMotionAndFromXaml()
+    {
+        var plain = Recipes.Recolor(Colors.Gold).ToParams();
+        Presto.Defaults.ReducedMotion = true;
+        var reduced = Recipes.Recolor(Colors.Gold).ToParams();
+        var markup = ((AnimationBuilder)new RecolorExtension { To = Colors.Gold, Property = "BorderBrush", Space = ColorSpace.Oklch }.ProvideValue(null!)).ToParams();
+
+        Assert.Equal(["Background"], plain.Properties.Keys);
+        Assert.Equal(["Background"], reduced.Properties.Keys);
+        Assert.Equal(((TweenValue[])plain["Background"].Raw!).Length, ((TweenValue[])reduced["Background"].Raw!).Length);
+        Assert.Equal(["BorderBrush"], markup.Properties.Keys);
+    }
+
+    private static Color Background(Border border) => ((ISolidColorBrush)border.Background!).Color;
 
     private static string Key(AvaloniaProperty property) => AvaloniaObjectTargetAdapter.Encode(property);
 

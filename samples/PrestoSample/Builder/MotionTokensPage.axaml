@@ -24,6 +24,18 @@
                     <ComboBoxItem Content="Expressive" />
                     <ComboBoxItem Content="Reduced" />
                 </ComboBox>
+                <ComboBox x:Name="SpaceBox" SelectedIndex="2" Width="150">
+                    <ComboBoxItem Content="Srgb" />
+                    <ComboBoxItem Content="LinearSrgb" />
+                    <ComboBoxItem Content="Oklab" />
+                    <ComboBoxItem Content="Oklch" />
+                </ComboBox>
+                <ComboBox x:Name="HueBox" SelectedIndex="0" Width="150">
+                    <ComboBoxItem Content="Shorter" />
+                    <ComboBoxItem Content="Longer" />
+                    <ComboBoxItem Content="Increasing" />
+                    <ComboBoxItem Content="Decreasing" />
+                </ComboBox>
                 <Button Content="Replay" Click="Replay" />
             </StackPanel>
 
@@ -50,6 +62,18 @@
                     </Border>
                 </Grid>
             </Border>
+
+            <TextBlock Classes="caption" Text="Color states: hover, press or mute the card; its shades derive from one accent and blend in the tokens' color space" />
+            <Border Classes="stage short">
+                <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border x:Name="StateCard" Width="260" Height="96" CornerRadius="16" Cursor="Hand">
+                        <TextBlock Text="Hover or press me" Foreground="White" FontSize="16" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <CheckBox x:Name="MutedBox" Content="Muted" />
+                </StackPanel>
+            </Border>
+            <showcase:CodePanel x:Name="StateCode" />
 
             <TextBlock Classes="caption" Text="The app-wide settings every recipe reads when it is called" />
             <showcase:CodePanel x:Name="TokensCode" />

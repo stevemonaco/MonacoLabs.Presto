@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.Values;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
@@ -56,6 +57,10 @@ public partial class RecipeGalleryPage : ShowcasePage
             Play("Tada", (target, duration, intensity) => target.Animate(Recipes.Tada(intensity, duration))),
             Play("Bounce", (target, duration, intensity) => target.Animate(Recipes.Bounce(intensity, duration))),
         ]),
+        ("Color: each play recolors from wherever the swatch is, even mid-way; reset restores it", Replay.Reset,
+        [
+            Play("Recolor", (target, duration, _) => target.Animate(Recipes.Recolor(NextAccent(), space: ColorSpace.Oklch, duration: duration))),
+        ]),
         ("Loops: play toggles", Replay.Toggle,
         [
             Play("Float", (target, duration, _) => target.Animate(Recipes.Float(duration: duration))),
@@ -80,7 +85,7 @@ public partial class RecipeGalleryPage : ShowcasePage
         ]),
         ("Tilt", Replay.Once,
         [
-            Apply("Tilt", "Move over me", (button, _, intensity) => { Tilt.SetEnabled(button, true); Tilt.SetStrength(button, 10 * intensity); }),
+            Apply("Tilt", "Move over me", (card, _, intensity) => { Tilt.SetEnabled(card, true); Tilt.SetStrength(card, 20 * intensity); }, TiltCard),
         ]),
         ("Text", Replay.Once,
         [
@@ -93,6 +98,13 @@ public partial class RecipeGalleryPage : ShowcasePage
         ]),
     ];
 
+    private const int FoldWidth = 36;
+    private const double MinTileWidth = 280;
+    private const double TileSpacing = 12;
+
+    private static readonly Color[] Accents = [Color.Parse("#f59e0b"), Color.Parse("#ef4444"), Color.Parse("#10b981"), Color.Parse("#a855f7")];
+    private static int _accent;
+
     private readonly List<(Tile Tile, Control Specimen)> _applied = [];
     private readonly List<Control> _rows;
 
@@ -101,11 +113,12 @@ public partial class RecipeGalleryPage : ShowcasePage
         InitializeComponent();
         foreach (var (name, replay, tiles) in Catalog)
         {
-            var wrap = new WrapPanel { ItemSpacing = 12, LineSpacing = 12 };
+            var wrap = new WrapPanel { ItemSpacing = TileSpacing, LineSpacing = TileSpacing };
             foreach (var tile in tiles) wrap.Children.Add(BuildTile(tile, replay));
             FamilyPanel.Children.Add(new TextBlock { Classes = { "caption" }, Text = name, Margin = new(0, 8, 0, 0) });
             FamilyPanel.Children.Add(wrap);
         }
+        FamilyPanel.SizeChanged += (_, e) => FitTiles(e.NewSize.Width);
         _rows = [.. XamlRows.Children];
         XamlCode.Code = $"{Snippets.RecipeGalleryShowcase}\n\n{Snippets.RecipeGalleryRow}";
         TokensBox.SelectionChanged += (_, _) => SettingsChanged();
@@ -129,9 +142,44 @@ public partial class RecipeGalleryPage : ShowcasePage
         [CallerArgumentExpression(nameof(play))] string code = "") =>
         new(name, specimen ?? (() => new Border { Classes = { "swatch" } }), Body(Snippet.Of(play, code).Code), Play: play);
 
-    private static Tile Apply(string name, string hint, Action<Control, double?, double> apply,
+    private static Tile Apply(string name, string hint, Action<Control, double?, double> apply, Func<string, Control>? specimen = null,
         [CallerArgumentExpression(nameof(apply))] string code = "") =>
-        new(name, () => new Button { Classes = { "specimen" }, Content = hint }, Body(Snippet.Of(apply, code).Code), Apply: apply);
+        new(name, () => specimen?.Invoke(hint) ?? new Button { Classes = { "specimen" }, Content = hint }, Body(Snippet.Of(apply, code).Code), Apply: apply);
+
+    private static Color NextAccent() => Accents[_accent++ % Accents.Length];
+
+    private static Control TiltCard(string hint) => new Border
+    {
+        Classes = { "tiltcard" },
+        Child = new StackPanel
+        {
+            Spacing = 4,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Children =
+            {
+                new TextBlock { Text = hint, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center },
+                new TextBlock { Text = "the card leans toward the pointer", FontSize = 11, Foreground = Brushes.White, Opacity = .75 },
+            },
+        },
+    };
+
+    /// <summary>
+    /// Breaks a line after its first parenthesis when its leading run has no space to wrap at within a tile's width,
+    /// so the tile wraps it at argument boundaries rather than mid-name.
+    /// </summary>
+    internal static string Fold(string code)
+    {
+        var lines = code.Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i];
+            var space = line.IndexOf(' ');
+            var open = line.IndexOf('(');
+            if ((space < 0 ? line.Length : space) > FoldWidth && open > 0) lines[i] = $"{line[..(open + 1)]}\n    {line[(open + 1)..]}";
+        }
+        return string.Join('\n', lines);
+    }
 
     internal static string Body(string lambda)
     {
@@ -171,9 +219,16 @@ public partial class RecipeGalleryPage : ShowcasePage
         if (tile.Play is { } play)
         {
             Animation? played = null;
+            List<Animation> history = [];
             var button = new Button { Content = "Play", Tag = tile.Name };
             button.Click += (_, _) =>
             {
+                if (replay == Replay.Reset)
+                {
+                    played?.Cancel();
+                    history.Add(played = Played = Scope.Execute(_ => play(specimen, Duration, Intensity)));
+                    return;
+                }
                 if (played is { Completed: false } && replay != Replay.Toggle) played.Complete();
                 played?.Revert();
                 if (replay == Replay.Toggle && played is not null)
@@ -186,14 +241,41 @@ public partial class RecipeGalleryPage : ShowcasePage
                 if (replay == Replay.Restore) played.OnComplete = exit => exit.Revert();
                 if (replay == Replay.Toggle) button.Content = "Stop";
             };
-            panel.Children.Add(button);
+            if (replay == Replay.Reset)
+            {
+                var reset = new Button { Content = "Reset", Tag = $"{tile.Name}Reset" };
+                // Newest first, so each revert lands on the color the one before it started from.
+                reset.Click += (_, _) =>
+                {
+                    for (var i = history.Count - 1; i >= 0; i--) history[i].Revert();
+                    history.Clear();
+                    played = null;
+                };
+                panel.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { button, reset } });
+            }
+            else
+            {
+                panel.Children.Add(button);
+            }
         }
         else
         {
             _applied.Add((tile, specimen));
         }
-        panel.Children.Add(new CodePanel { Classes = { "compact" }, Code = tile.Code });
+        panel.Children.Add(new CodePanel { Classes = { "compact" }, Code = Fold(tile.Code) });
         return new Border { Classes = { "tile" }, Child = panel };
+    }
+
+    /// <summary>Widens the tiles to fill each row with as many columns of at least <see cref="MinTileWidth"/> as fit.</summary>
+    private void FitTiles(double width)
+    {
+        var columns = Math.Max(1, (int)((width + TileSpacing) / (MinTileWidth + TileSpacing)));
+        // One pixel short, so layout rounding cannot push the last tile of a row onto the next.
+        var tileWidth = Math.Floor((width - TileSpacing * (columns - 1)) / columns) - 1;
+        foreach (var wrap in FamilyPanel.Children.OfType<WrapPanel>())
+        {
+            foreach (var tile in wrap.Children) tile.Width = tileWidth;
+        }
     }
 
     private void SettingsChanged()
@@ -229,6 +311,7 @@ public partial class RecipeGalleryPage : ShowcasePage
         Once,
         Restore,
         Toggle,
+        Reset,
     }
 
     private sealed record Tile(string Name, Func<Control> Specimen, string Code,

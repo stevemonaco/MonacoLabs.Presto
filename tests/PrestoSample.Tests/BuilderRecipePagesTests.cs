@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Xml.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -10,6 +12,7 @@ using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Controls;
+using Monaco.Presto.Values;
 using PrestoSample.Builder;
 using PrestoSample.Showcase;
 
@@ -25,7 +28,7 @@ public sealed class BuilderRecipePagesTests
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(50);
 
-        Assert.Same(MotionTokens.Standard, Recipes.Tokens);
+        Assert.Equal(MotionTokens.Standard, Recipes.Tokens);
         Assert.All(page.Played, animation => Assert.True(animation.CurrentTime > 0));
         Assert.Contains("Recipes.FadeUp(stagger: true).Animate(Rows.Children);", page.GetControl<CodePanel>("PlayCode").Code);
 
@@ -34,7 +37,7 @@ public sealed class BuilderRecipePagesTests
         TestFrames.Tick();
 
         Assert.NotSame(standard, page.Played);
-        Assert.Same(MotionTokens.Expressive, Recipes.Tokens);
+        Assert.Equal(MotionTokens.Expressive, Recipes.Tokens);
         Assert.Equal(MotionTokens.Expressive.Medium, page.Played[1].Duration);
 
         using var reduced = ReducedMotion.On();
@@ -54,6 +57,46 @@ public sealed class BuilderRecipePagesTests
     }
 
     [AvaloniaFact]
+    public void MotionTokensColorSwitchSendsTheHoverBlendAroundTheHueWheel()
+    {
+        var tokens = Recipes.Tokens;
+        var page = new MotionTokensPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var card = page.GetControl<Border>("StateCard");
+        var accent = ((ISolidColorBrush)card.Background!).Color.ToPresto().ToOklch().H;
+
+        double HueDistance(double h) => Math.Abs(((h - accent) % 360 + 540) % 360 - 180);
+
+        double EarlyHoverHue(int space, int hue)
+        {
+            page.GetControl<ComboBox>("SpaceBox").SelectedIndex = space;
+            page.GetControl<ComboBox>("HueBox").SelectedIndex = hue;
+            window.MouseMove(new Point(1, 1));
+            TestFrames.Tick(60);
+            window.MouseMove(SceneHarness.Center(card, window));
+            TestFrames.Tick((int)(Recipes.Tokens.Medium / 4 / 16));
+            Assert.InRange(page.ColorState!.CurrentTime, 1, Recipes.Tokens.Medium - 1);
+            return ((ISolidColorBrush)card.Background!).Color.ToPresto().ToOklch().H;
+        }
+
+        var srgb = EarlyHoverHue(0, 0);
+        Assert.Equal(ColorSpace.Srgb, Recipes.Tokens.ColorSpace);
+        var oklch = EarlyHoverHue(3, 1);
+
+        Assert.Equal(Recipes.Tokens, MotionTokens.Standard with { ColorSpace = ColorSpace.Oklch, Hue = HueInterpolation.Longer });
+        Assert.InRange(HueDistance(srgb), 0, 10);
+        Assert.InRange(HueDistance(oklch), 90, 180);
+        Assert.Contains("Recipes.Tokens = Recipes.Tokens with { ColorSpace = ColorSpace.Oklch, Hue = HueInterpolation.Longer };", page.GetControl<CodePanel>("TokensCode").Code);
+        var state = page.GetControl<CodePanel>("StateCode").Code;
+        Assert.Contains("Accent.ShiftOklch(dl: 0.06)", state);
+        Assert.Contains("var state = Hover;", state);
+        Assert.Contains("k.Color(from, state, Recipes.Tokens.ColorSpace, Recipes.Tokens.Hue", state);
+
+        SceneHarness.Close(window);
+
+        Assert.Same(tokens, Recipes.Tokens);
+    }
+    [AvaloniaFact]
     public void RecipeGalleryPlaysTilesInTheirReducedFormsAndRestoresThePresetOnDetach()
     {
         var tokens = Recipes.Tokens;
@@ -66,7 +109,7 @@ public sealed class BuilderRecipePagesTests
 
         var specimen = (Control)page.Played!.Targets[0];
         Assert.True(Get(specimen, "Y") > 0);
-        Assert.Contains("target.Animate(Recipes.FadeUp(duration: duration))", page.GetLogicalDescendants().OfType<CodePanel>().Select(panel => panel.Code));
+        Assert.Contains("target.Animate(\n    Recipes.FadeUp(duration: duration))", page.GetLogicalDescendants().OfType<CodePanel>().Select(panel => panel.Code));
         Assert.Equal($"{Snippets.RecipeGalleryShowcase}\n\n{Snippets.RecipeGalleryRow}",page.GetControl<CodePanel>("XamlCode").Code);
 
         page.GetControl<ComboBox>("TokensBox").SelectedIndex = 1;
@@ -83,6 +126,43 @@ public sealed class BuilderRecipePagesTests
 
         Assert.Same(tokens, Recipes.Tokens);
     }
+
+    [AvaloniaFact]
+    public void RecipeGalleryRecolorChainsFromTheCurrentColorAndResetRestoresTheSwatch()
+    {
+        var page = new RecipeGalleryPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var buttons = page.GetLogicalDescendants().OfType<Button>().ToList();
+        var swatches = page.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("swatch")).ToList();
+        var before = swatches.Select(Fill).ToList();
+
+        void Click(string tag) => buttons.First(button => button.Tag as string == tag).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+        Click("Recolor");
+        TestFrames.Tick(5);
+        var swatch = (Border)page.Played!.Targets[0];
+        var midway = Fill(swatch);
+        Click("Recolor");
+        TestFrames.Tick(2);
+        Assert.NotEqual(before[swatches.IndexOf(swatch)], midway);
+        TestFrames.Tick(120);
+        Assert.True(page.Played.Completed);
+
+        Click("RecolorReset");
+        TestFrames.Tick();
+
+        Assert.Equal(before, swatches.Select(Fill).ToList());
+        SceneHarness.Close(window);
+
+        static Color Fill(Border border) => ((ISolidColorBrush)border.Background!).Color;
+    }
+
+    [Theory]
+    [InlineData("target.Animate(Recipes.Fade(duration))", "target.Animate(\n    Recipes.Fade(duration))")]
+    [InlineData("Tilt.SetEnabled(card, true);\nTilt.SetStrength(card, 20 * intensity);", "Tilt.SetEnabled(card, true);\nTilt.SetStrength(card, 20 * intensity);")]
+    [InlineData("Recipes.Pulse(1)", "Recipes.Pulse(1)")]
+    public void RecipeGalleryFoldsLongCallsAfterTheirFirstParenthesis(string code, string folded) =>
+        Assert.Equal(folded, RecipeGalleryPage.Fold(code));
 
     [Theory]
     [InlineData("(target, duration, _) => target.Animate(Recipes.Fade(duration))", "target.Animate(Recipes.Fade(duration))")]

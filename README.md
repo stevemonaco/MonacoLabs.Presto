@@ -253,6 +253,18 @@ Gradients with different stop counts are resampled onto the union of their offse
 shape, and a gradient eased to a color ends on a `SolidColorBrush`. Two kinds of gradient interpolate their stops, while
 the geometry snaps to the end value's.
 
+Color tweens blend RGB pseudo-linearly with premultiplied alpha. For a perceptual path, `PrestoColor.Mix(from, to, t, space, hue)` mixes the
+CSS Color 4 way in `Srgb`, `LinearSrgb`, `Oklab` or `Oklch` (with CSS hue arcs and gamut mapping), and `k.Color(...)`
+turns one color tween into keyframes along that mix, keeping the ease's timing exact and adding segments (up to 16) until the
+drawn color stays within about one just-noticeable difference (deltaEOK 0.02) of the mix:
+
+```csharp
+pill.Animate(b => b.Property("Background", k => k.Color("#2563eb", "#f59e0b", ColorSpace.Oklch, duration: 600, ease: Eases.OutCubic)));
+var start = PrestoColor.FromOklch(0.7, 0.15, 0);   // also ToOklch, WithOklch(c: 0.04), ShiftOklch(dl: 0.06)
+glow.Animate(b => b.Property("Background", k => k.Color(start, start, ColorSpace.Oklch, HueInterpolation.Increasing,
+                                                        duration: 8000, ease: Eases.None)).Loop());   // an even-brightness hue cycle
+```
+
 ### Keyframes
 
 Per-property, each frame with its own duration and ease:
@@ -1288,6 +1300,8 @@ Recipes.Tokens = MotionTokens.Standard with { Distance = 32, StaggerStep = 40 };
 | `Reduced` | 120 / 150 / 200 | `None` / `None` | 0 | 1 | 0 | 0 |
 
 The `Reduced` preset tones motion down by its numbers alone; it is not the [reduced-motion](#reduced-motion) flag.
+Every preset also has `ColorSpace` `Oklab` and `Hue` `Shorter`, the space and hue arc to pass to `k.Color(...)` for
+color states.
 
 #### Recipes from XAML
 
