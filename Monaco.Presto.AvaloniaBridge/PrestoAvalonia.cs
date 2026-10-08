@@ -737,6 +737,34 @@ public static class PrestoAvalonia
         });
     }
 
+    /// <summary>
+    /// A <see cref="MotionValue"/> holding how near the pointer is to <paramref name="control"/>: 1 on or inside its edge (or at
+    /// its center, with <paramref name="fromCenter"/> set), falling linearly to 0 at <paramref name="radius"/> DIPs away.
+    /// </summary>
+    /// <remarks>
+    /// Tracked over <paramref name="over"/>, or the control's <see cref="TopLevel"/> (resolved when it first attaches), against
+    /// its layout slot rather than its render transform; 0 while the pointer is absent. It stops and is not revived as
+    /// <see cref="ScrollValue"/> describes, and also when the surface leaves the visual tree; with <paramref name="over"/> given,
+    /// the surface leaving replaces the control leaving, so a re-hosted control (a split text piece) keeps its value.
+    /// </remarks>
+    public static MotionValue PointerProximityValue(Control control, double radius, InputElement? over = null, bool fromCenter = false)
+    {
+        if (!(radius > 0)) throw new ArgumentOutOfRangeException(nameof(radius), radius, "The radius must be positive.");
+        EnsureInitialized();
+        return PointerTracker.Track(control, over, axis: null, radius, fromCenter);
+    }
+
+    /// <summary>
+    /// A <see cref="MotionValue"/> holding the pointer's position minus <paramref name="control"/>'s center along
+    /// <paramref name="axis"/>, in DIPs.
+    /// </summary>
+    /// <remarks>Tracked and stopped as <see cref="PointerProximityValue"/> describes; 0 while the pointer is absent.</remarks>
+    public static MotionValue PointerOffsetValue(Control control, Orientation axis, InputElement? over = null)
+    {
+        EnsureInitialized();
+        return PointerTracker.Track(control, over, axis);
+    }
+
     /// <summary>A <see cref="MotionValue"/> holding <paramref name="target"/>'s <paramref name="property"/>, which must convert to <c>double</c>.</summary>
     /// <remarks>
     /// Updated whenever the property changes; it stops and is not revived as <see cref="ScrollValue"/> describes, a target

@@ -91,17 +91,23 @@ public partial class GesturesPage : ShowcasePage
         });
         #endregion
 
-        #region snippet GesturesTrail
-        var pointerX = PrestoAvalonia.PointerValue(TrailStage, Orientation.Horizontal);
-        var pointerY = PrestoAvalonia.PointerValue(TrailStage, Orientation.Vertical);
-        MotionValue[] xs = [.. pointerX.Trail(TrailLength, Springs.Gentle), .. pointerX.Trail(TrailLength, 40)];
-        MotionValue[] ys = [.. pointerY.Trail(TrailLength, Springs.Gentle), .. pointerY.Trail(TrailLength, 40)];
-        for (var i = 0; i < xs.Length; i++)
+        AfterFirstArrange(TrailStage, () =>
         {
-            Follow.SetX(TrailStage.Children[i], xs[i]);
-            Follow.SetY(TrailStage.Children[i], ys[i]);
-        }
-        #endregion
+            #region snippet GesturesTrail
+            var center = TrailStage.Bounds.Size / 2;
+            var entered = false;
+            TrailStage.PointerEntered += (_, _) => entered = true;
+            var pointerX = PrestoAvalonia.PointerValue(TrailStage, Orientation.Horizontal).Map(x => entered ? x : center.Width);
+            var pointerY = PrestoAvalonia.PointerValue(TrailStage, Orientation.Vertical).Map(y => entered ? y : center.Height);
+            MotionValue[] xs = [.. pointerX.Trail(TrailLength, Springs.Gentle), .. pointerX.Trail(TrailLength, 40)];
+            MotionValue[] ys = [.. pointerY.Trail(TrailLength, Springs.Gentle), .. pointerY.Trail(TrailLength, 40)];
+            for (var i = 0; i < xs.Length; i++)
+            {
+                Follow.SetX(TrailStage.Children[i], xs[i]);
+                Follow.SetY(TrailStage.Children[i], ys[i]);
+            }
+            #endregion
+        });
 
         #region snippet GesturesResist
         var knob = PrestoAvalonia.CreateDraggable(Knob, new() { Y = new() { Enabled = false }, Container = ResistStage });

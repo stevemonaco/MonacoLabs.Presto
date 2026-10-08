@@ -319,6 +319,34 @@ public sealed class AllocationTests : CompositorTestBase
         Assert.True(bytes <= 600, $"{bytes:0.##} bytes per move");
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void APointerMoveOverProximityValuesAllocatesNothing(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var boxes = new StackPanel { Orientation = Orientation.Horizontal };
+        for (var i = 0; i < 6; i++) boxes.Children.Add(new Border { Width = 20, Height = 20, Background = Brushes.Red });
+        var stage = new Border { Height = 100, Background = Brushes.Blue, Child = boxes };
+        var bystander = new Border();
+        var window = Show(new StackPanel { Children = { stage, bystander } });
+        foreach (var box in boxes.Children)
+        {
+            PrestoAvalonia.PointerProximityValue((Control)box, 40, stage);
+            PrestoAvalonia.PointerOffsetValue((Control)box, Orientation.Horizontal, stage);
+        }
+        var mouse = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true);
+        PointerEventArgs[] moves = [Move(new Point(10, 10)), Move(new Point(70, 30))];
+
+        // Bystander is outside the stage, so raising the same args on it prices Avalonia's routing without the tracker.
+        var bytes = BytesPerMove(boxes, moves) - BytesPerMove(bystander, moves);
+
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per move");
+
+        PointerEventArgs Move(Point point) => new(InputElement.PointerMovedEvent, boxes, mouse, window, point, 0,
+            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None);
+    }
+
     private double BytesPerMove(Interactive on, PointerEventArgs[] moves)
     {
         const int measured = 200;

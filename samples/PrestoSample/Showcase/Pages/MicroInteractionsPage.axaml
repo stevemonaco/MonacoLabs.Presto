@@ -79,7 +79,7 @@
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
-        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
             <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="SUBMIT" />
                 <Border Classes="stage">
@@ -190,7 +190,22 @@
                 </Border>
             </StackPanel>
 
-            <showcase:CodeTabs x:Name="Code" Grid.Row="2" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
+            <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="MAGNETIC" />
+                <Border Classes="stage" Height="160">
+                    <!-- snippet: MicroInteractionsMagnetic -->
+                    <StackPanel Orientation="Horizontal" Spacing="72" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Button x:Name="Magnet" Classes="specimen" Content="Default" presto:Magnetic.Enabled="True" />
+                        <Button Classes="specimen" Content="Strong pull" presto:Magnetic.Enabled="True"
+                                presto:Magnetic.Strength="0.6" presto:Magnetic.Radius="80" />
+                        <Button Classes="specimen" Content="Subtle" presto:Magnetic.Enabled="True"
+                                presto:Magnetic.Strength="0.15" presto:Magnetic.Radius="32" />
+                    </StackPanel>
+                    <!-- /snippet -->
+                </Border>
+            </StackPanel>
+
+            <showcase:CodeTabs x:Name="Code" Grid.Row="3" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
         </Grid>
     </ScrollViewer>
 </showcase:ShowcasePage>

@@ -118,8 +118,8 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
 
 - **BRIDGE-REDUCED-027** — Every recipe shall carry a reduced form as BRIDGE-RECIPES and BRIDGE-RECIPES-MEDIA state per family.
   - Tests: `RecipeTests.EachReducedFormOnlyFades`, `RecipeTests.EachReducedFormDropsTravelAndScaleAndOnlyLoadingLoops`
-- **BRIDGE-REDUCED-028** — A bridge control or gesture that moves on its own shall, while the flag is set, land its travel at once and keep only color, opacity or a fade, as its own spec states (e.g. `Tilt` stays flat, a `Sheet` lands with its scrim fading, a `Pager` lands each page).
-  - Tests: `TiltTests.ReducedMotionLeavesTheElementFlat`, `SheetTests.UnderReducedMotionItLandsAtOnceAndTheScrimFades`, `PagerTests.UnderReducedMotionPagingLandsAtOnceAndAutoplayStillPages`, `TransformableTests.UnderReducedMotionTheReleaseLandsOnItsClampedTargetAtOnce`
+- **BRIDGE-REDUCED-028** — A bridge control or gesture that moves on its own shall, while the flag is set, land its travel at once and keep only color, opacity or a fade, as its own spec states (e.g. `Tilt` stays flat, `Magnetic` stays at rest, a `Sheet` lands with its scrim fading, a `Pager` lands each page).
+  - Tests: `TiltTests.ReducedMotionLeavesTheElementFlat`, `MagneticTests.ReducedMotionStaysAtRest`, `SheetTests.UnderReducedMotionItLandsAtOnceAndTheScrimFades`, `PagerTests.UnderReducedMotionPagingLandsAtOnceAndAutoplayStillPages`, `TransformableTests.UnderReducedMotionTheReleaseLandsOnItsClampedTargetAtOnce`
 - **BRIDGE-REDUCED-029** — Every sample page shall run under the reduced setting without error and revert when detached.
   - Tests: `GalleryPageTests.RunsForASecondAndRevertsWhenDetached`
 

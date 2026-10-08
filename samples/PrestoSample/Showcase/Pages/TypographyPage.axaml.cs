@@ -1,6 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
@@ -16,7 +14,7 @@ public partial class TypographyPage : ShowcasePage
     private const double Falloff = 160;
     private const double Lift = 30;
     private const double Swell = 0.35;
-    private const double Follow = 320;
+    private const double WaveHold = 320;
     private const double WaveStagger = 60;
     private const double TerminalHold = 2400;
 
@@ -32,11 +30,10 @@ public partial class TypographyPage : ShowcasePage
 
     private static readonly string[] StatusScript = ["connecting", "reading frames", "matching eases", "rebuilding"];
 
-    private readonly List<Animatable> _letters = [];
+    private readonly List<MotionValue> _waves = [];
     private readonly Spring _relax = Eases.Spring(bounce: .45, duration: 450);
     private int _wordIndex;
     private Timer? _cycle;
-    private TextSplitter? _wordmark;
     private Timeline? _terminal;
 
     public TypographyPage()
@@ -52,19 +49,8 @@ public partial class TypographyPage : ShowcasePage
             ? null
             : Presto.CreateTimer(new TimerParams { Duration = CycleDuration, Loop = LoopCount.Infinite, OnLoop = _ => Rotate() });
 
-        _wordmark = PrestoAvalonia.SplitText(Wordmark, new SplitTextParams { Words = null, Chars = new SplitPieceParams() })
-            .AddEffect(split =>
-            {
-                foreach (var letter in split.Chars)
-                {
-                    _letters.Add(letter.CreateAnimatable(new() { ["Y"] = Follow, ["Scale"] = Follow, ["Foreground"] = Follow }));
-                }
-                return () =>
-                {
-                    foreach (var letter in _letters) letter.Revert();
-                    _letters.Clear();
-                };
-            });
+        PrestoAvalonia.SplitText(Wordmark, new SplitTextParams { Words = null, Chars = new SplitPieceParams() })
+            .AddEffect(Lean);
 
         _terminal = BuildTerminal();
     }
@@ -98,20 +84,28 @@ public partial class TypographyPage : ShowcasePage
         return headline;
     }
 
-    private void LeanWordmark(object? sender, PointerEventArgs e)
+    private Action Lean(TextSplitter split)
     {
-        var pointer = e.GetPosition(WordmarkStage);
-        for (var i = 0; i < _letters.Count; i++)
+        var scope = new Scope();
+        scope.Execute(_ =>
         {
-            var letter = _wordmark!.Chars[i];
-            // Bounds is the layout slot, so the lift and scale a letter already has never feed back into its own pull.
-            var center = ((Visual)letter.Parent!).TranslatePoint(letter.Bounds.Center, WordmarkStage)!.Value;
-            var pull = Eases.InOutQuad(Math.Clamp(1 - (Point.Distance(pointer, center) / Falloff), 0, 1));
-            _letters[i]
-                .Set("Y", -Lift * pull, Follow, Eases.OutQuint)
-                .Set("Scale", 1 + (Swell * pull), Follow, Eases.OutQuint)
-                .Set("Foreground", Tint(pull), Follow, Eases.OutQuint);
-        }
+            foreach (var letter in split.Chars)
+            {
+                var wave = Presto.CreateMotionValue();
+                _waves.Add(wave);
+                var proximity = PrestoAvalonia.PointerProximityValue(letter, Falloff, over: WordmarkStage, fromCenter: true);
+                var pull = MotionValue.Combine(proximity.Map([0, 1], [0, 1], Eases.InOutQuad), wave, Math.Max).Spring(_relax);
+                Follow.SetY(letter, pull.Map(p => -Lift * p));
+                Follow.SetScale(letter, pull.Map(p => 1 + (Swell * p)));
+                // No pull rests on the dim step the wordmark is drawn in, not on the near-black deepest one.
+                Follow.Bind(letter, TextBlock.ForegroundProperty, pull.Map([0, 1 / 3d, 2 / 3d, 1], [.. Palette.AccentBrushRamp.Skip(1)]));
+            }
+        });
+        return () =>
+        {
+            scope.Revert();
+            _waves.Clear();
+        };
     }
     #endregion
 
@@ -141,27 +135,6 @@ public partial class TypographyPage : ShowcasePage
             .Add(Status, new() { ["Text"] = Presto.ScrambleText(new() { Text = "decoded · 0 errors", Chars = "blocks" }) });
     }
 
-    private void RelaxWordmark(object? sender, PointerEventArgs e)
-    {
-        foreach (var letter in _letters) Relax(letter);
-    }
-
-    private void Relax(Animatable letter) => letter
-        .Set("Y", 0, _relax.SettlingDuration, _relax)
-        .Set("Scale", 1, _relax.SettlingDuration, _relax)
-        .Set("Foreground", Tint(0), Follow * 2, Eases.OutQuad);
-
-    private static double[] Tint(double pull)
-    {
-        var ramp = Palette.AccentRamp;
-        // No pull rests on the dim step the wordmark is drawn in, not on the near-black deepest one.
-        var at = 1 + (pull * (ramp.Count - 2));
-        var low = ramp[(int)at];
-        var high = ramp[Math.Min((int)at + 1, ramp.Count - 1)];
-        var t = at - (int)at;
-        return [Utils.Lerp(low.R, high.R, t), Utils.Lerp(low.G, high.G, t), Utils.Lerp(low.B, high.B, t), 1];
-    }
-
     private void ReplayReveal(object? sender, RoutedEventArgs e)
     {
         var reveal = Animate.GetOnAttached(Paragraph);
@@ -177,15 +150,11 @@ public partial class TypographyPage : ShowcasePage
 
     private void ReplayWordmark(object? sender, RoutedEventArgs e)
     {
-        var wave = Presto.CreateTimeline();
-        for (var i = 0; i < _letters.Count; i++)
+        var timeline = Presto.CreateTimeline();
+        for (var i = 0; i < _waves.Count; i++)
         {
-            var letter = _letters[i];
-            wave.Call(_ => letter
-                    .Set("Y", -Lift, Follow, Eases.OutQuint)
-                    .Set("Scale", 1 + Swell, Follow, Eases.OutQuint)
-                    .Set("Foreground", Tint(1), Follow, Eases.OutQuint), i * WaveStagger)
-                .Call(_ => Relax(letter), (i * WaveStagger) + Follow);
+            var wave = _waves[i];
+            timeline.Call(_ => wave.Set(1), i * WaveStagger).Call(_ => wave.Set(0), (i * WaveStagger) + WaveHold);
         }
     }
 

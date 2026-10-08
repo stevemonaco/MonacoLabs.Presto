@@ -30,7 +30,7 @@ public partial class MicroInteractionsPage : ShowcasePage
         InitializeComponent();
         LikeCount.Text = Count(_likes);
         Code.Xaml = string.Join("\n\n", Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsSubmitButton, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs,
-            Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts);
+            Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts, Snippets.MicroInteractionsMagnetic);
         Code.CSharp = string.Join("\n\n", Snippets.MicroInteractionsBuilders, Snippets.MicroInteractionsSubmit, Snippets.MicroInteractionsLikeHandler,
             Snippets.MicroInteractionsTabIndicator, Snippets.MicroInteractionsToastShow, Snippets.MicroInteractionsValidation);
     }

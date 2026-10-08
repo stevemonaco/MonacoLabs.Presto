@@ -81,6 +81,8 @@ When an item is closed, its line is deleted.
 - [BRIDGE-MOTION] Watch orchestration (stagger, `Order` and `StaggerFrom` timings, the `Presence.Mode=Wait` hold, the double-click case) on the Win32 Desktop head; it is verified headlessly only.
 - [BRIDGE-REORDER] Check the drag, Escape and Alt+arrow paths by hand on the Win32 Desktop head.
 - [SAMPLE] Watch the Eases page's new eases, the Toss card, the Shapes spline demo and the sidebar Follow system switch on the Win32 Desktop head.
+- [BRIDGE-FOLLOW] Sweep a real mouse across the Typography wordmark on the Win32 Desktop head, with `--motion full` and `--motion reduced`: the letters nearest the pointer swell and brighten, spring back when it leaves the stage, and nothing jitters (DevTools MCP sends no hover).
+- [BRIDGE-MAGNETIC] Sweep a real mouse past the Micro-interactions magnetic buttons on the Win32 Desktop head, with `--motion full` and `--motion reduced`: they lean towards the pointer and spring back, nothing jitters while hovering a pulled button's edge, and reduced motion leaves them still (DevTools MCP sends no hover).
 - [BRIDGE-TRANSFORMABLE] Smoke-run `Transformable` with real touch on Android and Browser (iOS only compiles).
 - [BRIDGE-TRANSFORMABLE] On a real Android device, check whether an ancestor `ScrollViewer`'s `ScrollGestureRecognizer` captures the first touch before the second lands and cancels the pinch; fix by capturing the first touch or document the opt-out.
 - [BRIDGE-TRANSFORMABLE] Verify on macOS hardware that the trackpad rotation sign (`-Delta.X`) is right.
@@ -119,7 +121,7 @@ When an item is closed, its line is deleted.
 - [BRIDGE-SCROLL] A `Scroll.Progress` convenience for a scroll progress bar.
 - [BRIDGE-RECIPES] A one-line `Recipes.ArcFlight` to replace the sample's `Showcase/PhotoFlight.cs`.
 - [BRIDGE-RECIPES] A text-shaped mask reveal and `MorphTo` clip-geometry reveals.
-- [BRIDGE-RECIPES] A pointer proximity / magnetic pull prebuilt, replacing the hand-built versions on the Typography and Animatable pages.
+- [BRIDGE-MAGNETIC] A configurable `Magnetic.Spring` (parsed like `FollowParams.Spring`).
 - [BRIDGE-HELPERS] Lift `AfterFirstArrange` (`Showcase/ShowcasePage.cs`, used by ChatLog, GalleryFlip and Liquid) into a `PrestoAvalonia` utility.
 - [BRIDGE-TEXT] Expose split piece widths, so an effect can size tweens without a probe `TextBlock` (the Typography rotator still measures word widths with one).
 - [BRIDGE-IMAGE] Decide whether `FilteredImage` should resize to an incoming image of another aspect only when the source transition ends, rather than at its start.
@@ -137,7 +139,7 @@ When an item is closed, its line is deleted.
 - [SAMPLE] Add a README showcase section with captures of the showcase pages.
 - [SAMPLE] At 127 px a Card gallery grid card's `#06 · C. Lindqvist 711` line runs into its right border; done when it fits or trims.
 - [SAMPLE] Swipe-to-dismiss on the Activity feed's recycled rows (`SwipeActions` or `Draggable`) beside the dismiss button; done when a swiped row collapses out through `Presence.Exit` and a recycled row carries no stale swipe offset.
-- [SAMPLE] The Gestures page trails sit at (0,0) before the pointer first enters their stage, showing a quarter dot in its corner, and the stages share the panel's background so their edges are hard to see; done when the trails start hidden or centered and the stages read as distinct.
+- [SAMPLE] The Gestures page trail and resist stages share the panel's background, so their edges are hard to see; done when the stages read as distinct.
 
 ## Tooling and tests
 

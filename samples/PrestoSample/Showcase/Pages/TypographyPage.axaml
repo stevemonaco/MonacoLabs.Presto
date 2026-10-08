@@ -55,7 +55,7 @@
                 </StackPanel>
             </Border>
 
-            <Border x:Name="WordmarkStage" Classes="stage" PointerMoved="LeanWordmark" PointerExited="RelaxWordmark">
+            <Border x:Name="WordmarkStage" Classes="stage">
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="eyebrow showcase" Text="CHARS · POINTER-REACTIVE WORDMARK"
