@@ -25,6 +25,7 @@ tests:
   - CallbacksTests
   - EngineTimeTests
   - MotionValueDynamicsTests
+  - SettleTests
 upstream:
   - src/timer/timer.js
   - src/core/render.js
@@ -191,6 +192,8 @@ depends:
   - Tests: `IntrospectionTests.TimerGettersMatchTheParameters`
 - **CORE-TIMER-072** — After `Complete`, the timer shall report `Completed`, `Paused` and `Canceled`, with `CurrentTime` at `Duration`.
   - Tests: untested
+- **CORE-TIMER-073** — `Seek`, `Play`, `Resume`, `Reverse`, `Restart`, `Pause`, `Cancel`, `Revert` and `Complete` shall end a running `Settle` (CORE-MOTIONVALUE).
+  - Tests: `SettleTests.APlayheadControlEndsTheSettleWithTheCurrentProgress`
 
 ### Defaults
 

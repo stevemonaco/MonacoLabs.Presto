@@ -35,6 +35,10 @@ public class Timer : Clock, IRevertible
     internal MotionValue? _progressValue;
     private MotionValue? _scrub;
     private Action<MotionValue>? _onScrub;
+    private bool _scrubRelative;
+    private double _scrubProgress;
+    private double _scrubLast;
+    private TimerSettle? _settle;
     internal int _priority;
     internal TimerDiagnostics? _diagnostics;
     internal readonly object? _hostLifetime;
@@ -359,6 +363,12 @@ public class Timer : Clock, IRevertible
     /// <summary>Stops advancing the timer where it stands and fires <see cref="OnPause"/> (upstream <c>timer.pause()</c>).</summary>
     public Timer Pause()
     {
+        EndSettle();
+        return PauseTimer();
+    }
+
+    private Timer PauseTimer()
+    {
         OwnerEngine.AssertThreadAffinity();
         if (Paused) return this;
         Paused = true;
@@ -370,6 +380,7 @@ public class Timer : Clock, IRevertible
     public Timer Resume()
     {
         OwnerEngine.AssertThreadAffinity();
+        EndSettle();
         if (!Paused) return this;
         Paused = false;
         if (Duration <= Constants.MinValue && !_hasChildren)
@@ -402,13 +413,24 @@ public class Timer : Clock, IRevertible
     }
 
     /// <summary>Rewinds to 0 and plays from there (upstream <c>timer.restart()</c>).</summary>
-    public Timer Restart() => Reset().Resume();
+    public Timer Restart()
+    {
+        EndSettle();
+        return Reset().Resume();
+    }
 
     /// <summary>Moves the playhead and renders there, leaving the timer paused or playing as it was (upstream <c>timer.seek()</c>).</summary>
     /// <param name="time">Position to move to, measured from the end of the delay.</param>
     /// <param name="muteCallbacks">Suppresses the callbacks the jump would otherwise fire, including those of the iterations skipped over.</param>
     /// <param name="internalRender">Updates the timing state without writing values to the targets.</param>
     public Timer Seek(double time, bool muteCallbacks = false, bool internalRender = false)
+    {
+        EndSettle();
+        return SeekTime(time, muteCallbacks, internalRender);
+    }
+
+    /// <summary>The seek a running <see cref="Settle"/> drives the playhead through, which leaves the settle running.</summary>
+    internal Timer SeekTime(double time, bool muteCallbacks = false, bool internalRender = false)
     {
         OwnerEngine.AssertThreadAffinity();
         ReviveTimer(this);
@@ -468,21 +490,80 @@ public class Timer : Clock, IRevertible
         // Unlike upstream, a repeat cancel leaves composition alone: the tweens already left their sibling lists.
         else if (!_canceled) TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
         _canceled = true;
-        return Pause();
+        return PauseTimer();
     }
 
     /// <summary>
     /// Pauses the timer and seeks it to <paramref name="progress"/> times <see cref="Duration"/>, then again on every frame the value changes,
-    /// like a scroll-synced timer driven by any source. <c>null</c>, <see cref="Cancel"/> and <see cref="Revert"/> end the scrub.
+    /// like a scroll-synced timer driven by any source. <c>null</c>, <see cref="Cancel"/>, <see cref="Revert"/> and <see cref="Settle"/> end the scrub.
     /// </summary>
-    public Timer Scrub(MotionValue? progress)
+    /// <param name="progress">The value whose changes drive the playhead; null ends the scrub.</param>
+    /// <param name="relative">Keep the current progress and apply the value's later changes as deltas, clamped to [0, 1].</param>
+    /// <exception cref="InvalidOperationException"><paramref name="progress"/> is not null and the timer has a <see cref="Parent"/>.</exception>
+    public Timer Scrub(MotionValue? progress, bool relative = false)
     {
+        if (progress != null && Parent != null) throw new InvalidOperationException(ChildSettleMessage);
+        EndSettle();
         if (_scrub != null) _scrub.Changed -= _onScrub;
         _scrub = progress;
         if (progress == null) return this;
-        _onScrub ??= value => Seek(value.Value * Duration);
+        // The first read only starts measuring, so a later Settle reads the drag's real velocity.
+        _ = progress.Velocity;
+        _scrubRelative = relative;
+        _scrubProgress = Progress;
+        _scrubLast = progress.Value;
+        _onScrub ??= OnScrub;
         progress.Changed += _onScrub;
-        return Pause().Seek(progress.Value * Duration);
+        Pause();
+        return relative ? this : Seek(progress.Value * Duration);
+    }
+
+    private void OnScrub(MotionValue value)
+    {
+        if (!_scrubRelative)
+        {
+            Seek(value.Value * Duration);
+            return;
+        }
+        _scrubProgress = Helpers.Clamp(_scrubProgress + value.Value - _scrubLast, 0, 1);
+        _scrubLast = value.Value;
+        Seek(_scrubProgress * Duration);
+    }
+
+    private const string ChildSettleMessage = "A child timer follows its parent; scrub or settle the parent timeline instead.";
+
+    /// <summary>
+    /// Ends any scrub, pauses the timer and springs its playhead from <see cref="Progress"/> to a resting progress chosen from the release
+    /// velocity, seeking to the spring's value, clamped to [0, 1], times <see cref="Duration"/> on every frame it moves.
+    /// </summary>
+    /// <returns>A task that completes with the target once the spring rests on it, or with <see cref="Progress"/> when a playhead control or a new settle ends this one; it never faults.
+    /// Under <see cref="PrestoDefaults.ReducedMotion"/> it seeks to the target at once and returns a completed task.</returns>
+    /// <exception cref="InvalidOperationException">The timer has a <see cref="Parent"/>, or its <see cref="Duration"/> is infinite.</exception>
+    /// <exception cref="ArgumentException"><paramref name="settings"/> has empty or non-finite points, or a negative or non-finite projection or flick velocity.</exception>
+    public Task<double> Settle(SettleParams? settings = null)
+    {
+        if (Parent != null) throw new InvalidOperationException(ChildSettleMessage);
+        if (Duration >= Constants.MaxValue) throw new InvalidOperationException("An infinitely looping timer has no end to settle on.");
+        settings ??= new();
+        TimerSettle.Validate(settings);
+        var velocity = settings.Velocity ?? _scrub?.Velocity ?? 0;
+        Scrub(null);
+        Pause();
+        var target = TimerSettle.Choose(Progress, velocity, TimerSettle.RestingPoints(this, settings), settings.Projection, settings.FlickVelocity);
+        if (OwnerEngine.Defaults.ReducedMotion)
+        {
+            Seek(target * Duration);
+            return Task.FromResult(target);
+        }
+        _settle = new TimerSettle(this, settings.Spring ?? Springs.Gentle, target, velocity * Globals.TimeScale * Constants.K);
+        return _settle.Task;
+    }
+
+    private void EndSettle()
+    {
+        if (_settle == null) return;
+        _settle.End(Progress);
+        _settle = null;
     }
 
     /// <summary>Rescales the total duration to <paramref name="newDuration"/>, scaling the iteration duration, delay and loop delay proportionally.</summary>
@@ -507,6 +588,7 @@ public class Timer : Clock, IRevertible
     /// <summary>Seeks back to 0 without callbacks, then cancels.</summary>
     public virtual Timer Revert()
     {
+        EndSettle();
         Renderer.Tick(this, 0, true, false, TickMode.Auto);
         _onRevert?.Invoke(this);
         return Cancel();

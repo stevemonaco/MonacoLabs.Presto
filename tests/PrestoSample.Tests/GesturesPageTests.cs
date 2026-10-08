@@ -119,6 +119,71 @@ public sealed class GesturesPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void TheCardSettlesOnTheNearestRestFromASlowDragAndAdvancesOnAFlick()
+    {
+        var page = new GesturesPage();
+        var window = SceneHarness.Show(page, 712, 800);
+        TestFrames.Tick(30);
+        var card = page.GetControl<Border>("OpenCard");
+        var handle = page.GetControl<Panel>("CardHandle");
+
+        Drag(window, SceneHarness.Center(handle, window), new Vector(0, 40));
+        TestFrames.Tick(120);
+        Assert.Equal(64, card.Height, 1);
+
+        Drag(window, SceneHarness.Center(handle, window), new Vector(0, 70));
+        TestFrames.Tick(120);
+        Assert.Equal(154, card.Height, 1);
+
+        Drag(window, SceneHarness.Center(handle, window), new Vector(0, 70));
+        TestFrames.Tick(120);
+        Assert.Equal(244, card.Height, 1);
+
+        var grab = SceneHarness.Center(handle, window);
+        window.MouseDown(grab, MouseButton.Left);
+        for (var i = 1; i <= 3; i++)
+        {
+            window.MouseMove(grab - new Vector(0, 10 * i));
+            TestFrames.Tick();
+        }
+        window.MouseUp(grab - new Vector(0, 30), MouseButton.Left);
+        TestFrames.Tick(120);
+        Assert.Equal(154, card.Height, 1);
+        Assert.Equal("0.50", page.GetControl<TextBlock>("CardProgress").Text);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheTrailsFollowThePointerInStepsAndTheResistedIndicatorStretchesLessThanTheDrag()
+    {
+        var page = new GesturesPage();
+        var window = SceneHarness.Show(page, 712, 1200);
+        TestFrames.Tick(30);
+        var stage = page.GetControl<Canvas>("TrailStage");
+        var dots = stage.Children;
+        var springTail = dots[7];
+        var lagTail = dots[^1];
+
+        window.MouseMove(stage.TranslatePoint(new Point(200, 80), window)!.Value);
+        TestFrames.Tick(6);
+        Assert.InRange(TranslateX(dots[0]), 1, 200);
+        Assert.True(TranslateX(dots[0]) > TranslateX(springTail), "later spring dots lag behind the first");
+        Assert.True(TranslateX(dots[8]) > TranslateX(lagTail), "later lag dots lag behind the first");
+
+        window.MouseMove(stage.TranslatePoint(new Point(40, 40), window)!.Value);
+        TestFrames.Tick(120);
+        Assert.Equal(40, TranslateX(lagTail), 1);
+
+        var knob = page.GetControl<Border>("Knob");
+        Drag(window, SceneHarness.Center(knob, window), new Vector(120, 0));
+        var indicator = TranslateX(page.GetControl<Border>("Indicator"));
+        Assert.InRange(indicator, 80.1, TranslateX(knob) - 1);
+        SceneHarness.Close(window);
+    }
+
+    private static double TranslateX(Control control) => Convert.ToDouble(PrestoAvalonia.Get(control, "X"));
+
     private static double TranslateY(Control control) => Convert.ToDouble(PrestoAvalonia.Get(control, "Y"));
 
     // Held still before letting go, so the release carries no throw and the snap alone decides where it lands.

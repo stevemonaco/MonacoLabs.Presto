@@ -343,7 +343,7 @@ public sealed class Engine : Clock
         if (!double.IsNaN(_pausedAt))
         {
             var paused = Now - _pausedAt;
-            foreach (var value in _activeValues) value._time += paused;
+            foreach (var value in _activeValues) value.Rebase(paused);
             _pausedAt = double.NaN;
         }
         return Wake();

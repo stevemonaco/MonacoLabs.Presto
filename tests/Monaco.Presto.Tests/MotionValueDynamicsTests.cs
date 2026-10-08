@@ -185,4 +185,237 @@ public sealed class MotionValueDynamicsTests : EngineTestBase
         RunUntil(() => animatable.Animations["X"].Paused);
         Assert.Equal(100, x.Value);
     }
+
+    [Fact]
+    public void ALagReplaysItsSourceDelayLateAtAnyFrameRate()
+    {
+        double[] expected = [150, 1000 / 3d - 100, 300];
+
+        var at60 = Replay(1000 / 60d);
+        var at144 = Replay(1000 / 144d);
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            Assert.Equal(expected[i], at60[i], 1e-6);
+            Assert.Equal(expected[i], at144[i], 1e-6);
+        }
+
+        double[] Replay(double step)
+        {
+            var start = Frames.Now;
+            var source = Presto.CreateMotionValue();
+            var lag = source.Lag(100);
+            Presto.CreateTimer(new() { Duration = 400, OnUpdate = _ => source.Set(Math.Min(Presto.Engine.Now - start, 300)) });
+            var readings = new double[expected.Length];
+            double[] times = [250, 1000 / 3d, 500];
+            for (var i = 0; i < times.Length; i++)
+            {
+                while (Frames.Now - start < times[i] - step / 2) Frames.Advance(step);
+                readings[i] = lag.Value;
+            }
+            return readings;
+        }
+    }
+
+    [Fact]
+    public void ALagHoldsItsInitialValueForTheFirstDelay()
+    {
+        var source = Presto.CreateMotionValue(5);
+        var lag = source.Lag(100);
+
+        source.Set(50);
+        for (var i = 0; i < 6; i++)
+        {
+            Frames.Advance(16);
+            Assert.Equal(5, lag.Value);
+        }
+        RunUntil(() => lag.Value == 50, max: 200);
+
+        Assert.Equal(50, lag.Value);
+    }
+
+    [Fact]
+    public void ALagInterpolatesBetweenUnevenFrames()
+    {
+        var source = Presto.CreateMotionValue();
+        var lag = source.Lag(50);
+        Frames.Advance(10);
+        source.Set(100);
+        Frames.Advance(30);
+
+        Frames.Advance(25);
+        Assert.Equal(100 * 5 / 30d, lag.Value, 1e-9);
+        Frames.Advance(13);
+        Assert.Equal(60, lag.Value, 1e-9);
+        source.Set(40);
+        Frames.Advance(7);
+        Assert.Equal(100 * 25 / 30d, lag.Value, 1e-9);
+        Frames.Advance(40);
+        Assert.Equal(100 - 60 * 35 / 45d, lag.Value, 1e-9);
+    }
+
+    [Fact]
+    public void ALagAnimatesUntilCaughtUpThenSleepsAndTheEngineIdles()
+    {
+        var source = Presto.CreateMotionValue();
+        var lag = source.Lag(100);
+        Assert.False(lag.IsAnimating);
+
+        source.Set(10);
+        Frames.Advance(16);
+        Assert.True(lag.IsAnimating);
+        RunUntil(() => lag.Value == 10);
+        Frames.Advance(16);
+
+        Assert.False(lag.IsAnimating);
+        Assert.Empty(Presto.Engine.Diagnostics.ActiveValues);
+        Assert.False(Frames.IsRunning);
+    }
+
+    [Fact]
+    public void AChangeAfterALongSleepReplaysFromNow()
+    {
+        var source = Presto.CreateMotionValue();
+        var lag = source.Lag(100);
+        source.Set(10);
+        RunUntil(() => !lag.IsAnimating);
+        Frames.Advance(5000);
+
+        source.Set(20);
+        Frames.Advance(80, 16);
+
+        Assert.Equal(10, lag.Value);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ALagContinuesWithoutAJumpAfterAPauseOrHide(bool hide)
+    {
+        var reference = Run(null);
+        var interrupted = Run(() =>
+        {
+            if (hide) Presto.Engine.Hidden = true;
+            else Presto.Engine.Pause();
+            Frames.Advance(1000);
+            if (hide) Presto.Engine.Hidden = false;
+            else Presto.Engine.Resume();
+        });
+
+        for (var i = 0; i < reference.Length; i++) Assert.Equal(reference[i], interrupted[i], 1e-9);
+
+        double[] Run(Action? interrupt)
+        {
+            var source = Presto.CreateMotionValue();
+            var lag = source.Lag(50);
+            var readings = new double[16];
+            for (var i = 0; i < readings.Length; i++)
+            {
+                if (i < 8) source.Set((i + 1) * 10);
+                if (i == 6) interrupt?.Invoke();
+                Frames.Advance(16);
+                readings[i] = lag.Value;
+            }
+            return readings;
+        }
+    }
+
+    [Fact]
+    public void FrozenStepMovesALagByExactlyOneFrame()
+    {
+        var source = Presto.CreateMotionValue();
+        var lag = source.Lag(32);
+        source.Set(100);
+        Frames.Advance(16);
+        Presto.Engine.Freeze();
+        Frames.Advance(1000);
+        Assert.Equal(0, lag.Value);
+
+        Presto.Engine.Step(24);
+
+        Assert.Equal(50, lag.Value);
+    }
+
+    [Fact]
+    public void SecondsModeGivesALagTheSameTrajectoryScaledInTime()
+    {
+        var milliseconds = Trajectory(50);
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+        var seconds = Trajectory(.05);
+
+        for (var i = 0; i < milliseconds.Length; i++) Assert.Equal(milliseconds[i], seconds[i], 1e-9);
+
+        double[] Trajectory(double delay)
+        {
+            var source = Presto.CreateMotionValue();
+            var lag = source.Lag(delay);
+            var samples = new double[12];
+            for (var i = 0; i < samples.Length; i++)
+            {
+                if (i < 4) source.Set(i * i * 10);
+                Frames.Advance(16);
+                samples[i] = lag.Value;
+            }
+            return samples;
+        }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void AnInvalidLagDelayThrows(double delay) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => Presto.CreateMotionValue().Lag(delay));
+
+    [Fact]
+    public void SettingALagThrows() =>
+        Assert.Throws<InvalidOperationException>(() => Presto.CreateMotionValue().Lag(100).Set(1));
+
+    [Fact]
+    public void ALagTrailElementReplaysTheSourceOneDelayLaterThanThePrevious()
+    {
+        var start = Frames.Now;
+        var source = Presto.CreateMotionValue();
+        var trail = source.Trail(3, 48);
+        Presto.CreateTimer(new() { Duration = 600, OnUpdate = _ => source.Set(Math.Min(Presto.Engine.Now - start, 300)) });
+
+        for (var frame = 0; frame < 30; frame++)
+        {
+            Frames.Advance(16);
+            var elapsed = Frames.Now - start;
+            for (var i = 0; i < trail.Length; i++)
+            {
+                Assert.Equal(Math.Clamp(elapsed - (i + 1) * 48, 0, 300), trail[i].Value, 1e-6);
+            }
+        }
+    }
+
+    [Fact]
+    public void ASpringTrailMatchesHandChainedSpringsFrameForFrame()
+    {
+        var spring = new Spring(stiffness: 120, damping: 12);
+        var source = Presto.CreateMotionValue();
+        var trail = source.Trail(3, spring);
+        var chained = Presto.CreateMotionValue();
+        var first = chained.Spring(spring);
+        var second = first.Spring(spring);
+        MotionValue[] expected = [first, second, second.Spring(spring)];
+
+        source.Set(100);
+        chained.Set(100);
+        for (var frame = 0; frame < 40; frame++)
+        {
+            Frames.Advance(16);
+            for (var i = 0; i < trail.Length; i++) Assert.Equal(expected[i].Value, trail[i].Value);
+        }
+        Assert.NotEqual(0, trail[2].Value);
+    }
+
+    [Fact]
+    public void ATrailOfFewerThanOneThrows()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Presto.CreateMotionValue().Trail(0, new Spring()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Presto.CreateMotionValue().Trail(0, 100));
+    }
 }

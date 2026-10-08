@@ -197,6 +197,39 @@ public sealed class MotionValueTests : EngineTestBase
         Assert.Throws<InvalidOperationException>(() => mapped.Set(1));
     }
 
+    [Theory]
+    [InlineData(50, .8, 50)]
+    [InlineData(0, .8, 0)]
+    [InlineData(100, .8, 100)]
+    [InlineData(150, .8, 110)]
+    [InlineData(-50, .8, -10)]
+    [InlineData(150, .5, 125)]
+    [InlineData(-50, .5, -25)]
+    [InlineData(150, 1, 100)]
+    [InlineData(-50, 1, 0)]
+    [InlineData(150, 0, 150)]
+    [InlineData(-50, 0, -50)]
+    [InlineData(150, 2, 100)]
+    [InlineData(150, -1, 150)]
+    public void ResistScalesTheExcessPastEitherBound(double input, double friction, double expected)
+    {
+        var source = Presto.CreateMotionValue(input);
+
+        Assert.Equal(expected, source.Resist(0, 100, friction).Value, 1e-9);
+    }
+
+    [Fact]
+    public void ResistDefaultsToAFrictionOfPointEight()
+    {
+        var source = Presto.CreateMotionValue(150);
+
+        Assert.Equal(110, source.Resist(0, 100).Value, 1e-9);
+    }
+
+    [Fact]
+    public void ResistWithMinAboveMaxThrows() =>
+        Assert.Throws<ArgumentException>(() => Presto.CreateMotionValue().Resist(1, 0));
+
     [Fact]
     public void InvalidMapRangesThrow()
     {

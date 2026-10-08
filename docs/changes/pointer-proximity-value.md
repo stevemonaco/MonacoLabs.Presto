@@ -45,6 +45,9 @@ Unchanged: `PointerValue` keeps its over-the-control semantics, and `Tilt` keeps
 - **`Magnetic` is an attached-property class like `Tilt`, not an `Interactions` builder.** Reason: `Interactions.*` return `AnimationBuilder`s played once on a trigger, while a magnet is continuous pointer-driven state with an attach lifetime, which is `Tilt`'s shape. Attached properties already work from XAML, so no markup extension is needed.
 - **Magnetic owns its spring inside the motion value graph** (`Spring(Springs.Snappy)` before `Follow.X`/`Follow.Y`) rather than through `Follow.Timing`. Reason: a `MotionValue` on a shorthand ignores `Follow.Timing` (BRIDGE-FOLLOW-042), and a spring that keeps velocity on retarget is the right feel for a pointer that never stops moving.
 - **The Animatable page stays hand-built.** Reason: `samples/PrestoSample/Pages/` mirrors the anime.js documentation examples, and that page demonstrates `Animatable.Set` itself. Its follower also maps the pointer to stage coordinates and *holds* on leave, which is neither proximity nor this change's absent-reads-0 rule. A `Magnetic` demo goes on the Micro-interactions showcase page instead.
+- **Re-measuring is decided by measurement.** Task 1 measures `EffectiveViewportChanged` per letter on the Typography page; if it is too costly, the tracker re-measures all its values on the surface's `LayoutUpdated` instead, and the spec records which was chosen and why.
+- **Magnets keep tracking a pointer captured elsewhere.** A `Draggable` drag elsewhere still drives magnets, as designed; relaxing them during another element's drag is not built.
+- **`Magnetic` uses a fixed `Springs.Snappy`.** A configurable `Magnetic.Spring` (parsed like `FollowParams.Spring`) goes to the backlog.
 
 ## Spec changes
 
@@ -117,7 +120,3 @@ No requirement changes. The Typography and Animatable mentions leave the backlog
 8. **Close.** Delete the backlog line and this file.
 
 ## Open questions
-
-- Is `EffectiveViewportChanged` cheap enough to subscribe on every letter of a split headline, or should the tracker re-measure all its values on any `LayoutUpdated` of the surface instead? Decide by measuring on the Typography page in task 1.
-- Should a pointer captured by a `Draggable` elsewhere keep driving magnets (the current design tracks it), or should magnets relax during another element's drag?
-- Is `Springs.Snappy` the right fixed spring for `Magnetic`, or should it take a `Magnetic.Spring` string the way `FollowParams.Spring` parses presets?

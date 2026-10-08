@@ -159,6 +159,22 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LagOfAMovingSourceStepsWithoutAllocating(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var source = Presto.CreateMotionValue();
+        var raised = 0;
+        source.Lag(100).Changed += _ => raised++;
+        Presto.CreateTimer(new() { Duration = 400, Loop = true, OnUpdate = timer => source.Set(timer.IterationProgress * 100) });
+
+        var bytes = BytesPerTick();
+
+        Assert.True(raised >= 50, $"the lag raised {raised} times");
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
+    }
     [Fact]
     public void ColorMixAndShiftWithoutAllocating()
     {

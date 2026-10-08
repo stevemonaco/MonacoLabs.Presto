@@ -100,6 +100,8 @@ When an item is closed, its line is deleted.
 - [SAMPLE] By hand on Desktop: Connected and Connected navigation (open a card on `PointerPressed`) and the Gestures page drags.
 - [SAMPLE] Run the Activity feed live for ten minutes and confirm the reveal memory stays bounded (today it rests on `ActivityFeedPageTests`).
 - [BRIDGE-INIT] Check the hidden signal off the desktop: hide the tab in the Browser head and background the app on Android (and iOS where it runs), confirming `Presto.Engine.Hidden` pauses the engine and showing it again resumes at the same progress (only desktop minimize and headless `WindowState` are checked); done when each head is checked or its gap is recorded in the README Platforms table.
+- [CORE-MOTIONVALUE] By hand on the Desktop Gestures page's drag-to-open card: slow drags rest on the nearest point, flicks advance, re-grabbing mid-settle does not jump, and `--motion reduced` lands at once (DevTools sends no drags; only the slow-drag and flick cases have a headless test).
+- [CORE-MOTIONVALUE] By hand on the Desktop Gestures page's trails row: the spring trail and the Lag (40 ms) trail chase the pointer, the engine idles once the dots settle (DevTools frame stats), and the Resist indicator stretches a fifth as far past ±80 (DevTools sends no pointer moves; only `GesturesPageTests` covers it).
 - [BRIDGE-REVEAL] With the Activity feed's Reveal set to "Every time" on Desktop, scroll up and judge whether rows rising from below look wrong; done when judged, and if they do, a change proposal reopens mirroring a reveal by scroll direction (a non-goal today).
 
 ## Candidate features
@@ -135,6 +137,7 @@ When an item is closed, its line is deleted.
 - [SAMPLE] Add a README showcase section with captures of the showcase pages.
 - [SAMPLE] At 127 px a Card gallery grid card's `#06 · C. Lindqvist 711` line runs into its right border; done when it fits or trims.
 - [SAMPLE] Swipe-to-dismiss on the Activity feed's recycled rows (`SwipeActions` or `Draggable`) beside the dismiss button; done when a swiped row collapses out through `Presence.Exit` and a recycled row carries no stale swipe offset.
+- [SAMPLE] The Gestures page trails sit at (0,0) before the pointer first enters their stage, showing a quarter dot in its corner, and the stages share the panel's background so their edges are hard to see; done when the trails start hidden or centered and the stages read as distinct.
 
 ## Tooling and tests
 

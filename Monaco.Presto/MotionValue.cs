@@ -23,7 +23,13 @@ public sealed class MotionValue
     private double _flushedValue;
     private double _sampledValue;
     private double _springVelocity;
-    internal double _time;
+    private double[]? _lagTimes;
+    private double[]? _lagValues;
+    private double _lagDelay;
+    private int _lagStart;
+    private int _lagCount;
+    private int _lagSeen;
+    private double _time;
     private int _version;
     private int _observedDependents;
     private bool _dirty;
@@ -48,7 +54,7 @@ public sealed class MotionValue
         _derived = true;
     }
 
-    /// <summary>A value only Presto assigns: a spring follower, a velocity, a timer's progress or an animatable property.</summary>
+    /// <summary>A value only Presto assigns: a spring follower, a lag, a velocity, a timer's progress or an animatable property.</summary>
     internal MotionValue(Engine engine, MotionValue[] sources, double initial)
     {
         _engine = engine;
@@ -105,7 +111,7 @@ public sealed class MotionValue
         }
     }
 
-    /// <summary>True while the engine steps this value every frame, as a moving spring or a velocity sample.</summary>
+    /// <summary>True while the engine steps this value every frame, as a moving spring or lag, or a velocity sample.</summary>
     public bool IsAnimating => _active;
 
     /// <summary>The spring a value made by <see cref="Spring(Monaco.Presto.Spring)"/> follows its source through, or null.</summary>
@@ -115,7 +121,9 @@ public sealed class MotionValue
     public double? SpringTarget => _spring != null ? _sources[0].Value : null;
 
     // Time-driven values stay linked to their sources, so they keep moving whether or not anything observes them.
-    private bool IsObserved => _changed != null || _observedDependents > 0 || _tracker != null || _spring != null;
+    private bool IsObserved => _changed != null || _observedDependents > 0 || _tracker != null || IsTimeDriven;
+
+    private bool IsTimeDriven => _spring != null || _lagTimes != null;
 
     private bool IsAttached => _compute == null || IsObserved;
 
@@ -213,15 +221,85 @@ public sealed class MotionValue
         return follower;
     }
 
+    /// <summary>Replays this value <paramref name="delay"/> engine-time units late, interpolating linearly between the values it recorded on each frame.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="delay"/> is not a finite number greater than 0.</exception>
+    public MotionValue Lag(double delay)
+    {
+        if (!double.IsFinite(delay) || delay <= 0) throw new ArgumentOutOfRangeException(nameof(delay), delay, "A lag needs a finite delay greater than 0.");
+        const int capacity = 16;
+        var lag = new MotionValue(_engine, [this], Value)
+        {
+            _lagDelay = delay / Globals.TimeScale,
+            _lagTimes = new double[capacity],
+            _lagValues = new double[capacity],
+        };
+        lag.Attach();
+        _ = Value;
+        lag._lagSeen = _version;
+        return lag;
+    }
+
+    /// <summary><paramref name="count"/> chained spring followers: the first follows this value, and each next one follows the previous.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 1.</exception>
+    public MotionValue[] Trail(int count, Spring spring) => Chain(count, v => v.Spring(spring));
+
+    /// <summary><paramref name="count"/> chained lags, so element <c>i</c> replays this value (i + 1) × <paramref name="delay"/> late.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 1, or <paramref name="delay"/> is invalid as for <see cref="Lag"/>.</exception>
+    public MotionValue[] Trail(int count, double delay) => Chain(count, v => v.Lag(delay));
+
+    private MotionValue[] Chain(int count, Func<MotionValue, MotionValue> next)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+        var trail = new MotionValue[count];
+        var previous = this;
+        for (var i = 0; i < count; i++) previous = trail[i] = next(previous);
+        return trail;
+    }
+
+    /// <summary>
+    /// This value inside [<paramref name="min"/>, <paramref name="max"/>], and past a bound the bound plus the excess scaled by
+    /// 1 − <paramref name="friction"/> clamped to [0, 1], the rubber band of <c>Draggable</c>'s container friction.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="min"/> is greater than <paramref name="max"/>.</exception>
+    public MotionValue Resist(double min, double max, double friction = 0.8)
+    {
+        if (min > max) throw new ArgumentException("min must not be greater than max.", nameof(min));
+        var scale = 1 - Utils.Clamp(friction, 0, 1);
+        return Map(v => v > max ? max + (v - max) * scale : v < min ? min + (v - min) * scale : v);
+    }
+
+    /// <summary>A follower released at <paramref name="from"/> with <paramref name="velocity"/> per second towards a fixed <paramref name="target"/>, stepping from the next frame.</summary>
+    internal static MotionValue Release(Engine engine, Spring spring, double from, double velocity, double target)
+    {
+        var follower = new MotionValue(engine, [new MotionValue(engine, [], target)], from) { _spring = spring, _springVelocity = velocity };
+        follower.Activate();
+        return follower;
+    }
+
+    /// <summary>Takes a stepping value out of the engine's active list; nothing steps it again until it is activated.</summary>
+    internal void Stop()
+    {
+        if (!_active) return;
+        _active = false;
+        _engine._activeValues.Remove(this);
+    }
+
     /// <summary>A value carrying this one's <see cref="Velocity"/>, updated every frame while it is non-zero.</summary>
     public MotionValue VelocityOf() => _velocityOf ??= new(_engine, [], Velocity);
 
-    /// <summary>Advances a spring or velocity sample to <paramref name="now"/>, and says whether it still needs frames.</summary>
+    /// <summary>Advances a spring, lag or velocity sample to <paramref name="now"/>, and says whether it still needs frames.</summary>
     internal bool Step(double now)
     {
-        var active = _spring != null && StepSpring(now);
+        var active = (_spring != null && StepSpring(now)) || (_lagTimes != null && StepLag(now));
         if (_tracker != null && Sample(now)) active = true;
         return active;
+    }
+
+    /// <summary>Moves a stepping value's clock, and a lag's recorded samples, <paramref name="paused"/> later so a paused interval does not count.</summary>
+    internal void Rebase(double paused)
+    {
+        _time += paused;
+        for (var i = 0; i < _lagCount; i++) _lagTimes![Slot(i)] += paused;
     }
 
     internal void Flush()
@@ -299,6 +377,52 @@ public sealed class MotionValue
         return true;
     }
 
+    private bool StepLag(double now)
+    {
+        var source = _sources[0];
+        var value = source.Value;
+        if (source._version != _lagSeen)
+        {
+            _lagSeen = source._version;
+            Record(now, value);
+        }
+        var target = now - _lagDelay;
+        while (_lagCount > 1 && _lagTimes![Slot(1)] <= target)
+        {
+            _lagStart = Slot(1);
+            _lagCount--;
+        }
+        var (t0, v0) = (_lagTimes![_lagStart], _lagValues![_lagStart]);
+        if (_lagCount == 1 || target <= t0)
+        {
+            Assign(v0);
+            return _lagCount > 1;
+        }
+        var next = Slot(1);
+        Assign(Helpers.Lerp(v0, _lagValues[next], (target - t0) / (_lagTimes[next] - t0)));
+        return true;
+    }
+
+    private void Record(double time, double value)
+    {
+        if (_lagCount == _lagTimes!.Length)
+        {
+            var times = new double[_lagCount * 2];
+            var values = new double[_lagCount * 2];
+            for (var i = 0; i < _lagCount; i++)
+            {
+                times[i] = _lagTimes[Slot(i)];
+                values[i] = _lagValues![Slot(i)];
+            }
+            (_lagTimes, _lagValues, _lagStart) = (times, values, 0);
+        }
+        var slot = Slot(_lagCount++);
+        _lagTimes[slot] = time;
+        _lagValues![slot] = value;
+    }
+
+    private int Slot(int index) => (_lagStart + index) % _lagTimes!.Length;
+
     /// <summary>The closed-form displacement and velocity, per second, of a damped oscillator released from <paramref name="x"/> at <paramref name="v"/> after <paramref name="t"/> seconds.</summary>
     private static (double X, double V) Oscillate(Spring spring, double x, double v, double t)
     {
@@ -351,6 +475,11 @@ public sealed class MotionValue
         var now = _time = _engine.Now;
         // Rebased to now: the value sat still until this change, however long the engine slept.
         _tracker?.AddDisplacement(0, now);
+        if (_lagTimes != null)
+        {
+            (_lagStart, _lagCount) = (0, 0);
+            Record(now, _value);
+        }
         _engine.AddActive(this);
     }
 
@@ -360,7 +489,7 @@ public sealed class MotionValue
         for (var i = 0; i < _dependents.Count; i++)
         {
             var dependent = _dependents[i];
-            if (dependent._spring != null)
+            if (dependent.IsTimeDriven)
             {
                 dependent.Activate();
                 continue;

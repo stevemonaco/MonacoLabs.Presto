@@ -179,4 +179,14 @@ public sealed class SpringTests : EngineTestBase
         Assert.Equal((0, 250), (Springs.Stiff.Bounce, Springs.Stiff.Duration));
         Assert.NotSame(Springs.Gentle, Springs.Gentle);
     }
+
+    [Fact]
+    public void PresetsKeepTheirPerceivedDurationInSecondsMode()
+    {
+        var milliseconds = Springs.Gentle.SettlingDuration;
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+        var gentle = Springs.Gentle;
+        Assert.Equal(.5, gentle.Duration, 1e-12);
+        Assert.Equal(milliseconds / 1000, gentle.SettlingDuration, 3);
+    }
 }
