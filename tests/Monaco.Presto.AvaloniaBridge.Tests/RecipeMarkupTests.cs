@@ -3,7 +3,7 @@ using Avalonia.Headless.XUnit;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>The recipe markup extensions (MOTION-KIT-PLAN §4.1 decision 7): exit-form detection and the shared settings.</summary>
+/// <summary>The recipe markup extensions: exit-form detection and the shared settings.</summary>
 public sealed class RecipeMarkupTests : BridgeTestBase
 {
     private static object? From(AnimationParams parameters, string property) =>

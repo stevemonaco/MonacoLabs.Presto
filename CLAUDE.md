@@ -2,7 +2,7 @@
 
 A .NET animation library inspired by [anime.js v4](https://animejs.com/documentation) ([source](https://github.com/juliangarnier/anime), MIT). The goal is an API that is as simple to use from C# as anime.js is from JavaScript: `Presto.Animate(target, ...)`, timelines, staggering, a rich easing set, and full playback control.
 
-The implementation plan and architecture live in [docs/PLAN.md](docs/PLAN.md). Read it before starting any porting work and keep its phase checklist current.
+The architecture and the anime.js → Presto module map live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); what each feature does and why is in the specs ([docs/specs/](docs/specs/README.md)); work not done yet is in [docs/BACKLOG.md](docs/BACKLOG.md); new work starts as a change proposal in [docs/changes/](docs/changes/README.md).
 
 ## Layout
 
@@ -13,7 +13,8 @@ The implementation plan and architecture live in [docs/PLAN.md](docs/PLAN.md). R
 | `samples/PrestoSample*/` | Gallery app (shared project + Desktop/Browser/Android/iOS heads). `Pages/` mirror the anime.js documentation examples; `Builder/` holds fluent-builder pages that print their own code, plus the XAML attach demo; `Showcase/` holds the shared kit (`ShowcasePage`, `CodePanel`, `Snippet`) and `Showcase/Pages/` the multi-feature demos. Desktop is the primary dev target. |
 | `samples/PrestoSample.SnippetGenerator/` | Sample-only source generator: `<!-- snippet: Name -->` (XAML) and `#region snippet Name` (C#) regions become `PrestoSample.Showcase.Snippets` consts. |
 | `tests/Monaco.Presto.Tests/` | xunit v3 tests for the core. Bridge tests (Avalonia.Headless) will live in `tests/Monaco.Presto.AvaloniaBridge.Tests/`. |
-| `docs/` | Plan, design notes, API reference as it grows. |
+| `docs/` | `ARCHITECTURE.md` (goals, module map, architecture, testing strategy, project-wide decisions), `BACKLOG.md` (open work), `changes/` (change proposals for work in progress). |
+| `docs/specs/` | Feature specs, the source of truth for behavior: one folder per package (`core/`, `avalonia-bridge/`, `lottie/`, `devtools/`), each with an `index.md`. Format in `docs/specs/README.md`. |
 
 Build configuration is shared through root `Directory.Build.props` (language/nullable/version) and `Directory.Packages.props` (central package management — add package versions there, never in a csproj).
 
@@ -34,7 +35,9 @@ Tests use xunit v3 on Microsoft.Testing.Platform (`UseMicrosoftTestingPlatformRu
 
 Android/iOS/Browser heads exist but are not part of the day-to-day loop; build them only when asked. Hot reload does not support WebAssembly.
 
-**Implementation workflow:** `.claude/workflows/implement-plan.js` implements a plan end to end (decompose → implement item by item with a concision review after each → whole-diff review → full test run with fix rounds → tick the PLAN.md checklist). Run it with `Workflow({ name: "implement-plan", args: "Phase 1" })` (or a plan file path / plan text) once a plan is agreed; it never commits.
+**Specs:** before changing a feature's behavior, read its spec in `docs/specs/` (and the specs in its `depends`), and update its requirements and `Tests:` lines in the same change; a change that diverges from its spec without updating it is incomplete. Every design decision, with its reason, lives in the Decisions section of the spec it governs; a requirement marked `(inherited)` records behavior nobody decided. New work starts as a change proposal in `docs/changes/`, and a new feature as a draft spec (requirements before code). Every public type is owned by exactly one spec's `types`. `SpecTests` (core tests) and `SpecCoverageTests` (bridge tests) enforce the format, the cited tests and paths, and type ownership.
+
+**Implementation workflow:** `.claude/workflows/implement-plan.js` implements a change end to end (decompose against the specs → implement item by item, updating specs, with a concision review after each → whole-diff review → full test run with fix rounds → delete the change proposal and the backlog lines it resolved). Run it with `Workflow({ name: "implement-plan", args: "docs/changes/<name>.md" })` (or a backlog item, or plan text) once a change is agreed; it never commits.
 
 ## Dev loop: DevTools and Hot Reload
 
@@ -69,7 +72,7 @@ The DevTools MCP server separately reads `AVALONIA_TOOLS_LICENSE_KEY`. Never com
 ## API conventions
 
 - Public entry point is the static `Presto` class (`Presto.Animate`, `Presto.CreateTimer`, `Presto.CreateTimeline`, `Presto.Stagger`, `Presto.Defaults`, `Presto.Engine`). Users should need one `using Monaco.Presto;` (plus `using Monaco.Presto.AvaloniaBridge;` for controls).
-- Parameters are `init`-only records/classes with the anime.js names in PascalCase (`Duration`, `Delay`, `Loop`, `Alternate`, `Ease`, `OnComplete`…). Animated properties are supplied through an indexer/collection initializer so calls read like the JS object literal. See PLAN.md for the exact shapes.
+- Parameters are `init`-only records/classes with the anime.js names in PascalCase (`Duration`, `Delay`, `Loop`, `Alternate`, `Ease`, `OnComplete`…). Animated properties are supplied through an indexer/collection initializer so calls read like the JS object literal. The specs give the exact behavior.
 - Anything in anime.js that can be a function-based value (`(target, i, total) => …`) accepts a delegate here; `Stagger` returns such delegates.
 - Eases are `Ease` delegates (`double → double`) exposed as `Eases.OutQuad`, `Eases.Out(3)`, `Eases.Spring(...)`, plus a string parser (`"inOutQuint"`, `"out(2)"`) for XAML and defaults.
 - Mirror anime.js method names on instances: `Play`, `Pause`, `Resume`, `Restart`, `Reverse`, `Alternate`, `Seek`, `Stretch`, `Complete`, `Cancel`, `Revert`, `Reset`, `Refresh`, plus `Task Then()` / awaitable for `.then()`.

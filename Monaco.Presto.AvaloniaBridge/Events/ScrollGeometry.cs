@@ -5,7 +5,7 @@ using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Events;
 
-/// <summary>The offsets that bring an element into view in each of its ancestor scrollers (decision 86).</summary>
+/// <summary>The offsets that bring an element into view in each of its ancestor scrollers.</summary>
 internal static class ScrollGeometry
 {
     /// <summary>

@@ -2,7 +2,7 @@ using Avalonia.Headless.XUnit;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>Covers <see cref="AnimationThread"/> and <see cref="PrestoAvalonia.CanAnimateOnCompositor(AnimationParams, out string?)"/> (Phase 70, PLAN decision 119).</summary>
+/// <summary>Covers <see cref="AnimationThread"/> and <see cref="PrestoAvalonia.CanAnimateOnCompositor(AnimationParams, out string?)"/> (BRIDGE-THREAD).</summary>
 public sealed class AnimationThreadTests : CompositorTestBase
 {
     private static AnimationBuilder Builder(string kind) => kind switch

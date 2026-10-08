@@ -34,7 +34,7 @@
                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                             <Setter Property="presto:Presence.Exit" Value="{presto:Fade Direction=Left, Duration=180, Out=True}" />
                         </Style>
-                        <!-- Reflow only while searching, the accordion's fold otherwise (PLAN.md §7). -->
+                        <!-- Reflow only while searching, the accordion's fold otherwise (backlog: BRIDGE-CONTENTSIZE). -->
                         <Style Selector="TreeView.searching > TreeViewItem">
                             <Setter Property="presto:Animate.ItemLayout" Value="{presto:Reflow}" />
                         </Style>

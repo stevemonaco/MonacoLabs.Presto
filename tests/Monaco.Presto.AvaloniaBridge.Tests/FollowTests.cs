@@ -7,7 +7,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>The <see cref="Follow"/> transform and effect shorthands (GAPS-PLAN §1.2 decision 13, §1.7 Q6).</summary>
+/// <summary>The <see cref="Follow"/> transform and effect shorthands (BRIDGE-FOLLOW).</summary>
 public sealed class FollowTests : BridgeTestBase
 {
     private static T Part<T>(Visual visual) where T : Transform =>

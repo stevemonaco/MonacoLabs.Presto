@@ -4,7 +4,7 @@ using AvaloniaCompositor = Avalonia.Rendering.Composition.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>Pins the seam of decision 79: tests advance the compositor's clock instead of letting real time pass.</summary>
+/// <summary>Pins the virtual-time seam (docs/ARCHITECTURE.md §4): tests advance the compositor's clock instead of letting real time pass.</summary>
 public sealed class CompositorClockTests : CompositorTestBase
 {
     [AvaloniaFact]

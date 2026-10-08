@@ -31,6 +31,7 @@
   <ItemGroup>
     <Compile Include="..\Monaco.Presto.Tests\EngineTestBase.cs" Link="EngineTestBase.cs" />
     <Compile Include="..\Monaco.Presto.Tests\TestHelpers.cs" Link="TestHelpers.cs" />
+    <Compile Include="..\Monaco.Presto.Tests\SpecCatalog.cs" Link="SpecCatalog.cs" />
   </ItemGroup>
 
   <ItemGroup>

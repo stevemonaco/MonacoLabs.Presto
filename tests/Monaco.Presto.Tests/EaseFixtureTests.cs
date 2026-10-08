@@ -4,7 +4,7 @@ namespace Monaco.Presto.Tests;
 
 /// <summary>
 /// Generated parity against anime.js 4.5.0: every ease and spring is checked against 101 samples dumped from upstream by
-/// tools/anime-fixtures (see docs/PLAN.md section 6).
+/// tools/anime-fixtures (see docs/ARCHITECTURE.md §4).
 /// </summary>
 public sealed class EaseFixtureTests : EngineTestBase
 {

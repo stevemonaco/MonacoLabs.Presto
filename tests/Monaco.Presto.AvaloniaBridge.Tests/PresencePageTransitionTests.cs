@@ -11,7 +11,7 @@ using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>PAGE-TRANSITIONS-PLAN decision 10: <see cref="Presence"/> sees a page transition as navigation.</summary>
+/// <summary><see cref="Presence"/> sees a page transition as navigation.</summary>
 public sealed class PresencePageTransitionTests : CompositorTestBase
 {
     private static AnimationBuilder Fade => Presto.Build().Opacity(to: 0).Duration(200).Ease("linear");

@@ -7,7 +7,7 @@ using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
 
-/// <summary>PLAN.md Phase 54: how long the Particle field page takes to show its default field, in the size the Desktop sample opens at.</summary>
+/// <summary>How long the Particle field page takes to show its default field, in the size the Desktop sample opens at.</summary>
 public sealed class ParticleFieldLoadTests
 {
     private const double Width = 1400;

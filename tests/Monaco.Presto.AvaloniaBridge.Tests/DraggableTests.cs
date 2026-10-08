@@ -697,7 +697,7 @@ public sealed class DraggableTests : BridgeTestBase
         Assert.Equal(0d, PrestoAvalonia.Get(target, "Y"));
     }
 
-    // ReleaseInertia (INERTIA-PLAN §2 decision 7): not upstream, so these pin the opt-in release on its own.
+    // ReleaseInertia is not upstream, so these pin the opt-in release on its own.
 
     private void Flick(Window window, double stepX, double stepY, int steps)
     {

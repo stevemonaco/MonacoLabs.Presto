@@ -11,7 +11,7 @@ using Avalonia.Threading;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>The selection indicator (Phase 63a, decision 102): where it sits, when it glides, when it snaps and when it hides.</summary>
+/// <summary>The selection indicator: where it sits, when it glides, when it snaps and when it hides.</summary>
 public sealed class SelectionIndicatorTests : BridgeTestBase
 {
     [AvaloniaFact]

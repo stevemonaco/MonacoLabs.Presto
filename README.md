@@ -1638,7 +1638,7 @@ build; what has actually been *run* differs, and the table says so rather than i
 
 | Head | Verified |
 |------|----------|
-| **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here ([GAPS-PLAN §4.3](docs/GAPS-PLAN.md#43-spike-results)). |
+| **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here. |
 | **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish, with no trim warnings. The Lottie page has not been driven there. |
 | **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. The gallery has not been driven on a device, so touch input and per-page rendering are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
@@ -1680,7 +1680,7 @@ dotnet test --solution Monaco.Presto.slnx
 
 Tests use xunit v3 on Microsoft.Testing.Platform, which the .NET 10 SDK requires — hence `--project`.
 
-The implementation plan, architecture notes and the phase checklist live in [docs/PLAN.md](docs/PLAN.md).
+The architecture and anime.js module map live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), each feature's behavior and design decisions in the [feature specs](docs/specs/README.md), and open work in [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ## Credits
 

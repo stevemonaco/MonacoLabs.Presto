@@ -1,18 +1,18 @@
 export const meta = {
   name: 'implement-plan',
-  description: 'Implement a plan item by item (implement → concision review → tighten), then whole-diff review, full test run with fix rounds, and PLAN.md checklist update',
-  whenToUse: 'The implementation phase once a plan exists. args: "Phase 1" (a docs/PLAN.md phase), a plan file path, or the plan text; or { plan, reviewEach: true, maxTestRounds: 3 }',
+  description: 'Implement a change item by item (implement → concision review → tighten, specs updated with the code), then whole-diff review, full test run with fix rounds, and close the change',
+  whenToUse: 'The implementation phase once a change is agreed. args: a change proposal path (docs/changes/<name>.md), a docs/BACKLOG.md item, or the plan text; or { plan, reviewEach: true, maxTestRounds: 3 }',
   phases: [
     { title: 'Decompose', detail: 'read the plan and split it into ordered work items' },
     { title: 'Implement', detail: 'per item, sequentially: implement → concision review → tighten' },
     { title: 'Review', detail: 'whole-diff concision + plan-coverage review, then fix' },
     { title: 'Test', detail: 'build + full test run, fix rounds until green' },
-    { title: 'Report', detail: 'tick the PLAN.md checklist when green' },
+    { title: 'Report', detail: 'when green, delete the change file and its backlog lines' },
   ],
 }
 
 const opts = typeof args === 'string' ? { plan: args } : (args ?? {})
-if (!opts.plan) throw new Error('args must be the plan: "Phase N" of docs/PLAN.md, a plan file path, or plan text — or { plan, reviewEach, maxTestRounds }')
+if (!opts.plan) throw new Error('args must be the change: a docs/changes/<name>.md path, a docs/BACKLOG.md item, or plan text — or { plan, reviewEach, maxTestRounds }')
 const reviewEach = opts.reviewEach ?? true
 const maxTestRounds = opts.maxTestRounds ?? 3
 
@@ -24,8 +24,9 @@ const PLAN_SCHEMA = {
   type: 'object',
   properties: {
     title: { type: 'string' },
-    source: { type: 'string', description: 'Where the plan was read from: the file path, "docs/PLAN.md Phase N", or "inline"' },
-    planPhase: { type: 'string', description: 'The phase label exactly as written in the docs/PLAN.md §5 checklist (e.g. "Phase 1"), or "" when the plan is not a PLAN.md phase' },
+    source: { type: 'string', description: 'Where the plan was read from: the change file path, "docs/BACKLOG.md", or "inline"' },
+    changeFile: { type: 'string', description: 'The docs/changes/<name>.md path when the plan is a change proposal, else ""' },
+    backlogItems: { type: 'array', items: { type: 'string' }, description: 'The exact docs/BACKLOG.md lines this plan resolves, copied verbatim; empty when none' },
     summary: { type: 'string', description: '3-6 sentences another agent can use as context for the whole plan' },
     items: {
       type: 'array',
@@ -44,7 +45,7 @@ const PLAN_SCHEMA = {
       },
     },
   },
-  required: ['title', 'source', 'planPhase', 'summary', 'items'],
+  required: ['title', 'source', 'changeFile', 'backlogItems', 'summary', 'items'],
 }
 
 const IMPLEMENT_SCHEMA = {
@@ -147,10 +148,10 @@ PLAN INPUT (verbatim from the user):
 ${opts.plan}
 
 Resolve the input first:
-- a file path → read that file;
-- a phase reference like "Phase 1" → take that phase's checklist entry from docs/PLAN.md §5 plus the matching rows of §2 and the relevant notes in §3, §4 and §6;
+- a docs/changes/<name>.md path → that change proposal (format in docs/changes/README.md); \`changeFile\` is its path;
+- text matching lines of docs/BACKLOG.md → those backlog items, plus the specs their tags name;
 - anything else → the input is the plan text itself.
-Read docs/PLAN.md in full either way for architecture and API conventions, then read the parts of the codebase the plan touches (existing types, tests, samples) so items refer to what actually exists.
+Copy every docs/BACKLOG.md line the plan resolves into \`backlogItems\`, verbatim. Read docs/ARCHITECTURE.md in full either way for architecture and API conventions, then the feature specs in docs/specs/ (format in docs/specs/README.md; find them through each folder's index.md) for every feature the plan touches, then the parts of the codebase the plan touches (existing types, tests, samples) so items refer to what actually exists. Each \`brief\` names the spec files its item must update, or the draft spec it must create for a new feature.
 
 Produce 3–10 work items in dependency order. Each must be implementable by one agent in one sitting: merge tiny items, split anything touching more than ~8 files. Each \`brief\` is self-contained — what to build, which existing files it extends or must stay consistent with, which upstream anime.js 4.5.0 files (src/...) and test suites (tests/suites/...) to read and port, and concrete acceptance criteria. Tests belong inside the item that implements the behavior. Mark \`visual: true\` only when the result must be seen in the Desktop sample (bridge/sample work); core work is verified by tests.${READ_ONLY_RULES}`
 
@@ -176,11 +177,12 @@ Files likely involved: ${item.files.join(', ') || 'see brief'}
 Upstream to read first: ${item.upstream.join(', ') || 'see brief'}
 
 How to work:
-1. Read the existing code you are extending before writing anything.
+1. Read the feature's spec in docs/specs/ and the existing code you are extending before writing anything.
 2. Implement only this item, minimally: no abstractions with one implementation, no options nothing uses, no helper types for one call site, no comments that restate code. Match the surrounding style.
 3. \`dotnet build Monaco.Presto.slnx\` must succeed with no new warnings.
 4. Port/write the tests the brief names and run the affected test project (\`dotnet test --project tests/Monaco.Presto.Tests\`, or \`dotnet test --solution Monaco.Presto.slnx\` when more than one is affected); they must pass. If the item has no testable behavior, say so in \`verified\`.
-5. If part of the item is impossible or conflicts with what exists, do the rest and list the gap in \`blockers\` — never silently narrow it.
+5. Update the spec in the same item (docs/specs/README.md has the format): add or change requirements for the behavior you changed, cite the tests that pin them, strike requirements that no longer hold, add new public types to its \`types\`, and record each design decision the item made in the spec's Decisions section with its reason. Mark a requirement \`(inherited)\` when it records a choice nobody asked for. \`SpecTests\` and \`SpecCoverageTests\` must pass.
+6. If part of the item is impossible or conflicts with what exists, do the rest and list the gap in \`blockers\` — never silently narrow it.
 ${item.visual ? HOT_RELOAD : ''}${EDIT_RULES}`
 }
 
@@ -213,7 +215,7 @@ ${plan.summary}
 What each implementer reported:
 ${reported}
 
-Read the plan source and the change (\`git status --porcelain\`, \`git diff\`, and every untracked file in full). For every requirement in the plan confirm it is implemented and has a test where the plan or the upstream anime.js suite calls for one. Report each gap as a finding: file = where it should live, summary = what is missing, fix = the smallest change that closes it. Ignore style and concision — another reviewer covers those. confidence: high = the plan explicitly requires it and it is absent, medium = implied by the plan, low = nice to have.`
+Read the plan source and the change (\`git status --porcelain\`, \`git diff\`, and every untracked file in full). For every requirement in the plan confirm it is implemented and has a test where the plan or the upstream anime.js suite calls for one. Then confirm the specs in docs/specs/ match the change: every changed behavior is reflected in its spec's requirements with the tests that pin it, and nothing in a touched spec now contradicts the code; a change that diverges from its spec without updating it is a gap. Report each gap as a finding: file = where it should live, summary = what is missing, fix = the smallest change that closes it. Ignore style and concision — another reviewer covers those. confidence: high = the plan explicitly requires it and it is absent, medium = implied by the plan, low = nice to have.`
 }
 
 function tightenPrompt(findings, context) {
@@ -243,8 +245,11 @@ ${problems}
 For each failure decide whether the implementation or the test is wrong by checking the plan and the upstream anime.js behavior, then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or upstream contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build Monaco.Presto.slnx\` and \`dotnet test --solution Monaco.Presto.slnx\` green.${EDIT_RULES}`
 }
 
-function checklistPrompt(plan) {
-  return `All tests pass after implementing ${plan.planPhase} of docs/PLAN.md. Tick that phase's checkbox in §5 and correct anything in that same entry that is now stale. Change nothing else in the file and no other files.${EDIT_RULES}`
+function closePrompt(plan) {
+  const steps = []
+  if (plan.changeFile) steps.push(`Delete ${plan.changeFile}: its decisions must already be in the specs' Decisions sections. If one is not, move it there first, with its reason.`)
+  if (plan.backlogItems.length) steps.push(`Remove these lines from docs/BACKLOG.md:\n${plan.backlogItems.map(l => `  ${l}`).join('\n')}`)
+  return `All tests pass after implementing "${plan.title}". Close it:\n${steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\nChange nothing else.${EDIT_RULES}`
 }
 
 function actionable(review, label) {
@@ -321,13 +326,13 @@ const green = !!tests && tests.buildOk && tests.failed === 0
 phase('Report')
 const blockers = done.flatMap(d => d.result.blockers.map(b => `${d.item.id}: ${b}`))
 const unresolved = (finalFix?.skipped ?? []).map(s => `${s.finding}: ${s.reason}`)
-let checklist = 'not a PLAN.md phase'
-if (plan.planPhase) {
+let closed = 'nothing to close'
+if (plan.changeFile || plan.backlogItems.length) {
   if (green && !stoppedAt && !blockers.length && !unresolved.length) {
-    await agent(checklistPrompt(plan), { label: 'plan-checklist', phase: 'Report', effort: 'low' })
-    checklist = `ticked ${plan.planPhase}`
+    await agent(closePrompt(plan), { label: 'close', phase: 'Report', effort: 'low' })
+    closed = [plan.changeFile && `deleted ${plan.changeFile}`, plan.backlogItems.length && `removed ${plan.backlogItems.length} backlog line(s)`].filter(Boolean).join('; ')
   } else {
-    checklist = `left unticked: ${!green ? 'tests not green' : stoppedAt ? 'implementation stopped' : 'open blockers or gaps'}`
+    closed = `left open: ${!green ? 'tests not green' : stoppedAt ? 'implementation stopped' : 'open blockers or gaps'}`
   }
 }
 
@@ -341,5 +346,5 @@ return {
   tests: tests ? { buildOk: tests.buildOk, passed: tests.passed, failed: tests.failed, failures: tests.failures, warnings: tests.warnings, rounds: testRounds } : 'not run',
   green,
   changedFiles: tests?.changedFiles ?? [],
-  checklist,
+  closed,
 }

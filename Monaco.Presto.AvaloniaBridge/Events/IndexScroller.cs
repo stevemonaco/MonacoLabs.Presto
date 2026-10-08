@@ -5,7 +5,7 @@ using Avalonia.Layout;
 namespace Monaco.Presto.AvaloniaBridge.Events;
 
 /// <summary>
-/// Scrolls a list on a <see cref="VirtualizingStackPanel"/> to an item that may not be realized yet (decision 87): jumps to a
+/// Scrolls a list on a <see cref="VirtualizingStackPanel"/> to an item that may not be realized yet: jumps to a
 /// viewport short of a far item, animates the last stretch aimed at the item's measured slot once it realizes, and settles exactly.
 /// </summary>
 internal sealed class IndexScroller

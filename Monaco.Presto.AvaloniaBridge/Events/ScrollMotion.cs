@@ -4,7 +4,7 @@ using Monaco.Presto.Core;
 
 namespace Monaco.Presto.AvaloniaBridge.Events;
 
-/// <summary>The default motion of an animated scroll (decision 84) and the retargeting tween each moving axis rides.</summary>
+/// <summary>The default motion of an animated scroll and the retargeting tween each moving axis rides.</summary>
 internal static class ScrollMotion
 {
     private const double PerViewport = 150;

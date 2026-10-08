@@ -8,7 +8,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
 /// Freezes the headless compositor's clock, the <c>Stopwatch</c> behind <c>ServerCompositor.ServerNow</c> that Avalonia 12.1
-/// exposes no seam for (decision 79), so tests move compositor animations with <see cref="Advance"/> instead of real time.
+/// exposes no seam for (docs/ARCHITECTURE.md §4), so tests move compositor animations with <see cref="Advance"/> instead of real time.
 /// </summary>
 /// <remarks>Headless isolation is per test, so each test has a fresh compositor that runs in real time until it installs.</remarks>
 internal static class CompositorClock
@@ -63,5 +63,5 @@ internal static class CompositorClock
 
     private static InvalidOperationException Missing(Type type, string name) => new(
         $"CompositorClock reaches into {type.FullName}.{name}, which this Avalonia or .NET version no longer has. " +
-        "Find where ServerCompositor now reads its time (see docs/TEST-SPEED-PLAN.md §3) and update CompositorClock.");
+        "Find where ServerCompositor now reads its time (see docs/ARCHITECTURE.md §4) and update CompositorClock.");
 }

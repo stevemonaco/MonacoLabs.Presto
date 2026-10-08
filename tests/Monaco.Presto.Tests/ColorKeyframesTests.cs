@@ -2,7 +2,7 @@ using Monaco.Presto.Values;
 
 namespace Monaco.Presto.Tests;
 
-/// <summary><see cref="TweenKeyframesBuilder.Color"/>: a color tween expanded into sliced-ease segments (docs/COLOR-SPACES-PLAN.md §4).</summary>
+/// <summary><see cref="TweenKeyframesBuilder.Color"/>: a color tween expanded into sliced-ease segments.</summary>
 public sealed class ColorKeyframesTests : EngineTestBase
 {
     private const string Blue = "#0000ff";

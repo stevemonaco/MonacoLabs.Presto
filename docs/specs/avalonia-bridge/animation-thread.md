@@ -1,0 +1,268 @@
+---
+id: BRIDGE-THREAD
+title: Animation thread and compositor animations
+package: Monaco.Presto.AvaloniaBridge
+namespaces:
+  - Monaco.Presto.AvaloniaBridge
+  - Monaco.Presto.AvaloniaBridge.Compositor
+sources:
+  - Monaco.Presto.AvaloniaBridge/AnimationThread.cs
+  - Monaco.Presto.AvaloniaBridge/ThreadedAnimation.cs
+  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - Monaco.Presto.AvaloniaBridge/AnimateExtensions.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorAnimation.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorAnimationParams.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorCompiler.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompiledTrack.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorProperty.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorRegistry.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorScratch.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorTracks.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/ICompositorTrackOwner.cs
+types:
+  - AnimationThread
+  - ThreadedAnimation
+  - CompositorAnimation
+  - CompositorAnimationParams
+tests:
+  - AnimationThreadTests
+  - CompositorAnimationTests
+  - CompositorCompileTests
+  - CompositorPlaybackTests
+  - CompositorRegistryTests
+  - AnimationBuilderBridgeTests
+  - DiscretePropertyTests
+  - CompositorPageTests
+upstream:
+  - src/waapi/waapi.js
+  - src/waapi/composition.js
+  - tests/suites/waapi.test.js
+depends:
+  - BRIDGE-INIT
+  - BRIDGE-TARGETS
+  - BRIDGE-TRANSFORMS
+  - BRIDGE-HELPERS
+  - BRIDGE-LAYOUT
+  - CORE-ANIMATION
+  - CORE-TIMER
+  - CORE-ENGINE
+  - CORE-SCOPE
+  - CORE-BUILDER
+  - CORE-REDUCED
+  - CORE-SPRING
+---
+
+# Animation thread and compositor animations
+
+## Purpose
+
+Runs an animation's transform and opacity on Avalonia's render thread, so it keeps moving while the UI thread is blocked: upstream's `waapi.animate`, compiled into composition `KeyFrameAnimation`s on each control's own composition visual. A paused Presto `Animation` over a scratch copy of the control's transform (the mirror) is both the sampler and the playback model. `AnimationThread` lets a caller pick the thread per call, with a silent UI-thread fallback. Layout transitions (BRIDGE-LAYOUT) share the per-property registry. Also specifies `PrestoAvalonia.AnimateOnCompositor`, `PrestoAvalonia.CanAnimateOnCompositor`, the `PrestoAvalonia.Animate` and `AnimateExtensions.Animate` overloads that take an `AnimationThread`, and `AnimateExtensions.AnimateOnCompositor`.
+
+## Requirements
+
+### Choosing the thread
+
+- **BRIDGE-THREAD-001** — When `thread` is `UIThread`, `Animate(targets, …, thread)` shall run the animation on the engine with `Presto.Animate`, even when every property has a composition counterpart, and return a handle whose `UIThread` is set and `OnCompositor` is false.
+  - Tests: `AnimationThreadTests.TheHandleReportsTheThreadTheModePicked`
+- **BRIDGE-THREAD-002** — When `thread` is `Compositor`, `Animate` shall run the animation as `AnimateOnCompositor` does and throw the same `NotSupportedException`, with the same message, for a property or setting the compositor lacks.
+  - Tests: `AnimationThreadTests.ForcingTheCompositorThrowsWhatAnimateOnCompositorThrows`, `AnimationThreadTests.TheHandleReportsTheThreadTheModePicked`
+- **BRIDGE-THREAD-003** — When `thread` is `PreferCompositor`, `Animate` shall run on the render thread when `CanAnimateOnCompositor` holds and on the engine otherwise, without throwing for an unsupported property or setting.
+  - Tests: `AnimationThreadTests.TheHandleReportsTheThreadTheModePicked`, `CompositorPageTests.EachThreadModeLaneReportsTheThreadItGot`
+- **BRIDGE-THREAD-004** — When `PreferCompositor` falls back, the animation shall end in the same state as `Animate` without a thread argument.
+  - Tests: `AnimationThreadTests.AFallbackEndsWhereAnimateEnds`
+- **BRIDGE-THREAD-005** — `CanAnimateOnCompositor` shall resolve the params against `Engine.Current` (so a reduced form is what is checked) and, when a setting is unsupported, return false with the first of `Keyframes`, `FrameRate`, `PlaybackEase`, `Composition`, `Modifier`, `Id`, a non-default `Priority`, `OnBeforeUpdate`, `OnUpdate`, `OnLoop`, `OnPause`, `OnRender` as the reason.
+  - Tests: `AnimationThreadTests.CanAnimateOnCompositorNamesWhatDoesNotFit`
+- **BRIDGE-THREAD-006** — When every setting is supported, `CanAnimateOnCompositor` shall return false with the first property key that has no composition counterpart as the reason, or true with a null reason.
+  - Tests: `AnimationThreadTests.CanAnimateOnCompositorNamesWhatDoesNotFit`
+- **BRIDGE-THREAD-007** — The builder overloads shall run a `ToParams()` snapshot of the builder, and the lambda overloads a builder built by the lambda, exactly as the equivalent params do.
+  - Tests: `AnimationBuilderBridgeTests.ABuilderRunsOnTheCompositorAsTheEquivalentParamsDo`, `AnimationBuilderBridgeTests.ALambdaRunsOnTheCompositorAsItsBuilderDoes`
+- **BRIDGE-THREAD-008** — `ThreadedAnimation.Play`, `Pause`, `Resume`, `Cancel` and `Revert` shall delegate to the live animation and return the handle.
+  - Tests: untested
+- **BRIDGE-THREAD-009** — `ThreadedAnimation.Then()` and `await` shall complete with the handle itself once the live animation completes.
+  - Tests: `AnimationThreadTests.ACompositorHandleResolvesWithItsAnimation`, `AnimationThreadTests.AFallbackEndsWhereAnimateEnds`
+
+### What the compositor can carry
+
+- **BRIDGE-THREAD-010** — The compositor animation shall map `"X"` and `"Y"` to the composition `Translation`, `"Scale"`, `"ScaleX"` and `"ScaleY"` to `Scale` with the uniform scale multiplying each axis scale, `"Rotate"` to `RotationAngle` in radians, and `"Opacity"` or `Visual.OpacityProperty` to `Opacity`.
+  - Tests: `CompositorCompileTests.XAndYCompileIntoOneSampledTranslationTrack`, `CompositorCompileTests.TheUniformScaleMultipliesTheAxisScales`, `CompositorCompileTests.RotateCompilesToRadians`, `CompositorAnimationTests.TranslationMovesThePixels`
+- **BRIDGE-THREAD-011** — When a property has no composition counterpart, the compositor animation shall throw `NotSupportedException` with the message `'<name>' has no composition property. The compositor animates X, Y, Rotate, Scale, ScaleX, ScaleY and Opacity only.`
+  - Tests: `CompositorCompileTests.APropertyWithNoCompositionCounterpartThrows`, `DiscretePropertyTests.ABoolHasNoCompositorCounterpart`, `AnimationThreadTests.ForcingTheCompositorThrowsWhatAnimateOnCompositorThrows`
+- **BRIDGE-THREAD-012** — When `AnimationParams` or a builder run on the compositor set a setting from the BRIDGE-THREAD-005 list, the call shall throw `NotSupportedException` with the message `<Setting> has no counterpart on the compositor.`
+  - Tests: `AnimationBuilderBridgeTests.KeyframesAreNotSupportedOnTheCompositor`, `AnimationBuilderBridgeTests.OnUpdateIsNotSupportedOnTheCompositor`, `AnimationThreadTests.ForcingTheCompositorThrowsWhatAnimateOnCompositorThrows`
+- **BRIDGE-THREAD-013** — A rotation given with an angle unit shall compile to the same angle the UI thread would render.
+  - Tests: `CompositorCompileTests.AnAngleUnitConvertsTheSameWayItDoesOnTheUIThread`
+- **BRIDGE-THREAD-014** — Function-based values and staggers, in the top-level settings and in property values, shall be resolved per target on the UI thread when the animation is created.
+  - Tests: `CompositorCompileTests.AStaggeredDelayResolvesPerTarget`, `CompositorCompileTests.PerTargetValuesCompileEachTargetOnItsOwn`
+- **BRIDGE-THREAD-015** — Each target shall start from its control's current transform shorthands and opacity, or, for a property another compositor animation drives, from where that animation's mirror stands.
+  - Tests: untested
+
+### Compiling
+
+- **BRIDGE-THREAD-016** — When a property's track is one tween spanning the whole iteration with the default modifier and no text modifier (for opacity, also an ease that stays within 0..1), the compositor animation shall compile it to two key frames eased exactly by the tween's ease.
+  - Tests: `CompositorCompileTests.ASinglePlainTweenCompilesToTwoExactKeyFrames`
+- **BRIDGE-THREAD-017** — Any other track shall be sampled from the mirror at 100 linear segments per iteration.
+  - Tests: `CompositorCompileTests.XAndYCompileIntoOneSampledTranslationTrack`, `CompositorCompileTests.AnOvershootingEaseCompilesOpacityInsideZeroToOne`
+- **BRIDGE-THREAD-018** (inherited) — Sampled opacity values shall be clamped to 0..1.
+  - Tests: `CompositorCompileTests.AnOvershootingEaseCompilesOpacityInsideZeroToOne`
+- **BRIDGE-THREAD-019** — When the ease is a spring, the compiled duration shall be the spring's settling duration and the render thread shall evaluate only its pure solver, so sampling never completes the spring.
+  - Tests: `CompositorCompileTests.ASpringEaseCompilesWithoutTheSamplingCompletingIt`, `CompositorCompileTests.AnInertiaCompilesToTheCurveTheUIThreadPlays`
+- **BRIDGE-THREAD-020** — `Loop` shall map to an iteration count of loop + 1, or to a forever iteration for an infinite loop.
+  - Tests: `CompositorCompileTests.LoopMapsToTheIterationCount`
+- **BRIDGE-THREAD-021** — `Alternate` and `Reversed` shall map to the `Normal`, `Reverse`, `Alternate` and `AlternateReverse` playback directions.
+  - Tests: `CompositorCompileTests.AlternateAndReversedMapToThePlaybackDirection`
+- **BRIDGE-THREAD-022** — When a looping animation has a `LoopDelay`, each cycle shall hold the iteration's end value for the loop delay.
+  - Tests: `CompositorCompileTests.ALoopDelayHoldsTheEndValueForTheRestOfTheCycle`
+- **BRIDGE-THREAD-023** — When an alternating animation has a `LoopDelay`, the compositor animation shall compile one forward-and-back cycle with both holds and play ⌈iterations / 2⌉ such cycles in the `Normal` or `Reverse` direction.
+  - Tests: `CompositorCompileTests.AnAlternatingLoopDelayExpandsIntoATwoIterationCycle`
+- **BRIDGE-THREAD-024** — `Delay` shall become the track delay, with the from value drawn from creation on, before the delay elapses.
+  - Tests: `CompositorCompileTests.DelayBecomesTheTrackDelayAndLeavesTheFromValueOnKeyFrameZero`
+- **BRIDGE-THREAD-025** — When nothing but the top-level delay varies per target, targets with the same starting transform and opacity shall share one set of sampled key frames, each with its own delay and mirror; a differently seeded target or per-target values compile on their own.
+  - Tests: `CompositorCompileTests.UniformTargetsSeededAlikeShareTheirSampledTracks`, `CompositorCompileTests.ATargetSeededDifferentlyGetsItsOwnTracks`, `CompositorCompileTests.ASharedTrackLeavesItsMirrorWhereSamplingWould`, `CompositorAnimationTests.UniformStaggeredTargetsEachLandOnTheirEndValue`
+- **BRIDGE-THREAD-026** (inherited) — Track durations and delays shall be wall-clock times, scaled by the mirror's speed and the engine's speed, and a cycle shorter than 1 ms shall play over 1 ms.
+  - Tests: untested
+
+### Running on a control
+
+- **BRIDGE-THREAD-027** — When a `Scale` or `Rotate` track runs, the composition `CenterPoint` shall follow the control's `RenderTransformOrigin`, relative origins tracking the control's size, and move at the next frame when the origin changes.
+  - Tests: `CompositorAnimationTests.RotationTurnsAboutTheCenterOfTheResizedControl`, `CompositorAnimationTests.AScalePivotsOnTheRenderTransformOrigin`, `CompositorAnimationTests.ChangingTheOriginMidAnimationMovesThePivotAtTheNextFrame`
+- **BRIDGE-THREAD-028** — While an `Opacity` track runs, the compositor animation shall hold `Visual.Opacity` at `Animation` priority, so a re-sync of the control (an `InvalidateVisual`) does not stop the fade.
+  - Tests: `CompositorAnimationTests.InvalidateVisualDoesNotStopACompositorFade`
+- **BRIDGE-THREAD-029** — When a target's mirror completes, its end opacity, clamped to 0..1, shall be pushed through that hold so the control reports what is drawn.
+  - Tests: `CompositorAnimationTests.EveryCompletionHandsTheDrawnOpacityBackToTheControl`
+- **BRIDGE-THREAD-030** — When a target has no composition visual yet (outside the visual tree), its tracks and mirror shall start when it attaches.
+  - Tests: untested
+- **BRIDGE-THREAD-031** — When `Autoplay` resolves to false, nothing shall start until `Play` or `Resume`.
+  - Tests: `CompositorPlaybackTests.SeekingBeforeTheFirstResumeCarriesOnFromThere`
+
+### Playback control
+
+- **BRIDGE-THREAD-032** — `Pause` shall stop every track and write the mirror's exact current values, and `Resume` shall carry on from there in the current direction.
+  - Tests: `CompositorPlaybackTests.PauseFreezesThePixelsAndResumeCarriesOnFromThere`
+- **BRIDGE-THREAD-033** — `Seek` shall move the mirror and recompile from its position: a finite animation into the single forward cycle it has left, written directly while paused.
+  - Tests: `CompositorPlaybackTests.SeekingToHalfLandsOnTheHalfwayValue`
+- **BRIDGE-THREAD-034** — A `Seek` before the first start shall be kept in the mirror, and the first start shall compile from that position rather than from zero.
+  - Tests: `CompositorPlaybackTests.SeekingBeforeTheFirstResumeCarriesOnFromThere`
+- **BRIDGE-THREAD-035** — When an infinite loop is recompiled, the track shall be one full period starting at the current phase, so the cycle rotates rather than restarts.
+  - Tests: `CompositorPlaybackTests.SeekingAnInfiniteLoopRotatesThePhaseInsteadOfRestarting`
+- **BRIDGE-THREAD-036** — `Alternate` shall flip the mirror's direction and recompile; `Reverse` shall play backwards and `Play` forwards, resuming in both cases.
+  - Tests: `CompositorPlaybackTests.ReverseMidFlightWalksThePixelsBackTowardsTheStart`, `CompositorPlaybackTests.AStaggerReversedMidFlightCompletesWhenTheLastVisualIsHome`
+- **BRIDGE-THREAD-037** — Setting `Speed` shall change the mirror's speed and recompile from the current position.
+  - Tests: `CompositorPlaybackTests.DoublingTheSpeedCoversTwiceTheDistance`
+- **BRIDGE-THREAD-038** — `Restart` shall seek to 0 with callbacks muted and resume; `Complete` shall seek every target to its end.
+  - Tests: `CompositorPlaybackTests.RestartAndCompleteLandOnTheStartAndEndValues`
+- **BRIDGE-THREAD-039** (inherited) — `CurrentTime`, `Progress`, `Began` and `Speed` shall read the mirror of the target whose delay plus duration is longest.
+  - Tests: untested
+
+### Completion and ending
+
+- **BRIDGE-THREAD-040** — `Completed` shall be true once every target's mirror has completed in the current direction.
+  - Tests: `CompositorPlaybackTests.AStaggerReversedMidFlightCompletesWhenTheLastVisualIsHome`
+- **BRIDGE-THREAD-041** (inherited) — When the last target completes, `OnComplete` shall fire once with that target's mirror, and only the longest target's mirror shall fire `OnBegin`.
+  - Tests: untested
+- **BRIDGE-THREAD-042** — `Then` shall resolve, after invoking its callback, when the animation completes; on an animation already completed it shall invoke the callback and return a completed task at once.
+  - Tests: `CompositorAnimationTests.ThenResolvesWhenTheMirrorCompletes`
+- **BRIDGE-THREAD-043** — `Cancel` shall detach every track, leaving the pixels where they stand, and leave `Then` unresolved.
+  - Tests: `CompositorAnimationTests.CancelFreezesThePixelsWhereTheyAre`
+- **BRIDGE-THREAD-044** — `Revert` shall cancel, write identity transforms and the control's own opacity to the composition visual, reset the `CenterPoint`, release the opacity hold and leave every mirror at 0.
+  - Tests: `CompositorAnimationTests.RevertPutsTheControlBackAsItWas`, `CompositorAnimationTests.RevertLeavesEveryMirrorAtZeroRatherThanBeforeItsDelay`
+- **BRIDGE-THREAD-045** — The compositor animation shall register with `Engine.Current.CurrentScope` when there is one, so reverting the scope reverts it.
+  - Tests: `CompositorPageTests.ThePageRunsAndRevertsEverythingOnDetach`
+
+### Ownership of composition properties
+
+- **BRIDGE-THREAD-046** — When a compositor animation or layout transition starts on a composition property of a visual another compositor animation drives, the earlier one shall release that property, and an animation left with no running track shall cancel with `Then` unresolved.
+  - Tests: `CompositorRegistryTests.ASecondAnimationOnOnePropertyCancelsTheFirst`, `CompositorRegistryTests.ALayoutTransitionTakesTheTranslationFromACompositorAnimation`
+- **BRIDGE-THREAD-047** — Compositor animations on different composition properties of one control shall run side by side.
+  - Tests: `CompositorRegistryTests.AnimationsOnDifferentPropertiesOfOneControlCoexist`
+- **BRIDGE-THREAD-048** — `Presto.Remove(control)` shall cancel every compositor animation on the control, and `Presto.Remove(control, property)` only the track the property feeds.
+  - Tests: `CompositorRegistryTests.RemoveCancelsACompositorAnimation`, `CompositorRegistryTests.RemovingOnePropertyLeavesTheOtherRunning`
+- **BRIDGE-THREAD-049** — In a Debug build, starting a transform track on a visual whose transform shorthands are animating, or a shorthand on a visual a compositor transform track drives, shall log one Avalonia `Animations` warning.
+  - Tests: `CompositorRegistryTests.MixingAShorthandAndACompositorAnimationWarnsOnceEitherWayRound`
+
+### Reduced motion
+
+- **BRIDGE-THREAD-050** — While `PrestoDefaults.ReduceAll` is set, a compositor animation without a reduced alternative shall land on its end values at once.
+  - Tests: `CompositorAnimationTests.ReduceAllLandsACompositorAnimationOnItsEndValuesAtOnce`
+- **BRIDGE-THREAD-051** — While `ReducedMotion` is set, params or a builder with `WhenReduced` shall run their reduced form on the compositor, which `ReduceAll` leaves alone.
+  - Tests: `CompositorAnimationTests.ReduceAllLeavesAReducedAlternativeOnTheCompositorAlone`, `CompositorAnimationTests.DictionaryParamsOnTheCompositorPlayTheirReducedForm`
+
+### Defaults
+
+- **BRIDGE-THREAD-052** — When `Duration`, `Delay` or `Ease` is not set on `CompositorAnimationParams`, the compositor animation shall use `Engine.Current.Defaults`' value, as anime.js does.
+  - Tests: untested
+- **BRIDGE-THREAD-053** — When `Autoplay` is not set on `CompositorAnimationParams`, the compositor animation shall start according to `Engine.Current.Defaults.Autoplay`, as anime.js does.
+  - Tests: untested
+- **BRIDGE-THREAD-054** — When `PlaybackRate` is not set, `Speed` shall start at the engine's default playback rate (1), as anime.js does.
+  - Tests: untested
+- **BRIDGE-THREAD-055** (inherited) — When the animation has no target, `Speed` shall read 1, `CurrentTime` 0 and `Began` false.
+  - Tests: untested
+- **BRIDGE-THREAD-056** — When `muteCallbacks` is not passed, `Seek` shall fire callbacks, as anime.js does.
+  - Tests: untested
+
+## Invariants
+
+- At most one owner (compositor animation or layout transition) drives each composition property of a visual.
+- Exactly one of `ThreadedAnimation.UIThread` and `ThreadedAnimation.Compositor` is non-null.
+- The mirror and the render thread are at most one frame apart after any control call; the next call samples the mirror again.
+- A finished track stays on the composition visual holding its last key frame until the animation is canceled, reverted or replaced.
+
+## Edge cases
+
+- Zero targets: `Completed` is true at once, so `Then` resolves immediately.
+- A target that is not a `Visual` fails with `InvalidCastException` while compiling, under every mode including `PreferCompositor`.
+- A paused or not yet started animation ignores `Pause`; `Resume` on one that never started starts it.
+- A shorthand and a compositor transform on one control multiply on the server (render transform, then composition transform): the compositor track also seeds from the shorthand's value, so the two offsets add.
+- `Seek` mutes nothing unless asked; `Restart` always mutes.
+
+## Threading and lifetime
+
+- Every entry point and control call is UI-thread only. The mirror ticks on the engine current at creation; its callbacks and `Then` continuations run there and lag the render thread while the UI thread is blocked, catching up afterwards.
+- The mirror targets a scratch object, so `PrestoAvalonia.WhenDetached` never pauses or reverts a compositor animation.
+- Survival of a blocked UI thread holds only where the render loop has its own thread; Browser and headless render on the UI thread (see "Browser's blocked-UI-thread limitation is documented, not worked around"). Freeze-proofing is checked by hand on the sample's Compositor page.
+- The Avalonia semantics this rests on (client setter equality guard, a set removing the server animation) are pinned by `InvalidateVisualDoesNotStopACompositorFade`, which must be re-run when `AvaloniaVersion` moves.
+
+## Reduced motion
+
+- `AnimationParams`/builder paths resolve `WhenReduced` before compiling (BRIDGE-THREAD-051); `CompositorAnimationParams` has no `WhenReduced`, so the direct params path only gets `ReduceAll` (BRIDGE-THREAD-050).
+
+## Allocation
+
+- Creating and every control call (pause, seek, speed…) allocate: they sample the mirror and build composition animations. Between calls the render thread runs Avalonia's key frame animations and the UI thread ticks only the mirror, on the core's allocation-free tick.
+
+## Deviations from anime.js
+
+- Not CSS: tracks are composition `KeyFrameAnimation`s, and only `X`, `Y`, `Rotate`, `Scale*` and `Opacity` are carried, because only those have composition counterparts; anything else throws instead of falling back, since a silent fallback would defeat the point of the API. Skew, colors and other properties are UI-thread only.
+- Playback control is emulated by recompiling from the mirror, because a composition `KeyFrameAnimation` has no pause, seek, rate or readback; upstream sets `playbackRate` and `currentTime` on live WAAPI animations.
+- No `composition` or `persist` parameters: composition is always replace within the compositor registry, and finished tracks always persist.
+- No `commitStyles`, `forEach`, `currentTime` setter or exposed `animations`; `Seek` replaces the setter.
+- `OnComplete` receives the last-finishing target's mirror `Timer`, not the animation; `Then`'s callback receives the animation.
+- Exact single-segment tracks use `PrestoEasing` instead of a sampled `linear()`; everything else samples 100 points per iteration as upstream's `easingToLinear`.
+- `AnimationThread`, `ThreadedAnimation` and `CanAnimateOnCompositor` have no upstream counterpart: a browser picks the thread for WAAPI itself, while here the caller chooses (see "The thread is an argument on bridge entry points").
+
+## Decisions
+
+- **Compositor animations are a reduced, separate type.** As upstream's `waapi.animate` is, they have their own registry and carry only `X`, `Y`, `Rotate`, `Scale*` and `Opacity`, and they compile by sampling a paused mirror Presto `Animation` on a scratch object (upstream's `linear()` approach, 100 samples per iteration), a single two-value tween compiling exactly through `PrestoEasing`; `RotationAngle` is radians on the wire and degrees at the API. Reason: the mirror's `Seek` is exact anime.js math, so keyframes, eases, modifiers, springs and staggers come for free; background color could only be a child visual drawn above the control's content, so it stays UI-thread work. Rejected: keeping every animation on the UI thread (the earlier position, replaced once a busy indicator had to survive a blocked UI thread); writing composition properties directly while keeping Presto's clock, because per-frame sync overwrites them on a managed visual.
+- **Unsupported properties throw rather than fall back.** A property or setting with no composition counterpart throws `NotSupportedException` from `AnimateOnCompositor`, including a builder setting it cannot honor. Reason: a silent UI-thread fallback, or a silently dropped setting, would defeat the point of the API. Rejected: silent fallback and silent dropping; fallback is opt-in through `PreferCompositor` instead.
+- **Only pure eases cross to the render thread.** A spring compiles through its pure solver, never `Spring.Ease`. Reason: the render thread calls the ease per frame, and `Spring.Ease` mutates its completion state as it is sampled.
+- **Delay holds the from value.** `Delay` maps to the track delay with the initial value set before it. Reason: anime.js renders `from` at creation.
+- **The pivot follows `RenderTransformOrigin`.** The `CenterPoint` is an expression built from the origin at compile time: a relative origin scales with the control's size, an absolute one is constant, and an origin change restarts it. Reason: a fixed center (the earlier `Size * 0.5`) made a bottom-origin ball squash about its middle while UI-thread shorthands honor the origin; an expression keeps a relative origin correct across resizes, and keeping the absolute origin an expression lets start, restart and stop share one `CenterPoint` animation.
+- **Opacity is held and playback is emulated by recompiling.** `Visual.Opacity` is held by an `Animation`-priority binding for the life of a compositor opacity track; `Pause`, `Resume`, `Seek`, `Reverse` and speed stop and recompile from the mirror's position (rotating the cycle for infinite loops), and the mirror supplies time, progress, callbacks and `Then`, up to one frame apart from the render thread. Reason: the server animation dies the moment `Visual.Opacity` changes, and `KeyFrameAnimation` has no pause, seek, rate, completion event or readback. Rejected: measuring and compensating the skew through `CompositionBatch.Processed`, not worth it until the skew is visible.
+- **One owner per composition property.** Compositor animations register per (visual, composition property) with replace semantics, as `waapi/composition.js` does, `Presto.Remove(control)` reaches them, and layout transitions share the registry. Mixing a UI-thread transform shorthand and a compositor animation on one control is unsupported and only gets a Debug warning. Reason: the two compose multiplicatively on the server, and blend composition and per-frame callbacks do not exist there.
+- **The thread is an argument on bridge entry points.** `AnimationThread { UIThread, Compositor, PreferCompositor }` is taken by `PrestoAvalonia.Animate` and `control.Animate`, which return a `ThreadedAnimation`; `PreferCompositor` falls back when `CanAnimateOnCompositor` fails, and `Compositor` throws as `AnimateOnCompositor` does. XAML entry points stay on the UI thread, and `PrestoPageTransition.Thread` defaults to `PreferCompositor`. Reason: the core stays Avalonia-free, and `Presto.Animate` could not honor a setting it cannot act on. Rejected: a setting on the params or the builder.
+- **The render thread is named after the compositor.** The API says `Compositor` (`AnimateOnCompositor`, `CompositorAnimation`, `AnimationThread.Compositor`, `Thread="PreferCompositor"` in XAML) and `ThreadedAnimation.OnCompositor` reports the thread obtained. Reason: consistency with the existing compositor types, so that "render thread" in prose only ever means where frames are drawn; "Prefer" signals that fallback is expected, not an error.
+- **Browser's blocked-UI-thread limitation is documented, not worked around.** Browser runs compositor animations but its render loop is on the UI thread, so they stop with it; nothing is built for that. The Avalonia internals the compositor path rests on (client setter equality guard, a set removing the running server animation, `Offset + Translation` composition) are pinned by `CompositorAnimationTests.InvalidateVisualDoesNotStopACompositorFade`, which is re-run on every `AvaloniaVersion` bump. Reason: single-threaded WebAssembly has no separate render thread, and the internals are not public contract.
+- **Render-thread work is a separate API named "Compositor", and a scene owns its engine.** See BRIDGE-SCENES.
+
+## Non-goals
+
+- Timelines on the compositor; per-frame callbacks; blend composition; reading live server values back (`Get` returns the UI-side value).
+- A thread mode on XAML entry points (`Animate.OnAttached`, `Presence`, recipes): they stay on the UI thread (see "The thread is an argument on bridge entry points").
+- Thousands of targets: each target gets its own mirror and composition animations.
+
+## Open items
+
+- An alternating animation with a `LoopDelay` and an odd iteration count compiles ⌈n/2⌉ two-iteration cycles, so the render thread appears to play one extra iteration and end on the start value while the mirror reports the end value. No test covers an odd count.
+- A non-`Visual` target throws `InvalidCastException`, including under `PreferCompositor`, which "The thread is an argument on bridge entry points" describes as never throwing.
+- `RunOnCompositor` silently drops settings outside the unsupported list that have no compositor meaning, such as `AvaloniaAnimationParams.WhenDetached`.
+- After `Cancel`, the `Animation`-priority `Visual.Opacity` hold stays until `Revert`, so `Visual.Opacity` reports the last pushed value rather than the drawn one and masks later local writes. Untested.
+- Untested: `ThreadedAnimation` delegation (008), seeding from another animation's mirror (015), wall-clock scaling and the 1 ms floor (026), start on attach (030), the control mirror's timing reads (039), `OnBegin`/`OnComplete` firing rules (041).

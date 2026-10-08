@@ -158,7 +158,7 @@ public sealed class PopoverFlyoutTests : CompositorTestBase
         Assert.Equal(1, menu.Opacity);
     }
 
-    /// <summary>PLAN.md decision 96: a flyout cannot tell a reopen from a repeated close, so only a new target replays Open.</summary>
+    /// <summary>A flyout cannot tell a reopen from a repeated close, so only a new target replays Open.</summary>
     [AvaloniaTheory]
     [InlineData("flyout", false)]
     [InlineData("flyout", true)]

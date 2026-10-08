@@ -5,7 +5,7 @@ namespace Monaco.Presto.Tests;
 
 /// <summary>
 /// CSS Color 4 conversions, gamut mapping, <see cref="PrestoColor.Mix"/> and the relative-color helpers against culori,
-/// dumped to colors.json by tools/anime-fixtures (docs/COLOR-SPACES-PLAN.md decision 2 and §4).
+/// dumped to colors.json by tools/anime-fixtures.
 /// </summary>
 public sealed class ColorConversionTests
 {
