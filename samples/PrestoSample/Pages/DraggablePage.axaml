@@ -1,10 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
-             x:Class="PrestoSample.Pages.DraggablePage">
-    <UserControl.Styles>
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:vm="clr-namespace:PrestoSample.ViewModels"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoSample.Pages.DraggablePage">
+    <showcase:ShowcasePage.Styles>
         <Style Selector="Border.card">
             <Setter Property="Width" Value="150" />
             <Setter Property="CornerRadius" Value="10" />
@@ -16,11 +18,7 @@
             <Setter Property="Foreground" Value="#101010" />
             <Setter Property="MinHeight" Value="28" />
         </Style>
-
-        <Style Selector="TextBlock.readout">
-            <Setter Property="FontSize" Value="15" />
-        </Style>
-    </UserControl.Styles>
+    </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
         <StackPanel Spacing="12">
@@ -32,7 +30,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <TextBlock x:Name="SpringCode" Classes="code" />
+            <showcase:CodePanel x:Name="SpringCode" />
 
             <Border Classes="stage" Padding="0" Height="300">
                 <Canvas x:Name="Stage">
@@ -64,24 +62,35 @@
             </Border>
 
             <Grid ColumnDefinitions="Auto,70,Auto,70,Auto,70,Auto,70" ColumnSpacing="8">
-                <TextBlock Grid.Column="0" Classes="code" Text="X" />
-                <TextBlock Grid.Column="1" x:Name="XText" Classes="readout" />
-                <TextBlock Grid.Column="2" Classes="code" Text="Y" />
-                <TextBlock Grid.Column="3" x:Name="YText" Classes="readout" />
-                <TextBlock Grid.Column="4" Classes="code" Text="ProgressX" />
-                <TextBlock Grid.Column="5" x:Name="ProgressXText" Classes="readout" />
-                <TextBlock Grid.Column="6" Classes="code" Text="ProgressY" />
-                <TextBlock Grid.Column="7" x:Name="ProgressYText" Classes="readout" />
+                <TextBlock Grid.Column="0" Classes="mono" Text="X" />
+                <TextBlock Grid.Column="1" x:Name="XText" Classes="readout small" />
+                <TextBlock Grid.Column="2" Classes="mono" Text="Y" />
+                <TextBlock Grid.Column="3" x:Name="YText" Classes="readout small" />
+                <TextBlock Grid.Column="4" Classes="mono" Text="ProgressX" />
+                <TextBlock Grid.Column="5" x:Name="ProgressXText" Classes="readout small" />
+                <TextBlock Grid.Column="6" Classes="mono" Text="ProgressY" />
+                <TextBlock Grid.Column="7" x:Name="ProgressYText" Classes="readout small" />
             </Grid>
 
-            <TextBlock x:Name="CountsText" Classes="code" />
+            <TextBlock x:Name="CountsText" Classes="mono" />
 
             <Border Background="#18808080" CornerRadius="6" Padding="10" Height="120">
-                <TextBlock x:Name="LogText" Classes="code" VerticalAlignment="Top" />
+                <TextBlock x:Name="LogText" Classes="mono" VerticalAlignment="Top" />
             </Border>
+
+            <showcase:CodePanel x:Name="SnapCode" Header="Snap card" />
+            <showcase:CodePanel x:Name="RailCode" Header="Rail" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The blue card is bounded by the stage and thrown on release by a soft spring, so flicking it at an edge lets it push past the bound and settle back on it — the readout and the log above follow that one. The Inertia release instead coasts it to rest on a 40 unit grid and bounces it off the stage edge. The yellow card snaps to a 40 unit grid, reporting every step it crosses through OnSnap. The rail only moves along x and is grabbed by its handle rather than by itself. All three take the grab and grabbing cursors and are created in a scope, so leaving the page reverts them." />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A draggable follows one pointer. For two-finger pan, pinch-zoom and rotate, see Transformable on the Photo viewer showcase page." />
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Classes="caption" VerticalAlignment="Center" Text="How the release spring's bounce and settling are set, and a throw with the release velocity:" />
+                <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
+                                 Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</showcase:ShowcasePage>

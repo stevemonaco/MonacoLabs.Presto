@@ -1,61 +1,52 @@
-using System;
-using System.Collections.Generic;
-using Avalonia;
 using Avalonia.Controls;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Draggables;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class DraggablePage : UserControl
+public partial class DraggablePage : ShowcasePage
 {
     private const int LogLines = 6;
 
     private readonly List<string> _log = [];
     private int _drags;
     private int _updates;
-    private ControlScope? _scope;
     private Draggable? _spring;
 
     public DraggablePage() => InitializeComponent();
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    protected override void OnAttached()
     {
-        base.OnAttachedToVisualTree(e);
-
-        _scope = PrestoAvalonia.CreateScope(this);
-        _scope.Execute(_ =>
+        SnapCode.Code = Snippet.Of(PrestoAvalonia.CreateDraggable(SnapCard, new() { Container = Stage, Snap = Utils.Snap(40) })).Code;
+        RailCode.Code = Snippet.Of(PrestoAvalonia.CreateDraggable(Rail, new()
         {
-            PrestoAvalonia.CreateDraggable(SnapCard, new() { Container = Stage, Snap = Utils.Snap(40) });
-            PrestoAvalonia.CreateDraggable(Rail, new()
-            {
-                Container = Stage,
-                Trigger = Handle,
-                Y = new DraggableAxisParams { Enabled = false },
-            });
-        });
+            Container = Stage,
+            Trigger = Handle,
+            Y = new DraggableAxisParams { Enabled = false },
+        })).Code;
         CreateSpring();
     }
 
     private void ReleaseChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (_scope is null) return;
-        _spring?.Revert();
-        CreateSpring();
+        if (_spring is null) return;
+        Scope.Execute(_ =>
+        {
+            _spring.Revert();
+            CreateSpring();
+        });
     }
 
     private void CreateSpring()
     {
-        var inertia = ReleaseBox.SelectedIndex == 1;
-        var release = inertia ? "ReleaseInertia = new Inertia(0) { ModifyTarget = Utils.Snap(40) }" : "ReleaseStiffness = 40, ReleaseDamping = 8";
-        SpringCode.Text = $"PrestoAvalonia.CreateDraggable(SpringCard, new() {{ Container = Stage, {release}, OnGrab = …, OnSnap = …, OnRelease = …, OnSettle = … }})";
-        _spring = _scope!.Execute(_ => PrestoAvalonia.CreateDraggable(SpringCard, new()
+        var (release, releaseCode) = ReleaseBox.SelectedIndex == 1
+            ? Snippet.Of(new DraggableParams { ReleaseInertia = new Inertia(0) { ModifyTarget = Utils.Snap(40) } })
+            : Snippet.Of(new DraggableParams { ReleaseStiffness = 40, ReleaseDamping = 8 });
+        (_spring, var code) = Snippet.Of(PrestoAvalonia.CreateDraggable(SpringCard, release with
         {
             Container = Stage,
-            ReleaseStiffness = 40,
-            ReleaseDamping = 8,
-            ReleaseInertia = inertia ? new Inertia(0) { ModifyTarget = Utils.Snap(40) } : null,
             OnGrab = Record("OnGrab"),
             OnSnap = Record("OnSnap"),
             OnRelease = Record("OnRelease"),
@@ -69,6 +60,7 @@ public partial class DraggablePage : UserControl
             // The progress readouts are a ratio of the container bounds, which are only real once it has been measured.
             OnAfterResize = ShowState,
         }));
+        SpringCode.Code = $"var release = {releaseCode};\n\n{code}";
         ShowState(_spring);
     }
 

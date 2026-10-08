@@ -1,4 +1,4 @@
-﻿using Monaco.Presto.Values;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto.Core;
 
@@ -56,6 +56,7 @@ internal static class Renderer
         tickable._currentTime = tickableAbsoluteTime;
         tickable._iterationTime = iterationTime;
         tickable.Backwards = isRunningBackwards;
+        tickable._progressValue?.Assign(tickable.Progress);
 
         if (isCurrentTimeAboveZero && !tickable.Began)
         {
@@ -145,7 +146,8 @@ internal static class Renderer
                         )))
                     {
                         var tweenNewTime = tween._currentTime = Helpers.Clamp(iterationTime - tween._startTime, 0, tweenChangeDuration);
-                        var tweenProgress = tween._ease(tweenNewTime / tween._updateDuration);
+                        var tweenTime = tweenNewTime / tween._updateDuration;
+                        var tweenProgress = tween._ease(tweenTime);
                         var tweenModifier = tween._modifier;
                         var tweenValueType = tween._valueType;
                         var tweenIsNumber = tweenValueType == ValueKind.Number;
@@ -162,17 +164,19 @@ internal static class Renderer
                             var ns = tween._numbers;
                             var fn = tween._fromNumbers;
                             var tn = tween._toNumbers;
-                            var omt = 1 - tweenProgress;
+                            var channelEases = tween._channelEases;
                             // RGB channels lerp in pseudo-linear space (square inputs, square-root result) to approximate gamma correct blending.
-                            ns[0] = tweenModifier(Math.Sqrt(fn[0] * fn[0] * omt + tn[0] * tn[0] * tweenProgress));
-                            ns[1] = tweenModifier(Math.Sqrt(fn[1] * fn[1] * omt + tn[1] * tn[1] * tweenProgress));
-                            ns[2] = tweenModifier(Math.Sqrt(fn[2] * fn[2] * omt + tn[2] * tn[2] * tweenProgress));
-                            ns[3] = tweenModifier(Helpers.Lerp(fn[3], tn[3], tweenProgress));
+                            // Blended deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
+                            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Blend;
+                            ns[0] = tweenModifier(ColorLerp(fn[0], tn[0], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
+                            ns[1] = tweenModifier(ColorLerp(fn[1], tn[1], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
+                            ns[2] = tweenModifier(ColorLerp(fn[2], tn[2], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
+                            ns[3] = tweenModifier(Helpers.Lerp(fn[3], tn[3], channelEases == null ? tweenProgress : channelEases[3](tweenTime)));
                             number = double.NaN;
                         }
                         else
                         {
-                            tween.ComposeComplexNumbers(tweenProgress, tweenPrecision);
+                            tween.ComposeComplexNumbers(tweenProgress, tweenTime, tweenPrecision);
                             number = double.NaN;
                         }
 
@@ -266,9 +270,10 @@ internal static class Renderer
             {
                 var tlIterationDuration = tickable.IterationDuration;
                 var child = tickable._head;
+                tickable._nextChildIsPrev = false;
                 while (child != null)
                 {
-                    var nextChild = child._next;
+                    tickable._nextChild = child._next;
                     if (!tlIsRunningBackwards)
                     {
                         if (!child.Completed && !child.Backwards && child._currentTime < child.IterationDuration)
@@ -288,15 +293,16 @@ internal static class Renderer
                             child.OnComplete?.Invoke(child);
                         }
                     }
-                    child = nextChild;
+                    child = tickable._nextChild;
                 }
                 if (!muteCallbacks) tickable.OnLoop?.Invoke(tickable);
             }
 
             var activeChild = tlIsRunningBackwards ? tickable._tail : tickable._head;
+            tickable._nextChildIsPrev = tlIsRunningBackwards;
             while (activeChild != null)
             {
-                var nextActiveChild = tlIsRunningBackwards ? activeChild._prev : activeChild._next;
+                tickable._nextChild = tlIsRunningBackwards ? activeChild._prev : activeChild._next;
                 // Rounding is needed when using seconds.
                 var childTime = Helpers.Round((tlChildrenTime - activeChild._offset) * activeChild._speed, 12);
                 // Past-end siblings are skipped on backward iteration so their end values do not overwrite the active sibling's write.
@@ -306,7 +312,7 @@ internal static class Renderer
                     tlChildrenHasRendered |= Render(activeChild, childTime, muteCallbacks, internalRender, childTickMode);
                     if (!activeChild.Completed && tlChildrenHaveCompleted) tlChildrenHaveCompleted = false;
                 }
-                activeChild = nextActiveChild;
+                activeChild = tickable._nextChild;
             }
 
             // Renders on a timeline are triggered by its children, so this follows the child loop.
@@ -327,4 +333,21 @@ internal static class Renderer
             }
         }
     }
+
+    /// <summary>
+    /// A color channel at <paramref name="progress"/>, premultiplied by the channel's own alpha as CSS Color 4 does. A frame whose
+    /// alpha eases to zero or below has nothing to divide by and falls back to the straight blend.
+    /// </summary>
+    internal static double ColorLerp(double from, double to, double fromAlpha, double toAlpha, bool premultiplied, double progress)
+    {
+        if (!premultiplied) return SquaredLerp(from, to, progress);
+        if (progress == 0) return from;
+        if (progress == 1) return to;
+        var alpha = Helpers.Lerp(fromAlpha, toAlpha, progress);
+        if (alpha <= 0) return SquaredLerp(from, to, progress);
+        return Math.Sqrt(Math.Max(0, Helpers.Lerp(fromAlpha * from * from, toAlpha * to * to, progress) / alpha));
+    }
+
+    // Clamped because an overshooting ease can push the sum below zero.
+    private static double SquaredLerp(double from, double to, double progress) => Math.Sqrt(Math.Max(0, from * from * (1 - progress) + to * to * progress));
 }

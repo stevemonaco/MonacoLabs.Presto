@@ -25,9 +25,10 @@ internal sealed class DrawAccessor : IPropertyAccessor
 
     public void SetValue(object target, double number, Tween tween) => Apply((Shape)target, tween._numbers[0], tween._numbers[1]);
 
-    public void Revert(object target, object? originalValue)
+    public void Revert(object target, object? originalValue) => Restore((Shape)target);
+
+    internal static void Restore(Shape shape)
     {
-        var shape = (Shape)target;
         if (!s_states.TryGetValue(shape, out var state)) return;
         s_states.Remove(shape);
         state.Restore(shape);

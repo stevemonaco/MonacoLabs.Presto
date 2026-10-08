@@ -3,7 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -17,7 +19,7 @@ public sealed class GesturesPageTests
         var window = SceneHarness.Show(page, 712, 440);
         var feed = page.GetControl<StackPanel>("Feed");
 
-        Drag(window, SceneHarness.Centre(feed.Children[0], window), new Vector(0, 200));
+        Drag(window, SceneHarness.Center(feed.Children[0], window), new Vector(0, 200));
         TestFrames.Tick(150);
 
         Assert.Equal(11, feed.Children.Count);
@@ -29,17 +31,18 @@ public sealed class GesturesPageTests
     {
         var page = new GesturesPage();
         var window = SceneHarness.Show(page, 712, 440);
-        var inbox = page.GetControl<StackPanel>("Inbox");
-        var first = inbox.Children[0];
+        var inbox = page.GetControl<ItemsControl>("Inbox");
+        var first = inbox.Items[0];
+        var row = inbox.ContainerFromIndex(0)!;
 
-        Drag(window, SceneHarness.Centre(first, window), new Vector(first.Bounds.Width * .6, 0));
+        Drag(window, SceneHarness.Center(row, window), new Vector(row.Bounds.Width * .6, 0));
         TestFrames.Tick(90);
-        Assert.Equal(7, inbox.Children.Count);
+        Assert.Equal(7, inbox.ItemCount);
 
         SceneHarness.Click(window, page.GetControl<Button>("UndoButton"));
         TestFrames.Tick(60);
-        Assert.Equal(8, inbox.Children.Count);
-        Assert.Same(first, inbox.Children[0]);
+        Assert.Equal(8, inbox.ItemCount);
+        Assert.Same(first, inbox.Items[0]);
         SceneHarness.Close(window);
     }
 
@@ -49,19 +52,40 @@ public sealed class GesturesPageTests
         var page = new GesturesPage();
         var window = SceneHarness.Show(page, 712, 440);
         TestFrames.Tick(30);
-        var shade = page.GetControl<Border>("Shade");
+        var curtain = page.GetControl<Sheet>("Curtain");
         var home = page.GetControl<StackPanel>("Home");
-        var travel = page.GetControl<Panel>("CurtainStage").Bounds.Height - 28;
-        Assert.Equal(-travel, TranslateY(shade), 1);
+        var height = page.GetControl<Panel>("CurtainStage").Bounds.Height;
+        Assert.Equal(28, curtain.Position.Value, 1);
 
         SceneHarness.Click(window, page.GetControl<Border>("Handle"));
-        TestFrames.Tick(60);
-        Assert.Equal(-travel / 2, TranslateY(shade), 1);
-        Assert.Equal(.3 * travel / 2, TranslateY(home), 1);
+        TestFrames.Tick(150);
+        Assert.Equal(height / 2, curtain.Position.Value, 1);
+        Assert.Equal(.3 * (height / 2 - 28), TranslateY(home), 1);
 
         SceneHarness.Click(window, page.GetControl<Border>("Handle"));
-        TestFrames.Tick(60);
-        Assert.Equal(0, TranslateY(shade), 1);
+        TestFrames.Tick(150);
+        Assert.Equal(height, curtain.Position.Value, 1);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void PullingTheCurtainHalfwaySinksShrinksAndDimsTheContentWithIt()
+    {
+        var page = new GesturesPage();
+        var window = SceneHarness.Show(page, 712, 440);
+        TestFrames.Tick(30);
+        var curtain = page.GetControl<Sheet>("Curtain");
+        var home = page.GetControl<StackPanel>("Home");
+        var height = page.GetControl<Panel>("CurtainStage").Bounds.Height;
+        var pulled = (height / 2 - 28) / (height - 28);
+
+        Drag(window, SceneHarness.Center(page.GetControl<Border>("Handle"), window), new Vector(0, (height - 28) / 2));
+        TestFrames.Tick(150);
+
+        Assert.Equal(height / 2, curtain.Position.Value, 1);
+        Assert.Equal(.3 * (height / 2 - 28), TranslateY(home), 1);
+        Assert.Equal(1 - (.06 * pulled), Convert.ToDouble(PrestoAvalonia.Get(home, "Scale")), 3);
+        Assert.Equal(pulled, curtain.GetVisualChildren().OfType<Border>().First().Opacity, 3);
         SceneHarness.Close(window);
     }
 
@@ -71,9 +95,10 @@ public sealed class GesturesPageTests
         var page = new GesturesPage();
         var window = SceneHarness.Show(page, 712, 440);
         TestFrames.Tick(30);
-        var sheet = page.GetControl<Border>("Sheet");
-        Assert.Equal(sheet.Bounds.Height - 28, TranslateY(sheet), 1);
-        var grab = sheet.TranslatePoint(new Point(sheet.Bounds.Width / 2, 14), window)!.Value;
+        var sheet = page.GetControl<Sheet>("QueueSheet");
+        Assert.Equal(52, sheet.Position.Value, 1);
+        var content = sheet.Content!;
+        var grab = content.TranslatePoint(new Point(content.Bounds.Width / 2, 14), window)!.Value;
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 4; i++)
@@ -82,15 +107,15 @@ public sealed class GesturesPageTests
             TestFrames.Tick();
         }
         window.MouseUp(grab - new Vector(0, 160), MouseButton.Left);
-        var peak = double.MaxValue;
+        var peak = 0d;
         for (var i = 0; i < 120; i++)
         {
             TestFrames.Tick();
-            peak = Math.Min(peak, TranslateY(sheet));
+            peak = Math.Max(peak, sheet.Position.Value);
         }
 
-        Assert.True(peak < -1, $"the sheet peaked at {peak}");
-        Assert.Equal(0, TranslateY(sheet), 1);
+        Assert.True(peak > sheet.Bounds.Height + 1, $"the sheet peaked at {peak}");
+        Assert.Equal(sheet.Bounds.Height, sheet.Position.Value, 1);
         SceneHarness.Close(window);
     }
 

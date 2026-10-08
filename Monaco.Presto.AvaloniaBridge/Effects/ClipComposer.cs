@@ -13,8 +13,8 @@ namespace Monaco.Presto.AvaloniaBridge.Effects;
 /// is laid out from the visual's bounds and follows them while installed, so a <c>%</c> inset or a circle tracks a resize.
 /// </summary>
 /// <remarks>
-/// <c>ClipCircle</c> is a radius fraction, 1 reaching the corner farthest from the centre. MOTION-KIT §3.2 gives it a centre
-/// too, which one scalar cannot carry, so the centre is the companion <c>ClipCircleCenter</c>, a <see cref="RelativePoint"/>
+/// <c>ClipCircle</c> is a radius fraction, 1 reaching the corner farthest from the center. MOTION-KIT §3.2 gives it a center
+/// too, which one scalar cannot carry, so the center is the companion <c>ClipCircleCenter</c>, a <see cref="RelativePoint"/>
 /// defaulting to 50%,50%. A visual holds one clip, so an inset and a circle cannot animate it at once; one after the other
 /// switches the kind. A reveal that ends at full visibility, every inset 0 or a radius of 1, is removed.
 /// </remarks>
@@ -155,10 +155,10 @@ internal sealed class ClipComposer
         var size = visual.Bounds.Size;
         if (_kinds.IsKindB)
         {
-            var centre = _center.ToPixels(size);
-            var corner = new Vector(Math.Max(centre.X, size.Width - centre.X), Math.Max(centre.Y, size.Height - centre.Y));
+            var center = _center.ToPixels(size);
+            var corner = new Vector(Math.Max(center.X, size.Width - center.X), Math.Max(center.Y, size.Height - center.Y));
             var radius = Math.Max(0, _radius) * corner.Length;
-            _ellipse!.Rect = new Rect(centre.X - radius, centre.Y - radius, radius * 2, radius * 2);
+            _ellipse!.Rect = new Rect(center.X - radius, center.Y - radius, radius * 2, radius * 2);
             return;
         }
         var left = Side(0, size.Width);

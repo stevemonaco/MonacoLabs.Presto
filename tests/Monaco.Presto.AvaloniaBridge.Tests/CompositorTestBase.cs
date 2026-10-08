@@ -1,19 +1,33 @@
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary>
 /// Drives compositor frames from a headless test: the render timer runs a whole compositor frame synchronously on the
-/// UI thread, and scene time is the compositor's own stopwatch, so the pumps let real time pass between frames.
+/// UI thread, and the compositor's clock is frozen, so the pumps move it on by <see cref="Frame"/> per frame instead of waiting.
+/// The engine's frame source still moves only on <c>Frames.Advance</c>, so a test that needs the two in step advances both.
 /// </summary>
-public abstract class CompositorTestBase : BridgeTestBase
+public abstract class CompositorTestBase : BridgeTestBase, IDisposable
 {
+    protected const double Frame = 16;
+
+    protected CompositorTestBase() => CompositorClock.Install();
+
+    public virtual void Dispose() => CompositorClock.Uninstall();
+
     /// <summary>Shows <paramref name="canvas"/> in a window and ticks once, which is when the batched attach message reaches the handler.</summary>
     protected static (StackPanel Panel, CompositorCanvas Canvas) Show(CompositorCanvas canvas)
     {
@@ -38,10 +52,7 @@ public abstract class CompositorTestBase : BridgeTestBase
         return bar;
     }
 
-    /// <summary>
-    /// Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them, even in the
-    /// first test of a run, whose first compositor frame also counts the JIT time since the frame before it.
-    /// </summary>
+    /// <summary>Long enough that neither the rendered move nor the mirror gets anywhere while the test looks at them.</summary>
     protected const double Held = 600000;
 
     protected static AnimationBuilder HeldMove => Presto.Build().Duration(Held).Ease(Eases.None);
@@ -64,22 +75,47 @@ public abstract class CompositorTestBase : BridgeTestBase
         return done();
     });
 
-    /// <summary>Commits what the UI thread has queued for the compositor, as a real frame does, then runs one compositor frame.</summary>
-    protected static void Tick()
+    /// <summary>
+    /// Commits what the UI thread has queued for the compositor, as a real frame does, then runs one compositor frame
+    /// <paramref name="ms"/> after the commit.
+    /// </summary>
+    protected static void Tick(double ms = 0)
     {
         Dispatcher.UIThread.RunJobs();
+        // Avalonia draws a key frame animation at exactly zero elapsed as its last key, so no frame lands on its commit.
+        CompositorClock.Advance(ms + .001);
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     }
 
-    /// <summary>Ticks until <paramref name="until"/> holds or <paramref name="rounds"/> run out.</summary>
-    protected static async Task<bool> Pump(Func<bool> until, int rounds = 120)
+    /// <summary>Ticks through <paramref name="ms"/> of virtual time.</summary>
+    protected static void TickFor(double ms)
     {
-        for (var i = 0; i < rounds && !until(); i++)
+        for (var elapsed = 0d; elapsed < ms; elapsed += Frame) Tick(Frame);
+    }
+
+    /// <summary>Advances the engine and the compositor together, a <see cref="Frame"/> at a time.</summary>
+    protected void Run(int frames)
+    {
+        for (var i = 0; i < frames; i++)
         {
-            Tick();
-            await Task.Delay(8);
+            Frames.Advance(Frame);
+            Tick(Frame);
         }
+    }
+
+    /// <summary>Ticks a <see cref="Frame"/> at a time until <paramref name="until"/> holds or <paramref name="rounds"/> run out.</summary>
+    protected static bool Pump(Func<bool> until, int rounds = 120)
+    {
+        for (var i = 0; i < rounds && !until(); i++) Tick(Frame);
         return until();
+    }
+
+    /// <summary>Asserts each channel of <paramref name="actual"/> is within <paramref name="tolerance"/> of <paramref name="expected"/>.</summary>
+    protected static void AssertNear(Color expected, Color actual, int tolerance = 2)
+    {
+        Assert.InRange(actual.R, expected.R - tolerance, expected.R + tolerance);
+        Assert.InRange(actual.G, expected.G - tolerance, expected.G + tolerance);
+        Assert.InRange(actual.B, expected.B - tolerance, expected.B + tolerance);
     }
 
     /// <summary>The pixels of the last frame the window holding <paramref name="visual"/> rendered.</summary>
@@ -122,6 +158,142 @@ public abstract class CompositorTestBase : BridgeTestBase
 
     protected static double Top(Visual visual) => Box(visual).Top;
 
+    protected static List<Canvas> Ghosts(Visual visual) => OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<Canvas>().ToList();
+
+    /// <summary>Shows <paramref name="content"/> at the top of a white 200x200 window, ticked once.</summary>
+    protected static void ShowWhite(Control content)
+    {
+        new Window { Content = new StackPanel { Children = { content } }, Background = Brushes.White, Width = 200, Height = 200 }.Show();
+        Tick();
+    }
+
+    /// <summary>A lime 40x20 bar, the popup content the popup tests look for in the rendered frame.</summary>
+    protected static Border Lime() => new() { Width = 40, Height = 20, Background = Brushes.Lime };
+
+    /// <summary>Shows a white 200x200 window with a 60x30 button at its top left, ticked once.</summary>
+    protected static (Window Window, Button Anchor) PopupStage()
+    {
+        var anchor = new Button { Width = 60, Height = 30, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        var window = new Window { Content = new Panel { Children = { anchor } }, Background = Brushes.White, Width = 200, Height = 200 };
+        window.Show();
+        Tick();
+        return (window, anchor);
+    }
+
+    protected static void Press(Window window, Point at)
+    {
+        window.MouseDown(at, MouseButton.Left);
+        window.MouseUp(at, MouseButton.Left);
+    }
+
+    /// <summary>Dismisses an open popup by <paramref name="path"/>: <c>"light"</c> presses outside it, <c>"escape"</c> sends Escape to it, and anything else calls <paramref name="close"/>.</summary>
+    protected static void Dismiss(Window window, Control presenter, string path, Action close)
+    {
+        switch (path)
+        {
+            case "light":
+                Press(window, new Point(150, 150));
+                break;
+            case "escape":
+                var target = presenter is MenuBase menu ? menu.Items.OfType<MenuItem>().First() : presenter;
+                target.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape, Source = target });
+                break;
+            default:
+                close();
+                break;
+        }
+    }
+
+    /// <summary>Gives <paramref name="anchor"/> a <see cref="Lime"/> tip with no delay and hovers it open, returning the open <see cref="ToolTip"/>.</summary>
+    protected static ToolTip Hover(Window window, Control anchor)
+    {
+        ToolTip.SetTip(anchor, Lime());
+        ToolTip.SetShowDelay(anchor, 0);
+        window.MouseMove(new Point(20, 10));
+        Tick();
+        return window.GetVisualDescendants().OfType<ToolTip>().Single();
+    }
+
+    /// <summary>Closes the tip over <paramref name="anchor"/> by <paramref name="path"/>: <c>"local"</c> writes <c>IsOpen</c>, <c>"leave"</c> moves the pointer away, and anything else presses the anchor.</summary>
+    protected static void CloseTip(Window window, Control anchor, string path)
+    {
+        switch (path)
+        {
+            case "local":
+                ToolTip.SetIsOpen(anchor, false);
+                break;
+            case "leave":
+                window.MouseMove(new Point(150, 150));
+                break;
+            default:
+                Press(window, new Point(20, 10));
+                break;
+        }
+    }
+
+    /// <summary>Shows <paramref name="content"/> in a white 100x200 window, ticked once.</summary>
+    protected static T ShowInWindow<T>(T content) where T : Control
+    {
+        new Window { Content = content, Background = Brushes.White, Width = 100, Height = 200 }.Show();
+        Tick();
+        return content;
+    }
+
+    protected const double RowHeight = 20;
+
+    protected static Border Row(ItemsControl list, IBrush background) =>
+        list.GetVisualDescendants().OfType<Border>().Single(row => row.Background == background && row.IsEffectivelyVisible);
+
+    /// <summary>A 100-high list box of <see cref="Rows"/> whose containers are exactly as high as their rows.</summary>
+    protected static ListBox VirtualizedList(ObservableCollection<string> items, Func<string, double>? height = null, Action<Border>? decorate = null) => new()
+    {
+        Height = 100,
+        VerticalAlignment = VerticalAlignment.Top,
+        ItemsSource = items,
+        ItemTemplate = Rows(height, decorate),
+        Styles =
+        {
+            new Style(x => x.OfType<ListBoxItem>())
+            {
+                Setters = { new Setter(TemplatedControl.PaddingProperty, new Thickness(0)), new Setter(Layoutable.MinHeightProperty, 0d) },
+            },
+        },
+    };
+
+    /// <summary>Blue 40-wide rows, but red for the item "red" and a lime 60-wide one for "green"; only red always keeps <see cref="RowHeight"/>.</summary>
+    protected static FuncDataTemplate<string> Rows(Func<string, double>? height = null, Action<Border>? decorate = null) => new((item, _) =>
+    {
+        var row = new Border
+        {
+            Width = item == "green" ? 60 : 40,
+            Height = item is null or "red" ? RowHeight : height?.Invoke(item) ?? RowHeight,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = item switch { "red" => Brushes.Red, "green" => Brushes.Lime, _ => Brushes.Blue },
+        };
+        decorate?.Invoke(row);
+        return row;
+    }, supportsRecycling: false);
+
+    /// <summary>A point inside the "red" row of <see cref="ReorderList"/>.</summary>
+    protected static readonly Point OnRed = new(10, 30);
+
+    /// <summary>
+    /// Shows rows "a", "red", "green", "d", "e" in a <see cref="VirtualizedList"/> or a non-virtualizing <see cref="ItemsControl"/>,
+    /// whose <paramref name="template"/> replaces <see cref="Rows"/>; <paramref name="itemLayout"/> sets <see cref="HeldMove"/> as its item layout.
+    /// </summary>
+    protected static (ItemsControl List, ObservableCollection<string> Items) ReorderList(
+        bool virtualized, bool itemLayout = false, Action<Border>? decorate = null, FuncDataTemplate<string>? template = null)
+    {
+        ObservableCollection<string> items = ["a", "red", "green", "d", "e"];
+        var list = virtualized
+            ? VirtualizedList(items, decorate: decorate)
+            : new ItemsControl { ItemsSource = items, ItemTemplate = template ?? Rows(decorate: decorate), VerticalAlignment = VerticalAlignment.Top };
+        if (itemLayout) Animate.SetItemLayout(list, HeldMove);
+        return (ShowInWindow(list), items);
+    }
+
+    protected static Window WindowOf(Visual visual) => (Window)TopLevel.GetTopLevel(visual)!;
+
     /// <summary>The layout slot of <paramref name="control"/> in window coordinates.</summary>
     protected static Rect SlotOf(Control control) =>
         new(control.TranslatePoint(default, TopLevel.GetTopLevel(control)!)!.Value, control.Bounds.Size);
@@ -141,6 +313,19 @@ public abstract class CompositorTestBase : BridgeTestBase
             }
         }
         return count;
+    }
+
+    /// <summary>Row <paramref name="y"/> of the last frame the window holding <paramref name="visual"/> rendered.</summary>
+    protected static Color[] Row(Visual visual, int y)
+    {
+        var (pixels, stride) = Read(visual);
+        var row = new Color[stride / 4];
+        for (var x = 0; x < row.Length; x++)
+        {
+            var i = (y * stride) + (x * 4);
+            row[x] = Color.FromRgb(pixels[i], pixels[i + 1], pixels[i + 2]);
+        }
+        return row;
     }
 
     private static (byte[] Pixels, int Stride) Read(Visual visual)

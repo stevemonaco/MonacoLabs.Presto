@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -8,6 +7,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -85,43 +85,89 @@ public sealed class StorefrontPageTests
         Assert.Equal("1", badge.GetLogicalDescendants().OfType<TextBlock>().Single().Text);
         Assert.NotEmpty(Presto.GetAnimations(badge));
         Assert.Single(page.GetControl<StackPanel>("CartShelf").Children);
+        Assert.Single(SceneHarness.ParticleOverlays(page));
         SceneHarness.Close(window);
     }
 
     [AvaloniaFact]
-    public void QuickViewOpensOverABlurredGridAndLeavesThroughItsExit()
+    public void WithReducedMotionOnAddingToTheCartFadesTheBadgeWithoutParticles()
+    {
+        var probe = Color.FromRgb(255, 0, 211);
+        var (window, page) = Loaded();
+        var badge = page.GetControl<Border>("Badge");
+        using var reduced = ReducedMotion.On();
+
+        SceneHarness.Click(window, Button(Cards(page).First(), "Add"));
+        var thumb = (Border)page.GetControl<StackPanel>("CartShelf").Children[0];
+        thumb.Child = null;
+        SceneHarness.Flood(thumb, probe);
+        TestFrames.Tick(2);
+
+        Assert.Equal(1, page.ViewModel.CartCount);
+        Assert.InRange(badge.Opacity, 0, 0.99);
+        Assert.Equal(1, (double)(PrestoAvalonia.Get(badge, "Scale") ?? 1d), 6);
+        Assert.Empty(SceneHarness.ParticleOverlays(page));
+        Assert.True(SceneHarness.Extent(page, probe) is { } drawn && SceneHarness.Near(drawn, SceneHarness.Slot(thumb, window)), "the cart thumbnail did not land in the shelf at once");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ClickingACardOpensItsQuickViewOverABlurredGridAndCloseHidesIt()
     {
         var (window, page) = Loaded();
-        var product = page.ViewModel.Shown[0];
+        var card = Cards(page).First(card => !((Product)card.DataContext!).SoldOut);
+        var product = (Product)card.DataContext!;
+        var quick = page.GetControl<Modal>("QuickHost");
 
-        SceneHarness.Click(window, Button(Cards(page).First(), "Quick view"));
+        SceneHarness.Click(window, Button(card, "Add"));
+        Assert.False(quick.IsOpen);
+
+        SceneHarness.Click(window, card);
         Assert.Equal(product, page.ViewModel.QuickView);
+        Assert.True(quick.IsOpen);
         TestFrames.Tick(60);
-        Assert.True(page.GetControl<ScrollViewer>("Catalogue").Effect is BlurEffect { Radius: > 5 }, "the grid behind the quick view was not blurred");
+        Assert.True(page.GetControl<ScrollViewer>("Catalog").Effect is BlurEffect { Radius: > 5 }, "the grid behind the quick view was not blurred");
 
-        SceneHarness.Click(window, Button(page.GetControl<ContentControl>("QuickHost"), "Close"));
-        Assert.Null(page.ViewModel.QuickView);
-        Assert.Single(OverlayLayer.GetOverlayLayer(page)!.Children.OfType<Canvas>());
+        SceneHarness.Click(window, Button(quick, "Close"));
+        Assert.False(quick.IsOpen);
 
         TestFrames.Tick(60);
-        Assert.Null(page.GetControl<ScrollViewer>("Catalogue").Effect);
+        Assert.False(quick.Content!.IsEffectivelyVisible);
+        Assert.Null(page.GetControl<ScrollViewer>("Catalog").Effect);
         SceneHarness.Close(window);
     }
 
     [AvaloniaFact]
-    public void WithReducedMotionOnAHoveredCardDoesNotMoveAndLeavingPutsTheFlagBack()
+    public void WithReducedMotionOnAHoveredCardDoesNotMove()
     {
         var (window, page) = Loaded();
         var card = Cards(page).First();
 
-        SceneHarness.Click(window, page.GetControl<ToggleSwitch>("ReducedSwitch"));
-        Assert.True(Presto.Defaults.ReducedMotion);
+        using var reduced = ReducedMotion.On();
+
         window.MouseMove(Top(card, window));
         TestFrames.Tick(30);
         Assert.Equal(0, (double)(PrestoAvalonia.Get(card, "Y") ?? 0d), 6);
-
         SceneHarness.Close(window);
-        Assert.False(Presto.Defaults.ReducedMotion);
+    }
+
+    [AvaloniaFact]
+    public void ASoldOutPictureIsGrayAndColorizesWhileHovered()
+    {
+        var (window, page) = Loaded();
+        var card = Cards(page).First(card => ((Product)card.DataContext!).SoldOut);
+        var picture = card.GetLogicalDescendants().OfType<FilteredImage>().Single();
+        Assert.Equal(1, picture.Grayscale);
+        Assert.False(Button(card, "Add").IsEnabled);
+
+        window.MouseMove(Top(card, window));
+        TestFrames.Tick(30);
+        Assert.Equal(0, picture.Grayscale, 6);
+
+        window.MouseMove(new Point(1, 1));
+        TestFrames.Tick(30);
+        Assert.Equal(1, picture.Grayscale, 6);
+        SceneHarness.Close(window);
     }
 
     private static (Window Window, StorefrontPage Page) Loaded()

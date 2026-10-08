@@ -144,6 +144,25 @@ public sealed class SpringTests : EngineTestBase
         Assert.NotEqual(settlingDuration, spring.SettlingDuration);
     }
 
+    [Theory]
+    [InlineData(1, 100, 10, .5)]
+    [InlineData(4, 100, 40, 1)]
+    [InlineData(1, 100, 40, 2)]
+    public void DampingRatioIsDampingOverCriticalDamping(double mass, double stiffness, double damping, double ratio)
+    {
+        var spring = new Spring(1, 100, 10) { Mass = mass, Stiffness = stiffness, Damping = damping };
+        Assert.Equal(ratio, spring.DampingRatio, 1e-12);
+    }
+
+    // CalculateSDFromBD rounds stiffness and damping to 3 decimals, which leaves zero bounce a hair off exactly 1.
+    [Fact]
+    public void BounceSignPicksTheDampingRegime()
+    {
+        Assert.Equal(1, new Spring(bounce: 0, duration: 500).DampingRatio, 1e-3);
+        Assert.True(new Spring(bounce: .4).DampingRatio < 1);
+        Assert.True(new Spring(bounce: -.4).DampingRatio > 1);
+    }
+
     [Fact]
     public void SecondsModeScalesSettlingDuration()
     {

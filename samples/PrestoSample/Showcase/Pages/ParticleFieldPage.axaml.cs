@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -13,6 +12,7 @@ public partial class ParticleFieldPage : ShowcasePage
     public ParticleFieldPage()
     {
         InitializeComponent();
+        HowCode.Code = $"{Snippets.ParticleFieldDrift}\n\n{Snippets.ParticleFieldBurst}";
         if (OperatingSystem.IsBrowser()) CountSlider.Maximum = BrowserMaximum;
         CountSlider.Value = ParticleFieldScene.DefaultCount;
     }
@@ -44,7 +44,5 @@ public partial class ParticleFieldPage : ShowcasePage
     private void CountChanged(object? sender, RangeBaseValueChangedEventArgs e) =>
         Field.Post(new ParticleFieldScene.SetCount((int)e.NewValue));
 
-    // Posted below Render priority so the button paints its pressed state before the dispatcher stops answering.
-    private void Freeze(object? sender, RoutedEventArgs e) =>
-        Dispatcher.UIThread.Post(() => Thread.Sleep(2000), DispatcherPriority.Background);
+    private void Freeze(object? sender, RoutedEventArgs e) => UiThread.Freeze(TimeSpan.FromSeconds(2));
 }

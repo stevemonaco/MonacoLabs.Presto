@@ -4,7 +4,7 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// A parsed <see cref="MotionState.When"/>: ANDed tokens on the element itself. <see cref="Classes"/> holds each token as
 /// Avalonia's <c>Classes</c> stores it (<c>:pointerover</c>, <c>selected</c>); <see cref="State"/> is the leading bare name.
 /// <c>:pressed</c> and <c>:pointerover</c> go to <see cref="Pressed"/> and <see cref="Hovered"/> instead, since the tracker
-/// synthesises both.
+/// synthesizes both.
 /// </summary>
 internal sealed class MotionCondition
 {
@@ -49,7 +49,7 @@ internal sealed class MotionCondition
         return new MotionCondition(classes.ToArray(), state, pressed, hovered);
     }
 
-    /// <summary>Whether every token holds, given the element's <paramref name="classes"/> (pseudo-classes included), its <c>Motion.State</c> <paramref name="states"/> and its synthesised press and hover.</summary>
+    /// <summary>Whether every token holds, given the element's <paramref name="classes"/> (pseudo-classes included), its <c>Motion.State</c> <paramref name="states"/> and its synthesized press and hover.</summary>
     public bool Matches(ICollection<string> classes, ICollection<string> states, bool pressed = false, bool hovered = false)
     {
         if (State != null && !states.Contains(State)) return false;

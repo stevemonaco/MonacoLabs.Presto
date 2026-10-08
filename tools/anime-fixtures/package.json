@@ -7,5 +7,8 @@
   },
   "dependencies": {
     "animejs": "4.5.0"
+  },
+  "devDependencies": {
+    "culori": "4.0.2"
   }
 }

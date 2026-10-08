@@ -2,9 +2,6 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Shapes;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
@@ -15,105 +12,40 @@ namespace PrestoSample.Showcase.Pages;
 
 public partial class BloomNavPage : ShowcasePage
 {
-    private const double BloomDuration = 620;
-    private const double SwapAt = .65;
-    private const double FadeDuration = 260;
-    private const double Rise = 24;
-    private const double TabInset = 12;
+    public static readonly AnimationBuilder TabGlide = Presto.Build().Duration(420).Ease(Eases.OutExpo);
 
     private static readonly string[] Names = ["Inbox", "Photos", "Music", "Settings"];
     private static readonly ImmutableSolidColorBrush[] Hues = [Palette.Accent, Palette.Aqua, Palette.Violet, Palette.Amber];
 
     private readonly TextBlock[] _labels;
-    private Point? _pressed;
     private int _selected;
 
     public BloomNavPage()
     {
         InitializeComponent();
         _labels = [.. Names.Select((name, i) => new TextBlock { Text = name, Foreground = i == 0 ? Palette.Ink : Palette.InkDim })];
-        for (var i = 0; i < _labels.Length; i++)
-        {
-            var tab = i;
-            var button = new Button { Classes = { "tab" }, Content = _labels[i] };
-            button.Click += (_, _) => Select(tab, button);
-            Tabs.Children.Add(button);
-        }
-        Tabs.AddHandler(PointerPressedEvent, (_, e) => _pressed = e.GetPosition(Stage), RoutingStrategies.Tunnel);
+        foreach (var label in _labels) Tabs.Items.Add(new TabStripItem { Content = label });
+        Tabs.SelectedIndex = 0;
+        Tabs.SelectionChanged += (_, _) => Select(Tabs.SelectedIndex);
         Header.Background = Tint(Hues[0].Color);
-        Stage.Background = Hues[0];
-        Screen.Child = Build(0);
+        Stage.Content = Build(0);
     }
 
-    protected override void OnAttached() => Tabs.LayoutUpdated += PlaceUnderline;
-
-    private void PlaceUnderline(object? sender, EventArgs e)
+    private void Select(int tab)
     {
-        if (Tabs.Bounds.Width == 0) return;
-        Tabs.LayoutUpdated -= PlaceUnderline;
-        var (x, width) = Slot(_selected);
-        PrestoAvalonia.Set(Underline, new AvaloniaAnimationParams { ["X"] = x, ["Width"] = width });
-    }
-
-    private (double X, double Width) Slot(int tab)
-    {
-        var bounds = Tabs.Children[tab].Bounds;
-        return (bounds.X + TabInset, bounds.Width - (2 * TabInset));
-    }
-
-    // A keyboard click has no pointer press behind it, so the bloom grows from the tab's centre.
-    private void Select(int tab, Button button)
-    {
-        var origin = _pressed ?? button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), Stage)!.Value;
-        _pressed = null;
-        if (tab == _selected) return;
         var old = _selected;
         _selected = tab;
-
-        var hue = Hues[tab];
-        var size = Stage.Bounds.Size;
-        var radius = new Vector(Math.Max(origin.X, size.Width - origin.X), Math.Max(origin.Y, size.Height - origin.Y)).Length;
-        var bloom = new Ellipse
-        {
-            Width = 2 * radius,
-            Height = 2 * radius,
-            Fill = hue,
-            [Canvas.LeftProperty] = origin.X - radius,
-            [Canvas.TopProperty] = origin.Y - radius,
-        };
-        Overlay.Children.Add(bloom);
-        var content = Build(tab);
+        Stage.Content = Build(tab);
 
         Scope.Execute(_ =>
         {
-            PrestoAvalonia.Set(bloom, new AvaloniaAnimationParams { ["Scale"] = 0 });
-            PrestoAvalonia.Set(content.Children, new AvaloniaAnimationParams { ["Y"] = Rise, ["Opacity"] = 0 });
-            Presto.CreateTimeline(new TimelineParams { OnComplete = _ => Overlay.Children.RemoveRange(0, Overlay.Children.IndexOf(bloom) + 1) })
-                .Add(bloom, new() { ["Scale"] = 1, Duration = BloomDuration, Ease = Eases.InOutQuart })
-                .Call(_ =>
-                {
-                    Stage.Background = hue;
-                    Screen.Child = content;
-                }, BloomDuration * SwapAt)
-                .Add(bloom, new() { ["Opacity"] = 0, Duration = FadeDuration, Ease = Eases.OutQuad }, BloomDuration)
-                .Add(content.Children, new()
-                {
-                    ["Y"] = 0,
-                    ["Opacity"] = 1,
-                    Duration = 480,
-                    Ease = Eases.OutQuart,
-                    Delay = Presto.Stagger(40, new StaggerParams { From = StaggerFrom.Center }),
-                }, "<<");
-
-            var (x, width) = Slot(tab);
-            Underline.Animate(new() { ["X"] = x, ["Width"] = width, Duration = 420, Ease = Eases.OutExpo });
             _labels[old].Animate(new() { ["Foreground"] = TweenValue.Of(Palette.InkDim), Duration = 300 });
             _labels[tab].Animate(new() { ["Foreground"] = TweenValue.Of(Palette.Ink), Duration = 300 });
-            Header.Animate(new() { ["Background"] = TweenValue.Of(Tint(hue.Color)), Duration = BloomDuration, Ease = Eases.OutQuad });
+            Header.Animate(new() { ["Background"] = TweenValue.Of(Tint(Hues[tab].Color)), Duration = Recipes.Tokens.Long, Ease = Eases.OutQuad });
         });
     }
 
-    private static UniformGrid Build(int tab)
+    private static Border Build(int tab)
     {
         IEnumerable<Border> tiles = tab switch
         {
@@ -126,7 +58,7 @@ public partial class BloomNavPage : ShowcasePage
         };
         var grid = new UniformGrid { Columns = tab switch { 0 => 1, 1 => 4, 2 => 3, _ => 2 } };
         grid.Children.AddRange(tiles);
-        return grid;
+        return new Border { Background = Hues[tab], Padding = new(12), Child = grid };
     }
 
     private static Border Tile(string heading, string caption, IBrush? background = null) => new()

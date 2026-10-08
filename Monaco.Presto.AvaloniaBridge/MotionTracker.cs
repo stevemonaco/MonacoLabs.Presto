@@ -8,6 +8,7 @@ using Monaco.Presto.AvaloniaBridge.Effects;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -27,6 +28,8 @@ internal sealed class MotionTracker
     private readonly Dictionary<string, Animation> _drivers = [];
     private Dictionary<string, Entry> _winners = [];
     private Dictionary<string, Entry> _resolved = [];
+    private Dictionary<Entry, List<string>>? _entering;
+    private Dictionary<Entry, List<string>>? _leaving;
     private MotionStates? _states;
     private bool _listening;
     private bool _pressed;
@@ -41,6 +44,7 @@ internal sealed class MotionTracker
         control.Classes.CollectionChanged += HandleClassesChanged;
         control.AttachedToVisualTree += HandleAttached;
         control.DetachedFromVisualTree += HandleDetached;
+        ResolveSource();
         ReadTokens();
         Rebuild();
     }
@@ -56,6 +60,7 @@ internal sealed class MotionTracker
         Listen(false);
         ListenForHover(false);
         Stop();
+        Source = null;
     }
 
     /// <summary>Re-reads the sugar properties and <see cref="Motion.StatesProperty"/> into the ordered state list.</summary>
@@ -79,10 +84,14 @@ internal sealed class MotionTracker
         Evaluate();
     }
 
-    public void ReadState()
+    /// <summary>The ancestor whose <c>Motion.State</c> this element follows, if any.</summary>
+    public Control? Source { get; private set; }
+
+    /// <summary>Re-reads the tokens and plans the move to the states that now hold, returning whether <see cref="Play"/> has anything to play.</summary>
+    public bool Prepare()
     {
         ReadTokens();
-        Evaluate();
+        return Plan();
     }
 
     /// <summary>Adds <paramref name="state"/> after every declared state, so it wins the properties it shares with them.</summary>
@@ -174,7 +183,7 @@ internal sealed class MotionTracker
         var properties = new Dictionary<string, KeyValuePair<string, TweenValue>>();
         if (state.Motion != null)
         {
-            foreach (var pair in Expand(state.Motion.ToParams())) properties[Presto.Canonicalise(_control, pair.Key)] = pair;
+            foreach (var pair in Expand(state.Motion.ToParams())) properties[Presto.Canonicalize(_control, pair.Key)] = pair;
         }
         return properties;
     }
@@ -182,7 +191,19 @@ internal sealed class MotionTracker
     private void ReadTokens()
     {
         _tokens.Clear();
-        if (Motion.GetState(_control)?.ToString() is { } text) _tokens.UnionWith(text.Split(s_separators, StringSplitOptions.RemoveEmptyEntries));
+        if (Motion.GetState(Source ?? _control)?.ToString() is { } text) _tokens.UnionWith(text.Split(s_separators, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    public void ResolveSource()
+    {
+        Source = null;
+        if (!_control.IsAttachedToVisualTree() || _control.IsSet(Motion.StateProperty)) return;
+        foreach (var ancestor in _control.GetVisualAncestors())
+        {
+            if (ancestor is not Control control || !control.IsSet(Motion.StateProperty)) continue;
+            Source = control;
+            return;
+        }
     }
 
     private void Resolve(Dictionary<string, Entry> winners)
@@ -199,32 +220,46 @@ internal sealed class MotionTracker
         }
     }
 
-    /// <summary>
-    /// Moves every property whose winner changed: one animation per entering state for the properties it takes, and one per
-    /// leaving state, on its own timing, for the properties it hands to the next winner or to rest.
-    /// </summary>
     private void Evaluate()
     {
-        if (!_control.IsAttachedToVisualTree()) return;
+        if (Plan()) Play(0);
+    }
+
+    /// <summary>
+    /// Groups every property whose winner changed: one animation per entering state for the properties it takes, and one per
+    /// leaving state, on its own timing, for the properties it hands to the next winner or to rest.
+    /// </summary>
+    private bool Plan()
+    {
+        if (!_control.IsAttachedToVisualTree()) return false;
         Resolve(_resolved);
-        Dictionary<Entry, List<string>>? entering = null;
-        Dictionary<Entry, List<string>>? leaving = null;
         foreach (var (property, winner) in _resolved)
         {
             var previous = _winners.GetValueOrDefault(property);
             if (previous == winner) continue;
-            if (previous is { Active: false } && winner.WasActive) Group(ref leaving, previous, property);
-            else Group(ref entering, winner, property);
+            if (previous is { Active: false } && winner.WasActive) Group(ref _leaving, previous, property);
+            else Group(ref _entering, winner, property);
         }
         foreach (var (property, previous) in _winners)
         {
-            if (!_resolved.ContainsKey(property)) Group(ref leaving, previous, property);
+            if (!_resolved.ContainsKey(property)) Group(ref _leaving, previous, property);
         }
         (_winners, _resolved) = (_resolved, _winners);
         _resolved.Clear();
-        if (entering != null) foreach (var (entry, properties) in entering) Enter(entry, properties);
-        if (leaving != null) foreach (var (entry, properties) in leaving) Leave(entry, properties);
+        return _entering != null || _leaving != null;
     }
+
+    /// <summary>Plays what <see cref="Plan"/> grouped, <paramref name="delay"/> later, and returns when the last of it ends.</summary>
+    public double Play(double delay)
+    {
+        var end = 0d;
+        if (_entering != null) foreach (var (entry, properties) in _entering) end = Math.Max(end, End(Enter(entry, properties, delay)));
+        if (_leaving != null) foreach (var (entry, properties) in _leaving) end = Math.Max(end, End(Leave(entry, properties, delay)));
+        _entering = _leaving = null;
+        return end;
+    }
+
+    private static double End(Animation animation) => animation._delay + animation.Duration;
 
     private static void Group(ref Dictionary<Entry, List<string>>? groups, Entry entry, string property)
     {
@@ -233,7 +268,7 @@ internal sealed class MotionTracker
         properties.Add(property);
     }
 
-    private void Enter(Entry entry, List<string> properties)
+    private Animation Enter(Entry entry, List<string> properties, double delay)
     {
         var chosen = new OrderedDictionary<string, TweenValue>();
         foreach (var property in properties)
@@ -241,10 +276,14 @@ internal sealed class MotionTracker
             var (name, value) = entry.Properties[property];
             chosen[name] = value;
         }
-        Play(entry.State.Motion!.ToParams() with { Properties = chosen, Keyframes = null, Composition = Composition.Replace }, properties);
+        var parameters = entry.State.Motion!.ToParams();
+        return Animate(parameters with
+        {
+            Properties = chosen, Keyframes = null, Composition = Composition.Replace, Delay = Delayed(parameters.Delay, delay),
+        }, properties);
     }
 
-    private void Leave(Entry entry, List<string> properties)
+    private Animation Leave(Entry entry, List<string> properties, double delay)
     {
         var timing = (entry.State.Leave ?? entry.State.Motion!).ToParams();
         var values = new OrderedDictionary<string, TweenValue>();
@@ -265,16 +304,26 @@ internal sealed class MotionTracker
                 ? new TweenParams { To = to, Duration = tween.Duration, Delay = tween.Delay, Ease = tween.Ease }
                 : to;
         }
-        var animation = Play(new AnimationParams
+        var animation = Animate(new AnimationParams
         {
-            Duration = timing.Duration, Delay = timing.Delay, Ease = timing.Ease, Composition = Composition.Replace, Properties = values,
+            Duration = timing.Duration, Delay = Delayed(timing.Delay, delay), Ease = timing.Ease, Composition = Composition.Replace, Properties = values,
         }, properties);
         if (resting != null) animation.OnComplete = _ => Settle(animation, resting);
+        return animation;
     }
 
-    private Animation Play(AnimationParams parameters, List<string> properties)
+    private static TweenValue? Delayed(TweenValue? delay, double extra) =>
+        extra == 0 ? delay : ((delay ?? Presto.Defaults.Delay).AsDouble ?? 0) + extra;
+
+    private Animation Animate(AnimationParams parameters, List<string> properties)
     {
-        var animation = Presto.Animate(_control, parameters);
+        foreach (var property in properties)
+        {
+            // Replacement only trims a tween that has begun; one still waiting out its delay would start later over this one.
+            if (_drivers.GetValueOrDefault(property) is { Began: false, Completed: false, Canceled: false } pending) Presto.Remove(_control, pending, property);
+        }
+        using var origin = PrestoDiagnostics.Origin("Motion");
+        var animation = Presto.Animate(_control, parameters with { HostLifetime = WhenDetached.Continue });
         foreach (var property in properties) _drivers[property] = animation;
         return animation;
     }
@@ -294,8 +343,8 @@ internal sealed class MotionTracker
     {
         foreach (var (property, animation) in _drivers)
         {
-            // Cancelling twice would unlink the tweens' siblings a second time.
-            if (!animation.Cancelled) animation.Cancel();
+            // Canceling twice would unlink the tweens' siblings a second time.
+            if (!animation.Canceled) animation.Cancel();
             Presto.ResolveAccessor(_control, property).Revert(_control, null);
         }
         _drivers.Clear();
@@ -317,7 +366,7 @@ internal sealed class MotionTracker
         return value.Raw is TweenParams { To: { } to } ? Final(to) : value;
     }
 
-    /// <summary>A transform, effect or reveal shorthand's identity, or a property's value beneath the animations, read now so a local value or style set meanwhile is honoured.</summary>
+    /// <summary>A transform, effect or reveal shorthand's identity, or a property's value beneath the animations, read now so a local value or style set meanwhile is honored.</summary>
     private TweenValue Rest(string property)
     {
         if (TransformShorthands.Parse(property) is { } shorthand) return RenderTransformComposer.Identity(shorthand);
@@ -334,7 +383,7 @@ internal sealed class MotionTracker
     {
         foreach (var (name, value) in timing.Properties)
         {
-            if (value.Raw is TweenParams tween && Presto.Canonicalise(_control, name) == property) return tween;
+            if (value.Raw is TweenParams tween && Presto.Canonicalize(_control, name) == property) return tween;
         }
         return null;
     }
@@ -428,6 +477,8 @@ internal sealed class MotionTracker
     private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e)
     {
         _hovered = _hoverable && _control.IsPointerOver;
+        ResolveSource();
+        ReadTokens();
         Resolve(_winners);
         if (_winners.Count == 0) return;
         var values = new OrderedDictionary<string, TweenValue>();
@@ -439,13 +490,14 @@ internal sealed class MotionTracker
         }
         var set = Presto.Set(_control, new AnimationParams { Properties = values });
         foreach (var property in _winners.Keys) _drivers[property] = set;
-        if (looping != null) foreach (var (entry, properties) in looping) Enter(entry, properties);
+        if (looping != null) foreach (var (entry, properties) in looping) Enter(entry, properties, 0);
     }
 
     private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e)
     {
         Watch(null);
         Stop();
+        Source = null;
     }
 
     /// <summary>One state in the tracker's order, with the properties it moves keyed by canonical name.</summary>

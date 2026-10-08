@@ -1,0 +1,42 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="600"
+                       x:Class="PrestoSample.Builder.ReorderPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="TextBlock.row">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="Padding" Value="14,10" />
+        </Style>
+        <Style Selector="ListBox.reorder">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="ItemTemplate">
+                <DataTemplate x:DataType="x:String">
+                    <TextBlock Classes="row" Text="{Binding}" />
+                </DataTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.reorder ListBoxItem">
+            <Setter Property="Padding" Value="0,0,0,8" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Border Classes="stage" MinHeight="0">
+                <UniformGrid Columns="2" ColumnSpacing="16">
+                    <!-- snippet: ReorderLists -->
+                    <ListBox x:Name="DefaultLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}" presto:Animate.ItemLayout="{presto:Reflow}" />
+                    <ListBox x:Name="StrongLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder Intensity=2}" presto:Animate.ItemLayout="{presto:Reflow}" />
+                    <!-- /snippet -->
+                </UniformGrid>
+            </Border>
+            <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.ReorderLists}" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

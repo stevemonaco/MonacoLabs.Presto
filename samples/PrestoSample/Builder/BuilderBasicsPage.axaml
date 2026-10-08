@@ -19,11 +19,7 @@
 
             <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
 
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="CodeText" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="CodeText" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

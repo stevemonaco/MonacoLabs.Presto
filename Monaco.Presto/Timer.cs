@@ -1,5 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto;
 
@@ -19,7 +21,7 @@ public class Timer : Clock, IRevertible
     internal bool _running;
     internal bool _reversed;
     internal bool _reverse;
-    internal bool _cancelled;
+    internal bool _canceled;
     internal bool _alternate;
     internal bool _autoplay;
     internal Timer? _prev;
@@ -30,13 +32,25 @@ public class Timer : Clock, IRevertible
     internal Action<Timer>? _onRender;
     // Upstream reverts the ScrollObserver passed as `autoplay` from revert(); Presto's observer hooks itself here instead.
     internal Action<Timer>? _onRevert;
+    internal MotionValue? _progressValue;
+    private MotionValue? _scrub;
+    private Action<MotionValue>? _onScrub;
     internal int _priority;
+    internal TimerDiagnostics? _diagnostics;
+    internal readonly object? _hostLifetime;
 
     internal Timer(TimerParams parameters, Timer? parent, double parentPosition, Engine? engine = null) : base(0)
     {
         var timerId = Interlocked.Increment(ref s_timerId);
 
         engine = _engine = engine ?? parent?.OwnerEngine ?? Engine.Current;
+        if (engine.Diagnostics.Enabled && parent == null)
+        {
+            var diagnostics = engine.Diagnostics.Register(this);
+            diagnostics.Origin = PrestoDiagnostics.CurrentOrigin;
+            if (PrestoDiagnostics.CaptureCreationTrace) diagnostics.CreationTrace = new StackTrace(1, true);
+        }
+        // After the diagnostics register, so the scope finds them to record itself on.
         engine.CurrentScope?.Register(this);
 
         var timerInitTime = parent != null ? 0 : engine._lastTickTime;
@@ -85,6 +99,7 @@ public class Timer : Clock, IRevertible
         _fps = parameters.FrameRate ?? timerDefaults.FrameRate;
         _speed = parameters.PlaybackRate ?? timerDefaults.PlaybackRate;
         _priority = parameters.Priority;
+        _hostLifetime = parameters.HostLifetime;
     }
 
     /// <inheritdoc cref="TimerParams.Id"/>
@@ -92,6 +107,45 @@ public class Timer : Clock, IRevertible
 
     /// <summary>The timeline this timer was added to, or null when it runs directly on the engine.</summary>
     public Timer? Parent { get; }
+
+    /// <summary>The engine this timer runs on.</summary>
+    public Engine Engine => OwnerEngine;
+
+    /// <summary>Wait before the first iteration, as <see cref="TimerParams.Delay"/> resolved.</summary>
+    public double Delay => _delay;
+
+    /// <summary>Wait between iterations, as <see cref="TimerParams.LoopDelay"/> resolved.</summary>
+    public double LoopDelay => _loopDelay;
+
+    /// <summary>Whether every other iteration plays backwards (<see cref="TimerParams.Alternate"/>); <see cref="Alternate()"/> is the method that flips direction.</summary>
+    public bool IsAlternating => _alternate;
+
+    /// <summary>Start position in the parent timeline, or for a root timer the engine time it was created at.</summary>
+    public double Offset => _offset;
+
+    /// <summary>The ease applied to the whole playhead (upstream <c>playbackEase</c>), or null.</summary>
+    public Ease? PlaybackEase => _ease;
+
+    /// <inheritdoc cref="TimerParams.Priority"/>
+    public int Priority => _priority;
+
+    /// <summary>True while the timer is linked into the engine's list of ticked timers.</summary>
+    public bool IsScheduled => _running;
+
+    /// <summary>The timeline children in order, enumerated without allocating; empty for a timer that is not a timeline.</summary>
+    public TimerChildren Children => new(this);
+
+    /// <summary>The tweens in order, enumerated without allocating.</summary>
+    public TimerTweens Tweens => new(this);
+
+    /// <summary>The bridge feature or core part that created this timer's root, as tagged by <see cref="PrestoDiagnostics.Origin"/>; null for app code or while diagnostics were off.</summary>
+    public string? Origin => _diagnostics?.Origin ?? Parent?.Origin;
+
+    /// <summary>Where this root timer was created, recorded while <see cref="PrestoDiagnostics.CaptureCreationTrace"/> and diagnostics were on.</summary>
+    public StackTrace? CreationTrace => _diagnostics?.CreationTrace;
+
+    /// <summary>The scope this root timer registered with while diagnostics were on.</summary>
+    public Scope? Scope => _diagnostics?.Scope;
 
     /// <summary>The defaults the children of this timer inherit; a timeline overrides it with its own.</summary>
     internal virtual PrestoDefaults ChildDefaults => OwnerEngine.Defaults;
@@ -155,9 +209,9 @@ public class Timer : Clock, IRevertible
     public Action<Timer>? OnComplete { get; set; }
 
     /// <summary>True once <see cref="Cancel"/> has detached the timer; setting it false revives it and plays it from the start.</summary>
-    public bool Cancelled
+    public bool Canceled
     {
-        get => _cancelled;
+        get => _canceled;
         set
         {
             if (value) Cancel(); else Reset(true).Play();
@@ -192,6 +246,9 @@ public class Timer : Clock, IRevertible
         get => Helpers.Clamp(Helpers.Round(_currentTime / Duration, 10), 0, 1);
         set => CurrentTime = Duration * value;
     }
+
+    /// <summary>A <see cref="MotionValue"/> holding <see cref="Progress"/>, updated whenever the timer renders.</summary>
+    public MotionValue ProgressValue => _progressValue ??= new(OwnerEngine, [], Progress);
 
     /// <summary>Position of the playhead inside the current iteration, from 0 to 1; setting it seeks.</summary>
     public double IterationProgress
@@ -240,7 +297,7 @@ public class Timer : Clock, IRevertible
 
     private static void ReviveTimer(Timer timer)
     {
-        if (!timer._cancelled) return;
+        if (!timer._canceled) return;
         if (timer._hasChildren)
         {
             Helpers.ForEachChildren(timer, ReviveTimer);
@@ -252,7 +309,7 @@ public class Timer : Clock, IRevertible
                 if (tween._composition != Composition.None) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property));
             });
         }
-        timer._cancelled = false;
+        timer._canceled = false;
     }
 
     internal void UpdateDuration()
@@ -263,7 +320,7 @@ public class Timer : Clock, IRevertible
 
     private static bool SortByPriority(Timer prev, Timer child) => prev._priority > child._priority;
 
-    /// <summary>Rewinds to 0 and clears the began, completed and cancelled state, leaving the timer paused (upstream <c>timer.reset()</c>).</summary>
+    /// <summary>Rewinds to 0 and clears the began, completed and canceled state, leaving the timer paused (upstream <c>timer.reset()</c>).</summary>
     /// <param name="softReset">Rewinds the timing state without writing the start values back to the targets.</param>
     public Timer Reset(bool softReset = false)
     {
@@ -286,6 +343,7 @@ public class Timer : Clock, IRevertible
         if (!internalRender && _hasChildren) Renderer.Tick(this, Duration, true, internalRender, TickMode.Force);
         Reset(internalRender);
         if (_autoplay) Resume();
+        Announce();
         return this;
     }
 
@@ -332,7 +390,15 @@ public class Timer : Clock, IRevertible
             _startTime -= 12;
             engine.Wake();
         }
+        Announce();
         return this;
+    }
+
+    private void Announce()
+    {
+        if (_diagnostics is not { Announced: false } diagnostics) return;
+        diagnostics.Announced = true;
+        OwnerEngine.Diagnostics.Announce(this);
     }
 
     /// <summary>Rewinds to 0 and plays from there (upstream <c>timer.restart()</c>).</summary>
@@ -390,10 +456,33 @@ public class Timer : Clock, IRevertible
     /// <summary>Pauses and detaches the tweens from their targets, leaving the animated values where they stand; <see cref="Reset"/> and <see cref="Seek"/> revive it (upstream <c>timer.cancel()</c>).</summary>
     public Timer Cancel()
     {
+        if (_diagnostics != null && !_canceled) OwnerEngine.Diagnostics.Ended(this);
+        Scrub(null);
+        return DetachTweens();
+    }
+
+    /// <summary>The engine's cancel of a completed timer, which leaves a <see cref="Scrub"/> running so it can seek back.</summary>
+    internal Timer DetachTweens()
+    {
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
-        else TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
-        _cancelled = true;
+        // Unlike upstream, a repeat cancel leaves composition alone: the tweens already left their sibling lists.
+        else if (!_canceled) TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
+        _canceled = true;
         return Pause();
+    }
+
+    /// <summary>
+    /// Pauses the timer and seeks it to <paramref name="progress"/> times <see cref="Duration"/>, then again on every frame the value changes,
+    /// like a scroll-synced timer driven by any source. <c>null</c>, <see cref="Cancel"/> and <see cref="Revert"/> end the scrub.
+    /// </summary>
+    public Timer Scrub(MotionValue? progress)
+    {
+        if (_scrub != null) _scrub.Changed -= _onScrub;
+        _scrub = progress;
+        if (progress == null) return this;
+        _onScrub ??= value => Seek(value.Value * Duration);
+        progress.Changed += _onScrub;
+        return Pause().Seek(progress.Value * Duration);
     }
 
     /// <summary>Rescales the total duration to <paramref name="newDuration"/>, scaling the iteration duration, delay and loop delay proportionally.</summary>

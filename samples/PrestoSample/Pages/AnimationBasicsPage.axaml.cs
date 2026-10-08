@@ -1,23 +1,21 @@
 using System.Globalization;
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class AnimationBasicsPage : UserControl
+public partial class AnimationBasicsPage : ShowcasePage
 {
     private Animation? _animation;
     private int _likes;
 
     public AnimationBasicsPage() => InitializeComponent();
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    protected override void OnAttached()
     {
-        base.OnAttachedToVisualTree(e);
-        _animation = LikeButton.Animate(new()
+        (_animation, Code.Code) = Snippet.Of(LikeButton.Animate(new()
         {
             ["X"] = 320,
             ["Y"] = -40,
@@ -30,14 +28,7 @@ public partial class AnimationBasicsPage : UserControl
             Ease = Eases.InOutQuint,
             Loop = true,
             Alternate = true,
-        });
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _animation?.Revert();
-        _animation = null;
+        }));
     }
 
     private void Replay(object? sender, RoutedEventArgs e) => _animation?.Restart();

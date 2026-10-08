@@ -57,7 +57,7 @@ internal static class InertiaSolver
         });
     }
 
-    // speed is in units per solver second; bound == from has no distance to normalise by (decision 3)
+    // speed is in units per solver second; bound == from has no distance to normalize by
     private static Plan Rebound(double bound, double speed, Spring rest, double solverScale)
     {
         var unit = new Spring(stiffness: rest.Stiffness, damping: rest.Damping, velocity: 1);

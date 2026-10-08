@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
@@ -30,23 +29,18 @@ public partial class ConnectedPage : ShowcasePage
         _tiles = [.. Datasets.Albums.Select(BuildTile)];
         foreach (var tile in _tiles) Albums.Children.Add(tile.Card);
         PrestoAvalonia.Set(Play, new AvaloniaAnimationParams { ["Scale"] = 0 });
+        HowCode.Code = $"{Snippets.ConnectedLayout}\n\n{Snippets.ConnectedScatter}";
     }
 
     protected override void OnAttached()
     {
+        #region snippet ConnectedLayout
         foreach (var tile in _tiles)
         {
             tile.Art.AnimateLayout(ArtDuration, Eases.OutQuint, LayoutAnimateMode.PositionAndSize);
             tile.Title.AnimateLayout(TitleDuration, Eases.OutExpo, LayoutAnimateMode.PositionAndSize);
         }
-    }
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (e.Key != Key.Escape || _open == null) return;
-        Close();
-        e.Handled = true;
+        #endregion
     }
 
     private Tile BuildTile(Datasets.Album album, int index)
@@ -81,8 +75,7 @@ public partial class ConnectedPage : ShowcasePage
         Lift(tile.ArtSlot, tile.Art, Hero);
         Lift(tile.TitleSlot, tile.Title, Heading);
         Meta.Text = $"{album.Artist} · {album.Year} · {album.Tracks.Count} tracks";
-        Detail.IsHitTestVisible = true;
-        Focus();
+        Detail.Open();
 
         Scope.Execute(_ =>
         {
@@ -127,7 +120,7 @@ public partial class ConnectedPage : ShowcasePage
         var tile = _tiles[index];
         Drop(tile.ArtSlot, tile.Art, Hero);
         Drop(tile.TitleSlot, tile.Title, Heading);
-        Detail.IsHitTestVisible = false;
+        Detail.Close();
 
         Scope.Execute(_ =>
         {
@@ -157,6 +150,8 @@ public partial class ConnectedPage : ShowcasePage
 
     private void BackClicked(object? sender, RoutedEventArgs e) => Close();
 
+    private void DetailClosed(object? sender, EventArgs e) => Close();
+
     // Replace composition only overrides tweens already under way, so a staggered row still in its delay would play after the reversal.
     private void Cancel()
     {
@@ -174,17 +169,19 @@ public partial class ConnectedPage : ShowcasePage
     {
         _scattered = index;
         var tile = _tiles[index];
-        var centre = tile.Card.Bounds.Center;
+        var center = tile.Card.Bounds.Center;
+        #region snippet ConnectedScatter
         _scatter = PrestoAvalonia.AnimateOnCompositor(_tiles.Where(other => other != tile).Select(other => other.Card).ToArray(), new CompositorAnimationParams
         {
             ["Opacity"] = 0,
             ["Scale"] = .85,
-            ["X"] = (FunctionValue)((target, _, _) => Away((Control)target, centre).X),
-            ["Y"] = (FunctionValue)((target, _, _) => Away((Control)target, centre).Y),
+            ["X"] = (FunctionValue)((target, _, _) => Away((Control)target, center).X),
+            ["Y"] = (FunctionValue)((target, _, _) => Away((Control)target, center).Y),
             Duration = ScatterDuration,
             Delay = (FunctionValue)((_, i, _) => 22 * Math.Abs((i >= index ? i + 1 : i) - index)),
             Ease = Eases.OutQuint,
         });
+        #endregion
         _shell = PrestoAvalonia.AnimateOnCompositor((Control[])[tile.Shell, tile.Artist], new CompositorAnimationParams
         {
             ["Opacity"] = 0,
@@ -213,9 +210,9 @@ public partial class ConnectedPage : ShowcasePage
         PrestoAvalonia.Set(Tracks.Children, new AvaloniaAnimationParams { ["Y"] = 16, ["Opacity"] = 0 });
     }
 
-    private static Vector Away(Control card, Point centre)
+    private static Vector Away(Control card, Point center)
     {
-        Vector away = card.Bounds.Center - centre;
+        Vector away = card.Bounds.Center - center;
         return away * (Push / Math.Max(away.Length, 1));
     }
 

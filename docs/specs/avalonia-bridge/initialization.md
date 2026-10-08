@@ -1,0 +1,159 @@
+---
+id: BRIDGE-INIT
+title: Bridge initialization, frame source and hidden signal
+package: Monaco.Presto.AvaloniaBridge
+namespaces:
+  - Monaco.Presto.AvaloniaBridge
+sources:
+  - Monaco.Presto.AvaloniaBridge/AvaloniaFrameSource.cs
+  - Monaco.Presto.AvaloniaBridge/AppBuilderExtensions.cs
+  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - Monaco.Presto.AvaloniaBridge/Platform/HiddenSignal.cs
+types:
+  - AppBuilderExtensions
+  - AvaloniaFrameSource
+tests:
+  - AvaloniaFrameSourceTests
+  - PrestoAvaloniaTests
+  - LifetimeHiddenTests
+  - LifetimeSpikeTests
+  - AnimationBuilderBridgeTests
+  - CodecTests
+  - WhenDetachedTests
+upstream:
+  - src/engine/engine.js
+  - tests/suites/engine.test.js
+depends:
+  - CORE-ENGINE
+  - CORE-PRESTO
+  - BRIDGE-TARGETS
+  - BRIDGE-CODECS
+  - BRIDGE-HELPERS
+---
+
+# Bridge initialization, frame source and hidden signal
+
+## Purpose
+
+Installs the bridge into the core's statics: points `Presto.Engine` at an `AvaloniaFrameSource`, registers the Avalonia target adapter (BRIDGE-TARGETS) and value codecs (BRIDGE-CODECS), sets `Engine.Hidden` while the app cannot be seen, and hooks the detach tracker (BRIDGE-HELPERS). The frame source is the bridge's `requestAnimationFrame`: it pumps the engine (CORE-ENGINE) from `TopLevel.RequestAnimationFrame`, or from a render-priority `DispatcherTimer` while no `TopLevel` can be found. Also specifies `PrestoAvalonia.EnsureInitialized`.
+
+## Requirements
+
+### EnsureInitialized
+
+- **BRIDGE-INIT-001** — The first time `PrestoAvalonia.EnsureInitialized` is called, it shall set `Presto.Engine.FrameSource` to a new `AvaloniaFrameSource`, replacing whatever source the engine had.
+  - Tests: `PrestoAvaloniaTests.EnsureInitializedInstallsOneAvaloniaFrameSource`
+- **BRIDGE-INIT-002** — When `EnsureInitialized` has already run, a later call shall do nothing, leaving the installed frame source, adapters, codecs and hooks as they are.
+  - Tests: `PrestoAvaloniaTests.EnsureInitializedInstallsOneAvaloniaFrameSource`
+- **BRIDGE-INIT-003** — The first call shall append the `AvaloniaObjectTargetAdapter` and the compositor scratch adapter (BRIDGE-THREAD) to `Presto.Adapters`.
+  - Tests: `AnimationBuilderBridgeTests.AnimatingAControlWithACoreOnlyBuilderInstallsTheBridge`
+- **BRIDGE-INIT-004** — The first call shall register codecs in `Presto.Codecs` for `Color`, `IBrush`, `BoxShadows`, `Geometry`, `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint` and `GridLength`, overwriting any codec registered earlier for those types.
+  - Tests: `CodecTests.GeometryStructsInterpolateEveryChannel`, `CodecTests.ColorTweensFromAHexStringAndFromATypedColor`
+- **BRIDGE-INIT-005** — The first call shall install the hidden signal (BRIDGE-INIT-020 to BRIDGE-INIT-027).
+  - Tests: `LifetimeHiddenTests.MinimizingTheOnlyWindowPausesAndRestoringResumesAtTheSameProgress`
+- **BRIDGE-INIT-006** — The first call shall set the engine's internal timer-created hook to the detach tracker, replacing any hook set before, so `WhenDetached` applies to animations created afterwards (BRIDGE-HELPERS).
+  - Tests: `WhenDetachedTests.ADetachedLoopPausesAndTheEngineIdles`
+- **BRIDGE-INIT-007** — The bridge shall call `EnsureInitialized` itself from the `AvaloniaAnimationParams` and `AvaloniaAnimatableParams` constructors, every `AnimateExtensions` entry point, every `PropertyBuilderExtensions` method and the `PrestoAvalonia` factories, so no explicit setup is needed.
+  - Tests: `AnimationBuilderBridgeTests.AnimatingAControlWithACoreOnlyBuilderInstallsTheBridge`
+- **BRIDGE-INIT-008** (inherited) — `EnsureInitialized` shall configure only `Presto.Engine`; an `Engine` constructed by the application keeps the frame source it was given.
+  - Tests: untested
+- **BRIDGE-INIT-009** — `UsePresto` shall register an `AfterSetup` callback that calls `EnsureInitialized`, and return the same `AppBuilder` for chaining.
+  - Tests: manual — the Desktop, Browser and Android sample heads call it; check that a page animates on first show.
+
+### Frame source
+
+- **BRIDGE-INIT-010** — `Now` shall return the milliseconds elapsed since the source was constructed, read from its `TimeProvider` (the system clock by default), so it is valid outside a frame callback.
+  - Tests: `AvaloniaFrameSourceTests.NowFollowsTheTimeProvider`
+- **BRIDGE-INIT-011** (inherited) — When `Start` is called while already started, the source shall ignore the call and keep the first callback.
+  - Tests: untested
+- **BRIDGE-INIT-012** — When the source needs a frame, it shall take the `TopLevel` from the application lifetime: a classic desktop lifetime's `MainWindow`, else its first window; a single-view lifetime's `MainView` top level.
+  - Tests: manual — headless tests have no application lifetime (`LifetimeSpikeTests.TheHeadlessPlatformOffersNoActivatableLifetimeAndNoApplicationLifetime`); check on the Desktop sample.
+- **BRIDGE-INIT-013** — When the lifetime yields no `TopLevel` (no lifetime, an activity lifetime, no window yet), the source shall use the `TopLevel` of the last `Visual` the target adapter resolved a property on, which it holds weakly.
+  - Tests: `AvaloniaFrameSourceTests.FramesComeFromTheTopLevelOfAnAnimatedControl`
+- **BRIDGE-INIT-014** — While started with a `TopLevel`, the source shall call `RequestAnimationFrame` once, invoke the callback when it fires, and request the next frame after the callback returns, re-resolving the `TopLevel` each time.
+  - Tests: `AvaloniaFrameSourceTests.FramesComeFromTheTopLevelOfAnAnimatedControl`
+- **BRIDGE-INIT-015** (inherited) — When `Start` follows a `Stop` while a frame request is still outstanding, the source shall reuse that request instead of adding a second, so each frame invokes the callback at most once.
+  - Tests: `AvaloniaFrameSourceTests.RestartingReusesTheFrameAlreadyRequested`
+- **BRIDGE-INIT-016** — While no `TopLevel` can be found, the source shall pump from a `DispatcherTimer` on `Dispatcher.UIThread` at `DispatcherPriority.Render` with a 1000/60 ms interval.
+  - Tests: `AvaloniaFrameSourceTests.StartFallsBackToADispatcherTimerWhenNoTopLevelExists`
+- **BRIDGE-INIT-017** — When a `TopLevel` can be found after a fallback frame, the source shall stop the timer and continue from `RequestAnimationFrame`.
+  - Tests: `AvaloniaFrameSourceTests.TheFallbackTimerHandsThePumpOverOnceAnAnimatedVisualHasATopLevel`
+- **BRIDGE-INIT-018** — After `Stop`, including a `Stop` from inside the callback, the source shall invoke the callback no more and shall stop the fallback timer.
+  - Tests: `AvaloniaFrameSourceTests.FramesComeFromTheTopLevelOfAnAnimatedControl`, `AvaloniaFrameSourceTests.StartFallsBackToADispatcherTimerWhenNoTopLevelExists`
+- **BRIDGE-INIT-019** (inherited) — When the frame callback throws, the exception shall propagate to the dispatcher, and unless the source was stopped it shall re-arm the pump from a `Render`-priority dispatcher post, on either delivery path.
+  - Tests: `AvaloniaFrameSourceTests.AThrowingFrameCallbackDoesNotRetireTheTopLevelPump`, `AvaloniaFrameSourceTests.AThrowingFrameCallbackDoesNotRetireTheFallbackTimer`
+
+### Hidden signal
+
+- **BRIDGE-INIT-020** — While the classic desktop lifetime has at least one window and every one of them is `Minimized`, the bridge shall hold `Presto.Engine.Hidden` true.
+  - Tests: `LifetimeHiddenTests.MinimizingTheOnlyWindowPausesAndRestoringResumesAtTheSameProgress`, `LifetimeHiddenTests.OneOfTwoWindowsMinimizedKeepsTicking`
+- **BRIDGE-INIT-021** — The bridge shall re-evaluate the minimized state on every `Window.WindowState` change and, in a dispatcher post, on every window opened or closed.
+  - Tests: `LifetimeHiddenTests.MinimizingTheOnlyWindowPausesAndRestoringResumesAtTheSameProgress`
+- **BRIDGE-INIT-022** (inherited) — With no desktop lifetime, or one with no windows, the bridge shall treat the app as not minimized.
+  - Tests: untested
+- **BRIDGE-INIT-023** — When the application's `IActivatableLifetime` raises a `Background` deactivation, the bridge shall treat the app as backgrounded until a `Background` activation.
+  - Tests: `LifetimeHiddenTests.BackgroundingPausesAndForegroundingResumesAtTheSameProgress`
+- **BRIDGE-INIT-024** — The bridge shall ignore activations and deactivations of any kind other than `Background` (`File`, `OpenUri`).
+  - Tests: `LifetimeHiddenTests.FileAndOpenUriActivationsChangeNothing`
+- **BRIDGE-INIT-025** — `Hidden` shall be true while the app is minimized or backgrounded, and false only once both have cleared.
+  - Tests: `LifetimeHiddenTests.MinimizedAndBackgroundedStaysHiddenUntilBothClear`
+- **BRIDGE-INIT-026** — The bridge shall write `Presto.Engine.Hidden` only when the combined state changes, so a `Background` activation while nothing is hidden changes nothing.
+  - Tests: `LifetimeHiddenTests.AnInitialBackgroundActivationWithNothingHiddenChangesNothing`
+- **BRIDGE-INIT-027** (inherited) — The bridge shall read the minimized state once when the signal is installed, and look up the `IActivatableLifetime` only then.
+  - Tests: untested
+- **BRIDGE-INIT-028** — What `Hidden` does to timers (pause, resume without a jump, no effect without `PauseOnHidden`) shall be the core engine's behavior (CORE-ENGINE).
+  - Tests: `LifetimeHiddenTests.WithoutPauseOnHiddenAMinimizedWindowKeepsTicking`, `LifetimeHiddenTests.AThenStartedBeforeHidingCompletesAfterShowing`
+- **BRIDGE-INIT-029** — When the hidden state changes, an attached `CompositorCanvas` shall forward it to its scene's engine (BRIDGE-SCENES).
+  - Tests: `LifetimeHiddenTests.ASceneEnginePausesWhileHiddenAndResumesWhereItWas`, `LifetimeHiddenTests.ACanvasDetachedWhileHiddenIsCollectable`
+
+## Invariants
+
+- At most one frame request is outstanding per source, and at most one of the two delivery paths (request or timer) is live.
+- `Now` is monotonic and independent of whether frames are being delivered.
+- After `EnsureInitialized`, `Presto.Engine.Hidden` equals "minimized or backgrounded" as last observed.
+
+## Edge cases
+
+- Android's activity lifetime publishes no view, so the timer pumps until the first visual is animated (BRIDGE-INIT-013).
+- A minimized Win32 window keeps delivering animation frames (`LifetimeSpikeTests.AMinimizedHeadlessWindowStillDeliversAnimationFrames` shows the headless equivalent); stopping them is the core's job once `Hidden` is set.
+- The `TimeSpan` passed by `RequestAnimationFrame` is ignored; frame time is always `Now`.
+- A frame source constructed by the app pumps from the same last-animated visual as the installed one, since that visual is static.
+
+## Threading and lifetime
+
+- UI thread only: the pump, the timer and the hidden-signal handlers run on `Dispatcher.UIThread`, and the source has no locks.
+- The last animated visual is held through a `WeakReference`, so the source never keeps a control alive.
+- The hidden signal's class handlers are static and live for the process.
+
+## Reduced motion
+
+- Not affected: initialization does not read or set reduced motion (see BRIDGE-REDUCED for following the OS setting).
+
+## Allocation
+
+- The frame-request delegate is cached at construction; a frame allocates nothing in the source. The fallback timer and its handler are allocated once per fallback period.
+
+## Deviations from anime.js
+
+- Upstream ticks from `requestAnimationFrame` in a browser and `setImmediate` elsewhere; here `TopLevel.RequestAnimationFrame` with a `DispatcherTimer` fallback, since `RequestAnimationFrame` is the host's equivalent and needs a `TopLevel` that may not exist yet.
+- Upstream's `visibilitychange` listener becomes the hidden signal, driven by minimized windows and `Background` activations, because desktop minimize is visible only through `WindowState` and mobile or Browser backgrounding only through `ActivationKind.Background` (see CORE-ENGINE for what `Hidden` does).
+
+## Decisions
+
+- **The frame source is `RequestAnimationFrame`, with a timer fallback.** `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, from any live `TopLevel`, and pumps from a render-priority `DispatcherTimer` while none exists; it is installed on first use, or by `UsePresto()`. Reason: it mirrors upstream's `requestAnimationFrame` loop, and any `TopLevel` works because the request is a one-shot on the global `MediaContext`.
+- **Without a lifetime `TopLevel`, the pump takes one from an animated visual.** On Android (and wherever the lifetime yields none) the frame source resolves its `TopLevel` from a visual the bridge animates, the last one a property was resolved on; the timer pumps until then. The handover is tested through a seeded visual. Reason: `IActivityApplicationLifetime` publishes only a `MainViewFactory` (`MainView` stays null) and `ISingleTopLevelApplicationLifetime` is `[PrivateApi]`; lifetime interfaces are `[NotClientImplementable]`, so a test cannot fake one.
+- **Bridge builder extensions self-initialize.** See BRIDGE-HELPERS.
+- **Hidden pauses the engine, as upstream's `pauseOnDocumentHidden` does.** See CORE-ENGINE.
+- **Wall-clock reads take a `TimeProvider`.** See CORE-ENGINE.
+
+## Non-goals
+
+- No per-window or per-`TopLevel` engines: one engine is pumped from any one live `TopLevel`.
+- No configurable fallback rate.
+
+## Open items
+
+- `UsePresto` has no test (BRIDGE-INIT-009).
+- The lifetime-based `TopLevel` choice (BRIDGE-INIT-012) and the open/close re-evaluation of the hidden signal are untested: the headless platform has no application lifetime.
+- The frame-source and Android decisions were recorded as resolving from "the first animated control"; the code keeps the last visual any property was resolved on, so the Decisions record the code.
+- `HiddenSignal.Install` looks up `IActivatableLifetime` once (BRIDGE-INIT-027), so an `EnsureInitialized` that runs before `Application.Current` exists (a `new AvaloniaAnimationParams()` in a static initializer, say) never hears `Background` activations. Untested; possibly a bug.

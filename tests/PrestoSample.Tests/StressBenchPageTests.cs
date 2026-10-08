@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Monaco.Presto;
@@ -81,7 +82,14 @@ public sealed class StressBenchPageTests
 
         toggle.IsChecked = true;
         var worker = page.Workload.OfType<Engine>().Single();
-        Assert.True(await SceneHarness.Pump(() => page.GetControl<TextBlock>("WorkerReadout").Text!.Contains("fps"), rounds: 250), "the worker never reported");
+        var readout = page.GetControl<TextBlock>("WorkerReadout");
+        // The worker's engine runs on a real clock, which virtual frames do not move.
+        for (var waited = Stopwatch.StartNew(); !readout.Text!.Contains("fps") && waited.Elapsed.TotalSeconds < 5;)
+        {
+            await Task.Delay(16);
+            TestFrames.Tick();
+        }
+        Assert.True(readout.Text!.Contains("fps"), "the worker never reported");
 
         toggle.IsChecked = false;
         Assert.True(await SceneHarness.Pump(() => !worker.IsRunning), "the worker kept running once switched off");
@@ -111,7 +119,7 @@ public sealed class StressBenchPageTests
             switch (item)
             {
                 case Animation animation:
-                    Assert.True(animation.Cancelled, "a UI-thread animation of the previous set is still running");
+                    Assert.True(animation.Canceled, "a UI-thread animation of the previous set is still running");
                     break;
                 case CompositorAnimation compositor:
                     // Reverting rewinds the playback model to before its longest delay.

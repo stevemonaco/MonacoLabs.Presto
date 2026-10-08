@@ -8,7 +8,6 @@ namespace PrestoSample.Showcase.Pages;
 
 public partial class LiquidPage : ShowcasePage
 {
-    private const double SlotWidth = 60;
     private const double PillInset = 6;
     private const double LabelDrop = 6;
     private const double ParentRadius = 28;
@@ -50,16 +49,15 @@ public partial class LiquidPage : ShowcasePage
             button.Click += (_, _) => Select(tab);
             Tabs.Children.Add(button);
         }
-        var (left, right) = Slot(0);
-        _edges = new Edges { Left = left, Right = right, ScaleY = 1 };
+        _edges = new Edges { ScaleY = 1 };
         Pill.RenderTransform = _squash;
-        PlacePill();
 
         var home = new Point(Canvas.GetLeft(Toggle) + ParentRadius, Canvas.GetTop(Toggle) + ParentRadius);
         _parent = new Blob { X = home.X, Y = home.Y, R = ParentRadius };
         _children = [.. FanAngles.Select(_ => new Blob { X = home.X, Y = home.Y, R = ChildRadius })];
         Toggle.Click += (_, _) => Scope.Execute(_ => ToggleFan());
         Redraw();
+        HowCode.Code = $"{Snippets.LiquidPill}\n\n{Snippets.LiquidEdge}\n\n{Snippets.LiquidMetaball}";
     }
 
     protected override void OnAttached()
@@ -68,24 +66,37 @@ public partial class LiquidPage : ShowcasePage
         {
             if (i != _selected) PrestoAvalonia.Set(_labels[i], new AvaloniaAnimationParams { ["Y"] = LabelDrop, ["Opacity"] = 0 });
         }
+        AfterFirstArrange(Tabs, () =>
+        {
+            var slot = Slot(_selected);
+            (_edges.Left, _edges.Right) = (slot.Left, slot.Right);
+            PlacePill();
+        });
     }
 
-    private static (double Left, double Right) Slot(int tab) => ((tab * SlotWidth) + PillInset, ((tab + 1) * SlotWidth) - PillInset);
+    // Measured from the parent so a pressed tab's render transform does not shift the slot.
+    private Rect Slot(int tab)
+    {
+        var button = Tabs.Children[tab];
+        var at = Tabs.TranslatePoint(button.Bounds.Position, Rail)!.Value;
+        return new Rect(at.X + PillInset, 0, button.Bounds.Width - (2 * PillInset), 0);
+    }
 
     private void Select(int tab)
     {
         if (tab == _selected) return;
         var old = _selected;
         _selected = tab;
-        var (left, right) = Slot(tab);
-        var forward = left > _edges.Left;
+        var slot = Slot(tab);
+        var forward = slot.Left > _edges.Left;
 
         Scope.Execute(_ =>
         {
+            #region snippet LiquidPill
             Presto.Animate(_edges, new AnimationParams
             {
-                ["Left"] = Edge(left, leads: !forward),
-                ["Right"] = Edge(right, leads: forward),
+                ["Left"] = Edge(slot.Left, leads: !forward),
+                ["Right"] = Edge(slot.Right, leads: forward),
                 ["ScaleY"] = new TweenParams[]
                 {
                     new() { To = .82, Duration = 160, Ease = Eases.OutQuad },
@@ -93,6 +104,7 @@ public partial class LiquidPage : ShowcasePage
                 },
                 OnUpdate = _ => PlacePill(),
             });
+            #endregion
 
             _icons[tab].Animate(new()
             {
@@ -110,9 +122,11 @@ public partial class LiquidPage : ShowcasePage
         });
     }
 
+    #region snippet LiquidEdge
     private static TweenParams Edge(double to, bool leads) => leads
         ? new() { To = to, Duration = 300, Ease = Eases.OutExpo }
         : new() { To = to, Duration = 520, Delay = 70, Ease = Eases.OutQuart };
+    #endregion
 
     private void PlacePill()
     {
@@ -125,6 +139,7 @@ public partial class LiquidPage : ShowcasePage
     {
         _open = !_open;
         Plus.Animate(new() { ["Rotate"] = _open ? 45 : 0, Duration = 320, Ease = Eases.OutBack() });
+        #region snippet LiquidMetaball
         Presto.Animate(_children, new AnimationParams
         {
             ["X"] = (FunctionValue)((_, i, _) => _parent.X + (_open ? Fan * Math.Cos(FanAngles[i] * Math.PI / 180) : 0)),
@@ -134,6 +149,7 @@ public partial class LiquidPage : ShowcasePage
             Duration = _open ? null : (TweenValue?)380,
             OnUpdate = _ => Redraw(),
         });
+        #endregion
     }
 
     private void Redraw()

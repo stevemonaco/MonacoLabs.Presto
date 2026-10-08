@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
                        x:Class="PrestoSample.Showcase.Pages.TypographyPage">
     <showcase:ShowcasePage.Styles>
@@ -21,16 +22,18 @@
             <Border Classes="stage">
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="eyebrow showcase" Text="LINES · MASKED REVEAL THAT SURVIVES A REFLOW"
+                        <TextBlock Classes="eyebrow showcase" Text="WORDS BY LINE · MASKED REVEAL THAT SURVIVES A REFLOW"
                                    VerticalAlignment="Center" />
                         <Button Grid.Column="1" Content="Replay" Click="ReplayReveal" />
                     </Grid>
                     <TextBlock x:Name="Paragraph" FontSize="26" TextWrapping="Wrap" HorizontalAlignment="Left"
                                Width="{Binding #WidthSlider.Value}"
                                Foreground="{x:Static showcase:Palette.Ink}"
-                               Text="Every line of this paragraph is its own mask, and each word rises into it one line after another. Drag the width while it plays: the text re-wraps under the reveal and carries on from where it was." />
+                               presto:TextReveal.Mask="True"
+                               presto:Animate.OnAttached="{presto:WordFade LineStep=120, PieceStep=30, Duration=1100, Ease=outExpo}"
+                               Text="Every word of this paragraph is its own mask, and the words rise into them one line after another. Drag the width while it plays: the text re-wraps under the reveal and carries on from where it was." />
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Classes="code" Text="{Binding #WidthSlider.Value, StringFormat='width {0:0}px'}" />
+                        <TextBlock Classes="mono" Text="{Binding #WidthSlider.Value, StringFormat='width {0:0}px'}" />
                         <Slider x:Name="WidthSlider" Width="320" Minimum="280" Maximum="640" Value="600" />
                     </StackPanel>
                 </StackPanel>
@@ -45,10 +48,9 @@
                     </Grid>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14" Margin="0,12">
                         <TextBlock Classes="headline" Text="Animate" Foreground="{x:Static showcase:Palette.Ink}" />
-                        <Canvas x:Name="Slot" Height="60">
-                            <TextBlock x:Name="Word" Classes="headline" Width="400"
-                                       Foreground="{x:Static showcase:Palette.Accent}" />
-                        </Canvas>
+                        <!-- The delay lets the leaving word's first letters drop before Animate slides over where they stand. -->
+                        <Border x:Name="Slot" Margin="0,0,0,-28" presto:Presence.Mode="Wait"
+                                presto:Animate.ContentSize="{presto:Reflow 600, Delay=380, Ease=outExpo}" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -77,20 +79,20 @@
                         <StackPanel Spacing="8">
                             <StackPanel x:Name="TerminalLines" Spacing="6" />
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,8,0,0">
-                                <TextBlock Classes="code" Text="status" />
-                                <TextBlock x:Name="Status" Grid.Column="1" Classes="code"
+                                <TextBlock Classes="mono" Text="status" />
+                                <TextBlock x:Name="Status" Grid.Column="1" Classes="mono" LineHeight="16"
                                            Foreground="{x:Static showcase:Palette.Aqua}" />
-                                <TextBlock x:Name="Percent" Grid.Column="2" Classes="code" Margin="0"
+                                <TextBlock x:Name="Percent" Grid.Column="2" Classes="mono" Margin="0"
                                            Foreground="{x:Static showcase:Palette.Ink}" />
-                                <TextBlock Grid.Column="3" Classes="code" Text="%" />
+                                <TextBlock Grid.Column="3" Classes="mono" Text="%" />
                             </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </Border>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Watch each line of the paragraph rise out of its own mask, then drag the width slider mid-reveal: the text re-wraps into new lines and the reveal carries on instead of starting over. Below it, the last word of the headline drops out letter by letter and the next one rises in while the gap it sits in eases to the new word's width, so the headline never jumps. Sweep the pointer across MOTION to lift and brighten the letters nearest it, then leave and watch them spring back, while the terminal types, decodes and counts to 100 on a loop." />
+            <showcase:CodePanel Header="How it's built" IsExpanded="False"
+                                Code="{x:Static showcase:Snippets.TypographyRotatorAndWordmark}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

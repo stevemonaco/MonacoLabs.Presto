@@ -3,12 +3,11 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1400"
                        x:Class="PrestoSample.Builder.RecipeGalleryPage">
     <showcase:ShowcasePage.Styles>
         <Style Selector="Border.tile">
-            <Setter Property="Width" Value="214" />
             <Setter Property="Padding" Value="12" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
@@ -19,8 +18,18 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
         </Style>
+        <!-- Tile code wraps whole (Fold breaks long calls first), so the compact tooltip has nothing to add. -->
+        <Style Selector="Border.tile showcase|CodePanel">
+            <Setter Property="ToolTip.Tip" Value="{x:Null}" />
+        </Style>
+        <Style Selector="Border.tile showcase|CodePanel /template/ SelectableTextBlock#PART_Text">
+            <Setter Property="MaxLines" Value="0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextTrimming" Value="None" />
+        </Style>
         <Style Selector="Border.well">
-            <Setter Property="Height" Value="96" />
+            <Setter Property="MinHeight" Value="96" />
+            <Setter Property="Padding" Value="12" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
             <Setter Property="ClipToBounds" Value="True" />
@@ -28,6 +37,17 @@
         <Style Selector="Border.well > :is(Control)">
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.tiltcard">
+            <Setter Property="Width" Value="220" />
+            <Setter Property="Height" Value="140" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Offset="0" Color="#6366f1" />
+                    <GradientStop Offset="1" Color="#ec4899" />
+                </LinearGradientBrush>
+            </Setter>
         </Style>
         <Style Selector="Border.skeleton">
             <Setter Property="Width" Value="150" />
@@ -53,7 +73,7 @@
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
         </Style>
-        <Style Selector="Border.row TextBlock, Border.specimen > TextBlock">
+        <Style Selector="Border.row TextBlock, Border.specimen > TextBlock, Border.tiltcard > TextBlock">
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
@@ -70,10 +90,6 @@
                         <ComboBoxItem Content="Reduced" />
                     </ComboBox>
                 </StackPanel>
-                <StackPanel Spacing="2">
-                    <TextBlock Classes="caption" Text="Reduced motion" />
-                    <ToggleSwitch x:Name="ReducedSwitch" OffContent="Full forms" OnContent="Reduced forms" />
-                </StackPanel>
                 <StackPanel Spacing="2" Width="220">
                     <TextBlock Classes="caption" Text="Duration (far left: the tokens decide)" />
                     <Slider x:Name="DurationSlider" Minimum="0" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" />
@@ -84,11 +100,7 @@
                 </StackPanel>
             </WrapPanel>
 
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="SettingsCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="SettingsCode" />
 
             <TabControl>
                 <TabItem Header="C#">
@@ -99,22 +111,27 @@
                         <Button Content="Replay" Click="ReplayXaml" HorizontalAlignment="Left" />
                         <Border x:Name="XamlHost" Classes="stage" MinHeight="0">
                             <StackPanel Spacing="20">
+                                <!-- snippet: RecipeGalleryShowcase -->
                                 <WrapPanel ItemSpacing="24" LineSpacing="16">
                                     <Border Classes="swatch" presto:Presence.Arrive="{presto:Fade Direction=Up}" />
                                     <Border Classes="swatch" presto:Presence.Arrive="{presto:Pop}" />
                                     <Border Classes="swatch" presto:Animate.OnAttached="{presto:Shake Intensity=1.5}" />
+                                    <Border Classes="swatch" presto:Animate.OnAttached="{presto:Recolor To=#f59e0b, Space=Oklch}" />
                                     <Button Classes="specimen" Content="Hover me" presto:Motion.Hover="{presto:Lift}" />
-                                    <Border Classes="specimen" presto:Tilt.Enabled="True">
-                                        <TextBlock Text="Move over me" />
+                                    <Border Classes="tiltcard" presto:Tilt.Enabled="True" presto:Tilt.Strength="20">
+                                        <TextBlock Text="Move over me" HorizontalAlignment="Center" />
                                     </Border>
                                 </WrapPanel>
+                                <!-- /snippet -->
                                 <StackPanel x:Name="XamlRows" Spacing="6">
+                                    <!-- snippet: RecipeGalleryRow -->
                                     <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
                                         <DockPanel>
                                             <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
                                             <TextBlock Text="Quarterly report is ready" />
                                         </DockPanel>
                                     </Border>
+                                    <!-- /snippet -->
                                     <Border Classes="row" presto:Presence.Exit="{presto:Fade}">
                                         <DockPanel>
                                             <Button Content="Remove" DockPanel.Dock="Right" Click="RemoveRow" />
@@ -131,11 +148,7 @@
                             </StackPanel>
                         </Border>
                         <TextBlock Classes="caption" Text="The XAML: each markup extension provides a new recipe builder per element, and on Presence.Exit it provides the exit form" />
-                        <Border Classes="codeblock">
-                            <ScrollViewer>
-                                <SelectableTextBlock x:Name="XamlCode" Classes="code" />
-                            </ScrollViewer>
-                        </Border>
+                        <showcase:CodePanel x:Name="XamlCode" Language="Xaml" />
                     </StackPanel>
                 </TabItem>
             </TabControl>

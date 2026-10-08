@@ -1,29 +1,25 @@
 using System;
 using System.Globalization;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
-using Timer = Monaco.Presto.Timer;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class CallbacksPage : UserControl
+public partial class CallbacksPage : ShowcasePage
 {
     private const double Dim = 0.15;
 
     private Indicator[] _indicators = [];
     private Animation? _animation;
-    private Timer? _decay;
     private int _clicks;
 
     public CallbacksPage() => InitializeComponent();
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    protected override void OnAttached()
     {
-        base.OnAttachedToVisualTree(e);
-
         var begin = new Indicator(BeginDot, BeginCount);
         var loop = new Indicator(LoopDot, LoopCount);
         var beforeUpdate = new Indicator(BeforeUpdateDot, BeforeUpdateCount);
@@ -52,7 +48,7 @@ public partial class CallbacksPage : UserControl
             OnPause = _ => pause.Fire(),
         });
 
-        _decay = Presto.CreateTimer(new()
+        Presto.CreateTimer(new()
         {
             FrameRate = 30,
             OnUpdate = _ =>
@@ -62,15 +58,6 @@ public partial class CallbacksPage : UserControl
         });
 
         ResetIndicators();
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _animation?.Revert();
-        _animation = null;
-        _decay?.Cancel();
-        _decay = null;
     }
 
     private void Play(object? sender, RoutedEventArgs e) => _animation?.Play();

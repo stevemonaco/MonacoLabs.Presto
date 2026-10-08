@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Draggables;
+using Monaco.Presto.Core;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -62,6 +63,77 @@ public sealed class DraggableTests : BridgeTestBase
             window.MouseMove(new Point(25 + (i * step), 25));
             Frames.Advance(20);
         }
+    }
+
+    [AvaloniaFact]
+    public void EscapeMidDragSpringsTheTargetBackToWhereItWasGrabbed()
+    {
+        var (window, _, target) = Show();
+        var released = 0;
+        var settled = 0;
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            CancelOnEscape = true,
+            OnRelease = _ => released++,
+            OnSettle = _ => settled++,
+        });
+        draggable.X = 10;
+
+        Drag(window, 20, 3);
+        Assert.Equal(70d, draggable.X);
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        Frames.Advance(2000, 16);
+        window.MouseMove(new Point(150, 25));
+        window.MouseUp(new Point(150, 25), MouseButton.Left);
+        Frames.Advance(100, 16);
+
+        Assert.Equal(10d, draggable.X);
+        Assert.Equal(0d, draggable.Y);
+        Assert.Equal(1, released);
+        Assert.Equal(1, settled);
+    }
+
+    [AvaloniaFact]
+    public void AReleaseThatOnlyMovesOneAxisSettlesOnceBothAreWritten()
+    {
+        var (window, _, target) = Show();
+        var settles = new List<double>();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Snap = Utils.Snap(40),
+            OnSettle = d =>
+            {
+                settles.Add(d.Y);
+                d.Reset();
+            },
+        });
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        for (var i = 1; i <= 3; i++)
+        {
+            window.MouseMove(new Point(25, 25 + (i * 15)));
+            Frames.Advance(16);
+        }
+        window.MouseUp(new Point(25, 70), MouseButton.Left);
+        Frames.Advance(2000, 16);
+
+        Assert.Single(settles);
+        Assert.NotEqual(0d, settles[0]);
+        Assert.Equal(0d, draggable.Y);
+    }
+
+    [AvaloniaFact]
+    public void EscapeIsIgnoredWithoutCancelOnEscape()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target);
+
+        Drag(window, 20, 3);
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        window.MouseMove(new Point(105, 25));
+        Frames.Advance(16);
+
+        Assert.Equal(80d, draggable.X);
     }
 
     [AvaloniaFact]
@@ -234,6 +306,38 @@ public sealed class DraggableTests : BridgeTestBase
         Frames.Advance(3000, 20);
         Assert.Equal(230d, draggable.X);
         Assert.Equal(["release", "settle"], log);
+    }
+
+    [AvaloniaFact]
+    public void VelocityIsMeasuredInDilatedEngineTime()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { Y = new DraggableAxisParams { Enabled = false } });
+        Presto.Engine.TimeDilation = .5;
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        for (var i = 1; i <= 4; i++)
+        {
+            window.MouseMove(new Point(25 + (i * 20), 25));
+            Frames.Advance(40);
+        }
+
+        // 20 units per 40 ms frame, which is 20 ms of engine time.
+        Assert.Equal(1d, draggable.Velocity);
+    }
+
+    [AvaloniaFact]
+    public void ANegativeMultiplierKeepsTheZeroSeedsUntilThreeSamplesAreTaken()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { VelocityMultiplier = -1, MinVelocity = -50 });
+
+        Drag(window, 20, 2);
+        Assert.Equal(0d, draggable.Velocity);
+
+        window.MouseMove(new Point(85, 25));
+        Frames.Advance(20);
+        Assert.Equal(-1d, draggable.Velocity);
     }
 
     [AvaloniaFact]
@@ -494,6 +598,48 @@ public sealed class DraggableTests : BridgeTestBase
         Assert.Equal(1, completed);
     }
 
+    /// <summary>PLAN Phase 51: a grab canceling an overshoot whose out leg had completed corrupted the additive lists into a cycle.</summary>
+    [AvaloniaFact]
+    public void RegrabbingAnOvershootingThrowRepeatedlyKeepsTheTweenListsAcyclic()
+    {
+        var (window, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+        });
+        var timers = new List<Timer>();
+
+        // Some grabs land after the out leg completed, so canceling it removes its tweens from their siblings a second time.
+        for (var wait = 100; wait <= 2000; wait += 150)
+        {
+            var x = draggable.X + 25;
+            window.MouseDown(new Point(x, 25), MouseButton.Left);
+            for (var step = 1; step <= 4; step++)
+            {
+                window.MouseMove(new Point(x + (step * 20), 25));
+                Frames.Advance(20);
+            }
+            window.MouseUp(new Point(x + 80, 25), MouseButton.Left);
+            Frames.Advance(wait, 20);
+        }
+        Assert.NotNull(Presto.Engine.Additive.Animation);
+        for (var (timer, steps) = (Presto.Engine._head, 0); timer != null; timer = timer._next, steps++)
+        {
+            Assert.True(steps < 10_000, "The engine's timer list has a cycle.");
+            timers.Add(timer);
+        }
+        Presto.Remove(target);
+        Presto.Remove(draggable);
+
+        timers.Add(Presto.Engine.Additive.Animation!);
+        foreach (var timer in timers) TweenList.CheckIntact(timer);
+        foreach (var properties in Presto.Engine.Additive.Lookups.Values)
+        {
+            foreach (var siblings in properties.Values) TweenList.CheckIntact(siblings);
+        }
+    }
+
     /// <summary>Upstream "Removing the parent should not throw an error".</summary>
     [AvaloniaFact]
     public void RemovingTheParentMidDragDoesNotThrow()
@@ -551,7 +697,7 @@ public sealed class DraggableTests : BridgeTestBase
         Assert.Equal(0d, PrestoAvalonia.Get(target, "Y"));
     }
 
-    // ReleaseInertia (INERTIA-PLAN §2 decision 7): not upstream, so these pin the opt-in release on its own.
+    // ReleaseInertia is not upstream, so these pin the opt-in release on its own.
 
     private void Flick(Window window, double stepX, double stepY, int steps)
     {

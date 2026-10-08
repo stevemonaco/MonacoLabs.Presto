@@ -7,7 +7,7 @@ public static partial class Eases
     /// (<paramref name="x2"/>, <paramref name="y2"/>), solved by bisection as in gre/bezier-easing.
     /// </summary>
     public static Ease CubicBezier(double x1 = .5, double y1 = 0, double x2 = .5, double y2 = 1) =>
-        x1 == y1 && x2 == y2 ? None : t => t == 0 || t == 1 ? t : CalcBezier(BinarySubdivide(t, x1, x2), y1, y2);
+        Named(x1 == y1 && x2 == y2 ? None : t => t == 0 || t == 1 ? t : CalcBezier(BinarySubdivide(t, x1, x2), y1, y2), "cubicBezier", x1, y1, x2, y2);
 
     private static double CalcBezier(double t, double a1, double a2) =>
         (((1 - 3 * a2 + 3 * a1) * t + (3 * a2 - 6 * a1)) * t + 3 * a1) * t;

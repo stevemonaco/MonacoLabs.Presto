@@ -45,6 +45,8 @@ internal static class Helpers
     {
         var prev = child._prev;
         var next = child._next;
+        if (prev == null && parent._head != child) return;
+        if (parent._nextChild == child) parent._nextChild = parent._nextChildIsPrev ? prev : next;
         if (prev != null) prev._next = next; else parent._head = next;
         if (next != null) next._prev = prev; else parent._tail = prev;
         child._prev = null;

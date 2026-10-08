@@ -20,7 +20,7 @@ public sealed class ParticleFieldSceneTests
     private const double Width = 320;
     private const double Height = 200;
 
-    private static readonly Point Centre = new(Width / 2, Height / 2);
+    private static readonly Point Center = new(Width / 2, Height / 2);
     private static readonly Rect Canvas = new(0, 0, Width, Height);
 
     [AvaloniaFact]
@@ -28,7 +28,7 @@ public sealed class ParticleFieldSceneTests
     {
         var canvas = await ShowField();
 
-        canvas.Post(new ParticleFieldScene.MovePointer(Centre, true));
+        canvas.Post(new ParticleFieldScene.MovePointer(Center, true));
         Assert.True(await SceneHarness.Pump(() => Read(canvas).Max(p => p.Push.Length) > 8), "the pointer never parted the field");
 
         var parted = Read(canvas);
@@ -44,7 +44,7 @@ public sealed class ParticleFieldSceneTests
             Assert.True((away.X * particle.Push.X) + (away.Y * particle.Push.Y) > 0, "a particle was pulled towards the pointer");
         }
 
-        canvas.Post(new ParticleFieldScene.MovePointer(Centre, false));
+        canvas.Post(new ParticleFieldScene.MovePointer(Center, false));
         Assert.True(await SceneHarness.Pump(() => Read(canvas).Max(p => p.Push.Length) < 1), "the field never came back");
     }
 
@@ -66,7 +66,7 @@ public sealed class ParticleFieldSceneTests
             "the replacing kick reached the particles, so the drift is not blending");
         Assert.True(replacing is { Completed: true }, "the replacing kick never ran, so it proves nothing");
 
-        canvas.Post(new ParticleFieldScene.BurstAt(Centre));
+        canvas.Post(new ParticleFieldScene.BurstAt(Center));
         Assert.True(
             await SceneHarness.Pump(() => Read(canvas).Max(p => p.Drift.Length) > 40),
             "the blended burst never moved the field");
@@ -159,7 +159,7 @@ public sealed class ParticleFieldSceneTests
     }
 
     private static Vector Away((Point Home, Vector Drift, Vector Push) particle) =>
-        new(particle.Home.X + particle.Drift.X - Centre.X, particle.Home.Y + particle.Drift.Y - Centre.Y);
+        new(particle.Home.X + particle.Drift.X - Center.X, particle.Home.Y + particle.Drift.Y - Center.Y);
 
     private static double Distance((Point Home, Vector Drift, Vector Push) particle) => Away(particle).Length;
 }

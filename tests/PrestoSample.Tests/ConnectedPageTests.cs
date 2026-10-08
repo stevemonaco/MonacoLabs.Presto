@@ -56,7 +56,7 @@ public sealed class ConnectedPageTests
             var tint = new ImmutableSolidColorBrush(SceneHarness.Tint(i));
             var shell = (Border)cards[i].Children[0];
             shell.Background = shell.BorderBrush = tint;
-            // Glyphs are antialiased a channel at a time, so text over one tint can land on another card's exact colour.
+            // Glyphs are antialiased a channel at a time, so text over one tint can land on another card's exact color.
             foreach (var text in cards[i].GetLogicalDescendants().OfType<TextBlock>()) text.Foreground = tint;
         }
 

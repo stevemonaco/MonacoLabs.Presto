@@ -25,7 +25,7 @@
 
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
                         <Canvas Width="132" Height="126" HorizontalAlignment="Center">
-                            <Path x:Name="Monogram" Stretch="None" Fill="#004C8DFF"
+                            <Path x:Name="Monogram" Stretch="None" Fill="Transparent"
                                   Stroke="{x:Static showcase:Palette.Accent}" StrokeThickness="6"
                                   StrokeLineCap="Round" StrokeJoin="Round"
                                   Data="M 44,110 L 44,18 L 76,18 A 26,26 0 0 1 76,70 L 44,70" />
@@ -34,7 +34,7 @@
                         <TextBlock x:Name="Headline" Text="PRESTO" HorizontalAlignment="Center"
                                    FontSize="68" FontWeight="Bold" LetterSpacing="12" />
 
-                        <TextBlock x:Name="Subtitle" Classes="code" Margin="0" Opacity="0"
+                        <TextBlock x:Name="Subtitle" Classes="mono" Margin="0" Opacity="0"
                                    HorizontalAlignment="Center" FontSize="14" Text="animation for avalonia" />
 
                         <StackPanel x:Name="Cards" Orientation="Horizontal" Spacing="12"
@@ -70,14 +70,13 @@
                     <Button Content="title" Tag="title" Click="SeekLabel" />
                     <Button Content="cards" Tag="cards" Click="SeekLabel" />
                     <Button Content="out" Tag="out" Click="SeekLabel" />
-                    <TextBlock x:Name="BeatText" Classes="code" Margin="10,0,0,0" Text="out · 0 crossings" />
+                    <TextBlock x:Name="BeatText" Classes="mono" Margin="10,0,0,0" Text="out · 0 crossings" />
                 </StackPanel>
             </Border>
 
             <showcase:TransportBar x:Name="Bar" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Press Loop and watch one timeline draw the mark, stagger the title out from the centre and scramble the subtitle before the cards fade up once the headline has landed. The SEEK buttons jump straight to a beat by its label; scrub, reverse or drag the speed and duration sliders to retime the whole sequence without a jump." />
+            <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.TitleSequenceTimeline}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

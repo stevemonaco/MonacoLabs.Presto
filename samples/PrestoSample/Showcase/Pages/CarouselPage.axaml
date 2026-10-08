@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="600"
                        x:Class="PrestoSample.Showcase.Pages.CarouselPage">
     <showcase:ShowcasePage.Styles>
@@ -23,22 +24,13 @@
             <Setter Property="Height" Value="14" />
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
         </Style>
-        <Style Selector="StackPanel#Dots > Border">
-            <Setter Property="Width" Value="8" />
-            <Setter Property="Height" Value="8" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Background" Value="{x:Static showcase:Palette.Border}" />
-        </Style>
     </showcase:ShowcasePage.Styles>
 
     <StackPanel Spacing="16">
-        <Border x:Name="Viewport" Height="340" CornerRadius="12" ClipToBounds="True" Focusable="True"
-                SizeChanged="ViewportResized" PointerEntered="ViewportEntered" PointerExited="ViewportExited"
+        <Border x:Name="Viewport" Height="340" CornerRadius="12" ClipToBounds="True"
                 Background="{x:Static showcase:Palette.Surface}">
             <Panel>
-                <Canvas>
-                    <StackPanel x:Name="Strip" Orientation="Horizontal" />
-                </Canvas>
+                <presto:Pager x:Name="Pager" Loop="True" AutoplayInterval="4000" />
                 <Button Classes="arrow" HorizontalAlignment="Left" Click="PreviousClicked">
                     <PathIcon Data="M10.5,1.5 L12,3 L7,8 L12,13 L10.5,14.5 L4,8 Z" />
                 </Button>
@@ -49,10 +41,13 @@
         </Border>
 
         <Panel HorizontalAlignment="Center">
-            <StackPanel x:Name="Dots" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" />
-            <Path x:Name="Ring" Width="32" Height="16" Margin="-4,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+            <presto:PagerIndicator x:Name="Dots" Pager="{Binding #Pager}" VerticalAlignment="Center"
+                                   Fill="{x:Static showcase:Palette.Accent}" Track="{x:Static showcase:Palette.Border}" />
+            <Path x:Name="Ring" Width="32" Height="16" Margin="-4,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"
                   Stroke="{x:Static showcase:Palette.Aqua}" StrokeThickness="2" StrokeLineCap="Round"
                   Data="M16,1 L24,1 A7,7 0 0 1 24,15 L8,15 A7,7 0 0 1 8,1 Z" />
         </Panel>
+
+        <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.CarouselParallax}" />
     </StackPanel>
 </showcase:ShowcasePage>

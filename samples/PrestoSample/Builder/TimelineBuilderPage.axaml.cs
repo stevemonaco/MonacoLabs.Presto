@@ -1,6 +1,5 @@
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Compositor;
@@ -21,24 +20,28 @@ public partial class TimelineBuilderPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        var (fadeUp, fadeUpCode) = Snippet.Of(Presto.Build()
+        #region snippet TimelineFadeUp
+        var fadeUp = Presto.Build()
             .Opacity(from: 0, to: 1)
             .Y(from: 40, to: 0)
             .Duration(600)
-            .Ease(Eases.OutQuad));
+            .Ease(Eases.OutQuad);
 
-        (Timeline, var timelineCode) = Snippet.Of(Presto.CreateTimeline(new() { Loop = true, LoopDelay = 800, OnUpdate = _ => SyncScrub() })
+        Timeline = Presto.CreateTimeline(new() { Loop = !Presto.Defaults.ReducedMotion, LoopDelay = 800 })
             .Add(CardA, fadeUp)
             .Add(CardB, fadeUp, "-=400")
             .Add(CardC, fadeUp, "-=400")
-            .Add(CardD, b => b.Opacity(from: 0, to: 1).Y(from: 40, to: 0).Scale(from: 0.6, to: 1).Duration(600), "<"));
-        TimelineCode.Text = $"{Snippet.Declare("var fadeUp", fadeUpCode)}\n\n{timelineCode};";
+            .Add(CardD, b => b.Opacity(from: 0, to: 1).Y(from: 40, to: 0).Scale(from: 0.6, to: 1).Duration(600), "<");
+        #endregion
+        Timeline.OnUpdate = _ => SyncScrub();
+        TimelineCode.Code = Snippets.TimelineFadeUp;
 
-        (Spin, SpinCode.Text) = Snippet.Of(Gear.AnimateOnCompositor(Presto.Build()
+        (Spin, SpinCode.Code) = Snippet.Of(Gear.AnimateOnCompositor(Presto.Build()
             .Rotate(360)
             .Duration(2400)
             .Ease(Eases.None)
-            .Loop()));
+            .Loop()
+            .WhenReduced(r => r.Loop(false))));
     }
 
     private void SyncScrub()
@@ -57,7 +60,5 @@ public partial class TimelineBuilderPage : ShowcasePage
 
     private void Play(object? sender, RoutedEventArgs e) => Timeline?.Play();
 
-    // Posted below Render priority so the button paints its pressed state before the dispatcher stops answering.
-    private void Freeze(object? sender, RoutedEventArgs e) =>
-        Dispatcher.UIThread.Post(() => Thread.Sleep(2000), DispatcherPriority.Background);
+    private void Freeze(object? sender, RoutedEventArgs e) => UiThread.Freeze(TimeSpan.FromSeconds(2));
 }

@@ -1,3 +1,4 @@
+using Monaco.Presto.Diagnostics;
 using Monaco.Presto.Values;
 
 namespace Monaco.Presto.Core;
@@ -11,8 +12,14 @@ internal sealed class Additive(Engine engine)
     /// <summary>Owns the additive lookup tweens; never added to the engine and only rendered by <see cref="Update"/>.</summary>
     public Timer? Animation { get; private set; }
 
-    public Timer GetOrCreate() =>
-        Animation ??= new Timer(new TimerParams { Duration = Constants.MinValue, Delay = 0, Loop = 0, Autoplay = false }, null, 0, engine) { _offset = 0 };
+    public Timer GetOrCreate()
+    {
+        if (Animation != null) return Animation;
+        using (PrestoDiagnostics.Origin("Additive"))
+        {
+            return Animation = new Timer(new TimerParams { Duration = Constants.MinValue, Delay = 0, Loop = 0, Autoplay = false }, null, 0, engine) { _offset = 0 };
+        }
+    }
 
     public void Update()
     {

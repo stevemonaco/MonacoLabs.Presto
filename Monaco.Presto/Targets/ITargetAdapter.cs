@@ -13,8 +13,8 @@ public interface ITargetAdapter
     /// Returns the one name every spelling of <paramref name="property"/> shares on this target, or null when the adapter
     /// does not handle it. Tweens are keyed by this name, so two spellings of one property compose against each other.
     /// </summary>
-    /// <remarks>Must not throw for a name it does not recognise: unlike <see cref="Resolve"/> this is asked speculatively.</remarks>
-    string? Canonicalise(object target, string property) => null;
+    /// <remarks>Must not throw for a name it does not recognize: unlike <see cref="Resolve"/> this is asked speculatively.</remarks>
+    string? Canonicalize(object target, string property) => null;
 
     /// <summary>
     /// Called by <see cref="Presto.Remove(object?, Timer?, string?)"/> once the tweens are gone, so that an adapter driving

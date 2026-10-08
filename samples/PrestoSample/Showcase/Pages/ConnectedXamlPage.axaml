@@ -3,7 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        xmlns:local="using:PrestoSample.Showcase.Pages"
                        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1400"
                        x:Class="PrestoSample.Showcase.Pages.ConnectedXamlPage"
@@ -13,41 +13,6 @@
     </showcase:ShowcasePage.DataContext>
 
     <showcase:ShowcasePage.Styles>
-        <!-- Fluent clips Buttons and ItemsControls, which would hide a photo flying into its card. -->
-        <Style Selector="Button.place">
-            <Setter Property="ClipToBounds" Value="False" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="VerticalAlignment" Value="Stretch" />
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Border Classes="place">
-                        <ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" />
-                    </Border>
-                </ControlTemplate>
-            </Setter>
-        </Style>
-        <Style Selector="Border.place">
-            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
-            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="8" />
-            <Setter Property="Margin" Value="5" />
-            <Setter Property="Cursor" Value="Hand" />
-        </Style>
-        <Style Selector="Border.photo">
-            <Setter Property="Width" Value="144" />
-            <Setter Property="Height" Value="94" />
-            <Setter Property="CornerRadius" Value="9" />
-            <Setter Property="ClipToBounds" Value="True" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="VerticalAlignment" Value="Top" />
-        </Style>
-        <Style Selector="Border.photo.hero">
-            <Setter Property="Width" Value="330" />
-            <Setter Property="Height" Value="215" />
-            <Setter Property="CornerRadius" Value="18" />
-        </Style>
         <Style Selector="TextBlock.city">
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -85,12 +50,13 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="local:Destination">
+                                <!-- snippet: ConnectedXamlCard -->
                                 <Button Classes="place" CommandParameter="{Binding}"
                                         Command="{Binding $parent[ItemsControl].((local:DestinationsViewModel)DataContext).OpenCommand}">
                                     <StackPanel>
                                         <Border Classes="photo"
                                                 presto:Connected.Key="{Binding Id, StringFormat=photo-{0}}"
-                                                presto:Connected.Motion="{x:Static local:ConnectedXamlPage.Arc}">
+                                                presto:Connected.Motion="{x:Static showcase:PhotoFlight.Arc}">
                                             <showcase:Scenery Hue="{Binding Hue}" Index="{Binding Id}" />
                                         </Border>
                                         <TextBlock Classes="city" Text="{Binding City}" Margin="2,8,0,0"
@@ -98,6 +64,7 @@
                                         <TextBlock Classes="caption" Text="{Binding Country}" Margin="2,1,0,0" />
                                     </StackPanel>
                                 </Button>
+                                <!-- /snippet -->
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -106,10 +73,11 @@
         </DataTemplate>
 
         <DataTemplate x:DataType="local:DestinationViewModel">
+            <!-- snippet: ConnectedXamlDetail -->
             <Grid ColumnDefinitions="330,*" ColumnSpacing="24" Margin="5">
                 <Border Classes="photo hero"
                         presto:Connected.Key="{Binding Destination.Id, StringFormat=photo-{0}}"
-                        presto:Connected.Motion="{x:Static local:ConnectedXamlPage.Arc}">
+                        presto:Connected.Motion="{x:Static showcase:PhotoFlight.Arc}">
                     <showcase:Scenery Hue="{Binding Destination.Hue}" Index="{Binding Destination.Id}" />
                 </Border>
                 <StackPanel Grid.Column="1">
@@ -122,6 +90,7 @@
                     </StackPanel>
                 </StackPanel>
             </Grid>
+            <!-- /snippet -->
         </DataTemplate>
     </showcase:ShowcasePage.DataTemplates>
 
@@ -131,34 +100,20 @@
                           OffContent="Cross-fade pages (TransitioningContentControl)" />
             <Border Width="712" Height="440" Padding="16" CornerRadius="12" HorizontalAlignment="Left"
                     Background="{x:Static showcase:Palette.Surface}">
+                <!-- snippet: ConnectedXamlHosts -->
                 <Panel>
                     <ContentControl Content="{Binding SwappedPage}" />
                     <TransitioningContentControl Content="{Binding FadedPage}" PageTransition="{presto:PageFade Duration=300}" />
                 </Panel>
+                <!-- /snippet -->
             </Border>
             <TextBlock Classes="caption" Text="A gallery card: the photo and city name are keyed by the destination's Id" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ConnectedXamlPage.CardXaml}" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="CardCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlCard}" />
             <TextBlock Classes="caption" Text="The detail view: the same keys, the arc recipe for the hero, and the text anchored to the photo's flight" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ConnectedXamlPage.DetailXaml}" />
-                </ScrollViewer>
-            </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="ArcCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="DetailCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlDetail}" />
+            <showcase:CodePanel x:Name="ArcCode" />
             <TextBlock Classes="caption" Text="The hosts: the switch moves the pages from one to the other" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock Classes="code" Text="{x:Static local:ConnectedXamlPage.HostsXaml}" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="HostsCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlHosts}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

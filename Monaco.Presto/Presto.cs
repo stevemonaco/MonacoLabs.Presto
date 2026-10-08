@@ -27,10 +27,13 @@ public static class Presto
     public static IDictionary<Type, IValueCodec> Codecs { get; } = new Dictionary<Type, IValueCodec>();
 
     /// <summary>Creates a timer that fires callbacks over time without animating anything (upstream <c>createTimer()</c>).</summary>
-    public static Timer CreateTimer(TimerParams? parameters = null) => new Timer(parameters ?? new(), null, 0).Init();
+    public static Timer CreateTimer(TimerParams? parameters = null) => Created(new Timer(parameters ?? new(), null, 0).Init());
+
+    /// <summary>Creates a source <see cref="MotionValue"/> that derived values follow (Motion's <c>motionValue()</c>).</summary>
+    public static MotionValue CreateMotionValue(double initial = 0) => new(initial);
 
     /// <summary>Creates a timeline that sequences animations, timers and callbacks on a shared playhead (upstream <c>createTimeline()</c>).</summary>
-    public static Timeline CreateTimeline(TimelineParams? parameters = null) => new Timeline(parameters ?? new()).Init();
+    public static Timeline CreateTimeline(TimelineParams? parameters = null) => Created(new Timeline(parameters ?? new()).Init());
 
     /// <summary>Creates the paused per-property animations that <see cref="Animatable.Set(string, double, double?, EaseValue?)"/> drives.</summary>
     public static Animatable CreateAnimatable(object? targets, AnimatableParams parameters) => new(targets, parameters);
@@ -47,7 +50,7 @@ public static class Presto
     /// <summary>Animates the properties named in <paramref name="parameters"/> on every one of <paramref name="targets"/> (upstream <c>animate()</c>).</summary>
     [OverloadResolutionPriority(1)]
     public static Animation Animate(object? targets, AnimationParams parameters) =>
-        (Animation)new Animation(targets, parameters, null, 0).Init();
+        Created((Animation)new Animation(targets, parameters, null, 0).Init());
 
     /// <summary>Animates <paramref name="targets"/> with the fresh builder <paramref name="build"/> configures.</summary>
     public static Animation Animate(object? targets, Action<AnimationBuilder> build) => Animate(targets, Build(build).ToParams());
@@ -62,6 +65,12 @@ public static class Presto
 
     /// <summary>Writes the values of the fresh builder <paramref name="build"/> configures to <paramref name="targets"/> immediately.</summary>
     public static Animation Set(object? targets, Action<AnimationBuilder> build) => Set(targets, Build(build).ToParams());
+
+    private static T Created<T>(T timer) where T : Timer
+    {
+        timer.OwnerEngine.TimerCreated?.Invoke(timer);
+        return timer;
+    }
 
     internal static AnimationBuilder Build(Action<AnimationBuilder> build)
     {
@@ -94,7 +103,7 @@ public static class Presto
 
     /// <summary>
     /// Stops <paramref name="renderable"/>, or every running animation, from animating <paramref name="targets"/> — only their
-    /// <paramref name="property"/> tweens when one is named — cancelling the animations left with no tweens.
+    /// <paramref name="property"/> tweens when one is named — canceling the animations left with no tweens.
     /// </summary>
     /// <returns>The parsed targets.</returns>
     public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
@@ -113,11 +122,11 @@ public static class Presto
     /// The running animations on the current engine, timeline children included, that tween <paramref name="target"/> —
     /// only those tweening its <paramref name="property"/> when one is named.
     /// </summary>
-    /// <remarks>Completed and cancelled animations are skipped, and a paused one drops out once the engine releases it on its next frame.</remarks>
+    /// <remarks>Completed and canceled animations are skipped, and a paused one drops out once the engine releases it on its next frame.</remarks>
     public static IReadOnlyList<Animation> GetAnimations(object target, string? property = null)
     {
         var animations = new List<Animation>();
-        CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(property) ? null : Canonicalise(target, property), animations);
+        CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(property) ? null : Canonicalize(target, property), animations);
         return animations;
     }
 
@@ -125,7 +134,7 @@ public static class Presto
     {
         for (var child = parent._head; child != null; child = child._next)
         {
-            if (child.Completed || child.Cancelled) continue;
+            if (child.Completed || child.Canceled) continue;
             if (child._head != null) CollectAnimations(child, target, property, animations);
             else if (child is Animation animation && Tweens(animation, target, property)) animations.Add(animation);
         }
@@ -163,11 +172,11 @@ public static class Presto
     /// The name a tween on <paramref name="property"/> is keyed by, so that every spelling an adapter accepts for one
     /// property — a bare name, a qualified name, a typed handle — composes against the others.
     /// </summary>
-    internal static string Canonicalise(object target, string property)
+    internal static string Canonicalize(object target, string property)
     {
         for (var i = 0; i < Adapters.Count; i++)
         {
-            if (Adapters[i].Canonicalise(target, property) is { } canonical) return canonical;
+            if (Adapters[i].Canonicalize(target, property) is { } canonical) return canonical;
         }
         return property;
     }

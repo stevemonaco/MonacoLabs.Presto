@@ -16,6 +16,8 @@ internal sealed class LayoutArm
     private readonly ItemsControl? _list;
     private LayoutTransition? _transition;
     private bool _reduced;
+    private bool _suspended;
+    private int _generation;
 
     public LayoutArm(Control control, ItemsControl? list = null)
     {
@@ -32,11 +34,11 @@ internal sealed class LayoutArm
     /// Reverts the live transition and, while the control is attached, arms a new one. It measures where the control is now,
     /// unless the control is <paramref name="attaching"/> or not yet laid out, whose bounds may be stale: then its first pass only records.
     /// </summary>
-    /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honour.</exception>
+    /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honor.</exception>
     public void Arm(bool attaching)
     {
         Disarm();
-        if (Builder is not { } builder) return;
+        if (_suspended || Builder is not { } builder) return;
         _reduced = Engine.Current.Defaults.ReducedMotion;
         // Read even while detached, so an invalid builder throws where it is set.
         var motion = LayoutMotion.From(builder);
@@ -57,6 +59,20 @@ internal sealed class LayoutArm
         };
     }
 
+    /// <summary>Reverts the live transition and keeps the control unarmed until <see cref="Resume"/>, whatever attaches or changes meanwhile.</summary>
+    public void Suspend()
+    {
+        Disarm();
+        _suspended = true;
+    }
+
+    /// <summary>Arms again as if attaching, so the control records where it is rather than flying there.</summary>
+    public void Resume()
+    {
+        _suspended = false;
+        Arm(attaching: true);
+    }
+
     public void Release()
     {
         _control.AttachedToVisualTree -= HandleAttached;
@@ -67,6 +83,7 @@ internal sealed class LayoutArm
 
     private void Disarm()
     {
+        _generation++;
         _transition?.Revert();
         _transition = null;
     }
@@ -80,11 +97,11 @@ internal sealed class LayoutArm
     // A flight plays on its first layout pass, and until then its Then() has nothing to wait for.
     private void Follow(LayoutTransition flight)
     {
-        var builder = Builder;
+        var generation = _generation;
         ItemChanges.AfterLayout(_control, async () =>
         {
             await flight.Then();
-            if (_transition is null && Builder == builder) Arm(attaching: false);
+            if (_generation == generation) Arm(attaching: false);
         });
     }
 

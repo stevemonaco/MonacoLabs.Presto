@@ -43,6 +43,36 @@ public sealed class CodecTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void PixelGridLengthsInterpolateFromALengthOrANumber()
+    {
+        Assert.Equal(new GridLength(150), Tweened(new GridLength(100), TweenValue.Of(new GridLength(200)), .5));
+        Assert.Equal(new GridLength(50), Tweened(new GridLength(100), 0, .5));
+    }
+
+    [AvaloniaFact]
+    public void AColumnWidthAndARowHeightAnimateInOneCall()
+    {
+        var (column, row) = (new ColumnDefinition(new GridLength(100)), new RowDefinition(new GridLength(20)));
+
+        Presto.Animate(column, new() { ["Width"] = 40, Duration = 100, Ease = "linear", Autoplay = false }).Seek(50);
+        Presto.Animate(row, new() { ["Height"] = "+=20", Duration = 100, Ease = "linear", Autoplay = false }).Seek(50);
+
+        Assert.Equal(new GridLength(70), column.Width);
+        Assert.Equal(new GridLength(30), row.Height);
+    }
+
+    [AvaloniaFact]
+    public void AStarOrAutoLengthAtEitherEndThrows()
+    {
+        Assert.Throws<ArgumentException>(() => Tweened(GridLength.Star, 100));
+        Assert.Throws<ArgumentException>(() => Tweened(new GridLength(100), TweenValue.Of(GridLength.Auto)));
+    }
+
+    [AvaloniaFact]
+    public void AGridLengthOvershootingZeroWritesZero() =>
+        Assert.Equal(new GridLength(0), Tweened(new GridLength(10), -20));
+
+    [AvaloniaFact]
     public void ColorTweensFromAHexStringAndFromATypedColor()
     {
         Assert.Equal(Color.FromRgb(255, 107, 107), Tweened(Colors.Black, "#ff6b6b"));
@@ -89,6 +119,18 @@ public sealed class CodecTests : BridgeTestBase
         Assert.Equal([0, .5, 1], halfway.GradientStops.Select(stop => stop.Offset));
         Assert.Equal(Color.FromRgb(50, 150, 50), halfway.GradientStops[1].Color);
         Assert.Equal(to.GradientStops.Select(stop => stop.Color), end.GradientStops.Select(stop => stop.Color));
+    }
+
+    [AvaloniaFact]
+    public void AResampledStopBetweenTransparentAndOpaqueTakesTheOpaqueStopsColor()
+    {
+        var gray = Color.FromRgb(128, 128, 128);
+        var from = Linear(new(0, 0), new(1, 0), (0, Color.FromArgb(0, 0, 128, 128)), (1, gray));
+        var to = Linear(new(0, 0), new(1, 0), (0, Color.FromArgb(0, 0, 128, 128)), (.5, Color.FromArgb(128, 128, 128, 128)), (1, gray));
+
+        var middle = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(from, TweenValue.Of(to), .5)).GradientStops[1].Color;
+
+        Assert.Equal(Color.FromArgb(128, 128, 128, 128), middle);
     }
 
     [AvaloniaFact]

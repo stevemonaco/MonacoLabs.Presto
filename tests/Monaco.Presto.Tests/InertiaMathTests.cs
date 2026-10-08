@@ -2,7 +2,7 @@ using Monaco.Presto.Core;
 
 namespace Monaco.Presto.Tests;
 
-/// <summary>The inertia solver's maths from INERTIA-PLAN §5, with no upstream equivalent.</summary>
+/// <summary>The inertia solver's math from INERTIA-PLAN §5, with no upstream equivalent.</summary>
 public sealed class InertiaMathTests : EngineTestBase
 {
     private const double Tau = 350;

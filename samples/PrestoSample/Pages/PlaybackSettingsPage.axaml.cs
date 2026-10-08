@@ -1,32 +1,21 @@
 using System.Globalization;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class PlaybackSettingsPage : UserControl
+public partial class PlaybackSettingsPage : ShowcasePage
 {
     private Animation? _animation;
     private int _clicks;
 
     public PlaybackSettingsPage() => InitializeComponent();
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-        Rebuild();
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _animation?.Revert();
-        _animation = null;
-    }
+    protected override void OnAttached() => Rebuild();
 
     private void Rebuild()
     {
@@ -51,9 +40,9 @@ public partial class PlaybackSettingsPage : UserControl
         });
     }
 
-    private void SettingChanged(object? sender, RangeBaseValueChangedEventArgs e) => Rebuild();
+    private void SettingChanged(object? sender, RangeBaseValueChangedEventArgs e) => Scope.Execute(_ => Rebuild());
 
-    private void ToggleChanged(object? sender, RoutedEventArgs e) => Rebuild();
+    private void ToggleChanged(object? sender, RoutedEventArgs e) => Scope.Execute(_ => Rebuild());
 
     private void FrameRateChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {

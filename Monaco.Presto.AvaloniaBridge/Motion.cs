@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -23,7 +24,7 @@ public static class Motion
 
     /// <summary>
     /// The builder played while the left button, a touch or a pen presses the element, until release or capture loss; it wins
-    /// over hover and focus. Presto synthesises this <c>:pressed</c> for every element, not only buttons.
+    /// over hover and focus. Presto synthesizes this <c>:pressed</c> for every element, not only buttons.
     /// </summary>
     public static readonly AttachedProperty<AnimationBuilder?> PressProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Press", typeof(Motion));
@@ -38,10 +39,30 @@ public static class Motion
 
     /// <summary>
     /// Named conditions: the whitespace- or comma-separated tokens of the value's <see cref="object.ToString"/>, so an enum
-    /// matches by name. A style setter here brings any selector into a state's <see cref="MotionState.When"/>.
+    /// matches by name. A style setter here brings any selector into a state's <see cref="MotionState.When"/>. It also
+    /// names the conditions of every visual descendant with states that does not set its own, down to one that does.
     /// </summary>
     public static readonly AttachedProperty<object?> StateProperty =
         AvaloniaProperty.RegisterAttached<Control, object?>("State", typeof(Motion));
+
+    /// <summary>
+    /// Milliseconds between the state animations of consecutive descendants following this element's <see cref="StateProperty"/>,
+    /// ordered top to bottom, then left to right, by where they are laid out.
+    /// </summary>
+    public static readonly AttachedProperty<double> StaggerChildrenProperty =
+        AvaloniaProperty.RegisterAttached<Control, double>("StaggerChildren", typeof(Motion));
+
+    /// <summary>Where <see cref="StaggerChildrenProperty"/> measures from; the default is the first descendant.</summary>
+    public static readonly AttachedProperty<StaggerFrom> StaggerFromProperty =
+        AvaloniaProperty.RegisterAttached<Control, StaggerFrom>("StaggerFrom", typeof(Motion));
+
+    /// <summary>Milliseconds added to the state animations of every descendant following this element's <see cref="StateProperty"/>.</summary>
+    public static readonly AttachedProperty<double> DelayChildrenProperty =
+        AvaloniaProperty.RegisterAttached<Control, double>("DelayChildren", typeof(Motion));
+
+    /// <summary>Whether this element's own state animations play with, before or after those of its following descendants.</summary>
+    public static readonly AttachedProperty<MotionOrder> OrderProperty =
+        AvaloniaProperty.RegisterAttached<Control, MotionOrder>("Order", typeof(Motion));
 
     private static readonly AttachedProperty<MotionTracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, MotionTracker?>("Tracker", typeof(Motion));
@@ -52,7 +73,7 @@ public static class Motion
         PressProperty.Changed.AddClassHandler<Control>(HandleChanged);
         FocusProperty.Changed.AddClassHandler<Control>(HandleChanged);
         StatesProperty.Changed.AddClassHandler<Control>(HandleChanged);
-        StateProperty.Changed.AddClassHandler<Control>((control, _) => control.GetValue(TrackerProperty)?.ReadState());
+        StateProperty.Changed.AddClassHandler<Control>(HandleStateChanged);
     }
 
     /// <summary>Gets the builder played while the pointer is over <paramref name="control"/>.</summary>
@@ -85,12 +106,84 @@ public static class Motion
     /// <summary>Sets the value whose tokens name the conditions that hold on <paramref name="control"/>.</summary>
     public static void SetState(Control control, object? value) => control.SetValue(StateProperty, value);
 
+    /// <summary>Gets the milliseconds between the state animations of consecutive descendants following <paramref name="control"/>.</summary>
+    public static double GetStaggerChildren(Control control) => control.GetValue(StaggerChildrenProperty);
+
+    /// <summary>Sets the milliseconds between the state animations of consecutive descendants following <paramref name="control"/>.</summary>
+    public static void SetStaggerChildren(Control control, double value) => control.SetValue(StaggerChildrenProperty, value);
+
+    /// <summary>Gets where the stagger of <paramref name="control"/>'s descendants measures from.</summary>
+    public static StaggerFrom GetStaggerFrom(Control control) => control.GetValue(StaggerFromProperty);
+
+    /// <summary>Sets where the stagger of <paramref name="control"/>'s descendants measures from.</summary>
+    public static void SetStaggerFrom(Control control, StaggerFrom value) => control.SetValue(StaggerFromProperty, value);
+
+    /// <summary>Gets the milliseconds added to the state animations of the descendants following <paramref name="control"/>.</summary>
+    public static double GetDelayChildren(Control control) => control.GetValue(DelayChildrenProperty);
+
+    /// <summary>Sets the milliseconds added to the state animations of the descendants following <paramref name="control"/>.</summary>
+    public static void SetDelayChildren(Control control, double value) => control.SetValue(DelayChildrenProperty, value);
+
+    /// <summary>Gets when <paramref name="control"/>'s own state animations play relative to its descendants'.</summary>
+    public static MotionOrder GetOrder(Control control) => control.GetValue(OrderProperty);
+
+    /// <summary>Sets when <paramref name="control"/>'s own state animations play relative to its descendants'.</summary>
+    public static void SetOrder(Control control, MotionOrder value) => control.SetValue(OrderProperty, value);
+
     /// <summary>Adds <paramref name="state"/> after every other state of <paramref name="control"/>, until the returned handle is disposed.</summary>
     internal static IDisposable Add(Control control, MotionState state)
     {
         var tracker = control.GetValue(TrackerProperty);
         if (tracker is null) control.SetValue(TrackerProperty, tracker = new MotionTracker(control));
         return new Handle(tracker, tracker.Add(state));
+    }
+
+    private static void HandleStateChanged(Control control, AvaloniaPropertyChangedEventArgs e)
+    {
+        var own = control.GetValue(TrackerProperty);
+        own?.ResolveSource();
+        Orchestrate(control, own);
+    }
+
+    private static void Orchestrate(Control source, MotionTracker? own)
+    {
+        var playsOwn = own?.Prepare() == true;
+        var children = new List<(MotionTracker Tracker, Point Slot, int Index)>();
+        foreach (var descendant in source.GetVisualDescendants())
+        {
+            if (descendant is not Control control || control.GetValue(TrackerProperty) is not { } tracker) continue;
+            // Followers released by clearing the source's state return to rest on its timing too.
+            var followed = tracker.Source == source;
+            tracker.ResolveSource();
+            if ((followed || tracker.Source == source) && tracker.Prepare())
+            {
+                children.Add((tracker, SlotOrigin(control, source), children.Count));
+            }
+        }
+        children.Sort(static (a, b) =>
+            a.Slot.Y != b.Slot.Y ? a.Slot.Y.CompareTo(b.Slot.Y) : a.Slot.X != b.Slot.X ? a.Slot.X.CompareTo(b.Slot.X) : a.Index.CompareTo(b.Index));
+
+        var order = GetOrder(source);
+        var delay = GetDelayChildren(source);
+        if (playsOwn && order == MotionOrder.BeforeChildren) delay += own!.Play(0);
+        var stagger = GetStaggerChildren(source) is var amount and not 0
+            ? Presto.Stagger(amount, new StaggerParams { From = GetStaggerFrom(source), Total = children.Count })
+            : null;
+        var end = 0d;
+        for (var i = 0; i < children.Count; i++)
+        {
+            var offset = stagger?.Invoke(children[i].Tracker, i, [], null).AsDouble ?? 0;
+            end = Math.Max(end, children[i].Tracker.Play(delay + offset));
+        }
+        if (playsOwn && order != MotionOrder.BeforeChildren) own!.Play(order == MotionOrder.AfterChildren ? end : 0);
+    }
+
+    // Layout slots, ignoring render transforms.
+    private static Point SlotOrigin(Visual visual, Visual ancestor)
+    {
+        var origin = default(Point);
+        for (Visual? current = visual; current != null && current != ancestor; current = current.GetVisualParent()) origin += current.Bounds.Position;
+        return origin;
     }
 
     private static void HandleChanged(Control control, AvaloniaPropertyChangedEventArgs e)

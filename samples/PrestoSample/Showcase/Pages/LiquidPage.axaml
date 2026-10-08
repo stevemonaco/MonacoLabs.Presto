@@ -6,26 +6,6 @@
                        mc:Ignorable="d" d:DesignWidth="712" d:DesignHeight="440"
                        x:Class="PrestoSample.Showcase.Pages.LiquidPage">
     <showcase:ShowcasePage.Styles>
-        <Style Selector="Border.panel">
-            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
-            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="12" />
-        </Style>
-        <Style Selector="Button.bare">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.bare:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="Button.bare:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
         <Style Selector="StackPanel#Tabs Button">
             <Setter Property="Width" Value="60" />
             <Setter Property="Height" Value="64" />
@@ -43,14 +23,14 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-        <Border Grid.Column="0" Classes="panel">
+    <Grid ColumnDefinitions="*,*" RowDefinitions="*,Auto" ColumnSpacing="12" RowSpacing="12">
+        <Border Grid.Column="0" Classes="panel showcase">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Classes="eyebrow showcase" Text="LIQUID TAB BAR" />
                 <Border CornerRadius="16" Padding="6" HorizontalAlignment="Center" VerticalAlignment="Bottom"
                         Background="{x:Static showcase:Palette.SurfaceHigh}">
                     <Panel>
-                        <Canvas>
+                        <Canvas x:Name="Rail">
                             <Border x:Name="Pill" Height="56" Canvas.Top="4" CornerRadius="14"
                                     Background="{x:Static showcase:Palette.Accent}" />
                         </Canvas>
@@ -59,7 +39,7 @@
                 </Border>
             </DockPanel>
         </Border>
-        <Border Grid.Column="1" Classes="panel">
+        <Border Grid.Column="1" Classes="panel showcase">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Classes="eyebrow showcase" Text="GOOEY BUTTON" />
                 <Canvas Width="300" Height="340" VerticalAlignment="Bottom">
@@ -72,5 +52,6 @@
                 </Canvas>
             </DockPanel>
         </Border>
+        <showcase:CodePanel Grid.Row="1" Grid.ColumnSpan="2" x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />
     </Grid>
 </showcase:ShowcasePage>

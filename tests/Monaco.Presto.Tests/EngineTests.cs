@@ -149,4 +149,49 @@ public sealed class EngineTests : EngineTestBase
         Assert.Equal(1, Presto.Engine.Speed);
         Assert.Equal(.001, Presto.Engine._speed);
     }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(0, 0)]
+    [InlineData(2, 0)]
+    public void RemovingATargetFromACallbackKeepsTheOtherChildrenTicking(int remover, int removed)
+    {
+        StyleTarget[] targets = [new(), new(), new()];
+        var updatesSinceRemoval = new int[3];
+        var hasRemoved = false;
+        var animations = new Animation[3];
+        for (var i = 0; i < 3; i++)
+        {
+            var index = i;
+            animations[i] = Presto.Animate(targets[i], new()
+            {
+                ["TranslateX"] = 100,
+                Duration = 200,
+                OnUpdate = self =>
+                {
+                    if (hasRemoved) updatesSinceRemoval[index]++;
+                    else if (index == remover && self.CurrentTime >= 50)
+                    {
+                        hasRemoved = true;
+                        Presto.Remove(targets[removed]);
+                    }
+                },
+            });
+        }
+
+        RunUntil(() => hasRemoved);
+        Frames.Advance(16);
+
+        Assert.True(animations[removed].Paused);
+        for (var i = 0; i < 3; i++)
+        {
+            if (i != removed) Assert.Equal(i > remover ? 2 : 1, updatesSinceRemoval[i]);
+        }
+
+        var later = Presto.Animate(new StyleTarget(), new() { ["TranslateX"] = 100, Duration = 200 });
+        Frames.Advance(32, 16);
+
+        Assert.True(later.CurrentTime > 0);
+        Assert.Equal(3, GetChildLength(Presto.Engine));
+    }
 }

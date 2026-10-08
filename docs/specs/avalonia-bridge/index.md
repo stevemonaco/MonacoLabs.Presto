@@ -1,0 +1,107 @@
+# Monaco.Presto.AvaloniaBridge specs
+
+One spec per feature; format and usage in [../README.md](../README.md). Find a type's spec by its \	ypes\ list, or search this folder for the type name.
+
+## Foundation
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Bridge initialization, frame source and hidden signal](initialization.md) | BRIDGE-INIT | `AppBuilderExtensions`, `AvaloniaFrameSource` |
+| [Avalonia property resolution and writes](property-resolution.md) | BRIDGE-TARGETS | `AvaloniaObjectTargetAdapter`, `AvaloniaAnimationParams`, `AvaloniaAnimatableParams` |
+| [Transform shorthands](transforms.md) | BRIDGE-TRANSFORMS | — |
+| [Avalonia value codecs](value-codecs.md) | BRIDGE-CODECS | `ColorExtensions` |
+| [Control helpers, typed builder methods, scopes and WhenDetached](control-helpers.md) | BRIDGE-HELPERS | `PrestoAvalonia`, `AnimateExtensions`, `AnimationBuilderExtensions`, `PropertyBuilderExtensions`, `ControlScope`, `WhenDetached` |
+| [Effect, reveal and 3D shorthands, and Tilt](effects.md) | BRIDGE-EFFECTS | `Tilt` |
+| [Avalonia easing adapter and named springs](eases-and-springs.md) | BRIDGE-EASES | `PrestoEasing`, `Springs` |
+
+## Threads and the compositor
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Animation thread and compositor animations](animation-thread.md) | BRIDGE-THREAD | `AnimationThread`, `ThreadedAnimation`, `CompositorAnimation`, `CompositorAnimationParams` |
+| [Compositor scenes](compositor-scenes.md) | BRIDGE-SCENES | `CompositorCanvas`, `CompositorScene`, `SceneText` |
+
+## Layout
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Layout transitions (FLIP on the compositor)](layout-transitions.md) | BRIDGE-LAYOUT | `LayoutTransition`, `LayoutAnimateMode` |
+| [Connected animations from XAML](connected.md) | BRIDGE-CONNECTED | `Connected` |
+| [Content size transitions](content-size.md) | BRIDGE-CONTENTSIZE | `ContentSizeTransition` |
+| [Declarative layout animation](declarative-layout.md) | BRIDGE-DECLLAYOUT | — |
+
+## Lifecycle and XAML triggers
+
+| Spec | Id | Owns |
+|---|---|---|
+| [XAML attach triggers (Animate.*)](xaml-attach.md) | BRIDGE-ATTACH | `Animate` |
+| [Presence lifecycle (classification, arrivals, show and hide, modes)](presence.md) | BRIDGE-PRESENCE | `Presence`, `PresenceHideMode`, `PresenceMode` |
+| [Presence exits and ghosts](presence-exit.md) | BRIDGE-PRESENCE-EXIT | — |
+| [Scroll reveals and scroll anchoring (Presence.Reveal, RevealOnce, ScrollAnchor)](presence-reveal.md) | BRIDGE-REVEAL | — |
+| [Page transitions (PrestoPageTransition)](page-transitions.md) | BRIDGE-PAGES | `PrestoPageTransition`, `PageStacking`, `PageAxis` |
+| [Popover open and close motion](popovers.md) | BRIDGE-POPOVER | `Popover` |
+
+## State and value-driven motion
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Motion states and orchestration](motion-states.md) | BRIDGE-MOTION | `Motion`, `MotionState`, `MotionStates`, `MotionOrder`, `MotionExtensions` |
+| [Value-driven animation and motion value sources](follow.md) | BRIDGE-FOLLOW | `Follow`, `FollowExtension`, `FollowParams` |
+
+## Gestures
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Draggable](draggable.md) | BRIDGE-DRAGGABLE | `Draggable`, `DraggableParams`, `DraggableAxisParams`, `DraggableCursorParams` |
+| [Transformable (pan, pinch-zoom, rotate)](transformable.md) | BRIDGE-TRANSFORMABLE | `Transformable`, `TransformableParams`, `PanBounds`, `WheelZoom` |
+| [Drag-to-reorder lists](reorder.md) | BRIDGE-REORDER | `Reorder`, `ReorderExtension`, `ReorderMovingEventArgs` |
+
+## Scrolling
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Scroll observer](scroll-observer.md) | BRIDGE-SCROLLOBSERVER | `ScrollObserver`, `ScrollObserverParams`, `ScrollAxis`, `ScrollContainer`, `ScrollSnap`, `ScrollSync`, `ScrollThreshold` |
+| [Scrolling (parallax, smooth wheel, animated scrolling)](scroll.md) | BRIDGE-SCROLL | `Scroll`, `ScrollAlignment` |
+
+## Shapes and text
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Shapes (drawable, motion path, morph)](shapes.md) | BRIDGE-SHAPES | — |
+| [Text splitting and scrambling](text.md) | BRIDGE-TEXT | `TextSplitter`, `SplitTextParams`, `SplitPieceParams`, `ScrambleTextParams`, `ScrambleFrom` |
+| [Text reveals and text exits](text-reveal.md) | BRIDGE-TEXTREVEAL | `TextReveal`, `TextRevealExtension`, `TextPieces` |
+
+## Recipes and tokens
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Recipes](recipes.md) | BRIDGE-RECIPES | `Recipes`, `Attention`, `Entrances`, `Exits`, `Interactions`, `Layouts`, `Loading`, `Loops`, `Pages`, `Popovers`, `Reveals`, `TextReveals`, `Edge`, `FadeDirection` |
+| [Media recipes (draws, particles, sprites, tints)](recipes-media.md) | BRIDGE-RECIPES-MEDIA | `Draws`, `Particles`, `Sprites`, `Tints` |
+| [Recipe markup extensions](markup-extensions.md) | BRIDGE-MARKUP | `RecipeExtension`, `BlurExtension`, `CharCascadeExtension`, `FadeExtension`, `GlowExtension`, `LiftExtension`, `LineMaskExtension`, `LineRiseExtension`, `LineWipeExtension`, `PageBloomExtension`, `PageFadeExtension`, `PageFadeThroughExtension`, `PagePushExtension`, `PageSharedAxisExtension`, `PageSlideExtension`, `PlayFramesExtension`, `PopExtension`, `PopoverExtension`, `PressInExtension`, `RecolorExtension`, `ReflowExtension`, `ScaleExtension`, `ShakeExtension`, `ShimmerExtension`, `SlideExtension`, `WordBlurExtension`, `WordFadeExtension` |
+| [Motion tokens](motion-tokens.md) | BRIDGE-TOKENS | `MotionTokens` |
+| [Reduced motion in the bridge](reduced-motion.md) | BRIDGE-REDUCED | — |
+
+## Images, frames and particles
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Image effects and pixel transitions](image-effects.md) | BRIDGE-IMAGE | `PrestoImageBase`, `FilteredImage`, `ImageTransition`, `ImageTransitionKind` |
+| [Sprite sheets and image sequences](sprite-frames.md) | BRIDGE-FRAMES | `SpriteSheet`, `ImageSequence` |
+| [Particle drawing and particle effects](particles.md) | BRIDGE-PARTICLES | `ParticleScene`, `ParticleShape`, `ParticleEffect` |
+| [Press ripple](press-ripple.md) | BRIDGE-RIPPLE | `Ripple` |
+
+## Controls
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Pager carousel and indicator](pager.md) | BRIDGE-PAGER | `Pager`, `PagerIndicator`, `PagerIndicatorMode` |
+| [Sheet and drawer](sheet.md) | BRIDGE-SHEET | `Sheet`, `SheetDetents`, `Drawer` |
+| [Toast host](toast-host.md) | BRIDGE-TOAST | `Toast`, `ToastHost` |
+| [Modal host](modal.md) | BRIDGE-MODAL | `Modal` |
+| [Accordion and collapsible pane](accordion-and-pane.md) | BRIDGE-ACCORDION | `Accordion`, `Pane` |
+| [Selection indicator](selection-indicator.md) | BRIDGE-SELECTION | `Selection`, `SelectionIndicatorMode` |
+| [Swipe actions and swipe-to-dismiss](swipe-actions.md) | BRIDGE-SWIPE | `Swipe` |
+| [Pull to refresh](pull-to-refresh.md) | BRIDGE-PULL | `PullToRefresh` |
+| [Flip card](flip-card.md) | BRIDGE-FLIP | `Flip` |
+| [Progress ring and submit button](progress-and-submit.md) | BRIDGE-SUBMIT | `ProgressRing`, `SubmitButton`, `SubmitState` |
+

@@ -70,7 +70,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ChangingTheBuilderMidMoveRevertsAndTheNextMoveUsesTheNewOne()
+    public void ChangingTheBuilderMidMoveRevertsAndTheNextMoveUsesTheNewOne()
     {
         var (_, bar) = ShowBarInPanel(HeldMove);
         var start = Top(bar);
@@ -83,7 +83,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
 
         MoveDown(bar);
         Assert.True(Top(bar) < start + (2 * Shift), "the move with the new builder jumped");
-        Assert.True(await Pump(() => Top(bar) == start + (2 * Shift), rounds: 40), "the new builder's move never landed");
+        Assert.True(Pump(() => Top(bar) == start + (2 * Shift), rounds: 40), "the new builder's move never landed");
 
         Animate.SetLayout(bar, null);
         MoveDown(bar);
@@ -111,7 +111,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt(bool layoutFirst)
+    public void AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt(bool layoutFirst)
     {
         // A row's window stays open, so sharing the key would make the next row's leaving fly from this row's arriving.
         var key = $"{nameof(AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt)}{layoutFirst}";
@@ -134,12 +134,47 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
         Assert.Equal(drawn, Box(arriving));
 
         Frames.Advance(Held + 1);
-        Assert.True(await Pump(() => Box(arriving) == SlotOf(arriving), rounds: 8), "the layout property did not take over after the flight");
+        Assert.True(Pump(() => Box(arriving) == SlotOf(arriving), rounds: 8), "the layout property did not take over after the flight");
 
         var start = Top(arriving);
         arriving.Margin += new Thickness(0, Shift, 0, 0);
         Tick();
         Assert.Equal(start, Top(arriving));
+    }
+
+    [AvaloniaFact]
+    public void ClearingAndRestoringTheSameBuilderMidFlightLeavesOneTransitionThatDetachReverts()
+    {
+        var key = nameof(ClearingAndRestoringTheSameBuilderMidFlightLeavesOneTransitionThatDetachReverts);
+        var root = new Panel();
+        new Window { Content = root, Background = Brushes.White, Width = 160, Height = 220 }.Show();
+        var leaving = Placed(new Border { Background = Brushes.Blue, Width = 40, Height = 20 }, 0, 50);
+        Connected.SetKey(leaving, key);
+        root.Children.Add(leaving);
+        Tick();
+        root.Children.Remove(leaving);
+
+        var layout = HeldMove;
+        var arriving = Placed(new Border { Background = Brushes.Red, Width = 40, Height = 20 }, 80, 130);
+        Animate.SetLayout(arriving, layout);
+        Connected.SetKey(arriving, key);
+        Connected.SetMotion(arriving, HeldMove);
+        root.Children.Add(arriving);
+        Tick();
+        Animate.SetLayout(arriving, null);
+        Animate.SetLayout(arriving, layout);
+
+        // The restored arm re-arms at its next layout pass; the released one must not fill the gap before it.
+        Frames.Advance(Held + 1);
+        Pump(() => LayoutTransition.Live(arriving) is { Once: false }, rounds: 8);
+        root.Children.Remove(arriving);
+        Assert.False(LayoutTransition.Live(arriving) is { Once: false }, "a released arm re-armed after the flight and outlived the detach");
+
+        root.Children.Add(arriving);
+        Tick();
+        Assert.True(LayoutTransition.Live(arriving) is { Once: false });
+        root.Children.Remove(arriving);
+        Assert.Null(LayoutTransition.Live(arriving));
     }
 
     [AvaloniaFact]
@@ -204,7 +239,7 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
 
     [AvaloniaTheory]
     [MemberData(nameof(Unsupported))]
-    public void ABuilderALayoutTransitionCannotHonourThrowsWhenApplied(AnimationBuilder builder) =>
+    public void ABuilderALayoutTransitionCannotHonorThrowsWhenApplied(AnimationBuilder builder) =>
         Assert.Throws<NotSupportedException>(() => Animate.SetLayout(new Border(), builder));
 
     /// <summary>A red 40x20 bar at the top left of a 100x200 window, ticked once so it has a composition visual.</summary>

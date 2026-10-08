@@ -19,15 +19,23 @@
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge\Monaco.Presto.AvaloniaBridge.csproj" />
+    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge.DevTools\Monaco.Presto.AvaloniaBridge.DevTools.csproj" />
+    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge.Lottie\Monaco.Presto.AvaloniaBridge.Lottie.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Monaco.Presto.Tests\EngineTestBase.cs" Link="EngineTestBase.cs" />
     <Compile Include="..\Monaco.Presto.Tests\TestHelpers.cs" Link="TestHelpers.cs" />
+    <Compile Include="..\Monaco.Presto.Tests\SpecCatalog.cs" Link="SpecCatalog.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="..\..\samples\PrestoSample\Assets\Lottie\toggle.json" Link="Lottie\toggle.json" />
   </ItemGroup>
 
   <ItemGroup>

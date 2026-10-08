@@ -26,7 +26,7 @@ public partial class TransportBar : UserControl
     public TransportBar()
     {
         InitializeComponent();
-        // Tunnelling: the thumb handles both events and captures the pointer, so neither one bubbles back up here.
+        // Tunneling: the thumb handles both events and captures the pointer, so neither one bubbles back up here.
         Scrubber.AddHandler(PointerPressedEvent, (_, _) => _scrubbing = true, RoutingStrategies.Tunnel);
         Scrubber.AddHandler(PointerReleasedEvent, (_, _) => _scrubbing = false, RoutingStrategies.Tunnel);
     }
@@ -56,6 +56,12 @@ public partial class TransportBar : UserControl
             };
             if (LoopToggle.IsChecked == true) value.Loop = LoopCount.Infinite;
         }
+    }
+
+    /// <summary>Re-reads the timer after a seek made elsewhere: one that lands on 0 renders without an <see cref="Timer.OnUpdate"/>.</summary>
+    public void Refresh()
+    {
+        if (_timer is { } timer) Sync(timer);
     }
 
     private void Sync(Timer timer)

@@ -1,3 +1,6 @@
+using Monaco.Presto.Diagnostics;
+using Monaco.Presto.Values;
+
 namespace Monaco.Presto;
 
 public static partial class Eases
@@ -20,7 +23,7 @@ public static partial class Eases
         }
         xPoints[^1] = 1;
         yPoints[^1] = stops[totalPoints].Value;
-        return t =>
+        Ease ease = t =>
         {
             for (var i = 1; i < xPoints.Length; i++)
             {
@@ -34,5 +37,9 @@ public static partial class Eases
             }
             return yPoints[^1];
         };
+        return PrestoDiagnostics.Active ? Name(ease, $"linear({string.Join(", ", stops.Select(FormatStop))})") : ease;
     }
+
+    private static string FormatStop(LinearStop stop) =>
+        stop.Position is { } position ? $"{JsNumber.Format(stop.Value)} {JsNumber.Format(position * 100)}%" : JsNumber.Format(stop.Value);
 }

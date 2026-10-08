@@ -9,7 +9,7 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// <summary>
 /// Covers <c>PrestoAvalonia.CreateDrawable</c>, <c>PrestoAvalonia.CreateMotionPath</c> and <c>PrestoAvalonia.MorphTo</c>, the
 /// parts of tests/suites/svg.test.js that do not need a browser: the "stroke-linecap" drawable test, the
-/// "svg.createMotionPath with offset" test and the morphTo tests, plus the Avalonia-specific stroke dash and revert behaviour.
+/// "svg.createMotionPath with offset" test and the morphTo tests, plus the Avalonia-specific stroke dash and revert behavior.
 /// </summary>
 public sealed class ShapesTests : BridgeTestBase
 {
@@ -170,6 +170,36 @@ public sealed class ShapesTests : BridgeTestBase
         Assert.Equal(middle.Y, start.Y, 3);
         Assert.Equal(start.X, end.X, 3);
         Assert.Equal(start.Y, end.Y, 3);
+    }
+
+    [AvaloniaFact]
+    public void PointMotionPathDrivesTheShorthandsThroughThePoints()
+    {
+        Point[] points = [new(0, 0), new(100, 60), new(200, 0)];
+        var path = MotionPath.Through([(0, 0), (100, 60), (200, 0)]);
+        var rider = new Border();
+        var motion = PrestoAvalonia.CreateMotionPath(points, autoRotate: 90);
+
+        var animation = rider.Animate(new()
+        {
+            ["X"] = motion.X,
+            ["Y"] = motion.Y,
+            ["Rotate"] = motion.Rotate,
+            Duration = 100,
+            Ease = Eases.None,
+            Autoplay = false,
+        });
+
+        foreach (var progress in (double[])[0, .5, 1])
+        {
+            animation.Seek(animation.Duration * progress);
+            path.Sample(path.Length * progress, out var x, out var y, out var angle);
+            Assert.Equal(x, Transform<TranslateTransform>(rider).X, 3);
+            Assert.Equal(y, Transform<TranslateTransform>(rider).Y, 3);
+            Assert.Equal(angle + 90, Transform<RotateTransform>(rider).Angle, 3);
+        }
+
+        AssertPoint(new Point(100, 60), PointAt(PrestoAvalonia.MotionPathGeometry(points), .5));
     }
 
     [AvaloniaFact]

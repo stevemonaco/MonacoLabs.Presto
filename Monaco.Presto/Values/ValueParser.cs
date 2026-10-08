@@ -26,11 +26,16 @@ public static partial class ValueParser
     /// Resets <paramref name="into"/> and fills it from <paramref name="raw"/>: null, empty, 0 and false are the number 0;
     /// numeric primitives are numbers; a <see cref="PrestoColor"/> is a color; a <c>double[]</c> is a space-separated complex
     /// value; strings are parsed as upstream does. Any other type falls back to <paramref name="codec"/>, and throws
-    /// <see cref="NotSupportedException"/> when there is none.
+    /// <see cref="NotSupportedException"/> when there is none. A <see cref="DiscreteCodec"/> takes every non-null value.
     /// </summary>
     public static void Decompose(object? raw, DecomposedValue into, IValueCodec? codec = null)
     {
         into.Reset();
+        if (codec is DiscreteCodec && raw != null)
+        {
+            codec.TryDecode(raw, into);
+            return;
+        }
         switch (raw)
         {
             case null:
@@ -68,6 +73,7 @@ public static partial class ValueParser
         into.Operator = '\0';
         into.Numbers = Helpers.CloneNumbers(tween._toNumbers);
         into.Strings = (string[])tween._strings.Clone();
+        into.Discrete = tween._toObject;
     }
 
     private static void DecomposeString(string str, DecomposedValue into)

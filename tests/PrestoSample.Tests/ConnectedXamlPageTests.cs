@@ -4,7 +4,9 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.VisualTree;
+using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -44,7 +46,10 @@ public sealed class ConnectedXamlPageTests
         TestFrames.Tick(2);
 
         var early = SceneHarness.Extent(page, Tint);
-        Assert.True(early is { } box && box.Width < from.Width * 1.5, $"the hero was drawn at {early} two frames in, not near the card at {from}");
+        // The click's frame and these two are all the compositor clock has moved since the flight began.
+        const double flown = 3 * 16;
+        var reach = from.Width + ((hero.Width - from.Width) * Eases.OutQuint(flown / 620));
+        Assert.True(early is { } box && box.Width < reach + 2, $"the hero was drawn at {early} {flown} ms in, wider than {reach:F0} from the card at {from}");
 
         await SceneHarness.Settle();
         Assert.True(SceneHarness.Extent(page, Tint) is { } landed && SceneHarness.Near(landed, SceneHarness.Slot(hero, window)), "the hero did not land in its slot");
@@ -94,9 +99,16 @@ public sealed class ConnectedXamlPageTests
         SceneHarness.Close(window);
     }
 
-    [Fact]
-    public void SnippetsMatchItsMarkup() =>
-        BuilderPagesTests.AssertSnippetsMatchMarkup(typeof(ConnectedXamlPage), "samples/PrestoSample/Showcase/Pages/ConnectedXamlPage.axaml", 3);
+    [AvaloniaFact]
+    public void ThePagePrintsItsSnippets()
+    {
+        var page = new ConnectedXamlPage();
+
+        Assert.Equal(Snippets.ConnectedXamlCard, page.GetControl<CodePanel>("CardCode").Code);
+        Assert.Equal(Snippets.ConnectedXamlDetail, page.GetControl<CodePanel>("DetailCode").Code);
+        Assert.Equal(Snippets.ConnectedXamlHosts, page.GetControl<CodePanel>("HostsCode").Code);
+        Assert.Contains("public static AnimationBuilder Arc =>", page.GetControl<CodePanel>("ArcCode").Code);
+    }
 
     // Waits out flights claimed from keys an earlier test's window prepared as it closed.
     private static async Task<Window> Show(ConnectedXamlPage page)

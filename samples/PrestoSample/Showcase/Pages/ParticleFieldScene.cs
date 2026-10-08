@@ -112,12 +112,13 @@ public sealed class ParticleFieldScene : CompositorScene
             };
         }
         _particles = particles;
+        #region snippet ParticleFieldDrift
         _drift = Presto.Animate(particles, new AnimationParams
         {
             ["X"] = (FunctionValue)((_, _, _) => random(-Wander, Wander, 1)),
             ["Y"] = (FunctionValue)((_, _, _) => random(-Wander, Wander, 1)),
             ["Opacity"] = new TweenParams { To = (FunctionValue)((_, _, _) => random(.12, 1, 2)), Modifier = Utils.Snap(.05) },
-            // Adding colour channels together means nothing, so the tint replaces while the rest of the animation blends.
+            // Adding color channels together means nothing, so the tint replaces while the rest of the animation blends.
             ["Tint"] = new TweenParams
             {
                 To = (FunctionValue)((_, _, _) => TweenValue.Of(Palette.AccentRamp[(int)random(0, Palette.AccentRamp.Count - 1)])),
@@ -130,6 +131,7 @@ public sealed class ParticleFieldScene : CompositorScene
             Loop = true,
             Alternate = true,
         });
+        #endregion
     }
 
     private void Burst(Point at)
@@ -140,6 +142,7 @@ public sealed class ParticleFieldScene : CompositorScene
             if (Offset(particle, at).Length < BurstRadius) hit.Add(particle);
         }
         if (hit.Count == 0) return;
+        #region snippet ParticleFieldBurst
         Presto.Animate(hit, new AnimationParams
         {
             ["X"] = new TweenParams[]
@@ -154,6 +157,7 @@ public sealed class ParticleFieldScene : CompositorScene
             },
             Composition = Composition.Blend,
         });
+        #endregion
     }
 
     private void Part(double deltaTime)

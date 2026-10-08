@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -198,6 +199,64 @@ public sealed class TextSplitTests : BridgeTestBase
         Assert.Equal(probe.DesiredSize.Height, lineHeight, tolerance: 1);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SplittingKeepsTheHostTheHeightOfItsPlainText(bool chars)
+    {
+        var block = ShowText(160);
+        block.VerticalAlignment = VerticalAlignment.Top;
+        block.UpdateLayout();
+        var plain = block.Bounds.Height;
+
+        PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = chars ? new() : null });
+        block.UpdateLayout();
+
+        Assert.Equal(plain, block.Bounds.Height, tolerance: 0.5);
+    }
+
+    private static double DelayOf(FunctionValue delay, Control piece) => (double)delay(piece, 0, 0).Raw!;
+
+    [AvaloniaFact]
+    public void StaggerByLineStepsByLineAndByPositionInTheLine()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(160));
+        var thirdLine = split.Words.Where(word => TextSplitter.GetLineIndex(word) == 2).ToArray();
+        Assert.True(thirdLine.Length > 1);
+
+        var delay = TextSplitter.StaggerByLine(100, 20);
+
+        Assert.Equal(200, DelayOf(delay, thirdLine[0]));
+        Assert.Equal(220, DelayOf(delay, thirdLine[1]));
+    }
+
+    [AvaloniaFact]
+    public void StaggerByLineStartOffsetsEveryDelay()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(160), new() { Words = null, Chars = new() });
+        var plain = TextSplitter.StaggerByLine(100, 20);
+        var offset = TextSplitter.StaggerByLine(100, 20, 500);
+
+        Assert.All(split.Chars, c => Assert.Equal(DelayOf(plain, c) + 500, DelayOf(offset, c)));
+    }
+
+    [AvaloniaFact]
+    public void LineHeightOfReadsTheOwningSplitAndFollowsARefresh()
+    {
+        var block = ShowText(160);
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new() });
+
+        Assert.All(split.Lines.Concat(split.Words).Concat(split.Chars), piece => Assert.Equal(split.LineHeight, TextSplitter.LineHeightOf(piece)));
+
+        var before = split.LineHeight;
+        block.FontSize = 40;
+        split.Refresh();
+
+        Assert.True(split.LineHeight > before);
+        Assert.Equal(split.LineHeight, TextSplitter.LineHeightOf(split.Words[0]));
+        Assert.Equal(0, TextSplitter.LineHeightOf(block));
+    }
+
     [AvaloniaFact]
     public void TurnsOffTheHostClipWhileSplitAndRestoresItOnRevert()
     {
@@ -385,7 +444,7 @@ public sealed class TextSplitTests : BridgeTestBase
         Assert.False(animation!.Paused);
 
         split.Revert();
-        Assert.True(animation.Cancelled);
+        Assert.True(animation.Canceled);
     }
 
     [AvaloniaFact]

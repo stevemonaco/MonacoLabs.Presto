@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1200"
                        x:Class="PrestoSample.Builder.SubmitFlowPage">
     <showcase:ShowcasePage.Styles>
@@ -27,20 +28,19 @@
                         <Grid>
                             <TextBlock x:Name="Label" Text="Send message" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <Path x:Name="Spinner" Opacity="0" StrokeThickness="2.5" Data="M11,2 A9,9 0 1 1 2,11" />
-                            <Path x:Name="Tick" StrokeThickness="3" Data="M5,11.5 L9.5,16 L17,6.5" />
-                            <Path x:Name="Cross" StrokeThickness="3" Data="M6,6 L16,16 M16,6 L6,16" />
+                            <Path x:Name="Tick" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Check}" />
+                            <Path x:Name="Cross" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Cross}" />
                         </Grid>
                     </Button>
                     <CheckBox x:Name="FailBox" Content="Fail the next request" HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
 
-            <TextBlock Classes="caption" Text="Nine recipes; the click handler awaits them in turn, and a Presto timer stands in for the request" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="RecipesCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <TextBlock Classes="caption" Text="The recipes: static builders, plus the library's Pulse, Shake and Confetti" />
+            <showcase:CodePanel x:Name="RecipesCode" Code="{x:Static showcase:Snippets.SubmitFlowRecipes}" />
+
+            <TextBlock Classes="caption" Text="The click handler awaits them in turn, and a Presto timer stands in for the request" />
+            <showcase:CodePanel x:Name="SendCode" Code="{x:Static showcase:Snippets.SubmitFlowSend}" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

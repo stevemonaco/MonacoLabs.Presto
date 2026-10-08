@@ -13,6 +13,9 @@ public abstract class Clock
     internal bool _hasChildren;
     internal Timer? _head;
     internal Timer? _tail;
+    // Iteration cursor of the child loop running on this clock, advanced by RemoveChild when a callback unlinks that child.
+    internal Timer? _nextChild;
+    internal bool _nextChildIsPrev;
     internal Engine? _engine;
 
     /// <summary>Starts the clock at <paramref name="initTime"/>, the frame source time its first tick is measured from.</summary>

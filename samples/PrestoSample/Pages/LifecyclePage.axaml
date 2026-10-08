@@ -2,9 +2,57 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+             xmlns:showcase="clr-namespace:PrestoSample.Showcase"
              mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="700"
              x:Class="PrestoSample.Pages.LifecyclePage">
+    <UserControl.Resources>
+        <!-- snippet: LifecycleStep -->
+        <DataTemplate x:Key="AccountStep">
+            <Border Classes="step"
+                    presto:Presence.Enter="{presto:Slide Edge=Right, Distance=48}"
+                    presto:Presence.Exit="{presto:Slide Edge=Left, Distance=48}">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="title" Text="1 · Account" />
+                    <TextBox PlaceholderText="Email" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+        <!-- /snippet -->
+        <DataTemplate x:Key="PlanStep">
+            <Border Classes="step"
+                    presto:Presence.Enter="{presto:Slide Edge=Right, Distance=48}"
+                    presto:Presence.Exit="{presto:Slide Edge=Left, Distance=48}">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="title" Text="2 · Plan" />
+                    <RadioButton GroupName="Plan" Content="Free" IsChecked="True" />
+                    <RadioButton GroupName="Plan" Content="Pro" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="DoneStep">
+            <Border Classes="step"
+                    presto:Presence.Enter="{presto:Slide Edge=Right, Distance=48}"
+                    presto:Presence.Exit="{presto:Slide Edge=Left, Distance=48}">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="title" Text="3 · Done" />
+                    <TextBlock Text="You're all set." />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
     <UserControl.Styles>
+        <Style Selector="Border.step">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="Background" Value="#1e293b" />
+            <Setter Property="TextElement.Foreground" Value="#f8fafc" />
+        </Style>
+        <Style Selector="Border.step TextBlock.title">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
         <Style Selector="Border.view">
             <Setter Property="Width" Value="300" />
             <Setter Property="CornerRadius" Value="12" />
@@ -41,17 +89,6 @@
                          ListBox.archive ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
         </Style>
-        <Style Selector="Border.moment">
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="6,1" />
-            <Setter Property="Width" Value="58" />
-        </Style>
-        <Style Selector="Border.moment TextBlock">
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#0f172a" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-        </Style>
         <Style Selector="Border.panel">
             <Setter Property="Width" Value="260" />
             <Setter Property="Height" Value="120" />
@@ -68,7 +105,7 @@
                     <ContentControl x:Name="Host" VerticalAlignment="Top" />
                     <StackPanel Grid.Column="1" Spacing="8">
                         <TextBlock Classes="caption" Text="Moments, newest first" />
-                        <ItemsControl x:Name="Moments" />
+                        <showcase:MomentLog x:Name="Moments" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -80,7 +117,7 @@
                 <Button Content="Remove row" Click="RemoveRow" Margin="0,0,8,8" />
             </WrapPanel>
 
-            <TextBlock x:Name="RowCode" Classes="code" />
+            <showcase:CodePanel x:Name="RowCode" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />
@@ -98,10 +135,31 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Classes="code" Text="swapper.Content = next;   // both views carry Presence.Arrive and Presence.Exit" />
+            <showcase:CodePanel x:Name="SwapCode" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="A ContentControl swapping its content: the old view's exit plays on its ghost while the new view enters in the same slot, so the two crossfade. A whole page navigated away is not ghosted: an element leaves on its own only when everything between it and what was removed wraps nothing else." />
+
+            <Border Classes="stage" MinHeight="220">
+                <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- snippet: LifecycleWizard -->
+                    <ContentControl x:Name="Wizard" Width="300" Height="140" presto:Presence.Mode="Wait" />
+                    <!-- /snippet -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <Button x:Name="BackButton" Content="Back" Click="WizardBack" />
+                        <Button x:Name="NextButton" Content="Next" Click="WizardNext" />
+                        <ComboBox x:Name="ModePicker" Width="130" SelectionChanged="ModeChanged">
+                            <ComboBoxItem Content="Sync" />
+                            <ComboBoxItem Content="Wait" />
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <showcase:CodePanel x:Name="WizardCode" Language="Xaml" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A wizard in a ContentControl with Presence.Mode=&quot;Wait&quot;: the old step slides out on its ghost, and only when that exit ends does the next step slide in, held at opacity 0 until then. Switch the picker to Sync and the two overlap as the crossfade above does. Press Next twice quickly: the step that was still waiting leaves unseen, without a ghost, and the third waits for the first's exit alone." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

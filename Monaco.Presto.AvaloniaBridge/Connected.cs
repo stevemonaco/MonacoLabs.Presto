@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -14,7 +15,7 @@ public static class Connected
     /// </summary>
     /// <remarks>
     /// A keyed element measures itself on every layout pass, one parent walk each; fine for a page or a list of dozens, but a
-    /// virtualising list of thousands should key only the items it needs.
+    /// virtualizing list of thousands should key only the items it needs.
     /// </remarks>
     public static readonly AttachedProperty<string?> KeyProperty =
         AvaloniaProperty.RegisterAttached<Control, string?>("Key", typeof(Connected));
@@ -142,6 +143,7 @@ public static class Connected
     {
         var registration = Register(key, control);
         var motion = GetMotion(control) ?? s_defaultMotion;
+        using var origin = PrestoDiagnostics.Origin("Connected");
         var flight = Other(key, control) is { } source
             ? PrestoAvalonia.AnimateSharedElement(source, control, motion)
             : PrestoAvalonia.AnimateSharedElement(key, control, motion);
@@ -211,6 +213,7 @@ public static class Connected
         public void Play()
         {
             Stop();
+            using var origin = PrestoDiagnostics.Origin("Connected");
             _animation = PrestoAvalonia.AnimateOnCompositor(_control, GetMotion(_control) ?? s_defaultAnchorMotion);
         }
 

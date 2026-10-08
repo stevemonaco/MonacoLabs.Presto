@@ -5,7 +5,7 @@ using Avalonia.Media;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary><see cref="Tilt"/> (MOTION-KIT-PLAN §4.1 decision 9): the pointer-follow tilt over <c>RotateX</c>/<c>RotateY</c>.</summary>
+/// <summary><see cref="Tilt"/>: the pointer-follow tilt over <c>RotateX</c>/<c>RotateY</c>.</summary>
 public sealed class TiltTests : BridgeTestBase
 {
     [AvaloniaFact]

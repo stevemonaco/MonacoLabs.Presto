@@ -31,6 +31,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="PrestoSample.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge\Monaco.Presto.AvaloniaBridge.csproj" />
+    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge.DevTools\Monaco.Presto.AvaloniaBridge.DevTools.csproj" />
+    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge.Lottie\Monaco.Presto.AvaloniaBridge.Lottie.csproj" />
+    <ProjectReference Include="..\PrestoSample.SnippetGenerator\PrestoSample.SnippetGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- The Avalonia SDK already passes every .axaml as AdditionalFiles, so only the C# sources are added here. -->
+  <ItemGroup>
+    <AdditionalFiles Include="@(Compile)" />
   </ItemGroup>
 </Project>

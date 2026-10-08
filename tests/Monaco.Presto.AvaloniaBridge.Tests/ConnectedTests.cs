@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Microsoft.Extensions.Time.Testing;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -72,6 +73,29 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void APreparedRectIsTakenWithinThreeSecondsAndExpiresAfter()
+    {
+        const string key = nameof(APreparedRectIsTakenWithinThreeSecondsAndExpiresAfter);
+        var drawn = new Rect(10, 20, 30, 40);
+        var time = new FakeTimeProvider();
+        LayoutTransition.TimeProvider = time;
+        try
+        {
+            LayoutTransition.Prepare(key, drawn);
+            time.Advance(TimeSpan.FromMilliseconds(2999));
+            Assert.Equal(drawn, LayoutTransition.TakePrepared(key));
+
+            LayoutTransition.Prepare(key, drawn);
+            time.Advance(TimeSpan.FromMilliseconds(3001));
+            Assert.Null(LayoutTransition.TakePrepared(key));
+        }
+        finally
+        {
+            LayoutTransition.TimeProvider = TimeProvider.System;
+        }
+    }
+
+    [AvaloniaFact]
     public void AFirstLoadWithNothingPreparedAnimatesNothing()
     {
         var arriving = Keyed(nameof(AFirstLoadWithNothingPreparedAnimatesNothing), Brushes.Red, ConnectedRecipes.Held);
@@ -131,7 +155,7 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task TheArrivingElementsMotionSetsTheFlight()
+    public void TheArrivingElementsMotionSetsTheFlight()
     {
         const string key = nameof(TheArrivingElementsMotionSetsTheFlight);
         var host = ShowHost(View(Keyed(key, Brushes.Blue), 0, 50));
@@ -139,13 +163,13 @@ public sealed class ConnectedTests : CompositorTestBase
 
         var arriving = Keyed(key, Brushes.Red, ConnectedRecipes.Held);
         host.Content = View(arriving, 80, 130);
-        await Pump(() => false, 80);
+        Pump(() => false, 80);
 
         AssertNear(drawn, Box(arriving));
     }
 
     [AvaloniaFact]
-    public async Task TheLeavingElementsMotionIsIgnoredForTheDefault()
+    public void TheLeavingElementsMotionIsIgnoredForTheDefault()
     {
         const string key = nameof(TheLeavingElementsMotionIsIgnoredForTheDefault);
         var defaultMotion = Connected.DefaultMotion;
@@ -158,7 +182,7 @@ public sealed class ConnectedTests : CompositorTestBase
             Tick();
             Frames.Advance(100);
 
-            Assert.True(await Pump(() => Box(arriving) == SlotOf(arriving)), "the arrival took the leaving element's motion");
+            Assert.True(Pump(() => Box(arriving) == SlotOf(arriving)), "the arrival took the leaving element's motion");
         }
         finally
         {
@@ -180,7 +204,7 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task DefaultMotionAppliesWhenNeitherElementSetsOne()
+    public void DefaultMotionAppliesWhenNeitherElementSetsOne()
     {
         const string key = nameof(DefaultMotionAppliesWhenNeitherElementSetsOne);
         var defaultMotion = Connected.DefaultMotion;
@@ -191,7 +215,7 @@ public sealed class ConnectedTests : CompositorTestBase
             var drawn = Extent(host, Colors.Blue)!.Value;
             var arriving = Keyed(key, Brushes.Red);
             host.Content = View(arriving, 80, 130);
-            await Pump(() => false, 80);
+            Pump(() => false, 80);
 
             AssertNear(drawn, Box(arriving));
         }
@@ -202,25 +226,25 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task AnAnchoredElementAttachedBeforeItsKeyedElementEntersWithTheFlight()
+    public void AnAnchoredElementAttachedBeforeItsKeyedElementEntersWithTheFlight()
     {
         const string key = nameof(AnAnchoredElementAttachedBeforeItsKeyedElementEntersWithTheFlight);
         var host = ShowHost(View(Keyed(key, Brushes.Blue), 0, 50));
         var anchored = Anchored(key);
         host.Content = new Panel { Children = { anchored, View(Keyed(key, Brushes.Red, ConnectedRecipes.Held), 80, 130) } };
 
-        await AssertEnters(host, anchored);
+        AssertEnters(host, anchored);
     }
 
     [AvaloniaFact]
-    public async Task AnAnchoredElementAttachedAfterItsKeyedElementEntersWithTheFlight()
+    public void AnAnchoredElementAttachedAfterItsKeyedElementEntersWithTheFlight()
     {
         const string key = nameof(AnAnchoredElementAttachedAfterItsKeyedElementEntersWithTheFlight);
         var host = ShowHost(View(Keyed(key, Brushes.Blue), 0, 50));
         var anchored = Anchored(key);
         host.Content = new Panel { Children = { View(Keyed(key, Brushes.Red, ConnectedRecipes.Held), 80, 130), anchored } };
 
-        await AssertEnters(host, anchored);
+        AssertEnters(host, anchored);
     }
 
     [AvaloniaFact]
@@ -287,7 +311,7 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ACompiledXamlViewFliesItsKeyedElementAndEntersItsAnchoredOne()
+    public void ACompiledXamlViewFliesItsKeyedElementAndEntersItsAnchoredOne()
     {
         const int id = 17017;
         var leaving = new ConnectedXamlView { DataContext = new ConnectedXamlViewModel(id, new Thickness(0, 50, 0, 0)) };
@@ -301,7 +325,7 @@ public sealed class ConnectedTests : CompositorTestBase
         Tick();
 
         Assert.Equal(drawn, Box(arriving.Photo));
-        await AssertEnters(host, arriving.Caption);
+        AssertEnters(host, arriving.Caption);
     }
 
     [AvaloniaFact]
@@ -331,11 +355,11 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     /// <summary>The default entrance holds the element transparent through its delay, then brings it to rest in its slot.</summary>
-    private static async Task AssertEnters(Visual host, Control anchored)
+    private static void AssertEnters(Visual host, Control anchored)
     {
         Tick();
         Assert.Null(Extent(host, Colors.Lime));
-        Assert.True(await Pump(() => Extent(host, Colors.Lime) == SlotOf(anchored)), "the anchored element did not come to rest");
+        Assert.True(Pump(() => Extent(host, Colors.Lime) == SlotOf(anchored)), "the anchored element did not come to rest");
     }
 
     private static Border Anchored(string key, AnimationBuilder? motion = null)
@@ -390,7 +414,7 @@ public sealed class ConnectedTests : CompositorTestBase
         Tick();
     }
 
-    /// <summary>Held flights still creep a fraction of a pixel per second of wall time, which antialiasing shows at the edges.</summary>
+    /// <summary>Held flights still creep a fraction of a pixel per second of compositor time, which antialiasing shows at the edges.</summary>
     private static void AssertNear(Rect expected, Rect actual)
     {
         Assert.InRange(actual.Left, expected.Left - 1, expected.Left + 1);

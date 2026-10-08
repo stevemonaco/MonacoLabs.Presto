@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
-using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Compositor;
@@ -58,11 +57,8 @@ public partial class ConnectedNavPage : ShowcasePage
             },
         };
         Host.Child = _gallery;
+        HowCode.Code = $"// PhotoFlight.cs\n{Snippets.ConnectedXamlArc}\n\n{Snippets.ConnectedNavOpen}";
     }
-
-    /// <summary>The photo's flight: X and the scale ease out fast while Y eases in and out, which bends the straight line into an arc.</summary>
-    private static AnimationBuilder Flight(double duration) =>
-        Presto.Build().Duration(duration).Ease(Eases.OutQuint).Y(ease: Eases.InOutCubic);
 
     private double Pace => SlowMotion.IsChecked == true ? 4 : 1;
 
@@ -82,6 +78,7 @@ public partial class ConnectedNavPage : ShowcasePage
         var detail = _detail = BuildDetail(index);
         var pace = Pace;
 
+        #region snippet ConnectedNavOpen
         // The gallery only records where its pieces are, keyed, and the detail view claims them: neither needs the other's controls.
         PrestoAvalonia.PrepareSharedElement(PhotoKey, card.Photo);
         PrestoAvalonia.PrepareSharedElement(CityKey, card.City);
@@ -89,13 +86,14 @@ public partial class ConnectedNavPage : ShowcasePage
 
         Scope.Execute(_ =>
         {
-            PrestoAvalonia.AnimateSharedElement(PhotoKey, detail.Hero, Flight(HeroDuration * pace));
+            PrestoAvalonia.AnimateSharedElement(PhotoKey, detail.Hero, PhotoFlight.Arc.Duration(HeroDuration * pace));
             PrestoAvalonia.AnimateSharedElement(CityKey, detail.City, TitleDuration * pace, Eases.OutExpo);
 
             _cascade?.Revert();
             _cascade = PrestoAvalonia.AnimateOnCompositor(detail.Coordinated,
                 Recipes.FadeUp(distance: 28, duration: 480 * pace, ease: Eases.OutQuart).Delay(Presto.Stagger(45 * pace, new StaggerParams { Start = 200 * pace })));
         });
+        #endregion
         Jam();
         Focus();
     }
@@ -113,7 +111,7 @@ public partial class ConnectedNavPage : ShowcasePage
 
         Scope.Execute(_ =>
         {
-            PrestoAvalonia.AnimateSharedElement(PhotoKey, card.Photo, Flight(HeroDuration * pace));
+            PrestoAvalonia.AnimateSharedElement(PhotoKey, card.Photo, PhotoFlight.Arc.Duration(HeroDuration * pace));
             PrestoAvalonia.AnimateSharedElement(CityKey, card.City, TitleDuration * pace, Eases.OutExpo);
 
             _cascade?.Revert();
@@ -127,7 +125,7 @@ public partial class ConnectedNavPage : ShowcasePage
     // Posted below Render priority, so the flight is committed to the compositor before the dispatcher stops answering.
     private void Jam()
     {
-        if (JamUi.IsChecked == true) Dispatcher.UIThread.Post(() => Thread.Sleep(1500), DispatcherPriority.Background);
+        if (JamUi.IsChecked == true) UiThread.Freeze(TimeSpan.FromMilliseconds(1500));
     }
 
     private static double Distance(int from, int to) =>
@@ -138,7 +136,7 @@ public partial class ConnectedNavPage : ShowcasePage
         var photo = new Border { Classes = { "photo" }, Child = new Scenery { Hue = place.Hue, Index = index } };
         var city = new TextBlock { Classes = { "city" }, Text = place.City, Margin = new Thickness(2, 8, 0, 0) };
         var country = new TextBlock { Classes = { "caption" }, Text = place.Country, Margin = new Thickness(2, 1, 0, 0), Tag = index };
-        var root = new Border { Classes = { "place" }, Tag = index, Child = new StackPanel { Children = { photo, city, country } } };
+        var root = new Border { Classes = { "place", "showcase" }, Tag = index, Child = new StackPanel { Children = { photo, city, country } } };
         root.PointerPressed += (_, _) => Open(index);
         return new Card(root, photo, city, country);
     }

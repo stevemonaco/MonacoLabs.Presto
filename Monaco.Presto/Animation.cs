@@ -30,7 +30,7 @@ public sealed class Animation : Timer
         bool fastSet = false,
         int index = 0,
         IReadOnlyList<object>? allTargets = null)
-        : base(parameters, parent, parentPosition)
+        : base(parameters = parameters.Resolve(parent?.OwnerEngine ?? Engine.Current), parent, parentPosition)
     {
         var animationId = Interlocked.Increment(ref s_animationId);
 
@@ -85,7 +85,7 @@ public sealed class Animation : Timer
             {
                 var (declaredName, propertyValue) = properties[propertyIndex];
                 // Keyed by the canonical name so the other spellings of this property compose against these tweens.
-                var propertyName = Presto.Canonicalise(target, declaredName);
+                var propertyName = Presto.Canonicalize(target, declaredName);
                 var accessor = Presto.ResolveAccessor(target, propertyName);
                 var codec = accessor.Codec;
                 var frames = NormalizeKeyframes(propertyValue, fastSet);
@@ -96,12 +96,10 @@ public sealed class Animation : Timer
                 var firstTweenChangeStartTime = double.NaN;
                 var lastTweenChangeEndTime = 0d;
 
-                object ReadOriginalValue()
+                object? ReadOriginalValue()
                 {
-                    var original = accessor.GetValue(target);
                     // Deviation from upstream, which skips falsy originals: captured even when 0 or empty so Revert can restore it.
-                    inlineValue = original;
-                    return original ?? 0d;
+                    return inlineValue = accessor.GetValue(target);
                 }
 
                 for (var tweenIndex = 0; tweenIndex < frames.Length; tweenIndex++)
@@ -113,6 +111,7 @@ public sealed class Animation : Timer
                     Func<TweenValue>? fromFunc = null;
 
                     var tweenComposition = key?.Composition ?? tComposition;
+                    if (codec is DiscreteCodec && tweenComposition == Composition.Blend) throw new ArgumentException($"'{declaredName}' is discrete, so it cannot be blended.", nameof(parameters));
                     if (siblings == null && tweenComposition != Composition.None) siblings = Composer.GetTweenSiblings(target, propertyName);
                     // A timeline child chains off the tail sibling of the same timeline; anything else off its own previous keyframe.
                     var tailTween = siblings?._tail;
@@ -131,11 +130,11 @@ public sealed class Animation : Timer
                         tweenToValue = computedToValue;
                     }
 
-                    var inertia = tweenToValue?.Raw as Inertia;
-                    if (inertia != null)
+                    var physics = tweenToValue?.Raw is Inertia or Projectile ? tweenToValue.Value.Raw : null;
+                    if (physics != null)
                     {
                         // Its duration is only known once the previous keyframe resolves (INERTIA-PLAN §7).
-                        if (propertyValue.IsArray) throw new ArgumentException($"An Inertia cannot be a keyframe or part of a from/to pair ('{declaredName}').", nameof(parameters));
+                        if (propertyValue.IsArray) throw new ArgumentException($"An {physics.GetType().Name} cannot be a keyframe or part of a from/to pair ('{declaredName}').", nameof(parameters));
                         tweenToValue = null;
                         toFunc = null;
                     }
@@ -149,7 +148,7 @@ public sealed class Animation : Timer
                     else if (frames.Length > 1) tweenDurationValue = JsNumber.ToNumber(GetFunctionValue(tDuration, target, ti, groupTargets, chainedTween)?.Raw, 0) / frames.Length;
                     else tweenDurationValue = tDuration;
 
-                    var tweenDuration = reduceAll ? Constants.MinValue
+                    var tweenDuration = reduceAll && physics is not Projectile ? Constants.MinValue
                         : keySpring != null ? keySpring.SettlingDuration
                         : JsNumber.ToNumber(GetFunctionValue(tweenDurationValue, target, ti, groupTargets, chainedTween)?.Raw, 0);
                     // The animation delay only applies to the first keyframe.
@@ -163,7 +162,7 @@ public sealed class Animation : Timer
                     // The update start in local time: the previous keyframe's end, or zero for the first one.
                     var tweenUpdateStartLocal = prevTween != null ? lastTweenChangeEndTime : 0;
                     var tweenStartTime = prevTween != null ? lastTweenChangeEndTime + tweenDelay : tweenDelay;
-                    // Rounding minimises the floating point errors of working in seconds.
+                    // Rounding minimizes the floating point errors of working in seconds.
                     var absoluteStartTime = Helpers.Round(absoluteOffsetTime + tweenStartTime, 12);
                     // Matches the rounding of prevSibling._absoluteEndTime so keyframes touching at a boundary compare cleanly.
                     var absoluteUpdateStartTime = Helpers.Round(absoluteOffsetTime + tweenUpdateStartLocal, 12);
@@ -256,8 +255,9 @@ public sealed class Animation : Timer
                         ScratchTo.Number = ValueParser.GetRelativeValue(ScratchFrom.Number, ScratchTo.Number, ScratchTo.Operator);
                     }
 
+                    if (codec is DiscreteCodec) (ScratchFrom.Number, ScratchTo.Number) = (0, 1);
                     if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(ScratchFrom, ScratchTo);
-                    if (ScratchFrom.Kind != ScratchTo.Kind) Homogenise(ScratchFrom, ScratchTo);
+                    if (ScratchFrom.Kind != ScratchTo.Kind) Homogenize(ScratchFrom, ScratchTo);
 
                     if (ScratchFrom.Unit != ScratchTo.Unit)
                     {
@@ -269,17 +269,19 @@ public sealed class Animation : Timer
                         PadShorterValue(ScratchFrom, ScratchTo);
                     }
 
-                    if (inertia != null)
+                    if (physics != null)
                     {
-                        if (ScratchFrom.Kind is ValueKind.Color or ValueKind.Complex) throw new ArgumentException($"An Inertia needs a single number property, not '{declaredName}'.", nameof(parameters));
-                        var plan = InertiaSolver.Resolve(ScratchFrom.Number, inertia.Velocity, inertia);
+                        if (ScratchFrom.Kind is ValueKind.Color or ValueKind.Complex) throw new ArgumentException($"An {physics.GetType().Name} needs a single number property, not '{declaredName}'.", nameof(parameters));
+                        var plan = physics is Inertia inertia
+                            ? InertiaSolver.Resolve(ScratchFrom.Number, inertia.Velocity, inertia)
+                            : ProjectileSolver.Resolve(ScratchFrom.Number, (Projectile)physics, tweenDuration);
                         ScratchTo.Number = plan.To;
                         tweenEase = plan.Ease;
-                        if (!reduceAll) tweenDuration = plan.Duration;
+                        tweenDuration = reduceAll ? Constants.MinValue : plan.Duration;
                         if (plan.Then is { } then) frames = [frame, new TweenParams { To = then.To, Duration = then.Duration, Ease = then.Ease }];
                     }
 
-                    // Rounding minimises the floating point errors of working in seconds.
+                    // Rounding minimizes the floating point errors of working in seconds.
                     var tweenUpdateDuration = Helpers.Round(tweenDuration == 0 || double.IsNaN(tweenDuration) ? Constants.MinValue : tweenDuration, 12);
                     lastTweenChangeEndTime = Helpers.Round(tweenStartTime + tweenUpdateDuration, 12);
 
@@ -309,13 +311,20 @@ public sealed class Animation : Timer
                         _valueType = ScratchTo.Kind,
                         _composition = tweenComposition,
                         _inlineValue = inlineValue,
+                        _discrete = codec is DiscreteCodec discrete ? key?.Discrete ?? discrete.Rule : null,
+                        _fromObject = ScratchFrom.Discrete,
+                        _toObject = ScratchTo.Discrete,
                     };
                     inlineValue = null;
 
                     if (tweenComposition != Composition.None) Composer.ComposeTween(tween, siblings!);
 
                     // Pre-computed so a later function based value can chain off this tween's end value.
-                    if (tweenTextModifier != null)
+                    if (tween._discrete != null)
+                    {
+                        tween._value = tween._toObject;
+                    }
+                    else if (tweenTextModifier != null)
                     {
                         tween._value = tweenTextModifier(tween._toNumber);
                     }
@@ -435,12 +444,14 @@ public sealed class Animation : Timer
                 if (tween._unit is { } unit && ScratchFrom.Unit != unit) UnitConverter.Convert(ScratchFrom, unit);
                 tween._fromNumbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
                 tween._fromNumber = ScratchFrom.Number;
+                tween._fromObject = ScratchFrom.Discrete;
             }
             else
             {
                 ValueParser.Decompose(tween.Accessor.GetValue(tween.Target), ScratchOriginal, codec);
                 tween._fromNumbers = Helpers.CloneNumbers(ScratchOriginal.Numbers);
                 tween._fromNumber = ScratchOriginal.Number;
+                tween._fromObject = ScratchOriginal.Discrete;
             }
 
             if (toFunc != null)
@@ -448,8 +459,9 @@ public sealed class Animation : Timer
                 ValueParser.Decompose(toFunc().Raw, ScratchTo, codec);
                 tween._toNumbers = Helpers.CloneNumbers(ScratchTo.Numbers);
                 tween._strings = ScratchTo.Strings is { } strings ? (string[])strings.Clone() : [];
+                tween._toObject = ScratchTo.Discrete;
                 // Re-applied against the refreshed from value, see anime issue #1025.
-                tween._toNumber = ScratchTo.Operator != '\0'
+                tween._toNumber = tween._discrete != null ? 1 : ScratchTo.Operator != '\0'
                     ? ValueParser.GetRelativeValue(tween._fromNumber, ScratchTo.Number, ScratchTo.Operator)
                     : ScratchTo.Number;
             }
@@ -488,7 +500,7 @@ public sealed class Animation : Timer
         {
             return fastSet ? [new TweenParams { To = TweenValue.FromTo(propertyValue, propertyValue) }] : [propertyValue];
         }
-        if (Array.Exists(items, static item => item.Raw is Inertia)) throw new ArgumentException("An Inertia cannot be a keyframe or part of a from/to pair.");
+        if (Array.Exists(items, static item => item.Raw is Inertia or Projectile)) throw new ArgumentException("An Inertia or Projectile cannot be a keyframe or part of a from/to pair.");
         if (items.Length < 2 || items[0].IsParams) return items;
         if (items.Length == 2) return [new TweenParams { To = propertyValue }];
         var frames = new TweenValue[items.Length - 1];
@@ -521,7 +533,7 @@ public sealed class Animation : Timer
         _ => null,
     };
 
-    private static void Homogenise(DecomposedValue from, DecomposedValue to)
+    private static void Homogenize(DecomposedValue from, DecomposedValue to)
     {
         if (from.Kind == ValueKind.Complex || to.Kind == ValueKind.Complex)
         {

@@ -2,8 +2,12 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Targets;
+using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge.Events;
@@ -17,12 +21,14 @@ namespace Monaco.Presto.AvaloniaBridge.Events;
 /// Upstream's <c>debug</c> overlay draws DOM elements and is not ported, nor are the function forms of <c>axis</c>,
 /// <c>repeat</c>, <c>enter</c> and <c>leave</c> — the values are read again on every <see cref="Refresh"/> instead.
 /// Upstream also links through <c>autoplay: onScroll()</c>; here the linked object is created paused and handed to
-/// <see cref="Link"/>, which still ties the two lifetimes together. A control pinned between the thresholds is the
-/// caller's overlay, as <see cref="PrestoAvalonia.OnScroll"/> describes.
+/// <see cref="Link"/>, which still ties the two lifetimes together. Upstream has no pin or snap;
+/// <see cref="ScrollObserverParams.Pin"/> and <see cref="ScrollObserverParams.Snap"/> are GSAP ScrollTrigger's.
 /// </remarks>
 public sealed class ScrollObserver : IRevertible
 {
     private const string DefaultSync = "play pause";
+    private const double DefaultSnapDelay = 150;
+    private const double DefaultSnapDuration = 400;
 
     private static readonly DecomposedValue s_bound = new();
     private static readonly Dictionary<string, Action<Timer>> s_syncMethods = new(StringComparer.OrdinalIgnoreCase)
@@ -44,6 +50,8 @@ public sealed class ScrollObserver : IRevertible
     private readonly ScrollObserverParams _parameters;
     private readonly Action<Timer>?[] _syncMethods = new Action<Timer>?[4];
     private readonly bool _biDirSync;
+    private readonly Timer? _snapWait;
+    private readonly Timer? _snapTween;
     private ScrollThreshold _enter;
     private ScrollThreshold _leave;
     private double _prevProgress;
@@ -51,6 +59,12 @@ public sealed class ScrollObserver : IRevertible
     private bool _completed;
     private bool _hasEntered;
     private bool _forceEnter;
+    private MotionValue? _progressValue;
+    private TransformShorthand? _pin;
+    private AnimatedValue<Thickness>? _spacer;
+    private Thickness _margin;
+    private double _snapFrom;
+    private double _snapTo;
 
     internal ScrollObserver(ScrollObserverParams parameters)
     {
@@ -78,6 +92,24 @@ public sealed class ScrollObserver : IRevertible
         if (isEase) SyncEase = ease;
         if (isSmooth) SyncSmooth = isLinear || mode is not double smoothing ? 1 : smoothing;
         Target = parameters.Target;
+        if (parameters.Snap is { } snap)
+        {
+            using var origin = PrestoDiagnostics.Origin("ScrollObserver");
+            _snapWait = Presto.CreateTimer(new TimerParams
+            {
+                Autoplay = false,
+                Duration = snap.Delay ?? DefaultSnapDelay * Globals.TimeScale,
+                OnComplete = _ => StartSnap(),
+            });
+            var snapEase = snap.Ease ?? Eases.OutQuad;
+            _snapTween = Presto.CreateTimer(new TimerParams
+            {
+                Autoplay = false,
+                Duration = snap.Duration ?? DefaultSnapDuration * Globals.TimeScale,
+                OnUpdate = self => WriteSnap(self.Progress == 1 ? _snapTo : Utils.Lerp(_snapFrom, _snapTo, snapEase(self.Progress))),
+                OnComplete = _ => ScrollWriter.Of(Container!.Scroller).Release(this),
+            });
+        }
 
         if ((parameters.Container ?? Target?.FindAncestorOfType<ScrollViewer>()) is { } scroller)
         {
@@ -144,7 +176,7 @@ public sealed class ScrollObserver : IRevertible
     /// <summary>The scroll position along the watched axis.</summary>
     public double Scroll => Container == null ? 0 : Horizontal ? Container.ScrollX : Container.ScrollY;
 
-    /// <summary>How far the scroll position has travelled between the two thresholds, 0 to 1.</summary>
+    /// <summary>How far the scroll position has traveled between the two thresholds, 0 to 1.</summary>
     public double Progress
     {
         get
@@ -153,6 +185,9 @@ public sealed class ScrollObserver : IRevertible
             return double.IsInfinity(progress) || double.IsNaN(progress) ? 0 : Utils.Round(Utils.Clamp(progress, 0, 1), 6);
         }
     }
+
+    /// <summary>A <see cref="MotionValue"/> holding <see cref="Progress"/>, updated with it on every scroll and frozen once the observer reverts.</summary>
+    public MotionValue ProgressValue => _progressValue ??= new(Engine.Current, [], Progress);
 
     /// <summary>
     /// Attaches the object the observer drives, pausing it and — when the parameters name no target — watching the first
@@ -184,7 +219,12 @@ public sealed class ScrollObserver : IRevertible
         Horizontal = (_parameters.Axis ?? ScrollAxis.Vertical) == ScrollAxis.Horizontal;
         _enter = _parameters.Enter ?? "end start";
         _leave = _parameters.Leave ?? "start end";
+        var pin = _parameters.Pin == true ? Horizontal ? TransformShorthand.X : TransformShorthand.Y : (TransformShorthand?)null;
+        if (pin != _pin) Unpin();
+        _pin = pin;
         UpdateBounds();
+        UpdateSpacer();
+        UpdatePin();
         HandleScroll();
         return this;
     }
@@ -195,6 +235,9 @@ public sealed class ScrollObserver : IRevertible
         if (Reverted) return this;
         if (Linked is { } linked) linked._onRevert -= HandleLinkedRevert;
         if (Target is { } target) target.Loaded -= HandleTargetLoaded;
+        Unpin();
+        _snapWait?.Cancel();
+        _snapTween?.Cancel();
         Container?.Remove(this);
         Reverted = true;
         Ready = false;
@@ -204,6 +247,26 @@ public sealed class ScrollObserver : IRevertible
     void IRevertible.Revert() => Revert();
 
     internal void RaiseResize() => _parameters.OnResize?.Invoke(this);
+
+    internal void HandleOffsetChanged()
+    {
+        UpdatePin();
+        if (!ScrollWriter.Of(Container!.Scroller).Wrote(this, Horizontal, ScrollerOffset())) WaitToSnap();
+    }
+
+    /// <summary>Stops a running snap and waits for the scroll position to settle again.</summary>
+    internal void WaitToSnap()
+    {
+        if (_snapWait == null) return;
+        _snapTween!.Cancel();
+        ScrollWriter.Of(Container!.Scroller).Release(this);
+        _snapWait.Restart();
+    }
+
+    private void UpdatePin()
+    {
+        if (_pin is { } pin) RenderTransformComposer.Set(Target!, pin, Utils.Clamp(Scroll - OffsetStart, 0, Distance));
+    }
 
     internal void HandleScroll()
     {
@@ -220,6 +283,7 @@ public sealed class ScrollObserver : IRevertible
         var hasUpdated = false;
         var syncCompleted = false;
         var progress = Progress;
+        _progressValue?.Assign(progress);
 
         if (isBefore && _began) _began = false;
         if (progress > 0 && !_began) _began = true;
@@ -385,6 +449,8 @@ public sealed class ScrollObserver : IRevertible
         var linkedTime = linked?.CurrentTime ?? 0;
         // Measured with the linked object at its start, so the animation it drives does not move its own thresholds.
         linked?.Seek(0, true);
+        // TranslatePoint includes the render transform, so the pin is lifted while measuring and re-applied by Measure.
+        if (_pin is { } pin) RenderTransformComposer.Set(target, pin, 0);
 
         var origin = target.TranslatePoint(default, scroller) ?? default;
         var offset = isHorizontal ? origin.X + container.ScrollX : origin.Y + container.ScrollY;
@@ -406,6 +472,55 @@ public sealed class ScrollObserver : IRevertible
 
         linked?.Seek(linkedTime, true);
     }
+
+    // The trailing margin lies outside Bounds, so it never moves the thresholds it is sized from.
+    private void UpdateSpacer()
+    {
+        if (_pin == null || _parameters.PinSpacing == false)
+        {
+            _spacer?.Dispose();
+            _spacer = null;
+            return;
+        }
+        var target = Target!;
+        if (_spacer == null)
+        {
+            _margin = target.Margin;
+            _spacer = new AnimatedValue<Thickness>(target, Layoutable.MarginProperty);
+        }
+        _spacer.Push(Horizontal
+            ? new Thickness(_margin.Left, _margin.Top, _margin.Right + Distance, _margin.Bottom)
+            : new Thickness(_margin.Left, _margin.Top, _margin.Right, _margin.Bottom + Distance));
+    }
+
+    private void Unpin()
+    {
+        if (_pin is { } pin) RenderTransformComposer.Revert(Target!, pin);
+        _pin = null;
+        UpdateSpacer();
+    }
+
+    private double ScrollerOffset()
+    {
+        var offset = Container!.Scroller.Offset;
+        return Horizontal ? offset.X : offset.Y;
+    }
+
+    private void StartSnap()
+    {
+        if (!Ready || Container!.PointerDown || ScrollWriter.Of(Container.Scroller).Tweening(Horizontal)) return;
+        var scroll = ScrollerOffset();
+        if (scroll < OffsetStart || scroll > OffsetEnd || Distance == 0) return;
+        var max = Container.Scroller.ScrollBarMaximum;
+        var progress = _parameters.Snap!.Map(this, (scroll - OffsetStart) / Distance);
+        var to = Utils.Clamp(OffsetStart + progress * Distance, 0, Horizontal ? max.X : max.Y);
+        if (to == scroll) return;
+        _snapFrom = scroll;
+        _snapTo = to;
+        _snapTween!.Restart();
+    }
+
+    private void WriteSnap(double value) => ScrollWriter.Of(Container!.Scroller).Write(this, Horizontal, value);
 
     private void InvokeSyncMethod(int index)
     {

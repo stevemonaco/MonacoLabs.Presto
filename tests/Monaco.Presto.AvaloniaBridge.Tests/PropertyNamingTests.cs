@@ -20,8 +20,8 @@ public class PropertyNamingTests : BridgeTestBase
 
         Frames.Advance(50);
 
-        Assert.True(byName.Cancelled);
-        Assert.False(byHandle.Cancelled);
+        Assert.True(byName.Canceled);
+        Assert.False(byHandle.Canceled);
     }
 
     [AvaloniaFact]
@@ -33,8 +33,8 @@ public class PropertyNamingTests : BridgeTestBase
 
         Frames.Advance(50);
 
-        Assert.True(byHandle.Cancelled);
-        Assert.False(byName.Cancelled);
+        Assert.True(byHandle.Canceled);
+        Assert.False(byName.Canceled);
     }
 
     [AvaloniaFact]
@@ -46,8 +46,8 @@ public class PropertyNamingTests : BridgeTestBase
 
         Frames.Advance(50);
 
-        Assert.True(bare.Cancelled);
-        Assert.False(qualified.Cancelled);
+        Assert.True(bare.Canceled);
+        Assert.False(qualified.Canceled);
     }
 
     [AvaloniaFact]
@@ -93,9 +93,11 @@ public class PropertyNamingTests : BridgeTestBase
         var border = new Border();
         var adapter = new AvaloniaObjectTargetAdapter();
 
-        Assert.Equal("X", adapter.Canonicalise(border, "X"));
-        Assert.Equal("Rotate", adapter.Canonicalise(border, "Rotate"));
-        Assert.Null(adapter.Canonicalise(border, "NotAProperty"));
-        Assert.Null(adapter.Canonicalise(new object(), "Opacity"));
+        Assert.Equal("X", adapter.Canonicalize(border, "X"));
+        Assert.Equal("Rotate", adapter.Canonicalize(border, "Rotate"));
+        Assert.Equal("ScrollY", adapter.Canonicalize(new ScrollViewer(), "ScrollY"));
+        Assert.Null(adapter.Canonicalize(border, "ScrollY"));
+        Assert.Null(adapter.Canonicalize(border, "NotAProperty"));
+        Assert.Null(adapter.Canonicalize(new object(), "Opacity"));
     }
 }

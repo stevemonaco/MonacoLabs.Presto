@@ -1,21 +1,18 @@
-using System.Collections.Generic;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class StaggerPage : UserControl
+public partial class StaggerPage : ShowcasePage
 {
     private const int StripDots = 12;
-    private const int GridColumns = 7;
-    private const int GridRows = 4;
+    private const int GridTiles = 7 * 4;
 
-    private readonly List<Animation> _strips = [];
-    private readonly List<Animation> _grids = [];
-    private Timeline? _timeline;
+    private Animation? _explicitGrid;
+    private Animation? _autoGrid;
 
     public StaggerPage()
     {
@@ -25,91 +22,167 @@ public partial class StaggerPage : UserControl
         {
             for (var i = 0; i < StripDots; i++) strip.Children.Add(new Border { Classes = { "dot" } });
         }
-        for (var i = 0; i < GridColumns * GridRows; i++)
+        for (var i = 0; i < GridTiles; i++)
         {
             ExplicitTiles.Children.Add(new Border { Classes = { "tile" } });
             AutoTiles.Children.Add(new Border { Classes = { "tile" } });
         }
     }
 
-    private StaggerFrom SelectedFrom => FromBox.SelectedIndex switch
+    private (StaggerFrom Value, string Code) SelectedFrom => FromBox.SelectedIndex switch
     {
-        1 => StaggerFrom.Center,
-        2 => StaggerFrom.Last,
-        3 => 10,
-        4 => StaggerFrom.Random,
-        5 => StaggerFrom.At(1, 0),
-        _ => StaggerFrom.First,
+        1 => Snippet.Of<StaggerFrom>(StaggerFrom.Center),
+        2 => Snippet.Of<StaggerFrom>(StaggerFrom.Last),
+        3 => Snippet.Of<StaggerFrom>(10),
+        4 => Snippet.Of<StaggerFrom>(StaggerFrom.Random),
+        5 => Snippet.Of<StaggerFrom>(StaggerFrom.At(1, 0)),
+        _ => Snippet.Of<StaggerFrom>(StaggerFrom.First),
     };
 
-    private StaggerAxis? SelectedAxis => AxisBox.SelectedIndex switch
+    private (StaggerAxis? Value, string Code) SelectedAxis => AxisBox.SelectedIndex switch
     {
-        1 => StaggerAxis.X,
-        2 => StaggerAxis.Y,
-        _ => null,
+        1 => Snippet.Of<StaggerAxis?>(StaggerAxis.X),
+        2 => Snippet.Of<StaggerAxis?>(StaggerAxis.Y),
+        _ => Snippet.Of<StaggerAxis?>(null),
     };
 
-    // AutoGrid measures the tiles where they landed, so the animations wait for the first layout pass.
+    protected override void OnAttached()
+    {
+        ValueCode.Code = Snippet.Of(Presto.Animate(ValueStrip.Children, new()
+        {
+            ["X"] = Presto.Stagger(6),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        TimeCode.Code = Snippet.Of(Presto.Animate(TimeStrip.Children, new()
+        {
+            ["Y"] = -14,
+            Delay = Presto.Stagger(60),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        RangeCode.Code = Snippet.Of(Presto.Animate(RangeStrip.Children, new()
+        {
+            ["Y"] = -14,
+            Delay = Presto.Stagger(new double[] { 0, 700 }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        EaseCode.Code = Snippet.Of(Presto.Animate(EaseStrip.Children, new()
+        {
+            ["Y"] = -14,
+            Delay = Presto.Stagger(new double[] { 0, 700 }, new() { Ease = "inOutQuad" }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        StartCode.Code = Snippet.Of(Presto.Animate(StartStrip.Children, new()
+        {
+            ["Y"] = -14,
+            Delay = Presto.Stagger(50, new() { Start = 400 }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        TotalCode.Code = Snippet.Of(Presto.Animate(TotalStrip.Children, new()
+        {
+            ["Y"] = -14,
+            Delay = Presto.Stagger(50, new() { From = StaggerFrom.Center, Total = 24 }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        JitterCode.Code = Snippet.Of(Presto.Animate(JitterStrip.Children, new()
+        {
+            ["Y"] = -14,
+            Delay = Presto.Stagger(50, new() { Jitter = [70], Seed = 7 }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        ModifierCode.Code = Snippet.Of(Presto.Animate(ModifierStrip.Children, new()
+        {
+            ["X"] = Presto.Stagger(1.6, new() { Modifier = x => x * x }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        })).Code;
+        TimelineCode.Code = Snippet.Of(Presto.CreateTimeline(new() { Loop = true })
+            .Add(TimelineStrip.Children, new()
+            {
+                ["Scale"] = 1.9,
+                Duration = 350,
+                Ease = Eases.OutQuad,
+                Alternate = true,
+                Loop = 1,
+            }, Presto.Stagger(60))).Code;
+    }
+
+    // AutoGrid measures where the tiles were laid out, and OnAttached runs before the first layout pass.
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
-
-        _strips.Add(Presto.Animate(ValueStrip.Children, Ripple(new() { ["X"] = Presto.Stagger(6) })));
-        Hop(TimeStrip, Presto.Stagger(60));
-        Hop(RangeStrip, Presto.Stagger(new double[] { 0, 700 }));
-        Hop(EaseStrip, Presto.Stagger(new double[] { 0, 700 }, new() { Ease = "inOutQuad" }));
-        Hop(StartStrip, Presto.Stagger(50, new() { Start = 400 }));
-        Hop(TotalStrip, Presto.Stagger(50, new() { From = StaggerFrom.Center, Total = 24 }));
-        Hop(JitterStrip, Presto.Stagger(50, new() { Jitter = [70], Seed = 7 }));
-        _strips.Add(Presto.Animate(ModifierStrip.Children, Ripple(new()
-        {
-            ["X"] = Presto.Stagger(1.6, new() { Modifier = x => x * x }),
-        })));
-
-        _timeline = Presto.CreateTimeline(new() { Loop = true })
-            .Add(TimelineStrip.Children, new() { ["Scale"] = 1.9, Duration = 350, Ease = Eases.OutQuad, Alternate = true, Loop = 1 }, Presto.Stagger(60));
-
-        RebuildGrids();
+        Scope.Execute(_ => RebuildGrids());
     }
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    private void GridOptionChanged(object? sender, RoutedEventArgs e)
     {
-        base.OnDetachedFromVisualTree(e);
-        foreach (var animation in _strips) animation.Revert();
-        _strips.Clear();
-        foreach (var animation in _grids) animation.Revert();
-        _grids.Clear();
-        _timeline?.Revert();
-        _timeline = null;
+        if (IsLoaded) Scope.Execute(_ => RebuildGrids());
     }
-
-    private void OriginChanged(object? sender, SelectionChangedEventArgs e) => RebuildGrids();
-
-    private void ToggleChanged(object? sender, RoutedEventArgs e) => RebuildGrids();
 
     private void RebuildGrids()
     {
-        if (!IsLoaded) return;
+        _explicitGrid?.Revert();
+        _autoGrid?.Revert();
 
-        foreach (var animation in _grids) animation.Revert();
-        _grids.Clear();
-
-        var from = SelectedFrom;
-        var axis = SelectedAxis;
+        var (from, fromCode) = SelectedFrom;
+        var (axis, axisCode) = SelectedAxis;
         var reversed = ReversedCheck.IsChecked == true;
+        var locals = $"StaggerFrom from = {fromCode};\nStaggerAxis? axis = {axisCode};\nbool reversed = {(reversed ? "true" : "false")};\n\n";
 
-        _grids.Add(Presto.Animate(ExplicitTiles.Children,
-            Tiles(Presto.Stagger(40, new() { Grid = [GridColumns, GridRows], From = from, Axis = axis, Reversed = reversed }))));
-        _grids.Add(Presto.Animate(AutoTiles.Children,
-            Tiles(PrestoAvalonia.Stagger(40, new() { From = from, Axis = axis, Reversed = reversed }))));
+        (_explicitGrid, var explicitCode) = Snippet.Of(Presto.Animate(ExplicitTiles.Children, new()
+        {
+            ["Scale"] = 1.35,
+            ["Background"] = "#ff6b6b",
+            Delay = Presto.Stagger(40, new()
+            {
+                Grid = [7, 4],
+                From = from,
+                Axis = axis,
+                Reversed = reversed,
+            }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        }));
+        (_autoGrid, var autoCode) = Snippet.Of(Presto.Animate(AutoTiles.Children, new()
+        {
+            ["Scale"] = 1.35,
+            ["Background"] = "#ff6b6b",
+            Delay = PrestoAvalonia.Stagger(40, new()
+            {
+                From = from,
+                Axis = axis,
+                Reversed = reversed,
+            }),
+            Duration = 450,
+            Ease = Eases.OutQuad,
+            Loop = true,
+            Alternate = true,
+        }));
+        ExplicitCode.Code = locals + explicitCode;
+        AutoCode.Code = locals + autoCode;
     }
-
-    private void Hop(Panel strip, Stagger delay) =>
-        _strips.Add(Presto.Animate(strip.Children, Ripple(new() { ["Y"] = -14, Delay = delay })));
-
-    private static AnimationParams Ripple(AnimationParams values) =>
-        values with { Duration = 450, Ease = Eases.OutQuad, Loop = true, Alternate = true };
-
-    private static AnimationParams Tiles(Stagger delay) =>
-        Ripple(new() { ["Scale"] = 1.35, ["Background"] = "#ff6b6b", Delay = delay });
 }

@@ -4,14 +4,19 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Controls;
+using Monaco.Presto.AvaloniaBridge.Targets;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
 /// <summary><see cref="Recipes"/> (MOTION-KIT-PLAN §4): every family, their reduced forms and <see cref="Recipes.Tokens"/>.</summary>
 public sealed class RecipeTests : CompositorTestBase
 {
-    private static readonly string[] UIThreadOnly = ["BlurIn", "FlipIn", "BlurOut", "FlipOut", "Lift", "Glow", "Shimmer"];
+    private static readonly string[] UIThreadOnly = ["BlurIn", "FlipIn", "BlurOut", "FlipOut", "Lift", "ReorderLift", "Glow", "Shimmer"];
 
     private static readonly Dictionary<string, Func<AnimationBuilder>> Entrances = new()
     {
@@ -63,6 +68,7 @@ public sealed class RecipeTests : CompositorTestBase
     private static readonly Dictionary<string, Func<AnimationBuilder>> Interactions = new()
     {
         ["Lift"] = () => Recipes.Lift(),
+        ["ReorderLift"] = () => Recipes.ReorderLift(),
         ["Grow"] = () => Recipes.Grow(),
         ["PressIn"] = () => Recipes.PressIn(),
         ["Glow"] = () => Recipes.Glow(),
@@ -317,6 +323,39 @@ public sealed class RecipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ReorderLiftGrowsOverARaisedShadowWithTheTokenTimingReadAtCallTime()
+    {
+        Recipes.Tokens = MotionTokens.Standard with { Short = 999 };
+        try
+        {
+            var lift = Recipes.ReorderLift().ToParams();
+            var stronger = Recipes.ReorderLift(scale: 1.1, intensity: 2).ToParams();
+
+            Assert.Equal((TweenValue)999, lift.Duration);
+            Assert.Same(MotionTokens.Standard.Ease.Raw, lift.Ease?.Raw);
+            Assert.Equal(["ShadowBlur", "ShadowY", "ShadowOpacity", "Scale"], lift.Properties.Keys);
+            Assert.Equal(1.03, (double)lift.Properties["Scale"].Raw!, 6);
+            Assert.Equal(16d, lift.Properties["ShadowBlur"].Raw);
+            Assert.Equal(6d, lift.Properties["ShadowY"].Raw);
+            Assert.Equal(0.3, lift.Properties["ShadowOpacity"].Raw);
+            Assert.Equal(1.2, (double)stronger.Properties["Scale"].Raw!, 6);
+            Assert.Equal(32d, stronger.Properties["ShadowBlur"].Raw);
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+    }
+
+    [AvaloniaFact]
+    public void ReducedReorderLiftOnlyRaisesTheShadow()
+    {
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.Equal(["ShadowBlur", "ShadowY", "ShadowOpacity"], Recipes.ReorderLift().ToParams().Properties.Keys);
+    }
+
+    [AvaloniaFact]
     public void TogglingReducedMotionTakesEffectAtTheNextTransition()
     {
         var box = Box();
@@ -450,7 +489,7 @@ public sealed class RecipeTests : CompositorTestBase
         Show(new Grid { Width = 300, Height = 200, Children = { from, to } });
         Tick();
         var transition = Recipes.PageSlide(Edge.Right);
-        transition.UseCompositor = false;
+        transition.Thread = AnimationThread.UIThread;
 
         var done = transition.Start(from, to, forward: true, CancellationToken.None);
 
@@ -459,6 +498,185 @@ public sealed class RecipeTests : CompositorTestBase
         Assert.InRange(Value(from, "X"), -299, -1);
         RunUntil(() => done.IsCompleted);
         Assert.Equal(0, Value(to, "X"), 6);
+    }
+
+    [AvaloniaFact]
+    public void PlayFramesPlaysAnImageSequencesFrames()
+    {
+        var sequence = new ImageSequence { Frames = [new RenderTargetBitmap(new PixelSize(1, 1)), new RenderTargetBitmap(new PixelSize(1, 1)), new RenderTargetBitmap(new PixelSize(1, 1))] };
+
+        var animation = Recipes.PlayFrames(fps: 10, loop: false).Animate(sequence);
+        RunUntil(() => animation.Completed);
+
+        Assert.Equal(300, animation.Duration, 6);
+        Assert.Equal(2, sequence.CurrentFrame);
+    }
+
+    [AvaloniaFact]
+    public void ReducedPlayFramesHoldsFrameZero()
+    {
+        var sheet = new SpriteSheet { Columns = 4, Rows = 2, Frame = 5 };
+        Presto.Defaults.ReducedMotion = true;
+
+        var animation = Recipes.PlayFrames(reverse: true).Animate(sheet);
+        RunUntil(() => animation.Completed);
+
+        Assert.Equal(0, sheet.Frame);
+    }
+
+    [AvaloniaFact]
+    public void TheImageRecipesTargetTheFilters()
+    {
+        var colorize = Recipes.Colorize().ToParams();
+        var develop = Recipes.Develop().ToParams();
+        var flash = Recipes.FlashTint().ToParams();
+
+        Assert.Equal([Key(PrestoImageBase.GrayscaleProperty), Key(PrestoImageBase.SaturateProperty)], colorize.Properties.Keys);
+        Assert.Equal(0d, colorize[Key(PrestoImageBase.GrayscaleProperty)].Raw);
+        Assert.Equal(1d, colorize[Key(PrestoImageBase.SaturateProperty)].Raw);
+        Assert.Equal(["Opacity", Key(PrestoImageBase.SepiaProperty), Key(PrestoImageBase.BrightnessProperty), "Blur"], develop.Properties.Keys);
+        Assert.Equal((TweenValue)MotionTokens.Standard.Long, develop.Duration);
+        Assert.Equal([Key(PrestoImageBase.TintColorProperty), Key(PrestoImageBase.TintProperty)], flash.Properties.Keys);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ColorizeHoversAGrayscaleImageToFullColorAndBack(bool reduced)
+    {
+        var image = Photo();
+        image.Grayscale = 1;
+        var window = Show(image);
+        Presto.Defaults.ReducedMotion = reduced;
+        Motion.SetHover(image, Recipes.Colorize());
+
+        window.MouseMove(new Point(25, 25));
+        Frames.Advance(400, 10);
+        Assert.Equal(0, image.Grayscale, 6);
+        Assert.Equal(1, image.Saturate, 6);
+        Assert.False(image.IsFiltering);
+
+        window.MouseMove(new Point(150, 150));
+        Frames.Advance(400, 10);
+        Assert.Equal(1, image.Grayscale, 6);
+        Assert.Empty(Presto.GetAnimations(image));
+    }
+
+    [AvaloniaFact]
+    public void DevelopSettlesFromSepiaBrightnessAndBlurOntoTheImagesRestingValues()
+    {
+        var image = Photo();
+
+        var animation = Recipes.Develop(duration: 400).Autoplay(false).Animate(image);
+        animation.Seek(0);
+        Assert.Equal(0.8, image.Sepia, 6);
+        Assert.Equal(1.6, image.Brightness, 6);
+        Assert.Equal(MotionTokens.Standard.BlurRadius, Value(image, "Blur"), 6);
+        animation.Seek(400);
+
+        Assert.Equal(0, image.Sepia, 6);
+        Assert.Equal(1, image.Brightness, 6);
+        Assert.Equal(0, Value(image, "Blur"), 6);
+        Assert.Equal(1, image.Opacity, 6);
+        Assert.False(image.IsFiltering);
+    }
+
+    [AvaloniaFact]
+    public void FlashTintRaisesTheTintInItsColorAndEndsAtIdentity()
+    {
+        var image = Photo();
+
+        var animation = Recipes.FlashTint(Colors.Gold, 0.5, duration: 400, ease: "linear").Autoplay(false).Animate(image);
+        animation.Seek(200);
+        Assert.Equal(0.5, image.Tint, 6);
+        Assert.Equal(Colors.Gold, image.TintColor);
+        animation.Seek(400);
+
+        Assert.Equal(0, image.Tint, 6);
+        Assert.False(image.IsFiltering);
+    }
+
+    [AvaloniaFact]
+    public void ReducedDevelopAndFlashTintOnlyFadeOrBlink()
+    {
+        var image = Photo();
+        Presto.Defaults.ReducedMotion = true;
+
+        foreach (var build in new Func<AnimationBuilder>[] { () => Recipes.Develop(), () => Recipes.FlashTint() })
+        {
+            Assert.Equal(["Opacity"], build().ToParams().Properties.Keys);
+            var animation = build().Animate(image);
+            Assert.Equal(MotionTokens.Standard.Short, animation.Duration);
+            RunUntil(() => animation.Completed);
+            Assert.Equal(1, image.Opacity, 6);
+            Assert.False(image.IsFiltering);
+        }
+    }
+
+    [AvaloniaFact]
+    public void RecolorFollowsTheTokensSpaceFromTheCurrentBackgroundAndEndsExactly()
+    {
+        var border = new Border { Background = new SolidColorBrush(Color.Parse("#2563eb")) };
+        var amber = Color.Parse("#f59e0b");
+        Recipes.Tokens = MotionTokens.Standard with { ColorSpace = ColorSpace.Oklch };
+        try
+        {
+            var animation = Recipes.Recolor(amber, duration: 400, ease: "linear").Autoplay(false).Animate(border);
+            animation.Seek(0);
+            Assert.Equal(Color.Parse("#2563eb"), Background(border));
+            animation.Seek(200);
+            Assert.True(Background(border).ToPresto().ToOklch().C > 0.12, $"{Background(border)} lost its chroma");
+            animation.Seek(400);
+            Assert.Equal(amber, Background(border));
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+    }
+
+    [AvaloniaFact]
+    public void RecolorStartsEachElementFromItsOwnColorAndStaggers()
+    {
+        var red = new Border { Background = Brushes.Red };
+        var bare = new Border();
+        var animation = Recipes.Recolor(Colors.Blue, duration: 400, stagger: true).Autoplay(false).Animate(new[] { red, bare });
+
+        animation.Seek(0);
+        Assert.Equal(Colors.Red, Background(red));
+        Assert.Equal(0, Background(bare).A);
+        animation.Seek(400 + MotionTokens.Standard.StaggerStep);
+        Assert.Equal(Colors.Blue, Background(red));
+        Assert.Equal(Colors.Blue, Background(bare));
+    }
+
+    [AvaloniaFact]
+    public void RecolorIsTheSameUnderReducedMotionAndFromXaml()
+    {
+        var plain = Recipes.Recolor(Colors.Gold).ToParams();
+        Presto.Defaults.ReducedMotion = true;
+        var reduced = Recipes.Recolor(Colors.Gold).ToParams();
+        var markup = ((AnimationBuilder)new RecolorExtension { To = Colors.Gold, Property = "BorderBrush", Space = ColorSpace.Oklch }.ProvideValue(null!)).ToParams();
+
+        Assert.Equal(["Background"], plain.Properties.Keys);
+        Assert.Equal(["Background"], reduced.Properties.Keys);
+        Assert.Equal(((TweenValue[])plain["Background"].Raw!).Length, ((TweenValue[])reduced["Background"].Raw!).Length);
+        Assert.Equal(["BorderBrush"], markup.Properties.Keys);
+    }
+
+    private static Color Background(Border border) => ((ISolidColorBrush)border.Background!).Color;
+
+    private static string Key(AvaloniaProperty property) => AvaloniaObjectTargetAdapter.Encode(property);
+
+    private static FilteredImage Photo()
+    {
+        var bitmap = new RenderTargetBitmap(new PixelSize(10, 10));
+        using (var context = bitmap.CreateDrawingContext()) context.FillRectangle(Brushes.Red, new Rect(0, 0, 10, 10));
+        return new FilteredImage
+        {
+            Source = bitmap, Width = 50, Height = 50, Stretch = Stretch.Fill,
+            HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
+        };
     }
 
     private static IEnumerable<AnimationBuilder> PageBuilders(PrestoPageTransition transition) =>
@@ -472,5 +690,5 @@ public sealed class RecipeTests : CompositorTestBase
         : Interactions.TryGetValue(name, out var interaction) ? interaction
         : Loading[name];
 
-    private static double Value(Border card, string property) => Convert.ToDouble(Presto.Get(card, property, withUnit: false));
+    private static double Value(Visual card, string property) => Convert.ToDouble(Presto.Get(card, property, withUnit: false));
 }

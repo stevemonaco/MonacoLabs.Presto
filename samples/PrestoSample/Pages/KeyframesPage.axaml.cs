@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class KeyframesPage : UserControl
+public partial class KeyframesPage : ShowcasePage
 {
+    #region snippet KeyframesMarch
     private static readonly Keyframe[] March =
     [
         new() { ["X"] = 60 },
@@ -16,16 +16,15 @@ public partial class KeyframesPage : UserControl
         new() { ["X"] = 180 },
         new() { ["X"] = 240 },
     ];
+    #endregion
 
-    private readonly List<Animation> _animations = [];
+    private Animation[] _animations = [];
 
     public KeyframesPage() => InitializeComponent();
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    protected override void OnAttached()
     {
-        base.OnAttachedToVisualTree(e);
-
-        _animations.Add(PerPropertyButton.Animate(new()
+        (var perProperty, PerPropertyCode.Code) = Snippet.Of(PerPropertyButton.Animate(new()
         {
             ["X"] = TweenValue.Keyframes(
                 new TweenParams { To = 200, Duration = 500, Ease = Eases.OutQuad },
@@ -34,7 +33,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
         }));
 
-        _animations.Add(ArrayToggle.Animate(new()
+        (var array, ArrayCode.Code) = Snippet.Of(ArrayToggle.Animate(new()
         {
             Keyframes = new Keyframe[]
             {
@@ -47,7 +46,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
         }));
 
-        _animations.Add(PercentButton.Animate(new()
+        (var percent, PercentCode.Code) = Snippet.Of(PercentButton.Animate(new()
         {
             Keyframes = new Dictionary<string, Keyframe>
             {
@@ -61,7 +60,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
         }));
 
-        _animations.Add(LinearButton.Animate(new()
+        var (linear, linearCode) = Snippet.Of(LinearButton.Animate(new()
         {
             Keyframes = March,
             Duration = 2000,
@@ -69,7 +68,7 @@ public partial class KeyframesPage : UserControl
             Loop = true,
             Alternate = true,
         }));
-        _animations.Add(EasedButton.Animate(new()
+        var (eased, easedCode) = Snippet.Of(EasedButton.Animate(new()
         {
             Keyframes = March,
             Duration = 2000,
@@ -77,13 +76,9 @@ public partial class KeyframesPage : UserControl
             Loop = true,
             Alternate = true,
         }));
-    }
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        foreach (var animation in _animations) animation.Revert();
-        _animations.Clear();
+        _animations = [perProperty, array, percent, linear, eased];
+        MarchCode.Code = $"{Snippets.KeyframesMarch}\n\n{linearCode}\n\n{easedCode}";
     }
 
     private void Replay(object? sender, RoutedEventArgs e)

@@ -21,11 +21,7 @@
                 <Slider x:Name="ScrubSlider" Grid.Column="1" Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"
                         VerticalAlignment="Center" ValueChanged="Scrub" />
             </Grid>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="TimelineCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="TimelineCode" />
 
             <TextBlock Classes="caption" Text="Spun on the compositor: it keeps turning while the UI thread is frozen" />
             <Border Classes="stage">
@@ -33,11 +29,7 @@
                           Foreground="{x:Static showcase:Palette.AccentBright}" HorizontalAlignment="Center" />
             </Border>
             <Button Classes="accent" Content="Freeze UI thread for 2 s" Click="Freeze" HorizontalAlignment="Left" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="SpinCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="SpinCode" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

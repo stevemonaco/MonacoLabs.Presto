@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
@@ -75,6 +76,7 @@ public static class Tilt
 
         private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs? e)
         {
+            using var origin = PrestoDiagnostics.Origin("Tilt");
             _animatable = _control.CreateAnimatable(new AvaloniaAnimatableParams
             {
                 ["RotateX"] = new AnimatableProperty { Ease = Eases.Spring(bounce: .25, duration: 500), PreserveVelocity = true },

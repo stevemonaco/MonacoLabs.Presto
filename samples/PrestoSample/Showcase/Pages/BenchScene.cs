@@ -42,8 +42,8 @@ public sealed class BenchScene(int count, AnimationParams motion) : CompositorSc
             var half = pitch * .35 * cell.Scale;
             var square = new Rect(-half, -half, 2 * half, 2 * half);
             var brush = Brush(Tints[(int)Math.Round(cell.Tint * (TintSteps - 1))], cell.Opacity);
-            var centre = Matrix.CreateTranslation(((i % columns) + .5) * pitch, ((i / columns) + .5) * pitch);
-            using (context.PushPreTransform(Matrix.CreateRotation(cell.Rotate * Math.PI / 180) * centre)) context.FillRectangle(brush, square);
+            var center = Matrix.CreateTranslation(((i % columns) + .5) * pitch, ((i / columns) + .5) * pitch);
+            using (context.PushPreTransform(Matrix.CreateRotation(cell.Rotate * Math.PI / 180) * center)) context.FillRectangle(brush, square);
         }
     }
 

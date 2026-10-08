@@ -8,7 +8,7 @@ namespace PrestoSample.Showcase.Pages;
 /// </summary>
 public sealed class Particle
 {
-    /// <summary>The centre of the grid cell this particle belongs to, in canvas pixels, as the scene laid the field out.</summary>
+    /// <summary>The center of the grid cell this particle belongs to, in canvas pixels, as the scene laid the field out.</summary>
     public double HomeX { get; set; }
 
     /// <inheritdoc cref="HomeX"/>

@@ -12,7 +12,7 @@ public sealed class MotionConditionTests
     }
 
     [Fact]
-    public void PointeroverIsTheSynthesisedHoverRatherThanAClass()
+    public void PointeroverIsTheSynthesizedHoverRatherThanAClass()
     {
         var condition = MotionCondition.Parse(".card:pointerover");
 

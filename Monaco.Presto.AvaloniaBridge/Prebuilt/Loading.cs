@@ -1,7 +1,7 @@
 namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 
 /// <summary>
-/// Loading indicators that loop until cancelled. Each becomes a slow opacity pulse, to 0.6 and back every three times
+/// Loading indicators that loop until canceled. Each becomes a slow opacity pulse, to 0.6 and back every three times
 /// <see cref="MotionTokens.Long"/>, while <see cref="PrestoDefaults.ReducedMotion"/> is set, so the wait still shows.
 /// </summary>
 /// <remarks>

@@ -1,9 +1,12 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using Monaco.Presto.AvaloniaBridge.Gestures;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Draggables;
 
@@ -15,7 +18,9 @@ namespace Monaco.Presto.AvaloniaBridge.Draggables;
 /// <remarks>One pointer drags at a time, mouse and touch alike, through a pointer capture on the trigger.</remarks>
 public sealed class Draggable : IRevertible
 {
-    private const double DefaultDragThreshold = 3;
+    internal const double DefaultDragThreshold = 3;
+    internal const double DefaultScrollSpeed = 1.5;
+    internal const double DefaultScrollThreshold = 20;
     private const double ResizeDebounce = 150;
     private const double ScrollInViewDuration = 350;
     private const double ReleaseDistance = 150;
@@ -80,6 +85,9 @@ public sealed class Draggable : IRevertible
     private double _appliedY;
     private double _grabX;
     private double _grabY;
+    private double _grabValueX;
+    private double _grabValueY;
+    private TopLevel? _escapeRoot;
     private double _snappedX;
     private double _snappedY;
     private double _destX;
@@ -92,9 +100,12 @@ public sealed class Draggable : IRevertible
     private bool _updated;
     private bool _released;
     private bool _scrollLocked;
+    private MotionValue? _xValue;
+    private MotionValue? _yValue;
 
     internal Draggable(Control target, DraggableParams parameters)
     {
+        GestureOwners.Claim(target, this);
         _engine = Engine.Current;
         _engine.CurrentScope?.Register(this);
         _target = target;
@@ -115,8 +126,9 @@ public sealed class Draggable : IRevertible
         _releaseSpringX = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseSpringY = suppliedSpring ?? NewReleaseSpring(parameters);
         _releaseEase = parameters.ReleaseEase is { } releaseEase ? releaseEase.Resolve(target, 0, 1, out _) : Eases.OutQuint;
-        _velocityTracker.AddDisplacement(0, _engine.FrameSource.Now);
+        _velocityTracker.AddDisplacement(0, _engine.Now);
 
+        using var origin = PrestoDiagnostics.Origin("Draggable");
         Animate = target.CreateAnimatable(new AvaloniaAnimatableParams
         {
             [_xProp] = new AnimatableProperty { Duration = 0, Modifier = x?.Modifier, Composition = x?.Composition },
@@ -143,8 +155,7 @@ public sealed class Draggable : IRevertible
             OnComplete = _ =>
             {
                 _manual = false;
-                if (!_disabledX) Animate.Set(_xProp, _overshoot.X, 0);
-                if (!_disabledY) Animate.Set(_yProp, _overshoot.Y, 0);
+                SetAxes(_overshoot.X, 0, null, _overshoot.Y, 0, null);
             },
         });
         _resizeTicker = Presto.CreateTimer(new TimerParams
@@ -182,6 +193,12 @@ public sealed class Draggable : IRevertible
         set => SetY(value, false);
     }
 
+    /// <summary>A <see cref="MotionValue"/> mirroring <see cref="X"/>, updated whenever the axis renders and frozen once the draggable reverts.</summary>
+    public MotionValue XValue => _xValue ??= Animate.ValueOf(_xProp).Map(v => Utils.Round(v, _engine.Precision));
+
+    /// <inheritdoc cref="XValue"/>
+    public MotionValue YValue => _yValue ??= Animate.ValueOf(_yProp).Map(v => Utils.Round(v, _engine.Precision));
+
     /// <summary>Where the target sits between the container bounds on that axis, 0 at the start edge and 1 at the end.</summary>
     public double ProgressX
     {
@@ -203,17 +220,18 @@ public sealed class Draggable : IRevertible
     public double Angle { get; private set; }
 
     /// <summary>Stops the drag and every animation running on the target's axes, leaving it where it is.</summary>
-    /// <remarks>Only the draggable's own release, overshoot and scroll animations are cancelled; animations on other targets keep running.</remarks>
+    /// <remarks>Only the draggable's own release, overshoot and scroll animations are canceled; animations on other targets keep running.</remarks>
     public Draggable Stop()
     {
         _updateTicker.Pause();
         _overshootTicker.Pause();
         foreach (var animation in Animate.Animations.Values) animation.Pause();
         Presto.Remove(this);
-        // Cancelled rather than removed: unlinking the engine's next child mid-frame drops every child after it.
+        // Canceled rather than removed: unlinking the engine's next child mid-frame drops every child after it.
         _overshootOut?.Cancel();
         _overshootBack?.Cancel();
         _scrolling?.Cancel();
+        _overshootOut = _overshootBack = _scrolling = null;
         return this;
     }
 
@@ -223,6 +241,7 @@ public sealed class Draggable : IRevertible
         Stop();
         _resizeTicker.Pause();
         _grabbed = _dragged = _updated = _released = false;
+        StopListeningForEscape();
         SetX(0, true);
         SetY(0, true);
         _coordX = _coordY = 0;
@@ -249,8 +268,8 @@ public sealed class Draggable : IRevertible
         _minVelocity = _parameters.MinVelocity ?? 0;
         _maxVelocity = _parameters.MaxVelocity ?? 50;
         _velocityMultiplier = _parameters.VelocityMultiplier ?? 1;
-        _scrollSpeed = _parameters.ScrollSpeed ?? 1.5;
-        _scrollThreshold = _parameters.ScrollThreshold ?? 20;
+        _scrollSpeed = _parameters.ScrollSpeed ?? DefaultScrollSpeed;
+        _scrollThreshold = _parameters.ScrollThreshold ?? DefaultScrollThreshold;
         var cursor = _parameters.Cursor;
         _hoverCursor = cursor is { Enabled: false } ? null : cursor?.OnHover ?? s_grab;
         _grabCursor = cursor is { Enabled: false } ? null : cursor?.OnGrab ?? s_grabbing;
@@ -274,6 +293,7 @@ public sealed class Draggable : IRevertible
         _scroll.X = offset.X;
         _scroll.Y = offset.Y;
         _scrollLocked = true;
+        using var origin = PrestoDiagnostics.Origin("Draggable");
         _scrolling = Presto.Animate(_scroll, new AnimationParams
         {
             ["X"] = ClampScroll(offset.X + overflow.X, scroller.Extent.Width, scroller.Viewport.Width),
@@ -293,14 +313,10 @@ public sealed class Draggable : IRevertible
         UpdateBoundingValues();
         if (OutOfView(gap, 0, 0) is not { } overflow) return this;
         var easeValue = ease ?? (EaseValue)Eases.InOutQuad;
-        if (!_disabledX && overflow.X != 0)
-        {
-            Animate.Set(_xProp, Snapped(X - overflow.X, _snapX, _boundsLeft, _boundsRight), duration ?? ScrollInViewDuration, easeValue);
-        }
-        if (!_disabledY && overflow.Y != 0)
-        {
-            Animate.Set(_yProp, Snapped(Y - overflow.Y, _snapY, _boundsTop, _boundsBottom), duration ?? ScrollInViewDuration, easeValue);
-        }
+        var length = duration ?? ScrollInViewDuration;
+        SetAxes(
+            overflow.X != 0 ? Snapped(X - overflow.X, _snapX, _boundsLeft, _boundsRight) : null, length, easeValue,
+            overflow.Y != 0 ? Snapped(Y - overflow.Y, _snapY, _boundsTop, _boundsBottom) : null, length, easeValue);
         return this;
     }
 
@@ -345,6 +361,7 @@ public sealed class Draggable : IRevertible
         Animate.Revert();
         _target.SizeChanged -= HandleSizeChanged;
         if (_parameters.Container is { } container && container != _target) container.SizeChanged -= HandleSizeChanged;
+        GestureOwners.Release(_target, this);
         return this;
     }
 
@@ -365,15 +382,16 @@ public sealed class Draggable : IRevertible
         return null;
     }
 
-    // Past the bounds only `factor` of the overshoot is kept.
-    private static double Cushion(double value, double min, double max, double factor) =>
-        value > max ? max + (value - max) * factor : value < min ? min + (value - min) * factor : value;
-
     private static double Snapped(double value, Func<double, double>? snap, double min, double max) =>
         Utils.Clamp(Utils.Round(snap?.Invoke(value) ?? value, 5), min, max);
 
-    private static double ClampScroll(double value, double extent, double viewport) =>
+    internal static double ClampScroll(double value, double extent, double viewport) =>
         Utils.Clamp(value, 0, Math.Max(0, extent - viewport));
+
+    /// <summary>How far one frame scrolls <paramref name="viewport"/> for a pointer at <paramref name="point"/>, which ramps up across the edge bands.</summary>
+    internal static Vector EdgeScroll(Point point, Size viewport, double speed, double threshold) => new Vector(
+        Utils.Clamp((point.X - threshold) / threshold, -1, 0) + Utils.Clamp((point.X - (viewport.Width - threshold)) / threshold, 0, 1),
+        Utils.Clamp((point.Y - threshold) / threshold, -1, 0) + Utils.Clamp((point.Y - (viewport.Height - threshold)) / threshold, 0, 1)) * (speed * 10);
 
     private void SetX(double x, bool muteUpdateCallback)
     {
@@ -437,9 +455,8 @@ public sealed class Draggable : IRevertible
 
     private double ComputeVelocity(double dx, double dy)
     {
-        // Clamping and rounding the strongest sample equals upstream's strongest of the clamped, rounded samples.
-        if (_velocityTracker.AddDisplacement(Math.Sqrt(dx * dx + dy * dy), _engine.FrameSource.Now))
-            Velocity = Utils.Round(Utils.Clamp(_velocityTracker.Velocity * _velocityMultiplier, _minVelocity, _maxVelocity), 5);
+        if (_velocityTracker.AddDisplacement(Math.Sqrt(dx * dx + dy * dy), _engine.Now, _velocityMultiplier, _minVelocity, _maxVelocity))
+            Velocity = _velocityTracker.Velocity;
         return Velocity;
     }
 
@@ -456,15 +473,11 @@ public sealed class Draggable : IRevertible
         if (_scroller is not { } scroller) return;
         if (TopLevel.GetTopLevel(scroller) is not { } root || root.TranslatePoint(new Point(_pointerX, _pointerY), scroller) is not { } point) return;
         var viewport = scroller.Viewport;
-        var speed = _scrollSpeed * 10;
-        var dx = (Utils.Clamp((point.X - _scrollThreshold) / _scrollThreshold, -1, 0)
-            + Utils.Clamp((point.X - (viewport.Width - _scrollThreshold)) / _scrollThreshold, 0, 1)) * speed;
-        var dy = (Utils.Clamp((point.Y - _scrollThreshold) / _scrollThreshold, -1, 0)
-            + Utils.Clamp((point.Y - (viewport.Height - _scrollThreshold)) / _scrollThreshold, 0, 1)) * speed;
-        if (dx == 0 && dy == 0) return;
+        var delta = EdgeScroll(point, viewport, _scrollSpeed, _scrollThreshold);
+        if (delta.X == 0 && delta.Y == 0) return;
         var offset = scroller.Offset;
-        var x = _disabledX ? offset.X : ClampScroll(offset.X + dx, scroller.Extent.Width, viewport.Width);
-        var y = _disabledY ? offset.Y : ClampScroll(offset.Y + dy, scroller.Extent.Height, viewport.Height);
+        var x = _disabledX ? offset.X : ClampScroll(offset.X + delta.X, scroller.Extent.Width, viewport.Width);
+        var y = _disabledY ? offset.Y : ClampScroll(offset.Y + delta.Y, scroller.Extent.Height, viewport.Height);
         // The content slides under the pointer, so the target follows it to stay where the pointer left it.
         _coordX += x - offset.X;
         _coordY += y - offset.Y;
@@ -483,8 +496,8 @@ public sealed class Draggable : IRevertible
         _appliedX = _pointerX;
         _appliedY = _pointerY;
         var friction = 1 - _containerFriction;
-        SetX(Cushion(_coordX, _boundsLeft, _boundsRight, friction), false);
-        SetY(Cushion(_coordY, _boundsTop, _boundsBottom, friction), false);
+        SetX(TransformMath.Cushion(_coordX, _boundsLeft, _boundsRight, friction), false);
+        SetY(TransformMath.Cushion(_coordY, _boundsTop, _boundsBottom, friction), false);
         ComputeVelocity(movedX, movedY);
         Angle = Math.Atan2(_pointerY - _pointerPrevY, _pointerX - _pointerPrevX);
         if ((_snapX != null && _snappedX != snappedX) || (_snapY != null && _snappedY != snappedY)) _parameters.OnSnap?.Invoke(this);
@@ -544,16 +557,21 @@ public sealed class Draggable : IRevertible
         UpdateBoundingValues();
         var position = e.GetPosition(null);
         var friction = 1 - _containerFriction;
-        var x = X;
-        var y = Y;
+        var x = _grabValueX = X;
+        var y = _grabValueY = Y;
         // The raw coordinate the cushioned position came from, so the next drag picks up where the friction left off.
-        _coordX = _prevX = friction == 0 ? x : Cushion(x, _boundsLeft, _boundsRight, 1 / friction);
-        _coordY = _prevY = friction == 0 ? y : Cushion(y, _boundsTop, _boundsBottom, 1 / friction);
+        _coordX = _prevX = friction == 0 ? x : TransformMath.Cushion(x, _boundsLeft, _boundsRight, 1 / friction);
+        _coordY = _prevY = friction == 0 ? y : TransformMath.Cushion(y, _boundsTop, _boundsBottom, 1 / friction);
         _pointerX = _pointerPrevX = _appliedX = _grabX = position.X;
         _pointerY = _pointerPrevY = _appliedY = _grabY = position.Y;
         ClearVelocity();
         TakeCursor(_grabCursor);
         ScrollInView(100, 0, Eases.Out(3));
+        if (_parameters.CancelOnEscape && TopLevel.GetTopLevel(_trigger) is { } root)
+        {
+            _escapeRoot = root;
+            root.AddHandler(InputElement.KeyDownEvent, HandleKeyDown, RoutingStrategies.Tunnel);
+        }
         _parameters.OnGrab?.Invoke(this);
     }
 
@@ -579,7 +597,14 @@ public sealed class Draggable : IRevertible
 
     private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e) => Release();
 
-    private void Release()
+    private void HandleKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || !_grabbed) return;
+        e.Handled = true;
+        Release(cancel: true);
+    }
+
+    private void Release(bool cancel = false)
     {
         if (!_grabbed) return;
         // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.
@@ -588,6 +613,15 @@ public sealed class Draggable : IRevertible
         _updateTicker.Pause();
         ReleasePointer();
         TakeCursor(_hoverCursor);
+
+        if (cancel)
+        {
+            ReturnToGrab();
+            _updated = true;
+            _released = true;
+            _parameters.OnRelease?.Invoke(this);
+            return;
+        }
 
         var velocity = ComputeVelocity(_pointerX - _appliedX, _pointerY - _appliedY);
         var angle = Angle = Math.Atan2(_pointerY - _pointerPrevY, _pointerX - _pointerPrevX);
@@ -616,8 +650,8 @@ public sealed class Draggable : IRevertible
         var friction = 1 - _releaseContainerFriction;
         var thrownX = x + Math.Cos(angle) * thrown;
         var thrownY = y + Math.Sin(angle) * thrown;
-        var cushionedX = Cushion(thrownX, _boundsLeft, _boundsRight, friction);
-        var cushionedY = Cushion(thrownY, _boundsTop, _boundsBottom, friction);
+        var cushionedX = TransformMath.Cushion(thrownX, _boundsLeft, _boundsRight, friction);
+        var cushionedY = TransformMath.Cushion(thrownY, _boundsTop, _boundsBottom, friction);
         var destX = _destX = Snapped(cushionedX, _snapX, _boundsLeft, _boundsRight);
         var destY = _destY = Snapped(cushionedY, _snapY, _boundsTop, _boundsBottom);
         var outOfBounds = (!_disabledX && (thrownX < _boundsLeft || thrownX > _boundsRight))
@@ -645,6 +679,7 @@ public sealed class Draggable : IRevertible
         if (!_hasReleaseSpring && outOfBounds && friction != 0 && (durationX != 0 || durationY != 0))
         {
             // Two blended tweens: out to where the throw would have landed, then back to the clamped destination.
+            using var origin = PrestoDiagnostics.Origin("Draggable");
             _overshootOut = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = cushionedX, Duration = durationX * .65 },
@@ -663,10 +698,38 @@ public sealed class Draggable : IRevertible
         }
         else
         {
-            if (!_disabledX) Animate.Set(_xProp, destX, durationX, easeX);
-            if (!_disabledY) Animate.Set(_yProp, destY, durationY, easeY);
+            SetAxes(destX, durationX, easeX, destY, durationY, easeY);
         }
         return longest;
+    }
+
+    private void ReturnToGrab()
+    {
+        _destX = _snappedX = _grabValueX;
+        _destY = _snappedY = _grabValueY;
+        SetAxes(
+            _grabValueX, ReturnDuration(_releaseSpringX, X, _grabValueX), _hasReleaseSpring ? _releaseSpringX.Ease : _releaseEase,
+            _grabValueY, ReturnDuration(_releaseSpringY, Y, _grabValueY), _hasReleaseSpring ? _releaseSpringY.Ease : _releaseEase);
+    }
+
+    // A zero duration write completes inside Set, so a move on one axis alone would settle before the other axis is written.
+    private void SetAxes(double? x, double durationX, EaseValue? easeX, double? y, double durationY, EaseValue? easeY)
+    {
+        var writesX = !_disabledX && x is not null;
+        var writesY = !_disabledY && y is not null;
+        var manual = _manual;
+        _manual = true;
+        if (writesX) Animate.Set(_xProp, x!.Value, durationX, easeX);
+        if (writesY) Animate.Set(_yProp, y!.Value, durationY, easeY);
+        _manual = manual;
+        if (!manual && (writesX || writesY) && (!writesX || durationX == 0) && (!writesY || durationY == 0)) HandleSettle(Animate);
+    }
+
+    private double ReturnDuration(Spring spring, double from, double to)
+    {
+        spring.Velocity = 0;
+        if (from == to) return 0;
+        return _hasReleaseSpring ? spring.SettlingDuration : spring.SettlingDuration - Spring.RestDuration * Globals.TimeScale;
     }
 
     // A null velocity carries on at the axis's current speed. Returns the longest axis duration.
@@ -684,7 +747,7 @@ public sealed class Draggable : IRevertible
         var settings = template with { ModifyTarget = template.ModifyTarget ?? snap, Min = min, Max = max };
         if (velocity is { } v) Animate.Fling(property, v, settings);
         else Animate.Fling(property, settings);
-        var animation = Animate.Animations[Presto.Canonicalise(_target, property)];
+        var animation = Animate.Animations[Presto.Canonicalize(_target, property)];
         longest = Math.Max(longest, animation.Duration);
         var tween = animation._headTween!;
         // The ease's end rather than the to-number: a release on a bound moving outward peaks there and comes back.
@@ -720,12 +783,12 @@ public sealed class Draggable : IRevertible
         _overshootTicker.Pause();
         _overshootOut?.Cancel();
         _overshootBack?.Cancel();
+        _overshootOut = _overshootBack = null;
         // The overshoot ticker leaves _manual set, which would swallow the settle this write ends in.
         _manual = false;
         _destX = _snappedX = destX;
         _destY = _snappedY = destY;
-        if (!_disabledX) Animate.Set(_xProp, destX, remaining, _releaseEase);
-        if (!_disabledY) Animate.Set(_yProp, destY, remaining, _releaseEase);
+        SetAxes(destX, remaining, _releaseEase, destY, remaining, _releaseEase);
     }
 
     private double ReleaseDuration(Spring spring, double from, double to, double min, double max, double thrown, double velocity, bool otherAxisDisabled)
@@ -763,6 +826,13 @@ public sealed class Draggable : IRevertible
     {
         if (_pointer is { } pointer && ReferenceEquals(pointer.Captured, _trigger)) pointer.Capture(null);
         _pointer = null;
+        StopListeningForEscape();
+    }
+
+    private void StopListeningForEscape()
+    {
+        _escapeRoot?.RemoveHandler(InputElement.KeyDownEvent, HandleKeyDown);
+        _escapeRoot = null;
     }
 
     private sealed class Coords

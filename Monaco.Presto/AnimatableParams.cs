@@ -31,8 +31,9 @@ public record AnimatableParams
     /// retargets it: the new spring starts with the velocity the value has, instead of from rest. A property's own setting wins.
     /// </summary>
     /// <remarks>
-    /// Not in anime.js, whose springs always start at rest. Only the scalar <c>Set</c> carries velocity, and a retarget to the
-    /// current value starts at rest, because an eased tween cannot move over zero distance. The springs set the duration,
+    /// Not in anime.js, whose springs always start at rest. The channel form of <c>Set</c> carries each color or complex
+    /// channel's own velocity. A retarget to the current value starts at rest, because an eased tween cannot move over zero
+    /// distance. The springs set the duration,
     /// overriding any the property declares; a duration passed to <c>Set</c> compresses them and the velocity with them.
     /// </remarks>
     public bool? PreserveVelocity { get; init; }

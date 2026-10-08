@@ -6,10 +6,12 @@
     <PackageTags>animation;tween;easing;timeline;avalonia;animejs</PackageTags>
     <Description>Avalonia bindings for Monaco.Presto: frame pump, AvaloniaProperty targets, transforms, colors and control helpers.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Skia" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +20,12 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.Tests" />
+    <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.Lottie" />
+    <InternalsVisibleTo Include="Monaco.Presto.AvaloniaBridge.DevTools" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controls\" />
   </ItemGroup>
 
 </Project>

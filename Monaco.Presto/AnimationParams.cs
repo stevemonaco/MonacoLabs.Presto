@@ -43,6 +43,49 @@ public record AnimationParams : TimerParams
     /// <summary>Called after the tweens have been written each frame, once per animation rather than once per target.</summary>
     public Action<Timer>? OnRender { get; init; }
 
+    /// <summary>
+    /// The form played while <see cref="PrestoDefaults.ReducedMotion"/> is set, as <see cref="AnimationBuilder.WhenReduced"/>
+    /// gives a builder: its properties and keyframes replace these, and the settings and callbacks it sets override these.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="WhenReduced"/> inside this one is ignored, and <see cref="PrestoDefaults.ReduceAll"/> leaves the reduced form alone.
+    /// <see cref="AnimationBuilder.ToParams"/> never sets this: the builder has already picked its own form.
+    /// </remarks>
+    public AnimationParams? WhenReduced { get; init; }
+
     /// <summary>Set on params built from a <see cref="AnimationBuilder.WhenReduced"/> alternative, which <see cref="PrestoDefaults.ReduceAll"/> leaves alone.</summary>
     internal bool IsReducedMotion { get; init; }
+
+    /// <summary>The params to play on <paramref name="engine"/>: these, or merged with <see cref="WhenReduced"/> while its defaults ask for reduced motion.</summary>
+    internal AnimationParams Resolve(Engine engine) =>
+        WhenReduced is not { } r || !engine.Defaults.ReducedMotion ? this : this with
+        {
+            Properties = r.Properties,
+            Keyframes = r.Keyframes,
+            Duration = r.Duration ?? Duration,
+            Delay = r.Delay ?? Delay,
+            Ease = r.Ease ?? Ease,
+            PlaybackEase = r.PlaybackEase ?? PlaybackEase,
+            Modifier = r.Modifier ?? Modifier,
+            Composition = r.Composition ?? Composition,
+            OnRender = r.OnRender ?? OnRender,
+            Id = r.Id ?? Id,
+            LoopDelay = r.LoopDelay ?? LoopDelay,
+            Reversed = r.Reversed ?? Reversed,
+            Alternate = r.Alternate ?? Alternate,
+            Loop = r.Loop ?? Loop,
+            Autoplay = r.Autoplay ?? Autoplay,
+            FrameRate = r.FrameRate ?? FrameRate,
+            PlaybackRate = r.PlaybackRate ?? PlaybackRate,
+            Priority = r.Priority != TimerParams.DefaultPriority ? r.Priority : Priority,
+            OnBegin = r.OnBegin ?? OnBegin,
+            OnBeforeUpdate = r.OnBeforeUpdate ?? OnBeforeUpdate,
+            OnUpdate = r.OnUpdate ?? OnUpdate,
+            OnLoop = r.OnLoop ?? OnLoop,
+            OnPause = r.OnPause ?? OnPause,
+            OnComplete = r.OnComplete ?? OnComplete,
+            HostLifetime = r.HostLifetime ?? HostLifetime,
+            WhenReduced = null,
+            IsReducedMotion = true,
+        };
 }

@@ -1,0 +1,167 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:local="using:PrestoSample.Pages"
+                       mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1800"
+                       x:Class="PrestoSample.Pages.ImageEffectsPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="presto|FilteredImage">
+            <Setter Property="Stretch" Value="UniformToFill" />
+        </Style>
+        <Style Selector="presto|FilteredImage.thumb">
+            <Setter Property="Width" Value="200" />
+            <Setter Property="Height" Value="130" />
+        </Style>
+        <Style Selector="Border.frame">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <TextBlock Classes="caption" Text="A slider per filter, bound two-way to the photo, and the XAML and builder its values amount to" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,280" ColumnSpacing="24">
+                    <Border Classes="frame" VerticalAlignment="Top">
+                        <presto:FilteredImage x:Name="Photo" Source="/Assets/Photos/mongolia.jpg" Height="420"
+                                              DuotoneShadow="#1e1b4b" DuotoneHighlight="#fbbf24" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Brightness, StringFormat='Brightness {0:0.00}'}" />
+                        <Slider Minimum="0" Maximum="2" Value="{Binding #Photo.Brightness, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Contrast, StringFormat='Contrast {0:0.00}'}" />
+                        <Slider Minimum="0" Maximum="2" Value="{Binding #Photo.Contrast, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Saturate, StringFormat='Saturate {0:0.00}'}" />
+                        <Slider Minimum="0" Maximum="3" Value="{Binding #Photo.Saturate, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Grayscale, StringFormat='Grayscale {0:0.00}'}" />
+                        <Slider x:Name="GrayscaleSlider" Minimum="0" Maximum="1" Value="{Binding #Photo.Grayscale, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Sepia, StringFormat='Sepia {0:0.00}'}" />
+                        <Slider Minimum="0" Maximum="1" Value="{Binding #Photo.Sepia, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.HueRotate, StringFormat='HueRotate {0:0}°'}" />
+                        <Slider Minimum="0" Maximum="360" Value="{Binding #Photo.HueRotate, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Invert, StringFormat='Invert {0:0.00}'}" />
+                        <Slider Minimum="0" Maximum="1" Value="{Binding #Photo.Invert, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Tint, StringFormat='Tint {0:0.00}'}" />
+                        <Slider Minimum="0" Maximum="1" Value="{Binding #Photo.Tint, Mode=TwoWay}" />
+                        <TextBlock Classes="caption" Text="{Binding #TintHueSlider.Value, StringFormat='TintColor hue {0:0}'}" />
+                        <Slider x:Name="TintHueSlider" Minimum="0" Maximum="360" Value="25" ValueChanged="TintHueChanged" />
+                        <TextBlock Classes="caption" Text="{Binding #Photo.Duotone, StringFormat='Duotone {0:0.00}'}" />
+                        <Slider Minimum="0" Maximum="1" Value="{Binding #Photo.Duotone, Mode=TwoWay}" />
+                        <Button Content="Reset" Click="ResetClicked" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <showcase:CodeTabs x:Name="FilterCode" SelectedLanguage="Xaml" />
+
+            <TextBlock Classes="caption" Text="Gray thumbnails that colorize on hover and turn gray again when the pointer leaves" />
+            <Border Classes="stage" MinHeight="0">
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Border Classes="frame">
+                        <!-- snippet: ImageEffectsThumb -->
+                        <presto:FilteredImage Classes="thumb" Source="/Assets/Photos/mongolia.jpg" Grayscale="1"
+                                              presto:Motion.Hover="{x:Static local:ImageEffectsPage.Colorize}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <Border Classes="frame">
+                        <presto:FilteredImage Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg" Grayscale="1"
+                                              presto:Motion.Hover="{x:Static local:ImageEffectsPage.Colorize}" />
+                    </Border>
+                    <Border Classes="frame">
+                        <presto:FilteredImage Classes="thumb" Source="/Assets/Photos/port-blanc.jpg" Grayscale="1"
+                                              presto:Motion.Hover="{x:Static local:ImageEffectsPage.Colorize}" />
+                    </Border>
+                </StackPanel>
+            </Border>
+            <showcase:CodeTabs x:Name="ColorizeCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsThumb}" />
+
+            <TextBlock Classes="caption" Text="A photo that develops in on Presence.Initial: sepia, brightness and blur settle as it fades in" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Border Classes="frame" HorizontalAlignment="Left">
+                        <!-- snippet: ImageEffectsDevelop -->
+                        <presto:FilteredImage x:Name="Developed" Classes="thumb" Source="/Assets/Photos/port-blanc.jpg"
+                                              presto:Presence.Initial="{x:Static local:ImageEffectsPage.Develop}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <Button Grid.Column="1" Content="Replay" Click="ReplayClicked" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <showcase:CodeTabs x:Name="DevelopCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsDevelop}" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A duotone card whose shadow and highlight colors animate whenever its theme variant changes; the switch puts the card in a light ThemeVariantScope" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <ThemeVariantScope x:Name="DuotoneScope" HorizontalAlignment="Left">
+                        <Border CornerRadius="12" Padding="12" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+                            <StackPanel Spacing="8">
+                                <Border Classes="frame">
+                                    <presto:FilteredImage x:Name="DuotonePhoto" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg" Duotone="1" />
+                                </Border>
+                                <TextBlock Text="{Binding #DuotonePhoto.ActualThemeVariant, StringFormat='ActualThemeVariant: {0}'}" />
+                            </StackPanel>
+                        </Border>
+                    </ThemeVariantScope>
+                    <ToggleSwitch x:Name="LightToggle" Grid.Column="1" OffContent="App theme" OnContent="Light"
+                                  VerticalAlignment="Center" IsCheckedChanged="LightChanged" />
+                </Grid>
+            </Border>
+            <showcase:CodePanel x:Name="DuotoneCode" />
+
+            <TextBlock Classes="caption" Text="A hue cycle looped from Animate.OnAttached" />
+            <Border Classes="stage" MinHeight="0">
+                <Border Classes="frame" HorizontalAlignment="Left">
+                    <!-- snippet: ImageEffectsHue -->
+                    <presto:FilteredImage x:Name="HuePhoto" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg"
+                                          presto:Animate.OnAttached="{x:Static local:ImageEffectsPage.HueCycle}" />
+                    <!-- /snippet -->
+                </Border>
+            </Border>
+            <showcase:CodeTabs x:Name="HueCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsHue}" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A slideshow whose SourceTransition plays on every Source change; click quickly and each swap starts from the composite on screen" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,280" ColumnSpacing="24">
+                    <Border Classes="frame" VerticalAlignment="Top">
+                        <presto:FilteredImage x:Name="Slideshow" Source="/Assets/Photos/mongolia.jpg" Height="360"
+                                              SourceTransition="Dissolve 600" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <ComboBox x:Name="KindBox" HorizontalAlignment="Stretch" Margin="0,0,0,8" />
+                        <TextBlock Classes="caption" Text="{Binding #DurationSlider.Value, StringFormat='Duration {0:0} ms'}" />
+                        <Slider x:Name="DurationSlider" Minimum="200" Maximum="2000" Value="600" SmallChange="100" TickFrequency="100" IsSnapToTickEnabled="True" />
+                        <TextBlock Classes="caption" IsVisible="{Binding #AngleSlider.IsVisible}" Text="{Binding #AngleSlider.Value, StringFormat='Angle {0:0}°'}" />
+                        <Slider x:Name="AngleSlider" Minimum="0" Maximum="360" TickFrequency="15" IsSnapToTickEnabled="True" />
+                        <TextBlock Classes="caption" IsVisible="{Binding #PeakSlider.IsVisible}" Text="{Binding #PeakSlider.Value, StringFormat='PeakPixelate {0:0}'}" />
+                        <Slider x:Name="PeakSlider" Minimum="4" Maximum="64" Value="24" TickFrequency="4" IsSnapToTickEnabled="True" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                            <Button Content="Previous" Click="PreviousClicked" />
+                            <Button Content="Next" Click="NextClicked" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <showcase:CodePanel x:Name="SlideshowCode" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="A card that dissolves in on Presence.Enter; an exit ghost is a snapshot, so Hide pixelates the live card, awaits Then() and only then removes it" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Border x:Name="CardFrame" Classes="frame" HorizontalAlignment="Left" Width="200" Height="130">
+                        <!-- snippet: ImageEffectsCard -->
+                        <presto:FilteredImage x:Name="Card" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg"
+                                              presto:Presence.Enter="{x:Static local:ImageEffectsPage.DissolveIn}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <Button x:Name="CardButton" Grid.Column="1" Content="Hide" Click="CardClicked" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <showcase:CodeTabs x:Name="CardCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsCard}" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

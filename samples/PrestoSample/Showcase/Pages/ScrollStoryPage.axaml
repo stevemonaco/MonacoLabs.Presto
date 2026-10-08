@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="720"
                        x:Class="PrestoSample.Showcase.Pages.ScrollStoryPage"
                        SizeChanged="Remeasure">
@@ -28,11 +29,11 @@
     </showcase:ShowcasePage.Styles>
 
     <Panel>
-        <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="Article" MaxWidth="700" Spacing="18" Margin="20,54,20,90">
+        <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Disabled" presto:Scroll.Smooth="{Binding #SmoothWheel.IsChecked}">
+            <StackPanel x:Name="Article" MaxWidth="700" Spacing="18" Margin="20,54,20,240">
                 <Border x:Name="Hero" Height="520" CornerRadius="10" ClipToBounds="True">
                     <Panel>
-                        <Border x:Name="HeroSky">
+                        <Border x:Name="HeroSky" Margin="0,-60,0,0" presto:Scroll.Speed="0.6">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
                                     <GradientStop Color="#2B579F" Offset="0" />
@@ -41,8 +42,8 @@
                             </Border.Background>
                         </Border>
                         <Border x:Name="HeroRidge" Height="220" Margin="-90,0,-90,-40" CornerRadius="400,400,0,0"
-                                VerticalAlignment="Bottom" Background="{x:Static showcase:Palette.AccentDeep}" />
-                        <StackPanel x:Name="HeroTitle" Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                VerticalAlignment="Bottom" presto:Scroll.Speed="0.8" Background="{x:Static showcase:Palette.AccentDeep}" />
+                        <StackPanel x:Name="HeroTitle" Spacing="6" presto:Scroll.Speed="1.3" VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Classes="eyebrow showcase" Text="SCROLL AS A PLAYHEAD" HorizontalAlignment="Center" />
                             <TextBlock Text="Scroll story" FontSize="46" FontWeight="SemiBold" />
                         </StackPanel>
@@ -50,23 +51,29 @@
                 </Border>
 
                 <TextBlock Classes="caption" TextWrapping="Wrap"
-                           Text="Nothing on this page plays on its own. Every animation below is created paused and handed to an observer, which either seeks it to the scroll position or plays it at a threshold." />
+                           Text="Everything below is driven by the scroll: observers seek animations to its position or start them at a threshold, and the rail across the top follows it as a MotionValue." />
 
-                <Border x:Name="Chapter1" Classes="stage">
+                <ToggleSwitch x:Name="SmoothWheel" Content="Smooth mouse-wheel scrolling (Scroll.Smooth, Windows only)" />
+
+                <Border x:Name="Chapter1" Classes="stage" presto:Presence.RevealThreshold="bottom-=120 top"
+                        presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=52, Duration=640, Ease=outQuint}">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="ONE · THRESHOLDS" />
-                        <TextBlock Classes="title" Text="Where a section counts as in view" />
+                        <TextBlock x:Name="Heading1" Classes="title" Text="Where a section counts as in view"
+                                   presto:Presence.Reveal="{presto:LineMask}" presto:Presence.RevealThreshold="bottom-=80 top" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
-                                   Text="This card enters at &quot;bottom-=120 top&quot; — the container's bottom, 120px early, reaching the card's top — and leaves at &quot;top+=40 bottom&quot;. The observer plays the reveal on the way in and pauses it on the way out, and every crossing is reported to the rail with the direction it happened in." />
+                                   Text="This card enters at &quot;bottom-=120 top&quot; — the container's bottom, 120px early, reaching the card's top — and leaves at &quot;top+=40 bottom&quot;. Presence.Reveal plays its fade-up the first time it crosses that threshold, and an observer reports every crossing to the rail with the direction it happened in." />
                     </StackPanel>
                 </Border>
 
-                <Border x:Name="Chapter2" Classes="stage">
+                <Border x:Name="Chapter2" Classes="stage" presto:Presence.RevealThreshold="bottom-=120 top"
+                        presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=52, Duration=640, Ease=outQuint}">
                     <StackPanel Spacing="6">
-                        <TextBlock Classes="eyebrow showcase" Text="TWO · SMOOTHING" />
-                        <TextBlock Classes="title" Text="The hero trails the scrollbar" />
+                        <TextBlock Classes="eyebrow showcase" Text="TWO · DEPTH" />
+                        <TextBlock x:Name="Heading2" Classes="title" Text="The hero's layers scroll at their own speeds"
+                                   presto:Presence.Reveal="{presto:LineMask}" presto:Presence.RevealThreshold="bottom-=80 top" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
-                                   Text="Scroll back to the top and the hero's three layers chase the scroll position rather than tracking it: Sync = 0.35 lerps the linked timeline's progress towards the scroll's a fraction at a time, and keeps the engine awake until it has caught up." />
+                                   Text="Scroll back to the top and watch the hero come apart: Scroll.Speed = 0.6, 0.8 and 1.3 on the sky, the ridge and the title move each by (1 − speed) times the scroll, written in the scroller's own offset notification so no layer is ever a frame behind. Only the title's fade is an observer: Sync = 0.35 lerps its progress towards the scroll's a fraction at a time." />
                     </StackPanel>
                 </Border>
 
@@ -81,45 +88,44 @@
                     </StackPanel>
                 </Border>
 
-                <Border x:Name="Chapter3" Classes="stage">
+                <Border x:Name="Chapter3" Classes="stage" presto:Presence.RevealThreshold="bottom-=120 top"
+                        presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=52, Duration=640, Ease=outQuint}">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="eyebrow showcase" Text="THREE · REFRESH" />
-                        <TextBlock Classes="title" Text="Re-measured on every resize" />
+                        <TextBlock x:Name="Heading3" Classes="title" Text="Re-measured on every resize"
+                                   presto:Presence.Reveal="{presto:LineMask}" presto:Presence.RevealThreshold="bottom-=80 top" />
                         <TextBlock Classes="caption" TextWrapping="Wrap"
-                                   Text="Every threshold here is a pixel offset measured once against this article and its viewport. Resize the window mid-scroll and the page calls Refresh() on all seven observers, so the pinned scrub below carries on from the scroll position it is actually at instead of the one the old measurement said it was." />
+                                   Text="Every threshold here is a pixel offset measured once against this article and its viewport. Resize the window mid-scroll and the page calls Refresh() on all six observers, so the pinned scrub below carries on from the scroll position it is actually at instead of the one the old measurement said it was." />
                     </StackPanel>
                 </Border>
 
-                <Border x:Name="PinTrack" Height="1600">
-                    <TextBlock Classes="caption" VerticalAlignment="Top" HorizontalAlignment="Center"
-                               Text="1600px of track — the pinned section stays put and is scrubbed across it" />
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="The stage below is pinned: Pin = true holds it in the middle of the viewport for 960px of scroll while the strip is scrubbed, PinSpacing pushes what follows down by the same 960px, and Snap = ScrollSnap.Labels settles the strip on a panel once scrolling stops." />
+
+                <Border x:Name="PinStage" Classes="stage" Width="640" ClipToBounds="True" HorizontalAlignment="Center">
+                    <Grid RowDefinitions="Auto,*" RowSpacing="14">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                            <TextBlock Grid.Column="0" Classes="eyebrow showcase" Text="PINNED · SCRUBBED BY SCROLL" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" x:Name="PinLabel" Classes="mono" Margin="0,0,10,0" Text="step1" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" x:Name="PinNumber" Classes="readout" FontSize="20" Text="0" />
+                            <TextBlock Grid.Column="3" Classes="caption" Text="%" VerticalAlignment="Bottom" Margin="0,0,0,3" />
+                        </Grid>
+                        <StackPanel Grid.Row="1" x:Name="PinStrip" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Left" />
+                    </Grid>
                 </Border>
 
-                <TextBlock Classes="caption" TextWrapping="Wrap"
-                           Text="Seven observers over one ScrollViewer: the hero parallax and the pinned strip are timelines created with Autoplay = false and handed to Link(), which is how autoplay: onScroll() is spelled here; the quote is a single animation synced through an ease; the three chapters are played and paused by the default &quot;play pause&quot; sync at their own named thresholds; and the rail reads Progress, Velocity and Backward off an observer watching the whole article, feeding the vane through an Animatable so it eases rather than jumping. Only the pinned section is drawn outside the scroller — Avalonia has no sticky positioning, so the stage is an overlay the observer shows while its track is passing." />
+                <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
             </StackPanel>
         </ScrollViewer>
 
-        <Border x:Name="PinStage" Classes="stage" Width="640" Opacity="0"
-                IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Center">
-            <Grid RowDefinitions="Auto,*" RowSpacing="14">
-                <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <TextBlock Grid.Column="0" Classes="eyebrow showcase" Text="PINNED · SCRUBBED BY SCROLL" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" x:Name="PinNumber" Classes="readout" FontSize="20" Text="0" />
-                    <TextBlock Grid.Column="2" Classes="caption" Text="%" VerticalAlignment="Bottom" Margin="0,0,0,3" />
-                </Grid>
-                <StackPanel Grid.Row="1" x:Name="PinStrip" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Left" />
-            </Grid>
-        </Border>
-
         <Border Classes="rail showcase" VerticalAlignment="Top" IsHitTestVisible="False" CornerRadius="0,0,10,10">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
-                <Border Grid.Column="0" x:Name="RailTrack" Height="4" CornerRadius="2" VerticalAlignment="Center"
+                <Border Grid.Column="0" Height="4" CornerRadius="2" VerticalAlignment="Center"
                         Background="{x:Static showcase:Palette.Border}">
-                    <Border x:Name="RailFill" Width="0" CornerRadius="2" HorizontalAlignment="Left"
+                    <Border x:Name="RailFill" CornerRadius="2" RenderTransformOrigin="0%,50%"
                             Background="{x:Static showcase:Palette.Accent}" />
                 </Border>
-                <TextBlock Grid.Column="1" x:Name="RailText" Classes="code" Margin="0" Text="0% · 0.000 px/ms · forward" />
+                <TextBlock Grid.Column="1" x:Name="RailText" Classes="mono" Margin="0" Text="0% · 0.000 px/ms · forward" />
                 <TextBlock Grid.Column="2" x:Name="CrossingText" Classes="caption" VerticalAlignment="Center" Text="no crossing yet" />
                 <Path Grid.Column="3" x:Name="Vane" Data="M 0,0 L 14,0 L 7,11 Z" VerticalAlignment="Center"
                       Fill="{x:Static showcase:Palette.AccentBright}" />

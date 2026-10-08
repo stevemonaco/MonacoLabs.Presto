@@ -1,7 +1,10 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 
@@ -10,22 +13,27 @@ namespace PrestoSample.Tests;
 public sealed class BloomNavPageTests
 {
     [AvaloniaFact]
-    public void ABloomSwapsInTheTabsContentAndHueThenClearsItself()
+    public void ABloomSwapsInTheTabsContentAndHueThenClearsItsClip()
     {
         var page = new BloomNavPage();
         var window = SceneHarness.Show(page, 1100, 600);
 
         SceneHarness.Click(window, Tab(page, 2));
-        TestFrames.Tick(90);
+        TestFrames.Tick(10);
+        var presenter = page.GetControl<TransitioningContentControl>("Stage").GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Content == Shown(page));
+        var bloom = Assert.IsType<EllipseGeometry>(presenter.Clip).Rect.Center;
+        var clicked = SceneHarness.Center(Tab(page, 2), presenter);
+        Assert.True(Math.Abs(bloom.X - clicked.X) < 1 && Math.Abs(bloom.Y - clicked.Y) < 1, $"the bloom grew from {bloom}, not the click at {clicked}");
+        TestFrames.Tick(80);
 
-        Assert.Empty(page.GetControl<Canvas>("Overlay").Children);
-        Assert.Equal(Palette.Violet.Color, ((ISolidColorBrush)page.GetControl<Panel>("Stage").Background!).Color);
+        AssertSettled(page);
+        Assert.Equal(Palette.Violet.Color, ((ISolidColorBrush)Shown(page).Background!).Color);
         Assert.Contains(Datasets.Albums[0].Artist, Texts(page));
         SceneHarness.Close(window);
     }
 
     [AvaloniaFact]
-    public void RapidClicksStackBloomsAndSettleOnTheLastTab()
+    public void RapidClicksSettleOnTheLastTabWithNoBloomLeft()
     {
         var page = new BloomNavPage();
         var window = SceneHarness.Show(page, 1100, 600);
@@ -37,14 +45,23 @@ public sealed class BloomNavPageTests
         }
         TestFrames.Tick(90);
 
-        Assert.Empty(page.GetControl<Canvas>("Overlay").Children);
-        Assert.Equal(Palette.Amber.Color, ((ISolidColorBrush)page.GetControl<Panel>("Stage").Background!).Color);
+        AssertSettled(page);
+        Assert.Equal(Palette.Amber.Color, ((ISolidColorBrush)Shown(page).Background!).Color);
         Assert.Contains(Datasets.Metrics[0].Label, string.Join('\n', Texts(page)));
         SceneHarness.Close(window);
     }
 
-    private static Button Tab(BloomNavPage page, int index) => (Button)page.GetControl<StackPanel>("Tabs").Children[index];
+    private static Control Tab(BloomNavPage page, int index) => page.GetControl<TabStrip>("Tabs").ContainerFromIndex(index)!;
+
+    private static Border Shown(BloomNavPage page) => (Border)page.GetControl<TransitioningContentControl>("Stage").Content!;
+
+    private static void AssertSettled(BloomNavPage page)
+    {
+        var presenters = page.GetControl<TransitioningContentControl>("Stage").GetVisualDescendants().OfType<ContentPresenter>().ToList();
+        Assert.Same(Shown(page), Assert.Single(presenters, presenter => presenter.IsVisible).Content);
+        Assert.All(presenters, presenter => Assert.Null(presenter.Clip));
+    }
 
     private static string[] Texts(BloomNavPage page) =>
-        [.. page.GetControl<Border>("Screen").GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text ?? "")];
+        [.. Shown(page).GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text ?? "")];
 }

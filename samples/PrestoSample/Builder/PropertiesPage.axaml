@@ -12,11 +12,7 @@
                 <Border x:Name="SettingsBox" Classes="swatch" Width="56" Height="56" HorizontalAlignment="Center" />
             </Border>
             <Button Content="Replay" Click="ReplaySettings" HorizontalAlignment="Left" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="SettingsCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="SettingsCode" />
 
             <TextBlock Classes="caption" Text="Per-property and animation-level keyframes" />
             <Border Classes="stage">
@@ -27,16 +23,8 @@
                 </Grid>
             </Border>
             <Button Content="Replay" Click="ReplayKeyframes" HorizontalAlignment="Left" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="TweenKeyframesCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="KeyframesCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="TweenKeyframesCode" />
+            <showcase:CodePanel x:Name="KeyframesCode" />
 
             <TextBlock Classes="caption" Text="Typed values and any property" />
             <Border Classes="stage">
@@ -46,11 +34,7 @@
                 </Border>
             </Border>
             <Button Content="Replay" Click="ReplayCard" HorizontalAlignment="Left" />
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="CardCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodePanel x:Name="CardCode" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

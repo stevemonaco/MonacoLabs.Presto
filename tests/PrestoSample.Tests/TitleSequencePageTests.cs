@@ -85,6 +85,49 @@ public sealed class TitleSequencePageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void SeekingAFinishedSequenceBackToDrawResetsTheBarToItsStart()
+    {
+        var page = new TitleSequencePage();
+        var window = SceneHarness.Show(page, 1000, 900, frames: 10);
+        var timeline = Timeline(page);
+        timeline.Seek(timeline.Duration);
+        TestFrames.Tick();
+        var bar = page.GetControl<TransportBar>("Bar");
+        Assert.Equal(1, bar.GetControl<Slider>("Scrubber").Value, 3);
+
+        SceneHarness.Click(window, page.GetLogicalDescendants().OfType<Button>().Single(button => button.Tag is "draw"));
+
+        Assert.Equal(0, bar.GetControl<Slider>("Scrubber").Value);
+        Assert.Equal("0 ms · 0%", bar.GetControl<TextBlock>("TimeText").Text);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void UnderReducedMotionTheSequenceLandsOnItsFinalFrameUntilTheBarPlaysIt()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new TitleSequencePage();
+        var window = SceneHarness.Show(page, 1000, 900, frames: 2);
+        var cards = page.GetControl<StackPanel>("Cards").Children;
+        var dot = page.GetControl<Canvas>("DotField").Children[0];
+        var x = Presto.Get(dot, "X");
+
+        // Past the re-split, which builds and lands the sequence again.
+        TestFrames.Tick(60);
+
+        Assert.True(Timeline(page).Completed);
+        Assert.All(cards, card => Assert.Equal(1, card.Opacity, 3));
+        Assert.All(Chars(page), piece => Assert.Equal(1, piece.Opacity, 3));
+        Assert.Equal(x, Presto.Get(dot, "X"));
+
+        Timeline(page).Restart();
+        TestFrames.Tick();
+        Assert.False(Timeline(page).Completed);
+        Assert.All(cards, card => Assert.Equal(0, card.Opacity));
+        SceneHarness.Close(window);
+    }
+
     private static Timeline Timeline(TitleSequencePage page) =>
         (Timeline)page.GetControl<TransportBar>("Bar").Timer!;
 }

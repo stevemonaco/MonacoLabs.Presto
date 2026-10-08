@@ -26,13 +26,15 @@ internal sealed class EffectComposer
         EffectShorthand.ShadowX, EffectShorthand.ShadowOpacity, "a visual holds one effect. Put the blur on an inner element, or use BoxShadow on a Border.");
     private IDisposable? _written;
     private bool _faded;
+    private double? _followed;
 
     public static object Identity(EffectShorthand shorthand) => Read(null, shorthand);
 
     public static object Get(Visual visual, EffectShorthand shorthand) =>
-        Read(s_composers.TryGetValue(visual, out var composer) && composer._kinds.Shows(shorthand)
-            ? composer._kinds.IsKindB ? composer._shadow : composer._blur
-            : visual.GetBaseValue(Visual.EffectProperty).GetValueOrDefault(), shorthand);
+        !s_composers.TryGetValue(visual, out var composer) ? Read(visual.GetBaseValue(Visual.EffectProperty).GetValueOrDefault(), shorthand)
+        : composer._kinds.Shows(shorthand) ? Read(composer._kinds.IsKindB ? composer._shadow : composer._blur, shorthand)
+        : shorthand == EffectShorthand.Blur && composer._followed is { } radius ? radius
+        : Read(visual.GetBaseValue(Visual.EffectProperty).GetValueOrDefault(), shorthand);
 
     /// <inheritdoc cref="ExclusiveKinds{TShorthand}.Claim"/>
     public static void Claim(Visual visual, EffectShorthand shorthand) =>
@@ -54,7 +56,25 @@ internal sealed class EffectComposer
         composer.Show(visual);
     }
 
-    /// <summary>Releases one shorthand back to the user's value; the last of them takes the whole effect with it.</summary>
+    /// <summary>Makes <paramref name="radius"/> the base blur: shown while no animation holds the effect, and restored when the last one is reverted.</summary>
+    public static void Follow(Visual visual, double radius)
+    {
+        var composer = s_composers.GetValue(visual, static _ => new EffectComposer());
+        composer._followed = radius;
+        if (!composer._kinds.AnimatesAny) composer.ShowFollowed(visual);
+    }
+
+    /// <summary>Drops the followed blur; unless an animation holds the effect, the user's effect shows again.</summary>
+    public static void Unfollow(Visual visual)
+    {
+        if (!s_composers.TryGetValue(visual, out var composer) || composer._followed == null) return;
+        composer._followed = null;
+        if (composer._kinds.AnimatesAny) return;
+        composer.Hide();
+        s_composers.Remove(visual);
+    }
+
+    /// <summary>Releases one shorthand back to the user's value; the last of them takes the whole effect with it, uncovering any followed blur.</summary>
     public static void Revert(Visual visual, EffectShorthand shorthand)
     {
         if (!s_composers.TryGetValue(visual, out var composer) || !composer._kinds.Animates(shorthand)) return;
@@ -67,7 +87,8 @@ internal sealed class EffectComposer
             return;
         }
         composer.Hide();
-        s_composers.Remove(visual);
+        if (composer._followed != null) composer.ShowFollowed(visual);
+        else s_composers.Remove(visual);
     }
 
     private static object Read(IEffect? effect, EffectShorthand shorthand) => shorthand switch
@@ -128,6 +149,14 @@ internal sealed class EffectComposer
     {
         if (_kinds.IsKindB ? _faded : _blur!.Radius <= 0) Hide();
         else _written ??= visual.SetValue(Visual.EffectProperty, _kinds.IsKindB ? _shadow : _blur, BindingPriority.Animation);
+    }
+
+    private void ShowFollowed(Visual visual)
+    {
+        var blur = _blur ??= new BlurEffect();
+        blur.Radius = _followed!.Value;
+        if (blur.Radius <= 0) Hide();
+        else _written ??= visual.SetValue(Visual.EffectProperty, blur, BindingPriority.Animation);
     }
 
     private void Hide()

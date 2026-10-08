@@ -2,12 +2,16 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using Avalonia.Platform;
+using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Tests;
 
 namespace PrestoSample.Tests;
 
@@ -41,32 +45,41 @@ internal static class SceneHarness
         window.Close();
     }
 
-    /// <summary>Clicks the centre of <paramref name="target"/> with real pointer input and ticks the frame it schedules.</summary>
+    /// <summary>Clicks the center of <paramref name="target"/> with real pointer input and ticks the frame it schedules.</summary>
     public static void Click(Window window, Visual target)
     {
-        var centre = Centre(target, window);
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
+        var center = Center(target, window);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
         TestFrames.Tick();
     }
 
-    /// <summary>Ticks until <paramref name="until"/> holds or <paramref name="rounds"/> run out, letting real time pass so the compositor's own clock advances.</summary>
-    public static async Task<bool> Pump(Func<bool> until, int rounds = 60)
+    /// <summary>Ticks until <paramref name="until"/> holds or <paramref name="rounds"/> run out; it never waits, as each tick moves both clocks.</summary>
+    public static Task<bool> Pump(Func<bool> until, int rounds = 60)
     {
-        for (var i = 0; i < rounds && !until(); i++)
-        {
-            TestFrames.Tick();
-            await Task.Delay(8);
-        }
-        return until();
+        for (var i = 0; i < rounds && !until(); i++) TestFrames.Tick();
+        return Task.FromResult(until());
     }
 
-    /// <summary>Ticks past a whole reflow, which is the only way to wait for every card at once: they overlap while they move.</summary>
-    public static Task Settle(int rounds = 120) => Pump(() => false, rounds);
+    /// <summary>
+    /// Ticks at least once, then until no engine or compositor animation is running, which is the only way to wait for every
+    /// card of a reflow at once; <paramref name="rounds"/> caps it, for a page that never comes to rest.
+    /// </summary>
+    public static Task Settle(int rounds = 120)
+    {
+        TestFrames.Tick();
+        return Pump(Idle, rounds - 1);
+    }
+
+    private static bool Idle() => !Presto.Engine.IsRunning && !CompositorClock.IsAnimating();
 
     /// <summary>Ticks until <paramref name="card"/> is drawn in the slot layout has given it, which is both its entry and its reflow finishing.</summary>
     public static Task<bool> Settles(Visual page, Window window, Border card) =>
-        Pump(() => Extent(page, Colour(card)) is { } box && Near(box, Slot(card, window)), rounds: 140);
+        Pump(() => Extent(page, CardColor(card)) is { } box && Near(box, Slot(card, window)), rounds: 140);
+
+    /// <summary>The overlay canvases the particle recipes draw into over <paramref name="visual"/>'s window.</summary>
+    public static CompositorCanvas[] ParticleOverlays(Visual visual) =>
+        OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<CompositorCanvas>().ToArray();
 
     /// <summary>The number a readout is showing.</summary>
     public static double Number(TextBlock text) => double.Parse(text.Text!, CultureInfo.InvariantCulture);
@@ -74,7 +87,7 @@ internal static class SceneHarness
     public static IEnumerable<Border> Cards(Visual page) =>
         page.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("card"));
 
-    /// <summary>The pixels of the last frame the window holding <paramref name="visual"/> rendered, with the row stride.</summary>
+    /// <summary>The RGBA pixels of the last frame the window holding <paramref name="visual"/> rendered, with the row stride.</summary>
     public static (byte[] Pixels, int Stride) Capture(Visual visual)
     {
         var window = TopLevel.GetTopLevel(visual)!;
@@ -82,6 +95,7 @@ internal static class SceneHarness
         using var locked = frame.Lock();
         var pixels = new byte[locked.RowBytes * locked.Size.Height];
         Marshal.Copy(locked.Address, pixels, 0, pixels.Length);
+        for (var i = 0; i < pixels.Length; i += 4) (pixels[i], pixels[i + 2]) = (pixels[i + 2], pixels[i]);
         return (pixels, locked.RowBytes);
     }
 
@@ -106,8 +120,8 @@ internal static class SceneHarness
     }
 
     /// <summary>
-    /// Paints a whole card one colour, text included: subpixel glyph antialiasing writes a channel at a time, so a
-    /// neighbour's text over its own background can land on another card's exact tint and widen its extent.
+    /// Paints a whole card one color, text included: subpixel glyph antialiasing writes a channel at a time, so a
+    /// neighbor's text over its own background can land on another card's exact tint and widen its extent.
     /// </summary>
     public static void Flood(Border card, Color color)
     {
@@ -116,18 +130,18 @@ internal static class SceneHarness
         foreach (var text in card.GetLogicalDescendants().OfType<TextBlock>()) text.Foreground = brush;
     }
 
-    /// <summary>The colour <see cref="Flood"/> painted <paramref name="card"/> with.</summary>
-    public static Color Colour(Border card) => ((ImmutableSolidColorBrush)card.Background!).Color;
+    /// <summary>The color <see cref="Flood"/> painted <paramref name="card"/> with.</summary>
+    public static Color CardColor(Border card) => ((ImmutableSolidColorBrush)card.Background!).Color;
 
-    /// <summary>A colour per card that no palette entry uses, so one card's pixels can be told from another's.</summary>
+    /// <summary>A color per card that no palette entry uses, so one card's pixels can be told from another's.</summary>
     public static Color Tint(int index) => Color.FromRgb(255, 0, (byte)(23 + (index * 53 % 197)));
 
     /// <summary>The box layout has given <paramref name="control"/>, in <paramref name="window"/>'s coordinates.</summary>
     public static Rect Slot(Control control, Visual window) =>
         new(control.TranslatePoint(default, window)!.Value, control.Bounds.Size);
 
-    /// <summary>The centre of <paramref name="control"/>, in <paramref name="window"/>'s coordinates.</summary>
-    public static Point Centre(Visual control, Visual window) =>
+    /// <summary>The center of <paramref name="control"/>, in <paramref name="window"/>'s coordinates.</summary>
+    public static Point Center(Visual control, Visual window) =>
         control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
 
     /// <summary>A card's background stops inside its one pixel border, so a slot it fills is a few pixels wider than its pixels.</summary>

@@ -1,15 +1,10 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
-             x:Class="PrestoSample.Pages.CallbacksPage">
-    <UserControl.Styles>
-        <Style Selector="TextBlock.readout">
-            <Setter Property="FontSize" Value="14" />
-        </Style>
-    </UserControl.Styles>
-
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoSample.Pages.CallbacksPage">
     <ScrollViewer>
         <StackPanel Spacing="12">
             <Border Classes="stage" MinHeight="120" Padding="16">
@@ -30,34 +25,34 @@
                        Text="Rows are listed in the order a single frame fires them. OnPause only fires from Pause(), and OnRender only exists on animations — it fires on the frames where a tween actually wrote a value." />
 
             <Grid ColumnDefinitions="180,24,60" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
-                <TextBlock Grid.Row="0" Grid.Column="0" Classes="code" Text="OnBegin" />
+                <TextBlock Grid.Row="0" Grid.Column="0" Classes="mono" Text="OnBegin" />
                 <Border Grid.Row="0" Grid.Column="1" x:Name="BeginDot" Classes="dot" />
-                <TextBlock Grid.Row="0" Grid.Column="2" x:Name="BeginCount" Classes="readout" />
+                <TextBlock Grid.Row="0" Grid.Column="2" x:Name="BeginCount" Classes="readout small" />
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Classes="code" Text="OnLoop" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Classes="mono" Text="OnLoop" />
                 <Border Grid.Row="1" Grid.Column="1" x:Name="LoopDot" Classes="dot" />
-                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="LoopCount" Classes="readout" />
+                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="LoopCount" Classes="readout small" />
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Classes="code" Text="OnBeforeUpdate" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Classes="mono" Text="OnBeforeUpdate" />
                 <Border Grid.Row="2" Grid.Column="1" x:Name="BeforeUpdateDot" Classes="dot" />
-                <TextBlock Grid.Row="2" Grid.Column="2" x:Name="BeforeUpdateCount" Classes="readout" />
+                <TextBlock Grid.Row="2" Grid.Column="2" x:Name="BeforeUpdateCount" Classes="readout small" />
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Classes="code" Text="OnRender" />
+                <TextBlock Grid.Row="3" Grid.Column="0" Classes="mono" Text="OnRender" />
                 <Border Grid.Row="3" Grid.Column="1" x:Name="RenderDot" Classes="dot" />
-                <TextBlock Grid.Row="3" Grid.Column="2" x:Name="RenderCount" Classes="readout" />
+                <TextBlock Grid.Row="3" Grid.Column="2" x:Name="RenderCount" Classes="readout small" />
 
-                <TextBlock Grid.Row="4" Grid.Column="0" Classes="code" Text="OnUpdate" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Classes="mono" Text="OnUpdate" />
                 <Border Grid.Row="4" Grid.Column="1" x:Name="UpdateDot" Classes="dot" />
-                <TextBlock Grid.Row="4" Grid.Column="2" x:Name="UpdateCount" Classes="readout" />
+                <TextBlock Grid.Row="4" Grid.Column="2" x:Name="UpdateCount" Classes="readout small" />
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Classes="code" Text="OnComplete" />
+                <TextBlock Grid.Row="5" Grid.Column="0" Classes="mono" Text="OnComplete" />
                 <Border Grid.Row="5" Grid.Column="1" x:Name="CompleteDot" Classes="dot" />
-                <TextBlock Grid.Row="5" Grid.Column="2" x:Name="CompleteCount" Classes="readout" />
+                <TextBlock Grid.Row="5" Grid.Column="2" x:Name="CompleteCount" Classes="readout small" />
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Classes="code" Text="OnPause" />
+                <TextBlock Grid.Row="6" Grid.Column="0" Classes="mono" Text="OnPause" />
                 <Border Grid.Row="6" Grid.Column="1" x:Name="PauseDot" Classes="dot" />
-                <TextBlock Grid.Row="6" Grid.Column="2" x:Name="PauseCount" Classes="readout" />
+                <TextBlock Grid.Row="6" Grid.Column="2" x:Name="PauseCount" Classes="readout small" />
             </Grid>
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</showcase:ShowcasePage>

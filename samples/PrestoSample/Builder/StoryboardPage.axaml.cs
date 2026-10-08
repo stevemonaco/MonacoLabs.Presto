@@ -34,10 +34,11 @@ public partial class StoryboardPage : ShowcasePage
         var playing = Animation is { Paused: false };
         Animation?.Revert();
 
+        #region snippet StoryboardHop
         var playbackEase = (string)((ComboBoxItem)EaseBox.SelectedItem!).Content!;
         var fps = double.Parse((string)((ComboBoxItem)FpsBox.SelectedItem!).Content!, CultureInfo.InvariantCulture);
         var rate = Math.Round(RateSlider.Value, 2);
-        (Animation, var code) = Snippet.Of(Hopper.Animate(Presto.Build()
+        Animation = Hopper.Animate(Presto.Build()
             .Keyframes(k => k
                 .At(0, f => f.X(0).Y(0).Rotate(0))
                 .At(30, f => f.X(150).Y(-90).Rotate(120))
@@ -50,10 +51,10 @@ public partial class StoryboardPage : ShowcasePage
             .FrameRate(fps)
             .PlaybackRate(rate)
             .Loop()
-            .Autoplay(false)
-            .OnUpdate(_ => ShowProgress())
-            .OnLoop(_ => LoopsText.Text = (++Loops).ToString(CultureInfo.InvariantCulture))));
-        CodeText.Text = $"// playbackEase = \"{playbackEase}\", fps = {fps}, rate = {rate.ToString(CultureInfo.InvariantCulture)}\n{code};";
+            .Autoplay(false));
+        #endregion
+        Animation.OnUpdate = _ => ShowProgress();
+        Animation.OnLoop = _ => LoopsText.Text = (++Loops).ToString(CultureInfo.InvariantCulture);
 
         Animation.Seek(time);
         if (playing) Animation.Play();

@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -476,6 +477,133 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
         Assert.Empty(Presence.Seen(list));
     }
 
+    [AvaloniaTheory]
+    [InlineData(300)]
+    [InlineData(1000)]
+    public void RowsInsertedAboveAScrolledListRevealInTheWheelNotchThatBringsThemIntoView(double offset)
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 200).Select(i => $"row{i}"));
+        var rows = new Dictionary<string, Border>();
+        var list = VirtualizedList(items, rows, reveal: FadeIn, height: item => item.StartsWith("added") ? 40 : int.Parse(item[3..]) % 3 == 0 ? 90 : 30);
+        Presence.SetScrollAnchor(list, true);
+        var window = (Window)TopLevel.GetTopLevel(Show(list))!;
+        list.Scroll!.Offset = new Vector(0, offset);
+        Tick();
+        Frames.Advance(300, 16);
+        var added = new List<string>();
+        void Insert()
+        {
+            added.Add($"added{added.Count}");
+            items.Insert(0, added[^1]);
+        }
+        for (var i = 0; i < 3; i++)
+        {
+            Insert();
+            Tick();
+        }
+
+        var revealed = new Dictionary<string, bool>();
+        for (var notch = 1; list.Scroll.Offset.Y > 0 && notch < 200; notch++)
+        {
+            window.MouseWheel(new Point(20, 50), new Vector(0, 1));
+            // A live insert landing in the same frame as the notch, as the Activity feed's timer does.
+            if (notch % 4 == 0 && added.Count < 8) Insert();
+            Tick();
+            foreach (var item in added.Where(item => !revealed.ContainsKey(item) && rows.TryGetValue(item, out var row) && row.IsAttachedToVisualTree() && row.Opacity < 1))
+            {
+                revealed[item] = InView(list, rows[item]);
+            }
+            Frames.Advance(300, 16);
+        }
+
+        Assert.All(added, item => Assert.True(revealed.GetValueOrDefault(item), item));
+    }
+
+    [AvaloniaFact]
+    public void ARowRealizedOutOfViewRevealsOnceWhenScrolledIntoView()
+    {
+        var rows = new Dictionary<string, Border>();
+        var list = ListHoldingRows(rows);
+        var held = ItemChanges.For(list).Held.ToList();
+        Assert.All(held, row => Assert.False(InView(list, row)));
+        Assert.All(held, row => Assert.Equal(1, row.Opacity));
+
+        var revealed = new HashSet<Control>();
+        for (var notch = 0; notch < 20; notch++)
+        {
+            Wheel(list, -1);
+            foreach (var row in held.Where(row => row.IsAttachedToVisualTree() && InView(list, row)))
+            {
+                Assert.Equal(revealed.Add(row) ? 0 : 1, row.Opacity);
+            }
+            Frames.Advance(300, 16);
+        }
+
+        Assert.NotEmpty(revealed);
+        Assert.DoesNotContain(ItemChanges.For(list).Held, revealed.Contains);
+    }
+
+    [AvaloniaFact]
+    public void AJumpOntoHeldRowsSnapsThem()
+    {
+        var rows = new Dictionary<string, Border>();
+        var list = ListHoldingRows(rows);
+        var row = ItemChanges.For(list).Held[^1];
+        var distance = TopIn(list, row) - list.Scroll!.Viewport.Height / 2;
+        Assert.True(distance > list.Scroll.Viewport.Height);
+
+        list.Scroll.Offset += new Vector(0, distance);
+        Tick();
+
+        Assert.True(row.IsAttachedToVisualTree() && InView(list, row));
+        Assert.Equal(1, row.Opacity);
+        Assert.Contains(row.DataContext!, Presence.Seen(list));
+        Assert.Empty(ItemChanges.For(list).Held);
+    }
+
+    [AvaloniaFact]
+    public void AHeldRowThatLeavesIsForgotten()
+    {
+        var rows = new Dictionary<string, Border>();
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}"));
+        var list = ListHoldingRows(rows, items);
+        var held = ItemChanges.For(list).Held.Select(row => (string)row.DataContext!).ToList();
+
+        foreach (var item in held) items.Remove(item);
+        Tick();
+        Assert.DoesNotContain(ItemChanges.For(list).Held, row => held.Contains((string)row.DataContext!));
+        Assert.DoesNotContain(Presence.Seen(list), item => held.Contains((string)item));
+
+        list.Scroll!.Offset = default;
+        Tick();
+        Assert.Empty(ItemChanges.For(list).Held);
+        Assert.All(Presence.Seen(list), item => Assert.Contains((string)item, items));
+    }
+
+    private ListBox ListHoldingRows(Dictionary<string, Border> rows, ObservableCollection<string>? items = null)
+    {
+        var list = VirtualizedList(items ?? new ObservableCollection<string>(Enumerable.Range(0, 100).Select(i => $"row{i}")), rows, reveal: FadeIn);
+        list.ItemsPanel = new FuncTemplate<Panel?>(() => new VirtualizingStackPanel { CacheLength = 2 });
+        Show(list);
+        list.Scroll!.Offset = new Vector(0, 1000);
+        Tick();
+        Frames.Advance(300, 16);
+        for (var notch = 0; notch < 20 && ItemChanges.For(list).Held.Count == 0; notch++) Wheel(list, -1);
+        Assert.NotEmpty(ItemChanges.For(list).Held);
+        return list;
+    }
+
+    private static void Wheel(ListBox list, double notches)
+    {
+        ((Window)TopLevel.GetTopLevel(list)!).MouseWheel(new Point(20, 50), new Vector(0, notches));
+        Tick();
+    }
+
+    private static bool InView(ListBox list, Control row) =>
+        TopIn(list, row) is var top && top + Presence.ItemContainerOf(row.GetVisualParent())!.Bounds.Height > 0 && top < list.Scroll!.Viewport.Height;
+
+    private static double TopIn(ListBox list, Control row) =>
+        Presence.ItemContainerOf(row.GetVisualParent())!.TranslatePoint(default, (Visual)list.Scroll!)!.Value.Y;
     private static List<Border> ScrollTo(ListBox list, Dictionary<string, Border> rows, double offset)
     {
         var shown = Realized(rows);
@@ -492,7 +620,7 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
     private static List<Border> Realized(Dictionary<string, Border> rows) =>
         rows.Values.Where(row => row.IsAttachedToVisualTree() && row.DataContext is string).ToList();
 
-    private static ListBox VirtualizedList(ObservableCollection<string> items, Dictionary<string, Border> rows, bool viaArrive = false, AnimationBuilder? reveal = null, bool revealOnce = true) => new()
+    private static ListBox VirtualizedList(ObservableCollection<string> items, Dictionary<string, Border> rows, bool viaArrive = false, AnimationBuilder? reveal = null, bool revealOnce = true, Func<string, double>? height = null) => new()
     {
         Height = 100,
         ItemsSource = items,
@@ -501,6 +629,7 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
             var row = reveal is not null ? Arriving(reveal: reveal) : viaArrive ? Arriving(arrive: FadeIn, exit: FadeOut) : Arriving(initial: FadeIn, enter: FadeIn, exit: FadeOut);
             Presence.SetRevealOnce(row, revealOnce);
             row.Background = Brushes.Red;
+            if (item is not null && height is not null) row.Height = height(item);
             if (item is not null) rows[item] = row;
             return row;
         }),

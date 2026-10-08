@@ -1,25 +1,26 @@
-using System;
 using System.Globalization;
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-public partial class ControlsPage : UserControl
+public partial class ControlsPage : ShowcasePage
 {
+    private readonly SliderSync _scrub;
     private Animation? _animation;
-    private bool _syncingSlider;
     private int _clicks;
 
-    public ControlsPage() => InitializeComponent();
-
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    public ControlsPage()
     {
-        base.OnAttachedToVisualTree(e);
+        InitializeComponent();
+        _scrub = new SliderSync(ScrubSlider, () => _animation, UpdateReadouts);
+    }
+
+    protected override void OnAttached()
+    {
         _animation = ClickButton.Animate(new()
         {
             ["X"] = 300,
@@ -37,13 +38,6 @@ public partial class ControlsPage : UserControl
             OnComplete = _ => UpdateReadouts(),
         });
         UpdateReadouts();
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _animation?.Revert();
-        _animation = null;
     }
 
     private void Play(object? sender, RoutedEventArgs e) => Run(static a => a.Play());
@@ -65,12 +59,6 @@ public partial class ControlsPage : UserControl
     private void Revert(object? sender, RoutedEventArgs e) => Run(static a => a.Revert());
 
     private void Reset(object? sender, RoutedEventArgs e) => Run(static a => a.Reset());
-
-    private void Scrub(object? sender, RangeBaseValueChangedEventArgs e)
-    {
-        if (_syncingSlider) return;
-        Run(a => a.Progress = e.NewValue);
-    }
 
     private void StretchChanged(object? sender, RangeBaseValueChangedEventArgs e) => Run(a => a.Stretch(e.NewValue));
 
@@ -96,9 +84,6 @@ public partial class ControlsPage : UserControl
              Completed         {animation.Completed,8}
              Paused            {animation.Paused,8}
              """);
-
-        _syncingSlider = true;
-        ScrubSlider.Value = animation.Progress;
-        _syncingSlider = false;
+        _scrub.Show(animation);
     }
 }

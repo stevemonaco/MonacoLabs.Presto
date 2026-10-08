@@ -5,13 +5,14 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Threading;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>An Avalonia page transition that plays <see cref="Enter"/> on the incoming host and <see cref="Exit"/> on the outgoing one.</summary>
 /// <remarks>
 /// It holds builders, not animations, so one instance can serve several hosts and every transition reads
-/// <see cref="Recipes.Tokens"/>, reduced motion and function values afresh. A cancelled transition leaves both hosts where
+/// <see cref="Recipes.Tokens"/>, reduced motion and function values afresh. A canceled transition leaves both hosts where
 /// they stand for the next one to take over; a host no transition claims by the next frame is reverted.
 /// </remarks>
 public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransition
@@ -33,13 +34,13 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     /// <summary>How the two hosts stack while the transition runs.</summary>
     public PageStacking Stacking { get; set; } = PageStacking.IncomingAboveForward;
 
-    /// <summary>True plays on the render thread, false on the UI thread, and null on the render thread whenever every property has a composition counterpart.</summary>
-    public bool? UseCompositor { get; set; }
+    /// <summary>The thread both hosts play on; the default takes the render thread whenever both builders fit it. Seeks (<see cref="Update"/>) always run on the UI thread.</summary>
+    public AnimationThread Thread { get; set; } = AnimationThread.PreferCompositor;
 
     private (Visual? From, Visual? To, bool Forward, HostRun? Incoming, HostRun? Outgoing)? _progress;
 
     /// <inheritdoc/>
-    /// <exception cref="NotSupportedException"><see cref="UseCompositor"/> is true and a builder in play sets something the compositor has no counterpart for.</exception>
+    /// <exception cref="NotSupportedException"><see cref="Thread"/> is <see cref="AnimationThread.Compositor"/> and a builder in play sets something the compositor has no counterpart for.</exception>
     public Task Start(Visual? from, Visual? to, bool forward, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested) return Task.CompletedTask;
@@ -73,9 +74,15 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     private (HostRun? Incoming, HostRun? Outgoing) Begin(Visual? from, Visual? to, bool forward, bool seekable)
     {
         PrestoAvalonia.EnsureInitialized();
+        using var origin = PrestoDiagnostics.Origin("PageTransition");
         var enter = to == null ? null : forward ? Enter?.ToParams() : BackEnter?.ToParams() ?? Reversed(Exit);
         var exit = from == null ? null : forward ? Exit?.ToParams() : BackExit?.ToParams() ?? Reversed(Enter);
-        var compositor = !seekable && (UseCompositor ?? ((enter == null || PrestoAvalonia.FitsCompositor(enter)) && (exit == null || PrestoAvalonia.FitsCompositor(exit))));
+        var compositor = !seekable && Thread switch
+        {
+            AnimationThread.UIThread => false,
+            AnimationThread.Compositor => true,
+            _ => (enter == null || PrestoAvalonia.CanAnimateOnCompositor(enter, out _)) && (exit == null || PrestoAvalonia.CanAnimateOnCompositor(exit, out _)),
+        };
         bool? incomingAbove = Stacking switch
         {
             PageStacking.IncomingAboveForward => forward,
@@ -117,6 +124,7 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     {
         private readonly Visual _host;
         private readonly Animation? _animation;
+        private readonly Animation? _stood;
         private readonly CompositorAnimation? _compositorAnimation;
         private readonly IDisposable? _zIndex;
         private readonly TaskCompletionSource _done = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -125,11 +133,13 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
         public HostRun(Visual host, AnimationParams? parameters, bool compositor, bool seekable, int? zIndex)
         {
             _host = host;
+            HostRun? otherThread = null;
             if (s_hosts.TryGetValue(host, out var previous))
             {
                 previous.Stop();
                 // A seek measures from the host's base values, so it cannot start where a running transition stands.
                 if (seekable) previous.Revert();
+                else if (parameters != null && (compositor ? previous._animation != null : previous._compositorAnimation != null)) otherThread = previous;
                 else _previous = previous;
             }
             s_hosts.AddOrUpdate(host, this);
@@ -142,11 +152,31 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
             else if (compositor)
             {
                 _compositorAnimation = PrestoAvalonia.RunOnCompositor(host, parameters);
+                // Reverted once the compositor has seeded from it, so both land in one commit and the offset is never drawn twice.
+                otherThread?.Revert();
                 _ = _compositorAnimation.Then(_ => _done.TrySetResult());
             }
             else
             {
-                _animation = Presto.Animate(host, seekable ? parameters with { Autoplay = false } : parameters);
+                // The UI thread reads its start values from the host, so the host has to stand where the compositor left it.
+                if (otherThread != null)
+                {
+                    var mirror = otherThread._compositorAnimation!.ScratchOf(host)!;
+                    var stood = new AnimationParams
+                    {
+                        ["X"] = mirror.X,
+                        ["Y"] = mirror.Y,
+                        ["Rotate"] = mirror.Rotate,
+                        ["Scale"] = mirror.Scale,
+                        ["ScaleX"] = mirror.ScaleX,
+                        ["ScaleY"] = mirror.ScaleY,
+                        ["Opacity"] = mirror.Opacity,
+                    };
+                    // Read before the revert, which winds the mirror back to its start.
+                    otherThread.Revert();
+                    _stood = Presto.Set(host, stood);
+                }
+                _animation = Presto.Animate(host, parameters with { Autoplay = seekable ? false : parameters.Autoplay, HostLifetime = WhenDetached.Continue });
                 _ = _animation.Then(_ => _done.TrySetResult());
             }
         }
@@ -184,6 +214,7 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
         private void Revert()
         {
             _animation?.Revert();
+            _stood?.Revert();
             _compositorAnimation?.Revert();
             _zIndex?.Dispose();
             _previous?.Revert();

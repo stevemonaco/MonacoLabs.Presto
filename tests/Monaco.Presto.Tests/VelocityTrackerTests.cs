@@ -69,12 +69,14 @@ public sealed class VelocityTrackerTests
         Assert.Equal(1, tracker.Velocity, 9);
     }
 
-    [Fact]
-    public void ReproducesTheDraggableSampler()
+    [Theory]
+    [InlineData(1.3, .2)]
+    [InlineData(-1.3, -3)]
+    public void ReproducesTheDraggableSampler(double multiplier, double min)
     {
-        const double multiplier = 1.3, min = .2, max = 3;
+        var max = 3.0;
         var tracker = new VelocityTracker();
-        var replica = new OldDraggableSampler(multiplier, min, max, start: 0);
+        var replica = new UpstreamDraggableSampler(start: 0);
         tracker.AddDisplacement(0, 0);
         double[] times = [5, 17, 30, 34, 60, 61, 90, 130, 131, 150, 300, 317, 318, 340];
         double[] dxs = [3, 12, -4, 8, 90, 1, 0, .5, 7, -20, 2, 0, 6, 1];
@@ -83,16 +85,18 @@ public sealed class VelocityTrackerTests
 
         for (var i = 0; i < times.Length; i++)
         {
+            // Earlier samples keep the limits they were clamped to.
+            if (i == 6) max = .5;
             if (i == 10)
             {
                 replica.Clear();
                 tracker.Reset();
                 velocity = 0;
             }
-            if (tracker.AddDisplacement(Math.Sqrt(dxs[i] * dxs[i] + dys[i] * dys[i]), times[i]))
-                velocity = Utils.Round(Utils.Clamp(tracker.Velocity * multiplier, min, max), 5);
+            if (tracker.AddDisplacement(Math.Sqrt(dxs[i] * dxs[i] + dys[i] * dys[i]), times[i], multiplier, min, max))
+                velocity = tracker.Velocity;
 
-            Assert.Equal(replica.Compute(dxs[i], dys[i], times[i]), velocity);
+            Assert.Equal(replica.Compute(dxs[i], dys[i], times[i], multiplier, min, max), velocity);
         }
     }
 
@@ -109,15 +113,15 @@ public sealed class VelocityTrackerTests
         Assert.Equal(0, bytes);
     }
 
-    /// <summary>Draggable's sampler as it was before it moved onto <see cref="VelocityTracker"/>.</summary>
-    private sealed class OldDraggableSampler(double multiplier, double min, double max, double start)
+    /// <summary><c>computeVelocity</c> in draggable.js, line for line.</summary>
+    private sealed class UpstreamDraggableSampler(double start)
     {
         private readonly double[] _stack = new double[3];
         private double _time = start;
         private int _index;
         private double _velocity;
 
-        public double Compute(double dx, double dy, double time)
+        public double Compute(double dx, double dy, double time, double multiplier, double min, double max)
         {
             var elapsed = time - _time;
             if (elapsed < 17) return _velocity;

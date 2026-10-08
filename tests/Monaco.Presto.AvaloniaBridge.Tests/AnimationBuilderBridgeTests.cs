@@ -2,9 +2,11 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Controls;
 using Monaco.Presto.AvaloniaBridge.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -90,6 +92,51 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ImageFilterMethodsWriteTheIndexerKeysAndValues()
+    {
+        var expected = new AvaloniaAnimationParams
+        {
+            [PrestoImageBase.BrightnessProperty] = 1.5, [PrestoImageBase.ContrastProperty] = 2, [PrestoImageBase.SaturateProperty] = 0.5,
+            [PrestoImageBase.GrayscaleProperty] = 1, [PrestoImageBase.SepiaProperty] = 0.8, [PrestoImageBase.HueRotateProperty] = 180,
+            [PrestoImageBase.InvertProperty] = 1, [PrestoImageBase.TintProperty] = 0.5, [PrestoImageBase.TintColorProperty] = TweenValue.Of(Colors.Red),
+            [PrestoImageBase.DuotoneProperty] = 1, [PrestoImageBase.DuotoneShadowProperty] = TweenValue.Of(Colors.Black), [PrestoImageBase.DuotoneHighlightProperty] = TweenValue.Of(Colors.White),
+        };
+
+        var actual = Presto.Build()
+            .Brightness(1.5).Contrast(2).Saturate(0.5).Grayscale(1).Sepia(0.8).HueRotate(180).Invert(1).Tint(0.5).TintColor(Colors.Red)
+            .Duotone(1).DuotoneShadow(Colors.Black).DuotoneHighlight(Colors.White)
+            .ToParams();
+
+        Assert.Equal(expected.Properties.Keys, actual.Properties.Keys);
+        foreach (var key in expected.Properties.Keys) Assert.Equal(expected[key].Raw, actual[key].Raw);
+    }
+
+    [AvaloniaFact]
+    public void ImageFilterOverloadsWriteTheSameKey()
+    {
+        FunctionValue function = (_, i, _) => i;
+        var key = AvaloniaObjectTargetAdapter.Encode(PrestoImageBase.GrayscaleProperty);
+
+        Assert.Equal([key], Presto.Build().Grayscale(1).ToParams().Properties.Keys);
+        Assert.Equal([key], Presto.Build().Grayscale(from: 1, to: 0, duration: 100).ToParams().Properties.Keys);
+        Assert.Equal([key], Presto.Build().Grayscale(function).ToParams().Properties.Keys);
+        Assert.Equal([key], Presto.Build().Grayscale(k => k.To(1).To(0)).ToParams().Properties.Keys);
+    }
+
+    [AvaloniaFact]
+    public void AFilterMethodAnimatesEveryImageOnTheBase()
+    {
+        PrestoImageBase[] images = [new FilteredImage(), new SpriteSheet(), new ImageSequence()];
+
+        Presto.Build().Grayscale(1).Dissolve(1).DissolveScale(12).DissolveSoftness(0.3).Pixelate(8).Ripple(4).RippleScale(20)
+            .Duration(100).Animate(images);
+        Frames.Advance(200);
+
+        Assert.All(images, image => Assert.Equal((1, 1, 12, 0.3, 8, 4, 20),
+            (image.Grayscale, image.Dissolve, image.DissolveScale, image.DissolveSoftness, image.Pixelate, image.Ripple, image.RippleScale)));
+    }
+
+    [AvaloniaFact]
     public void TypedEffectValuesAreWrappedAsTheIndexerWouldWrapThem()
     {
         var parameters = Presto.Build()
@@ -114,8 +161,8 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
 
         Frames.Advance(50);
 
-        Assert.True(byName.Cancelled);
-        Assert.False(byHandle.Cancelled);
+        Assert.True(byName.Canceled);
+        Assert.False(byHandle.Canceled);
         Assert.Equal([AvaloniaObjectTargetAdapter.Encode(Visual.OpacityProperty)],
             Presto.Build().Property(Visual.OpacityProperty, to: 1.0, duration: 50).ToParams().Properties.Keys);
     }
@@ -167,7 +214,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ABuilderRunsOnTheCompositorAsTheEquivalentParamsDo()
+    public void ABuilderRunsOnTheCompositorAsTheEquivalentParamsDo()
     {
         var byParams = ShowBar();
         var byBuilder = ShowBar();
@@ -176,7 +223,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         var actual = byBuilder.AnimateOnCompositor(Presto.Build().X(20).Y(30).Opacity(1).Duration(150).Ease("linear").Loop(1));
 
         var end = new Rect(50, 70, 40, 20);
-        Assert.True(await Pump(() => Extent(byParams, Colors.Red) == end && Extent(byBuilder, Colors.Red) == end), "the translations never arrived");
+        Assert.True(Pump(() => Extent(byParams, Colors.Red) == end && Extent(byBuilder, Colors.Red) == end), "the translations never arrived");
 
         Frames.Advance(200);
         Assert.False(actual.Completed);
@@ -221,7 +268,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task ALambdaRunsOnTheCompositorAsItsBuilderDoes()
+    public void ALambdaRunsOnTheCompositorAsItsBuilderDoes()
     {
         var byBuilder = ShowBar();
         var byLambda = ShowBar();
@@ -230,7 +277,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         var actual = PrestoAvalonia.AnimateOnCompositor(byLambda, b => b.X(20).Y(30).Duration(150).Ease("linear"));
 
         var end = new Rect(50, 70, 40, 20);
-        Assert.True(await Pump(() => Extent(byBuilder, Colors.Red) == end && Extent(byLambda, Colors.Red) == end), "the translations never arrived");
+        Assert.True(Pump(() => Extent(byBuilder, Colors.Red) == end && Extent(byLambda, Colors.Red) == end), "the translations never arrived");
         Frames.Advance(200);
         Assert.True(expected.Completed);
         Assert.True(actual.Completed);
@@ -283,4 +330,22 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
 
     private static object MotionOf(LayoutTransition transition) =>
         typeof(LayoutTransition).GetField("_motion", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(transition)!;
+
+    [AvaloniaFact]
+    public void ATypedWhenReducedReplacesTheProperties()
+    {
+        var border = new Border { Width = 10 };
+        Presto.Defaults.ReducedMotion = true;
+
+        Presto.Animate(border, new AvaloniaAnimationParams
+        {
+            [Layoutable.WidthProperty] = 100,
+            Duration = 400,
+            WhenReduced = new() { [Visual.OpacityProperty] = 0.5 },
+        });
+        Frames.Advance(1500);
+
+        Assert.Equal(10, border.Width);
+        Assert.Equal(0.5, border.Opacity);
+    }
 }

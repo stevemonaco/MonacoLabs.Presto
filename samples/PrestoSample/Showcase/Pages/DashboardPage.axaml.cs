@@ -30,7 +30,11 @@ public partial class DashboardPage : ShowcasePage
 
     private int _round;
 
-    public DashboardPage() => InitializeComponent();
+    public DashboardPage()
+    {
+        InitializeComponent();
+        HowCode.Code = $"{Snippets.DashboardPush}\n\n{Snippets.DashboardCounter}";
+    }
 
     /// <summary>The timer behind the live switch.</summary>
     public Timer? Feed { get; private set; }
@@ -156,65 +160,87 @@ public partial class DashboardPage : ShowcasePage
         return timeline
             .Add(_bars, BarsTo(1100), 0)
             .Add(_arcs, ArcsTo(1200), 0)
-            .Add(Spark, new AvaloniaAnimationParams { ["Draw"] = "0 1", Duration = 1400, Ease = Eases.InOutQuad }, 0);
+            .Add(Spark, new AvaloniaAnimationParams
+            {
+                ["Draw"] = "0 1",
+                Duration = 1400,
+                Ease = Eases.InOutQuad,
+                WhenReduced = new() { ["Draw"] = "0 1", Duration = 0 },
+            }, 0);
     }
 
+    #region snippet DashboardCounter
     private AvaloniaAnimationParams CounterTo(int index, double duration)
     {
         var metric = Datasets.Metrics[index];
+        var reading = new TweenParams
+        {
+            To = metric.Readings[_round % metric.Readings.Count],
+            TextModifier = value => Utils.RoundPad(value, metric.Decimals),
+        };
         return new AvaloniaAnimationParams
         {
-            ["Text"] = new TweenParams
-            {
-                To = metric.Readings[_round % metric.Readings.Count],
-                TextModifier = value => Utils.RoundPad(value, metric.Decimals),
-            },
+            ["Text"] = reading,
             Duration = duration,
             Ease = Eases.OutQuad,
+            WhenReduced = new() { ["Text"] = reading, Duration = 0 },
         };
     }
+    #endregion
 
     private AvaloniaAnimationParams BarsTo(double duration)
     {
         var values = Datasets.Bars[_round % Datasets.Bars.Count];
+        FunctionValue height = (_, i, _) => values[i] / 100 * BarHeight;
         return new AvaloniaAnimationParams
         {
-            ["Height"] = (FunctionValue)((_, i, _) => values[i] / 100 * BarHeight),
+            ["Height"] = height,
             Duration = duration,
             Ease = Eases.OutQuad,
             Delay = Presto.Stagger(26),
+            WhenReduced = new() { ["Height"] = height, Duration = 0, Delay = 0 },
         };
     }
 
     private AvaloniaAnimationParams ArcsTo(double duration)
     {
         var spans = Spans(Datasets.Slices[_round % Datasets.Slices.Count]);
+        FunctionValue slice = (_, i, _) => Slice(spans, i);
         return new AvaloniaAnimationParams
         {
-            ["Draw"] = (FunctionValue)((_, i, _) => Slice(spans, i)),
+            ["Draw"] = slice,
             Duration = duration,
             Ease = Eases.OutQuad,
             Delay = Presto.Stagger(70),
+            WhenReduced = new() { ["Draw"] = slice, Duration = 0, Delay = 0 },
         };
     }
 
-    private AvaloniaAnimationParams SparkTo() => new()
+    private AvaloniaAnimationParams SparkTo()
     {
-        ["Data"] = PrestoAvalonia.MorphTo(SparkGeometry(_round % Datasets.Sparklines.Count)),
-        Duration = PushDuration,
-        Ease = Eases.OutQuad,
-    };
+        var morph = PrestoAvalonia.MorphTo(SparkGeometry(_round % Datasets.Sparklines.Count));
+        return new()
+        {
+            ["Data"] = morph,
+            Duration = PushDuration,
+            Ease = Eases.OutQuad,
+            WhenReduced = new() { ["Data"] = morph, Duration = 0 },
+        };
+    }
 
     private void Push()
     {
         _round++;
+        #region snippet DashboardPush
         Scope.Execute(_ =>
         {
+            // One animation per counter: a TextModifier belongs to the tween, not the target (SAMPLES-PLAN §8).
             for (var i = 0; i < _counters.Length; i++) Presto.Animate(_counters[i], CounterTo(i, PushDuration));
             Presto.Animate(_bars, BarsTo(PushDuration));
             Presto.Animate(_arcs, ArcsTo(PushDuration));
             Presto.Animate(Spark, SparkTo());
         });
+        #endregion
         if (Feed is { } feed)
         {
             FeedText.Text = string.Create(CultureInfo.InvariantCulture, $"round {_round} · feed {feed.CurrentTime:0} ms");

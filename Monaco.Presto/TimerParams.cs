@@ -3,6 +3,7 @@ namespace Monaco.Presto;
 /// <summary>
 /// Parameters for <see cref="Presto.CreateTimer"/>. <c>null</c> falls back to <see cref="Presto.Defaults"/>; a <c>null</c> <see cref="Duration"/> makes the timer infinite.
 /// Every duration, delay and time here — and everywhere else in the API — is in milliseconds unless <see cref="Engine.TimeUnit"/> is <see cref="TimeUnit.Seconds"/>.
+/// A timer animates nothing, so it has no reduced-motion form.
 /// </summary>
 public record TimerParams
 {
@@ -38,7 +39,12 @@ public record TimerParams
     public double? PlaybackRate { get; init; }
 
     /// <summary>Order this timer is ticked in among the engine's children each frame, lowest first (upstream <c>priority</c>).</summary>
-    public int Priority { get; init; } = 1;
+    public int Priority { get; init; } = DefaultPriority;
+
+    internal const int DefaultPriority = 1;
+
+    /// <summary>A host's lifetime choice for the timer, opaque to the core; the Avalonia bridge keeps its <c>WhenDetached</c> here.</summary>
+    internal object? HostLifetime { get; init; }
 
     /// <inheritdoc cref="Timer.OnBegin"/>
     public Action<Timer>? OnBegin { get; init; }

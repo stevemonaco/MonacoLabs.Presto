@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -24,7 +25,12 @@ public partial class BoardPage : ShowcasePage
     private TextBlock[] _headers = [];
     private Border[] _zones = [];
 
-    public BoardPage() => InitializeComponent();
+    public BoardPage()
+    {
+        InitializeComponent();
+        HowCode.Code = $"{Snippets.BoardDraggable}\n\n{Snippets.BoardLand}";
+        Priorities.ItemsSource = new ObservableCollection<string>(Datasets.Board[1].Take(5).Select(card => card.Title));
+    }
 
     private int BinZone => Datasets.Lanes.Count;
 
@@ -67,6 +73,7 @@ public partial class BoardPage : ShowcasePage
     {
         var card = CardView.Build(record, eyebrow: false);
         Scope.Execute(_ => card.AnimateLayout(ReflowDuration, Eases.OutQuint));
+        #region snippet BoardDraggable
         PrestoAvalonia.CreateDraggable(card, new DraggableParams
         {
             Container = Board,
@@ -78,6 +85,7 @@ public partial class BoardPage : ShowcasePage
             ReleaseStiffness = 700,
             ReleaseDamping = 50,
             MaxVelocity = 1.5,
+            CancelOnEscape = true,
             ScrollSpeed = 2,
             ScrollThreshold = 28,
             OnDrag = _ => Lift(card),
@@ -86,6 +94,7 @@ public partial class BoardPage : ShowcasePage
             OnRelease = drag => VelocityText.Text = Utils.RoundPad(drag.Velocity, 2),
             OnSettle = drag => Land(card, drag),
         });
+        #endregion
         return card;
     }
 
@@ -141,6 +150,7 @@ public partial class BoardPage : ShowcasePage
             return;
         }
 
+        #region snippet BoardLand
         // Measured where the drag left the card drawn, before the reparent and Reset() move it, so it settles from the release.
         Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(
             card, card, ReflowDuration, Eases.OutQuint, LayoutAnimateMode.Position, once: false));
@@ -148,6 +158,7 @@ public partial class BoardPage : ShowcasePage
         _canvases[target].Children.Add(card);
         _lanes[target].Insert(slot, card);
         drag.Reset();
+        #endregion
         Layout(source);
         Layout(target);
     }
@@ -173,12 +184,12 @@ public partial class BoardPage : ShowcasePage
 
     private int Zone(Border card)
     {
-        var centre = card.TranslatePoint(new Point(card.Bounds.Width / 2, 0), Board)?.X ?? 0;
+        var center = card.TranslatePoint(new Point(card.Bounds.Width / 2, 0), Board)?.X ?? 0;
         var nearest = 0;
         var gap = double.MaxValue;
         for (var i = 0; i < _zones.Length; i++)
         {
-            var distance = Math.Abs(_zones[i].Bounds.Center.X - centre);
+            var distance = Math.Abs(_zones[i].Bounds.Center.X - center);
             if (distance >= gap) continue;
             gap = distance;
             nearest = i;

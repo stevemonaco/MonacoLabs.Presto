@@ -10,7 +10,7 @@ using PrestoSample.Showcase.Pages;
 namespace PrestoSample.Tests;
 
 /// <summary>
-/// SAMPLES-PLAN §4.8: what each composition leaves alive behind a burst, what cancelling the newest retarget reveals,
+/// SAMPLES-PLAN §4.8: what each composition leaves alive behind a burst, what canceling the newest retarget reveals,
 /// and that a click in one pane is mirrored into the other two. The clicks are here because the DevTools MCP drives a
 /// Button through its automation peer and has no pointer input at all.
 /// </summary>
@@ -44,7 +44,7 @@ public sealed class InterruptionPageTests
     }
 
     [AvaloniaFact]
-    public void CancellingTheNewestYanksNoneBackTowardTheOlderTargetsAndStopsReplaceWhereItIs()
+    public void CancelingTheNewestYanksNoneBackTowardTheOlderTargetsAndStopsReplaceWhereItIs()
     {
         var page = new InterruptionPage();
         var window = SceneHarness.Show(page, Width, Height);
@@ -67,7 +67,7 @@ public sealed class InterruptionPageTests
         Assert.True(noneAfter > noneBefore + 4, $"none went from {noneBefore:0.#}px to {noneAfter:0.#}px off the last target");
         for (var frame = 0; frame < 10; frame++)
         {
-            Assert.True(Point.Distance(page.Drawn(Composition.Replace), replaceBefore) < 1, "replace kept moving after its only animation was cancelled");
+            Assert.True(Point.Distance(page.Drawn(Composition.Replace), replaceBefore) < 1, "replace kept moving after its only animation was canceled");
             TestFrames.Tick();
         }
 
@@ -141,7 +141,7 @@ public sealed class InterruptionPageTests
         page.GetControl<ToggleSwitch>("HoverMode").IsChecked = restart;
         var tile = page.GetControl<UniformGrid>("Tiles").Children[1];
 
-        window.MouseMove(SceneHarness.Centre(tile, window));
+        window.MouseMove(SceneHarness.Center(tile, window));
         TestFrames.Tick(HoverFrames);
         var before = (double)Presto.Get(tile, "Scale")!;
         window.MouseMove(new Point(Width - 1, Height - 1));

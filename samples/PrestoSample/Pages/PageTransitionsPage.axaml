@@ -2,7 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+             xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+             xmlns:showcase="clr-namespace:PrestoSample.Showcase"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1100"
              x:Class="PrestoSample.Pages.PageTransitionsPage">
     <ScrollViewer>
@@ -19,6 +20,7 @@
                             <ComboBoxItem Content="PageSlide" />
                             <ComboBoxItem Content="PagePush" />
                             <ComboBoxItem Content="Custom pair" />
+                            <ComboBoxItem Content="Blur slide (UI thread)" />
                         </ComboBox>
                         <ComboBox x:Name="OptionPicker" HorizontalAlignment="Stretch" SelectionChanged="OptionChanged" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -26,15 +28,14 @@
                             <Button Classes="accent" Content="Next" Click="NextClicked" />
                         </StackPanel>
                         <Button Content="Next, freeze UI thread 2 s" Click="FreezeClicked" />
+                        <Button Click="CrossThreadClicked">
+                            <TextBlock Text="Next, again mid-flight on the other thread" TextWrapping="Wrap" />
+                        </Button>
                         <ProgressBar IsIndeterminate="True" />
                     </StackPanel>
                 </Grid>
             </Border>
-            <Border Classes="codeblock">
-                <ScrollViewer>
-                    <SelectableTextBlock x:Name="HostCode" Classes="code" />
-                </ScrollViewer>
-            </Border>
+            <showcase:CodeTabs x:Name="HostCode" />
 
             <TextBlock Classes="caption" Text="A Carousel with IsSwipeEnabled under {presto:PageSlide Edge=Right}: drag a page sideways to scrub the transition" />
             <Border Classes="stage" MinHeight="0">

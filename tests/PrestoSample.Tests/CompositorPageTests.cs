@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using PrestoSample.Pages;
 
@@ -26,6 +27,21 @@ public sealed class CompositorPageTests
     }
 
     [AvaloniaFact]
+    public void EachThreadModeLaneReportsTheThreadItGot()
+    {
+        var page = new CompositorPage();
+        SceneHarness.Show(page, 900, 1100);
+        TestFrames.Tick(30);
+
+        Assert.Equal("X + Blur · Blur doesn't fit", page.GetControl<TextBlock>("UnfitLabel").Text);
+        Assert.Equal<string?>(["UI thread", "render thread", "render thread", "UI thread", "UI thread"], [.. page.ThreadReadouts.Where((_, i) => i != 4)]);
+        Assert.StartsWith("'Blur' has no composition property.", page.ThreadReadouts[4]);
+        Border[] dots = [.. page.GetControl<Grid>("ThreadGrid").GetLogicalDescendants().OfType<Border>().Where(b => b.Classes.Contains("dot"))];
+        Assert.False(dots[5].RenderTransform!.Value.IsIdentity, "the fallback never moved on the UI thread");
+        Assert.True(dots[4].RenderTransform?.Value.IsIdentity ?? true, "the forced compositor lane moved although it threw");
+    }
+
+    [AvaloniaFact]
     public async Task AStaleHeartbeatShowsTheUIThreadFrozenAndAFreshOneClearsIt()
     {
         var canvas = new CompositorCanvas { Scene = new OrbitScene(), Width = OrbitScene.Extent, Height = OrbitScene.Extent };
@@ -37,6 +53,8 @@ public sealed class CompositorPageTests
         canvas.Post(new OrbitScene.Heartbeat(Stopwatch.GetTimestamp()));
         Assert.True(await SceneHarness.Pump(() => FrozenFor(canvas) == 0), "a fresh heartbeat did not clear the freeze");
 
+        // The heartbeat is a wall-clock timestamp, so only real time makes it stale; virtual frames take none.
+        await Task.Delay(300);
         Assert.True(await SceneHarness.Pump(() => FrozenFor(canvas) > 0), "the scene never noticed the heartbeat stop");
     }
 

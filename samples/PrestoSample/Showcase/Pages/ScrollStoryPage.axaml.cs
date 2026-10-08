@@ -9,8 +9,7 @@ namespace PrestoSample.Showcase.Pages;
 public partial class ScrollStoryPage : ShowcasePage
 {
     private const double ScrubDuration = 1000;
-    private const double FadeDuration = 120;
-    private const double RevealDuration = 640;
+    private const double PinDistance = 960;
     // Four 232px panels 14px apart: 370 wider than the 600px of stage they pan inside.
     private const double StripPan = 370;
 
@@ -25,9 +24,11 @@ public partial class ScrollStoryPage : ShowcasePage
     private readonly List<ScrollObserver> _observers = [];
     private readonly List<string> _crossings = [];
 
-    private Animatable? _vane;
-
-    public ScrollStoryPage() => InitializeComponent();
+    public ScrollStoryPage()
+    {
+        InitializeComponent();
+        HowCode.Code = $"{Snippets.ScrollStoryPin}\n\n{Snippets.ScrollStoryWatch}\n\n{Snippets.ScrollStoryRail}";
+    }
 
     /// <summary>The page's observers, each named by the Id its crossings are reported under.</summary>
     public IReadOnlyList<ScrollObserver> Observers => _observers;
@@ -39,16 +40,29 @@ public partial class ScrollStoryPage : ShowcasePage
     {
         BuildStrip();
 
-        Watch("hero", Hero, new ScrollObserverParams { Enter = "start start", Sync = 0.35 }).Link(Parallax());
-
-        Watch("pin", PinTrack, new ScrollObserverParams
+        Watch("hero", Hero, new ScrollObserverParams { Enter = "start start", Sync = 0.35 }).Link(HeroTitle.Animate(new()
         {
-            Enter = "start start",
-            Leave = "end end",
+            ["Opacity"] = TweenValue.FromTo(1, 0.15),
+            Duration = ScrubDuration,
+            Ease = Eases.None,
+            Autoplay = false,
+        }));
+
+        var scrub = Scrub();
+        #region snippet ScrollStoryPin
+        Watch("pin", PinStage, new ScrollObserverParams
+        {
+            Enter = "center center",
+            Leave = $"center center+={PinDistance}",
             Sync = true,
+            Pin = true,
+            Snap = ScrollSnap.Labels,
             OnEnter = observer => Crossed(observer, "enter"),
             OnLeave = observer => Crossed(observer, "leave"),
-        }).Link(Scrub());
+            OnUpdate = observer => PinLabel.Text =
+                scrub.Labels.MinBy(label => Math.Abs(label.Value - (observer.Progress * scrub.Duration))).Key,
+        }).Link(scrub);
+        #endregion
 
         Watch("quote", Quote, new ScrollObserverParams { Sync = Eases.InOutQuad }).Link(Quote.Animate(new()
         {
@@ -62,25 +76,28 @@ public partial class ScrollStoryPage : ShowcasePage
         Control[] chapters = [Chapter1, Chapter2, Chapter3];
         for (var i = 0; i < chapters.Length; i++)
         {
-            var chapter = chapters[i];
-            Watch($"chapter {i + 1}", chapter, new ScrollObserverParams
+            Watch($"chapter {i + 1}", chapters[i], new ScrollObserverParams
             {
                 Enter = "bottom-=120 top",
                 Leave = "top+=40 bottom",
                 OnEnter = observer => Crossed(observer, "enter"),
                 OnLeave = observer => Crossed(observer, "leave"),
-            }).Link(chapter.Animate(new()
-            {
-                ["Y"] = TweenValue.FromTo(52, 0),
-                ["Opacity"] = TweenValue.FromTo(0, 1),
-                Duration = RevealDuration,
-                Ease = Eases.OutQuint,
-                Autoplay = false,
-            }));
+            });
         }
 
-        Watch("rail", Article, new ScrollObserverParams { Enter = "start start", Leave = "end end", OnUpdate = ShowScroll });
-        _vane = Vane.CreateAnimatable(new() { ["Rotate"] = 260, ["ScaleY"] = 200, Ease = Eases.OutQuad });
+        #region snippet ScrollStoryRail
+        var progress = PrestoAvalonia.ScrollValue(Scroller, progress: true);
+        var velocity = PrestoAvalonia.ScrollValue(Scroller).VelocityOf();
+        var backward = false;
+        var direction = velocity.Map(v => (backward = v < 0 || (backward && v == 0)) ? 180 : 0);
+        Follow.SetScaleX(RailFill, progress);
+        Follow.SetRotate(Vane, direction.Spring(Springs.Gentle));
+        Follow.SetScaleY(Vane, velocity.Map(v => 1 + (Math.Min(Math.Abs(v), 4) * .5)).Spring(Springs.Stiff));
+        Action<MotionValue> show = _ => RailText.Text =
+            $"{Utils.RoundPad(progress.Value * 100, 0)}% · {Utils.RoundPad(Math.Abs(velocity.Value), 3)} px/ms · {(direction.Value > 0 ? "backward" : "forward")}";
+        progress.Changed += show;
+        velocity.Changed += show;
+        #endregion
     }
 
     private void BuildStrip()
@@ -103,47 +120,35 @@ public partial class ScrollStoryPage : ShowcasePage
         }
     }
 
-    private Timeline Parallax() => Presto.CreateTimeline(new TimelineParams
-        {
-            Autoplay = false,
-            Defaults = new DefaultsParams { Duration = ScrubDuration, Ease = Eases.None },
-        })
-        .Add(HeroSky, new() { ["Y"] = TweenValue.FromTo(0, 90), ["Scale"] = TweenValue.FromTo(1, 1.2) }, 0)
-        .Add(HeroRidge, new() { ["Y"] = TweenValue.FromTo(0, 44) }, 0)
-        .Add(HeroTitle, new() { ["Y"] = TweenValue.FromTo(0, -80), ["Opacity"] = TweenValue.FromTo(1, 0.15) }, 0);
+    private Timeline Scrub()
+    {
+        var timeline = Presto.CreateTimeline(new TimelineParams
+            {
+                Autoplay = false,
+                Defaults = new DefaultsParams { Duration = ScrubDuration, Ease = Eases.None },
+            })
+            .Add(PinStrip, new() { ["X"] = TweenValue.FromTo(0, -StripPan) }, 0)
+            .Add(PinNumber, new()
+            {
+                ["Text"] = new TweenParams { From = 0, To = 100, TextModifier = value => Utils.RoundPad(value, 0) },
+            }, 0);
+        for (var i = 0; i < Steps.Length; i++) timeline.Label($"step{i + 1}", i * ScrubDuration / (Steps.Length - 1));
+        return timeline;
+    }
 
-    private Timeline Scrub() => Presto.CreateTimeline(new TimelineParams
-        {
-            Autoplay = false,
-            Defaults = new DefaultsParams { Duration = ScrubDuration, Ease = Eases.None },
-        })
-        .Add(PinStrip, new() { ["X"] = TweenValue.FromTo(0, -StripPan) }, 0)
-        .Add(PinNumber, new()
-        {
-            ["Text"] = new TweenParams { From = 0, To = 100, TextModifier = value => Utils.RoundPad(value, 0) },
-        }, 0)
-        .Add(PinStage, new() { ["Opacity"] = TweenValue.FromTo(0, 1), Duration = FadeDuration }, 0)
-        .Add(PinStage, new() { ["Opacity"] = TweenValue.FromTo(1, 0), Duration = FadeDuration }, ScrubDuration - FadeDuration);
-
+    #region snippet ScrollStoryWatch
     private ScrollObserver Watch(string id, Control target, ScrollObserverParams parameters)
     {
         var observer = PrestoAvalonia.OnScroll(parameters with { Id = id, Target = target });
         _observers.Add(observer);
         return observer;
     }
+    #endregion
 
     private void Crossed(ScrollObserver observer, string kind)
     {
         _crossings.Add($"{observer.Id} {kind} {(observer.Backward ? "backward" : "forward")}");
         CrossingText.Text = _crossings[^1];
-    }
-
-    private void ShowScroll(ScrollObserver observer)
-    {
-        RailFill.Width = observer.Progress * RailTrack.Bounds.Width;
-        RailText.Text =
-            $"{Utils.RoundPad(observer.Progress * 100, 0)}% · {Utils.RoundPad(observer.Velocity, 3)} px/ms · {(observer.Backward ? "backward" : "forward")}";
-        _vane?.Set("Rotate", observer.Backward ? 180 : 0).Set("ScaleY", 1 + (Utils.Clamp(observer.Velocity, 0, 4) * 0.5));
     }
 
     private void Remeasure(object? sender, SizeChangedEventArgs e) => PrestoAvalonia.RefreshScroll(Scroller);

@@ -13,11 +13,9 @@
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
             <StackPanel Grid.Column="0" Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="MORPH LOOP" />
-                <TextBlock Classes="code" Margin="0"
-                           Text="[&quot;Data&quot;] = PrestoAvalonia.MorphTo(next, precision)" />
                 <Border Classes="stage">
                     <Canvas Width="240" Height="240">
                         <Path x:Name="MorphPath" Stretch="None" Fill="#334C8DFF" StrokeThickness="3"
@@ -27,7 +25,7 @@
                 <Border Classes="rail showcase">
                     <StackPanel Spacing="8">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Classes="code" Margin="0" Text="Ease" />
+                            <TextBlock Classes="mono" Margin="0" Text="Ease" />
                             <ComboBox x:Name="EaseBox" Width="180" SelectionChanged="Rebuild" />
                         </StackPanel>
                         <TextBlock x:Name="PrecisionText" Classes="caption" />
@@ -39,8 +37,6 @@
 
             <StackPanel Grid.Column="1" Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="SIGNATURE" />
-                <TextBlock Classes="code" Margin="0"
-                           Text="[&quot;Draw&quot;] = TweenValue.Keyframes(&quot;0 0&quot;, &quot;0 1&quot;, &quot;1 1&quot;)" />
                 <Border Classes="stage">
                     <Canvas Width="360" Height="135" HorizontalAlignment="Center">
                         <Path x:Name="Signature" Stretch="None" StrokeThickness="5"
@@ -51,8 +47,6 @@
                 </Border>
 
                 <TextBlock Classes="eyebrow showcase" Text="MOTION PATH" />
-                <TextBlock Classes="code" Margin="0"
-                           Text="[&quot;X&quot;] = (FunctionValue)((_, i, _) =&gt; trails[i].X)" />
                 <Border Classes="stage">
                     <Canvas x:Name="TrackStage" Width="360" Height="190" HorizontalAlignment="Center">
                         <Path x:Name="Track" Stretch="None" StrokeThickness="2" StrokeDashArray="3,3"
@@ -64,6 +58,8 @@
                     </Canvas>
                 </Border>
             </StackPanel>
+
+            <showcase:CodePanel Grid.Row="1" Grid.ColumnSpan="2" x:Name="HowCode" Header="How it's built" IsExpanded="False" />
         </Grid>
     </ScrollViewer>
 </showcase:ShowcasePage>

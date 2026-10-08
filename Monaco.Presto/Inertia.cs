@@ -12,7 +12,7 @@ public sealed record Inertia
     /// <summary>The start velocity, in units per engine-time unit.</summary>
     public double Velocity { get; init; }
 
-    /// <summary>Scales the distance travelled: the ideal target is <c>from + Power · Velocity · TimeConstant</c>.</summary>
+    /// <summary>Scales the distance traveled: the ideal target is <c>from + Power · Velocity · TimeConstant</c>.</summary>
     public double Power { get; init; } = 1;
 
     /// <summary>The decay's time constant in engine-time units; larger values coast further and longer.</summary>

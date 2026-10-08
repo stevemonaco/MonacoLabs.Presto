@@ -1,22 +1,21 @@
 using System.Globalization;
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Monaco.Presto;
+using PrestoSample.Showcase;
 using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Pages;
 
-public partial class TimerPage : UserControl
+public partial class TimerPage : ShowcasePage
 {
-    private Timer? _timer;
     private int _loops;
 
     public TimerPage() => InitializeComponent();
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    private Timer? _timer;
+
+    protected override void OnAttached()
     {
-        base.OnAttachedToVisualTree(e);
         _timer = Presto.CreateTimer(new()
         {
             Duration = 1000,
@@ -25,13 +24,6 @@ public partial class TimerPage : UserControl
             OnUpdate = timer => CurrentTimeText.Text = timer.CurrentTime.ToString("0", CultureInfo.InvariantCulture),
             OnLoop = _ => LoopsText.Text = (++_loops).ToString(CultureInfo.InvariantCulture),
         });
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _timer?.Cancel();
-        _timer = null;
     }
 
     private void Play(object? sender, RoutedEventArgs e) => _timer?.Play();

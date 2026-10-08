@@ -23,23 +23,23 @@ public sealed class CompositorSceneTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task TheSceneAdvancesWhileTheMainEngineNeverTicks()
+    public void TheSceneAdvancesWhileTheMainEngineNeverTicks()
     {
         var scene = new ProbeScene();
 
         ShowScene(scene);
 
-        Assert.True(await Pump(() => scene.Target.Opacity < 1), "the scene animation never advanced");
+        Assert.True(Pump(() => scene.Target.Opacity < 1), "the scene animation never advanced");
         var advanced = scene.Target.Opacity;
-        Assert.True(await Pump(() => scene.Target.Opacity < advanced), "the scene animation stopped advancing");
+        Assert.True(Pump(() => scene.Target.Opacity < advanced), "the scene animation stopped advancing");
     }
 
     [AvaloniaFact]
-    public async Task DetachRevertsTheSceneScopeAndEmptiesItsEngine()
+    public void DetachRevertsTheSceneScopeAndEmptiesItsEngine()
     {
         var scene = new ProbeScene();
         var (panel, canvas) = ShowScene(scene);
-        Assert.True(await Pump(() => scene.Target.Opacity < 1), "the scene animation never advanced");
+        Assert.True(Pump(() => scene.Target.Opacity < 1), "the scene animation never advanced");
 
         panel.Children.Remove(canvas);
         Tick();
@@ -49,36 +49,36 @@ public sealed class CompositorSceneTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public async Task TheFrameSourceStopsRenewingOnceTheEngineIsIdle()
+    public void TheFrameSourceStopsRenewingOnceTheEngineIsIdle()
     {
         var scene = new ProbeScene(80);
         ShowScene(scene);
         var attached = scene.Engine._lastTickTime;
 
-        Assert.True(await Pump(() => scene.Engine._head is null), "the scene animation never completed");
-        await Pump(static () => false, 3);
+        Assert.True(Pump(() => scene.Engine._head is null), "the scene animation never completed");
+        Pump(static () => false, 3);
         var idle = scene.Engine._lastTickTime;
-        await Pump(static () => false, 5);
+        Pump(static () => false, 5);
 
         Assert.True(idle > attached, "the scene engine never ticked");
         Assert.Equal(idle, scene.Engine._lastTickTime);
     }
 
     [AvaloniaFact]
-    public async Task TheSceneRendersAtTheCanvasSizeAndFollowsItWhenItChanges()
+    public void TheSceneRendersAtTheCanvasSizeAndFollowsItWhenItChanges()
     {
         var scene = new ProbeScene(4000);
         var (_, canvas) = ShowScene(scene);
 
-        Assert.True(await Pump(() => scene.Rendered == new Size(64, 64)), $"the scene rendered at {scene.Rendered}");
+        Assert.True(Pump(() => scene.Rendered == new Size(64, 64)), $"the scene rendered at {scene.Rendered}");
 
         canvas.Width = canvas.Height = 32;
 
-        Assert.True(await Pump(() => scene.Rendered == new Size(32, 32)), $"the scene kept rendering at {scene.Rendered}");
+        Assert.True(Pump(() => scene.Rendered == new Size(32, 32)), $"the scene kept rendering at {scene.Rendered}");
     }
 
     [AvaloniaFact]
-    public void TheBrushCacheNeverGrowsPastItsBoundAndHandsBackTheSameBrushForOneColour()
+    public void TheBrushCacheNeverGrowsPastItsBoundAndHandsBackTheSameBrushForOneColor()
     {
         var scene = new BrushScene();
 

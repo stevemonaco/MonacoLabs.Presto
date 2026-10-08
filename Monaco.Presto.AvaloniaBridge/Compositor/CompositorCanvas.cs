@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
+using Monaco.Presto.AvaloniaBridge.Platform;
 
 namespace Monaco.Presto.AvaloniaBridge.Compositor;
 
@@ -57,6 +58,8 @@ public sealed class CompositorCanvas : Control
         _visual = element.Compositor.CreateCustomVisual(new CompositorSceneHandler());
         ElementComposition.SetElementChildVisual(this, _visual);
         _visual.Size = new Vector(Bounds.Width, Bounds.Height);
+        HiddenSignal.Changed += SendHidden;
+        if (HiddenSignal.Hidden) SendHidden();
         if (Scene is { } scene) _visual.SendHandlerMessage(new CompositorSceneHandler.AttachMessage(scene));
         if (_queued is not { } queued) return;
         foreach (var message in queued) _visual.SendHandlerMessage(message);
@@ -67,10 +70,13 @@ public sealed class CompositorCanvas : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
+        HiddenSignal.Changed -= SendHidden;
         _visual?.SendHandlerMessage(CompositorSceneHandler.DetachMessage);
         ElementComposition.SetElementChildVisual(this, null);
         _visual = null;
     }
+
+    private void SendHidden() => _visual?.SendHandlerMessage(new CompositorSceneHandler.HiddenMessage(HiddenSignal.Hidden));
 
     /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

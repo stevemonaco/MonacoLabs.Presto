@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Media;
+using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.Targets;
 using Monaco.Presto.Values;
 
@@ -99,6 +100,7 @@ internal sealed class BrushCodec : IReconcilingValueCodec
         }
         brush = new SolidColorBrush(color, Math.Clamp(opacity, 0, 1));
         _brushes.AddOrUpdate(tween, brush);
+        TargetOwner.Record(brush, tween.Target);
         return brush;
     }
 
@@ -131,7 +133,11 @@ internal sealed class BrushCodec : IReconcilingValueCodec
                 brush = linear;
                 break;
         }
-        if (!ReferenceEquals(brush, existing)) _brushes.AddOrUpdate(tween, brush);
+        if (!ReferenceEquals(brush, existing))
+        {
+            _brushes.AddOrUpdate(tween, brush);
+            TargetOwner.Record(brush, tween.Target);
+        }
 
         brush.SpreadMethod = (GradientSpreadMethod)(int)tween._toNumbers[Spread];
         brush.Opacity = Math.Clamp(numbers[Opacity], 0, 1);
@@ -253,10 +259,17 @@ internal sealed class BrushCodec : IReconcilingValueCodec
             if (offset > numbers[next]) continue;
             var span = numbers[next] - numbers[at];
             var progress = span <= 0 ? 1 : (offset - numbers[at]) / span;
-            for (var channel = 0; channel < 4; channel++)
+            var (fromAlpha, toAlpha) = (numbers[at + 4], numbers[next + 4]);
+            var alpha = fromAlpha + (toAlpha - fromAlpha) * progress;
+            var straight = fromAlpha == toAlpha || alpha <= 0;
+            for (var channel = 0; channel < 3; channel++)
             {
-                into[channel] = numbers[at + 1 + channel] + (numbers[next + 1 + channel] - numbers[at + 1 + channel]) * progress;
+                var (from, to) = (numbers[at + 1 + channel], numbers[next + 1 + channel]);
+                into[channel] = straight
+                    ? from + (to - from) * progress
+                    : (fromAlpha * from + (toAlpha * to - fromAlpha * from) * progress) / alpha;
             }
+            into[3] = alpha;
             return;
         }
         numbers.AsSpan(last + 1, 4).CopyTo(into);

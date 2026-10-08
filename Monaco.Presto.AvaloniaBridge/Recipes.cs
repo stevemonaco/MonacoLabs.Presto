@@ -1,18 +1,28 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Monaco.Presto.AvaloniaBridge.Prebuilt;
+using Monaco.Presto.Diagnostics;
+using Monaco.Presto.Values;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// The recipe catalogue in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
-/// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text recipes need the
-/// <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/>.
+/// The recipe catalog in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
+/// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text reveals are builders
+/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/>, <see cref="CountUp"/> and <see cref="RollDigits"/> need
+/// the <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/>.
 /// </summary>
 public static class Recipes
 {
     internal const double FlipPerspective = 800;
+
+    private static readonly ConditionalWeakTable<TextBlock, Animation> Rolls = new();
 
     /// <summary>The durations, eases and travel every recipe defaults to, read on each call: replacing it restyles later calls, not builders already made.</summary>
     public static MotionTokens Tokens { get; set; } = MotionTokens.Standard;
@@ -57,6 +67,10 @@ public static class Recipes
     public static AnimationBuilder FlipIn(double angle = 90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Entrances.FlipIn(angle, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Entrances.Develop"/>
+    public static AnimationBuilder Develop(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Entrances.Develop(duration, delay, ease, stagger);
+
     /// <inheritdoc cref="Exits.FadeOut"/>
     public static AnimationBuilder FadeOut(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Exits.FadeOut(duration, delay, ease, stagger);
@@ -97,6 +111,14 @@ public static class Recipes
     public static AnimationBuilder FlipOut(double angle = -90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Exits.FlipOut(angle, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Popovers.PopoverIn"/>
+    public static AnimationBuilder PopoverIn(double? distance = null, double? scale = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Popovers.PopoverIn(distance, scale, duration, delay, ease);
+
+    /// <inheritdoc cref="Popovers.PopoverOut"/>
+    public static AnimationBuilder PopoverOut(double? distance = null, double? scale = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Popovers.PopoverOut(distance, scale, duration, delay, ease);
+
     /// <inheritdoc cref="Attention.Shake"/>
     public static AnimationBuilder Shake(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Attention.Shake(intensity, duration, delay, ease, stagger);
@@ -124,6 +146,10 @@ public static class Recipes
     /// <inheritdoc cref="Attention.Bounce"/>
     public static AnimationBuilder Bounce(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Attention.Bounce(intensity, duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Attention.FlashTint"/>
+    public static AnimationBuilder FlashTint(Color? color = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Attention.FlashTint(color, intensity, duration, delay, ease, stagger);
 
     /// <inheritdoc cref="Loops.Float"/>
     public static AnimationBuilder Float(double? distance = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
@@ -153,6 +179,10 @@ public static class Recipes
     public static AnimationBuilder PressIn(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.PressIn(intensity, duration, delay, ease);
 
+    /// <inheritdoc cref="Interactions.ReorderLift"/>
+    public static AnimationBuilder ReorderLift(double? scale = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Interactions.ReorderLift(scale, intensity, duration, delay, ease);
+
     /// <inheritdoc cref="Interactions.Glow"/>
     public static AnimationBuilder Glow(Color? color = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.Glow(color, intensity, duration, delay, ease);
@@ -160,6 +190,15 @@ public static class Recipes
     /// <inheritdoc cref="Interactions.Dim"/>
     public static AnimationBuilder Dim(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Interactions.Dim(intensity, duration, delay, ease);
+
+    /// <inheritdoc cref="Interactions.Colorize"/>
+    public static AnimationBuilder Colorize(double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Interactions.Colorize(duration, delay, ease);
+
+    /// <inheritdoc cref="Tints.Recolor"/>
+    public static AnimationBuilder Recolor(Color to, string property = "Background", ColorSpace? space = null, HueInterpolation? hue = null,
+                                           double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Tints.Recolor(to, property, space, hue, duration, delay, ease, stagger);
 
     /// <inheritdoc cref="Layouts.Reflow"/>
     public static AnimationBuilder Reflow(double? duration = null, double? delay = null, EaseValue? ease = null) =>
@@ -181,6 +220,30 @@ public static class Recipes
     public static AnimationBuilder Indeterminate(double distance, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loading.Indeterminate(distance, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Draws.DrawIn"/>
+    public static AnimationBuilder DrawIn(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Draws.DrawIn(duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Draws.DrawOut"/>
+    public static AnimationBuilder DrawOut(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Draws.DrawOut(duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Reveals.CircularReveal(RelativePoint?, double?, double?, EaseValue?)"/>
+    public static AnimationBuilder CircularReveal(RelativePoint? origin = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Reveals.CircularReveal(origin, duration, delay, ease);
+
+    /// <inheritdoc cref="Reveals.CircularReveal(Visual, double?, double?, EaseValue?)"/>
+    public static AnimationBuilder CircularReveal(Visual from, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Reveals.CircularReveal(from, duration, delay, ease);
+
+    /// <inheritdoc cref="Reveals.ThemeReveal"/>
+    public static Animation ThemeReveal(Visual surface, Action change, Visual? from = null, double? duration = null, EaseValue? ease = null) =>
+        Reveals.ThemeReveal(surface, change, from, duration, ease);
+
+    /// <inheritdoc cref="Sprites.PlayFrames"/>
+    public static AnimationBuilder PlayFrames(double fps = 24, bool loop = true, bool reverse = false, double? delay = null) =>
+        Sprites.PlayFrames(fps, loop, reverse, delay);
+
     /// <inheritdoc cref="Pages.PageFade"/>
     public static PrestoPageTransition PageFade(double? duration = null) => Pages.PageFade(duration);
 
@@ -196,15 +259,82 @@ public static class Recipes
     /// <inheritdoc cref="Pages.PagePush"/>
     public static PrestoPageTransition PagePush(Edge edge) => Pages.PagePush(edge);
 
+    /// <inheritdoc cref="Pages.PageBloom"/>
+    public static PrestoPageTransition PageBloom() => Pages.PageBloom();
+
+    /// <inheritdoc cref="TextReveals.LineRise"/>
+    public static AnimationBuilder LineRise(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineRise(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineMask"/>
+    public static AnimationBuilder LineMask(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineMask(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineWipe"/>
+    public static AnimationBuilder LineWipe(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineWipe(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordFade"/>
+    public static AnimationBuilder WordFade(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordFade(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordBlur"/>
+    public static AnimationBuilder WordBlur(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordBlur(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.CharCascade"/>
+    public static AnimationBuilder CharCascade(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.CharCascade(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineRiseOut"/>
+    public static AnimationBuilder LineRiseOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineRiseOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineMaskOut"/>
+    public static AnimationBuilder LineMaskOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineMaskOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.LineWipeOut"/>
+    public static AnimationBuilder LineWipeOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.LineWipeOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordFadeOut"/>
+    public static AnimationBuilder WordFadeOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordFadeOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.WordBlurOut"/>
+    public static AnimationBuilder WordBlurOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.WordBlurOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="TextReveals.CharCascadeOut"/>
+    public static AnimationBuilder CharCascadeOut(double? duration = null, double? delay = null, EaseValue? ease = null, double? lineStep = null, double? pieceStep = null) =>
+        TextReveals.CharCascadeOut(duration, delay, ease, lineStep, pieceStep);
+
+    /// <inheritdoc cref="Particles.Confetti"/>
+    public static ParticleEffect Confetti(Control anchor, int count = 120, IReadOnlyList<Color>? colors = null, Edge? from = null, AnimationBuilder? reduced = null) =>
+        Particles.Confetti(anchor, count, colors, from, reduced);
+
+    /// <inheritdoc cref="Particles.Sparkles"/>
+    public static ParticleEffect Sparkles(Control anchor, double rate = 30, Color? color = null, AnimationBuilder? reduced = null) =>
+        Particles.Sparkles(anchor, rate, color, reduced);
+
+    /// <inheritdoc cref="Particles.Burst"/>
+    public static ParticleEffect Burst(Control anchor, int count = 24, Color? color = null, AnimationBuilder? reduced = null) =>
+        Particles.Burst(anchor, count, color, reduced);
+
     /// <summary>
     /// Types out <paramref name="textBlock"/>'s text: it is split into characters, each starting <paramref name="charDelay"/> ms
     /// (default <see cref="MotionTokens.StaggerStep"/>) after the one before and fading in over <paramref name="duration"/>
     /// (default <paramref name="charDelay"/>), and put back together once the last has appeared. Reduced, the whole block
     /// fades in as <see cref="Fade"/> does.
     /// </summary>
-    /// <remarks>The block has to be laid out, since the split follows its wrapped lines.</remarks>
+    /// <remarks>
+    /// The block has to be laid out, since the split follows its wrapped lines. <see cref="CharCascade"/> is the trigger form,
+    /// splitting when the block is first laid out.
+    /// </remarks>
     public static Animation Typewriter(TextBlock textBlock, double? charDelay = null, double? duration = null, double? delay = null, EaseValue? ease = null)
     {
+        using var origin = PrestoDiagnostics.Origin("Recipe");
         if (Engine.Current.Defaults.ReducedMotion) return Fade(delay: delay).Animate(textBlock);
         var step = charDelay ?? Tokens.StaggerStep;
         var split = PrestoAvalonia.SplitText(textBlock, new() { Words = null, Chars = new() });
@@ -228,10 +358,84 @@ public static class Recipes
         Func<double, string> text = value => value.ToString(format, CultureInfo.CurrentCulture);
         var from = double.TryParse(textBlock.Text, NumberStyles.Any, CultureInfo.CurrentCulture, out var shown) ? shown : 0;
         var tokens = Tokens;
+        using var origin = PrestoDiagnostics.Origin("Recipe");
         return Start(tokens, duration ?? tokens.Long, delay, ease ?? tokens.Ease, stagger: false)
             .Property("Text", to: to, from: from, textModifier: text)
             .WhenReduced(r => r.Property("Text", to: to, textModifier: text).Duration(0))
             .Animate(textBlock);
+    }
+
+    /// <summary>
+    /// Rolls <paramref name="textBlock"/>'s number to <paramref name="to"/> like an odometer, rolling only the changed characters
+    /// and staggering them right to left. Reduced, the end text is set at once.
+    /// </summary>
+    public static Animation RollDigits(TextBlock textBlock, double to, string? format = null, double? duration = null, double? delay = null, EaseValue? ease = null)
+    {
+        if (Rolls.TryGetValue(textBlock, out var running)) running.Complete();
+        if (Engine.Current.Defaults.ReducedMotion) return CountUp(textBlock, to, format, delay: delay);
+
+        format ??= "N0";
+        var from = double.TryParse(textBlock.Text, NumberStyles.Any, CultureInfo.CurrentCulture, out var shown) ? shown : 0;
+        var oldText = from.ToString(format, CultureInfo.CurrentCulture);
+        var newText = to.ToString(format, CultureInfo.CurrentCulture);
+        var line = textBlock.TextLayout.TextLines[0];
+        var travel = to >= from ? line.Height : -line.Height;
+        var tokens = Tokens;
+
+        var width = Math.Max(oldText.Length, newText.Length);
+        var columns = new Control[width];
+        var glyphs = new List<Control>();
+        var incoming = new List<bool>();
+        var delays = new List<double>();
+        var start = delay ?? 0;
+        for (var c = width - 1; c >= 0; c--)
+        {
+            var o = c - (width - oldText.Length);
+            var n = c - (width - newText.Length);
+            char? leaving = o >= 0 ? oldText[o] : null;
+            char? entering = n >= 0 ? newText[n] : null;
+            if (leaving == entering)
+            {
+                columns[c] = new TextBlock { Text = entering.ToString() };
+                continue;
+            }
+            var column = new Panel { ClipToBounds = true };
+            foreach (var (glyph, enters) in new[] { (leaving, false), (entering, true) })
+            {
+                if (glyph == null) continue;
+                var piece = new TextBlock { Text = glyph.ToString(), HorizontalAlignment = HorizontalAlignment.Center };
+                column.Children.Add(piece);
+                glyphs.Add(piece);
+                incoming.Add(enters);
+                delays.Add(start);
+            }
+            start += tokens.StaggerStep;
+            columns[c] = column;
+        }
+
+        // An inline control sits on the baseline, below half the line gap and above the descent; the margins give back the plain text's line box.
+        var gap = line.TextRuns.Count > 0 && line.TextRuns[0] is ShapedTextRun run ? line.Baseline + run.TextMetrics.Ascent : 0;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, UseLayoutRounding = false, Margin = new(0, -gap, 0, line.Baseline - line.Height) };
+        row.Children.AddRange(columns);
+        textBlock.Text = null;
+        textBlock.Inlines = [new InlineUIContainer(row)];
+
+        using var origin = PrestoDiagnostics.Origin("Recipe");
+        var roll = Presto.Build()
+            .Duration(duration ?? tokens.Medium)
+            .Ease(ease ?? tokens.Ease)
+            .Delay((FunctionValue)((_, i, _) => delays[i]))
+            .Property("Y", from: (FunctionValue)((_, i, _) => incoming[i] ? travel : 0), to: (FunctionValue)((_, i, _) => incoming[i] ? 0 : -travel))
+            .Property("Opacity", from: (FunctionValue)((_, i, _) => incoming[i] ? 0 : 1), to: (FunctionValue)((_, i, _) => incoming[i] ? 1 : 0))
+            .OnComplete(_ =>
+            {
+                Rolls.Remove(textBlock);
+                textBlock.Inlines = null;
+                textBlock.Text = newText;
+            })
+            .Animate(glyphs);
+        Rolls.AddOrUpdate(textBlock, roll);
+        return roll;
     }
 
     /// <summary>A builder with a recipe's timing:<paramref name="stagger"/> steps each element of a batch by <see cref="MotionTokens.StaggerStep"/> after <paramref name="delay"/>.</summary>

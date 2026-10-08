@@ -11,7 +11,7 @@ using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
-/// <summary>PAGE-TRANSITIONS-PLAN decision 10: <see cref="Presence"/> sees a page transition as navigation.</summary>
+/// <summary><see cref="Presence"/> sees a page transition as navigation.</summary>
 public sealed class PresencePageTransitionTests : CompositorTestBase
 {
     private static AnimationBuilder Fade => Presto.Build().Opacity(to: 0).Duration(200).Ease("linear");
@@ -69,7 +69,13 @@ public sealed class PresencePageTransitionTests : CompositorTestBase
 
         Swap(host, new Border());
 
-        Assert.True(await Pump(() => !page.IsAttachedToVisualTree()), "the old page never left");
+        for (var i = 0; i < 120 && page.IsAttachedToVisualTree(); i++)
+        {
+            Tick(Frame);
+            // CrossFade runs on Avalonia's own animation clock, which moves only in real time with the dispatcher free.
+            await Task.Delay(8);
+        }
+        Assert.False(page.IsAttachedToVisualTree(), "the old page never left");
         Assert.Empty(Ghosts(host));
     }
 
@@ -195,7 +201,7 @@ public sealed class PresencePageTransitionTests : CompositorTestBase
     {
         Enter = Presto.Build().Opacity(from: 0).Duration(100).Ease("linear"),
         Exit = Presto.Build().Opacity(0).Duration(100).Ease("linear"),
-        UseCompositor = false,
+        Thread = AnimationThread.UIThread,
     };
 
     private static TransitioningContentControl PrestoHost(Control? content = null)
@@ -205,6 +211,4 @@ public sealed class PresencePageTransitionTests : CompositorTestBase
         Tick();
         return host;
     }
-
-    private static List<Canvas> Ghosts(Visual visual) => OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<Canvas>().ToList();
 }

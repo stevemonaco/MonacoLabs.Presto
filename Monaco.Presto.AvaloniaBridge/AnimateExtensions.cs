@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using Monaco.Presto.AvaloniaBridge.Gestures;
 using Monaco.Presto.AvaloniaBridge.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge;
@@ -29,6 +30,19 @@ public static class AnimateExtensions
 
     /// <inheritdoc cref="Animate(AvaloniaObject, AnimationBuilder)"/>
     public static Animation Animate(this AvaloniaObject target, Action<AnimationBuilder> build) => target.Animate(Presto.Build(build));
+
+    /// <inheritdoc cref="PrestoAvalonia.Animate(object?, AnimationParams, AnimationThread)"/>
+    [OverloadResolutionPriority(1)]
+    public static ThreadedAnimation Animate(this Visual target, AvaloniaAnimationParams parameters, AnimationThread thread) =>
+        PrestoAvalonia.Animate(target, parameters, thread);
+
+    /// <inheritdoc cref="PrestoAvalonia.Animate(object?, AnimationBuilder, AnimationThread)"/>
+    public static ThreadedAnimation Animate(this Visual target, AnimationBuilder builder, AnimationThread thread) =>
+        PrestoAvalonia.Animate(target, builder, thread);
+
+    /// <inheritdoc cref="PrestoAvalonia.Animate(object?, AnimationBuilder, AnimationThread)"/>
+    public static ThreadedAnimation Animate(this Visual target, Action<AnimationBuilder> build, AnimationThread thread) =>
+        PrestoAvalonia.Animate(target, build, thread);
 
     /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor(object?, CompositorAnimationParams)"/>
     [OverloadResolutionPriority(1)]
@@ -59,12 +73,28 @@ public static class AnimateExtensions
     public static LayoutTransition AnimateLayout(this Control target, Action<AnimationBuilder> build, LayoutAnimateMode mode = LayoutAnimateMode.Position) =>
         PrestoAvalonia.AnimateLayout(target, build, mode);
 
+    /// <inheritdoc cref="PrestoAvalonia.AnimateContentSize(Control, double, EaseValue?)"/>
+    public static ContentSizeTransition AnimateContentSize(this Control host, double duration, EaseValue? ease = null) =>
+        PrestoAvalonia.AnimateContentSize(host, duration, ease);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateContentSize(Control, AnimationBuilder)"/>
+    public static ContentSizeTransition AnimateContentSize(this Control host, AnimationBuilder builder) =>
+        PrestoAvalonia.AnimateContentSize(host, builder);
+
+    /// <inheritdoc cref="PrestoAvalonia.AnimateContentSize(Control, AnimationBuilder)"/>
+    public static ContentSizeTransition AnimateContentSize(this Control host, Action<AnimationBuilder> build) =>
+        PrestoAvalonia.AnimateContentSize(host, build);
+
     /// <summary>Creates an animatable over this object's properties, installing the bridge first when nothing else has.</summary>
     public static Animatable CreateAnimatable(this AvaloniaObject target, AvaloniaAnimatableParams parameters)
     {
         PrestoAvalonia.EnsureInitialized();
         return Presto.CreateAnimatable(target, parameters);
     }
+
+    /// <inheritdoc cref="PrestoAvalonia.CreateTransformable"/>
+    public static Transformable CreateTransformable(this Control target, TransformableParams? parameters = null) =>
+        PrestoAvalonia.CreateTransformable(target, parameters);
 
     /// <inheritdoc cref="Animatable.Set(string, double, double?, EaseValue?)"/>
     /// <remarks>The typed form, for a property registered through the <see cref="AvaloniaProperty"/> indexer.</remarks>

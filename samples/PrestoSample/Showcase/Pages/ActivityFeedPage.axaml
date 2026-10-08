@@ -3,7 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:presto="using:Monaco.Presto.AvaloniaBridge"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
                        xmlns:local="using:PrestoSample.Showcase.Pages"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
                        x:Class="PrestoSample.Showcase.Pages.ActivityFeedPage"
@@ -105,8 +105,11 @@
 
         <Border Grid.Row="2" Classes="stage">
             <Panel>
-                <ListBox x:Name="Feed" Classes="feed" ItemsSource="{Binding Items}">
+                <!-- snippet: ActivityFeedRows -->
+                <ListBox x:Name="Feed" Classes="feed" ItemsSource="{Binding Items}"
+                         presto:Animate.ItemLayout="{presto:Reflow}" presto:Presence.ScrollAnchor="True">
                     <ListBox.DataTemplates>
+                        <!-- snippet-skip -->
                         <DataTemplate x:DataType="local:DayHeader">
                             <TextBlock Classes="eyebrow showcase day" Text="{Binding Label}"
                                        presto:Presence.Initial="{StaticResource RowInitial}"
@@ -114,6 +117,7 @@
                                        presto:Presence.RevealOnce="{DynamicResource RevealOnce}"
                                        presto:Animate.OnAttached="{DynamicResource RowAttached}" />
                         </DataTemplate>
+                        <!-- /snippet-skip -->
                         <DataTemplate x:DataType="local:ActivityEvent">
                             <Border Classes="event"
                                     presto:Presence.Initial="{StaticResource RowInitial}"
@@ -122,6 +126,7 @@
                                     presto:Animate.OnAttached="{DynamicResource RowAttached}"
                                     presto:Presence.Enter="{StaticResource RowEnter}"
                                     presto:Presence.Exit="{StaticResource RowExit}">
+                                <!-- snippet-skip -->
                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="12">
                                     <Border Classes="kind" Background="{Binding Tint}" />
                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
@@ -132,6 +137,7 @@
                                     <TextBlock Grid.Column="3" Classes="caption" Text="{Binding Clock}" VerticalAlignment="Center" />
                                     <Button Grid.Column="4" Content="Dismiss" Click="DismissClicked" VerticalAlignment="Center" />
                                 </Grid>
+                                <!-- /snippet-skip -->
                             </Border>
                         </DataTemplate>
                         <DataTemplate x:DataType="local:SkeletonRow">
@@ -139,12 +145,13 @@
                         </DataTemplate>
                     </ListBox.DataTemplates>
                 </ListBox>
+                <!-- /snippet -->
 
                 <ContentControl x:Name="PillHost" Content="{Binding Unseen}"
                                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0">
                     <ContentControl.ContentTemplate>
                         <DataTemplate x:DataType="x:Int32">
-                            <Button Classes="pill" Content="{Binding StringFormat='{}{0} new'}" Click="PillClicked"
+                            <Button Classes="pill" Content="{Binding StringFormat='{}{0} new above'}" Click="PillClicked"
                                     presto:Presence.Arrive="{presto:Fade Direction=Down}"
                                     presto:Presence.Exit="{presto:Fade}" />
                         </DataTemplate>
@@ -153,7 +160,7 @@
             </Panel>
         </Border>
 
-        <TextBlock Grid.Row="3" Classes="caption" TextWrapping="Wrap"
-                   Text="A live feed of 2,000 events in a virtualized ListBox, with day headers as items of their own. The first screen rises in through Presence.Initial; scroll slowly and each row fades up once through Presence.Reveal, rippling with the rows from the same scroll step, while scrolling back up or dragging the scrollbar far plays nothing. Every four seconds a Timer adds an event that slides in through Presence.Enter and bumps the unread badge through Animate.OnChanged; scrolled down, a pill arrives through Presence.Arrive to count them instead and scrolls to the top on click. Dismiss collapses a row out through Presence.Exit, and near the bottom skeleton rows shimmer through Animate.OnAttached while the next 50 events load. The counters above tally each trigger's plays; set Reveal to Every time, or move it to OnAttached, and scrolling back replays rows." />
+        <showcase:CodePanel Grid.Row="3" Header="How it's built" IsExpanded="False"
+                            Language="Xaml" Code="{x:Static showcase:Snippets.ActivityFeedRows}" />
     </Grid>
 </showcase:ShowcasePage>

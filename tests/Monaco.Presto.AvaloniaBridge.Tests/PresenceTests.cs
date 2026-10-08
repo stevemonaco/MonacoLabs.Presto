@@ -164,7 +164,7 @@ public sealed class PresenceTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void CancellingTheExitRemovesTheGhost()
+    public void CancelingTheExitRemovesTheGhost()
     {
         var item = new Border { Width = 40, Height = 20, Background = Brushes.Red };
         var (window, _) = Show(item);
@@ -236,6 +236,4 @@ public sealed class PresenceTests : CompositorTestBase
         Tick();
         return (window, panel);
     }
-
-    private static List<Canvas> Ghosts(Window window) => OverlayLayer.GetOverlayLayer(window)!.Children.OfType<Canvas>().ToList();
 }

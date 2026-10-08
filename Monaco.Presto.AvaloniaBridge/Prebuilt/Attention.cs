@@ -1,3 +1,5 @@
+using Avalonia.Media;
+
 namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 
 /// <summary>
@@ -9,7 +11,8 @@ namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 /// Arguments left null come from <see cref="Recipes.Tokens"/>, read when the recipe is called: the duration is
 /// <see cref="MotionTokens.Long"/> and the ease, applied to each keyframe, <see cref="MotionTokens.Ease"/>. <c>stagger</c>
 /// delays each element of a batch by <see cref="MotionTokens.StaggerStep"/> more than the one before, starting at
-/// <c>delay</c>. All can run through <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>.
+/// <c>delay</c>. All but <see cref="FlashTint"/>, which filters, can run through
+/// <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>.
 /// </remarks>
 public static class Attention
 {
@@ -46,6 +49,16 @@ public static class Attention
     /// <summary>Hops 20 DIPs, then twice more, lower each time. Reduced: an opacity blink.</summary>
     public static AnimationBuilder Bounce(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Start(duration, delay, ease, stagger).Y(Frames(0, intensity, -20, 0, -10, 0, -4));
+
+    /// <summary>
+    /// Flashes a <see cref="Controls.PrestoImageBase"/> towards <paramref name="color"/> (default <see cref="Colors.DodgerBlue"/>):
+    /// <see cref="Controls.PrestoImageBase.Tint"/> rises to <paramref name="intensity"/> and falls back to 0, with
+    /// <see cref="Controls.PrestoImageBase.TintColor"/> set at the start. Reduced: an opacity blink.
+    /// </summary>
+    public static AnimationBuilder FlashTint(Color? color = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Start(duration, delay, ease, stagger)
+            .TintColor(to: TweenValue.Of(color ?? Colors.DodgerBlue), duration: 0)
+            .Tint(Frames(0, intensity, 1));
 
     private static AnimationBuilder Start(double? duration, double? delay, EaseValue? ease, bool stagger)
     {

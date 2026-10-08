@@ -10,55 +10,55 @@ namespace PrestoSample.Showcase.Pages;
 /// </summary>
 public static class ChartGeometry
 {
-    /// <summary>A bar with rounded top corners, centred on <paramref name="centreX"/> and standing on <paramref name="bottom"/>.</summary>
-    public static Geometry Bar(double centreX, double top, double bottom, double width, double radius)
+    /// <summary>A bar with rounded top corners, centered on <paramref name="centerX"/> and standing on <paramref name="bottom"/>.</summary>
+    public static Geometry Bar(double centerX, double top, double bottom, double width, double radius)
     {
-        var left = centreX - (width / 2);
-        var right = centreX + (width / 2);
+        var left = centerX - (width / 2);
+        var right = centerX + (width / 2);
         var r = Math.Min(radius, Math.Min(width / 2, bottom - top));
         var geometry = new StreamGeometry();
         using (var context = geometry.Open())
         {
-            context.BeginFigure(new Point(centreX, top), true);
+            context.BeginFigure(new Point(centerX, top), true);
             context.LineTo(new Point(right - r, top));
             context.ArcTo(new Point(right, top + r), new Size(r, r), 0, false, SweepDirection.Clockwise);
             context.LineTo(new Point(right, bottom));
             context.LineTo(new Point(left, bottom));
             context.LineTo(new Point(left, top + r));
             context.ArcTo(new Point(left + r, top), new Size(r, r), 0, false, SweepDirection.Clockwise);
-            context.LineTo(new Point(centreX, top));
+            context.LineTo(new Point(centerX, top));
             context.EndFigure(true);
         }
         return geometry;
     }
 
     /// <summary>An annular wedge; angles are in degrees, clockwise from twelve o'clock.</summary>
-    public static Geometry Wedge(Point centre, double inner, double outer, double start, double sweep)
+    public static Geometry Wedge(Point center, double inner, double outer, double start, double sweep)
     {
         var mid = start + (sweep / 2);
         var end = start + sweep;
         var geometry = new StreamGeometry();
         using (var context = geometry.Open())
         {
-            context.BeginFigure(At(centre, outer, mid), true);
-            context.ArcTo(At(centre, outer, end), new Size(outer, outer), 0, false, SweepDirection.Clockwise);
-            context.LineTo(At(centre, inner, end));
-            context.ArcTo(At(centre, inner, start), new Size(inner, inner), 0, sweep > 180, SweepDirection.CounterClockwise);
-            context.LineTo(At(centre, outer, start));
-            context.ArcTo(At(centre, outer, mid), new Size(outer, outer), 0, false, SweepDirection.Clockwise);
+            context.BeginFigure(At(center, outer, mid), true);
+            context.ArcTo(At(center, outer, end), new Size(outer, outer), 0, false, SweepDirection.Clockwise);
+            context.LineTo(At(center, inner, end));
+            context.ArcTo(At(center, inner, start), new Size(inner, inner), 0, sweep > 180, SweepDirection.CounterClockwise);
+            context.LineTo(At(center, outer, start));
+            context.ArcTo(At(center, outer, mid), new Size(outer, outer), 0, false, SweepDirection.Clockwise);
             context.EndFigure(true);
         }
         return geometry;
     }
 
-    public static Geometry Circle(Point centre, double radius)
+    public static Geometry Circle(Point center, double radius)
     {
-        var top = new Point(centre.X, centre.Y - radius);
+        var top = new Point(center.X, center.Y - radius);
         var geometry = new StreamGeometry();
         using (var context = geometry.Open())
         {
             context.BeginFigure(top, true);
-            context.ArcTo(new Point(centre.X, centre.Y + radius), new Size(radius, radius), 0, false, SweepDirection.Clockwise);
+            context.ArcTo(new Point(center.X, center.Y + radius), new Size(radius, radius), 0, false, SweepDirection.Clockwise);
             context.ArcTo(top, new Size(radius, radius), 0, false, SweepDirection.Clockwise);
             context.EndFigure(true);
         }
@@ -93,9 +93,9 @@ public static class ChartGeometry
         return sweeps;
     }
 
-    private static Point At(Point centre, double radius, double degrees)
+    private static Point At(Point center, double radius, double degrees)
     {
         var radians = degrees * Math.PI / 180;
-        return new Point(centre.X + (radius * Math.Sin(radians)), centre.Y - (radius * Math.Cos(radians)));
+        return new Point(center.X + (radius * Math.Sin(radians)), center.Y - (radius * Math.Cos(radians)));
     }
 }

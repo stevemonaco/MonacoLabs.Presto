@@ -75,7 +75,7 @@ internal static class Composer
     }
 
     /// <summary>
-    /// Strips <paramref name="targets"/> from every animation under <paramref name="parent"/>, cancelling the animations left
+    /// Strips <paramref name="targets"/> from every animation under <paramref name="parent"/>, canceling the animations left
     /// with no tweens and the parent itself when nothing is left.
     /// </summary>
     public static void RemoveTargetsFromRenderable(IReadOnlyList<object> targets, Clock parent, string? property)
@@ -124,7 +124,7 @@ internal static class Composer
         TweenList.ForEachChildren(animation, tween =>
         {
             if (!Contains(targets, tween.Target)) return;
-            if (!string.IsNullOrEmpty(property) && Presto.Canonicalise(tween.Target, property) != tween.Property) return;
+            if (!string.IsNullOrEmpty(property) && Presto.Canonicalize(tween.Target, property) != tween.Property) return;
             TweenList.RemoveChild(animation, tween);
             RemoveTweenSiblings(tween);
             matched = true;
@@ -172,7 +172,7 @@ internal static class Composer
         {
             var prevChangeStartTime = prevSibling._startTime;
             var prevTimelineOffset = prevAbsEndTime - (prevChangeStartTime + prevSibling._updateDuration);
-            // Rounding minimises the floating point errors of working in seconds.
+            // Rounding minimizes the floating point errors of working in seconds.
             var updatedPrevChangeDuration = Helpers.Round(absoluteUpdateStartTime - prevTimelineOffset - prevChangeStartTime, 12);
             prevSibling._changeDuration = updatedPrevChangeDuration;
             prevSibling._currentTime = updatedPrevChangeDuration;
@@ -192,12 +192,12 @@ internal static class Composer
             return;
         }
 
-        var cancelPrevParentTimeline = true;
-        Helpers.ForEachChildren(prevParentTimeline, child =>
+        // A loop rather than ForEachChildren: its closure would be allocated on every call, since the capture is method-wide.
+        for (var child = prevParentTimeline._head; child != null; child = child._next)
         {
-            if (child != prevParent && !AllTweensOverlapped(child)) cancelPrevParentTimeline = false;
-        });
-        if (cancelPrevParentTimeline) prevParentTimeline.Cancel();
+            if (child != prevParent && !AllTweensOverlapped(child)) return;
+        }
+        prevParentTimeline.Cancel();
     }
 
     private static void ComposeBlendedTween(Tween tween)

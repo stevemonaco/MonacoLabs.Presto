@@ -149,7 +149,7 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
     public void UnknownMemberThrows() => Assert.Throws<ArgumentException>(() => Presto.ResolveAccessor(_target, "Nope"));
 
     [Fact]
-    public void MemberTypeWithoutCodecThrows() => Assert.Throws<NotSupportedException>(() => Presto.ResolveAccessor(_target, "Elapsed"));
+    public void MemberTypeWithoutCodecIsDiscrete() => Assert.IsType<DiscreteCodec>(Presto.ResolveAccessor(_target, "Elapsed").Codec);
 
     [Fact]
     public void RegisteredCodecDecodesAndEncodesItsType()

@@ -17,7 +17,7 @@ public partial class BuilderBasicsPage : ShowcasePage
 
     protected override void OnAttached()
     {
-        (Animation, CodeText.Text) = Snippet.Of(LikeButton.Animate(Presto.Build()
+        (Animation, CodeText.Code) = Snippet.Of(LikeButton.Animate(Presto.Build()
             .X(320)
             .Y(-40)
             .Rotate(from: -180)
@@ -28,7 +28,8 @@ public partial class BuilderBasicsPage : ShowcasePage
             .Delay(250)
             .Ease(Eases.InOutQuint)
             .Loop()
-            .Alternate()));
+            .Alternate()
+            .WhenReduced(reduced => reduced.Background(Palette.Coral).Loop(false).Alternate(false))));
     }
 
     private void Replay(object? sender, RoutedEventArgs e) => Animation?.Restart();

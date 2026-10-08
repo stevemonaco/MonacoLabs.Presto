@@ -347,6 +347,123 @@ public sealed class AnimatablesTests : EngineTestBase
     }
 
     [Fact]
+    public void AChannelRetargetKeepsEachComplexChannelsMomentum()
+    {
+        var animatable = ChannelFollower(new TestObject(), "MultiplePlainValues", preserveVelocity: true);
+
+        animatable.Set("MultiplePlainValues", [116, 32, 14, 228]);
+        Frames.Advance(160, 16);
+        var before = ChannelVelocities(animatable, "MultiplePlainValues");
+        animatable.Set("MultiplePlainValues", [0, 32, 100, 128]);
+        var after = ChannelVelocities(animatable, "MultiplePlainValues");
+
+        foreach (var i in new[] { 0, 2, 3 })
+        {
+            Assert.True(Math.Abs(before[i]) > .05, $"channel {i} moving at {before[i]} per ms before the retarget");
+            Assert.Equal(before[i], after[i], Math.Abs(before[i]) * .02);
+        }
+        Assert.Equal(0, before[1]);
+        Assert.Equal(0, after[1]);
+    }
+
+    [Fact]
+    public void AChannelRetargetKeepsEachColorChannelsMomentum()
+    {
+        var animatable = ChannelFollower(new StyleTarget(), "BackgroundColor", preserveVelocity: true);
+
+        animatable.Set("BackgroundColor", [55, 155, 255, 1]);
+        Frames.Advance(160, 16);
+        var before = ChannelVelocities(animatable, "BackgroundColor");
+        animatable.Set("BackgroundColor", [200, 0, 255, 1]);
+        var after = ChannelVelocities(animatable, "BackgroundColor");
+
+        foreach (var i in new[] { 0, 1 })
+        {
+            Assert.True(Math.Abs(before[i]) > .05, $"channel {i} moving at {before[i]} per ms before the retarget");
+            Assert.Equal(before[i], after[i], Math.Abs(before[i]) * .02);
+        }
+    }
+
+    [Fact]
+    public void ChannelsThatDoNotMoveStayExactlyAtRest()
+    {
+        var animatable = ChannelFollower(new StyleTarget(), "BackgroundColor", preserveVelocity: true);
+
+        animatable.Set("BackgroundColor", [55, 155, 255, 1]);
+        Frames.Advance(160, 16);
+        animatable.Set("BackgroundColor", [200, 0, 255, 1]);
+        while (!animatable.Animations["BackgroundColor"].Paused)
+        {
+            Frames.Advance(16);
+            var channels = animatable.GetChannels("BackgroundColor");
+            Assert.Equal(255, channels[2]);
+            Assert.Equal(1, channels[3]);
+        }
+    }
+
+    [Fact]
+    public void ChannelMomentumSettlesOnItsTargetAndCompletesOnce()
+    {
+        var completes = 0;
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new()
+        {
+            ["BackgroundColor"] = new(),
+            Ease = new Spring(stiffness: 120, damping: 12),
+            PreserveVelocity = true,
+            OnComplete = _ => completes++,
+        });
+
+        animatable.Set("BackgroundColor", [55, 155, 255, 1]);
+        Frames.Advance(80, 16);
+        animatable.Set("BackgroundColor", [200, 0, 30, .5]);
+        RunUntil(() => animatable.Animations["BackgroundColor"].Paused);
+        Frames.Advance(32, 16);
+
+        Assert.Equal<double[]>([200, 0, 30, .5], animatable.GetChannels("BackgroundColor"));
+        Assert.Equal(1, completes);
+    }
+
+    [Fact]
+    public void RetargetingSettledChannelsStartsFromRest()
+    {
+        var animatable = ChannelFollower(new TestObject(), "MultiplePlainValues", preserveVelocity: true);
+
+        animatable.Set("MultiplePlainValues", [116, 132, 14, 228]);
+        RunUntil(() => animatable.Animations["MultiplePlainValues"].Paused);
+        animatable.Set("MultiplePlainValues", [0, 0, 0, 0]);
+
+        Assert.All(ChannelVelocities(animatable, "MultiplePlainValues"), v => Assert.Equal(0, v, .01));
+    }
+
+    [Fact]
+    public void ChannelsStartFromRestWithoutPreservedVelocity()
+    {
+        var animatable = ChannelFollower(new TestObject(), "MultiplePlainValues", preserveVelocity: false);
+
+        animatable.Set("MultiplePlainValues", [116, 132, 14, 228]);
+        Frames.Advance(160, 16);
+        var before = ChannelVelocities(animatable, "MultiplePlainValues");
+        animatable.Set("MultiplePlainValues", [0, 0, 0, 0]);
+        var after = ChannelVelocities(animatable, "MultiplePlainValues");
+
+        Assert.True(before[0] > .05, $"moving at {before[0]} per ms before the retarget");
+        Assert.All(after, v => Assert.True(Math.Abs(v) < before[0] * .02, $"{v} per ms after the retarget"));
+    }
+
+    [Fact]
+    public void PreservedVelocityIgnoresChannelsThatAreNotSpringEased()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["BackgroundColor"] = 100, Ease = "linear", PreserveVelocity = true });
+
+        animatable.Set("BackgroundColor", [55, 155, 255, 1]);
+        Frames.Advance(48, 16);
+        animatable.Set("BackgroundColor", [200, 0, 255, 1]);
+
+        Assert.Equal(100, animatable.Animations["BackgroundColor"].Duration);
+        Assert.Null(animatable.Animations["BackgroundColor"]._headTween!._channelEases);
+    }
+
+    [Fact]
     public void AFlingWithoutAVelocityContinuesARunningSetAtItsSpeed()
     {
         var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 1000, Ease = "outQuad" });
@@ -448,6 +565,34 @@ public sealed class AnimatablesTests : EngineTestBase
         var before = Math.Max(0, progress - step);
         var after = Math.Min(1, progress + step);
         return (tween._ease(after) - tween._ease(before)) / ((after - before) * tween._updateDuration) * (tween._toNumber - tween._fromNumber);
+    }
+
+    private static Animatable ChannelFollower(object target, string property, bool preserveVelocity) =>
+        Presto.CreateAnimatable(target, new() { [property] = new(), Ease = new Spring(stiffness: 120, damping: 12), PreserveVelocity = preserveVelocity });
+
+    /// <summary>How fast each displayed channel of the property moves at its current time, in units per ms, blended as the renderer blends it.</summary>
+    private static double[] ChannelVelocities(Animatable animatable, string property)
+    {
+        const double step = 1e-4;
+        var tween = animatable.Animations[property]._headTween!;
+        var progress = tween._currentTime / tween._updateDuration;
+        var before = Math.Max(0, progress - step);
+        var after = Math.Min(1, progress + step);
+        var velocities = new double[tween._numbers.Length];
+        for (var i = 0; i < velocities.Length; i++)
+        {
+            velocities[i] = (Channel(tween, i, after) - Channel(tween, i, before)) / ((after - before) * tween._updateDuration);
+        }
+        return velocities;
+    }
+
+    private static double Channel(Tween tween, int i, double time)
+    {
+        var progress = (tween._channelEases?[i] ?? tween._ease)(time);
+        var (from, to) = (tween._fromNumbers[i], tween._toNumbers[i]);
+        return tween._valueType == Values.ValueKind.Color && i < 3
+            ? Math.Sqrt(from * from * (1 - progress) + to * to * progress)
+            : from + (to - from) * progress;
     }
 
     [Fact]

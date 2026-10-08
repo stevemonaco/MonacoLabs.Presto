@@ -3,23 +3,21 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+                       xmlns:local="using:PrestoSample.Showcase.Pages"
                        mc:Ignorable="d" d:DesignWidth="712" d:DesignHeight="440"
                        x:Class="PrestoSample.Showcase.Pages.BloomNavPage">
     <showcase:ShowcasePage.Styles>
-        <Style Selector="Button.tab">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+        <Style Selector="TabStripItem">
+            <Setter Property="MinHeight" Value="0" />
             <Setter Property="Height" Value="44" />
             <Setter Property="Padding" Value="16,0" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.tab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="Button.tab:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
+        <Style Selector="TabStripItem:selected /template/ Border#PART_SelectedPipe">
+            <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="Border.tile">
             <Setter Property="CornerRadius" Value="10" />
@@ -36,22 +34,32 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <Border CornerRadius="12" ClipToBounds="True" BorderThickness="1"
-            BorderBrush="{x:Static showcase:Palette.Border}">
-        <DockPanel>
-            <Border x:Name="Header" DockPanel.Dock="Top" Padding="12,0">
-                <StackPanel HorizontalAlignment="Left">
-                    <StackPanel x:Name="Tabs" Orientation="Horizontal" />
-                    <Canvas Height="3">
-                        <Border x:Name="Underline" Height="3" CornerRadius="1.5"
-                                Background="{x:Static showcase:Palette.Ink}" />
-                    </Canvas>
-                </StackPanel>
-            </Border>
-            <Panel x:Name="Stage" ClipToBounds="True">
-                <Border x:Name="Screen" Padding="12" />
-                <Canvas x:Name="Overlay" IsHitTestVisible="False" />
-            </Panel>
-        </DockPanel>
-    </Border>
+    <DockPanel>
+        <showcase:CodePanel DockPanel.Dock="Bottom" Header="How it's built" IsExpanded="False" MaxHeight="280" Margin="0,12,0,0"
+                            Language="Xaml" Code="{x:Static showcase:Snippets.BloomNavBloom}" />
+        <Border CornerRadius="12" ClipToBounds="True" BorderThickness="1"
+                BorderBrush="{x:Static showcase:Palette.Border}">
+            <DockPanel>
+                <Border x:Name="Header" DockPanel.Dock="Top" Padding="12,0">
+                    <TabStrip x:Name="Tabs" HorizontalAlignment="Left"
+                              presto:Selection.IndicatorMode="Underline"
+                              presto:Selection.Motion="{x:Static local:BloomNavPage.TabGlide}">
+                        <TabStrip.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </TabStrip.ItemsPanel>
+                        <presto:Selection.Indicator>
+                            <Template>
+                                <Border Height="3" Margin="12,0" CornerRadius="1.5" Background="{x:Static showcase:Palette.Ink}" />
+                            </Template>
+                        </presto:Selection.Indicator>
+                    </TabStrip>
+                </Border>
+                <!-- snippet: BloomNavBloom -->
+                <TransitioningContentControl x:Name="Stage" ClipToBounds="True" PageTransition="{presto:PageBloom}" />
+                <!-- /snippet -->
+            </DockPanel>
+        </Border>
+    </DockPanel>
 </showcase:ShowcasePage>

@@ -48,12 +48,12 @@ public sealed class SwipeDeckPageTests
     }
 
     [AvaloniaFact]
-    public void DraggingTheTopCardSixtyPixelsRightHalfStampsIt()
+    public void DraggingTheTopCardSixtyPixelsRightHalfStampsAndTintsIt()
     {
         var page = new SwipeDeckPage();
         var window = SceneHarness.Show(page, 712, 440);
         var top = Top(page.GetControl<Panel>("Deck"));
-        var grab = SceneHarness.Centre(top, window);
+        var grab = SceneHarness.Center(top, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 6; i++)
@@ -65,6 +65,7 @@ public sealed class SwipeDeckPageTests
 
         var like = top.GetLogicalDescendants().OfType<Border>().Single(border => border.Classes.Contains("like"));
         Assert.Equal(.5, like.Opacity, 3);
+        Assert.NotEqual(Palette.SurfaceHigh.Color, Assert.IsAssignableFrom<ISolidColorBrush>(top.Background).Color);
         window.MouseUp(grab.WithX(grab.X + 60), MouseButton.Left);
         SceneHarness.Close(window);
     }
@@ -75,7 +76,7 @@ public sealed class SwipeDeckPageTests
         var page = new SwipeDeckPage();
         var window = SceneHarness.Show(page, 712, 440);
         var top = Top(page.GetControl<Panel>("Deck"));
-        var grab = SceneHarness.Centre(top, window);
+        var grab = SceneHarness.Center(top, window);
 
         window.MouseDown(grab, MouseButton.Left);
         for (var i = 1; i <= 6; i++)
@@ -110,6 +111,15 @@ public sealed class SwipeDeckPageTests
         Assert.Equal(3, deck.Children.Count);
         Assert.Same(Datasets.Places[5], Top(deck).Tag);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheGraphPanelPrintsTheBindingCodeThatRan()
+    {
+        var page = new SwipeDeckPage();
+
+        Assert.Equal(Snippets.SwipeDeckBind, page.GetControl<CodePanel>("GraphCode").Code);
+        Assert.Contains("Follow.Bind(Stamp(card, true), OpacityProperty, graph.LikeOpacity)", Snippets.SwipeDeckBind);
     }
 
     private static Border Top(Panel deck) => (Border)deck.Children[^1];

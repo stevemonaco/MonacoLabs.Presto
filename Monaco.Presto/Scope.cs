@@ -50,9 +50,10 @@ public class Scope : IRevertible
     public IDictionary<string, Action> Methods { get; } = new Dictionary<string, Action>();
 
     /// <summary>Records <paramref name="revertible"/> so <see cref="Revert"/> undoes it.</summary>
-    /// <remarks>Animations cancelled by a replacing animation are dropped as the list grows, their original values handed to the animation that replaced them.</remarks>
+    /// <remarks>Animations canceled by a replacing animation are dropped as the list grows, their original values handed to the animation that replaced them.</remarks>
     public void Register(IRevertible revertible)
     {
+        if (revertible is Timer { _diagnostics: { } diagnostics }) diagnostics.Scope = this;
         var revertibles = _once ? _revertiblesOnce : _revertibles;
         revertibles.Add(revertible);
         var count = revertibles.Count;
@@ -179,14 +180,14 @@ public class Scope : IRevertible
 
     void IRevertible.Revert() => Revert();
 
-    // Completed animations are cancelled too when the engine drops them, so only the uncompleted cancelled ones were superseded.
+    // Completed animations are canceled too when the engine drops them, so only the uncompleted canceled ones were superseded.
     private static void PruneSuperseded(List<IRevertible> revertibles)
     {
         var kept = 0;
         for (var i = 0; i < revertibles.Count; i++)
         {
             var revertible = revertibles[i];
-            if (revertible is not Animation { Cancelled: true, Completed: false } animation || !HandOnOriginals(animation, revertibles, i + 1))
+            if (revertible is not Animation { Canceled: true, Completed: false } animation || !HandOnOriginals(animation, revertibles, i + 1))
             {
                 revertibles[kept++] = revertible;
             }

@@ -17,7 +17,11 @@ public partial class PlaygroundPage : ShowcasePage
     private static readonly StaggerFrom[] Origins = [StaggerFrom.First, StaggerFrom.Center, StaggerFrom.Last, StaggerFrom.Random];
     private Timer? _debounce;
 
-    public PlaygroundPage() => InitializeComponent();
+    public PlaygroundPage()
+    {
+        InitializeComponent();
+        LoopBox.IsChecked = !Presto.Defaults.ReducedMotion;
+    }
 
     public Animation? Animation { get; private set; }
 
@@ -52,7 +56,7 @@ public partial class PlaygroundPage : ShowcasePage
         if (AlternateBox.IsChecked == true) { builder.Alternate(); Step(".Alternate()"); }
 
         Animation = builder.Animate(Squares.Children);
-        CodeText.Text = $"{code}\n    .Animate(Squares.Children);";
+        CodeText.Code = $"{code}\n    .Animate(Squares.Children);";
     }
 
     private static string Format(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);

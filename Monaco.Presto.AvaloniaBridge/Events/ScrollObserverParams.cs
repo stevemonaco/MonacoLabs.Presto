@@ -33,6 +33,28 @@ public sealed record ScrollObserverParams
     /// <summary>How the linked object follows the scroll; <c>"play pause"</c> by default.</summary>
     public ScrollSync? Sync { get; init; }
 
+    /// <summary>
+    /// Whether the target is held in place while the scroll position passes between <see cref="Enter"/> and
+    /// <see cref="Leave"/>, through its <c>"X"</c> or <c>"Y"</c> transform shorthand; false by default.
+    /// </summary>
+    /// <remarks>
+    /// A linked animation should animate the pinned target's descendants rather than its own <c>"X"</c> and <c>"Y"</c>, which
+    /// the pin writes. Reverting the observer releases the pin, so a pinned observer usually keeps <see cref="Repeat"/> on.
+    /// </remarks>
+    public bool? Pin { get; init; }
+
+    /// <summary>
+    /// Whether a pinned target's trailing margin grows by the pinned distance, so the content after it arrives only once the
+    /// pin ends; true by default.
+    /// </summary>
+    public bool? PinSpacing { get; init; }
+
+    /// <summary>
+    /// Eases the scroller to a snapped progress once the scroll position has settled between <see cref="Enter"/> and
+    /// <see cref="Leave"/>, with no pointer down on the scroller; a user scroll interrupts it.
+    /// </summary>
+    public ScrollSnap? Snap { get; init; }
+
     /// <summary>Runs when the target crosses <see cref="Enter"/>, whichever way the scroller is moving.</summary>
     public Action<ScrollObserver>? OnEnter { get; init; }
 

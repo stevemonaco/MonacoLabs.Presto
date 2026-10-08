@@ -14,7 +14,7 @@ namespace Monaco.Presto.AvaloniaBridge.Compositor;
 /// <remarks>
 /// Compositor-only, as upstream's lookups are: UI-thread tweens compose through the core's own replace lookups and know
 /// nothing of this. A finished track keeps holding its end value on the server, upstream's <c>persist</c>, so entries live
-/// until the animation is cancelled, reverted or replaced rather than until it completes.
+/// until the animation is canceled, reverted or replaced rather than until it completes.
 /// </remarks>
 internal static class CompositorRegistry
 {
