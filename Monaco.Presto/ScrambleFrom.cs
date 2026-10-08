@@ -1,4 +1,4 @@
-namespace Monaco.Presto.AvaloniaBridge.Text;
+namespace Monaco.Presto;
 
 /// <summary>Where a scramble starts revealing, upstream's <c>from</c>.</summary>
 public enum ScrambleFrom

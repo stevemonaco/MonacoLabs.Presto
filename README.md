@@ -584,7 +584,7 @@ PrestoAvalonia.SplitText(Headline, new SplitTextParams
 })
 .AddEffect(split => Presto.Animate(split.Chars, b => b.Y(from: 44, to: 0).Opacity(from: 0, to: 1).Delay(Presto.Stagger(18))));
 
-Transmission.Animate(b => b.Text(PrestoAvalonia.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", From = ScrambleFrom.Center })));
+Transmission.Animate(b => b.Text(Presto.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", From = ScrambleFrom.Center })));
 ```
 
 #### Text reveals
@@ -1549,7 +1549,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `svg.createMotionPath(path)` | `PrestoAvalonia.CreateMotionPath(path, offset, autoRotate)` → the `X` / `Y` / `Rotate` tweens; `CreateMotionPath(points, curviness, …)` through a point list is GSAP-shaped, upstream has none |
 | `svg.morphTo(path, precision)` | `PrestoAvalonia.MorphTo(geometry, precision)`, animated through `.Data(…)` on a `Path` |
 | `text.split(target, params)` / `splitText` | `PrestoAvalonia.SplitText(textBlock, new SplitTextParams { … })` → `TextSplitter` with `Lines` / `Words` / `Chars` |
-| `text.scramble(params)` / `scrambleText` | `PrestoAvalonia.ScrambleText(new ScrambleTextParams { … })`, animated through `.Text(…)` |
+| `text.scramble(params)` / `scrambleText` | `Presto.ScrambleText(new ScrambleTextParams { … })`, animated through `.Text(…)` |
 | `stagger(value, params)` | `Presto.Stagger(value, new StaggerParams { … })`; `PrestoAvalonia.Stagger(…)` measures the auto grid from the layout |
 | `utils.*` | `Utils.*` in PascalCase; the value-less overloads return a chainable `ChainedUtil` (`Utils.MapRange(0, 100, 0, 1000).Clamp(0, 100)`), usable wherever a `Func<double, double>` modifier is; `utils.get` / `set` / `remove` are `Presto.Get` / `Set` / `Remove`, with `PrestoAvalonia` overloads that take an `AvaloniaProperty`; `padStart` / `padEnd` are not ported (`string.PadLeft` / `PadRight` already do this) |
 | `eases` / `easings` | `Eases.*`, the `Ease` delegate (`double → double`), `Spring`, `EaseParser.Parse("inOutQuint")` |

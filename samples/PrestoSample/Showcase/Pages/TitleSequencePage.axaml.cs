@@ -88,7 +88,7 @@ public partial class TitleSequencePage : ShowcasePage
             }, "title")
             .Add(Subtitle, new()
             {
-                ["Text"] = PrestoAvalonia.ScrambleText(new() { Chars = "lowercase", From = ScrambleFrom.Center }),
+                ["Text"] = Presto.ScrambleText(new() { Chars = "lowercase", From = ScrambleFrom.Center }),
                 ["Opacity"] = TweenValue.FromTo(0, 1),
                 Duration = 1200,
                 Ease = Eases.OutQuad,

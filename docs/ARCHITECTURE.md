@@ -39,7 +39,8 @@ Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/`
 | `draggable/draggable.js` | `Monaco.Presto.AvaloniaBridge.Draggable` | Bridge | [draggable](specs/avalonia-bridge/draggable.md) |
 | `events/scroll.js` | `Monaco.Presto.AvaloniaBridge.ScrollObserver` (ScrollViewer) | Bridge | [scroll-observer](specs/avalonia-bridge/scroll-observer.md) |
 | `svg/*` (`morphTo`, `createDrawable`, `createMotionPath`) | Path/Geometry based shape helpers | Bridge | [shapes](specs/avalonia-bridge/shapes.md) |
-| `text/*` (`splitText`, `scrambleText`) | `Monaco.Presto.AvaloniaBridge.Text` | Bridge | [text](specs/avalonia-bridge/text.md) |
+| `text/scramble.js` (`scrambleText`) | `Presto.ScrambleText` | Core | [scramble](specs/core/scramble.md) |
+| `text/split.js` (`splitText`) | `Monaco.Presto.AvaloniaBridge.Text` | Bridge | [text](specs/avalonia-bridge/text.md) |
 | `layout/*` | Not ported as such: upstream's real width/height animation maps to `Animate.ContentSize`; compositor FLIP covers position and size moves | Bridge | [content-size](specs/avalonia-bridge/content-size.md), [layout-transitions](specs/avalonia-bridge/layout-transitions.md) |
 | `waapi/*` | `CompositorAnimation`: server-side `KeyFrameAnimation`s compiled from Presto params, plus `CompositorCanvas`/`CompositorScene`, a whole engine on the render thread (no upstream counterpart) | Bridge | [animation-thread](specs/avalonia-bridge/animation-thread.md), [compositor-scenes](specs/avalonia-bridge/compositor-scenes.md) |
 | `adapters/three.js` | not ported | — | — |
@@ -104,6 +105,7 @@ Decisions behind the test setup:
 - **Time is `double` milliseconds**; seconds mode is an engine scale factor, not a second code path. Reason: parity with anime.js (`timeUnit: 'ms'`).
 - **The bridge's root namespace is `Monaco.Presto.AvaloniaBridge`.** Reason: `...Avalonia` would shadow the `Avalonia.*` namespaces.
 - **Both packages target `net10.0` only.** Reason: the one blocker for older frameworks is `OrderedDictionary<TKey, TValue>` (.NET 9+); multi-targeting would mean carrying a hand-written replacement on a framework no test runs.
+- **Code that needs nothing from Avalonia lives in the core.** A bridge type whose implementation uses only core types moves to the core, unless a bridge feature defines its meaning (as Recipes defines `MotionTokens`, or compositor layout transitions define `LayoutMotion`). Reason: core users get it, its tests run without a headless platform, and `using Monaco.Presto;` reaches it.
 - **Every trigger, recipe and control states its reduced-motion form** in its spec, and its tests run under both settings. Reason: four places once ignored `ReducedMotion` and samples worked around them; stating the reduced form up front stops new holes.
 - The architecture rules (the core knows nothing about Avalonia, single-threaded engines, faithful port first) are in [CLAUDE.md](../CLAUDE.md).
 

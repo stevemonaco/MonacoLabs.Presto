@@ -1,6 +1,6 @@
-namespace Monaco.Presto.AvaloniaBridge.Text;
+namespace Monaco.Presto;
 
-/// <summary>Parameters for <see cref="PrestoAvalonia.ScrambleText"/>: which characters the text is scrambled with, and how the reveal runs.</summary>
+/// <summary>Parameters for <see cref="Presto.ScrambleText"/>: which characters the text is scrambled with, and how the reveal runs.</summary>
 public sealed record ScrambleTextParams
 {
     /// <summary>

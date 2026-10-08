@@ -1,8 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using Monaco.Presto.Core;
 
-namespace Monaco.Presto.AvaloniaBridge.Text;
+namespace Monaco.Presto.Core;
 
 /// <summary>
 /// Port of anime.js <c>scrambleText</c>: the property value that fills a target's text with random characters and settles

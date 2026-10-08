@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Monaco.Presto.AvaloniaBridge.Bindings;
 
 /// <summary>Turns <see cref="FollowParams"/> into the ease, duration and momentum of a follower's animatable property.</summary>
@@ -21,11 +23,30 @@ internal static class FollowTiming
 
         if (reduced) return From(p.WhenReduced!);
         if (p.Builder is { } builder) return From(builder);
-        if (p.Spring is { } spring) return Of(Springs.Parse(spring), null);
+        if (p.Spring is { } spring) return Of(ParseSpring(spring), null);
         if (p.Bounce is { } bounce) return Of(new Spring(bounce: bounce, duration: p.Duration ?? BounceDuration), null);
         if (p.Duration != null || p.Ease != null) return Of(p.Ease, p.Duration);
         if (p.Token is { } token) return Of(token.Ease, token.Medium);
         return Of(Springs.Gentle, null);
+    }
+
+    private static Spring ParseSpring(string text)
+    {
+        switch (text.Trim().ToLowerInvariant())
+        {
+            case "gentle": return Springs.Gentle;
+            case "snappy": return Springs.Snappy;
+            case "bouncy": return Springs.Bouncy;
+            case "stiff": return Springs.Stiff;
+        }
+        var parts = text.Split(',');
+        if (parts.Length == 2
+            && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var bounce)
+            && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var duration))
+        {
+            return new Spring(bounce: bounce, duration: duration);
+        }
+        throw new FormatException($"'{text}' is not a spring. Name a preset (Gentle, Snappy, Bouncy, Stiff) or give \"bounce,duration\", such as \"0.2,400\".");
     }
 
     private static AnimatableProperty From(AnimationBuilder builder)

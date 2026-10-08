@@ -9,6 +9,7 @@ namespaces:
 sources:
   - Monaco.Presto/Targets
   - Monaco.Presto/Values/DiscreteCodec.cs
+  - Monaco.Presto/Values/StructCodec.cs
   - Monaco.Presto/DiscreteRule.cs
   - Monaco.Presto/Presto.cs
   - Monaco.Presto/Animation.cs
@@ -21,12 +22,14 @@ types:
   - TargetParser
   - DiscreteCodec
   - DiscreteRule
+  - StructCodec
 tests:
   - TargetsTests
   - ObjectTargetAdapterTests
   - DiscreteValuesTests
   - CodecTests
   - PropertyNamingTests
+  - StructCodecTests
 upstream:
   - src/core/targets.js
   - tests/suites/targets.test.js
@@ -123,6 +126,15 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **CORE-TARGETS-033** — The animation shall call `Reconcile(from, to)` once both ends are decomposed and relative values resolved, before kinds, units and channel counts are reconciled by the core (CORE-VALUES); either end may still be the number 0 of a missing value.
   - Tests: `CodecTests.GradientsWithDifferentStopCountsInterpolateOnTheUnionOfTheirOffsets`, `CodecTests.AnAddedShadowGrowsInItsOwnColorFromNothing`
 
+### Struct codecs
+
+- **CORE-TARGETS-051** — `StructCodec<T>` shall decode a `T` into one channel per component its `decompose` returns, in order.
+  - Tests: `StructCodecTests.InterpolatesEachComponent`
+- **CORE-TARGETS-052** — When the value is not a `T`, `StructCodec<T>` shall not claim it.
+  - Tests: `StructCodecTests.DoesNotClaimAnotherType`
+- **CORE-TARGETS-053** — `StructCodec<T>` encoding shall pass the tween's lerped channels to `compose` and return its result.
+  - Tests: `StructCodecTests.InterpolatesEachComponent`
+
 ### Discrete values
 
 - **CORE-TARGETS-034** — A discrete tween shall run one `Number` channel from 0 to 1 and write its from or its to value whole, through the codec's `Encode`.
@@ -209,6 +221,7 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **The discrete switch rule is a hybrid.** `TweenParams.Discrete` overrides the rule the codec was built with; the core default is CSS's `Midpoint`, and an adapter may build a property's codec with another (a visibility flag with `TrueThroughout`). The rule is read from eased progress, and the throughout rules act as `Midpoint` unless exactly one end is that `bool`. Reason: a fade-out should stay visible until it ends and a fade-in show from its first frame, CSS's midpoint is the general default, and reading eased progress makes seeks, reversals and keyframe segments switch at the same point.
 - **Discrete values reject relative values and `Blend`.** Both throw, and an `Animatable` over a discrete member snaps to each new value. Reason: not recorded beyond there being no meaningful arithmetic on discrete values.
 - **Codecs can reconcile ends of different shapes.** An `IReconcilingValueCodec` claims non-relative string end values before the core parses them and makes both ends the same kind and channel count before the core pads them; discrete fields ride as channels. Reason: the core can only pad the shorter channel list with zeros, which is wrong for colors and offsets when shapes differ (two- against three-stop gradients, one shadow against two), and it misparses strings like `"0 4 16 0 #40000000"` as a complex value whose numbers include hex digits.
+- **`StructCodec<T>` is a public core codec.** It moved from the bridge, which registers `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect` and `Vector` through it. Reason: tweening a struct of doubles needs no UI framework, and any adapter or app can register one in `Presto.Codecs`; `compose` receives the tween's reused channel array, which the constructor documents.
 - **No scene-graph adapter ships.** The adapter interface allows one, but upstream's three.js adapter is not ported. Reason: not recorded.
 
 ## Non-goals

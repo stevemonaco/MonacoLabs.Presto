@@ -123,7 +123,7 @@ public partial class TypographyPage : ShowcasePage
             timeline
                 .Add(TerminalLines.Children[i], new()
                 {
-                    ["Text"] = PrestoAvalonia.ScrambleText(new()
+                    ["Text"] = Presto.ScrambleText(new()
                     {
                         Text = TerminalScript[i],
                         Chars = "lowercase",
@@ -133,12 +133,12 @@ public partial class TypographyPage : ShowcasePage
                         SettleDuration = 120,
                     }),
                 }, "+=180")
-                .Add(Status, new() { ["Text"] = PrestoAvalonia.ScrambleText(new() { Text = StatusScript[i], Chars = "blocks" }) }, "<");
+                .Add(Status, new() { ["Text"] = Presto.ScrambleText(new() { Text = StatusScript[i], Chars = "blocks" }) }, "<");
         }
 
         return timeline
             .Sync(Recipes.CountUp(Percent, 100, "0", timeline.IterationDuration, ease: Eases.InOutSine), 0)
-            .Add(Status, new() { ["Text"] = PrestoAvalonia.ScrambleText(new() { Text = "decoded · 0 errors", Chars = "blocks" }) });
+            .Add(Status, new() { ["Text"] = Presto.ScrambleText(new() { Text = "decoded · 0 errors", Chars = "blocks" }) });
     }
 
     private void RelaxWordmark(object? sender, PointerEventArgs e)

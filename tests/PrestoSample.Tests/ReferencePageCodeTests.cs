@@ -129,7 +129,7 @@ public sealed class ReferencePageCodeTests
         Assert.Contains("{presto:LineRise}", Snippets.TextLineRise);
         SceneHarness.Click(window, ButtonNamed(page, "Change text"));
         SceneHarness.Click(window, ButtonNamed(page, "Scramble"));
-        Assert.Contains("ScrambleText(new ScrambleTextParams", page.GetControl<CodePanel>("ScrambleCode").Code);
+        Assert.Contains("Presto.ScrambleText(new ScrambleTextParams", page.GetControl<CodePanel>("ScrambleCode").Code);
         Assert.Contains("From = ScrambleFrom.Center", page.GetControl<CodePanel>("ScrambleCode").Code);
         SceneHarness.Close(window);
     }

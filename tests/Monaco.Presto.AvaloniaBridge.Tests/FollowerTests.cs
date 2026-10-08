@@ -290,12 +290,11 @@ public sealed class FollowerTests : BridgeTestBase
     [AvaloniaFact]
     public void SpringPresetsParseByNameOrBounceAndDuration()
     {
-        Assert.Equal((0, 250), Shape(Springs.Parse(" stiff ")));
-        Assert.Equal((.35, 500), Shape(Springs.Parse("Bouncy")));
-        Assert.Equal((.1, 350), Shape(Springs.Parse("0.1, 350")));
-        Assert.NotSame(Springs.Gentle, Springs.Gentle);
-        Assert.Throws<FormatException>(() => Springs.Parse("0.1"));
-        Assert.Throws<FormatException>(() => Springs.Parse("bouncy,300"));
+        AssertSpring(FollowTiming.Resolve(new() { Spring = " stiff " }, false), 0, 250);
+        AssertSpring(FollowTiming.Resolve(new() { Spring = "Bouncy" }, false), .35, 500);
+        AssertSpring(FollowTiming.Resolve(new() { Spring = "0.1, 350" }, false), .1, 350);
+        Assert.Throws<FormatException>(() => FollowTiming.Resolve(new() { Spring = "0.1" }, false));
+        Assert.Throws<FormatException>(() => FollowTiming.Resolve(new() { Spring = "bouncy,300" }, false));
     }
 
     private static LinearGradientBrush Gradient(Color start, Color end) => new() { GradientStops = { new(start, 0), new(end, 1) } };
@@ -303,11 +302,10 @@ public sealed class FollowerTests : BridgeTestBase
     private static object? Key(object? value) =>
         value is IGradientBrush gradient ? string.Join(",", gradient.GradientStops.Select(stop => $"{stop.Color}@{stop.Offset}")) : value;
 
-    private static (double Bounce, double Duration) Shape(Spring spring) => (spring.Bounce, spring.Duration);
-
     private static void AssertSpring(AnimatableProperty timing, double bounce, double duration)
     {
-        Assert.Equal((bounce, duration), Shape(Assert.IsType<Spring>(timing.Ease!.Value.Raw)));
+        var spring = Assert.IsType<Spring>(timing.Ease!.Value.Raw);
+        Assert.Equal((bounce, duration), (spring.Bounce, spring.Duration));
         Assert.Null(timing.Duration);
         Assert.True(timing.PreserveVelocity);
     }

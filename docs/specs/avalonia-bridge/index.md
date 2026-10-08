@@ -12,7 +12,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Avalonia value codecs](value-codecs.md) | BRIDGE-CODECS | `ColorExtensions` |
 | [Control helpers, typed builder methods, scopes and WhenDetached](control-helpers.md) | BRIDGE-HELPERS | `PrestoAvalonia`, `AnimateExtensions`, `AnimationBuilderExtensions`, `PropertyBuilderExtensions`, `ControlScope`, `WhenDetached` |
 | [Effect, reveal and 3D shorthands, and Tilt](effects.md) | BRIDGE-EFFECTS | `Tilt` |
-| [Avalonia easing adapter and named springs](eases-and-springs.md) | BRIDGE-EASES | `PrestoEasing`, `Springs` |
+| [Avalonia easing adapter](eases-and-springs.md) | BRIDGE-EASES | `PrestoEasing` |
 
 ## Threads and the compositor
 
@@ -68,7 +68,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | Spec | Id | Owns |
 |---|---|---|
 | [Shapes (drawable, motion path, morph)](shapes.md) | BRIDGE-SHAPES | — |
-| [Text splitting and scrambling](text.md) | BRIDGE-TEXT | `TextSplitter`, `SplitTextParams`, `SplitPieceParams`, `ScrambleTextParams`, `ScrambleFrom` |
+| [Text splitting](text.md) | BRIDGE-TEXT | `TextSplitter`, `SplitTextParams`, `SplitPieceParams` |
 | [Text reveals and text exits](text-reveal.md) | BRIDGE-TEXTREVEAL | `TextReveal`, `TextRevealExtension`, `TextPieces` |
 
 ## Recipes and tokens

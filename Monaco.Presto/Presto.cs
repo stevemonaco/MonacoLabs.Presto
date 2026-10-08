@@ -47,6 +47,16 @@ public static class Presto
     /// </summary>
     public static Stagger Stagger(TweenValue value, StaggerParams? parameters = null) => new(value, parameters ?? new());
 
+    /// <summary>
+    /// Upstream <c>scrambleText</c>: the value of a string property (<c>["Text"] = Presto.ScrambleText()</c>) that
+    /// scrambles the target's text with random characters and settles it character by character.
+    /// </summary>
+    /// <remarks>
+    /// The scramble chains off the tween it follows, so one added to a timeline, or a later keyframe, starts from the text
+    /// the previous one ended on; without <see cref="ScrambleTextParams.Text"/> it then settles back on that same text.
+    /// </remarks>
+    public static ChainedFunctionValue ScrambleText(ScrambleTextParams? parameters = null) => TextScrambler.Create(parameters ?? new());
+
     /// <summary>Animates the properties named in <paramref name="parameters"/> on every one of <paramref name="targets"/> (upstream <c>animate()</c>).</summary>
     [OverloadResolutionPriority(1)]
     public static Animation Animate(object? targets, AnimationParams parameters) =>

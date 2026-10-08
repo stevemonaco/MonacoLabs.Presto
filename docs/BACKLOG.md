@@ -21,7 +21,7 @@ When an item is closed, its line is deleted.
 - [CORE-ANIMATABLE] `Fling(property, settings)` ignores `settings.Velocity` instead of using it as a fallback; done when it is used or the parameter's role is documented and tested.
 - [BRIDGE-DRAGGABLE] `GestureOwners` lets two `Draggable`s (or two `Transformable`s, BRIDGE-TRANSFORMABLE) claim one target, after which the first one's `Revert` no longer releases it; done when a second claim of the same type is rejected or handed over explicitly.
 - [BRIDGE-TEXT] `TextSplitter`'s 150 ms resize debounce ignores `Globals.TimeScale`, so it misbehaves in seconds mode; done when it is scaled like every other bridge timer.
-- [BRIDGE-TEXT] `ScrambleText` caches a target's first text forever, so a later unchained scramble without `Text` settles back on stale text; done when the cache refreshes from the target's current text.
+- [CORE-SCRAMBLE] `Presto.ScrambleText` caches a target's first text forever, so a later unchained scramble without `Text` settles back on stale text; done when the cache refreshes from the target's current text.
 - [BRIDGE-PAGER] `Pager.SelectedIndex` set directly (binding or code) is never wrapped or clamped, so an out-of-range value sends the strip past the slides; done when it is coerced like `GoTo`.
 - [BRIDGE-SHEET] `Sheet.DetentIndex` is never coerced into the detent range, so `IsOpen` can read true while the sheet rests closed; done when it is coerced.
 - [CORE-BUILDER] `AnimationBuilder.ToParams` and `TweenKeyframesBuilder.Color` read `Engine.Current` rather than the timeline's engine or parent defaults (see CORE-KEYFRAMES, CORE-REDUCED); done when a builder resolves against the engine and defaults it is added under.
@@ -39,7 +39,7 @@ When an item is closed, its line is deleted.
 - [LOTTIE-PLAYBACK] `speed <= 0` in `Play`, `PlaySegment`, `PlayOnRenderThread` and the recipe, and a composition with `"fr": 0`, produce infinite, negative or NaN durations; done when both are rejected.
 - [CORE-PARTICLES] Particle lifetime 0, a negative `dt` and a negative `MaxParticles` are not validated; done when each throws.
 - [CORE-ENGINE] `Engine.Speed` is not clamped, unlike `Clock.Speed`, so 0 or a negative speed produces infinite or NaN start times; done when it is clamped or rejected.
-- [CORE-PRESTO] Null inputs to `EaseParser.Parse`, `Springs.Parse` (BRIDGE-EASES) and the `Presto` methods throw `NullReferenceException`; done when they throw `ArgumentNullException`.
+- [CORE-PRESTO] Null inputs to `EaseParser.Parse` and the `Presto` methods throw `NullReferenceException`; done when they throw `ArgumentNullException`.
 
 ## Reduced-motion gaps
 
@@ -157,7 +157,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-HELPERS](specs/avalonia-bridge/control-helpers.md): 1 untested requirement, plus no test that every shorthand has a typed builder method.
 - [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 7 untested requirements, plus two arms on one container being undecided.
 - [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus the stale `OnDrag` doc, two draggables claiming one target, and `Reset` writing 0 outside the container.
-- [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement, plus `Springs.Parse(null)` throwing `NullReferenceException`.
+- [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement.
 - [BRIDGE-EFFECTS](specs/avalonia-bridge/effects.md): 7 untested requirements, plus the companion-only mask and circle rest-removal bug.
 - [BRIDGE-FLIP](specs/avalonia-bridge/flip-card.md): 4 untested requirements, plus `Motion` cloning the whole builder unvalidated and an `Orientation` change while flipped leaving the old axis turned.
 - [BRIDGE-FOLLOW](specs/avalonia-bridge/follow.md): 8 untested requirements, plus never-attached targets easing, shorthands lacking `AnimateInitial`/`WhenReduced`, and a non-numeric shorthand string silently releasing the layer.
@@ -191,7 +191,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-FRAMES](specs/avalonia-bridge/sprite-frames.md): 8 untested requirements, plus in-place `Frames` mutation not being observed.
 - [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 12 untested requirements, plus a later `Command` widening the range, undocumented.
 - [BRIDGE-TEXTREVEAL](specs/avalonia-bridge/text-reveal.md): 7 untested requirements.
-- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 23 untested requirements, plus the unscaled resize debounce and the stale scramble cache.
+- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 5 untested requirements, plus the unscaled resize debounce.
 - [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 6 untested requirements, plus `Items`/`ItemsSource` desync and a re-prepared container doubling handlers.
 - [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 17 untested requirements, plus shared target ownership, capture loss running a full release, a horizontal wheel handled under zoom, and the macOS, Android and Browser hardware checks.
 - [BRIDGE-TRANSFORMS](specs/avalonia-bridge/transforms.md): 1 untested requirement, plus a local `RenderTransform` set while held not being picked up.
@@ -215,6 +215,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [CORE-PRESTO](specs/core/presto.md): 12 untested requirements, plus `Set` raising no timer-created hook, `Get` not canonicalizing names, and null arguments throwing `NullReferenceException`.
 - [CORE-REDUCED](specs/core/reduced-motion.md): 9 untested requirements, plus a cross-engine builder's `ReducedMotion` and `Animatable` under `ReduceAll`.
 - [CORE-SCOPE](specs/core/scope-and-defaults.md): 21 untested requirements, plus the stale `Scope.Defaults` doc and timeline defaults snapshotted versus read live.
+- [CORE-SCRAMBLE](specs/core/scramble.md): 18 untested requirements, plus the first-text cache that never refreshes.
 - [CORE-SPRING](specs/core/spring.md): 8 untested requirements, plus seconds-mode spring durations and physical and designer settings not updating each other.
 - [CORE-STAGGER](specs/core/stagger.md): 2 untested requirements, plus the cached start offset on reuse.
 - [CORE-TARGETS](specs/core/targets.md): 3 untested requirements, plus codecs registered after first resolution never applying and `Revert` skipping null originals.

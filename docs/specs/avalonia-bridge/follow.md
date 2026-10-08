@@ -36,7 +36,6 @@ depends:
   - BRIDGE-EFFECTS
   - BRIDGE-SHAPES
   - BRIDGE-CODECS
-  - BRIDGE-EASES
   - BRIDGE-TOKENS
   - BRIDGE-HELPERS
   - BRIDGE-SCROLLOBSERVER
@@ -57,10 +56,14 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `FollowerTests.EachTimingSourceResolves`, `FollowMarkupTests.TheTimingAttributesAreHonored`
 - **BRIDGE-FOLLOW-002** (inherited) — When `Builder` is combined with `Duration`, `Ease`, `Spring` or `Bounce`, when `Spring` is combined with `Bounce`, `Duration` or `Ease`, when `Bounce` is combined with `Ease`, or when a spring `Ease` is combined with `Duration`, the follower shall throw `ArgumentException` at construction.
   - Tests: `FollowerTests.ConflictingTimingSourcesThrow`
-- **BRIDGE-FOLLOW-003** (inherited) — When `Spring` names no preset and is not `"bounce,duration"`, the follower shall throw `FormatException` at construction.
+- **BRIDGE-FOLLOW-003** (inherited) — When `Spring` names no preset and is not `"bounce,duration"` (including a single number, more than two parts, or a preset followed by a duration), the follower shall throw `FormatException` at construction naming the presets and the `"bounce,duration"` form.
   - Tests: `FollowerTests.ConflictingTimingSourcesThrow`, `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
 - **BRIDGE-FOLLOW-004** (inherited) — When a `Builder` or `WhenReduced` builder has a non-numeric `Duration`, the follower shall throw `NotSupportedException`.
   - Tests: untested
+- **BRIDGE-FOLLOW-059** — When `FollowParams.Spring`, trimmed, names a preset ignoring case (`gentle`, `snappy`, `bouncy`, `stiff`), the follower shall use a new spring of that `Springs` preset (CORE-SPRING).
+  - Tests: `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
+- **BRIDGE-FOLLOW-060** — When `FollowParams.Spring` is two comma-separated numbers in the invariant culture, surrounding spaces allowed, the follower shall use `new Spring(bounce: first, duration: second)`.
+  - Tests: `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`, `FollowerTests.EachTimingSourceResolves`
 - **BRIDGE-FOLLOW-005** — While the resolved ease is a `Spring`, a retarget shall start from the displayed value and keep its current velocity, per channel for multi-channel types.
   - Tests: `FollowerTests.ASpringRetargetKeepsTheVelocityOfADouble`, `FollowerTests.ASpringRetargetKeepsTheVelocityOfEachThicknessChannel`, `FollowBindingTests.AMidFlightRetargetKeepsTheVelocity`, `FollowTests.AMidFlightRetargetKeepsTheVelocity`
 - **BRIDGE-FOLLOW-006** — While the resolved ease is not a spring, a retarget shall restart from the displayed value with the full duration.
@@ -202,6 +205,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - The detached flag is set only by a detach, so values that arrive before the target was ever attached are not snapped by it (after the first value they ease).
 - A `Follow.Timing` change rebuilds the animation on the next value from the displayed value, so velocity across a retime is not kept.
 - A `Follow.Timing` builder with a non-numeric duration throws from the next shorthand value or from the `Timing` change itself.
+- A `Spring` bounce outside -1..1 or duration outside the spring's range is clamped by `Spring` itself (CORE-SPRING), not rejected.
 - A gradient-to-solid or stop-count-changing brush change passes through; same-shape gradients ease per stop (MotionObjectValue maps: `MotionValueCodecTests`).
 
 ## Threading and lifetime
@@ -239,6 +243,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **Follow is one-way only.** An explicit `TwoWay` or `OneWayToSource` throws; `Default` resolves against the one-way companion and is accepted. Reason: writing animated intermediate values back to a view model would be wrong.
 - **Follow is not usable in style setters.** Reason: one setter is shared by every control it matches and, with `BindingBase` sealed off, there is no per-instance hook; templates build their content per instance.
 - **Timing options default to `Springs.Gentle`.** `Duration`/`Ease`, `Spring`, `Bounce`, a `Builder` or a `Token`; with none, the critically damped `Springs.Gentle`. Reason: a spring rather than a `MotionTokens` entry, so retargets keep their velocity.
+- **The spring text grammar belongs to Follow.** A preset name or `"bounce,duration"` is parsed privately by `FollowTiming` for `FollowParams.Spring` (and `{presto:Follow Spring=…}`). Reason: it exists for XAML, and the core keeps no spring string syntax (CORE-SPRING). Rejected: a public `Springs.Parse`, or extending `EaseParser` (no use outside Follow).
 - **One name, `Follow`, and `Follow.Bind` is a static method.** Reason: one name for the whole feature, and XAML resolves `{presto:Follow}` to `FollowExtension` before the `Follow` class; an extension method named `Bind` would lose to `AvaloniaObject.Bind`. Rejected: the earlier `Animated` naming.
 - **Shorthands are followed through attached properties, as a base layer.** `Follow.X`…`Follow.Blur` plus `Follow.Timing`; an animation of the same shorthand overrides the followed value while it holds it, then the latest followed value shows again. Reason: the shorthands are not Avalonia properties, so an extension cannot sit on them; the layering mirrors `Animation` priority over a `LocalValue` binding, and without it reverting an animation reset the shorthand to identity.
 - **A motion value fed to a shorthand ignores `Follow.Timing`.** `Follow.Bind` is the one sink that takes options, and `{presto:Follow}` smooths unless `Duration=0`. Reason: a graph already states its smoothing; easing on top would lag a scroll- or drag-locked value and double-smooth a sprung one, while `Follow.Bind` is called with a value explicitly and can say so.

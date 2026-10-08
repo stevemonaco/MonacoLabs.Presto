@@ -18,6 +18,7 @@ using Monaco.Presto.AvaloniaBridge.Shapes;
 using Monaco.Presto.AvaloniaBridge.Targets;
 using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Values;
+using Monaco.Presto.Values;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge;
@@ -551,20 +552,6 @@ public static class PrestoAvalonia
     {
         EnsureInitialized();
         return new TextSplitter(textBlock, parameters ?? new SplitTextParams());
-    }
-
-    /// <summary>
-    /// Upstream <c>scrambleText</c>: the value of a string property (<c>["Text"] = PrestoAvalonia.ScrambleText()</c>) that
-    /// scrambles the target's text with random characters and settles it character by character.
-    /// </summary>
-    /// <remarks>
-    /// The scramble chains off the tween it follows, so one added to a timeline, or a later keyframe, starts from the text
-    /// the previous one ended on; without <see cref="ScrambleTextParams.Text"/> it then settles back on that same text.
-    /// </remarks>
-    public static ChainedFunctionValue ScrambleText(ScrambleTextParams? parameters = null)
-    {
-        EnsureInitialized();
-        return TextScrambler.Create(parameters ?? new ScrambleTextParams());
     }
 
     /// <summary>

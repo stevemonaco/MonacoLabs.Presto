@@ -1,28 +1,22 @@
-using Avalonia.Controls;
-using Avalonia.Headless.XUnit;
-using Monaco.Presto.AvaloniaBridge.Text;
+namespace Monaco.Presto.Tests;
 
-namespace Monaco.Presto.AvaloniaBridge.Tests;
-
-/// <summary>Covers <c>PrestoAvalonia.ScrambleText</c>: the <c>scrambleText</c> half of tests/suites/text.test.js, over a <see cref="TextBlock"/>'s <c>Text</c>.</summary>
-public sealed class ScrambleTextTests : BridgeTestBase
+/// <summary>Covers <see cref="Presto.ScrambleText"/>: the <c>scrambleText</c> half of tests/suites/text.test.js, over a plain object's <c>Text</c>.</summary>
+public sealed class ScrambleTextTests : EngineTestBase
 {
     private const string Sentence = "Hello world";
 
-    private static TextBlock Block() => new() { Text = Sentence };
-
     private static TweenParams Scramble(ScrambleTextParams? parameters = null) =>
-        Assert.IsType<TweenParams>(PrestoAvalonia.ScrambleText(parameters)(Block(), 0, 1, null).Raw);
+        Assert.IsType<TweenParams>(Presto.ScrambleText(parameters)(new Label(), 0, 1, null).Raw);
 
-    [AvaloniaFact]
+    [Fact]
     public void IsAFunctionBasedValue()
     {
-        var parameters = new AvaloniaAnimationParams { ["Text"] = PrestoAvalonia.ScrambleText() };
+        var parameters = new AnimationParams { ["Text"] = Presto.ScrambleText() };
 
         Assert.IsType<ChainedFunctionValue>(parameters["Text"].Raw);
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void ReturnsATweenWithFromToEaseDurationAndModifier()
     {
         var tween = Scramble();
@@ -34,7 +28,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.NotNull(tween.TextModifier);
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void DefaultOverrideScramblesTheTextAtTheStart()
     {
         var tween = Scramble(new() { Seed = 1 });
@@ -42,7 +36,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.NotEqual(Sentence, tween.TextModifier!(0));
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void OverrideFalsePreservesTheOriginalTextAtTheStart()
     {
         var tween = Scramble(new() { Override = false });
@@ -50,7 +44,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.Equal(Sentence, tween.TextModifier!(0));
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void ModifierReturnsTheTargetTextAtOne()
     {
         var tween = Scramble();
@@ -58,7 +52,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.Equal(Sentence, tween.TextModifier!(1));
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void ModifierReturnsScrambledTextInBetween()
     {
         var tween = Scramble(new() { Seed = 1 });
@@ -69,7 +63,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.NotEqual(Sentence, scrambled);
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void ModifierPreservesWhitespace()
     {
         var tween = Scramble(new() { Seed = 1 });
@@ -77,7 +71,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.Equal(' ', tween.TextModifier!(.125)[Sentence.IndexOf(' ')]);
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void ModifierCachesTheValueOfTheSameInput()
     {
         var tween = Scramble(new() { Seed = 1 });
@@ -85,7 +79,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.Same(tween.TextModifier!(.25), tween.TextModifier(.25));
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void ScramblesWithTheCustomCharacters()
     {
         var tween = Scramble(new() { Chars = "XY", Seed = 1 });
@@ -98,7 +92,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         }
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void RevealsMoreCharactersAsItProgresses()
     {
         var tween = Scramble(new() { Seed = 1 });
@@ -116,7 +110,7 @@ public sealed class ScrambleTextTests : BridgeTestBase
         }
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void SettlesOnTheCustomText()
     {
         var tween = Scramble(new() { Text = "Goodbye" });
@@ -124,66 +118,71 @@ public sealed class ScrambleTextTests : BridgeTestBase
         Assert.Equal("Goodbye", tween.TextModifier!(1));
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void AnimateEndsOnTheTargetText()
     {
-        var block = Block();
+        var label = new Label();
 
-        var animation = block.Animate(new() { ["Text"] = PrestoAvalonia.ScrambleText(new() { Text = "Goodbye", Duration = 100, Seed = 1 }) });
+        var animation = Presto.Animate(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Text = "Goodbye", Duration = 100, Seed = 1 }) });
         Frames.Advance(50, 16);
-        var midway = block.Text;
+        var midway = label.Text;
         RunUntil(() => animation.Completed);
 
         Assert.NotEqual("Goodbye", midway);
-        Assert.Equal("Goodbye", block.Text);
+        Assert.Equal("Goodbye", label.Text);
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void SettlesOnThePreviousScramblesTextWhenChained()
     {
-        var block = Block();
+        var label = new Label();
 
         var timeline = Presto.CreateTimeline(new() { Autoplay = false })
-            .Add(block, new AvaloniaAnimationParams { ["Text"] = PrestoAvalonia.ScrambleText(new() { Text = "Goodbye", Duration = 100 }) })
-            .Add(block, new AvaloniaAnimationParams { ["Text"] = PrestoAvalonia.ScrambleText(new() { Duration = 100 }) });
+            .Add(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Text = "Goodbye", Duration = 100 }) })
+            .Add(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Duration = 100 }) });
 
         timeline.Seek(timeline.Duration);
 
-        Assert.Equal("Goodbye", block.Text);
+        Assert.Equal("Goodbye", label.Text);
     }
 
     /// <summary>Upstream "scrambleText keyframe array reads prevTween value between keyframes".</summary>
-    [AvaloniaFact]
+    [Fact]
     public void KeyframesStartFromThePreviousFramesText()
     {
-        var block = Block();
+        var label = new Label();
 
-        var animation = block.Animate(new()
+        var animation = Presto.Animate(label, new AnimationParams
         {
             ["Text"] = TweenValue.Keyframes(
-                new TweenParams { To = PrestoAvalonia.ScrambleText(new() { Text = "First", Duration = 100 }) },
-                new TweenParams { To = PrestoAvalonia.ScrambleText(new() { Text = "Second", Duration = 100 }) }),
+                new TweenParams { To = Presto.ScrambleText(new() { Text = "First", Duration = 100 }) },
+                new TweenParams { To = Presto.ScrambleText(new() { Text = "Second", Duration = 100 }) }),
             Autoplay = false,
         });
 
         animation.Seek(100);
-        Assert.Equal("First", block.Text);
+        Assert.Equal("First", label.Text);
 
         animation.Seek(animation.Duration);
-        Assert.Equal("Second", block.Text);
+        Assert.Equal("Second", label.Text);
     }
 
-    [AvaloniaFact]
+    [Fact]
     public void RevertRestoresTheOriginalText()
     {
-        var block = Block();
+        var label = new Label();
 
-        var animation = block.Animate(new() { ["Text"] = PrestoAvalonia.ScrambleText(new() { Text = "Goodbye", Duration = 200, Seed = 1 }) });
+        var animation = Presto.Animate(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Text = "Goodbye", Duration = 200, Seed = 1 }) });
         Frames.Advance(100, 16);
-        Assert.NotEqual(Sentence, block.Text);
+        Assert.NotEqual(Sentence, label.Text);
 
         animation.Revert();
 
-        Assert.Equal(Sentence, block.Text);
+        Assert.Equal(Sentence, label.Text);
+    }
+
+    private sealed class Label
+    {
+        public string Text { get; set; } = Sentence;
     }
 }

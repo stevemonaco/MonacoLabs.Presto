@@ -17,7 +17,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 |---|---|---|
 | [Eases](eases.md) | CORE-EASES | `Ease`, `Eases`, `EaseValue`, `LinearStop`, `RoughTaper`, `WiggleType` |
 | [Ease strings](ease-parser.md) | CORE-EASEPARSER | `EaseParser` |
-| [Spring](spring.md) | CORE-SPRING | `Spring` |
+| [Spring](spring.md) | CORE-SPRING | `Spring`, `Springs` |
 
 ## Values and targets
 
@@ -25,7 +25,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 |---|---|---|
 | [Values, parsing and unit conversion](values.md) | CORE-VALUES | `TweenValue`, `ValueKind`, `ValueParser`, `UnitConverter`, `DecomposedValue`, `FunctionValue` |
 | [Colors and color spaces](colors.md) | CORE-COLORS | `PrestoColor`, `OklabColor`, `OklchColor`, `ColorSpace`, `HueInterpolation` |
-| [Targets, adapters and codecs](targets.md) | CORE-TARGETS | `ITargetAdapter`, `IPropertyAccessor`, `IValueCodec`, `IReconcilingValueCodec`, `ObjectTargetAdapter`, `TargetParser`, `DiscreteCodec`, `DiscreteRule` |
+| [Targets, adapters and codecs](targets.md) | CORE-TARGETS | `ITargetAdapter`, `IPropertyAccessor`, `IValueCodec`, `IReconcilingValueCodec`, `ObjectTargetAdapter`, `TargetParser`, `DiscreteCodec`, `DiscreteRule`, `StructCodec` |
 
 ## Animation and timelines
 
@@ -46,6 +46,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Reduced motion](reduced-motion.md) | CORE-REDUCED | — |
 | [Animation builder](animation-builder.md) | CORE-BUILDER | `AnimationBuilder`, `PropertyBuilder` |
 | [Utilities](utils.md) | CORE-UTILS | `Utils`, `ChainedUtil`, `ChainedFunctionValue`, `RandomGenerator` |
+| [Text scrambling](scramble.md) | CORE-SCRAMBLE | `ScrambleTextParams`, `ScrambleFrom` |
 
 ## Physics, values over time and simulation
 

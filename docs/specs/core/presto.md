@@ -38,13 +38,14 @@ depends:
   - CORE-MOTIONVALUE
   - CORE-REDUCED
   - CORE-DIAGNOSTICS
+  - CORE-SCRAMBLE
 ---
 
 # Presto facade
 
 ## Purpose
 
-`Presto` is the static entry point that mirrors the anime.js module exports: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`), the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) and the adapter and codec registries. Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics, and adapter resolution order.
+`Presto` is the static entry point that mirrors the anime.js module exports: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`, `ScrambleText`), the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) and the adapter and codec registries. Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics, and adapter resolution order.
 
 ## Requirements
 
