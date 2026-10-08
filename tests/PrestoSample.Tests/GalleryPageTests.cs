@@ -94,7 +94,7 @@ public sealed class GalleryPageTests
     {
         var sections = new MainViewModel().Sections;
         var reference = sections.Single(section => section.Name == "Reference").Pages;
-        var mirrors = reference.SkipWhile(page => page.Title != "Timer").TakeWhile(page => page.Title != "Compositor").ToList();
+        var mirrors = reference.SkipWhile(page => page.Title != "Timer").TakeWhile(page => page.Title != "Compositor").Where(page => page.Title != "Springs").ToList();
         var builders = sections.Single(section => section.Name == "Builder").Pages.Select(page => page.Title).ToList();
 
         Assert.Equal(15, mirrors.Count);

@@ -489,7 +489,7 @@ public sealed class RecipeTests : CompositorTestBase
         Show(new Grid { Width = 300, Height = 200, Children = { from, to } });
         Tick();
         var transition = Recipes.PageSlide(Edge.Right);
-        transition.UseCompositor = false;
+        transition.Thread = AnimationThread.UIThread;
 
         var done = transition.Start(from, to, forward: true, CancellationToken.None);
 

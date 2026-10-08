@@ -39,6 +39,8 @@ public partial class MainViewModel : ObservableObject
                 () => new StaggerPage()) { Twin = "Ripple grid" },
             new("Eases", "Every ease plotted from its delegate next to a dot moving through it: the power, back and elastic families, cubic bezier, steps, irregular, linear stops, springs, a custom ease from SVG path data, wiggle, rough, slow-mo, expo-scale and the string parser.",
                 () => new EasesPage()) { Twin = "Playground" },
+            new("Springs", "Springs: a lab that sets one spring physically or by bounce and perceived duration, with its damping ratio, curve and a weight on a coil; the three damping regimes raced; continuous velocity against a restarted tween; a thrown puck; an ease against a spring follower; presets in real UI; and chained springs trailing the pointer.",
+                () => new SpringsPage()),
             new("Shapes", "svg.createDrawable and svg.createMotionPath: a stroke drawn onto a Path through its \"Draw\" property, a control riding a second path's contour with X, Y and Rotate sampled from it, and a third riding a Catmull-Rom spline through six points, turned by autoRotate, with a curviness slider that redraws its track.",
                 () => new ShapesPage()) { Twin = "Submit flow" },
             new("Text", "splitText: a headline taken apart into per-line and per-character controls, with a staggered effect that re-runs over the new pieces whenever the width changes.",

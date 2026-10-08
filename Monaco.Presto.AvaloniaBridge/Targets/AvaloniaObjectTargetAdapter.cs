@@ -71,9 +71,9 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
                 return s_clips[(int)clip] ??= new ClipAccessor(clip);
             }
             if (EffectShorthands.ParseMask(property) is { } mask) return s_masks[(int)mask] ??= new MaskAccessor(mask);
-            if (visual is Shape && property == "Draw") return s_draw ??= new DrawAccessor();
-            if (visual is ScrollViewer && property == "ScrollX") return s_scrollX ??= new ScrollOffsetAccessor(horizontal: true);
-            if (visual is ScrollViewer && property == "ScrollY") return s_scrollY ??= new ScrollOffsetAccessor(horizontal: false);
+            if (visual is Shape && property == Shorthands.Draw) return s_draw ??= new DrawAccessor();
+            if (visual is ScrollViewer && property == Shorthands.ScrollX) return s_scrollX ??= new ScrollOffsetAccessor(horizontal: true);
+            if (visual is ScrollViewer && property == Shorthands.ScrollY) return s_scrollY ??= new ScrollOffsetAccessor(horizontal: false);
         }
 
         var type = target.GetType();
@@ -96,7 +96,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     public string? Canonicalize(object target, string property)
     {
         if (target is not AvaloniaObject) return null;
-        if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is Shape && property == "Draw") || (target is ScrollViewer && property is "ScrollX" or "ScrollY"))) return property;
+        if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is Shape && property == Shorthands.Draw) || (target is ScrollViewer && property is Shorthands.ScrollX or Shorthands.ScrollY))) return property;
         return ResolveProperty(target.GetType(), property) is { } resolved ? Encode(resolved) : null;
     }
 

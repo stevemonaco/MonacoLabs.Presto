@@ -20,7 +20,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     [AvaloniaFact]
     public void ASwapPlaysEnterOnTheNewPresenterAndExitOnTheOld()
     {
-        var (host, first) = ShowHost(new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false });
+        var (host, first) = ShowHost(new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread });
         var second = new Border { Background = Brushes.Green };
         Swap(host, second);
 
@@ -33,7 +33,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     [AvaloniaFact]
     public void CompletionHidesTheOldPresenterBeforeRevertingAndLeavesNothingAnimated()
     {
-        var (host, first) = ShowHost(new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false });
+        var (host, first) = ShowHost(new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread });
         var second = new Border { Background = Brushes.Green };
         Swap(host, second);
         var (incoming, outgoing) = (Presenter(host, second), Presenter(host, first));
@@ -62,7 +62,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     [InlineData(true)]
     public void TheIncomingHostsFirstFrameIsAtTheEntrancesStartValues(bool compositor)
     {
-        var transition = new PrestoPageTransition { Enter = Presto.Build().Opacity(from: 0).Duration(300).Ease("linear"), UseCompositor = compositor };
+        var transition = new PrestoPageTransition { Enter = Presto.Build().Opacity(from: 0).Duration(300).Ease("linear"), Thread = compositor ? AnimationThread.Compositor : AnimationThread.UIThread };
         var host = new TransitioningContentControl { PageTransition = transition, Content = new Border { Background = Brushes.White } };
         var window = Show(host);
         window.Background = Brushes.White;
@@ -86,7 +86,7 @@ public sealed class PageTransitionTests : CompositorTestBase
         {
             Enter = Recipes.SlideIn(Edge.Right, distance: 100, duration: 100, ease: "linear"),
             Exit = Recipes.FadeOut(duration: 100, ease: "linear"),
-            UseCompositor = false,
+            Thread = AnimationThread.UIThread,
         };
 
         _ = transition.Start(from, to, forward: false, CancellationToken.None);
@@ -127,7 +127,7 @@ public sealed class PageTransitionTests : CompositorTestBase
             Enter = Recipes.SlideIn(Edge.Right, distance: 100, duration: 100, ease: "linear"),
             Exit = Recipes.FadeOut(duration: 100, ease: "linear"),
             BackEnter = Recipes.SlideIn(Edge.Left, distance: 100, duration: 100, ease: "linear"),
-            UseCompositor = false,
+            Thread = AnimationThread.UIThread,
         };
 
         _ = transition.Start(from, to, forward: false, CancellationToken.None);
@@ -141,7 +141,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     public void IncomingAboveForwardStacksByDirection(bool forward, int incoming, int outgoing)
     {
         var (from, to) = ShowPair();
-        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false };
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
 
         _ = transition.Start(from, to, forward, CancellationToken.None);
 
@@ -155,7 +155,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     {
         var (from, to) = ShowPair();
         from.ZIndex = 5;
-        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Stacking = PageStacking.Host, UseCompositor = false };
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Stacking = PageStacking.Host, Thread = AnimationThread.UIThread };
 
         _ = transition.Start(from, to, true, CancellationToken.None);
 
@@ -168,7 +168,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     public async Task ACanceledHostIsTakenOverFromWhereItStands()
     {
         var (a, b) = ShowPair();
-        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false };
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
         using var first = new CancellationTokenSource();
         var firstTask = transition.Start(a, b, true, first.Token);
         Frames.Advance(50);
@@ -196,7 +196,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     [AvaloniaFact]
     public void ASecondSwapMidTransitionTakesTheEnteringPresenterOverFromWhereItStands()
     {
-        var (host, _) = ShowHost(new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false });
+        var (host, _) = ShowHost(new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread });
         var second = new Border { Background = Brushes.Green };
         Swap(host, second);
         Frames.Advance(50);
@@ -221,7 +221,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     public void AnUnclaimedHostRevertsAfterOneFrame()
     {
         var (a, b) = ShowPair();
-        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false };
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
         using var cancel = new CancellationTokenSource();
         _ = transition.Start(a, b, true, cancel.Token);
         Frames.Advance(50);
@@ -243,7 +243,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     public void EitherSideMayBeMissing()
     {
         var (from, to) = ShowPair();
-        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false };
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
 
         var shown = transition.Start(null, to, true, CancellationToken.None);
         var dismissed = transition.Start(from, null, true, CancellationToken.None);
@@ -286,7 +286,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     public void ForcingTheCompositorWithBlurThrows()
     {
         var (from, to) = ShowPair();
-        var transition = new PrestoPageTransition { Enter = Recipes.BlurIn(), UseCompositor = true };
+        var transition = new PrestoPageTransition { Enter = Recipes.BlurIn(), Thread = AnimationThread.Compositor };
 
         Assert.Throws<NotSupportedException>(() => { _ = transition.Start(from, to, true, CancellationToken.None); });
     }
@@ -425,7 +425,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     {
         var carousel = new Carousel
         {
-            PageTransition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false },
+            PageTransition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread },
             ItemsSource = new[] { "one", "two" },
         };
         var window = Show(carousel);
@@ -451,7 +451,7 @@ public sealed class PageTransitionTests : CompositorTestBase
     [AvaloniaFact]
     public async Task ANavigationPagePushAndPopRunTheTransitionAndKeepItsOwnValues()
     {
-        var navigation = new NavigationPage { PageTransition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, UseCompositor = false } };
+        var navigation = new NavigationPage { PageTransition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread } };
         Show(navigation);
         await navigation.PushAsync(new ContentPage { Content = new Border { Background = Brushes.Blue } });
         var root = PagePresenter(navigation);

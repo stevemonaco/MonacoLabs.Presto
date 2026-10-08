@@ -287,3 +287,35 @@ No straight-line space can keep complementary pairs saturated or sweep the hue a
 - **What it costs:** `from` must be known when the builder runs, and the color between segment ends is the
   pseudo-linear blend, not the true mix. Segments are fitted until that blend is within deltaEOK 0.02 (at most 16),
   except where a spring overshoots past the gamut (COLOR-SPACES-PLAN decision 10, §7). PLAN decision 118.
+
+## 13. Choosing the thread (Phase 70)
+
+An animation runs on one of two threads: the **UI thread**, where `Presto.Engine` ticks every frame, or the **render
+thread**, where Avalonia's compositor plays key frame animations. The API names the second after the compositor, as
+`AnimateOnCompositor` and `CompositorAnimation` already do; prose says "render thread" when it means where the frames
+are drawn. The two words never mean different things.
+
+- **`AnimationThread.UIThread`** always uses the engine, even when the compositor could take the animation.
+- **`AnimationThread.Compositor`** forces the render thread and throws for a property or setting the compositor lacks.
+- **`AnimationThread.PreferCompositor`** takes the render thread when it can and falls back to the UI thread silently.
+
+The same names read the same in C# (`AnimationThread.PreferCompositor`) and XAML (`Thread="PreferCompositor"`).
+"Prefer" says the fallback is expected, not an error. `PrestoAvalonia.CanAnimateOnCompositor` answers the question
+without running anything, and a `ThreadedAnimation` reports the thread it got through `OnCompositor`. PLAN decision 119.
+
+## 14. Typed shorthand keys (Phase 71)
+
+§1 left option 3, typed property handles, open. Settings are typed `init` members, but a shorthand key (`["X"]`,
+`["Blur"]`) is a string a typo breaks only at run time, and neither typed alternative covers it: shorthands have no
+`AvaloniaProperty`, and the builder's `.X(320)` is a different form.
+
+- **Constants, not a key type.** `Shorthands.X` is a `const string`, so it is the string key: no core overload, no
+  canonicalization, and it works wherever a string does (keyframes, `Animatable`, `Presto.Get`/`Set`, attributes,
+  `switch`). A key struct would need a second indexer overload beside `this[string]`, which `["X"]` and
+  `[Shorthands.X]` would both have to pick between, and would add nothing a constant lacks.
+- **No analyzer.** The repo has no analyzer project, and an arbitrary key may name any registered Avalonia property,
+  so the analyzer could only check shorthands, which the constants already cover.
+- **One spelling.** The parsers match on the constants, and `ShorthandKeysTests` compares the constants with the
+  shorthand enums plus `Draw`, `ScrollX` and `ScrollY`, so a new shorthand without a constant fails a test.
+- **Upstream mirrors keep strings.** The pages under `samples/PrestoSample/Pages/` follow the anime.js docs and keep
+  `["X"]` so they read side by side with them. PLAN decision 120.

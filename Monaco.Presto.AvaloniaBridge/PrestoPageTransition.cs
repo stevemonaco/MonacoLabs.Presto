@@ -34,13 +34,13 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     /// <summary>How the two hosts stack while the transition runs.</summary>
     public PageStacking Stacking { get; set; } = PageStacking.IncomingAboveForward;
 
-    /// <summary>True plays on the render thread, false on the UI thread, and null on the render thread whenever every property has a composition counterpart.</summary>
-    public bool? UseCompositor { get; set; }
+    /// <summary>The thread both hosts play on; the default takes the render thread whenever both builders fit it. Seeks (<see cref="Update"/>) always run on the UI thread.</summary>
+    public AnimationThread Thread { get; set; } = AnimationThread.PreferCompositor;
 
     private (Visual? From, Visual? To, bool Forward, HostRun? Incoming, HostRun? Outgoing)? _progress;
 
     /// <inheritdoc/>
-    /// <exception cref="NotSupportedException"><see cref="UseCompositor"/> is true and a builder in play sets something the compositor has no counterpart for.</exception>
+    /// <exception cref="NotSupportedException"><see cref="Thread"/> is <see cref="AnimationThread.Compositor"/> and a builder in play sets something the compositor has no counterpart for.</exception>
     public Task Start(Visual? from, Visual? to, bool forward, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested) return Task.CompletedTask;
@@ -77,7 +77,12 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
         using var origin = PrestoDiagnostics.Origin("PageTransition");
         var enter = to == null ? null : forward ? Enter?.ToParams() : BackEnter?.ToParams() ?? Reversed(Exit);
         var exit = from == null ? null : forward ? Exit?.ToParams() : BackExit?.ToParams() ?? Reversed(Enter);
-        var compositor = !seekable && (UseCompositor ?? ((enter == null || PrestoAvalonia.FitsCompositor(enter)) && (exit == null || PrestoAvalonia.FitsCompositor(exit))));
+        var compositor = !seekable && Thread switch
+        {
+            AnimationThread.UIThread => false,
+            AnimationThread.Compositor => true,
+            _ => (enter == null || PrestoAvalonia.CanAnimateOnCompositor(enter, out _)) && (exit == null || PrestoAvalonia.CanAnimateOnCompositor(exit, out _)),
+        };
         bool? incomingAbove = Stacking switch
         {
             PageStacking.IncomingAboveForward => forward,

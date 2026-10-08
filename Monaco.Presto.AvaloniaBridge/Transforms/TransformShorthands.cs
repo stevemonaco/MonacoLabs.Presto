@@ -43,17 +43,17 @@ internal static class TransformShorthands
 
     public static TransformShorthand? Parse(string name) => name switch
     {
-        "X" => TransformShorthand.X,
-        "Y" => TransformShorthand.Y,
-        "Rotate" => TransformShorthand.Rotate,
-        "Scale" => TransformShorthand.Scale,
-        "ScaleX" => TransformShorthand.ScaleX,
-        "ScaleY" => TransformShorthand.ScaleY,
-        "SkewX" => TransformShorthand.SkewX,
-        "SkewY" => TransformShorthand.SkewY,
-        "RotateX" => TransformShorthand.RotateX,
-        "RotateY" => TransformShorthand.RotateY,
-        "Perspective" => TransformShorthand.Perspective,
+        Shorthands.X => TransformShorthand.X,
+        Shorthands.Y => TransformShorthand.Y,
+        Shorthands.Rotate => TransformShorthand.Rotate,
+        Shorthands.Scale => TransformShorthand.Scale,
+        Shorthands.ScaleX => TransformShorthand.ScaleX,
+        Shorthands.ScaleY => TransformShorthand.ScaleY,
+        Shorthands.SkewX => TransformShorthand.SkewX,
+        Shorthands.SkewY => TransformShorthand.SkewY,
+        Shorthands.RotateX => TransformShorthand.RotateX,
+        Shorthands.RotateY => TransformShorthand.RotateY,
+        Shorthands.Perspective => TransformShorthand.Perspective,
         _ => null,
     };
 }

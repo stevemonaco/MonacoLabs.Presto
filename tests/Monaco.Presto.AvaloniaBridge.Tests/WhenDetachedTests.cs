@@ -323,7 +323,7 @@ public sealed class WhenDetachedTests : BridgeTestBase
     public void APageTransitionFinishesWhenItsPagesDetach()
     {
         var (from, to) = (Attached(), Attached());
-        var transition = new PrestoPageTransition { Enter = Presto.Build().Opacity(from: 0).Duration(100).Ease("linear"), Exit = Fade, UseCompositor = false };
+        var transition = new PrestoPageTransition { Enter = Presto.Build().Opacity(from: 0).Duration(100).Ease("linear"), Exit = Fade, Thread = AnimationThread.UIThread };
         var done = transition.Start(from, to, true, CancellationToken.None);
         Frames.Advance(50, 16);
 

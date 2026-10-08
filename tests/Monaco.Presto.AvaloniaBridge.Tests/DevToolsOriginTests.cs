@@ -50,7 +50,7 @@ public sealed class DevToolsOriginTests : BridgeTestBase, IDisposable
         {
             Enter = Presto.Build().Opacity(from: 0).Duration(100),
             Exit = Presto.Build().Opacity(0).Duration(100),
-            UseCompositor = false,
+            Thread = AnimationThread.UIThread,
         };
 
         _ = transition.Start(from, to, true, CancellationToken.None);

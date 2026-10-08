@@ -201,7 +201,7 @@ public sealed class PresencePageTransitionTests : CompositorTestBase
     {
         Enter = Presto.Build().Opacity(from: 0).Duration(100).Ease("linear"),
         Exit = Presto.Build().Opacity(0).Duration(100).Ease("linear"),
-        UseCompositor = false,
+        Thread = AnimationThread.UIThread,
     };
 
     private static TransitioningContentControl PrestoHost(Control? content = null)

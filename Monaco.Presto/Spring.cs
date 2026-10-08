@@ -163,6 +163,9 @@ public sealed class Spring
         }
     }
 
+    /// <summary>Damping over critical damping: below 1 the spring oscillates, exactly 1 is critically damped, above 1 is overdamped.</summary>
+    public double DampingRatio => _zeta;
+
     /// <summary>Passes the spring where a bare <see cref="Ease"/> is expected, which drops its <see cref="SettlingDuration"/>.</summary>
     public static implicit operator Ease(Spring spring) => spring.Ease;
 

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using PrestoSample.Pages;
 
@@ -23,6 +24,21 @@ public sealed class CompositorPageTests
 
         Assert.True(head.RenderTransform?.Value.IsIdentity ?? true, "the UI-thread comet kept its animated transform");
         Assert.All(page.Motions, motion => Assert.Equal(0, motion.CurrentTime));
+    }
+
+    [AvaloniaFact]
+    public void EachThreadModeLaneReportsTheThreadItGot()
+    {
+        var page = new CompositorPage();
+        SceneHarness.Show(page, 900, 1100);
+        TestFrames.Tick(30);
+
+        Assert.Equal("X + Blur · Blur doesn't fit", page.GetControl<TextBlock>("UnfitLabel").Text);
+        Assert.Equal<string?>(["UI thread", "render thread", "render thread", "UI thread", "UI thread"], [.. page.ThreadReadouts.Where((_, i) => i != 4)]);
+        Assert.StartsWith("'Blur' has no composition property.", page.ThreadReadouts[4]);
+        Border[] dots = [.. page.GetControl<Grid>("ThreadGrid").GetLogicalDescendants().OfType<Border>().Where(b => b.Classes.Contains("dot"))];
+        Assert.False(dots[5].RenderTransform!.Value.IsIdentity, "the fallback never moved on the UI thread");
+        Assert.True(dots[4].RenderTransform?.Value.IsIdentity ?? true, "the forced compositor lane moved although it threw");
     }
 
     [AvaloniaFact]

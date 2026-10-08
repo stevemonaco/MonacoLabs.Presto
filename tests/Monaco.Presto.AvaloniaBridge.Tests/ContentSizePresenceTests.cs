@@ -108,7 +108,7 @@ public sealed class ContentSizePresenceTests : CompositorTestBase
     {
         var host = new TransitioningContentControl
         {
-            PageTransition = presto ? new PrestoPageTransition { Exit = Presto.Build().Opacity(0).Duration(Duration).Ease("linear"), UseCompositor = false } : null,
+            PageTransition = presto ? new PrestoPageTransition { Exit = Presto.Build().Opacity(0).Duration(Duration).Ease("linear"), Thread = AnimationThread.UIThread } : null,
             Content = Bar(Small),
             VerticalAlignment = VerticalAlignment.Top,
         };

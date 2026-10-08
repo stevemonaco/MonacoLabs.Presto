@@ -67,7 +67,7 @@ using Monaco.Presto.AvaloniaBridge;
 Square.Animate(new()
 {
     ["X"] = 320,                                // transform shorthand → RenderTransform
-    ["Y"] = -40,
+    [Shorthands.Y] = -40,                       // the same key as ["Y"], checked at compile time
     ["Rotate"] = new TweenParams { From = -180 },
     ["Scale"] = 1.4,
     [Visual.OpacityProperty] = 0.4,             // typed AvaloniaProperty
@@ -163,6 +163,8 @@ var spin = icon.AnimateOnCompositor(Presto.Build().Rotate(360).Duration(1200).Ea
 
 `AnimateOnCompositor` throws `NotSupportedException`, naming the setting, for anything the builder set that the
 [render-thread model](#render-thread) has no counterpart for (`Keyframes`, `OnUpdate`, `Composition`, …).
+`icon.Animate(builder, AnimationThread.PreferCompositor)` takes the render thread when the builder fits and the UI
+thread when it doesn't, without throwing; [Choosing the thread](#choosing-the-thread) has the three modes.
 
 #### From XAML
 
@@ -756,6 +758,30 @@ stands, so the two are a frame apart until the next call. `Cancel`, `Revert` and
 else about a control is an `AvaloniaProperty` write, which is UI-thread work and stops with the UI thread. WebAssembly
 has a caveat of its own, in [Platforms and status](#platforms-and-status).
 
+#### Choosing the thread
+
+`Animate` with an `AnimationThread` picks the thread for params, a builder or a builder lambda, and returns a
+`ThreadedAnimation` that says which one it got (`OnCompositor`) and exposes the live animation (`UIThread` or
+`Compositor`) beside `Play`, `Pause`, `Resume`, `Cancel`, `Revert` and `Then`:
+
+| Mode | Runs on | When the animation doesn't fit |
+|---|---|---|
+| `AnimationThread.UIThread` | the UI thread's `Presto.Engine`, always | — |
+| `AnimationThread.Compositor` | the render thread, as `AnimateOnCompositor` | throws `NotSupportedException` naming the property or setting |
+| `AnimationThread.PreferCompositor` | the render thread when it fits | falls back to the UI thread silently |
+
+```csharp
+var spin = icon.Animate(Presto.Build().Rotate(360).Duration(1200).Loop(), AnimationThread.PreferCompositor);
+if (!spin.OnCompositor) Log("spinner stops while the UI thread is busy");
+bool fits = PrestoAvalonia.CanAnimateOnCompositor(builder, out var reason);   // reason: "Blur", "OnUpdate"…
+```
+
+An animation fits when every property is one of `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY` and `Opacity`, and
+it sets none of `Keyframes`, `FrameRate`, `PlaybackEase`, `Composition`, `Modifier`, `Id`, `Priority`,
+`OnBeforeUpdate`, `OnUpdate`, `OnLoop`, `OnPause` or `OnRender`. `CanAnimateOnCompositor` answers without running
+anything and names the first property or setting that fails. The XAML entry points (`Animate.OnAttached`, `Presence`,
+recipes) stay on the UI thread; [page transitions](#page-transitions) default to `PreferCompositor`.
+
 The same composition transform eases a control into its new place whenever layout moves it, as FLIP:
 
 ```csharp
@@ -1227,7 +1253,8 @@ properties. Play the effect on the live element, await it, then remove the eleme
 
 `Recipes` is a catalog of everyday motion. Each recipe is a factory that returns a new `AnimationBuilder`, so chaining
 on one never touches another caller's copy, and it goes wherever a builder goes: `Animate`, `Presence.*`, `Motion.*`,
-`Animate.OnAttached`, and `AnimateOnCompositor` where the table allows.
+`Animate.OnAttached`, and the render thread where the table's Compositor column allows: `AnimateOnCompositor` or
+`AnimationThread.Compositor` throws for a "no", and `AnimationThread.PreferCompositor` plays it on the UI thread instead.
 
 ```csharp
 card.Animate(Recipes.FadeUp());
@@ -1347,7 +1374,9 @@ recipe needs, unless the block sets them itself. From a style `Setter` they cann
 `PrestoPageTransition` is an Avalonia `IPageTransition` (and `IProgressPageTransition`) for any host that takes one:
 `TransitioningContentControl`, `Carousel`, `NavigationPage`, `TabControl`. It plays `Enter` on the incoming page and
 `Exit` on the outgoing one, going back plays the pair reversed unless `BackEnter`/`BackExit` are set, and it runs on the
-render thread whenever every property allows (`UseCompositor`). The page recipes return one ready-made:
+render thread whenever every property allows (`Thread`, `AnimationThread.PreferCompositor` by default; `UIThread`
+keeps it on the engine, `Compositor` throws for a builder that doesn't fit). Seeks driven by a swipe always run on the
+UI thread. The page recipes return one ready-made:
 
 ```xml
 <TransitioningContentControl Content="{Binding CurrentPage}" ClipToBounds="True"
@@ -1588,7 +1617,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `engine` | `Presto.Engine` (`Speed`, `Fps`, `Precision`, `TimeUnit`, `Pause()`, `Resume()`, `FrameSource`) |
 | `globals` / per-call defaults | `Presto.Defaults`, or `ScopeParams.Defaults` / `TimelineParams.Defaults` for a subtree |
 | `registerAdapter` (`adapters/`) | `Presto.Adapters` (an `ITargetAdapter` list) and `Presto.Codecs` (per property type). `adapters/three.js` itself is **not ported** — the interfaces are there if you want to write one. |
-| `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes and what it leaves out. `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
+| `waapi.*` | Partly, and not as an API port — there is no Web Animations API here. `waapi.animate` is `PrestoAvalonia.AnimateOnCompositor(targets, new CompositorAnimationParams { … })`, or `control.AnimateOnCompositor(new() { … })` / `(Presto.Build()…)`: the reduced model upstream has too, compiled into composition key frames on the render thread; see [Render thread](#render-thread) for the properties it takes, what it leaves out, and the `AnimationThread` modes that fall back to the UI thread for the rest (upstream has no fallback). `CompositorCanvas` / `CompositorScene`, which run a whole engine on the render thread, are Presto's own — upstream has no counterpart. |
 | `createLayout` / `AutoLayout` (`layout/`) | Partly. `PrestoAvalonia.AnimateLayout(control, duration, ease, mode)`, or `control.AnimateLayout(…)`, eases a control into its new place whenever layout moves it, as FLIP inverted onto the composition transform and played on the render thread; `AnimateSharedElement(source, target, …)` moves one between containers. From XAML, `Animate.Layout` arms it on a control and `Animate.ItemLayout` on every container of a list, for as long as each is attached; `LayoutAnimateMode.PositionAndSize` scales a resize and `PositionAndSizeCorrected` counter-scales the direct children. Upstream's real width/height animation is `Animate.ContentSize` / `AnimateContentSize(host, …)`, which eases the layout size on the UI thread. See [Render thread](#render-thread), [Layout animation from XAML](#layout-animation-from-xaml) and [Content size](#content-size). Upstream's enter and leave states (`enterFrom` / `leaveTo` / `swapAt`) are not layout moves here: entering is `Presence.Arrive`, `Initial` or `Enter`, and leaving is `Presence.Exit` (see [Lifecycle animations](#lifecycle-animations)). |
 | `utils.$` (`registerTargets`) | **Not ported.** There are no selector strings: pass an object, an `IEnumerable`, or an Avalonia `Controls` collection straight to `Animate`. |
 | `utils.cleanInlineStyles` | **Not ported.** The bridge writes at `BindingPriority.Animation`, so `Revert()` clears the animated values and the control's own values reappear; there is nothing inline to clean. |
@@ -1645,7 +1674,9 @@ A handful of places where the JS shape does not survive the type system:
 
 - **Properties go through an indexer**, which is the only C# syntax that mixes named settings and arbitrary keys in one
   initializer: `new() { ["X"] = 320, Duration = 1250 }`. The bridge adds a typed `AvaloniaProperty` indexer, so
-  `[Visual.OpacityProperty] = 0.4` sits alongside `["Opacity"] = 0.4`.
+  `[Visual.OpacityProperty] = 0.4` sits alongside `["Opacity"] = 0.4`. Shorthands have no `AvaloniaProperty`, so the
+  bridge's `Shorthands` class names them as `const string` keys: `[Shorthands.X] = 320` is `["X"] = 320`, but a typo
+  fails to compile.
 - **A lambda literal needs its delegate type named.** C# does not apply user-defined implicit conversions to lambdas, so
   write `Ease = (Ease)(t => t)` and `["X"] = new FunctionValue((target, i, total) => i * 10)`. Values that already carry
   their type (`Eases.OutQuad`, `Presto.Stagger(…)`, `Utils.Snap(40)`) convert on their own.

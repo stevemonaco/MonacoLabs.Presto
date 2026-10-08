@@ -264,6 +264,14 @@ Supported properties: `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `Opacity`
 anything else throws `NotSupportedException` naming the list, since a silent UI-thread fallback would defeat the
 purpose.
 
+The fallback is opt-in instead (Phase 70, PLAN decision 119): `PrestoAvalonia.Animate(targets, params|builder, AnimationThread)`
+and `control.Animate(…, thread)` take `UIThread` (always the engine), `Compositor` (this entry point, throwing as above)
+or `PreferCompositor` (the render thread when `PrestoAvalonia.CanAnimateOnCompositor` holds, the UI thread otherwise),
+and return a `ThreadedAnimation` whose `OnCompositor` says which thread it got. `CanAnimateOnCompositor` checks the
+property list above and the settings the compiler cannot carry: `Keyframes`, `FrameRate`, `PlaybackEase`,
+`Composition`, `Modifier`, `Id`, `Priority`, `OnBeforeUpdate`, `OnUpdate`, `OnLoop`, `OnPause`, `OnRender`.
+`PrestoPageTransition.Thread` takes the same enum and defaults to `PreferCompositor`.
+
 Compile, per target:
 
 1. Build a **mirror**: a normal Presto `Animation` on a private scratch object with one `double` per shorthand, using
@@ -421,6 +429,9 @@ spinner.Invoke<SpinnerScene>(s => s.Engine.Speed = 2);     // marshalled to the 
 var spin = icon.AnimateOnCompositor(new() { ["Rotate"] = 360, Duration = 1200, Ease = Eases.None, Loop = true });
 await busyWork;
 spin.Revert();
+
+// Render thread when it fits, UI thread otherwise; OnCompositor says which.
+var move = card.Animate(Presto.Build().X(200).Blur(4), AnimationThread.PreferCompositor);   // Blur: UI thread
 ```
 
 ## 6. Phases
@@ -449,7 +460,7 @@ Checklist entries live in `docs/PLAN.md` §5 (Phases 9–12) so `implement-plan`
 
 ## 7. Decisions and open questions
 
-Decided: PLAN §7, decisions 12–16.
+Decided: PLAN §7, decisions 12–16, and 119 (choosing the thread).
 
 Open:
 

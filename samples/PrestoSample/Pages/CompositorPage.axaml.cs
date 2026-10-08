@@ -12,6 +12,12 @@ namespace PrestoSample.Pages;
 
 public partial class CompositorPage : ShowcasePage
 {
+    #region snippet ThreadBuilders
+    private static readonly AnimationBuilder Fits = Presto.Build().X(150).Duration(1000).Ease(Eases.InOutSine).Loop().Alternate();
+    private static readonly AnimationBuilder Unfit = Presto.Build().X(150).Blur(3).Duration(1000).Ease(Eases.InOutSine).Loop().Alternate();
+    #endregion
+
+    private readonly (Border Dot, TextBlock Readout, AnimationBuilder Builder, AnimationThread Thread)[] _lanes;
     private readonly Ellipse[] _dots;
     private readonly Canvas[] _tail;
     private CompositorAnimation[] _motions = [];
@@ -45,10 +51,30 @@ public partial class CompositorPage : ShowcasePage
 
         UiOrbit.Children.AddRange(_dots);
         UiOrbit.Children.AddRange(Enumerable.Reverse(_tail));
+
+        _lanes = [.. new[] { Fits, Unfit }.SelectMany((builder, row) => Enum.GetValues<AnimationThread>().Select((thread, column) =>
+        {
+            var dot = new Border { Classes = { "dot" } };
+            if (builder == Unfit) dot.Classes.Add("unfit");
+            var readout = new TextBlock { Classes = { "caption" } };
+            var lane = new StackPanel { Classes = { "lane" }, Children = { new Border { Classes = { "orbit", "lane" }, Child = dot }, readout } };
+            Grid.SetRow(lane, row + 1);
+            Grid.SetColumn(lane, column + 1);
+            ThreadGrid.Children.Add(lane);
+            return (dot, readout, builder, thread);
+        }))];
+        #region snippet ThreadQuery
+        PrestoAvalonia.CanAnimateOnCompositor(Unfit, out var reason);
+        UnfitLabel.Text = $"X + Blur · {reason} doesn't fit";
+        #endregion
+        ThreadCode.Code = $"{Snippets.ThreadBuilders}\n\n{Snippets.ThreadQuery}\n\n{Snippets.ThreadModes}";
     }
 
     /// <summary>The looping compositor animations on the real controls, which the transport drives.</summary>
     public IReadOnlyList<CompositorAnimation> Motions => _motions;
+
+    /// <summary>What each thread-mode lane reports: the fitting builder first, each in UIThread, Compositor, PreferCompositor order.</summary>
+    public IReadOnlyList<string?> ThreadReadouts => [.. _lanes.Select(lane => lane.Readout.Text)];
 
     protected override void OnAttached()
     {
@@ -64,6 +90,21 @@ public partial class CompositorPage : ShowcasePage
             Gear.AnimateOnCompositor(new() { ["Rotate"] = 360, Duration = 2400, Ease = Eases.None, Loop = true }),
             BreatheToggle.AnimateOnCompositor(new() { ["Opacity"] = .3, Duration = 1100, Ease = Eases.InOutSine, Loop = true, Alternate = true }),
         ];
+
+        foreach (var (dot, readout, builder, thread) in _lanes)
+        {
+            #region snippet ThreadModes
+            try
+            {
+                var run = dot.Animate(builder, thread);
+                readout.Text = run.OnCompositor ? "render thread" : "UI thread";
+            }
+            catch (NotSupportedException e)
+            {
+                readout.Text = e.Message;
+            }
+            #endregion
+        }
     }
 
     private void Freeze(object? sender, RoutedEventArgs e) => UiThread.Freeze(TimeSpan.FromSeconds(2));

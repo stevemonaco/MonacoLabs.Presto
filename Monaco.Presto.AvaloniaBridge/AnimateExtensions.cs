@@ -31,6 +31,19 @@ public static class AnimateExtensions
     /// <inheritdoc cref="Animate(AvaloniaObject, AnimationBuilder)"/>
     public static Animation Animate(this AvaloniaObject target, Action<AnimationBuilder> build) => target.Animate(Presto.Build(build));
 
+    /// <inheritdoc cref="PrestoAvalonia.Animate(object?, AnimationParams, AnimationThread)"/>
+    [OverloadResolutionPriority(1)]
+    public static ThreadedAnimation Animate(this Visual target, AvaloniaAnimationParams parameters, AnimationThread thread) =>
+        PrestoAvalonia.Animate(target, parameters, thread);
+
+    /// <inheritdoc cref="PrestoAvalonia.Animate(object?, AnimationBuilder, AnimationThread)"/>
+    public static ThreadedAnimation Animate(this Visual target, AnimationBuilder builder, AnimationThread thread) =>
+        PrestoAvalonia.Animate(target, builder, thread);
+
+    /// <inheritdoc cref="PrestoAvalonia.Animate(object?, AnimationBuilder, AnimationThread)"/>
+    public static ThreadedAnimation Animate(this Visual target, Action<AnimationBuilder> build, AnimationThread thread) =>
+        PrestoAvalonia.Animate(target, build, thread);
+
     /// <inheritdoc cref="PrestoAvalonia.AnimateOnCompositor(object?, CompositorAnimationParams)"/>
     [OverloadResolutionPriority(1)]
     public static CompositorAnimation AnimateOnCompositor(this Visual target, CompositorAnimationParams parameters) =>

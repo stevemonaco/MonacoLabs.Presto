@@ -134,8 +134,8 @@ public partial class InterruptionPage : ShowcasePage
             #region snippet InterruptionRetarget
             Scope.Execute(_ => Presto.Animate(puck, new AvaloniaAnimationParams
             {
-                ["X"] = (relative.X * pane.Bounds.Width) - Canvas.GetLeft(puck) - (puck.Width / 2),
-                ["Y"] = (relative.Y * pane.Bounds.Height) - Canvas.GetTop(puck) - (puck.Height / 2),
+                [Shorthands.X] = (relative.X * pane.Bounds.Width) - Canvas.GetLeft(puck) - (puck.Width / 2),
+                [Shorthands.Y] = (relative.Y * pane.Bounds.Height) - Canvas.GetTop(puck) - (puck.Height / 2),
                 Duration = RetargetDuration,
                 Ease = Eases.OutQuad,
                 Composition = mode,

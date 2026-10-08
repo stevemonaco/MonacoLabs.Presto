@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:vm="clr-namespace:PrestoSample.ViewModels"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
                        x:Class="PrestoSample.Showcase.Pages.InterruptionPage">
     <showcase:ShowcasePage.Styles>
@@ -65,6 +66,11 @@
                     <Button x:Name="ResetPucks" Content="Reset" Click="ResetPucksClicked" />
                 </StackPanel>
             </Border>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Classes="caption" VerticalAlignment="Center" Text="A spring follower keeps its velocity through every retarget:" />
+                <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
+                                 Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
+            </StackPanel>
 
             <TextBlock Classes="eyebrow showcase" Text="HOVER · INTERRUPT FROM WHERE YOU ARE" />
             <Border Classes="rail showcase">

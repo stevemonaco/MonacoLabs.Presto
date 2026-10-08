@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Avalonia;
@@ -133,17 +134,46 @@ public static class PrestoAvalonia
     public static CompositorAnimation AnimateOnCompositor(object? targets, AnimationBuilder builder) =>
         RunOnCompositor(targets, builder.ToParams());
 
-    /// <summary>Whether <paramref name="p"/> can run on the render thread: no setting the compositor lacks and a composition counterpart for every property.</summary>
-    internal static bool FitsCompositor(AnimationParams p)
+    /// <summary>
+    /// Whether the animation can run on the render thread: no setting the compositor lacks and a composition counterpart for
+    /// every property. Otherwise the reason names the first setting (<c>"Keyframes"</c>, <c>"OnUpdate"</c>…) or property (<c>"Width"</c>) it lacks.
+    /// </summary>
+    public static bool CanAnimateOnCompositor(AnimationParams parameters, [NotNullWhen(false)] out string? reason)
     {
-        p = p.Resolve(Engine.Current);
-        if (UnsupportedOnCompositor(p) != null) return false;
+        var p = parameters.Resolve(Engine.Current);
+        reason = UnsupportedOnCompositor(p);
+        if (reason != null) return false;
         foreach (var name in p.Properties.Keys)
         {
-            if (CompositorProperty.Find(name) == null) return false;
+            if (CompositorProperty.Find(name) != null) continue;
+            reason = name;
+            return false;
         }
         return true;
     }
+
+    /// <inheritdoc cref="CanAnimateOnCompositor(AnimationParams, out string?)"/>
+    public static bool CanAnimateOnCompositor(AnimationBuilder builder, [NotNullWhen(false)] out string? reason) =>
+        CanAnimateOnCompositor(builder.ToParams(), out reason);
+
+    /// <summary>Animates <paramref name="targets"/> on the thread <paramref name="thread"/> picks.</summary>
+    /// <exception cref="NotSupportedException"><paramref name="thread"/> is <see cref="AnimationThread.Compositor"/> and the compositor has no counterpart for a property or setting.</exception>
+    public static ThreadedAnimation Animate(object? targets, AnimationParams parameters, AnimationThread thread)
+    {
+        EnsureInitialized();
+        return thread == AnimationThread.Compositor || (thread == AnimationThread.PreferCompositor && CanAnimateOnCompositor(parameters, out _))
+            ? new ThreadedAnimation(null, RunOnCompositor(targets, parameters))
+            : new ThreadedAnimation(Presto.Animate(targets, parameters), null);
+    }
+
+    /// <summary>Animates <paramref name="targets"/> with a snapshot of <paramref name="builder"/> on the thread <paramref name="thread"/> picks.</summary>
+    /// <inheritdoc cref="Animate(object?, AnimationParams, AnimationThread)" path="/exception"/>
+    public static ThreadedAnimation Animate(object? targets, AnimationBuilder builder, AnimationThread thread) =>
+        Animate(targets, builder.ToParams(), thread);
+
+    /// <inheritdoc cref="Animate(object?, AnimationBuilder, AnimationThread)"/>
+    public static ThreadedAnimation Animate(object? targets, Action<AnimationBuilder> build, AnimationThread thread) =>
+        Animate(targets, Presto.Build(build), thread);
 
     internal static CompositorAnimation RunOnCompositor(object? targets, AnimationParams p)
     {

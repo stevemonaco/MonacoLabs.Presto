@@ -44,12 +44,59 @@ public sealed class SnippetCompileTests
         Printed(new Showcase.Pages.CarouselPage(), panel => panel.Header == "How it's built"));
 
     [AvaloniaFact]
+    public void CompositorThreadModesPrintCompilingCode() => AssertCompiles(
+        $"TextBlock UnfitLabel, readout; Border dot; AnimationBuilder builder; AnimationThread thread;\n{Snippets.ThreadBuilders}",
+        $"{Snippets.ThreadQuery}\n{Snippets.ThreadModes}");
+
+    [AvaloniaFact]
     public void DraggablePrintsACompilingSpring() => AssertCompiles(
         """
         Border SpringCard; Canvas Stage; int _drags, _updates;
         Func<string, Action<Draggable>> Record; Action<Draggable> ShowState;
         """,
         Printed(new DraggablePage(), panel => panel.Name == "SpringCode") + ";");
+
+    [AvaloniaFact]
+    public void SpringLabPrintsACompilingDrop() => AssertCompiles(
+        "Border Weight; const double Drop = 120; void DrawCoil(double y) { }",
+        Printed(new SpringsPage(), panel => panel.Name == "LabCode"));
+
+    [AvaloniaFact]
+    public void SpringRegimesPrintCompilingSpringsAndRace() => AssertCompiles(
+        $"Border UnderDot, CriticalDot, OverDot; const double RaceDistance = 300;\n{Snippets.SpringRegimes}",
+        Snippets.SpringRace);
+
+    [AvaloniaFact]
+    public void SpringVelocityPrintsACompilingFollowerAndRetarget() => AssertCompiles(
+        "Border TweenPuck, SpringPuck; MotionValue _targetX, _targetY, _followerX; const double TweenDuration = 600; double x, y;",
+        Printed(new SpringsPage(), panel => panel.Name == "VelocityCode"));
+
+    [AvaloniaFact]
+    public void SpringThrowPrintsACompilingChaseMoveAndRelease() => AssertCompiles(
+        "Border ThrowPuck; Animatable _throw; VelocityTracker _trackX = new(), _trackY = new(); double x, y;",
+        Printed(new SpringsPage(), panel => panel.Name == "ThrowCode"));
+
+    [AvaloniaFact]
+    public void SpringEaseOrFollowerPrintsCompilingRows() => AssertCompiles(
+        "StackPanel EaseRow, FollowerRow; Spring _rowSpring; MotionValue _rowTarget; bool _easeDown; const double RowDrop = 150; Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e;",
+        Printed(new SpringsPage(), panel => panel.Name == "EaseFollowerCode"));
+
+    [AvaloniaFact]
+    public void SpringPresetsPrintCompilingHandlers() => AssertCompiles(
+        """
+        Border ToggleThumb, TabIndicator, Badge; StackPanel Tabs; TextBlock BadgeCount; object sender;
+        bool _toggled, open; int _unread; double SheetTop, ScrimOpacity;
+        const double ToggleTravel = 26, TabWidth = 64, SheetOpen = 50, SheetClosed = 140, ScrimShown = .5;
+        """,
+        $"{Snippets.SpringPresetToggle}\n{Snippets.SpringPresetTabs}\n{Snippets.SpringPresetBadge}\n{Snippets.SpringPresetSheetOpen}");
+
+    [AvaloniaFact]
+    public void SpringChainPrintsCompilingSetupMoveAndSwap() => AssertCompiles(
+        """
+        Canvas ChainStage; Border[] chain; Spring _chainSpring; MotionValue _pointerX, _pointerY; object sender;
+        Avalonia.Input.PointerEventArgs e; static readonly (double Bounce, double Duration)[] ChainSprings = [];
+        """,
+        $"{{\n{Snippets.SpringChain}\n}}\n{{\n{Snippets.SpringChainMove}\n}}\n{{\n{Snippets.SpringChainSwap}\n}}");
 
     [AvaloniaFact]
     public void LottiePrintsCompilingPlayback() => AssertCompiles(

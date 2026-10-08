@@ -72,6 +72,7 @@ public partial class EasesPage : ShowcasePage
         Ease curve;
         EaseValue ease;
         string easeCode;
+        SpringsLine.IsVisible = string.IsNullOrWhiteSpace(typed) && entry.Spring != null;
         if (string.IsNullOrWhiteSpace(typed))
         {
             curve = entry.Curve;

@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:vm="clr-namespace:PrestoSample.ViewModels"
                        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
                        x:Class="PrestoSample.Pages.EasesPage">
     <ScrollViewer>
@@ -36,6 +37,11 @@
             </StackPanel>
 
             <TextBlock x:Name="StatusText" Classes="caption" TextWrapping="Wrap" />
+            <StackPanel x:Name="SpringsLine" Orientation="Horizontal" Spacing="4">
+                <TextBlock Classes="caption" VerticalAlignment="Center" Text="Tune a spring by its physics or by bounce and duration on" />
+                <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
+                                 Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
+            </StackPanel>
 
             <showcase:CodePanel x:Name="Code" />
         </StackPanel>
