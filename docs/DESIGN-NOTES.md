@@ -303,19 +303,22 @@ The same names read the same in C# (`AnimationThread.PreferCompositor`) and XAML
 "Prefer" says the fallback is expected, not an error. `PrestoAvalonia.CanAnimateOnCompositor` answers the question
 without running anything, and a `ThreadedAnimation` reports the thread it got through `OnCompositor`. PLAN decision 119.
 
-## 14. Typed shorthand keys (Phase 71)
+## 14. Typed property keys (Phase 71)
 
-§1 left option 3, typed property handles, open. Settings are typed `init` members, but a shorthand key (`["X"]`,
-`["Blur"]`) is a string a typo breaks only at run time, and neither typed alternative covers it: shorthands have no
-`AvaloniaProperty`, and the builder's `.X(320)` is a different form.
+§1 left option 3, typed property handles, open. Settings are typed `init` members, but a property key (`["X"]`,
+`["Blur"]`) is a string a typo breaks only at run time.
 
-- **Constants, not a key type.** `Shorthands.X` is a `const string`, so it is the string key: no core overload, no
-  canonicalization, and it works wherever a string does (keyframes, `Animatable`, `Presto.Get`/`Set`, attributes,
-  `switch`). A key struct would need a second indexer overload beside `this[string]`, which `["X"]` and
-  `[Shorthands.X]` would both have to pick between, and would add nothing a constant lacks.
-- **No analyzer.** The repo has no analyzer project, and an arbitrary key may name any registered Avalonia property,
-  so the analyzer could only check shorthands, which the constants already cover.
-- **One spelling.** The parsers match on the constants, and `ShorthandKeysTests` compares the constants with the
-  shorthand enums plus `Draw`, `ScrollX` and `ScrollY`, so a new shorthand without a constant fails a test.
+- **The builder is the typed form.** The bridge's `PropertyBuilderExtensions` already give every shorthand and the
+  commonly animated Avalonia properties a method (`.X(320)`, `.Blur(4)`), with the same `to`/`from`/keyframes/function
+  overloads the indexer accepts, so the builder can say everything the indexer can. The README leads with it;
+  the parameter object is documented as the anime.js-shaped layer underneath, for names
+  known only at run time, anime.js ports, and `Animatable`.
+- **No key constants.** A `Shorthands` class of `const string` names (`[Shorthands.X] = 320`) was built and withdrawn.
+  It typed only the indexer, which the builder makes secondary, and added a third spelling of every key.
+- **No key struct or analyzer.** A struct would need a second indexer overload beside `this[string]`, and an analyzer
+  could check only shorthands, since any registered Avalonia property is a valid key.
+- **`Animatable` keeps strings.** Its parameter object reads a bare number as a duration (anime.js `{ x: 500 }`), so
+  reusing the tween builder would make `.X(500)` mean two things, and a dedicated builder would type the declaration
+  while `Set("X", …)`, `Get`, `Fling` and `ValueOf` stay string-keyed. Typed forms for both are revisited together.
 - **Upstream mirrors keep strings.** The pages under `samples/PrestoSample/Pages/` follow the anime.js docs and keep
   `["X"]` so they read side by side with them. PLAN decision 120.

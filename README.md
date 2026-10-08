@@ -5,8 +5,8 @@ animates any property of any object, plus an Avalonia adapter that makes control
 
 The core is a faithful port of anime.js's timing model — the same clock, the same `tick()` math for
 delay/loop/alternate/reverse/seek/stretch, the same composition rules — so the upstream test suites port across
-one-to-one. The API is C#-idiomatic: `init`-only parameter records, a string indexer for the properties you animate, and
-the anime.js names in PascalCase.
+one-to-one. The API is C#-idiomatic: a fluent builder with a typed method per animatable property, the anime.js names in
+PascalCase, and `init`-only parameter records underneath for when the property names are only known at run time.
 
 | Package | What it is |
 |---|---|
@@ -33,16 +33,15 @@ using Monaco.Presto;
 
 var ship = new Ship();
 
-var animation = Presto.Animate(ship, new()
-{
-    ["X"] = 320,                                // 0 → 320
-    ["Opacity"] = new double[] { 1, 0.2 },      // explicit from → to
-    Duration = 1250,
-    Ease = Eases.InOutQuint,
-    Loop = 1,
-    Alternate = true,
-    OnUpdate = _ => Console.WriteLine($"{ship.X:0} {ship.Opacity:0.00}"),
-});
+var animation = Presto.Build()
+    .Property(nameof(Ship.X), 320)                      // 0 → 320
+    .Property(nameof(Ship.Opacity), from: 1, to: 0.2)   // explicit from → to
+    .Duration(1250)
+    .Ease(Eases.InOutQuint)
+    .Loop(1)
+    .Alternate()
+    .OnUpdate(_ => Console.WriteLine($"{ship.X:0} {ship.Opacity:0.00}"))
+    .Animate(ship);
 
 await animation;                                // anime.js .then()
 
@@ -64,53 +63,44 @@ using Avalonia;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 
-Square.Animate(new()
-{
-    ["X"] = 320,                                // transform shorthand → RenderTransform
-    [Shorthands.Y] = -40,                       // the same key as ["Y"], checked at compile time
-    ["Rotate"] = new TweenParams { From = -180 },
-    ["Scale"] = 1.4,
-    [Visual.OpacityProperty] = 0.4,             // typed AvaloniaProperty
-    ["Background"] = "#ff6b6b",                 // brush, from a CSS color string
-    Duration = 1250,
-    Delay = 250,
-    Ease = Eases.InOutQuint,
-    Loop = true,
-    Alternate = true,
-});
-```
-
-Named properties resolve through `AvaloniaPropertyRegistry`, so `"Opacity"`, `"Width"`, `"Margin"` and attached
-properties like `"Canvas.Left"` all work. Values are written at `BindingPriority.Animation`, so `Revert()` puts the
-control's own values back exactly.
-
-### Fluent builder
-
-`Presto.Build()` is an optional, typed spelling of the same parameters. It only builds an `AnimationParams` and hands it
-to `Presto.Animate`, so it can express nothing the indexer cannot; the indexer stays the primary spelling in these docs.
-
-```csharp
-Square.Animate(Presto.Build()                   // or Presto.Build()...Animate(Square)
-    .X(320)
+Square.Animate(b => b                          // or Presto.Build()…Animate(Square)
+    .X(320)                                     // transform shorthand → RenderTransform
     .Y(-40)
     .Rotate(from: -180)
     .Scale(1.4)
-    .Property(Visual.OpacityProperty, 0.4)
-    .Background("#ff6b6b")
+    .Property(Border.BorderBrushProperty, "#2563eb")   // any AvaloniaProperty
+    .Background("#ff6b6b")                      // brush, from a CSS color string
     .Duration(1250)
     .Delay(250)
     .Ease(Eases.InOutQuint)
     .Loop()
     .Alternate());
-
-Presto.Build().Property("X", 320).Duration(1250).Animate(ship);   // core: any property by name
 ```
 
-The transform and [effect](#effects) shorthands, `Opacity`, `Width`, `Height`, `Background`, `Foreground`, `CornerRadius`, `BorderThickness`,
-`Margin`, `Padding` and the `Draw` / `Text` / `Data` pseudo-properties are bridge extension methods that write the same
-keys the indexer does; anything else is `Property(SomeControl.SomeProperty, …)` or `Property("Name", …)`. A property
-given only `to` is a bare value, and any other argument (`from`, `duration`, `ease`, …) makes it a `TweenParams`.
-Naming a property again replaces its value but keeps its position, and a second callback replaces the first.
+Values are written at `BindingPriority.Animation`, so `Revert()` puts the control's own values back exactly.
+
+### The builder and parameter objects
+
+The builder is the recommended way to write an animation in C#. The transform and [effect](#effects) shorthands,
+`Opacity`, `Width`, `Height`, `Background`, `Foreground`, `CornerRadius`, `BorderThickness`, `Margin`, `Padding` and the
+`Draw` / `Text` / `Data` pseudo-properties are bridge extension methods, so a typo fails to compile. Anything else is
+`Property(SomeControl.SomeProperty, …)`, or `Property("Name", …)` for a name resolved at run time: a plain object's
+property (`nameof` keeps it checked), or an Avalonia property by name, attached ones included (`"Canvas.Left"`). A
+property given only `to` is a bare value, and any other argument (`from`, `duration`, `ease`, …) makes it a
+`TweenParams`. Naming a property again replaces its value but keeps its position, and a second callback replaces the
+first.
+
+Under the builder is the anime.js-shaped parameter object, an `init`-only record whose string indexer takes the
+properties. The builder's terminals produce one (`ToParams()`), and `Animate`, `Set`, timelines and the render thread
+take either:
+
+```csharp
+Square.Animate(new() { ["X"] = 320, ["Rotate"] = new TweenParams { From = -180 }, Duration = 1250 });
+```
+
+Reach for it when the property names are data (a preset table, a loop over names), when porting anime.js code line for
+line, or for an [`Animatable`](#animatable), which has no builder. Its keys are unchecked strings, so the rest of
+these docs use the builder.
 
 A builder is a reusable recipe. `Animate`, `Set` and `ToParams` each take a fresh snapshot, so changing the builder
 afterwards never touches an animation already running:
@@ -127,24 +117,6 @@ builder is taken, a lambda also works; it configures a fresh `Presto.Build()`:
 ```csharp
 pop.With(b => b.Delay(Presto.Stagger(60))).Animate(row.Children);   // pop itself is unchanged
 control.Animate(b => b.X(100).Duration(400));
-```
-
-Keyframes, per property and animation-wide (`Frame` for duration-based frames, `At` for percentages; not both). Each
-`To` is a frame ending on that value, so the first frame starts from the property's current value:
-
-```csharp
-Presto.Build()
-    .X(k => k.To(200, duration: 500, ease: Eases.OutQuad).To(80, duration: 300, delay: 200).To(0, duration: 600))
-    .Animate(box);
-
-Presto.Build()
-    .Keyframes(k => k
-        .At(0, f => f.X(0).Scale(1))
-        .At(60, f => f.Scale(1.6))
-        .At(100, f => f.X(0).Scale(1)))
-    .Duration(2500)
-    .Ease("linear")
-    .Animate(box);
 ```
 
 Timelines and the render thread take a builder wherever they take parameters:
@@ -239,16 +211,16 @@ await animation.Then(a => Log(a.Id));
 ### Values
 
 ```csharp
-["X"] = 220,                                        // number
-["Rotate"] = "1turn",                               // deg / rad / turn
-["X"] = "+=140", ["Scale"] = "*=1.5",               // relative
-["Value"] = "75%",                                  // percentage of the current value
-["Opacity"] = new double[] { 0.2, 1 },              // from → to
-["Background"] = "hsl(280, 70%, 60%)",              // #rgb, #rrggbbaa, rgb(), rgba(), hsl(), hsla()
-["BorderThickness"] = TweenValue.Of(new Thickness(10)),   // typed structs, via codecs
-["Background"] = TweenValue.Of(new LinearGradientBrush { … }),   // linear/radial/conic, solid ↔ gradient
-["BoxShadow"] = "0 14 28 2 #804c8dff",               // shadow lists, padded as CSS pads them
-["Y"] = new FunctionValue((target, i, total) => -10 - i * 6),
+.X(220)                                             // number
+.Rotate("1turn")                                    // deg / rad / turn
+.X("+=140").Scale("*=1.5")                          // relative
+.Property(RangeBase.ValueProperty, "75%")           // percentage of the current value
+.Opacity(from: 0.2, to: 1)                          // from → to
+.Background("hsl(280, 70%, 60%)")                   // #rgb, #rrggbbaa, rgb(), rgba(), hsl(), hsla()
+.BorderThickness(new Thickness(10))                 // typed structs, via codecs
+.Background(new LinearGradientBrush { … })          // linear/radial/conic, solid ↔ gradient
+.BoxShadow("0 14 28 2 #804c8dff")                   // shadow lists, padded as CSS pads them
+.Y((target, i, total) => -10 - i * 6)               // per target
 ```
 
 Gradients with different stop counts are resampled onto the union of their offsets, a solid brush takes the gradient's
@@ -269,55 +241,43 @@ glow.Animate(b => b.Property("Background", k => k.Color(start, start, ColorSpace
 
 ### Keyframes
 
-Per-property, each frame with its own duration and ease:
+Per-property, each frame with its own duration and ease. Each `To` is a frame ending on that value, so the first frame
+starts from the property's current value:
 
 ```csharp
-Presto.Animate(box, new()
-{
-    ["X"] = TweenValue.Keyframes(
-        new TweenParams { To = 200, Duration = 500, Ease = Eases.OutQuad },
-        new TweenParams { To = 80, Duration = 300, Delay = 200 },
-        new TweenParams { To = 0, Duration = 600, Ease = Eases.InOutQuad }),
-});
+box.Animate(b => b
+    .X(k => k.To(200, duration: 500, ease: Eases.OutQuad).To(80, duration: 300, delay: 200).To(0, duration: 600, ease: Eases.InOutQuad)));
 ```
 
-Or a shared timeline of frames, indexed by order or by percentage:
+Or a shared timeline of frames, by order (`Frame`) or by percentage (`At`), but not both:
 
 ```csharp
-Presto.Animate(box, new()
-{
-    Keyframes = new Keyframe[]
-    {
-        new() { ["Y"] = -40, ["Rotate"] = -20 },
-        new() { ["X"] = 220, Ease = Eases.OutQuad },
-        new() { ["X"] = 0, ["Rotate"] = 0, Duration = 600 },
-    },
-    Duration = 2000,
-});
+box.Animate(b => b
+    .Keyframes(k => k
+        .Frame(f => f.Y(-40).Rotate(-20))
+        .Frame(f => f.X(220).Ease(Eases.OutQuad))
+        .Frame(f => f.X(0).Rotate(0).Duration(600)))
+    .Duration(2000));
 
-Presto.Animate(box, new()
-{
-    Keyframes = new Dictionary<string, Keyframe>
-    {
-        ["0%"] = new() { ["X"] = 0, ["Scale"] = 1 },
-        ["60%"] = new() { ["Scale"] = 1.6 },
-        ["100%"] = new() { ["X"] = 0, ["Scale"] = 1 },
-    },
-    Duration = 2500,
-    Ease = "linear",
-});
+box.Animate(b => b
+    .Keyframes(k => k
+        .At(0, f => f.X(0).Scale(1))
+        .At(60, f => f.Scale(1.6))
+        .At(100, f => f.X(0).Scale(1)))
+    .Duration(2500)
+    .Ease("linear"));
 ```
 
 ### Timelines
 
 ```csharp
 var tl = Presto.CreateTimeline(new() { Defaults = new() { Duration = 600, Ease = Eases.OutQuad } })
-    .Add(a, new() { ["X"] = 300 }, 0)               // absolute position
-    .Add(b, new() { ["X"] = 300 })                  // appended
-    .Add(c, new() { ["X"] = 300 }, "-=400")         // relative to the end
-    .Add(d, new() { ["X"] = 300 }, "<")             // the previous child's end ("<<" for its start)
+    .Add(a, x => x.X(300), 0)                       // absolute position
+    .Add(b, x => x.X(300))                          // appended
+    .Add(c, x => x.X(300), "-=400")                 // relative to the end
+    .Add(d, x => x.X(300), "<")                     // the previous child's end ("<<" for its start)
     .Label("flash", "+=200")
-    .Add(e, new() { ["Rotate"] = 360 }, "flash")    // at a label
+    .Add(e, x => x.Rotate(360), "flash")            // at a label
     .Add(new TimerParams { Duration = 400, OnUpdate = t => Show(t) }, 20)
     .Call(_ => Log("half way"), "flash")
     .Sync(existingAnimation, 0);
@@ -328,12 +288,7 @@ tl.Seek(tl.Labels["flash"]);
 ### Stagger
 
 ```csharp
-Presto.Animate(strip.Children, new()
-{
-    ["Y"] = -14,
-    Delay = Presto.Stagger(60),                                          // 60 ms apart
-    Duration = 450,
-});
+Presto.Animate(strip.Children, b => b.Y(-14).Delay(Presto.Stagger(60)).Duration(450));   // 60 ms apart
 
 Presto.Stagger(new double[] { 0, 700 }, new() { Ease = "inOutQuad" });   // a range, eased
 Presto.Stagger(50, new() { From = StaggerFrom.Center, Total = 24 });
@@ -341,7 +296,7 @@ Presto.Stagger(40, new() { Grid = [7, 4], Axis = StaggerAxis.X, Reversed = true 
 PrestoAvalonia.Stagger(40, new() { From = StaggerFrom.Center });         // grid measured from the layout
 ```
 
-`Presto.Stagger` also produces the value of a property (`["X"] = Presto.Stagger(6)`) and the position of a timeline
+`Presto.Stagger` also produces the value of a property (`.X(Presto.Stagger(6))`) and the position of a timeline
 child (`.Add(targets, parameters, Presto.Stagger(60))`).
 
 ### Eases
@@ -373,7 +328,8 @@ In strings (`fromPath(…)`, `wiggle(n, type)`, `rough(points, strength)`, `slow
 ### Animatable
 
 A set of paused per-property animations you push values into — for cursor followers and other continuously changing
-targets, where a new animation per frame would be wasteful:
+targets, where a new animation per frame would be wasteful. It takes a parameter object, and a bare number on a
+property is that property's duration, as in anime.js:
 
 ```csharp
 var follower = Cursor.CreateAnimatable(new() { ["X"] = 500, ["Y"] = 500, Ease = Eases.Out(3) });
@@ -398,7 +354,7 @@ A lifetime: everything built inside reverts together.
 
 ```csharp
 var scope = Presto.CreateScope(new ScopeParams { Defaults = d => d.Ease = Eases.OutQuad });
-scope.Add(_ => Presto.Animate(model, new() { ["Progress"] = 100 }));
+scope.Add(_ => Presto.Animate(model, b => b.Property(nameof(model.Progress), 100)));
 scope.Revert();
 ```
 
@@ -466,10 +422,7 @@ over to a bounce spring that settles on the bound. The end value, ease and durat
 value, so a `Duration` beside it is ignored.
 
 ```csharp
-Presto.Animate(card, new AnimationParams
-{
-    ["X"] = new Inertia(velocity) { ModifyTarget = Utils.Snap(240), Min = -960, Max = 0 },
-});
+card.Animate(b => b.X(new Inertia(velocity) { ModifyTarget = Utils.Snap(240), Min = -960, Max = 0 }));
 
 follower.Fling("X", new Inertia(0) { Min = -300, Max = 300 });    // coasts from its current velocity
 follower.Fling("Y", tracker.Velocity, new Inertia(0) { Max = 0 }); // or from a given one
@@ -492,7 +445,7 @@ var tracker = new VelocityTracker();
 Sheet.PointerMoved += (_, e) => tracker.Add(e.GetPosition(Stage).Y, Presto.Engine.FrameSource.Now);
 Sheet.PointerReleased += (_, _) =>
 {
-    Sheet.Animate(new() { ["Y"] = new Inertia(tracker.Velocity) { Min = 0, Max = 400 } });
+    Sheet.Animate(b => b.Y(new Inertia(tracker.Velocity) { Min = 0, Max = 400 }));
     tracker.Reset();
 };
 ```
@@ -506,9 +459,9 @@ velocity under constant acceleration and friction for the tween's `Duration`, or
 
 ```csharp
 var (x, y) = Projectile.Launch(speed: .6, angleDegrees: -60, gravity: .0015);   // -90 is straight up, Y points down
-Ball.Animate(new() { ["X"] = x, ["Y"] = y, Duration = 900 });
+Ball.Animate(b => b.X(x).Y(y).Duration(900));
 
-Presto.Animate(chip, new AnimationParams { ["Y"] = new Projectile(-1) { Acceleration = .002, Friction = .001 } });
+chip.Animate(b => b.Y(new Projectile(-1) { Acceleration = .002, Friction = .001 }));
 ```
 
 Velocity and acceleration are per engine-time unit, and `Friction` is the fraction of velocity lost per millisecond. The
@@ -604,20 +557,16 @@ PrestoAvalonia.OnScroll(new()
 ### Shapes
 
 ```csharp
-PrestoAvalonia.CreateDrawable(SignaturePath).Animate(new()
-{
-    ["Draw"] = TweenValue.FromTo("0 0", "0 1"),     // stroke dash reveal
-    Duration = 2200,
-});
+PrestoAvalonia.CreateDrawable(SignaturePath).Animate(b => b.Draw(from: "0 0", to: "0 1").Duration(2200));   // stroke dash reveal
 
 var motion = PrestoAvalonia.CreateMotionPath(TrackPath);
-Rider.Animate(new() { ["X"] = motion.X, ["Y"] = motion.Y, ["Rotate"] = motion.Rotate, Duration = 3000 });
+Rider.Animate(b => b.X(motion.X).Y(motion.Y).Rotate(motion.Rotate).Duration(3000));
 
 Point[] stops = [new(20, 120), new(120, 30), new(240, 150), new(360, 40)];
 var spline = PrestoAvalonia.CreateMotionPath(stops, curviness: 1.2, autoRotate: 90);   // GSAP MotionPath curviness
 Track.Data = PrestoAvalonia.MotionPathGeometry(stops, curviness: 1.2);
 
-MorphPath.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(starGeometry), Duration = 900 });
+MorphPath.Animate(b => b.Data(PrestoAvalonia.MorphTo(starGeometry)).Duration(900));
 ```
 
 The point-list overload runs a Catmull-Rom spline through the points at constant speed. `curviness` 0 is the straight
@@ -633,17 +582,9 @@ PrestoAvalonia.SplitText(Headline, new SplitTextParams
     Lines = new SplitPieceParams { Wrap = true },
     Chars = new SplitPieceParams { Class = "split-char" },
 })
-.AddEffect(split => Presto.Animate(split.Chars, new()
-{
-    ["Y"] = TweenValue.FromTo(44, 0),
-    ["Opacity"] = TweenValue.FromTo(0, 1),
-    Delay = Presto.Stagger(18),
-}));
+.AddEffect(split => Presto.Animate(split.Chars, b => b.Y(from: 44, to: 0).Opacity(from: 0, to: 1).Delay(Presto.Stagger(18))));
 
-Transmission.Animate(new()
-{
-    ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", From = ScrambleFrom.Center }),
-});
+Transmission.Animate(b => b.Text(PrestoAvalonia.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", From = ScrambleFrom.Center })));
 ```
 
 #### Text reveals
@@ -685,14 +626,12 @@ public sealed class SpinnerScene : CompositorScene
     private readonly Dot[] _dots = [.. Enumerable.Range(0, 12).Select(_ => new Dot())];
 
     protected override void OnAttached() =>
-        Presto.Animate(_dots, new()                             // registers with this scene's engine
-        {
-            ["Opacity"] = new double[] { 1, 0.15 },
-            Duration = 900,
-            Delay = Presto.Stagger(75, new() { From = StaggerFrom.Center }),
-            Ease = Eases.InOutSine,
-            Loop = true,
-        });
+        Presto.Animate(_dots, b => b                             // registers with this scene's engine
+            .Opacity(from: 1, to: 0.15)
+            .Duration(900)
+            .Delay(Presto.Stagger(75, new() { From = StaggerFrom.Center }))
+            .Ease(Eases.InOutSine)
+            .Loop());
 
     protected override void OnRender(ImmediateDrawingContext context, Size size)
     {
@@ -744,7 +683,7 @@ A scene only draws itself. To move an *existing* control on the render thread �
 already gives it — there is `AnimateOnCompositor`, the anime.js `waapi.animate` analog:
 
 ```csharp
-var spin = icon.AnimateOnCompositor(new() { ["Rotate"] = 360, Duration = 1200, Ease = Eases.None, Loop = true });
+var spin = icon.AnimateOnCompositor(b => b.Rotate(360).Duration(1200).Ease(Eases.None).Loop());
 await busyWork;                 // the icon keeps turning even while this blocks the UI thread
 spin.Revert();
 ```
@@ -1111,8 +1050,8 @@ title.Animate(b => b.Blur(from: 12, to: 0).Opacity(from: 0, to: 1).Duration(500)
 tile.Animate(b => b.RotateY(180).Perspective(600).Duration(700).Ease(Eases.InOutQuart));
 photo.Animate(b => b.ClipCircle(from: 0, to: 1).ClipCircleCenter(new RelativePoint(0.2, 0.3, RelativeUnit.Relative)).Duration(600));
 
-photo.Animate(new() { ["ClipInset"] = new[] { "50%", "0%" }, Duration = 900, Ease = Eases.OutQuart });
-photo.Animate(new() { ["MaskSweep"] = new double[] { 0, 1 }, ["MaskSweepAngle"] = 90, Duration = 1100 });
+photo.Animate(b => b.ClipInset(from: "50%", to: "0%").Duration(900).Ease(Eases.OutQuart));
+photo.Animate(b => b.MaskSweep(from: 0, to: 1).MaskSweepAngle(90).Duration(1100));
 ```
 
 | Shorthand | Drives | Values |
@@ -1599,18 +1538,18 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 
 | anime.js | Presto |
 |---|---|
-| `animate(targets, params)` | `Presto.Animate(targets, new AnimationParams { … })`, or `control.Animate(new() { … })`<br>Builder: `Presto.Build().X(…).Duration(…).Animate(targets)`, or `control.Animate(b => b.X(…))` |
+| `animate(targets, params)` | `control.Animate(b => b.X(…).Duration(…))`, or `Presto.Build().X(…).Duration(…).Animate(targets)`<br>Parameter object: `Presto.Animate(targets, new AnimationParams { … })`, or `control.Animate(new() { … })` |
 | `createTimer(params)` | `Presto.CreateTimer(new TimerParams { … })` |
-| `createTimeline(params)` | `Presto.CreateTimeline(new TimelineParams { … })`, then `.Add` / `.Set` / `.Sync` / `.Label` / `.Call` / `.Remove` / `.Refresh`<br>Builder: `.Add(targets, Presto.Build()…, position)` / `.Set(targets, Presto.Build()…)`, or `.Add(targets, b => …, position)` |
+| `createTimeline(params)` | `Presto.CreateTimeline(new TimelineParams { … })`, then `.Add` / `.Set` / `.Sync` / `.Label` / `.Call` / `.Remove` / `.Refresh`; children take a builder (`.Add(targets, b => …, position)`) or a parameter object |
 | `createAnimatable(targets, params)` | `Presto.CreateAnimatable(targets, new AnimatableParams { … })`, or `control.CreateAnimatable(new() { … })` |
 | `createScope(params)` | `Presto.CreateScope(new ScopeParams { … })`; `PrestoAvalonia.CreateScope(control)` reverts when the control detaches |
 | `createDraggable(target, params)` | `PrestoAvalonia.CreateDraggable(control, new DraggableParams { … })` |
 | `onScroll(params)` | `PrestoAvalonia.OnScroll(new ScrollObserverParams { … })`, over a `ScrollViewer` instead of the window; `Pin`, `Snap` and `Scroll.Speed` / `Scroll.Smooth` are Presto's own (GSAP-shaped), upstream has none |
-| `svg.createDrawable(shape)` | `PrestoAvalonia.CreateDrawable(shape, start, end)`, animated through `["Draw"] = "0 1"` |
+| `svg.createDrawable(shape)` | `PrestoAvalonia.CreateDrawable(shape, start, end)`, animated through `.Draw("0 1")` |
 | `svg.createMotionPath(path)` | `PrestoAvalonia.CreateMotionPath(path, offset, autoRotate)` → the `X` / `Y` / `Rotate` tweens; `CreateMotionPath(points, curviness, …)` through a point list is GSAP-shaped, upstream has none |
-| `svg.morphTo(path, precision)` | `PrestoAvalonia.MorphTo(geometry, precision)`, assigned to a `Path`'s `["Data"]` |
+| `svg.morphTo(path, precision)` | `PrestoAvalonia.MorphTo(geometry, precision)`, animated through `.Data(…)` on a `Path` |
 | `text.split(target, params)` / `splitText` | `PrestoAvalonia.SplitText(textBlock, new SplitTextParams { … })` → `TextSplitter` with `Lines` / `Words` / `Chars` |
-| `text.scramble(params)` / `scrambleText` | `PrestoAvalonia.ScrambleText(new ScrambleTextParams { … })`, assigned to a `["Text"]` property |
+| `text.scramble(params)` / `scrambleText` | `PrestoAvalonia.ScrambleText(new ScrambleTextParams { … })`, animated through `.Text(…)` |
 | `stagger(value, params)` | `Presto.Stagger(value, new StaggerParams { … })`; `PrestoAvalonia.Stagger(…)` measures the auto grid from the layout |
 | `utils.*` | `Utils.*` in PascalCase; the value-less overloads return a chainable `ChainedUtil` (`Utils.MapRange(0, 100, 0, 1000).Clamp(0, 100)`), usable wherever a `Func<double, double>` modifier is; `utils.get` / `set` / `remove` are `Presto.Get` / `Set` / `Remove`, with `PrestoAvalonia` overloads that take an `AvaloniaProperty`; `padStart` / `padEnd` are not ported (`string.PadLeft` / `PadRight` already do this) |
 | `eases` / `easings` | `Eases.*`, the `Ease` delegate (`double → double`), `Spring`, `EaseParser.Parse("inOutQuint")` |
@@ -1672,13 +1611,13 @@ anime.js parameter objects become `init`-only records with the same names in Pas
 
 A handful of places where the JS shape does not survive the type system:
 
-- **Properties go through an indexer**, which is the only C# syntax that mixes named settings and arbitrary keys in one
-  initializer: `new() { ["X"] = 320, Duration = 1250 }`. The bridge adds a typed `AvaloniaProperty` indexer, so
-  `[Visual.OpacityProperty] = 0.4` sits alongside `["Opacity"] = 0.4`. Shorthands have no `AvaloniaProperty`, so the
-  bridge's `Shorthands` class names them as `const string` keys: `[Shorthands.X] = 320` is `["X"] = 320`, but a typo
-  fails to compile.
+- **Properties are builder methods**, `b.X(320).Duration(1250)`, so a typo fails to compile. The anime.js object literal
+  survives as the parameter object, where an indexer is the only C# syntax that mixes named settings and arbitrary keys
+  in one initializer: `new() { ["X"] = 320, Duration = 1250 }`. Its keys are unchecked strings, apart from the bridge's
+  `AvaloniaProperty` indexer (`[Visual.OpacityProperty] = 0.4`).
 - **A lambda literal needs its delegate type named.** C# does not apply user-defined implicit conversions to lambdas, so
-  write `Ease = (Ease)(t => t)` and `["X"] = new FunctionValue((target, i, total) => i * 10)`. Values that already carry
+  write `.Ease((Ease)(t => t))` and `["X"] = new FunctionValue((target, i, total) => i * 10)`; the builder's property
+  methods take a `FunctionValue` directly, so `.X((target, i, total) => i * 10)` needs no cast. Values that already carry
   their type (`Eases.OutQuad`, `Presto.Stagger(…)`, `Utils.Snap(40)`) convert on their own.
 - **A positioned timer child names its type.** `Add(targets, parameters, position)` and `Add(parameters, position)` are
   ambiguous when the first argument is a target-typed `new() { … }`, so write

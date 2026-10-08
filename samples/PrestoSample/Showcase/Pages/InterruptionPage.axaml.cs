@@ -132,14 +132,12 @@ public partial class InterruptionPage : ShowcasePage
             var puck = _pucks[i];
             var mode = Modes[i];
             #region snippet InterruptionRetarget
-            Scope.Execute(_ => Presto.Animate(puck, new AvaloniaAnimationParams
-            {
-                [Shorthands.X] = (relative.X * pane.Bounds.Width) - Canvas.GetLeft(puck) - (puck.Width / 2),
-                [Shorthands.Y] = (relative.Y * pane.Bounds.Height) - Canvas.GetTop(puck) - (puck.Height / 2),
-                Duration = RetargetDuration,
-                Ease = Eases.OutQuad,
-                Composition = mode,
-            }));
+            Scope.Execute(_ => puck.Animate(b => b
+                .X((relative.X * pane.Bounds.Width) - Canvas.GetLeft(puck) - (puck.Width / 2))
+                .Y((relative.Y * pane.Bounds.Height) - Canvas.GetTop(puck) - (puck.Height / 2))
+                .Duration(RetargetDuration)
+                .Ease(Eases.OutQuad)
+                .Composition(mode)));
             #endregion
         }
     }
