@@ -11,14 +11,18 @@ namespace PrestoSample.Tests;
 /// <summary>Shows the gallery's <see cref="MainView"/> for the nav tests and finds the nav's containers and template parts.</summary>
 internal static class NavScene
 {
-    public static void With(Action<Window, MainViewModel, TreeView> test, bool reduced = false)
+    public static readonly IReadOnlyList<GalleryPage> Pages = [.. MainViewModel.Catalog.SelectMany(section => section.Pages)];
+
+    public static GalleryPage Page(string title) => Pages.First(page => page.Title == title);
+
+    public static void With(Action<Window, MainViewModel, TreeView> test, bool reduced = false, double width = 1400, double height = 1000)
     {
         var was = Presto.Defaults.ReducedMotion;
         Presto.Defaults.ReducedMotion = reduced;
         try
         {
             var gallery = new MainViewModel();
-            var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000);
+            var window = SceneHarness.Show(new MainView { DataContext = gallery }, width, height);
             try
             {
                 test(window, gallery, window.GetLogicalDescendants().OfType<TreeView>().Single(tree => tree.Name == "Nav"));

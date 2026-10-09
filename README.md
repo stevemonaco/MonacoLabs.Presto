@@ -1710,7 +1710,7 @@ build; what has actually been *run* differs, and the table says so rather than i
 |------|----------|
 | **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here. |
 | **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish, with no trim warnings. The Lottie page has not been driven there. |
-| **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. The gallery has not been driven on a device, so touch input and per-page rendering are unverified. |
+| **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. On an emulator (Pixel 7, Android 15) the gallery opens in its compact layout: Home fits the screen, tapping a row or a search result opens the page, the system back button returns Home, on Gestures an open sheet closes on the first back, and back at Home leaves the app. Other pages' rendering and touch gestures beyond those are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
 
 Five platform notes:
@@ -1747,6 +1747,10 @@ dotnet test --project tests/Monaco.Presto.Tests            # note --project, not
 dotnet test --project tests/Monaco.Presto.AvaloniaBridge.Tests
 dotnet test --solution Monaco.Presto.slnx
 ```
+
+Below 720 DIP the gallery switches to a compact layout: the nav fills the window as Home, and a page opens over it with
+a back button (`dotnet run --project samples/PrestoSample.Desktop -- --size 400x850` to try it). Alt+Left, the mouse
+back button and the platform back request (Android's back button, compact layout only) go back.
 
 Tests use xunit v3 on Microsoft.Testing.Platform, which the .NET 10 SDK requires — hence `--project`.
 

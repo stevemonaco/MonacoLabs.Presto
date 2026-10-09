@@ -495,7 +495,7 @@
         <Setter Property="Margin" Value="0,1" />
     </Style>
 
-    <!-- A page's hover fades in through MainView's motion states; a section header only reacts to its own border, since :pointerover holds on ancestors. -->
+    <!-- A page's hover fades in through GalleryNav's motion states; a section header only reacts to its own border, since :pointerover holds on ancestors. -->
     <Style Selector="TreeView.nav.showcase TreeViewItem:not(:empty) /template/ Border#PART_LayoutRoot:pointerover">
         <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
     </Style>

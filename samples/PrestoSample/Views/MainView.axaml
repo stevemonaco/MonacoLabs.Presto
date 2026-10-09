@@ -15,152 +15,81 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <Grid x:Name="Shell">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240" MinWidth="180" MaxWidth="420" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Border Grid.Column="0" ClipToBounds="True">
-            <Grid x:Name="Sidebar" RowDefinitions="*,Auto">
-                <TreeView Name="Nav" Classes="nav showcase"
-                          ItemsSource="{Binding VisibleSections}"
-                          SelectedItem="{Binding NavSelectedPage, Mode=OneWay}"
-                          SelectionChanged="NavSelectionChanged"
-                          Classes.searching="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                          presto:Animate.ItemLayout="{presto:Reflow}"
-                          presto:Selection.Motion="{x:Static local:MainView.Glide}">
-                    <TreeView.Styles>
-                        <Style Selector="TreeView > TreeViewItem" x:DataType="vm:NavSection">
-                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                            <Setter Property="presto:Presence.Exit" Value="{presto:Fade Direction=Left, Duration=180, Out=True}" />
-                        </Style>
-                        <!-- Reflow only while searching, the accordion's fold otherwise (backlog: BRIDGE-CONTENTSIZE). -->
-                        <Style Selector="TreeView.searching > TreeViewItem">
-                            <Setter Property="presto:Animate.ItemLayout" Value="{presto:Reflow}" />
-                        </Style>
-                        <Style Selector="TreeView:not(.searching) TreeViewItem:not(:empty)">
-                            <Setter Property="presto:Accordion.Enabled" Value="True" />
-                        </Style>
-                        <Style Selector="TreeViewItem /template/ Grid#PART_Header">
-                            <Setter Property="presto:Presence.Initial" Value="{x:Static local:MainView.RiseIn}" />
-                        </Style>
-                        <Style Selector="TreeViewItem /template/ Path#Chevron">
-                            <Setter Property="presto:Accordion.Chevron" Value="90" />
-                        </Style>
-                        <Style Selector="TreeViewItem:empty">
-                            <Setter Property="presto:Presence.Enter" Value="{x:Static local:MainView.PageUnfolded}" />
-                        </Style>
-                        <!-- The selected page shows the selection pill instead of a hover. -->
-                        <Style Selector="TreeViewItem:empty:pointerover:not(:selected) /template/ Border#PART_LayoutRoot">
-                            <Setter Property="presto:Motion.State" Value="hot" />
-                        </Style>
-                        <Style Selector="TreeViewItem /template/ Border#HoverFill">
-                            <Setter Property="presto:Motion.States">
-                                <presto:MotionStates>
-                                    <presto:MotionState When="hot" Motion="{x:Static local:MainView.HoverFade}" />
-                                </presto:MotionStates>
-                            </Setter>
-                        </Style>
-                        <Style Selector="TreeViewItem:empty TextBlock">
-                            <Setter Property="presto:Motion.States">
-                                <presto:MotionStates>
-                                    <presto:MotionState When="hot" Motion="{x:Static local:MainView.HoverNudge}" />
-                                </presto:MotionStates>
-                            </Setter>
-                        </Style>
-                    </TreeView.Styles>
-                    <TreeView.DataTemplates>
-                        <TreeDataTemplate x:DataType="vm:NavSection" ItemsSource="{Binding Pages}">
-                            <TextBlock Classes="section" Text="{Binding Name}" />
-                        </TreeDataTemplate>
-                        <DataTemplate x:DataType="vm:GalleryPage">
-                            <TextBlock Text="{Binding Title}" />
-                        </DataTemplate>
-                    </TreeView.DataTemplates>
-                </TreeView>
-                <TextBlock Classes="caption" Text="No samples match" Margin="18,16" IsVisible="{Binding HasNoMatches}" />
+    <UserControl.Styles>
+        <Style Selector="Grid#PageColumn">
+            <Setter Property="Margin" Value="24" />
+        </Style>
+        <Style Selector="Grid#PageColumn.compact">
+            <Setter Property="Margin" Value="12" />
+        </Style>
+        <Style Selector="Grid#PageColumn:not(.compact) :is(Control).compactOnly">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="StackPanel#TwinLine">
+            <Setter Property="Orientation" Value="Horizontal" />
+        </Style>
+        <Style Selector="Grid#PageColumn.compact StackPanel#TwinLine">
+            <Setter Property="Orientation" Value="Vertical" />
+        </Style>
+        <Style Selector="Grid#PageColumn.compact StackPanel#Details:not(.open)">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </UserControl.Styles>
 
-                <Border Grid.Row="1" Background="{x:Static showcase:Palette.Surface}" BorderBrush="{x:Static showcase:Palette.Border}"
-                        BorderThickness="0,1,1,0" Padding="16,10">
-                    <StackPanel Spacing="4">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4" Margin="0,0,0,8">
-                            <TextBox x:Name="SearchBox" Classes="clearButton" PlaceholderText="Search samples"
-                                     Text="{Binding SearchText}" />
-                            <Button Grid.Column="1" Background="Transparent" Padding="8" VerticalAlignment="Stretch"
-                                    Click="TogglePane" ToolTip.Tip="Hide sidebar (Ctrl+B)">
-                                <Path Width="12" Height="12" Stretch="Uniform" Fill="{x:Static showcase:Palette.InkDim}"
-                                      Data="M9,0 L0,10 9,20 10,19 2,10 10,1 Z" />
-                            </Button>
-                        </Grid>
-                        <TextBlock Classes="eyebrow showcase" Text="SETTINGS" />
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <ComboBox x:Name="MotionPicker" HorizontalAlignment="Stretch"
-                                      SelectedIndex="{Binding Motion}">
-                                <ComboBoxItem Content="Full motion" />
-                                <ComboBoxItem Content="Reduced motion" />
-                                <ComboBoxItem Content="OS preference" />
-                            </ComboBox>
-                            <Border x:Name="MotionHelp" Grid.Column="1" Width="20" Height="20" CornerRadius="10"
-                                    VerticalAlignment="Center" Background="Transparent" BorderThickness="1"
-                                    BorderBrush="{x:Static showcase:Palette.InkDim}" ToolTip.ShowDelay="0">
-                                <TextBlock Text="?" FontSize="12" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.InkDim}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <ToolTip.Tip>
-                                    <StackPanel MaxWidth="320" Spacing="6">
-                                        <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
-                                                   Text="Sets Presto.Defaults.ReducedMotion for every page. OS preference keeps it in step with the system's reduce-motion preference through PrestoAvalonia.FollowSystemReducedMotion, re-read when the window is activated." />
-                                        <StackPanel Spacing="2">
-                                            <TextBlock TextWrapping="Wrap" Text="• Recipes play a short fade with no travel" />
-                                            <TextBlock TextWrapping="Wrap" Text="• Page transitions crossfade" />
-                                            <TextBlock TextWrapping="Wrap" Text="• Text reveals fade the whole block" />
-                                            <TextBlock TextWrapping="Wrap" Text="• Hover tilt stays flat" />
-                                            <TextBlock TextWrapping="Wrap" Text="• Frame players hold their first frame" />
-                                            <TextBlock TextWrapping="Wrap" Text="• Bindings, gesture releases and layout moves land at once" />
-                                            <TextBlock TextWrapping="Wrap" Text="• Builder pages' loops, spins and shakes play calm WhenReduced forms" />
-                                            <TextBlock TextWrapping="Wrap" Text="• Showcase pages stop their autoplay, parallax and endless loops" />
-                                        </StackPanel>
-                                        <TextBlock TextWrapping="Wrap" FontStyle="Italic"
-                                                   Text="The anime.js Reference pages play in full on purpose, as anime.js does, and each links its Builder twin. Other hand-written loops, such as Loaders, Particle field, Stress bench, DevTools, Compositor and Properties and keyframes, also play as normal. A page picks up a change when it is reopened or replayed." />
-                                    </StackPanel>
-                                </ToolTip.Tip>
-                            </Border>
-                        </Grid>
-                        <TextBlock Classes="caption" Text="{Binding SystemMotion}" />
-                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                Margin="0,4,0,0" Content="Presto DevTools" Click="ToggleDevTools"
-                                ToolTip.Tip="Show or hide the Presto animation inspector (Ctrl+Shift+F12)" />
-                    </StackPanel>
-                </Border>
-            </Grid>
-        </Border>
+    <Panel>
+        <Grid x:Name="Shell">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240" MinWidth="180" MaxWidth="420" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="SidebarSlot" Grid.Column="0" ClipToBounds="True">
+                <local:GalleryNav x:Name="Navigation" CollapseRequested="TogglePane" />
+            </Border>
 
-        <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="24">
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,16">
-                <Button x:Name="ExpandPane" IsVisible="False" Background="Transparent" Padding="8" Margin="0,0,12,0"
-                        VerticalAlignment="Top" Click="TogglePane" ToolTip.Tip="Show sidebar (Ctrl+B)">
-                    <Path Width="12" Height="12" Stretch="Uniform" Fill="{x:Static showcase:Palette.InkDim}"
-                          Data="M1,0 L10,10 1,20 0,19 8,10 0,1 Z" />
-                </Button>
-                <StackPanel Grid.Column="1" Spacing="4">
-                    <TextBlock Text="{Binding SelectedPage.Section}" Classes="eyebrow showcase" />
-                    <TextBlock Text="{Binding SelectedPage.Title}" FontSize="22" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SelectedPage.Description}" Classes="caption" TextWrapping="Wrap" />
-                    <StackPanel x:Name="TwinLine" Orientation="Horizontal" Spacing="4"
-                                IsVisible="{Binding SelectedPage.Twin, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
-                        <TextBlock Classes="caption" VerticalAlignment="Center"
-                                   Text="Ignores Reduced motion, as anime.js does. Builder version:" />
-                        <HyperlinkButton Padding="0" FontSize="12" VerticalAlignment="Center"
-                                         Content="{Binding SelectedPage.Twin}" Command="{Binding OpenCommand}"
-                                         CommandParameter="{Binding SelectedPage.Twin}" />
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-            <TransitioningContentControl Grid.Row="1" ClipToBounds="True" Content="{Binding CurrentPage}"
-                                         IsTransitionReversed="{Binding IsBack}"
-                                         PageTransition="{presto:PageFadeThrough}" />
+            <Border x:Name="PageSlot" Grid.Column="1">
+                <Grid x:Name="PageColumn" RowDefinitions="Auto,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,0,0,16">
+                        <Button x:Name="ExpandPane" IsVisible="False" Background="Transparent" Padding="8" Margin="0,0,12,0"
+                                VerticalAlignment="Top" Click="TogglePane" ToolTip.Tip="Show sidebar (Ctrl+B)">
+                            <Path Width="12" Height="12" Stretch="Uniform" Fill="{x:Static showcase:Palette.InkDim}"
+                                  Data="M1,0 L10,10 1,20 0,19 8,10 0,1 Z" />
+                        </Button>
+                        <Button x:Name="Back" Grid.Column="1" Classes="compactOnly" Background="Transparent" Padding="12"
+                                Margin="0,0,8,0" VerticalAlignment="Top" Command="{Binding GoBackCommand}" ToolTip.Tip="Back">
+                            <Path Width="12" Height="12" Stretch="Uniform" Fill="{x:Static showcase:Palette.InkDim}"
+                                  Data="M9,0 L0,10 9,20 10,19 2,10 10,1 Z" />
+                        </Button>
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="{Binding SelectedPage.Section}" Classes="eyebrow showcase" />
+                            <TextBlock Text="{Binding SelectedPage.Title}" FontSize="22" FontWeight="SemiBold" />
+                            <StackPanel x:Name="Details" Spacing="4" Classes.open="{Binding #About.IsChecked}">
+                                <TextBlock Text="{Binding SelectedPage.Description}" Classes="caption" TextWrapping="Wrap" />
+                                <StackPanel x:Name="TwinLine" Spacing="4"
+                                            IsVisible="{Binding SelectedPage.Twin, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
+                                    <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="Ignores Reduced motion, as anime.js does. Builder version:" />
+                                    <HyperlinkButton Padding="0" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                                     Content="{Binding SelectedPage.Twin}" Command="{Binding OpenCommand}"
+                                                     CommandParameter="{Binding SelectedPage.Twin}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                        <ToggleButton x:Name="About" Grid.Column="3" Classes="compactOnly" Content="About"
+                                      Margin="8,0,0,0" VerticalAlignment="Top" />
+                    </Grid>
+                    <TransitioningContentControl x:Name="PageHost" Grid.Row="1" ClipToBounds="True" Content="{Binding CurrentPage}"
+                                                 IsTransitionReversed="{Binding IsBack}" />
+                </Grid>
+            </Border>
+
+            <GridSplitter x:Name="Splitter" Grid.Column="1" HorizontalAlignment="Left" Width="6" Background="Transparent"
+                          DoubleTapped="TogglePane" />
         </Grid>
 
-        <GridSplitter x:Name="Splitter" Grid.Column="1" HorizontalAlignment="Left" Width="6" Background="Transparent"
-                      DoubleTapped="TogglePane" />
-    </Grid>
+        <!-- Both levels stay attached, so Home keeps its search, expansion and scroll offset under a page. -->
+        <Panel x:Name="Levels" IsVisible="False" ClipToBounds="True">
+            <Border x:Name="Home" Background="{x:Static showcase:Palette.Surface}" />
+            <Border x:Name="PageLevel" Background="{x:Static showcase:Palette.Background}" />
+        </Panel>
+    </Panel>
 </UserControl>

@@ -24,6 +24,7 @@ When an item is closed, its line is deleted.
 - [CORE-SCRAMBLE] `Presto.ScrambleText` caches a target's first text forever, so a later unchained scramble without `Text` settles back on stale text; done when the cache refreshes from the target's current text.
 - [BRIDGE-PAGER] `Pager.SelectedIndex` set directly (binding or code) is never wrapped or clamped, so an out-of-range value sends the strip past the slides; done when it is coerced like `GoTo`.
 - [BRIDGE-SHEET] `Sheet.DetentIndex` is never coerced into the detent range, so `IsOpen` can read true while the sheet rests closed; done when it is coerced.
+- [BRIDGE-SHEET] `Dismissal`'s back and Escape handlers run in top-level registration order, so an app handler registered earlier (the gallery shell) runs before an open overlay's; consider handling them so an open overlay always wins.
 - [CORE-BUILDER] `AnimationBuilder.ToParams` and `TweenKeyframesBuilder.Color` read `Engine.Current` rather than the timeline's engine or parent defaults (see CORE-KEYFRAMES, CORE-REDUCED); done when a builder resolves against the engine and defaults it is added under.
 - [CORE-TIMELINE] A forward jump from time 0 past a later-added `.Set` at 0 renders the `Set` last (the Title sequence cards end hidden); done when reproduced against anime.js 4.5.0 seek semantics and either fixed as a parity bug or recorded as upstream behavior.
 - [BRIDGE-PAGES] A swipe-completed `Carousel` page keeps its seeked end values (and `ZIndex`) at `Animation` priority until the next transition or recycle, because `VirtualizingCarouselPanel` resets only the page it recycles; done when the transition releases them on completion.
@@ -93,8 +94,9 @@ When an item is closed, its line is deleted.
 - [LOTTIE-PLAYBACK] Drive the Lottie gallery page in the Browser head.
 - [BRIDGE-DRAGGABLE] Fling and re-grab cards repeatedly on the Desktop Draggable page to confirm the drag freeze is gone (only a headless test covers it).
 - [SAMPLE] On Desktop, in both motion modes, sweep the nav with a real pointer, drag and double-click the splitter, and press Ctrl+B and Ctrl+F.
+- [SAMPLE] On Desktop at `--size 400x850`, in both motion modes: watch the Home and Page push for a one-frame glitch, go back with Alt+Left and the mouse back button, scroll Home with a real wheel before going back, press Ctrl+F at Home (focuses search) and on a page (does nothing), press Ctrl+B (does nothing), confirm Alt+Left on a focused Board priority goes back rather than reordering, drag the window live across 720 DIP, and judge the full-motion `PagePush` mid-slide (DevTools sends no modifier chords or mouse back button).
 - [BRIDGE-PARTICLES] Measure the default `ParticleScene.MaxLive` of 1 000, and the Particle type and Liquid type frame rates, on Browser, Android and iOS (only desktop's 4 000 was measured).
-- [PLATFORM] Drive the gallery on an Android device (it only builds, installs and launches) and run iOS on a simulator (needs a macOS build host; only compiles for `iossimulator-x64`).
+- [PLATFORM] Run iOS on a simulator (needs a macOS build host; only compiles for `iossimulator-x64`).
 - [PLATFORM] Check the Browser and Android heads against the showcase pages and update the README Platforms table with what is true.
 - [SAMPLE] By hand on Desktop: the Board drag and insertion gap, the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`), Warp studio's Magnifier, Jelly and Follow pointer, and the Liquid type heading's hover glitch.
 - [SAMPLE] By hand on Desktop: the Carousel pointer drag.
@@ -135,6 +137,8 @@ When an item is closed, its line is deleted.
 
 - [SAMPLE] `GalleryFlipPage`'s mode toggle could bind `Animate.LayoutMode` once its cards are templated rather than built in code.
 - [SAMPLE] ChartMorph's tooltip at an anchor is hand-built (`ShowTip`); move it to `Popover`.
+- [SAMPLE] Audit the pages at 400 DIP in the compact layout and list the ones that clip or overflow, with a fix or a minimum-width note per page; Eases, Playground and Springs are known to clip.
+- [SAMPLE] The compact Page bar's back button is a 36 DIP touch target, below the 44 DIP of the nav rows, and its About toggle stays open when another page opens; done when the button is 44 DIP and About closes on a page change.
 - [SAMPLE] Add a README showcase section with captures of the showcase pages.
 - [SAMPLE] At 127 px a Card gallery grid card's `#06 · C. Lindqvist 711` line runs into its right border; done when it fits or trims.
 - [SAMPLE] Swipe-to-dismiss on the Activity feed's recycled rows (`SwipeActions` or `Draggable`) beside the dismiss button; done when a swiped row collapses out through `Presence.Exit` and a recycled row carries no stale swipe offset.

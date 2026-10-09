@@ -191,9 +191,46 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial Control? CurrentPage { get; set; }
 
-    /// <summary>Whether the selected page sits above the previous one in the nav, so the page transition plays backwards.</summary>
+    /// <summary>Whether the page transition plays backwards: going back, or in the wide layout a page above the previous one in the nav.</summary>
     [ObservableProperty]
     public partial bool IsBack { get; set; }
+
+    /// <summary>Whether the compact layout shows Home, the nav at full width, instead of <see cref="CurrentPage"/>.</summary>
+    [ObservableProperty]
+    public partial bool AtHome { get; private set; }
+
+    private const int HistoryLimit = 50;
+    private readonly List<GalleryPage> _history = [];
+    private readonly bool _startGiven;
+    private bool _goingBack;
+    private bool? _compact;
+
+    /// <summary>Whether the view shows the compact layout, reported by the view from its width.</summary>
+    /// <remarks>
+    /// No page is built before the first report: a compact start with no start page goes <see cref="AtHome"/> and builds none
+    /// until one is chosen, and any other start builds <see cref="SelectedPage"/>. A later switch keeps the open page and the
+    /// history; going wide from Home opens <see cref="SelectedPage"/>, the page Home was reached from, or after a compact start
+    /// the first page, as a wide start does.
+    /// </remarks>
+    public bool IsCompact
+    {
+        get => _compact ?? false;
+        set
+        {
+            if (_compact == value) return;
+            var starting = _compact is null;
+            _compact = value;
+            OnPropertyChanged();
+            if (!starting)
+            {
+                if (!value) AtHome = false;
+            }
+            else if (value && !_startGiven) AtHome = true;
+            else CurrentPage = SelectedPage?.Create();
+        }
+    }
+
+    public bool CanGoBack => _history.Count > 0 || (IsCompact && !AtHome);
 
     private MotionPreference _motion;
     private IDisposable? _following;
@@ -233,11 +270,12 @@ public partial class MainViewModel : ObservableObject
     {
     }
 
-    /// <summary>Opens <paramref name="start"/>, or the first page when it is null.</summary>
+    /// <summary>Selects <paramref name="start"/>, or the first page when it is null; <see cref="IsCompact"/>'s first report opens it.</summary>
     public MainViewModel(GalleryPage? start)
     {
         _nav = [.. Sections.Select(section => new NavSection(section))];
         VisibleSections = [.. _nav];
+        _startGiven = start is not null;
         SelectedPage = start ?? Sections[0].Pages[0];
         PrestoAvalonia.WatchSystemReducedMotion(reduced => SystemMotion = reduced switch
         {
@@ -247,11 +285,60 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    // In the compact layout a change while at Home is a choice from the nav, which starts a new history.
     partial void OnSelectedPageChanged(GalleryPage? oldValue, GalleryPage? newValue)
     {
-        IsBack = oldValue is not null && Order(newValue) < Order(oldValue);
-        CurrentPage = newValue?.Create();
         OnPropertyChanged(nameof(NavSelectedPage));
+        if (_compact is null) return;
+        if (_goingBack) IsBack = true;
+        else
+        {
+            IsBack = !IsCompact && oldValue is not null && Order(newValue) < Order(oldValue);
+            if (IsCompact && AtHome) _history.Clear();
+            else if (oldValue is not null) Remember(oldValue);
+        }
+        CurrentPage = newValue?.Create();
+        AtHome = false;
+    }
+
+    partial void OnAtHomeChanged(bool value)
+    {
+        if (!value) CurrentPage ??= SelectedPage?.Create();
+    }
+
+    /// <summary>Opens <paramref name="page"/> from a tap on its nav row, also when it is already selected but the compact layout is at Home.</summary>
+    public void OpenFromNav(GalleryPage page)
+    {
+        SelectedPage = page;
+        AtHome = false;
+    }
+
+    /// <summary>Opens the previous page; with none, the compact layout goes Home and the wide one does nothing.</summary>
+    [RelayCommand]
+    public void GoBack()
+    {
+        if (_history.Count == 0)
+        {
+            if (IsCompact) AtHome = true;
+            return;
+        }
+        var previous = _history[^1];
+        _history.RemoveAt(_history.Count - 1);
+        _goingBack = true;
+        try
+        {
+            SelectedPage = previous;
+        }
+        finally
+        {
+            _goingBack = false;
+        }
+    }
+
+    private void Remember(GalleryPage page)
+    {
+        if (_history.Count == HistoryLimit) _history.RemoveAt(0);
+        _history.Add(page);
     }
 
     partial void OnSearchTextChanged(string value)
@@ -265,7 +352,7 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Opens the first page the nav shows; Enter in the search box.</summary>
     public void OpenFirstMatch()
     {
-        if (VisibleSections.Count > 0) SelectedPage = VisibleSections[0].Pages[0];
+        if (VisibleSections.Count > 0) OpenFromNav(VisibleSections[0].Pages[0]);
     }
 
     [RelayCommand]
