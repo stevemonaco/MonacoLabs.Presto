@@ -13,6 +13,7 @@ types:
 tests:
   - TextPathTests
   - AllocationTests
+  - TypeLabPageTests
 upstream: []
 depends:
   - BRIDGE-TEXT
@@ -50,7 +51,7 @@ depends:
 ### Re-placement
 
 - **BRIDGE-TEXTPATH-007** — When a property of the shape changes, when a layout pass completes, or when `Offset`, `Align` or `Shift` changes, the block shall re-place at the end of the engine frame, at most once per frame however many changes it saw; a change made during a frame, such as a `MorphTo` of the shape's `Data`, is placed in that same frame.
-  - Tests: `TextPathTests.ADataChangeRePlacesOnceOnTheNextFrame`, `TextPathTests.AlignAnchorsTheTextAtTheOffsetAndShiftLiftsItOffTheContour`
+  - Tests: `TextPathTests.ADataChangeRePlacesOnceOnTheNextFrame`, `TextPathTests.AlignAnchorsTheTextAtTheOffsetAndShiftLiftsItOffTheContour`, `TypeLabPageTests.MorphReplacesThePathTextOntoTheNewCurve`
 - **BRIDGE-TEXTPATH-008** — Every split and re-split shall place the new characters at once.
   - Tests: `TextPathTests.CharactersSitOnAStraightPathAtTheirAdvances`
 

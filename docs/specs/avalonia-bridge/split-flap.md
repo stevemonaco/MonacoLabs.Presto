@@ -11,6 +11,7 @@ types:
 tests:
   - SplitFlapTests
   - AllocationTests
+  - TypeLabPageTests
 upstream: []
 depends:
   - BRIDGE-TRANSFORMS
@@ -35,7 +36,7 @@ A row of character cells that flip like a departures board: when `Text` changes,
 - **BRIDGE-SPLITFLAP-002** — When `Charset` contains no lowercase letter, the control shall show `Text` upper-cased in the invariant culture; otherwise as it is.
   - Tests: `SplitFlapTests.AnUppercaseCharsetShowsTheTextUpperCased`
 - **BRIDGE-SPLITFLAP-003** — Each cell shall be a top half and a bottom half, each clipped to its half of the cell and drawn with the control's font, `Foreground`, `CellBackground` and `CornerRadius` (top corners on the top half, bottom corners on the bottom one), the cells `CellSpacing` apart; every cell shall be as wide as the charset's widest character plus half an em.
-  - Tests: manual — the drawn halves need a rendered frame; to be checked on Desktop with the kinetic typography samples change.
+  - Tests: manual — the drawn halves need a rendered frame; checked by eye on the Desktop Type lab page's departures board.
 
 ### Flipping
 

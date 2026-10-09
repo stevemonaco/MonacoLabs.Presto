@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Media.TextFormatting;
@@ -519,6 +520,8 @@ public static class Recipes
         textBlock.Text = text;
         textBlock.UpdateLayout();
         var shift = oldOrigin - (top is null ? default : textBlock.TranslatePoint(default, top) ?? default);
+        // A re-split detaches the pieces the morph plays on, which pauses it, so the width cannot change until it ends.
+        var hold = textBlock.SetValue(Layoutable.WidthProperty, textBlock.Bounds.Width, BindingPriority.Animation);
         var after = PrestoAvalonia.SplitText(textBlock, new() { Words = null, Chars = new() });
         var flying = new List<Control>();
         var offsets = new List<Vector>();
@@ -540,6 +543,7 @@ public static class Recipes
             {
                 Morphs.Remove(textBlock);
                 after.Revert();
+                hold?.Dispose();
                 overlay?.Children.Remove(host);
                 foreach (var ghost in ghosts) ((Bitmap)ghost.Source!).Dispose();
             },

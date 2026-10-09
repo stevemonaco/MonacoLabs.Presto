@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Text;
 
@@ -67,6 +68,27 @@ public sealed class MorphTextTests : BridgeTestBase
             Assert.Equal(0, Value(c, "X"), 0.1);
             Assert.Equal(0, Value(c, "Y"), 0.1);
         });
+    }
+
+    [AvaloniaFact]
+    public void AResizeMidMorphNeitherResplitsNorStallsIt()
+    {
+        var block = Shown("shatter");
+        var window = (Window)TopLevel.GetTopLevel(block)!;
+        var morph = Recipes.MorphText(block, "threats");
+        var split = TextSplitter.Of(block);
+        Frames.Advance(Recipes.Tokens.Long / 4, 5);
+
+        window.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(200, 10);
+        Assert.Same(split, TextSplitter.Of(block));
+        Assert.Equal(200, block.Bounds.Width);
+
+        RunUntil(() => morph.Completed);
+        Assert.Equal("threats", block.Text);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(120, block.Bounds.Width);
     }
 
     [AvaloniaFact]

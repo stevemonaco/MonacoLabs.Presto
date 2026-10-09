@@ -609,6 +609,38 @@ delay function of line index × `lineStep` + index on the line × `pieceStep`, a
 the owning split's line height (0 for a control that is not a piece). The ready-made reveals are
 [recipes](#recipes).
 
+#### Text on a path, morphs and split-flap boards
+
+`TextPath` lays a `TextBlock`'s characters along any `Shape`'s contour, each turned to the tangent. `Offset` (0–1 of the
+length) is where `Align` (`Start`, `Center`, `End`) anchors the text, and `Shift` lifts it off the contour. The text
+re-places once per frame while the shape's geometry, size or position changes, so it rides a `MorphTo` of the path, and
+animating `TextPath.OffsetProperty` from 0 to 1 runs it along. Animations of the characters' `X`, `Y` and `Rotate` layer
+over the placement. Past the ends of an open path characters hide; on a closed one they wrap.
+
+```xml
+<Path x:Name="Curve" Data="M 20,120 C 120,0 280,240 380,120" Stroke="Gray" />
+<TextBlock Text="TYPE THAT RIDES THE CURVE" presto:TextPath.Path="{Binding #Curve}"
+           presto:TextPath.Offset="0.5" presto:TextPath.Align="Center" presto:TextPath.Shift="8" />
+```
+
+`Recipes.MorphText(block, text, explode, ignoreCase)` turns a block's text into new text letter by letter: each letter
+the two texts share flies from its old place to its new one, the old letters left over `Scatter` away and the new ones
+`PopIn`. `explode: true` bursts the shared letters apart first. It returns the `Timeline`, and calling it mid-morph
+finishes the running one first. Reduced, the block crossfades.
+
+```csharp
+Recipes.MorphText(word, "HEARTS", explode: true);   // from SHATTER
+```
+
+`SplitFlap` is a departures-board control: each cell folds through its `Charset` (default space, `A`–`Z`, `0`–`9`,
+`.:-/`) to the new `Text`, one step per `FlipDuration` (60 ms), cell `i` starting `i × CellStagger` (50 ms) late. It
+pauses its timer once every cell rests, and reduced motion fades the changed cells in at once.
+
+```xml
+<presto:SplitFlap Text="{Binding Gate}" Cells="6" FontSize="28" Foreground="White"
+                  CellBackground="#222" CornerRadius="4" CellSpacing="3" />
+```
+
 ### Render thread
 
 Everything above runs on the UI thread, which means everything above stops when the UI thread does. A `CompositorScene`
@@ -1219,14 +1251,17 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `ScaleIn`, `PopIn` (overshoots) | `scale` | yes | 〃 |
 | | `BlurIn` | `radius` | no | 〃 |
 | | `SlideIn` | `edge`, `distance` (default 4 × `Distance`) | yes | 〃 |
+| | `Gather`: in from where `Scatter` with the same arguments sends it | `distance`, `spin`, `seed` | yes | 〃 |
 | | `FlipIn` | `angle` (90°) | no | 〃 |
 | | `Develop`, for an [image](#image-filters): settles from `Sepia` 0.8, `Brightness` 1.6 and a `BlurRadius` blur over `Long` | | no | 〃 |
 | `Exits` | `FadeOut`, `FadeOutUp`, `FadeOutDown`, `FadeOutLeft`, `FadeOutRight`, `ScaleOut`, `PopOut`, `BlurOut`, `SlideOut`, `FlipOut` | as the entrance; `FlipOut`'s `angle` is −90° | all but `BlurOut` and `FlipOut` | fade out over `Short` |
+| | `Scatter` (random offset within `distance`, spin within ±`spin`°, `Scale` 0.6), `Fall` (drops `distance`, drifts and spins) | `distance`, `spin`, `seed` | yes | 〃 |
 | `Attention` | `Shake`, `Pulse`, `Wobble`, `Jelly`, `Heartbeat`, `Tada`, `Bounce` | `intensity` | yes | an Opacity blink, 1 → 0.6 → 1 over `Short` |
 | | `FlashTint`, for an [image](#image-filters): `Tint` up to `intensity` and back | `color` (`DodgerBlue`), `intensity` | no (filter) | 〃 |
 | `Loops` | `Float` | `distance` | yes | static: nothing moves |
 | | `Spin` | | yes | 〃 |
 | | `Breathe`, `Blink` | `intensity` | yes | 〃 |
+| | `Wave` (each element bobs `step` ms after the one before; no `stagger`) | `distance`, `step` | yes | 〃 |
 | `Interactions` | `Lift` | `distance`, `intensity` | no (shadow) | the shadow alone |
 | | `Grow` | `intensity` | yes | nothing |
 | | `PressIn` | `intensity` | yes | Opacity to 0.8 |
@@ -1246,7 +1281,14 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `PageSlide`, `PagePush` | `edge` only | yes | 〃 |
 
 The interactions are meant for [`Motion` states](#state-motion); they take no `stagger`, since a state belongs to one
-element.
+element. `Scatter`, `Gather` and `Fall` draw their offsets at random; a `seed` gives each index the same offsets on
+every play, which keeps a scrubbed timeline and a test repeatable:
+
+```csharp
+Recipes.Scatter(seed: 5).Animate(split.Chars);   // letters burst apart
+Recipes.Fall(seed: 4).Animate(split.Chars);      // and drop away
+Recipes.Wave(step: 60).Animate(split.Chars);     // or ripple until canceled
+```
 
 #### Motion tokens
 

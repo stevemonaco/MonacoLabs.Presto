@@ -48,6 +48,7 @@ tests:
   - PopoverFlyoutTests
   - RevealTests
   - BuilderRecipePagesTests
+  - TypeLabPageTests
 upstream: []
 depends:
   - BRIDGE-TOKENS
@@ -252,11 +253,13 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **BRIDGE-RECIPES-077** — With `explode`, each paired character shall first move over `Tokens.Medium` with `Tokens.EmphasizedEase` to its partner's place offset by `Scatter`'s `X`, `Y` and `Rotate` for seed 0 at its index among the paired characters, hold there for `Tokens.Short`, then move `X`, `Y` and `Rotate` to 0 over `Tokens.Long`.
   - Tests: `MorphTextTests.ExplodeHoldsTheMatchedLettersAtSeededPointsBeforeGathering`
 - **BRIDGE-RECIPES-078** — When the morph completes, the block shall be unsplit with `Text` equal to `text`, and the ghosts removed from the overlay layer with their bitmaps disposed.
-  - Tests: `MorphTextTests.EndsAsThePlainNewText`, `MorphTextTests.UnmatchedOldLettersLeaveAsGhostsThatAreDismissed`
+  - Tests: `MorphTextTests.EndsAsThePlainNewText`, `MorphTextTests.UnmatchedOldLettersLeaveAsGhostsThatAreDismissed`, `TypeLabPageTests.ShatterEndsAsThePlainNextWord`
 - **BRIDGE-RECIPES-079** — When `MorphText` is called on a block that is still morphing, it shall complete the running morph first and morph from its end text.
   - Tests: `MorphTextTests.MorphingAgainMidMorphCompletesTheFirst`
 - **BRIDGE-RECIPES-080** — When `ReducedMotion` is set as `MorphText` is called, it shall not split the block and shall return a timeline that fades `Opacity` to 0 over `Tokens.Short`, sets `Text`, and fades from 0 back to the block's opacity over `Tokens.Short`.
   - Tests: `MorphTextTests.ReducedCrossfadesTheBlock`
+- **BRIDGE-RECIPES-081** — While it morphs, `MorphText` shall hold the block's `Width` at its width laid out with the new text, at `Animation` priority, so the block never re-splits, and release it when the morph completes.
+  - Tests: `MorphTextTests.AResizeMidMorphNeitherResplitsNorStallsIt`, `TypeLabPageTests.ShatterEndsAsThePlainNextWord`
 
 ### Defaults
 
@@ -280,7 +283,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - `Recipes.Tokens = MotionTokens.Reduced` gives zero travel and linear timing without setting `ReducedMotion`.
 - `Dots` and `Indeterminate` take no `stagger`/need a `distance` respectively; `Dots`' `delay` becomes its stagger start.
 - `RollDigits`, `Typewriter` and `MorphText` need a laid-out block: `RollDigits` reads `TextLayout.TextLines[0]`, the others split by wrapped lines.
-- `MorphText` lays the block out with the new text before splitting it, so the new split does not re-split when the block resizes; a width change mid-morph re-splits, and the morph finishes on the replaced pieces. A block in no window morphs without ghosts and without the window-position correction.
+- A stretched block whose container resizes mid-morph keeps its width until the morph completes, then takes the new one (081). A block in no window morphs without ghosts and without the window-position correction.
 - `PageBloom` with no `Panel` in the incoming page reveals the page and animates no children.
 
 ## Threading and lifetime
@@ -327,6 +330,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **`MorphText` follows `RollDigits`' lifetime rules.** It returns the playing `Timeline`; a second call on a block still morphing completes the first; it reads the reduced flag at call time and, when reduced, crossfades the block (`Opacity` to 0, set the text, back from 0, `Tokens.Short` each). Reason: one consistent rule for stateful text recipes (BRIDGE-RECIPES-064, the `Typewriter` decision).
 - **`MorphText` FLIPs over `SlotOf`.** It captures the old slots, sets the new text, lays the block out, splits it and starts each paired piece at its partner's old slot, corrected by how far the block moved in its window (a centered title moves as its width changes). Ghosts are snapshots in the overlay layer, as `Presence` exits leave. Reason: nothing is measured offscreen, and the old split is gone before the new one exists. Rejected: `TextSplitter.Measure(block, text)`, a second layout path that would have to match the real one.
 - **`MorphText` starts every part at once and seeds `explode` with 0.** Ghosts scatter and new letters pop in as the paired ones fly. Reason: a child placed later on the timeline does not write its from-values before it starts, so a delayed `PopIn` would show its letter at rest until then; the fixed seed makes the same pair of texts burst the same way on every play, as the seeded recipes do.
+- **`MorphText` holds the block's width instead of surviving a re-split.** Reason: a re-split detaches the pieces the morph plays on, which pauses it (`WhenDetached`), and split letters measure slightly differently from shaped text, so a block sized to its text re-split on its own. A morph lasts `Tokens.Long` plus a hold, so delaying a container resize until it ends costs little. Rejected: rebuilding the morph over the new pieces with `KeepTime`, which would replace the `Timeline` `MorphText` returned.
 - **Motion tokens live in the library.** See BRIDGE-TOKENS.
 - **Reduced motion is an app-set flag with a per-builder alternative.** See CORE-REDUCED.
 - **`{presto:Reflow}` is the shorthand, and its reduced form is instant.** See BRIDGE-DECLLAYOUT.
