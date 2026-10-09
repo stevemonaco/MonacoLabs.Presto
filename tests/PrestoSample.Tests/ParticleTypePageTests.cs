@@ -27,6 +27,27 @@ public sealed class ParticleTypePageTests
     }
 
     [AvaloniaFact]
+    public async Task EveryTransitionFliesToTheNextWordAtThePickedDuration()
+    {
+        foreach (var transition in new[] { FormationTransition.Sweep, FormationTransition.Burst, FormationTransition.Swarm })
+        {
+            var (page, window) = Show();
+            var field = page.GetControl<CompositorCanvas>("Field");
+            Assert.True(await SceneHarness.Pump(() => Fits(field), rounds: 120), "the first word never filled its fit");
+            Assert.True(await SceneHarness.Pump(() => Count(page) > 500), "the formation holds too few particles");
+            var presto = Count(page);
+            page.GetControl<Slider>("DurationSlider").Value = 200;
+            page.GetControl<ComboBox>("TransitionPicker").SelectedIndex = (int)transition;
+
+            SceneHarness.Click(window, field);
+
+            Assert.True(await SceneHarness.Pump(() => Count(page) > presto * 1.1, rounds: 120), $"{transition}: the count never followed the next word");
+            Assert.True(await SceneHarness.Pump(() => Fits(field), rounds: 120), $"{transition}: the particles never settled on the next word");
+            SceneHarness.Close(window);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task DisintegrateHidesTheCaptionAndAssembleBringsItBack()
     {
         var (page, window) = Show();

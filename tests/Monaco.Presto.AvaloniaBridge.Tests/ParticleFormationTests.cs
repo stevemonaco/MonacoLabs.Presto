@@ -53,6 +53,95 @@ public sealed class ParticleFormationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void DurationScalesTheSpringInTime()
+    {
+        var down = Line.Select(p => p + new Vector(0, 150)).ToArray();
+        var (slow, fast) = (new ParticleScene().AddFormation(Line, Colors.White), new ParticleScene().AddFormation(Line, Colors.White));
+        fast.Duration = 200;
+        slow.Retarget(down);
+        fast.Retarget(down);
+
+        for (var t = 0; t < 10; t++) slow.Step(16);
+        // Half the step at half the duration integrates the same curve in half the time.
+        for (var t = 0; t < 10; t++) fast.Step(8);
+
+        Assert.Equal(slow.Dots[0].Y, fast.Dots[0].Y, 6);
+        Assert.Throws<ArgumentOutOfRangeException>(() => fast.Duration = 0);
+    }
+
+    [AvaloniaFact]
+    public void SweepSetsParticlesOffLeftToRight()
+    {
+        var formation = new ParticleScene().AddFormation(Line, Colors.White);
+
+        formation.Retarget(Line.Select(p => p + new Vector(0, 100)).ToArray(), FormationTransition.Sweep);
+        for (var t = 0; t < 4; t++) formation.Step(16);
+
+        var dots = formation.Dots.ToArray().OrderBy(d => d.TargetX).ToArray();
+        Assert.True(dots[0].Y > 32, "the leftmost particle has not set off");
+        Assert.Equal(32, dots[^1].Y);
+    }
+
+    [AvaloniaFact]
+    public void BurstThrowsEveryParticleOutwardBeforeItGathers()
+    {
+        var square = new Point[] { new(0, 0), new(100, 0), new(100, 100), new(0, 100) };
+        var formation = new ParticleScene().AddFormation(square, Colors.White);
+
+        formation.Retarget(square, FormationTransition.Burst);
+        for (var t = 0; t < 6; t++) formation.Step(16);
+
+        Assert.All(formation.Dots.ToArray(), d => Assert.True(Point.Distance(new Point(d.X, d.Y), new Point(50, 50)) > Point.Distance(new Point(0, 0), new Point(50, 50))));
+    }
+
+    [AvaloniaFact]
+    public void SwarmPairsBySeededShuffleRatherThanDistance()
+    {
+        var row = Enumerable.Range(0, 40).Select(i => new Point(i * 10, 0)).ToArray();
+        var (first, second) = (new ParticleScene().AddFormation(row, Colors.White), new ParticleScene().AddFormation(row, Colors.White));
+
+        first.Retarget(row, FormationTransition.Swarm);
+        second.Retarget(row, FormationTransition.Swarm);
+
+        var targets = first.Dots.ToArray().Select(d => d.TargetX).ToArray();
+        Assert.Equal(targets, second.Dots.ToArray().Select(d => d.TargetX));
+        Assert.Contains(targets.Select((x, i) => (x, i)), t => t.x != row[t.i].X);
+        Assert.Equal(row.Select(p => p.X).Order(), targets.Order());
+    }
+
+    [AvaloniaFact]
+    public void RetargetPairsAsAFullNearestScanWouldWithTiesToTheLowerIndex()
+    {
+        var random = new Random(7);
+        Point Next() => new(Math.Round(random.NextDouble() * 400), Math.Round(random.NextDouble() * 120));
+        var from = Enumerable.Range(0, 1500).Select(_ => Next()).ToArray();
+        var to = Enumerable.Range(0, 1200).Select(_ => Next()).Concat(from.Take(50)).ToArray();
+        var formation = new ParticleScene().AddFormation(from, Colors.White);
+
+        formation.Retarget(to);
+
+        var taken = new bool[from.Length];
+        var expected = new Point?[from.Length];
+        foreach (var point in to)
+        {
+            var (nearest, best) = (-1, double.MaxValue);
+            for (var i = 0; i < from.Length; i++)
+            {
+                var distance = ((Vector)(from[i] - point)).SquaredLength;
+                if (!taken[i] && distance < best) (nearest, best) = (i, distance);
+            }
+            if (nearest < 0) continue;
+            taken[nearest] = true;
+            expected[nearest] = point;
+        }
+        var dots = formation.Dots.ToArray();
+        for (var i = 0; i < from.Length; i++)
+        {
+            if (expected[i] is { } target) Assert.Equal(target, new Point(dots[i].TargetX, dots[i].TargetY));
+        }
+    }
+
+    [AvaloniaFact]
     public void RetargetPairsNearestAndSpawnsOrFadesTheDifference()
     {
         var (scene, canvas) = ShowScene();

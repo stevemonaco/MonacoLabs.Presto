@@ -33,13 +33,29 @@ public static class GlyphPoints
         var bounds = contours[0].Bounds;
         foreach (var contour in contours) bounds = bounds.Union(contour.Bounds);
         var random = Utils.CreateSeededRandom(seed);
+        var band = new List<(Point A, Point B)>();
         for (var y = bounds.Top + spacing / 2; y < bounds.Bottom; y += spacing)
         {
+            // A jittered point stays within a quarter cell of its row, so only the edges crossing that band can flip it.
+            var (low, high) = (y - spacing / 4, y + spacing / 4);
+            band.Clear();
+            foreach (var contour in contours)
+            {
+                if (contour.Bounds.Bottom < low || contour.Bounds.Top > high) continue;
+                var ring = contour.Points;
+                for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
+                {
+                    if (Math.Max(ring[i].Y, ring[j].Y) >= low && Math.Min(ring[i].Y, ring[j].Y) <= high) band.Add((ring[i], ring[j]));
+                }
+            }
             for (var x = bounds.Left + spacing / 2; x < bounds.Right; x += spacing)
             {
                 var point = new Point(x + (random(0, 1, 9) - .5) * spacing / 2, y + (random(0, 1, 9) - .5) * spacing / 2);
                 var inside = false;
-                foreach (var contour in contours) inside ^= contour.Contains(point);
+                foreach (var (a, b) in band)
+                {
+                    if ((a.Y > point.Y) != (b.Y > point.Y) && point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X) inside = !inside;
+                }
                 if (inside) points.Add(point);
             }
         }

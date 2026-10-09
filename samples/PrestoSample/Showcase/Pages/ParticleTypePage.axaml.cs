@@ -48,7 +48,9 @@ public partial class ParticleTypePage : ShowcasePage
         var spacing = SpacingSlider.Value / scale;
         var points = GlyphPoints.Sample(outline, spacing, sampling);
         // Points past the scene cap get no particle, which would cut off the end of its bottom rows, so sample coarser instead.
-        while (points.Count > ((ParticleScene)Field.Scene!).MaxLive) points = GlyphPoints.Sample(outline, spacing *= 1.1, sampling);
+        // The count falls with the square of the spacing, so one rescaled pass usually fits.
+        var cap = ((ParticleScene)Field.Scene!).MaxLive;
+        while (points.Count > cap) points = GlyphPoints.Sample(outline, spacing *= Math.Sqrt((double)points.Count / cap) * 1.02, sampling);
         return [.. points.Select(p => center + (p - bounds.Center) * scale)];
     }
 
@@ -74,7 +76,13 @@ public partial class ParticleTypePage : ShowcasePage
             return;
         }
         var points = Sample();
-        Field.Invoke<ParticleScene>(_ => _formation?.Retarget(points));
+        var (transition, duration) = ((FormationTransition)TransitionPicker.SelectedIndex, DurationSlider.Value);
+        Field.Invoke<ParticleScene>(_ =>
+        {
+            if (_formation is not { } formation) return;
+            formation.Duration = duration;
+            formation.Retarget(points, transition);
+        });
     }
     #endregion
 

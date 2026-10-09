@@ -8,6 +8,7 @@ namespaces:
 sources:
   - Monaco.Presto.AvaloniaBridge/Compositor/ParticleScene.cs
   - Monaco.Presto.AvaloniaBridge/Compositor/ParticleFormation.cs
+  - Monaco.Presto.AvaloniaBridge/Compositor/FormationTransition.cs
   - Monaco.Presto.AvaloniaBridge/Compositor/ParticleShape.cs
   - Monaco.Presto.AvaloniaBridge/Compositor/ParticleOverlay.cs
   - Monaco.Presto.AvaloniaBridge/ParticleEffect.cs
@@ -16,6 +17,7 @@ sources:
 types:
   - ParticleScene
   - ParticleFormation
+  - FormationTransition
   - ParticleShape
   - ParticleEffect
 tests:
@@ -138,12 +140,20 @@ depends:
 
 - **BRIDGE-PARTICLES-036** — `AddFormation(points, color, size)` shall place one particle on each point, in canvas coordinates, until the scene holds `MaxLive` live particles; the points left over get none.
   - Tests: `ParticleFormationTests.AFormationSpringsOntoItsPointsAndDrawsThere`, `ParticleFormationTests.FormationsCountAgainstTheSceneCap`
-- **BRIDGE-PARTICLES-037** — Each frame, every particle of a formation shall accelerate towards its point by `0.0004 × displacement − 0.028 × velocity` (DIPs and ms), integrated in steps of at most 16 ms over a frame time capped at 100 ms.
-  - Tests: `ParticleFormationTests.AFormationSpringsOntoItsPointsAndDrawsThere`
+- **BRIDGE-PARTICLES-037** — Each frame, every particle of a formation shall accelerate towards its point by `0.0004 × s² × displacement − 0.028 × s × velocity` (DIPs and ms), where `s` is 400 divided by the formation's `Duration`, integrated in steps of at most 16 ms over a frame time capped at 100 ms.
+  - Tests: `ParticleFormationTests.AFormationSpringsOntoItsPointsAndDrawsThere`, `ParticleFormationTests.DurationScalesTheSpringInTime`
+- **BRIDGE-PARTICLES-048** — A formation's `Duration` shall default to 400, and setting it to 0 or less shall throw `ArgumentOutOfRangeException`.
+  - Tests: `ParticleFormationTests.DurationScalesTheSpringInTime`
 - **BRIDGE-PARTICLES-038** — While `Repel` is set, a particle closer to it than `RepelRadius` (default 80) shall also accelerate away from it by `0.04 × (1 − distance / RepelRadius)` DIP/ms²; particles farther away shall not be pushed.
   - Tests: `ParticleFormationTests.ARepelPointPushesOnlyTheParticlesWithinItsRadius`
-- **BRIDGE-PARTICLES-039** — `Retarget(points)` shall give each point, in order, the nearest particle not yet given one and not fading out; each point left over shall spawn a particle on itself that fades in over 300 ms, until the scene holds `MaxLive`, and each particle left over shall fade out over 300 ms and be removed at opacity 0.
-  - Tests: `ParticleFormationTests.RetargetPairsNearestAndSpawnsOrFadesTheDifference`, `ParticleFormationTests.FormationsCountAgainstTheSceneCap`
+- **BRIDGE-PARTICLES-039** — `Retarget(points, transition)` shall give each point, in order, a particle not yet given one and not fading out: the nearest one, or with `Swarm` the next in a shuffle of those particles seeded with 0; each point left over shall spawn a particle on itself that fades in over 300 ms, until the scene holds `MaxLive`, and each particle left over shall fade out over 300 ms and be removed at opacity 0.
+  - Tests: `ParticleFormationTests.RetargetPairsNearestAndSpawnsOrFadesTheDifference`, `ParticleFormationTests.FormationsCountAgainstTheSceneCap`, `ParticleFormationTests.RetargetPairsAsAFullNearestScanWouldWithTiesToTheLowerIndex`, `ParticleFormationTests.SwarmPairsBySeededShuffleRatherThanDistance`
+- **BRIDGE-PARTICLES-049** — With `Sweep`, `Retarget` shall hold each particle's spring and fade for `0.6 × Duration` times its distance from the formation's leftmost particle as a share of the formation's width.
+  - Tests: `ParticleFormationTests.SweepSetsParticlesOffLeftToRight`
+- **BRIDGE-PARTICLES-050** — With `Burst`, `Retarget` shall add to each particle a velocity away from the formation's mean position of `0.35 × the formation's larger side × √stiffness`, scaled per particle between 0.6 and 1.4.
+  - Tests: `ParticleFormationTests.BurstThrowsEveryParticleOutwardBeforeItGathers`
+- **BRIDGE-PARTICLES-051** — When `transition` is not given, `Retarget` shall pair as `Nearest`.
+  - Tests: `ParticleFormationTests.RetargetPairsNearestAndSpawnsOrFadesTheDifference`
 - **BRIDGE-PARTICLES-040** — A formation's particles shall count towards `Live` and `MaxLive`, for systems' spawns as for the formation's own.
   - Tests: `ParticleFormationTests.FormationsCountAgainstTheSceneCap`
 - **BRIDGE-PARTICLES-041** — The scene shall draw each formation particle as a square of the formation's `size` centered on the particle, in its color at its opacity, and shall drop a formation once it holds no particle.
@@ -173,7 +183,7 @@ depends:
 ## Edge cases
 
 - `Add`, `AddFormation`, `Live` and every member of a `ParticleFormation` belong to the render thread: call them from a scene callback or `CompositorCanvas.Invoke`; reading them from the UI thread races.
-- `Retarget` pairs every point against every particle, so retargeting thousands of particles costs a few milliseconds on the render thread once.
+- `Retarget` finds each point's particle through a grid of cells about two particles wide, searched outward from the point, so retargeting thousands of particles costs a few milliseconds on the render thread once; points far from every remaining particle search more cells.
 - A character with no outline, such as an emoji, spawns no particles in `Disintegrate` or `Assemble`; it disappears with the block and comes back with it.
 - Canceling a `Disintegrate` or `Assemble` effect removes its particles but leaves the block at `Opacity` 0.
 - Under reduced motion the `reduced` builder plays even when the anchor is outside a window; outside reduced motion such an anchor plays nothing.
@@ -212,7 +222,8 @@ depends:
 - **Simulation in the core, drawing in the bridge.** See CORE-PARTICLES.
 - **Particle text is a formation in `ParticleScene`.** Text sampled into points is drawn by the render-thread scene as one `ParticleFormation` per call. Reason: thousands of points need the render-thread scene, which the Particle field showcase already shows holding thousands of positioned particles. Rejected: one control per point.
 - **Formation particles are the scene's own buffer, not core particles.** A `ParticleFormation` keeps its particles in an array of its own, stepped and drawn by the scene beside its systems and counted against the same `MaxLive`. Reason: a core particle is emitted with a lifetime and has no point to return to, and the core does not change for a bridge feature; a separate buffer keeps the spring step allocation-free. Rejected: adding targets to `ParticleSystem`.
-- **Formation springs are fixed and slightly underdamped.** Stiffness 0.0004 /ms² and damping 0.028 /ms (a damping ratio of 0.7, settling in about 400 ms from 150 DIPs) with a 0.04 DIP/ms² repel push, stepped at most 16 ms at a time. Reason: a light overshoot reads as particles landing rather than sliding, and a push of 0.04 moves a particle under the repel point about half the default radius; capped steps keep the explicit integration stable after a slow frame. Rejected: spring options on `AddFormation`, which nothing uses yet.
+- **Formation springs are slightly underdamped and scaled in time by `Duration`.** At the default `Duration` of 400, stiffness 0.0004 /ms² and damping 0.028 /ms (a damping ratio of 0.7, settling in about 400 ms from 150 DIPs); another `Duration` scales stiffness by the square and damping by the ratio, which keeps the damping ratio and the shape of the motion. The 0.04 DIP/ms² repel push is not scaled, and steps are at most 16 ms. Reason: a light overshoot reads as particles landing rather than sliding, and one time knob is what a page needs (the Particle type page has a duration slider); a push of 0.04 moves a particle under the repel point about half the default radius; capped steps keep the explicit integration stable after a slow frame. Rejected: separate stiffness and damping options, which let a caller lose the landing feel.
+- **Transitions change how particles are paired or set off, not the spring.** `Nearest` is the least travel; `Sweep` and `Burst` keep nearest pairing and add a left-to-right hold or an outward throw; `Swarm` pairs by a fixed shuffle so particles cross the formation. Reason: nearest pairing already reads well, and the others are variations on one physics model, so spawns, fades, repel and settling behave the same in all four. Rejected: pairing by left-to-right rank for `Sweep`, which moves particles little more than nearest pairing.
 - **`Retarget` pairs greedily by nearest particle.** Each point in order takes the nearest free particle; spawned particles fade in on their point and surplus particles fade out where they head. Reason: simple, and close enough to the optimal assignment for word-to-word moves. Rejected: optimal assignment (Hungarian algorithm), cubic in the particle count.
 - **`Disintegrate` and `Assemble` return a `ParticleEffect`.** Reason: their particles are a render-thread simulation that cannot be sought or reversed, like the other particle recipes, and the effect is awaitable and cancelable as theirs is. Rejected: a `Timeline`, which would promise seeking. Their particles tile the letters: one per fill point at a spacing of `FontSize / 24` (at least 2 DIPs), as wide as the spacing, so a letter has about the same number of particles at any size. Their reduced form fades the block, since disintegrating is the explosive motion reduced motion opts out of.
 
