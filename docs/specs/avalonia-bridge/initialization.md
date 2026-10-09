@@ -68,8 +68,8 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
   - Tests: untested
 - **BRIDGE-INIT-012** — When the source needs a frame, it shall take the `TopLevel` from the application lifetime: a classic desktop lifetime's `MainWindow`, else its first window; a single-view lifetime's `MainView` top level.
   - Tests: manual — headless tests have no application lifetime (`LifetimeSpikeTests.TheHeadlessPlatformOffersNoActivatableLifetimeAndNoApplicationLifetime`); check on the Desktop sample.
-- **BRIDGE-INIT-013** — When the lifetime yields no `TopLevel` (no lifetime, an activity lifetime, no window yet), the source shall use the `TopLevel` of the last `Visual` the target adapter resolved a property on, which it holds weakly.
-  - Tests: `AvaloniaFrameSourceTests.FramesComeFromTheTopLevelOfAnAnimatedControl`
+- **BRIDGE-INIT-013** — When the lifetime yields no `TopLevel` (no lifetime, an activity lifetime, no window yet), the source shall use the `TopLevel` of the last `Visual` the target adapter resolved a property on, and when that visual has none (detached), the last `TopLevel` it found that way; it holds both weakly.
+  - Tests: `AvaloniaFrameSourceTests.FramesComeFromTheTopLevelOfAnAnimatedControl`, `AvaloniaFrameSourceTests.ADetachedAnimatedVisualKeepsThePumpOnTheLastTopLevel`
 - **BRIDGE-INIT-014** — While started with a `TopLevel`, the source shall call `RequestAnimationFrame` once, invoke the callback when it fires, and request the next frame after the callback returns, re-resolving the `TopLevel` each time.
   - Tests: `AvaloniaFrameSourceTests.FramesComeFromTheTopLevelOfAnAnimatedControl`
 - **BRIDGE-INIT-015** (inherited) — When `Start` follows a `Stop` while a frame request is still outstanding, the source shall reuse that request instead of adding a second, so each frame invokes the callback at most once.
@@ -117,12 +117,12 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 - Android's activity lifetime publishes no view, so the timer pumps until the first visual is animated (BRIDGE-INIT-013).
 - A minimized Win32 window keeps delivering animation frames (`LifetimeSpikeTests.AMinimizedHeadlessWindowStillDeliversAnimationFrames` shows the headless equivalent); stopping them is the core's job once `Hidden` is set.
 - The `TimeSpan` passed by `RequestAnimationFrame` is ignored; frame time is always `Now`.
-- A frame source constructed by the app pumps from the same last-animated visual as the installed one, since that visual is static.
+- A frame source constructed by the app pumps from the same last-animated visual and last top level as the installed one, since both are static.
 
 ## Threading and lifetime
 
 - UI thread only: the pump, the timer and the hidden-signal handlers run on `Dispatcher.UIThread`, and the source has no locks.
-- The last animated visual is held through a `WeakReference`, so the source never keeps a control alive.
+- The last animated visual and the last top level are held through `WeakReference`s, so the source never keeps a control or window alive.
 - The hidden signal's class handlers are static and live for the process.
 
 ## Reduced motion
@@ -141,7 +141,7 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 ## Decisions
 
 - **The frame source is `RequestAnimationFrame`, with a timer fallback.** `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, from any live `TopLevel`, and pumps from a render-priority `DispatcherTimer` while none exists; it is installed on first use, or by `UsePresto()`. Reason: it mirrors upstream's `requestAnimationFrame` loop, and any `TopLevel` works because the request is a one-shot on the global `MediaContext`.
-- **Without a lifetime `TopLevel`, the pump takes one from an animated visual.** On Android (and wherever the lifetime yields none) the frame source resolves its `TopLevel` from a visual the bridge animates, the last one a property was resolved on; the timer pumps until then. The handover is tested through a seeded visual. Reason: `IActivityApplicationLifetime` publishes only a `MainViewFactory` (`MainView` stays null) and `ISingleTopLevelApplicationLifetime` is `[PrivateApi]`; lifetime interfaces are `[NotClientImplementable]`, so a test cannot fake one.
+- **Without a lifetime `TopLevel`, the pump takes one from an animated visual.** On Android (and wherever the lifetime yields none) the frame source resolves its `TopLevel` from a visual the bridge animates, the last one a property was resolved on; the timer pumps until then. The handover is tested through a seeded visual. Once found, that `TopLevel` is kept for when the last animated visual is detached. Reason: `IActivityApplicationLifetime` publishes only a `MainViewFactory` (`MainView` stays null) and `ISingleTopLevelApplicationLifetime` is `[PrivateApi]`; lifetime interfaces are `[NotClientImplementable]`, so a test cannot fake one. The kept `TopLevel` is needed because an animated visual is often detached (a measuring `TextBlock`, a page navigated away from), and on Android the 60 Hz render-priority fallback timer keeps the main looper from going idle, which is the only time Avalonia runs `Input`-priority jobs: touch scroll inertia stalled until it was kept.
 - **Bridge builder extensions self-initialize.** See BRIDGE-HELPERS.
 - **Hidden pauses the engine, as upstream's `pauseOnDocumentHidden` does.** See CORE-ENGINE.
 - **Wall-clock reads take a `TimeProvider`.** See CORE-ENGINE.

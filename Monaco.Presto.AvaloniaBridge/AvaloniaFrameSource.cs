@@ -11,13 +11,15 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// </summary>
 /// <remarks>
 /// The <see cref="TopLevel"/> comes from the application lifetime, or, when that exposes none, from the last visual the
-/// bridge animated. An <see cref="IActivityApplicationLifetime"/> (Android) publishes only a factory for its main view and
-/// never the view itself, so there the timer pumps until the first visual is animated.
+/// bridge animated, or else the last top level such a visual was found in. An <see cref="IActivityApplicationLifetime"/>
+/// (Android) publishes only a factory for its main view and never the view itself, so there the timer pumps until the first
+/// visual is animated.
 /// </remarks>
 public sealed class AvaloniaFrameSource : IFrameSource
 {
     private static readonly TimeSpan s_fallbackInterval = TimeSpan.FromMilliseconds(1000d / 60);
     private static WeakReference<Visual>? s_animated;
+    private static WeakReference<TopLevel>? s_lastTopLevel;
 
     private readonly TimeProvider _timeProvider;
     private readonly long _origin;
@@ -50,6 +52,13 @@ public sealed class AvaloniaFrameSource : IFrameSource
     {
         if (s_animated is { } animated) animated.SetTarget(visual);
         else s_animated = new WeakReference<Visual>(visual);
+    }
+
+    /// <summary>Drops the remembered visual and top level, so only the lifetime can supply a <see cref="TopLevel"/>.</summary>
+    internal static void Forget()
+    {
+        s_animated = null;
+        s_lastTopLevel = null;
     }
 
     /// <inheritdoc/>
@@ -149,6 +158,16 @@ public sealed class AvaloniaFrameSource : IFrameSource
     private static Window? FirstWindow(IClassicDesktopStyleApplicationLifetime desktop) =>
         desktop.Windows.Count > 0 ? desktop.Windows[0] : null;
 
-    private static TopLevel? AnimatedTopLevel() =>
-        s_animated is { } animated && animated.TryGetTarget(out var visual) ? TopLevel.GetTopLevel(visual) : null;
+    private static TopLevel? AnimatedTopLevel()
+    {
+        // The last animated visual may be detached (a measuring TextBlock, a page navigated away from); falling back to the
+        // timer then starves Android's Input-priority jobs, scroll inertia among them, so the last top level found is kept.
+        if (s_animated is { } animated && animated.TryGetTarget(out var visual) && TopLevel.GetTopLevel(visual) is { } topLevel)
+        {
+            if (s_lastTopLevel is { } last) last.SetTarget(topLevel);
+            else s_lastTopLevel = new WeakReference<TopLevel>(topLevel);
+            return topLevel;
+        }
+        return s_lastTopLevel is { } remembered && remembered.TryGetTarget(out var found) ? found : null;
+    }
 }

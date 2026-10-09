@@ -82,7 +82,7 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
     [AvaloniaFact]
     public async Task TheFallbackTimerHandsThePumpOverOnceAnAnimatedVisualHasATopLevel()
     {
-        AvaloniaFrameSource.Seed(new Border()); // an unparented visual, so no earlier test's window is found
+        AvaloniaFrameSource.Forget(); // so no earlier test's window is found
 
         var source = new AvaloniaFrameSource();
         var frames = 0;
@@ -101,9 +101,29 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public async Task ADetachedAnimatedVisualKeepsThePumpOnTheLastTopLevel()
+    {
+        var border = new Border();
+        new Window { Content = border, Width = 100, Height = 100 }.Show();
+        _ = border.Animate(new() { ["Opacity"] = 0, Duration = 100, Autoplay = false }); // seeds the source with a visual inside the window
+
+        var source = new AvaloniaFrameSource();
+        var frames = 0;
+        source.Start(() => frames++);
+        Assert.True(await Pump(() => frames > 0), "no frame arrived from the top level");
+
+        _ = new TextBlock().Animate(new() { ["Opacity"] = 0, Duration = 100, Autoplay = false }); // the last animated visual is now detached
+        var delivered = frames;
+
+        Assert.True(await Pump(() => frames > delivered + 2), "no frame arrived after the detached visual was animated");
+        Assert.False(source.IsUsingFallbackTimer);
+        source.Stop();
+    }
+
+    [AvaloniaFact]
     public async Task StartFallsBackToADispatcherTimerWhenNoTopLevelExists()
     {
-        AvaloniaFrameSource.Seed(new Border()); // an unparented visual, so no earlier test's window is found
+        AvaloniaFrameSource.Forget(); // so no earlier test's window is found
 
         var source = new AvaloniaFrameSource();
         var frames = 0;
@@ -142,7 +162,7 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
     [AvaloniaFact]
     public async Task AThrowingFrameCallbackDoesNotRetireTheFallbackTimer()
     {
-        AvaloniaFrameSource.Seed(new Border()); // an unparented visual, so no earlier test's window is found
+        AvaloniaFrameSource.Forget(); // so no earlier test's window is found
 
         var source = new AvaloniaFrameSource();
         var frames = 0;
