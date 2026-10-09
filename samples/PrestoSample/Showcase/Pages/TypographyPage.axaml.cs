@@ -7,6 +7,7 @@ using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Text;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Showcase.Pages;
@@ -130,17 +131,17 @@ public partial class TypographyPage : ShowcasePage
             }
             PrestoAvalonia.SplitText(Wordmark, new SplitTextParams { Words = null, Chars = new SplitPieceParams(), Outlines = true });
             TextWarp.SetKind(Wordmark, TextWarpKind.Bulge);
-            Presto.Set(Wordmark, new AnimationParams { ["WarpRadius"] = LensRadius });
-            var lens = Wordmark.CreateAnimatable(new() { ["WarpOrigin"] = 90, ["Warp"] = 350 });
+            Presto.Set(Wordmark, new AnimationParams { [WarpRadius] = LensRadius });
+            var lens = Wordmark.CreateAnimatable(new() { [WarpOrigin] = 90, [Warp] = 350 });
             var x = PrestoAvalonia.PointerValue(WordmarkStage, Orientation.Horizontal);
             var y = PrestoAvalonia.PointerValue(WordmarkStage, Orientation.Vertical);
             void Aim(MotionValue _)
             {
                 var at = WordmarkStage.TranslatePoint(new Point(x.Value, y.Value), Wordmark)!.Value;
-                lens.Set("WarpOrigin", [at.X, at.Y]);
+                lens.Set(WarpOrigin, [at.X, at.Y]);
             }
-            void Enter(object? sender, PointerEventArgs e) => lens.Set("Warp", Magnify);
-            void Leave(object? sender, PointerEventArgs e) => lens.Set("Warp", 0);
+            void Enter(object? sender, PointerEventArgs e) => lens.Set(Warp, Magnify);
+            void Leave(object? sender, PointerEventArgs e) => lens.Set(Warp, 0);
             x.Changed += Aim;
             y.Changed += Aim;
             WordmarkStage.PointerEntered += Enter;
@@ -168,7 +169,7 @@ public partial class TypographyPage : ShowcasePage
             timeline
                 .Add(TerminalLines.Children[i], new()
                 {
-                    ["Text"] = Presto.ScrambleText(new()
+                    [Text] = Presto.ScrambleText(new()
                     {
                         Text = TerminalScript[i],
                         Chars = "lowercase",
@@ -178,12 +179,12 @@ public partial class TypographyPage : ShowcasePage
                         SettleDuration = 120,
                     }),
                 }, "+=180")
-                .Add(Status, new() { ["Text"] = Presto.ScrambleText(new() { Text = StatusScript[i], Chars = "blocks" }) }, "<");
+                .Add(Status, new() { [Text] = Presto.ScrambleText(new() { Text = StatusScript[i], Chars = "blocks" }) }, "<");
         }
 
         return timeline
             .Sync(Recipes.CountUp(Percent, 100, "0", timeline.IterationDuration, ease: Eases.InOutSine), 0)
-            .Add(Status, new() { ["Text"] = Presto.ScrambleText(new() { Text = "decoded · 0 errors", Chars = "blocks" }) });
+            .Add(Status, new() { [Text] = Presto.ScrambleText(new() { Text = "decoded · 0 errors", Chars = "blocks" }) });
     }
 
     private void ReplayReveal(object? sender, RoutedEventArgs e)

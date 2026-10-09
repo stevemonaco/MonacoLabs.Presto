@@ -62,8 +62,8 @@ depends:
   - Tests: `TargetAdapterTests.AttachedPropertiesResolveThroughTheirOwnerType`, `PropertyNamingTests.TheQualifiedSpellingSharesTheSameKey`
 - **BRIDGE-TARGETS-006** — When no property matches, `Resolve` shall throw `ArgumentException` naming the target type and the property, from the `Animate`/`Set` call that resolved it.
   - Tests: `TargetAdapterTests.AnUnknownPropertyNameThrows`
-- **BRIDGE-TARGETS-007** — The bridge shall key a typed `AvaloniaProperty` as `"{OwnerType.Name}.{Name}"` everywhere it accepts one: both params indexers, `PropertyBuilderExtensions.Property`, the typed `Animatable` extensions and the `PrestoAvalonia` `Get`/`Remove`/`GetAnimations` overloads.
-  - Tests: `TargetAdapterTests.TypedAndNamedPropertiesMixInOneInitializer`, `TargetAdapterTests.GetAnimationsFiltersByAvaloniaProperty`
+- **BRIDGE-TARGETS-007** — The bridge shall key a typed `AvaloniaProperty` as `"{OwnerType.Name}.{Name}"` everywhere it accepts one: both params indexers, `PropertyBuilderExtensions.Property`, the typed `Animatable` extensions, the `PrestoAvalonia` `Get`/`Remove`/`GetAnimations` overloads and `PrestoKeys.Of`.
+  - Tests: `TargetAdapterTests.TypedAndNamedPropertiesMixInOneInitializer`, `TargetAdapterTests.GetAnimationsFiltersByAvaloniaProperty`, `PrestoKeysTests.OfReturnsTheEncodedName`
 - **BRIDGE-TARGETS-008** — `Canonicalize` shall map every spelling of one registered property (plain, qualified, typed) to that encoded key, so tweens declared with different spellings on one target replace, compose with and remove each other as one property.
   - Tests: `PropertyNamingTests.ATypedPropertyOverridesATweenDeclaredByName`, `PropertyNamingTests.ANamedPropertyOverridesATweenDeclaredByHandle`, `PropertyNamingTests.RemoveByNameCancelsATweenDeclaredByHandle`, `PropertyNamingTests.RemoveByHandleCancelsATweenDeclaredByName`
 - **BRIDGE-TARGETS-009** — `Canonicalize` shall return a shorthand name unchanged.
@@ -163,7 +163,7 @@ depends:
 - **Codec-less properties are discrete; there is no `AutoAlpha`.** Any property type without a codec gets a `DiscreteCodec`, `TrueThroughout` for `IsVisible` and `Midpoint` otherwise; compositor animations on one throw. Reason: `IsVisible = false` removes an element from layout (unlike CSS `visibility: hidden`), so a fade ending hidden would jump, and `Presence`'s `Hold` mode already covers fading before a hide. Rejected: a GSAP-style `AutoAlpha` shorthand.
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
 - **Types without a codec animate as discrete values.** See CORE-TARGETS.
-- **Params are init-only records with a string indexer.** See CORE-ANIMATION.
+- **Params are init-only records with a key indexer.** See CORE-ANIMATION.
 - **Dictionary params take `WhenReduced`; timers and timelines do not.** See CORE-ANIMATION.
 - **Targets map back to visuals through `TargetOwner`.** See DEVTOOLS-OVERLAY.
 - **Animations pause when their controls leave the tree.** See BRIDGE-HELPERS.
@@ -171,7 +171,6 @@ depends:
 ## Non-goals
 
 - No conversion between property types, and no CSS-style unit conversion for registered properties.
-- No typed key constants for shorthands; the builder methods are the typed form (BRIDGE-HELPERS, CORE-BUILDER).
 
 ## Open items
 

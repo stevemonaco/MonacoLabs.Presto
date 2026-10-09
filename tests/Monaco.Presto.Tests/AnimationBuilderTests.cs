@@ -23,6 +23,17 @@ public sealed class AnimationBuilderTests : EngineTestBase
     }
 
     [Fact]
+    public void AKeyAndItsStringGiveEqualParams()
+    {
+        PropertyKey x = "X";
+
+        AssertEquivalent(
+            new() { ["X"] = 100, ["Y"] = new TweenParams { To = 50, Duration = 200 } },
+            Presto.Build().Property(x, 100).Property(new PropertyKey("Y"), 50, duration: 200).ToParams());
+        AssertEquivalent(new() { ["X"] = 100 }, new() { [x] = 100 });
+    }
+
+    [Fact]
     public void PerPropertySettingsMatchTheIndexer()
     {
         Func<double, double> modifier = Math.Round;

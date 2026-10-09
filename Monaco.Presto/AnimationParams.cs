@@ -10,10 +10,10 @@ namespace Monaco.Presto;
 public record AnimationParams : TimerParams
 {
     /// <summary>The value every target animates <paramref name="property"/> to.</summary>
-    public TweenValue this[string property]
+    public TweenValue this[PropertyKey property]
     {
-        get => Properties[property];
-        init => Properties[property] = value;
+        get => Properties[property.Unwrap()];
+        init => Properties[property.Unwrap()] = value;
     }
 
     /// <summary>A <c>with</c> copy shares this dictionary; every consumer only reads it.</summary>

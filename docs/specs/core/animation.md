@@ -58,7 +58,7 @@ depends:
 
 ## Purpose
 
-An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tween` per target, property and keyframe, then derives its own delay and duration from those tweens. This spec covers how the parameters become tweens, how a tween renders, and the animation-level controls `Refresh`, `Revert` and `Stretch`. Keyframes are CORE-KEYFRAMES, composition between tweens is CORE-COMPOSITION, value parsing is CORE-VALUES. Also specifies `Timer.Tweens`, `Presto.Animate` and `Presto.Set`.
+An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tween` per target, property and keyframe, then derives its own delay and duration from those tweens. This spec covers how the parameters become tweens, how a tween renders, and the animation-level controls `Refresh`, `Revert` and `Stretch`. Keyframes are CORE-KEYFRAMES, composition between tweens is CORE-COMPOSITION, value parsing is CORE-VALUES. The `AnimationParams` indexer takes a `PropertyKey` (CORE-TARGETS). Also specifies `Timer.Tweens`, `Presto.Animate` and `Presto.Set`.
 
 ## Requirements
 
@@ -268,7 +268,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 ## Decisions
 
 - **Upstream's linked lists are kept, and tweens hang off the timer.** Engine children, timeline children and tweens use upstream's intrusive linked lists, and the tween list lives on `Timer`. Reason: structural parity with upstream for one-to-one test ports and zero-allocation ticking; on `Timer`, the renderer and the additive animation work on any timer.
-- **Params are init-only records with a string indexer.** `AnimationParams` mixes property tweens (through its indexer) and settings in one initializer, and a derived params type can add a typed indexer; `TweenParams` is a sealed class. Reason: records let `Timeline.Set` override with `with`, and indexer initializers are the only C# syntax that mixes typed members and arbitrary keys in one initializer, mirroring the JS object literal. Rejected: a collection-initializer `Add` design, which cannot mix with settings.
+- **Params are init-only records with a key indexer.** `AnimationParams` mixes property tweens (through its `PropertyKey` indexer, CORE-TARGETS) and settings in one initializer, and a derived params type can add a typed indexer; `TweenParams` is a sealed class. Reason: records let `Timeline.Set` override with `with`, and indexer initializers are the only C# syntax that mixes typed members and arbitrary keys in one initializer, mirroring the JS object literal. Rejected: a collection-initializer `Add` design, which cannot mix with settings.
 - **Function values receive the group's target list.** Reason: it lets `Stagger` resolve auto-grids from the targets.
 - **Dictionary params take `WhenReduced`; timers and timelines do not.** `AnimationParams.WhenReduced` has the builder's semantics: under the flag its properties replace these and the settings it sets override them, and a nested `WhenReduced` is ignored. Reason: a timer animates nothing, and each timeline child picks its own form.
 - **`persist` is not ported.** Reason: in anime.js 4.5.0 it exists only on the WAAPI path.

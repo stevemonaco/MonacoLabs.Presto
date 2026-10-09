@@ -87,17 +87,17 @@ public sealed class Animatable : IRevertible
     public IReadOnlyDictionary<string, Animation> Animations => _animations;
 
     /// <summary>The property's current value, or 0 once <see cref="Revert"/> has run.</summary>
-    public double Get(string property) =>
-        _animations.TryGetValue(Key(property), out var animation) && animation._headTween is { } tween ? tween._modifier(tween._number) : 0;
+    public double Get(PropertyKey property) =>
+        _animations.TryGetValue(Key(property.Unwrap()), out var animation) && animation._headTween is { } tween ? tween._modifier(tween._number) : 0;
 
     /// <summary>The channels of a color or complex property, empty for a scalar one.</summary>
-    public double[] GetChannels(string property) =>
-        _animations.TryGetValue(Key(property), out var animation) && animation._headTween is { } tween ? tween._numbers : [];
+    public double[] GetChannels(PropertyKey property) =>
+        _animations.TryGetValue(Key(property.Unwrap()), out var animation) && animation._headTween is { } tween ? tween._numbers : [];
 
     /// <summary>A <see cref="MotionValue"/> mirroring <see cref="Get"/> for the property, updated whenever its animation renders.</summary>
-    public MotionValue ValueOf(string property)
+    public MotionValue ValueOf(PropertyKey property)
     {
-        var key = Key(property);
+        var key = Key(property.Unwrap());
         _animations.TryGetValue(key, out var animation);
         var value = new MotionValue(animation?.OwnerEngine ?? Engine.Current, [], Get(key));
         if (animation != null) animation._onRender += _ => value.Assign(Get(key));
@@ -106,9 +106,9 @@ public sealed class Animatable : IRevertible
 
     /// <summary>Animates the property from where it is now to <paramref name="to"/>; a no-op after <see cref="Revert"/>.</summary>
     /// <returns>This animatable, so calls chain.</returns>
-    public Animatable Set(string property, double to, double? duration = null, EaseValue? ease = null)
+    public Animatable Set(PropertyKey property, double to, double? duration = null, EaseValue? ease = null)
     {
-        var key = Key(property);
+        var key = Key(property.Unwrap());
         if (!_animations.TryGetValue(key, out var animation)) return this;
         _flung.Remove(key, out var flung);
         if (_momentum.TryGetValue(key, out var declared) && (ease is { } given ? given.Raw as Spring : declared) is { } spring)
@@ -131,12 +131,12 @@ public sealed class Animatable : IRevertible
     }
 
     /// <summary>Coasts the property from where it is now at <paramref name="velocity"/> units per engine-time unit, decaying as <paramref name="settings"/> describes.</summary>
-    /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(string, double, double?, EaseValue?)"/>.</remarks>
-    public Animatable Fling(string property, double velocity, Inertia? settings = null) => Coast(property, velocity, settings);
+    /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(PropertyKey, double, double?, EaseValue?)"/>.</remarks>
+    public Animatable Fling(PropertyKey property, double velocity, Inertia? settings = null) => Coast(property.Unwrap(), velocity, settings);
 
     /// <summary>Coasts the property from its current velocity, or from rest when it is not moving, decaying as <paramref name="settings"/> describes.</summary>
-    /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(string, double, double?, EaseValue?)"/>.</remarks>
-    public Animatable Fling(string property, Inertia? settings = null) => Coast(property, null, settings);
+    /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(PropertyKey, double, double?, EaseValue?)"/>.</remarks>
+    public Animatable Fling(PropertyKey property, Inertia? settings = null) => Coast(property.Unwrap(), null, settings);
 
     private Animatable Coast(string property, double? velocity, Inertia? settings)
     {
@@ -170,11 +170,11 @@ public sealed class Animatable : IRevertible
         return Replay(animation, span);
     }
 
-    /// <inheritdoc cref="Set(string, double, double?, EaseValue?)"/>
+    /// <inheritdoc cref="Set(PropertyKey, double, double?, EaseValue?)"/>
     /// <remarks>The channel form, for the color and complex properties <see cref="GetChannels"/> reads.</remarks>
-    public Animatable Set(string property, IReadOnlyList<double> to, double? duration = null, EaseValue? ease = null)
+    public Animatable Set(PropertyKey property, IReadOnlyList<double> to, double? duration = null, EaseValue? ease = null)
     {
-        var key = Key(property);
+        var key = Key(property.Unwrap());
         if (!_animations.TryGetValue(key, out var animation)) return this;
         if (_momentum.TryGetValue(key, out var declared) && (ease is { } given ? given.Raw as Spring : declared) is { } spring)
         {
@@ -194,7 +194,7 @@ public sealed class Animatable : IRevertible
         return Replay(animation, duration);
     }
 
-    /// <summary>Reverts every property to the value it held before the animatable ran and leaves <see cref="Set(string, double, double?, EaseValue?)"/> a no-op.</summary>
+    /// <summary>Reverts every property to the value it held before the animatable ran and leaves <see cref="Set(PropertyKey, double, double?, EaseValue?)"/> a no-op.</summary>
     public Animatable Revert()
     {
         foreach (var animation in _animations.Values) animation.Revert();

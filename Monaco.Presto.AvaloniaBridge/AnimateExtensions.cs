@@ -96,12 +96,12 @@ public static class AnimateExtensions
     public static Transformable CreateTransformable(this Control target, TransformableParams? parameters = null) =>
         PrestoAvalonia.CreateTransformable(target, parameters);
 
-    /// <inheritdoc cref="Animatable.Set(string, double, double?, EaseValue?)"/>
+    /// <inheritdoc cref="Animatable.Set(PropertyKey, double, double?, EaseValue?)"/>
     /// <remarks>The typed form, for a property registered through the <see cref="AvaloniaProperty"/> indexer.</remarks>
     public static Animatable Set(this Animatable animatable, AvaloniaProperty property, double to, double? duration = null, EaseValue? ease = null) =>
         animatable.Set(AvaloniaObjectTargetAdapter.Encode(property), to, duration, ease);
 
-    /// <inheritdoc cref="Animatable.Set(string, IReadOnlyList{double}, double?, EaseValue?)"/>
+    /// <inheritdoc cref="Animatable.Set(PropertyKey, IReadOnlyList{double}, double?, EaseValue?)"/>
     /// <remarks>The typed form, for a property registered through the <see cref="AvaloniaProperty"/> indexer.</remarks>
     public static Animatable Set(this Animatable animatable, AvaloniaProperty property, IReadOnlyList<double> to, double? duration = null, EaseValue? ease = null) =>
         animatable.Set(AvaloniaObjectTargetAdapter.Encode(property), to, duration, ease);

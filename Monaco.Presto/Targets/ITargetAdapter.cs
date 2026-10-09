@@ -17,7 +17,7 @@ public interface ITargetAdapter
     string? Canonicalize(object target, string property) => null;
 
     /// <summary>
-    /// Called by <see cref="Presto.Remove(object?, Timer?, string?)"/> once the tweens are gone, so that an adapter driving
+    /// Called by <see cref="Presto.Remove(object?, Timer?, PropertyKey?)"/> once the tweens are gone, so that an adapter driving
     /// <paramref name="targets"/> outside the engine — the Avalonia bridge's compositor animations — stops too: every
     /// property of them, or only <paramref name="property"/> when one is named.
     /// </summary>

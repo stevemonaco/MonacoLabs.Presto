@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -43,12 +44,12 @@ public partial class MorphLabPage : ShowcasePage
         #region snippet MorphLabSignature
         PrestoAvalonia.CreateDrawable(Signature).Animate(new()
         {
-            ["Draw"] = TweenValue.Keyframes("0 0", "0 1", "1 1"),
+            [Draw] = TweenValue.Keyframes("0 0", "0 1", "1 1"),
             Duration = 4000,
             Ease = Eases.InOutQuad,
             LoopDelay = 500,
             Loop = true,
-            WhenReduced = new() { ["Draw"] = "0 1", Duration = 0, Loop = false },
+            WhenReduced = new() { [Draw] = "0 1", Duration = 0, Loop = false },
         });
         #endregion
 
@@ -74,7 +75,7 @@ public partial class MorphLabPage : ShowcasePage
             {
                 timeline.Add(MorphPath, new()
                 {
-                    ["Data"] = PrestoAvalonia.MorphTo(Shapes[i % Shapes.Length], precision),
+                    [Data] = PrestoAvalonia.MorphTo(Shapes[i % Shapes.Length], precision),
                     Duration = 900,
                     Ease = ease,
                 });
@@ -89,13 +90,13 @@ public partial class MorphLabPage : ShowcasePage
         var lead = PrestoAvalonia.CreateMotionPath(Track);
         Marker.Animate(new()
         {
-            ["X"] = lead.X,
-            ["Y"] = lead.Y,
-            ["Rotate"] = lead.Rotate,
+            [X] = lead.X,
+            [Y] = lead.Y,
+            [Rotate] = lead.Rotate,
             Duration = RideDuration,
             Ease = Eases.None,
             Loop = true,
-            WhenReduced = new() { ["X"] = lead.X, ["Y"] = lead.Y, ["Rotate"] = lead.Rotate, Duration = 0, Loop = false },
+            WhenReduced = new() { [X] = lead.X, [Y] = lead.Y, [Rotate] = lead.Rotate, Duration = 0, Loop = false },
         });
 
         var followers = new Border[FollowerCount];
@@ -118,9 +119,9 @@ public partial class MorphLabPage : ShowcasePage
         var trails = followers.Select((_, i) => PrestoAvalonia.CreateMotionPath(Track, -0.045 * (i + 1))).ToArray();
         Presto.Animate(followers, new()
         {
-            ["X"] = (FunctionValue)((_, i, _) => trails[i].X),
-            ["Y"] = (FunctionValue)((_, i, _) => trails[i].Y),
-            ["Rotate"] = (FunctionValue)((_, i, _) => trails[i].Rotate),
+            [X] = (FunctionValue)((_, i, _) => trails[i].X),
+            [Y] = (FunctionValue)((_, i, _) => trails[i].Y),
+            [Rotate] = (FunctionValue)((_, i, _) => trails[i].Rotate),
             Duration = RideDuration,
             Ease = Eases.None,
             Loop = true,

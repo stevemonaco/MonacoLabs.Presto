@@ -6,6 +6,7 @@ using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Controls;
 using Monaco.Presto.AvaloniaBridge.Text;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -50,7 +51,7 @@ public partial class LiquidTypePage : ShowcasePage
         FuseFx.Goo = 14;
         Presto.Animate(new[] { LeftWord, RightWord }, new AnimationParams
         {
-            ["X"] = (FunctionValue)((_, i, _) => i == 0 ? 72 : -72),
+            [X] = (FunctionValue)((_, i, _) => i == 0 ? 72 : -72),
             Duration = 1400,
             Ease = "inOutSine",
             Alternate = true,
@@ -94,10 +95,10 @@ public partial class LiquidTypePage : ShowcasePage
     {
         PrestoAvalonia.SplitText(VectorWord, new SplitTextParams { Words = null, Chars = new SplitPieceParams(), Outlines = true });
         TextWarp.SetKind(VectorWord, TextWarpKind.Wave);
-        Presto.Animate(VectorWord, new AnimationParams { ["Warp"] = 0.3, ["WarpRadius"] = 160, Duration = 800 });
+        Presto.Animate(VectorWord, new AnimationParams { [Warp] = 0.3, [WarpRadius] = 160, Duration = 800 });
         Presto.Animate(VectorWord, new AnimationParams
         {
-            ["WarpPhase"] = TweenValue.FromTo(0, 2 * Math.PI),
+            [WarpPhase] = TweenValue.FromTo(0, 2 * Math.PI),
             Duration = 2400,
             Ease = "linear",
             Loop = true,

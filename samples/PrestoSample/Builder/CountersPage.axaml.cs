@@ -84,7 +84,7 @@ public partial class CountersPage : ShowcasePage
             var (readout, tile) = _tiles[i];
             var next = metric.Min + (_random.NextDouble() * (metric.Max - metric.Min));
             counters[i] = readout.Animate(Presto.Build()
-                .Property("Text", from: _values[i], to: next, textModifier: metric.Format)
+                .Text(from: _values[i], to: next, textModifier: metric.Format)
                 .Delay(i * 120)
                 .Duration(1600)
                 .Ease(Eases.OutExpo));

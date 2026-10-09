@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using Monaco.Presto.AvaloniaBridge.Controls;
 
 namespace PrestoSample.Showcase.Pages;
@@ -38,7 +39,7 @@ public partial class CarouselPage : ShowcasePage
         Pager.PropertyChanged += (_, e) =>
         {
             if (e.Property != Pager.SelectedIndexProperty) return;
-            Scope.Execute(_ => Ring.Animate(new() { ["X"] = Pager.SelectedIndex * DotPitch, Duration = MarkDuration, Ease = Eases.OutQuint }));
+            Scope.Execute(_ => Ring.Animate(new() { [X] = Pager.SelectedIndex * DotPitch, Duration = MarkDuration, Ease = Eases.OutQuint }));
         };
     }
 

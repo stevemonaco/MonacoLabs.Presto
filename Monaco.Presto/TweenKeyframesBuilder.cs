@@ -3,7 +3,7 @@ using Monaco.Presto.Values;
 
 namespace Monaco.Presto;
 
-/// <summary>Adds one property's keyframes, in order, for <see cref="PropertyBuilder{TSelf}.Property(string, Action{TweenKeyframesBuilder})"/>.</summary>
+/// <summary>Adds one property's keyframes, in order, for <see cref="PropertyBuilder{TSelf}.Property(PropertyKey, Action{TweenKeyframesBuilder})"/>.</summary>
 public sealed class TweenKeyframesBuilder
 {
     private const double PathTolerance = .02;

@@ -13,6 +13,7 @@ sources:
   - Monaco.Presto/DiscreteRule.cs
   - Monaco.Presto/Presto.cs
   - Monaco.Presto/Animation.cs
+  - Monaco.Presto/PropertyKey.cs
 types:
   - ITargetAdapter
   - IPropertyAccessor
@@ -23,6 +24,7 @@ types:
   - DiscreteCodec
   - DiscreteRule
   - StructCodec
+  - PropertyKey
 tests:
   - TargetsTests
   - ObjectTargetAdapterTests
@@ -30,6 +32,7 @@ tests:
   - CodecTests
   - PropertyNamingTests
   - StructCodecTests
+  - PropertyKeyTests
 upstream:
   - src/core/targets.js
   - tests/suites/targets.test.js
@@ -41,7 +44,7 @@ depends:
 
 ## Purpose
 
-The core animates any object through small adapter interfaces: an `ITargetAdapter` resolves a property name on a target to an `IPropertyAccessor` that reads, writes and reverts it, and an optional `IValueCodec` turns a typed property value into tweenable channels and back. Adapters registered in `Presto.Adapters` are asked first; `ObjectTargetAdapter` (dictionaries and reflection) handles the rest, with codecs from `Presto.Codecs` and `DiscreteCodec` for types nothing interpolates. `TargetParser` flattens the targets argument. CORE-VALUES parses through the codecs; CORE-ANIMATION builds tweens on the accessors; the bridge's adapter is specified in its own spec. Also specifies `Presto.Adapters` and `Presto.Codecs`.
+The core animates any object through small adapter interfaces: an `ITargetAdapter` resolves a property name on a target to an `IPropertyAccessor` that reads, writes and reverts it, and an optional `IValueCodec` turns a typed property value into tweenable channels and back. Adapters registered in `Presto.Adapters` are asked first; `ObjectTargetAdapter` (dictionaries and reflection) handles the rest, with codecs from `Presto.Codecs` and `DiscreteCodec` for types nothing interpolates. `TargetParser` flattens the targets argument. Every public API that names a property takes it as a `PropertyKey`, which a string converts to and which the API unwraps to its name before resolution. CORE-VALUES parses through the codecs; CORE-ANIMATION builds tweens on the accessors; the bridge's adapter is specified in its own spec. Also specifies `Presto.Adapters` and `Presto.Codecs`.
 
 ## Requirements
 
@@ -175,6 +178,17 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **CORE-TARGETS-050** — When `rule` is not given, a `DiscreteCodec`'s `Rule` shall be `Midpoint`, as CSS does.
   - Tests: `DiscreteValuesTests.ABoolSwitchesHalfwayByDefault`
 
+### Property keys
+
+- **CORE-TARGETS-054** — The `PropertyKey` conversion from a string shall wrap that string as the key's name, and from `null` shall throw `ArgumentNullException`.
+  - Tests: `PropertyKeyTests.ConversionWrapsTheString`, `PropertyKeyTests.NullThrowsArgumentNullException`
+- **CORE-TARGETS-055** — Two keys shall be equal when their names are ordinally equal.
+  - Tests: `PropertyKeyTests.KeysCompareByOrdinalName`
+- **CORE-TARGETS-056** — A public API given a `PropertyKey` shall behave exactly as it did given the key's name: resolution, canonicalization, composition and removal see the same string.
+  - Tests: `AnimationBuilderTests.AKeyAndItsStringGiveEqualParams`, `PropertyKeyTests.ConversionWrapsTheString`
+- **CORE-TARGETS-057** — When an API is given `default(PropertyKey)`, it shall throw `ArgumentException`.
+  - Tests: `PropertyKeyTests.DefaultKeyThrowsArgumentException`
+
 ## Invariants
 
 - `Presto.ResolveAccessor` never returns null: the fallback adapter either returns an accessor or throws.
@@ -217,6 +231,8 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 ## Decisions
 
 - **Property keys are canonicalized, not keyed on accessors.** Every spelling of a property (a name, a typed property handle) resolves to one canonical string key wherever a caller-supplied name meets a target: tween construction, the `Remove` filter and `Animatable`'s lookups. Reason: two spellings landed in different sibling registries, so composition never fired between them and `Remove` missed tweens declared the other way; canonicalizing fixes all three with no core change, keeps the upstream composition port intact and keeps plain-object targets working. Rejected: keying the composer on the resolved accessor or a property-key struct (structurally cleaner, but it moves the port away from upstream and touches tweens, animations, the composer and `Animatable`).
+- **One key type for every key-taking API.** `PropertyKey` replaces `string` (not an overload beside it) on every public API that names a property, with an implicit conversion from `string` and none back, so no overload becomes ambiguous. The core defines the type; the bridge defines the shorthand keys. Reason: the withdrawn string constants (`bc0f00f`) typed only the indexer and became a third spelling; a key type accepted everywhere is the same spelling in every position, and replacing rather than overloading keeps one indexer. Rejected: string constants again (no type at the parameter); a second indexer overload beside `this[string]`; an analyzer (could check only shorthands).
+- **A key is its name.** Keys compare by ordinal name, and every API unwraps the name at its public boundary, before canonicalization; the adapter interfaces, the composer and the params' storage keep `string`. Reason: tweens are keyed by canonical name (above), and a key that carried more would need a second composition path.
 - **Types without a codec animate as discrete values.** `DiscreteCodec` runs one channel from 0 to 1 and writes the from or to object whole, both boxed once on the tween; non-numeric strings keep upstream's complex path. Reason: `bool` and enum properties could not be set by timelines, keyframes or `Presto.Set`, while CSS (`allow-discrete`) and GSAP handle them; frames stay allocation-free. Rejected: throwing `NotSupportedException`.
 - **The discrete switch rule is a hybrid.** `TweenParams.Discrete` overrides the rule the codec was built with; the core default is CSS's `Midpoint`, and an adapter may build a property's codec with another (a visibility flag with `TrueThroughout`). The rule is read from eased progress, and the throughout rules act as `Midpoint` unless exactly one end is that `bool`. Reason: a fade-out should stay visible until it ends and a fade-in show from its first frame, CSS's midpoint is the general default, and reading eased progress makes seeks, reversals and keyframe segments switch at the same point.
 - **Discrete values reject relative values and `Blend`.** Both throw, and an `Animatable` over a discrete member snaps to each new value. Reason: not recorded beyond there being no meaningful arithmetic on discrete values.

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -64,7 +65,7 @@ public partial class LiquidPage : ShowcasePage
     {
         for (var i = 0; i < _labels.Length; i++)
         {
-            if (i != _selected) PrestoAvalonia.Set(_labels[i], new AvaloniaAnimationParams { ["Y"] = LabelDrop, ["Opacity"] = 0 });
+            if (i != _selected) PrestoAvalonia.Set(_labels[i], new AvaloniaAnimationParams { [Y] = LabelDrop, ["Opacity"] = 0 });
         }
         AfterFirstArrange(Tabs, () =>
         {
@@ -97,7 +98,7 @@ public partial class LiquidPage : ShowcasePage
             {
                 ["Left"] = Edge(slot.Left, leads: !forward),
                 ["Right"] = Edge(slot.Right, leads: forward),
-                ["ScaleY"] = new TweenParams[]
+                [ScaleY] = new TweenParams[]
                 {
                     new() { To = .82, Duration = 160, Ease = Eases.OutQuad },
                     new() { To = 1, Duration = 380, Ease = Eases.InOutQuad },
@@ -108,7 +109,7 @@ public partial class LiquidPage : ShowcasePage
 
             _icons[tab].Animate(new()
             {
-                ["Y"] = new TweenParams[]
+                [Y] = new TweenParams[]
                 {
                     new() { To = -8, Duration = 120, Ease = Eases.OutQuad },
                     new() { To = 0, Ease = Eases.Spring(bounce: .5, duration: 420) },
@@ -117,8 +118,8 @@ public partial class LiquidPage : ShowcasePage
                 Duration = 300,
             });
             _icons[old].Animate(new() { ["Foreground"] = TweenValue.Of(Palette.InkDim), Duration = 300 });
-            _labels[tab].Animate(new() { ["Y"] = 0, ["Opacity"] = 1, Duration = 320, Delay = 80, Ease = Eases.OutQuart });
-            _labels[old].Animate(new() { ["Y"] = LabelDrop, ["Opacity"] = 0, Duration = 200, Ease = Eases.OutQuad });
+            _labels[tab].Animate(new() { [Y] = 0, ["Opacity"] = 1, Duration = 320, Delay = 80, Ease = Eases.OutQuart });
+            _labels[old].Animate(new() { [Y] = LabelDrop, ["Opacity"] = 0, Duration = 200, Ease = Eases.OutQuad });
         });
     }
 
@@ -138,12 +139,12 @@ public partial class LiquidPage : ShowcasePage
     private void ToggleFan()
     {
         _open = !_open;
-        Plus.Animate(new() { ["Rotate"] = _open ? 45 : 0, Duration = 320, Ease = Eases.OutBack() });
+        Plus.Animate(new() { [Rotate] = _open ? 45 : 0, Duration = 320, Ease = Eases.OutBack() });
         #region snippet LiquidMetaball
         Presto.Animate(_children, new AnimationParams
         {
-            ["X"] = (FunctionValue)((_, i, _) => _parent.X + (_open ? Fan * Math.Cos(FanAngles[i] * Math.PI / 180) : 0)),
-            ["Y"] = (FunctionValue)((_, i, _) => _parent.Y + (_open ? Fan * Math.Sin(FanAngles[i] * Math.PI / 180) : 0)),
+            [X] = (FunctionValue)((_, i, _) => _parent.X + (_open ? Fan * Math.Cos(FanAngles[i] * Math.PI / 180) : 0)),
+            [Y] = (FunctionValue)((_, i, _) => _parent.Y + (_open ? Fan * Math.Sin(FanAngles[i] * Math.PI / 180) : 0)),
             Delay = Presto.Stagger(60),
             Ease = _open ? Eases.Spring(bounce: .35, duration: 700) : Eases.InBack(),
             Duration = _open ? null : (TweenValue?)380,

@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using Monaco.Presto.AvaloniaBridge.Controls;
 using Monaco.Presto.AvaloniaBridge.Draggables;
 using Monaco.Presto.AvaloniaBridge.Text;
@@ -200,8 +201,8 @@ public partial class TypeLabPage : ShowcasePage
     // The text takes no part: TextPath re-places it in every frame the Data changes.
     private Timeline MorphThrough(Point[] next) => Presto.CreateTimeline()
         .Add(Handles, new() { ["Opacity"] = 0, Duration = 200 })
-        .Add(Curve, new() { ["Data"] = PrestoAvalonia.MorphTo(Circle), Duration = 900, Ease = Eases.InOutCubic }, 0)
-        .Add(Curve, new() { ["Data"] = PrestoAvalonia.MorphTo(Bezier(next)), Duration = 900, Ease = Eases.InOutCubic }, "+=250")
+        .Add(Curve, new() { [Data] = PrestoAvalonia.MorphTo(Circle), Duration = 900, Ease = Eases.InOutCubic }, 0)
+        .Add(Curve, new() { [Data] = PrestoAvalonia.MorphTo(Bezier(next)), Duration = 900, Ease = Eases.InOutCubic }, "+=250")
         .Call(_ => Shape(next))
         .Add(Handles, new() { ["Opacity"] = 1, Duration = 200 });
 

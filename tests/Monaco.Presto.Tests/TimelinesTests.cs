@@ -352,4 +352,56 @@ public sealed class TimelinesTests : EngineTestBase
         Assert.Equal(2, cUpdatesSinceRemoval);
         Assert.Equal(2, TestHelpers.GetChildLength(tl));
     }
+
+    [Fact]
+    public void LabelWithAnOutHandleStoresTheSameTimeAsLabel()
+    {
+        var byName = Presto.CreateTimeline(new() { Autoplay = false }).Label("A", "+=40");
+        var byHandle = Presto.CreateTimeline(new() { Autoplay = false }).Label("A", out var label, "+=40");
+
+        Assert.Equal("A", label.Name);
+        Assert.Equal(byName.Labels["A"], byHandle.Labels["A"]);
+    }
+
+    [Fact]
+    public void LabelWithADeclaredHandleStoresUnderItsName()
+    {
+        var label = new TimelineLabel("A");
+        var tl = Presto.CreateTimeline(new() { Autoplay = false }).Label(label, 40);
+
+        Assert.Equal(40, tl.Labels["A"]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SeekToALabelMatchesSeekToItsTime(bool muteCallbacks)
+    {
+        var byTimeCalls = 0;
+        var byLabelCalls = 0;
+        var byTime = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { Duration = 100 } })
+            .Add(new StyleTarget(), new() { ["TranslateX"] = 100 })
+            .Call(_ => byTimeCalls++, 50)
+            .Label("A", 75);
+        var byLabel = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { Duration = 100 } })
+            .Add(new StyleTarget(), new() { ["TranslateX"] = 100 })
+            .Call(_ => byLabelCalls++, 50)
+            .Label("A", out var label, 75);
+
+        byTime.Seek(byTime.Labels["A"], muteCallbacks);
+        var returned = byLabel.Seek(label, muteCallbacks);
+
+        Assert.Same(byLabel, returned);
+        Assert.Equal(byTime.CurrentTime, byLabel.CurrentTime);
+        Assert.Equal(byTimeCalls, byLabelCalls);
+        Assert.Equal(muteCallbacks ? 0 : 1, byLabelCalls);
+    }
+
+    [Fact]
+    public void SeekToAnUnknownLabelThrows()
+    {
+        var tl = Presto.CreateTimeline(new() { Autoplay = false });
+
+        Assert.Throws<KeyNotFoundException>(() => tl.Seek(new TimelineLabel("missing")));
+    }
 }

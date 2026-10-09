@@ -19,17 +19,18 @@ namespace Monaco.Presto.AvaloniaBridge.Prebuilt;
 public static class Tints
 {
     /// <summary>
-    /// Recolors <paramref name="property"/> from each element's current color, read when the animation starts, to
-    /// <paramref name="to"/>. A solid brush or a <see cref="Color"/> property starts from its color; anything else from transparent.
+    /// Recolors <paramref name="property"/> (<c>Background</c> when null) from each element's current color, read when the
+    /// animation starts, to <paramref name="to"/>. A solid brush or a <see cref="Color"/> property starts from its color; anything else from transparent.
     /// </summary>
-    public static AnimationBuilder Recolor(Color to, string property = "Background", ColorSpace? space = null, HueInterpolation? hue = null,
+    public static AnimationBuilder Recolor(Color to, PropertyKey? property = null, ColorSpace? space = null, HueInterpolation? hue = null,
                                            double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false)
     {
+        var name = property?.Unwrap() ?? "Background";
         var tokens = Recipes.Tokens;
         var ms = duration ?? tokens.Medium;
         var easeValue = ease ?? tokens.Ease;
         return Recipes.Start(tokens, ms, delay, easeValue, stagger)
-            .Property(property, k => k.Color((FunctionValue)((target, _, _) => Current(target, property)), to.ToPresto(),
+            .Property(name, k => k.Color((FunctionValue)((target, _, _) => Current(target, name)), to.ToPresto(),
                 space ?? tokens.ColorSpace, hue ?? tokens.Hue, ms, ease: easeValue));
     }
 

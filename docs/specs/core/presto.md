@@ -45,7 +45,7 @@ depends:
 
 ## Purpose
 
-`Presto` is the static entry point that mirrors the anime.js module exports: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`, `ScrambleText`), the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) and the adapter and codec registries. Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics, and adapter resolution order.
+`Presto` is the static entry point that mirrors the anime.js module exports: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`, `ScrambleText`), the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) and the adapter and codec registries. Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics (each naming its property by `PropertyKey`, CORE-TARGETS), and adapter resolution order.
 
 ## Requirements
 
@@ -127,7 +127,7 @@ depends:
   - Tests: `UtilsTargetsTests.RemoveTargetsFromTimeline`, `TimelineCallbacksTests.RemoveNestedAnimations`
 - **CORE-PRESTO-032** — When `renderable` is given, `Remove` shall remove tweens only from that timer and its descendants.
   - Tests: `UtilsTargetsTests.RemoveTargetsOnASpecificAnimation`
-- **CORE-PRESTO-033** — When `property` is named, `Remove` shall remove only the tweens whose canonical property name equals the name's canonical form on that target.
+- **CORE-PRESTO-033** — When a `property` key is given, `Remove` shall remove only the tweens whose canonical property name equals the key's canonical form on that target.
   - Tests: `UtilsTargetsTests.RemoveSpecificTweenProperty`, `UtilsTargetsTests.RemoveSpecificTweenPropertyAndCancelTheAnimationIfNoTweensAreLeft`
 - **CORE-PRESTO-034** — When `renderable` is null, `Remove` shall then call `Removed(targets, property)` on every registered adapter, in registration order.
   - Tests: `TargetsTests.RemovingEverythingTellsTheAdapters`
@@ -142,7 +142,7 @@ depends:
 
 - **CORE-PRESTO-038** — `GetAnimations(target)` shall return, in engine child order and depth first through timelines, every animation on `Engine.Current` with a tween whose target is reference-equal to `target`.
   - Tests: `UtilsTargetsTests.GetAnimationsListsTheRunningAnimationsOfATarget`, `UtilsTargetsTests.GetAnimationsFindsTimelineChildren`
-- **CORE-PRESTO-039** — When `property` is non-empty, `GetAnimations` shall return only animations with a tween on the property's canonical name for that target; null or empty means any property.
+- **CORE-PRESTO-039** — When the `property` key's name is non-empty, `GetAnimations` shall return only animations with a tween on its canonical name for that target; a null key or an empty name means any property.
   - Tests: `UtilsTargetsTests.GetAnimationsListsTheRunningAnimationsOfATarget`
 - **CORE-PRESTO-040** — `GetAnimations` shall skip completed and canceled animations, and the children of a completed or canceled timeline.
   - Tests: `UtilsTargetsTests.GetAnimationsSkipsCompletedAndCanceledAnimations`

@@ -4,10 +4,10 @@ namespace Monaco.Presto;
 public sealed class Keyframe
 {
     /// <summary>The value this frame animates <paramref name="property"/> to, starting from whatever the previous frame left there.</summary>
-    public TweenValue this[string property]
+    public TweenValue this[PropertyKey property]
     {
-        get => Properties[property];
-        init => Properties[property] = value;
+        get => Properties[property.Unwrap()];
+        init => Properties[property.Unwrap()] = value;
     }
 
     internal OrderedDictionary<string, TweenValue> Properties { get; } = new();

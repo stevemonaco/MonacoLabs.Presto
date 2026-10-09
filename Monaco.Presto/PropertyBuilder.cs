@@ -12,14 +12,14 @@ public abstract class PropertyBuilder<TSelf> where TSelf : PropertyBuilder<TSelf
     internal OrderedDictionary<string, TweenValue> Properties { get; } = new();
 
     /// <summary>Animates <paramref name="name"/> to <paramref name="to"/>.</summary>
-    public TSelf Property(string name, TweenValue to)
+    public TSelf Property(PropertyKey name, TweenValue to)
     {
-        Properties[name] = to;
+        Properties[name.Unwrap()] = to;
         return (TSelf)this;
     }
 
     /// <summary>Animates <paramref name="name"/> with its own tween settings, overriding the animation's for this property.</summary>
-    public TSelf Property(string name, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+    public TSelf Property(PropertyKey name, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
         TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
         Func<double, double>? modifier = null, Func<double, string>? textModifier = null)
     {
@@ -36,10 +36,10 @@ public abstract class PropertyBuilder<TSelf> where TSelf : PropertyBuilder<TSelf
     }
 
     /// <summary>Animates <paramref name="name"/> to a value computed per target.</summary>
-    public TSelf Property(string name, FunctionValue to) => Property(name, (TweenValue)to);
+    public TSelf Property(PropertyKey name, FunctionValue to) => Property(name, (TweenValue)to);
 
     /// <summary>Animates <paramref name="name"/> through the keyframes <paramref name="keyframes"/> adds.</summary>
-    public TSelf Property(string name, Action<TweenKeyframesBuilder> keyframes)
+    public TSelf Property(PropertyKey name, Action<TweenKeyframesBuilder> keyframes)
     {
         var builder = new TweenKeyframesBuilder();
         keyframes(builder);

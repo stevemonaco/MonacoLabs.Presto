@@ -7,6 +7,7 @@ using Avalonia.Media.Immutable;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Draggables;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -88,7 +89,7 @@ public partial class SwipeDeckPage : ShowcasePage
                 },
             },
         };
-        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["Scale"] = 1 - (slot * SlotScale), ["Y"] = slot * SlotY });
+        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { [Scale] = 1 - (slot * SlotScale), [Y] = slot * SlotY });
         return card;
     }
 
@@ -143,8 +144,8 @@ public partial class SwipeDeckPage : ShowcasePage
             Follow.Bind(card, Border.BackgroundProperty, graph.Tint),
         ];
         // Follow has no RotateY shorthand, so the lean is written from its Changed event.
-        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["Perspective"] = Depth });
-        Action<MotionValue> lean = value => PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["RotateY"] = value.Value });
+        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { [Perspective] = Depth });
+        Action<MotionValue> lean = value => PrestoAvalonia.Set(card, new AvaloniaAnimationParams { [RotateY] = value.Value });
         graph.RotateY.Changed += lean;
         return () =>
         {
@@ -162,8 +163,8 @@ public partial class SwipeDeckPage : ShowcasePage
         {
             PrestoAvalonia.Set(_stack[slot], new AvaloniaAnimationParams
             {
-                ["Scale"] = 1 - ((slot - lift) * SlotScale),
-                ["Y"] = (slot - lift) * SlotY,
+                [Scale] = 1 - ((slot - lift) * SlotScale),
+                [Y] = (slot - lift) * SlotY,
             });
         }
     }
@@ -180,7 +181,7 @@ public partial class SwipeDeckPage : ShowcasePage
         _exits.Push(exit);
         UndoButton.IsEnabled = true;
         // Through the draggable's own animatable, so the flight retargets its release tween instead of racing it.
-        drag.Animate.Set("X", exit.X, ExitDuration, Eases.OutQuad).Set("Y", exit.Y, ExitDuration, Eases.OutQuad);
+        drag.Animate.Set(X, exit.X, ExitDuration, Eases.OutQuad).Set(Y, exit.Y, ExitDuration, Eases.OutQuad);
         _first = Wrap(_first + 1);
         var entering = Card(_first + Shown - 1, Shown - 1);
         PrestoAvalonia.Set(entering, new AvaloniaAnimationParams { ["Opacity"] = 0 });
@@ -191,7 +192,7 @@ public partial class SwipeDeckPage : ShowcasePage
             Stamp(card, like).Animate(new() { ["Opacity"] = 1, Duration = 120 });
             card.Animate(new()
             {
-                ["Rotate"] = exit.Rotate,
+                [Rotate] = exit.Rotate,
                 Duration = ExitDuration,
                 Ease = Eases.OutQuad,
                 OnComplete = _ =>
@@ -213,14 +214,14 @@ public partial class SwipeDeckPage : ShowcasePage
         var drag = _drag = Draggable(top);
         Scope.Execute(_ =>
         {
-            Presto.Animate(drag, new AnimationParams { ["X"] = 0, ["Y"] = 0, Ease = Eases.Spring(bounce: .25, duration: 600) });
-            top.Animate(new() { ["Scale"] = 1, Ease = Eases.Spring(bounce: .25, duration: 600) });
+            Presto.Animate(drag, new AnimationParams { [X] = 0, [Y] = 0, Ease = Eases.Spring(bounce: .25, duration: 600) });
+            top.Animate(new() { [Scale] = 1, Ease = Eases.Spring(bounce: .25, duration: 600) });
             for (var slot = 1; slot < _stack.Count; slot++)
             {
                 _stack[slot].Animate(new()
                 {
-                    ["Scale"] = 1 - (slot * SlotScale),
-                    ["Y"] = slot * SlotY,
+                    [Scale] = 1 - (slot * SlotScale),
+                    [Y] = slot * SlotY,
                     Ease = Eases.Spring(bounce: .2, duration: 600),
                 });
             }
@@ -240,7 +241,7 @@ public partial class SwipeDeckPage : ShowcasePage
         var (x, y) = (drag.X, drag.Y);
         _unbind!();
         drag.Revert();
-        PrestoAvalonia.Set(top, new AvaloniaAnimationParams { ["X"] = x, ["Y"] = y });
+        PrestoAvalonia.Set(top, new AvaloniaAnimationParams { [X] = x, [Y] = y });
 
         var bottom = _stack[^1];
         _stack.RemoveAt(_stack.Count - 1);
@@ -253,7 +254,7 @@ public partial class SwipeDeckPage : ShowcasePage
 
         _first = Wrap(_first - 1);
         var card = Card(_first, 0);
-        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { ["X"] = exit.X, ["Y"] = exit.Y });
+        PrestoAvalonia.Set(card, new AvaloniaAnimationParams { [X] = exit.X, [Y] = exit.Y });
         _stack.Insert(0, card);
         Deck.Children.Add(card);
         Seat();

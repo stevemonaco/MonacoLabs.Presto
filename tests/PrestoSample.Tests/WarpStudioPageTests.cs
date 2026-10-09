@@ -57,8 +57,8 @@ public sealed class WarpStudioPageTests
         var code = page.GetControl<CodePanel>("CodeText").Code!;
         Assert.Contains("TextWarp.SetKind(line, TextWarpKind.Twist);", code);
         Assert.Contains("Outlines = true", code);
-        Assert.Contains("[\"Warp\"] = 1.25,", code);
-        Assert.Contains("[\"WarpRadius\"] = 90,", code);
+        Assert.Contains("[PrestoKeys.Warp] = 1.25,", code);
+        Assert.Contains("[PrestoKeys.WarpRadius] = 90,", code);
         Assert.Contains("Delay = Presto.Stagger(40),", code);
         Assert.DoesNotContain("TweenValue.FromTo", code);
         Assert.Contains("PrestoAvalonia.PointerValue(Stage, Orientation.Horizontal)", code);

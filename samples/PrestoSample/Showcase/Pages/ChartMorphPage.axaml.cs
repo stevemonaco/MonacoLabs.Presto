@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using Line = Avalonia.Controls.Shapes.Line;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -112,19 +113,19 @@ public partial class ChartMorphPage : ShowcasePage
         var points = Points;
         var shapes = Shapes(view, points);
         var max = NiceMax(view == ChartView.Scatter ? points.Max(p => p.Secondary) : points.Max(p => p.Value));
-        var draw = (double[])PrestoAvalonia.Get(LineStroke, "Draw")!;
+        var draw = (double[])PrestoAvalonia.Get(LineStroke, Draw)!;
         var start = draw[1] > draw[0] ? UndrawDuration : 0;
         Unit.Text = view == ChartView.Scatter ? "% converted" : "k visits";
 
         var timeline = Presto.CreateTimeline();
         if (start > 0)
         {
-            timeline.Add(LineStroke, new AvaloniaAnimationParams { ["Draw"] = "0 0", Duration = UndrawDuration, Ease = Eases.InQuad }, 0);
+            timeline.Add(LineStroke, new AvaloniaAnimationParams { [Draw] = "0 0", Duration = UndrawDuration, Ease = Eases.InQuad }, 0);
         }
         #region snippet ChartMorphPoints
         timeline.Add(_points, new AvaloniaAnimationParams
         {
-            ["Data"] = (ChainedFunctionValue)((target, i, total, previous) => PrestoAvalonia.MorphTo(shapes[i])(target, i, total, previous)),
+            [Data] = (ChainedFunctionValue)((target, i, total, previous) => PrestoAvalonia.MorphTo(shapes[i])(target, i, total, previous)),
             Duration = MorphDuration,
             Ease = Eases.OutQuart,
             Delay = Presto.Stagger(45, new StaggerParams { From = view == ChartView.Donut ? StaggerFrom.First : StaggerFrom.Center }),
@@ -133,7 +134,7 @@ public partial class ChartMorphPage : ShowcasePage
         timeline
             .Add(_ticks, new AvaloniaAnimationParams
             {
-                ["Text"] = new TweenParams
+                [Text] = new TweenParams
                 {
                     To = (FunctionValue)((_, i, _) => max * i / (TickCount - 1)),
                     TextModifier = value => Utils.RoundPad(value, 0),

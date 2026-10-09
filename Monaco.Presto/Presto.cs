@@ -35,7 +35,7 @@ public static class Presto
     /// <summary>Creates a timeline that sequences animations, timers and callbacks on a shared playhead (upstream <c>createTimeline()</c>).</summary>
     public static Timeline CreateTimeline(TimelineParams? parameters = null) => Created(new Timeline(parameters ?? new()).Init());
 
-    /// <summary>Creates the paused per-property animations that <see cref="Animatable.Set(string, double, double?, EaseValue?)"/> drives.</summary>
+    /// <summary>Creates the paused per-property animations that <see cref="Animatable.Set(PropertyKey, double, double?, EaseValue?)"/> drives.</summary>
     public static Animatable CreateAnimatable(object? targets, AnimatableParams parameters) => new(targets, parameters);
 
     /// <summary>Creates a lifetime that everything constructed inside it registers with, so one <see cref="Scope.Revert"/> undoes it all.</summary>
@@ -90,23 +90,23 @@ public static class Presto
     }
 
     /// <summary>Reads <paramref name="property"/> from the first of <paramref name="targets"/>, or null when none resolve.</summary>
-    public static object? Get(object? targets, string property)
+    public static object? Get(object? targets, PropertyKey property)
     {
         var parsed = TargetParser.Parse(targets);
-        return parsed.Count == 0 ? null : ResolveAccessor(parsed[0], property).GetValue(parsed[0]);
+        return parsed.Count == 0 ? null : ResolveAccessor(parsed[0], property.Unwrap()).GetValue(parsed[0]);
     }
 
     /// <summary>Reads <paramref name="property"/>, dropping the unit it is stored with unless <paramref name="withUnit"/> is true.</summary>
-    public static object? Get(object? targets, string property, bool withUnit)
+    public static object? Get(object? targets, PropertyKey property, bool withUnit)
     {
         if (withUnit) return Get(targets, property);
-        return Decompose(targets, property) is { Kind: ValueKind.Number or ValueKind.Unit } value ? value.Number : null;
+        return Decompose(targets, property.Unwrap()) is { Kind: ValueKind.Number or ValueKind.Unit } value ? value.Number : null;
     }
 
     /// <summary>Reads <paramref name="property"/> converted to <paramref name="unit"/>, or null when it holds no single number.</summary>
-    public static string? Get(object? targets, string property, string unit)
+    public static string? Get(object? targets, PropertyKey property, string unit)
     {
-        if (Decompose(targets, property) is not { Kind: ValueKind.Number or ValueKind.Unit } value) return null;
+        if (Decompose(targets, property.Unwrap()) is not { Kind: ValueKind.Number or ValueKind.Unit } value) return null;
         UnitConverter.Convert(value, unit);
         return JsNumber.Format(Helpers.Round(value.Number, Globals.Precision)) + value.Unit;
     }
@@ -116,14 +116,15 @@ public static class Presto
     /// <paramref name="property"/> tweens when one is named — canceling the animations left with no tweens.
     /// </summary>
     /// <returns>The parsed targets.</returns>
-    public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
+    public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, PropertyKey? property = null)
     {
         var parsed = TargetParser.Parse(targets);
-        Composer.RemoveTargetsFromRenderable(parsed, (Clock?)renderable ?? Engine.Current, property);
+        var name = property?.Unwrap();
+        Composer.RemoveTargetsFromRenderable(parsed, (Clock?)renderable ?? Engine.Current, name);
         // Naming a renderable removes that one timer's tweens, which is no reason to stop what an adapter drives elsewhere.
         if (renderable == null)
         {
-            for (var i = 0; i < Adapters.Count; i++) Adapters[i].Removed(parsed, property);
+            for (var i = 0; i < Adapters.Count; i++) Adapters[i].Removed(parsed, name);
         }
         return parsed;
     }
@@ -133,10 +134,11 @@ public static class Presto
     /// only those tweening its <paramref name="property"/> when one is named.
     /// </summary>
     /// <remarks>Completed and canceled animations are skipped, and a paused one drops out once the engine releases it on its next frame.</remarks>
-    public static IReadOnlyList<Animation> GetAnimations(object target, string? property = null)
+    public static IReadOnlyList<Animation> GetAnimations(object target, PropertyKey? property = null)
     {
         var animations = new List<Animation>();
-        CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(property) ? null : Canonicalize(target, property), animations);
+        var name = property?.Unwrap();
+        CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(name) ? null : Canonicalize(target, name), animations);
         return animations;
     }
 

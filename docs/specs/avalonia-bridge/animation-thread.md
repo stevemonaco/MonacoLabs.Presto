@@ -83,7 +83,7 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 
 ### What the compositor can carry
 
-- **BRIDGE-THREAD-010** — The compositor animation shall map `"X"` and `"Y"` to the composition `Translation`, `"Scale"`, `"ScaleX"` and `"ScaleY"` to `Scale` with the uniform scale multiplying each axis scale, `"Rotate"` to `RotationAngle` in radians, and `"Opacity"` or `Visual.OpacityProperty` to `Opacity`.
+- **BRIDGE-THREAD-010** — The compositor animation shall map the keys given to the `CompositorAnimationParams` `PropertyKey` indexer as follows: `"X"` and `"Y"` to the composition `Translation`, `"Scale"`, `"ScaleX"` and `"ScaleY"` to `Scale` with the uniform scale multiplying each axis scale, `"Rotate"` to `RotationAngle` in radians, and `"Opacity"` or `Visual.OpacityProperty` to `Opacity`.
   - Tests: `CompositorCompileTests.XAndYCompileIntoOneSampledTranslationTrack`, `CompositorCompileTests.TheUniformScaleMultipliesTheAxisScales`, `CompositorCompileTests.RotateCompilesToRadians`, `CompositorAnimationTests.TranslationMovesThePixels`
 - **BRIDGE-THREAD-011** — When a property has no composition counterpart, the compositor animation shall throw `NotSupportedException` with the message `'<name>' has no composition property. The compositor animates X, Y, Rotate, Scale, ScaleX, ScaleY and Opacity only.`
   - Tests: `CompositorCompileTests.APropertyWithNoCompositionCounterpartThrows`, `DiscretePropertyTests.ABoolHasNoCompositorCounterpart`, `AnimationThreadTests.ForcingTheCompositorThrowsWhatAnimateOnCompositorThrows`

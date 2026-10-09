@@ -84,24 +84,24 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// <see cref="Presto.Get(object?, string)"/> with the bridge installed first. Every <c>Get</c>, <c>Set</c> and
+    /// <see cref="Presto.Get(object?, PropertyKey)"/> with the bridge installed first. Every <c>Get</c>, <c>Set</c> and
     /// <c>Remove</c> below exists for that reason alone: until the Avalonia adapter and codecs are registered, the core
     /// resolves an <see cref="AvaloniaObject"/> through its reflection adapter, which knows nothing of <c>"X"</c> or <c>"Opacity"</c>.
     /// </summary>
-    public static object? Get(object? targets, string property)
+    public static object? Get(object? targets, PropertyKey property)
     {
         EnsureInitialized();
         return Presto.Get(targets, property);
     }
 
-    /// <inheritdoc cref="Presto.Get(object?, string, string)"/>
-    public static string? Get(object? targets, string property, string unit)
+    /// <inheritdoc cref="Presto.Get(object?, PropertyKey, string)"/>
+    public static string? Get(object? targets, PropertyKey property, string unit)
     {
         EnsureInitialized();
         return Presto.Get(targets, property, unit);
     }
 
-    /// <inheritdoc cref="Presto.Get(object?, string)"/>
+    /// <inheritdoc cref="Presto.Get(object?, PropertyKey)"/>
     public static object? Get(object? targets, AvaloniaProperty property)
     {
         EnsureInitialized();
@@ -413,7 +413,7 @@ public static class PrestoAvalonia
     public static Animation? AnimateExit(Control control, Action<AnimationBuilder> exit) => AnimateExit(control, Presto.Build(exit));
 
     /// <inheritdoc cref="Presto.Remove"/>
-    public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, string? property = null)
+    public static IReadOnlyList<object> Remove(object? targets, Timer? renderable = null, PropertyKey? property = null)
     {
         EnsureInitialized();
         return Presto.Remove(targets, renderable, property);

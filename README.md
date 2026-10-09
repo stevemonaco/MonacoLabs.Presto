@@ -90,7 +90,7 @@ property given only `to` is a bare value, and any other argument (`from`, `durat
 `TweenParams`. Naming a property again replaces its value but keeps its position, and a second callback replaces the
 first.
 
-Under the builder is the anime.js-shaped parameter object, an `init`-only record whose string indexer takes the
+Under the builder is the anime.js-shaped parameter object, an `init`-only record whose indexer takes the
 properties. The builder's terminals produce one (`ToParams()`), and `Animate`, `Set`, timelines and the render thread
 take either:
 
@@ -98,9 +98,19 @@ take either:
 Square.Animate(new() { ["X"] = 320, ["Rotate"] = new TweenParams { From = -180 }, Duration = 1250 });
 ```
 
+The same keys, typed:
+
+```csharp
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
+
+Square.Animate(new() { [X] = 320, [Rotate] = new TweenParams { From = -180 }, Duration = 1250 });
+PropertyKey key = PrestoKeys.Of(Border.CornerRadiusProperty);   // a real property held as a value
+```
+
 Reach for it when the property names are data (a preset table, a loop over names), when porting anime.js code line for
-line, or for an [`Animatable`](#animatable), which has no builder. Its keys are unchecked strings, so the rest of
-these docs use the builder.
+line, or for an [`Animatable`](#animatable), which has no builder. Its keys are `PropertyKey`s: a string converts
+implicitly, and `PrestoKeys` names every bridge shorthand so a typo fails to compile. The rest of these docs use the
+builder.
 
 A builder is a reusable recipe. `Animate`, `Set` and `ToParams` each take a fresh snapshot, so changing the builder
 afterwards never touches an animation already running:
@@ -285,6 +295,20 @@ var tl = Presto.CreateTimeline(new() { Defaults = new() { Duration = 600, Ease =
 tl.Seek(tl.Labels["flash"]);
 ```
 
+The string positions keep their anime.js forms. Each has a typed twin that resolves the same way, and a label handle
+from `Label(name, out var handle, …)` replaces the label string:
+
+```csharp
+var tl = Presto.CreateTimeline()
+    .Add(a, x => x.X(300))
+    .Add(b, x => x.X(300), TimelinePosition.PreviousEnd)        // "<"
+    .Add(c, x => x.X(300), TimelinePosition.PreviousStart)      // "<<"
+    .Label("flash", out var flash, TimelinePosition.End + 200)  // "+=200"
+    .Add(e, x => x.Rotate(360), flash + 100);                   // "flash+=100"
+
+tl.Seek(flash);
+```
+
 ### Stagger
 
 ```csharp
@@ -338,6 +362,9 @@ follower.Set("X", point.X).Set("Y", point.Y);    // eases toward the value over 
 follower.Set("X", -140, 1200, "inOutQuad");      // one-off duration and ease
 var x = follower.Get("X");
 follower.Revert();
+
+var typed = Cursor.CreateAnimatable(new() { [X] = 500, [Y] = 500 });   // with PrestoKeys' typed keys
+typed.Set(X, point.X).Set(Y, point.Y);
 ```
 
 With a spring ease, `PreserveVelocity = true` keeps a property's momentum across retargets: each new spring starts
@@ -1655,8 +1682,9 @@ A handful of places where the JS shape does not survive the type system:
 
 - **Properties are builder methods**, `b.X(320).Duration(1250)`, so a typo fails to compile. The anime.js object literal
   survives as the parameter object, where an indexer is the only C# syntax that mixes named settings and arbitrary keys
-  in one initializer: `new() { ["X"] = 320, Duration = 1250 }`. Its keys are unchecked strings, apart from the bridge's
-  `AvaloniaProperty` indexer (`[Visual.OpacityProperty] = 0.4`).
+  in one initializer: `new() { ["X"] = 320, Duration = 1250 }`. Its keys are `PropertyKey`s, which strings convert
+  to implicitly; the bridge's `PrestoKeys` names the shorthands (`[X] = 320`) and its `AvaloniaProperty` indexer takes
+  real properties (`[Visual.OpacityProperty] = 0.4`).
 - **A lambda literal needs its delegate type named.** C# does not apply user-defined implicit conversions to lambdas, so
   write `.Ease((Ease)(t => t))` and `["X"] = new FunctionValue((target, i, total) => i * 10)`; the builder's property
   methods take a `FunctionValue` directly, so `.X((target, i, total) => i * 10)` needs no cast. Values that already carry

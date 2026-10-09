@@ -741,6 +741,18 @@ public sealed class RecipeTests : CompositorTestBase
         Assert.Equal(["BorderBrush"], markup.Properties.Keys);
     }
 
+    [AvaloniaFact]
+    public void RecolorAnimatesBackgroundWithoutAPropertyAndAnExplicitKeyOtherwise()
+    {
+        var border = new Border { Background = Brushes.Red, BorderBrush = Brushes.Red };
+
+        Recipes.Recolor(Colors.Blue, duration: 100).Autoplay(false).Animate(border).Seek(100);
+        Recipes.Recolor(Colors.Gold, PrestoKeys.Of(Border.BorderBrushProperty), duration: 100).Autoplay(false).Animate(border).Seek(100);
+
+        Assert.Equal(Colors.Blue, Background(border));
+        Assert.Equal(Colors.Gold, ((ISolidColorBrush)border.BorderBrush!).Color);
+    }
+
     private static Color Background(Border border) => ((ISolidColorBrush)border.Background!).Color;
 
     private static string Key(AvaloniaProperty property) => AvaloniaObjectTargetAdapter.Encode(property);

@@ -9,6 +9,7 @@ using Avalonia.Media.TextFormatting;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Text;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using SkiaSharp;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -70,7 +71,7 @@ public partial class GlyphLabPage : ShowcasePage
             piece.StrokeThickness = Handwriting.FontSize / 32;
         }
         return Presto.CreateTimeline(new() { OnComplete = _ => split.Revert() })
-            .Add(outlines, b => b.Property("Draw", TweenValue.FromTo("0 0", "0 1")).Duration(duration).Ease(Recipes.Tokens.Ease))
+            .Add(outlines, b => b.Draw(from: "0 0", to: "0 1").Duration(duration).Ease(Recipes.Tokens.Ease))
             .Add(outlines, b => b.Property("Fill", TweenValue.Of(Handwriting.Foreground)).Property("StrokeThickness", 0).Duration(Recipes.Tokens.Medium));
     }
     #endregion
@@ -88,7 +89,7 @@ public partial class GlyphLabPage : ShowcasePage
         var counter = Counters[_letter % Counters.Length].ToString();
         Recipes.MorphGlyphs(Paired, counter);
         if (Presto.Defaults.ReducedMotion) OneFigure.Data = OneFigureOf(counter);
-        else OneFigure.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(OneFigureOf(counter)), Duration = Recipes.Tokens.Long, Ease = Recipes.Tokens.EmphasizedEase });
+        else OneFigure.Animate(new() { [Data] = PrestoAvalonia.MorphTo(OneFigureOf(counter)), Duration = Recipes.Tokens.Long, Ease = Recipes.Tokens.EmphasizedEase });
     }
 
     private Geometry OneFigureOf(string text) =>

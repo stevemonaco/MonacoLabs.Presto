@@ -8,10 +8,10 @@ namespace Monaco.Presto;
 public record AnimatableParams
 {
     /// <summary>The settings for one animated property, which a bare number gives the duration of.</summary>
-    public AnimatableProperty this[string property]
+    public AnimatableProperty this[PropertyKey property]
     {
-        get => Properties[property];
-        init => Properties[property] = value;
+        get => Properties[property.Unwrap()];
+        init => Properties[property.Unwrap()] = value;
     }
 
     /// <summary>A <c>with</c> copy shares this dictionary; every consumer only reads it.</summary>
@@ -27,7 +27,7 @@ public record AnimatableParams
     public Func<double, double>? Modifier { get; init; }
 
     /// <summary>
-    /// Makes a spring-eased property keep its momentum when <see cref="Animatable.Set(string, double, double?, EaseValue?)"/>
+    /// Makes a spring-eased property keep its momentum when <see cref="Animatable.Set(PropertyKey, double, double?, EaseValue?)"/>
     /// retargets it: the new spring starts with the velocity the value has, instead of from rest. A property's own setting wins.
     /// </summary>
     /// <remarks>

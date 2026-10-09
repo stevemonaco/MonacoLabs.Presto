@@ -23,10 +23,13 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
             .BorderThickness(1).Margin(1).Padding(1).Draw("0 1").Text("a").Data("M0,0 L1,1")
             .ToParams();
 
-        Assert.Equal(
-            ["X", "Y", "Rotate", "Scale", "ScaleX", "ScaleY", "SkewX", "SkewY", "Opacity", "Width", "Height", "Background",
-             "Foreground", "CornerRadius", "BorderThickness", "Margin", "Padding", "Draw", "Text", "Data"],
-            parameters.Properties.Keys);
+        PropertyKey[] expected =
+        [
+            PrestoKeys.X, PrestoKeys.Y, PrestoKeys.Rotate, PrestoKeys.Scale, PrestoKeys.ScaleX, PrestoKeys.ScaleY, PrestoKeys.SkewX,
+            PrestoKeys.SkewY, "Opacity", "Width", "Height", "Background", "Foreground", "CornerRadius", "BorderThickness", "Margin",
+            "Padding", PrestoKeys.Draw, PrestoKeys.Text, PrestoKeys.Data,
+        ];
+        Assert.Equal(expected.Select(k => k.Name), parameters.Properties.Keys);
     }
 
     [AvaloniaFact]

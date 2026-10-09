@@ -14,11 +14,11 @@ public sealed record CompositorAnimationParams
     /// <summary>Installs the bridge, so the params work without a prior <c>UsePresto()</c>.</summary>
     public CompositorAnimationParams() => PrestoAvalonia.EnsureInitialized();
 
-    /// <inheritdoc cref="AnimationParams.this[string]"/>
-    public TweenValue this[string property]
+    /// <inheritdoc cref="AnimationParams.this[PropertyKey]"/>
+    public TweenValue this[PropertyKey property]
     {
-        get => Properties[property];
-        init => Properties[property] = value;
+        get => Properties[property.Unwrap()];
+        init => Properties[property.Unwrap()] = value;
     }
 
     /// <inheritdoc cref="AvaloniaAnimationParams.this[AvaloniaProperty]"/>

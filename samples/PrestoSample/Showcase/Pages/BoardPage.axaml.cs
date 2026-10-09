@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Draggables;
 
@@ -169,8 +170,8 @@ public partial class BoardPage : ShowcasePage
         drag.Disable();
         Scope.Execute(_ => card.Animate(new AvaloniaAnimationParams
         {
-            ["Rotate"] = 150,
-            ["Scale"] = .2,
+            [Rotate] = 150,
+            [Scale] = .2,
             ["Opacity"] = 0,
             Duration = SpinDuration,
             Ease = Eases.InBack(2),

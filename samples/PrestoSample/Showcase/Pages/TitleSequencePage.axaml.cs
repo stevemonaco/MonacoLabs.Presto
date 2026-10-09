@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -58,14 +59,14 @@ public partial class TitleSequencePage : ShowcasePage
             .Label("draw", 0)
             .Add(Monogram, new()
             {
-                ["Draw"] = TweenValue.FromTo("0 0", "0 1"),
+                [Draw] = TweenValue.FromTo("0 0", "0 1"),
                 Duration = 1200,
                 Ease = Eases.InOutQuad,
             }, "draw")
             .Label("mark", "+=100")
             .Add(Monogram, new()
             {
-                ["Data"] = PrestoAvalonia.MorphTo((Geometry)this.FindResource("MarkGeometry")!),
+                [Data] = PrestoAvalonia.MorphTo((Geometry)this.FindResource("MarkGeometry")!),
                 ["Fill"] = "#554C8DFF",
                 Duration = 800,
                 Ease = Eases.InOutQuad,
@@ -76,7 +77,7 @@ public partial class TitleSequencePage : ShowcasePage
             .Sync(Recipes.WriteIn(Headline), "title")
             .Add(Subtitle, new()
             {
-                ["Text"] = Presto.ScrambleText(new() { Chars = "lowercase", From = ScrambleFrom.Center }),
+                [Text] = Presto.ScrambleText(new() { Chars = "lowercase", From = ScrambleFrom.Center }),
                 ["Opacity"] = TweenValue.FromTo(0, 1),
                 Duration = 1200,
                 Ease = Eases.OutQuad,
@@ -106,8 +107,8 @@ public partial class TitleSequencePage : ShowcasePage
             }, 0)
             .Add(DotField.Children, new()
             {
-                ["X"] = (FunctionValue)((_, i, _) => _drifts[i] * 0.45),
-                ["Y"] = (FunctionValue)((_, i, _) => _drifts[i]),
+                [X] = (FunctionValue)((_, i, _) => _drifts[i] * 0.45),
+                [Y] = (FunctionValue)((_, i, _) => _drifts[i]),
                 Duration = 2000,
                 Ease = Eases.InOutSine,
                 Loop = 1,

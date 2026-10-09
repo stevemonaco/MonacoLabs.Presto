@@ -73,7 +73,7 @@ public partial class MotionTokensPage : ShowcasePage
         var from = ((ISolidColorBrush)StateCard.Background!).Color.ToPresto();
         string code;
         (ColorState, code) = Snippet.Of(StateCard.Animate(Presto.Build()
-            .Property("Background", k => k.Color(from, state, Recipes.Tokens.ColorSpace, Recipes.Tokens.Hue,
+            .Background(k => k.Color(from, state, Recipes.Tokens.ColorSpace, Recipes.Tokens.Hue,
                 duration: Recipes.Tokens.Medium, ease: Recipes.Tokens.Ease))));
         StateCode.Code = $"{Snippets.MotionTokensShades}\n\nvar state = {name};\n{code};";
     }

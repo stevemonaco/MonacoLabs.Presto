@@ -116,6 +116,24 @@ public sealed class Timeline : Timer
         return this;
     }
 
+    /// <summary>Like <see cref="Label(string, TimelinePosition)"/>, handing back a <paramref name="label"/> handle to position children and seek with.</summary>
+    public Timeline Label(string name, out TimelineLabel label, TimelinePosition position = default)
+    {
+        label = new TimelineLabel(name);
+        return Label(name, position);
+    }
+
+    /// <summary>Like <see cref="Label(string, TimelinePosition)"/>, for a handle declared earlier.</summary>
+    public Timeline Label(TimelineLabel label, TimelinePosition position = default) => Label(label.Name, position);
+
+    /// <summary>Seeks to the time stored under <paramref name="label"/>'s name (see <see cref="Timer.Seek(double, bool, bool)"/>).</summary>
+    /// <exception cref="KeyNotFoundException">No label of that name is on the timeline.</exception>
+    public Timeline Seek(TimelineLabel label, bool muteCallbacks = false)
+    {
+        Seek(Labels[label.Name], muteCallbacks);
+        return this;
+    }
+
     /// <summary>Pauses an existing timer or animation and drives its <see cref="Timer.CurrentTime"/> from the timeline instead.</summary>
     public Timeline Sync(Timer synced, TimelinePosition position = default)
     {
@@ -132,7 +150,7 @@ public sealed class Timeline : Timer
     }
 
     /// <summary>Stops this timeline from animating <paramref name="targets"/>, or only their <paramref name="property"/> tweens when one is named.</summary>
-    public Timeline Remove(object? targets, string? property = null)
+    public Timeline Remove(object? targets, PropertyKey? property = null)
     {
         Presto.Remove(targets, this, property);
         return this;

@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Compositor;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Showcase.Pages;
@@ -78,7 +79,7 @@ public partial class StressBenchPage : ShowcasePage
             case PerVisual:
                 _workload.Add(PrestoAvalonia.AnimateOnCompositor(targets, Timed(set == OpacityOnly
                     ? new CompositorAnimationParams { ["Opacity"] = .15 }
-                    : new CompositorAnimationParams { ["Scale"] = .35, ["Rotate"] = 90 })));
+                    : new CompositorAnimationParams { [Scale] = .35, [Rotate] = 90 })));
                 // Color has no composition track, so it stays on the UI thread.
                 if (set == TransformAndColor) _workload.Add(Presto.Animate(targets, Timed(new AnimationParams { ["Background"] = Aqua })));
                 break;
@@ -172,8 +173,8 @@ public partial class StressBenchPage : ShowcasePage
     private static AnimationParams Motion(int set, string tint, TweenValue tintTo) => Timed(set switch
     {
         OpacityOnly => new AnimationParams { ["Opacity"] = .15 },
-        Transform => new AnimationParams { ["Scale"] = .35, ["Rotate"] = 90 },
-        _ => new AnimationParams { ["Scale"] = .35, ["Rotate"] = 90, [tint] = tintTo },
+        Transform => new AnimationParams { [Scale] = .35, [Rotate] = 90 },
+        _ => new AnimationParams { [Scale] = .35, [Rotate] = 90, [tint] = tintTo },
     });
 
     private static AnimationParams Timed(AnimationParams motion) => motion with

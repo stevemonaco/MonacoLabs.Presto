@@ -13,7 +13,7 @@ using Timer = Monaco.Presto.Timer;
 
 namespace PrestoSample.Builder;
 
-/// <summary>A headline's outline pieces warped through the <c>"Warp"</c> shorthands; every control edits the call, which replays and prints itself.</summary>
+/// <summary>A headline's outline pieces warped through the <see cref="PrestoKeys.Warp"/> shorthands; every control edits the call, which replays and prints itself.</summary>
 public partial class WarpStudioPage : ShowcasePage
 {
     private const double PhaseLoop = 2400;
@@ -101,9 +101,9 @@ public partial class WarpStudioPage : ShowcasePage
             // The warp is block-level, so the sweep staggers line by line rather than letter by letter.
             Warp = Presto.Animate(lines, new AnimationParams
             {
-                ["Warp"] = warp,
-                ["WarpPhase"] = phase,
-                ["WarpRadius"] = radius,
+                [PrestoKeys.Warp] = warp,
+                [PrestoKeys.WarpPhase] = phase,
+                [PrestoKeys.WarpRadius] = radius,
                 Duration = _duration,
                 Ease = _ease,
                 Delay = Presto.Stagger(stagger),
@@ -111,7 +111,7 @@ public partial class WarpStudioPage : ShowcasePage
             Phase = animate
                 ? Presto.Animate(lines, new AnimationParams
                 {
-                    ["WarpPhase"] = TweenValue.FromTo(phase, phase + (2 * Math.PI)),
+                    [PrestoKeys.WarpPhase] = TweenValue.FromTo(phase, phase + (2 * Math.PI)),
                     Duration = PhaseLoop,
                     Ease = "linear",
                     Loop = !Presto.Defaults.ReducedMotion,
@@ -130,9 +130,9 @@ public partial class WarpStudioPage : ShowcasePage
             }
             Presto.Animate(lines, new AnimationParams
             {
-                ["Warp"] = {{Format(warp)}},
-                ["WarpPhase"] = {{Format(phase)}},
-                ["WarpRadius"] = {{Format(radius)}},
+                [PrestoKeys.Warp] = {{Format(warp)}},
+                [PrestoKeys.WarpPhase] = {{Format(phase)}},
+                [PrestoKeys.WarpRadius] = {{Format(radius)}},
                 Duration = {{Format(_duration)}},
                 Ease = "{{_ease}}",
                 Delay = Presto.Stagger({{Format(stagger)}}),
@@ -141,7 +141,7 @@ public partial class WarpStudioPage : ShowcasePage
             + (animate ? "\n\n" + $$"""
             Presto.Animate(lines, new AnimationParams
             {
-                ["WarpPhase"] = TweenValue.FromTo({{Format(phase)}}, {{Format(phase + (2 * Math.PI))}}),
+                [PrestoKeys.WarpPhase] = TweenValue.FromTo({{Format(phase)}}, {{Format(phase + (2 * Math.PI))}}),
                 Duration = {{Format(PhaseLoop)}},
                 Ease = "linear",
                 Loop = !Presto.Defaults.ReducedMotion,
@@ -156,13 +156,13 @@ public partial class WarpStudioPage : ShowcasePage
     {
         var x = PrestoAvalonia.PointerValue(Stage, Orientation.Horizontal);
         var y = PrestoAvalonia.PointerValue(Stage, Orientation.Vertical);
-        var origins = lines.Select(line => (line, Origin: line.CreateAnimatable(new() { ["WarpOrigin"] = 120 }))).ToList();
+        var origins = lines.Select(line => (line, Origin: line.CreateAnimatable(new() { [PrestoKeys.WarpOrigin] = 120 }))).ToList();
         void Aim(MotionValue _)
         {
             foreach (var (line, origin) in origins)
             {
                 var at = Stage.TranslatePoint(new Point(x.Value, y.Value), line)!.Value;
-                origin.Set("WarpOrigin", [at.X, at.Y]);
+                origin.Set(PrestoKeys.WarpOrigin, [at.X, at.Y]);
             }
         }
         x.Changed += Aim;

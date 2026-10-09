@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using PrestoSample.Builder;
 
 namespace PrestoSample.Showcase.Pages;
@@ -76,7 +77,7 @@ public partial class MicroInteractionsPage : ShowcasePage
         {
             LikeCount.Animate(new()
             {
-                ["Text"] = new TweenParams { From = from, To = _likes, TextModifier = Count },
+                [Text] = new TweenParams { From = from, To = _likes, TextModifier = Count },
                 Duration = 400,
                 Ease = Eases.OutQuad,
             });

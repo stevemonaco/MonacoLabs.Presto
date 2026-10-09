@@ -216,7 +216,7 @@ public static partial class Recipes
         Interactions.Colorize(duration, delay, ease);
 
     /// <inheritdoc cref="Tints.Recolor"/>
-    public static AnimationBuilder Recolor(Color to, string property = "Background", ColorSpace? space = null, HueInterpolation? hue = null,
+    public static AnimationBuilder Recolor(Color to, PropertyKey? property = null, ColorSpace? space = null, HueInterpolation? hue = null,
                                            double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Tints.Recolor(to, property, space, hue, duration, delay, ease, stagger);
 

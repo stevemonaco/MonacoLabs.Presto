@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
+using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -114,8 +115,8 @@ public partial class InterruptionPage : ShowcasePage
     {
         var puck = _pucks[Array.IndexOf(Modes, mode)];
         return new Point(
-            Canvas.GetLeft(puck) + (double)Presto.Get(puck, "X")! + (puck.Width / 2),
-            Canvas.GetTop(puck) + (double)Presto.Get(puck, "Y")! + (puck.Height / 2));
+            Canvas.GetLeft(puck) + (double)Presto.Get(puck, X)! + (puck.Width / 2),
+            Canvas.GetTop(puck) + (double)Presto.Get(puck, Y)! + (puck.Height / 2));
     }
 
     private static void Place(Ellipse dot, Point center)
@@ -153,8 +154,8 @@ public partial class InterruptionPage : ShowcasePage
         #region snippet InterruptionHover
         Scope.Execute(_ => Presto.Animate(tile, new AvaloniaAnimationParams
         {
-            ["Y"] = restart ? TweenValue.FromTo(fromY, toY) : toY,
-            ["Scale"] = restart ? TweenValue.FromTo(fromScale, toScale) : toScale,
+            [Y] = restart ? TweenValue.FromTo(fromY, toY) : toY,
+            [Scale] = restart ? TweenValue.FromTo(fromScale, toScale) : toScale,
             Duration = HoverDuration,
             Ease = Eases.OutQuint,
         }));
@@ -178,7 +179,7 @@ public partial class InterruptionPage : ShowcasePage
         for (var i = 0; i < Modes.Length; i++)
         {
             Presto.Remove(_pucks[i]);
-            Presto.Set(_pucks[i], new AvaloniaAnimationParams { ["X"] = 0, ["Y"] = 0 });
+            Presto.Set(_pucks[i], new AvaloniaAnimationParams { [X] = 0, [Y] = 0 });
             ClearTrail(i);
         }
     }
