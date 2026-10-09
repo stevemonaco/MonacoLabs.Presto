@@ -74,11 +74,15 @@
 
             <Border x:Name="ShatterSection" Classes="stage">
                 <StackPanel Spacing="8">
-                    <Grid ColumnDefinitions="*,Auto">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
                         <TextBlock Classes="eyebrow showcase" Text="SHATTER · CLICK THE WORD (RECIPES.MORPHTEXT)"
                                    VerticalAlignment="Center" />
                         <ToggleSwitch x:Name="ExplodeToggle" Grid.Column="1" IsChecked="True"
                                       OnContent="Explode" OffContent="Plain" />
+                        <ToggleSwitch x:Name="ShardsToggle" Grid.Column="2" IsChecked="True"
+                                      OnContent="Vector shards" OffContent="Bitmap ghosts" />
+                        <ToggleSwitch x:Name="ShapeToggle" Grid.Column="3"
+                                      OnContent="Shape morph" OffContent="Letters fly" />
                     </Grid>
                     <Border Background="Transparent" Cursor="Hand" Height="140" Tapped="Shatter">
                         <TextBlock x:Name="ShatterWord" Text="SHATTER" FontFamily="{StaticResource DisplayFont}"

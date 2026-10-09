@@ -6,8 +6,8 @@ using Timer = Monaco.Presto.Timer;
 namespace Monaco.Presto.AvaloniaBridge.Compositor;
 
 /// <summary>
-/// Emitted particles simulated by <see cref="ParticleSystem"/>s and drawn on the render thread, each system dropped once
-/// its last particle dies.
+/// Emitted particles simulated by <see cref="ParticleSystem"/>s, and <see cref="ParticleFormation"/>s of particles held on
+/// points, drawn on the render thread; each system or formation is dropped once its last particle dies.
 /// </summary>
 /// <remarks>
 /// Particle positions are in canvas coordinates. Like a plain timer, the scene is the app's own drawing, so reduced motion
@@ -19,17 +19,19 @@ public sealed class ParticleScene : CompositorScene
     private const double StreakTime = 24;
 
     private readonly List<(ParticleSystem System, Action? Finished)> _systems = [];
+    private readonly List<(ParticleFormation Formation, Action? Finished)> _formations = [];
 
     /// <summary>The most particles alive across every system at once; further spawns are dropped.</summary>
     public int MaxLive { get; init; } = OperatingSystem.IsBrowser() || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() ? 1000 : 4000;
 
-    /// <summary>The particles alive across every system; read it on the render thread.</summary>
+    /// <summary>The particles alive across every system and formation; read it on the render thread.</summary>
     public int Live
     {
         get
         {
             var live = 0;
             foreach (var (system, _) in _systems) live += system.Live;
+            foreach (var (formation, _) in _formations) live += formation.Count;
             return live;
         }
     }
@@ -38,6 +40,13 @@ public sealed class ParticleScene : CompositorScene
 
     /// <summary>Starts a system emitting from <paramref name="origin"/>; call on the render thread, from a scene callback or <see cref="CompositorCanvas.Invoke{TScene}"/>.</summary>
     public ParticleSystem Add(EmitterParams parameters, Point origin) => Add(parameters, origin, null);
+
+    /// <summary>
+    /// Places one particle of <paramref name="color"/>, a square <paramref name="size"/> DIPs wide, on each of
+    /// <paramref name="points"/> in canvas coordinates, as far as <see cref="MaxLive"/> allows; each then springs back to its
+    /// point when pushed. Call on the render thread, as <see cref="Add(EmitterParams, Point)"/>.
+    /// </summary>
+    public ParticleFormation AddFormation(IReadOnlyList<Point> points, Color color, double size = 3) => AddFormation(points, null, color, size, null, null);
 
     /// <inheritdoc/>
     protected override void OnAttached() => Presto.CreateTimer(new TimerParams { OnUpdate = Step });
@@ -58,6 +67,25 @@ public sealed class ParticleScene : CompositorScene
                 using (context.PushPreTransform(Placement(shape.Kind, particle, flutter))) Draw(context, shape, particle, brush);
             }
         }
+        foreach (var (formation, _) in _formations)
+        {
+            var side = formation.Size;
+            foreach (ref readonly var dot in formation.Dots)
+            {
+                context.FillRectangle(Brush(formation.Color, dot.Opacity), new Rect(dot.X - side / 2, dot.Y - side / 2, side, side));
+            }
+        }
+    }
+
+    /// <summary>
+    /// A formation whose particles start on <paramref name="starts"/>, when given, fading in; once every particle rests on its
+    /// point, they fade out and <paramref name="settled"/> runs on the UI thread. <paramref name="finished"/> runs there once the formation is dropped.
+    /// </summary>
+    internal ParticleFormation AddFormation(IReadOnlyList<Point> points, IReadOnlyList<Point>? starts, Color color, double size, Action? settled, Action? finished)
+    {
+        var formation = new ParticleFormation(this, points, starts, color, size, settled);
+        _formations.Add((formation, finished));
+        return formation;
     }
 
     internal ParticleSystem Add(EmitterParams parameters, Point origin, Action? finished)
@@ -82,6 +110,14 @@ public sealed class ParticleScene : CompositorScene
             live += system.Live - before;
             if (!system.IsFinished) continue;
             _systems.RemoveAt(i--);
+            if (finished is not null) PostToUI(finished);
+        }
+        for (var i = 0; i < _formations.Count; i++)
+        {
+            var (formation, finished) = _formations[i];
+            if (formation.Step(dt) is { } settled) PostToUI(settled);
+            if (formation.Count > 0) continue;
+            _formations.RemoveAt(i--);
             if (finished is not null) PostToUI(finished);
         }
         Invalidate();

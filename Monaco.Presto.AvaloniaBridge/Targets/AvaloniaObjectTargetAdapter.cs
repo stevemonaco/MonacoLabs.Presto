@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Monaco.Presto.AvaloniaBridge.Compositor;
 using Monaco.Presto.AvaloniaBridge.Effects;
 using Monaco.Presto.AvaloniaBridge.Shapes;
+using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.AvaloniaBridge.Values;
 using Monaco.Presto.Core;
@@ -17,7 +18,7 @@ namespace Monaco.Presto.AvaloniaBridge.Targets;
 
 /// <summary>
 /// Resolves the properties of an <see cref="AvaloniaObject"/>: the transform shorthands ("X", "Rotate", "ScaleX"), the
-/// effect shorthands ("Blur", "ShadowX"), the reveal shorthands ("ClipInset", "ClipCircle", "MaskSweep"), a <see cref="Shape"/>'s "Draw", a <see cref="ScrollViewer"/>'s "ScrollX" and "ScrollY", plain names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
+/// effect shorthands ("Blur", "ShadowX"), the reveal shorthands ("ClipInset", "ClipCircle", "MaskSweep"), a split <see cref="TextBlock"/>'s warp shorthands ("Warp", "WarpOrigin"), a <see cref="Shape"/>'s "Draw", a <see cref="ScrollViewer"/>'s "ScrollX" and "ScrollY", plain names ("Opacity", "Margin"), qualified or attached names ("Canvas.Left"), and the typed <see cref="AvaloniaProperty"/>
 /// instances <see cref="AvaloniaAnimationParams"/> encodes. Any other target is left to the next adapter.
 /// </summary>
 /// <remarks>
@@ -38,6 +39,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     private static readonly IPropertyAccessor?[] s_effects = new IPropertyAccessor?[Enum.GetValues<EffectShorthand>().Length];
     private static readonly IPropertyAccessor?[] s_clips = new IPropertyAccessor?[Enum.GetValues<ClipShorthand>().Length];
     private static readonly IPropertyAccessor?[] s_masks = new IPropertyAccessor?[Enum.GetValues<MaskShorthand>().Length];
+    private static readonly IPropertyAccessor?[] s_warps = new IPropertyAccessor?[Enum.GetValues<WarpShorthand>().Length];
     private static IPropertyAccessor? s_draw;
     private static IPropertyAccessor? s_scrollX;
     private static IPropertyAccessor? s_scrollY;
@@ -71,6 +73,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
                 return s_clips[(int)clip] ??= new ClipAccessor(clip);
             }
             if (EffectShorthands.ParseMask(property) is { } mask) return s_masks[(int)mask] ??= new MaskAccessor(mask);
+            if (visual is TextBlock && WarpComposer.Parse(property) is { } warp) return s_warps[(int)warp] ??= new WarpAccessor(warp);
             if (visual is Shape && property == "Draw") return s_draw ??= new DrawAccessor();
             if (visual is ScrollViewer && property == "ScrollX") return s_scrollX ??= new ScrollOffsetAccessor(horizontal: true);
             if (visual is ScrollViewer && property == "ScrollY") return s_scrollY ??= new ScrollOffsetAccessor(horizontal: false);
@@ -96,7 +99,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
     public string? Canonicalize(object target, string property)
     {
         if (target is not AvaloniaObject) return null;
-        if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is Shape && property == "Draw") || (target is ScrollViewer && property is "ScrollX" or "ScrollY"))) return property;
+        if (target is Visual && (TransformShorthands.Parse(property) != null || EffectShorthands.Parse(property) != null || EffectShorthands.ParseClip(property) != null || EffectShorthands.ParseMask(property) != null || (target is TextBlock && WarpComposer.Parse(property) != null) || (target is Shape && property == "Draw") || (target is ScrollViewer && property is "ScrollX" or "ScrollY"))) return property;
         return ResolveProperty(target.GetType(), property) is { } resolved ? Encode(resolved) : null;
     }
 
@@ -223,6 +226,22 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
                 tween._currentTime >= tween._changeDuration);
 
         public void Revert(object target, object? originalValue) => MaskComposer.Revert((Visual)target, shorthand);
+    }
+
+    private sealed class WarpAccessor(WarpShorthand shorthand) : IPropertyAccessor
+    {
+        public IValueCodec? Codec { get; } = shorthand == WarpShorthand.WarpOrigin ? Presto.Codecs[typeof(Point)] : null;
+
+        public object? GetValue(object target) => WarpComposer.Get((TextBlock)target, shorthand);
+
+        public void SetValue(object target, double number, Tween tween)
+        {
+            // Read from the channels rather than through the codec, whose Encode boxes the point.
+            if (shorthand == WarpShorthand.WarpOrigin) WarpComposer.SetOrigin((TextBlock)target, new Point(tween._numbers[0], tween._numbers[1]));
+            else WarpComposer.Set((TextBlock)target, shorthand, number);
+        }
+
+        public void Revert(object target, object? originalValue) => WarpComposer.Revert((TextBlock)target, shorthand);
     }
 
     private sealed class AvaloniaPropertyAccessor : IPropertyAccessor

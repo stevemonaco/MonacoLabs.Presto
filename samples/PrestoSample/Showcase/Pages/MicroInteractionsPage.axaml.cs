@@ -23,15 +23,16 @@ public partial class MicroInteractionsPage : ShowcasePage
 
     private int _likes = 1203;
     private bool _liked;
+    private bool _saving;
     private int _notices;
 
     public MicroInteractionsPage()
     {
         InitializeComponent();
         LikeCount.Text = Count(_likes);
-        Code.Xaml = string.Join("\n\n", Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsSubmitButton, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs,
+        Code.Xaml = string.Join("\n\n", Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsSubmitButton, Snippets.MicroInteractionsSaveButton, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs,
             Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts, Snippets.MicroInteractionsMagnetic);
-        Code.CSharp = string.Join("\n\n", Snippets.MicroInteractionsBuilders, Snippets.MicroInteractionsSubmit, Snippets.MicroInteractionsLikeHandler,
+        Code.CSharp = string.Join("\n\n", Snippets.MicroInteractionsBuilders, Snippets.MicroInteractionsSubmit, Snippets.MicroInteractionsSave, Snippets.MicroInteractionsLikeHandler,
             Snippets.MicroInteractionsTabIndicator, Snippets.MicroInteractionsToastShow, Snippets.MicroInteractionsValidation);
     }
 
@@ -43,6 +44,24 @@ public partial class MicroInteractionsPage : ShowcasePage
         if (SubmitButton.GetState(Submit) != SubmitState.Idle) return;
         // A Presto timer stands in for the request.
         _ = SubmitButton.Run(Submit, Presto.CreateTimer(new() { Duration = 1100 }).Then());
+    }
+    #endregion
+
+    #region snippet MicroInteractionsSave
+    private void SaveClicked(object? sender, RoutedEventArgs e)
+    {
+        if (!_saving) _ = SaveAsync();
+    }
+
+    // Inter has ✓, so the label's outlines morph into it; under reduced motion MorphGlyphs crossfades.
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        await Presto.CreateTimer(new() { Duration = 600 });
+        await Recipes.MorphGlyphs(SaveLabel, "✓");
+        await Presto.CreateTimer(new() { Duration = 1400 });
+        await Recipes.MorphGlyphs(SaveLabel, "Save");
+        _saving = false;
     }
     #endregion
 

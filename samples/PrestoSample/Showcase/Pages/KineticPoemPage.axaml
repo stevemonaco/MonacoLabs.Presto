@@ -27,6 +27,8 @@
                         <TextBlock x:Name="Ride" Classes="phrase" Text="ride the wave" FontWeight="Light" Foreground="{x:Static showcase:Palette.Aqua}" />
                         <TextBlock x:Name="Fall" Classes="phrase" Text="let it all fall" FontWeight="Bold" Foreground="{x:Static showcase:Palette.Violet}" />
                         <TextBlock x:Name="Break" Classes="phrase" Text="BREAK" FontSize="200" Foreground="{x:Static showcase:Palette.Coral}" />
+                        <Canvas x:Name="Shards" IsHitTestVisible="False" />
+                        <TextBlock x:Name="Melt" Classes="phrase" Text="melt away" Foreground="{x:Static showcase:Palette.Rose}" />
                         <TextBlock x:Name="Again" Classes="phrase" Text="AND AGAIN" Foreground="{x:Static showcase:Palette.Lime}" />
 
                         <StackPanel Orientation="Horizontal" Spacing="12" Margin="36"
@@ -47,13 +49,14 @@
                     <Button Content="ride" Tag="ride" Click="SeekLabel" />
                     <Button Content="fall" Tag="fall" Click="SeekLabel" />
                     <Button Content="break" Tag="break" Click="SeekLabel" />
+                    <Button Content="melt" Tag="melt" Click="SeekLabel" />
                     <Button Content="again" Tag="again" Click="SeekLabel" />
                 </StackPanel>
             </Border>
 
             <showcase:TransportBar x:Name="Bar" />
 
-            <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.KineticPoemTimeline}" />
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.KineticPoemTimeline}" Header="How it's built" IsExpanded="False" />
         </StackPanel>
     </ScrollViewer>
 </showcase:ShowcasePage>

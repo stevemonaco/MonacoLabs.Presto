@@ -1,7 +1,9 @@
 using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
+using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.Targets;
 
 namespace Monaco.Presto.AvaloniaBridge.Shapes;
@@ -31,6 +33,7 @@ internal sealed class DrawAccessor : IPropertyAccessor
     {
         if (!s_states.TryGetValue(shape, out var state)) return;
         s_states.Remove(shape);
+        shape.PropertyChanged -= ThicknessChanged;
         state.Restore(shape);
     }
 
@@ -41,7 +44,8 @@ internal sealed class DrawAccessor : IPropertyAccessor
         state.Values[1] = end;
         if (state.LineCap != PenLineCap.Flat) shape.StrokeLineCap = start == end ? PenLineCap.Flat : state.LineCap;
 
-        var length = shape.RenderedGeometry?.ContourLength ?? 0;
+        // Skia restarts the dash on every figure, so an outline piece's longest figure is the one that must finish drawing.
+        var length = TextSplitter.ContoursOf(shape)?.LongestLength ?? shape.RenderedGeometry?.ContourLength ?? 0;
         var thickness = shape.StrokeThickness;
         if (length <= 0 || thickness <= 0) return;
 
@@ -57,7 +61,19 @@ internal sealed class DrawAccessor : IPropertyAccessor
         if (!ReferenceEquals(shape.StrokeDashArray, state.Dashes)) shape.StrokeDashArray = state.Dashes;
     }
 
-    private static DrawState State(Shape shape) => s_states.GetValue(shape, static s => new DrawState(s));
+    private static DrawState State(Shape shape) => s_states.GetValue(shape, static s =>
+    {
+        s.PropertyChanged += ThicknessChanged;
+        return new DrawState(s);
+    });
+
+    // Avalonia scales dashes by the current thickness, so a stale dash at a thinner stroke splits the contour into T₀/T
+    // dashes, and Skia's stroked-bounds pass grows superlinearly with them (seconds per glyph as T nears 0).
+    private static void ThicknessChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property != Shape.StrokeThicknessProperty || !s_states.TryGetValue((Shape)sender!, out var state)) return;
+        Apply((Shape)sender!, state.Values[0], state.Values[1]);
+    }
 
     private sealed class DrawState(Shape shape)
     {

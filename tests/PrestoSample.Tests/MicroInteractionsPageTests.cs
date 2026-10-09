@@ -51,6 +51,22 @@ public sealed class MicroInteractionsPageTests
     }
 
     [AvaloniaFact]
+    public void SaveMorphsItsLabelIntoACheckAndBack()
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var label = page.GetControl<TextBlock>("SaveLabel");
+
+        SceneHarness.Click(window, page.GetControl<Button>("Save"));
+        TestFrames.Tick((600 + 700) / 16);
+        SceneHarness.AssertPlain(label, "✓");
+
+        TestFrames.Tick((1400 + 700) / 16 + 10);
+        SceneHarness.AssertPlain(label, "Save");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void NotifyAddsAToastThatDismissesItselfWhenItsTimerRunsOut()
     {
         var page = new MicroInteractionsPage();

@@ -146,6 +146,24 @@ public sealed class AllocationTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
+    public void ATextWarpFrameAllocatesOnlyItsGeometries(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var block = new TextBlock { Text = "Presto", FontSize = 30 };
+        Show(block);
+        PrestoAvalonia.SplitText(block, new() { Words = null, Chars = new(), Outlines = true });
+        TextWarp.SetKind(block, TextWarpKind.Bulge);
+        block.Animate(new() { ["Warp"] = new[] { 0.2, 1 }, ["WarpPhase"] = 1, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        // measured 3840, 640 per character: its new StreamGeometry with the context and Skia path behind it, and the Data change.
+        Assert.True(bytes <= 4096, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void AFlippingSplitFlapTicksWithinBudget(bool diagnostics)
     {
         Presto.Engine.Diagnostics.Enabled = diagnostics;
@@ -456,6 +474,34 @@ public sealed class AllocationTests : CompositorTestBase
             canvas.Invoke<ParticleScene>(scene => system = scene.Add(burst, new Point(32, 32)));
             var drawing = BytesPerFrame();
             canvas.Invoke<ParticleScene>(_ => system!.Clear());
+            differences[i] = drawing - BytesPerFrame();
+        }
+        var measured = differences[1..];
+        Array.Sort(measured);
+        var bytes = measured[blocks / 2];
+
+        Assert.True(bytes <= 64, $"{bytes:0.##} bytes per frame, median of {string.Join(", ", measured.Select(d => d.ToString("0")))}");
+    }
+
+    /// <remarks>Priced as the scene above: a frame stepping and drawing a formation of 500 pushed by a repel point, minus a frame with none.</remarks>
+    [AvaloniaFact]
+    public void AFormationOf500StepsAndDrawsWithoutAllocating()
+    {
+        const int blocks = 11;
+        var points = Enumerable.Range(0, 500).Select(i => new Point(i % 25 * 2.5, i / 25 * 3)).ToArray();
+        var (_, canvas) = ShowScene(new ParticleScene());
+        ParticleFormation? formation = null;
+
+        var differences = new double[blocks + 1];
+        for (var i = 0; i < differences.Length; i++)
+        {
+            canvas.Invoke<ParticleScene>(scene =>
+            {
+                formation = scene.AddFormation(points, Colors.White);
+                formation.Repel = new Point(32, 32);
+            });
+            var drawing = BytesPerFrame();
+            canvas.Invoke<ParticleScene>(_ => formation!.Clear());
             differences[i] = drawing - BytesPerFrame();
         }
         var measured = differences[1..];

@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Effects;
 using Monaco.Presto.AvaloniaBridge.Targets;
+using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.AvaloniaBridge.Transforms;
 using Monaco.Presto.Core;
 using Monaco.Presto.Diagnostics;
@@ -366,13 +367,14 @@ internal sealed class MotionTracker
         return value.Raw is TweenParams { To: { } to } ? Final(to) : value;
     }
 
-    /// <summary>A transform, effect or reveal shorthand's identity, or a property's value beneath the animations, read now so a local value or style set meanwhile is honored.</summary>
+    /// <summary>A transform, effect, reveal or warp shorthand's identity, or a property's value beneath the animations, read now so a local value or style set meanwhile is honored.</summary>
     private TweenValue Rest(string property)
     {
         if (TransformShorthands.Parse(property) is { } shorthand) return RenderTransformComposer.Identity(shorthand);
         if (EffectShorthands.Parse(property) is { } effect) return TweenValue.Of(EffectComposer.Identity(effect));
         if (EffectShorthands.ParseClip(property) is { } clip) return TweenValue.Of(ClipComposer.Identity(clip));
         if (EffectShorthands.ParseMask(property) is { } mask) return TweenValue.Of(MaskComposer.Identity(mask));
+        if (_control is TextBlock && WarpComposer.Parse(property) is { } warp) return TweenValue.Of(WarpComposer.Identity(_control, warp));
         var avaloniaProperty = AvaloniaObjectTargetAdapter.ResolveProperty(_control.GetType(), property)
             ?? throw new NotSupportedException($"{property} has no rest value for a motion state to return to.");
         var value = _control.GetBaseValue(avaloniaProperty);

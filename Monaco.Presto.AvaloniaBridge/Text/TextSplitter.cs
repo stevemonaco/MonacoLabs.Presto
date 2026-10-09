@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Monaco.Presto.Diagnostics;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge.Text;
 
@@ -45,6 +46,7 @@ public sealed class TextSplitter : IRevertible
 
     internal TextSplitter(TextBlock host, SplitTextParams parameters)
     {
+        if (parameters is { Outlines: true, Chars: null }) throw new ArgumentException("Outlines requires Chars.", nameof(parameters));
         Engine.Current.CurrentScope?.Register(this);
         _host = host;
         _parameters = parameters;
@@ -78,6 +80,12 @@ public sealed class TextSplitter : IRevertible
     internal static readonly AttachedProperty<double> LineHeightProperty =
         AvaloniaProperty.RegisterAttached<TextSplitter, Control, double>("LineHeight");
 
+    private static readonly AttachedProperty<string?> GraphemeProperty =
+        AvaloniaProperty.RegisterAttached<TextSplitter, Control, string?>("Grapheme");
+
+    private static readonly AttachedProperty<GlyphContours?> ContoursProperty =
+        AvaloniaProperty.RegisterAttached<TextSplitter, Control, GlyphContours?>("Contours");
+
     private static readonly AttachedProperty<TextSplitter?> SplitProperty =
         AvaloniaProperty.RegisterAttached<TextSplitter, TextBlock, TextSplitter?>("Split");
 
@@ -96,6 +104,9 @@ public sealed class TextSplitter : IRevertible
     /// <summary>The height of one line of the block's text, measured before the pieces are laid out.</summary>
     public double LineHeight { get; private set; }
 
+    /// <summary>The block's text as it was before the split.</summary>
+    internal string Text => _text;
+
     /// <summary>The index of the wrapped line <paramref name="piece"/> sits on.</summary>
     public static int GetLineIndex(Control piece) => piece.GetValue(LineIndexProperty);
 
@@ -113,6 +124,12 @@ public sealed class TextSplitter : IRevertible
 
     /// <summary>The <see cref="LineHeight"/> of the split <paramref name="piece"/> belongs to, or 0 when it is not a split piece.</summary>
     public static double LineHeightOf(Control piece) => piece.GetValue(OwnerProperty)?.LineHeight ?? piece.GetValue(LineHeightProperty);
+
+    /// <summary>The text a character piece stands for, an outline piece's included.</summary>
+    internal static string GraphemeOf(Control piece) => piece is TextBlock text ? text.Text! : piece.GetValue(GraphemeProperty)!;
+
+    /// <summary>The flattened outline an outline piece draws, or null for any other control.</summary>
+    internal static GlyphContours? ContoursOf(Control piece) => piece.GetValue(ContoursProperty);
 
     /// <summary>The splitter <paramref name="block"/> is split by, or null when it is not split.</summary>
     internal static TextSplitter? Of(TextBlock block) => block.GetValue(SplitProperty);
@@ -249,18 +266,9 @@ public sealed class TextSplitter : IRevertible
     private List<string> MeasureLines(out double baseline)
     {
         // Measured on a copy: the host's own layout holds the pieces by the time of a re-split.
-        var measure = new TextBlock
-        {
-            Text = _text,
-            FontFamily = _host.FontFamily,
-            FontSize = _host.FontSize,
-            FontStyle = _host.FontStyle,
-            FontWeight = _host.FontWeight,
-            FontStretch = _host.FontStretch,
-            LetterSpacing = _host.LetterSpacing,
-            TextWrapping = _host.TextWrapping,
-            Padding = _host.Padding,
-        };
+        var measure = Copy(_text);
+        measure.TextWrapping = _host.TextWrapping;
+        measure.Padding = _host.Padding;
         measure.Measure(new Size(_width, double.PositiveInfinity));
         LineHeight = measure.TextLayout.TextLines[0].Height;
         baseline = measure.TextLayout.TextLines[0].Baseline;
@@ -274,6 +282,18 @@ public sealed class TextSplitter : IRevertible
         }
         return lines;
     }
+
+    private TextBlock Copy(string text) => new()
+    {
+        Text = text,
+        FontFamily = _host.FontFamily,
+        FontSize = _host.FontSize,
+        FontStyle = _host.FontStyle,
+        FontWeight = _host.FontWeight,
+        FontStretch = _host.FontStretch,
+        LetterSpacing = _host.LetterSpacing,
+        UseLayoutRounding = false,
+    };
 
     private Control BuildLine(string text, int index)
     {
@@ -309,7 +329,7 @@ public sealed class TextSplitter : IRevertible
             for (var i = 0; i < graphemes.Count; i++)
             {
                 var grapheme = i == graphemes.Count - 1 ? graphemes[i] + trailing : graphemes[i];
-                panel.Children.Add(Decorate(Piece(grapheme), charParams, _chars, line));
+                panel.Children.Add(Decorate(CharPiece(grapheme), charParams, _chars, line));
             }
             word = panel;
         }
@@ -328,6 +348,21 @@ public sealed class TextSplitter : IRevertible
         if (parameters.Class is { } className) piece.Classes.Add(className);
         pieces.Add(piece);
         return parameters.Wrap ? new Border { ClipToBounds = true, Child = piece } : piece;
+    }
+
+    private Control CharPiece(string text)
+    {
+        if (!_parameters.Outlines) return Piece(text);
+        using var outline = GlyphOutlines.Path(text, _host);
+        if (outline.IsEmpty) return Piece(text);
+
+        var slot = Copy(text);
+        slot.Measure(Size.Infinity);
+        var piece = new Path { Data = GlyphOutlines.Geometry(outline), Fill = _host.Foreground, Width = slot.DesiredSize.Width, Height = slot.DesiredSize.Height };
+        piece.SetValue(GraphemeProperty, text);
+        piece.SetValue(ContoursProperty, GlyphContours.From(outline));
+        AutomationProperties.SetAccessibilityView(piece, AccessibilityView.Raw);
+        return piece;
     }
 
     private static TextBlock Piece(string text)

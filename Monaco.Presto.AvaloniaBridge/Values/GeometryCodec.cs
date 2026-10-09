@@ -30,12 +30,27 @@ internal sealed class GeometryCodec : IValueCodec
     public object Encode(double number, Tween tween)
     {
         var numbers = tween._numbers;
+        var strings = tween._strings;
+        // A polyline is left open so a stroke follows the contour; MorphTo's contour pairs end in Z and start in M.
+        var closed = strings.Length > 0 && strings[^1].Contains('Z');
         var geometry = new StreamGeometry();
         using var context = geometry.Open();
+        if (closed) context.SetFillRule(FillRule.EvenOdd);
         context.BeginFigure(new Point(numbers[0], numbers[1]), true);
-        for (var i = 2; i + 1 < numbers.Length; i += 2) context.LineTo(new Point(numbers[i], numbers[i + 1]));
-        // Left open so a stroke follows the contour and a fill closes it implicitly, as an SVG path does.
-        context.EndFigure(false);
+        for (var i = 2; i + 1 < numbers.Length; i += 2)
+        {
+            var point = new Point(numbers[i], numbers[i + 1]);
+            if (i < strings.Length && strings[i].Contains('M'))
+            {
+                context.EndFigure(closed);
+                context.BeginFigure(point, true);
+            }
+            else
+            {
+                context.LineTo(point);
+            }
+        }
+        context.EndFigure(closed);
         return geometry;
     }
 
@@ -50,11 +65,17 @@ internal sealed class GeometryCodec : IValueCodec
         for (var i = 0; i < points; i++)
         {
             geometry.TryGetPointAtDistance(length * i / (points - 1), out var point);
-            data.Append(i == 0 ? 'M' : 'L');
-            data.Append(JsNumber.Format(Helpers.Round(point.X, 3)));
-            data.Append(',');
-            data.Append(JsNumber.Format(Helpers.Round(point.Y, 3)));
+            AppendPoint(data, i == 0 ? 'M' : 'L', point);
         }
         return data.ToString();
+    }
+
+    /// <summary>Appends <paramref name="command"/> and <paramref name="point"/> rounded to 3 decimals.</summary>
+    internal static void AppendPoint(StringBuilder data, char command, Point point)
+    {
+        data.Append(command);
+        data.Append(JsNumber.Format(Helpers.Round(point.X, 3)));
+        data.Append(',');
+        data.Append(JsNumber.Format(Helpers.Round(point.Y, 3)));
     }
 }

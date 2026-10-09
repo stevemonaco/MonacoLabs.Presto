@@ -266,7 +266,7 @@ depends:
 
 ## Non-goals
 
-- Filters on arbitrary visuals, a CSS-syntax `Filter` string, an image-level `Blur`, SkSL shaders, and transitions between arbitrary content.
+- Filters on arbitrary visuals (BRIDGE-DISTORT draws a decorator's child through raster effects), a CSS-syntax `Filter` string, an image-level `Blur`, SkSL shaders, and transitions between arbitrary content.
 - Pixel effects on `Presence` exit ghosts, which are plain snapshots.
 - Compositor-thread animation of the filters.
 - A public transition progress or a standalone wipe property (`MaskSweep` wipes any element).

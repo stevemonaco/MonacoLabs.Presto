@@ -213,6 +213,52 @@ public sealed class MorphTextTests : BridgeTestBase
         Assert.Equal("delta gamma beta alpha", block.Text);
     }
 
+    [AvaloniaFact]
+    public void ShapeMorphsUnmatchedOldLettersIntoTheNearestUnmatchedNewOnesInsteadOfLeavingGhosts()
+    {
+        var block = Shown("cat");
+        var old = OldPlaces(block);
+        var morph = Recipes.MorphText(block, "cot", shape: true);
+        var split = TextSplitter.Of(block)!;
+        morph.Pause();
+        morph.Seek(0);
+
+        Assert.Empty(Ghosts(block));
+        var o = Assert.IsType<Avalonia.Controls.Shapes.Path>(split.Chars[1]);
+        AssertAt(old[1].At, split.SlotOf(o).Position + (Vector)block.TranslatePoint(default, TopLevel.GetTopLevel(block)!)!.Value + new Vector(Value(o, "X"), Value(o, "Y")));
+        morph.Resume();
+        RunUntil(() => morph.Completed);
+        Assert.Equal("cot", block.Text);
+        Assert.Null(TextSplitter.Of(block));
+    }
+
+    [AvaloniaFact]
+    public void ShapeLeavesOnlyTheLeftoverOldLettersAsGhosts()
+    {
+        var block = Shown("cat");
+        var morph = Recipes.MorphText(block, "co", shape: true);
+
+        Assert.Single(Ghosts(block));
+        RunUntil(() => morph.Completed);
+        Assert.Empty(OverlayLayer.GetOverlayLayer(block)!.Children);
+    }
+
+    [AvaloniaFact]
+    public void ExplodingShapeMorphShattersTheLeftoverOldLettersIntoShards()
+    {
+        var block = Shown("cat");
+        var morph = Recipes.MorphText(block, "co", explode: true, shape: true);
+        var shards = OverlayLayer.GetOverlayLayer(block)!.Children.SelectMany(c => c.GetVisualDescendants()).OfType<Avalonia.Controls.Shapes.Path>().ToArray();
+
+        Assert.Empty(Ghosts(block));
+        Assert.True(shards.Length > 1);
+        Assert.All(shards, s => Assert.Same(block.Foreground, s.Fill));
+        Frames.Advance(Recipes.Tokens.Medium / 8, 10);
+        Assert.All(shards, s => Assert.InRange(s.Opacity, 0.01, 0.99));
+        RunUntil(() => morph.Completed);
+        Assert.Empty(OverlayLayer.GetOverlayLayer(block)!.Children);
+    }
+
     private static TextBlock Shown(string text)
     {
         var block = new TextBlock { Text = text, FontSize = 20 };

@@ -15,4 +15,11 @@ public sealed record SplitTextParams
 
     /// <summary>Appends the space that follows a word to that word's last piece, instead of leaving it between the pieces.</summary>
     public bool IncludeSpaces { get; init; }
+
+    /// <summary>
+    /// Makes each character piece a <see cref="Avalonia.Controls.Shapes.Path"/> drawing the character's outline in the block's
+    /// foreground, on the slot its text piece would have had. Requires <see cref="Chars"/>; a character with no outline,
+    /// such as an emoji, stays a text piece.
+    /// </summary>
+    public bool Outlines { get; init; }
 }

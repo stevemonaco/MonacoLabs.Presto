@@ -9,13 +9,6 @@
         <StreamGeometry x:Key="MarkGeometry">M 44,14 L 114,62 L 44,110 L 64,62 Z</StreamGeometry>
     </showcase:ShowcasePage.Resources>
 
-    <showcase:ShowcasePage.Styles>
-        <Style Selector="TextBlock.wordmark-char">
-            <Setter Property="Foreground" Value="{x:Static showcase:Palette.AccentPale}" />
-            <Setter Property="Opacity" Value="0" />
-        </Style>
-    </showcase:ShowcasePage.Styles>
-
     <ScrollViewer>
         <StackPanel Spacing="12">
             <Border Classes="stage" Padding="0" Height="420">
@@ -32,7 +25,8 @@
                         </Canvas>
 
                         <TextBlock x:Name="Headline" Text="PRESTO" HorizontalAlignment="Center"
-                                   FontSize="68" FontWeight="Bold" LetterSpacing="12" />
+                                   FontSize="68" FontWeight="Bold" LetterSpacing="12"
+                                   Foreground="{x:Static showcase:Palette.AccentPale}" />
 
                         <TextBlock x:Name="Subtitle" Classes="mono" Margin="0" Opacity="0"
                                    HorizontalAlignment="Center" FontSize="14" Text="animation for avalonia" />

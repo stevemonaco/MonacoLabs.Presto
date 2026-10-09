@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Monaco.Presto.AvaloniaBridge.Text;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
 
@@ -373,6 +374,77 @@ public sealed class TextSplitTests : BridgeTestBase
 
         Assert.Throws<ArgumentException>(() => split.SlotOf(new TextBlock { Text = "The" }));
         Assert.Throws<ArgumentException>(() => split.SlotOf(other.Words[0]));
+    }
+
+    [AvaloniaFact]
+    public void OutlinePiecesArePathsOnTheSlotsOfTextPieces()
+    {
+        var plain = PrestoAvalonia.SplitText(ShowText(), new() { Lines = new(), Chars = new() });
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new(), Outlines = true });
+
+        Assert.Equal(plain.Chars.Count, split.Chars.Count);
+        for (var i = 0; i < split.Chars.Count; i++)
+        {
+            var piece = Assert.IsType<Path>(split.Chars[i]);
+            var expected = plain.SlotOf(plain.Chars[i]);
+            var slot = split.SlotOf(piece);
+            Assert.Equal(expected.X, slot.X, 0.01);
+            Assert.Equal(expected.Y, slot.Y, 0.01);
+            Assert.Equal(expected.Width, slot.Width, 0.01);
+            Assert.Equal(expected.Height, slot.Height, 0.01);
+            Assert.Equal(PrestoAvalonia.GlyphOutline(block, i).Bounds, piece.Data!.Bounds);
+            Assert.Equal(TextSplitter.GraphemeOf(plain.Chars[i]), TextSplitter.GraphemeOf(piece));
+        }
+    }
+
+    [AvaloniaFact]
+    public void OutlinePiecesAreFilledWithTheBlocksForeground()
+    {
+        var block = ShowText();
+        block.Foreground = Brushes.Crimson;
+
+        var split = PrestoAvalonia.SplitText(block, new() { Words = null, Chars = new(), Outlines = true });
+
+        Assert.All(split.Chars, piece => Assert.Same(Brushes.Crimson, Assert.IsType<Path>(piece).Fill));
+    }
+
+    [AvaloniaFact]
+    public void AResplitKeepsTheOutlinePieces()
+    {
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new(), Outlines = true });
+        var lines = split.Lines.Count;
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.True(split.Lines.Count > lines);
+        Assert.All(split.Chars, piece => Assert.IsType<Path>(piece));
+    }
+
+    [AvaloniaFact]
+    public void OutlinesWithoutCharsThrows()
+    {
+        var block = ShowText();
+
+        Assert.Throws<ArgumentException>(() => PrestoAvalonia.SplitText(block, new() { Outlines = true }));
+    }
+
+    [AvaloniaFact]
+    public void ACharacterWithoutAnOutlineStaysATextPiece()
+    {
+        var block = ShowText();
+        block.Text = "a😀b";
+        Dispatcher.UIThread.RunJobs();
+
+        var split = PrestoAvalonia.SplitText(block, new() { Words = null, Chars = new(), Outlines = true });
+
+        Assert.IsType<Path>(split.Chars[0]);
+        Assert.Equal("😀", Assert.IsType<TextBlock>(split.Chars[1]).Text);
+        Assert.IsType<Path>(split.Chars[2]);
+        Assert.Equal(["a", "😀", "b"], split.Chars.Select(TextSplitter.GraphemeOf));
     }
 
     [AvaloniaFact]

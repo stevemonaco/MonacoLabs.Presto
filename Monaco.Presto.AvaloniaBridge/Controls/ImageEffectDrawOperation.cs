@@ -39,15 +39,18 @@ internal sealed class ImageEffectDrawOperation : ICustomDrawOperation
     public bool Equals(ICustomDrawOperation? other) =>
         other is ImageEffectDrawOperation o && o._bitmap == _bitmap && o._source == _source && o.Bounds == Bounds && o._effect.Equals(_effect);
 
-    public void Render(ImmediateDrawingContext context)
+    public void Render(ImmediateDrawingContext context) => DrawInLayer(context, _bitmap, _source, Bounds, Bounds, _layerPaint);
+
+    /// <summary>Draws <paramref name="bitmap"/> into a Skia layer over <paramref name="layer"/> painted by <paramref name="paint"/>, or plainly without a Skia lease.</summary>
+    internal static void DrawInLayer(ImmediateDrawingContext context, Bitmap bitmap, Rect source, Rect destination, Rect layer, SKPaint paint)
     {
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } skia)
         {
-            context.DrawBitmap(_bitmap, _source, Bounds);
+            context.DrawBitmap(bitmap, source, destination);
             return;
         }
-        using (var lease = skia.Lease()) lease.SkCanvas.SaveLayer(Bounds.ToSKRect(), _layerPaint);
-        context.DrawBitmap(_bitmap, _source, Bounds);
+        using (var lease = skia.Lease()) lease.SkCanvas.SaveLayer(layer.ToSKRect(), paint);
+        context.DrawBitmap(bitmap, source, destination);
         using (var lease = skia.Lease()) lease.SkCanvas.Restore();
     }
 
@@ -74,13 +77,18 @@ internal sealed class ImageEffectDrawOperation : ICustomDrawOperation
     }
 
     // Skia maps the displacement scale and the noise through the canvas matrix, so both are in DIPs at any render scaling.
-    private static SKImageFilter Ripple(in ImageEffect effect, SKImageFilter? input, SKRect bounds)
+    private static SKImageFilter Ripple(in ImageEffect effect, SKImageFilter? input, SKRect bounds) =>
+        Displace((float)effect.Ripple, effect.RippleScale, effect.Seed, 0, input, bounds);
+
+    /// <summary>Displaces by up to <paramref name="amount"/> DIPs through seeded fractal noise of feature size <paramref name="scale"/>, moved <paramref name="shift"/> DIPs along x.</summary>
+    internal static SKImageFilter Displace(float amount, double scale, int seed, float shift, SKImageFilter? input, SKRect bounds)
     {
-        var frequency = (float)(1 / Math.Max(effect.RippleScale, 1e-3));
-        using var noise = SKShader.CreatePerlinNoiseFractalNoise(frequency, frequency, 2, effect.Seed);
+        var frequency = (float)(1 / Math.Max(scale, 1e-3));
+        using var fractal = SKShader.CreatePerlinNoiseFractalNoise(frequency, frequency, 2, seed);
+        using var noise = fractal.WithLocalMatrix(SKMatrix.CreateTranslation(shift, 0));
         using var map = SKImageFilter.CreateShader(noise);
-        using var clamped = Clamp(input, bounds, (float)Math.Abs(effect.Ripple));
-        return SKImageFilter.CreateDisplacementMapEffect(SKColorChannel.R, SKColorChannel.G, (float)effect.Ripple, map, clamped, bounds);
+        using var clamped = Clamp(input, bounds, Math.Abs(amount));
+        return SKImageFilter.CreateDisplacementMapEffect(SKColorChannel.R, SKColorChannel.G, amount, map, clamped, bounds);
     }
 
     // The clamp makes a partial last block cover its whole intermediate pixel, which would otherwise be antialiased translucent.

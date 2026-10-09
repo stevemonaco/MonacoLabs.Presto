@@ -510,6 +510,8 @@ public static class PrestoAvalonia
     /// Upstream <c>svg.morphTo</c>: the from/to pair that morphs the target's <see cref="Geometry"/> <c>Data</c> property
     /// (<see cref="Path.Data"/>, <see cref="PathIcon.Data"/>) into <paramref name="destination"/>, by resampling both
     /// contours at <paramref name="precision"/> points per unit of the longer one and interpolating the two point by point.
+    /// When either geometry has several figures, its contours are paired outer with outer and hole with hole and each pair is
+    /// morphed as a closed figure, filled even-odd.
     /// </summary>
     /// <remarks>
     /// The morph chains off the tween it follows, so one added to a timeline, or a later keyframe, starts from the shape the
@@ -537,14 +539,18 @@ public static class PrestoAvalonia
             // Upstream writes prevTween._value back to the element before sampling it; here that value parses into the geometry to sample.
             var source = previous?._value is string data ? Geometry.Parse(data) : Presto.Get(target, "Data") as Geometry;
             if (source == null) throw new ArgumentException($"Can't morph a {target.GetType()}. MorphTo animates a Geometry Data property.", nameof(target));
-            var points = MorphPointCount(source, destination, precision);
+            if (ContourMorph.Of(source, destination, precision) is { } contours) return TweenValue.FromTo(contours.From, contours.To);
+            var points = GeometryCodec.PointCount(Math.Max(source.ContourLength, destination.ContourLength), precision);
             return TweenValue.FromTo(GeometryCodec.Sample(source, points), GeometryCodec.Sample(destination, points));
         };
     }
 
-    /// <summary>The number of points <see cref="MorphTo"/> resamples both <paramref name="from"/> and <paramref name="to"/> at.</summary>
+    /// <summary>
+    /// The number of points <see cref="MorphTo"/> resamples both <paramref name="from"/> and <paramref name="to"/> at: when
+    /// either has several figures, the total over its contour pairs.
+    /// </summary>
     public static int MorphPointCount(Geometry from, Geometry to, double precision = GeometryCodec.DefaultPrecision) =>
-        GeometryCodec.PointCount(Math.Max(from.ContourLength, to.ContourLength), precision);
+        ContourMorph.Of(from, to, precision)?.Points ?? GeometryCodec.PointCount(Math.Max(from.ContourLength, to.ContourLength), precision);
 
     /// <summary>
     /// Upstream <c>splitText</c>: takes <paramref name="textBlock"/>'s text apart into the per-line, per-word and
@@ -554,6 +560,34 @@ public static class PrestoAvalonia
     {
         EnsureInitialized();
         return new TextSplitter(textBlock, parameters ?? new SplitTextParams());
+    }
+
+    /// <summary>
+    /// The outline of <paramref name="block"/>'s character at <paramref name="index"/> (counting the characters a character
+    /// split makes pieces of), in the coordinates of that character's piece, with the font's nonzero fill rule.
+    /// </summary>
+    /// <remarks>
+    /// Empty for a character with no outline, such as an emoji or a glyph of another color or bitmap font. The outline is
+    /// unhinted, so it differs slightly from the block's own rendering at small sizes.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is not the index of one of the block's characters.</exception>
+    public static Geometry GlyphOutline(TextBlock block, int index)
+    {
+        EnsureInitialized();
+        var text = TextSplitter.Of(block)?.Text ?? block.Text ?? "";
+        var grapheme = TextSplitter.CharsOf(text).ElementAtOrDefault(index) ?? throw new ArgumentOutOfRangeException(nameof(index), index, "The block has no character at that index.");
+        using var path = GlyphOutlines.Path(grapheme, block);
+        return GlyphOutlines.Geometry(path);
+    }
+
+    /// <summary>
+    /// The outline of <paramref name="text"/> shaped with <paramref name="typeface"/> at <paramref name="fontSize"/>, with its
+    /// origin at the top left of the first line box and the font's nonzero fill rule; empty where a character has no outline.
+    /// </summary>
+    public static Geometry TextOutline(string text, Typeface typeface, double fontSize)
+    {
+        EnsureInitialized();
+        return GlyphOutlines.Geometry(text, typeface, fontSize);
     }
 
     /// <summary>

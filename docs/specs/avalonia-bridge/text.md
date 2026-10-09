@@ -29,13 +29,14 @@ depends:
   - CORE-UTILS
   - CORE-SCOPE
   - CORE-EASES
+  - BRIDGE-GLYPHS
 ---
 
 # Text splitting
 
 ## Purpose
 
-Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart into line, word and character controls laid out inside the block, re-splits when the block's width changes, and runs registered effects over each split. Per-piece triggers built on the splitter are BRIDGE-TEXTREVEAL. Also specifies `PrestoAvalonia.SplitText`.
+Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart into line, word and character controls laid out inside the block, re-splits when the block's width changes, and runs registered effects over each split. With `Outlines`, character pieces draw the glyph outlines of BRIDGE-GLYPHS instead of text. Per-piece triggers built on the splitter are BRIDGE-TEXTREVEAL. Also specifies `PrestoAvalonia.SplitText`.
 
 ## Requirements
 
@@ -89,6 +90,15 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
 - **BRIDGE-TEXT-054** — `SlotOf` shall return the piece's layout box in the block's coordinates, before transforms, for any piece of the current split, valid from the first effect of that split; for a control that is not a piece of this splitter it shall throw `ArgumentException`.
   - Tests: `TextSplitTests.SlotOfGivesEachPiecesLayoutBoxInBlockCoordinates`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffect`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffectOnACenteredBlock`, `TextSplitTests.SlotOfIgnoresRenderTransforms`, `TextSplitTests.SlotOfFollowsAResplit`, `TextSplitTests.SlotOfRejectsAControlThatIsNotAPieceOfThisSplit`
 
+### Outline pieces
+
+- **BRIDGE-TEXT-055** — With `Outlines` set, each character piece shall be a `Path` whose `Data` is the character's outline (BRIDGE-GLYPHS-001) in piece-local coordinates and whose `Fill` is the block's `Foreground` at split time, sized to and placed on the slot a text piece would have had; it is recorded, decorated, hidden from automation and re-split like a text piece.
+  - Tests: `TextSplitTests.OutlinePiecesArePathsOnTheSlotsOfTextPieces`, `TextSplitTests.OutlinePiecesAreFilledWithTheBlocksForeground`, `TextSplitTests.AResplitKeepsTheOutlinePieces`
+- **BRIDGE-TEXT-056** — With `Outlines` set and `Chars` not set, creating the splitter shall throw `ArgumentException`.
+  - Tests: `TextSplitTests.OutlinesWithoutCharsThrows`
+- **BRIDGE-TEXT-057** — A character whose outline is empty (BRIDGE-GLYPHS-004) shall be split into a text piece as without `Outlines`.
+  - Tests: `TextSplitTests.ACharacterWithoutAnOutlineStaysATextPiece`
+
 ### Scramble
 
 - ~~**BRIDGE-TEXT-022**~~ — Moved to CORE-SCRAMBLE.
@@ -122,6 +132,8 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
   - Tests: untested
 - **BRIDGE-TEXT-044** — When a kind's `Wrap` is not set, its pieces shall not be wrapped in a clipping `Border`, as anime.js does.
   - Tests: untested
+- **BRIDGE-TEXT-058** — When `Outlines` is not set, it shall be false, so character pieces are text pieces.
+  - Tests: `TextSplitTests.SplitsCharsOnly`
 - ~~**BRIDGE-TEXT-045**~~ — Moved to CORE-SCRAMBLE.
 - ~~**BRIDGE-TEXT-046**~~ — Moved to CORE-SCRAMBLE.
 - ~~**BRIDGE-TEXT-047**~~ — Moved to CORE-SCRAMBLE.
@@ -169,6 +181,9 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
 - **Line-aware stagger and line height are public helpers.** `TextSplitter.StaggerByLine` returns a function value stepping by line index and by position in the line, and `LineHeightOf` reads the owning split's `LineHeight` (0 for a non-piece). Reason: recipes must say "from one line down" before pieces have bounds, which the Typography sample page had computed by hand.
 - **`SlotOf` instead of a `Measure` API.** `MorphText` captures the old slots, sets the new text, splits it, and FLIPs each new piece from its partner's old slot. Nothing has to be measured offscreen. Rejected: `TextSplitter.Measure(block, text)`, a second layout path that would have to match the real one.
 - **The split lays its pieces out itself.** Effects run before the host's next layout pass, so the split measures and arranges its piece tree at the block's padding and text alignment, where the host's arrange puts it. Reason: `SlotOf` and exit ghosts need bounds from the first effect, without forcing a layout pass on the host from inside its own `SizeChanged`.
+- **Outline pieces are `Path` controls inside the existing splitter, not a new text control.** Reason: every split-piece feature (stagger, `SlotOf`, re-split on resize, reveal triggers, effects, `Draw`, `MorphTo`) then works on outlines for free, and warps get per-letter stagger for free. Rejected: an `OutlineText` control drawing the whole string as one geometry, which would need its own copy of all of that.
+- **An outline piece keeps its flattened contours and its grapheme.** Each outline piece carries the contour model of its outline (BRIDGE-GLYPHS) and the text it stands for, read internally by `"Draw"` and `MorphText` and later by warps and shards. Reason: the outline is read once per split rather than by every feature again, and a `Path` has no `Text` to pair letters by.
+- **An outline piece is sized by measuring its text.** Its `Width` and `Height` come from measuring the piece's text in the block's font, so its slot is exactly the text piece's, trailing no-break space included. Reason: an outline's bounds are its ink, not the advance and line box that layout needs.
 
 ## Non-goals
 

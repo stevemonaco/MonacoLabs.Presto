@@ -83,14 +83,23 @@
             <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="SUBMIT" />
                 <Border Classes="stage">
-                    <!-- snippet: MicroInteractionsSubmitButton -->
-                    <Button x:Name="Submit" Classes="specimen" Width="168" Height="44" Padding="0"
-                            HorizontalAlignment="Center" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Click="SubmitClicked"
-                            presto:SubmitButton.SuccessBrush="{x:Static showcase:Palette.Aqua}">
-                        <TextBlock x:Name="SubmitLabel" Text="Place order" />
-                    </Button>
-                    <!-- /snippet -->
+                    <StackPanel Spacing="40" VerticalAlignment="Center">
+                        <!-- snippet: MicroInteractionsSubmitButton -->
+                        <Button x:Name="Submit" Classes="specimen" Width="168" Height="44" Padding="0"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Click="SubmitClicked"
+                                presto:SubmitButton.SuccessBrush="{x:Static showcase:Palette.Aqua}">
+                            <TextBlock x:Name="SubmitLabel" Text="Place order" />
+                        </Button>
+                        <!-- /snippet -->
+                        <!-- snippet: MicroInteractionsSaveButton -->
+                        <Button x:Name="Save" Classes="specimen" Width="168" Height="44" Padding="0"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Click="SaveClicked">
+                            <TextBlock x:Name="SaveLabel" Text="Save" />
+                        </Button>
+                        <!-- /snippet -->
+                    </StackPanel>
                 </Border>
             </StackPanel>
 

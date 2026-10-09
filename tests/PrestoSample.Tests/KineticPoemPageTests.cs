@@ -5,12 +5,13 @@ using Avalonia.VisualTree;
 using Monaco.Presto;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace PrestoSample.Tests;
 
 public sealed class KineticPoemPageTests
 {
-    private static readonly string[] Phrases = ["Feel", "Stretch", "Ride", "Fall", "Break", "Again"];
+    private static readonly string[] Phrases = ["Feel", "Stretch", "Ride", "Fall", "Break", "Melt", "Again"];
 
     [AvaloniaFact]
     public void EachSeekButtonShowsItsPhraseAndHidesTheOthers()
@@ -62,7 +63,7 @@ public sealed class KineticPoemPageTests
         var page = new KineticPoemPage();
         var window = SceneHarness.Show(page, 1000, 900, frames: 2);
         var timeline = Timeline(page);
-        var watched = Phrases.SelectMany(phrase => Pieces(page, phrase)).Append(page.GetControl<Control>("BeatDot")).ToList();
+        var watched = Phrases.SelectMany(phrase => Pieces(page, phrase)).Concat(Shards(page)).Append(page.GetControl<Control>("BeatDot")).ToList();
         var shown = new HashSet<Control>();
 
         for (var frame = 0; frame < 900 && !timeline.Completed; frame++)
@@ -81,6 +82,57 @@ public sealed class KineticPoemPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void BreakShattersIntoVectorShardsOnTheBeatAndASeekBackBeforeItRestoresTheWord()
+    {
+        var page = new KineticPoemPage();
+        var window = SceneHarness.Show(page, 1000, 900, frames: 2);
+        var timeline = Timeline(page);
+        var word = Pieces(page, "Break");
+        var shards = Shards(page);
+        Assert.All(word, piece => Assert.IsType<Path>(piece));
+        Assert.True(shards.Count >= 5 * 8, $"only {shards.Count} shards for BREAK");
+
+        timeline.Pause().Seek(timeline.Labels["break"] + 1560);
+        var flying = shards.Select(Snapshot).ToList();
+        Assert.All(word, piece => Assert.Equal(0, piece.Opacity, 3));
+        Assert.Contains(flying, shard => shard.Opacity > .1 && Math.Abs(shard.X) + Math.Abs(shard.Y) > 20);
+
+        timeline.Seek(timeline.Labels["break"] + 1000);
+        Assert.All(word, piece => Assert.Equal(1, piece.Opacity, 3));
+        Assert.All(shards, shard => Assert.Equal(0, shard.Opacity, 3));
+
+        timeline.Seek(timeline.Labels["break"] + 1560);
+        Assert.Equal(string.Join("\n", flying), string.Join("\n", shards.Select(Snapshot)));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheMeltPhraseDripsDownwardsMidPhraseAndStraightensWhenSeekedBack()
+    {
+        var page = new KineticPoemPage();
+        var window = SceneHarness.Show(page, 1000, 900, frames: 2);
+        var timeline = Timeline(page);
+        var melt = Pieces(page, "Melt").Cast<Path>().ToList();
+
+        double Bottom()
+        {
+            TestFrames.Tick();
+            return melt.Max(piece => piece.Data!.Bounds.Bottom);
+        }
+
+        timeline.Pause().Seek(timeline.Labels["melt"] + 500);
+        var straight = Bottom();
+        timeline.Seek(timeline.Labels["melt"] + 1500);
+        Assert.True(Bottom() > straight + 50, "the melt phrase did not drip");
+
+        timeline.Seek(timeline.Labels["melt"] + 500);
+        Assert.Equal(straight, Bottom(), 3);
+        SceneHarness.Close(window);
+    }
+
+    private static List<Control> Shards(KineticPoemPage page) => [.. page.GetControl<Canvas>("Shards").Children];
+
     private static (double X, double Y, double Scale, double Rotate, double Opacity) Snapshot(Control piece)
     {
         double Read(string property) => Math.Round(Convert.ToDouble(Presto.Get(piece, property, withUnit: false)), 3);
@@ -88,7 +140,8 @@ public sealed class KineticPoemPageTests
     }
 
     private static List<Control> Pieces(KineticPoemPage page, string phrase) =>
-        page.GetControl<TextBlock>(phrase).GetVisualDescendants().OfType<TextBlock>().Where(piece => !string.IsNullOrWhiteSpace(piece.Text)).Cast<Control>().ToList();
+        page.GetControl<TextBlock>(phrase).GetVisualDescendants().OfType<Control>()
+            .Where(piece => piece is Path || (piece is TextBlock text && !string.IsNullOrWhiteSpace(text.Text))).ToList();
 
     private static Timeline Timeline(KineticPoemPage page) =>
         (Timeline)page.GetControl<TransportBar>("Bar").Timer!;

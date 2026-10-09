@@ -55,6 +55,14 @@ internal sealed class ParticleOverlay
         return new ParticleEffect(Host, emitters, SystemFinished);
     }
 
+    /// <summary>Adds the formation <paramref name="add"/> makes, which it hands the callback to run once the formation is dropped.</summary>
+    internal ParticleEffect Play(Func<ParticleScene, Action, ParticleFormation> add)
+    {
+        _idle?.Cancel();
+        _running++;
+        return new ParticleEffect(Host, add, SystemFinished);
+    }
+
     private void SystemFinished()
     {
         if (--_running > 0) return;

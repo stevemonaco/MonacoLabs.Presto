@@ -72,6 +72,8 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Text splitting](text.md) | BRIDGE-TEXT | `TextSplitter`, `SplitTextParams`, `SplitPieceParams` |
 | [Text reveals and text exits](text-reveal.md) | BRIDGE-TEXTREVEAL | `TextReveal`, `TextRevealExtension`, `TextPieces` |
 | [Text on a path](text-path.md) | BRIDGE-TEXTPATH | `TextPath`, `TextPathAlign` |
+| [Glyph outlines](glyph-outlines.md) | BRIDGE-GLYPHS | `GlyphShards`, `GlyphPoints`, `GlyphSampling` |
+| [Text warps](text-warp.md) | BRIDGE-WARP | `TextWarp`, `TextWarpKind` |
 
 ## Recipes and tokens
 
@@ -88,8 +90,9 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | Spec | Id | Owns |
 |---|---|---|
 | [Image effects and pixel transitions](image-effects.md) | BRIDGE-IMAGE | `PrestoImageBase`, `FilteredImage`, `ImageTransition`, `ImageTransitionKind` |
+| [Raster distortion](distort.md) | BRIDGE-DISTORT | `Distort` |
 | [Sprite sheets and image sequences](sprite-frames.md) | BRIDGE-FRAMES | `SpriteSheet`, `ImageSequence` |
-| [Particle drawing and particle effects](particles.md) | BRIDGE-PARTICLES | `ParticleScene`, `ParticleShape`, `ParticleEffect` |
+| [Particle drawing and particle effects](particles.md) | BRIDGE-PARTICLES | `ParticleScene`, `ParticleFormation`, `ParticleShape`, `ParticleEffect` |
 | [Press ripple](press-ripple.md) | BRIDGE-RIPPLE | `Ripple` |
 
 ## Controls

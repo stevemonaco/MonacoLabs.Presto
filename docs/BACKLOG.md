@@ -93,10 +93,10 @@ When an item is closed, its line is deleted.
 - [LOTTIE-PLAYBACK] Drive the Lottie gallery page in the Browser head.
 - [BRIDGE-DRAGGABLE] Fling and re-grab cards repeatedly on the Desktop Draggable page to confirm the drag freeze is gone (only a headless test covers it).
 - [SAMPLE] On Desktop, in both motion modes, sweep the nav with a real pointer, drag and double-click the splitter, and press Ctrl+B and Ctrl+F.
-- [BRIDGE-PARTICLES] Measure the default `ParticleScene.MaxLive` of 1 000 on Browser, Android and iOS (only desktop's 4 000 was measured).
+- [BRIDGE-PARTICLES] Measure the default `ParticleScene.MaxLive` of 1 000, and the Particle type and Liquid type frame rates, on Browser, Android and iOS (only desktop's 4 000 was measured).
 - [PLATFORM] Drive the gallery on an Android device (it only builds, installs and launches) and run iOS on a simulator (needs a macOS build host; only compiles for `iossimulator-x64`).
 - [PLATFORM] Check the Browser and Android heads against the showcase pages and update the README Platforms table with what is true.
-- [SAMPLE] By hand on Desktop: the Board drag and insertion gap, the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`).
+- [SAMPLE] By hand on Desktop: the Board drag and insertion gap, the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`), Warp studio's Magnifier, Jelly and Follow pointer, and the Liquid type heading's hover glitch.
 - [SAMPLE] By hand on Desktop: the Carousel pointer drag.
 - [SAMPLE] By hand on Desktop with a real mouse: the Type lab elastic-letter drag (neighbors follow, springs home with overshoot, no jitter at rest) and Bézier control-point drag (text stays on the path); DevTools sends no drags.
 - [SAMPLE] By hand on Desktop: Connected and Connected navigation (open a card on `PointerPressed`) and the Gestures page drags.
@@ -139,6 +139,7 @@ When an item is closed, its line is deleted.
 - [SAMPLE] At 127 px a Card gallery grid card's `#06 · C. Lindqvist 711` line runs into its right border; done when it fits or trims.
 - [SAMPLE] Swipe-to-dismiss on the Activity feed's recycled rows (`SwipeActions` or `Draggable`) beside the dismiss button; done when a swiped row collapses out through `Presence.Exit` and a recycled row carries no stale swipe offset.
 - [SAMPLE] The Gestures page trail and resist stages share the panel's background, so their edges are hard to see; done when the stages read as distinct.
+- [SAMPLE] A Kinetic poster showcase page chaining every glyph-geometry block (outline pieces and `WriteIn`, multi-contour morph, warps, shards and particle text, `Distort`), deferred until those pieces have settled; done when the page exists with its page test.
 
 ## Tooling and tests
 
@@ -160,11 +161,13 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-CONTENTSIZE](specs/avalonia-bridge/content-size.md): 8 untested requirements, plus the `ClipToBounds` decision text not matching the code's `Clip` hold.
 - [BRIDGE-HELPERS](specs/avalonia-bridge/control-helpers.md): 1 untested requirement, plus no test that every shorthand has a typed builder method.
 - [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 7 untested requirements, plus two arms on one container being undecided.
+- [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 6 untested requirements, plus the scaled-away child's hit-testing, a static `Distort` requesting frames, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
 - [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus the stale `OnDrag` doc, two draggables claiming one target, and `Reset` writing 0 outside the container.
 - [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement.
 - [BRIDGE-EFFECTS](specs/avalonia-bridge/effects.md): 7 untested requirements, plus the companion-only mask and circle rest-removal bug.
 - [BRIDGE-FLIP](specs/avalonia-bridge/flip-card.md): 4 untested requirements, plus `Motion` cloning the whole builder unvalidated and an `Orientation` change while flipped leaving the old axis turned.
 - [BRIDGE-FOLLOW](specs/avalonia-bridge/follow.md): 8 untested requirements, plus never-attached targets easing, shorthands lacking `AnimateInitial`/`WhenReduced`, and a non-numeric shorthand string silently releasing the layer.
+- [BRIDGE-GLYPHS](specs/avalonia-bridge/glyph-outlines.md): 1 untested requirement, plus the missing-glyph case of BRIDGE-GLYPHS-004.
 - [BRIDGE-IMAGE](specs/avalonia-bridge/image-effects.md): 19 untested requirements, plus the resize-at-start question, `ImageTransition.Parse` accepting numeric kinds, a `Source` change mid-transition retargeting silently, and Browser/Android smoke runs.
 - [BRIDGE-INIT](specs/avalonia-bridge/initialization.md): 4 untested requirements, plus the `HiddenSignal` one-time lifetime lookup.
 - [BRIDGE-LAYOUT](specs/avalonia-bridge/layout-transitions.md): 6 untested requirements, plus `Then()` before the first move resolving at once and an off-screen source degrading silently.
@@ -174,7 +177,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-TOKENS](specs/avalonia-bridge/motion-tokens.md): 2 untested requirements, plus the stale `ColorSpace` doc.
 - [BRIDGE-PAGES](specs/avalonia-bridge/page-transitions.md): 4 untested requirements.
 - [BRIDGE-PAGER](specs/avalonia-bridge/pager.md): 20 untested requirements, plus the uncoerced `SelectedIndex`.
-- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 13 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS.
+- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 13 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, a capped formation losing its bottom rows' right end, single-color formations, and the manual Particle type Browser frame-rate check.
 - [BRIDGE-POPOVER](specs/avalonia-bridge/popovers.md): 5 untested requirements, plus builders on a plain popup's child doing nothing.
 - [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 5 untested requirements, plus `AnimateExit` ghosting hidden or transparent controls.
 - [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 5 untested requirements, plus the stale `GetReveal`/`SetReveal` docs and the manual Activity feed check.
@@ -184,7 +187,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 3 untested requirements.
 - [BRIDGE-PULL](specs/avalonia-bridge/pull-to-refresh.md): 13 untested requirements, plus a faulted `Refresh` task rethrowing onto the UI thread, undocumented.
 - [BRIDGE-RECIPES-MEDIA](specs/avalonia-bridge/recipes-media.md): 6 untested requirements.
-- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus the stale `PressIn` and `Loading` docs, `PageBloom`'s exit lacking `WhenReduced`, `PageSharedAxis` taking no duration, and `Develop` missing from the UI-thread-only list.
+- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus the stale `PressIn` and `Loading` docs, `PageBloom`'s exit lacking `WhenReduced`, `PageSharedAxis` taking no duration, `Develop` missing from the UI-thread-only list, dark specks from `MorphGlyphs` at body size, `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, and `WriteIn`/`Shatter` not re-seekable in a timeline.
 - [BRIDGE-REDUCED](specs/avalonia-bridge/reduced-motion.md): 0 untested requirements, plus the follower capturing `Engine.Current` and the never-retried activation hook.
 - [BRIDGE-REORDER](specs/avalonia-bridge/reorder.md): 10 untested requirements, plus a refused step re-raising `Moving` on every move and a spacing typo in `ReorderList.Raise`.
 - [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 11 untested requirements, plus the snap's missing velocity check and reduced form, and the missing-target exception thrown from a tick.
@@ -195,6 +198,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-FRAMES](specs/avalonia-bridge/sprite-frames.md): 8 untested requirements, plus in-place `Frames` mutation not being observed.
 - [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 12 untested requirements, plus a later `Command` widening the range, undocumented.
 - [BRIDGE-TEXTREVEAL](specs/avalonia-bridge/text-reveal.md): 7 untested requirements.
+- [BRIDGE-WARP](specs/avalonia-bridge/text-warp.md): 1 untested requirement, plus the per-block field, no per-letter stagger, and the manual pointer warps.
 - [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 5 untested requirements, plus the unscaled resize debounce.
 - [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 6 untested requirements, plus `Items`/`ItemsSource` desync and a re-prepared container doubling handlers.
 - [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 17 untested requirements, plus shared target ownership, capture loss running a full release, a horizontal wheel handled under zoom, and the macOS, Android and Browser hardware checks.

@@ -119,6 +119,50 @@ public sealed class TypeLabPageTests
     }
 
     [AvaloniaFact]
+    public void WithVectorShardsOnTheLeftoverLetterShattersIntoPathsNotSnapshots()
+    {
+        var page = new TypeLabPage();
+        var window = SceneHarness.Show(page, 1280, 1800, frames: 2);
+        var word = page.GetControl<TextBlock>("ShatterWord");
+        Tap(window, word, 0);
+        TestFrames.Tick(90);
+
+        // THREATS to HEARTS leaves one T over.
+        Tap(window, word, 1);
+        var overlay = OverlayLayer.GetOverlayLayer(word)!.Children.SelectMany(c => c.GetVisualDescendants()).ToArray();
+
+        Assert.True(overlay.OfType<Path>().Count() > 1, "the leftover T did not shatter into shards");
+        Assert.Empty(overlay.OfType<Image>());
+        TestFrames.Tick(90);
+        Assert.Equal("HEARTS", word.Text);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void AShapeMorphGrowsTheNewLetterOutOfTheOldOneAndEndsAsTheNextWord()
+    {
+        var page = new TypeLabPage();
+        var window = SceneHarness.Show(page, 1280, 1800, frames: 2);
+        page.GetControl<ToggleSwitch>("ExplodeToggle").IsChecked = false;
+        page.GetControl<ToggleSwitch>("ShapeToggle").IsChecked = true;
+        var word = page.GetControl<TextBlock>("ShatterWord");
+        for (var i = 0; i < 2; i++)
+        {
+            Tap(window, word, i);
+            TestFrames.Tick(90);
+        }
+
+        // HEARTS to HEARTH morphs the S into the last H.
+        Tap(window, word, 2);
+        Assert.Contains(word.GetVisualDescendants(), piece => piece is Path);
+        TestFrames.Tick(90);
+
+        Assert.Equal("HEARTH", word.Text);
+        Assert.Null(word.Inlines);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void TheDeparturesBoardRollsAndSettlesOnItsText()
     {
         var page = new TypeLabPage();
@@ -183,6 +227,15 @@ public sealed class TypeLabPageTests
         Assert.Equal(0, TranslateX(letters[3]));
         Assert.Equal(0, TranslateY(letters[3]));
         SceneHarness.Close(window);
+    }
+
+    // Each tap lands apart from the last, so none counts as the second of a double tap.
+    private static void Tap(Window window, Control word, int nth)
+    {
+        var at = SceneHarness.Center(word, window) + new Vector(nth * 12, 0);
+        window.MouseDown(at, MouseButton.Left);
+        window.MouseUp(at, MouseButton.Left);
+        TestFrames.Tick();
     }
 
     // Held still for the last ten frames, so the release carries no throw.

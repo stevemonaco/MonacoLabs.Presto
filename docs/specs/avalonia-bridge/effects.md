@@ -32,7 +32,7 @@ depends:
 
 ## Purpose
 
-Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned object on one of its properties, as the transform shorthands own `RenderTransform`: `Blur` and `Shadow*` on `Visual.Effect`, `ClipInset` and `ClipCircle` on `Visual.Clip`, and `MaskSweep` on `Visual.OpacityMask`. The 3D shorthands `RotateX`, `RotateY` and `Perspective` join the transform group (BRIDGE-TRANSFORMS). `Tilt` is an attached property that turns an element towards the pointer through those 3D shorthands.
+Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned object on one of its properties, as the transform shorthands own `RenderTransform`: `Blur` and `Shadow*` on `Visual.Effect`, `ClipInset` and `ClipCircle` on `Visual.Clip`, and `MaskSweep` on `Visual.OpacityMask`. The 3D shorthands `RotateX`, `RotateY` and `Perspective` join the transform group (BRIDGE-TRANSFORMS). `Tilt` is an attached property that turns an element towards the pointer through those 3D shorthands. The warp shorthands of a split `TextBlock` (`Warp`, `WarpPhase`, `WarpOrigin`, `WarpRadius`) follow the same scalar-plus-companions pattern and are specified in BRIDGE-WARP.
 
 ## Requirements
 

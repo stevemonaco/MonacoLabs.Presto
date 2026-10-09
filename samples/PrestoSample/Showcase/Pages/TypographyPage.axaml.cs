@@ -1,5 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.VisualTree;
 using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Text;
@@ -13,6 +17,8 @@ public partial class TypographyPage : ShowcasePage
     private const double Drop = 28;
     private const double Falloff = 160;
     private const double Lift = 30;
+    private const double LensRadius = 120;
+    private const double Magnify = 0.7;
     private const double Swell = 0.35;
     private const double WaveHold = 320;
     private const double WaveStagger = 60;
@@ -33,6 +39,7 @@ public partial class TypographyPage : ShowcasePage
     private readonly List<MotionValue> _waves = [];
     private readonly Spring _relax = Eases.Spring(bounce: .45, duration: 450);
     private int _wordIndex;
+    private Scope? _wordmark;
     private Timer? _cycle;
     private Timeline? _terminal;
 
@@ -49,8 +56,8 @@ public partial class TypographyPage : ShowcasePage
             ? null
             : Presto.CreateTimer(new TimerParams { Duration = CycleDuration, Loop = LoopCount.Infinite, OnLoop = _ => Rotate() });
 
-        PrestoAvalonia.SplitText(Wordmark, new SplitTextParams { Words = null, Chars = new SplitPieceParams() })
-            .AddEffect(Lean);
+        Scope.Add(_ => () => _wordmark?.Revert());
+        ShowWordmark();
 
         _terminal = BuildTerminal();
     }
@@ -107,7 +114,51 @@ public partial class TypographyPage : ShowcasePage
             _waves.Clear();
         };
     }
+
+    private void ShowWordmark()
+    {
+        _wordmark?.Revert();
+        _wordmark = new Scope();
+        var bulge = WordmarkMode.SelectedIndex == 1;
+        WordmarkReplay.IsEnabled = !bulge;
+        _wordmark.Execute(scope =>
+        {
+            if (!bulge)
+            {
+                PrestoAvalonia.SplitText(Wordmark, new SplitTextParams { Words = null, Chars = new SplitPieceParams() }).AddEffect(Lean);
+                return;
+            }
+            PrestoAvalonia.SplitText(Wordmark, new SplitTextParams { Words = null, Chars = new SplitPieceParams(), Outlines = true });
+            TextWarp.SetKind(Wordmark, TextWarpKind.Bulge);
+            Presto.Set(Wordmark, new AnimationParams { ["WarpRadius"] = LensRadius });
+            var lens = Wordmark.CreateAnimatable(new() { ["WarpOrigin"] = 90, ["Warp"] = 350 });
+            var x = PrestoAvalonia.PointerValue(WordmarkStage, Orientation.Horizontal);
+            var y = PrestoAvalonia.PointerValue(WordmarkStage, Orientation.Vertical);
+            void Aim(MotionValue _)
+            {
+                var at = WordmarkStage.TranslatePoint(new Point(x.Value, y.Value), Wordmark)!.Value;
+                lens.Set("WarpOrigin", [at.X, at.Y]);
+            }
+            void Enter(object? sender, PointerEventArgs e) => lens.Set("Warp", Magnify);
+            void Leave(object? sender, PointerEventArgs e) => lens.Set("Warp", 0);
+            x.Changed += Aim;
+            y.Changed += Aim;
+            WordmarkStage.PointerEntered += Enter;
+            WordmarkStage.PointerExited += Leave;
+            scope.Add(_ => () =>
+            {
+                WordmarkStage.PointerEntered -= Enter;
+                WordmarkStage.PointerExited -= Leave;
+                Wordmark.ClearValue(TextWarp.KindProperty);
+            });
+        });
+    }
     #endregion
+
+    private void WordmarkModeChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (this.IsAttachedToVisualTree()) ShowWordmark();
+    }
 
     private Timeline BuildTerminal()
     {

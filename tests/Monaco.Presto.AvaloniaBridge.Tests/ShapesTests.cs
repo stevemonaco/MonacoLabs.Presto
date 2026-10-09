@@ -2,6 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Monaco.Presto.AvaloniaBridge.Shapes;
+using Monaco.Presto.AvaloniaBridge.Text;
+using Monaco.Presto.AvaloniaBridge.Values;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge.Tests;
@@ -13,6 +16,8 @@ namespace Monaco.Presto.AvaloniaBridge.Tests;
 /// </summary>
 public sealed class ShapesTests : BridgeTestBase
 {
+    private static readonly Typeface Font = new(FontFamily.Default);
+
     private static Path CreatePath() => new()
     {
         Data = Geometry.Parse("M 0,0 L 100,0 L 100,100"),
@@ -73,6 +78,60 @@ public sealed class ShapesTests : BridgeTestBase
         }
 
         Assert.Equal(-length / path.StrokeThickness, offset, 3);
+    }
+
+    [AvaloniaFact]
+    public void AThicknessChangeAfterADrawKeepsOneDashPerContour()
+    {
+        var path = CreatePath();
+        var length = path.RenderedGeometry!.ContourLength;
+        PrestoAvalonia.CreateDrawable(path, .25, 1);
+
+        path.StrokeThickness = .001;
+
+        Assert.Equal(.75 * length / .001, path.StrokeDashArray![0], 3);
+        Assert.Equal(-.25 * length / .001, path.StrokeDashOffset, 3);
+    }
+
+    [AvaloniaFact]
+    public void ARevertedDrawNoLongerFollowsTheThickness()
+    {
+        var path = CreatePath();
+        var animation = path.Animate(new() { ["Draw"] = "0 1", Duration = 100, Autoplay = false });
+        animation.Seek(100);
+
+        animation.Revert();
+        path.StrokeThickness = .001;
+
+        Assert.Null(path.StrokeDashArray);
+    }
+
+    [AvaloniaFact]
+    public void DrawOnAnOutlinePieceWalksTheDashOverItsLongestFigure()
+    {
+        var block = new TextBlock { Text = "i", FontSize = 100 };
+        Show(block);
+        var piece = (Path)PrestoAvalonia.SplitText(block, new() { Words = null, Chars = new(), Outlines = true }).Chars[0];
+        piece.Stroke = Brushes.Black;
+        piece.StrokeThickness = 2;
+        var figures = TextSplitter.ContoursOf(piece)!.Contours;
+        var longest = figures.Max(f => f.Length);
+        Assert.True(figures.Length > 1);
+        Assert.True(longest > piece.RenderedGeometry!.ContourLength + 1);
+
+        var animation = PrestoAvalonia.CreateDrawable(piece).Animate(new()
+        {
+            ["Draw"] = TweenValue.FromTo("0 0", "0 1"),
+            Duration = 100,
+            Ease = Eases.Linear(),
+            Autoplay = false,
+        });
+
+        animation.Seek(50);
+        Assert.Equal(longest / 2 / piece.StrokeThickness, piece.StrokeDashArray![0], 3);
+        animation.Seek(100);
+        Assert.Equal(longest / piece.StrokeThickness, piece.StrokeDashArray[0], 3);
+        Assert.Equal(0, piece.StrokeDashArray[1], 3);
     }
 
     [AvaloniaFact]
@@ -325,6 +384,97 @@ public sealed class ShapesTests : BridgeTestBase
         animation.Revert();
         Assert.Same(original, path.Data);
     }
+
+    [AvaloniaFact]
+    public void SingleContourMorphKeepsItsOpenPolylineSamples()
+    {
+        var path = CreatePath();
+
+        var animation = path.Animate(new()
+        {
+            ["Data"] = PrestoAvalonia.MorphTo(Geometry.Parse("M 0,0 L 300,0"), .02),
+            Duration = 100,
+            Autoplay = false,
+        });
+        animation.Seek(animation.Duration);
+
+        var tween = animation._headTween!;
+        Assert.Equal([0, 0, 40, 0, 80, 0, 100, 20, 100, 60, 100, 100], tween._fromNumbers);
+        Assert.Equal("M0,0L60,0L120,0L180,0L240,0L300,0", tween.ComposeComplexString());
+        Assert.Equal(300, path.Data!.ContourLength, 3);
+    }
+
+    [AvaloniaFact]
+    public void MorphKeepsAHoleThroughoutAGlyphMorph()
+    {
+        var path = new Path { Data = PrestoAvalonia.TextOutline("O", Font, 100), Stretch = Stretch.None };
+
+        var animation = path.Animate(new()
+        {
+            ["Data"] = PrestoAvalonia.MorphTo(PrestoAvalonia.TextOutline("8", Font, 100)),
+            Duration = 100,
+            Ease = Eases.None,
+            Autoplay = false,
+        });
+
+        for (var time = 0d; time <= 100; time += 25)
+        {
+            animation.Seek(time);
+            var hole = GlyphContours.From(path.Data!)!.Contours.Where(c => c.IsHole).MaxBy(c => Math.Abs(c.SignedArea))!;
+            Assert.True(Math.Abs(hole.SignedArea) > 100, $"no hole at {time}");
+            Assert.False(path.Data!.FillContains(hole.Centroid), $"hole filled at {time}");
+        }
+    }
+
+    [AvaloniaFact]
+    public void MorphCollapsesAContourWithoutAPartnerToAPoint()
+    {
+        var destination = PrestoAvalonia.TextOutline("l", Font, 100);
+        var path = new Path { Data = PrestoAvalonia.TextOutline("i", Font, 100), Stretch = Stretch.None };
+
+        var (from, to, _) = ContourMorph.Of(path.Data, destination, GeometryCodec.DefaultPrecision)!.Value;
+        var collapsed = Array.FindIndex(FiguresOf(to), f => f.All(p => p == f[0]));
+        Assert.True(collapsed >= 0);
+        Assert.True(Width(FiguresOf(from)[collapsed]) > 1);
+
+        var animation = path.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(destination), Duration = 100, Autoplay = false });
+        animation.Seek(animation.Duration);
+        Assert.True(destination.Bounds.Inflate(1).Contains(path.Data.Bounds));
+    }
+
+    [AvaloniaFact]
+    public void MorphPairsOutersWithOutersAndHolesWithHoles()
+    {
+        var from = Geometry.Parse("M0,0 L100,0 L100,100 L0,100 Z M40,40 L40,60 L60,60 L60,40 Z");
+        var to = Geometry.Parse("M30,30 L30,70 L70,70 L70,30 Z M0,0 L100,0 L100,100 L0,100 Z");
+
+        var (fromData, toData, _) = ContourMorph.Of(from, to, GeometryCodec.DefaultPrecision)!.Value;
+
+        Assert.Equal([(100d, 100d), (20d, 40d)], FiguresOf(fromData).Zip(FiguresOf(toData), (f, t) => (Width(f), Width(t))));
+
+        var path = new Path { Data = from, Stretch = Stretch.None };
+        var animation = path.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(to), Duration = 100, Autoplay = false });
+        Assert.Equal(PrestoAvalonia.MorphPointCount(from, to), animation._headTween!._toNumbers.Length / 2);
+    }
+
+    [AvaloniaFact]
+    public void MorphRotatesAndReversesEachContourToTheLeastTravel()
+    {
+        var from = Geometry.Parse("M0,0 L30,0 L30,30 L0,30 Z M100,0 L130,0 L130,30 L100,30 Z");
+        var to = Geometry.Parse("M30,30 L30,0 L0,0 L0,30 Z M130,30 L130,0 L100,0 L100,30 Z");
+
+        var (fromData, toData, _) = ContourMorph.Of(from, to, GeometryCodec.DefaultPrecision)!.Value;
+
+        var travel = FiguresOf(fromData).Zip(FiguresOf(toData), (f, t) => f.Zip(t, (p, q) => ((Vector)(p - q)).SquaredLength).Sum()).Sum();
+        Assert.Equal(0, travel, 3);
+    }
+
+    private static Point[][] FiguresOf(string data) =>
+        data.Split('M', StringSplitOptions.RemoveEmptyEntries)
+            .Select(figure => figure.TrimEnd('Z').Split('L').Select(Point.Parse).ToArray())
+            .ToArray();
+
+    private static double Width(Point[] points) => points.Max(p => p.X) - points.Min(p => p.X);
 
     private static T Transform<T>(Visual visual) where T : Avalonia.Media.Transform =>
         Assert.IsType<TransformGroup>(visual.RenderTransform).Children.OfType<T>().Single();

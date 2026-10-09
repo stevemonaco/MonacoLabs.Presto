@@ -21,7 +21,7 @@ public partial class TypeLabPage : ShowcasePage
     private static readonly Point[] Wave = [new(40, 170), new(220, 30), new(420, 250), new(600, 110)];
     private static readonly Point[] Step = [new(40, 210), new(330, 210), new(310, 50), new(600, 50)];
     private static readonly Geometry Circle = Geometry.Parse("M 210,130 A 110,110 0 1 1 430,130 A 110,110 0 1 1 210,130 Z");
-    private static readonly string[] Words = ["SHATTER", "THREATS", "HEARTS", "EARTH"];
+    private static readonly string[] Words = ["SHATTER", "THREATS", "HEARTS", "HEARTH", "EARTH"];
 
     private static readonly string[] Departures =
     [
@@ -96,7 +96,10 @@ public partial class TypeLabPage : ShowcasePage
     private void Shatter(object? sender, TappedEventArgs e)
     {
         _word = (_word + 1) % Words.Length;
-        Recipes.MorphText(ShatterWord, Words[_word], explode: ExplodeToggle.IsChecked == true);
+        var explode = ExplodeToggle.IsChecked == true;
+        // MorphText cuts vector shards only on the outline split that shape makes.
+        var shape = ShapeToggle.IsChecked == true || (explode && ShardsToggle.IsChecked == true);
+        Recipes.MorphText(ShatterWord, Words[_word], explode, shape: shape);
     }
     #endregion
 

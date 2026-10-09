@@ -5,8 +5,9 @@ using Monaco.Presto.AvaloniaBridge.Compositor;
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
-/// The particles one <see cref="Recipes.Confetti"/>, <see cref="Recipes.Sparkles"/> or <see cref="Recipes.Burst"/> call
-/// emitted into its window's overlay, resolved on the UI thread once the last of them dies.
+/// The particles one <see cref="Recipes.Confetti"/>, <see cref="Recipes.Sparkles"/>, <see cref="Recipes.Burst"/>,
+/// <see cref="Recipes.Disintegrate"/> or <see cref="Recipes.Assemble"/> call put into its window's overlay, resolved on the
+/// UI thread once the last of them dies.
 /// </summary>
 /// <remarks>Emitted particles cannot be sought or reversed; pausing freezes only this effect's emitters.</remarks>
 public sealed class ParticleEffect : IRevertible
@@ -31,14 +32,27 @@ public sealed class ParticleEffect : IRevertible
         }
     }
 
+    internal ParticleEffect(CompositorCanvas canvas, Func<ParticleScene, Action, ParticleFormation> add, Action finished)
+    {
+        _canvas = canvas;
+        canvas.Invoke<ParticleScene>(scene => Formation = add(scene, () =>
+        {
+            finished();
+            _done.TrySetResult();
+        }));
+    }
+
     /// <summary>An effect that emitted nothing and is already complete.</summary>
     internal static ParticleEffect None { get; } = new();
 
     /// <summary>This effect's systems, touched only on the render thread.</summary>
     internal List<ParticleSystem> Systems { get; } = [];
 
+    /// <summary>This effect's formation, touched only on the render thread.</summary>
+    internal ParticleFormation? Formation { get; private set; }
+
     /// <summary>Stops emitting and lets the live particles finish.</summary>
-    public void Stop() => Invoke(static system => system.Stop());
+    public void Stop() => Invoke(static system => system.Stop(), static _ => { });
 
     /// <summary>Removes every particle now and completes <see cref="Then"/>.</summary>
     public void Cancel()
@@ -48,15 +62,19 @@ public sealed class ParticleEffect : IRevertible
             system.Paused = false;
             system.Stop();
             system.Clear();
+        }, static formation =>
+        {
+            formation.Paused = false;
+            formation.Clear();
         });
         _done.TrySetResult();
     }
 
     /// <summary>Freezes this effect's particles and emission where they are.</summary>
-    public void Pause() => Invoke(static system => system.Paused = true);
+    public void Pause() => Invoke(static system => system.Paused = true, static formation => formation.Paused = true);
 
     /// <summary>Continues after <see cref="Pause"/>.</summary>
-    public void Resume() => Invoke(static system => system.Paused = false);
+    public void Resume() => Invoke(static system => system.Paused = false, static formation => formation.Paused = false);
 
     /// <summary>Same as <see cref="Cancel"/>.</summary>
     public void Revert() => Cancel();
@@ -67,12 +85,13 @@ public sealed class ParticleEffect : IRevertible
     /// <summary>Lets the effect be awaited, as <see cref="Then"/>.</summary>
     public TaskAwaiter GetAwaiter() => _done.Task.GetAwaiter();
 
-    private void Invoke(Action<ParticleSystem> action)
+    private void Invoke(Action<ParticleSystem> action, Action<ParticleFormation> formation)
     {
         if (_done.Task.IsCompleted) return;
         _canvas!.Invoke<ParticleScene>(_ =>
         {
             foreach (var system in Systems) action(system);
+            if (Formation is { } held) formation(held);
         });
     }
 }

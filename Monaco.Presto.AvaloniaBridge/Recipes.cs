@@ -4,25 +4,24 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
-using Avalonia.Controls.Primitives;
-using Avalonia.Data;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Media.TextFormatting;
 using Monaco.Presto.AvaloniaBridge.Prebuilt;
 using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.Diagnostics;
 using Monaco.Presto.Values;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Monaco.Presto.AvaloniaBridge;
 
 /// <summary>
 /// The recipe catalog in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
 /// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text reveals are builders
-/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/>, <see cref="CountUp"/>, <see cref="RollDigits"/> and
-/// <see cref="MorphText"/> need the <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/> or <see cref="Timeline"/>.
+/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/>, <see cref="CountUp"/>, <see cref="RollDigits"/>,
+/// <see cref="MorphText"/>, <see cref="WriteIn"/>, <see cref="MorphGlyphs"/> and <see cref="Shatter"/> need the <see cref="TextBlock"/> itself, so they play at once
+/// and return the <see cref="Animation"/> or <see cref="Timeline"/>.
 /// </summary>
-public static class Recipes
+public static partial class Recipes
 {
     internal const double FlipPerspective = 800;
 
@@ -464,90 +463,77 @@ public static class Recipes
     /// character in the old text flies from its place to that of the k-th occurrence in the new one over <see cref="MotionTokens.Long"/>
     /// with <see cref="MotionTokens.EmphasizedEase"/>, old letters with no partner leave as ghosts with <see cref="Scatter"/>, and new
     /// ones with no partner <see cref="PopIn"/>. <paramref name="explode"/> first bursts the moving letters apart and holds them for
-    /// <see cref="MotionTokens.Short"/>; <paramref name="ignoreCase"/> pairs letters regardless of case. Reduced, the block crossfades.
+    /// <see cref="MotionTokens.Short"/>; <paramref name="ignoreCase"/> pairs letters regardless of case. With <paramref name="shape"/>,
+    /// each new letter with no partner instead morphs out of the nearest old letter with no partner, as <see cref="MorphGlyphs"/>
+    /// morphs, and only the old letters left over scatter, with <paramref name="explode"/> as vector <see cref="GlyphShards"/> of their
+    /// outlines instead of snapshots. Reduced, the block crossfades.
     /// </summary>
     /// <remarks>The block has to be laid out. It is split into characters while it morphs and ends as the plain new text.</remarks>
-    public static Timeline MorphText(TextBlock textBlock, string text, bool explode = false, bool ignoreCase = false)
+    public static Timeline MorphText(TextBlock textBlock, string text, bool explode = false, bool ignoreCase = false, bool shape = false)
     {
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion)
-        {
-            var opacity = textBlock.Opacity;
-            var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
-                .Add(textBlock, b => b.Opacity(to: 0).Duration(tokens.Short))
-                .Call(_ => textBlock.Text = text)
-                .Add(textBlock, b => b.Opacity(from: 0, to: opacity).Duration(tokens.Short));
-            Morphs.AddOrUpdate(textBlock, fade);
-            return fade;
-        }
+        if (Engine.Current.Defaults.ReducedMotion) return Crossfade(textBlock, text, tokens);
 
-        var top = TopLevel.GetTopLevel(textBlock);
-        var overlay = OverlayLayer.GetOverlayLayer(textBlock);
-        var oldOrigin = top is null ? default : textBlock.TranslatePoint(default, top) ?? default;
+        var oldOrigin = OriginInWindow(textBlock);
         var before = PieceGhosts.Split(textBlock, TextPieces.Chars);
         var slots = new Rect[before.Chars.Count];
+        var graphemes = new string[slots.Length];
         var unpaired = new Dictionary<string, Queue<int>>(ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         for (var i = 0; i < slots.Length; i++)
         {
             slots[i] = before.SlotOf(before.Chars[i]);
-            var grapheme = ((TextBlock)before.Chars[i]).Text!;
-            if (!unpaired.TryGetValue(grapheme, out var occurrences)) unpaired[grapheme] = occurrences = new();
+            graphemes[i] = TextSplitter.GraphemeOf(before.Chars[i]);
+            if (!unpaired.TryGetValue(graphemes[i], out var occurrences)) unpaired[graphemes[i]] = occurrences = new();
             occurrences.Enqueue(i);
         }
         var partners = TextSplitter.CharsOf(text).Select(g => unpaired.TryGetValue(g, out var queue) && queue.TryDequeue(out var i) ? i : -1).ToArray();
-
-        var ghosts = new List<Image>();
-        var host = new Canvas { IsHitTestVisible = false };
-        if (top is not null && overlay is not null && textBlock.TranslatePoint(default, overlay) is { } at)
-        {
-            foreach (var queue in unpaired.Values)
-            foreach (var i in queue)
-            {
-                var ghost = Presence.Snapshot(before.Chars[i], top.RenderScaling);
-                Canvas.SetLeft(ghost, slots[i].X);
-                Canvas.SetTop(ghost, slots[i].Y);
-                host.Children.Add(ghost);
-                ghosts.Add(ghost);
-            }
-            Canvas.SetLeft(host, at.X);
-            Canvas.SetTop(host, at.Y);
-            overlay.Children.Add(host);
-        }
+        var leftovers = unpaired.Values.SelectMany(queue => queue).ToList();
+        var (host, ghosts) = Ghosts(textBlock, before, leftovers);
         before.Revert();
 
-        textBlock.Text = text;
-        textBlock.UpdateLayout();
-        var shift = oldOrigin - (top is null ? default : textBlock.TranslatePoint(default, top) ?? default);
-        // A re-split detaches the pieces the morph plays on, which pauses it, so the width cannot change until it ends.
-        var hold = textBlock.SetValue(Layoutable.WidthProperty, textBlock.Bounds.Width, BindingPriority.Animation);
-        var after = PrestoAvalonia.SplitText(textBlock, new() { Words = null, Chars = new() });
+        var outlines = new Dictionary<int, Geometry>();
+        if (shape)
+        {
+            foreach (var i in leftovers)
+            {
+                if (OutlineOf(textBlock, graphemes[i]) is { } outline) outlines[i] = outline;
+            }
+        }
+        var (morph, after, shift) = Retext(textBlock, text, oldOrigin, shape, host, ghosts);
         var flying = new List<Control>();
         var offsets = new List<Vector>();
         var entering = new List<Control>();
+        var morphing = new List<(Path, Geometry, Vector)>();
         for (var j = 0; j < after.Chars.Count; j++)
         {
             var piece = after.Chars[j];
+            var slot = after.SlotOf(piece);
             if (j < partners.Length && partners[j] >= 0)
             {
                 flying.Add(piece);
-                offsets.Add(slots[partners[j]].Position + shift - after.SlotOf(piece).Position);
+                offsets.Add(slots[partners[j]].Position + shift - slot.Position);
+            }
+            else if (piece is Path path && outlines.Count > 0)
+            {
+                var nearest = outlines.Keys.MinBy(i => ((Vector)(slots[i].Center + shift - slot.Center)).SquaredLength);
+                morphing.Add((path, outlines[nearest], slots[nearest].Position + shift - slot.Position));
+                outlines.Remove(nearest);
+                DropGhost(host, ghosts, nearest);
             }
             else entering.Add(piece);
         }
-
-        var morph = Presto.CreateTimeline(new()
+        var leaving = new List<Control>();
+        if (explode)
         {
-            OnComplete = _ =>
+            foreach (var (i, outline) in outlines)
             {
-                Morphs.Remove(textBlock);
-                after.Revert();
-                hold?.Dispose();
-                overlay?.Children.Remove(host);
-                foreach (var ghost in ghosts) ((Bitmap)ghost.Source!).Dispose();
-            },
-        });
+                if (DropGhost(host, ghosts, i)) leaving.AddRange(Shards(host, outline, slots[i].Position, textBlock.Foreground, ShardsPerGlyph, i));
+            }
+        }
+        leaving.AddRange(ghosts.Values);
+
         FunctionValue fromX = (_, i, _) => offsets[i].X, fromY = (_, i, _) => offsets[i].Y;
         if (explode)
         {
@@ -562,9 +548,9 @@ public static class Recipes
         {
             morph.Add(flying, b => b.X(from: fromX, to: 0).Y(from: fromY, to: 0).Duration(tokens.Long).Ease(tokens.EmphasizedEase), 0);
         }
-        if (ghosts.Count > 0) morph.Add(ghosts, Scatter(), 0);
+        MorphOutlines(morph, morphing, tokens);
+        if (leaving.Count > 0) morph.Add(leaving, Scatter(), 0);
         if (entering.Count > 0) morph.Add(entering, PopIn(), 0);
-        Morphs.AddOrUpdate(textBlock, morph);
         return morph;
     }
 

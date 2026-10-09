@@ -94,7 +94,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 - **BRIDGE-MOTION-017** — For an `AvaloniaProperty`, rest shall be its base value (below `Animation` priority), read as the return starts, or its styled default when nothing is set, so a local value, style or binding changed mid-state is honored.
   - Tests: `MotionStateTests.RestFollowsALocalValueChangedMidHover`
-- **BRIDGE-MOTION-018** — For a transform, effect, clip or mask shorthand, rest shall be the shorthand's identity.
+- **BRIDGE-MOTION-018** — For a transform, effect, clip, mask or warp shorthand, rest shall be the shorthand's identity.
   - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`
 - **BRIDGE-MOTION-019** — When a return to rest completes while it still drives a property, the tracker shall revert that property's animation-priority value, leaving no animation, no residual render transform and no residual effect.
   - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `MotionStateTests.RestFollowsALocalValueChangedMidHover`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`

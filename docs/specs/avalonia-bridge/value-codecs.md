@@ -105,8 +105,8 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 - **BRIDGE-CODECS-026** — A `Geometry` shall decode into `max(⌈contour length × 0.33⌉, 2)` points spread evenly along its contour, rounded to 3 decimals; a path-data string end value is parsed by the core as its numbers.
   - Tests: untested
-- **BRIDGE-CODECS-027** — Each frame of a `Geometry` tween shall be written as a new `StreamGeometry` polyline through the interpolated points, left open.
-  - Tests: `ShapesTests.MorphWalksThePointsOntoTheDestinationGeometry`
+- **BRIDGE-CODECS-027** — Each frame of a `Geometry` tween shall be written as a new `StreamGeometry` through the interpolated points: one open polyline, unless the end value's template ends in `Z`, when a new figure starts at each coordinate pair whose preceding template holds `M` and every figure is closed with the even-odd fill rule (BRIDGE-SHAPES-022).
+  - Tests: `ShapesTests.MorphWalksThePointsOntoTheDestinationGeometry`, `ShapesTests.MorphKeepsAHoleThroughoutAGlyphMorph`
 - **BRIDGE-CODECS-028** (inherited) — When two geometries decode into different point counts outside `MorphTo` (BRIDGE-SHAPES), the core's padding of the shorter value shall apply.
   - Tests: untested
 

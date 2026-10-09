@@ -44,7 +44,7 @@ depends:
 
 ## Purpose
 
-`AvaloniaObjectTargetAdapter` is the core target adapter (CORE-TARGETS) for every `AvaloniaObject`: it turns a property name or a typed `AvaloniaProperty` into an accessor, writes animated values at `BindingPriority.Animation` and takes them away again on revert. Bridge shorthands (BRIDGE-TRANSFORMS, BRIDGE-EFFECTS, and the `Draw` and `ScrollX`/`ScrollY` shorthands of BRIDGE-SHAPES and BRIDGE-SCROLL) are resolved here before the property registry. `AvaloniaAnimationParams` and `AvaloniaAnimatableParams` add the typed-property indexer to the core parameter objects.
+`AvaloniaObjectTargetAdapter` is the core target adapter (CORE-TARGETS) for every `AvaloniaObject`: it turns a property name or a typed `AvaloniaProperty` into an accessor, writes animated values at `BindingPriority.Animation` and takes them away again on revert. Bridge shorthands (BRIDGE-TRANSFORMS, BRIDGE-EFFECTS, the `Warp`, `WarpPhase`, `WarpOrigin` and `WarpRadius` shorthands of BRIDGE-WARP, and the `Draw` and `ScrollX`/`ScrollY` shorthands of BRIDGE-SHAPES and BRIDGE-SCROLL) are resolved here before the property registry. `AvaloniaAnimationParams` and `AvaloniaAnimatableParams` add the typed-property indexer to the core parameter objects.
 
 ## Requirements
 
@@ -52,10 +52,10 @@ depends:
 
 - **BRIDGE-TARGETS-001** — When the target is not an `AvaloniaObject`, the adapter shall return `null` from `Resolve` and `Canonicalize`, leaving it to the next adapter.
   - Tests: untested
-- **BRIDGE-TARGETS-002** — When the target is a `Visual`, the adapter shall resolve the transform shorthands (BRIDGE-TRANSFORMS), then the effect, clip and mask shorthands (BRIDGE-EFFECTS), then `"Draw"` on a `Shape` and `"ScrollX"`/`"ScrollY"` on a `ScrollViewer`, before looking in the property registry, so a shorthand wins over a registered property of the same name.
+- **BRIDGE-TARGETS-002** — When the target is a `Visual`, the adapter shall resolve the transform shorthands (BRIDGE-TRANSFORMS), then the effect, clip and mask shorthands (BRIDGE-EFFECTS), then the warp shorthands on a `TextBlock` (BRIDGE-WARP), then `"Draw"` on a `Shape` and `"ScrollX"`/`"ScrollY"` on a `ScrollViewer`, before looking in the property registry, so a shorthand wins over a registered property of the same name.
   - Tests: `PropertyNamingTests.TransformShorthandsKeepTheirOwnName`, `TransformsTests.XAndYComposeIntoASingleTranslateTransform`
-- **BRIDGE-TARGETS-003** — When a shorthand name is used on a target that does not take it (a non-`Visual`, `"Draw"` on a non-`Shape`, `"ScrollX"` on a non-`ScrollViewer`), the adapter shall look the name up as a registered property like any other.
-  - Tests: `ScrollShorthandTests.TheShorthandsResolveOnlyOnAScrollViewer`
+- **BRIDGE-TARGETS-003** — When a shorthand name is used on a target that does not take it (a non-`Visual`, `"Warp"` on a non-`TextBlock`, `"Draw"` on a non-`Shape`, `"ScrollX"` on a non-`ScrollViewer`), the adapter shall look the name up as a registered property like any other.
+  - Tests: `ScrollShorthandTests.TheShorthandsResolveOnlyOnAScrollViewer`, `TextWarpTests.TheShorthandsResolveOnlyOnATextBlock`
 - **BRIDGE-TARGETS-004** — When the name has no dot, the adapter shall resolve it through `AvaloniaPropertyRegistry.FindRegistered` for the target's runtime type.
   - Tests: `TargetAdapterTests.NamedPropertiesAnimateToCompletion`
 - **BRIDGE-TARGETS-005** (inherited) — When the name is `"Owner.Name"`, the adapter shall match it against the attached properties registered for the target's type first, then its other registered properties, comparing `Name` and the simple name of `OwnerType`.

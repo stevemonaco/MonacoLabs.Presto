@@ -7,6 +7,7 @@ namespaces:
   - Monaco.Presto.AvaloniaBridge.Prebuilt
 sources:
   - Monaco.Presto.AvaloniaBridge/Recipes.cs
+  - Monaco.Presto.AvaloniaBridge/RecipesGlyphs.cs
   - Monaco.Presto.AvaloniaBridge/Prebuilt/Attention.cs
   - Monaco.Presto.AvaloniaBridge/Prebuilt/Entrances.cs
   - Monaco.Presto.AvaloniaBridge/Prebuilt/Exits.cs
@@ -44,6 +45,8 @@ tests:
   - PresenceTextExitTests
   - RollDigitsTests
   - MorphTextTests
+  - GlyphRecipeTests
+  - ShatterTests
   - RecipeMarkupTests
   - PopoverFlyoutTests
   - RevealTests
@@ -64,6 +67,8 @@ depends:
   - BRIDGE-TEXT
   - BRIDGE-TEXTREVEAL
   - BRIDGE-MOTION
+  - BRIDGE-GLYPHS
+  - BRIDGE-SHAPES
 ---
 
 # Recipes
@@ -260,6 +265,34 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `MorphTextTests.ReducedCrossfadesTheBlock`
 - **BRIDGE-RECIPES-081** — While it morphs, `MorphText` shall hold the block's `Width` at its width laid out with the new text, at `Animation` priority, so the block never re-splits, and release it when the morph completes.
   - Tests: `MorphTextTests.AResizeMidMorphNeitherResplitsNorStallsIt`, `TypeLabPageTests.ShatterEndsAsThePlainNextWord`
+- **BRIDGE-RECIPES-082** — With `shape`, `MorphText` shall split the new text into outline pieces (BRIDGE-TEXT), and each new outline piece without a partner shall take, while any remain, the old character without a partner and with an outline whose slot center, shifted as in -075, is nearest its own slot center; it shall start at that character's slot with its outline as `Data` and move to rest while morphing (`MorphTo`, BRIDGE-SHAPES) into its own outline over `Tokens.Long` with `Tokens.EmphasizedEase`, and that old character shall leave no ghost. Characters left over shall scatter or pop in as in -076; without `shape`, -074 to -081 hold unchanged.
+  - Tests: `MorphTextTests.ShapeMorphsUnmatchedOldLettersIntoTheNearestUnmatchedNewOnesInsteadOfLeavingGhosts`, `MorphTextTests.ShapeLeavesOnlyTheLeftoverOldLettersAsGhosts`
+- **BRIDGE-RECIPES-083** — `WriteIn` shall hold the block's width as -081 does, split it into character outline pieces, give each a `Transparent` fill and a stroke of the block's `Foreground`, `FontSize / 32` thick, with none of it drawn, and trace it with `"Draw"` `"0 0"` → `"0 1"` over `duration ?? Tokens.Long` with `ease ?? Tokens.Ease`, each piece `Tokens.StaggerStep` after the one before in reading order, starting at `delay`.
+  - Tests: `GlyphRecipeTests.WriteInTracesUnfilledOutlinesInReadingOrderThenEndsAsPlainText`
+- **BRIDGE-RECIPES-084** — When the last trace ends, `WriteIn` shall fade each outline piece's `Fill` to the block's `Foreground` and its `StrokeThickness` to 0 over `Tokens.Medium` with `Tokens.Ease`, a character without an outline fading `Opacity` from 0 with them, and when that completes the block shall be unsplit with its own text.
+  - Tests: `GlyphRecipeTests.WriteInTracesUnfilledOutlinesInReadingOrderThenEndsAsPlainText`
+- **BRIDGE-RECIPES-085** — `MorphGlyphs` shall pair the new text's character at index `j` (counting as a character split does) with the old one at `j`, or at `j + old count − new count` when both texts parse as numbers in the current culture, so the last characters pair.
+  - Tests: `GlyphRecipeTests.ANumberKeepsItsUnitsColumnAndAnExtraDigitGrowsFromItsSlotCenter`
+- **BRIDGE-RECIPES-086** — `MorphGlyphs` shall split the new text into outline pieces; a pair where both characters have an outline shall morph as in -082 from the old character's slot and outline into the new one at rest, over `Tokens.Long` with `Tokens.EmphasizedEase`.
+  - Tests: `GlyphRecipeTests.MorphGlyphsMorphsEachOutlineIntoTheCharacterAtItsPositionAndEndsAsPlainText`, `GlyphRecipeTests.ANumberKeepsItsUnitsColumnAndAnExtraDigitGrowsFromItsSlotCenter`
+- **BRIDGE-RECIPES-087** — A new character without a partner shall grow `Scale` from 0 about its slot center, and an old one without a partner shall leave as a snapshot at its old slot in the window's overlay layer shrinking to `Scale` 0, both over `Tokens.Long` with `Tokens.EmphasizedEase`; in a pair where either character has no outline, the old one shall leave as a snapshot fading `Opacity` to 0 while the new one fades from 0, over `Tokens.Long` with `Tokens.Ease`.
+  - Tests: `GlyphRecipeTests.ANumberKeepsItsUnitsColumnAndAnExtraDigitGrowsFromItsSlotCenter`, `GlyphRecipeTests.AnExtraOldDigitCollapsesIntoItsSlotCenterAndIsDismissed`, `GlyphRecipeTests.APairWithoutAnOutlineCrossfades`
+- **BRIDGE-RECIPES-088** — While it morphs, `MorphGlyphs` shall hold the block's width as -081 does, and when it completes the block shall be unsplit with `Text` equal to `text` and the snapshots removed with their bitmaps disposed, as -078.
+  - Tests: `GlyphRecipeTests.MorphGlyphsMorphsEachOutlineIntoTheCharacterAtItsPositionAndEndsAsPlainText`, `GlyphRecipeTests.AnExtraOldDigitCollapsesIntoItsSlotCenterAndIsDismissed`
+- **BRIDGE-RECIPES-089** — `WriteIn`, `MorphGlyphs` and `MorphText` shall share one running timeline per block: when any of them is called on a block another is still playing on, it shall complete that one first and start from the text it ends on.
+  - Tests: `GlyphRecipeTests.WritingInAgainMidWriteCompletesTheFirst`, `GlyphRecipeTests.MorphingGlyphsAgainMidMorphCompletesTheFirst`, `MorphTextTests.MorphingAgainMidMorphCompletesTheFirst`
+- **BRIDGE-RECIPES-090** — When `ReducedMotion` is set as `WriteIn` is called, it shall not split the block and shall fade its `Opacity` from 0 over `Tokens.Short` after `delay`; as `MorphGlyphs` is called, it shall crossfade as -080.
+  - Tests: `GlyphRecipeTests.ReducedWriteInFadesTheBlockInWithoutSplitting`, `GlyphRecipeTests.ReducedMorphGlyphsCrossfadesWithoutSplitting`
+- **BRIDGE-RECIPES-091** — `Shatter` shall cut each character's outline into `GlyphShards.Of(outline, count ?? 8, (seed ?? 0) + index)` (BRIDGE-GLYPHS) and put each shard, as a `Path` filled with the block's `Foreground` turning about its bounds center, at its character's slot in a canvas at the block's origin in the window's overlay layer; a character without an outline shall leave as a snapshot there, as -076.
+  - Tests: `ShatterTests.ShardsCoverTheLettersOnTheOverlayInTheBlocksForeground`
+- **BRIDGE-RECIPES-092** — `Shatter` shall return a playing timeline that fades the block's `Opacity` to 0 over 1 ms and plays `Scatter(distance, spin, seed)` (-070) on the shards and snapshots, both at 0; when it completes, in either direction, the shards and snapshots shall leave the overlay layer with the snapshots' bitmaps disposed, so played forward the block ends at `Opacity` 0 and reversed mid-play the shards end on their slots and the block at its own opacity.
+  - Tests: `ShatterTests.ShardsFlyApartSpinningAndCompletingRemovesThemLeavingTheBlockHidden`, `ShatterTests.ReversedTheShardsReformOnTheirSlotsAndTheBlockComesBack`
+- **BRIDGE-RECIPES-093** — `Shatter` shall share -089's running timeline per block: called on a block that a text morph or another shatter is still playing on, it shall complete that one first.
+  - Tests: `ShatterTests.ShatteringAgainMidShatterCompletesTheFirst`
+- **BRIDGE-RECIPES-094** — When `ReducedMotion` is set as `Shatter` is called, or the block has no overlay layer, it shall not cut the block and shall fade its `Opacity` to 0 over `Tokens.Short` with `Tokens.Ease`.
+  - Tests: `ShatterTests.ReducedFadesTheBlockWithoutShards`
+- **BRIDGE-RECIPES-095** — With both `explode` and `shape`, each old character `MorphText` leaves over with an outline shall leave as the shards of `GlyphShards.Of(outline, 8, index)` at its old slot, filled with the block's `Foreground`, instead of a snapshot, playing `Scatter()` with the snapshots and removed with them when the morph completes.
+  - Tests: `MorphTextTests.ExplodingShapeMorphShattersTheLeftoverOldLettersIntoShards`
 
 ### Defaults
 
@@ -282,19 +315,19 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 - `Recipes.Tokens = MotionTokens.Reduced` gives zero travel and linear timing without setting `ReducedMotion`.
 - `Dots` and `Indeterminate` take no `stagger`/need a `distance` respectively; `Dots`' `delay` becomes its stagger start.
-- `RollDigits`, `Typewriter` and `MorphText` need a laid-out block: `RollDigits` reads `TextLayout.TextLines[0]`, the others split by wrapped lines.
+- `RollDigits`, `Typewriter`, `MorphText`, `WriteIn`, `MorphGlyphs` and `Shatter` need a laid-out block: `RollDigits` reads `TextLayout.TextLines[0]`, the others split by wrapped lines.
 - A stretched block whose container resizes mid-morph keeps its width until the morph completes, then takes the new one (081). A block in no window morphs without ghosts and without the window-position correction.
 - `PageBloom` with no `Panel` in the incoming page reveals the page and animates no children.
 
 ## Threading and lifetime
 
-- UI thread only, like all bridge calls. Builders hold no element; the stateful text recipes and `ThemeReveal` return a playing `Animation` (`MorphText` a `Timeline`) on the target's engine.
+- UI thread only, like all bridge calls. Builders hold no element; the stateful text recipes and `ThemeReveal` return a playing `Animation` (`MorphText`, `MorphGlyphs`, `WriteIn` and `Shatter` a `Timeline`) on the target's engine.
 - `PageBloom` installs one tunneling `PointerPressed`/`KeyDown` class handler on `TopLevel` on first use, process-wide, and keys the last press per window in a weak table.
-- `RollDigits`, `MorphText` and `ThemeReveal` track the running animation per block/surface in a weak table.
+- `RollDigits`, `ThemeReveal` and the text morphs (`MorphText`, `MorphGlyphs`, `WriteIn` and `Shatter`, one table for the four) track the running animation per block/surface in a weak table.
 
 ## Reduced motion
 
-- Each family's reduced form is a requirement above: entrances, exits, text reveals, popovers, reveals and pages fade over `Short`; attention blinks; loops are static; loading pulses; interactions keep color, opacity and shadow; `Reflow` lands at once; `MorphText` crossfades the unsplit block.
+- Each family's reduced form is a requirement above: entrances, exits, text reveals, popovers, reveals and pages fade over `Short`; attention blinks; loops are static; loading pulses; interactions keep color, opacity and shadow; `Reflow` lands at once; `MorphText` and `MorphGlyphs` crossfade the unsplit block, `WriteIn` fades it in and `Shatter` fades it out.
 - The reduced forms inherit the full form's settings, so delays, staggers and callbacks survive (CORE-REDUCED).
 
 ## Allocation
@@ -331,6 +364,17 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **`MorphText` FLIPs over `SlotOf`.** It captures the old slots, sets the new text, lays the block out, splits it and starts each paired piece at its partner's old slot, corrected by how far the block moved in its window (a centered title moves as its width changes). Ghosts are snapshots in the overlay layer, as `Presence` exits leave. Reason: nothing is measured offscreen, and the old split is gone before the new one exists. Rejected: `TextSplitter.Measure(block, text)`, a second layout path that would have to match the real one.
 - **`MorphText` starts every part at once and seeds `explode` with 0.** Ghosts scatter and new letters pop in as the paired ones fly. Reason: a child placed later on the timeline does not write its from-values before it starts, so a delayed `PopIn` would show its letter at rest until then; the fixed seed makes the same pair of texts burst the same way on every play, as the seeded recipes do.
 - **`MorphText` holds the block's width instead of surviving a re-split.** Reason: a re-split detaches the pieces the morph plays on, which pauses it (`WhenDetached`), and split letters measure slightly differently from shaped text, so a block sized to its text re-split on its own. A morph lasts `Tokens.Long` plus a hold, so delaying a container resize until it ends costs little. Rejected: rebuilding the morph over the new pieces with `KeepTime`, which would replace the `Timeline` `MorphText` returned.
+- **`WriteIn` and `MorphGlyphs` fade when reduced.** `WriteIn` fades the unsplit block in and `MorphGlyphs` crossfades it as `MorphText` does. Reason: tracing and reshaping letters are large continuous motions, which is what reduced motion opts out of.
+- **The glyph recipes end as plain text.** `WriteIn` and `MorphGlyphs` play on outline pieces and unsplit when they complete. Reason: outline pieces draw unhinted geometry that differs slightly from the block's rendering at small sizes; the swap is invisible at display sizes and keeps text selectable and accessible at rest (BRIDGE-GLYPHS).
+- **`WriteIn` thins its stroke away as the fill comes in.** Reason: the stroke widens the letters by its thickness, so dropping it with the fill makes the swap to plain text invisible. Its thickness follows the font size so the trace reads alike at any size. Rejected: a `strokeThickness` argument nobody asked for.
+- **`WriteIn` traces outline fonts only.** Reason: outline tracing then filling is a recognized style on its own; a single-line font can come later through `TextOutline` with open contours.
+- **`MorphGlyphs` pairs by position, from the end for numbers.** Reason: it is the digit-clock and label-to-icon morph, where position is the meaning, and aligning numbers on the end keeps a counter's units column in place as it gains a digit. Characters without a partner grow from or collapse into their slot's center, and pairs without an outline (emoji, color glyphs) crossfade, so one such character never breaks the effect. Rejected: `MorphText`'s grapheme pairing, which would fly the digits of a counter sideways.
+- **`MorphText(shape: true)` pairs leftovers by nearest slot.** Matched letters keep their grapheme pairing (-074); only the letters it leaves over morph, each new one into the nearest old one. Reason: grapheme pairing already decides who flies; nearest-first among the rest keeps morphs short, and the counts are small. Without `shape` nothing changes, so existing callers keep the ghosts.
+- **The text morphs share one running table and their plumbing.** `MorphText`, `MorphGlyphs` and `WriteIn` all split the block, so a call completes whichever is running; they share the ghost snapshots, the width hold and the end cleanup. Reason: a block can host one split at a time, and one rule for re-entry (-079) is easier to reason about than three.
+- **Shards are `Path` controls on the overlay layer, not particles.** Reason: shards need the text's fill and must be seekable and reversible to re-form, which ordinary tweens give and render-thread particles do not (`FromGeometry` is white-only and the scene cannot draw geometry). Rejected: rasterized shard particles.
+- **`Shatter` is the vector `Scatter` and ends as an exit.** It plays `Scatter` itself on the shards, so `distance`, `spin` and `seed` mean what they mean there, and it hides the block with a 1 ms `Opacity` tween rather than `Timeline.Set`, because a reversed timeline that ends at 0 leaves a `Set` at 0 applied. Played forward, the block stays at `Opacity` 0 as `Scatter` leaves an element; reversed, the shards re-form and the block shows again. Reason: an exit that brought the text back would undo itself, while the reversed timeline gives the re-form. Its reduced form fades the block out, since shattering is the explosive motion reduced motion opts out of. Rejected: restoring the block when played forward.
+- **`MorphText` shatters only on outline splits.** Its leftover old letters become shards only with both `explode` and `shape`, `shape` being what splits the morph into outlines. Reason: the proposal ties shards to outline splits, and without `shape` existing `explode` callers keep their snapshots. Rejected: a further `shards` parameter.
+- **Shards are not capped per glyph.** Measured headless in Release on the default font: cutting takes about 0.5 ms a glyph at 72 px and 1.6 ms at 200 px for 8 shards, and fewer for more shards; a 24-character line at 72 px is about 190 `Path`s, a fraction of the controls the stress bench's UI-thread modes animate. A shard count above a glyph's triangle count already yields one shard per triangle. Reason: no cap was needed (proposal: cap only if the stress bench requires it).
 - **Motion tokens live in the library.** See BRIDGE-TOKENS.
 - **Reduced motion is an app-set flag with a per-builder alternative.** See CORE-REDUCED.
 - **`{presto:Reflow}` is the shorthand, and its reduced form is instant.** See BRIDGE-DECLLAYOUT.
@@ -349,4 +393,8 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - `PageBloom`'s exit (`ClipCircle` to 1 over `Short`) has no `WhenReduced` alternative, contrary to the rule that every recipe supplies a reduced form (Every recipe carries its own reduced form).
 - `PageSharedAxis` takes no duration: its sides are fixed at `Medium` and `Short`, unlike `PageFade`/`PageFadeThrough`.
 - The recorded decision that entrances and exits are compositor-safe named only `BlurIn`/`BlurOut`/`FlipIn`/`FlipOut` as exceptions; `Develop` is UI-thread-only too, and the decision below includes it.
+- At body size (the 14 px Save label on the Desktop Micro-interactions page), `MorphGlyphs`' unpaired letters collapsing into their slot centers draw as dark one-pixel specks for their last frames instead of fading out in the label's color.
+- `MorphText(explode, shape)` has no shard-count parameter (fixed at 8, BRIDGE-RECIPES-095; a `shards` parameter was rejected), so a shard-count control cannot drive a shatter-then-re-form morph: Glyph lab's Shatter panel runs `Shatter` at the slider's count and pops the next word in with `PopIn` rather than forming it from the shards.
+- `WriteIn` always staggers its characters, so an all-at-once trace has to be built by hand (Glyph lab does).
+- `WriteIn` and `Shatter` clean up when they complete (the block unsplit, the shards removed), so synced into a timeline they cannot be sought back: Kinetic poem hand-rolls both the trace and the shards, and Title sequence traces only on its first run and shows the title whole after.
 - `ThemeReveal` throwing without an overlay layer, delay-only (no stagger) timing, and the `PageSharedAxis` `Y`/`X` exit travel lack direct tests.
