@@ -9,6 +9,7 @@ sources:
   - Monaco.Presto.AvaloniaBridge/AppBuilderExtensions.cs
   - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
   - Monaco.Presto.AvaloniaBridge/Platform/HiddenSignal.cs
+  - Monaco.Presto.AvaloniaBridge/Platform/InertiaWake.cs
 types:
   - AppBuilderExtensions
   - AvaloniaFrameSource
@@ -17,6 +18,7 @@ tests:
   - PrestoAvaloniaTests
   - LifetimeHiddenTests
   - LifetimeSpikeTests
+  - InertiaWakeTests
   - AnimationBuilderBridgeTests
   - CodecTests
   - WhenDetachedTests
@@ -35,7 +37,7 @@ depends:
 
 ## Purpose
 
-Installs the bridge into the core's statics: points `Presto.Engine` at an `AvaloniaFrameSource`, registers the Avalonia target adapter (BRIDGE-TARGETS) and value codecs (BRIDGE-CODECS), sets `Engine.Hidden` while the app cannot be seen, and hooks the detach tracker (BRIDGE-HELPERS). The frame source is the bridge's `requestAnimationFrame`: it pumps the engine (CORE-ENGINE) from `TopLevel.RequestAnimationFrame`, or from a render-priority `DispatcherTimer` while no `TopLevel` can be found. Also specifies `PrestoAvalonia.EnsureInitialized`.
+Installs the bridge into the core's statics: points `Presto.Engine` at an `AvaloniaFrameSource`, registers the Avalonia target adapter (BRIDGE-TARGETS) and value codecs (BRIDGE-CODECS), sets `Engine.Hidden` while the app cannot be seen, and hooks the detach tracker (BRIDGE-HELPERS). The frame source is the bridge's `requestAnimationFrame`: it pumps the engine (CORE-ENGINE) from `TopLevel.RequestAnimationFrame`, or from a render-priority `DispatcherTimer` while no `TopLevel` can be found. While a touch scroll coasts, the bridge also runs the dispatcher's `Input`-priority jobs itself, working around an Avalonia Android dispatcher stall. Also specifies `PrestoAvalonia.EnsureInitialized`.
 
 ## Requirements
 
@@ -106,6 +108,13 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 - **BRIDGE-INIT-029** — When the hidden state changes, an attached `CompositorCanvas` shall forward it to its scene's engine (BRIDGE-SCENES).
   - Tests: `LifetimeHiddenTests.ASceneEnginePausesWhileHiddenAndResumesWhereItWas`, `LifetimeHiddenTests.ACanvasDetachedWhileHiddenIsCollectable`
 
+### Inertia wake
+
+- **BRIDGE-INIT-030** — From a `ScrollGestureInertiaStarting` event until every gesture that started coasting has raised `ScrollGestureEnded` with its id, the bridge shall run a `DispatcherPriority.Default` `DispatcherTimer` every 16 ms that runs the dispatcher's jobs of `Input` priority and above (`Dispatcher.RunJobs(DispatcherPriority.Input)`).
+  - Tests: `InertiaWakeTests.ACoastingScrollWakesTheUIThreadUntilItsGestureEnds`, `InertiaWakeTests.OverlappingGesturesWakeUntilTheLastEnds`
+- **BRIDGE-INIT-031** — Ten seconds after the last inertia start, the bridge shall stop the timer and forget the coasting gestures, even if no ended event arrived.
+  - Tests: untested — real time; the cap only guards a gesture Avalonia never ends.
+
 ## Invariants
 
 - At most one frame request is outstanding per source, and at most one of the two delivery paths (request or timer) is live.
@@ -142,6 +151,7 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 
 - **The frame source is `RequestAnimationFrame`, with a timer fallback.** `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, from any live `TopLevel`, and pumps from a render-priority `DispatcherTimer` while none exists; it is installed on first use, or by `UsePresto()`. Reason: it mirrors upstream's `requestAnimationFrame` loop, and any `TopLevel` works because the request is a one-shot on the global `MediaContext`.
 - **Without a lifetime `TopLevel`, the pump takes one from an animated visual.** On Android (and wherever the lifetime yields none) the frame source resolves its `TopLevel` from a visual the bridge animates, the last one a property was resolved on; the timer pumps until then. The handover is tested through a seeded visual. Once found, that `TopLevel` is kept for when the last animated visual is detached. Reason: `IActivityApplicationLifetime` publishes only a `MainViewFactory` (`MainView` stays null) and `ISingleTopLevelApplicationLifetime` is `[PrivateApi]`; lifetime interfaces are `[NotClientImplementable]`, so a test cannot fake one. The kept `TopLevel` is needed because an animated visual is often detached (a measuring `TextBlock`, a page navigated away from), and on Android the 60 Hz render-priority fallback timer keeps the main looper from going idle, which is the only time Avalonia runs `Input`-priority jobs: touch scroll inertia stalled until it was kept.
+- **The bridge runs `Input`-priority jobs while a touch scroll coasts.** `InertiaWake` runs `Dispatcher.RunJobs(DispatcherPriority.Input)` from a 16 ms `Default`-priority `DispatcherTimer` between a scroll gesture's inertia start and its end. Reason: in Avalonia 12.1 each inertia step is an `Input`-priority job, and the Android dispatcher runs those only while `MessageQueue.IsIdle` holds; on the Android 16 test device that is false from the UI thread whenever any message is queued, even a timer due later, so a fling stalled (11 of 18 adb flings on Activity feed) while any `DispatcherTimer` was armed, and renders fell to `Input` priority after Avalonia's one-second starvation guard. A `Default` timer runs above that check. It lives in the bridge because every Android app on Presto hits it, and it only runs while a gesture coasts. Rejected: re-requesting animation frames (renders starve with the inertia step) and waking the looper from another thread (the woken dispatcher still skips `Input` jobs). Remove once Avalonia checks pending input reliably.
 - **Bridge builder extensions self-initialize.** See BRIDGE-HELPERS.
 - **Hidden pauses the engine, as upstream's `pauseOnDocumentHidden` does.** See CORE-ENGINE.
 - **Wall-clock reads take a `TimeProvider`.** See CORE-ENGINE.

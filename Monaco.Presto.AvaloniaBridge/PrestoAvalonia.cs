@@ -39,8 +39,8 @@ public static class PrestoAvalonia
 
     /// <summary>
     /// Points the engine at an <see cref="AvaloniaFrameSource"/>, registers the Avalonia adapter and codecs, starts
-    /// setting <see cref="Engine.Hidden"/> while the app cannot be seen and applies <see cref="WhenDetached"/>, the first
-    /// time it is called; later calls do nothing.
+    /// setting <see cref="Engine.Hidden"/> while the app cannot be seen, keeps touch scroll inertia running on Android and
+    /// applies <see cref="WhenDetached"/>, the first time it is called; later calls do nothing.
     /// </summary>
     public static void EnsureInitialized()
     {
@@ -80,6 +80,7 @@ public static class PrestoAvalonia
         Presto.Codecs[typeof(FontWeight)] = new EnumNumberCodec<FontWeight>(1000);
         Presto.Codecs[typeof(FontStretch)] = new EnumNumberCodec<FontStretch>(9);
         HiddenSignal.Install();
+        InertiaWake.Install();
         Presto.Engine.TimerCreated = DetachTracker.Track;
     }
 
