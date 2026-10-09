@@ -63,12 +63,16 @@
                 </StackPanel>
             </Border>
 
-            <Border x:Name="WeightSection" Classes="stage">
+            <Border x:Name="WaveSection" Classes="stage">
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="eyebrow showcase" Text="WEIGHT WAVE · FONTWEIGHT 100–900 AND FONTSTRETCH, STAGGERED" />
-                    <TextBlock x:Name="WeightLine" Classes="wave" Text="Weight wave" />
-                    <TextBlock x:Name="StretchLine" Classes="wave" Text="Stretch wave" FontWeight="Bold"
+                    <TextBlock Classes="eyebrow showcase" Text="WAVES · OUTLINE STROKE, SQUASH, SKEW AND TRACKING, STAGGERED" />
+                    <TextBlock x:Name="WeightLine" Classes="wave" Text="Faux weight" FontWeight="Light" />
+                    <TextBlock x:Name="SquashLine" Classes="wave" Text="Squash &amp; stretch" FontWeight="Bold"
                                Foreground="{x:Static showcase:Palette.Aqua}" />
+                    <TextBlock x:Name="ObliqueLine" Classes="wave" Text="Oblique wave" FontWeight="SemiBold"
+                               Foreground="{x:Static showcase:Palette.Amber}" />
+                    <TextBlock x:Name="TrackingLine" Classes="wave" Text="TRACKING" FontWeight="Black"
+                               Foreground="{x:Static showcase:Palette.Coral}" />
                 </StackPanel>
             </Border>
 

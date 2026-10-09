@@ -10,6 +10,7 @@ using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
 using Monaco.Presto.AvaloniaBridge.Controls;
 using Monaco.Presto.AvaloniaBridge.Draggables;
 using Monaco.Presto.AvaloniaBridge.Text;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -53,7 +54,7 @@ public partial class TypeLabPage : ShowcasePage
         _handles = [.. Handles.Children.OfType<Ellipse>()];
         _boards = [.. Board.Children.OfType<SplitFlap>()];
         HowCode.Xaml = string.Join("\n\n", Snippets.TypeLabRibbon, Snippets.TypeLabBoard);
-        HowCode.CSharp = string.Join("\n\n", Snippets.TypeLabMorph, Snippets.TypeLabWeightWave, Snippets.TypeLabShatter,
+        HowCode.CSharp = string.Join("\n\n", Snippets.TypeLabMorph, Snippets.TypeLabWaves, Snippets.TypeLabShatter,
             Snippets.TypeLabDepartures, Snippets.TypeLabElastic);
     }
 
@@ -68,26 +69,47 @@ public partial class TypeLabPage : ShowcasePage
         PrestoAvalonia.SplitText(ElasticWord, new SplitTextParams { Words = null, Chars = new SplitPieceParams() }).AddEffect(Elastic);
     }
 
-    #region snippet TypeLabWeightWave
+    #region snippet TypeLabWaves
+    // Avalonia snaps FontWeight to the family's static faces, so the faux weight thickens a stroke around each outline instead.
     private void SplitWaves()
     {
-        PrestoAvalonia.SplitText(WeightLine, new SplitTextParams { Words = null, Chars = new SplitPieceParams() })
-            .AddEffect(split => Ripple(split, "FontWeight", 100, 900));
-        PrestoAvalonia.SplitText(StretchLine, new SplitTextParams { Words = null, Chars = new SplitPieceParams() })
-            .AddEffect(split => Ripple(split, "FontStretch", (int)FontStretch.ExtraCondensed, (int)FontStretch.Expanded));
+        var strokeThickness = PrestoKeys.Of(Path.StrokeThicknessProperty);
+        Chars(WeightLine, outlines: true).AddEffect(split =>
+            {
+                foreach (var letter in split.Chars.OfType<Path>())
+                {
+                    letter.Stroke = letter.Fill;
+                    letter.StrokeJoin = PenLineJoin.Round;
+                }
+                return Ripple(split, new() { [strokeThickness] = TweenValue.FromTo(0, 5) },
+                    new() { [strokeThickness] = Presto.Stagger(new[] { 0.0, 5.0 }) });
+            });
+        Chars(SquashLine).AddEffect(split => Ripple(split,
+            new() { [ScaleY] = TweenValue.FromTo(.7, 1.25), [ScaleX] = TweenValue.FromTo(1.15, .9) },
+            new() { [ScaleY] = Presto.Stagger(new[] { .7, 1.25 }), [ScaleX] = Presto.Stagger(new[] { 1.15, .9 }) }));
+        Chars(ObliqueLine).AddEffect(split => Ripple(split,
+            new() { [SkewX] = TweenValue.FromTo(0, -18), [Y] = TweenValue.FromTo(0, -6) },
+            new() { [SkewX] = Presto.Stagger(new[] { 0.0, -18.0 }) }));
+        Chars(TrackingLine).AddEffect(split => Ripple(split,
+            new() { [X] = Presto.Stagger(new[] { -48.0, 48.0 }), Delay = Presto.Stagger(40, new() { From = StaggerFrom.Center }) },
+            new() { [X] = Presto.Stagger(new[] { -24.0, 24.0 }) }));
     }
 
-    private static Action Ripple(TextSplitter split, string property, double from, double to)
+    private static TextSplitter Chars(TextBlock line, bool outlines = false) =>
+        PrestoAvalonia.SplitText(line, new SplitTextParams { Words = null, Chars = new SplitPieceParams(), Outlines = outlines });
+
+    private static Action Ripple(TextSplitter split, AnimationParams wave, AnimationParams reduced)
     {
-        var animation = Presto.Animate(split.Chars, new AnimationParams
+        // Squash and skew pivot on each letter's foot, so it stays planted on the line.
+        foreach (var letter in split.Chars) letter.RenderTransformOrigin = new RelativePoint(.5, 1, RelativeUnit.Relative);
+        var animation = Presto.Animate(split.Chars, wave with
         {
-            [property] = TweenValue.FromTo(from, to),
             Duration = 1200,
             Ease = Eases.InOutSine,
-            Delay = Presto.Stagger(90),
+            Delay = wave.Delay ?? Presto.Stagger(90),
             Loop = true,
             Alternate = true,
-            WhenReduced = new() { [property] = Presto.Stagger(new[] { from, to }), Duration = 0, Delay = 0, Loop = false, Alternate = false },
+            WhenReduced = reduced with { Duration = 0, Delay = 0, Loop = false, Alternate = false },
         });
         return () => animation.Revert();
     }

@@ -15,7 +15,6 @@ tests:
   - TargetAdapterTests
   - TargetOwnerTests
   - AllocationTests
-  - TypeLabPageTests
 upstream:
   - src/core/colors.js
   - src/core/values.js
@@ -113,7 +112,7 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 ### Fonts
 
 - **BRIDGE-CODECS-030** — `FontWeight` and `FontStretch` properties shall interpolate numerically and write the value rounded to an integer and clamped to 1–1000 and 1–9 respectively.
-  - Tests: `CodecTests.FontWeightInterpolatesAsARoundedNumber`, `CodecTests.FontWeightAndStretchAreClampedToTheirRanges`, `TypeLabPageTests.TheWeightWaveStaysInRangeAndItsStaggerOffsetsNeighbors`
+  - Tests: `CodecTests.FontWeightInterpolatesAsARoundedNumber`, `CodecTests.FontWeightAndStretchAreClampedToTheirRanges`
 - **BRIDGE-CODECS-031** — A string value shall parse as a member name (case-insensitive) or a number.
   - Tests: `CodecTests.FontWeightAndStretchParseNamesAndNumbers`
 - **BRIDGE-CODECS-032** — Reading without the unit (`Presto.Get(target, property, false)`) shall return the current value as a `double`, and a relative value shall apply to that number.

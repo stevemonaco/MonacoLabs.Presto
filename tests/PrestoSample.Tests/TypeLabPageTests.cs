@@ -6,6 +6,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Monaco.Presto;
 using Monaco.Presto.AvaloniaBridge;
 using Monaco.Presto.AvaloniaBridge.Controls;
 using PrestoSample.Showcase.Pages;
@@ -51,29 +52,41 @@ public sealed class TypeLabPageTests
         SceneHarness.Close(window);
     }
 
-    [AvaloniaFact]
-    public void TheWeightWaveStaysInRangeAndItsStaggerOffsetsNeighbors()
+    [AvaloniaTheory]
+    [InlineData("WeightLine", "StrokeThickness", 0, 5)]
+    [InlineData("SquashLine", "ScaleY", .7, 1.25)]
+    [InlineData("ObliqueLine", "SkewX", -18, 0)]
+    [InlineData("TrackingLine", "X", -48, 48)]
+    public void EachWaveSweepsSmoothlyWithinItsRangeAndItsStaggerOffsetsNeighbors(string line, string property, double min, double max)
     {
         var page = new TypeLabPage();
         var window = SceneHarness.Show(page, 1280, 1000, frames: 2);
-        var weights = Pieces(page.GetControl<TextBlock>("WeightLine")).Cast<TextBlock>().ToArray();
-        var stretches = Pieces(page.GetControl<TextBlock>("StretchLine")).Cast<TextBlock>().ToArray();
-        Assert.Equal("Weightwave".Length, weights.Length);
-        Assert.Equal("Stretchwave".Length, stretches.Length);
-        var seen = new HashSet<int>();
+        var letters = Letters(page.GetControl<TextBlock>(line));
+        var seen = new HashSet<double>();
         var offset = false;
 
         for (var frame = 0; frame < 150; frame++)
         {
             TestFrames.Tick();
-            foreach (var letter in weights) Assert.InRange(letter.FontWeight, FontWeight.Thin, FontWeight.Black);
-            foreach (var letter in stretches) Assert.InRange(letter.FontStretch, FontStretch.ExtraCondensed, FontStretch.Expanded);
-            seen.Add((int)weights[0].FontWeight);
-            offset |= weights[0].FontWeight != weights[1].FontWeight;
+            foreach (var letter in letters) Assert.InRange(Value(letter, property), min - .001, max + .001);
+            seen.Add(Math.Round(Value(letters[0], property), 3));
+            offset |= Math.Abs(Value(letters[0], property) - Value(letters[1], property)) > .01;
         }
 
-        Assert.True(seen.Count >= 5, $"the first letter only took the weights {string.Join(", ", seen)}");
-        Assert.True(offset, "neighboring letters always shared a weight");
+        Assert.True(seen.Count >= 30, $"the first letter only took {seen.Count} values");
+        Assert.True(offset, "neighboring letters always moved together");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void TheFauxWeightStrokesEachLetterOutlineInItsOwnColor()
+    {
+        var page = new TypeLabPage();
+        var window = SceneHarness.Show(page, 1280, 1000, frames: 2);
+        var letters = Letters(page.GetControl<TextBlock>("WeightLine")).Cast<Path>().ToArray();
+
+        Assert.Equal("Fauxweight".Length, letters.Length);
+        Assert.All(letters, letter => Assert.Same(letter.Fill, letter.Stroke));
         SceneHarness.Close(window);
     }
 
@@ -83,14 +96,14 @@ public sealed class TypeLabPageTests
         using var reduced = ReducedMotion.On();
         var page = new TypeLabPage();
         var window = SceneHarness.Show(page, 1280, 1000, frames: 2);
-        var weights = Pieces(page.GetControl<TextBlock>("WeightLine")).Cast<TextBlock>().ToArray();
-        var ramp = weights.Select(letter => letter.FontWeight).ToArray();
+        var letters = Letters(page.GetControl<TextBlock>("WeightLine"));
+        var ramp = letters.Select(letter => Value(letter, "StrokeThickness")).ToArray();
 
         TestFrames.Tick(60);
 
-        Assert.Equal(FontWeight.Thin, ramp[0]);
-        Assert.Equal(FontWeight.Black, ramp[^1]);
-        Assert.Equal(ramp, weights.Select(letter => letter.FontWeight));
+        Assert.Equal(0, ramp[0]);
+        Assert.Equal(5, ramp[^1]);
+        Assert.Equal(ramp, letters.Select(letter => Value(letter, "StrokeThickness")));
         Assert.False(page.GetControl<ToggleButton>("FlowToggle").IsEnabled);
 
         var curve = page.GetControl<Path>("Curve");
@@ -258,7 +271,12 @@ public sealed class TypeLabPageTests
     private static string Shown(SplitFlap board) => string.Concat(board.GetVisualDescendants().OfType<StackPanel>().First().Children
         .Select(cell => ((TextBlock)((Border)((Panel)cell).Children[1]).Child!).Text));
 
-    private static Control[] Pieces(TextBlock block) => [.. block.GetVisualDescendants().OfType<TextBlock>().Where(piece => !string.IsNullOrWhiteSpace(piece.Text))];
+    private static Control[] Letters(TextBlock block) => [.. block.GetVisualDescendants().OfType<Control>()
+        .Where(piece => piece is Path || (piece is TextBlock { Text: { } text } && !string.IsNullOrWhiteSpace(text)))];
+
+    private static double Value(Control letter, string property) => Convert.ToDouble(Presto.Get(letter, property, false));
+
+    private static Control[] Pieces(TextBlock block) =>[.. block.GetVisualDescendants().OfType<TextBlock>().Where(piece => !string.IsNullOrWhiteSpace(piece.Text))];
 
     private static Point[] Centers(TextBlock ribbon, Visual curve) => [.. Pieces(ribbon).Select(letter => CenterIn(letter, curve))];
 
