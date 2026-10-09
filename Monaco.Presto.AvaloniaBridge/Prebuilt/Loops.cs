@@ -29,6 +29,15 @@ public static class Loops
     public static AnimationBuilder Blink(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loop(duration, delay, ease, stagger).Opacity(Math.Max(0, 1 - (0.7 * intensity))).Alternate();
 
+    /// <summary>
+    /// Bobs each element up <paramref name="distance"/> DIPs (default half <see cref="MotionTokens.Distance"/>) and back over
+    /// <see cref="MotionTokens.Long"/>, each starting <paramref name="step"/> ms (default <see cref="MotionTokens.StaggerStep"/>)
+    /// after the one before, so a split line ripples. Reduced: static.
+    /// </summary>
+    public static AnimationBuilder Wave(double? distance = null, double? step = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Loop(duration ?? Recipes.Tokens.Long, null, ease, false).Y(-(distance ?? Recipes.Tokens.Distance / 2)).Alternate()
+            .Delay(Presto.Stagger(step ?? Recipes.Tokens.StaggerStep, new() { Start = delay }));
+
     private static AnimationBuilder Loop(double? duration, double? delay, EaseValue? ease, bool stagger) =>
         Recipes.Start(Recipes.Tokens, duration ?? Recipes.Tokens.Long * 2, delay, ease ?? Eases.InOutSine, stagger)
             .Loop()

@@ -51,6 +51,25 @@ public sealed class PresenceTextExitTests : BridgeTestBase
     public void EachGhostStandsInItsPiecesSlot(TextPieces pieces)
     {
         var block = TextRevealTests.Block(pieces);
+        AssertGhostsInSlots(block, pieces);
+        Assert.Equal(TextRevealTests.Sentence, block.Text);
+        Assert.Null(block.Inlines);
+    }
+
+    [AvaloniaFact]
+    public void EachGhostStandsInItsPiecesSlotOnACenteredBlock()
+    {
+        var block = TextRevealTests.Block(TextPieces.Chars);
+        block.Text = "Hi there";
+        block.TextAlignment = TextAlignment.Center;
+
+        var ghosts = AssertGhostsInSlots(block, TextPieces.Chars);
+
+        Assert.True(ghosts[0].X > 40, "the text was not centered");
+    }
+
+    private static Point[] AssertGhostsInSlots(TextBlock block, TextPieces pieces)
+    {
         Point[] slots = [];
         var window = Leave(block, Long, window =>
         {
@@ -61,17 +80,15 @@ public sealed class PresenceTextExitTests : BridgeTestBase
             Dispatcher.UIThread.RunJobs();
         });
 
-        var ghosts = Ghosts(window);
+        var ghosts = Ghosts(window).Select(ghost => ghost.TranslatePoint(default, window)!.Value).ToArray();
         Assert.True(slots.Length > 1);
         Assert.Equal(slots.Length, ghosts.Length);
         for (var i = 0; i < slots.Length; i++)
         {
-            var at = ghosts[i].TranslatePoint(default, window)!.Value;
-            Assert.Equal(slots[i].X, at.X, 0.5);
-            Assert.Equal(slots[i].Y, at.Y, 0.5);
+            Assert.Equal(slots[i].X, ghosts[i].X, 0.5);
+            Assert.Equal(slots[i].Y, ghosts[i].Y, 0.5);
         }
-        Assert.Equal(TextRevealTests.Sentence, block.Text);
-        Assert.Null(block.Inlines);
+        return ghosts;
     }
 
     private (Image[] Ghosts, double[] Started) Starts(TweenValue delay) =>
@@ -187,6 +204,30 @@ public sealed class PresenceTextExitTests : BridgeTestBase
         }));
         ghosts = Ghosts(window);
         Assert.True(ghosts.Length > 1);
+
+        Frames.Advance(5000, 16);
+
+        Assert.True(ended);
+        Assert.Empty(Hosts(window));
+    }
+
+    [AvaloniaFact]
+    public void AScatterExitFliesOneGhostPerCharacter()
+    {
+        Image[] ghosts = [];
+        var ended = false;
+        var window = Leave(TextRevealTests.Block(TextPieces.Chars), Recipes.Scatter(seed: 1).OnComplete(_ =>
+        {
+            ended = true;
+            Assert.All(ghosts, ghost =>
+            {
+                Assert.Equal(0, ghost.Opacity);
+                Assert.Equal(0.6, Value(ghost, "Scale"), 6);
+            });
+            Assert.True(ghosts.Select(ghost => Value(ghost, "X")).Distinct().Count() > 1);
+        }));
+        ghosts = Ghosts(window);
+        Assert.Equal(TextRevealTests.Sentence.Count(c => c != ' '), ghosts.Length);
 
         Frames.Advance(5000, 16);
 

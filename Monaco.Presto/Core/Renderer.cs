@@ -145,58 +145,23 @@ internal static class Renderer
                                 : absoluteTime >= tween._absoluteStartTime || (!tween._hasFromValue && absoluteTime >= tweenPrevRepEndTime)))
                         )))
                     {
-                        var tweenNewTime = tween._currentTime = Helpers.Clamp(iterationTime - tween._startTime, 0, tweenChangeDuration);
-                        var tweenTime = tweenNewTime / tween._updateDuration;
-                        var tweenProgress = tween._ease(tweenTime);
-                        var tweenModifier = tween._modifier;
-                        var tweenValueType = tween._valueType;
-                        var tweenIsNumber = tweenValueType == ValueKind.Number;
-                        // Only the in-between frames of a string value are rounded; a number target consumes the raw lerp.
-                        var tweenPrecision = tweenIsNumber || tweenProgress == 0 || tweenProgress == 1 ? -1 : Globals.Precision;
-
-                        double number;
-                        if (tweenIsNumber || tweenValueType == ValueKind.Unit)
-                        {
-                            number = tweenModifier(Helpers.Round(Helpers.Lerp(tween._fromNumber, tween._toNumber, tweenProgress), tweenPrecision));
-                        }
-                        else if (tweenValueType == ValueKind.Color)
-                        {
-                            var ns = tween._numbers;
-                            var fn = tween._fromNumbers;
-                            var tn = tween._toNumbers;
-                            var channelEases = tween._channelEases;
-                            // RGB channels lerp in pseudo-linear space (square inputs, square-root result) to approximate gamma correct blending.
-                            // Blended deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
-                            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Blend;
-                            ns[0] = tweenModifier(ColorLerp(fn[0], tn[0], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
-                            ns[1] = tweenModifier(ColorLerp(fn[1], tn[1], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
-                            ns[2] = tweenModifier(ColorLerp(fn[2], tn[2], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
-                            ns[3] = tweenModifier(Helpers.Lerp(fn[3], tn[3], channelEases == null ? tweenProgress : channelEases[3](tweenTime)));
-                            number = double.NaN;
-                        }
-                        else
-                        {
-                            tween.ComposeComplexNumbers(tweenProgress, tweenTime, tweenPrecision);
-                            number = double.NaN;
-                        }
-
-                        if (tweenHasComposition) tween._number = number;
-
-                        if (!internalRender && tweenComposition != Composition.Blend)
-                        {
-                            tween.Accessor.SetValue(tween.Target, number, tween);
-                            if (isCurrentTimeAboveZero) hasRendered = true;
-                        }
-                        else
-                        {
-                            // Composing tweens without a real render is the only path that pays for the composed value.
-                            tween._value = tween.ComposeValue(number);
-                        }
+                        tween._currentTime = Helpers.Clamp(iterationTime - tween._startTime, 0, tweenChangeDuration);
+                        if (Write(tween, internalRender) && isCurrentTimeAboveZero) hasRendered = true;
                     }
                     else if (tweenCurrentTime != 0 && tweenPrevRep != null && !tweenPrevRepIsCrossParent && iterationTime < tween._startTime)
                     {
                         // The playhead moved before this keyframe's start; the previous keyframe owns the from revert and writes it once.
                         tween._currentTime = 0;
+                    }
+                    else if (tweenCurrentTime != 0 && tweenPrevRepIsCrossParent && tween._hasFromValue && absoluteTime < tween._absoluteStartTime)
+                    {
+                        // The previous sibling's timer is past its end and will not render again, so its hold is written back here once.
+                        tween._currentTime = 0;
+                        if (!tweenPrevRep!._isOverridden && absoluteTime >= tweenPrevRepEndTime)
+                        {
+                            tweenPrevRep._currentTime = tweenPrevRep._changeDuration;
+                            if (Write(tweenPrevRep, internalRender) && isCurrentTimeAboveZero) hasRendered = true;
+                        }
                     }
 
                     tween = tween._next;
@@ -250,6 +215,55 @@ internal static class Renderer
         }
 
         return hasRendered;
+    }
+
+    private static bool Write(Tween tween, bool internalRender)
+    {
+        var tweenComposition = tween._composition;
+        var tweenTime = tween._currentTime / tween._updateDuration;
+        var tweenProgress = tween._ease(tweenTime);
+        var tweenModifier = tween._modifier;
+        var tweenValueType = tween._valueType;
+        var tweenIsNumber = tweenValueType == ValueKind.Number;
+        // Only the in-between frames of a string value are rounded; a number target consumes the raw lerp.
+        var tweenPrecision = tweenIsNumber || tweenProgress == 0 || tweenProgress == 1 ? -1 : Globals.Precision;
+
+        double number;
+        if (tweenIsNumber || tweenValueType == ValueKind.Unit)
+        {
+            number = tweenModifier(Helpers.Round(Helpers.Lerp(tween._fromNumber, tween._toNumber, tweenProgress), tweenPrecision));
+        }
+        else if (tweenValueType == ValueKind.Color)
+        {
+            var ns = tween._numbers;
+            var fn = tween._fromNumbers;
+            var tn = tween._toNumbers;
+            var channelEases = tween._channelEases;
+            // RGB channels lerp in pseudo-linear space (square inputs, square-root result) to approximate gamma correct blending.
+            // Blended deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
+            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Blend;
+            ns[0] = tweenModifier(ColorLerp(fn[0], tn[0], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
+            ns[1] = tweenModifier(ColorLerp(fn[1], tn[1], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
+            ns[2] = tweenModifier(ColorLerp(fn[2], tn[2], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
+            ns[3] = tweenModifier(Helpers.Lerp(fn[3], tn[3], channelEases == null ? tweenProgress : channelEases[3](tweenTime)));
+            number = double.NaN;
+        }
+        else
+        {
+            tween.ComposeComplexNumbers(tweenProgress, tweenTime, tweenPrecision);
+            number = double.NaN;
+        }
+
+        if (tweenComposition != Composition.None) tween._number = number;
+
+        if (!internalRender && tweenComposition != Composition.Blend)
+        {
+            tween.Accessor.SetValue(tween.Target, number, tween);
+            return true;
+        }
+        // Composing tweens without a real render is the only path that pays for the composed value.
+        tween._value = tween.ComposeValue(number);
+        return false;
     }
 
     public static void Tick(Timer tickable, double time, bool muteCallbacks, bool internalRender, TickMode tickMode)

@@ -27,6 +27,7 @@ sources:
   - Monaco.Presto.AvaloniaBridge/RecolorExtension.cs
   - Monaco.Presto.AvaloniaBridge/ReflowExtension.cs
   - Monaco.Presto.AvaloniaBridge/ScaleExtension.cs
+  - Monaco.Presto.AvaloniaBridge/ScatterExtension.cs
   - Monaco.Presto.AvaloniaBridge/ShakeExtension.cs
   - Monaco.Presto.AvaloniaBridge/ShimmerExtension.cs
   - Monaco.Presto.AvaloniaBridge/SlideExtension.cs
@@ -55,6 +56,7 @@ types:
   - RecolorExtension
   - ReflowExtension
   - ScaleExtension
+  - ScatterExtension
   - ShakeExtension
   - ShimmerExtension
   - SlideExtension
@@ -125,6 +127,9 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 - **BRIDGE-MARKUP-018** (inherited) — `{presto:PlayFrames Fps=… Loop=… Reverse=…}` shall provide `PlayFrames` with `Delay`; a set `Duration` or `Ease` shall replace the frame timing.
   - Tests: `RecipeMarkupTests.PlayFramesReadsEachSheetsFrameCount`, `RecipeMarkupTests.PlayFramesTakesAnExplicitDurationAndEaseOverTheFrameTiming`
 
+- **BRIDGE-MARKUP-026** — `{presto:Scatter Distance=… Spin=… Seed=…}` shall provide `Gather` or, as an exit, `Scatter`, with those members.
+  - Tests: `RecipeMarkupTests.ScatterGathersOnEnterAndScattersOnExitOrWithOutTrue`
+
 ### Text reveal extensions
 
 - **BRIDGE-MARKUP-019** — `{presto:LineRise}`, `{presto:LineMask}`, `{presto:LineWipe}`, `{presto:WordFade}`, `{presto:WordBlur}` and `{presto:CharCascade}` shall provide the same-named recipe, or its `Out` form as an exit, passing `Duration`, `Delay`, `Ease`, `LineStep` and `PieceStep`.
@@ -181,6 +186,7 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 - **One markup extension per family verb, with the exit form detected from the target.** Each derives from `RecipeExtension`, reads `IProvideValueTarget` and provides the exit form under `Presence.Exit`, else the entrance form; `Out` states the form explicitly, and with no service provider the entrance form is provided. Reason: one attribute should be the whole ceremony, and inside a style `Setter` the target is the setter rather than the property, so the form cannot be detected there and `Out="True"` is needed.
 - **The text reveal extensions have exit forms.** Under `Presence.Exit` they provide the recipe's `*Out` form; earlier they had none, replaced when text exits gained per-piece ghosts. Reason: not recorded beyond that.
 - **A page transition's exit properties take the exit form.** On a `PrestoPageTransition`'s `Exit` or `BackExit` the extension provides the exit form, detected as a `PrestoPageTransition` target object plus the property's name. Reason: in compiled XAML a CLR property reports a property info that names the property but not its declaring type.
+- **Markup: `{presto:Scatter}` only.** It provides `Gather` on enter and `Scatter` on exit; `Fall` and `Wave` are code-only, like `Grow`, `Dim` and `Pulse`. Reason: one extension per family verb, and no family has an extension for every recipe.
 - **Reduced text reveals never split, and one attribute configures the block.** See BRIDGE-TEXTREVEAL.
 - **`{presto:Reflow}` is the shorthand, and its reduced form is instant.** See BRIDGE-DECLLAYOUT.
 - **`ColorSpace` and `Hue` are trailing optional parameters.** See BRIDGE-TOKENS.
@@ -189,7 +195,7 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 ## Non-goals
 
 - Timelines or keyframes authored in XAML (see BRIDGE-ATTACH).
-- Extensions for every recipe: attention recipes other than `Shake`, the loops, the other loading recipes, `Colorize`, `Dim`, `ReorderLift` (BRIDGE-REORDER owns `{presto:Reorder}`), `Develop` and the particle and stateful text recipes have none.
+- Extensions for every recipe: attention recipes other than `Shake`, the loops, the other loading recipes, `Colorize`, `Dim`, `Fall`, `ReorderLift` (BRIDGE-REORDER owns `{presto:Reorder}`), `Develop` and the particle and stateful text recipes have none.
 
 ## Open items
 

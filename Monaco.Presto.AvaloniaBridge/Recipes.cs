@@ -4,9 +4,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
+using Avalonia.Controls.Primitives;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Media.TextFormatting;
 using Monaco.Presto.AvaloniaBridge.Prebuilt;
+using Monaco.Presto.AvaloniaBridge.Text;
 using Monaco.Presto.Diagnostics;
 using Monaco.Presto.Values;
 
@@ -15,14 +18,15 @@ namespace Monaco.Presto.AvaloniaBridge;
 /// <summary>
 /// The recipe catalog in one place: each builder recipe forwards to its family in <see cref="Prebuilt"/> and returns a new
 /// <see cref="AnimationBuilder"/>, so chaining onto one never touches another caller's copy. The text reveals are builders
-/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/>, <see cref="CountUp"/> and <see cref="RollDigits"/> need
-/// the <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/>.
+/// played on the pieces <see cref="TextReveal"/> splits a block into; <see cref="Typewriter"/>, <see cref="CountUp"/>, <see cref="RollDigits"/> and
+/// <see cref="MorphText"/> need the <see cref="TextBlock"/> itself, so they play at once and return the <see cref="Animation"/> or <see cref="Timeline"/>.
 /// </summary>
 public static class Recipes
 {
     internal const double FlipPerspective = 800;
 
     private static readonly ConditionalWeakTable<TextBlock, Animation> Rolls = new();
+    private static readonly ConditionalWeakTable<TextBlock, Timeline> Morphs = new();
 
     /// <summary>The durations, eases and travel every recipe defaults to, read on each call: replacing it restyles later calls, not builders already made.</summary>
     public static MotionTokens Tokens { get; set; } = MotionTokens.Standard;
@@ -67,6 +71,10 @@ public static class Recipes
     public static AnimationBuilder FlipIn(double angle = 90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Entrances.FlipIn(angle, duration, delay, ease, stagger);
 
+    /// <inheritdoc cref="Entrances.Gather"/>
+    public static AnimationBuilder Gather(double? distance = null, double? spin = null, int? seed = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Entrances.Gather(distance, spin, seed, duration, delay, ease, stagger);
+
     /// <inheritdoc cref="Entrances.Develop"/>
     public static AnimationBuilder Develop(double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Entrances.Develop(duration, delay, ease, stagger);
@@ -110,6 +118,14 @@ public static class Recipes
     /// <inheritdoc cref="Exits.FlipOut"/>
     public static AnimationBuilder FlipOut(double angle = -90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Exits.FlipOut(angle, duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Exits.Scatter"/>
+    public static AnimationBuilder Scatter(double? distance = null, double? spin = null, int? seed = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Exits.Scatter(distance, spin, seed, duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Exits.Fall"/>
+    public static AnimationBuilder Fall(double? distance = null, double? spin = null, int? seed = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
+        Exits.Fall(distance, spin, seed, duration, delay, ease, stagger);
 
     /// <inheritdoc cref="Popovers.PopoverIn"/>
     public static AnimationBuilder PopoverIn(double? distance = null, double? scale = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
@@ -166,6 +182,10 @@ public static class Recipes
     /// <inheritdoc cref="Loops.Blink"/>
     public static AnimationBuilder Blink(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Loops.Blink(intensity, duration, delay, ease, stagger);
+
+    /// <inheritdoc cref="Loops.Wave"/>
+    public static AnimationBuilder Wave(double? distance = null, double? step = null, double? duration = null, double? delay = null, EaseValue? ease = null) =>
+        Loops.Wave(distance, step, duration, delay, ease);
 
     /// <inheritdoc cref="Interactions.Lift"/>
     public static AnimationBuilder Lift(double? distance = null, double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
@@ -438,6 +458,112 @@ public static class Recipes
         return roll;
     }
 
+    /// <summary>
+    /// Turns <paramref name="textBlock"/>'s text into <paramref name="text"/> by moving its letters: the k-th occurrence of a
+    /// character in the old text flies from its place to that of the k-th occurrence in the new one over <see cref="MotionTokens.Long"/>
+    /// with <see cref="MotionTokens.EmphasizedEase"/>, old letters with no partner leave as ghosts with <see cref="Scatter"/>, and new
+    /// ones with no partner <see cref="PopIn"/>. <paramref name="explode"/> first bursts the moving letters apart and holds them for
+    /// <see cref="MotionTokens.Short"/>; <paramref name="ignoreCase"/> pairs letters regardless of case. Reduced, the block crossfades.
+    /// </summary>
+    /// <remarks>The block has to be laid out. It is split into characters while it morphs and ends as the plain new text.</remarks>
+    public static Timeline MorphText(TextBlock textBlock, string text, bool explode = false, bool ignoreCase = false)
+    {
+        if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
+        var tokens = Tokens;
+        using var origin = PrestoDiagnostics.Origin("Recipe");
+        if (Engine.Current.Defaults.ReducedMotion)
+        {
+            var opacity = textBlock.Opacity;
+            var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
+                .Add(textBlock, b => b.Opacity(to: 0).Duration(tokens.Short))
+                .Call(_ => textBlock.Text = text)
+                .Add(textBlock, b => b.Opacity(from: 0, to: opacity).Duration(tokens.Short));
+            Morphs.AddOrUpdate(textBlock, fade);
+            return fade;
+        }
+
+        var top = TopLevel.GetTopLevel(textBlock);
+        var overlay = OverlayLayer.GetOverlayLayer(textBlock);
+        var oldOrigin = top is null ? default : textBlock.TranslatePoint(default, top) ?? default;
+        var before = PieceGhosts.Split(textBlock, TextPieces.Chars);
+        var slots = new Rect[before.Chars.Count];
+        var unpaired = new Dictionary<string, Queue<int>>(ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        for (var i = 0; i < slots.Length; i++)
+        {
+            slots[i] = before.SlotOf(before.Chars[i]);
+            var grapheme = ((TextBlock)before.Chars[i]).Text!;
+            if (!unpaired.TryGetValue(grapheme, out var occurrences)) unpaired[grapheme] = occurrences = new();
+            occurrences.Enqueue(i);
+        }
+        var partners = TextSplitter.CharsOf(text).Select(g => unpaired.TryGetValue(g, out var queue) && queue.TryDequeue(out var i) ? i : -1).ToArray();
+
+        var ghosts = new List<Image>();
+        var host = new Canvas { IsHitTestVisible = false };
+        if (top is not null && overlay is not null && textBlock.TranslatePoint(default, overlay) is { } at)
+        {
+            foreach (var queue in unpaired.Values)
+            foreach (var i in queue)
+            {
+                var ghost = Presence.Snapshot(before.Chars[i], top.RenderScaling);
+                Canvas.SetLeft(ghost, slots[i].X);
+                Canvas.SetTop(ghost, slots[i].Y);
+                host.Children.Add(ghost);
+                ghosts.Add(ghost);
+            }
+            Canvas.SetLeft(host, at.X);
+            Canvas.SetTop(host, at.Y);
+            overlay.Children.Add(host);
+        }
+        before.Revert();
+
+        textBlock.Text = text;
+        textBlock.UpdateLayout();
+        var shift = oldOrigin - (top is null ? default : textBlock.TranslatePoint(default, top) ?? default);
+        var after = PrestoAvalonia.SplitText(textBlock, new() { Words = null, Chars = new() });
+        var flying = new List<Control>();
+        var offsets = new List<Vector>();
+        var entering = new List<Control>();
+        for (var j = 0; j < after.Chars.Count; j++)
+        {
+            var piece = after.Chars[j];
+            if (j < partners.Length && partners[j] >= 0)
+            {
+                flying.Add(piece);
+                offsets.Add(slots[partners[j]].Position + shift - after.SlotOf(piece).Position);
+            }
+            else entering.Add(piece);
+        }
+
+        var morph = Presto.CreateTimeline(new()
+        {
+            OnComplete = _ =>
+            {
+                Morphs.Remove(textBlock);
+                after.Revert();
+                overlay?.Children.Remove(host);
+                foreach (var ghost in ghosts) ((Bitmap)ghost.Source!).Dispose();
+            },
+        });
+        FunctionValue fromX = (_, i, _) => offsets[i].X, fromY = (_, i, _) => offsets[i].Y;
+        if (explode)
+        {
+            var (x, y, rotate) = ScatterOffsets(null, null, seed: 0);
+            morph.Add(flying, b => b
+                    .X(from: fromX, to: (FunctionValue)((t, i, n) => offsets[i].X + x(t, i, n).AsDouble!.Value))
+                    .Y(from: fromY, to: (FunctionValue)((t, i, n) => offsets[i].Y + y(t, i, n).AsDouble!.Value))
+                    .Rotate(rotate).Duration(tokens.Medium).Ease(tokens.EmphasizedEase), 0)
+                .Add(flying, b => b.X(0).Y(0).Rotate(0).Duration(tokens.Long).Ease(tokens.EmphasizedEase), tokens.Medium + tokens.Short);
+        }
+        else
+        {
+            morph.Add(flying, b => b.X(from: fromX, to: 0).Y(from: fromY, to: 0).Duration(tokens.Long).Ease(tokens.EmphasizedEase), 0);
+        }
+        if (ghosts.Count > 0) morph.Add(ghosts, Scatter(), 0);
+        if (entering.Count > 0) morph.Add(entering, PopIn(), 0);
+        Morphs.AddOrUpdate(textBlock, morph);
+        return morph;
+    }
+
     /// <summary>A builder with a recipe's timing:<paramref name="stagger"/> steps each element of a batch by <see cref="MotionTokens.StaggerStep"/> after <paramref name="delay"/>.</summary>
     internal static AnimationBuilder Start(MotionTokens tokens, double duration, double? delay, EaseValue ease, bool stagger)
     {
@@ -445,6 +571,21 @@ public static class Recipes
         if (stagger) return builder.Delay(Presto.Stagger(tokens.StaggerStep, new() { Start = delay }));
         return delay is { } ms ? builder.Delay(ms) : builder;
     }
+
+    /// <summary>The per-target <c>X</c>, <c>Y</c> and <c>Rotate</c> that <see cref="Exits.Scatter"/> ends at and <see cref="Entrances.Gather"/> starts from.</summary>
+    internal static (FunctionValue X, FunctionValue Y, FunctionValue Rotate) ScatterOffsets(double? distance, double? spin, int? seed)
+    {
+        var reach = distance ?? Tokens.Distance * 4;
+        return (SeededRandom(seed, 0, reach), SeededRandom(seed, 1, reach), SeededRandom(seed, 2, spin ?? 180));
+    }
+
+    /// <summary>A value per target in ±<paramref name="range"/>: draw <paramref name="slot"/> (0–2) of the target's three from <paramref name="seed"/>'s stream, or from <see cref="Utils.Random"/> without one.</summary>
+    internal static FunctionValue SeededRandom(int? seed, int slot, double range) => (_, index, _) =>
+    {
+        // The seeded generator advances its state by 0x6D2B79F5 per draw, so this seed starts at draw 3 × index + slot.
+        RandomGenerator random = seed is { } start ? Utils.CreateSeededRandom(unchecked(start + (((3 * index) + slot) * 0x6D2B79F5))) : Utils.Random;
+        return random(-range, range, 2);
+    };
 
     /// <summary>The transform shorthand and signed offset that put an element <paramref name="distance"/> DIPs towards <paramref name="edge"/>.</summary>
     internal static (string Property, double Offset) Offset(Edge edge, double distance) => edge switch

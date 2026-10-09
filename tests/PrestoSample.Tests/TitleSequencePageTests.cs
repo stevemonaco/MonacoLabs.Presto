@@ -128,6 +128,23 @@ public sealed class TitleSequencePageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void ReversedFromItsEndTheCardsAreHiddenBeforeTheirLabel()
+    {
+        var page = new TitleSequencePage();
+        var window = SceneHarness.Show(page, 1000, 900);
+        var cards = page.GetControl<StackPanel>("Cards").Children;
+        for (var frame = 0; frame < 600 && !Timeline(page).Completed; frame++) TestFrames.Tick();
+        var timeline = Timeline(page);
+        Assert.True(timeline.Completed);
+
+        timeline.Reverse();
+        while (timeline.IterationCurrentTime >= timeline.Labels["cards"]) TestFrames.Tick();
+
+        Assert.All(cards, card => Assert.Equal(0, card.Opacity));
+        SceneHarness.Close(window);
+    }
+
     private static Timeline Timeline(TitleSequencePage page) =>
         (Timeline)page.GetControl<TransportBar>("Bar").Timer!;
 }

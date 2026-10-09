@@ -1,6 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.VisualTree;
 
 namespace Monaco.Presto.AvaloniaBridge.Text;
 
@@ -40,7 +38,7 @@ internal static class PieceGhosts
                 ghost.SetValue(TextSplitter.IndexInLineProperty, piece.GetValue(TextSplitter.IndexInLineProperty));
                 ghost.SetValue(TextSplitter.LineHeightProperty, split.LineHeight);
                 Control placed = mask ? new Canvas { Width = ghost.Width, Height = ghost.Height, ClipToBounds = true, Children = { ghost } } : ghost;
-                var offset = OffsetIn(piece, block);
+                var offset = split.SlotOf(piece).Position;
                 Canvas.SetLeft(placed, offset.X);
                 Canvas.SetTop(placed, offset.Y);
                 frame.Children.Add(placed);
@@ -53,9 +51,10 @@ internal static class PieceGhosts
         }
     }
 
-    private static TextSplitter Split(TextBlock block, TextPieces pieces)
+    /// <summary>Splits <paramref name="block"/> into lines and <paramref name="pieces"/> outside the current scope, for a caller that reverts it at once.</summary>
+    internal static TextSplitter Split(TextBlock block, TextPieces pieces)
     {
-        // Reverted before this returns, so neither it nor its resize timer belongs to the scope the exit started in.
+        // Reverted by the caller, so neither it nor its resize timer belongs to the scope the caller runs in.
         var scope = Engine.Current.CurrentScope;
         Engine.Current.CurrentScope = null;
         TextSplitter split;
@@ -72,18 +71,6 @@ internal static class PieceGhosts
         {
             Engine.Current.CurrentScope = scope;
         }
-        // A detached block keeps the bounds it was last arranged with, which a layout pass would no longer give it.
-        var slot = block.Bounds.Inflate(block.Margin);
-        block.Measure(slot.Size);
-        block.Arrange(slot);
         return split;
-    }
-
-    // Layout offsets, since a live piece's render transform moves onto its ghost.
-    private static Point OffsetIn(Visual piece, Visual block)
-    {
-        var offset = default(Point);
-        for (var visual = piece; visual != block; visual = visual.GetVisualParent()!) offset += visual.Bounds.Position;
-        return offset;
     }
 }

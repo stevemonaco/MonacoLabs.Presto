@@ -58,6 +58,33 @@ public static class Exits
     public static AnimationBuilder FlipOut(double angle = -90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
         Exit(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(angle).Perspective(Recipes.FlipPerspective);
 
+    /// <summary>
+    /// Flies each element to a random <c>X</c>/<c>Y</c> offset within <paramref name="distance"/> (default four times
+    /// <see cref="MotionTokens.Distance"/>), spun within ±<paramref name="spin"/> degrees (default 180), at <c>Scale</c> 0.6, over
+    /// <see cref="MotionTokens.Medium"/> with <see cref="MotionTokens.EmphasizedEase"/>. A <paramref name="seed"/> makes the
+    /// offsets the same on every play.
+    /// </summary>
+    public static AnimationBuilder Scatter(double? distance = null, double? spin = null, int? seed = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false)
+    {
+        var (x, y, rotate) = Recipes.ScatterOffsets(distance, spin, seed);
+        return Exit(duration ?? Recipes.Tokens.Medium, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).X(x).Y(y).Rotate(rotate).Scale(0.6);
+    }
+
+    /// <summary>
+    /// Drops each element <paramref name="distance"/> DIPs (default six times <see cref="MotionTokens.Distance"/>) with
+    /// <c>Eases.In(2)</c> over <see cref="MotionTokens.Long"/>, drifting sideways within a quarter of the drop and spinning
+    /// within ±<paramref name="spin"/> degrees (default 45), and fades it over the last third. A <paramref name="seed"/> makes the drift
+    /// and spin the same on every play.
+    /// </summary>
+    public static AnimationBuilder Fall(double? distance = null, double? spin = null, int? seed = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false)
+    {
+        var drop = distance ?? Recipes.Tokens.Distance * 6;
+        var span = duration ?? Recipes.Tokens.Long;
+        return Exit(span, delay, ease ?? Eases.In(2), stagger)
+            .Y(drop).X(Recipes.SeededRandom(seed, 0, drop / 4)).Rotate(Recipes.SeededRandom(seed, 1, spin ?? 45))
+            .Opacity(to: 0, delay: span * 2 / 3, duration: span / 3);
+    }
+
     private static AnimationBuilder Exit(double? duration, double? delay, EaseValue? ease, bool stagger)
     {
         var tokens = Recipes.Tokens;

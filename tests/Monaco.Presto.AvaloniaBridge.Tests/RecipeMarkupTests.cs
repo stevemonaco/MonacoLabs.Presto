@@ -48,6 +48,27 @@ public sealed class RecipeMarkupTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ScatterGathersOnEnterAndScattersOnExitOrWithOutTrue()
+    {
+        var view = new RecipeXamlView();
+        static double[] At(AnimationBuilder builder, bool atEnd)
+        {
+            var card = new Avalonia.Controls.Border();
+            var animation = builder.Autoplay(false).Animate(card);
+            animation.Seek(atEnd ? animation.Duration : 0);
+            return [.. new[] { "X", "Y", "Rotate", "Scale" }.Select(p => Math.Round(Convert.ToDouble(Presto.Get(card, p, withUnit: false)), 6)), card.Opacity];
+        }
+
+        var gather = At(Presence.GetEnter(view.Scattered)!, atEnd: false);
+        var scatter = At(Presence.GetExit(view.Scattered)!, atEnd: true);
+        var coded = At((AnimationBuilder)new ScatterExtension { Distance = 50, Spin = 30, Seed = 4, Out = true }.ProvideValue(null!), atEnd: true);
+
+        Assert.Equal(scatter, gather);
+        Assert.Equal(scatter, coded);
+        Assert.Equal(At(Recipes.Scatter(50, 30, 4), atEnd: true), coded);
+    }
+
+    [AvaloniaFact]
     public void PopoverIsAnEntranceOnOpenAndAnExitOnClose()
     {
         var flyout = Assert.IsType<Avalonia.Controls.Flyout>(new RecipeXamlView().Popped.Flyout);

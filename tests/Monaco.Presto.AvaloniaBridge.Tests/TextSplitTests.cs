@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Headless.XUnit;
@@ -255,6 +256,123 @@ public sealed class TextSplitTests : BridgeTestBase
         Assert.True(split.LineHeight > before);
         Assert.Equal(split.LineHeight, TextSplitter.LineHeightOf(split.Words[0]));
         Assert.Equal(0, TextSplitter.LineHeightOf(block));
+    }
+
+    [AvaloniaFact]
+    public void SlotOfGivesEachPiecesLayoutBoxInBlockCoordinates()
+    {
+        var block = ShowText(160);
+        block.Padding = new Thickness(12, 7);
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new() });
+        block.UpdateLayout();
+
+        var first = split.SlotOf(split.Words[0]);
+        var space = ((Panel)split.Words[0].GetVisualParent()!).Children[1];
+        Assert.Equal(12, first.X, 0.01);
+        Assert.Equal(7, first.Y, 0.01);
+        Assert.Equal(split.Words[0].Bounds.Width, first.Width);
+        Assert.Equal(first.Right + space.Bounds.Width, split.SlotOf(split.Words[1]).X, 0.01);
+        Assert.Equal(7 + split.LineHeight, split.SlotOf(split.Lines[1]).Y, 0.5);
+        Assert.All(split.Words, word => Assert.Equal(word.TranslatePoint(default, block)!.Value, split.SlotOf(word).Position));
+    }
+
+    [AvaloniaFact]
+    public void SlotOfIsValidInsideTheFirstEffect()
+    {
+        var block = ShowText(160);
+        block.Padding = new Thickness(12, 7);
+        Rect[] early = [];
+
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new() }).AddEffect(s =>
+        {
+            early = s.Lines.Concat(s.Words).Concat(s.Chars).Select(s.SlotOf).ToArray();
+            return (Action?)null;
+        });
+        block.UpdateLayout();
+        var laidOut = split.Lines.Concat(split.Words).Concat(split.Chars).Select(split.SlotOf).ToArray();
+
+        Assert.True(early.Length > 1);
+        Assert.Equal(laidOut.Length, early.Length);
+        for (var i = 0; i < early.Length; i++)
+        {
+            Assert.Equal(laidOut[i].X, early[i].X, 0.5);
+            Assert.Equal(laidOut[i].Y, early[i].Y, 0.5);
+            Assert.Equal(laidOut[i].Width, early[i].Width, 0.5);
+            Assert.Equal(laidOut[i].Height, early[i].Height, 0.5);
+        }
+    }
+
+    [AvaloniaFact]
+    public void SlotOfIsValidInsideTheFirstEffectOnACenteredBlock()
+    {
+        var block = ShowText();
+        block.Text = "Hi there";
+        block.TextAlignment = TextAlignment.Center;
+        block.Padding = new Thickness(12, 7);
+        Dispatcher.UIThread.RunJobs();
+        Rect[] early = [];
+
+        var split = PrestoAvalonia.SplitText(block, new() { Chars = new() }).AddEffect(s =>
+        {
+            early = s.Words.Concat(s.Chars).Select(s.SlotOf).ToArray();
+            return (Action?)null;
+        });
+        block.UpdateLayout();
+        var laidOut = split.Words.Concat(split.Chars).Select(split.SlotOf).ToArray();
+
+        Assert.True(laidOut[0].X > 40, "the text was not centered");
+        Assert.Equal(laidOut.Length, early.Length);
+        for (var i = 0; i < early.Length; i++)
+        {
+            Assert.Equal(laidOut[i].X, early[i].X, 0.5);
+            Assert.Equal(laidOut[i].Y, early[i].Y, 0.5);
+        }
+    }
+
+    [AvaloniaFact]
+    public void SlotOfIgnoresRenderTransforms()
+    {
+        var block = ShowText();
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Chars = new() });
+        var word = split.Words[1];
+        var before = split.SlotOf(word);
+
+        split.Lines[0].RenderTransform = new TranslateTransform(40, 30);
+        word.RenderTransform = new TransformGroup { Children = { new ScaleTransform(2, 2), new TranslateTransform(25, -10) } };
+        block.UpdateLayout();
+
+        Assert.Equal(before, split.SlotOf(word));
+    }
+
+    [AvaloniaFact]
+    public void SlotOfFollowsAResplit()
+    {
+        var block = ShowText();
+        var slots = new List<Rect[]>();
+        var split = PrestoAvalonia.SplitText(block).AddEffect(s =>
+        {
+            slots.Add(s.Words.Select(s.SlotOf).ToArray());
+            return (Action?)null;
+        });
+        var old = split.Words[^1];
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(2, slots.Count);
+        Assert.True(slots[1][^1].Y > slots[0][^1].Y);
+        Assert.Throws<ArgumentException>(() => split.SlotOf(old));
+    }
+
+    [AvaloniaFact]
+    public void SlotOfRejectsAControlThatIsNotAPieceOfThisSplit()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText());
+        var other = PrestoAvalonia.SplitText(ShowText());
+
+        Assert.Throws<ArgumentException>(() => split.SlotOf(new TextBlock { Text = "The" }));
+        Assert.Throws<ArgumentException>(() => split.SlotOf(other.Words[0]));
     }
 
     [AvaloniaFact]

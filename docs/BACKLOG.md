@@ -26,7 +26,6 @@ When an item is closed, its line is deleted.
 - [BRIDGE-SHEET] `Sheet.DetentIndex` is never coerced into the detent range, so `IsOpen` can read true while the sheet rests closed; done when it is coerced.
 - [CORE-BUILDER] `AnimationBuilder.ToParams` and `TweenKeyframesBuilder.Color` read `Engine.Current` rather than the timeline's engine or parent defaults (see CORE-KEYFRAMES, CORE-REDUCED); done when a builder resolves against the engine and defaults it is added under.
 - [CORE-TIMELINE] A forward jump from time 0 past a later-added `.Set` at 0 renders the `Set` last (the Title sequence cards end hidden); done when reproduced against anime.js 4.5.0 seek semantics and either fixed as a parity bug or recorded as upstream behavior.
-- [SAMPLE] The Title sequence reversed from its end leaves the feature cards at 0.4–4% opacity 300 ms before their label (a plain timeline with the same recipe does not; probably the split's `KeepTime` rebuild); done when the cause is found and fixed.
 - [BRIDGE-PAGES] A swipe-completed `Carousel` page keeps its seeked end values (and `ZIndex`) at `Animation` priority until the next transition or recycle, because `VirtualizingCarouselPanel` resets only the page it recycles; done when the transition releases them on completion.
 - [BRIDGE-PRESENCE] `Presence.OwnerOfItem` resolves nested lists (`TreeView` sections) to the outer list, so a page removed from its section plays no exit; done when it stops at the nearest `ItemsControl` whose items panel hosts the container.
 - [BRIDGE-CONTENTSIZE] `ContentSizeTransition.ResizingBeside` holds only for siblings of the resizing host, so a layout transition trails an ancestor's resize (the nav arms `Accordion.Enabled` only while not searching to work around it); done when any ancestor up to the host's parent counts.
@@ -123,7 +122,6 @@ When an item is closed, its line is deleted.
 - [BRIDGE-RECIPES] A text-shaped mask reveal and `MorphTo` clip-geometry reveals.
 - [BRIDGE-MAGNETIC] A configurable `Magnetic.Spring` (parsed like `FollowParams.Spring`).
 - [BRIDGE-HELPERS] Lift `AfterFirstArrange` (`Showcase/ShowcasePage.cs`, used by ChatLog, GalleryFlip and Liquid) into a `PrestoAvalonia` utility.
-- [BRIDGE-TEXT] Expose split piece widths, so an effect can size tweens without a probe `TextBlock` (the Typography rotator still measures word widths with one).
 - [BRIDGE-IMAGE] Decide whether `FilteredImage` should resize to an incoming image of another aspect only when the source transition ends, rather than at its start.
 - [BRIDGE-IMAGE] A pre-baked crossfade mode (a filtered copy faded with `Opacity`, compositor-capable), if UI-thread filtering proves too costly on Browser or Android.
 - [BRIDGE-IMAGE] A per-control native filter cache keyed by matrix, if per-frame `SKColorFilter`/`SKPaint` allocation shows up in measurement.

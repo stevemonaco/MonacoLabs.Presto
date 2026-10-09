@@ -14,7 +14,7 @@ public sealed class DiscretePropertyTests : BridgeTestBase
     {
         { InputElement.IsHitTestVisibleProperty, true, false },
         { Layoutable.HorizontalAlignmentProperty, HorizontalAlignment.Left, HorizontalAlignment.Right },
-        { TextBlock.FontWeightProperty, FontWeight.Normal, FontWeight.Bold },
+        { TextBlock.TextAlignmentProperty, TextAlignment.Left, TextAlignment.Right },
         { DockPanel.DockProperty, Dock.Left, Dock.Bottom },
     };
 

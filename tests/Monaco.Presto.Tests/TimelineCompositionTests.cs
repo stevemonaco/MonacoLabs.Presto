@@ -290,6 +290,38 @@ public sealed class TimelineCompositionTests : EngineTestBase
     }
 
     [Fact]
+    public void BackwardSeekOutOfAnExplicitFromChildIntoTheGapWritesThePreviousChildHold()
+    {
+        var target = new StyleTarget();
+        var tl = Presto.CreateTimeline(new() { Autoplay = false })
+            .Add(target, new() { ["X"] = new TweenParams { To = 50, Duration = 200 }, Ease = "linear" }, 0)
+            .Add(target, new() { ["X"] = new TweenParams { From = 0, To = 100, Duration = 500 }, Ease = "linear" }, 1000);
+
+        tl.Seek(1500);
+        tl.Seek(1100);
+        Assert.Equal(20, target.X);
+        tl.Seek(900);
+        Assert.Equal(50, target.X);
+    }
+
+    [Fact]
+    public void PlayingBackwardOutOfAFadeIntoTheGapWritesALaterAddedSetAtZero()
+    {
+        var target = new StyleTarget { Opacity = 1 };
+        var tl = Presto.CreateTimeline()
+            .Add(target, new() { ["Opacity"] = new TweenParams { From = 0 }, Duration = 900, Ease = Eases.OutQuart }, 1000)
+            .Set(target, new() { ["Opacity"] = 0 }, 0)
+            .Add(new TimerParams { Duration = 800 }, "+=400");
+        RunUntil(() => tl.Completed);
+        Assert.Equal(1, target.Opacity);
+
+        tl.Reverse();
+        RunUntil(() => tl.IterationCurrentTime < 900);
+
+        Assert.Equal(0, target.Opacity);
+    }
+
+    [Fact]
     public void BackwardSeekBeforeANegativeDelaySiblingStartRestoresThePreviousChildEndValue()
     {
         StyleTarget[] targets = [new(), new(), new()];

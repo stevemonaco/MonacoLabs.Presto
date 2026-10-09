@@ -5,6 +5,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Data;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.VisualTree;
 using Monaco.Presto.Diagnostics;
 
 namespace Monaco.Presto.AvaloniaBridge.Text;
@@ -36,6 +38,7 @@ public sealed class TextSplitter : IRevertible
     private readonly List<Control> _lines = [];
     private readonly List<Control> _words = [];
     private readonly List<Control> _chars = [];
+    private StackPanel? _root;
     private IDisposable? _unclip;
     private double _width;
     private bool _ready;
@@ -115,6 +118,26 @@ public sealed class TextSplitter : IRevertible
     internal static TextSplitter? Of(TextBlock block) => block.GetValue(SplitProperty);
 
     /// <summary>
+    /// The layout box of <paramref name="piece"/> in the block's coordinates, ignoring render transforms; valid from the
+    /// first effect of the split.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="piece"/> is not a line, word or character of the current split.</exception>
+    public Rect SlotOf(Control piece)
+    {
+        if (!_lines.Contains(piece) && !_words.Contains(piece) && !_chars.Contains(piece))
+            throw new ArgumentException("The control is not a piece of this split.", nameof(piece));
+        return UncheckedSlotOf(piece);
+    }
+
+    /// <summary><see cref="SlotOf"/> for a caller that already holds a piece of the current split.</summary>
+    internal Rect UncheckedSlotOf(Control piece)
+    {
+        var offset = default(Point);
+        for (Visual visual = piece; visual != _root; visual = visual.GetVisualParent()!) offset += visual.Bounds.Position;
+        return new Rect(offset + _root!.Bounds.Position, piece.Bounds.Size);
+    }
+
+    /// <summary>
     /// Registers <paramref name="effect"/> over the pieces, running it at once when they already exist and again after
     /// every re-split.
     /// </summary>
@@ -187,7 +210,7 @@ public sealed class TextSplitter : IRevertible
 
         _width = _host.Bounds.Width;
         // Without this every piece is snapped to a whole pixel and a line ends up wider than the text it was measured from.
-        var root = new StackPanel { UseLayoutRounding = false };
+        var root = _root = new StackPanel { UseLayoutRounding = false };
         var lines = MeasureLines(out var baseline);
         // An embedded control sits on the baseline by its bottom edge, which would add a descent below the last line.
         TextBlock.SetBaselineOffset(root, baseline);
@@ -199,9 +222,28 @@ public sealed class TextSplitter : IRevertible
         // Above local priority so a local or style value is never overwritten, only covered until Revert.
         _unclip ??= _host.SetValue(Visual.ClipToBoundsProperty, false, BindingPriority.Animation);
         _host.SetValue(SplitProperty, this);
+        // Laid out where the host's arrange will put it, so slots exist before the host's next layout pass.
+        root.Measure(Size.Infinity);
+        var padding = _host.Padding;
+        var free = Math.Max(0, _width - padding.Left - padding.Right - root.DesiredSize.Width);
+        root.Arrange(new Rect(new Point(padding.Left + free * AlignmentFactor(), padding.Top), root.DesiredSize));
         _ready = true;
 
         for (var i = 0; i < _effects.Count; i++) _cleanups[i] = _effects[i](this);
+    }
+
+    // Mirrors how Avalonia's TextLine offsets a line inside its paragraph.
+    private double AlignmentFactor()
+    {
+        var rtl = _host.FlowDirection == FlowDirection.RightToLeft;
+        return _host.TextAlignment switch
+        {
+            TextAlignment.Center => 0.5,
+            TextAlignment.Right => 1,
+            TextAlignment.Left => 0,
+            TextAlignment.End => rtl ? 0 : 1,
+            _ => rtl ? 1 : 0,
+        };
     }
 
     private List<string> MeasureLines(out double baseline)
@@ -217,6 +259,7 @@ public sealed class TextSplitter : IRevertible
             FontStretch = _host.FontStretch,
             LetterSpacing = _host.LetterSpacing,
             TextWrapping = _host.TextWrapping,
+            Padding = _host.Padding,
         };
         measure.Measure(new Size(_width, double.PositiveInfinity));
         LineHeight = measure.TextLayout.TextLines[0].Height;
@@ -308,6 +351,9 @@ public sealed class TextSplitter : IRevertible
         }
         return tokens;
     }
+
+    /// <summary>The graphemes a character split of <paramref name="text"/> makes pieces of, in reading order.</summary>
+    internal static IEnumerable<string> CharsOf(string text) => Tokenize(text).Where(token => !char.IsWhiteSpace(token[0])).SelectMany(Graphemes);
 
     private static List<string> Graphemes(string text)
     {

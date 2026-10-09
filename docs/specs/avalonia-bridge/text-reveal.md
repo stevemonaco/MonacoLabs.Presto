@@ -83,12 +83,12 @@ depends:
 - **BRIDGE-TEXTREVEAL-015** — When a `TextBlock` with `Pieces` leaves and its exit is not a reduced form, `Presence` shall exit it as one ghost per piece in one frame canvas, the ghosts being the exit's targets in reading order.
   - Tests: `PresenceTextExitTests.AnIndexStaggerStartsTheGhostsInReadingOrder`, `PresenceTextExitTests.TextExitRecipesAnimateEveryGhostToItsEndAndDismissTheHost`, `TypographyPageTests.TheRotatorDropsTheOldWordAsCharGhostsThenRisesTheNewOneWithoutFlashing`
 - **BRIDGE-TEXTREVEAL-016** — Each ghost shall stand at its piece's layout offset in the block.
-  - Tests: `PresenceTextExitTests.EachGhostStandsInItsPiecesSlot`
+  - Tests: `PresenceTextExitTests.EachGhostStandsInItsPiecesSlot`, `PresenceTextExitTests.EachGhostStandsInItsPiecesSlotOnACenteredBlock`
 - **BRIDGE-TEXTREVEAL-017** — Each ghost shall carry its piece's line index, index in line and the block's line height, so `StaggerByLine` and `LineHeightOf` work on ghosts.
   - Tests: `PresenceTextExitTests.StaggerByLineStartsEveryGhostOfALineAfterEveryGhostOfTheLineBefore`, `PresenceTextExitTests.CharCascadeOutStartsEachLinesGhostsAfterTheLineBefore`, `PresenceTextExitTests.LineHeightOfAGhostIsTheBlocksLineHeight`
 - **BRIDGE-TEXTREVEAL-018** — When `Mask` is true, each ghost shall be clipped to its piece's box.
   - Tests: `PresenceTextExitTests.AMaskedLineGhostIsClippedToItsLineBox`
-- **BRIDGE-TEXTREVEAL-019** — A block that is not split shall be split for the snapshot, outside any ambient scope, laid out in its last bounds and reverted before the exit plays; a block still split by an arrival shall be snapshotted from its live pieces, their shorthand transforms moving onto the ghosts.
+- **BRIDGE-TEXTREVEAL-019** — A block that is not split shall be split for the snapshot, outside any ambient scope, its pieces laid out by the split (BRIDGE-TEXT-054) at the block's last width, and reverted before the exit plays; a block still split by an arrival shall be snapshotted from its live pieces, their shorthand transforms moving onto the ghosts.
   - Tests: `PresenceTextExitTests.LeavingMidRevealGhostsTheLivePiecesAsDrawn`
 - **BRIDGE-TEXTREVEAL-020** — When a level has more than 256 pieces, the ghosts shall coarsen from characters to words to lines, and to one whole-element ghost when every level is over the cap.
   - Tests: `PresenceTextExitTests.OverTheCapGhostsCoarsenFromCharsToWordsToLinesToOneWholeGhost`

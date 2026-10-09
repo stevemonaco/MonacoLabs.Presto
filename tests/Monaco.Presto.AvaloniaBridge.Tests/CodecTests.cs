@@ -281,6 +281,40 @@ public sealed class CodecTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void FontWeightInterpolatesAsARoundedNumber()
+    {
+        Assert.Equal((FontWeight)650, Tweened(FontWeight.Normal, TweenValue.Of(FontWeight.Black), .5005));
+    }
+
+    [AvaloniaFact]
+    public void FontWeightAndStretchAreClampedToTheirRanges()
+    {
+        Assert.Equal((FontWeight)1000, Tweened(FontWeight.Normal, 1400));
+        Assert.Equal((FontWeight)1, Tweened(FontWeight.Normal, -200));
+        Assert.Equal(FontStretch.UltraExpanded, Tweened(FontStretch.Normal, 12));
+        Assert.Equal(FontStretch.UltraCondensed, Tweened(FontStretch.Normal, -3));
+    }
+
+    [AvaloniaFact]
+    public void FontWeightAndStretchParseNamesAndNumbers()
+    {
+        Assert.Equal(FontWeight.Bold, Tweened(FontWeight.Normal, "Bold"));
+        Assert.Equal(FontWeight.Light, Tweened(FontWeight.Normal, "light"));
+        Assert.Equal(FontStretch.ExtraCondensed, Tweened(FontStretch.Normal, "ExtraCondensed"));
+        Assert.Equal((FontWeight)650, Tweened(FontWeight.Normal, "650"));
+    }
+
+    [AvaloniaFact]
+    public void FontWeightReadsAsANumberSoRelativeValuesWork()
+    {
+        var text = new TextBlock { FontWeight = FontWeight.Normal };
+        Assert.Equal(400.0, Presto.Get(text, "FontWeight", false));
+
+        Presto.Animate(text, new() { ["FontWeight"] = "+=200", Duration = 100, Autoplay = false }).Seek(100);
+        Assert.Equal((FontWeight)600, text.FontWeight);
+    }
+
+    [AvaloniaFact]
     public void PrestoEasingSamplesTheWrappedEase()
     {
         var ease = Eases.OutQuad;

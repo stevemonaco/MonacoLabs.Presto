@@ -30,6 +30,7 @@ public sealed class RecipeTests : CompositorTestBase
         ["BlurIn"] = () => Recipes.BlurIn(),
         ["SlideIn"] = () => Recipes.SlideIn(Edge.Top),
         ["FlipIn"] = () => Recipes.FlipIn(),
+        ["Gather"] = () => Recipes.Gather(),
     };
 
     private static readonly Dictionary<string, (Func<AnimationBuilder> Build, string Property, double End)> Exits = new()
@@ -44,6 +45,8 @@ public sealed class RecipeTests : CompositorTestBase
         ["BlurOut"] = (() => Recipes.BlurOut(), "Blur", 12),
         ["SlideOut"] = (() => Recipes.SlideOut(Edge.Right), "X", 96),
         ["FlipOut"] = (() => Recipes.FlipOut(), "RotateX", -90),
+        ["Scatter"] = (() => Recipes.Scatter(), "Scale", 0.6),
+        ["Fall"] = (() => Recipes.Fall(), "Y", 144),
     };
 
     private static readonly Dictionary<string, Func<double, AnimationBuilder>> Attention = new()
@@ -63,6 +66,7 @@ public sealed class RecipeTests : CompositorTestBase
         ["Spin"] = () => Recipes.Spin(),
         ["Breathe"] = () => Recipes.Breathe(),
         ["Blink"] = () => Recipes.Blink(),
+        ["Wave"] = () => Recipes.Wave(),
     };
 
     private static readonly Dictionary<string, Func<AnimationBuilder>> Interactions = new()
@@ -387,6 +391,79 @@ public sealed class RecipeTests : CompositorTestBase
         if (Loading.ContainsKey(name)) Assert.Equal(["Opacity"], reduced.Properties.Keys);
         else Assert.False(reduced.Loop is { Value: not 0 });
         if (Loops.ContainsKey(name)) Assert.Empty(reduced.Properties);
+    }
+
+    [AvaloniaFact]
+    public void ScatterEndsEachElementWithinItsDistanceAndSpin()
+    {
+        var cards = Enumerable.Range(0, 8).Select(_ => new Border()).ToArray();
+
+        var animation = Recipes.Scatter(distance: 50, spin: 30).Animate(cards);
+        RunUntil(() => animation.Completed);
+
+        Assert.All(cards, card =>
+        {
+            Assert.InRange(Value(card, "X"), -50, 50);
+            Assert.InRange(Value(card, "Y"), -50, 50);
+            Assert.InRange(Value(card, "Rotate"), -30, 30);
+        });
+        Assert.True(cards.Select(card => Value(card, "X")).Distinct().Count() > 1);
+    }
+
+    [AvaloniaFact]
+    public void FallDropsItsDistanceWithASmallDriftAndFadesOverItsLastThird()
+    {
+        var cards = Enumerable.Range(0, 8).Select(_ => new Border()).ToArray();
+
+        var animation = Recipes.Fall(distance: 100, seed: 2, duration: 900, ease: "linear").Autoplay(false).Animate(cards);
+
+        animation.Seek(590);
+        Assert.All(cards, card => Assert.Equal(1, card.Opacity, 6));
+        animation.Seek(750);
+        Assert.All(cards, card => Assert.Equal(0.5, card.Opacity, 6));
+        animation.Seek(900);
+        Assert.All(cards, card =>
+        {
+            Assert.Equal(0, card.Opacity, 6);
+            Assert.Equal(100, Value(card, "Y"), 6);
+            Assert.InRange(Value(card, "X"), -25, 25);
+            Assert.InRange(Value(card, "Rotate"), -45, 45);
+        });
+    }
+
+    [AvaloniaFact]
+    public void ASeedReplaysTheSameOffsetsAndGatherStartsWhereScatterEnds()
+    {
+        static double[] Offsets(AnimationBuilder builder, bool atEnd)
+        {
+            var cards = Enumerable.Range(0, 5).Select(_ => new Border()).ToArray();
+            var animation = builder.Autoplay(false).Animate(cards);
+            animation.Seek(atEnd ? animation.Duration : 0);
+            return [.. cards.SelectMany(card => new[] { "X", "Y", "Rotate" }.Select(property => Math.Round(Value(card, property), 6)))];
+        }
+
+        var scatter = Recipes.Scatter(seed: 7);
+        var ends = Offsets(scatter, atEnd: true);
+
+        Assert.Equal(ends, Offsets(scatter, atEnd: true));
+        Assert.Equal(ends, Offsets(Recipes.Scatter(seed: 7), atEnd: true));
+        Assert.Equal(ends, Offsets(Recipes.Gather(seed: 7), atEnd: false));
+        Assert.NotEqual(ends, Offsets(Recipes.Scatter(seed: 8), atEnd: true));
+        Assert.Equal(Offsets(Recipes.Fall(seed: 7), atEnd: true), Offsets(Recipes.Fall(seed: 7), atEnd: true));
+        Assert.NotEqual(Offsets(Recipes.Fall(seed: 7), atEnd: true), Offsets(Recipes.Fall(seed: 8), atEnd: true));
+    }
+
+    [AvaloniaFact]
+    public void WaveDelaysEachElementByItsIndexTimesTheStep()
+    {
+        Border[] cards = [new(), new(), new()];
+
+        Recipes.Wave(distance: 40, step: 50, delay: 100, duration: 400, ease: "linear").Animate(cards);
+        Frames.Advance(300, 10);
+
+        Assert.Equal(-20, Value(cards[0], "Y"), 2d);
+        Assert.Equal(5, Value(cards[1], "Y") - Value(cards[0], "Y"), 6);
+        Assert.Equal(5, Value(cards[2], "Y") - Value(cards[1], "Y"), 6);
     }
 
     [AvaloniaFact]

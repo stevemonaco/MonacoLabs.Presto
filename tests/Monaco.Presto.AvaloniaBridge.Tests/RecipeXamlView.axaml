@@ -14,6 +14,9 @@
     <Border x:Name="Faded" Height="20"
             presto:Presence.Enter="{presto:Fade Direction=Up, Distance=24}"
             presto:Presence.Exit="{presto:Fade Direction=Up, Distance=24}" />
+    <Border x:Name="Scattered" Height="20"
+            presto:Presence.Enter="{presto:Scatter Distance=50, Spin=30, Seed=4}"
+            presto:Presence.Exit="{presto:Scatter Distance=50, Spin=30, Seed=4}" />
     <Border x:Name="Styled" Classes="leaving" Height="20" />
     <Border x:Name="Twin" Height="20" presto:Presence.Enter="{presto:Fade}" />
     <Border x:Name="OtherTwin" Height="20" presto:Presence.Enter="{presto:Fade}" />

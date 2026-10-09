@@ -77,6 +77,8 @@ public static class PrestoAvalonia
             static n => new Vector(n[0], n[1]));
         Presto.Codecs[typeof(RelativePoint)] = new RelativePointCodec();
         Presto.Codecs[typeof(GridLength)] = new GridLengthCodec();
+        Presto.Codecs[typeof(FontWeight)] = new EnumNumberCodec<FontWeight>(1000);
+        Presto.Codecs[typeof(FontStretch)] = new EnumNumberCodec<FontStretch>(9);
         HiddenSignal.Install();
         Presto.Engine.TimerCreated = DetachTracker.Track;
     }

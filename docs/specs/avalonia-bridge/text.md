@@ -47,7 +47,7 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
   - Tests: untested
 - **BRIDGE-TEXT-003** — The splitter shall split at once when the block has a positive width, and otherwise at its first size change.
   - Tests: `TextSplitTests.EffectRunsOnceAfterTheSplit`
-- **BRIDGE-TEXT-004** — The splitter shall break the text into lines by measuring a copy of the block with its font family, size, style, weight, stretch, letter spacing and wrapping at the block's width, trimming trailing whitespace from each line.
+- **BRIDGE-TEXT-004** — The splitter shall break the text into lines by measuring a copy of the block with its font family, size, style, weight, stretch, letter spacing, wrapping and padding at the block's width, trimming trailing whitespace from each line.
   - Tests: `TextSplitTests.SplitsLinesOnly`, `TextSplitTests.SplitsWordsAndLines`
 - **BRIDGE-TEXT-005** — `LineHeight` shall be the height of the first measured line, available inside an effect before the pieces are laid out.
   - Tests: `TextSplitTests.MeasuresTheLineHeightBeforeThePiecesAreLaidOut`
@@ -86,6 +86,8 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
   - Tests: `TextSplitTests.RefreshRunsTheCleanupsAndTheEffectsAgain`
 - **BRIDGE-TEXT-021** — `Revert` shall stop responding to resizes, run the cleanups, empty the piece lists, put back the text the block had when the splitter was created, and clear the automation name and the clip override.
   - Tests: `TextSplitTests.RevertRunsTheCleanupsAndStopsRespondingToResizes`, `TextSplitTests.RevertRestoresTheOriginalTextBlock`
+- **BRIDGE-TEXT-054** — `SlotOf` shall return the piece's layout box in the block's coordinates, before transforms, for any piece of the current split, valid from the first effect of that split; for a control that is not a piece of this splitter it shall throw `ArgumentException`.
+  - Tests: `TextSplitTests.SlotOfGivesEachPiecesLayoutBoxInBlockCoordinates`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffect`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffectOnACenteredBlock`, `TextSplitTests.SlotOfIgnoresRenderTransforms`, `TextSplitTests.SlotOfFollowsAResplit`, `TextSplitTests.SlotOfRejectsAControlThatIsNotAPieceOfThisSplit`
 
 ### Scramble
 
@@ -165,6 +167,8 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
 ## Decisions
 
 - **Line-aware stagger and line height are public helpers.** `TextSplitter.StaggerByLine` returns a function value stepping by line index and by position in the line, and `LineHeightOf` reads the owning split's `LineHeight` (0 for a non-piece). Reason: recipes must say "from one line down" before pieces have bounds, which the Typography sample page had computed by hand.
+- **`SlotOf` instead of a `Measure` API.** `MorphText` captures the old slots, sets the new text, splits it, and FLIPs each new piece from its partner's old slot. Nothing has to be measured offscreen. Rejected: `TextSplitter.Measure(block, text)`, a second layout path that would have to match the real one.
+- **The split lays its pieces out itself.** Effects run before the host's next layout pass, so the split measures and arranges its piece tree at the block's padding and text alignment, where the host's arrange puts it. Reason: `SlotOf` and exit ghosts need bounds from the first effect, without forcing a layout pass on the host from inside its own `SizeChanged`.
 
 ## Non-goals
 

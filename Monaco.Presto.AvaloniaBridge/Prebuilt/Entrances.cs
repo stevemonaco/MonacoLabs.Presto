@@ -59,6 +59,17 @@ public static class Entrances
         Enter(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(from: angle).Perspective(Recipes.FlipPerspective);
 
     /// <summary>
+    /// Gathers each element in from where <see cref="Exits.Scatter"/> with the same arguments sends it: a random <c>X</c>/<c>Y</c>
+    /// offset within <paramref name="distance"/> (default four times <see cref="MotionTokens.Distance"/>), spun within
+    /// ±<paramref name="spin"/> degrees (default 180), at <c>Scale</c> 0.6, with <see cref="MotionTokens.EmphasizedEase"/>.
+    /// </summary>
+    public static AnimationBuilder Gather(double? distance = null, double? spin = null, int? seed = null, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false)
+    {
+        var (x, y, rotate) = Recipes.ScatterOffsets(distance, spin, seed);
+        return Enter(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).X(from: x).Y(from: y).Rotate(from: rotate).Scale(from: 0.6);
+    }
+
+    /// <summary>
     /// Develops a <see cref="Controls.PrestoImageBase"/> like a photograph over <see cref="MotionTokens.Long"/>: fades in while settling
     /// from <see cref="Controls.PrestoImageBase.Sepia"/> 0.8, <see cref="Controls.PrestoImageBase.Brightness"/> 1.6 and a blur of
     /// <see cref="MotionTokens.BlurRadius"/>. UI thread only: the compositor cannot filter or blur.

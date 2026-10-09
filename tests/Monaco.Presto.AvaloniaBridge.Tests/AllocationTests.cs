@@ -128,6 +128,40 @@ public sealed class AllocationTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
+    public void TextPathRePlacementTicksWithinBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var path = new Path { Data = Geometry.Parse("M0,150 A100,100 0 0 1 200,150") };
+        var block = new TextBlock { Text = "Presto" };
+        Show(new Canvas { Children = { path, block } });
+        TextPath.SetPath(block, path);
+        block.Animate(new() { [TextPath.OffsetProperty] = 0.5, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        // measured 1520: the offset's change plus, per character, the changes its translate and rotate raise; placing adds nothing.
+        Assert.True(bytes <= 1600, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AFlippingSplitFlapTicksWithinBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var board = new SplitFlap { Text = "AAAAAAAA", FlipDuration = 1000 };
+        Show(board);
+        board.Text = "ZZZZZZZZ";
+
+        var bytes = BytesPerTick();
+
+        // measured 743: per flipping cell the 80 of its flap angle's change, plus the texts written at each step's end.
+        Assert.True(bytes <= 800, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void APlayingSpriteSheetTicksWithinBudget(bool diagnostics)
     {
         Presto.Engine.Diagnostics.Enabled = diagnostics;

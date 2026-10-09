@@ -39,7 +39,7 @@ depends:
 
 ## Purpose
 
-Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDrawable` and the `"Draw"` pseudo-property reveal a slice of a `Shape`'s stroke; `CreateMotionPath` returns the `"X"`/`"Y"`/`"Rotate"` tweens that ride a shape's contour or a spline through points; `MorphTo` morphs a `Geometry` `Data` property into another by resampling both. The geometry value codec itself is BRIDGE-CODECS'; the spline is CORE-MOTIONPATH's. Also specifies `PrestoAvalonia.CreateDrawable`, `CreateMotionPath`, `MotionPathGeometry`, `MorphTo` and `MorphPointCount`, and `PropertyBuilderExtensions.Draw` and `Data`.
+Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDrawable` and the `"Draw"` pseudo-property reveal a slice of a `Shape`'s stroke; `CreateMotionPath` returns the `"X"`/`"Y"`/`"Rotate"` tweens that ride a shape's contour or a spline through points; `MorphTo` morphs a `Geometry` `Data` property into another by resampling both. The geometry value codec itself is BRIDGE-CODECS'; the spline is CORE-MOTIONPATH's. `TextPath` (BRIDGE-TEXTPATH) is the live form of the motion path, re-reading the geometry as it changes. Also specifies `PrestoAvalonia.CreateDrawable`, `CreateMotionPath`, `MotionPathGeometry`, `MorphTo` and `MorphPointCount`, and `PropertyBuilderExtensions.Draw` and `Data`.
 
 ## Requirements
 
