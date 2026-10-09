@@ -458,7 +458,30 @@ public sealed class ShapesTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void MorphRotatesAndReversesEachContourToTheLeastTravel()
+    public void AHoleWithoutAPartnerCollapsesIntoInk()
+    {
+        var destination = PrestoAvalonia.TextOutline("0", Font, 100);
+
+        var (_, to, _) = ContourMorph.Of(PrestoAvalonia.TextOutline("B", Font, 100), destination, GeometryCodec.DefaultPrecision)!.Value;
+
+        var collapsed = FiguresOf(to).Single(f => f.All(p => p == f[0]));
+        Assert.True(destination.FillContains(collapsed[0]));
+    }
+
+    [AvaloniaFact]
+    public void OverlappingOuterContoursStayFilledMidMorph()
+    {
+        var squares = Geometry.Parse("M0,0 L60,0 L60,60 L0,60 Z M30,30 L90,30 L90,90 L30,90 Z");
+        var path = new Path { Data = squares, Stretch = Stretch.None };
+
+        var animation = path.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(squares), Duration = 100, Autoplay = false });
+        animation.Seek(50);
+
+        Assert.True(path.Data!.FillContains(new Point(45, 45)));
+    }
+
+    [AvaloniaFact]
+    public void MorphWindsEachContourByItsRoleAndRotatesItToTheLeastTravel()
     {
         var from = Geometry.Parse("M0,0 L30,0 L30,30 L0,30 Z M100,0 L130,0 L130,30 L100,30 Z");
         var to = Geometry.Parse("M30,30 L30,0 L0,0 L0,30 Z M130,30 L130,0 L100,0 L100,30 Z");

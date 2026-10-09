@@ -43,7 +43,7 @@ Deforms the outline pieces of a `TextBlock` split with `SplitTextParams.Outlines
 
 ### Frames
 
-- **BRIDGE-WARP-004** — While `Warp` is not 0 on a split block, the bridge shall map every flattened outline point (BRIDGE-GLYPHS-006) of every outline piece, in block coordinates, through the function of `TextWarp.Kind`, and write the result as the piece's `Data` at `Animation` priority, as closed polygons with the even-odd fill rule.
+- **BRIDGE-WARP-004** — While `Warp` is not 0 on a split block, the bridge shall map every flattened outline point (BRIDGE-GLYPHS-006) of every outline piece, in block coordinates, through the function of `TextWarp.Kind`, and write the result as the piece's `Data` at `Animation` priority, as closed polygons with the nonzero fill rule.
   - Tests: `TextWarpTests.AFrameWritesEachPieceItsOutlineMappedInBlockCoordinates`
 - **BRIDGE-WARP-005** — The bridge shall write a block's warp at most once per engine frame, at the frame's end, however many of its shorthands moved, and again when `TextWarp.Kind` changes.
   - Tests: `TextWarpTests.SeveralShorthandsMovingInOneFrameWriteOnce`
@@ -91,7 +91,7 @@ With `a` the `Warp` amount, `R` the `WarpRadius`, `o` the `WarpOrigin`, `W` × `
 
 - Character pieces without an outline (emoji, color glyphs) are text pieces and are not warped.
 - A warp animated on a block that is not split yet writes nothing; it shows from the next frame in which a shorthand moves after the split.
-- `Twist` and a large `Bulge` can fold the outline over itself; the even-odd fill then shows the overlap as a hole.
+- `Twist` and a large `Bulge` can fold the outline over itself; the nonzero fill draws the overlap as ink.
 - `WarpOrigin` and the block-relative kinds read the block's bounds at each frame, so a resize moves the identity origin with the block's center.
 
 ## Threading and lifetime

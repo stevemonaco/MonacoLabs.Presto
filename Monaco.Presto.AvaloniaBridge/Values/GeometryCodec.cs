@@ -35,7 +35,7 @@ internal sealed class GeometryCodec : IValueCodec
         var closed = strings.Length > 0 && strings[^1].Contains('Z');
         var geometry = new StreamGeometry();
         using var context = geometry.Open();
-        if (closed) context.SetFillRule(FillRule.EvenOdd);
+        if (closed) context.SetFillRule(FillRule.NonZero);
         context.BeginFigure(new Point(numbers[0], numbers[1]), true);
         for (var i = 2; i + 1 < numbers.Length; i += 2)
         {

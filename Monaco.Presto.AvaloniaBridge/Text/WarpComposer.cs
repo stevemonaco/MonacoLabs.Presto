@@ -249,7 +249,7 @@ internal sealed class WarpComposer
             var geometry = new StreamGeometry();
             using (var context = geometry.Open())
             {
-                context.SetFillRule(FillRule.EvenOdd);
+                context.SetFillRule(FillRule.NonZero);
                 foreach (var contour in contours.Contours)
                 {
                     var points = contour.Points;

@@ -92,7 +92,31 @@ public partial class GlyphLabPage : ShowcasePage
     }
 
     private Geometry OneFigureOf(string text) =>
-        new PolylineGeometry(Contours(PrestoAvalonia.TextOutline(text, TypefaceOf(Paired), Paired.FontSize)).SelectMany(c => c.Points), isFilled: true);
+        new PolylineGeometry(Keyhole(Contours(PrestoAvalonia.TextOutline(text, TypefaceOf(Paired), Paired.FontSize)).Select(c => c.Points)), isFilled: true);
+
+    // Each ring joins by a bridge out and back along one segment between its closest points, so at rest the figure has no seam.
+    private static List<Point> Keyhole(IEnumerable<Point[]> rings)
+    {
+        var figure = new List<Point>();
+        foreach (var ring in rings)
+        {
+            if (figure.Count == 0)
+            {
+                figure.AddRange(ring);
+                continue;
+            }
+            var (at, from) = (0, 0);
+            for (var i = 0; i < figure.Count; i++)
+            {
+                for (var j = 0; j < ring.Length; j++)
+                {
+                    if (Point.Distance(figure[i], ring[j]) < Point.Distance(figure[at], ring[from])) (at, from) = (i, j);
+                }
+            }
+            figure.InsertRange(at + 1, [.. ring[from..], .. ring[..from], ring[from], figure[at]]);
+        }
+        return figure;
+    }
     #endregion
 
     private void PickFont(object? sender, SelectionChangedEventArgs e)
