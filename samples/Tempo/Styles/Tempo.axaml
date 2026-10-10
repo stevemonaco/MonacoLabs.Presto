@@ -395,15 +395,42 @@
     </Style>
 
     <!-- One shell, two arrangements: compact trades the Tasks column and the title-bar switch for the bottom bar. -->
-    <Style Selector="v|ShellView.compact Border#TasksColumn, v|ShellView.compact ListBox#Switch">
+    <Style Selector="v|ShellView.compact Border#TasksColumn, v|ShellView.compact ListBox#Switch, v|ShellView.compact Button#SettingsButton">
         <Setter Property="IsVisible" Value="False" />
     </Style>
-    <Style Selector="ListBox.bottom-nav">
+    <Style Selector="Border.bottom-bar">
         <Setter Property="IsVisible" Value="False" />
         <Setter Property="Padding" Value="8,6" />
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
         <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="v|ShellView.compact Border.bottom-bar">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Button.nav-settings">
+        <Setter Property="Height" Value="52" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+        <Setter Property="presto:Motion.Press" Value="{presto:PressIn}" />
+    </Style>
+    <Style Selector="Button.nav-settings:pointerover /template/ ContentPresenter, Button.nav-settings:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.nav-settings.open">
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="Button.nav-settings.open PathIcon.nav-icon">
+        <Setter Property="presto:Motion.State" Value="open" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
         <Setter Property="ItemContainerTheme" Value="{StaticResource NavItem}" />
         <Setter Property="ItemTemplate" Value="{StaticResource NavItemTemplate}" />
         <Setter Property="ItemsPanel">
@@ -411,9 +438,6 @@
                 <UniformGrid Rows="1" />
             </ItemsPanelTemplate>
         </Setter>
-    </Style>
-    <Style Selector="v|ShellView.compact ListBox.bottom-nav">
-        <Setter Property="IsVisible" Value="True" />
     </Style>
     <Style Selector="ListBox.bottom-nav Border.segment-pill">
         <Setter Property="Margin" Value="10,0" />

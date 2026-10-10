@@ -71,11 +71,28 @@
             </Border>
         </DockPanel>
 
-        <ListBox x:Name="BottomNav" Grid.Row="2" Classes="bottom-nav handoff" SelectedItem="{Binding CurrentView}">
-            <x:Static Member="vm:AppView.Tasks" />
-            <x:Static Member="vm:AppView.Focus" />
-            <x:Static Member="vm:AppView.Stats" />
-        </ListBox>
+        <!-- Settings is a button beside the pages, not a fourth item: it opens the sheet over the page, so the pill stays put. -->
+        <Border Grid.Row="2" Classes="bottom-bar handoff">
+            <Grid ColumnDefinitions="3*,*">
+                <ListBox x:Name="BottomNav" Classes="bottom-nav" SelectedItem="{Binding CurrentView}">
+                    <x:Static Member="vm:AppView.Tasks" />
+                    <x:Static Member="vm:AppView.Focus" />
+                    <x:Static Member="vm:AppView.Stats" />
+                </ListBox>
+                <Button x:Name="NavSettings" Grid.Column="1" Classes="nav-settings" Command="{Binding OpenSettingsCommand}">
+                    <StackPanel Spacing="3">
+                        <PathIcon Classes="nav-icon" Data="{StaticResource SettingsIcon}">
+                            <presto:Motion.States>
+                                <presto:MotionStates>
+                                    <presto:MotionState When="open" Motion="{x:Static m:TempoMotion.GearSpin}" />
+                                </presto:MotionStates>
+                            </presto:Motion.States>
+                        </PathIcon>
+                        <TextBlock Text="Settings" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
 
         <presto:ToastHost x:Name="Toasts" Grid.Row="1" MaxCount="1" MaxWidth="320" Margin="16,0,16,24" VerticalAlignment="Bottom">
             <presto:ToastHost.ItemTemplate>

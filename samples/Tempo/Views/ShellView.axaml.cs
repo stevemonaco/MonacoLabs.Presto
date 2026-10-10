@@ -31,7 +31,7 @@ public partial class ShellView : UserControl
         SettingsSheet.PropertyChanged += (_, e) =>
         {
             if (e.Property == Sheet.IsOpenProperty)
-                SettingsButton.Classes.Set("open", SettingsSheet.IsOpen);
+                NavSettings.Classes.Set("open", SettingsSheet.IsOpen);
         };
         // Code-only: the Tasks page adopts the one TasksPane, so the column and the page never hold two lists' state.
         // Not on null: the template reaches nested presenters, and a typed FuncDataTemplate matches null content.

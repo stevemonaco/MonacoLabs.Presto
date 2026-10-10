@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Controls;
+using Tempo.ViewModels;
 using Tempo.Views;
 
 namespace Tempo.Tests;
@@ -32,7 +33,7 @@ public sealed class SurfaceTests : TempoTestBase
         var settings = Find<Sheet>(window, "SettingsSheet");
         var rows = settings.GetVisualDescendants().OfType<StackPanel>().First(p => p.Classes.Contains("settings")).Children;
         Assert.True(settings.IsOpen);
-        Assert.Contains("open", Find<Button>(window, "SettingsButton").Classes);
+        Assert.Contains("open", Find<Button>(window, "NavSettings").Classes);
         Assert.Empty(window.GetVisualDescendants().OfType<FlyoutPresenter>());
         Assert.All(rows, row => Assert.True(row.Opacity < 1));
         TestFrames.Tick(50);
@@ -41,7 +42,7 @@ public sealed class SurfaceTests : TempoTestBase
         vm.RequestClearCommand.Execute(null);
         TestFrames.Tick(40);
         Assert.False(settings.IsOpen);
-        Assert.DoesNotContain("open", Find<Button>(window, "SettingsButton").Classes);
+        Assert.DoesNotContain("open", Find<Button>(window, "NavSettings").Classes);
         Assert.True(Find<Modal>(window, "ConfirmModal").IsOpen);
 
         window.Close();
@@ -77,6 +78,33 @@ public sealed class SurfaceTests : TempoTestBase
         Assert.False(Find<Sheet>(window, "SettingsSheet").IsOpen);
         Assert.Empty(window.GetVisualDescendants().OfType<FlyoutPresenter>());
         Assert.DoesNotContain("open", Find<Button>(window, "SettingsButton").Classes);
+        Assert.DoesNotContain("open", Find<Button>(window, "NavSettings").Classes);
+
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheBottomBarsSettingsOpensTheSheetOverThePageWithoutMovingThePill(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced, new Size(360, 780), "Write");
+        var nav = Find<ListBox>(window, "BottomNav");
+        var button = Find<Button>(window, "NavSettings");
+        Assert.True(button.IsEffectivelyVisible);
+        Assert.False(Find<Button>(window, "SettingsButton").IsEffectivelyVisible);
+
+        button.Command!.Execute(null);
+        TestFrames.Tick(30);
+        Assert.True(Find<Sheet>(window, "SettingsSheet").IsOpen);
+        Assert.Equal(AppView.Focus, vm.CurrentView);
+        Assert.Equal(AppView.Focus, nav.SelectedItem);
+
+        window.Width = 1100;
+        TestFrames.Tick(30);
+        Assert.False(button.IsEffectivelyVisible);
+        Assert.True(Find<Button>(window, "SettingsButton").IsEffectivelyVisible);
 
         window.Close();
         await vm.FlushAsync();
