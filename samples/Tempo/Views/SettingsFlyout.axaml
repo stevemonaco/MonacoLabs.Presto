@@ -6,8 +6,7 @@
              xmlns:v="using:Tempo.Views"
              xmlns:vm="using:Tempo.ViewModels"
              x:Class="Tempo.Views.SettingsFlyout"
-             x:DataType="vm:MainViewModel"
-             Width="300">
+             x:DataType="vm:MainViewModel">
     <!-- Flat, so every heading and row is one arrival batch and staggers in order. -->
     <StackPanel Classes="settings" Spacing="8">
         <TextBlock Classes="heading" Text="Settings" />

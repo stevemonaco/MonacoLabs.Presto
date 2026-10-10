@@ -14,7 +14,7 @@
         <TransitioningContentControl Classes="mode accent-fg handoff" Content="{Binding ModeLabel}"
                                      PageTransition="{presto:PageSharedAxis Axis=Y}" HorizontalAlignment="Center" />
 
-        <Panel Grid.Row="1" Width="300" Height="300">
+        <Panel x:Name="Dial" Grid.Row="1" Width="300" Height="300">
             <Panel>
                 <presto:Motion.States>
                     <presto:MotionStates>
@@ -26,14 +26,19 @@
                                      Value="{presto:Follow {Binding Progress}, Duration=250, Ease=linear}"
                                      presto:Connected.Key="{Binding RingKey}" presto:Connected.Motion="{x:Static m:TempoMotion.IntroFlight}" />
             </Panel>
-            <StackPanel Classes="handoff" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock x:Name="Digits" Classes="digits" HorizontalAlignment="Center" />
-                <TextBlock Classes="caption" Text="{Binding ActiveTask.Title, FallbackValue=''}" MaxWidth="200"
-                           TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
-            </StackPanel>
+            <!-- Laid out at the full 300 and scaled with the dial, so the digits keep their place in the ring. -->
+            <Viewbox>
+                <Panel Width="300" Height="300">
+                    <StackPanel Classes="handoff" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel x:Name="Digits" Classes="digits" Orientation="Horizontal" HorizontalAlignment="Center" />
+                        <TextBlock Classes="caption" Text="{Binding ActiveTask.Title, FallbackValue=''}" MaxWidth="200"
+                                   TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Panel>
+            </Viewbox>
         </Panel>
 
-        <StackPanel Grid.Row="2" Classes="handoff" Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
+        <StackPanel Grid.Row="2" Classes="controls handoff" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Classes="icon" Command="{Binding SkipCommand}" VerticalAlignment="Center" ToolTip.Tip="Skip"
                     presto:Motion.Hover="{x:Static m:TempoMotion.SkipNudge}">
                 <PathIcon Data="{StaticResource SkipIcon}" />

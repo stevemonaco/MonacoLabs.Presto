@@ -108,11 +108,11 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
   - Tests: `CompositorCompileTests.ASpringEaseCompilesWithoutTheSamplingCompletingIt`, `CompositorCompileTests.AnInertiaCompilesToTheCurveTheUIThreadPlays`
 - **BRIDGE-THREAD-020** — `Loop` shall map to an iteration count of loop + 1, or to a forever iteration for an infinite loop.
   - Tests: `CompositorCompileTests.LoopMapsToTheIterationCount`
-- **BRIDGE-THREAD-021** — `Alternate` and `Reversed` shall map to the `Normal`, `Reverse`, `Alternate` and `AlternateReverse` playback directions.
-  - Tests: `CompositorCompileTests.AlternateAndReversedMapToThePlaybackDirection`
+- **BRIDGE-THREAD-021** — `Alternate` and `Reversed` shall map to the `Normal` and `Alternate` playback directions, a reversed run compiling its key frames mirrored in time, so a reversed animation ends on its start values.
+  - Tests: `CompositorCompileTests.AReversedRunCompilesMirroredKeyFramesPlayedForward`
 - **BRIDGE-THREAD-022** — When a looping animation has a `LoopDelay`, each cycle shall hold the iteration's end value for the loop delay.
   - Tests: `CompositorCompileTests.ALoopDelayHoldsTheEndValueForTheRestOfTheCycle`
-- **BRIDGE-THREAD-023** — When an alternating animation has a `LoopDelay`, the compositor animation shall compile one forward-and-back cycle with both holds and play ⌈iterations / 2⌉ such cycles in the `Normal` or `Reverse` direction.
+- **BRIDGE-THREAD-023** — When an alternating animation has a `LoopDelay`, the compositor animation shall compile one forward-and-back cycle with both holds and play ⌈iterations / 2⌉ such cycles in the `Normal` direction.
   - Tests: `CompositorCompileTests.AnAlternatingLoopDelayExpandsIntoATwoIterationCycle`
 - **BRIDGE-THREAD-024** — `Delay` shall become the track delay, with the from value drawn from creation on, before the delay elapses.
   - Tests: `CompositorCompileTests.DelayBecomesTheTrackDelayAndLeavesTheFromValueOnKeyFrameZero`
@@ -167,6 +167,8 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
   - Tests: `CompositorAnimationTests.RevertPutsTheControlBackAsItWas`, `CompositorAnimationTests.RevertLeavesEveryMirrorAtZeroRatherThanBeforeItsDelay`
 - **BRIDGE-THREAD-045** — The compositor animation shall register with `Engine.Current.CurrentScope` when there is one, so reverting the scope reverts it.
   - Tests: `CompositorPageTests.ThePageRunsAndRevertsEverythingOnDetach`
+- **BRIDGE-THREAD-057** — When a compositor animation with `Reversed` completes, the visual shall rest on the animation's start values until it is reverted.
+  - Tests: `CompositorPlaybackTests.AReversedRunRestsOnItsStartValuesUntilReverted`, `PageTransitionTests.GoingBackWithTheForwardPairNeverBlinksTheIncomingPage`
 
 ### Ownership of composition properties
 
@@ -245,6 +247,7 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 - **Unsupported properties throw rather than fall back.** A property or setting with no composition counterpart throws `NotSupportedException` from `AnimateOnCompositor`, including a builder setting it cannot honor. Reason: a silent UI-thread fallback, or a silently dropped setting, would defeat the point of the API. Rejected: silent fallback and silent dropping; fallback is opt-in through `PreferCompositor` instead.
 - **Only pure eases cross to the render thread.** A spring compiles through its pure solver, never `Spring.Ease`. Reason: the render thread calls the ease per frame, and `Spring.Ease` mutates its completion state as it is sampled.
 - **Delay holds the from value.** `Delay` maps to the track delay with the initial value set before it. Reason: anime.js renders `from` at creation.
+- **Reversal is compiled into the key frames.** A reversed run compiles its key frames mirrored in time, eases inverted, and plays them `Normal` (`Alternate` when it alternates), its delay holding the forward end it starts on. Reason: Avalonia's key frame instance returns the last frame once a run ends, in any direction, and the first during a delay, so `PlaybackDirection.Reverse` ended on the forward end values. Rejected: writing the end value from the mirror on completion, which lands up to a frame late and would still flash.
 - **The pivot follows `RenderTransformOrigin`.** The `CenterPoint` is an expression built from the origin at compile time: a relative origin scales with the control's size, an absolute one is constant, and an origin change restarts it. Reason: a fixed center (the earlier `Size * 0.5`) made a bottom-origin ball squash about its middle while UI-thread shorthands honor the origin; an expression keeps a relative origin correct across resizes, and keeping the absolute origin an expression lets start, restart and stop share one `CenterPoint` animation.
 - **Opacity is held and playback is emulated by recompiling.** `Visual.Opacity` is held by an `Animation`-priority binding for the life of a compositor opacity track; `Pause`, `Resume`, `Seek`, `Reverse` and speed stop and recompile from the mirror's position (rotating the cycle for infinite loops), and the mirror supplies time, progress, callbacks and `Then`, up to one frame apart from the render thread. Reason: the server animation dies the moment `Visual.Opacity` changes, and `KeyFrameAnimation` has no pause, seek, rate, completion event or readback. Rejected: measuring and compensating the skew through `CompositionBatch.Processed`, not worth it until the skew is visible.
 - **One owner per composition property.** Compositor animations register per (visual, composition property) with replace semantics, as `waapi/composition.js` does, `Presto.Remove(control)` reaches them, and layout transitions share the registry. Mixing a UI-thread transform shorthand and a compositor animation on one control is unsupported and only gets a Debug warning. Reason: the two compose multiplicatively on the server, and blend composition and per-frame callbacks do not exist there.

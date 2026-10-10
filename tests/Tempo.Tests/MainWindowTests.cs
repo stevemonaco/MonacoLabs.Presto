@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
@@ -15,14 +16,22 @@ namespace Tempo.Tests;
 
 public sealed class MainWindowTests : TempoTestBase
 {
+    public static TheoryData<int, int, bool> Sizes => new() { { 1100, 720, false }, { 1100, 720, true }, { 360, 780, false }, { 360, 780, true } };
+
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ADayRunsFromTheIntroThroughTheTasksIntoABreak(bool reduced)
+    [MemberData(nameof(Sizes))]
+    public async Task ADayRunsFromTheIntroThroughTheTasksIntoABreak(int width, int height, bool reduced)
     {
-        var (window, vm) = await ShowIntroAsync(Task.CompletedTask, reduced);
+        var (window, vm) = await ShowIntroAsync(Task.CompletedTask, reduced, size: new Size(width, height));
         TickUntilShell(window, 4000);
         TestFrames.Tick(60);
+        Assert.Equal(width < 720, vm.IsCompact);
+        Assert.Equal(vm.IsCompact, window.GetVisualDescendants().OfType<ShellView>().Single().Classes.Contains("compact"));
+        Assert.Equal(vm.IsCompact, Find<ListBox>(window, "BottomNav").IsEffectivelyVisible);
+        Assert.Equal(!vm.IsCompact, Find<ListBox>(window, "Switch").IsEffectivelyVisible);
+        Assert.Equal(!vm.IsCompact, Find<TasksView>(window, "TasksPane").IsEffectivelyVisible);
+        AssertHandoffLanded(window, vm);
+        Navigate(window, vm, AppView.Tasks);
 
         foreach (var title in new[] { "Write", "Review", "Ship" })
         {
@@ -47,6 +56,7 @@ public sealed class MainWindowTests : TempoTestBase
         vm.DeleteSelectedCommand.Execute(null);
         TestFrames.Tick(30);
         vm.SelectedTask = write;
+        Navigate(window, vm, AppView.Focus);
 
         vm.Focus.StartPauseCommand.Execute(null);
         Time.Advance(TimeSpan.FromMinutes(vm.WorkMinutes));
@@ -61,25 +71,26 @@ public sealed class MainWindowTests : TempoTestBase
         Assert.Equal(FocusMode.ShortBreak, vm.Focus.Mode);
         var accent = window.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("accent-bg"));
         Assert.Equal(TempoMotion.ShortBreakAccent, Assert.IsAssignableFrom<ISolidColorBrush>(accent.Background).Color);
-        var drawer = window.GetVisualDescendants().OfType<Drawer>().Single();
-        Assert.False(drawer.IsOpen);
-        Assert.Equal(0, drawer.Position.Value);
+        var detail = Find<Sheet>(window, vm.IsCompact ? "DetailSheet" : "DetailDrawer");
+        Assert.False(detail.IsOpen);
+        Assert.Equal(0, detail.Position.Value);
 
         window.Close();
         await vm.FlushAsync();
     }
 
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task TheSampleDataSurvivesAFilterASessionAStatsVisitAClearAndARestore(bool reduced)
+    [MemberData(nameof(Sizes))]
+    public async Task TheSampleDataSurvivesAFilterASessionAStatsVisitAClearAndARestore(int width, int height, bool reduced)
     {
-        var (window, vm) = await ShowIntroAsync(Task.CompletedTask, reduced, firstRun: true);
+        var (window, vm) = await ShowIntroAsync(Task.CompletedTask, reduced, firstRun: true, new Size(width, height));
         TickUntilShell(window, 4000);
         TestFrames.Tick(60);
+        AssertHandoffLanded(window, vm);
         var overlay = OverlayLayer.GetOverlayLayer(window)!;
         var overlays = overlay.Children.Count;
         Assert.Equal((12, 4), (vm.Tasks.Count, vm.DoneTasks.Count));
+        Navigate(window, vm, AppView.Tasks);
         AssertRowsWhole(window);
 
         var chips = Find<ListBox>(window, "TagChips");
@@ -92,39 +103,40 @@ public sealed class MainWindowTests : TempoTestBase
         Assert.Equal(vm.Tasks, vm.VisibleTasks);
         AssertRowsWhole(window);
 
+        Navigate(window, vm, AppView.Focus);
         var label = Find<TextBlock>(window, "StartLabel");
         vm.Focus.StartPauseCommand.Execute(null);
         Time.Advance(TimeSpan.FromSeconds(3));
         Ticks.Raise();
         TestFrames.Tick(60);
-        Assert.Equal("24:57", Find<TextBlock>(window, "Digits").Text);
+        Assert.Equal("24:57", ClockText(window));
         Assert.False(label.IsVisible);
         vm.Focus.StartPauseCommand.Execute(null);
         TestFrames.Tick(60);
         Assert.Equal("Resume", label.Text);
 
-        vm.CurrentView = AppView.Stats;
-        TestFrames.Tick(100);
+        Navigate(window, vm, AppView.Stats);
+        TestFrames.Tick(40);
         var cells = window.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("heat")).ToList();
         Assert.Equal(vm.Stats.Heatmap.Count, cells.Count);
         Assert.All(cells, c => Assert.Equal(1, c.Opacity));
         var segments = window.GetVisualDescendants().OfType<Ellipse>().Where(e => e.Classes.Contains("donut-segment"));
         Assert.Equal(vm.Stats.Segments.Select(s => s.End), segments.Select(s => ((double[])PrestoAvalonia.Get(s, "Draw")!)[1]));
-        vm.CurrentView = AppView.Focus;
-        TestFrames.Tick(60);
-        Assert.Equal("24:57", Find<TextBlock>(window, "Digits").Text);
+        Navigate(window, vm, AppView.Focus);
+        Assert.Equal("24:57", ClockText(window));
 
         OpenConfirm(vm, vm.RequestClearCommand);
         HoldToConfirm(window);
         TestFrames.Tick(120);
         Assert.Equal((0, 0, 0), (vm.Tasks.Count, vm.DoneTasks.Count, vm.Sessions.Count));
-        Assert.Equal("25:00", Find<TextBlock>(window, "Digits").Text);
+        Assert.Equal("25:00", ClockText(window));
 
         OpenConfirm(vm, vm.RequestRestoreCommand);
         HoldToConfirm(window);
         TestFrames.Tick(60);
         Assert.Equal((12, 4), (vm.Tasks.Count, vm.DoneTasks.Count));
         Assert.NotEmpty(vm.Sessions);
+        Navigate(window, vm, AppView.Tasks);
         AssertRowsWhole(window);
         Assert.False(Find<Modal>(window, "ConfirmModal").IsOpen);
         Assert.Empty(window.GetVisualDescendants().OfType<FlyoutPresenter>());
@@ -135,6 +147,32 @@ public sealed class MainWindowTests : TempoTestBase
         await vm.FlushAsync();
         var saved = await new TempoStore(Root).LoadAsync();
         Assert.Equal((12, vm.Sessions.Count), (saved.Tasks.Count(t => !t.IsDone), saved.Sessions.Count));
+    }
+
+    // Wide has no Tasks page: the list sits beside every page.
+    private static void Navigate(Window window, MainViewModel vm, AppView view)
+    {
+        if (view == AppView.Tasks && !vm.IsCompact)
+            return;
+        Find<ListBox>(window, vm.IsCompact ? "BottomNav" : "Switch").SelectedItem = view;
+        TestFrames.Tick(60);
+        Assert.Equal(view, vm.CurrentView);
+    }
+
+    private static void AssertHandoffLanded(Window window, MainViewModel vm)
+    {
+        Assert.Empty(window.GetVisualDescendants().OfType<IntroView>());
+        Assert.Empty(OverlayLayer.GetOverlayLayer(window)!.GetVisualDescendants().OfType<Image>());
+        var wordmark = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("wordmark"));
+        var ring = Find<ProgressRing>(window, "Ring");
+        Assert.Equal("ring", vm.Focus.RingKey);
+        foreach (var landed in new Control[] { wordmark, ring })
+        {
+            var slot = new Rect(landed.TranslatePoint(default, window)!.Value, landed.Bounds.Size);
+            Assert.True(new Rect(window.Bounds.Size).Contains(slot), $"{landed} at {slot}");
+            Assert.True(landed.IsEffectivelyVisible);
+            Assert.Equal(1, landed.Opacity);
+        }
     }
 
     private static void AssertRowsWhole(Window window)

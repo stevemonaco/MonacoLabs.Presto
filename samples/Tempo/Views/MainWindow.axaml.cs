@@ -10,6 +10,7 @@ public partial class MainWindow : Window
 {
     private readonly KeyBinding[] _plainKeys;
     private bool _placementSaved;
+    private bool _launchSized;
 
     public MainWindow()
     {
@@ -37,6 +38,15 @@ public partial class MainWindow : Window
         EnablePlainKeys(true);
     }
 
+    /// <summary>Sizes the window for this run only: it wins over the restored placement, which is then not saved over.</summary>
+    public void UseLaunchSize(Size size)
+    {
+        WindowState = WindowState.Normal;
+        Width = size.Width;
+        Height = size.Height;
+        _launchSized = true;
+    }
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
@@ -52,7 +62,8 @@ public partial class MainWindow : Window
         // The app shuts down once the window closes, so the save must land first.
         e.Cancel = true;
         _placementSaved = true;
-        viewModel.SaveWindowPlacement(Width, Height, Position.X, Position.Y, WindowState == WindowState.Maximized);
+        if (!_launchSized)
+            viewModel.SaveWindowPlacement(Width, Height, Position.X, Position.Y, WindowState == WindowState.Maximized);
         await viewModel.FlushAsync();
         Close();
     }

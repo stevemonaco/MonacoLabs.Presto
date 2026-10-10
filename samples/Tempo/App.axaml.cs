@@ -37,6 +37,8 @@ public partial class App : Application
         var viewModel = await MainViewModel.LoadAsync(new TempoStore(), TimeProvider.System, new DispatcherTickSource());
         ApplyMotionSetting(viewModel);
         var window = new MainWindow { DataContext = viewModel };
+        if (Launch.Size is { } size)
+            window.UseLaunchSize(size);
         desktop.MainWindow = window;
         // Already loaded: the placement, the motion setting and the intro setting all come from it.
         window.Start(Task.CompletedTask, Launch.SkipIntro);

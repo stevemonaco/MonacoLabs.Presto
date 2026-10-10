@@ -60,7 +60,7 @@ public static class TempoMotion
 
     public static readonly AnimationBuilder RowLift = Recipes.ReorderLift(duration: 180);
 
-    /// <summary>The selection indicator's glide between task rows and between the view switch's segments.</summary>
+    /// <summary>The selection indicator's glide between task rows, the view switch's segments and the bottom bar's items.</summary>
     public static readonly AnimationBuilder RowSelect = Presto.Build()
         .Duration(280)
         .Ease(Eases.OutCubic)
@@ -249,6 +249,12 @@ public static class TempoMotion
     public static readonly AnimationBuilder ShortBreakFill = Accent("Fill", ShortBreakAccent);
     public static readonly AnimationBuilder LongBreakFill = Accent("Fill", LongBreakAccent);
 
+    /// <summary>
+    /// The page swap, wide and compact: <see cref="Recipes.PageSharedAxis"/> along X, going back with the mirrored pair rather than the
+    /// forward pair reversed, so the back motion eases out too.
+    /// </summary>
+    public static readonly PrestoPageTransition PageSwap = SharedAxisX();
+
     /// <summary>The intro's elements that are not flying enter alongside the ring's flight (<c>Connected.Anchor</c>).</summary>
     public static readonly AnimationBuilder HandoffFade = Presto.Build()
         .Opacity(from: 0)
@@ -327,6 +333,15 @@ public static class TempoMotion
     public static readonly AnimationBuilder IntroWordmarkLand = Presto.Build()
         .Opacity(1)
         .WhenReduced(reduced => reduced.Opacity(1));
+
+    private static PrestoPageTransition SharedAxisX()
+    {
+        var swap = Recipes.PageSharedAxis(PageAxis.X);
+        var mirrored = Recipes.PageSharedAxis(PageAxis.X, -Recipes.Tokens.Distance);
+        swap.BackEnter = mirrored.Enter;
+        swap.BackExit = mirrored.Exit;
+        return swap;
+    }
 
     /// <summary>Recolors <paramref name="property"/> from its current color to <paramref name="accent"/> through OKLCH, so coral to aqua never passes through gray.</summary>
     private static AnimationBuilder Accent(PropertyKey property, Color accent)

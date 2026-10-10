@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
@@ -58,30 +59,38 @@ public abstract class TempoTestBase : IDisposable
     protected Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, params string[] titles) =>
         ShowAsync(reduced, () => LoadWithTasksAsync(titles));
 
-    /// <summary>Shows a window straight on the shell over the first-run sample data, and lets it settle.</summary>
-    protected Task<(MainWindow Window, MainViewModel ViewModel)> ShowSeededAsync(bool reduced) =>
-        ShowAsync(reduced, () => LoadAsync(firstRun: true));
+    /// <summary>As <see cref="ShowAsync(bool, string[])"/>, with the window at <paramref name="size"/>.</summary>
+    protected Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, Size size, params string[] titles) =>
+        ShowAsync(reduced, () => LoadWithTasksAsync(titles), size);
 
-    private static async Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, Func<Task<MainViewModel>> load)
+    /// <summary>Shows a window straight on the shell over the first-run sample data, and lets it settle.</summary>
+    protected Task<(MainWindow Window, MainViewModel ViewModel)> ShowSeededAsync(bool reduced, Size? size = null) =>
+        ShowAsync(reduced, () => LoadAsync(firstRun: true), size);
+
+    private static async Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, Func<Task<MainViewModel>> load, Size? size = null)
     {
         TestFrames.Install();
         if (reduced)
             Presto.Defaults.ReducedMotion = true;
         var vm = await load();
         var window = new MainWindow { DataContext = vm };
+        if (size is { } launch)
+            window.UseLaunchSize(launch);
         window.Show();
         TestFrames.Tick(30);
         return (window, vm);
     }
 
     /// <summary>Shows a window on the intro, which hands off once <paramref name="load"/> completes; ticks nothing.</summary>
-    protected async Task<(MainWindow Window, MainViewModel ViewModel)> ShowIntroAsync(Task load, bool reduced = false, bool firstRun = false)
+    protected async Task<(MainWindow Window, MainViewModel ViewModel)> ShowIntroAsync(Task load, bool reduced = false, bool firstRun = false, Size? size = null)
     {
         TestFrames.Install();
         if (reduced)
             Presto.Defaults.ReducedMotion = true;
         var vm = await LoadAsync(firstRun);
         var window = new MainWindow { DataContext = vm };
+        if (size is { } launch)
+            window.UseLaunchSize(launch);
         window.Start(load, skipIntro: false);
         window.Show();
         return (window, vm);
@@ -119,6 +128,10 @@ public abstract class TempoTestBase : IDisposable
 
     protected static IEnumerable<Border> Rows(Window window) =>
         Find<ListBox>(window, "TaskList").GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("task-row"));
+
+    protected static IReadOnlyList<TextBlock> ClockBlocks(Window window) => Find<StackPanel>(window, "Digits").Children.Cast<TextBlock>().ToList();
+
+    protected static string ClockText(Window window) => string.Concat(ClockBlocks(window).Select(b => b.Text));
 
     protected static T Find<T>(Window window, string name) where T : Control =>
         window.GetVisualDescendants().OfType<T>().Single(c => c.Name == name);

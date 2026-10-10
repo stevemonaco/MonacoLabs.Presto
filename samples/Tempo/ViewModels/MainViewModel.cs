@@ -134,8 +134,21 @@ public sealed partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CurrentPage))]
     public partial AppView CurrentView { get; set; }
 
-    /// <summary>The view model of <see cref="CurrentView"/>.</summary>
-    public ObservableObject CurrentPage => CurrentView == AppView.Stats ? Stats : Focus;
+    /// <summary>The view model of <see cref="CurrentView"/>; the Tasks page is this view model itself.</summary>
+    public ObservableObject CurrentPage => CurrentView switch
+    {
+        AppView.Stats => Stats,
+        AppView.Tasks => this,
+        _ => Focus,
+    };
+
+    /// <summary>Whether the last change of <see cref="CurrentView"/> went back in the bottom bar's order: Tasks, Focus, Stats.</summary>
+    [ObservableProperty]
+    public partial bool IsBack { get; private set; }
+
+    /// <summary>Whether the shell shows its compact layout, set by the view from its width.</summary>
+    [ObservableProperty]
+    public partial bool IsCompact { get; set; }
 
     public MotionPreference Motion
     {
@@ -270,7 +283,20 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnSelectedTaskChanged(TaskItemViewModel? value) => Focus.SelectedTask = value;
 
-    partial void OnCurrentViewChanging(AppView value) => Focus.RingKey = null;
+    // Before CurrentPage changes, so the page host reads the direction for the swap.
+    partial void OnCurrentViewChanging(AppView oldValue, AppView newValue)
+    {
+        Focus.RingKey = null;
+        IsBack = Order(newValue) < Order(oldValue);
+    }
+
+    private static int Order(AppView view) => view == AppView.Tasks ? -1 : (int)view;
+
+    partial void OnIsCompactChanged(bool value)
+    {
+        if (!value && CurrentView == AppView.Tasks)
+            CurrentView = AppView.Focus;
+    }
 
     partial void OnTagFilterChanged(TaskTag? value) => SyncVisible();
 

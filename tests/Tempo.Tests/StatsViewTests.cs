@@ -1,6 +1,10 @@
+using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Shapes;
 using Avalonia.Headless.XUnit;
+using Avalonia.Rendering.Composition;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Controls;
@@ -32,6 +36,36 @@ public sealed class StatsViewTests : TempoTestBase
         TestFrames.Tick(60);
         Assert.Single(window.GetVisualDescendants().OfType<FocusView>());
         Assert.Empty(window.GetVisualDescendants().OfType<StatsView>());
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EachPageFadesOneWayAcrossTheSwapInBothDirections(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced);
+        var host = window.GetVisualDescendants().OfType<TransitioningContentControl>().Single(t => t.Content is FocusViewModel);
+        var presenters = host.GetVisualDescendants().OfType<ContentPresenter>().Where(p => p.TemplatedParent == host).ToList();
+
+        foreach (var view in new[] { AppView.Stats, AppView.Focus, AppView.Stats, AppView.Focus })
+        {
+            var outgoing = presenters.Single(p => p.IsVisible && p.Child is not null);
+            vm.CurrentView = view;
+            TestFrames.Tick();
+            var incoming = presenters.Single(p => p != outgoing);
+            var (wasIn, wasOut) = (0d, 1d);
+            for (var frame = 0; frame < 40; frame++)
+            {
+                var (nowIn, nowOut) = (DrawnOpacity(incoming), outgoing.IsVisible ? DrawnOpacity(outgoing) : 0);
+                Assert.True(nowIn >= wasIn - 1e-3, $"{view} frame {frame}: the incoming page dropped from {wasIn} to {nowIn}");
+                Assert.True(nowOut <= wasOut + 1e-3, $"{view} frame {frame}: the outgoing page rose from {wasOut} to {nowOut}");
+                (wasIn, wasOut) = (nowIn, nowOut);
+                TestFrames.Tick();
+            }
+            Assert.Equal((1d, false), (wasIn, outgoing.IsVisible));
+        }
         window.Close();
         await vm.FlushAsync();
     }
@@ -87,7 +121,7 @@ public sealed class StatsViewTests : TempoTestBase
         TestFrames.Tick(60);
 
         Assert.True(vm.Focus.IsRunning);
-        Assert.Equal("20:00", window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Digits").Text);
+        Assert.Equal("20:00", ClockText(window));
         var icon = window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.Name == "PlayPause");
         Assert.Equal(TempoMotion.PauseIcon.Bounds.Left, icon.Data!.Bounds.Left, 1);
         window.Close();
@@ -151,6 +185,24 @@ public sealed class StatsViewTests : TempoTestBase
         vm.Sessions.Add(new SessionRecord(vm.Tasks[0].Id, FocusMode.Focus, Time.GetUtcNow(), TimeSpan.FromMinutes(25), true));
         vm.CurrentView = AppView.Stats;
         return (window, vm);
+    }
+
+    /// <summary>The opacity the compositor draws, which a render-thread page transition moves without touching <c>Opacity</c>.</summary>
+    private static double DrawnOpacity(Visual visual)
+    {
+        var server = Member(ElementComposition.GetElementVisual(visual)!, "Server");
+        return Convert.ToDouble(Member(server, "Opacity"));
+    }
+
+    // Walks declared members only: the composition types re-declare Server with narrower types.
+    private static object Member(object owner, string name)
+    {
+        for (var type = owner.GetType(); type != null; type = type.BaseType)
+        {
+            if (type.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly) is { } property)
+                return property.GetValue(owner)!;
+        }
+        throw new InvalidOperationException($"{owner.GetType()} has no {name}.");
     }
 
     private static List<Border> Cells(Window window) =>

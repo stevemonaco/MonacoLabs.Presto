@@ -366,6 +366,24 @@ public sealed class MainViewModelTests : TempoTestBase
         Assert.Equal(["A", "C", "B", "D"], reloaded.Tasks.Select(t => t.Title));
     }
 
+    [Fact]
+    public async Task CrossingTheBreakpointKeepsThePageAndTheSelection()
+    {
+        var vm = await LoadWithTasksAsync("A", "B");
+        vm.SelectedTask = vm.Tasks[1];
+        vm.CurrentView = AppView.Stats;
+
+        vm.IsCompact = true;
+        Assert.Equal((AppView.Stats, vm.Tasks[1]), (vm.CurrentView, vm.SelectedTask));
+        vm.CurrentView = AppView.Tasks;
+        Assert.Same(vm, vm.CurrentPage);
+
+        vm.IsCompact = false;
+
+        Assert.Equal((AppView.Focus, vm.Tasks[1]), (vm.CurrentView, vm.SelectedTask));
+        Assert.Same(vm.Focus, vm.CurrentPage);
+    }
+
     /// <summary>A and C are Code, B has no tag, D is Admin.</summary>
     private async Task<MainViewModel> LoadTaggedAsync()
     {

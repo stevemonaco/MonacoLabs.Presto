@@ -134,6 +134,21 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
         Assert.Equal(30d, Left(bar));
     }
 
+    [AvaloniaFact]
+    public void AReversedRunRestsOnItsStartValuesUntilReverted()
+    {
+        var bar = ShowBar();
+        var animation = bar.AnimateOnCompositor(new() { ["X"] = 60, Duration = 200, Ease = "linear", Reversed = true });
+        Run(16);
+        Assert.True(animation.Completed);
+
+        for (var i = 0; i < 30; i++)
+        {
+            Assert.Equal(30d, Left(bar));
+            Tick(Frame);
+        }
+    }
+
     /// <remarks>
     /// Reversed from mid-flight, the visual with the longest delay is the least far along and comes home first, so the
     /// animation finishes with the one that had got furthest.

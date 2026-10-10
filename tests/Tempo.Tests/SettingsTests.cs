@@ -64,6 +64,7 @@ public sealed class SettingsTests : TempoTestBase
         TestFrames.Tick(30);
         Assert.Equal(1, presenter.Opacity);
         Assert.Single(presenter.GetVisualDescendants().OfType<SettingsFlyout>());
+        Assert.False(Find<Sheet>(window, "SettingsSheet").IsOpen);
         window.Close();
         await vm.FlushAsync();
     }
@@ -102,11 +103,15 @@ public sealed class SettingsTests : TempoTestBase
         Click(work, "Increase");
         Click(work, "Increase");
         Click(Find<Stepper>(window, "SessionsStepper"), "Decrease");
-        TestFrames.Tick(40);
+        var number = work.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Number");
+        TestFrames.Tick(4);
+        if (reduced)
+            Assert.Equal(("120", 1d, true), (number.Text, number.Opacity, number.Inlines is null or { Count: 0 }));
+        TestFrames.Tick(36);
 
         Assert.Equal(120, vm.WorkMinutes);
         Assert.Equal(1, vm.SessionsBeforeLongBreak);
-        Assert.Equal("120", work.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Number").Text);
+        Assert.Equal("120", number.Text);
         window.Close();
         await vm.FlushAsync();
         var settings = (await new TempoStore(Root).LoadAsync()).Settings;

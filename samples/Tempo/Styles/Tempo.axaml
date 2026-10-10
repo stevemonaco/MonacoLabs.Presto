@@ -3,6 +3,7 @@
         xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
         xmlns:m="using:Tempo.Motion"
         xmlns:sys="using:System"
+        xmlns:v="using:Tempo.Views"
         xmlns:vm="using:Tempo.ViewModels">
     <Styles.Resources>
         <SolidColorBrush x:Key="SemiColorPrimary" Color="{x:Static m:TempoMotion.FocusAccent}" />
@@ -29,6 +30,9 @@
         <StreamGeometry x:Key="StopIcon">M6,6 L18,6 L18,18 L6,18 Z</StreamGeometry>
         <StreamGeometry x:Key="SettingsIcon">M3,6 L21,6 L21,8 L3,8 Z M3,16 L21,16 L21,18 L3,18 Z M8,3 L11,3 L11,11 L8,11 Z M14,13 L17,13 L17,21 L14,21 Z</StreamGeometry>
         <StreamGeometry x:Key="PlusIcon">M11,5 L13,5 L13,11 L19,11 L19,13 L13,13 L13,19 L11,19 L11,13 L5,13 L5,11 L11,11 Z</StreamGeometry>
+        <StreamGeometry x:Key="TasksIcon">M4,6 L6,6 L6,8 L4,8 Z M8,6 L20,6 L20,8 L8,8 Z M4,11 L6,11 L6,13 L4,13 Z M8,11 L20,11 L20,13 L8,13 Z M4,16 L6,16 L6,18 L4,18 Z M8,16 L20,16 L20,18 L8,18 Z</StreamGeometry>
+        <StreamGeometry x:Key="FocusIcon">M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 Z M12,5 A7,7 0 1 1 12,19 A7,7 0 1 1 12,5 Z M11,7 L13,7 L13,11 L16,11 L16,13 L11,13 Z</StreamGeometry>
+        <StreamGeometry x:Key="StatsIcon">M4,13 L7,13 L7,20 L4,20 Z M10.5,8 L13.5,8 L13.5,20 L10.5,20 Z M17,4 L20,4 L20,20 L17,20 Z</StreamGeometry>
         <StreamGeometry x:Key="DragHandleIcon">M8,5 L11,5 L11,8 L8,8 Z M13,5 L16,5 L16,8 L13,8 Z M8,10.5 L11,10.5 L11,13.5 L8,13.5 Z M13,10.5 L16,10.5 L16,13.5 L13,13.5 Z M8,16 L11,16 L11,19 L8,19 Z M13,16 L16,16 L16,19 L13,19 Z</StreamGeometry>
         <ControlTheme x:Key="TaskRow" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
             <Setter Property="Padding" Value="0" />
@@ -61,6 +65,25 @@
             <Setter Property="Padding" Value="4,4" />
             <Setter Property="FontSize" Value="11.5" />
         </ControlTheme>
+
+        <ControlTheme x:Key="NavItem" TargetType="ListBoxItem" BasedOn="{StaticResource Segment}">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="FontSize" Value="11.5" />
+        </ControlTheme>
+
+        <DataTemplate x:Key="NavItemTemplate" x:DataType="vm:AppView">
+            <StackPanel Spacing="3">
+                <PathIcon Classes="nav-icon">
+                    <presto:Motion.States>
+                        <presto:MotionStates>
+                            <presto:MotionState When="chosen" Motion="{x:Static m:TempoMotion.CheckPop}" />
+                        </presto:MotionStates>
+                    </presto:Motion.States>
+                </PathIcon>
+                <TextBlock Text="{Binding}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </DataTemplate>
 
         <!-- A chip's item is a label string or a TaskTag; only a tag has a dot. -->
         <DataTemplate x:Key="TagChipTemplate" x:DataType="sys:Object">
@@ -214,12 +237,22 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="ClipToBounds" Value="False" />
     </Style>
-    <!-- Inter's figures are proportional: a fixed, left-aligned box keeps the glyphs left of a change still, and only changed ones morph. -->
-    <Style Selector="TextBlock.digits">
-        <Setter Property="Width" Value="166" />
+    <Style Selector="StackPanel.digits > TextBlock">
         <Setter Property="FontSize" Value="56" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="StackPanel.controls">
+        <Setter Property="Spacing" Value="24" />
+    </Style>
+    <!-- Tight enough for the "Start focus" pill on one line at 320. -->
+    <Style Selector="v|ShellView.compact StackPanel.controls">
+        <Setter Property="Spacing" Value="8" />
+    </Style>
+    <!-- Inter's figures are proportional: a fixed slot keeps a changing digit from shifting its neighbors. -->
+    <Style Selector="StackPanel.digits > TextBlock.digit">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="TextAlignment" Value="Center" />
     </Style>
     <!-- From a class, so only the last ten seconds' changes pulse. -->
     <Style Selector="presto|ProgressRing.final">
@@ -348,7 +381,7 @@
             </ItemsPanelTemplate>
         </Setter>
     </Style>
-    <Style Selector="ListBox.segmented, ListBox.chips">
+    <Style Selector="ListBox.segmented, ListBox.chips, ListBox.bottom-nav">
         <Setter Property="presto:Selection.Motion" Value="{x:Static m:TempoMotion.RowSelect}" />
         <Setter Property="presto:Selection.Indicator">
             <Template>
@@ -361,6 +394,50 @@
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
     </Style>
 
+    <!-- One shell, two arrangements: compact trades the Tasks column and the title-bar switch for the bottom bar. -->
+    <Style Selector="v|ShellView.compact Border#TasksColumn, v|ShellView.compact ListBox#Switch">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="ItemContainerTheme" Value="{StaticResource NavItem}" />
+        <Setter Property="ItemTemplate" Value="{StaticResource NavItemTemplate}" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="v|ShellView.compact ListBox.bottom-nav">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav Border.segment-pill">
+        <Setter Property="Margin" Value="10,0" />
+        <Setter Property="CornerRadius" Value="16" />
+    </Style>
+    <Style Selector="PathIcon.nav-icon">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+    </Style>
+    <!-- The items are Tasks, Focus and Stats in that order. -->
+    <Style Selector="ListBox.bottom-nav ListBoxItem:nth-child(1) PathIcon.nav-icon">
+        <Setter Property="Data" Value="{StaticResource TasksIcon}" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav ListBoxItem:nth-child(2) PathIcon.nav-icon">
+        <Setter Property="Data" Value="{StaticResource FocusIcon}" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav ListBoxItem:nth-child(3) PathIcon.nav-icon">
+        <Setter Property="Data" Value="{StaticResource StatsIcon}" />
+    </Style>
+    <!-- From a style, since the selection is the container's: the icon's chosen state pops it. -->
+    <Style Selector="ListBox.bottom-nav ListBoxItem:selected PathIcon.nav-icon">
+        <Setter Property="presto:Motion.State" Value="chosen" />
+    </Style>
+
     <Style Selector="ListBox.chips">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="ItemContainerTheme" Value="{StaticResource Chip}" />
@@ -368,6 +445,14 @@
         <Setter Property="ItemsPanel">
             <ItemsPanelTemplate>
                 <WrapPanel LineSpacing="2" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="v|ShellView.compact ListBox.chips">
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
             </ItemsPanelTemplate>
         </Setter>
     </Style>
@@ -410,6 +495,9 @@
         <Setter Property="VerticalAlignment" Value="Bottom" />
         <Setter Property="RenderTransformOrigin" Value="50%,100%" />
     </Style>
+    <Style Selector="UniformGrid.totals">
+        <Setter Property="Columns" Value="3" />
+    </Style>
     <Style Selector="ListBox.range ListBoxItem">
         <Setter Property="Width" Value="60" />
     </Style>
@@ -443,6 +531,49 @@
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="Margin" Value="18,0,0,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <Style Selector="Border.donut-card, ItemsControl.legend">
+        <Setter Property="Grid.Column" Value="1" />
+    </Style>
+
+    <!-- Compact Stats: one column, the legend under the donut and the heatmap across the card. -->
+    <!-- Three totals across would leave a third of 320 for a 97 DIP split flap, so compact lists them a row each. -->
+    <Style Selector="v|ShellView.compact UniformGrid.totals">
+        <Setter Property="Columns" Value="1" />
+        <Setter Property="RowSpacing" Value="8" />
+    </Style>
+    <Style Selector="v|ShellView.compact UniformGrid.totals > Border.card">
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="v|ShellView.compact UniformGrid.totals > Border > StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+    </Style>
+    <Style Selector="v|ShellView.compact UniformGrid.totals > Border > StackPanel > TextBlock.caption">
+        <Setter Property="Width" Value="72" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="v|ShellView.compact Grid.charts">
+        <Setter Property="RowSpacing" Value="16" />
+    </Style>
+    <Style Selector="v|ShellView.compact Border.bars-card, v|ShellView.compact Panel.donut, v|ShellView.compact Viewbox.heatmap">
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="v|ShellView.compact Border.donut-card, v|ShellView.compact ItemsControl.legend">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="v|ShellView.compact Grid.donut-row">
+        <Setter Property="RowSpacing" Value="12" />
+    </Style>
+    <Style Selector="v|ShellView.compact TextBlock.best-day">
+        <Setter Property="Grid.Row" Value="2" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+        <Setter Property="Margin" Value="0,12,0,0" />
     </Style>
 
     <!-- The settings popover, glass like the panels but more opaque, since a popup may sit over busy rows. -->
@@ -452,6 +583,10 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="14" />
         <Setter Property="Padding" Value="18,16" />
+    </Style>
+    <!-- The bottom sheet's settings take the window's width. -->
+    <Style Selector="FlyoutPresenter v|SettingsFlyout">
+        <Setter Property="Width" Value="300" />
     </Style>
     <Style Selector="StackPanel.settings > :is(Control)">
         <Setter Property="presto:Presence.Arrive" Value="{x:Static m:TempoMotion.SettingsRowArrive}" />
@@ -481,7 +616,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="presto:Motion.Press" Value="{presto:PressIn}" />
     </Style>
-    <!-- Fixed and left-aligned for the morph, as the countdown is; the margin centers two digits. -->
+    <!-- Fixed and left-aligned for the morph, so the glyphs left of a change stay still; the margin centers two digits. -->
     <Style Selector="TextBlock.step-value">
         <Setter Property="Width" Value="26" />
         <Setter Property="Margin" Value="8,0,0,0" />
@@ -503,6 +638,30 @@
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
         <Setter Property="BorderThickness" Value="1,0,0,0" />
+    </Style>
+    <!-- Its edge strip would open an empty drawer while the detail is in the bottom sheet. -->
+    <Style Selector="v|ShellView.compact presto|Drawer">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.sheet">
+        <Setter Property="Padding" Value="20,0,20,20" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+        <Setter Property="BorderThickness" Value="1,1,1,0" />
+        <Setter Property="CornerRadius" Value="16,16,0,0" />
+    </Style>
+    <Style Selector="Border.sheet Border.drawer">
+        <Setter Property="Width" Value="NaN" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.grab">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="4" />
+        <Setter Property="Margin" Value="0,10,0,14" />
+        <Setter Property="CornerRadius" Value="2" />
+        <Setter Property="Background" Value="{DynamicResource TempoInkDim}" />
     </Style>
     <Style Selector="Border.dialog">
         <Setter Property="Background" Value="#F21A1C22" />

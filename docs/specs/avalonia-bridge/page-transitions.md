@@ -48,7 +48,7 @@ depends:
 - **BRIDGE-PAGES-002** — Going forward, `Start` shall play `Enter` on `to` and `Exit` on `from`.
   - Tests: `PageTransitionTests.ASwapPlaysEnterOnTheNewPresenterAndExitOnTheOld`
 - **BRIDGE-PAGES-003** — Going back, `Start` shall play `BackEnter` on `to` and `BackExit` on `from`, and for each that is null the opposite forward builder reversed (`Exit` reversed on `to`, `Enter` reversed on `from`).
-  - Tests: `PageTransitionTests.GoingBackPlaysTheForwardPairReversed`, `PageTransitionTests.GoingBackOnTheCompositorPlaysTheForwardPairReversed`, `PageTransitionTests.AnExplicitBackEnterWins`
+  - Tests: `PageTransitionTests.GoingBackPlaysTheForwardPairReversed`, `PageTransitionTests.GoingBackOnTheCompositorPlaysTheForwardPairReversed`, `PageTransitionTests.GoingBackWithTheForwardPairNeverBlinksTheIncomingPage`, `PageTransitionTests.AnExplicitBackEnterWins`
 - **BRIDGE-PAGES-004** — Every `Start` shall build fresh params from the builders (`ToParams()`), so `Recipes.Tokens`, reduced motion and function values are read per transition.
   - Tests: `RecipeTests.ReducedMotionPlaysEachPageRecipesShortCrossfade`
 - **BRIDGE-PAGES-005** — When a builder in play is null, its host shall stay still and count as done at once, while still being stacked and claimed.

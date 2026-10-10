@@ -7,7 +7,7 @@ using MonacoLabs.Presto;
 
 namespace Tempo.Views;
 
-/// <summary>A − / value / + stepper, clamped to its limits, whose value morphs glyph by glyph on each step.</summary>
+/// <summary>A − / value / + stepper, clamped to its limits, whose value morphs glyph by glyph on each step (set at once under reduced motion).</summary>
 public partial class Stepper : UserControl
 {
     public static readonly StyledProperty<int> ValueProperty =
@@ -58,9 +58,12 @@ public partial class Stepper : UserControl
     private void ShowValue()
     {
         var text = Value.ToString(CultureInfo.InvariantCulture);
-        if (IsLoaded)
+        if (IsLoaded && !Presto.Defaults.ReducedMotion)
+        {
             _morph = Recipes.MorphGlyphs(Number, text);
-        else
-            Number.Text = text;
+            return;
+        }
+        _morph?.Complete();
+        Number.Text = text;
     }
 }

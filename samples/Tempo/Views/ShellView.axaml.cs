@@ -2,8 +2,11 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Compositor;
@@ -15,12 +18,24 @@ namespace Tempo.Views;
 
 public partial class ShellView : UserControl
 {
+    private const double CompactBreakpoint = 720;
+
     private MainViewModel? _viewModel;
     private CompositorAnimation? _drift;
+    private bool? _compact;
+    private IDisposable? _detailOpen;
 
     public ShellView()
     {
         InitializeComponent();
+        SettingsSheet.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Sheet.IsOpenProperty)
+                SettingsButton.Classes.Set("open", SettingsSheet.IsOpen);
+        };
+        // Code-only: the Tasks page adopts the one TasksPane, so the column and the page never hold two lists' state.
+        // Not on null: the template reaches nested presenters, and a typed FuncDataTemplate matches null content.
+        PageHost.DataTemplates.Add(new FuncDataTemplate<MainViewModel>(vm => vm is not null, (_, _) => TasksPage()));
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -43,6 +58,24 @@ public partial class ShellView : UserControl
             _viewModel.PropertyChanged += RedriftOnMotionChange;
             _viewModel.PlayClear = PlayClear;
         }
+        _compact = null;
+        InvalidateMeasure();
+    }
+
+    // In measure rather than on SizeChanged, so the first frame already has the right layout.
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var compact = availableSize.Width < CompactBreakpoint;
+        if (_viewModel is not null && !double.IsInfinity(availableSize.Width) && compact != _compact)
+        {
+            _compact = compact;
+            _viewModel.IsCompact = compact;
+            Classes.Set("compact", compact);
+            if (!compact)
+                Move(TasksPane, TasksColumn);
+            PlaceSurfaces(compact);
+        }
+        return base.MeasureOverride(availableSize);
     }
 
     protected override void OnLoaded(RoutedEventArgs e)
@@ -56,6 +89,53 @@ public partial class ShellView : UserControl
         base.OnUnloaded(e);
         _drift?.Revert();
         _drift = null;
+    }
+
+    // Back in its column once the page leaves, after the detach, so a hidden column holds it between visits.
+    private Decorator TasksPage()
+    {
+        var page = new Decorator();
+        Move(TasksPane, page);
+        page.DetachedFromVisualTree += (_, _) => Dispatcher.UIThread.Post(() =>
+        {
+            if (TasksPane.Parent == page)
+                Move(TasksPane, TasksColumn);
+        });
+        return page;
+    }
+
+    // Code-only: one detail and one settings panel move to the arrangement's surfaces, and only the live detail surface binds
+    // IsDetailOpen, so an open detail moves across the breakpoint and open settings close.
+    private void PlaceSurfaces(bool compact)
+    {
+        _detailOpen?.Dispose();
+        DetailDrawer.IsOpen = false;
+        DetailSheet.IsOpen = false;
+        DetailDrawer.Content = null;
+        DetailSlot.Child = null;
+        if (compact)
+            DetailSlot.Child = Detail;
+        else
+            DetailDrawer.Content = Detail;
+        _detailOpen = (compact ? DetailSheet : DetailDrawer).Bind(Sheet.IsOpenProperty, new ReflectionBinding(nameof(MainViewModel.IsDetailOpen)));
+
+        var flyout = (Flyout)FlyoutBase.GetAttachedFlyout(SettingsButton)!;
+        flyout.Hide();
+        SettingsSheet.IsOpen = false;
+        flyout.Content = null;
+        SettingsSlot.Child = null;
+        if (compact)
+            SettingsSlot.Child = Settings;
+        else
+            flyout.Content = Settings;
+    }
+
+    private static void Move(Control child, Decorator to)
+    {
+        if (child.Parent == to)
+            return;
+        ((Decorator)child.Parent!).Child = null;
+        to.Child = child;
     }
 
     // Code-only: XAML entry points stay on the UI thread (BRIDGE-THREAD), and the drift must not cost UI-thread work.
@@ -73,12 +153,18 @@ public partial class ShellView : UserControl
     }
 
     // Code-only: a flyout has no IsOpen to bind (BACKLOG, BRIDGE-POPOVER), so Ctrl+, and the button share OpenSettingsCommand.
-    private void ShowSettings(object? sender, EventArgs e) => FlyoutBase.ShowAttachedFlyout(SettingsButton);
+    private void ShowSettings(object? sender, EventArgs e)
+    {
+        if (_compact == true)
+            SettingsSheet.IsOpen = true;
+        else
+            FlyoutBase.ShowAttachedFlyout(SettingsButton);
+    }
 
     // Code-only: no IsOpen to bind (BACKLOG, BRIDGE-POPOVER), so the button's open class, which holds its quarter turn, follows the flyout's events.
     private void SettingsToggled(object? sender, EventArgs e) => SettingsButton.Classes.Set("open", ((FlyoutBase)sender!).IsOpen);
 
-    // Code-only: a modal opens from an element only through Open (BACKLOG, BRIDGE-MODAL). The flyout closes first, since its popup
+    // Code-only: a modal opens from an element only through Open (BACKLOG, BRIDGE-MODAL). The settings close first, since the popup
     // draws above the modal, and the button's center crosses through screen coordinates: Open(from) needs one visual root.
     private void ShowConfirm(object? sender, EventArgs e)
     {
@@ -87,6 +173,7 @@ public partial class ShellView : UserControl
             ? ConfirmModal.PointToClient(from.PointToScreen(new Point(from.Bounds.Width / 2, from.Bounds.Height / 2)))
             : null;
         FlyoutBase.GetAttachedFlyout(SettingsButton)?.Hide();
+        SettingsSheet.IsOpen = false;
         Dialog.Reset();
         if (origin is { } at)
             ConfirmModal.Open(at);

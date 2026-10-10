@@ -8,10 +8,10 @@
              x:DataType="vm:MainViewModel"
              presto:Motion.State="{Binding Focus.MotionState}"
              presto:Motion.StaggerChildren="40">
-    <Grid Classes="shell" RowDefinitions="Auto,*">
-        <Border Grid.RowSpan="2" Classes="backdrop accent-bg handoff" />
+    <Grid Classes="shell" RowDefinitions="Auto,*,Auto">
+        <Border Grid.RowSpan="3" Classes="backdrop accent-bg handoff" />
         <!-- Each blob drifts on the compositor from code-behind, in BlobDrift's order. -->
-        <Panel x:Name="Blobs" Grid.RowSpan="2" Classes="blobs handoff">
+        <Panel x:Name="Blobs" Grid.RowSpan="3" Classes="blobs handoff">
             <Border Classes="blob accent-bg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-160,-120,0,0" />
             <Border Classes="blob accent-bg" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-60,-200,0" />
             <Border Classes="blob accent-bg" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,120,-240" />
@@ -50,14 +50,15 @@
             </Grid>
         </Border>
 
-        <Grid x:Name="Panels" Grid.Row="1" ColumnDefinitions="340,*" ColumnSpacing="16" Margin="16">
-            <Border Classes="panel break-dim">
+        <!-- Compact hides the Tasks column, and the Tasks page borrows its TasksPane. -->
+        <DockPanel x:Name="Panels" Grid.Row="1" Margin="16">
+            <Border x:Name="TasksColumn" DockPanel.Dock="Left" Width="340" Margin="0,0,16,0" Classes="panel break-dim">
                 <v:TasksView x:Name="TasksPane" Classes="handoff" />
             </Border>
-            <Border Grid.Column="1" Classes="panel">
+            <Border Classes="panel">
                 <!-- A fresh view per swap, so the Stats bars replay; a Carousel would only hide the other view. -->
-                <TransitioningContentControl Content="{Binding CurrentPage}" PageTransition="{presto:PageSharedAxis}"
-                                             IsTransitionReversed="{Binding CurrentView, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:AppView.Focus}}">
+                <TransitioningContentControl x:Name="PageHost" Content="{Binding CurrentPage}" PageTransition="{x:Static m:TempoMotion.PageSwap}"
+                                             IsTransitionReversed="{Binding IsBack}">
                     <TransitioningContentControl.DataTemplates>
                         <DataTemplate DataType="vm:FocusViewModel">
                             <v:FocusView />
@@ -68,10 +69,15 @@
                     </TransitioningContentControl.DataTemplates>
                 </TransitioningContentControl>
             </Border>
-        </Grid>
+        </DockPanel>
 
-        <presto:ToastHost x:Name="Toasts" Grid.Row="1" MaxCount="1" Width="320" Margin="16,0,16,24"
-                          HorizontalAlignment="Center" VerticalAlignment="Bottom">
+        <ListBox x:Name="BottomNav" Grid.Row="2" Classes="bottom-nav handoff" SelectedItem="{Binding CurrentView}">
+            <x:Static Member="vm:AppView.Tasks" />
+            <x:Static Member="vm:AppView.Focus" />
+            <x:Static Member="vm:AppView.Stats" />
+        </ListBox>
+
+        <presto:ToastHost x:Name="Toasts" Grid.Row="1" MaxCount="1" MaxWidth="320" Margin="16,0,16,24" VerticalAlignment="Bottom">
             <presto:ToastHost.ItemTemplate>
                 <DataTemplate x:DataType="vm:TaskItemViewModel">
                     <Border Classes="toast"
@@ -90,12 +96,29 @@
             </presto:ToastHost.ItemTemplate>
         </presto:ToastHost>
 
-        <presto:Drawer Grid.Row="1" Edge="Right" IsOpen="{Binding IsDetailOpen}">
-            <v:TaskDetail DataContext="{Binding SelectedTask}" />
+        <!-- Compact moves the detail and the settings into the bottom sheets, over the bar too. -->
+        <presto:Drawer x:Name="DetailDrawer" Grid.Row="1" Edge="Right" TimeConstant="150">
+            <v:TaskDetail x:Name="Detail" DataContext="{Binding SelectedTask}" />
         </presto:Drawer>
+        <presto:Sheet x:Name="DetailSheet" Grid.Row="1" Grid.RowSpan="2" Detents="0,0.5,1" TimeConstant="150">
+            <Border Classes="sheet">
+                <DockPanel>
+                    <Border Classes="grab" DockPanel.Dock="Top" />
+                    <Decorator x:Name="DetailSlot" />
+                </DockPanel>
+            </Border>
+        </presto:Sheet>
+        <presto:Sheet x:Name="SettingsSheet" Grid.Row="1" Grid.RowSpan="2" TimeConstant="150">
+            <Border Classes="sheet">
+                <DockPanel>
+                    <Border Classes="grab" DockPanel.Dock="Top" />
+                    <Decorator x:Name="SettingsSlot" />
+                </DockPanel>
+            </Border>
+        </presto:Sheet>
 
         <!-- Over the title bar too, so nothing opens settings again behind the dialog. -->
-        <presto:Modal x:Name="ConfirmModal" Grid.RowSpan="2" ZIndex="2" IsOpen="{Binding IsConfirmOpen}"
+        <presto:Modal x:Name="ConfirmModal" Grid.RowSpan="3" ZIndex="2" IsOpen="{Binding IsConfirmOpen}"
                       Backdrop="{Binding #Panels}">
             <v:ConfirmDialog x:Name="Dialog" />
         </presto:Modal>

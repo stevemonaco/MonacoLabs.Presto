@@ -27,7 +27,7 @@ public sealed class FocusViewTests : TempoTestBase
         var view = Assert.Single(window.GetVisualDescendants().OfType<FocusView>());
         var ring = Ring(window);
 
-        Assert.Equal("25:00", Digits(window).Text);
+        Assert.Equal("25:00", ClockText(window));
         Assert.Equal("Focus", Assert.IsType<string>(window.GetVisualDescendants().OfType<TransitioningContentControl>().Single(t => t.Classes.Contains("mode")).Content));
         vm.Focus.StartPauseCommand.Execute(null);
         Time.Advance(TimeSpan.FromMinutes(5));
@@ -35,7 +35,7 @@ public sealed class FocusViewTests : TempoTestBase
         TestFrames.Tick(60);
 
         Assert.Same(vm.Focus, view.DataContext);
-        Assert.Equal("20:00", Digits(window).Text);
+        Assert.Equal("20:00", ClockText(window));
         Assert.Equal(.2, ring.Value, 3);
         Assert.Contains("Running", PrestoMotion.GetState(window.GetVisualDescendants().OfType<ShellView>().Single())!.ToString());
         window.Close();
@@ -89,7 +89,7 @@ public sealed class FocusViewTests : TempoTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task TheDigitsMorphIntoEachSecondAndAcrossASegmentEndWhileTheRingPulsesTheLastTen(bool reduced)
+    public async Task OnlyTheChangedDigitsMorphIntoEachSecondAndAcrossASegmentEndWhileTheRingPulsesTheLastTen(bool reduced)
     {
         var (window, vm) = await ShowAsync(reduced);
         var ring = Ring(window);
@@ -97,25 +97,70 @@ public sealed class FocusViewTests : TempoTestBase
         Time.Advance(TimeSpan.FromSeconds(25 * 60 - 12));
         Ticks.Raise();
         TestFrames.Tick(60);
-        Assert.Equal("00:12", Digits(window).Text);
+        Assert.Equal("00:12", ClockText(window));
         Assert.DoesNotContain("final", ring.Classes);
-        var bounds = Digits(window).Bounds;
+        var blocks = ClockBlocks(window);
+        var bounds = blocks.Select(b => b.Bounds).ToList();
 
         for (var second = 11; second >= -1; second--)
         {
+            var before = ClockText(window);
             Time.Advance(TimeSpan.FromSeconds(1));
             Ticks.Raise();
             TestFrames.Tick(8);
             var final = second is >= 1 and <= 10;
             Assert.Equal(final, ring.Classes.Contains("final"));
             Assert.Equal(final, reduced ? ring.Opacity < .9 : ring.Effect is DropShadowEffect { BlurRadius: > 0 });
+            var after = vm.Focus.RemainingText;
+            for (var i = 0; i < blocks.Count; i++)
+            {
+                var changed = before[i] != after[i];
+                Assert.Equal(changed && !reduced, blocks[i].Inlines is { Count: > 0 });
+                if (changed && !reduced)
+                    continue;
+                Assert.Equal(after[i].ToString(), blocks[i].Text);
+                Assert.Equal(bounds[i], blocks[i].Bounds);
+                Assert.Equal(1, blocks[i].Opacity);
+            }
             TestFrames.Tick(52);
-            Assert.Equal(vm.Focus.RemainingText, Digits(window).Text);
-            Assert.Equal(bounds, Digits(window).Bounds);
+            Assert.Equal(after, ClockText(window));
+            Assert.Equal(bounds, blocks.Select(b => b.Bounds));
         }
 
         Assert.Equal(FocusMode.ShortBreak, vm.Focus.Mode);
-        Assert.True(Digits(window).Inlines is null or { Count: 0 });
+        Assert.All(blocks, b => Assert.True(b.Inlines is null or { Count: 0 }));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheDigitRowRebuildsWhenTheMinutesLoseADigitMidMorph(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced);
+        var overlay = OverlayLayer.GetOverlayLayer(window)!;
+        var before = overlay.Children.Count;
+        vm.WorkMinutes = 120;
+        vm.Focus.StartPauseCommand.Execute(null);
+        vm.Focus.AbandonCommand.Execute(null);
+        TestFrames.Tick(60);
+        Assert.Equal(6, ClockBlocks(window).Count);
+        Assert.Equal("120:00", ClockText(window));
+
+        vm.Focus.StartPauseCommand.Execute(null);
+        Time.Advance(TimeSpan.FromSeconds(20 * 60));
+        Ticks.Raise();
+        TestFrames.Tick(5);
+        Assert.Equal("100:00", vm.Focus.RemainingText);
+        Time.Advance(TimeSpan.FromSeconds(1));
+        Ticks.Raise();
+        TestFrames.Tick(60);
+
+        Assert.Equal(5, ClockBlocks(window).Count);
+        Assert.Equal("99:59", ClockText(window));
+        Assert.All(ClockBlocks(window), b => Assert.True(b.Inlines is null or { Count: 0 }));
+        Assert.Equal(before, overlay.Children.Count);
         window.Close();
         await vm.FlushAsync();
     }
@@ -210,6 +255,4 @@ public sealed class FocusViewTests : TempoTestBase
     }
 
     private static ProgressRing Ring(Window window) => window.GetVisualDescendants().OfType<ProgressRing>().Single(r => r.Name == "Ring");
-
-    private static TextBlock Digits(Window window) => window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Digits");
 }

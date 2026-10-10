@@ -71,7 +71,7 @@ Every animation is a `public static readonly AnimationBuilder` in one file, `Mot
 | Mode label | Slides on a shared axis when the mode changes | `TransitioningContentControl` with `PageTransition="{presto:PageSharedAxis Axis=Y}"` |
 | Break | The task list dims and blurs back; a breathing guide ("In… Out…") scales on a 4 s loop | `Motion.States` `When="Break"` on the list; the guide's `Animate.OnAttached="{x:Static m:TempoMotion.Breathe}"` |
 | Session complete | A burst from the ring, then a summary line rises in ("25 minutes on *Write proposal*") | `Recipes.Burst` (code, see Decisions); the summary's `Presence.Enter="{presto:LineRise}"` |
-| Focus ⇄ Stats | Page transition; the switch's pill glides | `PageTransition="{presto:PageSharedAxis}"`; `Selection.Indicator` on the segmented `ListBox` |
+| Focus ⇄ Stats | Page transition; the switch's pill glides | `PageTransition="{x:Static m:TempoMotion.PageSwap}"` (`PageSharedAxis` with a mirrored back pair, so going back eases out too; ARCHITECTURE §6); `Selection.Indicator` on the segmented `ListBox` |
 | Stats appear | Bars grow from the baseline in a stagger; totals flip in | `Presence.Enter="{x:Static m:TempoMotion.BarGrow}"`; totals on `<presto:SplitFlap>`, matching the countdown digits |
 | Settings | Flyout opens with the popover motion | `presto:Popover.Open="{x:Static m:TempoMotion.FlyoutOpen}"` |
 | Window cards | Subtle tilt on the stats cards | `Tilt.Enabled` |

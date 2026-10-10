@@ -128,13 +128,27 @@ public sealed class CompositorCompileTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void AlternateAndReversedMapToThePlaybackDirection()
+    public void AReversedRunCompilesMirroredKeyFramesPlayedForward()
     {
-        var track = Assert.Single(Compile(new Border(), new() { ["X"] = 100, Duration = 400, Loop = 3, Alternate = true, Reversed = true }));
+        var exact = Assert.Single(Compile(new Border(), new() { ["X"] = 100, Duration = 400, Ease = Eases.InOutQuad, Reversed = true }));
+        var sampled = Assert.Single(Compile(new Border(), new() { ["X"] = 100, ["Y"] = 50, Duration = 400, Ease = "linear", Reversed = true }));
+        var alternating = Assert.Single(Compile(new Border(), new() { ["X"] = 100, Duration = 400, Loop = 3, Alternate = true, Reversed = true }));
 
-        Assert.Equal(PlaybackDirection.AlternateReverse, track.Direction);
-        Assert.Equal(0, track.Values[0][0], 1e-6);
-        Assert.Equal(100, track.Values[^1][0], 1e-6);
+        Assert.Equal(PlaybackDirection.Normal, exact.Direction);
+        Assert.Equal(new[] { 0f, 1f }, exact.Keys);
+        Assert.Equal(100d, exact.Values[0][0]);
+        Assert.Equal(0d, exact.Values[1][0]);
+        Assert.Equal(1 - Eases.InOutQuad(.7), Assert.IsType<PrestoEasing>(exact.Easings[1]).Ease(.3), 1e-9);
+
+        Assert.Equal(PlaybackDirection.Normal, sampled.Direction);
+        Assert.Equal(sampled.Keys.Order(), sampled.Keys);
+        Assert.Equal(100, sampled.Values[0][0], 1e-6);
+        Assert.Equal(25, sampled.Values[sampled.Values.Length / 2][1], 1e-6);
+        Assert.Equal(0, sampled.Values[^1][0], 1e-6);
+
+        Assert.Equal(PlaybackDirection.Alternate, alternating.Direction);
+        Assert.Equal(100, alternating.Values[0][0], 1e-6);
+        Assert.Equal(0, alternating.Values[^1][0], 1e-6);
     }
 
     [AvaloniaFact]
