@@ -1,4 +1,4 @@
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;

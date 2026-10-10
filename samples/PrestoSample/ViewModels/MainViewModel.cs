@@ -5,8 +5,7 @@ using System.Linq;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Builder;
 using PrestoSample.Pages;
 using PrestoSample.Showcase.Pages;
@@ -80,7 +79,7 @@ public partial class MainViewModel : ObservableObject
             new("Page transitions", "PrestoPageTransition on Avalonia's three page hosts. Pick a page recipe, or a custom Enter and Exit builder pair, and press Next and Back to play it forward and reversed in a TransitioningContentControl, with the C# and XAML that set it printed beneath it; press the freeze button and the transition keeps playing on the render thread while the ProgressBar stops. Drag the Carousel's page sideways and a Presto PageSlide follows your finger, then push and pop the NavigationPage to see PagePush slide over and dim.",
                 () => new PageTransitionsPage())),
         Section("Showcase",
-            new GalleryPage("Title sequence", "One timeline builds a whole title card: a monogram draws itself and morphs into the mark, \"PRESTO\" staggers in from the center, a subtitle scrambles into place and three cards fade up once the headline has landed. Press Loop to watch it repeat, try the SEEK buttons to jump to a beat by its label, and scrub, reverse or drag the speed and duration sliders to retime the whole sequence without a jump. Under reduced motion it opens on its final frame and plays only when you press play.",
+            new GalleryPage("Title sequence", "One timeline builds a whole title card: a monogram draws itself and morphs into the mark, Recipes.WriteIn traces \"PRESTO\" letter by letter and then fills it, a subtitle scrambles into place and three cards fade up once the headline has landed. Press Loop to watch it repeat, try the SEEK buttons to jump to a beat by its label, and scrub, reverse or drag the speed and duration sliders to retime the whole sequence without a jump. The title is traced once and stays plain text afterwards, so a replay shows it whole at its beat. Under reduced motion it opens on its final frame and plays only when you press play, and the title only fades in.",
                 () => new TitleSequencePage()),
             new GalleryPage("Morph lab", "The whole Shapes surface at once: a path looping through six geometries as a chain of MorphTo children with the ease and the sampling precision live, so low precision is visibly polygonal; a signature that writes itself and erases through keyframed \"Draw\" values; and a marker riding a track's contour with its rotation taken from the tangent, followed by five more strung out behind it at increasing motion path offsets, each supplied per index by a function value. Under reduced motion each plays once and the signature stays drawn.",
                 () => new MorphLabPage()),
@@ -96,9 +95,19 @@ public partial class MainViewModel : ObservableObject
                 () => new ScrollStoryPage()),
             new GalleryPage("Interruption lab", "What happens when an animation is interrupted mid-flight. Click a pane or press Burst for five quick retargets of three pucks at once, one per composition mode, and compare their trails: replace and none trace the same sharp path, while blend rounds every corner and arrives first. Press Cancel newest mid-burst and replace just stops where it is, while none is yanked back toward the older targets it was still animating to underneath. Sweep the pointer quickly across the tiles: retarget eases each one back from wherever it had got to, while restart snaps it to fully raised before it falls.",
                 () => new InterruptionPage()),
-            new GalleryPage("Typography", "The text module composed into four panels. The paragraph's words rise out of their own masks line by line; drag the width slider mid-reveal and the text re-wraps while the reveal carries on instead of starting over. The headline's last word drops out letter by letter and the next one rises in while its Animate.ContentSize host eases the gap to the new word's width, so the headline never jumps. Sweep the pointer across MOTION to lift and brighten the letters nearest it, then leave and watch them spring back, while the terminal types, decodes and counts to 100 on a loop. Under reduced motion the headline keeps its word and the terminal runs once.",
+            new GalleryPage("Typography", "The text module composed into four panels. The paragraph's words rise out of their own masks line by line; drag the width slider mid-reveal and the text re-wraps while the reveal carries on instead of starting over. The headline's last word drops out letter by letter and the next one rises in while its Animate.ContentSize host eases the gap to the new word's width, so the headline never jumps. Sweep the pointer across MOTION to lift and brighten the letters nearest it, then leave and watch them spring back, or pick Bulge to split it into vector outlines and run a TextWarp magnifier along under the pointer, while the terminal types, decodes and counts to 100 on a loop. Under reduced motion the headline keeps its word, the bulge holds the word straight and the terminal runs once.",
                 () => new TypographyPage()),
-            new GalleryPage("Micro-interactions", "Six everyday UI patterns, each on real controls: a submit button that SubmitButton.Run collapses to a spinner and then draws a check in, a like that presses in, pops and bursts (Motion.Press, Animate.OnTapped and Recipes.Burst), a TabStrip underline that stretches between tabs under labels that lift on hover (Motion.Hover), an Accordion whose sections fold open one at a time with a springing chevron, toasts from a ToastHost that slide in and out through Presence and restack through Animate.ItemLayout, and a TextBox that shakes through Recipes.Shake. Every button also carries a press Ripple. Press Notify a few times, hover a toast to hold its countdown or swipe it away, and submit the email field without an @.",
+            new GalleryPage("Type lab", "Kinetic type in five experiments, set in a bundled Archivo family with nine weights and six widths. A ribbon of text rides a Bézier through TextPath: drag its four handles and the letters follow, press Morph to turn the curve into a circle and then an S-curve with the text glued on, or Flow to run it along the contour. A headline breathes from FontWeight 100 to 900 in a staggered, alternating wave, and the line beneath does the same from ExtraCondensed to Expanded FontStretch. Click the shatter word and MorphText bursts it into the next one, its leftover letters breaking into vector shards of their outlines or, with Vector shards off, flying away as bitmap snapshots; switch the burst off for a plain morph, or Shape morph on to grow each new letter out of a leftover old one. A SplitFlap departures board flips its rows as flights update every few seconds. Drag any letter of the elastic word and its neighbors follow on a spring trail that weakens with distance, then everything springs home with overshoot when you let go. Under reduced motion the waves hold a static ramp of weights and widths and the curve swaps shape at once; the shatter word crossfades, the board's changed cells fade in, and a dragged letter moves alone and drops home at once.",
+                () => new TypeLabPage()),
+            new GalleryPage("Glyph lab", "Letters as vector outlines, in Inter, Archivo and the bundled Playfair Display and Dancing Script. Recipes.WriteIn traces a script word's strokes and then fills them: replay it at another speed, letter by letter or all at once. One large glyph cycles A to Z and 0 to 9 through Recipes.MorphGlyphs in the font you pick; show its contours to see each one in its own color, holes dashed, and a dotted ring where an unpaired contour collapses or grows. O, 8, B and 0 morph side by side, with their counters kept on the left and garbled on the right, where each outline is one figure. Click the shatter word to break it into vector shards with Recipes.Shatter, as many per letter as the slider says, and press Reverse mid-flight to reassemble it. Under reduced motion the word fades in, the glyphs crossfade through one pass of the alphabet and stop, the single figures swap at once, and the shatter word fades out and back in as the next one.",
+                () => new GlyphLabPage()),
+            new GalleryPage("Morph clock", "Numbers that change shape instead of being swapped. A clock in Archivo ticks every second through Recipes.MorphGlyphs, which pairs numbers from the end, so only the digits that change morph while the colons pulse. A countdown from 0:10 runs down with Start and Stop and morphs 0:00 into DONE. Three button labels morph into a glyph and back: Submit becomes Sending and then a check as it steps through the submit states, Play turns into Pause, and the menu's three bars cross into an X. Press Refresh and three stats change three ways at once: morphing outlines, RollDigits' odometer and a SplitFlap board. Under reduced motion every morph crossfades, the colons hold still, RollDigits sets its number at once and the board's changed cells fade in.",
+                () => new MorphClockPage()),
+            new GalleryPage("Particle type", "A word drawn by thousands of particles. GlyphPoints.Sample reads points along or inside the outline PrestoAvalonia.TextOutline gives for it, and ParticleScene.AddFormation sets one particle on each, every one on a spring to its own point, stepped and drawn on the render thread. Move the pointer through the word and Repel pushes the particles aside until you leave and they spring back. Click the stage and Retarget flies the particles to the next word, fading the spares out and spawning the shortfall: Nearest pairs each point with the nearest particle, Sweep sets them off left to right, Burst throws them outward first and Swarm sends each one across the word, and the duration slider sets how long they take to settle. Switch between edge, fill or both, change the spacing and watch the live count, or pick another color. The freeze button retargets and then blocks the UI thread for two seconds, and the particles still fly into the next word. Beneath the stage, Recipes.Disintegrate blows a caption away as particles and Recipes.Assemble gathers them back into it. Under reduced motion each new word, spacing or sampling fades in on its points instead of flying there, the pointer pushes nothing, and the caption only fades out and in.",
+                () => new ParticleTypePage()),
+            new GalleryPage("Kinetic poem", "A lyric video on one 120 BPM timeline, seven phrases a bar each with a label apiece: the opening line traces its outlines and fills them as Recipes.WriteIn writes, words slam in from 2.5× scale on the beat, STRETCH spreads its letters from the center, a line ripples through a bounded Recipes.Wave, another drops away letter by letter with Recipes.Fall, BREAK shatters on the beat into GlyphShards of its outlines that fly apart through Recipes.Scatter, and the next line melts off the bottom of the frame through a TextWarpKind.Melt warp on the \"Warp\" shorthand, with seeds so every play is the same. A beat dot pulses with the timeline, so it follows a scrub, a seek or a reverse. Jump to a phrase with the SEEK buttons, or scrub, pause and reverse it from the bar. Under reduced motion each phrase only fades in and out, the shards fade where they were cut, the melt holds straight and the dot only dims.",
+                () => new KineticPoemPage()),
+            new GalleryPage("Micro-interactions", "Six everyday UI patterns, each on real controls: a submit button that SubmitButton.Run collapses to a spinner and then draws a check in, a like that presses in, pops and bursts (Motion.Press, Animate.OnTapped and Recipes.Burst), a TabStrip underline that stretches between tabs under labels that lift on hover (Motion.Hover), an Accordion whose sections fold open one at a time with a springing chevron, toasts from a ToastHost that slide in and out through Presence and restack through Animate.ItemLayout, and a TextBox that shakes through Recipes.Shake. A Save button's label morphs into a check mark through Recipes.MorphGlyphs and back after a pause. Every button also carries a press Ripple. Press Notify a few times, hover a toast to hold its countdown or swipe it away, and submit the email field without an @. Under reduced motion the Save label crossfades to the check and back.",
                 () => new MicroInteractionsPage()),
             new GalleryPage("Loaders", "Nine loading indicators in the anime.js homepage spirit, each one builder printed beneath it: staggers, a center-out grid wave, a MorphTo blob, a Draw ring, squash keyframes and a TextModifier counter. Drag the speed slider to retune every loader's own Speed while the rest of the gallery keeps its pace, and flip Pause all to freeze them mid-motion. Render thread plays the same builders for the equalizer, orbiting dots, grid wave, ball, typing and ripples through AnimateOnCompositor, so those six keep moving through the UI-thread freeze; the blob, ring and counter animate Data, Draw and Text, which have no composition property, so they stay on the UI thread and stop with it.",
                 () => new LoadersPage()),
@@ -112,12 +121,14 @@ public partial class MainViewModel : ObservableObject
                 () => new ConnectedXamlPage()),
             new GalleryPage("Bloom navigation", "Four tabs, each with its own hue, on a TransitioningContentControl whose PageTransition is {presto:PageBloom}. Click one and the new page grows in a circle from the pointer, or from the stage's center when you pick it with the keyboard, until it covers the farthest corner; at 65% its tiles rise in from the center out, as the underline, labels and header follow. Click tabs quickly and each interrupted bloom finishes its circle under the next, so none stack. Under reduced motion the page fades in instead.",
                 () => new BloomNavPage()),
-            new GalleryPage("Gestures", "Four draggables with their live velocity. Pull the feed down (PullToRefresh): it stiffens as it goes and the arrow turns as the ring draws; it springs home from a short pull and holds at the threshold from a long one while the ring spins, then three new rows slide in and the list springs back. Swipe an inbox row either way to reveal archive or delete; past 40% the icon pops and the release carries the row off and collapses its gap, and Undo brings the last one back from the side it left. Pull the curtain down by its handle, or tap the handle to step it closed, half and full: it rests at the nearest of the three, and the content under it sinks, shrinks and dims in step, springs included. Flick the bottom sheet: its release coasts on inertia to the nearest stop, and a hard flick overshoots the open or closed stop and bounces back onto it.",
+            new GalleryPage("Gestures", "Four draggables with their live velocity. Pull the feed down (PullToRefresh): it stiffens as it goes and the arrow turns as the ring draws; it springs home from a short pull and holds at the threshold from a long one while the ring spins, then three new rows slide in and the list springs back. Swipe an inbox row either way to reveal archive or delete; past 40% the icon pops and the release carries the row off and collapses its gap, and Undo brings the last one back from the side it left. Pull the curtain down by its handle, or tap the handle to step it closed, half and full: it rests at the nearest of the three, and the content under it sinks, shrinks and dims in step, springs included. Flick the bottom sheet: its release coasts on inertia to the nearest stop, and a hard flick overshoots the open or closed stop and bounces back onto it. Drag the card's handle down to scrub its opening timeline, then let go: it settles on closed, half or open, a flick advancing one rest, and grabbing it mid-settle carries on from where it is. Move the pointer over the trails stage and two trails of eight dots chase it (MotionValue.Trail): in blue each dot is a spring following the one before, and in aqua each replays the pointer 40 ms after the one before. Drag the ring beside it: the dot below follows its Resist(-80, 80) value, so past either end of the track it stretches only a fifth as far as you drag.",
                 () => new GesturesPage()),
             new GalleryPage("Photo viewer", "Three photos under one Transformable each. Pinch to zoom about your fingers, turn two fingers to rotate and let go to land on a quarter turn, double-tap or double-click to zoom in and again to zoom out, or hold Ctrl and scroll to zoom about the cursor. Push past the zoom limits and the photo rubber-bands, then springs back; once zoomed, one finger or the mouse pans it within its edges and a flick coasts. At rest a swipe goes to the Carousel and changes the photo, which resets the one you left; pick one from the filmstrip too. The dimmed backdrop behind the photos is a FilteredImage whose SourceTransition dissolves it to each new photo. The readout follows Scale, Rotation and the release speed, and Reset eases everything home.",
                 () => new PhotoViewerPage()),
             new GalleryPage("Liquid", "A tab bar whose pill stretches: click a tab and the pill's leading edge darts there in 300 ms while the trailing edge follows 70 ms later on a slower ease, squashing as it goes, both edges plain doubles on one animation with per-property tween params. Click across the bar quickly and it retargets from wherever it is without snapping. Press the gooey button to spring three actions out of it and again, even mid-flight, to pull them back in: a single Path rebuilt every frame joins each one to the button with a metaball neck that thins and breaks as it leaves.",
                 () => new LiquidPage()),
+            new GalleryPage("Liquid type", "Display type through the Distort decorator's raster effects. A serif title flows like water: Turbulence displaces its pixels through noise, as strongly as the slider says, while a looped TurbulencePhase moves the noise along the line. Two words drift together inside one Distort with Goo set, fuse where they meet and pull apart again as the neck between them thins and breaks. Hover the heading and its Glitch jumps up and back to 0 within 300 ms, splitting its color channels and shifting bands; Raise error glitches a banner in. A last strip sets the same word side by side as a vector Wave warp of its outlines and as raster Turbulence, with when to use each. Under reduced motion every Distort stays at identity and the warp holds still: the words sit apart, nothing flows or glitches, the slider is disabled and the banner only fades in.",
+                () => new LiquidTypePage()),
             new GalleryPage("Swipe deck", "Twenty destinations dealt three at a time. Drag the top card: it tilts about its bottom edge and leans a few degrees in 3D towards its travel, stamps LIKE or NOPE on the side it travels, and lifts the two cards beneath it as it goes. Let go short of 110 px and it springs home; drag past it, or flick it in any direction, and it flies off along its throw while the next card is promoted onto a draggable of its own. The buttons dismiss the same way, and Undo flies the last card back to the top from where it left.",
                 () => new SwipeDeckPage()),
             new GalleryPage("Chart morph", "Eight data points, four charts. Switch between Bars, Donut, Scatter and Line and every point morphs its own Path into its next shape with MorphTo, staggered from the center (from the first wedge for the donut), keeping its color the whole way; the axis labels count to the new scale and the gridlines fade out for the donut. In Line the stroke draws itself once the markers land and undraws before any morph away. Press Shuffle or switch again mid-morph and each point carries on from the shape it is drawn as, and hover a point to lift it and read its values.",
@@ -155,6 +166,8 @@ public partial class MainViewModel : ObservableObject
                 () => new RecipeGalleryPage()),
             new GalleryPage("Playground", "Every control edits one step of a builder chain over six squares: transforms, duration, an ease by name, a stagger delay and where it spreads from, loop and alternate. The squares replay as you change it, and the code beneath is the C# for exactly that chain, ready to paste.",
                 () => new PlaygroundPage()),
+            new GalleryPage("Warp studio", "Three lines of Archivo split into outline pieces and bent by the Warp shorthands. Pick any of the seven TextWarpKind values, drag the strength, phase and radius, stagger the warp line by line, loop the phase, or let the pointer drive WarpOrigin. Presets set it all at once: a waving Flag, a Rainbow arc, a Magnifier that follows the pointer, a Whirlpool, a slow Drip, a Star Wars crawl and a Jelly the pointer kicks. The code beneath is the SplitText, TextWarp.SetKind and Animate calls for exactly those settings. Under reduced motion the shorthands hold their identities, so the headline stays straight and the phase runs once instead of looping.",
+                () => new WarpStudioPage()),
             new GalleryPage("Ripple grid", "Click any cell and a wave runs out from it across a 16 by 9 grid. Grid staggers do all the work: one sets each cell's delay by its distance from the click, and two more, as ranges inside the Scale and Rotate keyframes, dip and twist the nearest cells hardest, except under reduced motion, where only the color wave runs. Click again mid-wave and it restarts from the new cell.",
                 () => new RippleGridPage()),
             new GalleryPage("Submit flow", "A submit button driven by small recipes awaited in turn: it collapses into a circle, spins while a Presto timer stands in for the request, then turns aqua, pops with Recipes.Pulse, draws a tick and throws Recipes.Confetti, or turns coral, shakes with Recipes.Shake and draws a cross, before springing back. Tick \"Fail the next request\" to see the error branch. Under reduced motion the button snaps between shapes and the spinner holds still.",
@@ -177,9 +190,46 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial Control? CurrentPage { get; set; }
 
-    /// <summary>Whether the selected page sits above the previous one in the nav, so the page transition plays backwards.</summary>
+    /// <summary>Whether the page transition plays backwards: going back, or in the wide layout a page above the previous one in the nav.</summary>
     [ObservableProperty]
     public partial bool IsBack { get; set; }
+
+    /// <summary>Whether the compact layout shows Home, the nav at full width, instead of <see cref="CurrentPage"/>.</summary>
+    [ObservableProperty]
+    public partial bool AtHome { get; private set; }
+
+    private const int HistoryLimit = 50;
+    private readonly List<GalleryPage> _history = [];
+    private readonly bool _startGiven;
+    private bool _goingBack;
+    private bool? _compact;
+
+    /// <summary>Whether the view shows the compact layout, reported by the view from its width.</summary>
+    /// <remarks>
+    /// No page is built before the first report: a compact start with no start page goes <see cref="AtHome"/> and builds none
+    /// until one is chosen, and any other start builds <see cref="SelectedPage"/>. A later switch keeps the open page and the
+    /// history; going wide from Home opens <see cref="SelectedPage"/>, the page Home was reached from, or after a compact start
+    /// the first page, as a wide start does.
+    /// </remarks>
+    public bool IsCompact
+    {
+        get => _compact ?? false;
+        set
+        {
+            if (_compact == value) return;
+            var starting = _compact is null;
+            _compact = value;
+            OnPropertyChanged();
+            if (!starting)
+            {
+                if (!value) AtHome = false;
+            }
+            else if (value && !_startGiven) AtHome = true;
+            else CurrentPage = SelectedPage?.Create();
+        }
+    }
+
+    public bool CanGoBack => _history.Count > 0 || (IsCompact && !AtHome);
 
     private MotionPreference _motion;
     private IDisposable? _following;
@@ -219,11 +269,12 @@ public partial class MainViewModel : ObservableObject
     {
     }
 
-    /// <summary>Opens <paramref name="start"/>, or the first page when it is null.</summary>
+    /// <summary>Selects <paramref name="start"/>, or the first page when it is null; <see cref="IsCompact"/>'s first report opens it.</summary>
     public MainViewModel(GalleryPage? start)
     {
         _nav = [.. Sections.Select(section => new NavSection(section))];
         VisibleSections = [.. _nav];
+        _startGiven = start is not null;
         SelectedPage = start ?? Sections[0].Pages[0];
         PrestoAvalonia.WatchSystemReducedMotion(reduced => SystemMotion = reduced switch
         {
@@ -233,11 +284,60 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    // In the compact layout a change while at Home is a choice from the nav, which starts a new history.
     partial void OnSelectedPageChanged(GalleryPage? oldValue, GalleryPage? newValue)
     {
-        IsBack = oldValue is not null && Order(newValue) < Order(oldValue);
-        CurrentPage = newValue?.Create();
         OnPropertyChanged(nameof(NavSelectedPage));
+        if (_compact is null) return;
+        if (_goingBack) IsBack = true;
+        else
+        {
+            IsBack = !IsCompact && oldValue is not null && Order(newValue) < Order(oldValue);
+            if (IsCompact && AtHome) _history.Clear();
+            else if (oldValue is not null) Remember(oldValue);
+        }
+        CurrentPage = newValue?.Create();
+        AtHome = false;
+    }
+
+    partial void OnAtHomeChanged(bool value)
+    {
+        if (!value) CurrentPage ??= SelectedPage?.Create();
+    }
+
+    /// <summary>Opens <paramref name="page"/> from a tap on its nav row, also when it is already selected but the compact layout is at Home.</summary>
+    public void OpenFromNav(GalleryPage page)
+    {
+        SelectedPage = page;
+        AtHome = false;
+    }
+
+    /// <summary>Opens the previous page; with none, the compact layout goes Home and the wide one does nothing.</summary>
+    [RelayCommand]
+    public void GoBack()
+    {
+        if (_history.Count == 0)
+        {
+            if (IsCompact) AtHome = true;
+            return;
+        }
+        var previous = _history[^1];
+        _history.RemoveAt(_history.Count - 1);
+        _goingBack = true;
+        try
+        {
+            SelectedPage = previous;
+        }
+        finally
+        {
+            _goingBack = false;
+        }
+    }
+
+    private void Remember(GalleryPage page)
+    {
+        if (_history.Count == HistoryLimit) _history.RemoveAt(0);
+        _history.Add(page);
     }
 
     partial void OnSearchTextChanged(string value)
@@ -251,7 +351,7 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Opens the first page the nav shows; Enter in the search box.</summary>
     public void OpenFirstMatch()
     {
-        if (VisibleSections.Count > 0) SelectedPage = VisibleSections[0].Pages[0];
+        if (VisibleSections.Count > 0) OpenFromNav(VisibleSections[0].Pages[0]);
     }
 
     [RelayCommand]

@@ -1,11 +1,11 @@
 ---
 id: BRIDGE-TOKENS
 title: Motion tokens
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/MotionTokens.cs
+  - MonacoLabs.Presto.Avalonia/MotionTokens.cs
 types:
   - MotionTokens
 tests:

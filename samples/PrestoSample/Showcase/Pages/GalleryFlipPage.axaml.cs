@@ -1,9 +1,9 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
+using static MonacoLabs.Presto.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -168,8 +168,8 @@ public partial class GalleryFlipPage : ShowcasePage
         PrestoAvalonia.AnimateOnCompositor(coming, new CompositorAnimationParams
         {
             // Composition properties: a card the filter also moves gives the rise up to the layout transition's translation.
-            ["Y"] = TweenValue.FromTo(Rise, 0),
-            ["Scale"] = TweenValue.FromTo(0.9, 1),
+            [Y] = TweenValue.FromTo(Rise, 0),
+            [Scale] = TweenValue.FromTo(0.9, 1),
             ["Opacity"] = TweenValue.FromTo(0, 1),
             Duration = EntryDuration,
             Delay = delay,
@@ -179,7 +179,7 @@ public partial class GalleryFlipPage : ShowcasePage
     private void Leave(IReadOnlyList<Control> going) => Scope.Execute(_ =>
         PrestoAvalonia.AnimateOnCompositor(going, new CompositorAnimationParams
         {
-            ["Scale"] = 0.8,
+            [Scale] = 0.8,
             ["Opacity"] = 0,
             Duration = ExitDuration,
             Delay = Presto.Stagger(16),

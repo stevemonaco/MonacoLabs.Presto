@@ -1,11 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
-using Timer = Monaco.Presto.Timer;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Tests;
 

@@ -1,16 +1,16 @@
 ---
 id: BRIDGE-PRESENCE
 title: Presence lifecycle (classification, arrivals, show and hide, modes)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Presence.cs
-  - Monaco.Presto.AvaloniaBridge/PresenceMode.cs
-  - Monaco.Presto.AvaloniaBridge/PresenceHideMode.cs
-  - Monaco.Presto.AvaloniaBridge/PresenceMoment.cs
-  - Monaco.Presto.AvaloniaBridge/ItemChanges.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/VisibilityHold.cs
+  - MonacoLabs.Presto.Avalonia/Presence.cs
+  - MonacoLabs.Presto.Avalonia/PresenceMode.cs
+  - MonacoLabs.Presto.Avalonia/PresenceHideMode.cs
+  - MonacoLabs.Presto.Avalonia/PresenceMoment.cs
+  - MonacoLabs.Presto.Avalonia/ItemChanges.cs
+  - MonacoLabs.Presto.Avalonia/Targets/VisibilityHold.cs
 types:
   - Presence
   - PresenceHideMode

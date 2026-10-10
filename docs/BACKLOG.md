@@ -1,6 +1,6 @@
 # Backlog
 
-The single list of work not done in Monaco.Presto: known bugs, gaps, checks, candidates and undecided questions.
+The single list of work not done in MonacoLabs.Presto: known bugs, gaps, checks, candidates and undecided questions.
 Small items are taken straight from here and fixed with their spec updated; larger ones become a change proposal in `docs/changes/` first (see [docs/changes/README.md](changes/README.md)).
 When an item is closed, its line is deleted.
 
@@ -21,12 +21,12 @@ When an item is closed, its line is deleted.
 - [CORE-ANIMATABLE] `Fling(property, settings)` ignores `settings.Velocity` instead of using it as a fallback; done when it is used or the parameter's role is documented and tested.
 - [BRIDGE-DRAGGABLE] `GestureOwners` lets two `Draggable`s (or two `Transformable`s, BRIDGE-TRANSFORMABLE) claim one target, after which the first one's `Revert` no longer releases it; done when a second claim of the same type is rejected or handed over explicitly.
 - [BRIDGE-TEXT] `TextSplitter`'s 150 ms resize debounce ignores `Globals.TimeScale`, so it misbehaves in seconds mode; done when it is scaled like every other bridge timer.
-- [BRIDGE-TEXT] `ScrambleText` caches a target's first text forever, so a later unchained scramble without `Text` settles back on stale text; done when the cache refreshes from the target's current text.
+- [CORE-SCRAMBLE] `Presto.ScrambleText` caches a target's first text forever, so a later unchained scramble without `Text` settles back on stale text; done when the cache refreshes from the target's current text.
 - [BRIDGE-PAGER] `Pager.SelectedIndex` set directly (binding or code) is never wrapped or clamped, so an out-of-range value sends the strip past the slides; done when it is coerced like `GoTo`.
 - [BRIDGE-SHEET] `Sheet.DetentIndex` is never coerced into the detent range, so `IsOpen` can read true while the sheet rests closed; done when it is coerced.
+- [BRIDGE-SHEET] `Dismissal`'s back and Escape handlers run in top-level registration order, so an app handler registered earlier (the gallery shell) runs before an open overlay's; consider handling them so an open overlay always wins.
 - [CORE-BUILDER] `AnimationBuilder.ToParams` and `TweenKeyframesBuilder.Color` read `Engine.Current` rather than the timeline's engine or parent defaults (see CORE-KEYFRAMES, CORE-REDUCED); done when a builder resolves against the engine and defaults it is added under.
 - [CORE-TIMELINE] A forward jump from time 0 past a later-added `.Set` at 0 renders the `Set` last (the Title sequence cards end hidden); done when reproduced against anime.js 4.5.0 seek semantics and either fixed as a parity bug or recorded as upstream behavior.
-- [SAMPLE] The Title sequence reversed from its end leaves the feature cards at 0.4–4% opacity 300 ms before their label (a plain timeline with the same recipe does not; probably the split's `KeepTime` rebuild); done when the cause is found and fixed.
 - [BRIDGE-PAGES] A swipe-completed `Carousel` page keeps its seeked end values (and `ZIndex`) at `Animation` priority until the next transition or recycle, because `VirtualizingCarouselPanel` resets only the page it recycles; done when the transition releases them on completion.
 - [BRIDGE-PRESENCE] `Presence.OwnerOfItem` resolves nested lists (`TreeView` sections) to the outer list, so a page removed from its section plays no exit; done when it stops at the nearest `ItemsControl` whose items panel hosts the container.
 - [BRIDGE-CONTENTSIZE] `ContentSizeTransition.ResizingBeside` holds only for siblings of the resizing host, so a layout transition trails an ancestor's resize (the nav arms `Accordion.Enabled` only while not searching to work around it); done when any ancestor up to the host's parent counts.
@@ -39,7 +39,7 @@ When an item is closed, its line is deleted.
 - [LOTTIE-PLAYBACK] `speed <= 0` in `Play`, `PlaySegment`, `PlayOnRenderThread` and the recipe, and a composition with `"fr": 0`, produce infinite, negative or NaN durations; done when both are rejected.
 - [CORE-PARTICLES] Particle lifetime 0, a negative `dt` and a negative `MaxParticles` are not validated; done when each throws.
 - [CORE-ENGINE] `Engine.Speed` is not clamped, unlike `Clock.Speed`, so 0 or a negative speed produces infinite or NaN start times; done when it is clamped or rejected.
-- [CORE-PRESTO] Null inputs to `EaseParser.Parse`, `Springs.Parse` (BRIDGE-EASES) and the `Presto` methods throw `NullReferenceException`; done when they throw `ArgumentNullException`.
+- [CORE-PRESTO] Null inputs to `EaseParser.Parse` and the `Presto` methods throw `NullReferenceException`; done when they throw `ArgumentNullException`.
 
 ## Reduced-motion gaps
 
@@ -81,6 +81,8 @@ When an item is closed, its line is deleted.
 - [BRIDGE-MOTION] Watch orchestration (stagger, `Order` and `StaggerFrom` timings, the `Presence.Mode=Wait` hold, the double-click case) on the Win32 Desktop head; it is verified headlessly only.
 - [BRIDGE-REORDER] Check the drag, Escape and Alt+arrow paths by hand on the Win32 Desktop head.
 - [SAMPLE] Watch the Eases page's new eases, the Toss card, the Shapes spline demo and the sidebar Follow system switch on the Win32 Desktop head.
+- [BRIDGE-FOLLOW] Sweep a real mouse across the Typography wordmark on the Win32 Desktop head, with `--motion full` and `--motion reduced`: the letters nearest the pointer swell and brighten, spring back when it leaves the stage, and nothing jitters (DevTools MCP sends no hover).
+- [BRIDGE-MAGNETIC] Sweep a real mouse past the Micro-interactions magnetic buttons on the Win32 Desktop head, with `--motion full` and `--motion reduced`: they lean towards the pointer and spring back, nothing jitters while hovering a pulled button's edge, and reduced motion leaves them still (DevTools MCP sends no hover).
 - [BRIDGE-TRANSFORMABLE] Smoke-run `Transformable` with real touch on Android and Browser (iOS only compiles).
 - [BRIDGE-TRANSFORMABLE] On a real Android device, check whether an ancestor `ScrollViewer`'s `ScrollGestureRecognizer` captures the first touch before the second lands and cancels the pinch; fix by capturing the first touch or document the opt-out.
 - [BRIDGE-TRANSFORMABLE] Verify on macOS hardware that the trackpad rotation sign (`-Delta.X`) is right.
@@ -92,14 +94,18 @@ When an item is closed, its line is deleted.
 - [LOTTIE-PLAYBACK] Drive the Lottie gallery page in the Browser head.
 - [BRIDGE-DRAGGABLE] Fling and re-grab cards repeatedly on the Desktop Draggable page to confirm the drag freeze is gone (only a headless test covers it).
 - [SAMPLE] On Desktop, in both motion modes, sweep the nav with a real pointer, drag and double-click the splitter, and press Ctrl+B and Ctrl+F.
-- [BRIDGE-PARTICLES] Measure the default `ParticleScene.MaxLive` of 1 000 on Browser, Android and iOS (only desktop's 4 000 was measured).
-- [PLATFORM] Drive the gallery on an Android device (it only builds, installs and launches) and run iOS on a simulator (needs a macOS build host; only compiles for `iossimulator-x64`).
+- [SAMPLE] On Desktop at `--size 400x850`, in both motion modes: watch the Home and Page push for a one-frame glitch, go back with Alt+Left and the mouse back button, scroll Home with a real wheel before going back, press Ctrl+F at Home (focuses search) and on a page (does nothing), press Ctrl+B (does nothing), confirm Alt+Left on a focused Board priority goes back rather than reordering, drag the window live across 720 DIP, and judge the full-motion `PagePush` mid-slide (DevTools sends no modifier chords or mouse back button).
+- [BRIDGE-PARTICLES] Measure the default `ParticleScene.MaxLive` of 1 000, and the Particle type and Liquid type frame rates, on Browser, Android and iOS (only desktop's 4 000 was measured).
+- [PLATFORM] Run iOS on a simulator (needs a macOS build host; only compiles for `iossimulator-x64`).
 - [PLATFORM] Check the Browser and Android heads against the showcase pages and update the README Platforms table with what is true.
-- [SAMPLE] By hand on Desktop: the Board drag and insertion gap, the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`).
+- [SAMPLE] By hand on Desktop: the Board drag and insertion gap, the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`), Warp studio's Magnifier, Jelly and Follow pointer, and the Liquid type heading's hover glitch.
 - [SAMPLE] By hand on Desktop: the Carousel pointer drag.
+- [SAMPLE] By hand on Desktop with a real mouse: the Type lab elastic-letter drag (neighbors follow, springs home with overshoot, no jitter at rest) and Bézier control-point drag (text stays on the path); DevTools sends no drags.
 - [SAMPLE] By hand on Desktop: Connected and Connected navigation (open a card on `PointerPressed`) and the Gestures page drags.
 - [SAMPLE] Run the Activity feed live for ten minutes and confirm the reveal memory stays bounded (today it rests on `ActivityFeedPageTests`).
 - [BRIDGE-INIT] Check the hidden signal off the desktop: hide the tab in the Browser head and background the app on Android (and iOS where it runs), confirming `Presto.Engine.Hidden` pauses the engine and showing it again resumes at the same progress (only desktop minimize and headless `WindowState` are checked); done when each head is checked or its gap is recorded in the README Platforms table.
+- [CORE-MOTIONVALUE] By hand on the Desktop Gestures page's drag-to-open card: slow drags rest on the nearest point, flicks advance, re-grabbing mid-settle does not jump, and `--motion reduced` lands at once (DevTools sends no drags; only the slow-drag and flick cases have a headless test).
+- [CORE-MOTIONVALUE] By hand on the Desktop Gestures page's trails row: the spring trail and the Lag (40 ms) trail chase the pointer, the engine idles once the dots settle (DevTools frame stats), and the Resist indicator stretches a fifth as far past ±80 (DevTools sends no pointer moves; only `GesturesPageTests` covers it).
 - [BRIDGE-REVEAL] With the Activity feed's Reveal set to "Every time" on Desktop, scroll up and judge whether rows rising from below look wrong; done when judged, and if they do, a change proposal reopens mirroring a reveal by scroll direction (a non-goal today).
 
 ## Candidate features
@@ -117,9 +123,8 @@ When an item is closed, its line is deleted.
 - [BRIDGE-SCROLL] A `Scroll.Progress` convenience for a scroll progress bar.
 - [BRIDGE-RECIPES] A one-line `Recipes.ArcFlight` to replace the sample's `Showcase/PhotoFlight.cs`.
 - [BRIDGE-RECIPES] A text-shaped mask reveal and `MorphTo` clip-geometry reveals.
-- [BRIDGE-RECIPES] A pointer proximity / magnetic pull prebuilt, replacing the hand-built versions on the Typography and Animatable pages.
+- [BRIDGE-MAGNETIC] A configurable `Magnetic.Spring` (parsed like `FollowParams.Spring`).
 - [BRIDGE-HELPERS] Lift `AfterFirstArrange` (`Showcase/ShowcasePage.cs`, used by ChatLog, GalleryFlip and Liquid) into a `PrestoAvalonia` utility.
-- [BRIDGE-TEXT] Expose split piece widths, so an effect can size tweens without a probe `TextBlock` (the Typography rotator still measures word widths with one).
 - [BRIDGE-IMAGE] Decide whether `FilteredImage` should resize to an incoming image of another aspect only when the source transition ends, rather than at its start.
 - [BRIDGE-IMAGE] A pre-baked crossfade mode (a filtered copy faded with `Opacity`, compositor-capable), if UI-thread filtering proves too costly on Browser or Android.
 - [BRIDGE-IMAGE] A per-control native filter cache keyed by matrix, if per-frame `SKColorFilter`/`SKPaint` allocation shows up in measurement.
@@ -132,9 +137,13 @@ When an item is closed, its line is deleted.
 
 - [SAMPLE] `GalleryFlipPage`'s mode toggle could bind `Animate.LayoutMode` once its cards are templated rather than built in code.
 - [SAMPLE] ChartMorph's tooltip at an anchor is hand-built (`ShowTip`); move it to `Popover`.
+- [SAMPLE] Audit the pages at 400 DIP in the compact layout and list the ones that clip or overflow, with a fix or a minimum-width note per page; Eases, Playground and Springs are known to clip.
+- [SAMPLE] The compact Page bar's back button is a 36 DIP touch target, below the 44 DIP of the nav rows, and its About toggle stays open when another page opens; done when the button is 44 DIP and About closes on a page change.
 - [SAMPLE] Add a README showcase section with captures of the showcase pages.
 - [SAMPLE] At 127 px a Card gallery grid card's `#06 · C. Lindqvist 711` line runs into its right border; done when it fits or trims.
 - [SAMPLE] Swipe-to-dismiss on the Activity feed's recycled rows (`SwipeActions` or `Draggable`) beside the dismiss button; done when a swiped row collapses out through `Presence.Exit` and a recycled row carries no stale swipe offset.
+- [SAMPLE] The Gestures page trail and resist stages share the panel's background, so their edges are hard to see; done when the stages read as distinct.
+- [SAMPLE] A Kinetic poster showcase page chaining every glyph-geometry block (outline pieces and `WriteIn`, multi-contour morph, warps, shards and particle text, `Distort`), deferred until those pieces have settled; done when the page exists with its page test.
 
 ## Tooling and tests
 
@@ -156,11 +165,13 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-CONTENTSIZE](specs/avalonia-bridge/content-size.md): 8 untested requirements, plus the `ClipToBounds` decision text not matching the code's `Clip` hold.
 - [BRIDGE-HELPERS](specs/avalonia-bridge/control-helpers.md): 1 untested requirement, plus no test that every shorthand has a typed builder method.
 - [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 7 untested requirements, plus two arms on one container being undecided.
+- [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 6 untested requirements, plus the scaled-away child's hit-testing, a static `Distort` requesting frames, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
 - [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus the stale `OnDrag` doc, two draggables claiming one target, and `Reset` writing 0 outside the container.
-- [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement, plus `Springs.Parse(null)` throwing `NullReferenceException`.
+- [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement.
 - [BRIDGE-EFFECTS](specs/avalonia-bridge/effects.md): 7 untested requirements, plus the companion-only mask and circle rest-removal bug.
 - [BRIDGE-FLIP](specs/avalonia-bridge/flip-card.md): 4 untested requirements, plus `Motion` cloning the whole builder unvalidated and an `Orientation` change while flipped leaving the old axis turned.
 - [BRIDGE-FOLLOW](specs/avalonia-bridge/follow.md): 8 untested requirements, plus never-attached targets easing, shorthands lacking `AnimateInitial`/`WhenReduced`, and a non-numeric shorthand string silently releasing the layer.
+- [BRIDGE-GLYPHS](specs/avalonia-bridge/glyph-outlines.md): 1 untested requirement, plus the missing-glyph case of BRIDGE-GLYPHS-004.
 - [BRIDGE-IMAGE](specs/avalonia-bridge/image-effects.md): 19 untested requirements, plus the resize-at-start question, `ImageTransition.Parse` accepting numeric kinds, a `Source` change mid-transition retargeting silently, and Browser/Android smoke runs.
 - [BRIDGE-INIT](specs/avalonia-bridge/initialization.md): 4 untested requirements, plus the `HiddenSignal` one-time lifetime lookup.
 - [BRIDGE-LAYOUT](specs/avalonia-bridge/layout-transitions.md): 6 untested requirements, plus `Then()` before the first move resolving at once and an off-screen source degrading silently.
@@ -170,7 +181,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-TOKENS](specs/avalonia-bridge/motion-tokens.md): 2 untested requirements, plus the stale `ColorSpace` doc.
 - [BRIDGE-PAGES](specs/avalonia-bridge/page-transitions.md): 4 untested requirements.
 - [BRIDGE-PAGER](specs/avalonia-bridge/pager.md): 20 untested requirements, plus the uncoerced `SelectedIndex`.
-- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 13 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS.
+- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 13 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, a capped formation losing its bottom rows' right end, single-color formations, and the manual Particle type Browser frame-rate check.
 - [BRIDGE-POPOVER](specs/avalonia-bridge/popovers.md): 5 untested requirements, plus builders on a plain popup's child doing nothing.
 - [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 5 untested requirements, plus `AnimateExit` ghosting hidden or transparent controls.
 - [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 5 untested requirements, plus the stale `GetReveal`/`SetReveal` docs and the manual Activity feed check.
@@ -180,7 +191,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 3 untested requirements.
 - [BRIDGE-PULL](specs/avalonia-bridge/pull-to-refresh.md): 13 untested requirements, plus a faulted `Refresh` task rethrowing onto the UI thread, undocumented.
 - [BRIDGE-RECIPES-MEDIA](specs/avalonia-bridge/recipes-media.md): 6 untested requirements.
-- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus the stale `PressIn` and `Loading` docs, `PageBloom`'s exit lacking `WhenReduced`, `PageSharedAxis` taking no duration, and `Develop` missing from the UI-thread-only list.
+- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus the stale `PressIn` and `Loading` docs, `PageBloom`'s exit lacking `WhenReduced`, `PageSharedAxis` taking no duration, `Develop` missing from the UI-thread-only list, dark specks from `MorphGlyphs` at body size, `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, and `WriteIn`/`Shatter` not re-seekable in a timeline.
 - [BRIDGE-REDUCED](specs/avalonia-bridge/reduced-motion.md): 0 untested requirements, plus the follower capturing `Engine.Current` and the never-retried activation hook.
 - [BRIDGE-REORDER](specs/avalonia-bridge/reorder.md): 10 untested requirements, plus a refused step re-raising `Moving` on every move and a spacing typo in `ReorderList.Raise`.
 - [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 11 untested requirements, plus the snap's missing velocity check and reduced form, and the missing-target exception thrown from a tick.
@@ -191,7 +202,8 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-FRAMES](specs/avalonia-bridge/sprite-frames.md): 8 untested requirements, plus in-place `Frames` mutation not being observed.
 - [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 12 untested requirements, plus a later `Command` widening the range, undocumented.
 - [BRIDGE-TEXTREVEAL](specs/avalonia-bridge/text-reveal.md): 7 untested requirements.
-- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 23 untested requirements, plus the unscaled resize debounce and the stale scramble cache.
+- [BRIDGE-WARP](specs/avalonia-bridge/text-warp.md): 1 untested requirement, plus the per-block field, no per-letter stagger, and the manual pointer warps.
+- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 5 untested requirements, plus the unscaled resize debounce.
 - [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 6 untested requirements, plus `Items`/`ItemsSource` desync and a re-prepared container doubling handlers.
 - [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 17 untested requirements, plus shared target ownership, capture loss running a full release, a horizontal wheel handled under zoom, and the macOS, Android and Browser hardware checks.
 - [BRIDGE-TRANSFORMS](specs/avalonia-bridge/transforms.md): 1 untested requirement, plus a local `RenderTransform` set while held not being picked up.
@@ -215,6 +227,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [CORE-PRESTO](specs/core/presto.md): 12 untested requirements, plus `Set` raising no timer-created hook, `Get` not canonicalizing names, and null arguments throwing `NullReferenceException`.
 - [CORE-REDUCED](specs/core/reduced-motion.md): 9 untested requirements, plus a cross-engine builder's `ReducedMotion` and `Animatable` under `ReduceAll`.
 - [CORE-SCOPE](specs/core/scope-and-defaults.md): 21 untested requirements, plus the stale `Scope.Defaults` doc and timeline defaults snapshotted versus read live.
+- [CORE-SCRAMBLE](specs/core/scramble.md): 18 untested requirements, plus the first-text cache that never refreshes.
 - [CORE-SPRING](specs/core/spring.md): 8 untested requirements, plus seconds-mode spring durations and physical and designer settings not updating each other.
 - [CORE-STAGGER](specs/core/stagger.md): 2 untested requirements, plus the cached start offset on reuse.
 - [CORE-TARGETS](specs/core/targets.md): 3 untested requirements, plus codecs registered after first resolution never applying and `Revert` skipping null originals.

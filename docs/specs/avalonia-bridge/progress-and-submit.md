@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-SUBMIT
 title: Progress ring and submit button
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/ProgressRing.cs
-  - Monaco.Presto.AvaloniaBridge/SubmitButton.cs
-  - Monaco.Presto.AvaloniaBridge/SubmitState.cs
+  - MonacoLabs.Presto.Avalonia/Controls/ProgressRing.cs
+  - MonacoLabs.Presto.Avalonia/SubmitButton.cs
+  - MonacoLabs.Presto.Avalonia/SubmitState.cs
 types:
   - ProgressRing
   - SubmitButton
@@ -24,7 +24,7 @@ depends:
   - BRIDGE-SHAPES
   - BRIDGE-CODECS
   - BRIDGE-RECIPES
-  - BRIDGE-EASES
+  - CORE-SPRING
   - BRIDGE-TOKENS
 ---
 

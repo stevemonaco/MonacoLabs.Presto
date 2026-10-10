@@ -3,9 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.Values;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Values;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
@@ -61,11 +60,11 @@ public partial class ColorSpacesPage : ShowcasePage
     protected override void OnAttached()
     {
         var (rgb, rgbCode) = Snippet.Of(Presto.Build()
-            .Property("Background", k => k.To("#ffff00").To("#00ff00").To("#00ffff").To("#0000ff").To("#ff00ff").To("#ff0000"))
+            .Background(k => k.To("#ffff00").To("#00ff00").To("#00ffff").To("#0000ff").To("#ff00ff").To("#ff0000"))
             .Duration(8000)
             .Ease(Eases.None));
         var (oklch, oklchCode) = Snippet.Of(Presto.Build()
-            .Property("Background", k => k.Color("#ff0000", "#ff0000", ColorSpace.Oklch, HueInterpolation.Increasing, duration: 8000, ease: Eases.None)));
+            .Background(k => k.Color("#ff0000", "#ff0000", ColorSpace.Oklch, HueInterpolation.Increasing, duration: 8000, ease: Eases.None)));
         HueCode.Code = $"var rgb = {rgbCode};\n\nvar oklch = {oklchCode};\n\nRgbGlow.Animate(rgb.Loop());\nOklchGlow.Animate(oklch.Loop());";
 
         _rgbTrack = BuildTrack(RgbTrack, Sample(rgb, RgbGlow.Background, Cycle, 160));
@@ -92,9 +91,9 @@ public partial class ColorSpacesPage : ShowcasePage
         {
             AnimationBuilder builder;
             if (Spaces[i] is { } space)
-                (builder, colorCode) = Snippet.Of(Presto.Build().Property("Background", k => k.Color(from, to, space, duration: 1500, ease: Eases.OutCubic)));
+                (builder, colorCode) = Snippet.Of(Presto.Build().Background(k => k.Color(from, to, space, duration: 1500, ease: Eases.OutCubic)));
             else
-                (builder, defaultCode) = Snippet.Of(Presto.Build().Property("Background", to, from: from, duration: 1500, ease: Eases.OutCubic));
+                (builder, defaultCode) = Snippet.Of(Presto.Build().Background(to, from: from, duration: 1500, ease: Eases.OutCubic));
             _paths[i].Background = Gradient(Sample(builder, null, 1500, 48));
             ((TextBlock)_pills[i].Child!).Text = Statuses[_status].Name;
             _flips[i] = _pills[i].Animate(builder);
@@ -102,7 +101,7 @@ public partial class ColorSpacesPage : ShowcasePage
         StatusCode.Code = $"var (from, to) = (\"{from}\", \"{to}\");\n\n// Default\n{defaultCode};\n\nforeach (var space in new[] {{ ColorSpace.Srgb, ColorSpace.LinearSrgb, ColorSpace.Oklab, ColorSpace.Oklch }})\n    {colorCode};";
     }
 
-    private void UpdateTracks(Monaco.Presto.Timer cycle)
+    private void UpdateTracks(MonacoLabs.Presto.Timer cycle)
     {
         var x = cycle.IterationProgress * TrackWidth;
         Move(_rgbTrack!, x, Read(RgbGlow, RgbReadout));

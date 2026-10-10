@@ -3,7 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        xmlns:local="using:PrestoSample.Showcase.Pages"
                        xmlns:builder="using:PrestoSample.Builder"
                        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="760"
@@ -79,18 +79,27 @@
     </showcase:ShowcasePage.Styles>
 
     <ScrollViewer>
-        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
             <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="SUBMIT" />
                 <Border Classes="stage">
-                    <!-- snippet: MicroInteractionsSubmitButton -->
-                    <Button x:Name="Submit" Classes="specimen" Width="168" Height="44" Padding="0"
-                            HorizontalAlignment="Center" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Click="SubmitClicked"
-                            presto:SubmitButton.SuccessBrush="{x:Static showcase:Palette.Aqua}">
-                        <TextBlock x:Name="SubmitLabel" Text="Place order" />
-                    </Button>
-                    <!-- /snippet -->
+                    <StackPanel Spacing="40" VerticalAlignment="Center">
+                        <!-- snippet: MicroInteractionsSubmitButton -->
+                        <Button x:Name="Submit" Classes="specimen" Width="168" Height="44" Padding="0"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Click="SubmitClicked"
+                                presto:SubmitButton.SuccessBrush="{x:Static showcase:Palette.Aqua}">
+                            <TextBlock x:Name="SubmitLabel" Text="Place order" />
+                        </Button>
+                        <!-- /snippet -->
+                        <!-- snippet: MicroInteractionsSaveButton -->
+                        <Button x:Name="Save" Classes="specimen" Width="168" Height="44" Padding="0"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Click="SaveClicked">
+                            <TextBlock x:Name="SaveLabel" Text="Save" />
+                        </Button>
+                        <!-- /snippet -->
+                    </StackPanel>
                 </Border>
             </StackPanel>
 
@@ -190,7 +199,22 @@
                 </Border>
             </StackPanel>
 
-            <showcase:CodeTabs x:Name="Code" Grid.Row="2" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
+            <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="MAGNETIC" />
+                <Border Classes="stage" Height="160">
+                    <!-- snippet: MicroInteractionsMagnetic -->
+                    <StackPanel Orientation="Horizontal" Spacing="72" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Button x:Name="Magnet" Classes="specimen" Content="Default" presto:Magnetic.Enabled="True" />
+                        <Button Classes="specimen" Content="Strong pull" presto:Magnetic.Enabled="True"
+                                presto:Magnetic.Strength="0.6" presto:Magnetic.Radius="80" />
+                        <Button Classes="specimen" Content="Subtle" presto:Magnetic.Enabled="True"
+                                presto:Magnetic.Strength="0.15" presto:Magnetic.Radius="32" />
+                    </StackPanel>
+                    <!-- /snippet -->
+                </Border>
+            </StackPanel>
+
+            <showcase:CodeTabs x:Name="Code" Grid.Row="3" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
         </Grid>
     </ScrollViewer>
 </showcase:ShowcasePage>

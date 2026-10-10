@@ -1,8 +1,8 @@
 using System.Globalization;
 using Avalonia.Interactivity;
-using Monaco.Presto;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
-using Timer = Monaco.Presto.Timer;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Pages;
 

@@ -1,20 +1,20 @@
 ---
 id: BRIDGE-CODECS
 title: Avalonia value codecs
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Values
-  - Monaco.Presto.AvaloniaBridge/ColorExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Values
+  - MonacoLabs.Presto.Avalonia/ColorExtensions.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types:
   - ColorExtensions
 tests:
   - CodecTests
   - TargetAdapterTests
   - TargetOwnerTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream:
   - src/core/colors.js
   - src/core/values.js
@@ -104,10 +104,19 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 - **BRIDGE-CODECS-026** — A `Geometry` shall decode into `max(⌈contour length × 0.33⌉, 2)` points spread evenly along its contour, rounded to 3 decimals; a path-data string end value is parsed by the core as its numbers.
   - Tests: untested
-- **BRIDGE-CODECS-027** — Each frame of a `Geometry` tween shall be written as a new `StreamGeometry` polyline through the interpolated points, left open.
-  - Tests: `ShapesTests.MorphWalksThePointsOntoTheDestinationGeometry`
+- **BRIDGE-CODECS-027** — Each frame of a `Geometry` tween shall be written as a new `StreamGeometry` through the interpolated points: one open polyline, unless the end value's template ends in `Z`, when a new figure starts at each coordinate pair whose preceding template holds `M` and every figure is closed with the nonzero fill rule (BRIDGE-SHAPES-022).
+  - Tests: `ShapesTests.MorphWalksThePointsOntoTheDestinationGeometry`, `ShapesTests.MorphKeepsAHoleThroughoutAGlyphMorph`
 - **BRIDGE-CODECS-028** (inherited) — When two geometries decode into different point counts outside `MorphTo` (BRIDGE-SHAPES), the core's padding of the shorter value shall apply.
   - Tests: untested
+
+### Fonts
+
+- **BRIDGE-CODECS-030** — `FontWeight` and `FontStretch` properties shall interpolate numerically and write the value rounded to an integer and clamped to 1–1000 and 1–9 respectively.
+  - Tests: `CodecTests.FontWeightInterpolatesAsARoundedNumber`, `CodecTests.FontWeightAndStretchAreClampedToTheirRanges`
+- **BRIDGE-CODECS-031** — A string value shall parse as a member name (case-insensitive) or a number.
+  - Tests: `CodecTests.FontWeightAndStretchParseNamesAndNumbers`
+- **BRIDGE-CODECS-032** — Reading without the unit (`Presto.Get(target, property, false)`) shall return the current value as a `double`, and a relative value shall apply to that number.
+  - Tests: `CodecTests.FontWeightReadsAsANumberSoRelativeValuesWork`
 
 ## Invariants
 
@@ -131,7 +140,7 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 ## Allocation
 
-- `Color` and the structs box one value per frame. A brush tween mutates its reused brush; pinned by `AllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame.
+- `Color`, the structs and the font enums box one value per frame. A brush tween mutates its reused brush; pinned by `BridgeAllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame.
 
 ## Deviations from anime.js
 
@@ -147,6 +156,10 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 - **No `Matrix` codec until a property needs one.** Reason: the transform shorthands go through the bridge's own transform composition.
 - **Bridge bool properties other than `IsVisible` keep `Midpoint`.** `IsHitTestVisible`, `IsEnabled` and the rest flip at the midpoint; a tween wanting hit-testing off for its whole run sets `Discrete = FalseThroughout`. Reason: not recorded.
 - **The `GridLength` codec is pixel-only.** See BRIDGE-ACCORDION.
+- **The font codecs step through static faces.** `FontWeight` and `FontStretch` round on write, and reading without the unit returns the number. Reason: Avalonia has no OpenType variation-axis support, so an in-between `FontWeight` resolves to the nearest face the family has; a numeric read lets relative values (`"+=200"`) work. Revisit if Avalonia adds variation axes.
+- **The plain read keeps the enum.** The plain `Presto.Get` keeps returning the enum, as every codec-backed property returns its own type; the number comes from the unit-less read. Rejected: special-casing the two enums in `AvaloniaPropertyAccessor`.
+- **A weight change is allowed to reflow its neighbors.** Characters change width as they thicken, so a weight wave "breathes" along the line. Reason: that is the look of the effect on the web. Rejected: a `SplitTextParams` mode pinning each slot at its rest width, a splitter mode for one demo.
+- **The font codecs reconcile only to claim names.** They implement `IReconcilingValueCodec` with an empty `Reconcile` because `TryParse` is the core's only hook for a string end value; numbers and relative strings still take the core's numeric path. Reason: one generic codec covers both enums without a core change.
 - **Colors interpolate with premultiplied alpha.** See CORE-COLORS.
 - **Codecs can reconcile ends of different shapes.** See CORE-TARGETS.
 

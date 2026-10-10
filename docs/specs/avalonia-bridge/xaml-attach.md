@@ -1,11 +1,11 @@
 ---
 id: BRIDGE-ATTACH
 title: XAML attach triggers (Animate.*)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Animate.cs
+  - MonacoLabs.Presto.Avalonia/Animate.cs
 types:
   - Animate
 tests:

@@ -1,10 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.VisualTree;
-using Monaco.Presto;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace PrestoSample.Tests;
 
@@ -18,13 +20,11 @@ public sealed class TitleSequencePageTests
         var cards = page.GetControl<StackPanel>("Cards").Children;
         Assert.All(cards, card => Assert.Equal(0, card.Opacity));
 
-        // The split re-runs once layout settles and KeepTime rebuilds the whole timeline, so it is read from the bar each frame.
         var timeline = Timeline(page);
         var previous = new double[cards.Count];
         for (var frame = 0; frame < 600 && !timeline.Completed; frame++)
         {
             TestFrames.Tick();
-            timeline = Timeline(page);
             for (var i = 0; i < cards.Count; i++)
             {
                 Assert.True(
@@ -44,31 +44,27 @@ public sealed class TitleSequencePageTests
     }
 
     [AvaloniaFact]
-    public void WordmarkCharsStayHiddenUntilTheirArrivalAndHideAgainWhenSeekedBackToTheStart()
+    public void TheTitleIsWrittenInAsUnfilledOutlinesEndsAsPlainTextAndHidesWhenSeekedBackToTheStart()
     {
         var page = new TitleSequencePage();
         var window = SceneHarness.Show(page, 1000, 900);
-        Assert.NotEmpty(Chars(page));
+        var headline = page.GetControl<TextBlock>("Headline");
+        var outlines = headline.GetVisualDescendants().OfType<Path>().ToList();
+        Assert.Equal("PRESTO".Length, outlines.Count);
+        Assert.All(outlines, piece => Assert.Equal(Colors.Transparent, ((ISolidColorBrush)piece.Fill!).Color));
 
-        // A re-split replaces the pieces, so they are read afresh every frame.
         var timeline = Timeline(page);
-        while (timeline.CurrentTime < timeline.Labels["title"])
-        {
-            Assert.All(Chars(page), piece => Assert.Equal(0, piece.Opacity));
-            TestFrames.Tick();
-            timeline = Timeline(page);
-        }
-        TestFrames.Tick(60);
-        Assert.All(Chars(page), piece => Assert.Equal(1, piece.Opacity, 3));
+        for (var frame = 0; frame < 600 && !timeline.Completed; frame++) TestFrames.Tick();
+        Assert.True(timeline.Completed, "the sequence never finished");
+        Assert.Null(headline.Inlines);
+        Assert.Equal("PRESTO", headline.Text);
+        Assert.Equal(1, headline.Opacity, 3);
+        Assert.All(page.GetControl<StackPanel>("Cards").Children, card => Assert.Equal(1, card.Opacity, 3));
 
         SceneHarness.Click(window, page.GetLogicalDescendants().OfType<Button>().Single(button => button.Tag is "draw"));
-        Assert.All(Chars(page), piece => Assert.Equal(0, piece.Opacity));
+        Assert.Equal(0, headline.Opacity);
         SceneHarness.Close(window);
     }
-
-    private static List<TextBlock> Chars(TitleSequencePage page) =>
-        page.GetControl<TextBlock>("Headline").GetVisualDescendants().OfType<TextBlock>()
-            .Where(text => text.Classes.Contains("wordmark-char")).ToList();
 
     [AvaloniaFact]
     public void SeekingToTheCardsLabelLandsOnItAfterTheSubtitleHasLanded()
@@ -111,19 +107,38 @@ public sealed class TitleSequencePageTests
         var window = SceneHarness.Show(page, 1000, 900, frames: 2);
         var cards = page.GetControl<StackPanel>("Cards").Children;
         var dot = page.GetControl<Canvas>("DotField").Children[0];
+        var headline = page.GetControl<TextBlock>("Headline");
         var x = Presto.Get(dot, "X");
 
-        // Past the re-split, which builds and lands the sequence again.
         TestFrames.Tick(60);
 
         Assert.True(Timeline(page).Completed);
         Assert.All(cards, card => Assert.Equal(1, card.Opacity, 3));
-        Assert.All(Chars(page), piece => Assert.Equal(1, piece.Opacity, 3));
+        Assert.Empty(headline.GetVisualDescendants().OfType<Path>());
+        Assert.Equal(1, headline.Opacity, 3);
         Assert.Equal(x, Presto.Get(dot, "X"));
 
         Timeline(page).Restart();
         TestFrames.Tick();
         Assert.False(Timeline(page).Completed);
+        Assert.All(cards, card => Assert.Equal(0, card.Opacity));
+        Assert.Equal(0, headline.Opacity, 3);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ReversedFromItsEndTheCardsAreHiddenBeforeTheirLabel()
+    {
+        var page = new TitleSequencePage();
+        var window = SceneHarness.Show(page, 1000, 900);
+        var cards = page.GetControl<StackPanel>("Cards").Children;
+        for (var frame = 0; frame < 600 && !Timeline(page).Completed; frame++) TestFrames.Tick();
+        var timeline = Timeline(page);
+        Assert.True(timeline.Completed);
+
+        timeline.Reverse();
+        while (timeline.IterationCurrentTime >= timeline.Labels["cards"]) TestFrames.Tick();
+
         Assert.All(cards, card => Assert.Equal(0, card.Opacity));
         SceneHarness.Close(window);
     }

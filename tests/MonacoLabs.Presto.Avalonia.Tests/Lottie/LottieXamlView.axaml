@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             x:Class="MonacoLabs.Presto.Tests.Lottie.LottieXamlView">
+  <presto:LottieView x:Name="Toggle" Width="50" Height="50"
+                     Composition="avares://MonacoLabs.Presto.Avalonia.Tests/Lottie/toggle.json"
+                     presto:Animate.OnAttached="{presto:PlayLottie Segment=on, Loop=False, Speed=2}" />
+</UserControl>

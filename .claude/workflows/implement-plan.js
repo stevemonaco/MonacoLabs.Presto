@@ -127,7 +127,7 @@ const TEST_SCHEMA = {
 
 const EDIT_RULES = `
 
-Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. Never send real OS mouse or keyboard input (only the avalonia_devtools tools may drive a Presto app), and never capture the screen or inspect any window that is not a Monaco.Presto app's own. When porting, read the anime.js 4.5.0 source first: a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch.`
+Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. Never send real OS mouse or keyboard input (only the avalonia_devtools tools may drive a Presto app), and never capture the screen or inspect any window that is not a MonacoLabs.Presto app's own. When porting, read the anime.js 4.5.0 source first: a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch.`
 
 const READ_ONLY_RULES = ` Do not edit files, build, or run tests.`
 
@@ -138,11 +138,11 @@ Visual verification (this item changes what the sample shows):
 - Otherwise run \`dotnet watch --project samples/PrestoSample.Desktop\` in the background, wait for the window, then attach-to-app. .axaml edits are patched live; C# edits hot-reload through dotnet watch except rude edits (new types, changed signatures), which need the watch process restarted.
 - Drive the page with input, then confirm end states with screenshot and props. Record what you saw in \`verified\`.
 - Send input only through the avalonia_devtools \`input\`, \`action\` and \`set-prop\` tools. Never use real OS input (SendInput, mouse_event, keybd_event, SetCursorPos, UI Automation, AutoHotkey, or anything else that moves the real cursor or types on the user's desktop). If DevTools cannot drive something (drags, wheel, multi-touch), say so in \`blockers\` and leave it for the user.
-- Look only at Monaco.Presto's own apps: DevTools screenshots of the attached app, or a window capture targeted at a Presto process's window handle. Never capture the whole screen or desktop, and never capture, inspect or read other applications' windows.
+- Look only at MonacoLabs.Presto's own apps: DevTools screenshots of the attached app, or a window capture targeted at a Presto process's window handle. Never capture the whole screen or desktop, and never capture, inspect or read other applications' windows.
 - Stop any watch process you started before finishing.
 `
 
-const decomposePrompt = `You are decomposing an implementation plan for Monaco.Presto into ordered work items that other agents will implement one at a time, each in a fresh context.
+const decomposePrompt = `You are decomposing an implementation plan for MonacoLabs.Presto into ordered work items that other agents will implement one at a time, each in a fresh context.
 
 PLAN INPUT (verbatim from the user):
 ${opts.plan}
@@ -160,7 +160,7 @@ function implementPrompt(plan, item, done, remaining) {
     ? done.map(d => `- ${d.item.id} ${d.item.title}: ${d.result.summary} (files: ${d.result.filesCreated.concat(d.result.filesModified).join(', ') || 'none'})`).join('\n')
     : '- nothing yet, this is the first item'
   const remainingText = remaining.length ? remaining.map(r => `- ${r.id} ${r.title}`).join('\n') : '- none'
-  return `You are implementing one work item of a plan for Monaco.Presto. A reviewer reads your diff next and flags anything that could be smaller, so build exactly what the item asks for and nothing speculative.
+  return `You are implementing one work item of a plan for MonacoLabs.Presto. A reviewer reads your diff next and flags anything that could be smaller, so build exactly what the item asks for and nothing speculative.
 
 PLAN: ${plan.title}
 ${plan.summary}
@@ -179,8 +179,8 @@ Upstream to read first: ${item.upstream.join(', ') || 'see brief'}
 How to work:
 1. Read the feature's spec in docs/specs/ and the existing code you are extending before writing anything.
 2. Implement only this item, minimally: no abstractions with one implementation, no options nothing uses, no helper types for one call site, no comments that restate code. Match the surrounding style.
-3. \`dotnet build Monaco.Presto.slnx\` must succeed with no new warnings.
-4. Port/write the tests the brief names and run the affected test project (\`dotnet test --project tests/Monaco.Presto.Tests\`, or \`dotnet test --solution Monaco.Presto.slnx\` when more than one is affected); they must pass. If the item has no testable behavior, say so in \`verified\`.
+3. \`dotnet build MonacoLabs.Presto.slnx\` must succeed with no new warnings.
+4. Port/write the tests the brief names and run the affected test project (\`dotnet test --project tests/MonacoLabs.Presto.Tests\`, or \`dotnet test --solution MonacoLabs.Presto.slnx\` when more than one is affected); they must pass. If the item has no testable behavior, say so in \`verified\`.
 5. Update the spec in the same item (docs/specs/README.md has the format): add or change requirements for the behavior you changed, cite the tests that pin them, strike requirements that no longer hold, add new public types to its \`types\`, and record each design decision the item made in the spec's Decisions section with its reason. Mark a requirement \`(inherited)\` when it records a choice nobody asked for. \`SpecTests\` and \`SpecCoverageTests\` must pass.
 6. If part of the item is impossible or conflicts with what exists, do the rest and list the gap in \`blockers\` — never silently narrow it.
 ${item.visual ? HOT_RELOAD : ''}${EDIT_RULES}`
@@ -220,16 +220,16 @@ Read the plan source and the change (\`git status --porcelain\`, \`git diff\`, a
 
 function tightenPrompt(findings, context) {
   const list = findings.map((f, i) => `${i + 1}. ${f.file}${f.line ? ':' + f.line : ''} — ${f.summary}\n   Fix: ${f.fix}`).join('\n')
-  return `Apply these review findings to the Monaco.Presto working tree.${context}
+  return `Apply these review findings to the MonacoLabs.Presto working tree.${context}
 
 ${list}
 
-Apply each one unless it would remove behavior the plan requires or break a test; then skip it and say why. Make no unrelated changes. When done, \`dotnet build Monaco.Presto.slnx\` and \`dotnet test --solution Monaco.Presto.slnx\` must pass — if a fix breaks them and cannot be repaired within the finding's scope, undo that fix and mark it skipped.${EDIT_RULES}`
+Apply each one unless it would remove behavior the plan requires or break a test; then skip it and say why. Make no unrelated changes. When done, \`dotnet build MonacoLabs.Presto.slnx\` and \`dotnet test --solution MonacoLabs.Presto.slnx\` must pass — if a fix breaks them and cannot be repaired within the finding's scope, undo that fix and mark it skipped.${EDIT_RULES}`
 }
 
-const TEST_PROMPT = `Run the full verification for Monaco.Presto and report the results exactly as observed.${READ_ONLY_RULES}
-1. \`dotnet build Monaco.Presto.slnx\` — record every error and every warning.
-2. \`dotnet test --solution Monaco.Presto.slnx\` — record passed/failed/skipped counts and, for each failure, the test name and its assertion message.
+const TEST_PROMPT = `Run the full verification for MonacoLabs.Presto and report the results exactly as observed.${READ_ONLY_RULES}
+1. \`dotnet build MonacoLabs.Presto.slnx\` — record every error and every warning.
+2. \`dotnet test --solution MonacoLabs.Presto.slnx\` — record passed/failed/skipped counts and, for each failure, the test name and its assertion message.
 3. \`git status --porcelain\` — record the changed files.
 If the build fails, skip step 2 but still do step 3.`
 
@@ -237,12 +237,12 @@ function testFixPrompt(tests, plan) {
   const problems = tests.buildOk
     ? tests.failures.map(f => `- ${f.test}: ${f.message}`).join('\n')
     : tests.buildErrors.map(e => `- ${e}`).join('\n')
-  return `The Monaco.Presto build/test run is red after implementing "${plan.title}". Make it green with the smallest correct change.
+  return `The MonacoLabs.Presto build/test run is red after implementing "${plan.title}". Make it green with the smallest correct change.
 
 ${tests.buildOk ? 'Failing tests' : 'Build errors'}:
 ${problems}
 
-For each failure decide whether the implementation or the test is wrong by checking the plan and the upstream anime.js behavior, then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or upstream contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build Monaco.Presto.slnx\` and \`dotnet test --solution Monaco.Presto.slnx\` green.${EDIT_RULES}`
+For each failure decide whether the implementation or the test is wrong by checking the plan and the upstream anime.js behavior, then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or upstream contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build MonacoLabs.Presto.slnx\` and \`dotnet test --solution MonacoLabs.Presto.slnx\` green.${EDIT_RULES}`
 }
 
 function closePrompt(plan) {

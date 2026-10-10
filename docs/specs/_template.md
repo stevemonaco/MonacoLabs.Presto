@@ -1,11 +1,11 @@
 ---
 id: CORE-EXAMPLE
 title: Example feature
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Example.cs
+  - MonacoLabs.Presto/Example.cs
 types:
   - Example
   - ExampleParams

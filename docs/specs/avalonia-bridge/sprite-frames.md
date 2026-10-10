@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-FRAMES
 title: Sprite sheets and image sequences
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/SpriteSheet.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/ImageSequence.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/FramePlayer.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Sprites.cs
+  - MonacoLabs.Presto.Avalonia/Controls/SpriteSheet.cs
+  - MonacoLabs.Presto.Avalonia/Controls/ImageSequence.cs
+  - MonacoLabs.Presto.Avalonia/Controls/FramePlayer.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Sprites.cs
 types:
   - SpriteSheet
   - ImageSequence
@@ -17,7 +17,7 @@ tests:
   - ImageSequenceTests
   - RecipeTests
   - RecipeMarkupTests
-  - AllocationTests
+  - BridgeAllocationTests
   - FilteredImageTests
 upstream: []
 depends:
@@ -130,7 +130,7 @@ depends:
 ## Allocation
 
 - A playing sheet stays within 112 bytes per tick: a `double` tween plus `CurrentFrame`'s change args on ticks that reach a new frame.
-  - Pinned by `AllocationTests.APlayingSpriteSheetTicksWithinBudget`.
+  - Pinned by `BridgeAllocationTests.APlayingSpriteSheetTicksWithinBudget`.
 
 ## Deviations from anime.js
 

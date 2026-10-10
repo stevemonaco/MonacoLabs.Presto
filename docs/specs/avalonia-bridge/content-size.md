@@ -1,15 +1,15 @@
 ---
 id: BRIDGE-CONTENTSIZE
 title: Content size transitions
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/ContentSizeTransition.cs
-  - Monaco.Presto.AvaloniaBridge/ContentSizeArm.cs
-  - Monaco.Presto.AvaloniaBridge/Animate.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/AnimateExtensions.cs
+  - MonacoLabs.Presto.Avalonia/ContentSizeTransition.cs
+  - MonacoLabs.Presto.Avalonia/ContentSizeArm.cs
+  - MonacoLabs.Presto.Avalonia/Animate.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/AnimateExtensions.cs
 types:
   - ContentSizeTransition
 tests:

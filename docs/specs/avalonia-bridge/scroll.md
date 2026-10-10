@@ -1,19 +1,19 @@
 ---
 id: BRIDGE-SCROLL
 title: Scrolling (parallax, smooth wheel, animated scrolling)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Scroll.cs
-  - Monaco.Presto.AvaloniaBridge/ScrollAlignment.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/ScrollOffsetAccessor.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollWriter.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollMotion.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollGeometry.cs
-  - Monaco.Presto.AvaloniaBridge/Events/IndexScroller.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/PropertyBuilderExtensions.cs
+  - MonacoLabs.Presto.Avalonia/Scroll.cs
+  - MonacoLabs.Presto.Avalonia/ScrollAlignment.cs
+  - MonacoLabs.Presto.Avalonia/Targets/ScrollOffsetAccessor.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollWriter.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollMotion.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollGeometry.cs
+  - MonacoLabs.Presto.Avalonia/Events/IndexScroller.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/PropertyBuilderExtensions.cs
 types:
   - Scroll
   - ScrollAlignment
@@ -27,7 +27,7 @@ tests:
   - ScrollToIndexTests
   - ScrollStickToEndTests
   - PropertyNamingTests
-  - AllocationTests
+  - BridgeAllocationTests
   - ScrollStoryPageTests
 upstream: []
 depends:
@@ -241,7 +241,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 
 ## Allocation
 
-- A `"ScrollY"` tween ticks within the allocation budget (`AllocationTests.AScrollYTweenTicksWithinBudget`). Parallax updates allocate nothing per notification.
+- A `"ScrollY"` tween ticks within the allocation budget (`BridgeAllocationTests.AScrollYTweenTicksWithinBudget`). Parallax updates allocate nothing per notification.
 
 ## Deviations from anime.js
 

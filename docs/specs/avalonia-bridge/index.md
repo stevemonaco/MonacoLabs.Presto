@@ -1,4 +1,4 @@
-# Monaco.Presto.AvaloniaBridge specs
+# MonacoLabs.Presto.Avalonia specs
 
 One spec per feature; format and usage in [../README.md](../README.md). Find a type's spec by its \	ypes\ list, or search this folder for the type name.
 
@@ -12,7 +12,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Avalonia value codecs](value-codecs.md) | BRIDGE-CODECS | `ColorExtensions` |
 | [Control helpers, typed builder methods, scopes and WhenDetached](control-helpers.md) | BRIDGE-HELPERS | `PrestoAvalonia`, `AnimateExtensions`, `AnimationBuilderExtensions`, `PropertyBuilderExtensions`, `ControlScope`, `WhenDetached` |
 | [Effect, reveal and 3D shorthands, and Tilt](effects.md) | BRIDGE-EFFECTS | `Tilt` |
-| [Avalonia easing adapter and named springs](eases-and-springs.md) | BRIDGE-EASES | `PrestoEasing`, `Springs` |
+| [Avalonia easing adapter](eases-and-springs.md) | BRIDGE-EASES | `PrestoEasing` |
 
 ## Threads and the compositor
 
@@ -55,6 +55,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Draggable](draggable.md) | BRIDGE-DRAGGABLE | `Draggable`, `DraggableParams`, `DraggableAxisParams`, `DraggableCursorParams` |
 | [Transformable (pan, pinch-zoom, rotate)](transformable.md) | BRIDGE-TRANSFORMABLE | `Transformable`, `TransformableParams`, `PanBounds`, `WheelZoom` |
 | [Drag-to-reorder lists](reorder.md) | BRIDGE-REORDER | `Reorder`, `ReorderExtension`, `ReorderMovingEventArgs` |
+| [Magnetic pull](magnetic.md) | BRIDGE-MAGNETIC | `Magnetic` |
 
 ## Scrolling
 
@@ -68,8 +69,11 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | Spec | Id | Owns |
 |---|---|---|
 | [Shapes (drawable, motion path, morph)](shapes.md) | BRIDGE-SHAPES | — |
-| [Text splitting and scrambling](text.md) | BRIDGE-TEXT | `TextSplitter`, `SplitTextParams`, `SplitPieceParams`, `ScrambleTextParams`, `ScrambleFrom` |
+| [Text splitting](text.md) | BRIDGE-TEXT | `TextSplitter`, `SplitTextParams`, `SplitPieceParams` |
 | [Text reveals and text exits](text-reveal.md) | BRIDGE-TEXTREVEAL | `TextReveal`, `TextRevealExtension`, `TextPieces` |
+| [Text on a path](text-path.md) | BRIDGE-TEXTPATH | `TextPath`, `TextPathAlign` |
+| [Glyph outlines](glyph-outlines.md) | BRIDGE-GLYPHS | `GlyphShards`, `GlyphPoints`, `GlyphSampling` |
+| [Text warps](text-warp.md) | BRIDGE-WARP | `TextWarp`, `TextWarpKind` |
 
 ## Recipes and tokens
 
@@ -77,7 +81,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 |---|---|---|
 | [Recipes](recipes.md) | BRIDGE-RECIPES | `Recipes`, `Attention`, `Entrances`, `Exits`, `Interactions`, `Layouts`, `Loading`, `Loops`, `Pages`, `Popovers`, `Reveals`, `TextReveals`, `Edge`, `FadeDirection` |
 | [Media recipes (draws, particles, sprites, tints)](recipes-media.md) | BRIDGE-RECIPES-MEDIA | `Draws`, `Particles`, `Sprites`, `Tints` |
-| [Recipe markup extensions](markup-extensions.md) | BRIDGE-MARKUP | `RecipeExtension`, `BlurExtension`, `CharCascadeExtension`, `FadeExtension`, `GlowExtension`, `LiftExtension`, `LineMaskExtension`, `LineRiseExtension`, `LineWipeExtension`, `PageBloomExtension`, `PageFadeExtension`, `PageFadeThroughExtension`, `PagePushExtension`, `PageSharedAxisExtension`, `PageSlideExtension`, `PlayFramesExtension`, `PopExtension`, `PopoverExtension`, `PressInExtension`, `RecolorExtension`, `ReflowExtension`, `ScaleExtension`, `ShakeExtension`, `ShimmerExtension`, `SlideExtension`, `WordBlurExtension`, `WordFadeExtension` |
+| [Recipe markup extensions](markup-extensions.md) | BRIDGE-MARKUP | `RecipeExtension`, `BlurExtension`, `CharCascadeExtension`, `FadeExtension`, `GlowExtension`, `LiftExtension`, `LineMaskExtension`, `LineRiseExtension`, `LineWipeExtension`, `PageBloomExtension`, `PageFadeExtension`, `PageFadeThroughExtension`, `PagePushExtension`, `PageSharedAxisExtension`, `PageSlideExtension`, `PlayFramesExtension`, `PopExtension`, `PopoverExtension`, `PressInExtension`, `RecolorExtension`, `ReflowExtension`, `ScaleExtension`, `ScatterExtension`, `ShakeExtension`, `ShimmerExtension`, `SlideExtension`, `WordBlurExtension`, `WordFadeExtension` |
 | [Motion tokens](motion-tokens.md) | BRIDGE-TOKENS | `MotionTokens` |
 | [Reduced motion in the bridge](reduced-motion.md) | BRIDGE-REDUCED | — |
 
@@ -86,8 +90,9 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | Spec | Id | Owns |
 |---|---|---|
 | [Image effects and pixel transitions](image-effects.md) | BRIDGE-IMAGE | `PrestoImageBase`, `FilteredImage`, `ImageTransition`, `ImageTransitionKind` |
+| [Raster distortion](distort.md) | BRIDGE-DISTORT | `Distort` |
 | [Sprite sheets and image sequences](sprite-frames.md) | BRIDGE-FRAMES | `SpriteSheet`, `ImageSequence` |
-| [Particle drawing and particle effects](particles.md) | BRIDGE-PARTICLES | `ParticleScene`, `ParticleShape`, `ParticleEffect` |
+| [Particle drawing and particle effects](particles.md) | BRIDGE-PARTICLES | `ParticleScene`, `ParticleFormation`, `ParticleShape`, `ParticleEffect` |
 | [Press ripple](press-ripple.md) | BRIDGE-RIPPLE | `Ripple` |
 
 ## Controls
@@ -103,5 +108,6 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Swipe actions and swipe-to-dismiss](swipe-actions.md) | BRIDGE-SWIPE | `Swipe` |
 | [Pull to refresh](pull-to-refresh.md) | BRIDGE-PULL | `PullToRefresh` |
 | [Flip card](flip-card.md) | BRIDGE-FLIP | `Flip` |
+| [Split-flap display](split-flap.md) | BRIDGE-SPLITFLAP | `SplitFlap` |
 | [Progress ring and submit button](progress-and-submit.md) | BRIDGE-SUBMIT | `ProgressRing`, `SubmitButton`, `SubmitState` |
 

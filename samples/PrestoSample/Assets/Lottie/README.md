@@ -5,5 +5,5 @@ Hand-written Lottie JSON for the Lottie samples, made for this repository and de
 
 | File | Content | Markers | Author | License |
 |---|---|---|---|---|
-| `spinner.json` | A trimmed ring that turns once and grows and shrinks, for looping | none | Monaco.Presto contributors | CC0 1.0 |
-| `toggle.json` | A ring that swells on hover and fills on and empties off | `hover` 0–20, `on` 20–40, `off` 40–60 | Monaco.Presto contributors | CC0 1.0 |
+| `spinner.json` | A trimmed ring that turns once and grows and shrinks, for looping | none | MonacoLabs.Presto contributors | CC0 1.0 |
+| `toggle.json` | A ring that swells on hover and fills on and empties off | `hover` 0–20, `on` 20–40, `off` 40–60 | MonacoLabs.Presto contributors | CC0 1.0 |

@@ -3,10 +3,10 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
 using PrestoSample.Showcase;
-using Timer = Monaco.Presto.Timer;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Pages;
 

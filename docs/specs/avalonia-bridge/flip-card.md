@@ -1,11 +1,11 @@
 ---
 id: BRIDGE-FLIP
 title: Flip card
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/Flip.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Flip.cs
 types:
   - Flip
 tests:

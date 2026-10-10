@@ -1,17 +1,17 @@
 ---
 id: BRIDGE-IMAGE
 title: Image effects and pixel transitions
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/PrestoImageBase.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/FilteredImage.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/ImageEffect.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/ImageEffectDrawOperation.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/ImageTransition.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/ImageTransitionKind.cs
-  - Monaco.Presto.AvaloniaBridge/ColorMatrix.cs
+  - MonacoLabs.Presto.Avalonia/Controls/PrestoImageBase.cs
+  - MonacoLabs.Presto.Avalonia/Controls/FilteredImage.cs
+  - MonacoLabs.Presto.Avalonia/Controls/ImageEffect.cs
+  - MonacoLabs.Presto.Avalonia/Controls/ImageEffectDrawOperation.cs
+  - MonacoLabs.Presto.Avalonia/Controls/ImageTransition.cs
+  - MonacoLabs.Presto.Avalonia/Controls/ImageTransitionKind.cs
+  - MonacoLabs.Presto.Avalonia/ColorMatrix.cs
 types:
   - PrestoImageBase
   - FilteredImage
@@ -22,7 +22,7 @@ tests:
   - ImageTransitionTests
   - ColorMatrixTests
   - AnimationBuilderBridgeTests
-  - AllocationTests
+  - BridgeAllocationTests
   - ReferencePagesTests
   - PhotoViewerPageTests
 upstream: []
@@ -228,7 +228,7 @@ depends:
 ## Allocation
 
 - A running filter or effect tween holds the `double`-property budget on the managed side; native filters are created per render and are not budgeted.
-  - Pinned by `AllocationTests.AnImageFilterTweenTicksWithinBudget`.
+  - Pinned by `BridgeAllocationTests.AnImageFilterTweenTicksWithinBudget`.
 
 ## Deviations from anime.js
 
@@ -266,7 +266,7 @@ depends:
 
 ## Non-goals
 
-- Filters on arbitrary visuals, a CSS-syntax `Filter` string, an image-level `Blur`, SkSL shaders, and transitions between arbitrary content.
+- Filters on arbitrary visuals (BRIDGE-DISTORT draws a decorator's child through raster effects), a CSS-syntax `Filter` string, an image-level `Blur`, SkSL shaders, and transitions between arbitrary content.
 - Pixel effects on `Presence` exit ghosts, which are plain snapshots.
 - Compositor-thread animation of the filters.
 - A public transition progress or a standalone wipe property (`MaskSweep` wipes any element).

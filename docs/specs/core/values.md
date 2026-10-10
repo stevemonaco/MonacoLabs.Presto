@@ -1,21 +1,21 @@
 ---
 id: CORE-VALUES
 title: Values, parsing and unit conversion
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
-  - Monaco.Presto.Values
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Values
 sources:
-  - Monaco.Presto/TweenValue.cs
-  - Monaco.Presto/FunctionValue.cs
-  - Monaco.Presto/Values/ValueKind.cs
-  - Monaco.Presto/Values/ValueParser.cs
-  - Monaco.Presto/Values/UnitConverter.cs
-  - Monaco.Presto/Values/DecomposedValue.cs
-  - Monaco.Presto/Values/JsNumber.cs
-  - Monaco.Presto/Animation.cs
-  - Monaco.Presto/Tween.cs
-  - Monaco.Presto/Core/Renderer.cs
+  - MonacoLabs.Presto/TweenValue.cs
+  - MonacoLabs.Presto/FunctionValue.cs
+  - MonacoLabs.Presto/Values/ValueKind.cs
+  - MonacoLabs.Presto/Values/ValueParser.cs
+  - MonacoLabs.Presto/Values/UnitConverter.cs
+  - MonacoLabs.Presto/Values/DecomposedValue.cs
+  - MonacoLabs.Presto/Values/JsNumber.cs
+  - MonacoLabs.Presto/Animation.cs
+  - MonacoLabs.Presto/Tween.cs
+  - MonacoLabs.Presto/Core/Renderer.cs
 types:
   - TweenValue
   - ValueKind

@@ -1,0 +1,82 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:controls="clr-namespace:MonacoLabs.Presto.Controls;assembly=MonacoLabs.Presto.Avalonia"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="900"
+                       x:Class="PrestoSample.Showcase.Pages.LiquidTypePage">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Border Classes="stage">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock Classes="eyebrow showcase" Text="FLOW · TURBULENCE, TURBULENCEPHASE LOOPED" VerticalAlignment="Center" />
+                        <Slider x:Name="Strength" Grid.Column="1" Width="160" Minimum="0" Maximum="24" Value="8"
+                                ToolTip.Tip="Turbulence strength" VerticalAlignment="Center" />
+                    </Grid>
+                    <controls:Distort x:Name="FlowFx" Padding="32" TurbulenceScale="48" HorizontalAlignment="Center">
+                        <TextBlock Text="Liquid type" FontFamily="{StaticResource SerifDisplayFont}" FontSize="104" FontStyle="Italic"
+                                   Foreground="{x:Static showcase:Palette.Aqua}" />
+                    </controls:Distort>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="stage">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="eyebrow showcase" Text="GOO · TWO WORDS IN ONE DISTORT FUSE WHERE THEY MEET" />
+                    <controls:Distort x:Name="FuseFx" Padding="24" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="140">
+                            <TextBlock x:Name="LeftWord" Text="DRIP" FontFamily="{StaticResource DisplayFont}" FontSize="88" FontWeight="Black"
+                                       Foreground="{x:Static showcase:Palette.Accent}" />
+                            <TextBlock x:Name="RightWord" Text="DROP" FontFamily="{StaticResource DisplayFont}" FontSize="88" FontWeight="Black"
+                                       Foreground="{x:Static showcase:Palette.Accent}" />
+                        </StackPanel>
+                    </controls:Distort>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="stage">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock Classes="eyebrow showcase" Text="GLITCH · HOVER THE HEADING, OR RAISE THE ERROR" VerticalAlignment="Center" />
+                        <Button x:Name="ErrorButton" Grid.Column="1" Content="Raise error" Click="RaiseError" />
+                    </Grid>
+                    <controls:Distort x:Name="Heading" Padding="16" HorizontalAlignment="Center" PointerEntered="GlitchHeading">
+                        <TextBlock Text="SIGNAL" FontFamily="{StaticResource DisplayFont}" FontSize="96" FontWeight="Black"
+                                   Foreground="{x:Static showcase:Palette.Ink}" />
+                    </controls:Distort>
+                    <controls:Distort x:Name="Banner" Padding="12" Opacity="0">
+                        <Border Background="{x:Static showcase:Palette.Coral}" CornerRadius="8" Padding="16,10">
+                            <TextBlock Text="ERROR 503 · CONNECTION LOST" FontFamily="{StaticResource DisplayFont}" FontSize="20"
+                                       FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                        </Border>
+                    </controls:Distort>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="stage">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="eyebrow showcase" Text="VECTOR WARP VS RASTER TURBULENCE" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="24" RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <Panel Height="170">
+                            <TextBlock x:Name="VectorWord" Text="WAVE" FontFamily="{StaticResource DisplayFont}" FontSize="96" FontWeight="Black"
+                                       Foreground="{x:Static showcase:Palette.Amber}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+                        <controls:Distort x:Name="Raster" Grid.Column="1" Padding="24" TurbulenceScale="24"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="WAVE" FontFamily="{StaticResource DisplayFont}" FontSize="96" FontWeight="Black"
+                                       Foreground="{x:Static showcase:Palette.Amber}" />
+                        </controls:Distort>
+                        <TextBlock Grid.Row="1" Classes="caption" TextWrapping="Wrap"
+                                   Text="Vector · SplitText Outlines + TextWarp Wave. Letters move as shapes and stay sharp at any size: use it to bend, arc or wave a headline." />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="caption" TextWrapping="Wrap"
+                                   Text="Raster · Distort.Turbulence. Pixels are displaced through noise, edges ripple and fray: use it for liquid, heat or texture over any content." />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

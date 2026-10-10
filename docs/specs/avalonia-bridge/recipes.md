@@ -1,25 +1,26 @@
 ---
 id: BRIDGE-RECIPES
 title: Recipes
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Prebuilt
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Prebuilt
 sources:
-  - Monaco.Presto.AvaloniaBridge/Recipes.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Attention.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Entrances.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Exits.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Interactions.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Layouts.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Loading.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Loops.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Pages.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Popovers.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Reveals.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/TextReveals.cs
-  - Monaco.Presto.AvaloniaBridge/Edge.cs
-  - Monaco.Presto.AvaloniaBridge/FadeDirection.cs
+  - MonacoLabs.Presto.Avalonia/Recipes.cs
+  - MonacoLabs.Presto.Avalonia/RecipesGlyphs.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Attention.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Entrances.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Exits.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Interactions.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Layouts.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Loading.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Loops.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Pages.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Popovers.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Reveals.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/TextReveals.cs
+  - MonacoLabs.Presto.Avalonia/Edge.cs
+  - MonacoLabs.Presto.Avalonia/FadeDirection.cs
 types:
   - Recipes
   - Attention
@@ -43,10 +44,14 @@ tests:
   - TextRevealTests
   - PresenceTextExitTests
   - RollDigitsTests
+  - MorphTextTests
+  - GlyphRecipeTests
+  - ShatterTests
   - RecipeMarkupTests
   - PopoverFlyoutTests
   - RevealTests
   - BuilderRecipePagesTests
+  - TypeLabPageTests
 upstream: []
 depends:
   - BRIDGE-TOKENS
@@ -62,13 +67,15 @@ depends:
   - BRIDGE-TEXT
   - BRIDGE-TEXTREVEAL
   - BRIDGE-MOTION
+  - BRIDGE-GLYPHS
+  - BRIDGE-SHAPES
 ---
 
 # Recipes
 
 ## Purpose
 
-Named, parameterized motion: each recipe is a factory that returns a new `AnimationBuilder` (or, for pages, a `PrestoPageTransition`) whose defaults come from `Recipes.Tokens` (BRIDGE-TOKENS) and which carries its own reduced form (CORE-REDUCED). The families live in `Prebuilt`; the `Recipes` facade forwards to them so one `using Monaco.Presto.AvaloniaBridge;` is enough. This spec covers the facade, the rules every recipe shares and the motion families; the media families (`Draws`, `Particles`, `Sprites`, `Tints`) are in BRIDGE-RECIPES-MEDIA and the XAML forms in BRIDGE-MARKUP.
+Named, parameterized motion: each recipe is a factory that returns a new `AnimationBuilder` (or, for pages, a `PrestoPageTransition`) whose defaults come from `Recipes.Tokens` (BRIDGE-TOKENS) and which carries its own reduced form (CORE-REDUCED). The families live in `Prebuilt`; the `Recipes` facade forwards to them so one `using MonacoLabs.Presto;` is enough. This spec covers the facade, the rules every recipe shares and the motion families; the media families (`Draws`, `Particles`, `Sprites`, `Tints`) are in BRIDGE-RECIPES-MEDIA and the XAML forms in BRIDGE-MARKUP.
 
 ## Requirements
 
@@ -97,7 +104,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 - **BRIDGE-RECIPES-010** — Each entrance shall state only start values, `Opacity` from 0 among them, so it lands on the element's own resting values.
   - Tests: `RecipeTests.AnEntranceLandsOnTheElementsRestingValues`
-- **BRIDGE-RECIPES-011** — An entrance shall default to `Tokens.Medium` and `Tokens.Ease`; `PopIn` and `FlipIn` shall default to `Tokens.EmphasizedEase`, and `Develop` to `Tokens.Long`.
+- **BRIDGE-RECIPES-011** — An entrance shall default to `Tokens.Medium` and `Tokens.Ease`; `PopIn`, `FlipIn` and `Gather` shall default to `Tokens.EmphasizedEase`, and `Develop` to `Tokens.Long`.
   - Tests: `RecipeTests.SwappingTheTokensRestylesLaterCallsButNotBuildersAlreadyMade`, `RecipeTests.TheImageRecipesTargetTheFilters`
 - **BRIDGE-RECIPES-012** — `FadeUp` shall start `Y` at `+distance`, `FadeDown` at `-distance`, `FadeLeft` `X` at `+distance` and `FadeRight` at `-distance`, `distance` defaulting to `Tokens.Distance`.
   - Tests: `RecipeTests.NamedArgumentsOverrideTheTokens`, `RecipeMarkupTests.AFadeIsAnEntranceOnEnterAndAnExitOnExit`
@@ -114,7 +121,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 ### Exits
 
-- **BRIDGE-RECIPES-018** — Each exit shall use to-values only, ending at `Opacity` 0, over `Tokens.Short` with `Tokens.Ease` (`PopOut`, `FlipOut`: `Tokens.EmphasizedEase`).
+- **BRIDGE-RECIPES-018** — Each exit shall use to-values only, ending at `Opacity` 0, over `Tokens.Short` with `Tokens.Ease` (`PopOut`, `FlipOut`: `Tokens.EmphasizedEase`; `Scatter` and `Fall`: BRIDGE-RECIPES-070, BRIDGE-RECIPES-071).
   - Tests: `RecipeTests.AnExitEndsAtItsStatedValues`
 - **BRIDGE-RECIPES-019** — `FadeOutUp` shall end `Y` at `-distance`, `FadeOutDown` at `+distance`, `FadeOutLeft` `X` at `-distance`, `FadeOutRight` at `+distance`; `ScaleOut`/`PopOut` end `Scale` at `scale`; `BlurOut` ends `Blur` at `radius`; `SlideOut(edge)` ends at its offset towards `edge` (default four times `Distance`); `FlipOut` ends `RotateX` at `angle` (default -90) with `Perspective` 800. The defaults are those of the entrances.
   - Tests: `RecipeTests.AnExitEndsAtItsStatedValues`
@@ -146,6 +153,17 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `RecipeTests.DotsHopOneAfterAnother`
 - **BRIDGE-RECIPES-030** — While `ReducedMotion` is set, a `Loading` recipe shall keep looping as an alternating `Opacity` pulse to 0.6 over three times `Long` with `InOutSine`, keeping `Dots`' stagger.
   - Tests: `RecipeTests.EachReducedFormDropsTravelAndScaleAndOnlyLoadingLoops`
+
+### Scatter, fall and wave
+
+- **BRIDGE-RECIPES-070** — `Scatter` shall end each target at a random `X` and `Y` offset, each within ±`distance` (default four times `Tokens.Distance`), a random `Rotate` within ±`spin` degrees (default 180), `Scale` 0.6 and `Opacity` 0, over `Tokens.Medium` with `Tokens.EmphasizedEase`; `Gather` shall start each target from the values `Scatter` with the same arguments ends it at.
+  - Tests: `RecipeTests.ScatterEndsEachElementWithinItsDistanceAndSpin`, `RecipeTests.AnExitEndsAtItsStatedValues`, `RecipeTests.AnEntranceLandsOnTheElementsRestingValues`, `RecipeTests.ASeedReplaysTheSameOffsetsAndGatherStartsWhereScatterEnds`, `PresenceTextExitTests.AScatterExitFliesOneGhostPerCharacter`
+- **BRIDGE-RECIPES-071** — `Fall` shall end each target at `Y = distance` (default six times `Tokens.Distance`) with `Eases.In(2)` over `Tokens.Long`, a random `X` drift within ±`distance / 4` and a random `Rotate` within ±`spin` degrees (default 45), and fade `Opacity` to 0 over the last third of its duration.
+  - Tests: `RecipeTests.FallDropsItsDistanceWithASmallDriftAndFadesOverItsLastThird`, `RecipeTests.AnExitEndsAtItsStatedValues`
+- **BRIDGE-RECIPES-072** — When `seed` is given, `Scatter`, `Gather` and `Fall` shall give the target at each index the same values on every play, its draws being numbers `3 × index` onward of `Utils.CreateSeededRandom(seed)`'s stream; without one, each value shall be drawn from `Utils.Random` when the animation is built.
+  - Tests: `RecipeTests.ASeedReplaysTheSameOffsetsAndGatherStartsWhereScatterEnds`, `RecipeTests.ScatterEndsEachElementWithinItsDistanceAndSpin`
+- **BRIDGE-RECIPES-073** — `Wave` shall alternate `Y` to `-(distance ?? Distance / 2)` forever, each iteration `Tokens.Long` with `InOutSine`, delaying the target at each index by `delay + index × (step ?? StaggerStep)`; it takes no `stagger`.
+  - Tests: `RecipeTests.WaveDelaysEachElementByItsIndexTimesTheStep`, `RecipeTests.EachRecipeRunsOnTheUIThreadAndOnTheCompositorUnlessDocumentedOtherwise`, `RecipeTests.EachReducedFormDropsTravelAndScaleAndOnlyLoadingLoops`
 
 ### Interactions
 
@@ -231,6 +249,50 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `RollDigitsTests.RollingAgainMidRollEndsOnTheSecondValue`
 - **BRIDGE-RECIPES-065** — When `ReducedMotion` is set as `RollDigits` is called, it shall play `CountUp`'s reduced form, setting the end text on the first frame.
   - Tests: `RollDigitsTests.ReducedSetsTheEndValueOnTheFirstFrame`
+- **BRIDGE-RECIPES-074** — `MorphText` shall split the block into characters and pair them by grapheme, the k-th occurrence of a grapheme in the new text with the k-th in the old one, in reading order, comparing with `StringComparer.OrdinalIgnoreCase` when `ignoreCase` is true and ordinally otherwise.
+  - Tests: `MorphTextTests.TheKthOccurrenceOfALetterPairsWithTheKthInTheNewText`, `MorphTextTests.IgnoreCasePairsLettersThatDifferOnlyInCase`
+- **BRIDGE-RECIPES-075** — Each paired new character shall start at `X`/`Y` = its partner's old slot minus its own slot (`TextSplitter.SlotOf`), plus how far the block moved in its window, so it is drawn where its partner was, on any line, and move to 0 over `Tokens.Long` with `Tokens.EmphasizedEase`.
+  - Tests: `MorphTextTests.MatchedLettersStartAtTheirOldSlotsAndEndAtTheirNewOnes`, `MorphTextTests.LettersFlyBetweenLines`
+- **BRIDGE-RECIPES-076** — Each old character without a partner shall leave as a snapshot at its old slot in the window's overlay layer, playing `Scatter()`; each new character without a partner shall play `PopIn()`; both start with the morph.
+  - Tests: `MorphTextTests.UnmatchedOldLettersLeaveAsGhostsThatAreDismissed`, `MorphTextTests.UnmatchedNewLettersPopIn`
+- **BRIDGE-RECIPES-077** — With `explode`, each paired character shall first move over `Tokens.Medium` with `Tokens.EmphasizedEase` to its partner's place offset by `Scatter`'s `X`, `Y` and `Rotate` for seed 0 at its index among the paired characters, hold there for `Tokens.Short`, then move `X`, `Y` and `Rotate` to 0 over `Tokens.Long`.
+  - Tests: `MorphTextTests.ExplodeHoldsTheMatchedLettersAtSeededPointsBeforeGathering`
+- **BRIDGE-RECIPES-078** — When the morph completes, the block shall be unsplit with `Text` equal to `text`, and the ghosts removed from the overlay layer with their bitmaps disposed.
+  - Tests: `MorphTextTests.EndsAsThePlainNewText`, `MorphTextTests.UnmatchedOldLettersLeaveAsGhostsThatAreDismissed`, `TypeLabPageTests.ShatterEndsAsThePlainNextWord`
+- **BRIDGE-RECIPES-079** — When `MorphText` is called on a block that is still morphing, it shall complete the running morph first and morph from its end text.
+  - Tests: `MorphTextTests.MorphingAgainMidMorphCompletesTheFirst`
+- **BRIDGE-RECIPES-080** — When `ReducedMotion` is set as `MorphText` is called, it shall not split the block and shall return a timeline that fades `Opacity` to 0 over `Tokens.Short`, sets `Text`, and fades from 0 back to the block's opacity over `Tokens.Short`.
+  - Tests: `MorphTextTests.ReducedCrossfadesTheBlock`
+- **BRIDGE-RECIPES-081** — While it morphs, `MorphText` shall hold the block's `Width` at its width laid out with the new text, at `Animation` priority, so the block never re-splits, and release it when the morph completes.
+  - Tests: `MorphTextTests.AResizeMidMorphNeitherResplitsNorStallsIt`, `TypeLabPageTests.ShatterEndsAsThePlainNextWord`
+- **BRIDGE-RECIPES-082** — With `shape`, `MorphText` shall split the new text into outline pieces (BRIDGE-TEXT), and each new outline piece without a partner shall take, while any remain, the old character without a partner and with an outline whose slot center, shifted as in -075, is nearest its own slot center; it shall start at that character's slot with its outline as `Data` and move to rest while morphing (`MorphTo`, BRIDGE-SHAPES) into its own outline over `Tokens.Long` with `Tokens.EmphasizedEase`, and that old character shall leave no ghost. Characters left over shall scatter or pop in as in -076; without `shape`, -074 to -081 hold unchanged.
+  - Tests: `MorphTextTests.ShapeMorphsUnmatchedOldLettersIntoTheNearestUnmatchedNewOnesInsteadOfLeavingGhosts`, `MorphTextTests.ShapeLeavesOnlyTheLeftoverOldLettersAsGhosts`
+- **BRIDGE-RECIPES-083** — `WriteIn` shall hold the block's width as -081 does, split it into character outline pieces, give each a `Transparent` fill and a stroke of the block's `Foreground`, `FontSize / 32` thick, with none of it drawn, and trace it with `"Draw"` `"0 0"` → `"0 1"` over `duration ?? Tokens.Long` with `ease ?? Tokens.Ease`, each piece `Tokens.StaggerStep` after the one before in reading order, starting at `delay`.
+  - Tests: `GlyphRecipeTests.WriteInTracesUnfilledOutlinesInReadingOrderThenEndsAsPlainText`
+- **BRIDGE-RECIPES-084** — When the last trace ends, `WriteIn` shall fade each outline piece's `Fill` to the block's `Foreground` and its `StrokeThickness` to 0 over `Tokens.Medium` with `Tokens.Ease`, a character without an outline fading `Opacity` from 0 with them, and when that completes the block shall be unsplit with its own text.
+  - Tests: `GlyphRecipeTests.WriteInTracesUnfilledOutlinesInReadingOrderThenEndsAsPlainText`
+- **BRIDGE-RECIPES-085** — `MorphGlyphs` shall pair the new text's character at index `j` (counting as a character split does) with the old one at `j`, or at `j + old count − new count` when both texts parse as numbers in the current culture, so the last characters pair.
+  - Tests: `GlyphRecipeTests.ANumberKeepsItsUnitsColumnAndAnExtraDigitGrowsFromItsSlotCenter`
+- **BRIDGE-RECIPES-086** — `MorphGlyphs` shall split the new text into outline pieces; a pair where both characters have an outline shall morph as in -082 from the old character's slot and outline into the new one at rest, over `Tokens.Long` with `Tokens.EmphasizedEase`.
+  - Tests: `GlyphRecipeTests.MorphGlyphsMorphsEachOutlineIntoTheCharacterAtItsPositionAndEndsAsPlainText`, `GlyphRecipeTests.ANumberKeepsItsUnitsColumnAndAnExtraDigitGrowsFromItsSlotCenter`
+- **BRIDGE-RECIPES-087** — A new character without a partner shall grow `Scale` from 0 about its slot center, and an old one without a partner shall leave as a snapshot at its old slot in the window's overlay layer shrinking to `Scale` 0, both over `Tokens.Long` with `Tokens.EmphasizedEase`; in a pair where either character has no outline, the old one shall leave as a snapshot fading `Opacity` to 0 while the new one fades from 0, over `Tokens.Long` with `Tokens.Ease`.
+  - Tests: `GlyphRecipeTests.ANumberKeepsItsUnitsColumnAndAnExtraDigitGrowsFromItsSlotCenter`, `GlyphRecipeTests.AnExtraOldDigitCollapsesIntoItsSlotCenterAndIsDismissed`, `GlyphRecipeTests.APairWithoutAnOutlineCrossfades`
+- **BRIDGE-RECIPES-088** — While it morphs, `MorphGlyphs` shall hold the block's width as -081 does, and when it completes the block shall be unsplit with `Text` equal to `text` and the snapshots removed with their bitmaps disposed, as -078.
+  - Tests: `GlyphRecipeTests.MorphGlyphsMorphsEachOutlineIntoTheCharacterAtItsPositionAndEndsAsPlainText`, `GlyphRecipeTests.AnExtraOldDigitCollapsesIntoItsSlotCenterAndIsDismissed`
+- **BRIDGE-RECIPES-089** — `WriteIn`, `MorphGlyphs` and `MorphText` shall share one running timeline per block: when any of them is called on a block another is still playing on, it shall complete that one first and start from the text it ends on.
+  - Tests: `GlyphRecipeTests.WritingInAgainMidWriteCompletesTheFirst`, `GlyphRecipeTests.MorphingGlyphsAgainMidMorphCompletesTheFirst`, `MorphTextTests.MorphingAgainMidMorphCompletesTheFirst`
+- **BRIDGE-RECIPES-090** — When `ReducedMotion` is set as `WriteIn` is called, it shall not split the block and shall fade its `Opacity` from 0 over `Tokens.Short` after `delay`; as `MorphGlyphs` is called, it shall crossfade as -080.
+  - Tests: `GlyphRecipeTests.ReducedWriteInFadesTheBlockInWithoutSplitting`, `GlyphRecipeTests.ReducedMorphGlyphsCrossfadesWithoutSplitting`
+- **BRIDGE-RECIPES-091** — `Shatter` shall cut each character's outline into `GlyphShards.Of(outline, count ?? 8, (seed ?? 0) + index)` (BRIDGE-GLYPHS) and put each shard, as a `Path` filled with the block's `Foreground` turning about its bounds center, at its character's slot in a canvas at the block's origin in the window's overlay layer; a character without an outline shall leave as a snapshot there, as -076.
+  - Tests: `ShatterTests.ShardsCoverTheLettersOnTheOverlayInTheBlocksForeground`
+- **BRIDGE-RECIPES-092** — `Shatter` shall return a playing timeline that fades the block's `Opacity` to 0 over 1 ms and plays `Scatter(distance, spin, seed)` (-070) on the shards and snapshots, both at 0; when it completes, in either direction, the shards and snapshots shall leave the overlay layer with the snapshots' bitmaps disposed, so played forward the block ends at `Opacity` 0 and reversed mid-play the shards end on their slots and the block at its own opacity.
+  - Tests: `ShatterTests.ShardsFlyApartSpinningAndCompletingRemovesThemLeavingTheBlockHidden`, `ShatterTests.ReversedTheShardsReformOnTheirSlotsAndTheBlockComesBack`
+- **BRIDGE-RECIPES-093** — `Shatter` shall share -089's running timeline per block: called on a block that a text morph or another shatter is still playing on, it shall complete that one first.
+  - Tests: `ShatterTests.ShatteringAgainMidShatterCompletesTheFirst`
+- **BRIDGE-RECIPES-094** — When `ReducedMotion` is set as `Shatter` is called, or the block has no overlay layer, it shall not cut the block and shall fade its `Opacity` to 0 over `Tokens.Short` with `Tokens.Ease`.
+  - Tests: `ShatterTests.ReducedFadesTheBlockWithoutShards`
+- **BRIDGE-RECIPES-095** — With both `explode` and `shape`, each old character `MorphText` leaves over with an outline shall leave as the shards of `GlyphShards.Of(outline, 8, index)` at its old slot, filled with the block's `Foreground`, instead of a snapshot, playing `Scatter()` with the snapshots and removed with them when the morph completes.
+  - Tests: `MorphTextTests.ExplodingShapeMorphShattersTheLeftoverOldLettersIntoShards`
 
 ### Defaults
 
@@ -253,32 +315,33 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 - `Recipes.Tokens = MotionTokens.Reduced` gives zero travel and linear timing without setting `ReducedMotion`.
 - `Dots` and `Indeterminate` take no `stagger`/need a `distance` respectively; `Dots`' `delay` becomes its stagger start.
-- `RollDigits` and `Typewriter` need a laid-out block: `RollDigits` reads `TextLayout.TextLines[0]`, `Typewriter` splits by wrapped lines.
+- `RollDigits`, `Typewriter`, `MorphText`, `WriteIn`, `MorphGlyphs` and `Shatter` need a laid-out block: `RollDigits` reads `TextLayout.TextLines[0]`, the others split by wrapped lines.
+- A stretched block whose container resizes mid-morph keeps its width until the morph completes, then takes the new one (081). A block in no window morphs without ghosts and without the window-position correction.
 - `PageBloom` with no `Panel` in the incoming page reveals the page and animates no children.
 
 ## Threading and lifetime
 
-- UI thread only, like all bridge calls. Builders hold no element; the stateful text recipes and `ThemeReveal` return a playing `Animation` on the target's engine.
+- UI thread only, like all bridge calls. Builders hold no element; the stateful text recipes and `ThemeReveal` return a playing `Animation` (`MorphText`, `MorphGlyphs`, `WriteIn` and `Shatter` a `Timeline`) on the target's engine.
 - `PageBloom` installs one tunneling `PointerPressed`/`KeyDown` class handler on `TopLevel` on first use, process-wide, and keys the last press per window in a weak table.
-- `RollDigits` and `ThemeReveal` track the running animation per block/surface in a weak table.
+- `RollDigits`, `ThemeReveal` and the text morphs (`MorphText`, `MorphGlyphs`, `WriteIn` and `Shatter`, one table for the four) track the running animation per block/surface in a weak table.
 
 ## Reduced motion
 
-- Each family's reduced form is a requirement above: entrances, exits, text reveals, popovers, reveals and pages fade over `Short`; attention blinks; loops are static; loading pulses; interactions keep color, opacity and shadow; `Reflow` lands at once.
+- Each family's reduced form is a requirement above: entrances, exits, text reveals, popovers, reveals and pages fade over `Short`; attention blinks; loops are static; loading pulses; interactions keep color, opacity and shadow; `Reflow` lands at once; `MorphText` and `MorphGlyphs` crossfade the unsplit block, `WriteIn` fades it in and `Shatter` fades it out.
 - The reduced forms inherit the full form's settings, so delays, staggers and callbacks survive (CORE-REDUCED).
 
 ## Allocation
 
-- Not on the tick path: each call allocates a builder and its closures. The function values recipes install (`Across`, popover `Travel`, `OneLineDown`) run once per target when the animation is built.
+- Not on the tick path: each call allocates a builder and its closures. The function values recipes install (`Across`, popover `Travel`, `OneLineDown`, the random offsets) run once per target when the animation is built.
 
 ## Deviations from anime.js
 
-- No upstream counterpart: anime.js ships no recipes. The family namespace `Prebuilt` replaces the planned `...AvaloniaBridge.Recipes`, because a namespace of that name cannot sit beside the `Recipes` type (CS0101).
+- No upstream counterpart: anime.js ships no recipes. The family namespace `Prebuilt` replaces the planned `MonacoLabs.Presto.Recipes`, because a namespace of that name cannot sit beside the `Recipes` type (CS0101).
 
 ## Decisions
 
 - **Recipes are factories that read the tokens at call time.** Each recipe call returns a new `AnimationBuilder` (a page recipe a new `PrestoPageTransition`) reading `Recipes.Tokens` when called; stateful recipes are methods returning the playing `Animation` or small bridge types. Reason: chaining `.Delay(…)` onto one call never touches another caller's copy, and replacing the tokens restyles later calls while builders already made keep their values. Rejected: shared static builders.
-- **The families live in `Prebuilt`, the facade in the root namespace.** The catalog is in the bridge, one class per family in `Monaco.Presto.AvaloniaBridge.Prebuilt`; `Recipes` (a forwarding facade), `Edge` and the markup extensions are in the root namespace. Reason: nearly every recipe names a bridge shorthand; a `Monaco.Presto.AvaloniaBridge.Recipes` namespace cannot sit beside the `Recipes` type (CS0101), and root placement lets one `using` cover `Recipes.SlideIn(Edge.Left)` and the existing `presto` XAML prefix cover the extensions. Rejected: the namespace `Monaco.Presto.AvaloniaBridge.Recipes`.
+- **The families live in `Prebuilt`, the facade in the root namespace.** The catalog is in the bridge, one class per family in `MonacoLabs.Presto.Prebuilt`; `Recipes` (a forwarding facade), `Edge` and the markup extensions are in the root namespace. Reason: nearly every recipe names a bridge shorthand; a `MonacoLabs.Presto.Recipes` namespace cannot sit beside the `Recipes` type (CS0101), and root placement lets one `using` cover `Recipes.SlideIn(Edge.Left)` and the existing `presto` XAML prefix cover the extensions. Rejected: the namespace `MonacoLabs.Presto.Recipes`.
 - **Entrances state from-values; every other family states to-values.** `Connected.DefaultAnchorMotion` is from-only for the same reason. Reason: a from-only entrance lands on the element's own resting values (a card resting at `Opacity` 0.6 lands on 0.6), and a `Motion` state rejects from-only values.
 - **Entrances and exits are compositor-safe, with documented exceptions.** They use transform, opacity and per-property keyframes only, so they run through `AnimateOnCompositor` as well as `Presence` and `Animate.OnAttached`; the blur and flip recipes and `Develop` are UI-thread only. Reason: the compositor has no `RotateX`, `Perspective` or filters.
 - **Every recipe takes the same optional arguments, and `stagger` is a bool.** `duration`, `delay`, `ease`, `distance` or `intensity`, and `stagger`, which delays each element by `Tokens.StaggerStep` after `delay`; another step is chained with `.Delay(Presto.Stagger(…))`. Interactions take no `stagger`, and `Dots` staggers itself. Reason: a `Motion` state applies to one element, and `Dots` staggers its batch by a sixth of an iteration. Rejected: `stagger` as a step value.
@@ -293,6 +356,25 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **Page recipe shapes.** `PageFadeThrough` spends 30% of its duration on the exit, delays the enter by as much, and plays the same pair going back; `PageSharedAxis` exits over `Short`, enters over `Medium` and ignores `distance` along Z; `PagePush` dims the outgoing page to 0.6. Reason: fade-through stages the same way both ways; shared-axis timing matches the entrance and exit families.
 - **`PageBloom` is a page recipe whose origin is the last press.** It returns a `PrestoPageTransition` (a `ClipCircle` reveal, `IncomingAbove`); a tunneling `TopLevel` handler records the last press per window, a key press clears it and the bloom that uses it spends it; its tiles are the first `Panel`'s children. Reason: it inherits the take-over and revert rules of the page recipes, and a transition is handed only the two hosts. Rejected: a transition type of its own; a colored disk over the old page.
 - **`PopoverIn` predicts the facing edge from the placement.** It reads `Popup.Placement`, flipped by measured fit; a `Center` placement does not slide. Reason: nothing reports a constraint flip, and at open the placed rects do not exist yet.
+- **Random recipes are seeded.** `Scatter`, `Gather` and `Fall` take an optional `seed`; with one, the target at each index draws from a fixed position of that seed's stream, so the values do not depend on how often the builder was played, and without one they draw from the shared generator. `X` and `Y` are drawn independently, so `Scatter` fills a square. Reason: reproducible tests, and a replay that looks the same. Rejected: one generator consumed across plays, which would give a second play new values.
+- **`Wave` steps by index, not by line.** Reason: it is a loop recipe used on any batch, and on a split line the index is reading order. A multi-line wave can chain `.Delay(TextSplitter.StaggerByLine(…))`.
+- **Recipes vs. not.** `Scatter`, `Gather`, `Fall`, `Wave` and `MorphText` are recipes because each is a reusable verb on any batch or block; `TextPath` is layout, not motion (it holds state, has no duration and is driven by other animations), and `SplitFlap` is a control that owns per-cell state and draws tiles a `TextBlock` cannot. A "slam" entrance is `PopIn(scale: 2.5)`. Rejected: `Recipes.Slam`, a `Recipes.AlongPath` builder.
+- **`MorphText` pairs by k-th occurrence, case-sensitive unless `ignoreCase`.** Pairing is in reading order. Reason: it is deterministic and cheap, reading order keeps letters from crossing needlessly, and `ignoreCase` lets "Listen" → "Silent" pair the `L`. Rejected: nearest-slot matching, which is order-dependent and costs O(n²) for little visual gain.
+- **`MorphText` follows `RollDigits`' lifetime rules.** It returns the playing `Timeline`; a second call on a block still morphing completes the first; it reads the reduced flag at call time and, when reduced, crossfades the block (`Opacity` to 0, set the text, back from 0, `Tokens.Short` each). Reason: one consistent rule for stateful text recipes (BRIDGE-RECIPES-064, the `Typewriter` decision).
+- **`MorphText` FLIPs over `SlotOf`.** It captures the old slots, sets the new text, lays the block out, splits it and starts each paired piece at its partner's old slot, corrected by how far the block moved in its window (a centered title moves as its width changes). Ghosts are snapshots in the overlay layer, as `Presence` exits leave. Reason: nothing is measured offscreen, and the old split is gone before the new one exists. Rejected: `TextSplitter.Measure(block, text)`, a second layout path that would have to match the real one.
+- **`MorphText` starts every part at once and seeds `explode` with 0.** Ghosts scatter and new letters pop in as the paired ones fly. Reason: a child placed later on the timeline does not write its from-values before it starts, so a delayed `PopIn` would show its letter at rest until then; the fixed seed makes the same pair of texts burst the same way on every play, as the seeded recipes do.
+- **`MorphText` holds the block's width instead of surviving a re-split.** Reason: a re-split detaches the pieces the morph plays on, which pauses it (`WhenDetached`), and split letters measure slightly differently from shaped text, so a block sized to its text re-split on its own. A morph lasts `Tokens.Long` plus a hold, so delaying a container resize until it ends costs little. Rejected: rebuilding the morph over the new pieces with `KeepTime`, which would replace the `Timeline` `MorphText` returned.
+- **`WriteIn` and `MorphGlyphs` fade when reduced.** `WriteIn` fades the unsplit block in and `MorphGlyphs` crossfades it as `MorphText` does. Reason: tracing and reshaping letters are large continuous motions, which is what reduced motion opts out of.
+- **The glyph recipes end as plain text.** `WriteIn` and `MorphGlyphs` play on outline pieces and unsplit when they complete. Reason: outline pieces draw unhinted geometry that differs slightly from the block's rendering at small sizes; the swap is invisible at display sizes and keeps text selectable and accessible at rest (BRIDGE-GLYPHS).
+- **`WriteIn` thins its stroke away as the fill comes in.** Reason: the stroke widens the letters by its thickness, so dropping it with the fill makes the swap to plain text invisible. Its thickness follows the font size so the trace reads alike at any size. Rejected: a `strokeThickness` argument nobody asked for.
+- **`WriteIn` traces outline fonts only.** Reason: outline tracing then filling is a recognized style on its own; a single-line font can come later through `TextOutline` with open contours.
+- **`MorphGlyphs` pairs by position, from the end for numbers.** Reason: it is the digit-clock and label-to-icon morph, where position is the meaning, and aligning numbers on the end keeps a counter's units column in place as it gains a digit. Characters without a partner grow from or collapse into their slot's center, and pairs without an outline (emoji, color glyphs) crossfade, so one such character never breaks the effect. Rejected: `MorphText`'s grapheme pairing, which would fly the digits of a counter sideways.
+- **`MorphText(shape: true)` pairs leftovers by nearest slot.** Matched letters keep their grapheme pairing (-074); only the letters it leaves over morph, each new one into the nearest old one. Reason: grapheme pairing already decides who flies; nearest-first among the rest keeps morphs short, and the counts are small. Without `shape` nothing changes, so existing callers keep the ghosts.
+- **The text morphs share one running table and their plumbing.** `MorphText`, `MorphGlyphs` and `WriteIn` all split the block, so a call completes whichever is running; they share the ghost snapshots, the width hold and the end cleanup. Reason: a block can host one split at a time, and one rule for re-entry (-079) is easier to reason about than three.
+- **Shards are `Path` controls on the overlay layer, not particles.** Reason: shards need the text's fill and must be seekable and reversible to re-form, which ordinary tweens give and render-thread particles do not (`FromGeometry` is white-only and the scene cannot draw geometry). Rejected: rasterized shard particles.
+- **`Shatter` is the vector `Scatter` and ends as an exit.** It plays `Scatter` itself on the shards, so `distance`, `spin` and `seed` mean what they mean there, and it hides the block with a 1 ms `Opacity` tween rather than `Timeline.Set`, because a reversed timeline that ends at 0 leaves a `Set` at 0 applied. Played forward, the block stays at `Opacity` 0 as `Scatter` leaves an element; reversed, the shards re-form and the block shows again. Reason: an exit that brought the text back would undo itself, while the reversed timeline gives the re-form. Its reduced form fades the block out, since shattering is the explosive motion reduced motion opts out of. Rejected: restoring the block when played forward.
+- **`MorphText` shatters only on outline splits.** Its leftover old letters become shards only with both `explode` and `shape`, `shape` being what splits the morph into outlines. Reason: the proposal ties shards to outline splits, and without `shape` existing `explode` callers keep their snapshots. Rejected: a further `shards` parameter.
+- **Shards are not capped per glyph.** Measured headless in Release on the default font: cutting takes about 0.5 ms a glyph at 72 px and 1.6 ms at 200 px for 8 shards, and fewer for more shards; a 24-character line at 72 px is about 190 `Path`s, a fraction of the controls the stress bench's UI-thread modes animate. A shard count above a glyph's triangle count already yields one shard per triangle. Reason: no cap was needed (proposal: cap only if the stress bench requires it).
 - **Motion tokens live in the library.** See BRIDGE-TOKENS.
 - **Reduced motion is an app-set flag with a per-builder alternative.** See CORE-REDUCED.
 - **`{presto:Reflow}` is the shorthand, and its reduced form is instant.** See BRIDGE-DECLLAYOUT.
@@ -311,4 +393,8 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - `PageBloom`'s exit (`ClipCircle` to 1 over `Short`) has no `WhenReduced` alternative, contrary to the rule that every recipe supplies a reduced form (Every recipe carries its own reduced form).
 - `PageSharedAxis` takes no duration: its sides are fixed at `Medium` and `Short`, unlike `PageFade`/`PageFadeThrough`.
 - The recorded decision that entrances and exits are compositor-safe named only `BlurIn`/`BlurOut`/`FlipIn`/`FlipOut` as exceptions; `Develop` is UI-thread-only too, and the decision below includes it.
+- At body size (the 14 px Save label on the Desktop Micro-interactions page), `MorphGlyphs`' unpaired letters collapsing into their slot centers draw as dark one-pixel specks for their last frames instead of fading out in the label's color.
+- `MorphText(explode, shape)` has no shard-count parameter (fixed at 8, BRIDGE-RECIPES-095; a `shards` parameter was rejected), so a shard-count control cannot drive a shatter-then-re-form morph: Glyph lab's Shatter panel runs `Shatter` at the slider's count and pops the next word in with `PopIn` rather than forming it from the shards.
+- `WriteIn` always staggers its characters, so an all-at-once trace has to be built by hand (Glyph lab does).
+- `WriteIn` and `Shatter` clean up when they complete (the block unsplit, the shards removed), so synced into a timeline they cannot be sought back: Kinetic poem hand-rolls both the trace and the shards, and Title sequence traces only on its first run and shows the title whole after.
 - `ThemeReveal` throwing without an overlay layer, delay-only (no stagger) timing, and the `PageSharedAxis` `Y`/`X` exit travel lack direct tests.

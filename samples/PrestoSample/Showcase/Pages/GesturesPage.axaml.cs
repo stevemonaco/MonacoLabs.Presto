@@ -2,14 +2,14 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.Input;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Gestures;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Gestures;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -18,6 +18,10 @@ public partial class GesturesPage : ShowcasePage
     private const double RefreshDelay = 1200;
     private const double RowHeight = 40;
     private const double HandleHeight = 28;
+    private const double CardClosed = 64;
+    private const double CardTravel = 180;
+    private const int TrailLength = 8;
+    private const double DotSize = 14;
 
     private readonly ObservableCollection<Datasets.Card> _inbox = new(Datasets.Cards.Take(8));
     private static readonly AnimationBuilder s_fresh = Presto.Build()
@@ -29,7 +33,7 @@ public partial class GesturesPage : ShowcasePage
     public GesturesPage()
     {
         InitializeComponent();
-        HowCode.Code = $"{Snippets.GesturesPull}\n\n{Snippets.GesturesRefresh}\n\n{Snippets.GesturesCurtainSheet}\n\n{Snippets.GesturesCurtain}\n\n{Snippets.GesturesInboxSwipe}";
+        HowCode.Code = $"{Snippets.GesturesPull}\n\n{Snippets.GesturesRefresh}\n\n{Snippets.GesturesCurtainSheet}\n\n{Snippets.GesturesCurtain}\n\n{Snippets.GesturesInboxSwipe}\n\n{Snippets.GesturesSettle}\n\n{Snippets.GesturesTrail}\n\n{Snippets.GesturesResist}";
         foreach (var album in Datasets.Albums.Take(_fresh)) Feed.Children.Add(FeedRow(album));
         Inbox.ItemsSource = _inbox;
         Inbox.ItemTemplate = new FuncDataTemplate<Datasets.Card>((card, _) => InboxRow(card));
@@ -37,11 +41,23 @@ public partial class GesturesPage : ShowcasePage
         foreach (var album in Datasets.Albums.Skip(8).Take(4)) Home.Children.Add(FeedRow(album));
         foreach (var album in Datasets.Albums.Skip(4).Take(3)) Notifications.Children.Add(FeedRow(album));
         foreach (var album in Datasets.Albums.Skip(12).Take(5)) Queue.Children.Add(FeedRow(album));
+        foreach (var album in Datasets.Albums.Take(4)) CardRows.Children.Add(FeedRow(album));
         Handle.Tapped += (_, _) => Curtain.DetentIndex = (Curtain.DetentIndex + 1) % Curtain.Detents.Count;
         Curtain.Position.VelocityOf().Changed += v => CurtainVelocity.Text = Utils.RoundPad(v.Value, 2);
         QueueSheet.Position.VelocityOf().Changed += v => SheetVelocity.Text = Utils.RoundPad(v.Value, 2);
         Puller.Pull.VelocityOf().Changed += v => PullVelocity.Text = Utils.RoundPad(v.Value, 2);
         Puller.Refresh = Refresh;
+        foreach (var fill in (IBrush[])[Palette.AccentBright, Palette.Aqua])
+        {
+            for (var i = 0; i < TrailLength; i++)
+            {
+                TrailStage.Children.Add(new Ellipse
+                {
+                    Width = DotSize, Height = DotSize, Margin = new Thickness(-DotSize / 2, -DotSize / 2, 0, 0),
+                    Fill = fill, Opacity = 1 - (i * .1), ZIndex = -i,
+                });
+            }
+        }
         #region snippet GesturesCurtain
         var pulled = Curtain.Position.Map(p => Travel > 0 ? (p - HandleHeight) / Travel : 0);
         Follow.SetY(Home, pulled.Map(p => .3 * p * Travel));
@@ -50,6 +66,53 @@ public partial class GesturesPage : ShowcasePage
     }
 
     private double Travel => Math.Max(0, CurtainStage.Bounds.Height - HandleHeight);
+
+    protected override void OnAttached()
+    {
+        #region snippet GesturesSettle
+        var open = Presto.CreateTimeline(new() { Autoplay = false })
+            .Add(OpenCard, Presto.Build().Height(from: CardClosed, to: CardClosed + CardTravel).Duration(600).Ease(Eases.None))
+            .Label("half", 300)
+            .Add(CardRows.Children, Presto.Build().Opacity(from: 0, to: 1).Y(from: 12, to: 0).Duration(240).Delay(Presto.Stagger(70)), 150);
+        // A proxy takes the drag so the handle rides the card; relative, a re-grab mid-settle continues from where it is.
+        MotionValue? pulled = null;
+        PrestoAvalonia.CreateDraggable(CardProxy, new()
+        {
+            Trigger = CardHandle,
+            X = new() { Enabled = false },
+            OnGrab = drag => open.Scrub(pulled ??= drag.YValue.Map(y => y / CardTravel), relative: true),
+            OnRelease = async drag =>
+            {
+                var settled = open.Settle(new() { FlickVelocity = .002, Labels = true });
+                drag.Reset();
+                CardProgress.Text = Utils.RoundPad(await settled, 2);
+            },
+        });
+        #endregion
+
+        AfterFirstArrange(TrailStage, () =>
+        {
+            #region snippet GesturesTrail
+            var center = TrailStage.Bounds.Size / 2;
+            var entered = false;
+            TrailStage.PointerEntered += (_, _) => entered = true;
+            var pointerX = PrestoAvalonia.PointerValue(TrailStage, Orientation.Horizontal).Map(x => entered ? x : center.Width);
+            var pointerY = PrestoAvalonia.PointerValue(TrailStage, Orientation.Vertical).Map(y => entered ? y : center.Height);
+            MotionValue[] xs = [.. pointerX.Trail(TrailLength, Springs.Gentle), .. pointerX.Trail(TrailLength, 40)];
+            MotionValue[] ys = [.. pointerY.Trail(TrailLength, Springs.Gentle), .. pointerY.Trail(TrailLength, 40)];
+            for (var i = 0; i < xs.Length; i++)
+            {
+                Follow.SetX(TrailStage.Children[i], xs[i]);
+                Follow.SetY(TrailStage.Children[i], ys[i]);
+            }
+            #endregion
+        });
+
+        #region snippet GesturesResist
+        var knob = PrestoAvalonia.CreateDraggable(Knob, new() { Y = new() { Enabled = false }, Container = ResistStage });
+        Follow.SetX(Indicator, knob.XValue.Resist(-80, 80));
+        #endregion
+    }
 
     #region snippet GesturesRefresh
     private async Task Refresh()

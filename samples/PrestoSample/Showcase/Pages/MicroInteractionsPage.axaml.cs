@@ -3,8 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
 using PrestoSample.Builder;
 
 namespace PrestoSample.Showcase.Pages;
@@ -23,15 +23,16 @@ public partial class MicroInteractionsPage : ShowcasePage
 
     private int _likes = 1203;
     private bool _liked;
+    private bool _saving;
     private int _notices;
 
     public MicroInteractionsPage()
     {
         InitializeComponent();
         LikeCount.Text = Count(_likes);
-        Code.Xaml = string.Join("\n\n", Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsSubmitButton, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs,
-            Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts);
-        Code.CSharp = string.Join("\n\n", Snippets.MicroInteractionsBuilders, Snippets.MicroInteractionsSubmit, Snippets.MicroInteractionsLikeHandler,
+        Code.Xaml = string.Join("\n\n", Snippets.MicroInteractionsRipple, Snippets.MicroInteractionsSubmitButton, Snippets.MicroInteractionsSaveButton, Snippets.MicroInteractionsLike, Snippets.MicroInteractionsTabs,
+            Snippets.MicroInteractionsAccordion, Snippets.MicroInteractionsToasts, Snippets.MicroInteractionsMagnetic);
+        Code.CSharp = string.Join("\n\n", Snippets.MicroInteractionsBuilders, Snippets.MicroInteractionsSubmit, Snippets.MicroInteractionsSave, Snippets.MicroInteractionsLikeHandler,
             Snippets.MicroInteractionsTabIndicator, Snippets.MicroInteractionsToastShow, Snippets.MicroInteractionsValidation);
     }
 
@@ -46,6 +47,24 @@ public partial class MicroInteractionsPage : ShowcasePage
     }
     #endregion
 
+    #region snippet MicroInteractionsSave
+    private void SaveClicked(object? sender, RoutedEventArgs e)
+    {
+        if (!_saving) _ = SaveAsync();
+    }
+
+    // Inter has ✓, so the label's outlines morph into it; under reduced motion MorphGlyphs crossfades.
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        await Presto.CreateTimer(new() { Duration = 600 });
+        await Recipes.MorphGlyphs(SaveLabel, "✓");
+        await Presto.CreateTimer(new() { Duration = 1400 });
+        await Recipes.MorphGlyphs(SaveLabel, "Save");
+        _saving = false;
+    }
+    #endregion
+
     #region snippet MicroInteractionsLikeHandler
     private void LikeClicked(object? sender, RoutedEventArgs e)
     {
@@ -57,7 +76,7 @@ public partial class MicroInteractionsPage : ShowcasePage
         {
             LikeCount.Animate(new()
             {
-                ["Text"] = new TweenParams { From = from, To = _likes, TextModifier = Count },
+                [Text] = new TweenParams { From = from, To = _likes, TextModifier = Count },
                 Duration = 400,
                 Ease = Eases.OutQuad,
             });

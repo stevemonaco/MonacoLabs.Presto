@@ -1,17 +1,17 @@
 ---
 id: BRIDGE-TARGETS
 title: Avalonia property resolution and writes
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Targets
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Targets
 sources:
-  - Monaco.Presto.AvaloniaBridge/Targets/AvaloniaObjectTargetAdapter.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/AnimatedValue.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/TargetOwner.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/VisibilityHold.cs
-  - Monaco.Presto.AvaloniaBridge/AvaloniaAnimationParams.cs
-  - Monaco.Presto.AvaloniaBridge/AvaloniaAnimatableParams.cs
+  - MonacoLabs.Presto.Avalonia/Targets/AvaloniaObjectTargetAdapter.cs
+  - MonacoLabs.Presto.Avalonia/Targets/AnimatedValue.cs
+  - MonacoLabs.Presto.Avalonia/Targets/TargetOwner.cs
+  - MonacoLabs.Presto.Avalonia/Targets/VisibilityHold.cs
+  - MonacoLabs.Presto.Avalonia/AvaloniaAnimationParams.cs
+  - MonacoLabs.Presto.Avalonia/AvaloniaAnimatableParams.cs
 types:
   - AvaloniaObjectTargetAdapter
   - AvaloniaAnimationParams
@@ -24,7 +24,7 @@ tests:
   - VisibilitySpikeTests
   - AnimatableBridgeTests
   - CompositorRegistryTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream:
   - src/core/targets.js
   - src/core/values.js
@@ -44,7 +44,7 @@ depends:
 
 ## Purpose
 
-`AvaloniaObjectTargetAdapter` is the core target adapter (CORE-TARGETS) for every `AvaloniaObject`: it turns a property name or a typed `AvaloniaProperty` into an accessor, writes animated values at `BindingPriority.Animation` and takes them away again on revert. Bridge shorthands (BRIDGE-TRANSFORMS, BRIDGE-EFFECTS, and the `Draw` and `ScrollX`/`ScrollY` shorthands of BRIDGE-SHAPES and BRIDGE-SCROLL) are resolved here before the property registry. `AvaloniaAnimationParams` and `AvaloniaAnimatableParams` add the typed-property indexer to the core parameter objects.
+`AvaloniaObjectTargetAdapter` is the core target adapter (CORE-TARGETS) for every `AvaloniaObject`: it turns a property name or a typed `AvaloniaProperty` into an accessor, writes animated values at `BindingPriority.Animation` and takes them away again on revert. Bridge shorthands (BRIDGE-TRANSFORMS, BRIDGE-EFFECTS, the `Warp`, `WarpPhase`, `WarpOrigin` and `WarpRadius` shorthands of BRIDGE-WARP, and the `Draw` and `ScrollX`/`ScrollY` shorthands of BRIDGE-SHAPES and BRIDGE-SCROLL) are resolved here before the property registry. `AvaloniaAnimationParams` and `AvaloniaAnimatableParams` add the typed-property indexer to the core parameter objects.
 
 ## Requirements
 
@@ -52,18 +52,18 @@ depends:
 
 - **BRIDGE-TARGETS-001** — When the target is not an `AvaloniaObject`, the adapter shall return `null` from `Resolve` and `Canonicalize`, leaving it to the next adapter.
   - Tests: untested
-- **BRIDGE-TARGETS-002** — When the target is a `Visual`, the adapter shall resolve the transform shorthands (BRIDGE-TRANSFORMS), then the effect, clip and mask shorthands (BRIDGE-EFFECTS), then `"Draw"` on a `Shape` and `"ScrollX"`/`"ScrollY"` on a `ScrollViewer`, before looking in the property registry, so a shorthand wins over a registered property of the same name.
+- **BRIDGE-TARGETS-002** — When the target is a `Visual`, the adapter shall resolve the transform shorthands (BRIDGE-TRANSFORMS), then the effect, clip and mask shorthands (BRIDGE-EFFECTS), then the warp shorthands on a `TextBlock` (BRIDGE-WARP), then `"Draw"` on a `Shape` and `"ScrollX"`/`"ScrollY"` on a `ScrollViewer`, before looking in the property registry, so a shorthand wins over a registered property of the same name.
   - Tests: `PropertyNamingTests.TransformShorthandsKeepTheirOwnName`, `TransformsTests.XAndYComposeIntoASingleTranslateTransform`
-- **BRIDGE-TARGETS-003** — When a shorthand name is used on a target that does not take it (a non-`Visual`, `"Draw"` on a non-`Shape`, `"ScrollX"` on a non-`ScrollViewer`), the adapter shall look the name up as a registered property like any other.
-  - Tests: `ScrollShorthandTests.TheShorthandsResolveOnlyOnAScrollViewer`
+- **BRIDGE-TARGETS-003** — When a shorthand name is used on a target that does not take it (a non-`Visual`, `"Warp"` on a non-`TextBlock`, `"Draw"` on a non-`Shape`, `"ScrollX"` on a non-`ScrollViewer`), the adapter shall look the name up as a registered property like any other.
+  - Tests: `ScrollShorthandTests.TheShorthandsResolveOnlyOnAScrollViewer`, `TextWarpTests.TheShorthandsResolveOnlyOnATextBlock`
 - **BRIDGE-TARGETS-004** — When the name has no dot, the adapter shall resolve it through `AvaloniaPropertyRegistry.FindRegistered` for the target's runtime type.
   - Tests: `TargetAdapterTests.NamedPropertiesAnimateToCompletion`
 - **BRIDGE-TARGETS-005** (inherited) — When the name is `"Owner.Name"`, the adapter shall match it against the attached properties registered for the target's type first, then its other registered properties, comparing `Name` and the simple name of `OwnerType`.
   - Tests: `TargetAdapterTests.AttachedPropertiesResolveThroughTheirOwnerType`, `PropertyNamingTests.TheQualifiedSpellingSharesTheSameKey`
 - **BRIDGE-TARGETS-006** — When no property matches, `Resolve` shall throw `ArgumentException` naming the target type and the property, from the `Animate`/`Set` call that resolved it.
   - Tests: `TargetAdapterTests.AnUnknownPropertyNameThrows`
-- **BRIDGE-TARGETS-007** — The bridge shall key a typed `AvaloniaProperty` as `"{OwnerType.Name}.{Name}"` everywhere it accepts one: both params indexers, `PropertyBuilderExtensions.Property`, the typed `Animatable` extensions and the `PrestoAvalonia` `Get`/`Remove`/`GetAnimations` overloads.
-  - Tests: `TargetAdapterTests.TypedAndNamedPropertiesMixInOneInitializer`, `TargetAdapterTests.GetAnimationsFiltersByAvaloniaProperty`
+- **BRIDGE-TARGETS-007** — The bridge shall key a typed `AvaloniaProperty` as `"{OwnerType.Name}.{Name}"` everywhere it accepts one: both params indexers, `PropertyBuilderExtensions.Property`, the typed `Animatable` extensions, the `PrestoAvalonia` `Get`/`Remove`/`GetAnimations` overloads and `PrestoKeys.Of`.
+  - Tests: `TargetAdapterTests.TypedAndNamedPropertiesMixInOneInitializer`, `TargetAdapterTests.GetAnimationsFiltersByAvaloniaProperty`, `PrestoKeysTests.OfReturnsTheEncodedName`
 - **BRIDGE-TARGETS-008** — `Canonicalize` shall map every spelling of one registered property (plain, qualified, typed) to that encoded key, so tweens declared with different spellings on one target replace, compose with and remove each other as one property.
   - Tests: `PropertyNamingTests.ATypedPropertyOverridesATweenDeclaredByName`, `PropertyNamingTests.ANamedPropertyOverridesATweenDeclaredByHandle`, `PropertyNamingTests.RemoveByNameCancelsATweenDeclaredByHandle`, `PropertyNamingTests.RemoveByHandleCancelsATweenDeclaredByName`
 - **BRIDGE-TARGETS-009** — `Canonicalize` shall return a shorthand name unchanged.
@@ -78,7 +78,7 @@ depends:
 ### Writes and revert
 
 - **BRIDGE-TARGETS-013** — On the first frame for a target, the accessor shall bind the property once at `BindingPriority.Animation` and push every later frame through that binding.
-  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `AllocationTests.StyledPropertyTweenTicksWithinBudget`
+  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `BridgeAllocationTests.StyledPropertyTweenTicksWithinBudget`
 - **BRIDGE-TARGETS-014** — After the animation completes, the value shall stay held at `Animation` priority until it is reverted, so a local, style or binding value written underneath meanwhile does not show.
   - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`
 - **BRIDGE-TARGETS-015** — When a tween on a styled property is reverted, the accessor shall dispose its binding, uncovering whatever value the property has underneath.
@@ -163,7 +163,7 @@ depends:
 - **Codec-less properties are discrete; there is no `AutoAlpha`.** Any property type without a codec gets a `DiscreteCodec`, `TrueThroughout` for `IsVisible` and `Midpoint` otherwise; compositor animations on one throw. Reason: `IsVisible = false` removes an element from layout (unlike CSS `visibility: hidden`), so a fade ending hidden would jump, and `Presence`'s `Hold` mode already covers fading before a hide. Rejected: a GSAP-style `AutoAlpha` shorthand.
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
 - **Types without a codec animate as discrete values.** See CORE-TARGETS.
-- **Params are init-only records with a string indexer.** See CORE-ANIMATION.
+- **Params are init-only records with a key indexer.** See CORE-ANIMATION.
 - **Dictionary params take `WhenReduced`; timers and timelines do not.** See CORE-ANIMATION.
 - **Targets map back to visuals through `TargetOwner`.** See DEVTOOLS-OVERLAY.
 - **Animations pause when their controls leave the tree.** See BRIDGE-HELPERS.
@@ -171,7 +171,6 @@ depends:
 ## Non-goals
 
 - No conversion between property types, and no CSS-style unit conversion for registered properties.
-- No typed key constants for shorthands; the builder methods are the typed form (BRIDGE-HELPERS, CORE-BUILDER).
 
 ## Open items
 

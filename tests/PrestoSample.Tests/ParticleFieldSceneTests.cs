@@ -3,8 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 

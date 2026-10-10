@@ -1,16 +1,16 @@
 ---
 id: CORE-THREADING
 title: Engine instancing and threading
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Engine.cs
-  - Monaco.Presto/EngineScope.cs
-  - Monaco.Presto/Core/Clock.cs
-  - Monaco.Presto/Core/Globals.cs
-  - Monaco.Presto/Timer.cs
-  - Monaco.Presto/Scope.cs
+  - MonacoLabs.Presto/Engine.cs
+  - MonacoLabs.Presto/EngineScope.cs
+  - MonacoLabs.Presto/Core/Clock.cs
+  - MonacoLabs.Presto/Core/Globals.cs
+  - MonacoLabs.Presto/Timer.cs
+  - MonacoLabs.Presto/Scope.cs
 types:
   - EngineScope
 tests:

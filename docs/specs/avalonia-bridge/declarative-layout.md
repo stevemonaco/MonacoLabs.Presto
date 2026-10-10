@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-DECLLAYOUT
 title: Declarative layout animation
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Animate.cs
-  - Monaco.Presto.AvaloniaBridge/LayoutArm.cs
-  - Monaco.Presto.AvaloniaBridge/ItemChanges.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/LayoutTransition.cs
+  - MonacoLabs.Presto.Avalonia/Animate.cs
+  - MonacoLabs.Presto.Avalonia/LayoutArm.cs
+  - MonacoLabs.Presto.Avalonia/ItemChanges.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/LayoutTransition.cs
 types: []
 tests:
   - AnimateLayoutAttachedTests

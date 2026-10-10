@@ -2,9 +2,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Text;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -22,19 +21,14 @@ public partial class TitleSequencePage : ShowcasePage
     {
         BuildDotField();
         PrestoAvalonia.CreateDrawable(Monogram);
-        // The character pieces only exist once the block has been measured, and a re-split replaces them, so the whole
-        // sequence is built from the split effect: KeepTime hands the playhead to the rebuilt one (SAMPLES-PLAN §8).
-        var split = PrestoAvalonia.SplitText(Headline, new SplitTextParams { Chars = new SplitPieceParams { Class = "wordmark-char" } });
-        if (Presto.Defaults.ReducedMotion) split.AddEffect(LandSequence);
-        else split.AddEffect(BuildSequence);
+        AfterFirstArrange(Headline, Build);
     }
 
     // One jump from the start would render the cards' Set at 0 after their fade-up, so the playhead passes the cards label first.
-    private Action LandSequence(TextSplitter split)
+    private void Build()
     {
-        var timeline = BuildSequence(split);
-        timeline.Pause().Seek(timeline.Labels["cards"]).Seek(timeline.IterationDuration);
-        return () => timeline.Revert();
+        var timeline = BuildSequence();
+        if (Presto.Defaults.ReducedMotion) timeline.Pause().Seek(timeline.Labels["cards"]).Seek(timeline.IterationDuration);
     }
 
     private void BuildDotField()
@@ -57,42 +51,36 @@ public partial class TitleSequencePage : ShowcasePage
         }
     }
 
-    private Timeline BuildSequence(TextSplitter split)
+    private Timeline BuildSequence()
     {
         #region snippet TitleSequenceTimeline
         var timeline = Presto.CreateTimeline()
             .Label("draw", 0)
             .Add(Monogram, new()
             {
-                ["Draw"] = TweenValue.FromTo("0 0", "0 1"),
+                [Draw] = TweenValue.FromTo("0 0", "0 1"),
                 Duration = 1200,
                 Ease = Eases.InOutQuad,
             }, "draw")
             .Label("mark", "+=100")
             .Add(Monogram, new()
             {
-                ["Data"] = PrestoAvalonia.MorphTo((Geometry)this.FindResource("MarkGeometry")!),
+                [Data] = PrestoAvalonia.MorphTo((Geometry)this.FindResource("MarkGeometry")!),
                 ["Fill"] = "#554C8DFF",
                 Duration = 800,
                 Ease = Eases.InOutQuad,
             }, "mark")
             .Label("title", "<")
-            .Add(split.Chars, new()
-            {
-                ["Y"] = TweenValue.FromTo(48, 0),
-                ["Scale"] = TweenValue.FromTo(0.6, 1),
-                ["Opacity"] = TweenValue.FromTo(0, 1),
-                Duration = 760,
-                Ease = Eases.OutExpo,
-                Delay = Presto.Stagger(70, new() { From = StaggerFrom.Center }),
-            }, "title")
+            // WriteIn ends as plain text, so once it has played only this hides the title before its label.
+            .Add(Headline, b => b.Opacity(from: 0, to: 1).Duration(1).WhenReduced(_ => { }), "title")
+            .Sync(Recipes.WriteIn(Headline), "title")
             .Add(Subtitle, new()
             {
-                ["Text"] = PrestoAvalonia.ScrambleText(new() { Chars = "lowercase", From = ScrambleFrom.Center }),
+                [Text] = Presto.ScrambleText(new() { Chars = "lowercase", From = ScrambleFrom.Center }),
                 ["Opacity"] = TweenValue.FromTo(0, 1),
                 Duration = 1200,
                 Ease = Eases.OutQuad,
-            }, "<<")
+            })
             .Label("cards", "+=200")
             .Add(Cards.Children, Recipes.FadeUp(distance: 28, duration: 900, ease: Eases.OutQuart).Delay(Presto.Stagger(120)), "cards")
             // Added after the fade-up, which would otherwise land on this 0 rather than the cards' resting opacity.
@@ -118,8 +106,8 @@ public partial class TitleSequencePage : ShowcasePage
             }, 0)
             .Add(DotField.Children, new()
             {
-                ["X"] = (FunctionValue)((_, i, _) => _drifts[i] * 0.45),
-                ["Y"] = (FunctionValue)((_, i, _) => _drifts[i]),
+                [X] = (FunctionValue)((_, i, _) => _drifts[i] * 0.45),
+                [Y] = (FunctionValue)((_, i, _) => _drifts[i]),
                 Duration = 2000,
                 Ease = Eases.InOutSine,
                 Loop = 1,

@@ -3,7 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
                        x:Class="PrestoSample.Showcase.Pages.TypographyPage">
     <showcase:ShowcasePage.Styles>
@@ -55,12 +55,16 @@
                 </StackPanel>
             </Border>
 
-            <Border x:Name="WordmarkStage" Classes="stage" PointerMoved="LeanWordmark" PointerExited="RelaxWordmark">
+            <Border x:Name="WordmarkStage" Classes="stage">
                 <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                         <TextBlock Classes="eyebrow showcase" Text="CHARS · POINTER-REACTIVE WORDMARK"
                                    VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Replay" Click="ReplayWordmark" />
+                        <ComboBox x:Name="WordmarkMode" Grid.Column="1" SelectedIndex="0" SelectionChanged="WordmarkModeChanged">
+                            <ComboBoxItem Content="Lift" />
+                            <ComboBoxItem Content="Bulge" />
+                        </ComboBox>
+                        <Button x:Name="WordmarkReplay" Grid.Column="2" Content="Replay" Click="ReplayWordmark" />
                     </Grid>
                     <TextBlock x:Name="Wordmark" Text="MOTION" FontSize="104" FontWeight="Black" LetterSpacing="6"
                                HorizontalAlignment="Center" Margin="0,24,0,8"

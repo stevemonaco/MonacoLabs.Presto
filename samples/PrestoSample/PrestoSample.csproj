@@ -35,9 +35,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge\Monaco.Presto.AvaloniaBridge.csproj" />
-    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge.DevTools\Monaco.Presto.AvaloniaBridge.DevTools.csproj" />
-    <ProjectReference Include="..\..\Monaco.Presto.AvaloniaBridge.Lottie\Monaco.Presto.AvaloniaBridge.Lottie.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia\MonacoLabs.Presto.Avalonia.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia.DevTools\MonacoLabs.Presto.Avalonia.DevTools.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia.Lottie\MonacoLabs.Presto.Avalonia.Lottie.csproj" />
     <ProjectReference Include="..\PrestoSample.SnippetGenerator\PrestoSample.SnippetGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 

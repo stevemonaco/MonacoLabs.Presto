@@ -1,7 +1,6 @@
 using Avalonia.Interactivity;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Text;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Text;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
@@ -42,7 +41,7 @@ public partial class TextPage : ShowcasePage
         #region snippet TextScramble
         Transmission.Animate(new()
         {
-            ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams
+            ["Text"] = Presto.ScrambleText(new ScrambleTextParams
             {
                 Chars = "shades",
                 From = ScrambleFrom.Center,
@@ -58,7 +57,7 @@ public partial class TextPage : ShowcasePage
         #region snippet TextChangeText
         Transmission.Animate(new()
         {
-            ["Text"] = PrestoAvalonia.ScrambleText(new ScrambleTextParams
+            ["Text"] = Presto.ScrambleText(new ScrambleTextParams
             {
                 Text = "Signal acquired",
                 Chars = "blocks",

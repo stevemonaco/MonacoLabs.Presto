@@ -7,9 +7,8 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Controls;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Controls;
 using PrestoSample.Builder;
 using PrestoSample.Showcase.Pages;
 
@@ -47,6 +46,22 @@ public sealed class MicroInteractionsPageTests
         TestFrames.Tick(200);
         Assert.Equal(width, submit.Width, 1);
         Assert.Equal(1, page.GetControl<TextBlock>("SubmitLabel").Opacity, 2);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void SaveMorphsItsLabelIntoACheckAndBack()
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var label = page.GetControl<TextBlock>("SaveLabel");
+
+        SceneHarness.Click(window, page.GetControl<Button>("Save"));
+        TestFrames.Tick((600 + 700) / 16);
+        SceneHarness.AssertPlain(label, "✓");
+
+        TestFrames.Tick((1400 + 700) / 16 + 10);
+        SceneHarness.AssertPlain(label, "Save");
         SceneHarness.Close(window);
     }
 
@@ -179,6 +194,36 @@ public sealed class MicroInteractionsPageTests
         TestFrames.Tick(60);
         Assert.Equal(1, (double)PrestoAvalonia.Get(like, "Scale")!, 3);
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AMagneticButtonLeansTowardsANearbyPointerAndSpringsBackUnlessMotionIsReduced(bool reduced)
+    {
+        var page = new MicroInteractionsPage();
+        var window = SceneHarness.Show(page, 1280, 1100);
+        var magnet = page.GetControl<Button>("Magnet");
+        Presto.Defaults.ReducedMotion = reduced;
+        try
+        {
+            window.MouseMove(magnet.TranslatePoint(new Point(magnet.Bounds.Width + 10, magnet.Bounds.Height + 10), window)!.Value);
+            TestFrames.Tick(60);
+            Assert.Equal(!reduced, X(magnet) > 0 && Y(magnet) > 0);
+
+            window.MouseMove(new Point(1, 1));
+            TestFrames.Tick(60);
+            Assert.Equal(0, X(magnet), 6);
+            Assert.Equal(0, Y(magnet), 6);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
+
+        static double X(Control control) => Convert.ToDouble(PrestoAvalonia.Get(control, "X"));
+        static double Y(Control control) => Convert.ToDouble(PrestoAvalonia.Get(control, "Y"));
     }
 
     [AvaloniaFact]

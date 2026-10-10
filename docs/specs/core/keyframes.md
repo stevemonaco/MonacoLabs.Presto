@@ -1,17 +1,17 @@
 ---
 id: CORE-KEYFRAMES
 title: Keyframes
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Keyframe.cs
-  - Monaco.Presto/Keyframes.cs
-  - Monaco.Presto/KeyframeBuilder.cs
-  - Monaco.Presto/KeyframesBuilder.cs
-  - Monaco.Presto/TweenKeyframesBuilder.cs
-  - Monaco.Presto/Core/KeyframeExpander.cs
-  - Monaco.Presto/Animation.cs
+  - MonacoLabs.Presto/Keyframe.cs
+  - MonacoLabs.Presto/Keyframes.cs
+  - MonacoLabs.Presto/KeyframeBuilder.cs
+  - MonacoLabs.Presto/KeyframesBuilder.cs
+  - MonacoLabs.Presto/TweenKeyframesBuilder.cs
+  - MonacoLabs.Presto/Core/KeyframeExpander.cs
+  - MonacoLabs.Presto/Animation.cs
 types:
   - Keyframe
   - Keyframes
@@ -38,7 +38,7 @@ depends:
 
 ## Purpose
 
-Keyframes animate a property through a sequence of values instead of straight to one. There are three forms: per-property keyframes (an array of `TweenParams`), animation-level keyframes that are duration-based (`Keyframe[]`), and animation-level keyframes that are percentage-based (a `"N%"` dictionary). The two animation-level forms expand into per-property arrays before CORE-ANIMATION builds the tweens. The builders write the same shapes, and `TweenKeyframesBuilder.Color` expands one color tween into eased segments along a color-space path. Also specifies `AnimationParams.Keyframes`, `AnimationBuilder.Keyframes`, `PropertyBuilder<TSelf>.Property(string, Action<TweenKeyframesBuilder>)` and `TweenValue.Keyframes`.
+Keyframes animate a property through a sequence of values instead of straight to one. There are three forms: per-property keyframes (an array of `TweenParams`), animation-level keyframes that are duration-based (`Keyframe[]`), and animation-level keyframes that are percentage-based (a `"N%"` dictionary). The two animation-level forms expand into per-property arrays before CORE-ANIMATION builds the tweens. The builders write the same shapes, and `TweenKeyframesBuilder.Color` expands one color tween into eased segments along a color-space path. Also specifies `AnimationParams.Keyframes`, `AnimationBuilder.Keyframes`, `PropertyBuilder<TSelf>.Property(PropertyKey, Action<TweenKeyframesBuilder>)` and `TweenValue.Keyframes`. The `Keyframe` indexer takes a `PropertyKey` (CORE-TARGETS).
 
 ## Requirements
 

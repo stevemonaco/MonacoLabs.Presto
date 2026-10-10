@@ -1,9 +1,8 @@
 using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Layout;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Timer = Monaco.Presto.Timer;
+using MonacoLabs.Presto;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Showcase;
 

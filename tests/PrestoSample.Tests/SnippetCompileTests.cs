@@ -4,9 +4,8 @@ using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Lottie;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Lottie;
 using PrestoSample.Builder;
 using PrestoSample.Pages;
 using PrestoSample.Showcase;
@@ -119,11 +118,11 @@ public sealed class SnippetCompileTests
             using System.Globalization;
             using System.Linq;
             using Avalonia.Controls;
-            using Monaco.Presto;
-            using Monaco.Presto.AvaloniaBridge;
-            using Monaco.Presto.AvaloniaBridge.Controls;
-            using Monaco.Presto.AvaloniaBridge.Draggables;
-            using Monaco.Presto.AvaloniaBridge.Lottie;
+            using MonacoLabs.Presto;
+            using MonacoLabs.Presto;
+            using MonacoLabs.Presto.Controls;
+            using MonacoLabs.Presto.Draggables;
+            using MonacoLabs.Presto.Lottie;
             using PrestoSample.Showcase;
 
             sealed class Scratch

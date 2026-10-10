@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-SWIPE
 title: Swipe actions and swipe-to-dismiss
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Gestures
+  - MonacoLabs.Presto.Gestures
 sources:
-  - Monaco.Presto.AvaloniaBridge/Gestures/Swipe.cs
-  - Monaco.Presto.AvaloniaBridge/Gestures/SwipeTracker.cs
-  - Monaco.Presto.AvaloniaBridge/Gestures/GestureOwners.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/Swipe.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/SwipeTracker.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/GestureOwners.cs
 types:
   - Swipe
 tests:

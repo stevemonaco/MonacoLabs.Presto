@@ -1,30 +1,23 @@
 ---
 id: BRIDGE-TEXT
-title: Text splitting and scrambling
-package: Monaco.Presto.AvaloniaBridge
+title: Text splitting
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Text
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto.Text
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Text/TextSplitter.cs
-  - Monaco.Presto.AvaloniaBridge/Text/SplitTextParams.cs
-  - Monaco.Presto.AvaloniaBridge/Text/SplitPieceParams.cs
-  - Monaco.Presto.AvaloniaBridge/Text/TextScrambler.cs
-  - Monaco.Presto.AvaloniaBridge/Text/ScrambleTextParams.cs
-  - Monaco.Presto.AvaloniaBridge/Text/ScrambleFrom.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Text/TextSplitter.cs
+  - MonacoLabs.Presto.Avalonia/Text/SplitTextParams.cs
+  - MonacoLabs.Presto.Avalonia/Text/SplitPieceParams.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types:
   - TextSplitter
   - SplitTextParams
   - SplitPieceParams
-  - ScrambleTextParams
-  - ScrambleFrom
 tests:
   - TextSplitTests
-  - ScrambleTextTests
 upstream:
   - src/text/split.js
-  - src/text/scramble.js
   - tests/suites/text.test.js
 depends:
   - BRIDGE-INIT
@@ -36,13 +29,14 @@ depends:
   - CORE-UTILS
   - CORE-SCOPE
   - CORE-EASES
+  - BRIDGE-GLYPHS
 ---
 
-# Text splitting and scrambling
+# Text splitting
 
 ## Purpose
 
-Ports of anime.js `splitText` and `scrambleText`. A `TextSplitter` takes a `TextBlock`'s text apart into line, word and character controls laid out inside the block, re-splits when the block's width changes, and runs registered effects over each split. `ScrambleText` is a chained function value for a string property that fills the text with random characters and settles it along a reveal wave. Per-piece triggers built on the splitter are BRIDGE-TEXTREVEAL. Also specifies `PrestoAvalonia.SplitText` and `PrestoAvalonia.ScrambleText`.
+Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart into line, word and character controls laid out inside the block, re-splits when the block's width changes, and runs registered effects over each split. With `Outlines`, character pieces draw the glyph outlines of BRIDGE-GLYPHS instead of text. Per-piece triggers built on the splitter are BRIDGE-TEXTREVEAL. Also specifies `PrestoAvalonia.SplitText`.
 
 ## Requirements
 
@@ -54,7 +48,7 @@ Ports of anime.js `splitText` and `scrambleText`. A `TextSplitter` takes a `Text
   - Tests: untested
 - **BRIDGE-TEXT-003** — The splitter shall split at once when the block has a positive width, and otherwise at its first size change.
   - Tests: `TextSplitTests.EffectRunsOnceAfterTheSplit`
-- **BRIDGE-TEXT-004** — The splitter shall break the text into lines by measuring a copy of the block with its font family, size, style, weight, stretch, letter spacing and wrapping at the block's width, trimming trailing whitespace from each line.
+- **BRIDGE-TEXT-004** — The splitter shall break the text into lines by measuring a copy of the block with its font family, size, style, weight, stretch, letter spacing, wrapping and padding at the block's width, trimming trailing whitespace from each line.
   - Tests: `TextSplitTests.SplitsLinesOnly`, `TextSplitTests.SplitsWordsAndLines`
 - **BRIDGE-TEXT-005** — `LineHeight` shall be the height of the first measured line, available inside an effect before the pieces are laid out.
   - Tests: `TextSplitTests.MeasuresTheLineHeightBeforeThePiecesAreLaidOut`
@@ -93,45 +87,38 @@ Ports of anime.js `splitText` and `scrambleText`. A `TextSplitter` takes a `Text
   - Tests: `TextSplitTests.RefreshRunsTheCleanupsAndTheEffectsAgain`
 - **BRIDGE-TEXT-021** — `Revert` shall stop responding to resizes, run the cleanups, empty the piece lists, put back the text the block had when the splitter was created, and clear the automation name and the clip override.
   - Tests: `TextSplitTests.RevertRunsTheCleanupsAndStopsRespondingToResizes`, `TextSplitTests.RevertRestoresTheOriginalTextBlock`
+- **BRIDGE-TEXT-054** — `SlotOf` shall return the piece's layout box in the block's coordinates, before transforms, for any piece of the current split, valid from the first effect of that split; for a control that is not a piece of this splitter it shall throw `ArgumentException`.
+  - Tests: `TextSplitTests.SlotOfGivesEachPiecesLayoutBoxInBlockCoordinates`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffect`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffectOnACenteredBlock`, `TextSplitTests.SlotOfIgnoresRenderTransforms`, `TextSplitTests.SlotOfFollowsAResplit`, `TextSplitTests.SlotOfRejectsAControlThatIsNotAPieceOfThisSplit`
+
+### Outline pieces
+
+- **BRIDGE-TEXT-055** — With `Outlines` set, each character piece shall be a `Path` whose `Data` is the character's outline (BRIDGE-GLYPHS-001) in piece-local coordinates and whose `Fill` is the block's `Foreground` at split time, sized to and placed on the slot a text piece would have had; it is recorded, decorated, hidden from automation and re-split like a text piece.
+  - Tests: `TextSplitTests.OutlinePiecesArePathsOnTheSlotsOfTextPieces`, `TextSplitTests.OutlinePiecesAreFilledWithTheBlocksForeground`, `TextSplitTests.AResplitKeepsTheOutlinePieces`
+- **BRIDGE-TEXT-056** — With `Outlines` set and `Chars` not set, creating the splitter shall throw `ArgumentException`.
+  - Tests: `TextSplitTests.OutlinesWithoutCharsThrows`
+- **BRIDGE-TEXT-057** — A character whose outline is empty (BRIDGE-GLYPHS-004) shall be split into a text piece as without `Outlines`.
+  - Tests: `TextSplitTests.ACharacterWithoutAnOutlineStaysATextPiece`
 
 ### Scramble
 
-- **BRIDGE-TEXT-022** — `ScrambleText` shall initialize the bridge and return a chained function value that resolves, per target, to a tween from 0 to 1 with a linear ease, the scramble's duration and delay, and a text modifier.
-  - Tests: `ScrambleTextTests.IsAFunctionBasedValue`, `ScrambleTextTests.ReturnsATweenWithFromToEaseDurationAndModifier`
-- **BRIDGE-TEXT-023** — The tween's duration shall be `Duration` when positive, and otherwise `(n − 1) × 1000 / RevealRate + SettleDuration` with `n` the longer of the start and end text (the end text when starting blank), plus `RevealDelay`, rounded to a whole time unit and scaled by `Globals.TimeScale`.
-  - Tests: untested
-- **BRIDGE-TEXT-024** — `Chars` shall be a set name (`lowercase`, `uppercase`, `numbers`, `symbols`, `braille`, `blocks`, `shades`) when it equals one, and otherwise literal characters with `a-z` ranges expanded and a `-` at either end kept literal.
-  - Tests: `ScrambleTextTests.ScramblesWithTheCustomCharacters`
-- **BRIDGE-TEXT-025** — The scramble shall start from the target's `Text` property, or from the text the previous tween of the property ended on when there is one.
-  - Tests: `ScrambleTextTests.KeyframesStartFromThePreviousFramesText`
-- **BRIDGE-TEXT-026** — The scramble shall settle on `Text` when set, else on its start text when chained, else on the text the target had the first time it was scrambled.
-  - Tests: `ScrambleTextTests.SettlesOnTheCustomText`, `ScrambleTextTests.SettlesOnThePreviousScramblesTextWhenChained`, `ScrambleTextTests.ModifierReturnsTheTargetTextAtOne`
-- **BRIDGE-TEXT-027** — At progress 0 of an unchained scramble, `Override` (the default) shall show every non-space character of the start text replaced by one from `OverrideChars` (default `Chars`); an empty `OverrideChars` shall start from no text, and `Override` false shall leave the start text until the reveal reaches each character.
-  - Tests: `ScrambleTextTests.DefaultOverrideScramblesTheTextAtTheStart`, `ScrambleTextTests.OverrideFalsePreservesTheOriginalTextAtTheStart`
-- **BRIDGE-TEXT-028** — At progress 1 the modifier shall return the settled text exactly; in between, each character shall show its settled character once the reveal has passed it, a scramble character while inside its settle window, and its start state before.
-  - Tests: `ScrambleTextTests.ModifierReturnsScrambledTextInBetween`, `ScrambleTextTests.RevealsMoreCharactersAsItProgresses`, `ScrambleTextTests.AnimateEndsOnTheTargetText`
-- **BRIDGE-TEXT-029** — A position that is a space in the start or the settled text shall stay a space while it scrambles.
-  - Tests: `ScrambleTextTests.ModifierPreservesWhitespace`
-- **BRIDGE-TEXT-030** — Called twice with the same progress, the modifier shall return the same string instance.
-  - Tests: `ScrambleTextTests.ModifierCachesTheValueOfTheSameInput`
-- **BRIDGE-TEXT-031** — Scramble characters shall be redrawn only when progress crosses a `1 / SettleRate`-second step.
-  - Tests: untested
-- **BRIDGE-TEXT-032** — The reveal shall run outwards from `FromIndex` when set, else from the left, the right, the middle or in a seeded random order per `From`, with `Auto` meaning right when the text shrinks and left otherwise; `Reversed` shall invert the order.
-  - Tests: untested
-- **BRIDGE-TEXT-033** — When shrinking text reveals from the center or a `FromIndex`, its characters shall settle only after every extra character has gone.
-  - Tests: untested
-- **BRIDGE-TEXT-034** — `Perturbation` shall offset each character's window start and end randomly by up to that fraction of the settle window.
-  - Tests: untested
-- **BRIDGE-TEXT-035** — `Cursor` characters shall run ahead of the reveal, its last character leading.
-  - Tests: untested
-- **BRIDGE-TEXT-036** — With `Seed` set, the scramble shall be reproducible; without it, it shall draw from the shared generator.
-  - Tests: untested
-- **BRIDGE-TEXT-037** — During `Delay` the target shall show its unchanged start text, and during `RevealDelay` it shall scramble without revealing any character.
-  - Tests: untested
-- **BRIDGE-TEXT-038** — `Ease`, resolved per target, shall spread the reveal along its curve while the tween itself stays linear.
-  - Tests: untested
-- **BRIDGE-TEXT-039** — Reverting a scramble shall restore the text the target had before it.
-  - Tests: `ScrambleTextTests.RevertRestoresTheOriginalText`
+- ~~**BRIDGE-TEXT-022**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-023**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-024**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-025**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-026**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-027**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-028**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-029**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-030**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-031**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-032**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-033**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-034**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-035**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-036**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-037**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-038**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-039**~~ — Moved to CORE-SCRAMBLE.
 
 ### Defaults
 
@@ -145,38 +132,28 @@ Ports of anime.js `splitText` and `scrambleText`. A `TextSplitter` takes a `Text
   - Tests: untested
 - **BRIDGE-TEXT-044** — When a kind's `Wrap` is not set, its pieces shall not be wrapped in a clipping `Border`, as anime.js does.
   - Tests: untested
-- **BRIDGE-TEXT-045** — When `ScrambleTextParams.Chars` is not set, the scramble shall draw from `a-zA-Z0-9!%#_`, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-046** — When `From` is not set, it shall be `Auto`, and when `Reversed` is not set, the order shall not be inverted, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-047** — When `Perturbation` is not set, it shall be 0, so no window is offset, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-048** — When `RevealRate` is not set, the reveal shall advance 60 characters per second, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-049** — When `SettleRate` is not set, scramble characters shall be redrawn 30 times per second, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-050** — When `SettleDuration` is not set, each character's settle window shall last 300 ms, scaled by `Globals.TimeScale`, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-051** — When `Delay` or `RevealDelay` is not set, it shall be 0, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-052** — When `Ease` is not set, the reveal shall be spread linearly, as anime.js does.
-  - Tests: untested
-- **BRIDGE-TEXT-053** — When `Cursor` is not set, no cursor characters shall run ahead of the reveal, as anime.js does.
-  - Tests: untested
+- **BRIDGE-TEXT-058** — When `Outlines` is not set, it shall be false, so character pieces are text pieces.
+  - Tests: `TextSplitTests.SplitsCharsOnly`
+- ~~**BRIDGE-TEXT-045**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-046**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-047**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-048**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-049**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-050**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-051**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-052**~~ — Moved to CORE-SCRAMBLE.
+- ~~**BRIDGE-TEXT-053**~~ — Moved to CORE-SCRAMBLE.
 
 ## Invariants
 
 - A block is split by at most one live splitter at a time as far as `TextReveal` lookups are concerned; each piece records the splitter that made it.
 - Piece lists are empty whenever the block is not split.
-- A scramble's modifier returns exactly the settled text at progress 1 and never a string longer than the longer of its two texts.
 
 ## Edge cases
 
 - With `Lines`, `Words` and `Chars` all null the block is still re-laid out as one plain row per line, with no recorded pieces.
 - `Refresh` after `Revert` splits again but no longer follows resizes.
 - Text changed on the block after the splitter was created is overwritten by the original on revert.
-- The first-scramble text is cached per target for the target's lifetime, so a later unchained scramble without `Text` settles on that first text, not the current one (see Open items).
-- `ScrambleText` reads `"Text"` whatever property the animation writes.
 
 ## Threading and lifetime
 
@@ -185,11 +162,11 @@ Ports of anime.js `splitText` and `scrambleText`. A `TextSplitter` takes a `Text
 
 ## Reduced motion
 
-- Not affected: splitting and scrambling are not motion. The animations built on them state their own reduced forms (BRIDGE-TEXTREVEAL, BRIDGE-RECIPES).
+- Not affected: splitting is not motion. The animations built on them state their own reduced forms (BRIDGE-TEXTREVEAL, BRIDGE-RECIPES).
 
 ## Allocation
 
-- Not on the tick path for splitting. A scramble frame builds one string per distinct progress value; that is by design.
+- Not on the tick path.
 
 ## Deviations from anime.js
 
@@ -198,11 +175,15 @@ Ports of anime.js `splitText` and `scrambleText`. A `TextSplitter` takes a `Text
 - The host's clip is turned off while split, because a `TextBlock` clips to its bounds by default and would cut off pieces transformed past the line box, where upstream's spans overflow freely.
 - Upstream wraps every effect in `keepTime`; here only the `Timer` overload is, since an `Action` effect has no time to keep.
 - Lines are measured on a styled copy of the block rather than by reading rendered word positions, so no font-ready wait exists.
-- Scramble's function-based `chars`, `text`, `duration` and `delay` and its `onChange` callback are not ported.
 
 ## Decisions
 
 - **Line-aware stagger and line height are public helpers.** `TextSplitter.StaggerByLine` returns a function value stepping by line index and by position in the line, and `LineHeightOf` reads the owning split's `LineHeight` (0 for a non-piece). Reason: recipes must say "from one line down" before pieces have bounds, which the Typography sample page had computed by hand.
+- **`SlotOf` instead of a `Measure` API.** `MorphText` captures the old slots, sets the new text, splits it, and FLIPs each new piece from its partner's old slot. Nothing has to be measured offscreen. Rejected: `TextSplitter.Measure(block, text)`, a second layout path that would have to match the real one.
+- **The split lays its pieces out itself.** Effects run before the host's next layout pass, so the split measures and arranges its piece tree at the block's padding and text alignment, where the host's arrange puts it. Reason: `SlotOf` and exit ghosts need bounds from the first effect, without forcing a layout pass on the host from inside its own `SizeChanged`.
+- **Outline pieces are `Path` controls inside the existing splitter, not a new text control.** Reason: every split-piece feature (stagger, `SlotOf`, re-split on resize, reveal triggers, effects, `Draw`, `MorphTo`) then works on outlines for free, and warps get per-letter stagger for free. Rejected: an `OutlineText` control drawing the whole string as one geometry, which would need its own copy of all of that.
+- **An outline piece keeps its flattened contours and its grapheme.** Each outline piece carries the contour model of its outline (BRIDGE-GLYPHS) and the text it stands for, read internally by `"Draw"` and `MorphText` and later by warps and shards. Reason: the outline is read once per split rather than by every feature again, and a `Path` has no `Text` to pair letters by.
+- **An outline piece is sized by measuring its text.** Its `Width` and `Height` come from measuring the piece's text in the block's font, so its slot is exactly the text piece's, trailing no-break space included. Reason: an outline's bounds are its ink, not the advance and line box that layout needs.
 
 ## Non-goals
 
@@ -212,5 +193,4 @@ Ports of anime.js `splitText` and `scrambleText`. A `TextSplitter` takes a `Text
 ## Open items
 
 - The 150 ms resize debounce is not scaled by `Globals.TimeScale`, unlike every other bridge timer, so it misbehaves in seconds mode.
-- The per-target cache of the first scrambled text never refreshes, so an unchained scramble without `Text` on a target whose text has since changed settles back on the old text.
-- Untested: scope registration (002), automation (014), plain-text only (016), the scramble duration formula (023), redraw stepping (031), reveal order and `From` (032, 033), `Perturbation` (034), `Cursor` (035), `Seed` (036), delays (037), `Ease` (038).
+- Untested: scope registration (002), automation (014), plain-text only (016).

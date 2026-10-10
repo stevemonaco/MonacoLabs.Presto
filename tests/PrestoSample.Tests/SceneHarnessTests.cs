@@ -4,7 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
-using Monaco.Presto;
+using MonacoLabs.Presto;
 
 namespace PrestoSample.Tests;
 

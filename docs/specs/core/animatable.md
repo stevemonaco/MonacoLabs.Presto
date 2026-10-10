@@ -1,14 +1,14 @@
 ---
 id: CORE-ANIMATABLE
 title: Animatable
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Animatable.cs
-  - Monaco.Presto/AnimatableParams.cs
-  - Monaco.Presto/AnimatableProperty.cs
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Animatable.cs
+  - MonacoLabs.Presto/AnimatableParams.cs
+  - MonacoLabs.Presto/AnimatableProperty.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - Animatable
   - AnimatableParams
@@ -39,7 +39,7 @@ depends:
 
 ## Purpose
 
-An `Animatable` holds one paused `Animation` per declared property and retargets it imperatively: `Set("X", 100)` aims the property's tween from wherever it is now at the new value and resumes it, so a stream of values (a cursor, a scroll offset) is followed with that property's own duration and ease. It is the port of anime.js `createAnimatable`, extended with opt-in spring momentum (`PreserveVelocity`) and inertial coasting (`Fling`). It builds on CORE-ANIMATION and is the engine of the bridge's followers and draggables. Also specifies `Presto.CreateAnimatable`.
+An `Animatable` holds one paused `Animation` per declared property and retargets it imperatively: `Set("X", 100)` aims the property's tween from wherever it is now at the new value and resumes it, so a stream of values (a cursor, a scroll offset) is followed with that property's own duration and ease. It is the port of anime.js `createAnimatable`, extended with opt-in spring momentum (`PreserveVelocity`) and inertial coasting (`Fling`). The `AnimatableParams` indexer and every method that names a property take a `PropertyKey` (CORE-TARGETS). It builds on CORE-ANIMATION and is the engine of the bridge's followers and draggables. Also specifies `Presto.CreateAnimatable`.
 
 ## Requirements
 
@@ -74,7 +74,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
   - Tests: `AnimatablesTests.GetAndSetAnimatableValues`, `AnimatablesTests.DefinesCustomUnitsForAnimatableValues`
 - **CORE-ANIMATABLE-013** — `GetChannels` shall return the first tween's current channels for a color or complex property, and an empty array for a scalar one.
   - Tests: `AnimatablesTests.GetAndAnimateAnimatableComplexValues`
-- **CORE-ANIMATABLE-014** — `Get`, `GetChannels`, `Set`, `Fling` and `ValueOf` shall resolve the property name to its canonical spelling on the first target, so a property declared by one spelling is read and set by any.
+- **CORE-ANIMATABLE-014** — `Get`, `GetChannels`, `Set`, `Fling` and `ValueOf` shall resolve the property key's name to its canonical spelling on the first target, so a property declared by one spelling is read and set by any.
   - Tests: `PropertyNamingTests.AnAnimatableDeclaredByNameIsReadAndSetByHandle`
 - **CORE-ANIMATABLE-015** (inherited) — When the property is not declared, `Get` shall return 0, `GetChannels` an empty array, and `Set` and `Fling` shall do nothing and return the animatable.
   - Tests: untested

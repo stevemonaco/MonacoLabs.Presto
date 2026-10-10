@@ -5,10 +5,10 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
 using Path = Avalonia.Controls.Shapes.Path;
-using Timer = Monaco.Presto.Timer;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -162,10 +162,10 @@ public partial class DashboardPage : ShowcasePage
             .Add(_arcs, ArcsTo(1200), 0)
             .Add(Spark, new AvaloniaAnimationParams
             {
-                ["Draw"] = "0 1",
+                [Draw] = "0 1",
                 Duration = 1400,
                 Ease = Eases.InOutQuad,
-                WhenReduced = new() { ["Draw"] = "0 1", Duration = 0 },
+                WhenReduced = new() { [Draw] = "0 1", Duration = 0 },
             }, 0);
     }
 
@@ -180,10 +180,10 @@ public partial class DashboardPage : ShowcasePage
         };
         return new AvaloniaAnimationParams
         {
-            ["Text"] = reading,
+            [Text] = reading,
             Duration = duration,
             Ease = Eases.OutQuad,
-            WhenReduced = new() { ["Text"] = reading, Duration = 0 },
+            WhenReduced = new() { [Text] = reading, Duration = 0 },
         };
     }
     #endregion
@@ -208,11 +208,11 @@ public partial class DashboardPage : ShowcasePage
         FunctionValue slice = (_, i, _) => Slice(spans, i);
         return new AvaloniaAnimationParams
         {
-            ["Draw"] = slice,
+            [Draw] = slice,
             Duration = duration,
             Ease = Eases.OutQuad,
             Delay = Presto.Stagger(70),
-            WhenReduced = new() { ["Draw"] = slice, Duration = 0, Delay = 0 },
+            WhenReduced = new() { [Draw] = slice, Duration = 0, Delay = 0 },
         };
     }
 
@@ -221,10 +221,10 @@ public partial class DashboardPage : ShowcasePage
         var morph = PrestoAvalonia.MorphTo(SparkGeometry(_round % Datasets.Sparklines.Count));
         return new()
         {
-            ["Data"] = morph,
+            [Data] = morph,
             Duration = PushDuration,
             Ease = Eases.OutQuad,
-            WhenReduced = new() { ["Data"] = morph, Duration = 0 },
+            WhenReduced = new() { [Data] = morph, Duration = 0 },
         };
     }
 

@@ -6,8 +6,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Builder;
 using PrestoSample.Showcase;
 

@@ -1,11 +1,11 @@
 ---
 id: BRIDGE-CONNECTED
 title: Connected animations from XAML
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Connected.cs
+  - MonacoLabs.Presto.Avalonia/Connected.cs
 types:
   - Connected
 tests:

@@ -1,7 +1,7 @@
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Monaco.Presto;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;

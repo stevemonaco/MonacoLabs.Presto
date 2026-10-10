@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>MonacoLabs.Presto</RootNamespace>
+    <PackageTags>animation;tween;easing;timeline;avalonia;animejs</PackageTags>
+    <Description>Avalonia bindings for MonacoLabs.Presto: frame pump, AvaloniaProperty targets, transforms, colors and control helpers.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MonacoLabs.Presto\MonacoLabs.Presto.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia.Tests" />
+    <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia.Lottie" />
+    <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia.DevTools" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controls\" />
+  </ItemGroup>
+
+</Project>

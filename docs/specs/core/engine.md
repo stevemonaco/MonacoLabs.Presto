@@ -1,20 +1,20 @@
 ---
 id: CORE-ENGINE
 title: Engine, clock and frame sources
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
-  - Monaco.Presto.Core
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Core
 sources:
-  - Monaco.Presto/Engine.cs
-  - Monaco.Presto/Core/Clock.cs
-  - Monaco.Presto/Core/Globals.cs
-  - Monaco.Presto/Core/Constants.cs
-  - Monaco.Presto/Core/TickMode.cs
-  - Monaco.Presto/IFrameSource.cs
-  - Monaco.Presto/ManualFrameSource.cs
-  - Monaco.Presto/StopwatchFrameSource.cs
-  - Monaco.Presto/TimeUnit.cs
+  - MonacoLabs.Presto/Engine.cs
+  - MonacoLabs.Presto/Core/Clock.cs
+  - MonacoLabs.Presto/Core/Globals.cs
+  - MonacoLabs.Presto/Core/Constants.cs
+  - MonacoLabs.Presto/Core/TickMode.cs
+  - MonacoLabs.Presto/IFrameSource.cs
+  - MonacoLabs.Presto/ManualFrameSource.cs
+  - MonacoLabs.Presto/StopwatchFrameSource.cs
+  - MonacoLabs.Presto/TimeUnit.cs
 types:
   - Engine
   - Clock

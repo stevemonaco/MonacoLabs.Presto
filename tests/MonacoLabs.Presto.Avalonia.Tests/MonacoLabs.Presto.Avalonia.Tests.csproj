@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>MonacoLabs.Presto.Tests</RootNamespace>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <!-- Real geometry measurement: the headless drawing stub reports a ContourLength of 0. -->
+    <PackageReference Include="Avalonia.Skia" />
+    <!-- ScrollViewer needs a real template for its Extent and Viewport to be measured. -->
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia\MonacoLabs.Presto.Avalonia.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia.DevTools\MonacoLabs.Presto.Avalonia.DevTools.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia.Lottie\MonacoLabs.Presto.Avalonia.Lottie.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\MonacoLabs.Presto.Tests\EngineTestBase.cs" Link="EngineTestBase.cs" />
+    <Compile Include="..\MonacoLabs.Presto.Tests\TestHelpers.cs" Link="TestHelpers.cs" />
+    <Compile Include="..\MonacoLabs.Presto.Tests\SpecCatalog.cs" Link="SpecCatalog.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="..\..\samples\PrestoSample\Assets\Lottie\toggle.json" Link="Lottie\toggle.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

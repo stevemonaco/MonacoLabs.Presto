@@ -1,24 +1,24 @@
 ---
 id: DEVTOOLS-OVERLAY
 title: Presto DevTools overlay
-package: Monaco.Presto.AvaloniaBridge.DevTools
+package: MonacoLabs.Presto.Avalonia.DevTools
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.DevTools
+  - MonacoLabs.Presto.DevTools
 sources:
-  - Monaco.Presto.AvaloniaBridge.DevTools/PrestoDevTools.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/DevToolsOverlay.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/TransportBar.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/TickableList.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/TickableRow.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/TickableState.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/RootInspector.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/ScrubTrack.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/TweenTable.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/EaseThumbnail.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/Sparkline.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/SpringsPanel.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/TargetHighlighter.cs
-  - Monaco.Presto.AvaloniaBridge.DevTools/PickMode.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/PrestoDevTools.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/DevToolsOverlay.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/TransportBar.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/TickableList.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/TickableRow.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/TickableState.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/RootInspector.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/ScrubTrack.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/TweenTable.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/EaseThumbnail.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/Sparkline.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/SpringsPanel.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/TargetHighlighter.cs
+  - MonacoLabs.Presto.Avalonia.DevTools/PickMode.cs
 types:
   - PrestoDevTools
 tests:
@@ -137,7 +137,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
   - Tests: untested
 - **DEVTOOLS-OVERLAY-038** — Revert… shall open a flyout whose confirm button reverts the root, so reverting is never one click from scrubbing.
   - Tests: untested
-- **DEVTOOLS-OVERLAY-039** — When the root has a creation trace, the inspector shall show the first stack frame outside the `Monaco.Presto` namespaces as `created at Type.Method (file:line)`, with the whole trace as its tooltip.
+- **DEVTOOLS-OVERLAY-039** — When the root has a creation trace, the inspector shall show the first stack frame outside the `MonacoLabs.Presto` namespaces as `created at Type.Method (file:line)`, with the whole trace as its tooltip.
   - Tests: untested
 
 ### Scrubbing
@@ -222,7 +222,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 ## Decisions
 
 - **The inspector is purely additive.** Everything DevTools needs is an addition modeled on GSAP's GSDevTools and the Chrome Animations panel; no upstream semantics change and no parity test moves. Reason: anime.js 4.5.0 has no equivalent.
-- **DevTools is a separate package.** The overlay is `Monaco.Presto.AvaloniaBridge.DevTools`, its headless tests live in the bridge test project, and the diagnostics it reads stay in the core. Reason: a release app does not carry the overlay.
+- **DevTools is a separate package.** The overlay is `MonacoLabs.Presto.Avalonia.DevTools`, its headless tests live in the bridge test project, and the diagnostics it reads stay in the core. Reason: a release app does not carry the overlay.
 - **The overlay never observes or freezes itself.** It lives in the window's `OverlayLayer`, with highlights in the `AdornerLayer`, and runs no Presto animations; opening it enables diagnostics, and closing it disables them and thaws and undilates the engine. Reason: freezing the main engine must leave the overlay responsive, and closing must leave nothing slowed.
 - **The default toggle is Ctrl+Shift+F12.** It is configurable through `PrestoDevTools.Attach`. Reason: F12 belongs to Avalonia DevTools.
 - **Slow motion is dilation; `Speed` is read-only; controls act on roots.** The transport's presets set time dilation and show engine `Speed` read-only; the inspector's controls always act on the root, so a timeline child is selectable and highlighted on its parent's track but never seeked on its own; scrubbing pauses and seeks the root and restores the previous play state on release. Reason: an app-set rate must not be mistaken for the inspector's, and upstream semantics do not cleanly support seeking a timeline child on its own.

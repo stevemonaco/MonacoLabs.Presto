@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
+using MonacoLabs.Presto.Compositor;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -28,7 +28,7 @@ public partial class ConnectedPage : ShowcasePage
         InitializeComponent();
         _tiles = [.. Datasets.Albums.Select(BuildTile)];
         foreach (var tile in _tiles) Albums.Children.Add(tile.Card);
-        PrestoAvalonia.Set(Play, new AvaloniaAnimationParams { ["Scale"] = 0 });
+        PrestoAvalonia.Set(Play, new AvaloniaAnimationParams { [Scale] = 0 });
         HowCode.Code = $"{Snippets.ConnectedLayout}\n\n{Snippets.ConnectedScatter}";
     }
 
@@ -102,12 +102,12 @@ public partial class ConnectedPage : ShowcasePage
             [
                 Presto.Animate(Tracks.Children, new AvaloniaAnimationParams
                 {
-                    ["Y"] = new TweenParams { To = 0, Ease = Eases.OutQuart },
+                    [Y] = new TweenParams { To = 0, Ease = Eases.OutQuart },
                     ["Opacity"] = new TweenParams { To = 1, Ease = Eases.OutQuad },
                     Duration = 500,
                     Delay = Presto.Stagger(35, new StaggerParams { Start = 140 }),
                 }),
-                Play.Animate(new() { ["Scale"] = 1, Duration = 520, Delay = 220, Ease = Eases.OutBack(1.7) }),
+                Play.Animate(new() { [Scale] = 1, Duration = 520, Delay = 220, Ease = Eases.OutBack(1.7) }),
                 Presto.Animate((Control[])[Meta, Back], new AvaloniaAnimationParams { ["Opacity"] = 1, Duration = 320, Delay = 180, Ease = Eases.OutQuad }),
             ];
         });
@@ -142,7 +142,7 @@ public partial class ConnectedPage : ShowcasePage
                     Delay = Presto.Stagger(25, new StaggerParams { From = StaggerFrom.Last }),
                     Ease = Eases.OutQuad,
                 }),
-                Play.Animate(new() { ["Scale"] = 0, Duration = 240, Ease = Eases.InQuad }),
+                Play.Animate(new() { [Scale] = 0, Duration = 240, Ease = Eases.InQuad }),
                 Presto.Animate((Control[])[Meta, Back], new AvaloniaAnimationParams { ["Opacity"] = 0, Duration = 200, Ease = Eases.OutQuad }),
             ];
         });
@@ -174,9 +174,9 @@ public partial class ConnectedPage : ShowcasePage
         _scatter = PrestoAvalonia.AnimateOnCompositor(_tiles.Where(other => other != tile).Select(other => other.Card).ToArray(), new CompositorAnimationParams
         {
             ["Opacity"] = 0,
-            ["Scale"] = .85,
-            ["X"] = (FunctionValue)((target, _, _) => Away((Control)target, center).X),
-            ["Y"] = (FunctionValue)((target, _, _) => Away((Control)target, center).Y),
+            [Scale] = .85,
+            [X] = (FunctionValue)((target, _, _) => Away((Control)target, center).X),
+            [Y] = (FunctionValue)((target, _, _) => Away((Control)target, center).Y),
             Duration = ScatterDuration,
             Delay = (FunctionValue)((_, i, _) => 22 * Math.Abs((i >= index ? i + 1 : i) - index)),
             Ease = Eases.OutQuint,
@@ -207,7 +207,7 @@ public partial class ConnectedPage : ShowcasePage
                 },
             });
         }
-        PrestoAvalonia.Set(Tracks.Children, new AvaloniaAnimationParams { ["Y"] = 16, ["Opacity"] = 0 });
+        PrestoAvalonia.Set(Tracks.Children, new AvaloniaAnimationParams { [Y] = 16, ["Opacity"] = 0 });
     }
 
     private static Vector Away(Control card, Point center)

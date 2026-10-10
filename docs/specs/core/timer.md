@@ -1,15 +1,15 @@
 ---
 id: CORE-TIMER
 title: Timer timing and playback controls
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Timer.cs
-  - Monaco.Presto/TimerParams.cs
-  - Monaco.Presto/LoopCount.cs
-  - Monaco.Presto/Core/Renderer.cs
-  - Monaco.Presto/Core/Helpers.cs
+  - MonacoLabs.Presto/Timer.cs
+  - MonacoLabs.Presto/TimerParams.cs
+  - MonacoLabs.Presto/LoopCount.cs
+  - MonacoLabs.Presto/Core/Renderer.cs
+  - MonacoLabs.Presto/Core/Helpers.cs
 types:
   - Timer
   - TimerParams
@@ -25,6 +25,7 @@ tests:
   - CallbacksTests
   - EngineTimeTests
   - MotionValueDynamicsTests
+  - SettleTests
 upstream:
   - src/timer/timer.js
   - src/core/render.js
@@ -191,6 +192,8 @@ depends:
   - Tests: `IntrospectionTests.TimerGettersMatchTheParameters`
 - **CORE-TIMER-072** — After `Complete`, the timer shall report `Completed`, `Paused` and `Canceled`, with `CurrentTime` at `Duration`.
   - Tests: untested
+- **CORE-TIMER-073** — `Seek`, `Play`, `Resume`, `Reverse`, `Restart`, `Pause`, `Cancel`, `Revert` and `Complete` shall end a running `Settle` (CORE-MOTIONVALUE).
+  - Tests: `SettleTests.APlayheadControlEndsTheSettleWithTheCurrentProgress`
 
 ### Defaults
 

@@ -1,27 +1,30 @@
 ---
 id: BRIDGE-HELPERS
 title: Control helpers, typed builder methods, scopes and WhenDetached
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/AnimateExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/AnimationBuilderExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/PropertyBuilderExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/ControlScope.cs
-  - Monaco.Presto.AvaloniaBridge/WhenDetached.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/DetachTracker.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/AnimateExtensions.cs
+  - MonacoLabs.Presto.Avalonia/AnimationBuilderExtensions.cs
+  - MonacoLabs.Presto.Avalonia/PropertyBuilderExtensions.cs
+  - MonacoLabs.Presto.Avalonia/PrestoKeys.cs
+  - MonacoLabs.Presto.Avalonia/ControlScope.cs
+  - MonacoLabs.Presto.Avalonia/WhenDetached.cs
+  - MonacoLabs.Presto.Avalonia/Targets/DetachTracker.cs
 types:
   - PrestoAvalonia
   - AnimateExtensions
   - AnimationBuilderExtensions
   - PropertyBuilderExtensions
+  - PrestoKeys
   - ControlScope
   - WhenDetached
 tests:
   - TargetUtilsTests
   - AnimationBuilderBridgeTests
+  - PrestoKeysTests
   - PropertyNamingTests
   - AnimatableBridgeTests
   - ControlScopeTests
@@ -81,7 +84,7 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 
 ### Typed builder methods
 
-- **BRIDGE-HELPERS-011** — Each named builder method shall add the property under the same key the string indexer uses, and every overload of one name shall write that one key.
+- **BRIDGE-HELPERS-011** — Each named builder method shall add the property under the same key the string indexer uses, each one whose key `PrestoKeys` holds shall write that `PrestoKeys` key, and every overload of one name shall write that one key.
   - Tests: `AnimationBuilderBridgeTests.TypedMethodsWriteTheIndexerKeys`, `AnimationBuilderBridgeTests.EveryOverloadWritesTheSameKey`, `AnimationBuilderBridgeTests.EffectAndRevealOverloadsWriteTheSameKey`, `AnimationBuilderBridgeTests.ImageFilterOverloadsWriteTheSameKey`
 - **BRIDGE-HELPERS-012** — The typed value overloads shall wrap their value as the indexer would (`TweenValue.Of`), `Background`/`Foreground(Color)` as an immutable solid brush and `Draw(start, end)` as the invariant-culture string `"start end"`.
   - Tests: `AnimationBuilderBridgeTests.TypedValuesAreWrappedAsTheIndexerWouldWrapThem`, `AnimationBuilderBridgeTests.TypedEffectValuesAreWrappedAsTheIndexerWouldWrapThem`, `AnimationBuilderBridgeTests.BackgroundAnimatesToAColor`
@@ -93,6 +96,15 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
   - Tests: `AnimationBuilderBridgeTests.ShorthandsChainOnKeyframeFrames`
 - **BRIDGE-HELPERS-016** — `AnimationBuilderExtensions.WhenDetached` shall set the builder's host-lifetime slot, which `ToParams` carries into the parameters.
   - Tests: `WhenDetachedTests.TheBuilderOverrideWinsOverTheDefault`
+
+### PrestoKeys
+
+- **BRIDGE-HELPERS-034** — `PrestoKeys` shall hold one key for every shorthand `AvaloniaObjectTargetAdapter` resolves before the property registry (the transform, effect, clip, mask and warp shorthands, `Draw`, `ScrollX` and `ScrollY`), one for each of the `Text` and `Data` pseudo-properties the typed builder methods write, and nothing else (see PrestoKeys names shorthands and pseudo-properties).
+  - Tests: `PrestoKeysTests.HoldsOneKeyPerShorthandAndPseudoPropertyAndNothingElse`
+- **BRIDGE-HELPERS-035** — Each shorthand key shall resolve on a target of the type it applies to and canonicalize to its own name; `Text` and `Data` shall resolve on a `TextBlock` and a `Path` (see Text and Data keys resolve by name).
+  - Tests: `PrestoKeysTests.EachShorthandKeyResolvesOnItsTargetAndCanonicalizesToItsOwnName`, `PrestoKeysTests.TextAndDataResolveOnATextBlockAndAPath`
+- **BRIDGE-HELPERS-036** — `PrestoKeys.Of(property)` shall return the key BRIDGE-TARGETS-007 encodes, and reading any `PrestoKeys` member shall not install the bridge.
+  - Tests: `PrestoKeysTests.OfReturnsTheEncodedName`, `PrestoKeysTests.AccessingTheKeysDoesNotInstallTheBridge`
 
 ### Stagger
 
@@ -139,7 +151,7 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 
 ## Invariants
 
-- Every public entry point here, except `GetAnimations`, installs the bridge before it resolves anything.
+- Every public entry point here, except `GetAnimations` and `PrestoKeys`, installs the bridge before it resolves anything.
 - A tracked root is paused by the tracker only while none of its visual targets is attached.
 
 ## Edge cases
@@ -175,9 +187,11 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 - **Timelines pause as a whole.** A root timeline gathers its children's visuals and pauses once all have detached, resuming when any returns; a child never pauses alone, and a non-visual target makes its root continue for good. Reason: not recorded.
 - **Features that manage their own lifetimes pass `WhenDetached.Continue`.** Presence (ghosts included), Motion and page transitions pass it themselves; Connected and the compositor mirrors animate a plain scratch object, which the tracker never pauses. Reason: those features already decide when their animations end.
 - **`ControlScope` reverts on detach, not `Unloaded`.** `PrestoAvalonia.CreateScope(control)` reverts when the root detaches from the visual tree, with no `AutoRevert` parameter. Reason: `Unloaded` never fires for a root detached before its `Loaded` job runs. Rejected: reverting on `Unloaded`.
-- **Bridge builder extensions self-initialize.** Every typed builder method and `control.Animate(builder)` calls `PrestoAvalonia.EnsureInitialized()`, as `AvaloniaAnimationParams`' constructor does. Reason: a builder naming a shorthand, or using only core `Property(string, …)`, must work on a control without `UsePresto()`.
+- **Bridge builder extensions self-initialize.** Every typed builder method and `control.Animate(builder)` calls `PrestoAvalonia.EnsureInitialized()`, as `AvaloniaAnimationParams`' constructor does. Reason: a builder naming a shorthand, or using only core `Property(PropertyKey, …)`, must work on a control without `UsePresto()`. `PrestoKeys` access does not install the bridge: a key is only a name, and the API it is passed to installs it.
 - **Typed methods cover the most-used properties.** They cover the eight transform shorthands, `Opacity`, `Width`, `Height`, `Background`, `Foreground`, `CornerRadius`, `BorderThickness`, `Margin`, `Padding` and the `Draw`/`Text`/`Data` pseudo-properties; everything else is `Property(SomeControl.SomeProperty, …)`. Reason: chosen by string-key frequency across the samples; the typed `AvaloniaProperty` overload is refactor-safe, so the list need not grow to cover every control.
 - **Builder methods write the typed property key.** The image filter methods write the `PrestoImageBase.*Property` key rather than a name, and `TintColor`, `DuotoneShadow` and `DuotoneHighlight` also take a `Color`. Reason: the key resolves on every subclass, as the `AvaloniaAnimationParams` indexer does; the `Color` overloads mirror `ShadowColor`. Rejected: resolving to the `FilteredImage` properties by name.
+- **`PrestoKeys` names shorthands and pseudo-properties.** It holds the shorthands, `Text` and `Data`, and no names for real properties such as `Opacity`, `Background` or the image filters. Reason: real properties are already typed and refactor-safe through their `AvaloniaProperty` fields (`PrestoKeys.Of` where a key value is needed), so mirroring them would add a second typed spelling. Rejected: `PrestoKeys.Opacity` and friends.
+- **Text and Data keys resolve by name.** `PrestoKeys.Text` and `PrestoKeys.Data` are the plain names the builder's `Text` and `Data` methods write, which resolve through the registry on a `TextBlock` or `Path` and canonicalize to the encoded property, not to their own name. Reason: the keys must stay byte-identical to what the builder already writes, so swapping a method for its key changes nothing.
 - **`GetAnimations` omitting paused animations is documented, not fixed.** Reason: the toast host, which keeps each countdown on its `Toast`, removed the only workaround that needed paused animations listed.
 - **The builder is the documented, typed spelling; the indexer stays beside it.** See CORE-BUILDER.
 - **Core names only what core knows.** See CORE-BUILDER.
@@ -187,10 +201,10 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 
 ## Non-goals
 
-- No key constants, key struct or analyzer for indexer keys (see The builder is the documented, typed spelling; the indexer stays beside it); the builder methods are the typed form.
+- No analyzer for indexer keys.
 - No automatic scoping by `Animate` beyond `WhenDetached` (see `ControlScope` reverts on detach, not `Unloaded`).
 
 ## Open items
 
-- Phase 71 asked for a test that fails when a shorthand is added without a typed builder method; none exists (the key constants it would have checked were dropped).
+- Phase 71 asked for a test that fails when a shorthand is added without a typed builder method; resolved in part by `PrestoKeysTests.HoldsOneKeyPerShorthandAndPseudoPropertyAndNothingElse` (a shorthand without a key fails); a shorthand without a builder method is still unchecked.
 - BRIDGE-HELPERS-033 is untested.

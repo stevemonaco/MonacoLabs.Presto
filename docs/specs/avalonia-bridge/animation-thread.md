@@ -1,24 +1,24 @@
 ---
 id: BRIDGE-THREAD
 title: Animation thread and compositor animations
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Compositor
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Compositor
 sources:
-  - Monaco.Presto.AvaloniaBridge/AnimationThread.cs
-  - Monaco.Presto.AvaloniaBridge/ThreadedAnimation.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/AnimateExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorAnimation.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorAnimationParams.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorCompiler.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompiledTrack.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorProperty.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorRegistry.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorScratch.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorTracks.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/ICompositorTrackOwner.cs
+  - MonacoLabs.Presto.Avalonia/AnimationThread.cs
+  - MonacoLabs.Presto.Avalonia/ThreadedAnimation.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/AnimateExtensions.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorAnimation.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorAnimationParams.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorCompiler.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompiledTrack.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorProperty.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorRegistry.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorScratch.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorTracks.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ICompositorTrackOwner.cs
 types:
   - AnimationThread
   - ThreadedAnimation
@@ -83,7 +83,7 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 
 ### What the compositor can carry
 
-- **BRIDGE-THREAD-010** — The compositor animation shall map `"X"` and `"Y"` to the composition `Translation`, `"Scale"`, `"ScaleX"` and `"ScaleY"` to `Scale` with the uniform scale multiplying each axis scale, `"Rotate"` to `RotationAngle` in radians, and `"Opacity"` or `Visual.OpacityProperty` to `Opacity`.
+- **BRIDGE-THREAD-010** — The compositor animation shall map the keys given to the `CompositorAnimationParams` `PropertyKey` indexer as follows: `"X"` and `"Y"` to the composition `Translation`, `"Scale"`, `"ScaleX"` and `"ScaleY"` to `Scale` with the uniform scale multiplying each axis scale, `"Rotate"` to `RotationAngle` in radians, and `"Opacity"` or `Visual.OpacityProperty` to `Opacity`.
   - Tests: `CompositorCompileTests.XAndYCompileIntoOneSampledTranslationTrack`, `CompositorCompileTests.TheUniformScaleMultipliesTheAxisScales`, `CompositorCompileTests.RotateCompilesToRadians`, `CompositorAnimationTests.TranslationMovesThePixels`
 - **BRIDGE-THREAD-011** — When a property has no composition counterpart, the compositor animation shall throw `NotSupportedException` with the message `'<name>' has no composition property. The compositor animates X, Y, Rotate, Scale, ScaleX, ScaleY and Opacity only.`
   - Tests: `CompositorCompileTests.APropertyWithNoCompositionCounterpartThrows`, `DiscretePropertyTests.ABoolHasNoCompositorCounterpart`, `AnimationThreadTests.ForcingTheCompositorThrowsWhatAnimateOnCompositorThrows`

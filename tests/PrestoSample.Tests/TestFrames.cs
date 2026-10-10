@@ -2,9 +2,8 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Threading;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Tests;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Tests;
 
 namespace PrestoSample.Tests;
 

@@ -1,14 +1,16 @@
 ---
 id: CORE-SPRING
 title: Spring
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Spring.cs
-  - Monaco.Presto/Eases.cs
+  - MonacoLabs.Presto/Spring.cs
+  - MonacoLabs.Presto/Eases.cs
+  - MonacoLabs.Presto/Springs.cs
 types:
   - Spring
+  - Springs
 tests:
   - SpringTests
   - EaseFixtureTests
@@ -25,7 +27,7 @@ depends:
 
 ## Purpose
 
-A damped-harmonic-oscillator ease whose length is computed, not supplied: the solver finds when the spring comes to rest and that `SettlingDuration` becomes the duration of any tween eased by it. It is configured either physically (mass, stiffness, damping, velocity) or perceptually (bounce, duration), each side derived from the other. It is an ease (CORE-EASES); animations adopt its duration (CORE-ANIMATION), and `Animatable` and `Inertia` sample its `PureEase`. Also specifies `Eases.Spring`.
+A damped-harmonic-oscillator ease whose length is computed, not supplied: the solver finds when the spring comes to rest and that `SettlingDuration` becomes the duration of any tween eased by it. It is configured either physically (mass, stiffness, damping, velocity) or perceptually (bounce, duration), each side derived from the other. It is an ease (CORE-EASES); animations adopt its duration (CORE-ANIMATION), and `Animatable` and `Inertia` sample its `PureEase`. `Springs` names four ready-made springs (`Gentle`, `Snappy`, `Bouncy`, `Stiff`). Also specifies `Eases.Spring`.
 
 ## Requirements
 
@@ -115,6 +117,13 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - **CORE-SPRING-034** — In seconds mode, `Duration` shall be read and derived in seconds.
   - Tests: untested
 
+### Presets
+
+- **CORE-SPRING-036** — `Springs.Gentle` shall be a critically damped spring (bounce 0) over 500 ms, `Snappy` bounce 0.15 over 300 ms, `Bouncy` bounce 0.35 over 500 ms and `Stiff` bounce 0 over 250 ms, each duration converted to the engine's time unit when the preset is read.
+  - Tests: `SpringTests.PresetsHaveTheirBounceAndDurationAndAreNewOnEachRead`, `SpringTests.PresetsKeepTheirPerceivedDurationInSecondsMode`
+- **CORE-SPRING-037** — Each read of a preset shall return a new `Spring`, since a spring carries completion state.
+  - Tests: `SpringTests.PresetsHaveTheirBounceAndDurationAndAreNewOnEachRead`
+
 ### Defaults
 
 - **CORE-SPRING-035** — When `onComplete` is not given, the spring shall invoke nothing when it completes, as anime.js's `noop` does.
@@ -145,6 +154,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 ## Allocation
 
+- Each preset read allocates a `Spring` and runs the settling search; read presets when building, not per frame.
 - Calling `Ease` or `PureEase` allocates nothing.
 - Every constructor and setter runs the settling search, up to 3001 solver steps; parameter changes are not meant for the tick path.
 
@@ -154,11 +164,14 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - `DampingRatio` has no upstream; it is public so a caller can tell the damping regime without a velocity API on the ease (No core velocity API for an ease).
 - Parameters are nullable constructor arguments instead of a params object; `OnComplete` may be null instead of `noop`.
 - The deprecated `createSpring()` is not ported.
+- `Springs` has no upstream: anime.js names no spring presets.
 
 ## Decisions
 
 - **No core velocity API for an ease; `DampingRatio` is public.** Callers that need the ease's velocity compute it numerically from `PureEase`. Reason: no core API until a use shows it is generally useful.
 - **Preserved velocity is measured from the running ease.** See CORE-ANIMATABLE.
+- **Spring presets live in the core, fresh per read.** `Springs` is a static class in `MonacoLabs.Presto`, each read returning a new `Spring`; `Eases.Spring` stays the way to build a custom one. Reason: a preset is just a `Spring`, a core type, and a `Spring` carries completion state, so it cannot be shared. Replaces BRIDGE-EASES's `Spring presets live in the bridge, fresh per read`, whose reasons (completion state, use from XAML) did not depend on where the class lives.
+- **Preset durations follow the time unit; the default 628 does not.** A preset names a perceived duration in milliseconds and converts it on each read, so `Springs.Gentle` feels the same in seconds mode instead of clamping to 10 s. Reason: presets have no upstream to stay faithful to, and an unscaled preset made the default `Timer.Settle` crawl in seconds mode. The default 628 stays unscaled for upstream parity.
 
 ## Non-goals
 

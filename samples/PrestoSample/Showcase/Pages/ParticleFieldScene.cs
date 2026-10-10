@@ -1,8 +1,8 @@
 using Avalonia;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
-using Timer = Monaco.Presto.Timer;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Showcase.Pages;
 

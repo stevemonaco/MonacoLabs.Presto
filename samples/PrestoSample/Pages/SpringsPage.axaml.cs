@@ -7,13 +7,12 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;
 
-/// <summary>What a spring is made of: one <see cref="Monaco.Presto.Spring"/> set physically or by bounce and duration, plotted and dropped.</summary>
+/// <summary>What a spring is made of: one <see cref="MonacoLabs.Presto.Spring"/> set physically or by bounce and duration, plotted and dropped.</summary>
 public partial class SpringsPage : ShowcasePage
 {
     private const int Samples = 241;

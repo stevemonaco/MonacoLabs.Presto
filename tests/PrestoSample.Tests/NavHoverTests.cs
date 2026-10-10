@@ -5,7 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 using PrestoSample.ViewModels;
 using static PrestoSample.Tests.NavScene;

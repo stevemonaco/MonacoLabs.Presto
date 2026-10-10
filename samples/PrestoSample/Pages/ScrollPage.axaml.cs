@@ -2,9 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Events;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Events;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;

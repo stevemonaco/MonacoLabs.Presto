@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-SCENES
 title: Compositor scenes
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Compositor
+  - MonacoLabs.Presto.Compositor
 sources:
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorCanvas.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorScene.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorSceneHandler.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/SceneText.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorCanvas.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorScene.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorSceneHandler.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/SceneText.cs
 types:
   - CompositorCanvas
   - CompositorScene
@@ -19,7 +19,7 @@ tests:
   - CompositorRenderTests
   - SceneTextTests
   - LifetimeHiddenTests
-  - AllocationTests
+  - BridgeAllocationTests
   - CompositorPageTests
 upstream: []
 depends:
@@ -95,7 +95,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - **BRIDGE-SCENES-024** — When the brush cache holds 1 024 brushes, the next new brush shall clear it first.
   - Tests: `CompositorSceneTests.TheBrushCacheNeverGrowsPastItsBoundAndHandsBackTheSameBrushForOneColor`
 - **BRIDGE-SCENES-025** — Once the brush cache is warm, a scene frame that tweens and draws shall allocate no more than 64 bytes per frame (median).
-  - Tests: `AllocationTests.CompositorSceneFramesWithinBudget`
+  - Tests: `BridgeAllocationTests.CompositorSceneFramesWithinBudget`
 
 ### Reaching the UI thread
 

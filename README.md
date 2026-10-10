@@ -1,4 +1,4 @@
-# Monaco.Presto
+# MonacoLabs.Presto
 
 A .NET port of the [anime.js](https://animejs.com/documentation) v4.5.0 animation model: a framework-agnostic core that
 animates any property of any object, plus an Avalonia adapter that makes controls first-class targets.
@@ -10,15 +10,15 @@ PascalCase, and `init`-only parameter records underneath for when the property n
 
 | Package | What it is |
 |---|---|
-| `Monaco.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
-| `Monaco.Presto.AvaloniaBridge` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, color/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
-| `Monaco.Presto.AvaloniaBridge.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
+| `MonacoLabs.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
+| `MonacoLabs.Presto.Avalonia` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, color/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
+| `MonacoLabs.Presto.Avalonia.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
 
 ## Install
 
 ```powershell
-dotnet add package Monaco.Presto
-dotnet add package Monaco.Presto.AvaloniaBridge
+dotnet add package MonacoLabs.Presto
+dotnet add package MonacoLabs.Presto.Avalonia
 ```
 
 The bridge is built against **Avalonia 12.1.2** and every package targets **net10.0**. The core has no package
@@ -29,7 +29,7 @@ dependencies at all; take it alone if you are driving a game loop, a view model 
 ### A plain object
 
 ```csharp
-using Monaco.Presto;
+using MonacoLabs.Presto;
 
 var ship = new Ship();
 
@@ -60,8 +60,7 @@ posts to the `SynchronizationContext` of the thread that started it; tests swap 
 
 ```csharp
 using Avalonia;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 
 Square.Animate(b => b                          // or Presto.Build()…Animate(Square)
     .X(320)                                     // transform shorthand → RenderTransform
@@ -90,7 +89,7 @@ property given only `to` is a bare value, and any other argument (`from`, `durat
 `TweenParams`. Naming a property again replaces its value but keeps its position, and a second callback replaces the
 first.
 
-Under the builder is the anime.js-shaped parameter object, an `init`-only record whose string indexer takes the
+Under the builder is the anime.js-shaped parameter object, an `init`-only record whose indexer takes the
 properties. The builder's terminals produce one (`ToParams()`), and `Animate`, `Set`, timelines and the render thread
 take either:
 
@@ -98,9 +97,19 @@ take either:
 Square.Animate(new() { ["X"] = 320, ["Rotate"] = new TweenParams { From = -180 }, Duration = 1250 });
 ```
 
+The same keys, typed:
+
+```csharp
+using static MonacoLabs.Presto.PrestoKeys;
+
+Square.Animate(new() { [X] = 320, [Rotate] = new TweenParams { From = -180 }, Duration = 1250 });
+PropertyKey key = PrestoKeys.Of(Border.CornerRadiusProperty);   // a real property held as a value
+```
+
 Reach for it when the property names are data (a preset table, a loop over names), when porting anime.js code line for
-line, or for an [`Animatable`](#animatable), which has no builder. Its keys are unchecked strings, so the rest of
-these docs use the builder.
+line, or for an [`Animatable`](#animatable), which has no builder. Its keys are `PropertyKey`s: a string converts
+implicitly, and `PrestoKeys` names every bridge shorthand so a typo fails to compile. The rest of these docs use the
+builder.
 
 A builder is a reusable recipe. `Animate`, `Set` and `ToParams` each take a fresh snapshot, so changing the builder
 afterwards never touches an animation already running:
@@ -140,7 +149,7 @@ thread when it doesn't, without throwing; [Choosing the thread](#choosing-the-th
 
 #### From XAML
 
-The attached properties (`xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"`, which also covers the Lottie package) take a builder three ways:
+The attached properties (`xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"`, which also covers the Lottie package) take a builder three ways:
 
 ```xml
 <Border presto:Presence.Arrive="{x:Static local:Motions.FadeUp}" />
@@ -285,6 +294,20 @@ var tl = Presto.CreateTimeline(new() { Defaults = new() { Duration = 600, Ease =
 tl.Seek(tl.Labels["flash"]);
 ```
 
+The string positions keep their anime.js forms. Each has a typed twin that resolves the same way, and a label handle
+from `Label(name, out var handle, …)` replaces the label string:
+
+```csharp
+var tl = Presto.CreateTimeline()
+    .Add(a, x => x.X(300))
+    .Add(b, x => x.X(300), TimelinePosition.PreviousEnd)        // "<"
+    .Add(c, x => x.X(300), TimelinePosition.PreviousStart)      // "<<"
+    .Label("flash", out var flash, TimelinePosition.End + 200)  // "+=200"
+    .Add(e, x => x.Rotate(360), flash + 100);                   // "flash+=100"
+
+tl.Seek(flash);
+```
+
 ### Stagger
 
 ```csharp
@@ -338,6 +361,9 @@ follower.Set("X", point.X).Set("Y", point.Y);    // eases toward the value over 
 follower.Set("X", -140, 1200, "inOutQuad");      // one-off duration and ease
 var x = follower.Get("X");
 follower.Revert();
+
+var typed = Cursor.CreateAnimatable(new() { [X] = 500, [Y] = 500 });   // with PrestoKeys' typed keys
+typed.Set(X, point.X).Set(Y, point.Y);
 ```
 
 With a spring ease, `PreserveVelocity = true` keeps a property's momentum across retargets: each new spring starts
@@ -477,7 +503,7 @@ point and Ctrl+wheel zooms about the cursor. `ZoomTo`, `PanTo`, `RotateTo` and `
 `Settle` animation.
 
 ```csharp
-using Monaco.Presto.AvaloniaBridge.Gestures;
+using MonacoLabs.Presto.Gestures;
 
 // Photo sits in a Border with ClipToBounds, its parent, which bounds the pan.
 var viewer = Photo.CreateTransformable(new()
@@ -584,7 +610,7 @@ PrestoAvalonia.SplitText(Headline, new SplitTextParams
 })
 .AddEffect(split => Presto.Animate(split.Chars, b => b.Y(from: 44, to: 0).Opacity(from: 0, to: 1).Delay(Presto.Stagger(18))));
 
-Transmission.Animate(b => b.Text(PrestoAvalonia.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", From = ScrambleFrom.Center })));
+Transmission.Animate(b => b.Text(Presto.ScrambleText(new ScrambleTextParams { Text = "Signal acquired", From = ScrambleFrom.Center })));
 ```
 
 #### Text reveals
@@ -609,6 +635,38 @@ delay function of line index × `lineStep` + index on the line × `pieceStep`, a
 the owning split's line height (0 for a control that is not a piece). The ready-made reveals are
 [recipes](#recipes).
 
+#### Text on a path, morphs and split-flap boards
+
+`TextPath` lays a `TextBlock`'s characters along any `Shape`'s contour, each turned to the tangent. `Offset` (0–1 of the
+length) is where `Align` (`Start`, `Center`, `End`) anchors the text, and `Shift` lifts it off the contour. The text
+re-places once per frame while the shape's geometry, size or position changes, so it rides a `MorphTo` of the path, and
+animating `TextPath.OffsetProperty` from 0 to 1 runs it along. Animations of the characters' `X`, `Y` and `Rotate` layer
+over the placement. Past the ends of an open path characters hide; on a closed one they wrap.
+
+```xml
+<Path x:Name="Curve" Data="M 20,120 C 120,0 280,240 380,120" Stroke="Gray" />
+<TextBlock Text="TYPE THAT RIDES THE CURVE" presto:TextPath.Path="{Binding #Curve}"
+           presto:TextPath.Offset="0.5" presto:TextPath.Align="Center" presto:TextPath.Shift="8" />
+```
+
+`Recipes.MorphText(block, text, explode, ignoreCase)` turns a block's text into new text letter by letter: each letter
+the two texts share flies from its old place to its new one, the old letters left over `Scatter` away and the new ones
+`PopIn`. `explode: true` bursts the shared letters apart first. It returns the `Timeline`, and calling it mid-morph
+finishes the running one first. Reduced, the block crossfades.
+
+```csharp
+Recipes.MorphText(word, "HEARTS", explode: true);   // from SHATTER
+```
+
+`SplitFlap` is a departures-board control: each cell folds through its `Charset` (default space, `A`–`Z`, `0`–`9`,
+`.:-/`) to the new `Text`, one step per `FlipDuration` (60 ms), cell `i` starting `i × CellStagger` (50 ms) late. It
+pauses its timer once every cell rests, and reduced motion fades the changed cells in at once.
+
+```xml
+<presto:SplitFlap Text="{Binding Gate}" Cells="6" FontSize="28" Foreground="White"
+                  CellBackground="#222" CornerRadius="4" CellSpacing="3" />
+```
+
 ### Render thread
 
 Everything above runs on the UI thread, which means everything above stops when the UI thread does. A `CompositorScene`
@@ -618,8 +676,8 @@ Avalonia's compositor.
 ```csharp
 using Avalonia;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
 
 public sealed class SpinnerScene : CompositorScene
 {
@@ -1205,8 +1263,8 @@ var spinner = icon.Animate(Recipes.Spinner());     // loops until canceled
 
 Every recipe also takes `duration`, `delay` and `ease`, defaulting to the [tokens](#motion-tokens), and all but the
 interactions and `Dots` take `stagger: true`, which starts each element of a batch `Tokens.StaggerStep` ms after the one
-before, from `delay`. The families are classes in `Monaco.Presto.AvaloniaBridge.Prebuilt`; `Recipes` forwards to them,
-so `using Monaco.Presto.AvaloniaBridge;` is enough.
+before, from `delay`. The families are classes in `MonacoLabs.Presto.Prebuilt`; `Recipes` forwards to them,
+so `using MonacoLabs.Presto;` is enough.
 
 Entrances state only where the element starts (`.Opacity(from: 0)`), so they land on its own resting values: a card at
 `Opacity` 0.6 fades up to 0.6. Every entrance and exit fades as well as moving. Exits, attention, loops and interactions
@@ -1219,14 +1277,17 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `ScaleIn`, `PopIn` (overshoots) | `scale` | yes | 〃 |
 | | `BlurIn` | `radius` | no | 〃 |
 | | `SlideIn` | `edge`, `distance` (default 4 × `Distance`) | yes | 〃 |
+| | `Gather`: in from where `Scatter` with the same arguments sends it | `distance`, `spin`, `seed` | yes | 〃 |
 | | `FlipIn` | `angle` (90°) | no | 〃 |
 | | `Develop`, for an [image](#image-filters): settles from `Sepia` 0.8, `Brightness` 1.6 and a `BlurRadius` blur over `Long` | | no | 〃 |
 | `Exits` | `FadeOut`, `FadeOutUp`, `FadeOutDown`, `FadeOutLeft`, `FadeOutRight`, `ScaleOut`, `PopOut`, `BlurOut`, `SlideOut`, `FlipOut` | as the entrance; `FlipOut`'s `angle` is −90° | all but `BlurOut` and `FlipOut` | fade out over `Short` |
+| | `Scatter` (random offset within `distance`, spin within ±`spin`°, `Scale` 0.6), `Fall` (drops `distance`, drifts and spins) | `distance`, `spin`, `seed` | yes | 〃 |
 | `Attention` | `Shake`, `Pulse`, `Wobble`, `Jelly`, `Heartbeat`, `Tada`, `Bounce` | `intensity` | yes | an Opacity blink, 1 → 0.6 → 1 over `Short` |
 | | `FlashTint`, for an [image](#image-filters): `Tint` up to `intensity` and back | `color` (`DodgerBlue`), `intensity` | no (filter) | 〃 |
 | `Loops` | `Float` | `distance` | yes | static: nothing moves |
 | | `Spin` | | yes | 〃 |
 | | `Breathe`, `Blink` | `intensity` | yes | 〃 |
+| | `Wave` (each element bobs `step` ms after the one before; no `stagger`) | `distance`, `step` | yes | 〃 |
 | `Interactions` | `Lift` | `distance`, `intensity` | no (shadow) | the shadow alone |
 | | `Grow` | `intensity` | yes | nothing |
 | | `PressIn` | `intensity` | yes | Opacity to 0.8 |
@@ -1246,7 +1307,14 @@ use to-values; attention recipes end back at identity, and loops and loaders run
 | | `PageSlide`, `PagePush` | `edge` only | yes | 〃 |
 
 The interactions are meant for [`Motion` states](#state-motion); they take no `stagger`, since a state belongs to one
-element.
+element. `Scatter`, `Gather` and `Fall` draw their offsets at random; a `seed` gives each index the same offsets on
+every play, which keeps a scrubbed timeline and a test repeatable:
+
+```csharp
+Recipes.Scatter(seed: 5).Animate(split.Chars);   // letters burst apart
+Recipes.Fall(seed: 4).Animate(split.Chars);      // and drop away
+Recipes.Wave(step: 60).Animate(split.Chars);     // or ripple until canceled
+```
 
 #### Motion tokens
 
@@ -1434,7 +1502,7 @@ Reduced, it holds frame 0.
 Lottie files play through a separate package, so the bridge itself takes no Skottie dependency:
 
 ```powershell
-dotnet add package Monaco.Presto.AvaloniaBridge.Lottie
+dotnet add package MonacoLabs.Presto.Avalonia.Lottie
 ```
 
 `LottieView` shows one frame of its `Composition`, drawn by SkiaSharp.Skottie; Presto drives the frame and does not
@@ -1469,8 +1537,8 @@ over |to − from| / `FrameRate` × 1000 / `speed` ms and return the `Animation`
 unknown marker throws `ArgumentException` listing the markers there are.
 
 **Recipe.** `Recipes.PlayLottie(segment, loop, reverse, speed, delay)` is the same as a builder, reading each target's
-composition; with `using Monaco.Presto.AvaloniaBridge.Lottie;` it is an extension member of `Recipes`, and otherwise
-`LottieRecipes.PlayLottie` in `Monaco.Presto.AvaloniaBridge.Lottie.Prebuilt`. It loops by default, and a target that is
+composition; with `using MonacoLabs.Presto.Lottie;` it is an extension member of `Recipes`, and otherwise
+`LottieRecipes.PlayLottie` in `MonacoLabs.Presto.Lottie.Prebuilt`. It loops by default, and a target that is
 not a `LottieView` plays nothing. `{presto:PlayLottie}` adds `Segment`, `Loop`, `Reverse` and `Speed`, and an explicit
 `Duration` or `Ease` replaces the frame timing. Reduced, it jumps to the segment's end frame and holds it, unlike `PlayFrames`' frame 0: a
 segment ends on the state it plays into, such as a toggle's "on".
@@ -1549,7 +1617,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | `svg.createMotionPath(path)` | `PrestoAvalonia.CreateMotionPath(path, offset, autoRotate)` → the `X` / `Y` / `Rotate` tweens; `CreateMotionPath(points, curviness, …)` through a point list is GSAP-shaped, upstream has none |
 | `svg.morphTo(path, precision)` | `PrestoAvalonia.MorphTo(geometry, precision)`, animated through `.Data(…)` on a `Path` |
 | `text.split(target, params)` / `splitText` | `PrestoAvalonia.SplitText(textBlock, new SplitTextParams { … })` → `TextSplitter` with `Lines` / `Words` / `Chars` |
-| `text.scramble(params)` / `scrambleText` | `PrestoAvalonia.ScrambleText(new ScrambleTextParams { … })`, animated through `.Text(…)` |
+| `text.scramble(params)` / `scrambleText` | `Presto.ScrambleText(new ScrambleTextParams { … })`, animated through `.Text(…)` |
 | `stagger(value, params)` | `Presto.Stagger(value, new StaggerParams { … })`; `PrestoAvalonia.Stagger(…)` measures the auto grid from the layout |
 | `utils.*` | `Utils.*` in PascalCase; the value-less overloads return a chainable `ChainedUtil` (`Utils.MapRange(0, 100, 0, 1000).Clamp(0, 100)`), usable wherever a `Func<double, double>` modifier is; `utils.get` / `set` / `remove` are `Presto.Get` / `Set` / `Remove`, with `PrestoAvalonia` overloads that take an `AvaloniaProperty`; `padStart` / `padEnd` are not ported (`string.PadLeft` / `PadRight` already do this) |
 | `eases` / `easings` | `Eases.*`, the `Ease` delegate (`double → double`), `Spring`, `EaseParser.Parse("inOutQuint")` |
@@ -1613,8 +1681,9 @@ A handful of places where the JS shape does not survive the type system:
 
 - **Properties are builder methods**, `b.X(320).Duration(1250)`, so a typo fails to compile. The anime.js object literal
   survives as the parameter object, where an indexer is the only C# syntax that mixes named settings and arbitrary keys
-  in one initializer: `new() { ["X"] = 320, Duration = 1250 }`. Its keys are unchecked strings, apart from the bridge's
-  `AvaloniaProperty` indexer (`[Visual.OpacityProperty] = 0.4`).
+  in one initializer: `new() { ["X"] = 320, Duration = 1250 }`. Its keys are `PropertyKey`s, which strings convert
+  to implicitly; the bridge's `PrestoKeys` names the shorthands (`[X] = 320`) and its `AvaloniaProperty` indexer takes
+  real properties (`[Visual.OpacityProperty] = 0.4`).
 - **A lambda literal needs its delegate type named.** C# does not apply user-defined implicit conversions to lambdas, so
   write `.Ease((Ease)(t => t))` and `["X"] = new FunctionValue((target, i, total) => i * 10)`; the builder's property
   methods take a `FunctionValue` directly, so `.X((target, i, total) => i * 10)` needs no cast. Values that already carry
@@ -1631,7 +1700,7 @@ A handful of places where the JS shape does not survive the type system:
 
 Version 0.1.0, pre-release: the API is settled enough to build against but not frozen, and a pass over it is planned
 before 1.0. Behavioral parity with anime.js 4.5.0 is covered by the upstream suites ported into
-`tests/Monaco.Presto.Tests` and `tests/Monaco.Presto.AvaloniaBridge.Tests`.
+`tests/MonacoLabs.Presto.Tests` and `tests/MonacoLabs.Presto.Avalonia.Tests`.
 
 The core is pure .NET and runs anywhere net10.0 does, and the bridge uses no desktop-only API. All four sample heads
 build; what has actually been *run* differs, and the table says so rather than implying more.
@@ -1640,7 +1709,7 @@ build; what has actually been *run* differs, and the table says so rather than i
 |------|----------|
 | **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here. |
 | **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish, with no trim warnings. The Lottie page has not been driven there. |
-| **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. The gallery has not been driven on a device, so touch input and per-page rendering are unverified. |
+| **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. On an emulator (Pixel 7, Android 15) the gallery opens in its compact layout: Home fits the screen, tapping a row or a search result opens the page, the system back button returns Home, on Gestures an open sheet closes on the first back, and back at Home leaves the app. Other pages' rendering and touch gestures beyond those are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
 
 Five platform notes:
@@ -1669,14 +1738,18 @@ The sample gallery has 17 pages — one per anime.js documentation area, plus th
 manual acceptance surface.
 
 ```powershell
-dotnet build Monaco.Presto.slnx
+dotnet build MonacoLabs.Presto.slnx
 dotnet run --project samples/PrestoSample.Desktop
 dotnet watch --project samples/PrestoSample.Desktop        # hot reload
 
-dotnet test --project tests/Monaco.Presto.Tests            # note --project, not a bare path
-dotnet test --project tests/Monaco.Presto.AvaloniaBridge.Tests
-dotnet test --solution Monaco.Presto.slnx
+dotnet test --project tests/MonacoLabs.Presto.Tests            # note --project, not a bare path
+dotnet test --project tests/MonacoLabs.Presto.Avalonia.Tests
+dotnet test --solution MonacoLabs.Presto.slnx
 ```
+
+Below 720 DIP the gallery switches to a compact layout: the nav fills the window as Home, and a page opens over it with
+a back button (`dotnet run --project samples/PrestoSample.Desktop -- --size 400x850` to try it). Alt+Left, the mouse
+back button and the platform back request (Android's back button, compact layout only) go back.
 
 Tests use xunit v3 on Microsoft.Testing.Platform, which the .NET 10 SDK requires — hence `--project`.
 

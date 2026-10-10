@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
-using Monaco.Presto;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase.Pages;
 using Path = Avalonia.Controls.Shapes.Path;
 

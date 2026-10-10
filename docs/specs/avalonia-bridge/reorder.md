@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-REORDER
 title: Drag-to-reorder lists
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Reorder.cs
-  - Monaco.Presto.AvaloniaBridge/ReorderList.cs
-  - Monaco.Presto.AvaloniaBridge/ReorderExtension.cs
-  - Monaco.Presto.AvaloniaBridge/ReorderMovingEventArgs.cs
+  - MonacoLabs.Presto.Avalonia/Reorder.cs
+  - MonacoLabs.Presto.Avalonia/ReorderList.cs
+  - MonacoLabs.Presto.Avalonia/ReorderExtension.cs
+  - MonacoLabs.Presto.Avalonia/ReorderMovingEventArgs.cs
 types:
   - Reorder
   - ReorderExtension

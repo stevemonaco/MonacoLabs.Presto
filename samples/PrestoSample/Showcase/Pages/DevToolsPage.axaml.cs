@@ -1,8 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.DevTools;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
+using MonacoLabs.Presto.DevTools;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -40,9 +40,9 @@ public partial class DevToolsPage : ShowcasePage
             .Ease(Eases.InOutSine).Loop().Alternate()
             .Animate(Bars.Children);
 
-        var bounce = Bounce = Ball.CreateAnimatable(new() { ["X"] = new(), Ease = Springs.Bouncy });
+        var bounce = Bounce = Ball.CreateAnimatable(new() { [X] = new(), Ease = Springs.Bouncy });
         var side = 1;
-        Presto.CreateTimer(new() { Id = "retarget", Duration = 1400, Loop = true, OnLoop = _ => bounce.Set("X", 60 * (side = -side)) });
+        Presto.CreateTimer(new() { Id = "retarget", Duration = 1400, Loop = true, OnLoop = _ => bounce.Set(X, 60 * (side = -side)) });
 
         Parked = Presto.Build().Id("parked")
             .Rotate(360).Scale(.6)

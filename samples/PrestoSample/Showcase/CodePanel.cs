@@ -8,8 +8,8 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Path = Avalonia.Controls.Shapes.Path;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
 
 namespace PrestoSample.Showcase;
 
@@ -152,8 +152,8 @@ public sealed class CodePanel : TemplatedControl
         _back.Animate(new()
         {
             ["Stroke"] = ink,
-            ["X"] = over ? Spread : 0,
-            ["Y"] = over ? -Spread : 0,
+            [X] = over ? Spread : 0,
+            [Y] = over ? -Spread : 0,
             Duration = over ? 320 : 220,
             Ease = over ? Eases.OutCubic : Eases.OutQuad,
         });
@@ -173,18 +173,18 @@ public sealed class CodePanel : TemplatedControl
         double Move(double ms) => reduced ? 0 : ms;
         _copied.Measure(Size.Infinity);
         _copying = Presto.CreateTimeline(new TimelineParams { OnComplete = _ => Hover(_copy.IsPointerOver) })
-            .Add(_back, new() { ["Opacity"] = 0, ["Scale"] = .6, ["X"] = 0, ["Y"] = 0, Duration = Move(160), Ease = Eases.OutQuad })
-            .Add(_front, new() { ["Data"] = PrestoAvalonia.MorphTo(Check), ["Stroke"] = TweenValue.Of(Palette.Aqua), Duration = Move(280), Ease = Eases.OutCubic }, "<<")
+            .Add(_back, new() { ["Opacity"] = 0, [Scale] = .6, [X] = 0, [Y] = 0, Duration = Move(160), Ease = Eases.OutQuad })
+            .Add(_front, new() { [Data] = PrestoAvalonia.MorphTo(Check), ["Stroke"] = TweenValue.Of(Palette.Aqua), Duration = Move(280), Ease = Eases.OutCubic }, "<<")
             .Add(_front, Presto.Build().Scale(k => k.To(1.3, duration: Move(120)).To(1, duration: Move(420), ease: Eases.OutBack(3))), "<<+=60")
             .Add(_copy, new() { ["Background"] = TweenValue.Of(CopiedFill), ["BorderBrush"] = TweenValue.Of(CopiedEdge), Duration = 220 }, "<<")
             .Add(_copiedClip, new() { ["Width"] = _copied.DesiredSize.Width, Duration = Move(520), Ease = reduced ? Eases.None : Eases.Spring(bounce: .35, duration: 520) }, "<<")
-            .Add(_copied, new() { ["Opacity"] = 1, ["X"] = TweenValue.FromTo(Move(10), 0), Duration = 260, Ease = Eases.OutCubic }, "<<+=60")
+            .Add(_copied, new() { ["Opacity"] = 1, [X] = TweenValue.FromTo(Move(10), 0), Duration = 260, Ease = Eases.OutCubic }, "<<+=60")
             .Label("shown")
             .Label("leave", "+=1100")
-            .Add(_copied, new() { ["Opacity"] = 0, ["X"] = Move(-6), Duration = 160, Ease = Eases.InQuad }, "leave")
+            .Add(_copied, new() { ["Opacity"] = 0, [X] = Move(-6), Duration = 160, Ease = Eases.InQuad }, "leave")
             .Add(_copiedClip, new() { ["Width"] = 0, Duration = Move(300), Ease = Eases.InOutQuint }, "leave+=60")
-            .Add(_front, new() { ["Data"] = PrestoAvalonia.MorphTo(FrontSheet), ["Stroke"] = TweenValue.Of(Palette.InkDim), Duration = Move(320), Ease = Eases.InOutCubic }, "leave")
+            .Add(_front, new() { [Data] = PrestoAvalonia.MorphTo(FrontSheet), ["Stroke"] = TweenValue.Of(Palette.InkDim), Duration = Move(320), Ease = Eases.InOutCubic }, "leave")
             .Add(_copy, new() { ["Background"] = TweenValue.Of(Brushes.Transparent), ["BorderBrush"] = TweenValue.Of(Brushes.Transparent), Duration = 300 }, "leave")
-            .Add(_back, new() { ["Opacity"] = 1, ["Scale"] = 1, Duration = Move(320), Ease = Eases.OutBack(2) }, "leave+=180");
+            .Add(_back, new() { ["Opacity"] = 1, [Scale] = 1, Duration = Move(320), Ease = Eases.OutBack(2) }, "leave+=180");
     }
 }

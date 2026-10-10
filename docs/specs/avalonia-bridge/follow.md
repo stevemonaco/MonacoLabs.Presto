@@ -1,17 +1,18 @@
 ---
 id: BRIDGE-FOLLOW
 title: Value-driven animation and motion value sources
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Follow.cs
-  - Monaco.Presto.AvaloniaBridge/FollowExtension.cs
-  - Monaco.Presto.AvaloniaBridge/FollowParams.cs
-  - Monaco.Presto.AvaloniaBridge/Bindings
-  - Monaco.Presto.AvaloniaBridge/MotionValueSource.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollContainer.cs
+  - MonacoLabs.Presto.Avalonia/Follow.cs
+  - MonacoLabs.Presto.Avalonia/FollowExtension.cs
+  - MonacoLabs.Presto.Avalonia/FollowParams.cs
+  - MonacoLabs.Presto.Avalonia/Bindings
+  - MonacoLabs.Presto.Avalonia/MotionValueSource.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollContainer.cs
+  - MonacoLabs.Presto.Avalonia/Events/PointerTracker.cs
 types:
   - Follow
   - FollowExtension
@@ -24,8 +25,9 @@ tests:
   - FollowTests
   - MotionValueSinkTests
   - MotionValueSourceTests
+  - PointerProximityValueTests
   - MotionValueCodecTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream: []
 depends:
   - CORE-MOTIONVALUE
@@ -36,7 +38,6 @@ depends:
   - BRIDGE-EFFECTS
   - BRIDGE-SHAPES
   - BRIDGE-CODECS
-  - BRIDGE-EASES
   - BRIDGE-TOKENS
   - BRIDGE-HELPERS
   - BRIDGE-SCROLLOBSERVER
@@ -47,7 +48,7 @@ depends:
 
 ## Purpose
 
-Makes a bound property ease to each new value instead of jumping to it (≈ Compose `animate*AsState`, Flutter `AnimatedContainer`): `{presto:Follow {Binding …}}` in XAML, `Follow.Bind` in code, and `Follow.*` attached shorthands for the render transform, blur and a shape's drawn stroke. It also carries the core `MotionValue` graph (CORE-MOTIONVALUE) to and from controls: bridge sources (scroll, pointer, property, draggable, observer) feed values in, and the `Follow` sinks write them out. Also specifies `PrestoAvalonia.ScrollValue`, `PointerValue` and `ValueOf`, `ScrollObserver.ProgressValue` and `Draggable.XValue`/`YValue`.
+Makes a bound property ease to each new value instead of jumping to it (≈ Compose `animate*AsState`, Flutter `AnimatedContainer`): `{presto:Follow {Binding …}}` in XAML, `Follow.Bind` in code, and `Follow.*` attached shorthands for the render transform, blur and a shape's drawn stroke. It also carries the core `MotionValue` graph (CORE-MOTIONVALUE) to and from controls: bridge sources (scroll, pointer, pointer proximity, property, draggable, observer) feed values in, and the `Follow` sinks write them out; a core `Trail` reaches controls through those same sinks (`Follow.Bind`, `Follow.X`/`Follow.Y`), one per element. Also specifies `PrestoAvalonia.ScrollValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` and `ValueOf`, `ScrollObserver.ProgressValue` and `Draggable.XValue`/`YValue`.
 
 ## Requirements
 
@@ -57,10 +58,14 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `FollowerTests.EachTimingSourceResolves`, `FollowMarkupTests.TheTimingAttributesAreHonored`
 - **BRIDGE-FOLLOW-002** (inherited) — When `Builder` is combined with `Duration`, `Ease`, `Spring` or `Bounce`, when `Spring` is combined with `Bounce`, `Duration` or `Ease`, when `Bounce` is combined with `Ease`, or when a spring `Ease` is combined with `Duration`, the follower shall throw `ArgumentException` at construction.
   - Tests: `FollowerTests.ConflictingTimingSourcesThrow`
-- **BRIDGE-FOLLOW-003** (inherited) — When `Spring` names no preset and is not `"bounce,duration"`, the follower shall throw `FormatException` at construction.
+- **BRIDGE-FOLLOW-003** (inherited) — When `Spring` names no preset and is not `"bounce,duration"` (including a single number, more than two parts, or a preset followed by a duration), the follower shall throw `FormatException` at construction naming the presets and the `"bounce,duration"` form.
   - Tests: `FollowerTests.ConflictingTimingSourcesThrow`, `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
 - **BRIDGE-FOLLOW-004** (inherited) — When a `Builder` or `WhenReduced` builder has a non-numeric `Duration`, the follower shall throw `NotSupportedException`.
   - Tests: untested
+- **BRIDGE-FOLLOW-059** — When `FollowParams.Spring`, trimmed, names a preset ignoring case (`gentle`, `snappy`, `bouncy`, `stiff`), the follower shall use a new spring of that `Springs` preset (CORE-SPRING).
+  - Tests: `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
+- **BRIDGE-FOLLOW-060** — When `FollowParams.Spring` is two comma-separated numbers in the invariant culture, surrounding spaces allowed, the follower shall use `new Spring(bounce: first, duration: second)`.
+  - Tests: `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`, `FollowerTests.EachTimingSourceResolves`
 - **BRIDGE-FOLLOW-005** — While the resolved ease is a `Spring`, a retarget shall start from the displayed value and keep its current velocity, per channel for multi-channel types.
   - Tests: `FollowerTests.ASpringRetargetKeepsTheVelocityOfADouble`, `FollowerTests.ASpringRetargetKeepsTheVelocityOfEachThicknessChannel`, `FollowBindingTests.AMidFlightRetargetKeepsTheVelocity`, `FollowTests.AMidFlightRetargetKeepsTheVelocity`
 - **BRIDGE-FOLLOW-006** — While the resolved ease is not a spring, a retarget shall restart from the displayed value with the full duration.
@@ -111,7 +116,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 ### Motion value sinks
 
 - **BRIDGE-FOLLOW-024** — When `Follow.Bind` gets a `MotionValue`, no options and a `StyledProperty<double>`, it shall write each flushed value unboxed at `LocalValue`, at most once per frame however many upstream sources changed.
-  - Tests: `MotionValueSinkTests.BindWritesOncePerFrameHoweverManySourcesChanged`, `AllocationTests.AMotionValueBoundWidthTicksWithinBudget`
+  - Tests: `MotionValueSinkTests.BindWritesOncePerFrameHoweverManySourcesChanged`, `BridgeAllocationTests.AMotionValueBoundWidthTicksWithinBudget`
 - **BRIDGE-FOLLOW-025** — When `Follow.Bind` gets a `MotionValue` for another property type, or a `MotionObjectValue`, without options, it shall write each flushed value converted to the property type (ints rounded) with no easing.
   - Tests: `MotionValueSinkTests.BindIsAtLocalValueOverAStyleAndConvertsToThePropertyType`, `MotionValueSinkTests.AnObjectValuedCellBindsTheSameWay`
 - **BRIDGE-FOLLOW-026** — When `Follow.Bind` gets a motion value with options, it shall ease to each flushed value through the follower with that timing, snapping to the first.
@@ -150,7 +155,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-041** — When a shorthand's value is caused by a `DataContext` change, it shall snap.
   - Tests: `FollowTests.ADataContextSwapSnaps`
 - **BRIDGE-FOLLOW-042** — When a shorthand gets a `MotionValue`, it shall write the current value at once and then each flushed value, ignoring `Follow.Timing` and reduced motion.
-  - Tests: `MotionValueSinkTests.EachShorthandWritesEachFlushedValueIgnoringTheTiming`, `AllocationTests.AMotionValueFollowedXTicksWithinBudget`
+  - Tests: `MotionValueSinkTests.EachShorthandWritesEachFlushedValueIgnoringTheTiming`, `BridgeAllocationTests.AMotionValueFollowedXTicksWithinBudget`
 - **BRIDGE-FOLLOW-043** — When a shorthand holding a `MotionValue` is set to a number, another value or `null`, it shall unsubscribe from the old value; a number then snaps as a first value.
   - Tests: `MotionValueSinkTests.AnotherValueOrNullReleasesTheSubscription`
 - **BRIDGE-FOLLOW-044** — When the visual detaches, every shorthand follower shall land on its latest value and motion value subscriptions shall stop; on reattach each motion value shall resubscribe and write its latest value.
@@ -174,12 +179,34 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `MotionValueSourceTests.ValueOfFollowsSetValue`
 - **BRIDGE-FOLLOW-052** (inherited) — When a `ValueOf` property value does not convert to `double`, `ValueOf` shall throw the `Convert.ToDouble` exception (at creation, or from the change that carries it).
   - Tests: untested
-- **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `PointerValue` or `ValueOf` shall stop at its last value and not revive on reattach; a non-`Visual` `ValueOf` target stops only with its scope.
-  - Tests: `MotionValueSourceTests.ScrollAndPropertyValuesStopWhenTheirControlDetaches`, `MotionValueSourceTests.PointerValueStopsWhenItsScopeReverts`
+- **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` or `ValueOf` shall stop at its last value and not revive on reattach; a `PointerProximityValue` or `PointerOffsetValue` shall also stop when its tracking surface leaves the visual tree, and when given `over` shall stop with that surface instead of its control; a non-`Visual` `ValueOf` target stops only with its scope.
+  - Tests: `MotionValueSourceTests.ScrollAndPropertyValuesStopWhenTheirControlDetaches`, `MotionValueSourceTests.PointerValueStopsWhenItsScopeReverts`, `PointerProximityValueTests.DetachAndScopeRevertStopTheValueForGood`, `PointerProximityValueTests.RemovingTheSurfaceStopsItsValues`, `PointerProximityValueTests.OverASurfaceTheValueOutlivesItsControlBeingReHosted`
 - **BRIDGE-FOLLOW-054** — `ScrollObserver.ProgressValue` shall equal the observer's `Progress` after every scroll and freeze when the observer reverts.
   - Tests: `MotionValueSourceTests.ProgressValueMatchesTheObserverAcrossItsThresholds`, `MotionValueSourceTests.ObserverAndDraggableValuesFreezeOnRevert`
 - **BRIDGE-FOLLOW-055** — `Draggable.XValue`/`YValue` shall mirror `X`/`Y` rounded to the engine's precision through drag and release, and freeze when the draggable reverts.
   - Tests: `MotionValueSourceTests.DraggableValuesFollowADragAndTheReleaseSpring`, `MotionValueSourceTests.ObserverAndDraggableValuesFreezeOnRevert`
+- **BRIDGE-FOLLOW-061** — `PrestoAvalonia.PointerProximityValue` shall start at 0 and hold 1 − clamp(d ÷ `radius`, 0, 1), where d is the distance in DIPs from the pointer to the control's layout bounds (0 inside them), or to their center when `fromCenter` is true, both translated into the tracking surface.
+  - Tests: `PointerProximityValueTests.ProximityFallsOffLinearlyFromTheEdgeOrTheCenter`
+- **BRIDGE-FOLLOW-062** — `PrestoAvalonia.PointerOffsetValue` shall start at 0 and hold the pointer's position minus the center of the control's layout bounds along `axis`, in DIPs, translated into the tracking surface.
+  - Tests: `PointerProximityValueTests.OffsetsAreThePointerMinusTheCenterOnEachAxis`
+- **BRIDGE-FOLLOW-063** — The tracking surface shall be `over` when given, otherwise the control's `TopLevel`, resolved when the control first attaches if it is not yet in the visual tree.
+  - Tests: `PointerProximityValueTests.TheValuesReadZeroOutsideTheirSurface`, `PointerProximityValueTests.AValueMadeBeforeAttachTracksItsTopLevelOnceAttached`
+- **BRIDGE-FOLLOW-064** — A pointer proximity or offset value shall receive pointer moves on its surface through a tunnel handler that also sees handled events, so a child that handles or captures the pointer does not hide it.
+  - Tests: `PointerProximityValueTests.ChildrenThatHandleOrCaptureThePointerDoNotHideIt`
+- **BRIDGE-FOLLOW-065** — While the pointer is absent (outside the surface, after `PointerExited` from it, or a touch pointer whose contact is not pressed; mouse and pen count while over the surface), a pointer proximity or offset value shall hold 0.
+  - Tests: `PointerProximityValueTests.TheValuesReadZeroOutsideTheirSurface`, `PointerProximityValueTests.TheValuesReadZeroAfterThePointerLeavesTheWindow`, `PointerProximityValueTests.ATouchCountsOnlyWhileItsContactIsDown`
+- **BRIDGE-FOLLOW-067** — When several pointers are present, a pointer proximity or offset value shall follow the pointer that moved last.
+  - Tests: `PointerProximityValueTests.ThePointerThatMovedLastWins`
+- **BRIDGE-FOLLOW-068** — A pointer proximity or offset value shall measure the control's layout bounds and ignore its render transform, so a value driving the control's own transform does not change what it measures.
+  - Tests: `PointerProximityValueTests.TheControlsOwnRenderTransformDoesNotChangeTheValues`
+- **BRIDGE-FOLLOW-069** — When a layout pass completes while the pointer is present (an ancestor's layout or scroll offset may have moved the control), every pointer proximity or offset value over the surface shall be recomputed from the last pointer position.
+  - Tests: `PointerProximityValueTests.ScrollingTheControlUnderAStillPointerUpdatesTheValue`
+- **BRIDGE-FOLLOW-070** — All pointer proximity and offset values over one surface shall share one set of event subscriptions, which is removed when the last of them stops.
+  - Tests: `PointerProximityValueTests.ValuesOverOneSurfaceShareOneTrackerRemovedWithTheLast`
+- **BRIDGE-FOLLOW-071** — A pointer move shall allocate nothing beyond Avalonia's event routing, however many pointer proximity or offset values share the surface.
+  - Tests: `BridgeAllocationTests.APointerMoveOverProximityValuesAllocatesNothing`
+- **BRIDGE-FOLLOW-072** — When `radius` is not positive (or is NaN), `PointerProximityValue` shall throw `ArgumentOutOfRangeException`.
+  - Tests: `PointerProximityValueTests.ANonPositiveRadiusThrows`
 
 ### Defaults
 
@@ -202,13 +229,15 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - The detached flag is set only by a detach, so values that arrive before the target was ever attached are not snapped by it (after the first value they ease).
 - A `Follow.Timing` change rebuilds the animation on the next value from the displayed value, so velocity across a retime is not kept.
 - A `Follow.Timing` builder with a non-numeric duration throws from the next shorthand value or from the `Timing` change itself.
+- A `Spring` bounce outside -1..1 or duration outside the spring's range is clamped by `Spring` itself (CORE-SPRING), not rejected.
 - A gradient-to-solid or stop-count-changing brush change passes through; same-shape gradients ease per stop (MotionObjectValue maps: `MotionValueCodecTests`).
 
 ## Threading and lifetime
 
 - UI thread only. Followers use `Engine.Current` at construction; the `DataContext` flag is cleared by a `Dispatcher.UIThread` post at `Background`.
 - `{presto:Follow}` lives as long as its binding expression; `Follow.Bind` until its handle is disposed or the property is rebound.
-- Bridge sources register with `Engine.Current.CurrentScope` at creation and unhook on that scope's revert or on their `Visual`'s detach, whichever comes first.
+- Bridge sources register with `Engine.Current.CurrentScope` at creation and unhook on that scope's revert or on their `Visual`'s detach, whichever comes first; pointer proximity and offset values also unhook when their surface detaches.
+- A surface's pointer tracker lives in a private attached value on the surface from its first pointer proximity or offset value until its last one stops, which removes its handlers and the value.
 
 ## Reduced motion
 
@@ -218,9 +247,10 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 ## Allocation
 
 - A followed `double` follower allocates only its box per frame (≤ 24 B, `FollowerTests.AFollowedDoubleAllocatesOnlyItsBoxPerFrame`).
-- `Follow.Bind` over a binding ≤ 128 B per tick (measured 104), `{presto:Follow}` ≤ 192 B (measured 160): `AllocationTests.AFollowBoundWidthTicksWithinBudget`, `AllocationTests.AnAnimatedMarkupWidthTicksWithinBudget`.
+- `Follow.Bind` over a binding ≤ 128 B per tick (measured 104), `{presto:Follow}` ≤ 192 B (measured 160): `BridgeAllocationTests.AFollowBoundWidthTicksWithinBudget`, `BridgeAllocationTests.AnAnimatedMarkupWidthTicksWithinBudget`.
 - An unboxed `MotionValue` → `double` sink and a `MotionValue`-driven `Follow.X` ≤ 96 B per tick (measured 80, Avalonia's change args).
 - A `MotionObjectValue` boxes one struct per changed frame unless its codec reuses the instance.
+- A pointer move over any number of pointer proximity and offset values allocates nothing beyond Avalonia's routing (`BridgeAllocationTests.APointerMoveOverProximityValuesAllocatesNothing`); a layout pass costs them nothing while the pointer is absent.
 
 ## Deviations from anime.js
 
@@ -239,11 +269,22 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **Follow is one-way only.** An explicit `TwoWay` or `OneWayToSource` throws; `Default` resolves against the one-way companion and is accepted. Reason: writing animated intermediate values back to a view model would be wrong.
 - **Follow is not usable in style setters.** Reason: one setter is shared by every control it matches and, with `BindingBase` sealed off, there is no per-instance hook; templates build their content per instance.
 - **Timing options default to `Springs.Gentle`.** `Duration`/`Ease`, `Spring`, `Bounce`, a `Builder` or a `Token`; with none, the critically damped `Springs.Gentle`. Reason: a spring rather than a `MotionTokens` entry, so retargets keep their velocity.
+- **The spring text grammar belongs to Follow.** A preset name or `"bounce,duration"` is parsed privately by `FollowTiming` for `FollowParams.Spring` (and `{presto:Follow Spring=…}`). Reason: it exists for XAML, and the core keeps no spring string syntax (CORE-SPRING). Rejected: a public `Springs.Parse`, or extending `EaseParser` (no use outside Follow).
 - **One name, `Follow`, and `Follow.Bind` is a static method.** Reason: one name for the whole feature, and XAML resolves `{presto:Follow}` to `FollowExtension` before the `Follow` class; an extension method named `Bind` would lose to `AvaloniaObject.Bind`. Rejected: the earlier `Animated` naming.
 - **Shorthands are followed through attached properties, as a base layer.** `Follow.X`…`Follow.Blur` plus `Follow.Timing`; an animation of the same shorthand overrides the followed value while it holds it, then the latest followed value shows again. Reason: the shorthands are not Avalonia properties, so an extension cannot sit on them; the layering mirrors `Animation` priority over a `LocalValue` binding, and without it reverting an animation reset the shorthand to identity.
 - **A motion value fed to a shorthand ignores `Follow.Timing`.** `Follow.Bind` is the one sink that takes options, and `{presto:Follow}` smooths unless `Duration=0`. Reason: a graph already states its smoothing; easing on top would lag a scroll- or drag-locked value and double-smooth a sprung one, while `Follow.Bind` is called with a value explicitly and can say so.
 - **`Follow.Draw` follows one number.** The drawn share from the start, written as a `"Draw"` tween writes it. Reason: every `Follow` shorthand is one double, and every value-bound draw in the sample starts at 0; `RotateX`/`RotateY` stay out because they need `Perspective` beside them. Rejected: a start/end pair.
 - **The core owns the cell, the bridge owns the sources.** See CORE-MOTIONVALUE.
+- **Pointer proximity and offset are tracked over the `TopLevel` by default, with an optional `over` surface.** Reason: proximity only means something while the pointer is outside the control; `over` limits the effect to a stage or card. `over` is an `InputElement`, since a plain `Visual` cannot take pointer handlers. A control not yet attached resolves its `TopLevel` on first attach, so values can be made in a constructor. Rejected: listening on the control (BRIDGE-FOLLOW-050's shape), which is blind until the pointer arrives.
+- **The surface listens with a tunnel handler and `handledEventsToo`.** Reason: buttons, text boxes and a capturing `Draggable` mark pointer events handled, and the effect must keep tracking over them.
+- **One shared tracker per surface.** All pointer proximity and offset values over one surface share one set of handlers held in a private attached value. Reason: a split wordmark makes one value per letter, and N handlers per move would cost N event dispatches.
+- **Measure the layout slot, not the rendered position.** `Bounds` is translated through the control's visual parent, so ancestors' transforms count and the control's own does not. Reason: the value usually drives the element's own transform, and measuring the transformed position feeds the pull back into itself.
+- **Re-measure on the surface's `LayoutUpdated`, not each control's `EffectiveViewportChanged`.** Measured with 30 letter-sized `TextBlock`s, each with a value, in a headless window: `EffectiveViewportChanged` added ~50 µs and ~1.4 KB (its event args, per letter) to every layout pass that moved them, whether or not the pointer was present; one `LayoutUpdated` handler added nothing while the pointer was absent and ~32 µs and ~90 B with it present. Reason: a list scrolling or relaying out under a resting pointer must update proximity, and the pointer is absent most of the time.
+- **With `over`, a pointer value lives as long as its surface, not its control.** Reason: a `TextBlock` clears and re-adds its inline children on every arrange, so a split text piece detaches and reattaches in one call, which stopped every per-letter value of the Typography wordmark on its first layout pass. Without `over` the control's detach still ends the value, so values over the `TopLevel` for removed list items do not pile up until the window closes. Rejected: deferring the stop until the control has stayed detached past a layout pass, which would also change `ScrollValue`, `PointerValue` and `ValueOf`.
+- **An absent pointer reads 0 on both values.** Reason: 0 is rest for every intended use (no pull, no swell), and returning to rest is the effect's leave behavior. Rejected: holding the last value, which would leave a magnet stuck when the pointer leaves the window.
+- **Touch counts only while the contact is down; mouse and pen count while hovering; the last-moved pointer wins.** Reason: touch has no hover, and a lifted finger would otherwise freeze a pull in place; following one pointer keeps every value over a surface consistent.
+- **Edge distance by default, `fromCenter` as an opt-in `bool`.** Reason: for a wide button, edge distance makes the whole perimeter equally sensitive, while center distance suits small dots and letters; a `bool` matches `ScrollValue`'s `progress` and `PointerValue`'s `relativeToBounds`.
+- **Pointer proximity keeps tracking a pointer captured elsewhere.** A `Draggable` drag elsewhere still drives the values, since its moves still tunnel through the surface; relaxing them during another element's drag is not built.
 
 ## Non-goals
 

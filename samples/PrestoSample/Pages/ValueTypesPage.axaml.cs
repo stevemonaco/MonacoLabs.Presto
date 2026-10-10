@@ -4,9 +4,8 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.Values;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Values;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;

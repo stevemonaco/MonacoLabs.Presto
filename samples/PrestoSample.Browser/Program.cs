@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Browser;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample;
 
 internal sealed partial class Program

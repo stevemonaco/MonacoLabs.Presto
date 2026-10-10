@@ -4,9 +4,10 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Text;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Text;
 using PrestoSample.Showcase.Pages;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace PrestoSample.Tests;
 
@@ -59,6 +60,53 @@ public sealed class TypographyPageTests
         TestFrames.Tick(95);
 
         foreach (var letter in letters) Assert.InRange(Y(letter), -0.5, 0.5);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void BulgeMagnifiesTheOutlinesNearThePointerAndRestoresThemOnLeaveAndSwitchingBackRevertsIt()
+    {
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
+        var wordmark = page.GetControl<TextBlock>("Wordmark");
+        page.GetControl<ComboBox>("WordmarkMode").SelectedIndex = 1;
+        TestFrames.Tick(2);
+        var pieces = Outlines(wordmark);
+        var shapes = pieces.Select(piece => piece.Data!.Bounds).ToArray();
+
+        window.MouseMove(SceneHarness.Center(pieces[2], window));
+        TestFrames.Tick(30);
+        Assert.Equal(TextWarpKind.Bulge, TextWarp.GetKind(wordmark));
+        Assert.NotEqual(shapes[2], pieces[2].Data!.Bounds);
+
+        window.MouseMove(new Point(1, 1));
+        TestFrames.Tick(40);
+        Assert.Equal(shapes, pieces.Select(piece => piece.Data!.Bounds));
+
+        page.GetControl<ComboBox>("WordmarkMode").SelectedIndex = 0;
+        TestFrames.Tick(2);
+        Assert.Empty(Outlines(wordmark));
+        Assert.Equal(6, WordmarkLetters(page).Length);
+        Assert.False(wordmark.IsSet(TextWarp.KindProperty));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void UnderReducedMotionTheBulgeKeepsTheWordmarkStraight()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
+        page.GetControl<ComboBox>("WordmarkMode").SelectedIndex = 1;
+        TestFrames.Tick(2);
+        var pieces = Outlines(page.GetControl<TextBlock>("Wordmark"));
+        var shapes = pieces.Select(piece => piece.Data!.Bounds).ToArray();
+
+        window.MouseMove(SceneHarness.Center(pieces[2], window));
+        TestFrames.Tick(30);
+
+        Assert.NotEmpty(pieces);
+        Assert.Equal(shapes, pieces.Select(piece => piece.Data!.Bounds));
         SceneHarness.Close(window);
     }
 
@@ -223,6 +271,8 @@ public sealed class TypographyPageTests
 
     private static Control[] WordmarkLetters(TypographyPage page) =>
         [.. page.GetControl<TextBlock>("Wordmark").GetVisualDescendants().OfType<TextBlock>().Where(text => text.Text?.Length == 1)];
+
+    private static Path[] Outlines(TextBlock wordmark) => [.. wordmark.GetVisualDescendants().OfType<Path>()];
 
     private static Canvas[] GhostHosts(Window window) => [.. OverlayLayer.GetOverlayLayer(window)!.Children.OfType<Canvas>()];
 

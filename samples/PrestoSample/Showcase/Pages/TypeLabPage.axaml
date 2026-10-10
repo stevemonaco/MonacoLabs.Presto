@@ -1,0 +1,141 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoSample.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoSample.Showcase.Pages.TypeLabPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Ellipse.handle">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Fill" Value="{x:Static showcase:Palette.Amber}" />
+            <Setter Property="Cursor" Value="SizeAll" />
+        </Style>
+
+        <Style Selector="Line.arm">
+            <Setter Property="Stroke" Value="{x:Static showcase:Palette.Amber}" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeDashArray" Value="4,3" />
+        </Style>
+
+        <Style Selector="TextBlock.wave">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+            <Setter Property="FontSize" Value="64" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="TextBlock.elastic TextBlock">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Border x:Name="PathSection" Classes="stage">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                        <TextBlock Classes="eyebrow showcase" Text="TEXT ON A PATH · DRAG THE HANDLES"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="MorphButton" Grid.Column="1" Content="Morph" Click="Morph" />
+                        <ToggleButton x:Name="FlowToggle" Grid.Column="2" Content="Flow" Click="Flow" />
+                    </Grid>
+                    <Canvas x:Name="PathStage" Width="640" Height="260" HorizontalAlignment="Center">
+                        <!-- snippet: TypeLabRibbon -->
+                        <Path x:Name="Curve" Stroke="{x:Static showcase:Palette.AccentDim}" StrokeThickness="2" />
+                        <TextBlock x:Name="Ribbon" Text="TYPE THAT RIDES THE CURVE"
+                                   FontFamily="{StaticResource DisplayFont}" FontSize="30" FontWeight="Bold"
+                                   Foreground="{x:Static showcase:Palette.AccentPale}"
+                                   presto:TextPath.Path="{Binding #Curve}"
+                                   presto:TextPath.Offset="0.5" presto:TextPath.Align="Center" presto:TextPath.Shift="8" />
+                        <!-- /snippet -->
+                        <Canvas x:Name="Handles">
+                            <Line x:Name="StartArm" Classes="arm" />
+                            <Line x:Name="EndArm" Classes="arm" />
+                            <Ellipse Classes="handle" PointerPressed="GrabHandle" PointerMoved="DragHandle" PointerReleased="DropHandle" />
+                            <Ellipse Classes="handle" PointerPressed="GrabHandle" PointerMoved="DragHandle" PointerReleased="DropHandle" />
+                            <Ellipse Classes="handle" PointerPressed="GrabHandle" PointerMoved="DragHandle" PointerReleased="DropHandle" />
+                            <Ellipse Classes="handle" PointerPressed="GrabHandle" PointerMoved="DragHandle" PointerReleased="DropHandle" />
+                        </Canvas>
+                    </Canvas>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="WaveSection" Classes="stage">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="WAVES · OUTLINE STROKE, SQUASH, SKEW AND TRACKING, STAGGERED" />
+                    <TextBlock x:Name="WeightLine" Classes="wave" Text="Faux weight" FontWeight="Light" />
+                    <TextBlock x:Name="SquashLine" Classes="wave" Text="Squash &amp; stretch" FontWeight="Bold"
+                               Foreground="{x:Static showcase:Palette.Aqua}" />
+                    <TextBlock x:Name="ObliqueLine" Classes="wave" Text="Oblique wave" FontWeight="SemiBold"
+                               Foreground="{x:Static showcase:Palette.Amber}" />
+                    <TextBlock x:Name="TrackingLine" Classes="wave" Text="TRACKING" FontWeight="Black"
+                               Foreground="{x:Static showcase:Palette.Coral}" />
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="ShatterSection" Classes="stage">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
+                        <TextBlock Classes="eyebrow showcase" Text="SHATTER · CLICK THE WORD (RECIPES.MORPHTEXT)"
+                                   VerticalAlignment="Center" />
+                        <ToggleSwitch x:Name="ExplodeToggle" Grid.Column="1" IsChecked="True"
+                                      OnContent="Explode" OffContent="Plain" />
+                        <ToggleSwitch x:Name="ShardsToggle" Grid.Column="2" IsChecked="True"
+                                      OnContent="Vector shards" OffContent="Bitmap ghosts" />
+                        <ToggleSwitch x:Name="ShapeToggle" Grid.Column="3"
+                                      OnContent="Shape morph" OffContent="Letters fly" />
+                    </Grid>
+                    <Border Background="Transparent" Cursor="Hand" Height="140" Tapped="Shatter">
+                        <TextBlock x:Name="ShatterWord" Text="SHATTER" FontFamily="{StaticResource DisplayFont}"
+                                   FontSize="96" FontWeight="Black" Foreground="{x:Static showcase:Palette.Coral}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="DeparturesSection" Classes="stage">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="eyebrow showcase" Text="DEPARTURES · SPLITFLAP" />
+                    <StackPanel x:Name="Board" Spacing="6" HorizontalAlignment="Center">
+                        <StackPanel.Styles>
+                            <!-- snippet: TypeLabBoard -->
+                            <Style Selector="presto|SplitFlap">
+                                <Setter Property="Cells" Value="23" />
+                                <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+                                <Setter Property="FontSize" Value="20" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                                <Setter Property="Foreground" Value="{x:Static showcase:Palette.Amber}" />
+                                <Setter Property="CellBackground" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+                                <Setter Property="CornerRadius" Value="3" />
+                            </Style>
+                            <!-- /snippet -->
+                        </StackPanel.Styles>
+                        <presto:SplitFlap />
+                        <presto:SplitFlap />
+                        <presto:SplitFlap />
+                        <presto:SplitFlap />
+                        <presto:SplitFlap />
+                        <presto:SplitFlap />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="ElasticSection" Classes="stage">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="ELASTIC LETTERS · DRAG ONE, ITS NEIGHBORS FOLLOW ON A SPRING CHAIN" />
+                    <Panel Height="180">
+                        <Panel x:Name="ElasticProxies" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        <TextBlock x:Name="ElasticWord" Classes="elastic" Text="Elastic" FontFamily="{StaticResource DisplayFont}"
+                                   FontSize="104" FontWeight="Black" Foreground="{x:Static showcase:Palette.Lime}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Panel>
+                </StackPanel>
+            </Border>
+
+            <showcase:CodeTabs x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

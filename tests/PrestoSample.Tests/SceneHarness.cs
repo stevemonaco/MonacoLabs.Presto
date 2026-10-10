@@ -9,9 +9,9 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Platform;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
-using Monaco.Presto.AvaloniaBridge.Tests;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
+using MonacoLabs.Presto.Tests;
 
 namespace PrestoSample.Tests;
 
@@ -83,6 +83,13 @@ internal static class SceneHarness
 
     /// <summary>The number a readout is showing.</summary>
     public static double Number(TextBlock text) => double.Parse(text.Text!, CultureInfo.InvariantCulture);
+
+    /// <summary>Asserts <paramref name="block"/> shows <paramref name="text"/> unsplit, as a text recipe leaves it when it ends.</summary>
+    public static void AssertPlain(TextBlock block, string text)
+    {
+        Assert.Equal(text, block.Text);
+        Assert.True(block.Inlines is null or [], $"{block.Name} is still split");
+    }
 
     public static IEnumerable<Border> Cards(Visual page) =>
         page.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("card"));

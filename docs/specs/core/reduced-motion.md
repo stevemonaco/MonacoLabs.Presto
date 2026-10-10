@@ -1,14 +1,14 @@
 ---
 id: CORE-REDUCED
 title: Reduced motion
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/PrestoDefaults.cs
-  - Monaco.Presto/AnimationBuilder.cs
-  - Monaco.Presto/AnimationParams.cs
-  - Monaco.Presto/Animation.cs
+  - MonacoLabs.Presto/PrestoDefaults.cs
+  - MonacoLabs.Presto/AnimationBuilder.cs
+  - MonacoLabs.Presto/AnimationParams.cs
+  - MonacoLabs.Presto/Animation.cs
 types: []
 tests:
   - ReducedMotionTests

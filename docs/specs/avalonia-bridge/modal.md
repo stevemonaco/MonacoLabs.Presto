@@ -1,12 +1,12 @@
 ---
 id: BRIDGE-MODAL
 title: Modal host
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/Modal.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/Dismissal.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Modal.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Dismissal.cs
 types:
   - Modal
 tests:

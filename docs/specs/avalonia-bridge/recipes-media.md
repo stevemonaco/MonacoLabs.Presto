@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-RECIPES-MEDIA
 title: Media recipes (draws, particles, sprites, tints)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Prebuilt
+  - MonacoLabs.Presto.Prebuilt
 sources:
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Draws.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Particles.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Sprites.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Tints.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Draws.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Particles.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Sprites.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Tints.cs
 types:
   - Draws
   - Particles
@@ -81,8 +81,8 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 
 ### Tints
 
-- **BRIDGE-RECIPES-MEDIA-016** — `Recolor` shall animate `property` (default `"Background"`) from each element's current color, read when the animation starts, to `to`, along the `PrestoColor.Mix` path in `space ?? Tokens.ColorSpace` with `hue ?? Tokens.Hue`, expanded by `TweenKeyframesBuilder.Color` over `Medium` with `Ease`, ending exactly on `to`.
-  - Tests: `RecipeTests.RecolorFollowsTheTokensSpaceFromTheCurrentBackgroundAndEndsExactly`
+- **BRIDGE-RECIPES-MEDIA-016** — `Recolor` shall animate `property` (`Background` when null) from each element's current color, read when the animation starts, to `to`, along the `PrestoColor.Mix` path in `space ?? Tokens.ColorSpace` with `hue ?? Tokens.Hue`, expanded by `TweenKeyframesBuilder.Color` over `Medium` with `Ease`, ending exactly on `to`.
+  - Tests: `RecipeTests.RecolorFollowsTheTokensSpaceFromTheCurrentBackgroundAndEndsExactly`, `RecipeTests.RecolorAnimatesBackgroundWithoutAPropertyAndAnExplicitKeyOtherwise`
 - **BRIDGE-RECIPES-MEDIA-017** (inherited) — When resolving the start color, `Recolor` shall use a solid brush's color with its alpha multiplied by the brush opacity, a `Color` property's value, and transparent for anything else.
   - Tests: `RecipeTests.RecolorStartsEachElementFromItsOwnColorAndStaggers`
 - **BRIDGE-RECIPES-MEDIA-018** — `Recolor` shall be the same while `ReducedMotion` is set, since a color change is not motion.
@@ -129,6 +129,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 ## Decisions
 
 - **`ColorSpace` and `Hue` are trailing optional parameters.** See BRIDGE-TOKENS.
+- **`Recolor` takes a nullable key, null meaning `Background`.** Its `property` is a `PropertyKey?` defaulting to null, and `RecolorExtension` keeps its string `Property`, which converts. Reason: a struct parameter cannot default to a string constant, and a key parameter takes `PrestoKeys.Of(...)` as well as a name.
 - **`Play` and `PlayFrames` are thin wrappers.** See BRIDGE-FRAMES.
 - **Reduced playback holds frame 0.** See BRIDGE-FRAMES.
 

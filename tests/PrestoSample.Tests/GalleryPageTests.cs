@@ -1,8 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 using PrestoSample.ViewModels;
 using PrestoSample.Views;
@@ -14,7 +13,7 @@ public sealed class GalleryPageTests
 {
     private static readonly IReadOnlyList<GalleryPage> Pages = [.. new MainViewModel().Sections.SelectMany(section => section.Pages)];
 
-    // Keep in step with the motion tooltip in MainView.axaml.
+    // Keep in step with the motion tooltip in GalleryNav.axaml.
     private static readonly string[] PlaysInFullWhenReduced = ["Loaders", "Particle field", "Stress bench", "DevTools", "Compositor", "Properties and keyframes"];
 
     /// <summary>Every page of every section in both motion modes: pages added to <see cref="MainViewModel.Sections"/> are covered without a change here.</summary>
@@ -54,7 +53,7 @@ public sealed class GalleryPageTests
         Assert.True(reverted);
     }
 
-    private static bool LoopsForever(Monaco.Presto.Timer? timer)
+    private static bool LoopsForever(MonacoLabs.Presto.Timer? timer)
     {
         for (; timer != null; timer = timer.Parent)
         {

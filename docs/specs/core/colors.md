@@ -1,17 +1,17 @@
 ---
 id: CORE-COLORS
 title: Colors and color spaces
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto.Values
+  - MonacoLabs.Presto.Values
 sources:
-  - Monaco.Presto/Values/PrestoColor.cs
-  - Monaco.Presto/Values/ColorConversions.cs
-  - Monaco.Presto/Values/ColorSpace.cs
-  - Monaco.Presto/Values/HueInterpolation.cs
-  - Monaco.Presto/Values/OklabColor.cs
-  - Monaco.Presto/Values/OklchColor.cs
-  - Monaco.Presto/Core/Renderer.cs
+  - MonacoLabs.Presto/Values/PrestoColor.cs
+  - MonacoLabs.Presto/Values/ColorConversions.cs
+  - MonacoLabs.Presto/Values/ColorSpace.cs
+  - MonacoLabs.Presto/Values/HueInterpolation.cs
+  - MonacoLabs.Presto/Values/OklabColor.cs
+  - MonacoLabs.Presto/Values/OklchColor.cs
+  - MonacoLabs.Presto/Core/Renderer.cs
 types:
   - PrestoColor
   - OklabColor

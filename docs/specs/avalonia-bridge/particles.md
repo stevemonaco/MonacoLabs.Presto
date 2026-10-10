@@ -1,24 +1,30 @@
 ---
 id: BRIDGE-PARTICLES
 title: Particle drawing and particle effects
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Compositor
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Compositor
 sources:
-  - Monaco.Presto.AvaloniaBridge/Compositor/ParticleScene.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/ParticleShape.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/ParticleOverlay.cs
-  - Monaco.Presto.AvaloniaBridge/ParticleEffect.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Particles.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleScene.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleFormation.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/FormationTransition.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleShape.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleOverlay.cs
+  - MonacoLabs.Presto.Avalonia/ParticleEffect.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Particles.cs
+  - MonacoLabs.Presto.Avalonia/RecipesGlyphs.cs
 types:
   - ParticleScene
+  - ParticleFormation
+  - FormationTransition
   - ParticleShape
   - ParticleEffect
 tests:
   - ParticleSceneTests
+  - ParticleFormationTests
   - ParticleRecipeTests
-  - AllocationTests
+  - BridgeAllocationTests
   - ReferencePagesTests
   - BuilderRecipePagesTests
   - MicroInteractionsPageTests
@@ -31,13 +37,14 @@ depends:
   - BRIDGE-TOKENS
   - CORE-REDUCED
   - CORE-CALLBACKS
+  - BRIDGE-GLYPHS
 ---
 
 # Particle drawing and particle effects
 
 ## Purpose
 
-`ParticleScene` is a `CompositorScene` (BRIDGE-SCENES) that steps any number of core `ParticleSystem`s (CORE-PARTICLES, which owns the simulation, emitter parameters and the per-system cap) and draws their particles on the render thread as one of the `ParticleShape`s. The recipes `Recipes.Confetti`, `Sparkles` and `Burst` (BRIDGE-RECIPES owns their facade) emit into one overlay scene per window and return a `ParticleEffect` handle that can be stopped, paused, canceled and awaited. Under reduced motion they spawn nothing. Also specifies `Recipes.Confetti`, `Recipes.Sparkles` and `Recipes.Burst`, and their copies on `Prebuilt.Particles`.
+`ParticleScene` is a `CompositorScene` (BRIDGE-SCENES) that steps any number of core `ParticleSystem`s (CORE-PARTICLES, which owns the simulation, emitter parameters and the per-system cap) and draws their particles on the render thread as one of the `ParticleShape`s. It also holds `ParticleFormation`s: particles that each spring towards a point of their own, can be pushed by a repel point and retargeted to new points, so together they draw a shape such as text. The recipes `Recipes.Confetti`, `Sparkles` and `Burst` (BRIDGE-RECIPES owns their facade) emit into one overlay scene per window, and `Recipes.Disintegrate` and `Assemble` blow a text block's letters away as a formation or gather them back; each returns a `ParticleEffect` handle that can be stopped, paused, canceled and awaited. Under reduced motion they spawn nothing. Also specifies `Recipes.Confetti`, `Recipes.Sparkles`, `Recipes.Burst`, `Recipes.Disintegrate` and `Recipes.Assemble`, and the copies of the first three on `Prebuilt.Particles`.
 
 ## Requirements
 
@@ -87,7 +94,7 @@ depends:
   - Tests: `ParticleRecipeTests.OneOverlayIsSharedPerWindowAndRemovedOnceIdle`
 - **BRIDGE-PARTICLES-019** — When the overlay's last running system finishes, the overlay shall be removed one second later, unless another effect starts in that window first.
   - Tests: `ParticleRecipeTests.OneOverlayIsSharedPerWindowAndRemovedOnceIdle`
-- **BRIDGE-PARTICLES-020** — When the anchor is not in a top level with an overlay layer, a recipe shall emit nothing, play nothing on the anchor, and return an effect that is already complete.
+- **BRIDGE-PARTICLES-020** — When the anchor is not in a top level with an overlay layer, `Confetti`, `Sparkles` and `Burst` shall emit nothing, play nothing on the anchor, and return an effect that is already complete.
   - Tests: untested
 
 ### Recipes
@@ -129,15 +136,56 @@ depends:
 - **BRIDGE-PARTICLES-035** — When `count` is not given, `Burst` shall emit 24 particles.
   - Tests: untested
 
+### Formations
+
+- **BRIDGE-PARTICLES-036** — `AddFormation(points, color, size)` shall place one particle on each point, in canvas coordinates, until the scene holds `MaxLive` live particles; the points left over get none.
+  - Tests: `ParticleFormationTests.AFormationSpringsOntoItsPointsAndDrawsThere`, `ParticleFormationTests.FormationsCountAgainstTheSceneCap`
+- **BRIDGE-PARTICLES-037** — Each frame, every particle of a formation shall accelerate towards its point by `0.0004 × s² × displacement − 0.028 × s × velocity` (DIPs and ms), where `s` is 400 divided by the formation's `Duration`, integrated in steps of at most 16 ms over a frame time capped at 100 ms.
+  - Tests: `ParticleFormationTests.AFormationSpringsOntoItsPointsAndDrawsThere`, `ParticleFormationTests.DurationScalesTheSpringInTime`
+- **BRIDGE-PARTICLES-048** — A formation's `Duration` shall default to 400, and setting it to 0 or less shall throw `ArgumentOutOfRangeException`.
+  - Tests: `ParticleFormationTests.DurationScalesTheSpringInTime`
+- **BRIDGE-PARTICLES-038** — While `Repel` is set, a particle closer to it than `RepelRadius` (default 80) shall also accelerate away from it by `0.04 × (1 − distance / RepelRadius)` DIP/ms²; particles farther away shall not be pushed.
+  - Tests: `ParticleFormationTests.ARepelPointPushesOnlyTheParticlesWithinItsRadius`
+- **BRIDGE-PARTICLES-039** — `Retarget(points, transition)` shall give each point, in order, a particle not yet given one and not fading out: the nearest one, or with `Swarm` the next in a shuffle of those particles seeded with 0; each point left over shall spawn a particle on itself that fades in over 300 ms, until the scene holds `MaxLive`, and each particle left over shall fade out over 300 ms and be removed at opacity 0.
+  - Tests: `ParticleFormationTests.RetargetPairsNearestAndSpawnsOrFadesTheDifference`, `ParticleFormationTests.FormationsCountAgainstTheSceneCap`, `ParticleFormationTests.RetargetPairsAsAFullNearestScanWouldWithTiesToTheLowerIndex`, `ParticleFormationTests.SwarmPairsBySeededShuffleRatherThanDistance`
+- **BRIDGE-PARTICLES-049** — With `Sweep`, `Retarget` shall hold each particle's spring and fade for `0.6 × Duration` times its distance from the formation's leftmost particle as a share of the formation's width.
+  - Tests: `ParticleFormationTests.SweepSetsParticlesOffLeftToRight`
+- **BRIDGE-PARTICLES-050** — With `Burst`, `Retarget` shall add to each particle a velocity away from the formation's mean position of `0.35 × the formation's larger side × √stiffness`, scaled per particle between 0.6 and 1.4.
+  - Tests: `ParticleFormationTests.BurstThrowsEveryParticleOutwardBeforeItGathers`
+- **BRIDGE-PARTICLES-051** — When `transition` is not given, `Retarget` shall pair as `Nearest`.
+  - Tests: `ParticleFormationTests.RetargetPairsNearestAndSpawnsOrFadesTheDifference`
+- **BRIDGE-PARTICLES-040** — A formation's particles shall count towards `Live` and `MaxLive`, for systems' spawns as for the formation's own.
+  - Tests: `ParticleFormationTests.FormationsCountAgainstTheSceneCap`
+- **BRIDGE-PARTICLES-041** — The scene shall draw each formation particle as a square of the formation's `size` centered on the particle, in its color at its opacity, and shall drop a formation once it holds no particle.
+  - Tests: `ParticleFormationTests.AFormationSpringsOntoItsPointsAndDrawsThere`, `ParticleFormationTests.RetargetPairsNearestAndSpawnsOrFadesTheDifference`
+
+### Text particles
+
+- **BRIDGE-PARTICLES-042** — `Disintegrate(block)` and `Assemble(block)` shall sample each character's outline (as `PrestoAvalonia.GlyphOutline` reads it) with `GlyphPoints.Sample(outline, max(2, FontSize / 24), Fill, index)` (BRIDGE-GLYPHS) at the character's slot, in top-level coordinates, set the block's `Opacity` to 0 at once, and add a formation of those points to the window's overlay, colored as the block's `Foreground` (black when it is not a solid color) with particles as wide as the spacing.
+  - Tests: `ParticleFormationTests.DisintegrateHidesTheBlockAndBlowsItsFillPointsAway`, `ParticleFormationTests.AssembleConvergesOnTheLettersThenShowsTheBlock`
+- **BRIDGE-PARTICLES-043** — `Disintegrate` shall release its particles from their points left to right over the first half of twice `Tokens.Long`; a released particle shall drift at (0.12, −0.06) DIP/ms, each axis scaled per particle between 0.5 and 1.5, pushed by a turbulence field of 0.0008 DIP/ms², and fade out over the second half; the effect shall complete once the last has faded, leaving the block at `Opacity` 0.
+  - Tests: `ParticleFormationTests.DisintegrateHidesTheBlockAndBlowsItsFillPointsAway`
+- **BRIDGE-PARTICLES-044** — `Assemble` shall start each particle away from its point along the drift by `Tokens.Long` to twice that, plus up to `Tokens.Distance` either way on each axis, drawn from seed 0, fading in over 300 ms; once every particle is opaque, within 0.5 DIP of its point and slower than 0.02 DIP/ms, the block shall fade to `Opacity` 1 over 300 ms with `Tokens.Ease` while the particles fade out, and the effect shall complete once they have.
+  - Tests: `ParticleFormationTests.AssembleConvergesOnTheLettersThenShowsTheBlock`
+- **BRIDGE-PARTICLES-045** — When `ReducedMotion` is set as `Disintegrate` or `Assemble` is called, or the block has no overlay layer, it shall spawn nothing, create no overlay and return an effect that is already complete, and `Disintegrate` shall fade the block's `Opacity` to 0, `Assemble` from 0 to 1, over `Tokens.Short` with `Tokens.Ease`.
+  - Tests: `ParticleFormationTests.ReducedTheBlockFadesAndNothingSpawns`
+- **BRIDGE-PARTICLES-046** — On an effect holding a formation, `Cancel()` and `Revert()` shall remove its particles, `Pause()` and `Resume()` shall freeze and continue it, and `Stop()` shall do nothing.
+  - Tests: untested
+- **BRIDGE-PARTICLES-047** — When `Disintegrate` or `Assemble` is called on a block whose previous `Disintegrate` or `Assemble` effect is still running, it shall cancel that effect first, so its particles are removed, its `Then()` completes and it no longer changes the block's `Opacity`.
+  - Tests: `ParticleFormationTests.StartingAgainMidEffectCancelsTheFirst`
+
 ## Invariants
 
-- A scene's live count never exceeds `MaxLive`, and each system's never exceeds its `MaxParticles` (CORE-PARTICLES).
-- Systems are touched only on the render thread; `ParticleEffect` reaches them through `CompositorCanvas.Invoke`.
+- A scene's live count, formations included, never exceeds `MaxLive`, and each system's never exceeds its `MaxParticles` (CORE-PARTICLES).
+- Systems and formations are touched only on the render thread; `ParticleEffect` reaches them through `CompositorCanvas.Invoke`.
 - An overlay exists for a window exactly while some effect in it is running or within the idle second after the last one finished.
 
 ## Edge cases
 
-- `Add` and `Live` belong to the render thread: call `Add` from a scene callback or `CompositorCanvas.Invoke`; reading `Live` from the UI thread races.
+- `Add`, `AddFormation`, `Live` and every member of a `ParticleFormation` belong to the render thread: call them from a scene callback or `CompositorCanvas.Invoke`; reading them from the UI thread races.
+- `Retarget` finds each point's particle through a grid of cells about two particles wide, searched outward from the point, so retargeting thousands of particles costs a few milliseconds on the render thread once; points far from every remaining particle search more cells.
+- A character with no outline, such as an emoji, spawns no particles in `Disintegrate` or `Assemble`; it disappears with the block and comes back with it.
+- Canceling a `Disintegrate` or `Assemble` effect removes its particles but leaves the block at `Opacity` 0.
 - Under reduced motion the `reduced` builder plays even when the anchor is outside a window; outside reduced motion such an anchor plays nothing.
 - The overlay's offset from the top level is measured once, when it is created.
 - `Glyph` particles are about two orders of magnitude slower to draw than the other shapes; keep them to a few dozen live particles.
@@ -149,12 +197,14 @@ depends:
 
 ## Reduced motion
 
-- The recipes spawn nothing and play their `reduced` builder on the anchor (BRIDGE-PARTICLES-025). A hand-built `ParticleScene` is the app's own drawing and is not affected by `ReducedMotion` or `ReduceAll`, as plain timers are not (Reduced motion emits nothing; hand-built scenes are exempt).
+- The recipes spawn nothing and play their `reduced` builder on the anchor (BRIDGE-PARTICLES-025); `Disintegrate` and `Assemble` fade the block out or in (BRIDGE-PARTICLES-045). A hand-built `ParticleScene` is the app's own drawing and is not affected by `ReducedMotion` or `ReduceAll`, as plain timers are not (Reduced motion emits nothing; hand-built scenes are exempt).
 
 ## Allocation
 
 - Drawing a scene of 500 live particles allocates nothing per frame once the brush cache is warm; stepping them allocates nothing (CORE-PARTICLES).
-  - Pinned by `AllocationTests.AParticleSceneOf500DrawsWithoutAllocating`.
+  - Pinned by `BridgeAllocationTests.AParticleSceneOf500DrawsWithoutAllocating`.
+- Stepping and drawing a formation of 500 particles pushed by a repel point allocates nothing per frame; `AddFormation` and `Retarget` allocate their buffers once.
+  - Pinned by `BridgeAllocationTests.AFormationOf500StepsAndDrawsWithoutAllocating`.
 
 ## Deviations from anime.js
 
@@ -170,6 +220,12 @@ depends:
 - **Particles are not seekable; pause is per effect.** A particle simulation cannot be sought or reversed; `ParticleEffect` pauses and resumes through an internal flag on each of its systems, and a seeded burst can be replayed from the start. Reason: a simulation stepped by `dt` has no seekable timeline, and per-system pause keeps other effects in the same shared overlay running. Earlier, pause went through the effect's timer; replaced because one timer steps the whole overlay.
 - **No XAML emitter surface.** Continuous emission is code plus `Recipes.Sparkles`. Reason: not recorded. Rejected: an attached `Particles.Emitter` started while attached or hovered.
 - **Simulation in the core, drawing in the bridge.** See CORE-PARTICLES.
+- **Particle text is a formation in `ParticleScene`.** Text sampled into points is drawn by the render-thread scene as one `ParticleFormation` per call. Reason: thousands of points need the render-thread scene, which the Particle field showcase already shows holding thousands of positioned particles. Rejected: one control per point.
+- **Formation particles are the scene's own buffer, not core particles.** A `ParticleFormation` keeps its particles in an array of its own, stepped and drawn by the scene beside its systems and counted against the same `MaxLive`. Reason: a core particle is emitted with a lifetime and has no point to return to, and the core does not change for a bridge feature; a separate buffer keeps the spring step allocation-free. Rejected: adding targets to `ParticleSystem`.
+- **Formation springs are slightly underdamped and scaled in time by `Duration`.** At the default `Duration` of 400, stiffness 0.0004 /ms² and damping 0.028 /ms (a damping ratio of 0.7, settling in about 400 ms from 150 DIPs); another `Duration` scales stiffness by the square and damping by the ratio, which keeps the damping ratio and the shape of the motion. The 0.04 DIP/ms² repel push is not scaled, and steps are at most 16 ms. Reason: a light overshoot reads as particles landing rather than sliding, and one time knob is what a page needs (the Particle type page has a duration slider); a push of 0.04 moves a particle under the repel point about half the default radius; capped steps keep the explicit integration stable after a slow frame. Rejected: separate stiffness and damping options, which let a caller lose the landing feel.
+- **Transitions change how particles are paired or set off, not the spring.** `Nearest` is the least travel; `Sweep` and `Burst` keep nearest pairing and add a left-to-right hold or an outward throw; `Swarm` pairs by a fixed shuffle so particles cross the formation. Reason: nearest pairing already reads well, and the others are variations on one physics model, so spawns, fades, repel and settling behave the same in all four. Rejected: pairing by left-to-right rank for `Sweep`, which moves particles little more than nearest pairing.
+- **`Retarget` pairs greedily by nearest particle.** Each point in order takes the nearest free particle; spawned particles fade in on their point and surplus particles fade out where they head. Reason: simple, and close enough to the optimal assignment for word-to-word moves. Rejected: optimal assignment (Hungarian algorithm), cubic in the particle count.
+- **`Disintegrate` and `Assemble` return a `ParticleEffect`.** Reason: their particles are a render-thread simulation that cannot be sought or reversed, like the other particle recipes, and the effect is awaitable and cancelable as theirs is. Rejected: a `Timeline`, which would promise seeking. Their particles tile the letters: one per fill point at a spacing of `FontSize / 24` (at least 2 DIPs), as wide as the spacing, so a letter has about the same number of particles at any size. Their reduced form fades the block, since disintegrating is the explosive motion reduced motion opts out of.
 
 ## Non-goals
 
@@ -179,6 +235,8 @@ depends:
 
 ## Open items
 
-- Paused systems (BRIDGE-PARTICLES-008, -030), rotation and flutter (-011), color quantization (-013), `Glyph` validation (-015), an anchor outside a window (-020), edge confetti (-022), `Revert` (-029), calls after completion (-031) and awaiting (-032) have no test.
+- Paused systems (BRIDGE-PARTICLES-008, -030), rotation and flutter (-011), color quantization (-013), `Glyph` validation (-015), an anchor outside a window (-020), edge confetti (-022), `Revert` (-029), calls after completion (-031), awaiting (-032) and the handle's calls on a formation (-046) have no test.
 - The planned API listed `ParticleShape.Bitmap(IImage)`; the code takes a `Bitmap` (code wins).
-- manual — the 1 000 particle cap for Browser, Android and iOS is unmeasured; only desktop's 4 000 was measured on the Particles page.
+- manual — the 1 000 particle cap for Browser, Android and iOS is unmeasured; only desktop's 4 000 was measured on the Particles page. The Particle type page's frame rate on the Browser head is unmeasured too.
+- `ParticleScene.AddFormation` takes one color (no per-point color or gradient), and a formation's color cannot change after it is created, so the Particle type page uses a single color rather than a gradient by x and rebuilds the scene on a color change.
+- A formation over `MaxLive` gets particles for its first points only (BRIDGE-PARTICLES-036), and `GlyphPoints.Sample` orders fill points row by row, so the dropped points are the right end of the word's bottom rows: on the Desktop Particle type page, TYPE at the default spacing lost the bottom of its E. The page now samples coarser until the word fits; a formation could instead thin its points evenly.

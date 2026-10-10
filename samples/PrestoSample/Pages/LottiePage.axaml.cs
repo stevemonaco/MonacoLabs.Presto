@@ -2,9 +2,8 @@ using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Lottie;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Lottie;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;

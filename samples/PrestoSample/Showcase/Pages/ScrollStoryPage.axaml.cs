@@ -1,8 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Events;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Events;
+using static MonacoLabs.Presto.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 
@@ -66,7 +66,7 @@ public partial class ScrollStoryPage : ShowcasePage
 
         Watch("quote", Quote, new ScrollObserverParams { Sync = Eases.InOutQuad }).Link(Quote.Animate(new()
         {
-            ["X"] = TweenValue.FromTo(-70, 70),
+            [X] = TweenValue.FromTo(-70, 70),
             ["Opacity"] = TweenValue.FromTo(0, 1),
             Duration = ScrubDuration,
             Ease = Eases.None,
@@ -127,10 +127,10 @@ public partial class ScrollStoryPage : ShowcasePage
                 Autoplay = false,
                 Defaults = new DefaultsParams { Duration = ScrubDuration, Ease = Eases.None },
             })
-            .Add(PinStrip, new() { ["X"] = TweenValue.FromTo(0, -StripPan) }, 0)
+            .Add(PinStrip, new() { [X] = TweenValue.FromTo(0, -StripPan) }, 0)
             .Add(PinNumber, new()
             {
-                ["Text"] = new TweenParams { From = 0, To = 100, TextModifier = value => Utils.RoundPad(value, 0) },
+                [Text] = new TweenParams { From = 0, To = 100, TextModifier = value => Utils.RoundPad(value, 0) },
             }, 0);
         for (var i = 0; i < Steps.Length; i++) timeline.Label($"step{i + 1}", i * ScrubDuration / (Steps.Length - 1));
         return timeline;
