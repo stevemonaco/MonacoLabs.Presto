@@ -29,6 +29,10 @@ public sealed partial class FocusViewModel : ObservableObject
     [ObservableProperty]
     public partial string RemainingText { get; private set; } = "";
 
+    /// <summary>Whether the clock runs through its last ten seconds (<c>00:10</c> to <c>00:01</c>), when the ring pulses on each change of <see cref="RemainingText"/>.</summary>
+    [ObservableProperty]
+    public partial bool IsFinalCountdown { get; private set; }
+
     [ObservableProperty]
     public partial double Progress { get; private set; }
 
@@ -42,12 +46,23 @@ public sealed partial class FocusViewModel : ObservableObject
 
     public bool IsBreak => Mode != FocusMode.Focus;
 
+    /// <summary>What a press of start/pause does: "Start focus" or "Start break" idle, "Resume" paused, and empty while running, when the button is only the pause icon.</summary>
+    [ObservableProperty]
+    public partial string StartPauseLabel { get; private set; } = "";
+
     public string ModeLabel => Mode switch
     {
         FocusMode.ShortBreak => "Short break",
         FocusMode.LongBreak => "Long break",
         _ => "Focus",
     };
+
+    /// <summary>
+    /// The ring's <c>Connected.Key</c>, held only until the first page swap: a keyed ring would fly on every
+    /// Stats → Focus return and replay the intro's anchored fades.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? RingKey { get; set; } = "ring";
 
     /// <summary>The shell's <c>Motion.State</c> tokens: the mode, plus <c>Running</c> while the clock runs.</summary>
     public string MotionState => IsRunning ? $"{Mode} Running" : Mode.ToString();
@@ -99,10 +114,13 @@ public sealed partial class FocusViewModel : ObservableObject
         }
 
         var seconds = (int)Math.Ceiling(_clock.Remaining.TotalSeconds);
+        // Before RemainingText: the ring's pulse is on only while the flag is, so 00:10 pulses and the segment end does not.
+        IsFinalCountdown = _clock.IsRunning && seconds is >= 1 and <= 10;
         RemainingText = $"{seconds / 60:00}:{seconds % 60:00}";
         Progress = _clock.Progress;
         Mode = _clock.Mode;
         IsRunning = _clock.IsRunning;
+        StartPauseLabel = _clock.IsRunning ? "" : _clock.IsPaused ? "Resume" : IsBreak ? "Start break" : "Start focus";
         if (!IsFocusBound)
             ActiveTask = _selected;
     }

@@ -9,5 +9,6 @@ public sealed class TaskItem
     public int EstimateSessions { get; set; } = 1;
     public int CompletedSessions { get; set; }
     public bool IsDone { get; set; }
+    public TaskTag? Tag { get; set; }
     public DateTimeOffset Created { get; init; }
 }

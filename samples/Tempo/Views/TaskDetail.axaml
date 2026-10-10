@@ -14,6 +14,8 @@
                 <TextBlock Grid.Column="2" Text="{Binding Estimate}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 <Button Grid.Column="3" Classes="icon" Content="+" Command="{Binding IncreaseEstimateCommand}" />
             </Grid>
+            <TextBlock Classes="caption" Text="Tag" />
+            <ListBox x:Name="TagPicker" Classes="chips" ItemsSource="{x:Static vm:TaskItemViewModel.TagChoices}" SelectedIndex="{Binding TagIndex}" />
         </StackPanel>
     </Border>
 </UserControl>

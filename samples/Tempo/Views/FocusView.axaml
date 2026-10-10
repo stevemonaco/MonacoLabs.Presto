@@ -21,30 +21,38 @@
                         <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.RingBreathe}" />
                     </presto:MotionStates>
                 </presto:Motion.States>
-                <presto:ProgressRing x:Name="Ring" Classes="accent" Thickness="10" Track="{DynamicResource TempoLine}"
+                <presto:ProgressRing x:Name="Ring" Classes="accent" Classes.final="{Binding IsFinalCountdown}" Thickness="10" Track="{DynamicResource TempoLine}"
+                                     presto:Animate.Watch="{Binding RemainingText}"
                                      Value="{presto:Follow {Binding Progress}, Duration=250, Ease=linear}"
-                                     presto:Connected.Key="ring" presto:Connected.Motion="{x:Static m:TempoMotion.IntroFlight}" />
+                                     presto:Connected.Key="{Binding RingKey}" presto:Connected.Motion="{x:Static m:TempoMotion.IntroFlight}" />
             </Panel>
             <StackPanel Classes="handoff" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <presto:SplitFlap Classes="digits" Text="{Binding RemainingText}" Cells="5" Charset="9876543210" HorizontalAlignment="Center" />
+                <TextBlock x:Name="Digits" Classes="digits" HorizontalAlignment="Center" />
                 <TextBlock Classes="caption" Text="{Binding ActiveTask.Title, FallbackValue=''}" MaxWidth="200"
                            TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
             </StackPanel>
         </Panel>
 
         <StackPanel Grid.Row="2" Classes="handoff" Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
-            <Button Classes="icon" Command="{Binding SkipCommand}" VerticalAlignment="Center" ToolTip.Tip="Skip">
+            <Button Classes="icon" Command="{Binding SkipCommand}" VerticalAlignment="Center" ToolTip.Tip="Skip"
+                    presto:Motion.Hover="{x:Static m:TempoMotion.SkipNudge}">
                 <PathIcon Data="{StaticResource SkipIcon}" />
             </Button>
-            <Button Classes="hero accent-bg" Command="{Binding StartPauseCommand}" ToolTip.Tip="Start or pause (Space)"
-                    presto:Magnetic.Enabled="True" presto:Ripple.Enabled="True">
-                <Path x:Name="PlayPause" Classes="play" Data="{StaticResource PlayIcon}" />
-
-            </Button>
-            <Panel Width="40" Height="40" VerticalAlignment="Center" ToolTip.Tip="Hold to abandon">
+            <!-- The pill draws the accent so it eases with the resize; the button inside is laid out at its final size. -->
+            <Border x:Name="StartPause" Classes="hero accent-bg" presto:Animate.ContentSize="{x:Static m:TempoMotion.PillResize}"
+                    presto:Magnetic.Enabled="True">
+                <Button Classes="hero-face" Command="{Binding StartPauseCommand}" ToolTip.Tip="Start or pause (Space)"
+                        presto:Ripple.Enabled="True">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Path x:Name="PlayPause" Classes="play" Data="{StaticResource PlayIcon}" />
+                        <TextBlock x:Name="StartLabel" Classes="start-label" IsVisible="{Binding StartPauseLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                </Button>
+            </Border>
+            <Panel x:Name="AbandonHold" Width="40" Height="40" VerticalAlignment="Center" ToolTip.Tip="Hold to abandon">
                 <presto:ProgressRing Thickness="3" HoldDuration="900"
                                      Fill="{DynamicResource SemiColorDanger}" Track="{DynamicResource TempoLine}"
-                                     Confirmed="AbandonConfirmed" />
+                                     Confirmed="AbandonConfirmed" PointerCaptureLost="AbandonReleased" KeyUp="AbandonReleased" />
                 <PathIcon Classes="stop" Data="{StaticResource StopIcon}" IsHitTestVisible="False" />
             </Panel>
         </StackPanel>

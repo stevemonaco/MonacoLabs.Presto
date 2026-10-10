@@ -11,7 +11,7 @@
             <UniformGrid Rows="1" />
         </ItemsPanelTemplate>
     </UserControl.Resources>
-    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16" Margin="8">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="16" Margin="8">
         <TextBlock Classes="heading" Text="Stats" />
 
         <UniformGrid Grid.Row="1" Columns="3" ColumnSpacing="12">
@@ -42,29 +42,102 @@
             </Border>
         </UniformGrid>
 
-        <Border Grid.Row="2" Classes="card" VerticalAlignment="Top">
-            <StackPanel Spacing="12">
-                <TextBlock Classes="caption" Text="Last 7 days" />
-                <!-- No Panel inside a bar's template, so the bars share the grid's arrival batch and stagger. -->
-                <ItemsControl x:Name="Bars" ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}">
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" Text="Last 7 days" />
+                    <!-- No Panel inside a bar's template, so the bars share the grid's arrival batch and stagger. -->
+                    <ItemsControl x:Name="Bars" ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:StatsDay">
+                                <Border Height="{x:Static v:StatsView.ChartHeight}" Background="Transparent"
+                                        ToolTip.Tip="{Binding Minutes, StringFormat='{}{0} min'}">
+                                    <Border Classes="bar accent-bg" Height="{Binding Height, Converter={x:Static v:StatsView.BarHeight}}"
+                                            presto:Presence.Arrive="{x:Static m:TempoMotion.BarGrow}" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}" Margin="0,-6,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:StatsDay">
+                                <TextBlock Classes="caption" Text="{Binding Label}" HorizontalAlignment="Center" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Classes="card">
+                <Grid RowDefinitions="Auto,*" RowSpacing="12">
+                    <TextBlock Classes="caption" Text="Time by tag" VerticalAlignment="Center" />
+                    <ListBox x:Name="RangeSwitch" Classes="segmented range" HorizontalAlignment="Right" SelectedItem="{Binding Range}">
+                        <x:Static Member="vm:StatsRange.Today" />
+                        <x:Static Member="vm:StatsRange.Week" />
+                        <x:Static Member="vm:StatsRange.All" />
+                    </ListBox>
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="20" VerticalAlignment="Center">
+                        <Panel Classes="donut">
+                            <Ellipse Classes="donut-track" />
+                            <!-- Stacked, each segment drawn from the top over the ones before it: Follow.Draw only follows a "0 p" slice. -->
+                            <ItemsControl ItemsSource="{Binding Segments}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Panel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:DonutSegment">
+                                        <Ellipse Classes="donut-segment" Stroke="{Binding Tag, Converter={x:Static m:TempoMotion.TagBrush}}"
+                                                 presto:Follow.Timing="{x:Static m:TempoMotion.DonutMorph}" presto:Follow.Draw="{Binding End}"
+                                                 presto:Presence.Arrive="{x:Static m:TempoMotion.DonutDraw}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Panel>
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Segments}" VerticalAlignment="Center">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DonutSegment">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" Margin="0,1">
+                                        <Ellipse Classes="tag-dot" Fill="{Binding Tag, Converter={x:Static m:TempoMotion.TagBrush}}" />
+                                        <TextBlock Grid.Column="1" Classes="caption" Text="{Binding Label}" />
+                                        <TextBlock Grid.Column="2" Classes="caption" Text="{Binding MinutesText}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="3" Classes="card">
+            <Grid ColumnDefinitions="Auto,Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="10">
+                <TextBlock Grid.ColumnSpan="2" Classes="caption" Text="Last 12 weeks" />
+                <Grid Grid.Row="1" RowDefinitions="17,17,17,17,17,17,17">
+                    <TextBlock Classes="weekday" Text="Mon" />
+                    <TextBlock Grid.Row="2" Classes="weekday" Text="Wed" />
+                    <TextBlock Grid.Row="4" Classes="weekday" Text="Fri" />
+                </Grid>
+                <!-- A column per week; the cells reveal outward from today by their own Distance, not by arrival order. -->
+                <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Heatmap}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Vertical" ItemWidth="17" ItemHeight="17" Height="119" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:StatsDay">
-                            <Border Height="{x:Static v:StatsView.ChartHeight}" Background="Transparent"
-                                    ToolTip.Tip="{Binding Minutes, StringFormat='{}{0} min'}">
-                                <Border Classes="bar accent-bg" Height="{Binding Height, Converter={x:Static v:StatsView.BarHeight}}"
-                                        presto:Presence.Arrive="{x:Static m:TempoMotion.BarGrow}" />
-                            </Border>
+                        <DataTemplate x:DataType="vm:HeatmapCell">
+                            <Border Classes="heat" Background="{Binding Level, Converter={x:Static v:StatsView.HeatBrush}}"
+                                    ToolTip.Tip="{Binding Minutes, StringFormat='{}{0} min'}"
+                                    presto:Presence.Arrive="{x:Static m:TempoMotion.HeatCellArrive}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <ItemsControl ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}" Margin="0,-6,0,0">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:StatsDay">
-                            <TextBlock Classes="caption" Text="{Binding Label}" HorizontalAlignment="Center" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                <TextBlock x:Name="BestDay" Grid.Row="1" Grid.Column="2" Classes="best-day" Text="{Binding BestDayText}"
+                           IsVisible="{Binding BestDayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           presto:Presence.Arrive="{presto:WordFade Delay=400}" />
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

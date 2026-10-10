@@ -1,5 +1,9 @@
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.Time.Testing;
 using MonacoLabs.Presto;
+using MonacoLabs.Presto.Controls;
 using Tempo.Model;
 using Tempo.ViewModels;
 using Tempo.Views;
@@ -30,7 +34,14 @@ public abstract class TempoTestBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected Task<MainViewModel> LoadAsync() => MainViewModel.LoadAsync(new TempoStore(Root), Time, Ticks);
+    /// <summary>Loads from <see cref="Root"/>, which starts as a saved empty file unless <paramref name="firstRun"/> leaves it missing.</summary>
+    protected async Task<MainViewModel> LoadAsync(bool firstRun = false)
+    {
+        var store = new TempoStore(Root);
+        if (!firstRun && !store.Exists)
+            await store.SaveAsync(new TempoData());
+        return await MainViewModel.LoadAsync(store, Time, Ticks);
+    }
 
     protected async Task<MainViewModel> LoadWithTasksAsync(params string[] titles)
     {
@@ -44,12 +55,19 @@ public abstract class TempoTestBase : IDisposable
     }
 
     /// <summary>Shows a window straight on the shell, with <paramref name="titles"/> added, and lets it settle.</summary>
-    protected async Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, params string[] titles)
+    protected Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, params string[] titles) =>
+        ShowAsync(reduced, () => LoadWithTasksAsync(titles));
+
+    /// <summary>Shows a window straight on the shell over the first-run sample data, and lets it settle.</summary>
+    protected Task<(MainWindow Window, MainViewModel ViewModel)> ShowSeededAsync(bool reduced) =>
+        ShowAsync(reduced, () => LoadAsync(firstRun: true));
+
+    private static async Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, Func<Task<MainViewModel>> load)
     {
         TestFrames.Install();
         if (reduced)
             Presto.Defaults.ReducedMotion = true;
-        var vm = await LoadWithTasksAsync(titles);
+        var vm = await load();
         var window = new MainWindow { DataContext = vm };
         window.Show();
         TestFrames.Tick(30);
@@ -57,12 +75,12 @@ public abstract class TempoTestBase : IDisposable
     }
 
     /// <summary>Shows a window on the intro, which hands off once <paramref name="load"/> completes; ticks nothing.</summary>
-    protected async Task<(MainWindow Window, MainViewModel ViewModel)> ShowIntroAsync(Task load, bool reduced = false)
+    protected async Task<(MainWindow Window, MainViewModel ViewModel)> ShowIntroAsync(Task load, bool reduced = false, bool firstRun = false)
     {
         TestFrames.Install();
         if (reduced)
             Presto.Defaults.ReducedMotion = true;
-        var vm = await LoadAsync();
+        var vm = await LoadAsync(firstRun);
         var window = new MainWindow { DataContext = vm };
         window.Start(load, skipIntro: false);
         window.Show();
@@ -82,4 +100,26 @@ public abstract class TempoTestBase : IDisposable
         }
         return elapsed;
     }
+
+    protected static void OpenConfirm(MainViewModel vm, System.Windows.Input.ICommand request)
+    {
+        vm.OpenSettingsCommand.Execute(null);
+        TestFrames.Tick(50);
+        request.Execute(null);
+        TestFrames.Tick(40);
+    }
+
+    protected static void HoldToConfirm(Window window)
+    {
+        var ring = Find<ProgressRing>(window, "Hold");
+        ring.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Space });
+        TestFrames.Tick(45);
+        ring.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = Key.Space });
+    }
+
+    protected static IEnumerable<Border> Rows(Window window) =>
+        Find<ListBox>(window, "TaskList").GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("task-row"));
+
+    protected static T Find<T>(Window window, string name) where T : Control =>
+        window.GetVisualDescendants().OfType<T>().Single(c => c.Name == name);
 }

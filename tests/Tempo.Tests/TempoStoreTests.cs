@@ -16,7 +16,7 @@ public sealed class TempoStoreTests : IDisposable
     public async Task SavedDataLoadsBackUnchanged()
     {
         var store = new TempoStore(_root);
-        var task = new TaskItem { Title = "Write proposal", Notes = "n", EstimateSessions = 3, CompletedSessions = 1, Created = DateTimeOffset.UnixEpoch };
+        var task = new TaskItem { Title = "Write proposal", Notes = "n", EstimateSessions = 3, CompletedSessions = 1, Tag = TaskTag.Design, Created = DateTimeOffset.UnixEpoch };
         var session = new SessionRecord(task.Id, FocusMode.Focus, DateTimeOffset.UnixEpoch, TimeSpan.FromMinutes(25), true);
         await store.SaveAsync(new TempoData
         {
@@ -29,20 +29,23 @@ public sealed class TempoStoreTests : IDisposable
 
         Assert.Equal(["Write proposal", "Second"], loaded.Tasks.Select(t => t.Title));
         var first = loaded.Tasks[0];
-        Assert.Equal((task.Id, "n", 3, 1, false, DateTimeOffset.UnixEpoch),
-            (first.Id, first.Notes, first.EstimateSessions, first.CompletedSessions, first.IsDone, first.Created));
+        Assert.Equal((task.Id, "n", 3, 1, false, TaskTag.Design, DateTimeOffset.UnixEpoch),
+            (first.Id, first.Notes, first.EstimateSessions, first.CompletedSessions, first.IsDone, first.Tag, first.Created));
         Assert.True(loaded.Tasks[1].IsDone);
         Assert.Equal((50, MotionPreference.Reduced, 900d, -10, true),
             (loaded.Settings.WorkMinutes, loaded.Settings.Motion, loaded.Settings.WindowWidth, loaded.Settings.WindowX, loaded.Settings.IsMaximized));
         Assert.Equal([session], loaded.Sessions);
+        Assert.True(store.Exists);
         Assert.False(File.Exists(store.FilePath + ".tmp"));
     }
 
     [Fact]
     public async Task MissingFileGivesDefaults()
     {
-        var loaded = await new TempoStore(_root).LoadAsync();
+        var store = new TempoStore(_root);
+        var loaded = await store.LoadAsync();
 
+        Assert.False(store.Exists);
         Assert.Empty(loaded.Tasks);
         Assert.Empty(loaded.Sessions);
         Assert.Equal(25, loaded.Settings.WorkMinutes);
@@ -59,6 +62,7 @@ public sealed class TempoStoreTests : IDisposable
         var loaded = await store.LoadAsync();
 
         Assert.Equal(["Kept"], loaded.Tasks.Select(t => t.Title));
+        Assert.Null(loaded.Tasks[0].Tag);
         Assert.Empty(loaded.Sessions);
         Assert.Equal(25, loaded.Settings.WorkMinutes);
     }

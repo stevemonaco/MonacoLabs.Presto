@@ -19,6 +19,7 @@ public sealed partial class TaskItemViewModel : ObservableObject
         Estimate = item.EstimateSessions;
         CompletedSessions = item.CompletedSessions;
         IsDone = item.IsDone;
+        Tag = item.Tag;
     }
 
     /// <summary>Raised when a swipe asks to delete the task; <see cref="MainViewModel"/> deletes it.</summary>
@@ -41,6 +42,20 @@ public sealed partial class TaskItemViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StrikeProgress))]
     public partial bool IsDone { get; set; }
+
+    /// <summary>The detail drawer's tag chips: None, then each tag, in <see cref="TagIndex"/> order.</summary>
+    public static IReadOnlyList<object> TagChoices { get; } = ["None", .. Enum.GetValues<TaskTag>().Cast<object>()];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TagIndex))]
+    public partial TaskTag? Tag { get; set; }
+
+    /// <summary><see cref="Tag"/> as an index into <see cref="TagChoices"/>.</summary>
+    public int TagIndex
+    {
+        get => Tag is { } tag ? (int)tag + 1 : 0;
+        set => Tag = value > 0 ? (TaskTag)(value - 1) : null;
+    }
 
     public double StrikeProgress => IsDone ? 1 : 0;
 
@@ -90,5 +105,6 @@ public sealed partial class TaskItemViewModel : ObservableObject
         EstimateSessions = Estimate,
         CompletedSessions = CompletedSessions,
         IsDone = IsDone,
+        Tag = Tag,
     };
 }

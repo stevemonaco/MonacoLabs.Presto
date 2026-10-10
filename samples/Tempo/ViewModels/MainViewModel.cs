@@ -31,15 +31,27 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var item in data.Tasks)
             (item.IsDone ? DoneTasks : Tasks).Add(Track(new TaskItemViewModel(item)));
         Focus = new FocusViewModel(new FocusClock(time, data.Settings), Sessions, ticks);
-        Stats = new StatsViewModel(Sessions, time);
+        Stats = new StatsViewModel(Sessions, time, id => Tasks.Concat(DoneTasks).FirstOrDefault(t => t.Id == id)?.Tag);
+        SyncVisible();
 
         Tasks.CollectionChanged += OnListChanged;
+        Tasks.CollectionChanged += (_, _) => SyncVisible();
+        Tasks.CollectionChanged += (_, _) => Stats.RefreshTags();
+        VisibleTasks.CollectionChanged += OnVisibleTasksChanged;
         DoneTasks.CollectionChanged += OnListChanged;
+        DoneTasks.CollectionChanged += (_, _) => Stats.RefreshTags();
         Sessions.CollectionChanged += OnListChanged;
     }
 
-    public static async Task<MainViewModel> LoadAsync(TempoStore store, TimeProvider time, ITickSource ticks) =>
-        new(store, await store.LoadAsync(), time, ticks);
+    /// <summary>Loads the saved data or, on first run, when no file exists yet, the sample data, saved at once.</summary>
+    public static async Task<MainViewModel> LoadAsync(TempoStore store, TimeProvider time, ITickSource ticks)
+    {
+        if (store.Exists)
+            return new(store, await store.LoadAsync(), time, ticks);
+        var seeded = new MainViewModel(store, SampleData.Create(time), time, ticks);
+        seeded.Persist();
+        return seeded;
+    }
 
     /// <summary>Raised when a task is deleted; <see cref="UndoDeleteCommand"/> restores it.</summary>
     public event EventHandler<TaskItemViewModel>? TaskDeleted;
@@ -48,8 +60,23 @@ public sealed partial class MainViewModel : ObservableObject
 
     public event EventHandler? SettingsRequested;
 
+    /// <summary>Raised when Restore or Clear asks to be confirmed; the view opens the dialog, which sets <see cref="IsConfirmOpen"/>.</summary>
+    public event EventHandler? ConfirmRequested;
+
+    /// <summary>The view's exit for a confirmed clear, which calls <see cref="ClearAll"/> once the exit has played; without one the clear applies at once.</summary>
+    public Func<Task>? PlayClear { get; set; }
+
     /// <summary>Open tasks in list order; reordering is a move in this collection.</summary>
     public ObservableCollection<TaskItemViewModel> Tasks { get; } = [];
+
+    /// <summary>
+    /// The open tasks <see cref="TagFilter"/> shows, in list order. Kept in step with <see cref="Tasks"/> by inserting and
+    /// removing only the rows whose visibility changes; a move here (a reorder) is made in <see cref="Tasks"/>.
+    /// </summary>
+    public ObservableCollection<TaskItemViewModel> VisibleTasks { get; } = [];
+
+    /// <summary>The filter chips: All, then each tag, in <see cref="TagFilterIndex"/> order.</summary>
+    public static IReadOnlyList<object> TagFilters { get; } = ["All", .. Enum.GetValues<TaskTag>().Cast<object>()];
 
     /// <summary>Done tasks, most recently completed first.</summary>
     public ObservableCollection<TaskItemViewModel> DoneTasks { get; } = [];
@@ -66,10 +93,42 @@ public sealed partial class MainViewModel : ObservableObject
     public partial TaskItemViewModel? SelectedTask { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNewTaskText))]
     public partial string NewTaskTitle { get; set; } = "";
+
+    /// <summary>Whether the add box holds a title Enter would add, when its plus shows a check.</summary>
+    public bool HasNewTaskText => !string.IsNullOrWhiteSpace(NewTaskTitle);
+
+    /// <summary>The tag <see cref="VisibleTasks"/> shows, or null for every open task; a task added meanwhile takes it.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TagFilterIndex))]
+    public partial TaskTag? TagFilter { get; set; }
+
+    /// <summary><see cref="TagFilter"/> as an index into <see cref="TagFilters"/>.</summary>
+    public int TagFilterIndex
+    {
+        get => TagFilter is { } tag ? (int)tag + 1 : 0;
+        set => TagFilter = value > 0 ? (TaskTag)(value - 1) : null;
+    }
 
     [ObservableProperty]
     public partial bool IsDetailOpen { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsConfirmOpen { get; set; }
+
+    /// <summary>What the confirm dialog asks about; it keeps the last request while the dialog closes.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConfirmTitle), nameof(ConfirmMessage), nameof(ConfirmHoldLabel))]
+    public partial DataAction ConfirmAction { get; private set; }
+
+    public string ConfirmTitle => ConfirmAction == DataAction.Clear ? "Clear all data?" : "Restore sample data?";
+
+    public string ConfirmMessage => ConfirmAction == DataAction.Clear
+        ? "Every task, done task and focus session is deleted. Settings stay."
+        : "Your tasks and session log are replaced with the sample set. Settings stay.";
+
+    public string ConfirmHoldLabel => ConfirmAction == DataAction.Clear ? "Hold to clear" : "Hold to restore";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentPage))]
@@ -123,13 +182,19 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Completes once every change made so far is on disk.</summary>
     public Task FlushAsync() => _saving;
 
+    /// <summary>Replaces the tasks and the session log with a fresh copy of the sample data; settings stay.</summary>
+    public void RestoreSampleData() => Replace(SampleData.Create(_time));
+
+    /// <summary>Empties the task lists and the session log; settings stay.</summary>
+    public void ClearAll() => Replace(new TempoData());
+
     [RelayCommand]
     private void AddTask()
     {
         var title = NewTaskTitle.Trim();
         if (title.Length == 0)
             return;
-        Tasks.Add(Track(new TaskItemViewModel(new TaskItem { Title = title, Created = _time.GetUtcNow() })));
+        Tasks.Add(Track(new TaskItemViewModel(new TaskItem { Title = title, Created = _time.GetUtcNow(), Tag = TagFilter })));
         NewTaskTitle = "";
     }
 
@@ -175,7 +240,39 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void FocusAddBox() => AddBoxFocusRequested?.Invoke(this, EventArgs.Empty);
 
+    [RelayCommand]
+    private void RequestRestore() => RequestConfirm(DataAction.Restore);
+
+    [RelayCommand]
+    private void RequestClear() => RequestConfirm(DataAction.Clear);
+
+    [RelayCommand]
+    private void CancelConfirm() => IsConfirmOpen = false;
+
+    /// <summary>Closes the dialog and applies <see cref="ConfirmAction"/>, a clear after <see cref="PlayClear"/>.</summary>
+    [RelayCommand]
+    private async Task Confirm()
+    {
+        IsConfirmOpen = false;
+        if (ConfirmAction == DataAction.Restore)
+            RestoreSampleData();
+        else if (PlayClear is { } play)
+            await play();
+        else
+            ClearAll();
+    }
+
+    private void RequestConfirm(DataAction action)
+    {
+        ConfirmAction = action;
+        ConfirmRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     partial void OnSelectedTaskChanged(TaskItemViewModel? value) => Focus.SelectedTask = value;
+
+    partial void OnCurrentViewChanging(AppView value) => Focus.RingKey = null;
+
+    partial void OnTagFilterChanged(TaskTag? value) => SyncVisible();
 
     /// <summary>Saves the window's restored size and position; a maximized window keeps the last ones it had.</summary>
     public void SaveWindowPlacement(double width, double height, int x, int y, bool isMaximized)
@@ -197,12 +294,33 @@ public sealed partial class MainViewModel : ObservableObject
             Persist();
     }
 
+    private void Replace(TempoData data)
+    {
+        // A running segment would otherwise log against a task that is gone.
+        Focus.AbandonCommand.Execute(null);
+        SelectedTask = null;
+        IsDetailOpen = false;
+        _deleted = null;
+        Tasks.Clear();
+        DoneTasks.Clear();
+        Sessions.Clear();
+        foreach (var item in data.Tasks)
+            (item.IsDone ? DoneTasks : Tasks).Add(Track(new TaskItemViewModel(item)));
+        foreach (var record in data.Sessions)
+            Sessions.Add(record);
+    }
+
     private TaskItemViewModel Track(TaskItemViewModel task)
     {
         task.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(TaskItemViewModel.IsDone))
                 _ = MoveForDoneAsync(task);
+            else if (e.PropertyName == nameof(TaskItemViewModel.Tag))
+            {
+                SyncVisible();
+                Stats.RefreshTags();
+            }
             Persist();
         };
         task.DeleteRequested += (_, _) => DeleteTask(task);
@@ -222,6 +340,58 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     private void OnListChanged(object? sender, NotifyCollectionChangedEventArgs e) => Persist();
+
+    private bool Shows(TaskItemViewModel task) => TagFilter is not { } tag || task.Tag == tag;
+
+    private void SyncVisible()
+    {
+        for (var i = VisibleTasks.Count - 1; i >= 0; i--)
+        {
+            var task = VisibleTasks[i];
+            if (Tasks.Contains(task) && Shows(task))
+                continue;
+            if (SelectedTask == task)
+                SelectedTask = null;
+            VisibleTasks.RemoveAt(i);
+        }
+        var at = 0;
+        foreach (var task in Tasks)
+        {
+            if (!Shows(task))
+                continue;
+            if (at < VisibleTasks.Count && VisibleTasks[at] == task)
+            {
+                at++;
+                continue;
+            }
+            // Only a move made in Tasks directly leaves the task further down.
+            VisibleTasks.Remove(task);
+            VisibleTasks.Insert(at++, task);
+        }
+    }
+
+    /// <summary>Places a reordered row in <see cref="Tasks"/> just before its new visible successor, or after its predecessor when last.</summary>
+    private void OnVisibleTasksChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action != NotifyCollectionChangedAction.Move || e.OldStartingIndex == e.NewStartingIndex)
+            return;
+        var index = e.NewStartingIndex;
+        var from = Tasks.IndexOf(VisibleTasks[index]);
+        int to;
+        if (index + 1 < VisibleTasks.Count)
+        {
+            to = Tasks.IndexOf(VisibleTasks[index + 1]);
+            if (from < to)
+                to--;
+        }
+        else
+        {
+            to = Tasks.IndexOf(VisibleTasks[index - 1]);
+            if (from > to)
+                to++;
+        }
+        Tasks.Move(from, to);
+    }
 
     private void Persist()
     {

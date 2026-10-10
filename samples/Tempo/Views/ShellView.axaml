@@ -8,8 +8,15 @@
              x:DataType="vm:MainViewModel"
              presto:Motion.State="{Binding Focus.MotionState}"
              presto:Motion.StaggerChildren="40">
-    <Grid RowDefinitions="Auto,*">
+    <Grid Classes="shell" RowDefinitions="Auto,*">
         <Border Grid.RowSpan="2" Classes="backdrop accent-bg handoff" />
+        <!-- Each blob drifts on the compositor from code-behind, in BlobDrift's order. -->
+        <Panel x:Name="Blobs" Grid.RowSpan="2" Classes="blobs handoff">
+            <Border Classes="blob accent-bg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-160,-120,0,0" />
+            <Border Classes="blob accent-bg" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-60,-200,0" />
+            <Border Classes="blob accent-bg" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,120,-240" />
+            <Border Classes="blob accent-bg" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-80,-140" />
+        </Panel>
         <!-- Above the panels, so the wordmark's flight in from the intro is not drawn under them. -->
         <Border Classes="titlebar" ZIndex="1" WindowDecorationProperties.ElementRole="TitleBar">
             <!-- The last column keeps clear of the system caption buttons. -->
@@ -25,21 +32,27 @@
                     <x:Static Member="vm:AppView.Stats" />
                 </ListBox>
                 <Button x:Name="SettingsButton" Grid.Column="3" Classes="icon handoff" Command="{Binding OpenSettingsCommand}"
-                        WindowDecorationProperties.ElementRole="User" ToolTip.Tip="Settings (Ctrl+,)">
+                        WindowDecorationProperties.ElementRole="User" ToolTip.Tip="Settings (Ctrl+,)"
+                        presto:Motion.Hover="{x:Static m:TempoMotion.GearSpin}">
+                    <presto:Motion.States>
+                        <presto:MotionStates>
+                            <presto:MotionState When=".open" Motion="{x:Static m:TempoMotion.GearSpin}" />
+                        </presto:MotionStates>
+                    </presto:Motion.States>
                     <PathIcon Data="{StaticResource SettingsIcon}" />
                     <FlyoutBase.AttachedFlyout>
-                        <Flyout Placement="BottomEdgeAlignedRight"
-                                presto:Popover.Open="{x:Static m:TempoMotion.FlyoutOpen}">
-                            <v:SettingsFlyout />
+                        <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterClasses="glass" Opened="SettingsToggled" Closed="SettingsToggled"
+                                presto:Popover.Open="{x:Static m:TempoMotion.FlyoutOpen}" presto:Popover.Close="{x:Static m:TempoMotion.FlyoutClose}">
+                            <v:SettingsFlyout x:Name="Settings" />
                         </Flyout>
                     </FlyoutBase.AttachedFlyout>
                 </Button>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="340,*" ColumnSpacing="16" Margin="16">
+        <Grid x:Name="Panels" Grid.Row="1" ColumnDefinitions="340,*" ColumnSpacing="16" Margin="16">
             <Border Classes="panel break-dim">
-                <v:TasksView Classes="handoff" />
+                <v:TasksView x:Name="TasksPane" Classes="handoff" />
             </Border>
             <Border Grid.Column="1" Classes="panel">
                 <!-- A fresh view per swap, so the Stats bars replay; a Carousel would only hide the other view. -->
@@ -80,5 +93,11 @@
         <presto:Drawer Grid.Row="1" Edge="Right" IsOpen="{Binding IsDetailOpen}">
             <v:TaskDetail DataContext="{Binding SelectedTask}" />
         </presto:Drawer>
+
+        <!-- Over the title bar too, so nothing opens settings again behind the dialog. -->
+        <presto:Modal x:Name="ConfirmModal" Grid.RowSpan="2" ZIndex="2" IsOpen="{Binding IsConfirmOpen}"
+                      Backdrop="{Binding #Panels}">
+            <v:ConfirmDialog x:Name="Dialog" />
+        </presto:Modal>
     </Grid>
 </UserControl>

@@ -118,6 +118,22 @@ public sealed class TempoMotionTests : TempoTestBase
         await vm.FlushAsync();
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheBackdropBlobsDriftOnTheCompositorAndHoldStillWhenReduced(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced);
+        var blobs = window.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("blob")).ToList();
+        var drift = TempoMotion.BlobDrift.ToParams();
+
+        Assert.Equal(4, blobs.Count);
+        Assert.True(PrestoAvalonia.CanAnimateOnCompositor(TempoMotion.BlobDrift, out var reason), reason);
+        Assert.Equal(!reduced, drift.Loop!.Value.IsInfinite);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
     private static Color Color(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
 
     private static IEnumerable<MotionStates> StyleStates(IEnumerable<IStyle> styles) => styles.SelectMany(style => style switch

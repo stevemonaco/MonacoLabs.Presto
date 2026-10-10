@@ -9,6 +9,9 @@ public sealed class TempoStore(string? root = null)
         root ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tempo"),
         "tempo.json");
 
+    /// <summary>False until the first save; a corrupt file still counts.</summary>
+    public bool Exists => File.Exists(FilePath);
+
     /// <summary>Returns defaults when the file is missing, or when it is corrupt, after moving it to <c>tempo.json.bak</c>.</summary>
     public async Task<TempoData> LoadAsync()
     {

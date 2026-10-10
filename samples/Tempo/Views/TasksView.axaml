@@ -11,7 +11,20 @@
             <TextBox.KeyBindings>
                 <KeyBinding Gesture="Enter" Command="{Binding AddTaskCommand}" />
             </TextBox.KeyBindings>
+            <TextBox.InnerRightContent>
+                <Button Classes="icon" Command="{Binding AddTaskCommand}" ToolTip.Tip="Add task (Enter)">
+                    <Path x:Name="AddIcon" Classes="add-icon" Classes.ready="{Binding HasNewTaskText}" Data="{StaticResource PlusIcon}">
+                        <presto:Motion.States>
+                            <presto:MotionStates>
+                                <presto:MotionState When=".ready" Motion="{x:Static m:TempoMotion.PlusToCheck}" />
+                            </presto:MotionStates>
+                        </presto:Motion.States>
+                    </Path>
+                </Button>
+            </TextBox.InnerRightContent>
         </TextBox>
+        <ListBox x:Name="TagChips" DockPanel.Dock="Top" Classes="chips" Margin="0,0,0,10"
+                 ItemsSource="{x:Static vm:MainViewModel.TagFilters}" SelectedIndex="{Binding TagFilterIndex}" />
 
         <Expander DockPanel.Dock="Bottom" Classes="done" presto:Accordion.Enabled="True" Margin="0,12,0,0">
             <Expander.Header>
@@ -30,8 +43,17 @@
             <TextBlock Classes="caption" Text="Nothing planned yet. Add a task to begin." TextWrapping="Wrap"
                        HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
                        IsVisible="{Binding !Tasks.Count}" presto:Presence.Arrive="{presto:WordFade}" />
+            <TextBlock Classes="caption" Text="No open tasks with this tag."
+                       HorizontalAlignment="Center" VerticalAlignment="Center" presto:Presence.Arrive="{presto:WordFade}">
+                <TextBlock.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="!!Tasks.Count" />
+                        <Binding Path="!VisibleTasks.Count" />
+                    </MultiBinding>
+                </TextBlock.IsVisible>
+            </TextBlock>
             <ListBox x:Name="TaskList" Classes="tasks" Background="Transparent"
-                     ItemsSource="{Binding Tasks}" SelectedItem="{Binding SelectedTask}"
+                     ItemsSource="{Binding VisibleTasks}" SelectedItem="{Binding SelectedTask}"
                      ItemContainerTheme="{StaticResource TaskRow}" ItemTemplate="{StaticResource TaskRowTemplate}"
                      presto:Animate.ItemLayout="{presto:Reflow}"
                      presto:Reorder.Enabled="True" presto:Reorder.Lift="{x:Static m:TempoMotion.RowLift}"

@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
@@ -97,11 +98,57 @@ public sealed class TasksViewTests : TempoTestBase
         await vm.FlushAsync();
     }
 
-    private static IEnumerable<Border> Rows(Window window) =>
-        Find<ListBox>(window, "TaskList").GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("task-row"));
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ATagChipFiltersTheRowsAndTheIndicatorGlidesToIt(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced, "A", "B", "C");
+        (vm.Tasks[0].Tag, vm.Tasks[2].Tag) = (TaskTag.Code, TaskTag.Code);
+        var chips = Find<ListBox>(window, "TagChips");
+        Assert.Equal(0, chips.SelectedIndex);
+        Assert.Equal(Offset(chips.ContainerFromIndex(0)!, chips), Offset(Pill(chips), chips));
+
+        chips.SelectedIndex = 1 + (int)TaskTag.Code;
+        TestFrames.Tick(40);
+
+        Assert.Equal(TaskTag.Code, vm.TagFilter);
+        Assert.Equal([vm.Tasks[0], vm.Tasks[2]], Rows(window).Select(r => r.DataContext));
+        Assert.Equal(Offset(chips.ContainerFromIndex(chips.SelectedIndex)!, chips), Offset(Pill(chips), chips));
+        Assert.Empty(Ghosts(window));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheAddBoxPlusTurnsIntoACheckWhileItHasTextAndBackWhenItEmpties(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced);
+        var icon = Find<Avalonia.Controls.Shapes.Path>(window, "AddIcon");
+        var plus = icon.Data;
+
+        Find<TextBox>(window, "AddBox").Focus();
+        window.KeyTextInput("Go");
+        TestFrames.Tick(60);
+        Assert.Contains("ready", icon.Classes);
+        Assert.NotSame(plus, icon.Data);
+
+        window.KeyPressQwerty(PhysicalKey.Backspace, RawInputModifiers.None);
+        window.KeyPressQwerty(PhysicalKey.Backspace, RawInputModifiers.None);
+        TestFrames.Tick(60);
+        Assert.Equal("", vm.NewTaskTitle);
+        Assert.DoesNotContain("ready", icon.Classes);
+        Assert.Same(plus, icon.Data);
+        Assert.True(icon.RenderTransform is null || icon.RenderTransform.Value.IsIdentity);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    private static Border Pill(ListBox chips) => chips.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("segment-pill"));
+
+    private static Point? Offset(Visual visual, Visual relativeTo) => visual.TranslatePoint(default, relativeTo);
 
     private static IEnumerable<Image> Ghosts(Window window) => OverlayLayer.GetOverlayLayer(window)!.GetVisualDescendants().OfType<Image>();
-
-    private static T Find<T>(Window window, string name) where T : Control =>
-        window.GetVisualDescendants().OfType<T>().Single(c => c.Name == name);
 }
