@@ -4,12 +4,11 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
-using Monaco.Presto.AvaloniaBridge.Controls;
-using Monaco.Presto.AvaloniaBridge.Draggables;
-using Monaco.Presto.AvaloniaBridge.Text;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
+using MonacoLabs.Presto.Controls;
+using MonacoLabs.Presto.Draggables;
+using MonacoLabs.Presto.Text;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace PrestoSample.Showcase.Pages;

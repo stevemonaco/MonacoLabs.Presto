@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
-using Monaco.Presto.AvaloniaBridge.Controls;
+using MonacoLabs.Presto.Controls;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;

@@ -1,12 +1,12 @@
 ---
 id: BRIDGE-REVEAL
 title: Scroll reveals and scroll anchoring (Presence.Reveal, RevealOnce, ScrollAnchor)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Presence.cs
-  - Monaco.Presto.AvaloniaBridge/ItemChanges.cs
+  - MonacoLabs.Presto.Avalonia/Presence.cs
+  - MonacoLabs.Presto.Avalonia/ItemChanges.cs
 types: []
 tests:
   - PresenceLifecycleTests

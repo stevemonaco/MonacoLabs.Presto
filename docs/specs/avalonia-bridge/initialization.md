@@ -1,15 +1,15 @@
 ---
 id: BRIDGE-INIT
 title: Bridge initialization, frame source and hidden signal
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/AvaloniaFrameSource.cs
-  - Monaco.Presto.AvaloniaBridge/AppBuilderExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/Platform/HiddenSignal.cs
-  - Monaco.Presto.AvaloniaBridge/Platform/InertiaWake.cs
+  - MonacoLabs.Presto.Avalonia/AvaloniaFrameSource.cs
+  - MonacoLabs.Presto.Avalonia/AppBuilderExtensions.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Platform/HiddenSignal.cs
+  - MonacoLabs.Presto.Avalonia/Platform/InertiaWake.cs
 types:
   - AppBuilderExtensions
   - AvaloniaFrameSource
@@ -113,7 +113,7 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 - **BRIDGE-INIT-030** — From a `ScrollGestureInertiaStarting` event until every gesture that started coasting has raised `ScrollGestureEnded` with its id, the bridge shall run a `DispatcherPriority.Default` `DispatcherTimer` every 16 ms that runs the dispatcher's jobs of `Input` priority and above (`Dispatcher.RunJobs(DispatcherPriority.Input)`).
   - Tests: `InertiaWakeTests.ACoastingScrollWakesTheUIThreadUntilItsGestureEnds`, `InertiaWakeTests.OverlappingGesturesWakeUntilTheLastEnds`
 - **BRIDGE-INIT-031** — Ten seconds after the last inertia start, the bridge shall stop the timer and forget the coasting gestures, even if no ended event arrived.
-  - Tests: untested — real time; the cap only guards a gesture Avalonia never ends.
+  - Tests: manual — ten seconds of real time; the cap only guards a gesture Avalonia never ends.
 
 ## Invariants
 

@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-PAGER
 title: Pager carousel and indicator
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/Pager.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/PagerIndicator.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/PagerIndicatorMode.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Pager.cs
+  - MonacoLabs.Presto.Avalonia/Controls/PagerIndicator.cs
+  - MonacoLabs.Presto.Avalonia/Controls/PagerIndicatorMode.cs
 types:
   - Pager
   - PagerIndicator

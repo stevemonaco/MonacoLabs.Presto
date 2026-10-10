@@ -1,17 +1,17 @@
 ---
 id: BRIDGE-MOTION
 title: Motion states and orchestration
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Motion.cs
-  - Monaco.Presto.AvaloniaBridge/MotionCondition.cs
-  - Monaco.Presto.AvaloniaBridge/MotionExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/MotionOrder.cs
-  - Monaco.Presto.AvaloniaBridge/MotionState.cs
-  - Monaco.Presto.AvaloniaBridge/MotionStates.cs
-  - Monaco.Presto.AvaloniaBridge/MotionTracker.cs
+  - MonacoLabs.Presto.Avalonia/Motion.cs
+  - MonacoLabs.Presto.Avalonia/MotionCondition.cs
+  - MonacoLabs.Presto.Avalonia/MotionExtensions.cs
+  - MonacoLabs.Presto.Avalonia/MotionOrder.cs
+  - MonacoLabs.Presto.Avalonia/MotionState.cs
+  - MonacoLabs.Presto.Avalonia/MotionStates.cs
+  - MonacoLabs.Presto.Avalonia/MotionTracker.cs
 types:
   - Motion
   - MotionState
@@ -24,7 +24,7 @@ tests:
   - MotionStateValidationTests
   - MotionPropagationTests
   - MotionOrchestrationTests
-  - AllocationTests
+  - BridgeAllocationTests
   - WhenDetachedTests
   - EffectTests
   - RecipeTests
@@ -84,7 +84,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-013** — When a property returns to a lower state that is still active, its target shall be that state's final value (the last keyframe holding a `To`), played on the leaving state's timing rather than the lower state's builder.
   - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`
 - **BRIDGE-MOTION-014** — Each transition shall play one animation per entering state and one per leaving state, covering only the properties whose winner changed.
-  - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `AllocationTests.AHoverAllocatesOnlyAtItsTransitions`
+  - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `BridgeAllocationTests.AHoverAllocatesOnlyAtItsTransitions`
 - **BRIDGE-MOTION-015** — State animations shall compose by `Composition.Replace`, so a property is taken over from where it stands with no jump.
   - Tests: `MotionStateTests.LeavingMidEnterReturnsFromTheCurrentValue`
 - **BRIDGE-MOTION-016** — When a property is retargeted while the animation that last drove it has not yet begun (still in its delay), that animation shall be removed from the property rather than left to start later.
@@ -246,7 +246,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 ## Allocation
 
-- No per-frame work of its own. Transitions allocate their animations and small grouping dictionaries; the settled and idle states allocate nothing per tick (`AllocationTests.AHoverAllocatesOnlyAtItsTransitions`).
+- No per-frame work of its own. Transitions allocate their animations and small grouping dictionaries; the settled and idle states allocate nothing per tick (`BridgeAllocationTests.AHoverAllocatesOnlyAtItsTransitions`).
 
 ## Deviations from anime.js
 

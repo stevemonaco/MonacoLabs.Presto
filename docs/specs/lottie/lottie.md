@@ -1,22 +1,22 @@
 ---
 id: LOTTIE-PLAYBACK
 title: Lottie playback
-package: Monaco.Presto.AvaloniaBridge.Lottie
+package: MonacoLabs.Presto.Avalonia.Lottie
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Lottie
-  - Monaco.Presto.AvaloniaBridge.Lottie.Prebuilt
+  - MonacoLabs.Presto.Lottie
+  - MonacoLabs.Presto.Lottie.Prebuilt
 sources:
-  - Monaco.Presto.AvaloniaBridge.Lottie/LottieComposition.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/LottieCompositionConverter.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/LottieSegment.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/LottieView.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/LottieDrawOperation.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/LottiePlayerHandle.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/LottieVisualHandler.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/PlayLottieExtension.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/RecipesExtensions.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/Prebuilt/LottieRecipes.cs
-  - Monaco.Presto.AvaloniaBridge.Lottie/Properties/AssemblyInfo.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/LottieComposition.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/LottieCompositionConverter.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/LottieSegment.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/LottieView.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/LottieDrawOperation.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/LottiePlayerHandle.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/LottieVisualHandler.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/PlayLottieExtension.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/RecipesExtensions.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/Prebuilt/LottieRecipes.cs
+  - MonacoLabs.Presto.Avalonia.Lottie/Properties/AssemblyInfo.cs
 types:
   - LottieComposition
   - LottieCompositionConverter
@@ -259,7 +259,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 ## Decisions
 
 - **Lottie plays through Skottie; it is not interpreted.** A Presto-driven control draws through Skia's Skottie, with dotLottie folded in. Reason: Skottie costs about as much as sprite playback, and `SkiaSharp.Skottie` matches the SkiaSharp Avalonia resolves; dotLottie proved cheap in the spike. Rejected: a native interpreter (layers to Presto tweens and Avalonia shapes, as big as writing a renderer); `Avalonia.Skia.Lottie` (Avalonia 11 only, not a drop-in).
-- **Lottie is a separate package sharing the XAML namespace.** `Monaco.Presto.AvaloniaBridge.Lottie` maps into the bridge's XAML namespace, so one `presto:` prefix reaches it; the recipe lives in `LottieRecipes`, and an `extension(Recipes)` block makes `Recipes.PlayLottie` work. Reason: the bridge takes no Skottie dependency, and the bridge's static `Recipes` cannot see the package.
+- **Lottie is a separate package sharing the XAML namespace.** `MonacoLabs.Presto.Avalonia.Lottie` maps into the bridge's XAML namespace, so one `presto:` prefix reaches it; the recipe lives in `LottieRecipes`, and an `extension(Recipes)` block makes `Recipes.PlayLottie` work. Reason: the bridge takes no Skottie dependency, and the bridge's static `Recipes` cannot see the package.
 - **`Frame` is drawn as given and clamped.** `Frame` is a `double` that is not floored, coerced to `InPoint`..`OutPoint`; `Progress` mirrors it both ways, and a new `Composition` resets it to `InPoint`. Reason: Lottie is vector, unlike `SpriteSheet`'s cells.
 - **An immutable, shared composition and a player per view.** `LottieView.Composition` takes a `LottieComposition` holding only the JSON bytes and metadata, read by `FromJson`, `FromStream`, `FromDotLottie`, `Load(Uri)` or the XAML converter; the inherited `Source` is unused. Each view builds its Skottie animation lazily in its draw operation, held by a ref-counted handle that serializes seek and render under a lock. Reason: views share one parse; offscreen snapshots and exit ghosts render the same operation synchronously on the UI thread while the render thread may draw. Rejected: a `Source` property (a URI, stream or JSON), as first sketched.
 - **Reduced Lottie playback lands on the segment's end.** Under reduced motion `PlayLottie` and the view's play methods jump to the segment's end frame and hold it, without looping. Reason: a Lottie segment ends on the state it plays into (a toggle's "on"); a sprite loop has no such state, which is why `PlayFrames` holds frame 0 instead.

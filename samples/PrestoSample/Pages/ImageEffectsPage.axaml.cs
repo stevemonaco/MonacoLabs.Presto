@@ -6,9 +6,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Controls;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Controls;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;

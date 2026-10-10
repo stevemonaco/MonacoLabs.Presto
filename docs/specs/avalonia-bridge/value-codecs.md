@@ -1,20 +1,20 @@
 ---
 id: BRIDGE-CODECS
 title: Avalonia value codecs
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Values
-  - Monaco.Presto.AvaloniaBridge/ColorExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Values
+  - MonacoLabs.Presto.Avalonia/ColorExtensions.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types:
   - ColorExtensions
 tests:
   - CodecTests
   - TargetAdapterTests
   - TargetOwnerTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream:
   - src/core/colors.js
   - src/core/values.js
@@ -140,7 +140,7 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 ## Allocation
 
-- `Color`, the structs and the font enums box one value per frame. A brush tween mutates its reused brush; pinned by `AllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame.
+- `Color`, the structs and the font enums box one value per frame. A brush tween mutates its reused brush; pinned by `BridgeAllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame.
 
 ## Deviations from anime.js
 

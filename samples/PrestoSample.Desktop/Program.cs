@@ -1,6 +1,6 @@
 using System;
 using Avalonia;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 
 namespace PrestoSample.Desktop;
 

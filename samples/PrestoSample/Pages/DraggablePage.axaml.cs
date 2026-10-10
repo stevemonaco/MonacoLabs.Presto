@@ -1,7 +1,6 @@
 using Avalonia.Controls;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Draggables;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Draggables;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Pages;

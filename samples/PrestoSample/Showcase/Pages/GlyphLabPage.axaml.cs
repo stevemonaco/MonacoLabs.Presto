@@ -6,10 +6,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Text;
-using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Text;
+using static MonacoLabs.Presto.PrestoKeys;
 using SkiaSharp;
 using Path = Avalonia.Controls.Shapes.Path;
 

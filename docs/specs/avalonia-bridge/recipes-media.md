@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-RECIPES-MEDIA
 title: Media recipes (draws, particles, sprites, tints)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Prebuilt
+  - MonacoLabs.Presto.Prebuilt
 sources:
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Draws.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Particles.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Sprites.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Tints.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Draws.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Particles.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Sprites.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Tints.cs
 types:
   - Draws
   - Particles

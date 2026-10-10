@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { eases, cubicBezier, steps, linear, spring } from 'animejs';
 import { converter, toGamut } from 'culori';
 
-const fixturesDir = join(import.meta.dirname, '..', '..', 'tests', 'Monaco.Presto.Tests', 'Fixtures');
+const fixturesDir = join(import.meta.dirname, '..', '..', 'tests', 'MonacoLabs.Presto.Tests', 'Fixtures');
 
 const samples = fn => Array.from({ length: 101 }, (_, i) => fn(i / 100));
 

@@ -3,7 +3,7 @@
         xmlns:converters="using:Avalonia.Controls.Converters"
         xmlns:pages="clr-namespace:PrestoSample.Pages"
         xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-        xmlns:presto="https://github.com/stevemonaco/Monaco.Presto">
+        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto">
     <Styles.Resources>
         <!-- Archivo's width faces ship as separate families; their typographic family name was set to Archivo so FontStretch reaches them. -->
         <FontFamily x:Key="DisplayFont">avares://PrestoSample/Assets/Fonts/Archivo#Archivo</FontFamily>

@@ -1,11 +1,11 @@
 ---
 id: BRIDGE-MAGNETIC
 title: Magnetic pull
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Magnetic.cs
+  - MonacoLabs.Presto.Avalonia/Magnetic.cs
 types:
   - Magnetic
 tests:

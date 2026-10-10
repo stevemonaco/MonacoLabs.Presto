@@ -4,9 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Events;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Events;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;
@@ -17,7 +16,7 @@ namespace PrestoSample.Tests;
 /// and a resize mid-scroll re-measures without moving the scrub off the scroll position.
 /// </summary>
 /// <remarks>
-/// The scroller is driven the way <c>Monaco.Presto.AvaloniaBridge.Tests.ScrollObserverTests</c> drives it — the offset
+/// The scroller is driven the way <c>MonacoLabs.Presto.Tests.ScrollObserverTests</c> drives it — the offset
 /// is set and the frame source stepped — so a sampled offset lands exactly where the assertion expects it. The window
 /// is 640 tall so that the first chapter starts a viewport below the top and can therefore be left on the way back up.
 /// </remarks>

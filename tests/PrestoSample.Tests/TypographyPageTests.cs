@@ -4,9 +4,8 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Text;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Text;
 using PrestoSample.Showcase.Pages;
 using Path = Avalonia.Controls.Shapes.Path;
 

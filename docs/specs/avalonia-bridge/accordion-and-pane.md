@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-ACCORDION
 title: Accordion and collapsible pane
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Accordion.cs
-  - Monaco.Presto.AvaloniaBridge/Pane.cs
-  - Monaco.Presto.AvaloniaBridge/Values/GridLengthCodec.cs
+  - MonacoLabs.Presto.Avalonia/Accordion.cs
+  - MonacoLabs.Presto.Avalonia/Pane.cs
+  - MonacoLabs.Presto.Avalonia/Values/GridLengthCodec.cs
 types:
   - Accordion
   - Pane

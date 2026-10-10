@@ -1,14 +1,14 @@
 ---
 id: CORE-ANIMATABLE
 title: Animatable
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Animatable.cs
-  - Monaco.Presto/AnimatableParams.cs
-  - Monaco.Presto/AnimatableProperty.cs
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Animatable.cs
+  - MonacoLabs.Presto/AnimatableParams.cs
+  - MonacoLabs.Presto/AnimatableProperty.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - Animatable
   - AnimatableParams

@@ -1,11 +1,11 @@
 ---
 id: CORE-PRESTO
 title: Presto facade
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - Presto
 tests:

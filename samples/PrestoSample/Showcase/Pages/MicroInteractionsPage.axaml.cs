@@ -3,9 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
 using PrestoSample.Builder;
 
 namespace PrestoSample.Showcase.Pages;

@@ -1,11 +1,11 @@
 ---
 id: CORE-MOTIONPATH
 title: Motion path through points
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/MotionPath.cs
+  - MonacoLabs.Presto/MotionPath.cs
 types:
   - MotionPath
 tests:

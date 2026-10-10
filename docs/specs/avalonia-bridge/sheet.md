@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-SHEET
 title: Sheet and drawer
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/Sheet.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/SheetDetents.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/Drawer.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/Dismissal.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Sheet.cs
+  - MonacoLabs.Presto.Avalonia/Controls/SheetDetents.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Drawer.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Dismissal.cs
 types:
   - Sheet
   - SheetDetents

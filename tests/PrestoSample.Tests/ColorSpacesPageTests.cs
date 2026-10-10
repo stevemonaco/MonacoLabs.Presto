@@ -3,8 +3,8 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.Values;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Values;
 using PrestoSample.Builder;
 using PrestoSample.Showcase;
 

@@ -1,19 +1,19 @@
 ---
 id: CORE-TARGETS
 title: Targets, adapters and codecs
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
-  - Monaco.Presto.Targets
-  - Monaco.Presto.Values
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Targets
+  - MonacoLabs.Presto.Values
 sources:
-  - Monaco.Presto/Targets
-  - Monaco.Presto/Values/DiscreteCodec.cs
-  - Monaco.Presto/Values/StructCodec.cs
-  - Monaco.Presto/DiscreteRule.cs
-  - Monaco.Presto/Presto.cs
-  - Monaco.Presto/Animation.cs
-  - Monaco.Presto/PropertyKey.cs
+  - MonacoLabs.Presto/Targets
+  - MonacoLabs.Presto/Values/DiscreteCodec.cs
+  - MonacoLabs.Presto/Values/StructCodec.cs
+  - MonacoLabs.Presto/DiscreteRule.cs
+  - MonacoLabs.Presto/Presto.cs
+  - MonacoLabs.Presto/Animation.cs
+  - MonacoLabs.Presto/PropertyKey.cs
 types:
   - ITargetAdapter
   - IPropertyAccessor

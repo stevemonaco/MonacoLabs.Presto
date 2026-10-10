@@ -3,9 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.DevTools;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.DevTools;
 using PrestoSample.ViewModels;
 
 namespace PrestoSample.Views;

@@ -7,7 +7,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.VisualTree;
-using Monaco.Presto.AvaloniaBridge.Controls;
+using MonacoLabs.Presto.Controls;
 using PrestoSample.Pages;
 using PrestoSample.ViewModels;
 using PrestoSample.Views;

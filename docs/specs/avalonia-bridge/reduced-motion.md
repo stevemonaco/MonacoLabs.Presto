@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-REDUCED
 title: Reduced motion in the bridge
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Platform/ReducedMotionProbe.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/LayoutMotion.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollMotion.cs
+  - MonacoLabs.Presto.Avalonia/Platform/ReducedMotionProbe.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/LayoutMotion.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollMotion.cs
 types: []
 tests:
   - SystemReducedMotionTests

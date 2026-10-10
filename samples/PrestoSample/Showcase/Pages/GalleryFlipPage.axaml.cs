@@ -1,10 +1,9 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Compositor;
-using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
+using static MonacoLabs.Presto.PrestoKeys;
 
 namespace PrestoSample.Showcase.Pages;
 

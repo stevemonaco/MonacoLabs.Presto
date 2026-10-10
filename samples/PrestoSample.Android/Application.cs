@@ -2,7 +2,7 @@
 using Android.Runtime;
 using Avalonia;
 using Avalonia.Android;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 
 namespace PrestoSample.Android
 {

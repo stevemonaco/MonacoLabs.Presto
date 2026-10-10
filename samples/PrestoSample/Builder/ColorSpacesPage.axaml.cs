@@ -3,9 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.Values;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Values;
 using PrestoSample.Showcase;
 
 namespace PrestoSample.Builder;
@@ -102,7 +101,7 @@ public partial class ColorSpacesPage : ShowcasePage
         StatusCode.Code = $"var (from, to) = (\"{from}\", \"{to}\");\n\n// Default\n{defaultCode};\n\nforeach (var space in new[] {{ ColorSpace.Srgb, ColorSpace.LinearSrgb, ColorSpace.Oklab, ColorSpace.Oklch }})\n    {colorCode};";
     }
 
-    private void UpdateTracks(Monaco.Presto.Timer cycle)
+    private void UpdateTracks(MonacoLabs.Presto.Timer cycle)
     {
         var x = cycle.IterationProgress * TrackWidth;
         Move(_rgbTrack!, x, Read(RgbGlow, RgbReadout));

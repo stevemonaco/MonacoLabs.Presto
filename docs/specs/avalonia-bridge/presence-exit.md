@@ -1,14 +1,14 @@
 ---
 id: BRIDGE-PRESENCE-EXIT
 title: Presence exits and ghosts
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Presence.cs
-  - Monaco.Presto.AvaloniaBridge/VisualSnapshot.cs
-  - Monaco.Presto.AvaloniaBridge/Text/PieceGhosts.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Presence.cs
+  - MonacoLabs.Presto.Avalonia/VisualSnapshot.cs
+  - MonacoLabs.Presto.Avalonia/Text/PieceGhosts.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types: []
 tests:
   - PresenceTests

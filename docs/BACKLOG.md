@@ -1,6 +1,6 @@
 # Backlog
 
-The single list of work not done in Monaco.Presto: known bugs, gaps, checks, candidates and undecided questions.
+The single list of work not done in MonacoLabs.Presto: known bugs, gaps, checks, candidates and undecided questions.
 Small items are taken straight from here and fixed with their spec updated; larger ones become a change proposal in `docs/changes/` first (see [docs/changes/README.md](changes/README.md)).
 When an item is closed, its line is deleted.
 

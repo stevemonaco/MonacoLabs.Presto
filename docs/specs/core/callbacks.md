@@ -1,19 +1,19 @@
 ---
 id: CORE-CALLBACKS
 title: Callbacks and Then()
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Timer.cs
-  - Monaco.Presto/TimerParams.cs
-  - Monaco.Presto/Core/Renderer.cs
-  - Monaco.Presto/Animation.cs
-  - Monaco.Presto/AnimationParams.cs
-  - Monaco.Presto/Timeline.cs
-  - Monaco.Presto/TimelineParams.cs
-  - Monaco.Presto/PrestoDefaults.cs
-  - Monaco.Presto/DefaultsParams.cs
+  - MonacoLabs.Presto/Timer.cs
+  - MonacoLabs.Presto/TimerParams.cs
+  - MonacoLabs.Presto/Core/Renderer.cs
+  - MonacoLabs.Presto/Animation.cs
+  - MonacoLabs.Presto/AnimationParams.cs
+  - MonacoLabs.Presto/Timeline.cs
+  - MonacoLabs.Presto/TimelineParams.cs
+  - MonacoLabs.Presto/PrestoDefaults.cs
+  - MonacoLabs.Presto/DefaultsParams.cs
 types: []
 tests:
   - CallbacksTests

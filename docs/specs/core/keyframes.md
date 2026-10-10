@@ -1,17 +1,17 @@
 ---
 id: CORE-KEYFRAMES
 title: Keyframes
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Keyframe.cs
-  - Monaco.Presto/Keyframes.cs
-  - Monaco.Presto/KeyframeBuilder.cs
-  - Monaco.Presto/KeyframesBuilder.cs
-  - Monaco.Presto/TweenKeyframesBuilder.cs
-  - Monaco.Presto/Core/KeyframeExpander.cs
-  - Monaco.Presto/Animation.cs
+  - MonacoLabs.Presto/Keyframe.cs
+  - MonacoLabs.Presto/Keyframes.cs
+  - MonacoLabs.Presto/KeyframeBuilder.cs
+  - MonacoLabs.Presto/KeyframesBuilder.cs
+  - MonacoLabs.Presto/TweenKeyframesBuilder.cs
+  - MonacoLabs.Presto/Core/KeyframeExpander.cs
+  - MonacoLabs.Presto/Animation.cs
 types:
   - Keyframe
   - Keyframes

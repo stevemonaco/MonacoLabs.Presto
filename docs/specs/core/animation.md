@@ -1,18 +1,18 @@
 ---
 id: CORE-ANIMATION
 title: Animation and tweens
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Animation.cs
-  - Monaco.Presto/AnimationParams.cs
-  - Monaco.Presto/Tween.cs
-  - Monaco.Presto/TweenParams.cs
-  - Monaco.Presto/TweenSnapshot.cs
-  - Monaco.Presto/TimerTweens.cs
-  - Monaco.Presto/Core/Renderer.cs
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Animation.cs
+  - MonacoLabs.Presto/AnimationParams.cs
+  - MonacoLabs.Presto/Tween.cs
+  - MonacoLabs.Presto/TweenParams.cs
+  - MonacoLabs.Presto/TweenSnapshot.cs
+  - MonacoLabs.Presto/TimerTweens.cs
+  - MonacoLabs.Presto/Core/Renderer.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - Animation
   - AnimationParams

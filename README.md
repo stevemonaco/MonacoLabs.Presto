@@ -1,4 +1,4 @@
-# Monaco.Presto
+# MonacoLabs.Presto
 
 A .NET port of the [anime.js](https://animejs.com/documentation) v4.5.0 animation model: a framework-agnostic core that
 animates any property of any object, plus an Avalonia adapter that makes controls first-class targets.
@@ -10,15 +10,15 @@ PascalCase, and `init`-only parameter records underneath for when the property n
 
 | Package | What it is |
 |---|---|
-| `Monaco.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
-| `Monaco.Presto.AvaloniaBridge` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, color/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
-| `Monaco.Presto.AvaloniaBridge.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
+| `MonacoLabs.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
+| `MonacoLabs.Presto.Avalonia` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, color/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
+| `MonacoLabs.Presto.Avalonia.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
 
 ## Install
 
 ```powershell
-dotnet add package Monaco.Presto
-dotnet add package Monaco.Presto.AvaloniaBridge
+dotnet add package MonacoLabs.Presto
+dotnet add package MonacoLabs.Presto.Avalonia
 ```
 
 The bridge is built against **Avalonia 12.1.2** and every package targets **net10.0**. The core has no package
@@ -29,7 +29,7 @@ dependencies at all; take it alone if you are driving a game loop, a view model 
 ### A plain object
 
 ```csharp
-using Monaco.Presto;
+using MonacoLabs.Presto;
 
 var ship = new Ship();
 
@@ -60,8 +60,7 @@ posts to the `SynchronizationContext` of the thread that started it; tests swap 
 
 ```csharp
 using Avalonia;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 
 Square.Animate(b => b                          // or Presto.Build()…Animate(Square)
     .X(320)                                     // transform shorthand → RenderTransform
@@ -101,7 +100,7 @@ Square.Animate(new() { ["X"] = 320, ["Rotate"] = new TweenParams { From = -180 }
 The same keys, typed:
 
 ```csharp
-using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
+using static MonacoLabs.Presto.PrestoKeys;
 
 Square.Animate(new() { [X] = 320, [Rotate] = new TweenParams { From = -180 }, Duration = 1250 });
 PropertyKey key = PrestoKeys.Of(Border.CornerRadiusProperty);   // a real property held as a value
@@ -150,7 +149,7 @@ thread when it doesn't, without throwing; [Choosing the thread](#choosing-the-th
 
 #### From XAML
 
-The attached properties (`xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"`, which also covers the Lottie package) take a builder three ways:
+The attached properties (`xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"`, which also covers the Lottie package) take a builder three ways:
 
 ```xml
 <Border presto:Presence.Arrive="{x:Static local:Motions.FadeUp}" />
@@ -504,7 +503,7 @@ point and Ctrl+wheel zooms about the cursor. `ZoomTo`, `PanTo`, `RotateTo` and `
 `Settle` animation.
 
 ```csharp
-using Monaco.Presto.AvaloniaBridge.Gestures;
+using MonacoLabs.Presto.Gestures;
 
 // Photo sits in a Border with ClipToBounds, its parent, which bounds the pan.
 var viewer = Photo.CreateTransformable(new()
@@ -677,8 +676,8 @@ Avalonia's compositor.
 ```csharp
 using Avalonia;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
 
 public sealed class SpinnerScene : CompositorScene
 {
@@ -1264,8 +1263,8 @@ var spinner = icon.Animate(Recipes.Spinner());     // loops until canceled
 
 Every recipe also takes `duration`, `delay` and `ease`, defaulting to the [tokens](#motion-tokens), and all but the
 interactions and `Dots` take `stagger: true`, which starts each element of a batch `Tokens.StaggerStep` ms after the one
-before, from `delay`. The families are classes in `Monaco.Presto.AvaloniaBridge.Prebuilt`; `Recipes` forwards to them,
-so `using Monaco.Presto.AvaloniaBridge;` is enough.
+before, from `delay`. The families are classes in `MonacoLabs.Presto.Prebuilt`; `Recipes` forwards to them,
+so `using MonacoLabs.Presto;` is enough.
 
 Entrances state only where the element starts (`.Opacity(from: 0)`), so they land on its own resting values: a card at
 `Opacity` 0.6 fades up to 0.6. Every entrance and exit fades as well as moving. Exits, attention, loops and interactions
@@ -1503,7 +1502,7 @@ Reduced, it holds frame 0.
 Lottie files play through a separate package, so the bridge itself takes no Skottie dependency:
 
 ```powershell
-dotnet add package Monaco.Presto.AvaloniaBridge.Lottie
+dotnet add package MonacoLabs.Presto.Avalonia.Lottie
 ```
 
 `LottieView` shows one frame of its `Composition`, drawn by SkiaSharp.Skottie; Presto drives the frame and does not
@@ -1538,8 +1537,8 @@ over |to − from| / `FrameRate` × 1000 / `speed` ms and return the `Animation`
 unknown marker throws `ArgumentException` listing the markers there are.
 
 **Recipe.** `Recipes.PlayLottie(segment, loop, reverse, speed, delay)` is the same as a builder, reading each target's
-composition; with `using Monaco.Presto.AvaloniaBridge.Lottie;` it is an extension member of `Recipes`, and otherwise
-`LottieRecipes.PlayLottie` in `Monaco.Presto.AvaloniaBridge.Lottie.Prebuilt`. It loops by default, and a target that is
+composition; with `using MonacoLabs.Presto.Lottie;` it is an extension member of `Recipes`, and otherwise
+`LottieRecipes.PlayLottie` in `MonacoLabs.Presto.Lottie.Prebuilt`. It loops by default, and a target that is
 not a `LottieView` plays nothing. `{presto:PlayLottie}` adds `Segment`, `Loop`, `Reverse` and `Speed`, and an explicit
 `Duration` or `Ease` replaces the frame timing. Reduced, it jumps to the segment's end frame and holds it, unlike `PlayFrames`' frame 0: a
 segment ends on the state it plays into, such as a toggle's "on".
@@ -1701,7 +1700,7 @@ A handful of places where the JS shape does not survive the type system:
 
 Version 0.1.0, pre-release: the API is settled enough to build against but not frozen, and a pass over it is planned
 before 1.0. Behavioral parity with anime.js 4.5.0 is covered by the upstream suites ported into
-`tests/Monaco.Presto.Tests` and `tests/Monaco.Presto.AvaloniaBridge.Tests`.
+`tests/MonacoLabs.Presto.Tests` and `tests/MonacoLabs.Presto.Avalonia.Tests`.
 
 The core is pure .NET and runs anywhere net10.0 does, and the bridge uses no desktop-only API. All four sample heads
 build; what has actually been *run* differs, and the table says so rather than implying more.
@@ -1739,13 +1738,13 @@ The sample gallery has 17 pages — one per anime.js documentation area, plus th
 manual acceptance surface.
 
 ```powershell
-dotnet build Monaco.Presto.slnx
+dotnet build MonacoLabs.Presto.slnx
 dotnet run --project samples/PrestoSample.Desktop
 dotnet watch --project samples/PrestoSample.Desktop        # hot reload
 
-dotnet test --project tests/Monaco.Presto.Tests            # note --project, not a bare path
-dotnet test --project tests/Monaco.Presto.AvaloniaBridge.Tests
-dotnet test --solution Monaco.Presto.slnx
+dotnet test --project tests/MonacoLabs.Presto.Tests            # note --project, not a bare path
+dotnet test --project tests/MonacoLabs.Presto.Avalonia.Tests
+dotnet test --solution MonacoLabs.Presto.slnx
 ```
 
 Below 720 DIP the gallery switches to a compact layout: the nav fills the window as Home, and a page opens over it with

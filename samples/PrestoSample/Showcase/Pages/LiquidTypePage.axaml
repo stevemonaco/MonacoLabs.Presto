@@ -3,7 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:controls="clr-namespace:Monaco.Presto.AvaloniaBridge.Controls;assembly=Monaco.Presto.AvaloniaBridge"
+                       xmlns:controls="clr-namespace:MonacoLabs.Presto.Controls;assembly=MonacoLabs.Presto.Avalonia"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="900"
                        x:Class="PrestoSample.Showcase.Pages.LiquidTypePage">
     <ScrollViewer>

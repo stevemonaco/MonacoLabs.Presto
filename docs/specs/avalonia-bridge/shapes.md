@@ -1,20 +1,20 @@
 ---
 id: BRIDGE-SHAPES
 title: Shapes (drawable, motion path, morph)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Shapes
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Shapes
 sources:
-  - Monaco.Presto.AvaloniaBridge/Shapes/DrawAccessor.cs
-  - Monaco.Presto.AvaloniaBridge/Shapes/ContourMorph.cs
-  - Monaco.Presto.AvaloniaBridge/Values/GeometryCodec.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/PropertyBuilderExtensions.cs
+  - MonacoLabs.Presto.Avalonia/Shapes/DrawAccessor.cs
+  - MonacoLabs.Presto.Avalonia/Shapes/ContourMorph.cs
+  - MonacoLabs.Presto.Avalonia/Values/GeometryCodec.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/PropertyBuilderExtensions.cs
 types: []
 tests:
   - ShapesTests
-  - AllocationTests
+  - BridgeAllocationTests
   - MotionPathTests
   - MorphLabPageTests
   - ChartMorphPageTests
@@ -62,7 +62,7 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 - **BRIDGE-SHAPES-007** — Reverting a `"Draw"` tween shall restore the `StrokeDashArray`, `StrokeDashOffset` and `StrokeLineCap` the shape had when it first entered the draw state, and forget that state.
   - Tests: `ShapesTests.RevertRestoresTheStrokeStateTheShapeHadBeforeDrawing`
 - **BRIDGE-SHAPES-008** — Each frame shall write the dashes into the same dash list rather than a new one.
-  - Tests: `AllocationTests.DrawTweenTicksWithinBudget`
+  - Tests: `BridgeAllocationTests.DrawTweenTicksWithinBudget`
 - **BRIDGE-SHAPES-035** — While a shape is in the draw state, a change to its `StrokeThickness` shall apply the slice last applied again at the new thickness, and a revert shall stop following it.
   - Tests: `ShapesTests.AThicknessChangeAfterADrawKeepsOneDashPerContour`, `ShapesTests.ARevertedDrawNoLongerFollowsTheThickness`
 - **BRIDGE-SHAPES-031** — On a character outline piece (BRIDGE-TEXT-055), `L` shall be the perimeter of the piece's longest flattened figure, so a `0 1` slice traces every contour of the outline.

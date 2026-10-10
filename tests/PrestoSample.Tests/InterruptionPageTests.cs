@@ -4,7 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
-using Monaco.Presto;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase.Pages;
 
 namespace PrestoSample.Tests;

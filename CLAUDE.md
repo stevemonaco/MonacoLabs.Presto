@@ -1,4 +1,4 @@
-# Monaco.Presto
+# MonacoLabs.Presto
 
 A .NET animation library inspired by [anime.js v4](https://animejs.com/documentation) ([source](https://github.com/juliangarnier/anime), MIT). The goal is an API that is as simple to use from C# as anime.js is from JavaScript: `Presto.Animate(target, ...)`, timelines, staggering, a rich easing set, and full playback control.
 
@@ -8,11 +8,11 @@ The architecture and the anime.js → Presto module map live in [docs/ARCHITECTU
 
 | Path | Purpose |
 |------|---------|
-| `Monaco.Presto/` | **Core.** Framework-agnostic engine: clock, engine, timer, animation, timeline, tweens, values, eases, stagger, utils. No Avalonia dependency, ever. |
-| `Monaco.Presto.AvaloniaBridge/` | **Avalonia adapter.** Frame pump, `AvaloniaObject`/`AvaloniaProperty` targets, render-transform composition, color/brush/thickness interpolation, control helpers. Custom controls (`Pager`, `Sheet`, `ToastHost`, the image controls…) live in `Controls/` (`...AvaloniaBridge.Controls`). Root namespace `Monaco.Presto.AvaloniaBridge` (deliberately not `...Avalonia`, which would shadow the `Avalonia.*` namespaces). |
+| `MonacoLabs.Presto/` | **Core.** Framework-agnostic engine: clock, engine, timer, animation, timeline, tweens, values, eases, stagger, utils. No Avalonia dependency, ever. |
+| `MonacoLabs.Presto.Avalonia/` | **Avalonia adapter.** Frame pump, `AvaloniaObject`/`AvaloniaProperty` targets, render-transform composition, color/brush/thickness interpolation, control helpers. Custom controls (`Pager`, `Sheet`, `ToastHost`, the image controls…) live in `Controls/` (`MonacoLabs.Presto.Controls`). Root namespace `MonacoLabs.Presto`, shared with the core: namespaces never carry an `Avalonia` segment (it would shadow the `Avalonia.*` namespaces), and folders map onto the root namespace. |
 | `samples/PrestoSample*/` | Gallery app (shared project + Desktop/Browser/Android/iOS heads). `Pages/` mirror the anime.js documentation examples; `Builder/` holds fluent-builder pages that print their own code, plus the XAML attach demo; `Showcase/` holds the shared kit (`ShowcasePage`, `CodePanel`, `Snippet`) and `Showcase/Pages/` the multi-feature demos. Desktop is the primary dev target. |
 | `samples/PrestoSample.SnippetGenerator/` | Sample-only source generator: `<!-- snippet: Name -->` (XAML) and `#region snippet Name` (C#) regions become `PrestoSample.Showcase.Snippets` consts. |
-| `tests/Monaco.Presto.Tests/` | xunit v3 tests for the core. Bridge tests (Avalonia.Headless) will live in `tests/Monaco.Presto.AvaloniaBridge.Tests/`. |
+| `tests/MonacoLabs.Presto.Tests/` | xunit v3 tests for the core. Bridge tests (Avalonia.Headless) live in `tests/MonacoLabs.Presto.Avalonia.Tests/`. |
 | `docs/` | `ARCHITECTURE.md` (goals, module map, architecture, testing strategy, project-wide decisions), `BACKLOG.md` (open work), `changes/` (change proposals for work in progress). |
 | `docs/specs/` | Feature specs, the source of truth for behavior: one folder per package (`core/`, `avalonia-bridge/`, `lottie/`, `devtools/`), each with an `index.md`. Format in `docs/specs/README.md`. |
 
@@ -21,9 +21,9 @@ Build configuration is shared through root `Directory.Build.props` (language/nul
 ## Commands (PowerShell)
 
 ```powershell
-dotnet build Monaco.Presto.slnx
-dotnet test --project tests/Monaco.Presto.Tests          # MTP mode (global.json); note --project, not a bare path
-dotnet test --solution Monaco.Presto.slnx
+dotnet build MonacoLabs.Presto.slnx
+dotnet test --project tests/MonacoLabs.Presto.Tests          # MTP mode (global.json); note --project, not a bare path
+dotnet test --solution MonacoLabs.Presto.slnx
 tests/PrestoSample.Tests/bin/Debug/net10.0/PrestoSample.Tests.exe --report-xunit --results-directory <dir>   # per-test times (after a build)
 dotnet run --project samples/PrestoSample.Desktop
 dotnet watch --project samples/PrestoSample.Desktop      # hot reload (see below)
@@ -71,7 +71,7 @@ The DevTools MCP server separately reads `AVALONIA_TOOLS_LICENSE_KEY`. Never com
 
 ## API conventions
 
-- Public entry point is the static `Presto` class (`Presto.Animate`, `Presto.CreateTimer`, `Presto.CreateTimeline`, `Presto.Stagger`, `Presto.Defaults`, `Presto.Engine`). Users should need one `using Monaco.Presto;` (plus `using Monaco.Presto.AvaloniaBridge;` for controls).
+- Public entry point is the static `Presto` class (`Presto.Animate`, `Presto.CreateTimer`, `Presto.CreateTimeline`, `Presto.Stagger`, `Presto.Defaults`, `Presto.Engine`). Users should need one `using MonacoLabs.Presto;`, which the core and the bridge share.
 - Parameters are `init`-only records/classes with the anime.js names in PascalCase (`Duration`, `Delay`, `Loop`, `Alternate`, `Ease`, `OnComplete`…). Animated properties are supplied through an indexer/collection initializer so calls read like the JS object literal. The specs give the exact behavior.
 - Anything in anime.js that can be a function-based value (`(target, i, total) => …`) accepts a delegate here; `Stagger` returns such delegates.
 - Eases are `Ease` delegates (`double → double`) exposed as `Eases.OutQuad`, `Eases.Out(3)`, `Eases.Spring(...)`, plus a string parser (`"inOutQuint"`, `"out(2)"`) for XAML and defaults.

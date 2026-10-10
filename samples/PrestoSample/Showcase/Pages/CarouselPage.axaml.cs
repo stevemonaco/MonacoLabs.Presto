@@ -5,10 +5,9 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
-using Monaco.Presto.AvaloniaBridge.Controls;
+using MonacoLabs.Presto;
+using static MonacoLabs.Presto.PrestoKeys;
+using MonacoLabs.Presto.Controls;
 
 namespace PrestoSample.Showcase.Pages;
 

@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:MonacoLabs.Presto.Tests"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             x:Class="MonacoLabs.Presto.Tests.FollowXamlView"
+             x:DataType="local:LevelViewModel">
+  <UserControl.Resources>
+    <DataTemplate x:Key="Row" x:DataType="local:LevelViewModel">
+      <Border Height="20" HorizontalAlignment="Left" Width="{presto:Follow {Binding Level}, Duration=100, Ease=linear}" />
+    </DataTemplate>
+  </UserControl.Resources>
+  <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+    <Slider x:Name="Source" Minimum="0" Maximum="100" Value="30" />
+    <Border x:Name="Default" Height="4" Width="{presto:Follow {Binding Level}}" />
+    <Border x:Name="Sprung" Height="4" Width="{presto:Follow {Binding Level}, Spring=Snappy}" />
+    <Border x:Name="Timed" Height="4" Width="{presto:Follow {Binding Level}, Duration=300, Ease=inQuad}" />
+    <Border x:Name="Built" Height="4" Width="{presto:Follow {Binding Level}, Builder={presto:Fade Duration=300, Ease=linear}}" />
+    <Border x:Name="Tokened" Height="4" Width="{presto:Follow {Binding Level}, Token={x:Static presto:MotionTokens.Expressive}}" />
+    <Border x:Name="Named" Height="4" Width="{presto:Follow {Binding #Source.Value}}" />
+    <Border x:Name="Direct" Height="4" Width="{presto:Follow {Binding Motion}, Duration=0}" />
+    <Border x:Name="SprungMotion" Height="4" Width="{presto:Follow {Binding Motion}, Spring=Snappy}" />
+    <Border x:Name="Converted" Height="4" Width="{presto:Follow {Binding Level, Converter={x:Static local:Doubler.Instance}}}" />
+    <ContentControl x:Name="Templated" MinHeight="44">
+      <ContentControl.Template>
+        <ControlTemplate TargetType="ContentControl">
+          <Border x:Name="PART_Animated" Height="4" HorizontalAlignment="Left" Width="{presto:Follow {TemplateBinding MinHeight}}" />
+        </ControlTemplate>
+      </ContentControl.Template>
+    </ContentControl>
+  </StackPanel>
+</UserControl>

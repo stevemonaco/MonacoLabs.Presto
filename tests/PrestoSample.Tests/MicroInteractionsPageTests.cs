@@ -7,9 +7,8 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Controls;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Controls;
 using PrestoSample.Builder;
 using PrestoSample.Showcase.Pages;
 

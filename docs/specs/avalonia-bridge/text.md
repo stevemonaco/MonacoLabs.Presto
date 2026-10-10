@@ -1,15 +1,15 @@
 ---
 id: BRIDGE-TEXT
 title: Text splitting
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Text
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto.Text
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Text/TextSplitter.cs
-  - Monaco.Presto.AvaloniaBridge/Text/SplitTextParams.cs
-  - Monaco.Presto.AvaloniaBridge/Text/SplitPieceParams.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Text/TextSplitter.cs
+  - MonacoLabs.Presto.Avalonia/Text/SplitTextParams.cs
+  - MonacoLabs.Presto.Avalonia/Text/SplitPieceParams.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types:
   - TextSplitter
   - SplitTextParams

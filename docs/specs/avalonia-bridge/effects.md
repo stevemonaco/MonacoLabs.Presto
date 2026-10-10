@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-EFFECTS
 title: Effect, reveal and 3D shorthands, and Tilt
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Effects
-  - Monaco.Presto.AvaloniaBridge/Tilt.cs
-  - Monaco.Presto.AvaloniaBridge/Transforms/RenderTransformComposer.cs
+  - MonacoLabs.Presto.Avalonia/Effects
+  - MonacoLabs.Presto.Avalonia/Tilt.cs
+  - MonacoLabs.Presto.Avalonia/Transforms/RenderTransformComposer.cs
 types:
   - Tilt
 tests:
@@ -18,7 +18,7 @@ tests:
   - TransformsTests
   - FollowTests
   - AnimationBuilderBridgeTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream: []
 depends:
   - CORE-ANIMATABLE
@@ -161,7 +161,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 
 ## Allocation
 
-- A frame mutates the bridge-owned effect, geometry or brush in place, costing Avalonia's property-changed args, a residual allocation accepted as for every animated property (BRIDGE-TARGETS). Pinned by `AllocationTests.EffectShorthandTweenTicksWithinBudget`, `AllocationTests.MaskSweepTicksWithinBudget` and `AllocationTests.AnIdleTiltAllocatesNothingPerFrame`.
+- A frame mutates the bridge-owned effect, geometry or brush in place, costing Avalonia's property-changed args, a residual allocation accepted as for every animated property (BRIDGE-TARGETS). Pinned by `BridgeAllocationTests.EffectShorthandTweenTicksWithinBudget`, `BridgeAllocationTests.MaskSweepTicksWithinBudget` and `BridgeAllocationTests.AnIdleTiltAllocatesNothingPerFrame`.
 
 ## Deviations from anime.js
 

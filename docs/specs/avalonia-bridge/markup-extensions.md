@@ -1,38 +1,38 @@
 ---
 id: BRIDGE-MARKUP
 title: Recipe markup extensions
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/RecipeExtension.cs
-  - Monaco.Presto.AvaloniaBridge/BlurExtension.cs
-  - Monaco.Presto.AvaloniaBridge/CharCascadeExtension.cs
-  - Monaco.Presto.AvaloniaBridge/FadeExtension.cs
-  - Monaco.Presto.AvaloniaBridge/GlowExtension.cs
-  - Monaco.Presto.AvaloniaBridge/LiftExtension.cs
-  - Monaco.Presto.AvaloniaBridge/LineMaskExtension.cs
-  - Monaco.Presto.AvaloniaBridge/LineRiseExtension.cs
-  - Monaco.Presto.AvaloniaBridge/LineWipeExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PageBloomExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PageFadeExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PageFadeThroughExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PagePushExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PageSharedAxisExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PageSlideExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PlayFramesExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PopExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PopoverExtension.cs
-  - Monaco.Presto.AvaloniaBridge/PressInExtension.cs
-  - Monaco.Presto.AvaloniaBridge/RecolorExtension.cs
-  - Monaco.Presto.AvaloniaBridge/ReflowExtension.cs
-  - Monaco.Presto.AvaloniaBridge/ScaleExtension.cs
-  - Monaco.Presto.AvaloniaBridge/ScatterExtension.cs
-  - Monaco.Presto.AvaloniaBridge/ShakeExtension.cs
-  - Monaco.Presto.AvaloniaBridge/ShimmerExtension.cs
-  - Monaco.Presto.AvaloniaBridge/SlideExtension.cs
-  - Monaco.Presto.AvaloniaBridge/WordBlurExtension.cs
-  - Monaco.Presto.AvaloniaBridge/WordFadeExtension.cs
+  - MonacoLabs.Presto.Avalonia/RecipeExtension.cs
+  - MonacoLabs.Presto.Avalonia/BlurExtension.cs
+  - MonacoLabs.Presto.Avalonia/CharCascadeExtension.cs
+  - MonacoLabs.Presto.Avalonia/FadeExtension.cs
+  - MonacoLabs.Presto.Avalonia/GlowExtension.cs
+  - MonacoLabs.Presto.Avalonia/LiftExtension.cs
+  - MonacoLabs.Presto.Avalonia/LineMaskExtension.cs
+  - MonacoLabs.Presto.Avalonia/LineRiseExtension.cs
+  - MonacoLabs.Presto.Avalonia/LineWipeExtension.cs
+  - MonacoLabs.Presto.Avalonia/PageBloomExtension.cs
+  - MonacoLabs.Presto.Avalonia/PageFadeExtension.cs
+  - MonacoLabs.Presto.Avalonia/PageFadeThroughExtension.cs
+  - MonacoLabs.Presto.Avalonia/PagePushExtension.cs
+  - MonacoLabs.Presto.Avalonia/PageSharedAxisExtension.cs
+  - MonacoLabs.Presto.Avalonia/PageSlideExtension.cs
+  - MonacoLabs.Presto.Avalonia/PlayFramesExtension.cs
+  - MonacoLabs.Presto.Avalonia/PopExtension.cs
+  - MonacoLabs.Presto.Avalonia/PopoverExtension.cs
+  - MonacoLabs.Presto.Avalonia/PressInExtension.cs
+  - MonacoLabs.Presto.Avalonia/RecolorExtension.cs
+  - MonacoLabs.Presto.Avalonia/ReflowExtension.cs
+  - MonacoLabs.Presto.Avalonia/ScaleExtension.cs
+  - MonacoLabs.Presto.Avalonia/ScatterExtension.cs
+  - MonacoLabs.Presto.Avalonia/ShakeExtension.cs
+  - MonacoLabs.Presto.Avalonia/ShimmerExtension.cs
+  - MonacoLabs.Presto.Avalonia/SlideExtension.cs
+  - MonacoLabs.Presto.Avalonia/WordBlurExtension.cs
+  - MonacoLabs.Presto.Avalonia/WordFadeExtension.cs
 types:
   - RecipeExtension
   - BlurExtension
@@ -187,6 +187,7 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 - **The text reveal extensions have exit forms.** Under `Presence.Exit` they provide the recipe's `*Out` form; earlier they had none, replaced when text exits gained per-piece ghosts. Reason: not recorded beyond that.
 - **A page transition's exit properties take the exit form.** On a `PrestoPageTransition`'s `Exit` or `BackExit` the extension provides the exit form, detected as a `PrestoPageTransition` target object plus the property's name. Reason: in compiled XAML a CLR property reports a property info that names the property but not its declaring type.
 - **Markup: `{presto:Scatter}` only.** It provides `Gather` on enter and `Scatter` on exit; `Fall` and `Wave` are code-only, like `Grow`, `Dim` and `Pulse`. Reason: one extension per family verb, and no family has an extension for every recipe.
+- **The XAML namespace URI follows the repo**: `https://github.com/stevemonaco/MonacoLabs.Presto`, prefix `presto`. Reason: nothing had been published when the repo was renamed, so changing the URI cost nothing, and a URI naming the old repo would mislead; it is an opaque identifier and is never fetched.
 - **Reduced text reveals never split, and one attribute configures the block.** See BRIDGE-TEXTREVEAL.
 - **`{presto:Reflow}` is the shorthand, and its reduced form is instant.** See BRIDGE-DECLLAYOUT.
 - **`ColorSpace` and `Hue` are trailing optional parameters.** See BRIDGE-TOKENS.

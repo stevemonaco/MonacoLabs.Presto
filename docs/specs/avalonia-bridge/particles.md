@@ -1,19 +1,19 @@
 ---
 id: BRIDGE-PARTICLES
 title: Particle drawing and particle effects
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Compositor
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Compositor
 sources:
-  - Monaco.Presto.AvaloniaBridge/Compositor/ParticleScene.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/ParticleFormation.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/FormationTransition.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/ParticleShape.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/ParticleOverlay.cs
-  - Monaco.Presto.AvaloniaBridge/ParticleEffect.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Particles.cs
-  - Monaco.Presto.AvaloniaBridge/RecipesGlyphs.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleScene.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleFormation.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/FormationTransition.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleShape.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/ParticleOverlay.cs
+  - MonacoLabs.Presto.Avalonia/ParticleEffect.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Particles.cs
+  - MonacoLabs.Presto.Avalonia/RecipesGlyphs.cs
 types:
   - ParticleScene
   - ParticleFormation
@@ -24,7 +24,7 @@ tests:
   - ParticleSceneTests
   - ParticleFormationTests
   - ParticleRecipeTests
-  - AllocationTests
+  - BridgeAllocationTests
   - ReferencePagesTests
   - BuilderRecipePagesTests
   - MicroInteractionsPageTests
@@ -202,9 +202,9 @@ depends:
 ## Allocation
 
 - Drawing a scene of 500 live particles allocates nothing per frame once the brush cache is warm; stepping them allocates nothing (CORE-PARTICLES).
-  - Pinned by `AllocationTests.AParticleSceneOf500DrawsWithoutAllocating`.
+  - Pinned by `BridgeAllocationTests.AParticleSceneOf500DrawsWithoutAllocating`.
 - Stepping and drawing a formation of 500 particles pushed by a repel point allocates nothing per frame; `AddFormation` and `Retarget` allocate their buffers once.
-  - Pinned by `AllocationTests.AFormationOf500StepsAndDrawsWithoutAllocating`.
+  - Pinned by `BridgeAllocationTests.AFormationOf500StepsAndDrawsWithoutAllocating`.
 
 ## Deviations from anime.js
 

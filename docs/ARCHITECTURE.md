@@ -1,4 +1,4 @@
-# Monaco.Presto — Architecture
+# MonacoLabs.Presto — Architecture
 
 A port of the anime.js v4.5.0 animation model to .NET, with a framework-agnostic core and an Avalonia adapter. This document is the map: goals, how anime.js maps onto Presto, the architecture, and how it is tested. What each feature does, and why, is in the [feature specs](specs/README.md); work not done yet is in the [backlog](BACKLOG.md); new work starts as a [change proposal](changes/README.md).
 
@@ -22,25 +22,25 @@ Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/`
 
 | anime.js (`src/`) | Presto namespace / type | Project | Spec |
 |---|---|---|---|
-| `core/clock.js`, `core/globals.js`, `core/consts.js` | `Monaco.Presto.Core.Clock`, `PrestoDefaults`, `Constants` | Core | [engine](specs/core/engine.md) |
-| `engine/engine.js` | `Monaco.Presto.Engine` + `IFrameSource` | Core | [engine](specs/core/engine.md), [threading](specs/core/threading.md) |
-| `core/render.js` (`tick`, `render`) | `Monaco.Presto.Core.Renderer` (static tick/render) | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
-| `timer/timer.js` | `Monaco.Presto.Timer` | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
+| `core/clock.js`, `core/globals.js`, `core/consts.js` | `MonacoLabs.Presto.Core.Clock`, `PrestoDefaults`, `Constants` | Core | [engine](specs/core/engine.md) |
+| `engine/engine.js` | `MonacoLabs.Presto.Engine` + `IFrameSource` | Core | [engine](specs/core/engine.md), [threading](specs/core/threading.md) |
+| `core/render.js` (`tick`, `render`) | `MonacoLabs.Presto.Core.Renderer` (static tick/render) | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
+| `timer/timer.js` | `MonacoLabs.Presto.Timer` | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
 | `easings/*` | `Ease` delegate, `Eases`, `LinearStop`, `Spring`, `EaseParser` | Core | [eases](specs/core/eases.md), [ease-parser](specs/core/ease-parser.md), [spring](specs/core/spring.md) |
-| `core/values.js`, `core/units.js`, `core/colors.js`, `core/targets.js`, `core/helpers.js`, `adapters/registry.js` | `Monaco.Presto.Values` (`TweenValue`, `ValueKind`, `PrestoColor`, `FunctionValue`), `Monaco.Presto.Targets` (`ITargetAdapter`, `IPropertyAccessor`, `ObjectTargetAdapter`), registered through `Presto.Adapters`/`Presto.Codecs` | Core | [values](specs/core/values.md), [colors](specs/core/colors.md), [targets](specs/core/targets.md) |
-| `animation/animation.js`, `composition.js`, `additive.js` | `Monaco.Presto.Animation`, `Tween`, `Composition`, `Core.Additive` | Core | [animation](specs/core/animation.md), [keyframes](specs/core/keyframes.md), [composition](specs/core/composition.md) |
+| `core/values.js`, `core/units.js`, `core/colors.js`, `core/targets.js`, `core/helpers.js`, `adapters/registry.js` | `MonacoLabs.Presto.Values` (`TweenValue`, `ValueKind`, `PrestoColor`, `FunctionValue`), `MonacoLabs.Presto.Targets` (`ITargetAdapter`, `IPropertyAccessor`, `ObjectTargetAdapter`), registered through `Presto.Adapters`/`Presto.Codecs` | Core | [values](specs/core/values.md), [colors](specs/core/colors.md), [targets](specs/core/targets.md) |
+| `animation/animation.js`, `composition.js`, `additive.js` | `MonacoLabs.Presto.Animation`, `Tween`, `Composition`, `Core.Additive` | Core | [animation](specs/core/animation.md), [keyframes](specs/core/keyframes.md), [composition](specs/core/composition.md) |
 | `core/transforms.js`, `core/styles.js` | Bridge only: `RenderTransformComposer`, property name resolution | Bridge | [transforms](specs/avalonia-bridge/transforms.md), [property-resolution](specs/avalonia-bridge/property-resolution.md) |
-| `timeline/timeline.js`, `position.js` | `Monaco.Presto.Timeline`, `TimelinePosition` | Core | [timeline](specs/core/timeline.md) |
-| `utils/stagger.js` | `Monaco.Presto.Stagger` (`Presto.Stagger(...)`) | Core | [stagger](specs/core/stagger.md) |
-| `utils/number.js`, `random.js`, `time.js`, `chainable.js` | `Monaco.Presto.Utils` | Core | [utils](specs/core/utils.md) |
+| `timeline/timeline.js`, `position.js` | `MonacoLabs.Presto.Timeline`, `TimelinePosition` | Core | [timeline](specs/core/timeline.md) |
+| `utils/stagger.js` | `MonacoLabs.Presto.Stagger` (`Presto.Stagger(...)`) | Core | [stagger](specs/core/stagger.md) |
+| `utils/number.js`, `random.js`, `time.js`, `chainable.js` | `MonacoLabs.Presto.Utils` | Core | [utils](specs/core/utils.md) |
 | `utils/target.js` (`$`, `get`, `set`, `remove`, `cleanInlineStyles`) | `Presto.Get/Set/Remove` on objects; bridge overloads for controls. `$` has no equivalent (no selectors); `cleanInlineStyles` is unnecessary (animation-priority writes) | Core + Bridge | [presto](specs/core/presto.md), [control-helpers](specs/avalonia-bridge/control-helpers.md) |
-| `animatable/animatable.js` | `Monaco.Presto.Animatable` | Core | [animatable](specs/core/animatable.md) |
-| `scope/scope.js` | `Monaco.Presto.Scope`; bridge `ControlScope` (reverts when its control leaves the visual tree) | Core + Bridge | [scope-and-defaults](specs/core/scope-and-defaults.md), [control-helpers](specs/avalonia-bridge/control-helpers.md) |
-| `draggable/draggable.js` | `Monaco.Presto.AvaloniaBridge.Draggable` | Bridge | [draggable](specs/avalonia-bridge/draggable.md) |
-| `events/scroll.js` | `Monaco.Presto.AvaloniaBridge.ScrollObserver` (ScrollViewer) | Bridge | [scroll-observer](specs/avalonia-bridge/scroll-observer.md) |
+| `animatable/animatable.js` | `MonacoLabs.Presto.Animatable` | Core | [animatable](specs/core/animatable.md) |
+| `scope/scope.js` | `MonacoLabs.Presto.Scope`; bridge `ControlScope` (reverts when its control leaves the visual tree) | Core + Bridge | [scope-and-defaults](specs/core/scope-and-defaults.md), [control-helpers](specs/avalonia-bridge/control-helpers.md) |
+| `draggable/draggable.js` | `MonacoLabs.Presto.Draggable` | Bridge | [draggable](specs/avalonia-bridge/draggable.md) |
+| `events/scroll.js` | `MonacoLabs.Presto.ScrollObserver` (ScrollViewer) | Bridge | [scroll-observer](specs/avalonia-bridge/scroll-observer.md) |
 | `svg/*` (`morphTo`, `createDrawable`, `createMotionPath`) | Path/Geometry based shape helpers | Bridge | [shapes](specs/avalonia-bridge/shapes.md) |
 | `text/scramble.js` (`scrambleText`) | `Presto.ScrambleText` | Core | [scramble](specs/core/scramble.md) |
-| `text/split.js` (`splitText`) | `Monaco.Presto.AvaloniaBridge.Text` | Bridge | [text](specs/avalonia-bridge/text.md) |
+| `text/split.js` (`splitText`) | `MonacoLabs.Presto.Text` | Bridge | [text](specs/avalonia-bridge/text.md) |
 | `layout/*` | Not ported as such: upstream's real width/height animation maps to `Animate.ContentSize`; compositor FLIP covers position and size moves | Bridge | [content-size](specs/avalonia-bridge/content-size.md), [layout-transitions](specs/avalonia-bridge/layout-transitions.md) |
 | `waapi/*` | `CompositorAnimation`: server-side `KeyFrameAnimation`s compiled from Presto params, plus `CompositorCanvas`/`CompositorScene`, a whole engine on the render thread (no upstream counterpart) | Bridge | [animation-thread](specs/avalonia-bridge/animation-thread.md), [compositor-scenes](specs/avalonia-bridge/compositor-scenes.md) |
 | `adapters/three.js` | not ported | — | — |
@@ -49,7 +49,7 @@ Features with no upstream counterpart are listed in the spec indexes: [core](spe
 
 ## 3. Architecture
 
-### 3.1 Core (`Monaco.Presto`)
+### 3.1 Core (`MonacoLabs.Presto`)
 
 ```
 Clock                      framerate + playback-rate bookkeeping (base of Engine, Timer)
@@ -74,7 +74,7 @@ Kept structurally identical to upstream, so the upstream tests port one to one:
 - **Time** is `double` milliseconds; seconds mode is an engine scale factor.
 - **Threads**: one engine per thread that ticks it, no locks. `Presto.Engine` is the main (UI) engine and the ambient default; `Engine.Current`/`MakeCurrent()` install another for a block, and every `Timer` captures its engine at construction ([threading](specs/core/threading.md)).
 
-### 3.2 Avalonia bridge (`Monaco.Presto.AvaloniaBridge`)
+### 3.2 Avalonia bridge (`MonacoLabs.Presto.Avalonia`)
 
 - **Frame pump**: `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, falling back to a `DispatcherTimer` before any `TopLevel` exists; installed on first use. Minimized windows and backgrounded apps set `Engine.Hidden` ([initialization](specs/avalonia-bridge/initialization.md)).
 - **Targets**: `AvaloniaObjectTargetAdapter` resolves typed `AvaloniaProperty` keys, names (including attached `"Canvas.Left"`) and the bridge's shorthands; writes go in at `BindingPriority.Animation`, so `Revert` clears them cleanly ([property-resolution](specs/avalonia-bridge/property-resolution.md)).
@@ -88,7 +88,7 @@ Kept structurally identical to upstream, so the upstream tests port one to one:
 - **Core**: xunit v3, no Avalonia. Tests drive `Engine.Update(now)` through `ManualFrameSource.Advance(ms)`, giving deterministic timing identical to how upstream tests use `engine.update()` and fake timers.
 - **Upstream parity**: suites ported from `tests/suites/*.test.js`, with test names close to the Mocha `it()` descriptions so gaps are easy to audit. DOM-only suites (`waapi`, `threejs`, `node`, `build`) are skipped.
 - **Generated fixtures**: `tools/anime-fixtures/` (Node, `npm i animejs@4.5.0`) dumps JSON for easing curves (101 samples each), spring durations, stagger outputs and timeline positions; the C# tests assert within `1e-6`. Regenerate only when bumping the upstream reference version.
-- **Bridge**: `tests/Monaco.Presto.AvaloniaBridge.Tests` on `Avalonia.Headless` with `[AvaloniaFact]`/`[AvaloniaTheory]`. That package targets `xunit.v3.extensibility.core` 3.2.2, so `xunit.v3` is pinned to 3.2.x repo-wide (on 4.x, discovery throws `MissingMethodException`); it is also why `AssemblyInfo.cs` uses `CollectionBehavior(DisableTestParallelization = true)`. A `ManualFrameSource` replaces the frame pump.
+- **Bridge**: `tests/MonacoLabs.Presto.Avalonia.Tests` on `Avalonia.Headless` with `[AvaloniaFact]`/`[AvaloniaTheory]`. That package targets `xunit.v3.extensibility.core` 3.2.2, so `xunit.v3` is pinned to 3.2.x repo-wide (on 4.x, discovery throws `MissingMethodException`); it is also why `AssemblyInfo.cs` uses `CollectionBehavior(DisableTestParallelization = true)`. A `ManualFrameSource` replaces the frame pump.
 - **Specs**: the feature specs are the acceptance reference. Each requirement cites the tests that pin it; `SpecTests` and `SpecCoverageTests` keep citations, paths and type ownership honest.
 - **Visual**: the sample gallery is the manual acceptance surface; DevTools screenshots and property reads confirm end states.
 
@@ -96,6 +96,7 @@ Decisions behind the test setup:
 
 - **Tests run on virtual time.** Headless tests freeze Avalonia's compositor clock and advance it through one test-only helper, `CompositorClock`, reached by reflection (each lookup throws naming a missing member; `CompositorClockTests` pins the seam). Tests step 16 ms frames and never sleep unless the code under test measures real time. The library itself keeps no reflection, and its own wall-clock reads go through a `TimeProvider`. Reason: Avalonia offers no clock seam, and real-time waits made the suites take minutes; the fragility of four private names is accepted because an upgrade that renames one fails loudly. Rejected: condition-based settles, elapsed-time pumps and shortened durations.
 - **The bridge harness's `Tick(ms)` moves only the compositor clock.** It runs UI jobs, advances the compositor and renders, but does not advance the manual frame source; a test needing both engines in step advances both. The sample harness's `TestFrames.Tick()` moves both. Reason: advancing the frame source on every tick broke 35 tests whose UI-thread values assume `Tick` only renders.
+- **The bridge test project uses the `MonacoLabs.Presto.Tests` namespace**, and its allocation tests are `BridgeAllocationTests`. Reason: a `MonacoLabs.Presto.Avalonia.Tests` namespace would reintroduce the `Avalonia.*` shadowing in the most Avalonia-heavy code, and the project already compiles the core tests' `EngineTestBase`, `TestHelpers` and `SpecCatalog` in that namespace; the rename keeps any test class name from existing in both projects.
 - **Test assemblies run in series.** Reason: `Presto.Engine`, `Presto.Defaults` and the test frame source are process-wide statics. Rejected for now: per-test engines, which touch every static entry point.
 - **`BridgeTestBase` tests must be `[AvaloniaFact]`**, and the base asserts it runs on the UI thread. Reason: a plain `[Fact]` reset the engine off the UI thread and caused order-dependent failures; the assert turns those into failures every time.
 - **The sample suite's 60 s target is accepted as missed** (about 92 s). What remains is real rendering work in the headless framebuffer; tests were not weakened to reach it.
@@ -103,9 +104,11 @@ Decisions behind the test setup:
 ## 5. Project-wide decisions
 
 - **Time is `double` milliseconds**; seconds mode is an engine scale factor, not a second code path. Reason: parity with anime.js (`timeUnit: 'ms'`).
-- **The bridge's root namespace is `Monaco.Presto.AvaloniaBridge`.** Reason: `...Avalonia` would shadow the `Avalonia.*` namespaces.
+- **Avalonia packages share the core's namespace.** The bridge's root namespace is `MonacoLabs.Presto`, and its package and assembly are `MonacoLabs.Presto.Avalonia`; its `Targets` and `Values` merge with the core's. Reason: an `Avalonia` namespace segment would shadow `Avalonia.*` for every qualified name and generated source inside it, and one `using` matches the API convention; separate assemblies contributing to one namespace is ordinary .NET practice (every `Microsoft.Extensions.*` package adds to `Microsoft.Extensions.DependencyInjection`). No core type shares a name with a bridge type in the merged namespaces, and no type is named like a sibling namespace. Rejected: a `MonacoLabs.Presto.Avalonia` namespace with `global::` at each qualified reference (the hazard stays for every future file and generator); `.Ava`/`.Xaml`/`.UI` (they read as workarounds, and `.UI` would not fit a second UI-framework adapter); merging the assemblies (the core would gain an Avalonia dependency).
+- **Package names carry `Avalonia`; namespaces never do.** Lottie and DevTools are packaged as `MonacoLabs.Presto.Avalonia.Lottie`/`.DevTools`, with namespaces `MonacoLabs.Presto.Lottie`/`.DevTools`. Reason: on NuGet the package name is how people find the adapter for their UI framework; an adapter for another framework would be `MonacoLabs.Presto.<Framework>`, again in the `MonacoLabs.Presto` namespace.
+- **Folders match the root namespace, not the project name.** In `MonacoLabs.Presto.Avalonia/`, `Controls/` holds `MonacoLabs.Presto.Controls`. Reason: the "folder structure equals namespace" convention is read relative to each project's `RootNamespace`.
 - **Both packages target `net10.0` only.** Reason: the one blocker for older frameworks is `OrderedDictionary<TKey, TValue>` (.NET 9+); multi-targeting would mean carrying a hand-written replacement on a framework no test runs.
-- **Code that needs nothing from Avalonia lives in the core.** A bridge type whose implementation uses only core types moves to the core, unless a bridge feature defines its meaning (as Recipes defines `MotionTokens`, or compositor layout transitions define `LayoutMotion`). Reason: core users get it, its tests run without a headless platform, and `using Monaco.Presto;` reaches it.
+- **Code that needs nothing from Avalonia lives in the core.** A bridge type whose implementation uses only core types moves to the core, unless a bridge feature defines its meaning (as Recipes defines `MotionTokens`, or compositor layout transitions define `LayoutMotion`). Reason: core users get it, its tests run without a headless platform, and `using MonacoLabs.Presto;` reaches it.
 - **Every trigger, recipe and control states its reduced-motion form** in its spec, and its tests run under both settings. Reason: four places once ignored `ReducedMotion` and samples worked around them; stating the reduced form up front stops new holes.
 - The architecture rules (the core knows nothing about Avalonia, single-threaded engines, faithful port first) are in [CLAUDE.md](../CLAUDE.md).
 

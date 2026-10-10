@@ -6,7 +6,7 @@ Continuously scrolling content (logo walls, news and price tickers, a "now playi
 
 ## What
 
-A new `Marquee` control in `Monaco.Presto.AvaloniaBridge.Controls`:
+A new `Marquee` control in `MonacoLabs.Presto.Controls`:
 
 ```xml
 <presto:Marquee Speed="60" Gap="48" FadeEdges="32" Content="{Binding Logos}">
@@ -49,8 +49,8 @@ New spec `docs/specs/avalonia-bridge/marquee.md`, added to the Controls table in
 ```yaml
 id: BRIDGE-MARQUEE
 title: Marquee
-package: Monaco.Presto.AvaloniaBridge
-namespaces: [Monaco.Presto.AvaloniaBridge.Controls]
+package: MonacoLabs.Presto.Avalonia
+namespaces: [MonacoLabs.Presto.Controls]
 sources: [Controls/Marquee.cs, Controls/MarqueeDirection.cs, Controls/MarqueeMode.cs]
 types: [Marquee, MarqueeDirection, MarqueeMode]
 tests: [MarqueeTests, ControlsPageTests]

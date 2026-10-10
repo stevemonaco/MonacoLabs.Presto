@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 
 namespace PrestoSample.Builder;
 

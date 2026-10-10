@@ -1,17 +1,17 @@
 ---
 id: CORE-INERTIA
 title: Inertia, velocity tracking and projectiles
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Inertia.cs
-  - Monaco.Presto/Core/InertiaSolver.cs
-  - Monaco.Presto/VelocityTracker.cs
-  - Monaco.Presto/Projectile.cs
-  - Monaco.Presto/Core/ProjectileSolver.cs
-  - Monaco.Presto/Animation.cs
-  - Monaco.Presto/TweenValue.cs
+  - MonacoLabs.Presto/Inertia.cs
+  - MonacoLabs.Presto/Core/InertiaSolver.cs
+  - MonacoLabs.Presto/VelocityTracker.cs
+  - MonacoLabs.Presto/Projectile.cs
+  - MonacoLabs.Presto/Core/ProjectileSolver.cs
+  - MonacoLabs.Presto/Animation.cs
+  - MonacoLabs.Presto/TweenValue.cs
 types:
   - Inertia
   - VelocityTracker

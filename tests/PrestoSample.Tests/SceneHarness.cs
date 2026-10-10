@@ -9,9 +9,9 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Platform;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
-using Monaco.Presto.AvaloniaBridge.Tests;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
+using MonacoLabs.Presto.Tests;
 
 namespace PrestoSample.Tests;
 

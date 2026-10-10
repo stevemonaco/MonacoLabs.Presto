@@ -1,20 +1,20 @@
 ---
 id: BRIDGE-WARP
 title: Text warps
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/TextWarp.cs
-  - Monaco.Presto.AvaloniaBridge/TextWarpKind.cs
-  - Monaco.Presto.AvaloniaBridge/Text/WarpComposer.cs
-  - Monaco.Presto.AvaloniaBridge/Text/WarpShorthand.cs
+  - MonacoLabs.Presto.Avalonia/TextWarp.cs
+  - MonacoLabs.Presto.Avalonia/TextWarpKind.cs
+  - MonacoLabs.Presto.Avalonia/Text/WarpComposer.cs
+  - MonacoLabs.Presto.Avalonia/Text/WarpShorthand.cs
 types:
   - TextWarp
   - TextWarpKind
 tests:
   - TextWarpTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream: []
 depends:
   - BRIDGE-TEXT
@@ -105,7 +105,7 @@ With `a` the `Warp` amount, `R` the `WarpRadius`, `o` the `WarpOrigin`, `W` × `
 
 ## Allocation
 
-- A warp frame allocates each warped piece's new `StreamGeometry` (with its context and Skia path) and the `Data` change it raises, nothing else: about 640 bytes per character (`AllocationTests.ATextWarpFrameAllocatesOnlyItsGeometries`). Jelly's spring buffers are allocated when the composer takes up a split's pieces.
+- A warp frame allocates each warped piece's new `StreamGeometry` (with its context and Skia path) and the `Data` change it raises, nothing else: about 640 bytes per character (`BridgeAllocationTests.ATextWarpFrameAllocatesOnlyItsGeometries`). Jelly's spring buffers are allocated when the composer takes up a split's pieces.
 
 ## Deviations from anime.js
 

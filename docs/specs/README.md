@@ -8,10 +8,10 @@ One folder per shipped package, so a spec never crosses a package boundary:
 
 | Folder | Package | Id prefix |
 |---|---|---|
-| [`core/`](core/index.md) | `Monaco.Presto` | `CORE-` |
-| [`avalonia-bridge/`](avalonia-bridge/index.md) | `Monaco.Presto.AvaloniaBridge` | `BRIDGE-` |
-| [`lottie/`](lottie/index.md) | `Monaco.Presto.AvaloniaBridge.Lottie` | `LOTTIE-` |
-| [`devtools/`](devtools/index.md) | `Monaco.Presto.AvaloniaBridge.DevTools` | `DEVTOOLS-` |
+| [`core/`](core/index.md) | `MonacoLabs.Presto` | `CORE-` |
+| [`avalonia-bridge/`](avalonia-bridge/index.md) | `MonacoLabs.Presto.Avalonia` | `BRIDGE-` |
+| [`lottie/`](lottie/index.md) | `MonacoLabs.Presto.Avalonia.Lottie` | `LOTTIE-` |
+| [`devtools/`](devtools/index.md) | `MonacoLabs.Presto.Avalonia.DevTools` | `DEVTOOLS-` |
 
 Core specs follow the architecture rule that the core knows nothing about Avalonia: they never contain the word, and they depend only on other `CORE-` specs. A bridge-side spec builds on core specs by id (`depends`) instead of restating them.
 

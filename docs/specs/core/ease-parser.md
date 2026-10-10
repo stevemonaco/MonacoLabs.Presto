@@ -1,11 +1,11 @@
 ---
 id: CORE-EASEPARSER
 title: Ease strings
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/EaseParser.cs
+  - MonacoLabs.Presto/EaseParser.cs
 types:
   - EaseParser
 tests:

@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
 
 namespace PrestoSample.Showcase.Pages;
 

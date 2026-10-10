@@ -3,7 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoSample.Showcase"
-                       xmlns:presto="https://github.com/stevemonaco/Monaco.Presto"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        xmlns:local="using:PrestoSample.Showcase.Pages"
                        xmlns:builder="using:PrestoSample.Builder"
                        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="760"

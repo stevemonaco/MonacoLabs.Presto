@@ -1,18 +1,18 @@
 ---
 id: BRIDGE-TEXTREVEAL
 title: Text reveals and text exits
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/TextReveal.cs
-  - Monaco.Presto.AvaloniaBridge/TextRevealExtension.cs
-  - Monaco.Presto.AvaloniaBridge/TextPieces.cs
-  - Monaco.Presto.AvaloniaBridge/Text/PieceTargets.cs
-  - Monaco.Presto.AvaloniaBridge/Text/PieceGhosts.cs
-  - Monaco.Presto.AvaloniaBridge/Text/TextSplitter.cs
-  - Monaco.Presto.AvaloniaBridge/Presence.cs
-  - Monaco.Presto.AvaloniaBridge/Animate.cs
+  - MonacoLabs.Presto.Avalonia/TextReveal.cs
+  - MonacoLabs.Presto.Avalonia/TextRevealExtension.cs
+  - MonacoLabs.Presto.Avalonia/TextPieces.cs
+  - MonacoLabs.Presto.Avalonia/Text/PieceTargets.cs
+  - MonacoLabs.Presto.Avalonia/Text/PieceGhosts.cs
+  - MonacoLabs.Presto.Avalonia/Text/TextSplitter.cs
+  - MonacoLabs.Presto.Avalonia/Presence.cs
+  - MonacoLabs.Presto.Avalonia/Animate.cs
 types:
   - TextReveal
   - TextRevealExtension

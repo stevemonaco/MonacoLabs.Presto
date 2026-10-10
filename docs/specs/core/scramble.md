@@ -1,14 +1,14 @@
 ---
 id: CORE-SCRAMBLE
 title: Text scrambling
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Core/TextScrambler.cs
-  - Monaco.Presto/ScrambleTextParams.cs
-  - Monaco.Presto/ScrambleFrom.cs
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Core/TextScrambler.cs
+  - MonacoLabs.Presto/ScrambleTextParams.cs
+  - MonacoLabs.Presto/ScrambleFrom.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - ScrambleTextParams
   - ScrambleFrom

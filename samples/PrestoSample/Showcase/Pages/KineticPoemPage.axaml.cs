@@ -3,9 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Text;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Text;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace PrestoSample.Showcase.Pages;

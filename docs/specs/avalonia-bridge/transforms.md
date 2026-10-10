@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-TRANSFORMS
 title: Transform shorthands
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Transforms/TransformShorthands.cs
-  - Monaco.Presto.AvaloniaBridge/Transforms/RenderTransformComposer.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/AvaloniaObjectTargetAdapter.cs
+  - MonacoLabs.Presto.Avalonia/Transforms/TransformShorthands.cs
+  - MonacoLabs.Presto.Avalonia/Transforms/RenderTransformComposer.cs
+  - MonacoLabs.Presto.Avalonia/Targets/AvaloniaObjectTargetAdapter.cs
 types: []
 tests:
   - TransformsTests
@@ -15,7 +15,7 @@ tests:
   - TargetOwnerTests
   - FollowTests
   - CompositorRegistryTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream:
   - src/core/consts.js
   - src/core/transforms.js
@@ -108,7 +108,7 @@ The transform shorthands `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `SkewX
 ## Allocation
 
 - A frame writes a reused transform's property, costing only Avalonia's property-changed args (BRIDGE-TARGETS). Allocation happens when a shorthand joins or leaves the group.
-  - Pinned by `AllocationTests.TransformShorthandTweenTicksWithinBudget`.
+  - Pinned by `BridgeAllocationTests.TransformShorthandTweenTicksWithinBudget`.
 
 ## Deviations from anime.js
 

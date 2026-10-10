@@ -1,18 +1,18 @@
 ---
 id: BRIDGE-FOLLOW
 title: Value-driven animation and motion value sources
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Follow.cs
-  - Monaco.Presto.AvaloniaBridge/FollowExtension.cs
-  - Monaco.Presto.AvaloniaBridge/FollowParams.cs
-  - Monaco.Presto.AvaloniaBridge/Bindings
-  - Monaco.Presto.AvaloniaBridge/MotionValueSource.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollContainer.cs
-  - Monaco.Presto.AvaloniaBridge/Events/PointerTracker.cs
+  - MonacoLabs.Presto.Avalonia/Follow.cs
+  - MonacoLabs.Presto.Avalonia/FollowExtension.cs
+  - MonacoLabs.Presto.Avalonia/FollowParams.cs
+  - MonacoLabs.Presto.Avalonia/Bindings
+  - MonacoLabs.Presto.Avalonia/MotionValueSource.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollContainer.cs
+  - MonacoLabs.Presto.Avalonia/Events/PointerTracker.cs
 types:
   - Follow
   - FollowExtension
@@ -27,7 +27,7 @@ tests:
   - MotionValueSourceTests
   - PointerProximityValueTests
   - MotionValueCodecTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream: []
 depends:
   - CORE-MOTIONVALUE
@@ -116,7 +116,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 ### Motion value sinks
 
 - **BRIDGE-FOLLOW-024** — When `Follow.Bind` gets a `MotionValue`, no options and a `StyledProperty<double>`, it shall write each flushed value unboxed at `LocalValue`, at most once per frame however many upstream sources changed.
-  - Tests: `MotionValueSinkTests.BindWritesOncePerFrameHoweverManySourcesChanged`, `AllocationTests.AMotionValueBoundWidthTicksWithinBudget`
+  - Tests: `MotionValueSinkTests.BindWritesOncePerFrameHoweverManySourcesChanged`, `BridgeAllocationTests.AMotionValueBoundWidthTicksWithinBudget`
 - **BRIDGE-FOLLOW-025** — When `Follow.Bind` gets a `MotionValue` for another property type, or a `MotionObjectValue`, without options, it shall write each flushed value converted to the property type (ints rounded) with no easing.
   - Tests: `MotionValueSinkTests.BindIsAtLocalValueOverAStyleAndConvertsToThePropertyType`, `MotionValueSinkTests.AnObjectValuedCellBindsTheSameWay`
 - **BRIDGE-FOLLOW-026** — When `Follow.Bind` gets a motion value with options, it shall ease to each flushed value through the follower with that timing, snapping to the first.
@@ -155,7 +155,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-041** — When a shorthand's value is caused by a `DataContext` change, it shall snap.
   - Tests: `FollowTests.ADataContextSwapSnaps`
 - **BRIDGE-FOLLOW-042** — When a shorthand gets a `MotionValue`, it shall write the current value at once and then each flushed value, ignoring `Follow.Timing` and reduced motion.
-  - Tests: `MotionValueSinkTests.EachShorthandWritesEachFlushedValueIgnoringTheTiming`, `AllocationTests.AMotionValueFollowedXTicksWithinBudget`
+  - Tests: `MotionValueSinkTests.EachShorthandWritesEachFlushedValueIgnoringTheTiming`, `BridgeAllocationTests.AMotionValueFollowedXTicksWithinBudget`
 - **BRIDGE-FOLLOW-043** — When a shorthand holding a `MotionValue` is set to a number, another value or `null`, it shall unsubscribe from the old value; a number then snaps as a first value.
   - Tests: `MotionValueSinkTests.AnotherValueOrNullReleasesTheSubscription`
 - **BRIDGE-FOLLOW-044** — When the visual detaches, every shorthand follower shall land on its latest value and motion value subscriptions shall stop; on reattach each motion value shall resubscribe and write its latest value.
@@ -204,7 +204,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-070** — All pointer proximity and offset values over one surface shall share one set of event subscriptions, which is removed when the last of them stops.
   - Tests: `PointerProximityValueTests.ValuesOverOneSurfaceShareOneTrackerRemovedWithTheLast`
 - **BRIDGE-FOLLOW-071** — A pointer move shall allocate nothing beyond Avalonia's event routing, however many pointer proximity or offset values share the surface.
-  - Tests: `AllocationTests.APointerMoveOverProximityValuesAllocatesNothing`
+  - Tests: `BridgeAllocationTests.APointerMoveOverProximityValuesAllocatesNothing`
 - **BRIDGE-FOLLOW-072** — When `radius` is not positive (or is NaN), `PointerProximityValue` shall throw `ArgumentOutOfRangeException`.
   - Tests: `PointerProximityValueTests.ANonPositiveRadiusThrows`
 
@@ -247,10 +247,10 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 ## Allocation
 
 - A followed `double` follower allocates only its box per frame (≤ 24 B, `FollowerTests.AFollowedDoubleAllocatesOnlyItsBoxPerFrame`).
-- `Follow.Bind` over a binding ≤ 128 B per tick (measured 104), `{presto:Follow}` ≤ 192 B (measured 160): `AllocationTests.AFollowBoundWidthTicksWithinBudget`, `AllocationTests.AnAnimatedMarkupWidthTicksWithinBudget`.
+- `Follow.Bind` over a binding ≤ 128 B per tick (measured 104), `{presto:Follow}` ≤ 192 B (measured 160): `BridgeAllocationTests.AFollowBoundWidthTicksWithinBudget`, `BridgeAllocationTests.AnAnimatedMarkupWidthTicksWithinBudget`.
 - An unboxed `MotionValue` → `double` sink and a `MotionValue`-driven `Follow.X` ≤ 96 B per tick (measured 80, Avalonia's change args).
 - A `MotionObjectValue` boxes one struct per changed frame unless its codec reuses the instance.
-- A pointer move over any number of pointer proximity and offset values allocates nothing beyond Avalonia's routing (`AllocationTests.APointerMoveOverProximityValuesAllocatesNothing`); a layout pass costs them nothing while the pointer is absent.
+- A pointer move over any number of pointer proximity and offset values allocates nothing beyond Avalonia's routing (`BridgeAllocationTests.APointerMoveOverProximityValuesAllocatesNothing`); a layout pass costs them nothing while the pointer is absent.
 
 ## Deviations from anime.js
 

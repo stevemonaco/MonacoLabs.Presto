@@ -1,19 +1,19 @@
 ---
 id: BRIDGE-RIPPLE
 title: Press ripple
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Ripple.cs
-  - Monaco.Presto.AvaloniaBridge/RippleHandler.cs
+  - MonacoLabs.Presto.Avalonia/Ripple.cs
+  - MonacoLabs.Presto.Avalonia/RippleHandler.cs
 types:
   - Ripple
 tests:
   - RippleTests
   - RippleGestureTests
   - RippleSpikeTests
-  - AllocationTests
+  - BridgeAllocationTests
   - RipplePageTests
 upstream: []
 depends:
@@ -137,7 +137,7 @@ depends:
 ## Allocation
 
 - Fifty concurrent ripples stay within 20 000 bytes per frame (measured about 16 900, mostly Avalonia redrawing invalidated custom visuals); brushes are cached per faded color.
-  - Pinned by `AllocationTests.FiftyConcurrentRipplesDrawWithinTheirBudget`.
+  - Pinned by `BridgeAllocationTests.FiftyConcurrentRipplesDrawWithinTheirBudget`.
 
 ## Deviations from anime.js
 

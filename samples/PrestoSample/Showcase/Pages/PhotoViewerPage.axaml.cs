@@ -3,9 +3,8 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Gestures;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Gestures;
 
 namespace PrestoSample.Showcase.Pages;
 

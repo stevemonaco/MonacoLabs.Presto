@@ -1,26 +1,26 @@
 ---
 id: BRIDGE-RECIPES
 title: Recipes
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Prebuilt
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Prebuilt
 sources:
-  - Monaco.Presto.AvaloniaBridge/Recipes.cs
-  - Monaco.Presto.AvaloniaBridge/RecipesGlyphs.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Attention.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Entrances.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Exits.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Interactions.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Layouts.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Loading.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Loops.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Pages.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Popovers.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/Reveals.cs
-  - Monaco.Presto.AvaloniaBridge/Prebuilt/TextReveals.cs
-  - Monaco.Presto.AvaloniaBridge/Edge.cs
-  - Monaco.Presto.AvaloniaBridge/FadeDirection.cs
+  - MonacoLabs.Presto.Avalonia/Recipes.cs
+  - MonacoLabs.Presto.Avalonia/RecipesGlyphs.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Attention.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Entrances.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Exits.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Interactions.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Layouts.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Loading.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Loops.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Pages.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Popovers.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/Reveals.cs
+  - MonacoLabs.Presto.Avalonia/Prebuilt/TextReveals.cs
+  - MonacoLabs.Presto.Avalonia/Edge.cs
+  - MonacoLabs.Presto.Avalonia/FadeDirection.cs
 types:
   - Recipes
   - Attention
@@ -75,7 +75,7 @@ depends:
 
 ## Purpose
 
-Named, parameterized motion: each recipe is a factory that returns a new `AnimationBuilder` (or, for pages, a `PrestoPageTransition`) whose defaults come from `Recipes.Tokens` (BRIDGE-TOKENS) and which carries its own reduced form (CORE-REDUCED). The families live in `Prebuilt`; the `Recipes` facade forwards to them so one `using Monaco.Presto.AvaloniaBridge;` is enough. This spec covers the facade, the rules every recipe shares and the motion families; the media families (`Draws`, `Particles`, `Sprites`, `Tints`) are in BRIDGE-RECIPES-MEDIA and the XAML forms in BRIDGE-MARKUP.
+Named, parameterized motion: each recipe is a factory that returns a new `AnimationBuilder` (or, for pages, a `PrestoPageTransition`) whose defaults come from `Recipes.Tokens` (BRIDGE-TOKENS) and which carries its own reduced form (CORE-REDUCED). The families live in `Prebuilt`; the `Recipes` facade forwards to them so one `using MonacoLabs.Presto;` is enough. This spec covers the facade, the rules every recipe shares and the motion families; the media families (`Draws`, `Particles`, `Sprites`, `Tints`) are in BRIDGE-RECIPES-MEDIA and the XAML forms in BRIDGE-MARKUP.
 
 ## Requirements
 
@@ -336,12 +336,12 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 ## Deviations from anime.js
 
-- No upstream counterpart: anime.js ships no recipes. The family namespace `Prebuilt` replaces the planned `...AvaloniaBridge.Recipes`, because a namespace of that name cannot sit beside the `Recipes` type (CS0101).
+- No upstream counterpart: anime.js ships no recipes. The family namespace `Prebuilt` replaces the planned `MonacoLabs.Presto.Recipes`, because a namespace of that name cannot sit beside the `Recipes` type (CS0101).
 
 ## Decisions
 
 - **Recipes are factories that read the tokens at call time.** Each recipe call returns a new `AnimationBuilder` (a page recipe a new `PrestoPageTransition`) reading `Recipes.Tokens` when called; stateful recipes are methods returning the playing `Animation` or small bridge types. Reason: chaining `.Delay(…)` onto one call never touches another caller's copy, and replacing the tokens restyles later calls while builders already made keep their values. Rejected: shared static builders.
-- **The families live in `Prebuilt`, the facade in the root namespace.** The catalog is in the bridge, one class per family in `Monaco.Presto.AvaloniaBridge.Prebuilt`; `Recipes` (a forwarding facade), `Edge` and the markup extensions are in the root namespace. Reason: nearly every recipe names a bridge shorthand; a `Monaco.Presto.AvaloniaBridge.Recipes` namespace cannot sit beside the `Recipes` type (CS0101), and root placement lets one `using` cover `Recipes.SlideIn(Edge.Left)` and the existing `presto` XAML prefix cover the extensions. Rejected: the namespace `Monaco.Presto.AvaloniaBridge.Recipes`.
+- **The families live in `Prebuilt`, the facade in the root namespace.** The catalog is in the bridge, one class per family in `MonacoLabs.Presto.Prebuilt`; `Recipes` (a forwarding facade), `Edge` and the markup extensions are in the root namespace. Reason: nearly every recipe names a bridge shorthand; a `MonacoLabs.Presto.Recipes` namespace cannot sit beside the `Recipes` type (CS0101), and root placement lets one `using` cover `Recipes.SlideIn(Edge.Left)` and the existing `presto` XAML prefix cover the extensions. Rejected: the namespace `MonacoLabs.Presto.Recipes`.
 - **Entrances state from-values; every other family states to-values.** `Connected.DefaultAnchorMotion` is from-only for the same reason. Reason: a from-only entrance lands on the element's own resting values (a card resting at `Opacity` 0.6 lands on 0.6), and a `Motion` state rejects from-only values.
 - **Entrances and exits are compositor-safe, with documented exceptions.** They use transform, opacity and per-property keyframes only, so they run through `AnimateOnCompositor` as well as `Presence` and `Animate.OnAttached`; the blur and flip recipes and `Develop` are UI-thread only. Reason: the compositor has no `RotateX`, `Perspective` or filters.
 - **Every recipe takes the same optional arguments, and `stagger` is a bool.** `duration`, `delay`, `ease`, `distance` or `intensity`, and `stagger`, which delays each element by `Tokens.StaggerStep` after `delay`; another step is chained with `.Delay(Presto.Stagger(…))`. Interactions take no `stagger`, and `Dots` staggers itself. Reason: a `Motion` state applies to one element, and `Dots` staggers its batch by a sixth of an iteration. Rejected: `stagger` as a step value.

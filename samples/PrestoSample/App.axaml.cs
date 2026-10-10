@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Monaco.Presto.AvaloniaBridge.DevTools;
+using MonacoLabs.Presto.DevTools;
 using PrestoSample.ViewModels;
 using PrestoSample.Views;
 

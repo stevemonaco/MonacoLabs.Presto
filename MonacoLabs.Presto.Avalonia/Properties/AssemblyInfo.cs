@@ -1,0 +1,18 @@
+using Avalonia.Metadata;
+
+[assembly: XmlnsPrefix("https://github.com/stevemonaco/MonacoLabs.Presto", "presto")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Bindings")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Compositor")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Controls")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Draggables")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Effects")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Events")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Gestures")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Platform")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Prebuilt")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Shapes")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Targets")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Text")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Transforms")]
+[assembly: XmlnsDefinition("https://github.com/stevemonaco/MonacoLabs.Presto", "MonacoLabs.Presto.Values")]

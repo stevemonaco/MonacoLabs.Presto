@@ -1,18 +1,18 @@
 ---
 id: BRIDGE-TRANSFORMABLE
 title: Transformable (pan, pinch-zoom, rotate)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Gestures
+  - MonacoLabs.Presto.Gestures
 sources:
-  - Monaco.Presto.AvaloniaBridge/Gestures/Transformable.cs
-  - Monaco.Presto.AvaloniaBridge/Gestures/TransformableParams.cs
-  - Monaco.Presto.AvaloniaBridge/Gestures/PanBounds.cs
-  - Monaco.Presto.AvaloniaBridge/Gestures/WheelZoom.cs
-  - Monaco.Presto.AvaloniaBridge/Gestures/TransformMath.cs
-  - Monaco.Presto.AvaloniaBridge/Gestures/GestureOwners.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/AnimateExtensions.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/Transformable.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/TransformableParams.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/PanBounds.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/WheelZoom.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/TransformMath.cs
+  - MonacoLabs.Presto.Avalonia/Gestures/GestureOwners.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/AnimateExtensions.cs
 types:
   - Transformable
   - TransformableParams
@@ -21,7 +21,7 @@ types:
 tests:
   - TransformableTests
   - TransformMathTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream: []
 depends:
   - CORE-ANIMATABLE
@@ -178,7 +178,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 ### Allocation
 
 - **BRIDGE-TRANSFORMABLE-054** — A two-finger move shall allocate no more than 600 bytes beyond Avalonia's event routing, with diagnostics on or off.
-  - Tests: `AllocationTests.APinchMoveAllocatesOnlyItsWrites`
+  - Tests: `BridgeAllocationTests.APinchMoveAllocatesOnlyItsWrites`
 
 ### Defaults
 

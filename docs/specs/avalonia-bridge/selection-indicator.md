@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-SELECTION
 title: Selection indicator
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Selection.cs
-  - Monaco.Presto.AvaloniaBridge/SelectionIndicatorMode.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/LayoutMotion.cs
+  - MonacoLabs.Presto.Avalonia/Selection.cs
+  - MonacoLabs.Presto.Avalonia/SelectionIndicatorMode.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/LayoutMotion.cs
 types:
   - Selection
   - SelectionIndicatorMode

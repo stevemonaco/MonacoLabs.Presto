@@ -1,18 +1,18 @@
 ---
 id: BRIDGE-TEXTPATH
 title: Text on a path
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/TextPath.cs
-  - Monaco.Presto.AvaloniaBridge/TextPathAlign.cs
+  - MonacoLabs.Presto.Avalonia/TextPath.cs
+  - MonacoLabs.Presto.Avalonia/TextPathAlign.cs
 types:
   - TextPath
   - TextPathAlign
 tests:
   - TextPathTests
-  - AllocationTests
+  - BridgeAllocationTests
   - TypeLabPageTests
 upstream: []
 depends:
@@ -83,7 +83,7 @@ depends:
 
 ## Allocation
 
-- Re-placement allocates nothing; a frame costs only the property changes the characters' transforms raise (`AllocationTests.TextPathRePlacementTicksWithinBudget`). Splitting allocates, as BRIDGE-TEXT's does.
+- Re-placement allocates nothing; a frame costs only the property changes the characters' transforms raise (`BridgeAllocationTests.TextPathRePlacementTicksWithinBudget`). Splitting allocates, as BRIDGE-TEXT's does.
 
 ## Deviations from anime.js
 

@@ -1,12 +1,12 @@
 ---
 id: BRIDGE-DISTORT
 title: Raster distortion
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/Distort.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/DistortDrawOperation.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Distort.cs
+  - MonacoLabs.Presto.Avalonia/Controls/DistortDrawOperation.cs
 types:
   - Distort
 tests:

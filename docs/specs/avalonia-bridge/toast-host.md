@@ -1,12 +1,12 @@
 ---
 id: BRIDGE-TOAST
 title: Toast host
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/ToastHost.cs
-  - Monaco.Presto.AvaloniaBridge/Controls/Toast.cs
+  - MonacoLabs.Presto.Avalonia/Controls/ToastHost.cs
+  - MonacoLabs.Presto.Avalonia/Controls/Toast.cs
 types:
   - Toast
   - ToastHost

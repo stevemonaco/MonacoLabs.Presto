@@ -1,16 +1,16 @@
 ---
 id: CORE-TIMELINE
 title: Timeline
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Timeline.cs
-  - Monaco.Presto/TimelineLabel.cs
-  - Monaco.Presto/TimelineParams.cs
-  - Monaco.Presto/TimelinePosition.cs
-  - Monaco.Presto/TimerChildren.cs
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Timeline.cs
+  - MonacoLabs.Presto/TimelineLabel.cs
+  - MonacoLabs.Presto/TimelineParams.cs
+  - MonacoLabs.Presto/TimelinePosition.cs
+  - MonacoLabs.Presto/TimerChildren.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - Timeline
   - TimelineLabel

@@ -1,18 +1,18 @@
 ---
 id: BRIDGE-LAYOUT
 title: Layout transitions (FLIP on the compositor)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Compositor
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Compositor
 sources:
-  - Monaco.Presto.AvaloniaBridge/Compositor/LayoutTransition.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/LayoutAnimateMode.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/LayoutMotion.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorCompiler.cs
-  - Monaco.Presto.AvaloniaBridge/Compositor/CompositorRegistry.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/AnimateExtensions.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/LayoutTransition.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/LayoutAnimateMode.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/LayoutMotion.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorCompiler.cs
+  - MonacoLabs.Presto.Avalonia/Compositor/CompositorRegistry.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/AnimateExtensions.cs
 types:
   - LayoutTransition
   - LayoutAnimateMode

@@ -1,17 +1,17 @@
 ---
 id: CORE-MOTIONVALUE
 title: Motion values
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/MotionValue.cs
-  - Monaco.Presto/MotionObjectValue.cs
-  - Monaco.Presto/Engine.cs
-  - Monaco.Presto/Timer.cs
-  - Monaco.Presto/Presto.cs
-  - Monaco.Presto/SettleParams.cs
-  - Monaco.Presto/Core/TimerSettle.cs
+  - MonacoLabs.Presto/MotionValue.cs
+  - MonacoLabs.Presto/MotionObjectValue.cs
+  - MonacoLabs.Presto/Engine.cs
+  - MonacoLabs.Presto/Timer.cs
+  - MonacoLabs.Presto/Presto.cs
+  - MonacoLabs.Presto/SettleParams.cs
+  - MonacoLabs.Presto/Core/TimerSettle.cs
 types:
   - MotionValue
   - MotionObjectValue

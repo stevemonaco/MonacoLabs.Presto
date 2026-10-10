@@ -1,17 +1,17 @@
 ---
 id: BRIDGE-GLYPHS
 title: Glyph outlines
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Text
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Text
 sources:
-  - Monaco.Presto.AvaloniaBridge/Text/GlyphOutlines.cs
-  - Monaco.Presto.AvaloniaBridge/Text/GlyphContours.cs
-  - Monaco.Presto.AvaloniaBridge/Text/GlyphShards.cs
-  - Monaco.Presto.AvaloniaBridge/Text/GlyphPoints.cs
-  - Monaco.Presto.AvaloniaBridge/Text/GlyphSampling.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Text/GlyphOutlines.cs
+  - MonacoLabs.Presto.Avalonia/Text/GlyphContours.cs
+  - MonacoLabs.Presto.Avalonia/Text/GlyphShards.cs
+  - MonacoLabs.Presto.Avalonia/Text/GlyphPoints.cs
+  - MonacoLabs.Presto.Avalonia/Text/GlyphSampling.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types:
   - GlyphShards
   - GlyphPoints

@@ -1,11 +1,11 @@
 ---
 id: BRIDGE-EASES
 title: Avalonia easing adapter
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/PrestoEasing.cs
+  - MonacoLabs.Presto.Avalonia/PrestoEasing.cs
 types:
   - PrestoEasing
 tests:

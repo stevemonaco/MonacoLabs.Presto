@@ -1,11 +1,11 @@
 ---
 id: BRIDGE-PULL
 title: Pull to refresh
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/PullToRefresh.cs
+  - MonacoLabs.Presto.Avalonia/Controls/PullToRefresh.cs
 types:
   - PullToRefresh
 tests:

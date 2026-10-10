@@ -1,16 +1,16 @@
 ---
 id: BRIDGE-SPLITFLAP
 title: Split-flap display
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Controls
+  - MonacoLabs.Presto.Controls
 sources:
-  - Monaco.Presto.AvaloniaBridge/Controls/SplitFlap.cs
+  - MonacoLabs.Presto.Avalonia/Controls/SplitFlap.cs
 types:
   - SplitFlap
 tests:
   - SplitFlapTests
-  - AllocationTests
+  - BridgeAllocationTests
   - TypeLabPageTests
 upstream: []
 depends:
@@ -73,7 +73,7 @@ A row of character cells that flip like a departures board: when `Text` changes,
 ### Allocation
 
 - **BRIDGE-SPLITFLAP-014** — A tick shall allocate nothing beyond the property changes it writes.
-  - Tests: `AllocationTests.AFlippingSplitFlapTicksWithinBudget`
+  - Tests: `BridgeAllocationTests.AFlippingSplitFlapTicksWithinBudget`
 
 ## Invariants
 

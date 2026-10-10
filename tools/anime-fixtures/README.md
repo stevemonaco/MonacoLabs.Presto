@@ -1,6 +1,6 @@
 # anime-fixtures
 
-Runs anime.js 4.5.0 itself and dumps easing samples and spring numbers to `tests/Monaco.Presto.Tests/Fixtures/*.json`,
+Runs anime.js 4.5.0 itself and dumps easing samples and spring numbers to `tests/MonacoLabs.Presto.Tests/Fixtures/*.json`,
 which `EaseFixtureTests` asserts the C# port against (see docs/ARCHITECTURE.md §4).
 
 It also writes `colors.json` from [culori](https://culorijs.org/) 4.0.2 (a dev dependency): conversions, mixes in every

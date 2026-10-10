@@ -7,6 +7,6 @@
         x:Class="PrestoSample.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
         Width="1000" Height="650"
-        Title="Monaco.Presto Gallery">
+        Title="MonacoLabs.Presto Gallery">
         <views:MainView />
 </Window>

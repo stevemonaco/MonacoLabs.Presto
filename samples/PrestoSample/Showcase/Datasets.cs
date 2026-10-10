@@ -1,4 +1,4 @@
-using Monaco.Presto;
+using MonacoLabs.Presto;
 
 namespace PrestoSample.Showcase;
 

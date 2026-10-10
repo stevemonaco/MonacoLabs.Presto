@@ -1,15 +1,15 @@
 ---
 id: CORE-UTILS
 title: Utilities
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Utils.cs
-  - Monaco.Presto/ChainedUtil.cs
-  - Monaco.Presto/ChainedFunctionValue.cs
-  - Monaco.Presto/RandomGenerator.cs
-  - Monaco.Presto/Core/Helpers.cs
+  - MonacoLabs.Presto/Utils.cs
+  - MonacoLabs.Presto/ChainedUtil.cs
+  - MonacoLabs.Presto/ChainedFunctionValue.cs
+  - MonacoLabs.Presto/RandomGenerator.cs
+  - MonacoLabs.Presto/Core/Helpers.cs
 types:
   - Utils
   - ChainedUtil

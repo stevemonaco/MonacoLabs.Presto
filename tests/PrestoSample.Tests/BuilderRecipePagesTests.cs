@@ -9,10 +9,9 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Controls;
-using Monaco.Presto.Values;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Controls;
+using MonacoLabs.Presto.Values;
 using PrestoSample.Builder;
 using PrestoSample.Showcase;
 
@@ -595,7 +594,7 @@ public sealed class BuilderRecipePagesTests
 
         var root = XDocument.Parse($"""
             <Root xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                  xmlns:presto="https://github.com/stevemonaco/Monaco.Presto" xmlns:local="using:PrestoSample.Builder">{body}</Root>
+                  xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto" xmlns:local="using:PrestoSample.Builder">{body}</Root>
             """).Root!;
 
         Assert.Equal("Border", Assert.Single(root.Elements()).Name.LocalName);

@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-PAGES
 title: Page transitions (PrestoPageTransition)
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/PrestoPageTransition.cs
-  - Monaco.Presto.AvaloniaBridge/PageStacking.cs
-  - Monaco.Presto.AvaloniaBridge/PageAxis.cs
+  - MonacoLabs.Presto.Avalonia/PrestoPageTransition.cs
+  - MonacoLabs.Presto.Avalonia/PageStacking.cs
+  - MonacoLabs.Presto.Avalonia/PageAxis.cs
 types:
   - PrestoPageTransition
   - PageStacking

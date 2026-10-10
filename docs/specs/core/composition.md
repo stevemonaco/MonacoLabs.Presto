@@ -1,20 +1,20 @@
 ---
 id: CORE-COMPOSITION
 title: Composition and additive animation
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Composition.cs
-  - Monaco.Presto/Core/Composer.cs
-  - Monaco.Presto/Core/Additive.cs
-  - Monaco.Presto/Core/TweenList.cs
-  - Monaco.Presto/Core/TweenSiblings.cs
-  - Monaco.Presto/Core/TweenLink.cs
-  - Monaco.Presto/Core/Renderer.cs
-  - Monaco.Presto/Animation.cs
-  - Monaco.Presto/Timer.cs
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Composition.cs
+  - MonacoLabs.Presto/Core/Composer.cs
+  - MonacoLabs.Presto/Core/Additive.cs
+  - MonacoLabs.Presto/Core/TweenList.cs
+  - MonacoLabs.Presto/Core/TweenSiblings.cs
+  - MonacoLabs.Presto/Core/TweenLink.cs
+  - MonacoLabs.Presto/Core/Renderer.cs
+  - MonacoLabs.Presto/Animation.cs
+  - MonacoLabs.Presto/Timer.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - Composition
 tests:

@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
-using Monaco.Presto;
+using MonacoLabs.Presto;
 using PrestoSample.Pages;
 using PrestoSample.Showcase;
 

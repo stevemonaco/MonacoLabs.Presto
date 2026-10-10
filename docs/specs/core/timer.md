@@ -1,15 +1,15 @@
 ---
 id: CORE-TIMER
 title: Timer timing and playback controls
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Timer.cs
-  - Monaco.Presto/TimerParams.cs
-  - Monaco.Presto/LoopCount.cs
-  - Monaco.Presto/Core/Renderer.cs
-  - Monaco.Presto/Core/Helpers.cs
+  - MonacoLabs.Presto/Timer.cs
+  - MonacoLabs.Presto/TimerParams.cs
+  - MonacoLabs.Presto/LoopCount.cs
+  - MonacoLabs.Presto/Core/Renderer.cs
+  - MonacoLabs.Presto/Core/Helpers.cs
 types:
   - Timer
   - TimerParams

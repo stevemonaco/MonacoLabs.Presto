@@ -4,11 +4,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
-using Monaco.Presto.AvaloniaBridge.Compositor;
-using static Monaco.Presto.AvaloniaBridge.PrestoKeys;
-using Timer = Monaco.Presto.Timer;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
+using static MonacoLabs.Presto.PrestoKeys;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Showcase.Pages;
 

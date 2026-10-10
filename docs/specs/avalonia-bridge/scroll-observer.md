@@ -1,19 +1,19 @@
 ---
 id: BRIDGE-SCROLLOBSERVER
 title: Scroll observer
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Events
+  - MonacoLabs.Presto.Events
 sources:
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollObserver.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollObserverParams.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollContainer.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollThreshold.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollSync.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollSnap.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollAxis.cs
-  - Monaco.Presto.AvaloniaBridge/Events/ScrollWriter.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollObserver.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollObserverParams.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollContainer.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollThreshold.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollSync.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollSnap.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollAxis.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollWriter.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types:
   - ScrollObserver
   - ScrollObserverParams

@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-DRAGGABLE
 title: Draggable
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge.Draggables
+  - MonacoLabs.Presto.Draggables
 sources:
-  - Monaco.Presto.AvaloniaBridge/Draggables
-  - Monaco.Presto.AvaloniaBridge/Gestures/GestureOwners.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/Draggables
+  - MonacoLabs.Presto.Avalonia/Gestures/GestureOwners.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
 types:
   - Draggable
   - DraggableParams

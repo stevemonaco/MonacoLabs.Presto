@@ -1,5 +1,5 @@
 using Avalonia.Controls;
-using Timer = Monaco.Presto.Timer;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Showcase;
 

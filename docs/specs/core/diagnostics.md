@@ -1,15 +1,15 @@
 ---
 id: CORE-DIAGNOSTICS
 title: Engine diagnostics
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto.Diagnostics
+  - MonacoLabs.Presto.Diagnostics
 sources:
-  - Monaco.Presto/Diagnostics
-  - Monaco.Presto/Engine.cs
-  - Monaco.Presto/Timer.cs
-  - Monaco.Presto/Scope.cs
-  - Monaco.Presto/EaseParser.cs
+  - MonacoLabs.Presto/Diagnostics
+  - MonacoLabs.Presto/Engine.cs
+  - MonacoLabs.Presto/Timer.cs
+  - MonacoLabs.Presto/Scope.cs
+  - MonacoLabs.Presto/EaseParser.cs
 types:
   - EngineDiagnostics
   - FrameStats

@@ -1,13 +1,13 @@
 ---
 id: CORE-SPRING
 title: Spring
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Spring.cs
-  - Monaco.Presto/Eases.cs
-  - Monaco.Presto/Springs.cs
+  - MonacoLabs.Presto/Spring.cs
+  - MonacoLabs.Presto/Eases.cs
+  - MonacoLabs.Presto/Springs.cs
 types:
   - Spring
   - Springs
@@ -170,7 +170,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 - **No core velocity API for an ease; `DampingRatio` is public.** Callers that need the ease's velocity compute it numerically from `PureEase`. Reason: no core API until a use shows it is generally useful.
 - **Preserved velocity is measured from the running ease.** See CORE-ANIMATABLE.
-- **Spring presets live in the core, fresh per read.** `Springs` is a static class in `Monaco.Presto`, each read returning a new `Spring`; `Eases.Spring` stays the way to build a custom one. Reason: a preset is just a `Spring`, a core type, and a `Spring` carries completion state, so it cannot be shared. Replaces BRIDGE-EASES's `Spring presets live in the bridge, fresh per read`, whose reasons (completion state, use from XAML) did not depend on where the class lives.
+- **Spring presets live in the core, fresh per read.** `Springs` is a static class in `MonacoLabs.Presto`, each read returning a new `Spring`; `Eases.Spring` stays the way to build a custom one. Reason: a preset is just a `Spring`, a core type, and a `Spring` carries completion state, so it cannot be shared. Replaces BRIDGE-EASES's `Spring presets live in the bridge, fresh per read`, whose reasons (completion state, use from XAML) did not depend on where the class lives.
 - **Preset durations follow the time unit; the default 628 does not.** A preset names a perceived duration in milliseconds and converts it on each read, so `Springs.Gentle` feels the same in seconds mode instead of clamping to 10 s. Reason: presets have no upstream to stay faithful to, and an unscaled preset made the default `Timer.Settle` crawl in seconds mode. The default 628 stays unscaled for upstream parity.
 
 ## Non-goals

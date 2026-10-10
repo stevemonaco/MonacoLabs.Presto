@@ -1,12 +1,12 @@
 ---
 id: CORE-BUILDER
 title: Animation builder
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/AnimationBuilder.cs
-  - Monaco.Presto/PropertyBuilder.cs
+  - MonacoLabs.Presto/AnimationBuilder.cs
+  - MonacoLabs.Presto/PropertyBuilder.cs
 types:
   - AnimationBuilder
   - PropertyBuilder

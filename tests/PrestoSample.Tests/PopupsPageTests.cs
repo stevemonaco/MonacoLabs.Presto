@@ -4,7 +4,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 

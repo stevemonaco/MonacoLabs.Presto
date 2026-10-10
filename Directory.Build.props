@@ -12,11 +12,11 @@
 
   <PropertyGroup>
     <Authors>Steve Monaco</Authors>
-    <Product>Monaco.Presto</Product>
-    <RepositoryUrl>https://github.com/stevemonaco/Monaco.Presto</RepositoryUrl>
+    <Product>MonacoLabs.Presto</Product>
+    <RepositoryUrl>https://github.com/stevemonaco/MonacoLabs.Presto</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Version>0.1.0</Version>
-    <PackageProjectUrl>https://github.com/stevemonaco/Monaco.Presto</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/stevemonaco/MonacoLabs.Presto</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>true</IncludeSymbols>

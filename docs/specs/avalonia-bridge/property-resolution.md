@@ -1,17 +1,17 @@
 ---
 id: BRIDGE-TARGETS
 title: Avalonia property resolution and writes
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
-  - Monaco.Presto.AvaloniaBridge.Targets
+  - MonacoLabs.Presto
+  - MonacoLabs.Presto.Targets
 sources:
-  - Monaco.Presto.AvaloniaBridge/Targets/AvaloniaObjectTargetAdapter.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/AnimatedValue.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/TargetOwner.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/VisibilityHold.cs
-  - Monaco.Presto.AvaloniaBridge/AvaloniaAnimationParams.cs
-  - Monaco.Presto.AvaloniaBridge/AvaloniaAnimatableParams.cs
+  - MonacoLabs.Presto.Avalonia/Targets/AvaloniaObjectTargetAdapter.cs
+  - MonacoLabs.Presto.Avalonia/Targets/AnimatedValue.cs
+  - MonacoLabs.Presto.Avalonia/Targets/TargetOwner.cs
+  - MonacoLabs.Presto.Avalonia/Targets/VisibilityHold.cs
+  - MonacoLabs.Presto.Avalonia/AvaloniaAnimationParams.cs
+  - MonacoLabs.Presto.Avalonia/AvaloniaAnimatableParams.cs
 types:
   - AvaloniaObjectTargetAdapter
   - AvaloniaAnimationParams
@@ -24,7 +24,7 @@ tests:
   - VisibilitySpikeTests
   - AnimatableBridgeTests
   - CompositorRegistryTests
-  - AllocationTests
+  - BridgeAllocationTests
 upstream:
   - src/core/targets.js
   - src/core/values.js
@@ -78,7 +78,7 @@ depends:
 ### Writes and revert
 
 - **BRIDGE-TARGETS-013** — On the first frame for a target, the accessor shall bind the property once at `BindingPriority.Animation` and push every later frame through that binding.
-  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `AllocationTests.StyledPropertyTweenTicksWithinBudget`
+  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `BridgeAllocationTests.StyledPropertyTweenTicksWithinBudget`
 - **BRIDGE-TARGETS-014** — After the animation completes, the value shall stay held at `Animation` priority until it is reverted, so a local, style or binding value written underneath meanwhile does not show.
   - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`
 - **BRIDGE-TARGETS-015** — When a tween on a styled property is reverted, the accessor shall dispose its binding, uncovering whatever value the property has underneath.

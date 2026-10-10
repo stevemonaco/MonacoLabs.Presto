@@ -1,15 +1,15 @@
 ---
 id: CORE-STAGGER
 title: Stagger
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Stagger.cs
-  - Monaco.Presto/StaggerParams.cs
-  - Monaco.Presto/StaggerFrom.cs
-  - Monaco.Presto/StaggerAxis.cs
-  - Monaco.Presto/Presto.cs
+  - MonacoLabs.Presto/Stagger.cs
+  - MonacoLabs.Presto/StaggerParams.cs
+  - MonacoLabs.Presto/StaggerFrom.cs
+  - MonacoLabs.Presto/StaggerAxis.cs
+  - MonacoLabs.Presto/Presto.cs
 types:
   - Stagger
   - StaggerParams

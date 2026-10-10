@@ -1,18 +1,18 @@
 ---
 id: BRIDGE-HELPERS
 title: Control helpers, typed builder methods, scopes and WhenDetached
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/PrestoAvalonia.cs
-  - Monaco.Presto.AvaloniaBridge/AnimateExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/AnimationBuilderExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/PropertyBuilderExtensions.cs
-  - Monaco.Presto.AvaloniaBridge/PrestoKeys.cs
-  - Monaco.Presto.AvaloniaBridge/ControlScope.cs
-  - Monaco.Presto.AvaloniaBridge/WhenDetached.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/DetachTracker.cs
+  - MonacoLabs.Presto.Avalonia/PrestoAvalonia.cs
+  - MonacoLabs.Presto.Avalonia/AnimateExtensions.cs
+  - MonacoLabs.Presto.Avalonia/AnimationBuilderExtensions.cs
+  - MonacoLabs.Presto.Avalonia/PropertyBuilderExtensions.cs
+  - MonacoLabs.Presto.Avalonia/PrestoKeys.cs
+  - MonacoLabs.Presto.Avalonia/ControlScope.cs
+  - MonacoLabs.Presto.Avalonia/WhenDetached.cs
+  - MonacoLabs.Presto.Avalonia/Targets/DetachTracker.cs
 types:
   - PrestoAvalonia
   - AnimateExtensions

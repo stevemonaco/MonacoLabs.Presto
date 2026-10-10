@@ -3,8 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Monaco.Presto;
-using Timer = Monaco.Presto.Timer;
+using MonacoLabs.Presto;
+using Timer = MonacoLabs.Presto.Timer;
 
 namespace PrestoSample.Showcase;
 

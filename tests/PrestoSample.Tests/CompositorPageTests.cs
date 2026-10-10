@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto.Compositor;
 using PrestoSample.Pages;
 
 namespace PrestoSample.Tests;

@@ -1,8 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
-using Monaco.Presto;
-using Monaco.Presto.AvaloniaBridge;
+using MonacoLabs.Presto;
 using PrestoSample.Showcase;
 using PrestoSample.ViewModels;
 using PrestoSample.Views;
@@ -54,7 +53,7 @@ public sealed class GalleryPageTests
         Assert.True(reverted);
     }
 
-    private static bool LoopsForever(Monaco.Presto.Timer? timer)
+    private static bool LoopsForever(MonacoLabs.Presto.Timer? timer)
     {
         for (; timer != null; timer = timer.Parent)
         {

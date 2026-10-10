@@ -1,15 +1,15 @@
 ---
 id: CORE-SCOPE
 title: Scope and defaults
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Scope.cs
-  - Monaco.Presto/ScopeParams.cs
-  - Monaco.Presto/PrestoDefaults.cs
-  - Monaco.Presto/DefaultsParams.cs
-  - Monaco.Presto/IRevertible.cs
+  - MonacoLabs.Presto/Scope.cs
+  - MonacoLabs.Presto/ScopeParams.cs
+  - MonacoLabs.Presto/PrestoDefaults.cs
+  - MonacoLabs.Presto/DefaultsParams.cs
+  - MonacoLabs.Presto/IRevertible.cs
 types:
   - Scope
   - ScopeParams

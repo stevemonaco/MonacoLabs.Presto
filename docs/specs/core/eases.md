@@ -1,23 +1,23 @@
 ---
 id: CORE-EASES
 title: Eases
-package: Monaco.Presto
+package: MonacoLabs.Presto
 namespaces:
-  - Monaco.Presto
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto/Ease.cs
-  - Monaco.Presto/Eases.cs
-  - Monaco.Presto/Eases.CubicBezier.cs
-  - Monaco.Presto/Eases.Irregular.cs
-  - Monaco.Presto/Eases.Linear.cs
-  - Monaco.Presto/Eases.Pack.cs
-  - Monaco.Presto/Eases.Path.cs
-  - Monaco.Presto/Eases.Steps.cs
-  - Monaco.Presto/EaseValue.cs
-  - Monaco.Presto/LinearStop.cs
-  - Monaco.Presto/RoughTaper.cs
-  - Monaco.Presto/WiggleType.cs
-  - Monaco.Presto/Core/EasePathParser.cs
+  - MonacoLabs.Presto/Ease.cs
+  - MonacoLabs.Presto/Eases.cs
+  - MonacoLabs.Presto/Eases.CubicBezier.cs
+  - MonacoLabs.Presto/Eases.Irregular.cs
+  - MonacoLabs.Presto/Eases.Linear.cs
+  - MonacoLabs.Presto/Eases.Pack.cs
+  - MonacoLabs.Presto/Eases.Path.cs
+  - MonacoLabs.Presto/Eases.Steps.cs
+  - MonacoLabs.Presto/EaseValue.cs
+  - MonacoLabs.Presto/LinearStop.cs
+  - MonacoLabs.Presto/RoughTaper.cs
+  - MonacoLabs.Presto/WiggleType.cs
+  - MonacoLabs.Presto/Core/EasePathParser.cs
 types:
   - Ease
   - Eases

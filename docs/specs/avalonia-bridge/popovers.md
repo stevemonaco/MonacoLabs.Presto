@@ -1,13 +1,13 @@
 ---
 id: BRIDGE-POPOVER
 title: Popover open and close motion
-package: Monaco.Presto.AvaloniaBridge
+package: MonacoLabs.Presto.Avalonia
 namespaces:
-  - Monaco.Presto.AvaloniaBridge
+  - MonacoLabs.Presto
 sources:
-  - Monaco.Presto.AvaloniaBridge/Popover.cs
-  - Monaco.Presto.AvaloniaBridge/PopoverRun.cs
-  - Monaco.Presto.AvaloniaBridge/Targets/AnimatedValue.cs
+  - MonacoLabs.Presto.Avalonia/Popover.cs
+  - MonacoLabs.Presto.Avalonia/PopoverRun.cs
+  - MonacoLabs.Presto.Avalonia/Targets/AnimatedValue.cs
 types:
   - Popover
 tests:

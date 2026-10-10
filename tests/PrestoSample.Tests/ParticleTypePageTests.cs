@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
-using Monaco.Presto.AvaloniaBridge.Compositor;
+using MonacoLabs.Presto.Compositor;
 using PrestoSample.Showcase;
 using PrestoSample.Showcase.Pages;
 
