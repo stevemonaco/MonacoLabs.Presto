@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             x:Class="Tempo.Views.IntroView"
+             Focusable="True"
+             Background="{DynamicResource SemiColorBackground0}">
+    <UserControl.Resources>
+        <!-- The Focus ring's circle at 240 with an 8 stroke: 10 at 300, so the flight lands without a jump in thickness. -->
+        <StreamGeometry x:Key="IntroRing">M120,4 A116,116 0 1 1 120,236 A116,116 0 1 1 120,4</StreamGeometry>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Path">
+            <Setter Property="StrokeThickness" Value="8" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style Selector="Panel#Arcs > Path">
+            <Setter Property="Width" Value="240" />
+            <Setter Property="Height" Value="240" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+        </Style>
+        <Style Selector="StackPanel#Tagline > TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Panel>
+        <Border x:Name="Glow" Width="560" Height="560" Opacity="0">
+            <Border.Background>
+                <SolidColorBrush Color="{x:Static m:TempoMotion.FocusAccent}" />
+            </Border.Background>
+            <Border.OpacityMask>
+                <RadialGradientBrush>
+                    <GradientStop Offset="0" Color="#59FFFFFF" />
+                    <GradientStop Offset="1" Color="#00FFFFFF" />
+                </RadialGradientBrush>
+            </Border.OpacityMask>
+        </Border>
+
+        <StackPanel Spacing="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Panel x:Name="Ring" Width="240" Height="240" presto:Connected.Key="ring">
+                <Path x:Name="Track" Stroke="{DynamicResource TempoLine}" Data="{StaticResource IntroRing}" />
+                <Panel x:Name="Arcs">
+                    <Path Stroke="{DynamicResource FocusAccentBrush}" Data="M130.11,4.44 A116,116 0 0 1 235.56,109.89" />
+                    <Path Stroke="{DynamicResource ShortBreakAccentBrush}" Data="M235.56,130.11 A116,116 0 0 1 130.11,235.56" />
+                    <Path Stroke="{DynamicResource FocusAccentBrush}" Data="M109.89,235.56 A116,116 0 0 1 4.44,130.11" />
+                    <Path Stroke="{DynamicResource LongBreakAccentBrush}" Data="M4.44,109.89 A116,116 0 0 1 109.89,4.44" />
+                </Panel>
+                <Path x:Name="Fill" Stroke="{DynamicResource FocusAccentBrush}" StrokeLineCap="Round" Data="{StaticResource IntroRing}" />
+                <Ellipse x:Name="Dot" Width="12" Height="12" Margin="-6,-6,0,0" Fill="White" Opacity="0"
+                         HorizontalAlignment="Left" VerticalAlignment="Top" />
+            </Panel>
+            <!-- Three times the title-bar wordmark, letter spacing included, so the flight only scales it. -->
+            <TextBlock x:Name="Wordmark" Classes="wordmark" Text="tempo" FontSize="51" LetterSpacing="4.5" Opacity="0"
+                       HorizontalAlignment="Center" presto:Connected.Key="wordmark" />
+            <StackPanel x:Name="Tagline" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+                <TextBlock Text="one" />
+                <TextBlock Text="thing" />
+                <TextBlock Text="at" />
+                <TextBlock Text="a" />
+                <TextBlock Text="time" />
+            </StackPanel>
+        </StackPanel>
+    </Panel>
+</UserControl>

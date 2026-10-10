@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.TasksView"
+             x:DataType="vm:MainViewModel">
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Classes="heading" Text="Today" Margin="2,0,0,10" />
+        <TextBox x:Name="AddBox" DockPanel.Dock="Top" PlaceholderText="Add a task" Text="{Binding NewTaskTitle}" Margin="0,0,0,12">
+            <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding AddTaskCommand}" />
+            </TextBox.KeyBindings>
+        </TextBox>
+
+        <Expander DockPanel.Dock="Bottom" Classes="done" presto:Accordion.Enabled="True" Margin="0,12,0,0">
+            <Expander.Header>
+                <TextBlock Classes="heading">
+                    <Run Text="Done" />
+                    <Run Text="{Binding DoneTasks.Count}" />
+                </TextBlock>
+            </Expander.Header>
+            <ScrollViewer MaxHeight="220">
+                <ItemsControl ItemsSource="{Binding DoneTasks}" ItemTemplate="{StaticResource TaskRowTemplate}"
+                              presto:Animate.ItemLayout="{presto:Reflow}" DoubleTapped="OpenDetail" />
+            </ScrollViewer>
+        </Expander>
+
+        <Panel>
+            <TextBlock Classes="caption" Text="Nothing planned yet. Add a task to begin." TextWrapping="Wrap"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                       IsVisible="{Binding !Tasks.Count}" presto:Presence.Arrive="{presto:WordFade}" />
+            <ListBox x:Name="TaskList" Classes="tasks" Background="Transparent"
+                     ItemsSource="{Binding Tasks}" SelectedItem="{Binding SelectedTask}"
+                     ItemContainerTheme="{StaticResource TaskRow}" ItemTemplate="{StaticResource TaskRowTemplate}"
+                     presto:Animate.ItemLayout="{presto:Reflow}"
+                     presto:Reorder.Enabled="True" presto:Reorder.Lift="{x:Static m:TempoMotion.RowLift}"
+                     presto:Selection.Motion="{x:Static m:TempoMotion.RowSelect}"
+                     DoubleTapped="OpenDetail">
+                <presto:Selection.Indicator>
+                    <Template>
+                        <Border Classes="selection-pill" />
+                    </Template>
+                </presto:Selection.Indicator>
+            </ListBox>
+        </Panel>
+    </DockPanel>
+</UserControl>

@@ -17,6 +17,7 @@
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
     <!-- Must match the SkiaSharp Avalonia resolves: Skottie P/Invokes into that libSkiaSharp. -->
     <PackageVersion Include="SkiaSharp.Skottie" Version="3.119.4" />
+    <PackageVersion Include="Semi.Avalonia" Version="12.1.0.1" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport.HotReload" Version="1.0.1" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />

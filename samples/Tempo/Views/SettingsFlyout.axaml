@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:model="using:Tempo.Model"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.SettingsFlyout"
+             x:DataType="vm:MainViewModel"
+             Width="300">
+    <StackPanel Spacing="12">
+        <TextBlock Classes="heading" Text="Settings" />
+        <Grid ColumnDefinitions="*,120" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+            <Grid.Styles>
+                <Style Selector="TextBlock.caption">
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </Style>
+                <Style Selector="NumericUpDown">
+                    <Setter Property="Minimum" Value="1" />
+                    <Setter Property="FormatString" Value="0" />
+                </Style>
+            </Grid.Styles>
+            <TextBlock Classes="caption" Text="Focus (minutes)" />
+            <NumericUpDown Grid.Column="1" Maximum="120" Value="{Binding WorkMinutes}" />
+            <TextBlock Grid.Row="1" Classes="caption" Text="Short break (minutes)" />
+            <NumericUpDown Grid.Row="1" Grid.Column="1" Maximum="60" Value="{Binding ShortBreakMinutes}" />
+            <TextBlock Grid.Row="2" Classes="caption" Text="Long break (minutes)" />
+            <NumericUpDown Grid.Row="2" Grid.Column="1" Maximum="60" Value="{Binding LongBreakMinutes}" />
+            <TextBlock Grid.Row="3" Classes="caption" Text="Sessions before long break" />
+            <NumericUpDown Grid.Row="3" Grid.Column="1" Maximum="12" Value="{Binding SessionsBeforeLongBreak}" />
+        </Grid>
+        <ToggleSwitch Content="Auto-start breaks" IsChecked="{Binding AutoStartBreaks}" />
+        <ToggleSwitch Content="Play intro at startup" IsChecked="{Binding PlayIntro}" />
+        <TextBlock Classes="caption" Text="Motion" />
+        <ListBox Classes="segmented" SelectedItem="{Binding Motion}" HorizontalAlignment="Left">
+            <x:Static Member="model:MotionPreference.System" />
+            <x:Static Member="model:MotionPreference.Full" />
+            <x:Static Member="model:MotionPreference.Reduced" />
+        </ListBox>
+    </StackPanel>
+</UserControl>

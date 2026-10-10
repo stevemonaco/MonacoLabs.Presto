@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             xmlns:v="using:Tempo.Views"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.StatsView"
+             x:DataType="vm:StatsViewModel">
+    <UserControl.Resources>
+        <ItemsPanelTemplate x:Key="WeekPanel">
+            <UniformGrid Rows="1" />
+        </ItemsPanelTemplate>
+    </UserControl.Resources>
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16" Margin="8">
+        <TextBlock Classes="heading" Text="Stats" />
+
+        <UniformGrid Grid.Row="1" Columns="3" ColumnSpacing="12">
+            <Border Classes="card">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="caption" Text="Focused today" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <presto:SplitFlap Classes="total" Text="{Binding TodayMinutesText}" Cells="3" Charset=" 0123456789" />
+                        <TextBlock Classes="caption" Text="min" VerticalAlignment="Bottom" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <Border Classes="card">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="caption" Text="Sessions" />
+                    <presto:SplitFlap Classes="total" Text="{Binding TodaySessionsText}" Cells="2" Charset=" 0123456789"
+                                      HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+            <Border Classes="card">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="caption" Text="Streak" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Classes="total" Text="{Binding Streak}" />
+                        <TextBlock Classes="caption" Text="days" VerticalAlignment="Bottom" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Border Grid.Row="2" Classes="card" VerticalAlignment="Top">
+            <StackPanel Spacing="12">
+                <TextBlock Classes="caption" Text="Last 7 days" />
+                <!-- No Panel inside a bar's template, so the bars share the grid's arrival batch and stagger. -->
+                <ItemsControl x:Name="Bars" ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:StatsDay">
+                            <Border Height="{x:Static v:StatsView.ChartHeight}" Background="Transparent"
+                                    ToolTip.Tip="{Binding Minutes, StringFormat='{}{0} min'}">
+                                <Border Classes="bar accent-bg" Height="{Binding Height, Converter={x:Static v:StatsView.BarHeight}}"
+                                        presto:Presence.Arrive="{x:Static m:TempoMotion.BarGrow}" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ItemsControl ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}" Margin="0,-6,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:StatsDay">
+                            <TextBlock Classes="caption" Text="{Binding Label}" HorizontalAlignment="Center" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

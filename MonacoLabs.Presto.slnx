@@ -6,11 +6,13 @@
     <Project Path="samples/PrestoSample.iOS/PrestoSample.iOS.csproj" />
     <Project Path="samples/PrestoSample.SnippetGenerator/PrestoSample.SnippetGenerator.csproj" />
     <Project Path="samples/PrestoSample/PrestoSample.csproj" />
+    <Project Path="samples/Tempo/Tempo.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MonacoLabs.Presto.Avalonia.Tests/MonacoLabs.Presto.Avalonia.Tests.csproj" />
     <Project Path="tests/MonacoLabs.Presto.Tests/MonacoLabs.Presto.Tests.csproj" />
     <Project Path="tests/PrestoSample.Tests/PrestoSample.Tests.csproj" />
+    <Project Path="tests/Tempo.Tests/Tempo.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />

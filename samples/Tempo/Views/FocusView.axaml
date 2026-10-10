@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.FocusView"
+             x:DataType="vm:FocusViewModel">
+    <UserControl.Resources>
+        <presto:MotionStates x:Key="IconStates">
+            <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.IconToPause}" />
+        </presto:MotionStates>
+    </UserControl.Resources>
+    <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="20" Margin="8,16">
+        <TransitioningContentControl Classes="mode accent-fg handoff" Content="{Binding ModeLabel}"
+                                     PageTransition="{presto:PageSharedAxis Axis=Y}" HorizontalAlignment="Center" />
+
+        <Panel Grid.Row="1" Width="300" Height="300">
+            <Panel>
+                <presto:Motion.States>
+                    <presto:MotionStates>
+                        <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.RingBreathe}" />
+                    </presto:MotionStates>
+                </presto:Motion.States>
+                <presto:ProgressRing x:Name="Ring" Classes="accent" Thickness="10" Track="{DynamicResource TempoLine}"
+                                     Value="{presto:Follow {Binding Progress}, Duration=250, Ease=linear}"
+                                     presto:Connected.Key="ring" presto:Connected.Motion="{x:Static m:TempoMotion.IntroFlight}" />
+            </Panel>
+            <StackPanel Classes="handoff" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <presto:SplitFlap Classes="digits" Text="{Binding RemainingText}" Cells="5" Charset="9876543210" HorizontalAlignment="Center" />
+                <TextBlock Classes="caption" Text="{Binding ActiveTask.Title, FallbackValue=''}" MaxWidth="200"
+                           TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Panel>
+
+        <StackPanel Grid.Row="2" Classes="handoff" Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
+            <Button Classes="icon" Command="{Binding SkipCommand}" VerticalAlignment="Center" ToolTip.Tip="Skip">
+                <PathIcon Data="{StaticResource SkipIcon}" />
+            </Button>
+            <Button Classes="hero accent-bg" Command="{Binding StartPauseCommand}" ToolTip.Tip="Start or pause (Space)"
+                    presto:Magnetic.Enabled="True" presto:Ripple.Enabled="True">
+                <Path x:Name="PlayPause" Classes="play" Data="{StaticResource PlayIcon}" />
+
+            </Button>
+            <Panel Width="40" Height="40" VerticalAlignment="Center" ToolTip.Tip="Hold to abandon">
+                <presto:ProgressRing Thickness="3" HoldDuration="900"
+                                     Fill="{DynamicResource SemiColorDanger}" Track="{DynamicResource TempoLine}"
+                                     Confirmed="AbandonConfirmed" />
+                <PathIcon Classes="stop" Data="{StaticResource StopIcon}" IsHitTestVisible="False" />
+            </Panel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Classes="handoff" Spacing="12" MinHeight="64" HorizontalAlignment="Center">
+            <ContentControl x:Name="Summary">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Classes="summary" Text="{Binding}" presto:Presence.Enter="{presto:LineRise}" />
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+            <TextBlock Classes="breathe" Classes.breathing="{Binding IsBreak}" Text="In… Out…" IsVisible="{Binding IsBreak}" />
+        </StackPanel>
+    </Grid>
+</UserControl>
