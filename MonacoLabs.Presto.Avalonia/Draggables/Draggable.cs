@@ -19,6 +19,9 @@ namespace MonacoLabs.Presto.Draggables;
 public sealed class Draggable : IRevertible
 {
     internal const double DefaultDragThreshold = 3;
+
+    /// <summary>A finger's slop: touch drifts further than a mouse before it means to move.</summary>
+    internal const double TouchSlop = 10;
     internal const double DefaultScrollSpeed = 1.5;
     internal const double DefaultScrollThreshold = 20;
     private const double ResizeDebounce = 150;

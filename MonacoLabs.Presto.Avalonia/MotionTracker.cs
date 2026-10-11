@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -299,6 +300,8 @@ internal sealed class MotionTracker
             else
             {
                 to = Rest(property);
+                // A geometry tweened plainly is one resampled polyline, losing all but its first figure until the return settles.
+                if (to.Raw is Geometry geometry) to = PrestoAvalonia.MorphTo(geometry);
                 (resting ??= []).Add(property);
             }
             values[property] = Timing(timing, property) is { } tween

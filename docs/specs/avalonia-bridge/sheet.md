@@ -66,6 +66,8 @@ depends:
   - Tests: `SheetTests.OpeningShowsTheContentAndPlaysTheEntrancesInside`, `SheetTests.EscapeBackOrAScrimTapClosesIt`
 - **BRIDGE-SHEET-012** — When the panel shows, the entrances inside the content shall replay through `Presence.EnterOnShow` on the panel.
   - Tests: `SheetTests.OpeningShowsTheContentAndPlaysTheEntrancesInside`
+- **BRIDGE-SHEET-036** — `TimeConstant` shall set the time constant, in ms, of the inertia that settles the sheet on a detent after a release, an open or a close.
+  - Tests: `SheetTests.AShorterTimeConstantSettlesSooner`
 
 ### Scrim and dismissal
 
@@ -88,7 +90,7 @@ depends:
   - Tests: `SheetTests.ADragReleasedBetweenDetentsSettlesOnTheNearest`
 - **BRIDGE-SHEET-020** — While dragging, the sheet shall follow the pointer along its axis at once, rubber-banding with friction 0.35 past the first and last detents, and mark the moves handled and withheld from gesture recognizers.
   - Tests: `SheetTests.TheScrimOpacityTracksThePosition`, `SheetTests.AnInnerScrollerHandsTheDragOffAtItsTopAndScrollsOtherwise`
-- **BRIDGE-SHEET-021** — When a drag is released or its capture is lost, the sheet shall project `extent + velocity · TimeConstant` (or keep the extent when it is outside the detents), clamp it to the detents, set `DetentIndex` to the nearest detent, and coast there through `Inertia` from the release velocity.
+- **BRIDGE-SHEET-021** — When a drag is released or its capture is lost, the sheet shall project `extent + velocity · TimeConstant` (or keep the extent when it is outside the detents), clamp it to the detents, set `DetentIndex` to the nearest detent, and coast there through `Inertia` from the release velocity, with `TimeConstant` as its time constant.
   - Tests: `SheetTests.ADragReleasedBetweenDetentsSettlesOnTheNearest`, `SheetTests.AFlingSkipsToTheNextDetent`
 - **BRIDGE-SHEET-022** — When a coast's projected target lies past the first or last detent, the sheet shall let it cross the bound and bounce back onto it.
   - Tests: `GesturesPageTests.AFlickUpCoastsTheSheetOpenPastItsStopAndBouncesBackOntoIt`
@@ -127,6 +129,8 @@ depends:
   - Tests: untested
 - **BRIDGE-SHEET-035** — When `ClipToBounds` is not set, the sheet shall clip to its bounds.
   - Tests: untested
+- **BRIDGE-SHEET-037** (inherited) — When `TimeConstant` is not set, it shall be 350.
+  - Tests: `SheetTests.TheDefaultTimeConstantIs350`
 
 ## Invariants
 
@@ -161,6 +165,7 @@ depends:
 ## Decisions
 
 - **Sheet is an untemplated control with its own drag.** `Sheet`, with a sealed `Drawer` subclass, is a control that builds its scrim, panel and edge strip as visual children and takes its look from its `Content`; its drag is its own pointer handling, built like `Swipe`'s. Reason: the scrim and edge strip are siblings an attached property on the panel could only add by reaching into its parent's children; the bridge ships no themes; `Draggable`'s press captures the pointer, so it could never hand a touch scroll to an inner `ScrollViewer`. Rejected: an attached form; a drag built on `Draggable`.
+- **`TimeConstant` on `Sheet`, not a duration.** The settle's speed is set by a `TimeConstant` styled property. Reason: the settle is inertia, so its knob is the inertia's time constant, which keeps the fling physics: a shorter one settles sooner while a fast fling still projects from its release velocity. Rejected: a `Duration`; a shared `Inertia` property, which would expose the internal `ModifyTarget` and bounds.
 
 ## Non-goals
 

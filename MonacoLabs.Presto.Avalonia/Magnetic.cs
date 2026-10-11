@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.VisualTree;
+using MonacoLabs.Presto.Bindings;
 using MonacoLabs.Presto.Diagnostics;
 
 namespace MonacoLabs.Presto;
@@ -12,7 +13,7 @@ namespace MonacoLabs.Presto;
 /// </summary>
 /// <remarks>
 /// The pull follows <see cref="PrestoAvalonia.PointerOffsetValue"/> and <see cref="PrestoAvalonia.PointerProximityValue"/>
-/// through <see cref="Springs.Snappy"/> into <see cref="Follow.XProperty"/> and <see cref="Follow.YProperty"/>, so an animation
+/// through <see cref="SpringProperty"/> (<see cref="Springs.Snappy"/> unset) into <see cref="Follow.XProperty"/> and <see cref="Follow.YProperty"/>, so an animation
 /// of <c>"X"</c> or <c>"Y"</c> layers over it; detaching or disabling clears both. Nothing moves while
 /// <see cref="PrestoDefaults.ReducedMotion"/> is set.
 /// </remarks>
@@ -30,6 +31,13 @@ public static class Magnetic
     public static readonly AttachedProperty<double> RadiusProperty =
         AvaloniaProperty.RegisterAttached<Control, double>("Radius", typeof(Magnetic), 48);
 
+    /// <summary>
+    /// The spring the pull follows: a <see cref="Springs"/> preset name, such as <c>"Gentle"</c>, or <c>"bounce,duration"</c>,
+    /// such as <c>"0,900"</c>, as <see cref="FollowParams.Spring"/> takes it; unset, <see cref="Springs.Snappy"/>.
+    /// </summary>
+    public static readonly AttachedProperty<string?> SpringProperty =
+        AvaloniaProperty.RegisterAttached<Control, string?>("Spring", typeof(Magnetic), validate: spring => spring is null || FollowTiming.ParseSpring(spring) is not null);
+
     private static readonly AttachedProperty<Tracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, Tracker?>("Tracker", typeof(Magnetic));
 
@@ -37,6 +45,7 @@ public static class Magnetic
     {
         EnabledProperty.Changed.AddClassHandler<Control>(HandleEnabledChanged);
         RadiusProperty.Changed.AddClassHandler<Control>((control, _) => control.GetValue(TrackerProperty)?.Rebuild());
+        SpringProperty.Changed.AddClassHandler<Control>((control, _) => control.GetValue(TrackerProperty)?.Rebuild());
     }
 
     /// <summary>Gets whether <paramref name="control"/> is pulled towards the pointer.</summary>
@@ -56,6 +65,13 @@ public static class Magnetic
 
     /// <summary>Sets how far from <paramref name="control"/>'s edge the pull reaches.</summary>
     public static void SetRadius(Control control, double value) => control.SetValue(RadiusProperty, value);
+
+    /// <summary>Gets the spring <paramref name="control"/>'s pull follows.</summary>
+    public static string? GetSpring(Control control) => control.GetValue(SpringProperty);
+
+    /// <summary>Sets the spring <paramref name="control"/>'s pull follows.</summary>
+    /// <exception cref="FormatException"><paramref name="value"/> names no spring.</exception>
+    public static void SetSpring(Control control, string? value) => control.SetValue(SpringProperty, value);
 
     private static void HandleEnabledChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
@@ -85,7 +101,7 @@ public static class Magnetic
             HandleDetached(null, null);
         }
 
-        // The proximity value's radius is fixed when it is made, so a new Radius rebuilds the graph.
+        // The proximity value's radius and the springs are fixed when made, so a new Radius or Spring rebuilds the graph.
         // The new graph is built first so the shared pointer tracker, and the pointer it holds, outlive the old one.
         public void Rebuild()
         {
@@ -118,6 +134,6 @@ public static class Magnetic
         // Strength and reduced motion are read as the sources move, so a change applies from the next pointer move.
         private MotionValue Pull(MotionValue offset, MotionValue proximity) =>
             MotionValue.Combine(offset, proximity, (o, p) => Engine.Current.Defaults.ReducedMotion ? 0 : o * GetStrength(_control) * p)
-                .Spring(Springs.Snappy);
+                .Spring(GetSpring(_control) is { } spring ? FollowTiming.ParseSpring(spring) : Springs.Snappy);
     }
 }

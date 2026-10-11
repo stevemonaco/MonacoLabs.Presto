@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.ConfirmDialog"
+             x:DataType="vm:MainViewModel"
+             Width="380" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Border x:Name="Card" Classes="dialog">
+        <StackPanel Spacing="10">
+            <TextBlock Classes="dialog-title" Text="{Binding ConfirmTitle}" />
+            <TextBlock Classes="caption" Text="{Binding ConfirmMessage}" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,10,0,0">
+                <Button x:Name="CancelButton" Content="Cancel" Command="{Binding CancelConfirmCommand}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Classes="caption" Text="{Binding ConfirmHoldLabel}" VerticalAlignment="Center" />
+                <!-- The red face only draws; the ring around it takes the hold. -->
+                <Panel Grid.Column="3" Width="52" Height="52">
+                    <presto:ProgressRing x:Name="Hold" Thickness="3" HoldDuration="600"
+                                         Fill="{DynamicResource SemiColorDanger}" Track="{DynamicResource TempoLine}"
+                                         Confirmed="HoldConfirmed" />
+                    <Border Classes="danger" IsHitTestVisible="False">
+                        <PathIcon Data="{x:Static m:TempoMotion.CheckIcon}" />
+                    </Border>
+                </Panel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

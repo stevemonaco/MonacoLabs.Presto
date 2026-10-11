@@ -12,6 +12,7 @@ The architecture and the anime.js → Presto module map live in [docs/ARCHITECTU
 | `MonacoLabs.Presto.Avalonia/` | **Avalonia adapter.** Frame pump, `AvaloniaObject`/`AvaloniaProperty` targets, render-transform composition, color/brush/thickness interpolation, control helpers. Custom controls (`Pager`, `Sheet`, `ToastHost`, the image controls…) live in `Controls/` (`MonacoLabs.Presto.Controls`). Root namespace `MonacoLabs.Presto`, shared with the core: namespaces never carry an `Avalonia` segment (it would shadow the `Avalonia.*` namespaces), and folders map onto the root namespace. |
 | `samples/PrestoSample*/` | Gallery app (shared project + Desktop/Browser/Android/iOS heads). `Pages/` mirror the anime.js documentation examples; `Builder/` holds fluent-builder pages that print their own code, plus the XAML attach demo; `Showcase/` holds the shared kit (`ShowcasePage`, `CodePanel`, `Snippet`) and `Showcase/Pages/` the multi-feature demos. Desktop is the primary dev target. |
 | `samples/PrestoSample.SnippetGenerator/` | Sample-only source generator: `<!-- snippet: Name -->` (XAML) and `#region snippet Name` (C#) regions become `PrestoSample.Showcase.Snippets` consts. |
+| `samples/Tempo/` | Standalone focus-timer app (Desktop, Semi.Avalonia Dark) that dogfoods Presto as an outside consumer would; all its motion is in `Motion/TempoMotion.cs`. Headless tests in `tests/Tempo.Tests/`; decisions in ARCHITECTURE §6. |
 | `tests/MonacoLabs.Presto.Tests/` | xunit v3 tests for the core. Bridge tests (Avalonia.Headless) live in `tests/MonacoLabs.Presto.Avalonia.Tests/`. |
 | `docs/` | `ARCHITECTURE.md` (goals, module map, architecture, testing strategy, project-wide decisions), `BACKLOG.md` (open work), `changes/` (change proposals for work in progress). |
 | `docs/specs/` | Feature specs, the source of truth for behavior: one folder per package (`core/`, `avalonia-bridge/`, `lottie/`, `devtools/`), each with an `index.md`. Format in `docs/specs/README.md`. |
@@ -27,6 +28,7 @@ dotnet test --solution MonacoLabs.Presto.slnx
 tests/PrestoSample.Tests/bin/Debug/net10.0/PrestoSample.Tests.exe --report-xunit --results-directory <dir>   # per-test times (after a build)
 dotnet run --project samples/PrestoSample.Desktop
 dotnet watch --project samples/PrestoSample.Desktop      # hot reload (see below)
+dotnet run --project samples/Tempo                       # the Tempo app; -- --skip-intro starts on the main view
 ```
 
 The Desktop head takes launch options after `--`, e.g. `dotnet run --project samples/PrestoSample.Desktop -- --page carousel --motion reduced --size 1400x1000`: `--page` takes a slug or title, `--motion` is `full|reduced|system`, and `--list-pages` prints the slugs. Its output shows under `dotnet run`, though it is a WinExe, so launched directly its output appears only when redirected; bad arguments exit with code 2. Use these to start DevTools checks on a page instead of navigating the sidebar.

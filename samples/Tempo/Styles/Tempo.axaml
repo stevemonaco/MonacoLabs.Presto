@@ -1,0 +1,908 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+        xmlns:m="using:Tempo.Motion"
+        xmlns:sys="using:System"
+        xmlns:v="using:Tempo.Views"
+        xmlns:vm="using:Tempo.ViewModels">
+    <Styles.Resources>
+        <SolidColorBrush x:Key="SemiColorPrimary" Color="{x:Static m:TempoMotion.FocusAccent}" />
+        <SolidColorBrush x:Key="SemiColorPrimaryPointerover" Color="#F58C7A" />
+        <SolidColorBrush x:Key="SemiColorPrimaryActive" Color="#F8A698" />
+        <SolidColorBrush x:Key="SemiColorBackground0" Color="#121318" />
+        <SolidColorBrush x:Key="SemiColorBackground1" Color="#1A1C22" />
+        <SolidColorBrush x:Key="SemiColorBackground2" Color="#23262E" />
+        <SolidColorBrush x:Key="SemiColorBackground3" Color="#2D3039" />
+
+        <SolidColorBrush x:Key="TempoLine" Color="#2C2F38" />
+        <LinearGradientBrush x:Key="TempoGlassEdge" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#38FFFFFF" />
+            <GradientStop Offset="1" Color="#0AFFFFFF" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="TempoInk" Color="#ECEDF0" />
+        <SolidColorBrush x:Key="TempoInkDim" Color="#9499A6" />
+        <SolidColorBrush x:Key="FocusAccentBrush" Color="{x:Static m:TempoMotion.FocusAccent}" />
+        <SolidColorBrush x:Key="ShortBreakAccentBrush" Color="{x:Static m:TempoMotion.ShortBreakAccent}" />
+        <SolidColorBrush x:Key="LongBreakAccentBrush" Color="{x:Static m:TempoMotion.LongBreakAccent}" />
+
+        <StreamGeometry x:Key="PlayIcon">M8,5 L19,12 L8,19 Z</StreamGeometry>
+        <StreamGeometry x:Key="SettingsIcon">M3,6 L21,6 L21,8 L3,8 Z M3,16 L21,16 L21,18 L3,18 Z M8,3 L11,3 L11,11 L8,11 Z M14,13 L17,13 L17,21 L14,21 Z</StreamGeometry>
+        <StreamGeometry x:Key="MoreIcon">M4,12 A2,2 0 1 1 8,12 A2,2 0 1 1 4,12 Z M10,12 A2,2 0 1 1 14,12 A2,2 0 1 1 10,12 Z M16,12 A2,2 0 1 1 20,12 A2,2 0 1 1 16,12 Z</StreamGeometry>
+        <StreamGeometry x:Key="PlusIcon">M11,5 L13,5 L13,11 L19,11 L19,13 L13,13 L13,19 L11,19 L11,13 L5,13 L5,11 L11,11 Z</StreamGeometry>
+        <StreamGeometry x:Key="TasksIcon">M4,6 L6,6 L6,8 L4,8 Z M8,6 L20,6 L20,8 L8,8 Z M4,11 L6,11 L6,13 L4,13 Z M8,11 L20,11 L20,13 L8,13 Z M4,16 L6,16 L6,18 L4,18 Z M8,16 L20,16 L20,18 L8,18 Z</StreamGeometry>
+        <StreamGeometry x:Key="FocusIcon">M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 Z M12,5 A7,7 0 1 1 12,19 A7,7 0 1 1 12,5 Z M11,7 L13,7 L13,11 L16,11 L16,13 L11,13 Z</StreamGeometry>
+        <StreamGeometry x:Key="StatsIcon">M4,13 L7,13 L7,20 L4,20 Z M10.5,8 L13.5,8 L13.5,20 L10.5,20 Z M17,4 L20,4 L20,20 L17,20 Z</StreamGeometry>
+        <ControlTheme x:Key="TaskRow" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Background" Value="Transparent" />
+            <!-- The selection indicator is the selected background. -->
+            <Style Selector="^:pointerover, ^:pressed, ^:selected, ^:selected:pointerover">
+                <Setter Property="Background" Value="Transparent" />
+            </Style>
+        </ControlTheme>
+
+        <ControlTheme x:Key="Segment" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="Width" Value="88" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+            <Style Selector="^:pointerover, ^:pressed, ^:selected, ^:selected:pointerover">
+                <Setter Property="Background" Value="Transparent" />
+            </Style>
+            <Style Selector="^:selected">
+                <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+            </Style>
+        </ControlTheme>
+
+        <ControlTheme x:Key="Chip" TargetType="ListBoxItem" BasedOn="{StaticResource Segment}">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="4,4" />
+            <Setter Property="FontSize" Value="11.5" />
+        </ControlTheme>
+
+        <ControlTheme x:Key="NavItem" TargetType="ListBoxItem" BasedOn="{StaticResource Segment}">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="FontSize" Value="11.5" />
+        </ControlTheme>
+
+        <DataTemplate x:Key="NavItemTemplate" x:DataType="vm:AppView">
+            <StackPanel Spacing="3">
+                <PathIcon Classes="nav-icon">
+                    <presto:Motion.States>
+                        <presto:MotionStates>
+                            <presto:MotionState When="chosen" Motion="{x:Static m:TempoMotion.CheckPop}" />
+                        </presto:MotionStates>
+                    </presto:Motion.States>
+                </PathIcon>
+                <TextBlock Text="{Binding}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- A chip's item is a label string or a TaskTag; only a tag has a dot. -->
+        <DataTemplate x:Key="TagChipTemplate" x:DataType="sys:Object">
+            <StackPanel Orientation="Horizontal" Spacing="3">
+                <Ellipse Classes="tag-dot" Fill="{Binding Converter={x:Static m:TempoMotion.TagBrush}}"
+                         IsVisible="{Binding $self.Fill, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                <TextBlock Text="{Binding}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TaskRowTemplate" x:DataType="vm:TaskItemViewModel">
+            <Border Classes="task-row"
+                    presto:Presence.Arrive="{x:Static m:TempoMotion.RowEnter}"
+                    presto:Presence.Exit="{x:Static m:TempoMotion.RowExit}">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8">
+                    <CheckBox Grid.RowSpan="2" IsChecked="{Binding IsDone}"
+                              presto:Animate.Watch="{Binding IsDone}" presto:Animate.OnChanged="{x:Static m:TempoMotion.CheckPop}" />
+                    <Panel Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock x:Name="Title" Classes="task-title" Classes.done="{Binding IsDone}" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                        <Line Classes="strike" Width="{Binding #Title.Bounds.Width}" StartPoint="0,1" EndPoint="1,1" Stretch="Fill"
+                              presto:Follow.Draw="{Binding StrikeProgress}" />
+                    </Panel>
+                    <Button Grid.Column="3" Grid.RowSpan="2" Classes="icon row-more" ToolTip.Tip="Details"
+                            Command="{Binding $parent[v:TasksView].((vm:MainViewModel)DataContext).OpenDetailCommand}" CommandParameter="{Binding}">
+                        <PathIcon Data="{StaticResource MoreIcon}" />
+                    </Button>
+                    <StackPanel Classes="task-meta">
+                        <Border Classes="tag-chip" BorderBrush="{Binding Tag, Converter={x:Static m:TempoMotion.TagBrush}}"
+                                IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <TextBlock Text="{Binding Tag}" Foreground="{Binding Tag, Converter={x:Static m:TempoMotion.TagBrush}}" />
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding Dots}" VerticalAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SessionDot">
+                                    <Ellipse Classes="dot" Classes.filled="{Binding IsFilled}"
+                                             presto:Animate.Watch="{Binding IsFilled}" presto:Animate.OnChanged="{x:Static m:TempoMotion.DotPop}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Styles.Resources>
+
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="fonts:Inter#Inter" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <!-- Every scroller, template parts included: wheel notches ease on Windows, and reduced motion keeps native steps. -->
+    <Style Selector="ScrollViewer">
+        <Setter Property="presto:Scroll.Smooth" Value="True" />
+    </Style>
+    <Style Selector="Grid.shell">
+        <!-- Translucent, so a Mica or Acrylic window material tints through it; over black, where the hint is refused, it reads as Background0. -->
+        <Setter Property="Background" Value="#E6121318" />
+    </Style>
+
+    <Style Selector="TextBlock.wordmark">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="1.5" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="TextBlock.caption">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+
+    <Style Selector="Border.titlebar">
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+    <!-- The drawn decorations' own title would sit under the wordmark. -->
+    <Style Selector="WindowDrawnDecorations:not(:fullscreen) /template/ Panel#PART_TitleTextPanel">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <!-- The accent under a fading mask: a gradient whose accent end follows the mode with the other accent-bg parts. -->
+    <Style Selector="Border.backdrop">
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="OpacityMask">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="#00000000" />
+                <GradientStop Offset="1" Color="#40000000" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+    <Style Selector="Panel.blobs">
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <!-- A slow, soft spring and a reach well past the edge, so the backdrop drifts after the pointer rather than snapping to it. -->
+    <Style Selector="Border.blob">
+        <Setter Property="Width" Value="560" />
+        <Setter Property="Height" Value="560" />
+        <Setter Property="presto:Magnetic.Enabled" Value="True" />
+        <Setter Property="presto:Magnetic.Radius" Value="240" />
+        <Setter Property="presto:Magnetic.Spring" Value="0,1400" />
+        <Setter Property="OpacityMask">
+            <RadialGradientBrush>
+                <GradientStop Offset="0" Color="#66000000" />
+                <GradientStop Offset=".55" Color="#26000000" />
+                <GradientStop Offset="1" Color="#00000000" />
+            </RadialGradientBrush>
+        </Setter>
+    </Style>
+    <!-- Glass: a translucent fill rather than element Opacity, so the content stays opaque over the drifting blobs. -->
+    <Style Selector="Border.panel">
+        <Setter Property="Background" Value="#991A1C22" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoGlassEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BoxShadow" Value="0 12 32 0 #59000000" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="16" />
+    </Style>
+    <!-- A page's scroller reaches out through the panel padding, border and shell margin (16 + 1 + 16), so its overlay
+         scrollbar rides the window edge; the padding puts the content back. Its view and the page host must not clip. -->
+    <Style Selector="TransitioningContentControl#PageHost, v|TasksView, v|StatsView">
+        <Setter Property="ClipToBounds" Value="False" />
+    </Style>
+    <Style Selector="TransitioningContentControl#PageHost :is(TemplatedControl).edge-scroll">
+        <Setter Property="Margin" Value="0,0,-33,0" />
+        <Setter Property="Padding" Value="0,0,33,0" />
+    </Style>
+    <!-- Out through the panel padding, so the shadow spans the card like a header's. -->
+    <Style Selector="Border.scroll-shadow">
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Margin" Value="-16,0" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.scroll-shadow.top">
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Offset="0" Color="#66000000" />
+                <GradientStop Offset="1" Color="#00000000" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+    <Style Selector="Border.scroll-shadow.bottom">
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,100%" EndPoint="0%,0%">
+                <GradientStop Offset="0" Color="#66000000" />
+                <GradientStop Offset="1" Color="#00000000" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+    <Style Selector="Expander.done Border.scroll-shadow">
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style Selector="Button.icon">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="presto:Motion.Press" Value="{presto:PressIn}" />
+    </Style>
+    <Style Selector="Button.icon PathIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="Border.hero">
+        <Setter Property="Height" Value="64" />
+        <Setter Property="CornerRadius" Value="32" />
+        <Setter Property="presto:Motion.Hover" Value="{presto:Lift}" />
+        <Setter Property="presto:Motion.Press" Value="{presto:PressIn}" />
+    </Style>
+    <!-- Sized by its content: 20 + the 24 px icon + 20 makes the circle, and the label widens it into a pill. -->
+    <Style Selector="Button.hero-face">
+        <Setter Property="Height" Value="64" />
+        <Setter Property="Padding" Value="20,0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="32" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TransitioningContentControl.mode">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="ClipToBounds" Value="False" />
+    </Style>
+    <Style Selector="StackPanel.digits > TextBlock">
+        <Setter Property="FontSize" Value="56" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="StackPanel.controls">
+        <Setter Property="Spacing" Value="24" />
+    </Style>
+    <!-- Tight enough for the "Start focus" pill on one line at 320. -->
+    <Style Selector="v|ShellView.compact StackPanel.controls">
+        <Setter Property="Spacing" Value="8" />
+    </Style>
+    <!-- Inter's figures are proportional: a fixed slot keeps a changing digit from shifting its neighbors. -->
+    <Style Selector="StackPanel.digits > TextBlock.digit">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+    <!-- From a class, so only the last ten seconds' changes pulse. -->
+    <Style Selector="presto|ProgressRing.final">
+        <Setter Property="presto:Animate.OnChanged" Value="{x:Static m:TempoMotion.FinalPulse}" />
+    </Style>
+    <Style Selector="Path.play">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Fill" Value="{DynamicResource SemiColorBackground0}" />
+    </Style>
+    <Style Selector="TextBlock.start-label">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SemiColorBackground0}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Path.add-icon">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Fill" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <!-- Every tooltip rises in and sinks away as the settings popover does, only quicker. -->
+    <Style Selector="ToolTip">
+        <Setter Property="presto:Popover.Open" Value="{x:Static m:TempoMotion.TipOpen}" />
+        <Setter Property="presto:Popover.Close" Value="{x:Static m:TempoMotion.TipClose}" />
+    </Style>
+    <!-- Skip matches the stop button: a 40 px circle on the same faint track, which its skip sweeps round once. -->
+    <Style Selector="Panel.skip">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+    </Style>
+    <Style Selector="Panel.skip > :is(Shape)">
+        <Setter Property="StrokeThickness" Value="3" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <!-- A glass disc inside skip's and stop's track, lit while hovered. -->
+    <Style Selector="Ellipse.disc">
+        <Setter Property="Margin" Value="3" />
+        <Setter Property="Fill" Value="White" />
+        <Setter Property="Opacity" Value="0.06" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="presto:Motion.States">
+            <presto:MotionStates>
+                <presto:MotionState When="lit" Motion="{x:Static m:TempoMotion.DiscLight}" />
+            </presto:MotionStates>
+        </Setter>
+    </Style>
+    <Style Selector="Panel.skip:pointerover Ellipse.disc, Panel#AbandonHold:pointerover Ellipse.disc">
+        <Setter Property="presto:Motion.State" Value="lit" />
+    </Style>
+    <Style Selector="Panel.skip PathIcon">
+        <Setter Property="presto:Motion.States">
+            <presto:MotionStates>
+                <presto:MotionState When="forward" Motion="{x:Static m:TempoMotion.SkipToForward}" />
+            </presto:MotionStates>
+        </Setter>
+    </Style>
+    <Style Selector="Panel.skip:pointerover PathIcon">
+        <Setter Property="presto:Motion.State" Value="forward" />
+    </Style>
+    <Style Selector="Border.halo">
+        <Setter Property="CornerRadius" Value="32" />
+    </Style>
+    <Style Selector="Ellipse.track">
+        <Setter Property="Margin" Value="1.5" />
+        <Setter Property="Stroke" Value="{DynamicResource TempoLine}" />
+    </Style>
+    <!-- Clockwise from twelve o'clock, as the stop button's hold fills. -->
+    <Style Selector="Path.sweep">
+        <Setter Property="Stroke" Value="{DynamicResource TempoInk}" />
+        <Setter Property="StrokeLineCap" Value="Round" />
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Button.skip-face">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="CornerRadius" Value="20" />
+    </Style>
+    <Style Selector="PathIcon.stop">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="TextBlock.summary">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.breathe">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <!-- From a class rather than on the element, so the loop runs only during a break. -->
+    <Style Selector="TextBlock.breathe.breathing">
+        <Setter Property="presto:Animate.OnAttached" Value="{x:Static m:TempoMotion.Breathe}" />
+    </Style>
+
+    <Style Selector="Border.task-row" x:DataType="vm:TaskItemViewModel">
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="presto:Swipe.Command" Value="{Binding SwipeCommand}" />
+        <Setter Property="presto:Swipe.Dismiss" Value="True" />
+        <!-- A short swipe springs back rather than pinning the actions open; a full one completes or deletes. -->
+        <Setter Property="presto:Swipe.Reveal" Value="False" />
+        <Setter Property="presto:Swipe.Leading">
+            <DataTemplate x:DataType="vm:TaskItemViewModel">
+                <Button Classes="swipe-action complete" Command="{Binding SwipeCommand}" CommandParameter="{x:Static presto:Edge.Right}">
+                    <PathIcon Data="{x:Static m:TempoMotion.CheckIcon}" />
+                </Button>
+            </DataTemplate>
+        </Setter>
+        <Setter Property="presto:Swipe.Trailing">
+            <DataTemplate x:DataType="vm:TaskItemViewModel">
+                <Button Classes="swipe-action delete" Content="Delete" Command="{Binding SwipeCommand}" CommandParameter="{x:Static presto:Edge.Left}" />
+            </DataTemplate>
+        </Setter>
+    </Style>
+    <!-- A done task can only be deleted, and its list does not reorder. -->
+    <Style Selector="Expander.done Border.task-row">
+        <Setter Property="presto:Swipe.Leading" Value="{x:Null}" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover Border.task-row">
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground2}" />
+    </Style>
+    <Style Selector="Button.swipe-action">
+        <Setter Property="Width" Value="76" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Margin" Value="4,0" />
+        <Setter Property="Foreground" Value="#121318" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.swipe-action.complete">
+        <Setter Property="Background" Value="{DynamicResource ShortBreakAccentBrush}" />
+    </Style>
+    <Style Selector="Button.swipe-action.delete">
+        <Setter Property="Background" Value="{DynamicResource SemiColorDanger}" />
+    </Style>
+    <!-- Compact's way into the details: a tap target of its own, since a touch row already swipes, reorders and checks. -->
+    <Style Selector="Button.row-more">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="v|ShellView.compact Button.row-more">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="TextBlock.task-title">
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="TextBlock.task-title.done">
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="Line.strike">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Stroke" Value="{DynamicResource TempoInkDim}" />
+        <Setter Property="StrokeThickness" Value="1.5" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.selection-pill">
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
+    </Style>
+    <Style Selector="Expander.done /template/ PathIcon#PART_PathIcon">
+        <Setter Property="presto:Accordion.Chevron" Value="180" />
+    </Style>
+
+    <Style Selector="ListBox.segmented">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground2}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="ItemContainerTheme" Value="{StaticResource Segment}" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.segmented, ListBox.chips, ListBox.bottom-nav">
+        <Setter Property="presto:Selection.Motion" Value="{x:Static m:TempoMotion.RowSelect}" />
+        <Setter Property="presto:Selection.Indicator">
+            <Template>
+                <Border Classes="segment-pill" />
+            </Template>
+        </Setter>
+    </Style>
+    <Style Selector="Border.segment-pill">
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
+    </Style>
+
+    <!-- One shell, two arrangements: compact trades the Tasks column and the title-bar switch for the bottom bar. -->
+    <Style Selector="v|ShellView.compact Border#TasksColumn, v|ShellView.compact ListBox#Switch, v|ShellView.compact Button#SettingsButton">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.bottom-bar">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="v|ShellView.compact Border.bottom-bar">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Button.nav-settings">
+        <Setter Property="Height" Value="52" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="presto:Motion.Press" Value="{presto:PressIn}" />
+    </Style>
+    <!-- Hovered like the bar's ListBoxItems beside it, which brighten and keep the arrow. -->
+    <Style Selector="Button.nav-settings:pointerover /template/ ContentPresenter, Button.nav-settings:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource ListBoxItemPointeroverForeground}" />
+    </Style>
+    <Style Selector="Button.nav-settings.open">
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="Button.nav-settings.open PathIcon.nav-icon">
+        <Setter Property="presto:Motion.State" Value="open" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="ItemContainerTheme" Value="{StaticResource NavItem}" />
+        <Setter Property="ItemTemplate" Value="{StaticResource NavItemTemplate}" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.bottom-nav Border.segment-pill">
+        <Setter Property="Margin" Value="10,0" />
+        <Setter Property="CornerRadius" Value="16" />
+    </Style>
+    <Style Selector="PathIcon.nav-icon">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+    </Style>
+    <!-- The items are Tasks, Focus and Stats in that order. -->
+    <Style Selector="ListBox.bottom-nav ListBoxItem:nth-child(1) PathIcon.nav-icon">
+        <Setter Property="Data" Value="{StaticResource TasksIcon}" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav ListBoxItem:nth-child(2) PathIcon.nav-icon">
+        <Setter Property="Data" Value="{StaticResource FocusIcon}" />
+    </Style>
+    <Style Selector="ListBox.bottom-nav ListBoxItem:nth-child(3) PathIcon.nav-icon">
+        <Setter Property="Data" Value="{StaticResource StatsIcon}" />
+    </Style>
+    <!-- From a style, since the selection is the container's: the icon's chosen state pops it. -->
+    <Style Selector="ListBox.bottom-nav ListBoxItem:selected PathIcon.nav-icon">
+        <Setter Property="presto:Motion.State" Value="chosen" />
+    </Style>
+
+    <Style Selector="ListBox.chips">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="ItemContainerTheme" Value="{StaticResource Chip}" />
+        <Setter Property="ItemTemplate" Value="{StaticResource TagChipTemplate}" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <WrapPanel LineSpacing="2" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <!-- Swiped or wheeled rather than dragged by a bar; the faded ends show there is more. -->
+    <Style Selector="v|ShellView.compact ListBox.chips">
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
+        <Setter Property="v:ScrollEdge.FadeSides" Value="True" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Ellipse.tag-dot">
+        <Setter Property="Width" Value="6" />
+        <Setter Property="Height" Value="6" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.tag-chip">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="6,1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.tag-chip TextBlock">
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+    <!-- Placed by style, so the narrow list's query below can move it. -->
+    <Style Selector="StackPanel.task-meta">
+        <Setter Property="Grid.Column" Value="2" />
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Spacing" Value="8" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- A narrow list (the wide column, or a phone) gives the title the whole row and puts the tag and sessions under it. -->
+    <ContainerQuery Name="tasks" Query="max-width:399">
+        <Style Selector="StackPanel.task-meta">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+    </ContainerQuery>
+
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="#8C23262E" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoGlassEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="presto:Tilt.Enabled" Value="True" />
+        <Setter Property="presto:Tilt.Strength" Value="4" />
+    </Style>
+    <Style Selector="presto|SplitFlap.total, TextBlock.total">
+        <Setter Property="TextElement.FontSize" Value="26" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="presto|SplitFlap.total">
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="CellBackground" Value="{DynamicResource SemiColorBackground3}" />
+    </Style>
+    <Style Selector="Border.bar">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="CornerRadius" Value="4,4,0,0" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="RenderTransformOrigin" Value="50%,100%" />
+    </Style>
+    <Style Selector="UniformGrid.totals">
+        <Setter Property="Columns" Value="3" />
+    </Style>
+    <Style Selector="ListBox.range ListBoxItem">
+        <Setter Property="Width" Value="60" />
+    </Style>
+    <!-- Turned so the segments' strokes start at the top. -->
+    <Style Selector="Panel.donut">
+        <Setter Property="Width" Value="120" />
+        <Setter Property="Height" Value="120" />
+        <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+    </Style>
+    <Style Selector="Panel.donut Ellipse">
+        <Setter Property="StrokeThickness" Value="14" />
+        <Setter Property="StrokeLineCap" Value="Flat" />
+    </Style>
+    <Style Selector="Ellipse.donut-track">
+        <Setter Property="Stroke" Value="{DynamicResource SemiColorBackground3}" />
+    </Style>
+    <Style Selector="Border.heat">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="CornerRadius" Value="3" />
+    </Style>
+    <Style Selector="TextBlock.weekday">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.best-day">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="18,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <Style Selector="Border.donut-card, ItemsControl.legend">
+        <Setter Property="Grid.Column" Value="1" />
+    </Style>
+
+    <!-- Compact Stats: one column, the legend under the donut and the heatmap across the card. -->
+    <!-- Three totals across would leave a third of 320 for a 97 DIP split flap, so compact lists them a row each. -->
+    <Style Selector="v|ShellView.compact UniformGrid.totals">
+        <Setter Property="Columns" Value="1" />
+        <Setter Property="RowSpacing" Value="8" />
+    </Style>
+    <Style Selector="v|ShellView.compact UniformGrid.totals > Border.card">
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="v|ShellView.compact UniformGrid.totals > Border > StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+    </Style>
+    <Style Selector="v|ShellView.compact UniformGrid.totals > Border > StackPanel > TextBlock.caption">
+        <Setter Property="Width" Value="72" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="v|ShellView.compact Grid.charts">
+        <Setter Property="RowSpacing" Value="16" />
+    </Style>
+    <Style Selector="v|ShellView.compact Border.bars-card, v|ShellView.compact Panel.donut, v|ShellView.compact Viewbox.heatmap">
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="v|ShellView.compact Border.donut-card, v|ShellView.compact ItemsControl.legend">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="v|ShellView.compact Grid.donut-row">
+        <Setter Property="RowSpacing" Value="12" />
+    </Style>
+    <Style Selector="v|ShellView.compact TextBlock.best-day">
+        <Setter Property="Grid.Row" Value="2" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+        <Setter Property="Margin" Value="0,12,0,0" />
+    </Style>
+
+    <!-- The settings popover, glass like the panels but more opaque, since a popup may sit over busy rows. -->
+    <Style Selector="FlyoutPresenter.glass">
+        <Setter Property="Background" Value="#E61A1C22" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoGlassEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="18,16" />
+    </Style>
+    <!-- The bottom sheet's settings take the window's width. -->
+    <Style Selector="FlyoutPresenter v|SettingsFlyout">
+        <Setter Property="Width" Value="300" />
+    </Style>
+    <Style Selector="StackPanel.settings > :is(Control)">
+        <Setter Property="presto:Presence.Arrive" Value="{x:Static m:TempoMotion.SettingsRowArrive}" />
+    </Style>
+    <Style Selector="StackPanel.settings TextBlock.caption">
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- The caption beside it is the label, so the switch shows no header or On/Off text. -->
+    <Style Selector="StackPanel.settings ToggleSwitch">
+        <Setter Property="OnContent" Value="{x:Null}" />
+        <Setter Property="OffContent" Value="{x:Null}" />
+        <Setter Property="MinWidth" Value="0" />
+    </Style>
+    <Style Selector="TextBlock.section">
+        <Setter Property="Margin" Value="0,8,0,0" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="RepeatButton.step">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="presto:Motion.Press" Value="{presto:PressIn}" />
+    </Style>
+    <!-- Fixed and left-aligned for the morph, so the glyphs left of a change stay still; the margin centers two digits. -->
+    <Style Selector="TextBlock.step-value">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Ellipse.motion-preview">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Fill" Value="{DynamicResource FocusAccentBrush}" />
+    </Style>
+
+    <Style Selector="Border.drawer">
+        <Setter Property="Width" Value="340" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+        <Setter Property="BorderThickness" Value="1,0,0,0" />
+    </Style>
+    <!-- Its edge strip would open an empty drawer while the detail is in the bottom sheet. -->
+    <Style Selector="v|ShellView.compact presto|Drawer">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.sheet">
+        <Setter Property="Padding" Value="20,0,20,20" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+        <Setter Property="BorderThickness" Value="1,1,1,0" />
+        <Setter Property="CornerRadius" Value="16,16,0,0" />
+    </Style>
+    <Style Selector="Border.sheet Border.drawer">
+        <Setter Property="Width" Value="NaN" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.grab">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="4" />
+        <Setter Property="Margin" Value="0,10,0,14" />
+        <Setter Property="CornerRadius" Value="2" />
+        <Setter Property="Background" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="Border.dialog">
+        <Setter Property="Background" Value="#F21A1C22" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoGlassEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BoxShadow" Value="0 16 40 0 #80000000" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="22,20" />
+    </Style>
+    <Style Selector="TextBlock.dialog-title">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
+    </Style>
+    <Style Selector="Border.danger">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="Background" Value="{DynamicResource SemiColorDanger}" />
+    </Style>
+    <Style Selector="Border.danger PathIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Foreground" Value="#121318" />
+    </Style>
+    <Style Selector="Border.toast">
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="ClipToBounds" Value="True" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+    <Style Selector="Border.toast Border.countdown">
+        <Setter Property="Height" Value="3" />
+        <Setter Property="RenderTransformOrigin" Value="0%,50%" />
+    </Style>
+    <Style Selector="Ellipse.dot">
+        <Setter Property="Width" Value="7" />
+        <Setter Property="Height" Value="7" />
+        <Setter Property="Stroke" Value="{DynamicResource TempoInkDim}" />
+        <Setter Property="StrokeThickness" Value="1" />
+    </Style>
+    <Style Selector="Ellipse.dot.filled">
+        <Setter Property="Fill" Value="{DynamicResource FocusAccentBrush}" />
+        <Setter Property="StrokeThickness" Value="0" />
+    </Style>
+
+    <!-- Semi audit (12.1.0.1): Button, ListBoxItem, ToggleButton, CheckBox, FlyoutPresenter and TextBox set no Transitions;
+         Expander's chevron sets one on RenderTransform in its template, which only a selector with an activator outranks. -->
+    <Style Selector="Expander /template/ PathIcon#PART_PathIcon:not(.semi-transitions)">
+        <Setter Property="Transitions" Value="{x:Null}" />
+    </Style>
+
+    <!-- The mode accents: descendants follow the root's Motion.State (FocusMode), staggered by its StaggerChildren. -->
+    <Style Selector=":is(Control).accent-bg">
+        <Setter Property="Border.Background" Value="{DynamicResource FocusAccentBrush}" />
+        <Setter Property="presto:Motion.States">
+            <presto:MotionStates>
+                <presto:MotionState When="Focus" Motion="{x:Static m:TempoMotion.FocusBackground}" />
+                <presto:MotionState When="ShortBreak" Motion="{x:Static m:TempoMotion.ShortBreakBackground}" />
+                <presto:MotionState When="LongBreak" Motion="{x:Static m:TempoMotion.LongBreakBackground}" />
+            </presto:MotionStates>
+        </Setter>
+    </Style>
+    <Style Selector=":is(Control).accent-fg">
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource FocusAccentBrush}" />
+        <Setter Property="presto:Motion.States">
+            <presto:MotionStates>
+                <presto:MotionState When="Focus" Motion="{x:Static m:TempoMotion.FocusForeground}" />
+                <presto:MotionState When="ShortBreak" Motion="{x:Static m:TempoMotion.ShortBreakForeground}" />
+                <presto:MotionState When="LongBreak" Motion="{x:Static m:TempoMotion.LongBreakForeground}" />
+            </presto:MotionStates>
+        </Setter>
+    </Style>
+    <Style Selector="presto|ProgressRing.accent">
+        <Setter Property="Fill" Value="{DynamicResource FocusAccentBrush}" />
+        <Setter Property="presto:Motion.States">
+            <presto:MotionStates>
+                <presto:MotionState When="Focus" Motion="{x:Static m:TempoMotion.FocusFill}" />
+                <presto:MotionState When="ShortBreak" Motion="{x:Static m:TempoMotion.ShortBreakFill}" />
+                <presto:MotionState When="LongBreak" Motion="{x:Static m:TempoMotion.LongBreakFill}" />
+            </presto:MotionStates>
+        </Setter>
+    </Style>
+    <!-- Whatever does not fly enters with the intro's ring flight: an ancestor's fade would fade the flight too. -->
+    <Style Selector=":is(Control).handoff">
+        <Setter Property="presto:Connected.Anchor" Value="ring" />
+        <Setter Property="presto:Connected.Motion" Value="{x:Static m:TempoMotion.HandoffFade}" />
+    </Style>
+    <Style Selector=":is(Control).break-dim">
+        <Setter Property="presto:Motion.States">
+            <presto:MotionStates>
+                <presto:MotionState When="ShortBreak" Motion="{x:Static m:TempoMotion.ListDim}" />
+                <presto:MotionState When="LongBreak" Motion="{x:Static m:TempoMotion.ListDim}" />
+            </presto:MotionStates>
+        </Setter>
+    </Style>
+</Styles>

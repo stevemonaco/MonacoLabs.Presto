@@ -48,6 +48,17 @@ public sealed class SwipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AShortReleaseIsBackAtRestWithinFourHundredMilliseconds()
+    {
+        var (window, rows) = Stage();
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-20, 0));
+        Frames.Advance(400, 16);
+
+        Assert.InRange(X(rows[0]), -1, 0);
+    }
+
+    [AvaloniaFact]
     public void AFlingOpens()
     {
         var (window, rows) = Stage();
@@ -56,6 +67,30 @@ public sealed class SwipeTests : CompositorTestBase
         Frames.Advance(3000, 20);
 
         Assert.Equal(Open, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void WithoutRevealAPartialDragOrAFlingSpringsClosedAndAFullSwipeStillCommits()
+    {
+        var command = new Recorder();
+        var (window, rows) = Stage(row =>
+        {
+            Swipe.SetCommand(row, command);
+            Swipe.SetReveal(row, false);
+        });
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
+        Frames.Advance(3000, 20);
+        Assert.Equal(0, X(rows[0]), 3);
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(24, 0), steps: 2, hold: false);
+        Frames.Advance(3000, 20);
+        Assert.Equal(0, X(rows[0]), 3);
+        Assert.Empty(command.Runs);
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-130, 0));
+        Frames.Advance(3000, 20);
+        Assert.Equal(new object?[] { Edge.Left }, command.Runs);
     }
 
     [AvaloniaFact]
@@ -100,6 +135,19 @@ public sealed class SwipeTests : CompositorTestBase
         Assert.Equal(["a", "c"], items);
         Assert.Single(Ghosts(window));
         Assert.True(LayoutTransition.Live(below) is { Completed: false });
+    }
+
+    [AvaloniaTheory]
+    [InlineData(-9, 3)]
+    [InlineData(-30, -16)]
+    public void ATouchWithinItsSlopOrNotClearlyHorizontalNeverOpens(double dx, double dy)
+    {
+        var (window, rows) = Stage();
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(dx, dy));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(0, X(rows[0]), 3);
     }
 
     [AvaloniaFact]
@@ -162,6 +210,40 @@ public sealed class SwipeTests : CompositorTestBase
         Frames.Advance(3000, 20);
 
         Assert.Equal(0, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void ALongPressContextRequestDuringOrJustAfterATouchLeavesTheRowClosed()
+    {
+        var (window, rows) = Stage();
+        var touch = new Touch(window);
+        var at = Center(rows[0], window);
+
+        touch.Down(1, at);
+        var during = new ContextRequestedEventArgs();
+        rows[0].RaiseEvent(during);
+        touch.Up(1, at);
+        rows[0].RaiseEvent(new ContextRequestedEventArgs());
+        Frames.Advance(3000, 20);
+
+        Assert.False(during.Handled);
+        Assert.Equal(0, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void APressWhoseEndTheRowNeverSawDoesNotBlockTheNextSwipe()
+    {
+        var (window, rows) = Stage();
+        var touch = new Touch(window);
+        var pressed = touch.Down(1, Center(rows[0], window));
+        // Another gesture takes the pointer, so the row never sees this press end.
+        pressed.Pointer.Capture(window);
+        touch.Up(1, Center(rows[0], window));
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(-Open, X(rows[0]), 3);
     }
 
     [AvaloniaFact]

@@ -65,9 +65,11 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 
 - **BRIDGE-SWIPE-012** (inherited) — A press on the element, other than inside its action layers, shall arm a drag; a mouse press shall arm it only with the left button.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`
-- **BRIDGE-SWIPE-013** — When the pointer first moves more than `Draggable`'s 3-DIP threshold on either axis and the vertical travel is at least the horizontal, the press shall be dropped without capturing or handling anything, so an ancestor `ScrollViewer` scrolls.
-  - Tests: `SwipeTests.AVerticalDragScrollsTheParentAndNeverOpens`
-- **BRIDGE-SWIPE-014** — When the first move past the threshold is mostly horizontal, the element shall capture the pointer, pause its running X animation and from then on mark each move handled and prevent gesture recognition.
+- **BRIDGE-SWIPE-043** — A press while an earlier press is still armed but never dragged shall replace it, since that press ended where the element could not see it (another gesture, such as a reorder, took its capture).
+  - Tests: `SwipeTests.APressWhoseEndTheRowNeverSawDoesNotBlockTheNextSwipe`
+- **BRIDGE-SWIPE-013** — When the pointer first moves more than `Draggable`'s 3-DIP threshold on either axis (a touch, more than its 10-DIP slop) and the vertical travel is at least the horizontal (a touch, at least half of it), the press shall be dropped without capturing or handling anything, so an ancestor `ScrollViewer` scrolls.
+  - Tests: `SwipeTests.AVerticalDragScrollsTheParentAndNeverOpens`, `SwipeTests.ATouchWithinItsSlopOrNotClearlyHorizontalNeverOpens`
+- **BRIDGE-SWIPE-014** — When the first move past the threshold is mostly horizontal (a touch, more than twice its vertical), the element shall capture the pointer, pause its running X animation and from then on mark each move handled and prevent gesture recognition.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`
 - **BRIDGE-SWIPE-015** — While dragging, X shall follow the pointer's horizontal travel from where the grab picked the element up, including a grab of an element still coasting.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`
@@ -78,14 +80,16 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 
 ### Releasing
 
-- **BRIDGE-SWIPE-018** — When a drag is released short of committing, the element shall coast through `Inertia` to its side's open width when the projected rest (`x + velocity · TimeConstant`) reaches half that width, and to 0 otherwise, staying on the side it was dragged to.
-  - Tests: `SwipeTests.APartialRevealSnapsOpen`, `SwipeTests.AShortDragSnapsClosed`
+- **BRIDGE-SWIPE-018** — When a drag is released short of committing, the element shall coast through an `Inertia` with a 120 ms time constant to its side's open width when the projected rest (`x + velocity · TimeConstant`) reaches half that width, and to 0 otherwise, staying on the side it was dragged to.
+  - Tests: `SwipeTests.APartialRevealSnapsOpen`, `SwipeTests.AShortDragSnapsClosed`, `SwipeTests.AShortReleaseIsBackAtRestWithinFourHundredMilliseconds`
 - **BRIDGE-SWIPE-019** — When a short drag is released with a fling whose projected rest passes half the open width, the side shall open.
   - Tests: `SwipeTests.AFlingOpens`
 - **BRIDGE-SWIPE-020** (inherited) — When a drag is released beyond its side's open width without committing, the element shall land on the open width.
   - Tests: untested
 - **BRIDGE-SWIPE-021** — When a press is released without dragging while the element is open, the element shall close.
   - Tests: `SwipeTests.EscapeOrATapClosesTheOpenRow`
+- **BRIDGE-SWIPE-041** — While `Reveal` is false, a drag released short of committing shall coast to 0 whatever its position or velocity, while a commit and a context request behave as when it is true.
+  - Tests: `SwipeTests.WithoutRevealAPartialDragOrAFlingSpringsClosedAndAFullSwipeStillCommits`
 - **BRIDGE-SWIPE-022** (inherited) — When the pointer's capture is lost mid-drag, the element shall settle as on a release.
   - Tests: untested
 - **BRIDGE-SWIPE-023** (inherited) — The release shall mark the pointer-released event handled only when a drag took place.
@@ -123,6 +127,8 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
   - Tests: `SwipeTests.AContextRequestOpensTheTrailingThenTheLeadingActionsAndTheyRun`
 - **BRIDGE-SWIPE-035** — An element with its own `ContextMenu` or `ContextFlyout`, or with no actions, shall leave the context request alone.
   - Tests: untested
+- **BRIDGE-SWIPE-044** — A context request that arrives while a touch or pen press is armed on the element, or within 500 ms after one ends, shall be left alone, unhandled.
+  - Tests: `SwipeTests.ALongPressContextRequestDuringOrJustAfterATouchLeavesTheRowClosed`
 
 ### Resetting
 
@@ -142,6 +148,8 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 
 - **BRIDGE-SWIPE-040** (inherited) — When `Dismiss` is not set, it shall be false, so a commit runs the command and coasts the element closed.
   - Tests: `SwipeTests.AFullSwipeCommitsAndRunsTheCommand`
+- **BRIDGE-SWIPE-042** — When `Reveal` is not set, it shall be true, so a release can rest open on its actions.
+  - Tests: `SwipeTests.APartialRevealSnapsOpen`
 
 ## Invariants
 
@@ -175,6 +183,10 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 
 ## Decisions
 
+- **Rows coast on a 120 ms time constant.** Reason: `Inertia`'s 350 ms default took about 1.5 s for a short release to settle, which read as sluggish; 120 ms lands in about half a second, and flings still open because the projection uses the same constant.
+- **A long press is not a context request for the actions.** A touch or pen hold raises a context request (Avalonia's or Windows' press-and-hold, during the hold or as it ends), and opening the actions there cycled a held row through delete and complete at random; on touch the actions are swiped to, and a hold may belong to `Reorder.TouchHold`. The request is left unhandled for anything else on the route; right-click and the menu key still open the actions. Rejected: a grace keyed to the engine clock, which stops when nothing animates.
+- **`Reveal` turns off resting open, not the actions.** With it false the actions still show under the drag and a full swipe still commits, but no release pins them. Reason: on touch a small sideways drift snapped Tempo's rows open on their check and delete, and the user had to start another gesture to close them; a context request stays the way to open them on purpose. Rejected: removing the actions, which loses the feedback of what a full swipe will do.
+- **A touch needs a wider slop and a clearly horizontal start.** A touch grabs past 10 DIPs and only when its horizontal travel is more than twice its vertical; a mouse keeps 3 DIPs and the plain majority. Reason: a finger drifts a few DIPs and rarely moves dead straight, so on the 3-DIP majority rule an intended scroll or reorder hold in Tempo's task list often grabbed the row and a small flick snapped it open. Rejected: a wider slop for every pointer, which makes mouse swipes feel sticky.
 - **Action layers live inside the swiped element.** Each side's actions sit in a clipping layer appended to the element's own visual and logical children, hosted lazily on the first reveal, re-appended if a re-template drops it, and arranging itself at the strip the element uncovers outside its box; a side opens as wide as its actions measure. Reason: the parent's children belong to a panel or a generator by index; in the element, the layer's draw order never matters and the element moves only through its X shorthand, so it must not clip to its bounds. Rejected: appending the layers to the parent.
 - **A full swipe commits by position alone.** A release past half the element's width commits, never one judged by its projected fling. Reason: not recorded.
 - **The axis lock drops a vertical-first press.** The lock is `Draggable`'s 3-DIP threshold on the first move; a vertical first move drops the press without capturing or handling it. Reason: a touch scroll then reaches the ancestor `ScrollViewer`.

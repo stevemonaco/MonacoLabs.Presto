@@ -36,7 +36,6 @@ namespace MonacoLabs.Presto.Controls;
 public class Sheet : Control
 {
     private const double Friction = .35;
-    private static readonly Inertia s_inertia = new(0);
 
     /// <summary>The sheet's content, drawn at its edge; it gives the sheet its look.</summary>
     public static readonly StyledProperty<Control?> ContentProperty =
@@ -64,6 +63,10 @@ public class Sheet : Control
     /// <summary>The scrim over the host, at full strength once the sheet reaches its last detent; null shows none and leaves a tap there to the host.</summary>
     public static readonly StyledProperty<IBrush?> ScrimProperty =
         AvaloniaProperty.Register<Sheet, IBrush?>(nameof(Scrim), Dismissal.Scrim);
+
+    /// <summary>The time constant, in ms, of the inertia that settles the sheet on a detent; shorter settles sooner. Defaults to 350.</summary>
+    public static readonly StyledProperty<double> TimeConstantProperty =
+        AvaloniaProperty.Register<Sheet, double>(nameof(TimeConstant), 350);
 
     private readonly Border _scrim = new() { IsHitTestVisible = false, Opacity = 0 };
     private readonly Decorator _panel = new();
@@ -146,6 +149,13 @@ public class Sheet : Control
     {
         get => GetValue(ScrimProperty);
         set => SetValue(ScrimProperty, value);
+    }
+
+    /// <inheritdoc cref="TimeConstantProperty"/>
+    public double TimeConstant
+    {
+        get => GetValue(TimeConstantProperty);
+        set => SetValue(TimeConstantProperty, value);
     }
 
     /// <summary>How far the sheet stands out from its edge, in DIPs, as it renders; link content to it with <see cref="MotionValue.Map(Func{double, double})"/> or read its <see cref="MotionValue.Velocity"/>.</summary>
@@ -328,7 +338,7 @@ public class Sheet : Control
         _dragging = false;
         if (ReferenceEquals(pointer.Captured, this)) pointer.Capture(null);
         var extent = Extent;
-        var rest = Math.Clamp(extent < _stops[0] || extent > _stops[^1] ? extent : extent + _velocity.Velocity * s_inertia.TimeConstant, _stops[0], _stops[^1]);
+        var rest = Math.Clamp(extent < _stops[0] || extent > _stops[^1] ? extent : extent + _velocity.Velocity * TimeConstant, _stops[0], _stops[^1]);
         var nearest = 0;
         for (var i = 1; i < _stops.Length; i++)
         {
@@ -354,8 +364,9 @@ public class Sheet : Control
             animate.Set(Axis, direction * target, 0);
             return;
         }
-        animate.Fling(Axis, direction * velocity, s_inertia with
+        animate.Fling(Axis, direction * velocity, new Inertia(0)
         {
+            TimeConstant = TimeConstant,
             ModifyTarget = t => direction * t < first || direction * t > last ? t : direction * target,
             Min = Math.Min(direction * first, direction * last),
             Max = Math.Max(direction * first, direction * last),

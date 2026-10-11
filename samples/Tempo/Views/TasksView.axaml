@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             xmlns:v="using:Tempo.Views"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.TasksView"
+             x:DataType="vm:MainViewModel">
+    <DockPanel Container.Name="tasks" Container.Sizing="Width">
+        <TextBlock DockPanel.Dock="Top" Classes="heading" Text="Today" Margin="2,0,0,10" />
+        <TextBox x:Name="AddBox" DockPanel.Dock="Top" PlaceholderText="Add a task" Text="{Binding NewTaskTitle}" Margin="0,0,0,12">
+            <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding AddTaskCommand}" />
+            </TextBox.KeyBindings>
+            <TextBox.InnerRightContent>
+                <Button Classes="icon" Command="{Binding AddTaskCommand}" ToolTip.Tip="Add task (Enter)"
+                        presto:Magnetic.Enabled="True" presto:Magnetic.Strength="0.25" presto:Magnetic.Radius="24">
+                    <Path x:Name="AddIcon" Classes="add-icon" Classes.ready="{Binding HasNewTaskText}" Data="{StaticResource PlusIcon}">
+                        <presto:Motion.States>
+                            <presto:MotionStates>
+                                <presto:MotionState When=".ready" Motion="{x:Static m:TempoMotion.PlusToCheck}" />
+                            </presto:MotionStates>
+                        </presto:Motion.States>
+                    </Path>
+                </Button>
+            </TextBox.InnerRightContent>
+        </TextBox>
+        <ListBox x:Name="TagChips" DockPanel.Dock="Top" Classes="chips" Margin="0,0,0,10"
+                 ItemsSource="{x:Static vm:MainViewModel.TagFilters}" SelectedIndex="{Binding TagFilterIndex}" />
+
+        <Expander DockPanel.Dock="Bottom" Classes="done" presto:Accordion.Enabled="True" Margin="0,12,0,0">
+            <Expander.Header>
+                <TextBlock Classes="heading">
+                    <Run Text="Done" />
+                    <Run Text="{Binding DoneTasks.Count}" />
+                </TextBlock>
+            </Expander.Header>
+            <Panel>
+                <ScrollViewer x:Name="DoneScroll" MaxHeight="220">
+                    <ItemsControl ItemsSource="{Binding DoneTasks}" ItemTemplate="{StaticResource TaskRowTemplate}"
+                                  presto:Animate.ItemLayout="{presto:Reflow}" DoubleTapped="OpenDetail" />
+                </ScrollViewer>
+                <Border Classes="scroll-shadow top" v:ScrollEdge.ShadowTop="{Binding #DoneScroll}" />
+                <Border Classes="scroll-shadow bottom" v:ScrollEdge.ShadowBottom="{Binding #DoneScroll}" />
+            </Panel>
+        </Expander>
+
+        <Panel>
+            <TextBlock Classes="caption" Text="Nothing planned yet. Add a task to begin." TextWrapping="Wrap"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                       IsVisible="{Binding !Tasks.Count}" presto:Presence.Arrive="{presto:WordFade}" />
+            <TextBlock Classes="caption" Text="No open tasks with this tag."
+                       HorizontalAlignment="Center" VerticalAlignment="Center" presto:Presence.Arrive="{presto:WordFade}">
+                <TextBlock.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="!!Tasks.Count" />
+                        <Binding Path="!VisibleTasks.Count" />
+                    </MultiBinding>
+                </TextBlock.IsVisible>
+            </TextBlock>
+            <ListBox x:Name="TaskList" Classes="tasks edge-scroll" Background="Transparent"
+                     ItemsSource="{Binding VisibleTasks}" SelectedItem="{Binding SelectedTask}"
+                     ItemContainerTheme="{StaticResource TaskRow}" ItemTemplate="{StaticResource TaskRowTemplate}"
+                     presto:Animate.ItemLayout="{presto:Reflow}"
+                     presto:Reorder.Enabled="True" presto:Reorder.TouchHold="400" presto:Reorder.HoldCommand="{Binding OpenDetailCommand}" presto:Reorder.Lift="{x:Static m:TempoMotion.RowLift}"
+                     presto:Selection.Motion="{x:Static m:TempoMotion.RowSelect}"
+                     DoubleTapped="OpenDetail">
+                <presto:Selection.Indicator>
+                    <Template>
+                        <Border Classes="selection-pill" />
+                    </Template>
+                </presto:Selection.Indicator>
+            </ListBox>
+            <Border Classes="scroll-shadow top" v:ScrollEdge.ShadowTop="{Binding #TaskList}" />
+            <Border Classes="scroll-shadow bottom" v:ScrollEdge.ShadowBottom="{Binding #TaskList}" />
+        </Panel>
+    </DockPanel>
+</UserControl>

@@ -95,6 +95,8 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
   - Tests: `ScrollSmoothTests.TurningSmoothOffRestoresNativeNotches`
 - **BRIDGE-SCROLL-020** — Off Windows and in design mode, `Smooth` shall do nothing.
   - Tests: manual — needs a non-Windows head (Browser, macOS); the property must leave native wheel scrolling unchanged there.
+- **BRIDGE-SCROLL-071** — While `PrestoDefaults.ReducedMotion` is set at a notch, `Smooth` shall leave the wheel event unhandled, so the notch takes its native step at once.
+  - Tests: `ScrollSmoothTests.UnderReducedMotionANotchTakesItsNativeStepAtOnce`
 
 ### `"ScrollX"`/`"ScrollY"` shorthands
 
@@ -237,7 +239,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 
 - Parallax keeps every element at its layout position while the flag is set, read per offset notification.
 - `ScrollTo`, `ScrollIntoView`, `ScrollToIndex` and `StickToEnd` land on the first frame, reading the flag at the call; a builder's `WhenReduced` form plays instead.
-- `Smooth` is not affected (see Open items).
+- `Smooth` leaves each notch its native step while the flag is set, read per notch (BRIDGE-SCROLL-071).
 
 ## Allocation
 
@@ -269,6 +271,5 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 
 ## Open items
 
-- `Scroll.Smooth`'s 300 ms ease ignores `ReducedMotion`, though every motion is meant to state a reduced form (BRIDGE-REDUCED).
 - Untested: missing `ScrollViewer` ancestor for parallax (009), Shift-wheel (015), end-of-range pass-through (016), `ScrollTo` with no moving axis (036), layout-slot rects ignoring render transforms (039), the non-virtualizing and no-scroller `ScrollToIndex` paths (047, 048), `Nearest` fixing (053), already-aligned `ScrollToIndex` (057).
 - 020 and 065 need manual checks (non-Windows head; XAML previewer).

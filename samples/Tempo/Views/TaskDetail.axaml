@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.TaskDetail"
+             x:DataType="vm:TaskItemViewModel">
+    <Border Classes="drawer">
+        <StackPanel Spacing="12">
+            <TextBlock Classes="heading" Text="Details" />
+            <TextBox Text="{Binding Title}" PlaceholderText="Title" />
+            <TextBox Text="{Binding Notes}" PlaceholderText="Notes" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
+            <Grid ColumnDefinitions="*,Auto,40,Auto">
+                <TextBlock Classes="caption" Text="Estimate (sessions)" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Classes="icon" Content="−" Command="{Binding DecreaseEstimateCommand}" />
+                <TextBlock Grid.Column="2" Text="{Binding Estimate}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Button Grid.Column="3" Classes="icon" Content="+" Command="{Binding IncreaseEstimateCommand}" />
+            </Grid>
+            <TextBlock Classes="caption" Text="Tag" />
+            <ListBox x:Name="TagPicker" Classes="chips" ItemsSource="{x:Static vm:TaskItemViewModel.TagChoices}" SelectedIndex="{Binding TagIndex}" />
+        </StackPanel>
+    </Border>
+</UserControl>

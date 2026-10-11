@@ -27,7 +27,7 @@ depends:
 
 ## Requirements
 
-- **BRIDGE-MAGNETIC-001** — While `Magnetic.Enabled` is true and the control is in the visual tree, the bridge shall move the control's `"X"` and `"Y"` shorthands to `PointerOffsetValue × Strength × PointerProximityValue` on each axis (proximity from the control's edge over `Radius`, tracked over its `TopLevel`), through a `Springs.Snappy` follower, as a followed base layer (BRIDGE-FOLLOW-038).
+- **BRIDGE-MAGNETIC-001** — While `Magnetic.Enabled` is true and the control is in the visual tree, the bridge shall move the control's `"X"` and `"Y"` shorthands to `PointerOffsetValue × Strength × PointerProximityValue` on each axis (proximity from the control's edge over `Radius`, tracked over its `TopLevel`), through a spring follower (`Magnetic.Spring`, BRIDGE-MAGNETIC-010), as a followed base layer (BRIDGE-FOLLOW-038).
   - Tests: `MagneticTests.ThePullGrowsAsThePointerNearsAndIsCappedByTheStrength`, `MagneticTests.AnXAnimationLayersOverThePullAndRevertingItShowsThePull`
 - **BRIDGE-MAGNETIC-002** — When the pointer becomes absent or moves beyond `Radius`, the control shall spring back to an offset of 0.
   - Tests: `MagneticTests.LeavingSpringsBackToRest`
@@ -39,6 +39,8 @@ depends:
   - Tests: `MagneticTests.AStrengthChangeAppliesFromTheNextMoveAndARadiusChangeAtOnce`
 - **BRIDGE-MAGNETIC-009** — When `Magnetic.Radius` changes while the pointer is present, the bridge shall rebuild the graph, so the new pull applies at once, without a spring.
   - Tests: `MagneticTests.AStrengthChangeAppliesFromTheNextMoveAndARadiusChangeAtOnce`
+- **BRIDGE-MAGNETIC-010** — The pull shall follow the spring `Magnetic.Spring` names, parsed as `FollowParams.Spring` is (a `Springs` preset name or `"bounce,duration"`); when it changes while the pointer is present, the bridge shall rebuild the graph as for `Radius` (BRIDGE-MAGNETIC-009), and a value that names no spring shall throw `FormatException` from the setter, leaving the old value.
+  - Tests: `MagneticTests.ASpringSetsHowThePullMovesAndANameThatIsNoSpringThrows`
 - **BRIDGE-MAGNETIC-006** (inherited) — In design mode, setting `Magnetic.Enabled` shall do nothing.
   - Tests: `MagneticTests.DoesNothingInDesignMode`
 
@@ -46,7 +48,7 @@ depends:
 
 - **BRIDGE-MAGNETIC-007** — When `Magnetic.Enabled` is not set, the control shall not be pulled.
   - Tests: untested
-- **BRIDGE-MAGNETIC-008** — When `Magnetic.Strength` is not set, it shall be 0.35, and when `Magnetic.Radius` is not set, it shall be 48 DIPs.
+- **BRIDGE-MAGNETIC-008** — When `Magnetic.Strength` is not set, it shall be 0.35, when `Magnetic.Radius` is not set, it shall be 48 DIPs, and when `Magnetic.Spring` is not set, the pull shall follow `Springs.Snappy`.
   - Tests: `MagneticTests.ThePullGrowsAsThePointerNearsAndIsCappedByTheStrength`
 
 ## Invariants
@@ -57,7 +59,8 @@ depends:
 ## Edge cases
 
 - `Magnetic` owns `Follow.X` and `Follow.Y` while enabled and attached: a value the app set on them is replaced, and cleared on disable or detach.
-- A `Radius` change rebuilds the graph, so the spring restarts at the current pull instead of springing to it.
+- An animation of `"X"` or `"Y"` on the same control, such as a `Motion.Hover` `Lift`, replaces the pull on that axis while it holds it, so a hover that starts at the edge of the pull can move the control out from under the pointer and loop. To combine them, put the magnet on a wrapper.
+- A `Radius` or `Spring` change rebuilds the graph, so the spring restarts at the current pull instead of springing to it.
 - Turning reduced motion on while pulled leaves the pull until the next pointer move, which springs it back to 0.
 
 ## Threading and lifetime
@@ -79,14 +82,13 @@ depends:
 ## Decisions
 
 - **`Magnetic` is an attached-property class like `Tilt`, not an `Interactions` builder.** Reason: `Interactions.*` return `AnimationBuilder`s played once on a trigger, while a magnet is continuous pointer-driven state with an attach lifetime, which is `Tilt`'s shape; attached properties already work from XAML, so no markup extension is needed.
-- **`Magnetic` owns its spring inside the motion value graph** (`Spring(Springs.Snappy)` before `Follow.X`/`Follow.Y`) rather than through `Follow.Timing`. Reason: a `MotionValue` on a shorthand ignores `Follow.Timing` (BRIDGE-FOLLOW-042), and a spring that keeps velocity on retarget suits a pointer that never stops moving.
-- **`Magnetic` uses a fixed `Springs.Snappy`.** Reason: no sample needs another; a configurable `Magnetic.Spring` is in the backlog.
+- **`Magnetic` owns its spring inside the motion value graph** (`Spring(...)` before `Follow.X`/`Follow.Y`) rather than through `Follow.Timing`. Reason: a `MotionValue` on a shorthand ignores `Follow.Timing` (BRIDGE-FOLLOW-042), and a spring that keeps velocity on retarget suits a pointer that never stops moving.
+- **`Magnetic.Spring` is a string parsed as `FollowParams.Spring`, defaulting to `Springs.Snappy`.** Reason: a button's pull wants a quick spring, but an ambient one (Tempo's backdrop blobs) wants a slow, soft one; a string reads the same in XAML as `Follow`'s spring, where `Spring` has no XAML syntax of its own. It rebuilds the graph like `Radius`, since a motion value's spring is fixed when made. Rejected: a `Spring`-typed property, which XAML could only set through a resource.
 - **`Strength` and reduced motion are read as the sources move; `Radius` rebuilds the graph.** Reason: `PointerProximityValue` fixes its radius when made, and rebuilding on a rare `Radius` change keeps the tracker untouched. Rejected: a live-radius overload of the proximity value for one caller.
 - **Magnets keep tracking a pointer captured elsewhere.** A `Draggable` drag elsewhere still drives magnets, as the shared tracker sees handled and captured moves (BRIDGE-FOLLOW-064). Reason: relaxing magnets during another element's drag needs a notion of the drag the tracker does not have, and no sample asks for it.
 
 ## Non-goals
 
-- A configurable spring.
 - Relaxing magnets while another element is being dragged.
 
 ## Open items

@@ -64,6 +64,28 @@ public sealed class SheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AShorterTimeConstantSettlesSooner()
+    {
+        var (_, snappy) = Stage(new Border { Background = Brushes.Red });
+        var (_, standard) = Stage(new Border { Background = Brushes.Red });
+        snappy.TimeConstant = 150;
+
+        snappy.IsOpen = true;
+        standard.IsOpen = true;
+        Tick();
+        Frames.Advance(450, 20);
+
+        Assert.InRange(snappy.Position.Value, 95, 100);
+        Assert.InRange(standard.Position.Value, 50, 80);
+        Frames.Advance(3000, 20);
+        Assert.Equal(100, snappy.Position.Value, 1);
+        Assert.Equal(100, standard.Position.Value, 1);
+    }
+
+    [AvaloniaFact]
+    public void TheDefaultTimeConstantIs350() => Assert.Equal(350, new Sheet().TimeConstant);
+
+    [AvaloniaFact]
     public void TheScrimOpacityTracksThePosition()
     {
         var (window, sheet) = Opened();

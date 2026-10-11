@@ -244,14 +244,14 @@ internal static class CompositorCompiler
             samples[s] = new double[kinds.Count][];
             for (var k = 0; k < kinds.Count; k++) samples[s][k] = Read(scratch, kinds[k]);
         }
+        // A key frame instance ends on its last frame in any direction, so a reversed run plays mirrored frames forwards.
+        if (mirror._reversed) Array.Reverse(samples);
 
         var timeScale = WallClock(mirror);
         var forever = double.IsPositiveInfinity(mirror.IterationCount);
         var iterations = forever ? 1 : (int)mirror.IterationCount;
         if (expanded) iterations = (int)Math.Ceiling(iterations / 2d);
-        var direction = mirror._alternate && !expanded
-            ? mirror._reversed ? PlaybackDirection.AlternateReverse : PlaybackDirection.Alternate
-            : mirror._reversed ? PlaybackDirection.Reverse : PlaybackDirection.Normal;
+        var direction = mirror._alternate && !expanded ? PlaybackDirection.Alternate : PlaybackDirection.Normal;
 
         var tracks = new CompiledTrack[kinds.Count];
         for (var k = 0; k < kinds.Count; k++)
@@ -270,7 +270,8 @@ internal static class CompositorCompiler
             if (exact[k] is { } tween)
             {
                 Add(0, samples[0][k], s_linear);
-                Add(iteration, samples[segments][k], new PrestoEasing(tween._ease));
+                var ease = tween._ease;
+                Add(iteration, samples[segments][k], new PrestoEasing(mirror._reversed ? p => 1 - ease(1 - p) : ease));
             }
             else
             {

@@ -119,6 +119,35 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void GoingBackWithTheForwardPairNeverBlinksTheIncomingPage()
+    {
+        var (from, to) = ShowPair();
+        from.IsVisible = false;
+        WindowOf(to).Background = Brushes.White;
+        var transition = new PrestoPageTransition
+        {
+            Enter = Presto.Build().X(from: 30).Opacity(from: 0).Duration(200).Ease("linear"),
+            Exit = Presto.Build().Opacity(0).Duration(100).Ease("linear"),
+        };
+
+        var back = transition.Start(from, to, forward: false, CancellationToken.None);
+
+        // Green over white keeps less red the more opaque it is.
+        var arrived = false;
+        for (var i = 0; i < 30 && !back.IsCompleted; i++)
+        {
+            Frames.Advance(Frame);
+            Tick(Frame);
+            Dispatcher.UIThread.RunJobs();
+            var opacity = 1 - (Row(to, 100)[100].R / 255d);
+            if (arrived) Assert.True(opacity > .9, $"the incoming page blinked back to {opacity} opacity");
+            arrived |= opacity > .9;
+        }
+        Assert.True(arrived, "the incoming page never arrived");
+        Assert.True(back.IsCompleted);
+    }
+
+    [AvaloniaFact]
     public void AnExplicitBackEnterWins()
     {
         var (from, to) = ShowPair();

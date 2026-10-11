@@ -1,0 +1,153 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             xmlns:v="using:Tempo.Views"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.ShellView"
+             x:DataType="vm:MainViewModel"
+             presto:Motion.State="{Binding Focus.MotionState}"
+             presto:Motion.StaggerChildren="40">
+    <Grid Classes="shell" RowDefinitions="Auto,*,Auto">
+        <Border Grid.RowSpan="3" Classes="backdrop accent-bg handoff" />
+        <!-- Each blob's slot drifts on the compositor from code-behind, in BlobDrift's order, while the blob inside leans towards
+             the pointer, and swells and brightens as it nears (Swell); the strengths differ so the blobs part like layers. -->
+        <Panel x:Name="Blobs" Grid.RowSpan="3" Classes="blobs handoff">
+            <Panel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-160,-120,0,0">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.16" />
+            </Panel>
+            <Panel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-60,-200,0">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.25" />
+            </Panel>
+            <Panel HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,120,-240">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.12" />
+            </Panel>
+            <Panel HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-80,-140">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.2" />
+            </Panel>
+        </Panel>
+        <!-- Above the panels, so the wordmark's flight in from the intro is not drawn under them. -->
+        <Border Classes="titlebar" ZIndex="1" WindowDecorationProperties.ElementRole="TitleBar">
+            <!-- The last column keeps clear of the system caption buttons. -->
+            <Grid ColumnDefinitions="*,Auto,*,Auto,138" Margin="16,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Classes="accent-bg handoff" Width="10" Height="10" CornerRadius="5" />
+                    <TextBlock Classes="wordmark" Text="tempo"
+                               presto:Connected.Key="wordmark" presto:Connected.Motion="{x:Static m:TempoMotion.IntroFlight}" />
+                </StackPanel>
+                <ListBox x:Name="Switch" Grid.Column="1" Classes="segmented handoff" SelectedItem="{Binding CurrentView}"
+                         WindowDecorationProperties.ElementRole="User">
+                    <x:Static Member="vm:AppView.Focus" />
+                    <x:Static Member="vm:AppView.Stats" />
+                </ListBox>
+                <Button x:Name="SettingsButton" Grid.Column="3" Classes="icon handoff" Command="{Binding OpenSettingsCommand}"
+                        WindowDecorationProperties.ElementRole="User" ToolTip.Tip="Settings (Ctrl+,)"
+                        presto:Motion.Hover="{x:Static m:TempoMotion.GearSpin}"
+                        presto:Magnetic.Enabled="True" presto:Magnetic.Strength="0.3" presto:Magnetic.Radius="28">
+                    <presto:Motion.States>
+                        <presto:MotionStates>
+                            <presto:MotionState When=".open" Motion="{x:Static m:TempoMotion.GearSpin}" />
+                        </presto:MotionStates>
+                    </presto:Motion.States>
+                    <PathIcon Data="{StaticResource SettingsIcon}" />
+                    <FlyoutBase.AttachedFlyout>
+                        <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterClasses="glass" Opened="SettingsToggled" Closed="SettingsToggled"
+                                presto:Popover.Open="{x:Static m:TempoMotion.FlyoutOpen}" presto:Popover.Close="{x:Static m:TempoMotion.FlyoutClose}">
+                            <v:SettingsFlyout x:Name="Settings" />
+                        </Flyout>
+                    </FlyoutBase.AttachedFlyout>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Compact hides the Tasks column, and the Tasks page borrows its TasksPane. -->
+        <DockPanel x:Name="Panels" Grid.Row="1" Margin="16">
+            <Border x:Name="TasksColumn" DockPanel.Dock="Left" Width="340" Margin="0,0,16,0" Classes="panel break-dim">
+                <v:TasksView x:Name="TasksPane" Classes="handoff" />
+            </Border>
+            <Border Classes="panel">
+                <!-- A fresh view per swap, so the Stats bars replay; a Carousel would only hide the other view. -->
+                <TransitioningContentControl x:Name="PageHost" Content="{Binding CurrentPage}" PageTransition="{x:Static m:TempoMotion.PageSwap}"
+                                             IsTransitionReversed="{Binding IsBack}">
+                    <TransitioningContentControl.DataTemplates>
+                        <DataTemplate DataType="vm:FocusViewModel">
+                            <v:FocusView />
+                        </DataTemplate>
+                        <DataTemplate DataType="vm:StatsViewModel">
+                            <v:StatsView />
+                        </DataTemplate>
+                    </TransitioningContentControl.DataTemplates>
+                </TransitioningContentControl>
+            </Border>
+        </DockPanel>
+
+        <!-- Settings is a button beside the pages, not a fourth item: it opens the sheet over the page, so the pill stays put. -->
+        <Border Grid.Row="2" Classes="bottom-bar handoff">
+            <Grid ColumnDefinitions="3*,*">
+                <ListBox x:Name="BottomNav" Classes="bottom-nav" SelectedItem="{Binding CurrentView}">
+                    <x:Static Member="vm:AppView.Tasks" />
+                    <x:Static Member="vm:AppView.Focus" />
+                    <x:Static Member="vm:AppView.Stats" />
+                </ListBox>
+                <Button x:Name="NavSettings" Grid.Column="1" Classes="nav-settings" Command="{Binding OpenSettingsCommand}">
+                    <StackPanel Spacing="3">
+                        <PathIcon Classes="nav-icon" Data="{StaticResource SettingsIcon}">
+                            <presto:Motion.States>
+                                <presto:MotionStates>
+                                    <presto:MotionState When="open" Motion="{x:Static m:TempoMotion.GearSpin}" />
+                                </presto:MotionStates>
+                            </presto:Motion.States>
+                        </PathIcon>
+                        <TextBlock Text="Settings" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <presto:ToastHost x:Name="Toasts" Grid.Row="1" MaxCount="1" MaxWidth="320" Margin="16,0,16,24" VerticalAlignment="Bottom">
+            <presto:ToastHost.ItemTemplate>
+                <DataTemplate x:DataType="vm:TaskItemViewModel">
+                    <Border Classes="toast"
+                            presto:Presence.Arrive="{presto:Slide Edge=Bottom, Distance=24}"
+                            presto:Presence.Exit="{presto:Slide Edge=Bottom, Distance=24}">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="*,Auto">
+                            <TextBlock Margin="14,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                <Run Text="Deleted" Foreground="{DynamicResource TempoInkDim}" />
+                                <Run Text="{Binding Title}" />
+                            </TextBlock>
+                            <Button Grid.Column="1" Content="Undo" Margin="6" Click="Undo" />
+                            <Border Grid.Row="1" Grid.ColumnSpan="2" Classes="countdown accent-bg" presto:ToastHost.Countdown="ScaleX" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </presto:ToastHost.ItemTemplate>
+        </presto:ToastHost>
+
+        <!-- Compact moves the detail and the settings into the bottom sheets, over the bar too. -->
+        <presto:Drawer x:Name="DetailDrawer" Grid.Row="1" Edge="Right" TimeConstant="150">
+            <v:TaskDetail x:Name="Detail" DataContext="{Binding SelectedTask}" />
+        </presto:Drawer>
+        <presto:Sheet x:Name="DetailSheet" Grid.Row="1" Grid.RowSpan="2" Detents="0,0.5,1" TimeConstant="150">
+            <Border Classes="sheet">
+                <DockPanel>
+                    <Border Classes="grab" DockPanel.Dock="Top" />
+                    <Decorator x:Name="DetailSlot" />
+                </DockPanel>
+            </Border>
+        </presto:Sheet>
+        <presto:Sheet x:Name="SettingsSheet" Grid.Row="1" Grid.RowSpan="2" TimeConstant="150">
+            <Border Classes="sheet">
+                <DockPanel>
+                    <Border Classes="grab" DockPanel.Dock="Top" />
+                    <Decorator x:Name="SettingsSlot" />
+                </DockPanel>
+            </Border>
+        </presto:Sheet>
+
+        <!-- Over the title bar too, so nothing opens settings again behind the dialog. -->
+        <presto:Modal x:Name="ConfirmModal" Grid.RowSpan="3" ZIndex="2" IsOpen="{Binding IsConfirmOpen}"
+                      Backdrop="{Binding #Panels}">
+            <v:ConfirmDialog x:Name="Dialog" />
+        </presto:Modal>
+    </Grid>
+</UserControl>

@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:m="using:Tempo.Motion"
+             xmlns:model="using:Tempo.Model"
+             xmlns:v="using:Tempo.Views"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.SettingsFlyout"
+             x:DataType="vm:MainViewModel">
+    <!-- Flat, so every heading and row is one arrival batch and staggers in order. -->
+    <StackPanel Classes="settings" Spacing="8">
+        <TextBlock Classes="heading" Text="Settings" />
+
+        <TextBlock Classes="section" Text="Timer" />
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="caption" Text="Focus (minutes)" />
+            <v:Stepper x:Name="WorkStepper" Grid.Column="1" Maximum="120" Value="{Binding WorkMinutes}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="caption" Text="Short break (minutes)" />
+            <v:Stepper x:Name="ShortBreakStepper" Grid.Column="1" Value="{Binding ShortBreakMinutes}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="caption" Text="Long break (minutes)" />
+            <v:Stepper x:Name="LongBreakStepper" Grid.Column="1" Value="{Binding LongBreakMinutes}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="caption" Text="Sessions before long break" />
+            <v:Stepper x:Name="SessionsStepper" Grid.Column="1" Maximum="12" Value="{Binding SessionsBeforeLongBreak}" />
+        </Grid>
+
+        <TextBlock Classes="section" Text="Behavior" />
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="caption" Text="Auto-start breaks" />
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoStartBreaks}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="caption" Text="Play intro at startup" />
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding PlayIntro}" />
+        </Grid>
+
+        <TextBlock Classes="section" Text="Motion" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <ListBox Classes="segmented" SelectedItem="{Binding Motion}">
+                <x:Static Member="model:MotionPreference.System" />
+                <x:Static Member="model:MotionPreference.Full" />
+                <x:Static Member="model:MotionPreference.Reduced" />
+            </ListBox>
+            <Ellipse x:Name="MotionPreview" Classes="motion-preview"
+                     presto:Animate.OnAttached="{x:Static m:TempoMotion.MotionPreview}" />
+        </StackPanel>
+
+        <TextBlock Classes="section" Text="Data" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="RestoreButton" Content="Restore sample data" Command="{Binding RequestRestoreCommand}" />
+            <Button x:Name="ClearButton" Content="Clear all data…" Command="{Binding RequestClearCommand}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

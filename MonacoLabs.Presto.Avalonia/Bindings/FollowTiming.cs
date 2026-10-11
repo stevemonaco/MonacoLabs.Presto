@@ -30,7 +30,9 @@ internal static class FollowTiming
         return Of(Springs.Gentle, null);
     }
 
-    private static Spring ParseSpring(string text)
+    /// <summary>A <see cref="Springs"/> preset name, or <c>"bounce,duration"</c>, as <see cref="FollowParams.Spring"/> takes it.</summary>
+    /// <exception cref="FormatException"><paramref name="text"/> names no spring.</exception>
+    public static Spring ParseSpring(string text)
     {
         switch (text.Trim().ToLowerInvariant())
         {

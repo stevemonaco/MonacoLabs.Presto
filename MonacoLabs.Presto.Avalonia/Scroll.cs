@@ -38,6 +38,7 @@ public static class Scroll
     /// <remarks>
     /// Only Win32 tells a notch (a whole multiple of 120) apart from precision-touchpad deltas, so elsewhere this does nothing.
     /// Touchpad, touch, scrollbar and keyboard input pass through, and any offset change the ease did not write stops it.
+    /// Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each notch, the wheel takes its native steps.
     /// </remarks>
     public static readonly AttachedProperty<bool> SmoothProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("Smooth", typeof(Scroll));
@@ -229,6 +230,7 @@ public static class Scroll
 
         private void HandleWheel(object? sender, PointerWheelEventArgs e)
         {
+            if (Engine.Current.Defaults.ReducedMotion) return;
             var delta = e.Delta;
             if (delta.X != Math.Round(delta.X) || delta.Y != Math.Round(delta.Y)) return;
             // Mirrors ScrollContentPresenter: Shift turns a vertical wheel horizontal.

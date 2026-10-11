@@ -15,7 +15,8 @@ internal sealed class SwipeTracker
 {
     private const double Friction = .35;
     private const double CommitAt = .5;
-    private static readonly Inertia s_inertia = new(0);
+    // A row settles in about half a second; the 350 ms default dragged a short release's spring-back out past a second.
+    private static readonly Inertia s_inertia = new(0) { TimeConstant = 120 };
     // The open element of each list, keyed by its nearest ItemsControl or, outside one, its parent.
     private static readonly ConditionalWeakTable<Visual, SwipeTracker> s_open = new();
 
@@ -24,7 +25,10 @@ internal sealed class SwipeTracker
     private Layer? _leading;
     private Layer? _trailing;
     private Animatable? _animate;
+    private const long LongPressGrace = 500;
+
     private IPointer? _pointer;
+    private long? _fingerLiftedAt;
     private Point _pressedAt;
     private bool _dragging;
     // The raw drag position the rubber-banded offset came from, so a grab picks up where the friction left off.
@@ -101,7 +105,8 @@ internal sealed class SwipeTracker
 
     private void HandlePressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_pointer is not null || Within(e.Source, _leading) || Within(e.Source, _trailing)) return;
+        // An armed press that never dragged ended out of sight, as when a reorder took its capture, so a new press replaces it.
+        if (_dragging || Within(e.Source, _leading) || Within(e.Source, _trailing)) return;
         if (e.Pointer.Type == PointerType.Mouse && !e.GetCurrentPoint(_row).Properties.IsLeftButtonPressed) return;
         _pointer = e.Pointer;
         _pressedAt = e.GetPosition(null);
@@ -113,9 +118,11 @@ internal sealed class SwipeTracker
         var moved = e.GetPosition(null) - _pressedAt;
         if (!_dragging)
         {
-            if (Math.Abs(moved.X) <= Draggable.DefaultDragThreshold && Math.Abs(moved.Y) <= Draggable.DefaultDragThreshold) return;
-            // Vertical first: the pointer is left to the ancestor scroller for the rest of this press.
-            if (Math.Abs(moved.Y) >= Math.Abs(moved.X))
+            var touch = e.Pointer.Type == PointerType.Touch;
+            var threshold = touch ? Draggable.TouchSlop : Draggable.DefaultDragThreshold;
+            if (Math.Abs(moved.X) <= threshold && Math.Abs(moved.Y) <= threshold) return;
+            // Vertical first, or on touch not clearly horizontal: the pointer is left to the ancestor scroller for the rest of this press.
+            if (Math.Abs(moved.Y) * (touch ? 2 : 1) >= Math.Abs(moved.X))
             {
                 _pointer = null;
                 return;
@@ -145,6 +152,8 @@ internal sealed class SwipeTracker
     private void HandleContextRequested(object? sender, ContextRequestedEventArgs e)
     {
         if (e.Handled || _row.ContextMenu is not null || _row.ContextFlyout is not null || (Swipe.GetLeading(_row) is null && Swipe.GetTrailing(_row) is null)) return;
+        // A long press raises a context request during the hold or just after it; on touch the actions are swiped to, and the hold may be a reorder's.
+        if (_pointer is { Type: not PointerType.Mouse } || Environment.TickCount64 - _fingerLiftedAt < LongPressGrace) return;
         e.Handled = true;
         Host();
         var x = X;
@@ -205,6 +214,7 @@ internal sealed class SwipeTracker
         // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.
         var pointer = _pointer!;
         _pointer = null;
+        if (pointer.Type != PointerType.Mouse) _fingerLiftedAt = Environment.TickCount64;
         if (!_dragging)
         {
             if (X != 0) Close();
@@ -220,7 +230,7 @@ internal sealed class SwipeTracker
             return;
         }
         var (min, max) = Range(commit: false);
-        var open = side > 0 ? max : min;
+        var open = !Swipe.GetReveal(_row) ? 0 : side > 0 ? max : min;
         MoveTo(_velocity.Velocity, t => open != 0 && t * side >= Math.Abs(open) / 2 ? open : 0, side < 0 ? min : 0, side > 0 ? max : 0);
     }
 
