@@ -137,7 +137,7 @@ public static partial class Eases
     /// <summary>Bouncing ease that comes to rest on the midpoint, then bounces against it on the way to the end value.</summary>
     public static Ease OutInBounce { get; } = OutIn(Bounce);
 
-    /// <summary>The eases that take no arguments, by their anime.js names; <see cref="EaseParser"/> resolves them and <see cref="TryGetName"/> reports them.</summary>
+    /// <summary>The eases that take no arguments, by name; <see cref="EaseParser"/> resolves them and <see cref="TryGetName"/> reports them.</summary>
     // "none" precedes "linear" so the static constructor leaves None named "linear".
     internal static readonly Dictionary<string, Ease> Fixed = new()
     {
@@ -162,7 +162,7 @@ public static partial class Eases
     }
 
     /// <summary>
-    /// The anime.js name of <paramref name="ease"/>, such as <c>"outQuad"</c> or <c>"out(3)"</c>. Fixed eases always have one;
+    /// The <see cref="EaseParser"/> name of <paramref name="ease"/>, such as <c>"outQuad"</c> or <c>"out(3)"</c>. Fixed eases always have one;
     /// eases from the parameterized factories and <see cref="EaseParser"/> only when created while <see cref="PrestoDiagnostics.Active"/> is set.
     /// </summary>
     public static bool TryGetName(Ease ease, out string name) => s_names.TryGetValue(ease, out name!);

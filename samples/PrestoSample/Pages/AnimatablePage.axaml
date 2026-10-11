@@ -70,7 +70,7 @@
             <showcase:CodePanel Code="{x:Static showcase:Snippets.AnimatableSprings}" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Flick the pointer left and right across the stage. Both dots follow it on the same spring, but only the top one keeps its momentum: PreserveVelocity starts each retargeted spring with the velocity the dot already has, so it swings through the turn the way a thrown weight would. The faded dot starts every new spring from rest and stops dead each time the pointer changes direction. anime.js has no equivalent; it is opt-in here." />
+                       Text="Flick the pointer left and right across the stage. Both dots follow it on the same spring, but only the top one keeps its momentum: PreserveVelocity starts each retargeted spring with the velocity the dot already has, so it swings through the turn the way a thrown weight would. The faded dot starts every new spring from rest and stops dead each time the pointer changes direction. PreserveVelocity is opt-in." />
             <StackPanel Orientation="Horizontal" Spacing="4">
                 <TextBlock Classes="caption" VerticalAlignment="Center" Text="A spring chase that is thrown on release, and springs compared with tweens:" />
                 <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"

@@ -48,7 +48,7 @@ depends:
   - Tests: `ColorsTests.ConvertsFromToColorPairs`, `ColorsTests.AnimatesATypedColorMemberToTheParsedChannels`
 - **CORE-COLORS-004** — When the string starts with `hsl`, the parser shall read `hsl(h, s%, l%)` or `hsla(h, s%, l%, a)` and convert it to RGB channels rounded to integers.
   - Tests: `ColorsTests.ConvertsFromToColorPairs`, `ColorsTests.AnimatesATypedColorMemberToTheParsedChannels`
-- **CORE-COLORS-005** — When an `hsl` color's saturation is 0, the parser shall set R, G and B to the lightness fraction (0–1, unscaled), as upstream does.
+- **CORE-COLORS-005** (inherited) — When an `hsl` color's saturation is 0, the parser shall set R, G and B to the lightness fraction (0–1, unscaled); whether to fix this is open (see Open items).
   - Tests: `ColorsTests.AchromaticHslKeepsUpstreamUnscaledChannels`
 - **CORE-COLORS-006** (inherited) — When the string is none of these forms, `TryParse` shall return false and `Parse` shall return opaque black.
   - Tests: `ColorsTests.UnknownStringsParseToOpaqueBlack`
@@ -68,7 +68,7 @@ depends:
 
 - **CORE-COLORS-010** — While a color tween is between its ends and both ends have the same alpha, the renderer shall interpolate each RGB channel as `sqrt(lerp(c₀², c₁², p))`.
   - Tests: `PremultipliedColorTests.EqualAlphasMatchTheStraightBlendBitForBit`
-- **CORE-COLORS-011** — While a color tween is between ends of different alpha and is not blended, the renderer shall interpolate each RGB channel with premultiplied alpha, `sqrt(lerp(a₀·c₀², a₁·c₁², p) / lerp(a₀, a₁, p))`, so a fade from or to transparent keeps the opaque end's RGB.
+- **CORE-COLORS-011** — While a color tween is between ends of different alpha and is not additive, the renderer shall interpolate each RGB channel with premultiplied alpha, `sqrt(lerp(a₀·c₀², a₁·c₁², p) / lerp(a₀, a₁, p))`, so a fade from or to transparent keeps the opaque end's RGB.
   - Tests: `PremultipliedColorTests.TransparentToOpaqueTakesTheOpaqueHueAtEveryMidFrame`, `PremultipliedColorTests.OpaqueToTransparentKeepsTheStartRgbUntilTheEnd`
 - **CORE-COLORS-012** — The renderer shall interpolate a color tween's alpha linearly.
   - Tests: `PremultipliedColorTests.TransparentToOpaqueTakesTheOpaqueHueAtEveryMidFrame`
@@ -76,8 +76,8 @@ depends:
   - Tests: `PremultipliedColorTests.EndsAreExactToTheBit`
 - **CORE-COLORS-014** — When the interpolated alpha is 0 or below, the renderer shall fall back to the straight blend, and shall clamp a negative sum under the square root to 0, so no channel is ever NaN.
   - Tests: `PremultipliedColorTests.TransparentPairsAndOvershootingEasesNeverProduceNaN`
-- **CORE-COLORS-015** — When a color tween's composition is `Blend`, the renderer shall use the straight blend whatever the alphas.
-  - Tests: `PremultipliedColorTests.BlendedColorTweensKeepTheStraightBlend`
+- **CORE-COLORS-015** — When a color tween's composition is `Additive`, the renderer shall use the straight blend whatever the alphas.
+  - Tests: `PremultipliedColorTests.AdditiveColorTweensKeepTheStraightBlend`
 - **CORE-COLORS-016** — When a color tween carries per-channel eases, the renderer shall ease each of the four channels by its own ease.
   - Tests: `PremultipliedColorTests.RetargetingAChannelFadeBetweenAlphasCarriesOnWithoutAJump`
 - **CORE-COLORS-017** — The renderer shall apply the tween's `Modifier` to each of the four interpolated channels.
@@ -171,19 +171,19 @@ depends:
 
 - The color tween tick allocates nothing into a `PrestoColor` member (`AllocationTests.ColorTweenTicksWithoutAllocating`); a string target allocates the `rgba()` string per frame. `ToChannels` allocates its array.
 
-## Deviations from anime.js
+## Provenance
 
-- Premultiplied alpha when the ends' alphas differ, because upstream's straight alpha shows a transparent end's RGB mid-fade (see "Colors interpolate with premultiplied alpha"). Equal alphas and `Blend` keep upstream's expression bit for bit.
+- Premultiplied alpha when the ends' alphas differ, because upstream's straight alpha shows a transparent end's RGB mid-fade (see "Colors interpolate with premultiplied alpha"). Equal alphas and `Additive` keep upstream's expression bit for bit.
 - Unparsable `rgb`/`hsl` strings yield opaque black instead of a `TypeError`; this came with the port and no decision records why (see Open items).
 - `Mix`, OKLab/OKLCH, gamut mapping and the relative-color helpers have no upstream counterpart: they exist for the hue path no straight-line blend gives (see "Color spaces are a utility, not a per-tween setting"). The full turn for equal hues deviates from CSS Color 4 so a hue cycle can be written as one mix (see "Equal hues make a full turn").
 
 ## Decisions
 
-- **Colors interpolate with premultiplied alpha.** A color tween mixes RGB as `sqrt(lerp(a₀·c₀², a₁·c₁², p) / lerp(a₀, a₁, p))` with alpha linear, as CSS Color 4 does; equal alphas take the original expression, ends are exact and a lerped alpha of 0 or below falls back to the straight lerp. `Blend` composition and color slots inside complex values stay straight; `Mix` premultiplies the same way in every space (hue excluded). Reason: with straight alpha a fade from transparent shows the transparent color's RGB (transparent teal to gray flashed green); equal alphas stay bit-identical, so upstream tests and opaque tweens are unchanged. Rejected: anime.js's straight-alpha mix.
-- **The core parses colors.** `PrestoColor` parses `#rgb`, `#rrggbb(aa)`, `rgb(a)()` and `hsl(a)()`; typed structs decompose through their codec as complex values. Reason: makes upstream `colors.test.js` portable to the core.
+- **Colors interpolate with premultiplied alpha.** A color tween mixes RGB as `sqrt(lerp(a₀·c₀², a₁·c₁², p) / lerp(a₀, a₁, p))` with alpha linear, as CSS Color 4 does; equal alphas take the original expression, ends are exact and a lerped alpha of 0 or below falls back to the straight lerp. `Additive` composition and color slots inside complex values stay straight; `Mix` premultiplies the same way in every space (hue excluded). Reason: with straight alpha a fade from transparent shows the transparent color's RGB (transparent teal to gray flashed green); equal alphas stay bit-identical, so upstream tests and opaque tweens are unchanged. Rejected: anime.js's straight-alpha mix.
+- **The core parses colors.** `PrestoColor` parses `#rgb`, `#rrggbb(aa)`, `rgb(a)()` and `hsl(a)()`; typed structs decompose through their codec as complex values. Reason: color strings are part of the value syntax on every target, including plain objects with no UI framework to parse them; it also lets upstream `colors.test.js` run against the core.
 - **Color spaces are a utility, not a per-tween setting.** The CSS Color 4 math lives on `PrestoColor` (`Mix` in four spaces) and reaches tweens only as keyframes through CORE-KEYFRAMES's `Color` expander; tweens, the renderer, codecs, composition, `Animatable` and the compositor are unchanged, and gradients and shadows keep lerping color slots in plain sRGB. Reason: measured, the default premultiplied blend already matches OKLab lightness (midpoints within .01 L) and complementary pairs go gray in every straight-line space, so the real new capability is the hue path (OKLCH arcs, even-lightness sweeps), which keyframes express; existing tests and fixtures stay untouched. Rejected: a color space on every tween (per-tween space buffers, blending, `Animatable` retargets and codec color slots in the space), designed first and dropped once measured as buying little for its cost.
 - **Own implementation, no package.** The conversions are an internal static class written from the CSS Color 4 formulas and Ottosson's OKLab matrices. Reason: the core has no package references and stays that way; the formulas are fully specified. Rejected: Wacton.Unicolor (large, object-per-color, the core's first dependency); Colorful (color science, not CSS mixing); the UI framework's HSL/HSV colors (bridge-only, wrong spaces).
-- **culori is the parity reference.** `culori` sits beside `animejs` in the fixture generator, produces `colors.json`, and the tests assert against it within 1e-6. Reason: it implements CSS Color 4 interpolation and gamut mapping; the same parity method as the anime.js port.
+- **culori is the reference implementation.** `culori` sits beside `animejs` in the fixture generator, produces `colors.json`, and the tests assert against it within 1e-6. Reason: it implements CSS Color 4 interpolation and gamut mapping, and checking against an independent implementation catches mistakes that hand-written expected values would share with the code.
 - **Four spaces, no `Default` member.** `ColorSpace` has `Srgb`, `LinearSrgb`, `Oklab` and `Oklch` only; with no `Default`, the expander is opt-in and a plain color tween keeps its blend. Reason: OKLab and OKLCH supersede HSL, HWB and CIE Lab/LCH for interpolation, and the bridge renders in sRGB, so wide gamuts are pointless. Rejected: HSL, HWB, CIE Lab/LCH (deferred); Display-P3 and other wide gamuts.
 - **Hue interpolation follows CSS Color 4.** `HueInterpolation` is `Shorter` (default), `Longer`, `Increasing` or `Decreasing`, applied in `Oklch` only, unwrapping the end hue by ±360° once. Reason: follows CSS Color 4.
 - **Hue is powerless below chroma 4e-4.** An end with smaller chroma takes the other end's hue, and two achromatic ends take 0; the fixture generator applies the same threshold before calling culori. Reason: CSS's achromatic threshold, roughly where sRGB grays land, so white to blue stays blue instead of passing through an unrelated hue; culori treats hue as missing only at exactly zero chroma.
@@ -204,5 +204,5 @@ depends:
 
 - CORE-COLORS-017 (modifier applied to channels, alpha included) and CORE-COLORS-027 (transparent mix picks the nearer end) have no test.
 - `rgb()` strings with decimal or percentage channels pass `ValueParser.IsColor` but fail `PrestoColor.TryParse`, so a tween to them silently goes to opaque black.
-- The achromatic `hsl` branch keeps upstream's unscaled 0–1 channels, a known upstream bug kept for parity; no decision records whether to fix it.
+- The achromatic `hsl` branch keeps upstream's unscaled 0–1 channels, a known upstream bug; whether to fix it is reopened in BACKLOG ("Undecided deviations from anime.js").
 - Unparsable color strings giving opaque black (CORE-COLORS-006) has no recorded decision; upstream throws.

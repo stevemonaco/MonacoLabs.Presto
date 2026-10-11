@@ -171,7 +171,7 @@ depends:
 - **CORE-TIMER-048** — `Cancel` shall end any scrub, cancel the children in reverse order or detach the tweens from their composition siblings, set `Canceled`, and `Pause`, leaving animated values where they stand.
   - Tests: `ControlsTests.CancelATimer`, `ControlsTests.CancelAnAnimation`
 - **CORE-TIMER-049** — When `Cancel` is called on an already canceled timer, it shall leave composition untouched.
-  - Tests: `TweenListIntegrityTests.CancelingABlendedAnimationTwiceKeepsTheListsIntactForTheNextBlend`, `TweenListIntegrityTests.RemovingATargetAfterRepeatedCancelsEmptiesTheLists`
+  - Tests: `TweenListIntegrityTests.CancelingAnAdditiveAnimationTwiceKeepsTheListsIntactForTheNextOne`, `TweenListIntegrityTests.RemovingATargetAfterRepeatedCancelsEmptiesTheLists`
 - **CORE-TIMER-050** — Setting `Canceled` to true shall `Cancel`, and setting it to false shall soft-`Reset` and `Play`.
   - Tests: `ControlsTests.GetAndSetCanceledOnATimer`
 - **CORE-TIMER-051** — `Complete(muteCallbacks)` shall seek to `Duration` and then `Cancel`.
@@ -197,23 +197,23 @@ depends:
 
 ### Defaults
 
-- **CORE-TIMER-059** — When `Delay` is not set and the engine defaults are unchanged, the timer shall have a delay of 0, as anime.js does.
+- **CORE-TIMER-059** — When `Delay` is not set and the engine defaults are unchanged, the timer shall have a delay of 0.
   - Tests: untested
-- **CORE-TIMER-060** — When `LoopDelay` is not set and the engine defaults are unchanged, the timer shall have a loop delay of 0, as anime.js does.
+- **CORE-TIMER-060** — When `LoopDelay` is not set and the engine defaults are unchanged, the timer shall have a loop delay of 0.
   - Tests: untested
-- **CORE-TIMER-061** — When `Loop` is not set and the engine defaults are unchanged, the timer shall play one iteration (`Loop` 0), as anime.js does.
+- **CORE-TIMER-061** — When `Loop` is not set and the engine defaults are unchanged, the timer shall play one iteration (`Loop` 0).
   - Tests: untested
-- **CORE-TIMER-062** — When `Reversed` is not set and the engine defaults are unchanged, the timer shall play forwards, as anime.js does.
+- **CORE-TIMER-062** — When `Reversed` is not set and the engine defaults are unchanged, the timer shall play forwards.
   - Tests: untested
-- **CORE-TIMER-063** — When `Alternate` is not set and the engine defaults are unchanged, the timer shall not alternate, as anime.js does.
+- **CORE-TIMER-063** — When `Alternate` is not set and the engine defaults are unchanged, the timer shall not alternate.
   - Tests: untested
-- **CORE-TIMER-064** — When `Autoplay` is not set and the engine defaults are unchanged, a root timer shall start playing on creation, as anime.js does.
+- **CORE-TIMER-064** — When `Autoplay` is not set and the engine defaults are unchanged, a root timer shall start playing on creation.
   - Tests: `ParametersTests.PlaybackRateOnTimer`
-- **CORE-TIMER-065** — When `FrameRate` is not set and the engine defaults are unchanged, the timer shall render at up to 240 fps, as anime.js does.
+- **CORE-TIMER-065** — When `FrameRate` is not set and the engine defaults are unchanged, the timer shall render at up to 240 fps.
   - Tests: `ClockTests.FpsHigherThanDefaultFrameRateRaisesDefault`
-- **CORE-TIMER-066** — When `PlaybackRate` is not set and the engine defaults are unchanged, the timer shall advance at a rate of 1, as anime.js does.
+- **CORE-TIMER-066** — When `PlaybackRate` is not set and the engine defaults are unchanged, the timer shall advance at a rate of 1.
   - Tests: `ParametersTests.PlaybackRateOnTimer`
-- **CORE-TIMER-067** — When `Priority` is not set, the timer shall have priority 1, as anime.js does.
+- **CORE-TIMER-067** — When `Priority` is not set, the timer shall have priority 1.
   - Tests: untested
 
 ## Invariants
@@ -225,7 +225,7 @@ depends:
 
 ## Edge cases
 
-- `IterationCurrentTime`, `IterationProgress` and `CurrentIteration` setters ignore `LoopDelay` when computing the target time (upstream parity).
+- `IterationCurrentTime`, `IterationProgress` and `CurrentIteration` setters ignore `LoopDelay` when computing the target time (kept from upstream; untested).
 - `Complete()` on a playing timer fires `OnComplete` and then `OnPause`, because the seek resumes it before `Cancel` pauses it.
 - `Scrub` and `Cancel` on a playing timer fire `OnPause`.
 - An infinite timer's `Progress` is `CurrentTime / 1e12`, effectively 0.
@@ -246,7 +246,7 @@ depends:
 - Ticking a timer allocates nothing; pinned by `AllocationTests.LoopingTimerTicksWithoutAllocating`.
 - `ProgressValue`, `Scrub` and `Then` allocate once when first used.
 
-## Deviations from anime.js
+## Provenance
 
 - `Stretch` leaves a root timer's offset unchanged: scaling the creation-time offset lost precision when stretching a setter (see "Stretch keeps a root timer's offset").
 - A repeat `Cancel` leaves composition alone: upstream's double removal corrupted the sibling lists (see CORE-COMPOSITION, "Sibling removal is idempotent").
@@ -254,15 +254,17 @@ depends:
 - A function-based default delay gives a plain timer a delay of 0; `Duration` and `Delay` are numbers, not function values.
 - `Loop` is settable after creation, `Scrub`, `ProgressValue`, `IsScheduled` and the introspection getters have no upstream counterpart.
 - `Revert` runs an internal hook instead of reverting a linked scroll observer passed as `autoplay`.
-- Time is `double` milliseconds with seconds as an engine scale, as upstream's `timeUnit` (project-wide decision "Time is double milliseconds", ARCHITECTURE.md §5).
+- Time is `double` milliseconds with seconds as an engine scale, like upstream's `timeUnit` (project-wide decision "Time is double milliseconds", ARCHITECTURE.md §4).
 
 ## Decisions
 
 - **`tick()` is ported structurally, first.** `Renderer.Tick` keeps the structure of upstream `render.js` `tick()`, and was ported and tested (timings, controls, callbacks, directions) before tweens existed. Reason: it is the subtlest, highest-value part of the timing model, and a structural port lets the upstream suites be ported one-to-one.
-- **`LoopCount` converts from `int` and `bool`.** `Loop = true` is infinite, `false` is 0. Reason: matches anime.js's `loop: true` / number shape.
+- **`LoopCount` converts from `int` and `bool`.** `Loop = true` is infinite, `false` is 0. Reason: one property then holds both a count and "forever", and `Loop = true` reads as looping without a sentinel number.
 - **Stretch keeps a root timer's offset.** For a root timer `Stretch` leaves the offset alone and rebuilds the tweens' absolute times from scaled local times; timeline children keep upstream's arithmetic. Reason: multiplying the creation-time offset by ~10¹⁴ when stretching from a setter's 1e-11 duration lost precision, so Draggable release tweens started late or never; upstream has the same arithmetic.
+- **Unset timer parameters are the plain choices.** With nothing set a timer starts at once, plays one iteration forwards at rate 1 with no delays or alternation, renders at up to 240 fps and has priority 1 (CORE-TIMER-059 to 067). Reason: `Presto.CreateTimer` or `Presto.Animate` with only a duration then does what the call reads as; 240 fps is above common display refresh rates, so the default cap never drops a frame the display could show; priority 1 leaves 0 for a timer that must tick before the default ones.
 - **Introspection is read-only and allocation-free.** The introspection surface is public getters only; `Children` and `Tweens` are struct enumerators over the linked lists; `IsAlternating` names the flag because `Alternate` is the method; `TweenSnapshot` methods allocate and are for tools only. Reason: inspection must not allocate on enumeration nor add mutation surface.
 - **Sibling removal is idempotent.** See CORE-COMPOSITION.
+- **`Presto.Delay` is the idiomatic wait; awaiting a timer stays supported.** `Then` and `GetAwaiter` still complete when the timer does, but a hold between animations is written `await Presto.Delay(ms)` (CORE-PRESTO). Reason: `Task.Delay` ignores engine time, so a hold would desync under DevTools dilation and never complete in headless tests driven by `Frames.Advance`, and a named wait says what it is. Rejected: keeping `await Presto.CreateTimer(...)` as the documented wait, which reads as a workaround.
 
 ## Non-goals
 
@@ -271,5 +273,5 @@ depends:
 
 ## Open items
 
-- `Complete()` on a playing timer fires `OnPause` after `OnComplete` (upstream parity); nothing pins it and it may surprise callers.
+- `Complete()` on a playing timer fires `OnPause` after `OnComplete` (kept from upstream); nothing pins it and it may surprise callers.
 - Untested: the defaults fallback at construction, a null `Duration`, function-based default delay, generated ids, `Backwards`, child-never-autoplays, the `Reversed` setter, `Seek` with `muteCallbacks`/`internalRender`, and `Loop` set on a timeline child.

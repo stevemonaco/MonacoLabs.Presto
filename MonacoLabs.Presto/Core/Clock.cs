@@ -33,7 +33,7 @@ public abstract class Clock
     /// <summary>Time in milliseconds elapsed since the previous tick.</summary>
     public double DeltaTime { get; internal set; }
 
-    /// <summary>Cap on how often this clock renders, in frames per second (upstream <c>frameRate</c>); raising it past <see cref="PrestoDefaults.FrameRate"/> raises that default too, as upstream does.</summary>
+    /// <summary>Cap on how often this clock renders, in frames per second; raising it past <see cref="PrestoDefaults.FrameRate"/> raises that default too.</summary>
     /// <remarks>0 or less means uncapped (240 fps), where upstream clamps it to a rate that never renders.</remarks>
     public double Fps
     {
@@ -48,7 +48,7 @@ public abstract class Clock
         }
     }
 
-    /// <summary>Multiplier on how fast this clock's time advances (upstream <c>playbackRate</c>); clamped to a tiny positive value, so it never stops.</summary>
+    /// <summary>Multiplier on how fast this clock's time advances; clamped to a tiny positive value, so it never stops.</summary>
     public virtual double Speed
     {
         get => _speed;

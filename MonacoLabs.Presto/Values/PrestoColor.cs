@@ -27,7 +27,7 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
 
     internal static bool IsHex(string s) => HexTest().IsMatch(s);
 
-    /// <summary>Parses a color string; anything unrecognized is opaque black, as upstream.</summary>
+    /// <summary>Parses a color string; anything unrecognized is opaque black.</summary>
     public static PrestoColor Parse(string s) => TryParse(s, out var color) ? color : new(0, 0, 0);
 
     /// <summary>Parses a color string, returning false for anything that is not one of the recognized hex, <c>rgb</c> or <c>hsl</c> forms.</summary>
@@ -211,7 +211,7 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
         var a = m.Groups[4].Success ? Num(m.Groups[4]) : 1;
         if (sat == 0)
         {
-            // Upstream leaves the achromatic branch unscaled (0-1 rather than 0-255); kept for parity.
+            // Unscaled 0-1 channels, an inherited bug; BACKLOG CORE-COLORS decides whether to fix it.
             color = new(l, l, l, a);
             return true;
         }

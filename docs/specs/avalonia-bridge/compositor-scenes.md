@@ -145,19 +145,19 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 
 - A frame is the core tick plus `OnRender`; with brushes from `Brush` and text from `SceneText` it allocates nothing beyond the budget of BRIDGE-SCENES-025. `Post` allocates per message; `Invoke` allocates a wrapper delegate.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js has one engine on the page's main thread. A scene owns a second engine because that is the only way Presto's full model survives a stalled UI thread.
 
 ## Decisions
 
-- **Render-thread work is a separate API named "Compositor", and a scene owns its engine.** `CompositorCanvas` and `CompositorScene` are explicit types; the UI thread never ticks a scene, the render thread never writes an `AvaloniaProperty`, and the scene engine is ambient while its code runs. Reason: "compositor" is Avalonia's own term; a scene engine is the only path where the full Presto model survives a stalled UI thread, and an ambient engine keeps the anime.js call shape. Rejected: `RenderThread*` names; `Composition*` names, since the core already uses `Composition` for replace/none/blend.
+- **Render-thread work is a separate API named "Compositor", and a scene owns its engine.** `CompositorCanvas` and `CompositorScene` are explicit types; the UI thread never ticks a scene, the render thread never writes an `AvaloniaProperty`, and the scene engine is ambient while its code runs. Reason: "compositor" is Avalonia's own term; a scene engine is the only path where the full Presto model survives a stalled UI thread, and an ambient engine lets scene code call `Presto.Animate` exactly as UI-thread code does. Rejected: `RenderThread*` names; `Composition*` names, since the core already uses `Composition` for replace/overlap/additive.
 - **An idle scene stops requesting frames.** The handler renews its render-loop registration only while the engine has children, and invalidates once after a frame in which the engine ticked. Reason: an idle scene costs nothing and lets the render loop sleep, as the UI-thread frame source does.
 - **The scene tick is wrapped in a try/catch that logs.** Reason: Avalonia does not catch exceptions from the animation-frame callback, so one would take the render thread down; message and render exceptions Avalonia already catches.
 - **The bridge stays Skia-free; scenes draw with `ImmediateDrawingContext`.** Scenes cache immutable brushes and pens, and path drawing is the scene's own business through the Skia lease feature. Reason: `ImmediateDrawingContext` has no geometry drawing, and keeping Skia out of the bridge keeps it backend-neutral.
 - **After attach a scene belongs to the render thread.** The UI thread reaches it only through `Post` and `Invoke`, the scene reaches back with `PostToUI`, callbacks must not touch controls, and `Then()` on a scene timer completes on the thread pool; a scene built on the UI thread (in XAML) is handed over untouched at attach. Reason: the render thread has no synchronization context, and handing over at attach is safe because the composition batch queue publishes the object.
 - **Browser's blocked-UI-thread limitation is documented, not worked around.** See BRIDGE-THREAD.
-- **Hidden pauses the engine, as upstream's `pauseOnDocumentHidden` does.** See CORE-ENGINE.
+- **Hidden pauses the engine.** See CORE-ENGINE.
 
 ## Non-goals
 

@@ -40,7 +40,7 @@ depends:
 
 ### Names
 
-- **CORE-EASEPARSER-005** — When the trimmed input starts with `steps(`, `irregular(`, `linear(` or `cubicBezier(` (ordinal, case-sensitive), `Parse` shall return `Eases.None`, as upstream does for the removed string forms.
+- **CORE-EASEPARSER-005** — When the trimmed input starts with `steps(`, `irregular(`, `linear(` or `cubicBezier(` (ordinal, case-sensitive), `Parse` shall return `Eases.None`.
   - Tests: `EaseParserTests.ResolvesToEasesNone`
 - **CORE-EASEPARSER-006** — `Parse` shall take the name as the text before the first `(` with trailing whitespace removed, or the whole input when there is no `(`.
   - Tests: `EaseParserTests.ParsesToMatchingEase`
@@ -106,7 +106,7 @@ depends:
 
 ### Defaults
 
-- **CORE-EASEPARSER-032** — When a parameterized ease is given fewer arguments than it reads, `Parse` shall leave the missing trailing ones to the factory's defaults, `expoScale` then getting no inner ease, as anime.js does.
+- **CORE-EASEPARSER-032** — When a parameterized ease is given fewer arguments than it reads, `Parse` shall leave the missing trailing ones to the factory's defaults, `expoScale` then getting no inner ease.
   - Tests: `EaseParserTests.ParsesToMatchingEase`
 
 ## Invariants
@@ -139,7 +139,7 @@ depends:
 
 - Not on the tick path. A cache hit allocates nothing beyond the trimmed string; a miss allocates the tokens and the ease.
 
-## Deviations from anime.js
+## Provenance
 
 - PascalCase names are accepted; upstream is case-sensitive. Reason: the PascalCase spellings of the `Eases` members then work as strings too.
 - An empty argument list (`"in()"`) uses the factory defaults; upstream coerces the empty token to 0.
@@ -150,9 +150,11 @@ depends:
 
 ## Decisions
 
-- **Ease strings accept PascalCase names.** A leading capital is lowered, so `"InOutQuint"` parses as well as upstream's `"inOutQuint"`. Reason: not recorded; it was flagged as low-confidence when first built and kept.
+- **Ease strings accept PascalCase names.** A leading capital is lowered, so `"InOutQuint"` parses alongside upstream's `"inOutQuint"`. Reason: not recorded; it was flagged as low-confidence when first built and kept.
 - **Ease strings take raw and non-numeric arguments.** The factories receive the raw argument text and its comma tokens: `fromPath(...)` gets the whole text between the parentheses, `wiggle` a type name, `slowMo` a flag and `expoScale` a nested ease string; numeric forms are unchanged. Reason: upstream's parser reads only numbers, and path data contains commas.
 - **Parsed random eases are seeded.** Parsed `rough` and `wiggle(n, random)` draw from `new Random(1)`, where code defaults to `Random.Shared`. Reason: the parser caches what it returns, so a string must always parse to the same curve.
+- **Removed string forms parse to `None`.** `steps(`, `irregular(`, `linear(` and `cubicBezier(` return `Eases.None` instead of throwing like other bad input. Kept from upstream, which removed those forms; no other reason recorded.
+- **Missing trailing arguments take the factory defaults.** Reason: `"out"` and `"out(2)"` then mean what `Eases.Out()` and `Eases.Out(2)` do, so a string and the call it names agree.
 - **Ease names are registered only while diagnostics are active.** See CORE-EASES.
 
 ## Non-goals

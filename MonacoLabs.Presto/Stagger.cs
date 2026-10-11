@@ -4,7 +4,7 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Port of anime.js <c>stagger()</c>: a per-target value derived from the target's distance to an origin. Created through
+/// A per-target value derived from the target's distance to an origin. Created through
 /// <see cref="Presto.Stagger"/> and accepted wherever a per-target value is (a delay, a duration, a property value), or as
 /// the position of a <see cref="Timeline"/> child, which then adds one child per target.
 /// </summary>
@@ -279,7 +279,7 @@ public sealed class Stagger
         _ => false,
     };
 
-    // Upstream parseNumber is parseFloat, so a value carrying a unit keeps its number.
+    // Like JS parseFloat, so a value carrying a unit keeps its number.
     private static double ParseNumber(TweenValue value) =>
         value.Raw is string text && ValueParser.TryParseUnit(text, out var number, out _) ? number : JsNumber.ToNumber(value.Raw, double.NaN);
 }

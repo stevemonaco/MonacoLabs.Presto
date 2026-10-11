@@ -1,7 +1,7 @@
 ﻿namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Port of anime.js <c>createScope</c>: a lifetime for everything created inside it. Timers, animations, animatables and
+/// A lifetime for everything created inside it. Timers, animations, animatables and
 /// nested scopes register themselves with the scope that is current while they are constructed, so one
 /// <see cref="Revert"/> undoes the lot, and constructors added with <see cref="Add(Func{Scope, Action})"/> can be re-run
 /// as a group by <see cref="Refresh"/>.
@@ -64,7 +64,7 @@ public class Scope : IRevertible
     internal int RevertibleCount => _revertibles.Count + _revertiblesOnce.Count;
 
     /// <summary>Runs <paramref name="callback"/> with this scope current, its defaults in force and its engine ambient.</summary>
-    /// <remarks>All three are restored in a <c>finally</c>, where upstream restores them only when the callback returns.</remarks>
+    /// <remarks>All three are restored even when the callback throws.</remarks>
     public T Execute<T>(Func<Scope, T> callback)
     {
         var activeScope = _engine.CurrentScope;

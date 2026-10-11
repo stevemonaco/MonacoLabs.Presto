@@ -5,7 +5,7 @@ namespace MonacoLabs.Presto.Compositor;
 
 /// <summary>
 /// Parameters for an animation that runs on the render thread: the <see cref="AvaloniaAnimationParams"/> indexers over the
-/// reduced anime.js <c>waapi.animate</c> parameter set. The per-frame callbacks, blend composition, playback ease, frame rate
+/// reduced parameter set. The per-frame callbacks, additive composition, playback ease, frame rate
 /// and animation-wide modifier of <see cref="AnimationParams"/> have no counterpart on the compositor (COMPOSITOR-PLAN §3)
 /// and are left out rather than silently ignored.
 /// </summary>

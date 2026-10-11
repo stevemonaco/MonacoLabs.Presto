@@ -122,7 +122,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 
 - Not on the tick path for the builders. `PlayFrames`' duration and end are function values evaluated once per target. Particle emission cost is BRIDGE-PARTICLES'.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

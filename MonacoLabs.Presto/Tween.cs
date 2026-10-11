@@ -128,7 +128,7 @@ public sealed class Tween
     public TweenSnapshot GetTo() => Snapshot(_toNumber, _toNumbers);
 
     /// <summary>The value the tween last rendered. Allocates; meant for tools.</summary>
-    /// <remarks>A <see cref="Composition.None"/> tween does not track its number, so a number or unit value reads as its from value.</remarks>
+    /// <remarks>A <see cref="Composition.Overlap"/> tween does not track its number, so a number or unit value reads as its from value.</remarks>
     public TweenSnapshot GetCurrent() => Snapshot(_number, _numbers);
 
     private TweenSnapshot Snapshot(double number, double[] numbers)

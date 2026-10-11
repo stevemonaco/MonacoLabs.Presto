@@ -110,7 +110,7 @@ depends:
 
 - One timer or animation per toast. Not on the tick path otherwise.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

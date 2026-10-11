@@ -33,7 +33,7 @@ depends:
 
 ## Purpose
 
-A `Stagger` gives each target its own value from the target's distance to an origin: along the target list, across a grid, or across positions measured from the targets. It is accepted wherever a per-target value is (a delay, a duration, a property value, a keyframe setting) and as the position of timeline children, where it adds one child per target (CORE-TIMELINE). Port of anime.js `stagger()`. Also specifies `Presto.Stagger`.
+A `Stagger` gives each target its own value from the target's distance to an origin: along the target list, across a grid, or across positions measured from the targets. It is accepted wherever a per-target value is (a delay, a duration, a property value, a keyframe setting) and as the position of timeline children, where it adds one child per target (CORE-TIMELINE). Initially ported from anime.js `stagger()`. Also specifies `Presto.Stagger`.
 
 ## Requirements
 
@@ -125,13 +125,13 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 ### Defaults
 
-- **CORE-STAGGER-035** — When `Total` is not set, the values shall be spaced over the target count, as anime.js does.
+- **CORE-STAGGER-035** — When `Total` is not set, the values shall be spaced over the target count.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`
-- **CORE-STAGGER-036** — When neither `Grid` nor `AutoGrid` is set, the distances shall be measured along the target list, as anime.js does.
+- **CORE-STAGGER-036** — When neither `Grid` nor `AutoGrid` is set, the distances shall be measured along the target list.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`
-- **CORE-STAGGER-037** — When `Axis` is not set, the value shall be the distance from the origin rather than a signed offset, as anime.js does.
+- **CORE-STAGGER-037** — When `Axis` is not set, the value shall be the distance from the origin rather than a signed offset.
   - Tests: `StaggerTests.StaggersAcrossA2DGrid`
-- **CORE-STAGGER-038** — When `Ease` is not set, the distances shall be used unmapped, as anime.js does.
+- **CORE-STAGGER-038** — When `Ease` is not set, the distances shall be used unmapped.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`
 
 ## Invariants
@@ -159,7 +159,7 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 - Not on the tick path. The first call allocates the distance cache (and jitter samples); later calls allocate only a unit string when the value has a unit.
 
-## Deviations from anime.js
+## Provenance
 
 - A stagger met by a group of a different size recomputes its distances; upstream keeps the first count and reads past its cache, which gave every target past the first group's size a zero delay (see "A stagger rebuilds when the target count changes").
 - `Coordinates` lets the host measure positions; upstream reads `getBoundingClientRect` or `x`/`y`/`z`. The core cannot measure layout, so the bridge measures visuals through it (see "Auto grids measure through a coordinates provider").
@@ -169,7 +169,8 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 ## Decisions
 
-- **A stagger rebuilds when the target count changes.** A stagger recomputes its cache when a group of another size uses it, instead of sizing it once by the first group as upstream's closure does. Reason: a builder's shared stagger read past its cache once a batch grew and gave every later element a zero delay.
+- **A stagger rebuilds when the target count changes.** A stagger recomputes its cache when a group of another size uses it, instead of sizing it once by the first group, which upstream's closure does. Reason: a builder's shared stagger read past its cache once a batch grew and gave every later element a zero delay.
+- **Unset options leave an even spacing by list position.** Without `Total`, `Grid`, `AutoGrid`, `Axis` or `Ease`, values step evenly by each target's distance from the origin along the list (CORE-STAGGER-035 to 038). Reason: `Presto.Stagger(50)` then spaces a group 50 apart, and each option adds one shape to that.
 - **Auto grids measure through a coordinates provider.** The core exposes `StaggerParams.Coordinates` as a provider, and the bridge fills it by measuring each visual. Reason: the core cannot measure layout.
 - **Function values receive the group's target list.** See CORE-ANIMATION.
 - **`FunctionValue` takes three arguments.** See CORE-VALUES.

@@ -13,7 +13,7 @@ public abstract class EngineTestBase
         engine.FrameSource = Frames = new ManualFrameSource();
         Helpers.ForEachChildren(engine, static child => child.Cancel());
         engine.DropChildren();
-        // The engine is reused across tests, so a blend tween left by an earlier one would keep rendering into this one.
+        // The engine is reused across tests, so an additive tween left by an earlier one would keep rendering into this one.
         engine.Additive.Lookups.Clear();
         if (engine.Additive.Animation is { } additive) additive._headTween = additive._tailTween = null;
         engine.Diagnostics.Enabled = false;

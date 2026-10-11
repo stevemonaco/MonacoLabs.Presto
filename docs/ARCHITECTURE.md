@@ -1,15 +1,15 @@
 # MonacoLabs.Presto — Architecture
 
-A port of the anime.js v4.5.0 animation model to .NET, with a framework-agnostic core and an Avalonia adapter. This document is the map: goals, how anime.js maps onto Presto, the architecture, and how it is tested. What each feature does, and why, is in the [feature specs](specs/README.md); work not done yet is in the [backlog](BACKLOG.md); new work starts as a [change proposal](changes/README.md).
+A .NET animation library inspired by and initially ported from anime.js v4.5.0, with a framework-agnostic core and an Avalonia adapter. This document is the map: goals, the architecture, how it is tested, the project-wide decisions and the samples, with an appendix tracing each anime.js module to its Presto counterpart. What each feature does, and why, is in the [feature specs](specs/README.md); work not done yet is in the [backlog](BACKLOG.md); new work starts as a [change proposal](changes/README.md).
 
-Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/` and `tests/suites/`). Docs: https://animejs.com/documentation.
+Provenance: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/` and `tests/suites/`). Docs: https://animejs.com/documentation.
 
 ## 1. Goals and non-goals
 
 **Goals**
 
 - anime.js-level ergonomics from C#: one call to animate any property of any object or control, with staggering, keyframes, timelines and full playback control.
-- Behavioral parity with anime.js for the timing model (delay, loop, loopDelay, alternate, reversed, seek, stretch, playbackRate, frameRate, composition), so the upstream tests are the acceptance suite.
+- A timing model (delay, loop, loopDelay, alternate, reversed, seek, stretch, playbackRate, frameRate, composition) pinned by tests ported from upstream, so changes to it are deliberate and recorded as spec decisions.
 - A core with zero UI dependencies that can drive plain objects (view models, custom renderers, game-style loops) and is fully testable with a manual clock.
 - An Avalonia bridge that makes controls first-class targets: `AvaloniaProperty` by name or typed reference, transform shorthands (`X`, `Y`, `Rotate`, `Scale`…), colors and brushes, thickness, corner radius and points, with correct thread affinity and lifetime handling.
 
@@ -18,38 +18,9 @@ Upstream reference: https://github.com/juliangarnier/anime (tag `v4.5.0`, `src/`
 - CSS-specific value handling: unit conversion between px/em/rem, CSS variables, DOM attribute animation. Only what maps to Avalonia survives: numbers, degrees/turns/radians for rotation, percentages where Avalonia uses `RelativePoint`/`RelativeRect`.
 - Three.js-style adapters. The adapter interface allows one; none ships.
 
-## 2. Module map: anime.js → Presto
+## 2. Architecture
 
-| anime.js (`src/`) | Presto namespace / type | Project | Spec |
-|---|---|---|---|
-| `core/clock.js`, `core/globals.js`, `core/consts.js` | `MonacoLabs.Presto.Core.Clock`, `PrestoDefaults`, `Constants` | Core | [engine](specs/core/engine.md) |
-| `engine/engine.js` | `MonacoLabs.Presto.Engine` + `IFrameSource` | Core | [engine](specs/core/engine.md), [threading](specs/core/threading.md) |
-| `core/render.js` (`tick`, `render`) | `MonacoLabs.Presto.Core.Renderer` (static tick/render) | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
-| `timer/timer.js` | `MonacoLabs.Presto.Timer` | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
-| `easings/*` | `Ease` delegate, `Eases`, `LinearStop`, `Spring`, `EaseParser` | Core | [eases](specs/core/eases.md), [ease-parser](specs/core/ease-parser.md), [spring](specs/core/spring.md) |
-| `core/values.js`, `core/units.js`, `core/colors.js`, `core/targets.js`, `core/helpers.js`, `adapters/registry.js` | `MonacoLabs.Presto.Values` (`TweenValue`, `ValueKind`, `PrestoColor`, `FunctionValue`), `MonacoLabs.Presto.Targets` (`ITargetAdapter`, `IPropertyAccessor`, `ObjectTargetAdapter`), registered through `Presto.Adapters`/`Presto.Codecs` | Core | [values](specs/core/values.md), [colors](specs/core/colors.md), [targets](specs/core/targets.md) |
-| `animation/animation.js`, `composition.js`, `additive.js` | `MonacoLabs.Presto.Animation`, `Tween`, `Composition`, `Core.Additive` | Core | [animation](specs/core/animation.md), [keyframes](specs/core/keyframes.md), [composition](specs/core/composition.md) |
-| `core/transforms.js`, `core/styles.js` | Bridge only: `RenderTransformComposer`, property name resolution | Bridge | [transforms](specs/avalonia-bridge/transforms.md), [property-resolution](specs/avalonia-bridge/property-resolution.md) |
-| `timeline/timeline.js`, `position.js` | `MonacoLabs.Presto.Timeline`, `TimelinePosition` | Core | [timeline](specs/core/timeline.md) |
-| `utils/stagger.js` | `MonacoLabs.Presto.Stagger` (`Presto.Stagger(...)`) | Core | [stagger](specs/core/stagger.md) |
-| `utils/number.js`, `random.js`, `time.js`, `chainable.js` | `MonacoLabs.Presto.Utils` | Core | [utils](specs/core/utils.md) |
-| `utils/target.js` (`$`, `get`, `set`, `remove`, `cleanInlineStyles`) | `Presto.Get/Set/Remove` on objects; bridge overloads for controls. `$` has no equivalent (no selectors); `cleanInlineStyles` is unnecessary (animation-priority writes) | Core + Bridge | [presto](specs/core/presto.md), [control-helpers](specs/avalonia-bridge/control-helpers.md) |
-| `animatable/animatable.js` | `MonacoLabs.Presto.Animatable` | Core | [animatable](specs/core/animatable.md) |
-| `scope/scope.js` | `MonacoLabs.Presto.Scope`; bridge `ControlScope` (reverts when its control leaves the visual tree) | Core + Bridge | [scope-and-defaults](specs/core/scope-and-defaults.md), [control-helpers](specs/avalonia-bridge/control-helpers.md) |
-| `draggable/draggable.js` | `MonacoLabs.Presto.Draggable` | Bridge | [draggable](specs/avalonia-bridge/draggable.md) |
-| `events/scroll.js` | `MonacoLabs.Presto.ScrollObserver` (ScrollViewer) | Bridge | [scroll-observer](specs/avalonia-bridge/scroll-observer.md) |
-| `svg/*` (`morphTo`, `createDrawable`, `createMotionPath`) | Path/Geometry based shape helpers | Bridge | [shapes](specs/avalonia-bridge/shapes.md) |
-| `text/scramble.js` (`scrambleText`) | `Presto.ScrambleText` | Core | [scramble](specs/core/scramble.md) |
-| `text/split.js` (`splitText`) | `MonacoLabs.Presto.Text` | Bridge | [text](specs/avalonia-bridge/text.md) |
-| `layout/*` | Not ported as such: upstream's real width/height animation maps to `Animate.ContentSize`; compositor FLIP covers position and size moves | Bridge | [content-size](specs/avalonia-bridge/content-size.md), [layout-transitions](specs/avalonia-bridge/layout-transitions.md) |
-| `waapi/*` | `CompositorAnimation`: server-side `KeyFrameAnimation`s compiled from Presto params, plus `CompositorCanvas`/`CompositorScene`, a whole engine on the render thread (no upstream counterpart) | Bridge | [animation-thread](specs/avalonia-bridge/animation-thread.md), [compositor-scenes](specs/avalonia-bridge/compositor-scenes.md) |
-| `adapters/three.js` | not ported | — | — |
-
-Features with no upstream counterpart are listed in the spec indexes: [core](specs/core/index.md), [Avalonia bridge](specs/avalonia-bridge/index.md), [Lottie](specs/lottie/index.md), [DevTools](specs/devtools/index.md).
-
-## 3. Architecture
-
-### 3.1 Core (`MonacoLabs.Presto`)
+### 2.1 Core (`MonacoLabs.Presto`)
 
 ```
 Clock                      framerate + playback-rate bookkeeping (base of Engine, Timer)
@@ -65,16 +36,16 @@ IPropertyAccessor          GetValue/SetValue on a target + IValueCodec describin
 IValueCodec                Decode(object) → channels, Encode(channels) → object
 ```
 
-Kept structurally identical to upstream, so the upstream tests port one to one:
+This structure is what the ported regression tests exercise, and it ticks without allocating:
 
 - **Linked lists** (`_head/_tail/_prev/_next`) for engine children, timeline children and tweens, for zero-allocation ticking.
 - **`tick()`** turns absolute time into iteration time, handles loop/alternate/reverse/delay/loopDelay, fires callbacks and decides whether to render.
-- **Composition** (`replace` | `none` | `blend`) through a per (target, property) sibling registry; `blend` uses additive animations.
+- **Composition** (`Replace` | `Overlap` | `Additive`) through a per (target, property) sibling registry; `Additive` sums onto running tweens through a per-engine additive pass.
 - **Function-based values** wherever a number is accepted: `(target, index, total) => TweenValue`.
 - **Time** is `double` milliseconds; seconds mode is an engine scale factor.
 - **Threads**: one engine per thread that ticks it, no locks. `Presto.Engine` is the main (UI) engine and the ambient default; `Engine.Current`/`MakeCurrent()` install another for a block, and every `Timer` captures its engine at construction ([threading](specs/core/threading.md)).
 
-### 3.2 Avalonia bridge (`MonacoLabs.Presto.Avalonia`)
+### 2.2 Avalonia bridge (`MonacoLabs.Presto.Avalonia`)
 
 - **Frame pump**: `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, falling back to a `DispatcherTimer` before any `TopLevel` exists; installed on first use. Minimized windows and backgrounded apps set `Engine.Hidden` ([initialization](specs/avalonia-bridge/initialization.md)).
 - **Targets**: `AvaloniaObjectTargetAdapter` resolves typed `AvaloniaProperty` keys, names (including attached `"Canvas.Left"`) and the bridge's shorthands; writes go in at `BindingPriority.Animation`, so `Revert` clears them cleanly ([property-resolution](specs/avalonia-bridge/property-resolution.md)).
@@ -83,11 +54,11 @@ Kept structurally identical to upstream, so the upstream tests port one to one:
 - **Render thread**: compositor animations for existing controls, and whole engines on the render thread in `CompositorScene` ([animation-thread](specs/avalonia-bridge/animation-thread.md), [compositor-scenes](specs/avalonia-bridge/compositor-scenes.md)).
 - **Declarative layer**: `Presence`, `Motion`, `Follow`, `Animate.*`, recipes and markup extensions, and the controls built on them; see the [bridge spec index](specs/avalonia-bridge/index.md).
 
-## 4. Testing strategy
+## 3. Testing strategy
 
 - **Core**: xunit v3, no Avalonia. Tests drive `Engine.Update(now)` through `ManualFrameSource.Advance(ms)`, giving deterministic timing identical to how upstream tests use `engine.update()` and fake timers.
-- **Upstream parity**: suites ported from `tests/suites/*.test.js`, with test names close to the Mocha `it()` descriptions so gaps are easy to audit. DOM-only suites (`waapi`, `threejs`, `node`, `build`) are skipped.
-- **Generated fixtures**: `tools/anime-fixtures/` (Node, `npm i animejs@4.5.0`) dumps JSON for easing curves (101 samples each), spring durations, stagger outputs and timeline positions; the C# tests assert within `1e-6`. Regenerate only when bumping the upstream reference version.
+- **Regression suites ported from upstream**: `tests/suites/*.test.js`, with test names close to the Mocha `it()` descriptions so gaps are easy to audit. They pin the behavior Presto keeps; they are not the acceptance bar for new work. DOM-only suites (`waapi`, `threejs`, `node`, `build`) are skipped.
+- **Generated fixtures** (provenance tooling): `tools/anime-fixtures/` (Node, `npm i animejs@4.5.0`) dumps JSON for easing curves (101 samples each), spring durations, stagger outputs and timeline positions; the C# tests assert within `1e-6`. Regenerate only when bumping the upstream reference version.
 - **Bridge**: `tests/MonacoLabs.Presto.Avalonia.Tests` on `Avalonia.Headless` with `[AvaloniaFact]`/`[AvaloniaTheory]`. That package targets `xunit.v3.extensibility.core` 3.2.2, so `xunit.v3` is pinned to 3.2.x repo-wide (on 4.x, discovery throws `MissingMethodException`); it is also why `AssemblyInfo.cs` uses `CollectionBehavior(DisableTestParallelization = true)`. A `ManualFrameSource` replaces the frame pump.
 - **Specs**: the feature specs are the acceptance reference. Each requirement cites the tests that pin it; `SpecTests` and `SpecCoverageTests` keep citations, paths and type ownership honest.
 - **Visual**: the sample gallery is the manual acceptance surface; DevTools screenshots and property reads confirm end states.
@@ -101,18 +72,18 @@ Decisions behind the test setup:
 - **`BridgeTestBase` tests must be `[AvaloniaFact]`**, and the base asserts it runs on the UI thread. Reason: a plain `[Fact]` reset the engine off the UI thread and caused order-dependent failures; the assert turns those into failures every time.
 - **The sample suite's 60 s target is accepted as missed** (about 92 s). What remains is real rendering work in the headless framebuffer; tests were not weakened to reach it.
 
-## 5. Project-wide decisions
+## 4. Project-wide decisions
 
-- **Time is `double` milliseconds**; seconds mode is an engine scale factor, not a second code path. Reason: parity with anime.js (`timeUnit: 'ms'`).
+- **Time is `double` milliseconds**; seconds mode is an engine scale factor, not a second code path. Reason: milliseconds are the unit every API takes and match `TimeSpan.TotalMilliseconds` and frame budgets (16.7 ms at 60 Hz).
 - **Avalonia packages share the core's namespace.** The bridge's root namespace is `MonacoLabs.Presto`, and its package and assembly are `MonacoLabs.Presto.Avalonia`; its `Targets` and `Values` merge with the core's. Reason: an `Avalonia` namespace segment would shadow `Avalonia.*` for every qualified name and generated source inside it, and one `using` matches the API convention; separate assemblies contributing to one namespace is ordinary .NET practice (every `Microsoft.Extensions.*` package adds to `Microsoft.Extensions.DependencyInjection`). No core type shares a name with a bridge type in the merged namespaces, and no type is named like a sibling namespace. Rejected: a `MonacoLabs.Presto.Avalonia` namespace with `global::` at each qualified reference (the hazard stays for every future file and generator); `.Ava`/`.Xaml`/`.UI` (they read as workarounds, and `.UI` would not fit a second UI-framework adapter); merging the assemblies (the core would gain an Avalonia dependency).
 - **Package names carry `Avalonia`; namespaces never do.** Lottie and DevTools are packaged as `MonacoLabs.Presto.Avalonia.Lottie`/`.DevTools`, with namespaces `MonacoLabs.Presto.Lottie`/`.DevTools`. Reason: on NuGet the package name is how people find the adapter for their UI framework; an adapter for another framework would be `MonacoLabs.Presto.<Framework>`, again in the `MonacoLabs.Presto` namespace.
 - **Folders match the root namespace, not the project name.** In `MonacoLabs.Presto.Avalonia/`, `Controls/` holds `MonacoLabs.Presto.Controls`. Reason: the "folder structure equals namespace" convention is read relative to each project's `RootNamespace`.
 - **Both packages target `net10.0` only.** Reason: the one blocker for older frameworks is `OrderedDictionary<TKey, TValue>` (.NET 9+); multi-targeting would mean carrying a hand-written replacement on a framework no test runs.
 - **Code that needs nothing from Avalonia lives in the core.** A bridge type whose implementation uses only core types moves to the core, unless a bridge feature defines its meaning (as Recipes defines `MotionTokens`, or compositor layout transitions define `LayoutMotion`). Reason: core users get it, its tests run without a headless platform, and `using MonacoLabs.Presto;` reaches it.
 - **Every trigger, recipe and control states its reduced-motion form** in its spec, and its tests run under both settings. Reason: four places once ignored `ReducedMotion` and samples worked around them; stating the reduced form up front stops new holes.
-- The architecture rules (the core knows nothing about Avalonia, single-threaded engines, faithful port first) are in [CLAUDE.md](../CLAUDE.md).
+- The architecture rules (the core knows nothing about Avalonia, single-threaded engines, a timing model changed only deliberately) are in [CLAUDE.md](../CLAUDE.md).
 
-## 6. Samples
+## 5. Samples
 
 Two samples dogfood the library: the gallery, one page per feature, and Tempo, one app built with it. No spec owns sample code, so their decisions live here. One rule covers both:
 
@@ -121,7 +92,7 @@ Two samples dogfood the library: the gallery, one page per feature, and Tempo, o
 ### Gallery
 
 The gallery (`samples/PrestoSample*`) is the dogfooding surface and the manual acceptance target. The gallery's decisions:
-- **Reference pages stay isolated; multi-feature demos are separate.** The Reference section (`Pages/`) keeps one page per anime.js documentation area, in the dictionary/indexer form with string keys, so it reads side by side with the anime.js docs; those pages ignore the reduced-motion switch, as anime.js has none, and link their Builder twin. Showcase (`Showcase/Pages/`) holds the multi-feature demos; Builder pages use only the builder, never the params indexer, and existing Reference and Showcase pages were not converted to it.
+- **Reference pages stay isolated; multi-feature demos are separate.** The Reference section (`Pages/`) keeps one page per Presto feature, ordered by the spec areas (timing, animation and values, timeline, stagger, eases, then the bridge), in the dictionary/indexer form with string keys, so the params API sits next to its builder twin; a page with a twin shows that API's raw behavior and ignores the reduced-motion switch, and the twin shows the reduced-motion-aware form. Showcase (`Showcase/Pages/`) holds the multi-feature demos; Builder pages use only the builder, never the params indexer, and existing Reference and Showcase pages were not converted to it.
 - **Printed code is the code that ran**, captured at compile time (`Snippet.Of`, and the `PrestoSample.SnippetGenerator` regions), never a hand-copied string. Reason: copies drift silently.
 - **The nav is one `TreeView` of sections, in one `GalleryNav`.** Reason: two `ListBox`es bound to one `SelectedItem` fight, the one not containing the selection writing `null` back.
 - **The shell is adaptive at a 720 DIP width breakpoint.** At 720 and wider it keeps the sidebar master-detail; narrower it is a two-level stack, Home (the nav at full width) and Page (top bar with back button and an About toggle). Width decides, not platform. Reason: desktop is the acceptance target and jumping between pages from an always-visible list is fastest there, while the Browser head runs on phones and desktops, tablets rotate, and a width rule is testable on Desktop (`--size 400x850`) and headlessly; 720 is the 240 px sidebar plus the narrowest content column (~480) that still reads as a page, so portrait tablets keep the sidebar. Rejected: page-based navigation at every width; `OperatingSystem.IsAndroid()`-style checks; container-query styles alone, which can restyle but not move the nav.
@@ -135,7 +106,7 @@ The gallery (`samples/PrestoSample*`) is the dogfooding surface and the manual a
 - **The reduced-motion switch sets `ReducedMotion` only**, not `ReduceAll`.
 - **Showcase pages share a kit**: `ShowcasePage` owns a `ControlScope` reverted on detach, and data comes from seeded `Datasets`, so every run looks the same.
 - **Page patterns stay page code where no library primitive fits.** Liquid's squashing pill and the Swipe deck's card throw stay in the pages; Dashboard's donut and sparkline, Loaders' ring and counter, MorphLab's signature and TitleSequence's monogram stay off the draw recipes. Reason: Liquid's edges lead and trail on different durations and squash vertically, which `Stretch` cannot express; the deck is a card throw, not a row action; the draw cases are not direct swaps (scrubbable timelines, keyframe loops, a `ProgressBar`, a timeline the reduced form would shorten).
-- **The Animatable reference page stays hand-built**, and the `Magnetic` demo lives on the Micro-interactions page. Reason: `Pages/` mirrors the anime.js documentation, and that page demonstrates `Animatable.Set` itself; its follower also maps the pointer to stage coordinates and holds on leave, which is neither proximity nor the pointer sources' absent-reads-0 rule.
+- **The Animatable reference page stays hand-built**, and the `Magnetic` demo lives on the Micro-interactions page. Reason: that page demonstrates `Animatable.Set` itself; its follower also maps the pointer to stage coordinates and holds on leave, which is neither proximity nor the pointer sources' absent-reads-0 rule.
 - **GalleryFlip stays imperative**, the `AnimateLayout` counterpart to Storefront. Reason: converting it to `Presence` would make it a near-copy of Storefront's grid.
 - **The Photo viewer is its own Showcase page** (pinch, bounds, 90° snap, double-tap, Ctrl+wheel, a filmstrip `Carousel`), linked from the Draggable page, not a fifth Gestures tile. Reason: the Gestures page's first row of four tiles is full at its width; on desktop the `Carousel` swipes on touch and pen only, so photos change through the filmstrip.
 - **The Gestures drag-to-open card is a second, full-width row**, not a narrower fifth column. Reason: its staggered rows need a wider card than a quarter column gives, and a fifth column would squeeze the first four tiles.
@@ -184,7 +155,7 @@ Tempo (`samples/Tempo/`, usage in its [README](../samples/Tempo/README.md)) is a
 - **The backdrop drifts on the compositor.** Four soft blobs (`accent-bg` borders under a radial `OpacityMask`, so they recolor with the mode like the backdrop gradient) drift on 21–39 s alternating loops, one `TempoMotion.BlobDrift` builder giving each blob its own offset, scale and period through function values. `ShellView` starts it with `AnimateOnCompositor` on load, reverts it on unload, and restarts it when the motion setting changes, since the reduced form (no properties, no loop) is resolved at start. Reason: an ambient loop that runs all day must cost no UI-thread work, and X, Y and Scale are all the compositor carries. Rejected: a `CompositorScene` drawing the blobs (they would stop following `Motion.State`, which only reaches controls).
 - **Glass needs the moving backdrop.** Panels and stats cards use a translucent fill (not element `Opacity`, so content stays opaque), a 1 px top-lit border and a soft shadow. Reason: translucency over a flat fill is invisible, so the glass comes with the drifting blobs.
 - **The window asks for Mica, then AcrylicBlur, and paints its own base.** `MainWindow` hints `Mica, AcrylicBlur, None`, the window style clears Semi's `WindowDefaultBackground` to transparent, and the shell's root grid paints a 90% `#121318` base under the blobs (the intro paints its own opaque background). Outcome of the "Window material on Semi" question: Windows 11 grants Mica (`ActualTransparencyLevel` reads `Mica`), which tints faintly through the base; where the hint is refused the base composites over black, a difference of a few RGB levels, so the look is the same. Reason: an opaque base would hide the material entirely, a fully transparent one would leave the blobs over black or the wallpaper.
-- **Reduced motion is a first-class setting.** System (the default) follows the OS through `FollowSystemReducedMotion`; Full and Reduced set the flag, applied at startup before the window exists and live on every change. Reduced, motion becomes fades, loops stop and the burst is skipped, but the colors still change. Reason: the project-wide rule (§5) applies to apps too.
+- **Reduced motion is a first-class setting.** System (the default) follows the OS through `FollowSystemReducedMotion`; Full and Reduced set the flag, applied at startup before the window exists and live on every change. Reduced, motion becomes fades, loops stop and the burst is skipped, but the colors still change. Reason: the project-wide rule (§4) applies to apps too.
 - **MVVM with CommunityToolkit.Mvvm**, compiled bindings and `ObservableCollection` task lists, so `Reorder` needs no command. Reason: the idiomatic Avalonia stack, already centrally managed.
 - **No assets beyond fonts.** Icons are `PathGeometry` resources. Reason: no licensing questions, and morphable icons need paths anyway.
 - **The pages swap in a `TransitioningContentControl`, not a `Carousel`.** Focus and Stats, plus Tasks in compact, swap in one `PageHost` with `TempoMotion.PageSwap` (`PageSharedAxis` along X) in both arrangements, its direction from `MainViewModel.IsBack` by the bottom bar's order, Tasks < Focus < Stats. Going back plays an explicit mirrored pair (`BackEnter`/`BackExit`) rather than the forward pair reversed, so the back motion eases out too. Reason: a carousel only hides the view it is not showing, so the stats bars' `Presence.Arrive` stagger would never replay; a fresh view per swap does. Because each view is rebuilt, `FocusView` assigns the play icon's `IconToPause` states from `OnLoaded` (attaching while a `MorphTo` state holds throws).
@@ -207,3 +178,34 @@ Tempo (`samples/Tempo/`, usage in its [README](../samples/Tempo/README.md)) is a
 - **Time by tag reads each task's current tag.** `MainViewModel` hands `StatsViewModel` a lookup over the open and done tasks and calls `RefreshTags` when a tag or either list changes; focus on no task or on a deleted task counts as Untagged, and Week is the last 7 days. Reason: the log stores only task ids, and retagging a task should move its history with it.
 - **Plain-key shortcuts (Space, N, Del) are off while a text box has focus.** Reason: Avalonia runs window key bindings before the focused control sees the key, so typing would start the timer or delete a task.
 - **`tests/Tempo.Tests` runs headlessly on Semi's Dark theme and Tempo's styles**, without Tempo's `App`, with each window test in both motion modes; `MainWindowTests` runs the intro, handoff, tasks and a mode change end to end, and from the first-run sample data a tag filter, a session, a Stats visit, a clear and a restore, each at 1100×720 and at 360×780 (navigating by the switch or the bottom bar). Reason: as for the gallery, DevTools cannot send drags or key shortcuts, and `App` attaches the developer tools, which refuse a second attachment in one process.
+
+## Appendix: provenance (anime.js 4.5.0 → Presto)
+
+Where each anime.js 4.5.0 module went. The upstream checkout at `tools/anime/` (git-ignored; see [CLAUDE.md](../CLAUDE.md)) and the fixture generator at `tools/anime-fixtures/` are provenance tooling: read them when touching a ported module or its ported tests.
+
+| anime.js (`src/`) | Presto namespace / type | Project | Spec |
+|---|---|---|---|
+| `core/clock.js`, `core/globals.js`, `core/consts.js` | `MonacoLabs.Presto.Core.Clock`, `PrestoDefaults`, `Constants` | Core | [engine](specs/core/engine.md) |
+| `engine/engine.js` | `MonacoLabs.Presto.Engine` + `IFrameSource` | Core | [engine](specs/core/engine.md), [threading](specs/core/threading.md) |
+| `core/render.js` (`tick`, `render`) | `MonacoLabs.Presto.Core.Renderer` (static tick/render) | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
+| `timer/timer.js` | `MonacoLabs.Presto.Timer` | Core | [timer](specs/core/timer.md), [callbacks](specs/core/callbacks.md) |
+| `easings/*` | `Ease` delegate, `Eases`, `LinearStop`, `Spring`, `EaseParser` | Core | [eases](specs/core/eases.md), [ease-parser](specs/core/ease-parser.md), [spring](specs/core/spring.md) |
+| `core/values.js`, `core/units.js`, `core/colors.js`, `core/targets.js`, `core/helpers.js`, `adapters/registry.js` | `MonacoLabs.Presto.Values` (`TweenValue`, `ValueKind`, `PrestoColor`, `FunctionValue`), `MonacoLabs.Presto.Targets` (`ITargetAdapter`, `IPropertyAccessor`, `ObjectTargetAdapter`), registered through `Presto.Adapters`/`Presto.Codecs` | Core | [values](specs/core/values.md), [colors](specs/core/colors.md), [targets](specs/core/targets.md) |
+| `animation/animation.js`, `composition.js`, `additive.js` | `MonacoLabs.Presto.Animation`, `Tween`, `Composition`, `Core.Additive` | Core | [animation](specs/core/animation.md), [keyframes](specs/core/keyframes.md), [composition](specs/core/composition.md) |
+| `core/transforms.js`, `core/styles.js` | Bridge only: `RenderTransformComposer`, property name resolution | Bridge | [transforms](specs/avalonia-bridge/transforms.md), [property-resolution](specs/avalonia-bridge/property-resolution.md) |
+| `timeline/timeline.js`, `position.js` | `MonacoLabs.Presto.Timeline`, `TimelinePosition` | Core | [timeline](specs/core/timeline.md) |
+| `utils/stagger.js` | `MonacoLabs.Presto.Stagger` (`Presto.Stagger(...)`) | Core | [stagger](specs/core/stagger.md) |
+| `utils/number.js`, `random.js`, `time.js`, `chainable.js` | `MonacoLabs.Presto.Utils` | Core | [utils](specs/core/utils.md) |
+| `utils/target.js` (`$`, `get`, `set`, `remove`, `cleanInlineStyles`) | `Presto.Get/Set/Remove` on objects; bridge overloads for controls. `$` has no equivalent (no selectors); `cleanInlineStyles` is unnecessary (animation-priority writes) | Core + Bridge | [presto](specs/core/presto.md), [control-helpers](specs/avalonia-bridge/control-helpers.md) |
+| `animatable/animatable.js` | `MonacoLabs.Presto.Animatable` | Core | [animatable](specs/core/animatable.md) |
+| `scope/scope.js` | `MonacoLabs.Presto.Scope`; bridge `ControlScope` (reverts when its control leaves the visual tree) | Core + Bridge | [scope-and-defaults](specs/core/scope-and-defaults.md), [control-helpers](specs/avalonia-bridge/control-helpers.md) |
+| `draggable/draggable.js` | `MonacoLabs.Presto.Draggable` | Bridge | [draggable](specs/avalonia-bridge/draggable.md) |
+| `events/scroll.js` | `MonacoLabs.Presto.ScrollObserver` (ScrollViewer) | Bridge | [scroll-observer](specs/avalonia-bridge/scroll-observer.md) |
+| `svg/*` (`morphTo`, `createDrawable`, `createMotionPath`) | Path/Geometry based shape helpers | Bridge | [shapes](specs/avalonia-bridge/shapes.md) |
+| `text/scramble.js` (`scrambleText`) | `Presto.ScrambleText` | Core | [scramble](specs/core/scramble.md) |
+| `text/split.js` (`splitText`) | `MonacoLabs.Presto.Text` | Bridge | [text](specs/avalonia-bridge/text.md) |
+| `layout/*` | Not ported as such: upstream's real width/height animation maps to `Animate.ContentSize`; compositor FLIP covers position and size moves | Bridge | [content-size](specs/avalonia-bridge/content-size.md), [layout-transitions](specs/avalonia-bridge/layout-transitions.md) |
+| `waapi/*` | `CompositorAnimation`: server-side `KeyFrameAnimation`s compiled from Presto params, plus `CompositorCanvas`/`CompositorScene`, a whole engine on the render thread (no upstream counterpart) | Bridge | [animation-thread](specs/avalonia-bridge/animation-thread.md), [compositor-scenes](specs/avalonia-bridge/compositor-scenes.md) |
+| `adapters/three.js` | not ported | — | — |
+
+Features with no upstream counterpart are listed in the spec indexes: [core](specs/core/index.md), [Avalonia bridge](specs/avalonia-bridge/index.md), [Lottie](specs/lottie/index.md), [DevTools](specs/devtools/index.md).

@@ -9,6 +9,6 @@ public sealed record GalleryPage(string Title, string Description, Func<Control>
     /// <summary>The name of the section holding this page, shown as the header's eyebrow.</summary>
     public string Section { get; init; } = "";
 
-    /// <summary>The title of the Builder page that redoes this anime.js mirror, which ignores reduced motion as anime.js does.</summary>
+    /// <summary>The title of the Builder page that redoes this reference page with reduced motion honored.</summary>
     public string? Twin { get; init; }
 }

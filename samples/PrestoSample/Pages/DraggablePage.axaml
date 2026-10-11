@@ -25,7 +25,7 @@
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Classes="caption" Text="Release" VerticalAlignment="Center" />
                 <ComboBox x:Name="ReleaseBox" Width="130" SelectedIndex="0" SelectionChanged="ReleaseChanged">
-                    <ComboBoxItem>Upstream</ComboBoxItem>
+                    <ComboBoxItem>Projection</ComboBoxItem>
                     <ComboBoxItem>Inertia</ComboBoxItem>
                 </ComboBox>
             </StackPanel>

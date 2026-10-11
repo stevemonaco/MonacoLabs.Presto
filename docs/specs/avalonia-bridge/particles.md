@@ -206,7 +206,7 @@ depends:
 - Stepping and drawing a formation of 500 particles pushed by a repel point allocates nothing per frame; `AddFormation` and `Retarget` allocate their buffers once.
   - Pinned by `BridgeAllocationTests.AFormationOf500StepsAndDrawsWithoutAllocating`.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

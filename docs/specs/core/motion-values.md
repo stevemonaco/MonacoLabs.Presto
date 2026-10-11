@@ -260,7 +260,7 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 - Building a graph, subscribing and the first `Velocity` read allocate.
 - Starting a settle allocates the spring follower, its target source and the task; stepping it allocates nothing per frame.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart; the API follows Motion.
 

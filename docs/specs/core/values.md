@@ -44,7 +44,7 @@ depends:
 
 ## Purpose
 
-`TweenValue` is the raw property value in the anime.js syntax: a number, a string (`"+=50"`, `"50%"`, `"1turn"`, `"#f00"`, `"blur(4px)"`), an array (from/to pair or keyframes), a `TweenParams`, a `FunctionValue`, or a typed value wrapped with `Of`. `ValueParser` decomposes such a value into a `DecomposedValue` (number, unit, color channels or complex numbers and strings), the animation reconciles a tween's two ends into one kind and unit, and the tween recomposes each frame into what the target receives. Colors are parsed by CORE-COLORS; typed values reach the parser through the codecs of CORE-TARGETS. CORE-ANIMATION builds on this to create tweens.
+`TweenValue` is the raw property value: a number, a string (`"+=50"`, `"50%"`, `"1turn"`, `"#f00"`, `"blur(4px)"`), an array (from/to pair or keyframes), a `TweenParams`, a `FunctionValue`, or a typed value wrapped with `Of`. `ValueParser` decomposes such a value into a `DecomposedValue` (number, unit, color channels or complex numbers and strings), the animation reconciles a tween's two ends into one kind and unit, and the tween recomposes each frame into what the target receives. Colors are parsed by CORE-COLORS; typed values reach the parser through the codecs of CORE-TARGETS. CORE-ANIMATION builds on this to create tweens.
 
 ## Requirements
 
@@ -89,7 +89,7 @@ depends:
   - Tests: `ValuesTests.ComplexWhiteSpaceValues`, `ValuesTests.ComplexMixedTypeValues`, `ValuesTests.ComplexCssFilterValues`
 - **CORE-VALUES-018** — When a complex string has no numbers, the parser shall produce empty `Numbers` and the whole string as the single entry of `Strings`.
   - Tests: `ValuesTests.ComplexValueWithoutNumbersKeepsTheWholeString`
-- **CORE-VALUES-019** — When a complex string contains an exponent, the parser shall match only a single exponent digit, as upstream does, so `"1e10"` splits into `1e1` and `0`.
+- **CORE-VALUES-019** (inherited) — When a complex string contains an exponent, the parser shall match only a single exponent digit (kept from upstream), so `"1e10"` splits into `1e1` and `0`.
   - Tests: `ValuesTests.ComplexExponentsKeepUpstreamSingleDigitQuirk`
 - **CORE-VALUES-020** — When the raw value is a `PrestoColor`, the parser shall produce a `Color` value with its unrounded channels.
   - Tests: `ValuesTests.PrestoColorDecomposesToColor`
@@ -159,7 +159,7 @@ depends:
 
 - **CORE-VALUES-047** — When a property or parameter value is a `FunctionValue`, the animation shall call it once per target with the target, its index and the target count.
   - Tests: `FunctionBasedValuesTests.BasicFunctionBasedValues`
-- **CORE-VALUES-048** — The animation shall coerce a function's result as upstream `getFunctionValue` does: `null` and NaN become 0, a string that converts to a number becomes that number, and anything else is kept.
+- **CORE-VALUES-048** — The animation shall coerce a function's result (upstream `getFunctionValue`): `null` and NaN become 0, a string that converts to a number becomes that number, and anything else is kept.
   - Tests: `TweenValueTests.CoerceFollowsGetFunctionValue`, `TweenValueTests.CoerceKeepsObjects`, `FunctionBasedValuesTests.FunctionBasedStringValuesAreConvertedToNumbers`
 - **CORE-VALUES-049** — When a function returns a from/to pair, the animation shall use both ends of it for that target.
   - Tests: `FunctionBasedValuesTests.FunctionBasedValuesReturningFromToArrayValues`
@@ -180,7 +180,7 @@ depends:
 
 ## Edge cases
 
-- Any character before `=` in the second position is taken as an operator (`"a=5"` multiplies, since every operator other than `+` and `-` multiplies), as upstream.
+- Any character before `=` in the second position is taken as an operator (`"a=5"` multiplies, since every operator other than `+` and `-` multiplies); kept from upstream.
 - `"+="` with nothing after it is the relative number 0.
 - Strings that .NET cannot parse but JavaScript can (`"0x10"`) are not numbers here; they decompose as complex values.
 - A `"rgb(...)"` string whose channels are not integers counts as a color by `IsColor` but does not parse, and becomes opaque black (CORE-COLORS).
@@ -201,7 +201,7 @@ depends:
 - Decomposition allocates (arrays, regex matches) and runs when tweens are built or refreshed, not per frame.
 - Per frame, a number or unit tween into a numeric member allocates nothing (`AllocationTests.NumberTweenTicksWithoutAllocating`); a frame written as a string (unit, complex, untyped targets) allocates that string, and an untyped target boxes the number.
 
-## Deviations from anime.js
+## Provenance
 
 - Units other than `deg`, `rad` and `turn` are adopted 1:1 rather than measured against a DOM clone; there is no layout to measure.
 - Upstream converts from any angle unit (yielding NaN for a non-angle target) and leaves the value's type unchanged through a no-op comparison; here only angle-to-angle pairs are scaled and the value always becomes a `Unit` value.
@@ -212,9 +212,9 @@ depends:
 
 ## Decisions
 
-- **`TweenValue` is a small struct holding the raw value.** It converts implicitly from numbers, strings, `TweenParams`, `FunctionValue` and the other value types, takes any other object through `Of`, and is decoded by the target adapter against the property's current value. Reason: it mirrors upstream `values.js`.
+- **`TweenValue` is a small struct holding the raw value.** It converts implicitly from numbers, strings, `TweenParams`, `FunctionValue` and the other value types, takes any other object through `Of`, and is decoded by the target adapter against the property's current value. Reason: a property value of any accepted shape is then written as a literal in the params initializer, and only the adapter knows the property's type to decode it against.
 - **`FunctionValue` takes three arguments.** It is `(target, index, total)`; upstream's fourth argument, the timeline being resolved in, lives on `Stagger`, and its `prevTween` argument is not ported. Reason: only stagger positions use the timeline argument, and `prevTween` belongs to upstream's WAAPI and draggable code.
-- **Non-numeric strings keep upstream's complex-value path.** A string that is not a number stays a complex value and writes its end string from the first frame; strings are never routed to `DiscreteCodec`. Reason: parity with anime.js 4.5.0.
+- **Non-numeric strings keep upstream's complex-value path.** A string that is not a number stays a complex value and writes its end string from the first frame; strings are never routed to `DiscreteCodec`. Reason: a string with embedded numbers (`"blur(4px)"`, `"10px 20px"`) interpolates them on that path, and one rule for every string keeps its handling from depending on whether it holds a number.
 - **No CSS-specific value handling.** There is no `px`/`em`/`rem` conversion, no CSS variables and no DOM attribute animation; numbers, angle units and percentages pass through for the target adapters to interpret. Reason: the targets are UI object properties, not the DOM.
 - **Codecs can reconcile ends of different shapes.** See CORE-TARGETS.
 - **Inertia is a to-value, shaped like Spring is an ease.** See CORE-INERTIA.

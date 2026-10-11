@@ -103,9 +103,9 @@ public partial class MorphClockPage : ShowcasePage
     private async Task Send()
     {
         ShowSubmit(SubmitState.Busy);
-        await Presto.CreateTimer(new() { Duration = 1100 });
+        await Task.Delay(1100);
         ShowSubmit(SubmitState.Succeeded);
-        await Presto.CreateTimer(new() { Duration = 1400 });
+        await Presto.Delay(1400);
         ShowSubmit(SubmitState.Idle);
     }
 

@@ -1,6 +1,6 @@
 namespace MonacoLabs.Presto;
 
-/// <summary>Options for <see cref="Presto.Stagger"/>, mirroring anime.js's <c>StaggerParams</c>.</summary>
+/// <summary>Options for <see cref="Presto.Stagger"/>.</summary>
 public sealed record StaggerParams
 {
     /// <summary>The target the distances are measured from.</summary>

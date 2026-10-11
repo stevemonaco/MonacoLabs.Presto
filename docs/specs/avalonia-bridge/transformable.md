@@ -237,13 +237,13 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 
 - Pointer moves allocate nothing in the transformable itself; the budget is Avalonia's property change args plus `Animatable.Set` composing values (BRIDGE-TRANSFORMABLE-054).
 
-## Deviations from anime.js
+## Provenance
 
-- No upstream counterpart: anime.js has no multi-touch transform. It follows the idioms of the `Draggable` port (BRIDGE-DRAGGABLE).
+- No upstream counterpart: anime.js has no multi-touch transform. It follows the idioms of `Draggable` (BRIDGE-DRAGGABLE).
 
 ## Decisions
 
-- **A new `Transformable`, not an extended `Draggable`.** Pan, pinch-zoom and rotate live in their own type that shares Draggable's idioms (params record, a duration-0 `Animatable` over the shorthands, per-channel `VelocityTracker`s, an `Inertia` release, the same verbs and callback names) and includes one-finger pan, so it replaces `Draggable` wherever an element pans and zooms. Reason: `Draggable` is a parity port whose suite pins single-pointer behavior, its axes are independent, and zooming about a point needs translation and scale solved together; the name says it also pans. Rejected: extending `Draggable`; the name `Pinchable`.
+- **A new `Transformable`, not an extended `Draggable`.** Pan, pinch-zoom and rotate live in their own type that shares Draggable's idioms (params record, a duration-0 `Animatable` over the shorthands, per-channel `VelocityTracker`s, an `Inertia` release, the same verbs and callback names) and includes one-finger pan, so it replaces `Draggable` wherever an element pans and zooms. Reason: `Draggable`'s single-pointer behavior is pinned by its suite and relied on by `Pager`, its axes are independent, and zooming about a point needs translation and scale solved together; the name says it also pans. Rejected: extending `Draggable`; the name `Pinchable`.
 - **Raw pointers in parent space.** The transformable tracks up to two pointers itself on its trigger, reading positions in the target's parent space; a third is ignored. Reason: Avalonia's recognizer reads positions relative to the element being transformed, which moves with the transform, freezes its origin at the start so a two-finger pan cannot move the focal point, and ends the pinch when one finger lifts. Rejected: `PinchGestureRecognizer`.
 - **One state of four numbers over the shorthands.** The state is translation `X`/`Y` in parent units, scale and rotation in degrees clockwise, composed by the shorthands about `RenderTransformOrigin`; a user `RenderTransform` stays underneath, outside the math, and the docs say so. Reason: it matches the composer's order (scale and rotate about the origin, then translate).
 - **Focal-point zoom and rotate.** Every two-finger move and every wheel or trackpad step keeps the content point under the focal point fixed (`t′ = c − k·Rot(Δθ)·(c − t)`); for two fingers the focal point is the current midpoint, so its movement pans and one drag pans, zooms and rotates at once. Reason: zooming about a point needs translation and scale solved together.

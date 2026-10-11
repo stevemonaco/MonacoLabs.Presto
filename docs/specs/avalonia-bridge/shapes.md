@@ -119,9 +119,9 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 
 ### Defaults
 
-- **BRIDGE-SHAPES-025** — When `start` and `end` are not given, `CreateDrawable` shall put the shape into the `0 0` slice, drawing none of its stroke, as anime.js does.
+- **BRIDGE-SHAPES-025** — When `start` and `end` are not given, `CreateDrawable` shall put the shape into the `0 0` slice, drawing none of its stroke.
   - Tests: untested
-- **BRIDGE-SHAPES-026** — When `offset` is not given, both `CreateMotionPath` overloads shall start at the path's start and clamp to its ends, as anime.js does.
+- **BRIDGE-SHAPES-026** — When `offset` is not given, both `CreateMotionPath` overloads shall start at the path's start and clamp to its ends.
   - Tests: `ShapesTests.MotionPathTranslatesAndRotatesAlongTheContour`
 - **BRIDGE-SHAPES-027** (inherited) — When `autoRotate` is not given, the `Rotate` tween shall be the tangent angle unchanged.
   - Tests: `ShapesTests.MotionPathTranslatesAndRotatesAlongTheContour`
@@ -129,7 +129,7 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
   - Tests: untested
 - **BRIDGE-SHAPES-029** (inherited) — When `closed` is not given, the points overload of `CreateMotionPath` and `MotionPathGeometry` shall build an open path.
   - Tests: untested
-- **BRIDGE-SHAPES-030** — When `precision` is not given, `MorphTo` and `MorphPointCount` shall use .33, as anime.js does.
+- **BRIDGE-SHAPES-030** — When `precision` is not given, `MorphTo` and `MorphPointCount` shall use .33.
   - Tests: untested
 
 ## Invariants
@@ -161,7 +161,7 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 - A `"Draw"` tween ticks within the allocation budget, writing into one reused dash list (008).
 - A morph allocates a new `StreamGeometry` per frame by design, single or multi-contour alike; the motion path modifiers allocate nothing. Contour pairing, sampling and alignment happen once, when the morph resolves.
 
-## Deviations from anime.js
+## Provenance
 
 - `CreateDrawable` takes one `Shape` and returns it, not a selector and proxies; it always applies the initial slice, where upstream skips it once `pathLength` is already 1000.
 - Dashes are measured against `Geometry.ContourLength` divided by the stroke thickness, Avalonia's dash unit, instead of `pathLength="1000"`; upstream's `non-scaling-stroke` scale factor has no counterpart.
@@ -171,6 +171,7 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 
 ## Decisions
 
+- **Unset options draw from nothing along the path as given.** A drawable starts in the `0 0` slice and a motion path at its start, clamped to its ends (BRIDGE-SHAPES-025, 026). Reason: the common use is drawing a stroke on or moving along a path from its start, so the first tween needs no `from`. The morph precision .33 (030) is kept from upstream; no other reason recorded.
 - **The path is a uniform Catmull-Rom spline sampled at constant speed.** See CORE-MOTIONPATH.
 - **Rotation is degrees, not a switch.** See CORE-MOTIONPATH.
 - **The draw state follows the stroke thickness.** Dashes are written in units of the thickness at the time of the write, and Avalonia scales them by the thickness at render time, so a later thickness tween (`WriteIn`'s stroke thinning into the fill) left them `T/T₀` long and cut each contour into `T₀/T` dashes. Avalonia.Skia measures a stroked shape's bounds by dashing it and running path-ops `TightBounds` on the result, which grows superlinearly with the dash count (15 ms for one glyph at 20k points), so the render thread stalled for seconds as `T` neared 0. Reason: re-applying the slice on a thickness change keeps one dash and one gap per figure at any thickness, and fixes the slice shown, not only the cost. Rejected: tweening `Stroke` to transparent instead of the thickness, which loses the thinning effect and leaves the trap for every other caller; a text control drawing through Skia directly.

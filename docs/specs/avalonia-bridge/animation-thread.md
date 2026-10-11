@@ -56,7 +56,7 @@ depends:
 
 ## Purpose
 
-Runs an animation's transform and opacity on Avalonia's render thread, so it keeps moving while the UI thread is blocked: upstream's `waapi.animate`, compiled into composition `KeyFrameAnimation`s on each control's own composition visual. A paused Presto `Animation` over a scratch copy of the control's transform (the mirror) is both the sampler and the playback model. `AnimationThread` lets a caller pick the thread per call, with a silent UI-thread fallback. Layout transitions (BRIDGE-LAYOUT) share the per-property registry. Also specifies `PrestoAvalonia.AnimateOnCompositor`, `PrestoAvalonia.CanAnimateOnCompositor`, the `PrestoAvalonia.Animate` and `AnimateExtensions.Animate` overloads that take an `AnimationThread`, and `AnimateExtensions.AnimateOnCompositor`.
+Runs an animation's transform and opacity on Avalonia's render thread, so it keeps moving while the UI thread is blocked: the counterpart of upstream's `waapi.animate`, compiled into composition `KeyFrameAnimation`s on each control's own composition visual. A paused Presto `Animation` over a scratch copy of the control's transform (the mirror) is both the sampler and the playback model. `AnimationThread` lets a caller pick the thread per call, with a silent UI-thread fallback. Layout transitions (BRIDGE-LAYOUT) share the per-property registry. Also specifies `PrestoAvalonia.AnimateOnCompositor`, `PrestoAvalonia.CanAnimateOnCompositor`, the `PrestoAvalonia.Animate` and `AnimateExtensions.Animate` overloads that take an `AnimationThread`, and `AnimateExtensions.AnimateOnCompositor`.
 
 ## Requirements
 
@@ -190,15 +190,15 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 
 ### Defaults
 
-- **BRIDGE-THREAD-052** — When `Duration`, `Delay` or `Ease` is not set on `CompositorAnimationParams`, the compositor animation shall use `Engine.Current.Defaults`' value, as anime.js does.
+- **BRIDGE-THREAD-052** — When `Duration`, `Delay` or `Ease` is not set on `CompositorAnimationParams`, the compositor animation shall use `Engine.Current.Defaults`' value.
   - Tests: untested
-- **BRIDGE-THREAD-053** — When `Autoplay` is not set on `CompositorAnimationParams`, the compositor animation shall start according to `Engine.Current.Defaults.Autoplay`, as anime.js does.
+- **BRIDGE-THREAD-053** — When `Autoplay` is not set on `CompositorAnimationParams`, the compositor animation shall start according to `Engine.Current.Defaults.Autoplay`.
   - Tests: untested
-- **BRIDGE-THREAD-054** — When `PlaybackRate` is not set, `Speed` shall start at the engine's default playback rate (1), as anime.js does.
+- **BRIDGE-THREAD-054** — When `PlaybackRate` is not set, `Speed` shall start at the engine's default playback rate (1).
   - Tests: untested
 - **BRIDGE-THREAD-055** (inherited) — When the animation has no target, `Speed` shall read 1, `CurrentTime` 0 and `Began` false.
   - Tests: untested
-- **BRIDGE-THREAD-056** — When `muteCallbacks` is not passed, `Seek` shall fire callbacks, as anime.js does.
+- **BRIDGE-THREAD-056** — When `muteCallbacks` is not passed, `Seek` shall fire callbacks.
   - Tests: untested
 
 ## Invariants
@@ -231,34 +231,35 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 
 - Creating and every control call (pause, seek, speed…) allocate: they sample the mirror and build composition animations. Between calls the render thread runs Avalonia's key frame animations and the UI thread ticks only the mirror, on the core's allocation-free tick.
 
-## Deviations from anime.js
+## Provenance
 
 - Not CSS: tracks are composition `KeyFrameAnimation`s, and only `X`, `Y`, `Rotate`, `Scale*` and `Opacity` are carried, because only those have composition counterparts; anything else throws instead of falling back, since a silent fallback would defeat the point of the API. Skew, colors and other properties are UI-thread only.
 - Playback control is emulated by recompiling from the mirror, because a composition `KeyFrameAnimation` has no pause, seek, rate or readback; upstream sets `playbackRate` and `currentTime` on live WAAPI animations.
 - No `composition` or `persist` parameters: composition is always replace within the compositor registry, and finished tracks always persist.
 - No `commitStyles`, `forEach`, `currentTime` setter or exposed `animations`; `Seek` replaces the setter.
 - `OnComplete` receives the last-finishing target's mirror `Timer`, not the animation; `Then`'s callback receives the animation.
-- Exact single-segment tracks use `PrestoEasing` instead of a sampled `linear()`; everything else samples 100 points per iteration as upstream's `easingToLinear`.
+- Exact single-segment tracks use `PrestoEasing` instead of a sampled `linear()`; everything else samples 100 points per iteration, the count upstream's `easingToLinear` uses.
 - `AnimationThread`, `ThreadedAnimation` and `CanAnimateOnCompositor` have no upstream counterpart: a browser picks the thread for WAAPI itself, while here the caller chooses (see "The thread is an argument on bridge entry points").
 
 ## Decisions
 
-- **Compositor animations are a reduced, separate type.** As upstream's `waapi.animate` is, they have their own registry and carry only `X`, `Y`, `Rotate`, `Scale*` and `Opacity`, and they compile by sampling a paused mirror Presto `Animation` on a scratch object (upstream's `linear()` approach, 100 samples per iteration), a single two-value tween compiling exactly through `PrestoEasing`; `RotationAngle` is radians on the wire and degrees at the API. Reason: the mirror's `Seek` is exact anime.js math, so keyframes, eases, modifiers, springs and staggers come for free; background color could only be a child visual drawn above the control's content, so it stays UI-thread work. Rejected: keeping every animation on the UI thread (the earlier position, replaced once a busy indicator had to survive a blocked UI thread); writing composition properties directly while keeping Presto's clock, because per-frame sync overwrites them on a managed visual.
+- **Compositor animations are a reduced, separate type.** Like upstream's `waapi.animate`, they have their own registry and carry only `X`, `Y`, `Rotate`, `Scale*` and `Opacity`, and they compile by sampling a paused mirror Presto `Animation` on a scratch object (100 samples per iteration), a single two-value tween compiling exactly through `PrestoEasing`; `RotationAngle` is radians on the wire and degrees at the API. Reason: the mirror's `Seek` is Presto's own timing math, so keyframes, eases, modifiers, springs and staggers come for free and the render thread plays what the UI thread would; 100 samples are enough linear segments that a sampled ease reads as its curve; background color could only be a child visual drawn above the control's content, so it stays UI-thread work. Rejected: keeping every animation on the UI thread (the earlier position, replaced once a busy indicator had to survive a blocked UI thread); writing composition properties directly while keeping Presto's clock, because per-frame sync overwrites them on a managed visual.
 - **Unsupported properties throw rather than fall back.** A property or setting with no composition counterpart throws `NotSupportedException` from `AnimateOnCompositor`, including a builder setting it cannot honor. Reason: a silent UI-thread fallback, or a silently dropped setting, would defeat the point of the API. Rejected: silent fallback and silent dropping; fallback is opt-in through `PreferCompositor` instead.
 - **Only pure eases cross to the render thread.** A spring compiles through its pure solver, never `Spring.Ease`. Reason: the render thread calls the ease per frame, and `Spring.Ease` mutates its completion state as it is sampled.
-- **Delay holds the from value.** `Delay` maps to the track delay with the initial value set before it. Reason: anime.js renders `from` at creation.
+- **Delay holds the from value.** `Delay` maps to the track delay with the initial value set before it. Reason: a UI-thread animation renders its `from` value at creation, so the compositor form looks the same through the delay.
 - **Reversal is compiled into the key frames.** A reversed run compiles its key frames mirrored in time, eases inverted, and plays them `Normal` (`Alternate` when it alternates), its delay holding the forward end it starts on. Reason: Avalonia's key frame instance returns the last frame once a run ends, in any direction, and the first during a delay, so `PlaybackDirection.Reverse` ended on the forward end values. Rejected: writing the end value from the mirror on completion, which lands up to a frame late and would still flash.
 - **The pivot follows `RenderTransformOrigin`.** The `CenterPoint` is an expression built from the origin at compile time: a relative origin scales with the control's size, an absolute one is constant, and an origin change restarts it. Reason: a fixed center (the earlier `Size * 0.5`) made a bottom-origin ball squash about its middle while UI-thread shorthands honor the origin; an expression keeps a relative origin correct across resizes, and keeping the absolute origin an expression lets start, restart and stop share one `CenterPoint` animation.
 - **Opacity is held and playback is emulated by recompiling.** `Visual.Opacity` is held by an `Animation`-priority binding for the life of a compositor opacity track; `Pause`, `Resume`, `Seek`, `Reverse` and speed stop and recompile from the mirror's position (rotating the cycle for infinite loops), and the mirror supplies time, progress, callbacks and `Then`, up to one frame apart from the render thread. Reason: the server animation dies the moment `Visual.Opacity` changes, and `KeyFrameAnimation` has no pause, seek, rate, completion event or readback. Rejected: measuring and compensating the skew through `CompositionBatch.Processed`, not worth it until the skew is visible.
-- **One owner per composition property.** Compositor animations register per (visual, composition property) with replace semantics, as `waapi/composition.js` does, `Presto.Remove(control)` reaches them, and layout transitions share the registry. Mixing a UI-thread transform shorthand and a compositor animation on one control is unsupported and only gets a Debug warning. Reason: the two compose multiplicatively on the server, and blend composition and per-frame callbacks do not exist there.
+- **One owner per composition property.** Compositor animations register per (visual, composition property) with replace semantics, as `waapi/composition.js` does, `Presto.Remove(control)` reaches them, and layout transitions share the registry. Mixing a UI-thread transform shorthand and a compositor animation on one control is unsupported and only gets a Debug warning. Reason: the two compose multiplicatively on the server, and additive composition and per-frame callbacks do not exist there.
 - **The thread is an argument on bridge entry points.** `AnimationThread { UIThread, Compositor, PreferCompositor }` is taken by `PrestoAvalonia.Animate` and `control.Animate`, which return a `ThreadedAnimation`; `PreferCompositor` falls back when `CanAnimateOnCompositor` fails, and `Compositor` throws as `AnimateOnCompositor` does. XAML entry points stay on the UI thread, and `PrestoPageTransition.Thread` defaults to `PreferCompositor`. Reason: the core stays Avalonia-free, and `Presto.Animate` could not honor a setting it cannot act on. Rejected: a setting on the params or the builder.
 - **The render thread is named after the compositor.** The API says `Compositor` (`AnimateOnCompositor`, `CompositorAnimation`, `AnimationThread.Compositor`, `Thread="PreferCompositor"` in XAML) and `ThreadedAnimation.OnCompositor` reports the thread obtained. Reason: consistency with the existing compositor types, so that "render thread" in prose only ever means where frames are drawn; "Prefer" signals that fallback is expected, not an error.
 - **Browser's blocked-UI-thread limitation is documented, not worked around.** Browser runs compositor animations but its render loop is on the UI thread, so they stop with it; nothing is built for that. The Avalonia internals the compositor path rests on (client setter equality guard, a set removing the running server animation, `Offset + Translation` composition) are pinned by `CompositorAnimationTests.InvalidateVisualDoesNotStopACompositorFade`, which is re-run on every `AvaloniaVersion` bump. Reason: single-threaded WebAssembly has no separate render thread, and the internals are not public contract.
+- **Unset settings follow the engine defaults.** Without `Duration`, `Delay`, `Ease`, `Autoplay` or `PlaybackRate`, a compositor animation takes them from `Engine.Current.Defaults`, and `Seek` without `muteCallbacks` fires callbacks (BRIDGE-THREAD-052 to 054, 056). Reason: the same params then time and start alike on either thread, so `PreferCompositor`'s fallback changes only where the animation runs, and `Seek` behaves as `Timer.Seek` does (CORE-TIMER).
 - **Render-thread work is a separate API named "Compositor", and a scene owns its engine.** See BRIDGE-SCENES.
 
 ## Non-goals
 
-- Timelines on the compositor; per-frame callbacks; blend composition; reading live server values back (`Get` returns the UI-side value).
+- Timelines on the compositor; per-frame callbacks; additive composition; reading live server values back (`Get` returns the UI-side value).
 - A thread mode on XAML entry points (`Animate.OnAttached`, `Presence`, recipes): they stay on the UI thread (see "The thread is an argument on bridge entry points").
 - Thousands of targets: each target gets its own mirror and composition animations.
 

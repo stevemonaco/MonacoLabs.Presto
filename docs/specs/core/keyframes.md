@@ -169,7 +169,7 @@ Keyframes animate a property through a sequence of values instead of straight to
 
 - Not on the tick path. Expansion and the builders allocate when the animation is built; a color slice ease is a closure evaluated per frame without allocating.
 
-## Deviations from anime.js
+## Provenance
 
 - `TweenKeyframesBuilder.Color` has no upstream counterpart: it is how a color tween follows a color-space path, since tweens carry no color space (CORE-COLORS).
 - The builders have no upstream counterpart: they are a discoverable C# spelling of the same parameter objects, beside the indexer (CORE-BUILDER).

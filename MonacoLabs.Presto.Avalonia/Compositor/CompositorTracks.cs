@@ -33,7 +33,7 @@ internal static class CompositorTracks
         // The setter validates the duration it is replacing rather than the one coming in, so the 1 ms floor is ours to hold.
         animation.Duration = track.Duration < s_minimumDuration ? s_minimumDuration : track.Duration;
         animation.DelayTime = track.Delay;
-        // anime.js renders the from value at creation, before the delay has elapsed.
+        // Shows the from value through the delay, as a UI-thread animation renders it at creation.
         animation.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
         animation.Direction = track.Direction;
         animation.IterationCount = track.IterationCount;

@@ -113,7 +113,7 @@ internal static class Renderer
                     var tweenAbsEndTime = tween._absoluteStartTime + tweenChangeDuration;
                     var tweenNextRep = tween._nextRep;
                     var tweenPrevRep = tween._prevRep;
-                    var tweenHasComposition = tweenComposition != Composition.None;
+                    var tweenHasComposition = tweenComposition != Composition.Overlap;
                     // The previous sibling stops writing at its truncated end, so this tween takes over the hold from that point.
                     var tweenPrevRepEndTime = tweenPrevRep != null ? tweenPrevRep._absoluteStartTime + tweenPrevRep._changeDuration : 0;
                     var tweenPrevRepIsCrossParent = tweenPrevRep != null && tweenPrevRep.Parent != tween.Parent;
@@ -240,8 +240,8 @@ internal static class Renderer
             var tn = tween._toNumbers;
             var channelEases = tween._channelEases;
             // RGB channels lerp in pseudo-linear space (square inputs, square-root result) to approximate gamma correct blending.
-            // Blended deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
-            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Blend;
+            // Additive deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
+            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Additive;
             ns[0] = tweenModifier(ColorLerp(fn[0], tn[0], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
             ns[1] = tweenModifier(ColorLerp(fn[1], tn[1], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
             ns[2] = tweenModifier(ColorLerp(fn[2], tn[2], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
@@ -254,9 +254,9 @@ internal static class Renderer
             number = double.NaN;
         }
 
-        if (tweenComposition != Composition.None) tween._number = number;
+        if (tweenComposition != Composition.Overlap) tween._number = number;
 
-        if (!internalRender && tweenComposition != Composition.Blend)
+        if (!internalRender && tweenComposition != Composition.Additive)
         {
             tween.Accessor.SetValue(tween.Target, number, tween);
             return true;

@@ -56,7 +56,7 @@ public partial class SubmitFlowPage : ShowcasePage
         .Width(200)
         .CornerRadius(new CornerRadius(8))
         .Background(Palette.Accent)
-        .Ease(Eases.Spring(bounce: .35, duration: 650))
+        .Ease(Eases.Spring(bounce: 0, duration: 650))
         .WhenReduced(reduced => reduced.Width(200).CornerRadius(new CornerRadius(8)).Background(Palette.Accent).Duration(0).Ease(Eases.None));
 
     private static readonly Func<Control, ParticleEffect> Celebrate = button => Recipes.Confetti(button, count: 80);
@@ -87,7 +87,7 @@ public partial class SubmitFlowPage : ShowcasePage
         Spinner.Animate(Show);
         var spin = Scope.Execute(_ => Spinner.Animate(Spin));
 
-        await Presto.CreateTimer(new() { Duration = 1400 });
+        await Task.Delay(1400);
 
         spin.Pause();
         Spinner.Animate(Hide);
@@ -96,7 +96,7 @@ public partial class SubmitFlowPage : ShowcasePage
         Submit.Animate(fail ? Shake : Pop);
         if (!fail) _ = Celebrate(Submit);
         await mark.Animate(DrawIn);
-        await Presto.CreateTimer(new() { Duration = 700 });
+        await Presto.Delay(700);
 
         await mark.Animate(Erase);
         Label.Text = fail ? "Try again" : "Send another";

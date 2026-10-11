@@ -22,8 +22,8 @@ SOFTWARE.
 
 ---
 
-MonacoLabs.Presto is a port of anime.js (https://github.com/juliangarnier/anime),
-which is used under the following license.
+MonacoLabs.Presto is inspired by and was initially ported from anime.js
+(https://github.com/juliangarnier/anime), which is used under the following license.
 
 The MIT License
 

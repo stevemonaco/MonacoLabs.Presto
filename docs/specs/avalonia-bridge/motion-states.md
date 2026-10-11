@@ -212,7 +212,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionConditionTests.SelectorPartsAreRejectedWithTheStateSetterEscapeHatch`
 - **BRIDGE-MOTION-060** (inherited) — When `StaggerChildren` is not set, followers shall not be staggered.
   - Tests: untested
-- **BRIDGE-MOTION-061** — When `StaggerFrom` is not set, the stagger shall run from the first follower, as anime.js's `stagger` does.
+- **BRIDGE-MOTION-061** — When `StaggerFrom` is not set, the stagger shall run from the first follower, as the core `Stagger` does (CORE-STAGGER).
   - Tests: `MotionOrchestrationTests.StaggerChildrenBeginsEachChildItsAmountAfterThePrevious`
 - **BRIDGE-MOTION-062** (inherited) — When `DelayChildren` is not set, followers shall get no added delay.
   - Tests: untested
@@ -250,7 +250,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 - No per-frame work of its own. Transitions allocate their animations and small grouping dictionaries; the settled and idle states allocate nothing per tick (`BridgeAllocationTests.AHoverAllocatesOnlyAtItsTransitions`).
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. The model follows Framer Motion's `whileHover`/`whileTap`/`whileFocus` and variants.
 
@@ -270,7 +270,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **Interrupted state springs restart at rest velocity.** States do not reuse `Animatable`'s velocity preservation. Reason: not recorded; only `Animatable` measures velocity. Rejected: a `MotionState.PreserveVelocity` option, or running states on an `Animatable`.
 - **Every state plays on the UI thread.** States never play through the compositor, even transform- and opacity-only ones. Reason: input arrives on the UI thread anyway, so the gain would be smoothness under load, not responsiveness; left out unless a sample shows the need.
 - **The tracker re-reads a state when the reduced flag has flipped.** A state whose values were read under the other setting is re-read at its next transition; a state already held keeps its values until left. Reason: not recorded.
-- **`Motion.State` propagates by explicit resolution.** A tracker without its own `Motion.State` reads the nearest visual ancestor's, re-resolved on attach and whenever an element sets or clears it; a source's change walks its descendants; classes still come from the follower, and a follower attached under an open source arrives snapped. Reason: parity with Framer Motion variants and Compose `updateTransition`, where `Motion.States` was per element. Rejected: Avalonia property inheritance.
+- **`Motion.State` propagates by explicit resolution.** A tracker without its own `Motion.State` reads the nearest visual ancestor's, re-resolved on attach and whenever an element sets or clears it; a source's change walks its descendants; classes still come from the follower, and a follower attached under an open source arrives snapped. Reason: one state on a parent then drives its subtree, as Framer Motion variants and Compose `updateTransition` do, where `Motion.States` was per element. Rejected: Avalonia property inheritance.
 - **Orchestration times only followers whose winners change, by layout position.** Followers are ordered by layout-slot origin with render transforms ignored and delayed by `DelayChildren` plus the core `Stagger(StaggerChildren, From = StaggerFrom)`; `BeforeChildren` and `AfterChildren` sequence the source; `StaggerFrom` is a property of its own; under `ReduceAll` all land at once. A state animation still in its delay when retargeted is removed, not trimmed. Reason: replace composition trims only begun tweens, so returning mid-stagger must never start a waiting child.
 - **Features that manage their own lifetimes pass `WhenDetached.Continue`.** See BRIDGE-HELPERS.
 - **Reduced motion is an app-set flag with a per-builder alternative.** See CORE-REDUCED.

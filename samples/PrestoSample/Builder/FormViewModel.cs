@@ -52,7 +52,7 @@ public sealed partial class FormViewModel : ObservableObject
     private async Task Submit()
     {
         State = FormState.Validating;
-        await Presto.CreateTimer(new() { Duration = 1200 });
+        await Task.Delay(1200);
         State = Email.Contains('@') ? FormState.Success : FormState.Error;
     }
 

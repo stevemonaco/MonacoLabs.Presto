@@ -60,7 +60,7 @@ public sealed class MorphClockPageTests
         var label = page.GetControl<TextBlock>("SubmitLabel");
 
         SceneHarness.Click(window, page.GetControl<Button>("SubmitButton"));
-        TestFrames.Tick((1100 + 700) / 16);
+        Assert.True(SceneHarness.WaitFor(() => label is { Text: "✓", Inlines: null or [] }));
         SceneHarness.AssertPlain(label, "✓");
         TestFrames.Tick((1400 + 700) / 16);
 

@@ -21,8 +21,8 @@ public partial class InterruptionPage : ShowcasePage
     private const double HoverLift = -14;
     private const double HoverScale = 1.12;
 
-    private static readonly Composition[] Modes = [Composition.Replace, Composition.None, Composition.Blend];
-    private static readonly string[] Names = ["replace", "none", "blend"];
+    private static readonly Composition[] Modes = [Composition.Replace, Composition.Overlap, Composition.Additive];
+    private static readonly string[] Names = ["replace", "overlap", "additive"];
 
     private readonly Canvas[] _panes;
     private readonly Border[] _pucks;
@@ -37,9 +37,9 @@ public partial class InterruptionPage : ShowcasePage
     {
         InitializeComponent();
         HowCode.Code = $"{Snippets.InterruptionRetarget}\n\n{Snippets.InterruptionCancelNewest}\n\n{Snippets.InterruptionHover}";
-        _panes = [ReplacePane, NonePane, BlendPane];
-        _pucks = [ReplacePuck, NonePuck, BlendPuck];
-        _counts = [ReplaceCount, NoneCount, BlendCount];
+        _panes = [ReplacePane, OverlapPane, AdditivePane];
+        _pucks = [ReplacePuck, OverlapPuck, AdditivePuck];
+        _counts = [ReplaceCount, OverlapCount, AdditiveCount];
         _trails = new Ellipse[Modes.Length][];
         for (var i = 0; i < Modes.Length; i++)
         {

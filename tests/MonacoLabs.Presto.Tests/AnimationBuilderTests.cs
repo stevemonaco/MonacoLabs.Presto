@@ -45,13 +45,13 @@ public sealed class AnimationBuilderTests : EngineTestBase
                 ["X"] = new TweenParams { From = -20, To = 0 },
                 ["Y"] = new TweenParams { To = 50, Duration = 200, Delay = 100, Ease = "outQuad" },
                 ["Opacity"] = new TweenParams { From = 0 },
-                ["Scale"] = new TweenParams { To = 2, Composition = Composition.Blend, Modifier = modifier, TextModifier = textModifier },
+                ["Scale"] = new TweenParams { To = 2, Composition = Composition.Additive, Modifier = modifier, TextModifier = textModifier },
             },
             Presto.Build()
                 .Property("X", from: -20, to: 0)
                 .Property("Y", 50, duration: 200, delay: 100, ease: "outQuad")
                 .Property("Opacity", from: 0)
-                .Property("Scale", 2, composition: Composition.Blend, modifier: modifier, textModifier: textModifier)
+                .Property("Scale", 2, composition: Composition.Additive, modifier: modifier, textModifier: textModifier)
                 .ToParams());
     }
 
@@ -123,7 +123,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             new()
             {
                 ["X"] = 1,
-                Duration = 400, Delay = delay, Ease = "outExpo", PlaybackEase = Eases.InQuad, Composition = Composition.None,
+                Duration = 400, Delay = delay, Ease = "outExpo", PlaybackEase = Eases.InQuad, Composition = Composition.Overlap,
                 Modifier = modifier, Id = "builder", Loop = 3, LoopDelay = 20, Alternate = true, Reversed = true,
                 Autoplay = false, FrameRate = 30, PlaybackRate = 2, Priority = 5,
                 OnBegin = onBegin, OnBeforeUpdate = onBeforeUpdate, OnUpdate = onUpdate, OnLoop = onLoop,
@@ -131,7 +131,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             },
             Presto.Build()
                 .Property("X", 1)
-                .Duration(400).Delay(delay).Ease("outExpo").PlaybackEase(Eases.InQuad).Composition(Composition.None)
+                .Duration(400).Delay(delay).Ease("outExpo").PlaybackEase(Eases.InQuad).Composition(Composition.Overlap)
                 .Modifier(modifier).Id("builder").Loop(3).LoopDelay(20).Alternate().Reversed()
                 .Autoplay(false).FrameRate(30).PlaybackRate(2).Priority(5)
                 .OnBegin(onBegin).OnBeforeUpdate(onBeforeUpdate).OnUpdate(onUpdate).OnLoop(onLoop)
@@ -283,7 +283,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
                 Keyframes = new Keyframe[]
                 {
                     new() { ["X"] = 100, ["Y"] = 50, Duration = 200, Ease = "outQuad" },
-                    new() { ["X"] = 0, Delay = 50, Composition = Composition.Blend, Modifier = modifier },
+                    new() { ["X"] = 0, Delay = 50, Composition = Composition.Additive, Modifier = modifier },
                 },
                 ["Scale"] = 2,
                 Duration = 600,
@@ -291,7 +291,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             Presto.Build()
                 .Keyframes(k => k
                     .Frame(f => f.Property("X", 100).Duration(200).Property("Y", 50).Ease("outQuad"))
-                    .Frame(f => f.Property("X", 0).Delay(50).Composition(Composition.Blend).Modifier(modifier)))
+                    .Frame(f => f.Property("X", 0).Delay(50).Composition(Composition.Additive).Modifier(modifier)))
                 .Property("Scale", 2)
                 .Duration(600)
                 .ToParams());

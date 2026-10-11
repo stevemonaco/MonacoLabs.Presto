@@ -9,7 +9,7 @@ internal static partial class SpecCatalog
     public static readonly string[] Sections =
     [
         "Purpose", "Requirements", "Invariants", "Edge cases", "Threading and lifetime",
-        "Reduced motion", "Allocation", "Deviations from anime.js", "Decisions", "Non-goals", "Open items",
+        "Reduced motion", "Allocation", "Provenance", "Decisions", "Non-goals", "Open items",
     ];
 
     public static readonly string[] ListKeys = ["namespaces", "sources", "types", "tests", "upstream", "depends"];

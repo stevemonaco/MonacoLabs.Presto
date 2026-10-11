@@ -49,7 +49,7 @@ depends:
 
 ## Purpose
 
-Port of anime.js `onScroll`: a `ScrollObserver` watches a control crossing enter and leave thresholds of its `ScrollViewer`, reports the crossings through callbacks and drives a `Link`ed timer, animation or timeline by playback methods or by seeking it to the scroll progress. On top of the port it adds GSAP ScrollTrigger's pin (with spacing) and snap. The observers of one scroller share a `ScrollContainer`, which `Scroll.Speed` parallax and `PrestoAvalonia.ScrollValue` also use (BRIDGE-SCROLL, BRIDGE-FOLLOW). Also specifies `PrestoAvalonia.OnScroll` and `PrestoAvalonia.RefreshScroll`.
+Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control crossing enter and leave thresholds of its `ScrollViewer`, reports the crossings through callbacks and drives a `Link`ed timer, animation or timeline by playback methods or by seeking it to the scroll progress. On top of that it adds GSAP ScrollTrigger's pin (with spacing) and snap. The observers of one scroller share a `ScrollContainer`, which `Scroll.Speed` parallax and `PrestoAvalonia.ScrollValue` also use (BRIDGE-SCROLL, BRIDGE-FOLLOW). Also specifies `PrestoAvalonia.OnScroll` and `PrestoAvalonia.RefreshScroll`.
 
 ## Requirements
 
@@ -225,7 +225,7 @@ Port of anime.js `onScroll`: a `ScrollObserver` watches a control crossing enter
 
 - Evaluation (`HandleScroll`) and pin updates allocate nothing per frame; thresholds are parsed into a shared static `DecomposedValue`. Not covered by an allocation test.
 
-## Deviations from anime.js
+## Provenance
 
 - `Link` replaces upstream's `autoplay: onScroll()`: the linked object is created paused and handed over, with the lifetimes still tied, because `TimerParams.Autoplay` is a `bool?` and cannot take an observer.
 - Upstream's `debug` overlay and the function forms of `axis`, `repeat`, `enter` and `leave` are not ported; `Refresh` re-reads the values instead.
@@ -235,7 +235,7 @@ Port of anime.js `onScroll`: a `ScrollObserver` watches a control crossing enter
 
 ## Decisions
 
-- **Pin, spacing and snap follow GSAP ScrollTrigger, layered on the ported observer.** They sit on top of `ScrollObserver` without changing its upstream behavior, so the ported tests pass unchanged; `Scroll.Speed` and `Scroll.Smooth` likewise follow ScrollSmoother (BRIDGE-SCROLL). Reason: anime.js 4.5.0 has no pinning, snapping, parallax or wheel smoothing.
+- **Pin, spacing and snap follow GSAP ScrollTrigger, layered on the ported observer.** They sit on top of `ScrollObserver` without changing its observer behavior, so the observer tests pass unchanged; `Scroll.Speed` and `Scroll.Smooth` likewise follow ScrollSmoother (BRIDGE-SCROLL). Reason: ScrollTrigger and ScrollSmoother are the established models for pinning, snapping, parallax and wheel smoothing, which the observer lacked.
 - **The data timer pauses with the wake window.** Reason: the engine then has no children and can stop the frame source while an idle observer is alive. Rejected: upstream's always-running data timer.
 - **The pin writes its own shorthand inside the `Offset` notification.** The pin owns the target's `"Y"` (or `"X"`) shorthand, so a linked animation should drive the target's descendants, and it is lifted while bounds are measured. Reason: written synchronously in the notification rather than on the next scroll tick, it never trails the content by a frame; it is lifted because `TranslatePoint` includes the render transform.
 - **`PinSpacing` is a trailing margin, not a spacer element.** It is recomputed from the margin the target had when pinning began. Reason: the tree is untouched, the margin lies outside `Bounds` so it never moves the thresholds it is sized from, and recomputing keeps a refresh from accumulating it. Rejected: GSAP's spacer element wrapping the target.

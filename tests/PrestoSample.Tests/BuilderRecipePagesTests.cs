@@ -298,11 +298,13 @@ public sealed class BuilderRecipePagesTests
         var window = SceneHarness.Show(page, 1280, 900);
         var spinner = page.GetControl<Control>("Spinner");
 
+        var answered = Answered(page);
         page.GetControl<Button>("Submit").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         TestFrames.Tick(40);
 
         Assert.Equal(0, Get(spinner, "Rotate"), 3);
 
+        Assert.True(SceneHarness.WaitFor(answered));
         TestFrames.Tick(280);
 
         Assert.True(page.Flow!.IsCompletedSuccessfully);
@@ -319,8 +321,10 @@ public sealed class BuilderRecipePagesTests
         var page = new SubmitFlowPage();
         var window = SceneHarness.Show(page, 1280, 900);
         page.GetControl<CheckBox>("FailBox").IsChecked = fail;
+        var answered = Answered(page);
 
         page.GetControl<Button>("Submit").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.True(SceneHarness.WaitFor(answered));
         TestFrames.Tick(320);
 
         Assert.True(page.Flow!.IsCompletedSuccessfully);
@@ -343,8 +347,10 @@ public sealed class BuilderRecipePagesTests
         Presto.Defaults.ReducedMotion = reduced;
         try
         {
+            var answered = Answered(page);
             page.GetControl<Button>("Submit").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            TestFrames.Tick(120);
+            Assert.True(SceneHarness.WaitFor(answered));
+            TestFrames.Tick(9);
 
             Assert.Equal(overlays, SceneHarness.ParticleOverlays(page).Length);
         }
@@ -362,7 +368,9 @@ public sealed class BuilderRecipePagesTests
         var page = new SubmitFlowPage();
         var window = SceneHarness.Show(page, 1280, 900);
 
+        var answered = Answered(page);
         SceneHarness.Click(window, page.GetControl<Button>("Submit"));
+        Assert.True(SceneHarness.WaitFor(answered));
         TestFrames.Tick(320);
         window.Content = null;
         TestFrames.Tick();
@@ -535,7 +543,7 @@ public sealed class BuilderRecipePagesTests
         Assert.Equal(FormState.Validating, model.State);
         Assert.True(double.IsPositiveInfinity(Assert.Single(Presto.GetAnimations(card, "Scale")).IterationCount));
 
-        TestFrames.Tick(80);
+        Assert.True(SceneHarness.WaitFor(() => model.State != FormState.Validating));
 
         Assert.Equal(FormState.Error, model.State);
         Assert.Single(Presto.GetAnimations(card, "X"));
@@ -549,7 +557,7 @@ public sealed class BuilderRecipePagesTests
         model.Email = "ada@example.com";
         Assert.Equal(FormState.Idle, model.State);
         model.SubmitCommand.Execute(null);
-        TestFrames.Tick(85);
+        Assert.True(SceneHarness.WaitFor(() => model.State != FormState.Validating));
 
         Assert.Equal(FormState.Success, model.State);
         Assert.Single(Presto.GetAnimations(card, "Y"));
@@ -649,6 +657,13 @@ public sealed class BuilderRecipePagesTests
     }
 
     private static double Scale(Control cell) => Get(cell, "Scale");
+
+    private static Func<bool> Answered(SubmitFlowPage page)
+    {
+        var submit = page.GetControl<Button>("Submit");
+        var resting = ((ISolidColorBrush)submit.Background!).Color;
+        return () => ((ISolidColorBrush)submit.Background!).Color != resting;
+    }
 
     private static double Get(Control control, string property) => Convert.ToDouble(Presto.Get(control, property, withUnit: false), CultureInfo.InvariantCulture);
 }

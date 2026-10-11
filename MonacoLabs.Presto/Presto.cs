@@ -5,17 +5,17 @@ using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto;
 
-/// <summary>Entry point mirroring the anime.js module exports: the engine singleton, global defaults and factory methods.</summary>
+/// <summary>Entry point: the engine singleton, global defaults and factory methods.</summary>
 public static class Presto
 {
     private static readonly ObjectTargetAdapter s_objectAdapter = new();
 
     [ThreadStatic] private static DecomposedValue? s_getValue;
 
-    /// <summary>The main engine, which timers run on unless <see cref="Engine.MakeCurrent"/> installed another (upstream <c>engine</c>); its <see cref="Engine.FrameSource"/> is what a host such as the Avalonia bridge replaces.</summary>
+    /// <summary>The main engine, which timers run on unless <see cref="Engine.MakeCurrent"/> installed another; its <see cref="Engine.FrameSource"/> is what a host such as the Avalonia bridge replaces.</summary>
     public static Engine Engine { get; } = new(new StopwatchFrameSource(), new PrestoDefaults());
 
-    /// <summary>The main engine's defaults, which new timers inherit and further engines start from, mirroring the upstream <c>defaults</c> object.</summary>
+    /// <summary>The main engine's defaults, which new timers inherit and further engines start from.</summary>
     public static PrestoDefaults Defaults => Engine.Defaults;
 
     /// <summary>Target adapters consulted in order; the built-in object and reflection adapter handles whatever none of them claims.</summary>
@@ -26,13 +26,41 @@ public static class Presto
     /// <remarks>Read from every engine's thread, so populate it before any animation starts — the Avalonia bridge registers its codecs from <c>PrestoAvalonia.EnsureInitialized</c>.</remarks>
     public static IDictionary<Type, IValueCodec> Codecs { get; } = new Dictionary<Type, IValueCodec>();
 
-    /// <summary>Creates a timer that fires callbacks over time without animating anything (upstream <c>createTimer()</c>).</summary>
+    /// <summary>Creates a timer that fires callbacks over time without animating anything.</summary>
     public static Timer CreateTimer(TimerParams? parameters = null) => Created(new Timer(parameters ?? new(), null, 0).Init());
+
+    /// <summary>
+    /// Waits <paramref name="duration"/> of the current engine's time, so unlike <see cref="Task.Delay(int)"/> the wait
+    /// follows <see cref="Engine.Speed"/> and a manually advanced frame source.
+    /// </summary>
+    /// <remarks>Cancel <paramref name="cancellationToken"/> on the engine's thread, as with every other control.</remarks>
+    public static Task Delay(double duration, CancellationToken cancellationToken = default)
+    {
+        if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
+        if (duration <= 0) return Task.CompletedTask;
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationTokenRegistration registration = default;
+        var timer = CreateTimer(new()
+        {
+            Duration = duration,
+            OnComplete = _ =>
+            {
+                registration.Dispose();
+                completion.TrySetResult();
+            },
+        });
+        registration = cancellationToken.Register(() =>
+        {
+            timer.Cancel();
+            completion.TrySetCanceled(cancellationToken);
+        });
+        return completion.Task;
+    }
 
     /// <summary>Creates a source <see cref="MotionValue"/> that derived values follow (Motion's <c>motionValue()</c>).</summary>
     public static MotionValue CreateMotionValue(double initial = 0) => new(initial);
 
-    /// <summary>Creates a timeline that sequences animations, timers and callbacks on a shared playhead (upstream <c>createTimeline()</c>).</summary>
+    /// <summary>Creates a timeline that sequences animations, timers and callbacks on a shared playhead.</summary>
     public static Timeline CreateTimeline(TimelineParams? parameters = null) => Created(new Timeline(parameters ?? new()).Init());
 
     /// <summary>Creates the paused per-property animations that <see cref="Animatable.Set(PropertyKey, double, double?, EaseValue?)"/> drives.</summary>
@@ -48,7 +76,7 @@ public static class Presto
     public static Stagger Stagger(TweenValue value, StaggerParams? parameters = null) => new(value, parameters ?? new());
 
     /// <summary>
-    /// Upstream <c>scrambleText</c>: the value of a string property (<c>["Text"] = Presto.ScrambleText()</c>) that
+    /// The value of a string property (<c>["Text"] = Presto.ScrambleText()</c>) that
     /// scrambles the target's text with random characters and settles it character by character.
     /// </summary>
     /// <remarks>
@@ -57,7 +85,7 @@ public static class Presto
     /// </remarks>
     public static ChainedFunctionValue ScrambleText(ScrambleTextParams? parameters = null) => TextScrambler.Create(parameters ?? new());
 
-    /// <summary>Animates the properties named in <paramref name="parameters"/> on every one of <paramref name="targets"/> (upstream <c>animate()</c>).</summary>
+    /// <summary>Animates the properties named in <paramref name="parameters"/> on every one of <paramref name="targets"/>.</summary>
     [OverloadResolutionPriority(1)]
     public static Animation Animate(object? targets, AnimationParams parameters) =>
         Created((Animation)new Animation(targets, parameters, null, 0).Init());
@@ -68,7 +96,7 @@ public static class Presto
     /// <summary>Starts a fluent, reusable <see cref="AnimationBuilder"/>, a typed alternative to the <see cref="AnimationParams"/> indexer.</summary>
     public static AnimationBuilder Build() => new();
 
-    /// <summary>Writes values to targets immediately; returns the zero duration animation that wrote them, as upstream <c>utils.set()</c> does.</summary>
+    /// <summary>Writes values to targets immediately; returns the zero duration animation that wrote them.</summary>
     [OverloadResolutionPriority(1)]
     public static Animation Set(object? targets, AnimationParams parameters) =>
         (Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume();

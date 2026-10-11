@@ -39,7 +39,7 @@ depends:
 
 ## Purpose
 
-An `Animatable` holds one paused `Animation` per declared property and retargets it imperatively: `Set("X", 100)` aims the property's tween from wherever it is now at the new value and resumes it, so a stream of values (a cursor, a scroll offset) is followed with that property's own duration and ease. It is the port of anime.js `createAnimatable`, extended with opt-in spring momentum (`PreserveVelocity`) and inertial coasting (`Fling`). The `AnimatableParams` indexer and every method that names a property take a `PropertyKey` (CORE-TARGETS). It builds on CORE-ANIMATION and is the engine of the bridge's followers and draggables. Also specifies `Presto.CreateAnimatable`.
+An `Animatable` holds one paused `Animation` per declared property and retargets it imperatively: `Set("X", 100)` aims the property's tween from wherever it is now at the new value and resumes it, so a stream of values (a cursor, a scroll offset) is followed with that property's own duration and ease. Initially ported from anime.js `createAnimatable`, it is extended with opt-in spring momentum (`PreserveVelocity`) and inertial coasting (`Fling`). The `AnimatableParams` indexer and every method that names a property take a `PropertyKey` (CORE-TARGETS). It builds on CORE-ANIMATION and is the engine of the bridge's followers and draggables. Also specifies `Presto.CreateAnimatable`.
 
 ## Requirements
 
@@ -172,7 +172,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 ### Defaults
 
-- **CORE-ANIMATABLE-053** — When `PreserveVelocity` is set on neither the property nor the params, a retargeted spring shall start from rest, as anime.js's springs do (see "Spring momentum on retarget is opt-in").
+- **CORE-ANIMATABLE-053** — When `PreserveVelocity` is set on neither the property nor the params, a retargeted spring shall start from rest (see "Spring momentum on retarget is opt-in").
   - Tests: untested
 
 ## Invariants
@@ -203,7 +203,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - A frame of a running property animation allocates nothing, momentum channels included (`AllocationTests.ChannelMomentumTicksWithoutAllocating`).
 - `Set` with an ease, momentum retargets and `Fling` allocate closures and springs per call; they are not on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - `animatable.x(100)` and `animatable.x()` are `Set("X", 100)` and `Get("X")`/`GetChannels("X")`, because C# has no per-property members (see CORE-BUILDER).
 - `PreserveVelocity` is not in anime.js, whose springs always start at rest; momentum carried across a retarget is what makes a spring feel physical (see "Spring momentum on retarget is opt-in").
@@ -219,7 +219,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **Out-and-back bounces fold into one ease.** When a fling's inertia becomes a degenerate bounce, `Fling` folds its two parts, out to the spring's first peak and back to the bound, into one ease. Reason: an animatable has one tween per target.
 - **A degenerate bounce goes out and back.** See CORE-INERTIA.
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
-- **Discrete values reject relative values and `Blend`.** See CORE-TARGETS.
+- **Discrete values reject relative values and `Additive`.** See CORE-TARGETS.
 - **The builder is the documented, typed spelling; the indexer stays beside it.** See CORE-BUILDER.
 - **Stretch keeps a root timer's offset.** See CORE-TIMER.
 - **Colors interpolate with premultiplied alpha.** See CORE-COLORS.
@@ -232,7 +232,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 ## Open items
 
-- The callbacks animation has the engine's default duration (1000 ms): a burst longer than that completes it early, raising `OnComplete` while properties still move and stopping `OnUpdate` (upstream does the same). Untested.
+- The callbacks animation has the engine's default duration (1000 ms): a burst longer than that completes it early, raising `OnComplete` while properties still move and stopping `OnUpdate` (kept from upstream). Untested.
 - Under `ReduceAll`, `Set` with a duration, momentum retargets and `Fling` animate rather than snap, and the callbacks animation completes on its first frame. Untested; decide whether an animatable should honor `ReduceAll` on every retarget.
 - `Fling(property, settings)` ignores `settings.Velocity` rather than using it as a fallback; documented only implicitly.
 - The channel `Set` neither consults nor clears a saved fling; the next scalar `Set` still restores the pre-fling eases.

@@ -4,8 +4,8 @@ using System.Globalization;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Parses anime.js ease strings such as <c>"inOutQuint"</c>, <c>"out(2)"</c> or <c>"outElastic(1.5, .5)"</c> into
-/// <see cref="Ease"/> delegates, caching every result by input string like upstream's <c>easesLookups</c>.
+/// Parses ease strings such as <c>"inOutQuint"</c>, <c>"out(2)"</c> or <c>"outElastic(1.5, .5)"</c> into
+/// <see cref="Ease"/> delegates, caching every result by input string.
 /// </summary>
 public static class EaseParser
 {
@@ -55,15 +55,15 @@ public static class EaseParser
     private const int Seed = 1;
 
     /// <summary>
-    /// Resolves an anime.js ease name (<c>linear</c>, <c>none</c>, <c>in</c>, <c>outQuad</c>, <c>inOutElastic</c>, ...) or its
+    /// Resolves an ease name (<c>linear</c>, <c>none</c>, <c>in</c>, <c>outQuad</c>, <c>inOutElastic</c>, ...) or its
     /// <see cref="Eases"/> PascalCase spelling, optionally with arguments in parentheses, to an <see cref="Ease"/>.
     /// <c>fromPath(...)</c> takes SVG path data for <see cref="Eases.FromPath"/>, <c>wiggle(10, anticipate)</c> a
     /// <see cref="WiggleType"/> name, <c>slowMo(.5, .7, true)</c> a yoyo flag and <c>expoScale(1, 10, outQuad)</c> an ease string.
     /// </summary>
     /// <remarks>
     /// Unknown names and the removed <c>steps(</c>, <c>irregular(</c>, <c>linear(</c> and <c>cubicBezier(</c> forms resolve to
-    /// <see cref="Eases.None"/>, as upstream. Unlike upstream, an empty argument list such as <c>"in()"</c> uses the factory
-    /// defaults rather than coercing to 0, and arguments on a fixed ease, unparsable arguments or unbalanced parentheses throw
+    /// <see cref="Eases.None"/>. An empty argument list such as <c>"in()"</c> uses the factory
+    /// defaults rather than 0, and arguments on a fixed ease, unparsable arguments or unbalanced parentheses throw
     /// <see cref="FormatException"/> instead of caching a broken ease. <c>rough</c> and <c>wiggle(n, random)</c> draw from a
     /// <see cref="Random"/> seeded with 1, so a string always parses to the same curve.
     /// </remarks>

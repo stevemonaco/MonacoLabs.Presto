@@ -67,7 +67,7 @@
                                 <StackPanel x:Name="TwinLine" Spacing="4"
                                             IsVisible="{Binding SelectedPage.Twin, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
                                     <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap"
-                                               Text="Ignores Reduced motion, as anime.js does. Builder version:" />
+                                               Text="Shows the raw API, so it ignores Reduced motion. Builder version:" />
                                     <HyperlinkButton Padding="0" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Left"
                                                      Content="{Binding SelectedPage.Twin}" Command="{Binding OpenCommand}"
                                                      CommandParameter="{Binding SelectedPage.Twin}" />

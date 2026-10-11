@@ -90,7 +90,7 @@ public sealed class OriginTests : EngineTestBase
             engine.Diagnostics.Enabled = true;
             try
             {
-                Presto.Animate(new TestObject(), new() { ["PlainValue"] = 100, Composition = Composition.Blend });
+                Presto.Animate(new TestObject(), new() { ["PlainValue"] = 100, Composition = Composition.Additive });
 
                 Assert.Equal("Additive", engine.Additive.Animation!.Origin);
             }

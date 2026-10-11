@@ -6,11 +6,11 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// One paused animation per property, retargeted imperatively. Port of anime.js <c>createAnimatable</c>: <c>Set("X", 100)</c>
+/// One paused animation per property, retargeted imperatively: <c>Set("X", 100)</c>
 /// aims the property's tween at a new value from wherever it currently is and resumes it, so a stream of values — a cursor
 /// position, a scroll offset — is followed with that property's own duration and ease.
 /// </summary>
-/// <remarks>C# has no per-property methods, so upstream's <c>animatable.x(100)</c> is <c>Set("X", 100)</c> and <c>animatable.x()</c> is <c>Get("X")</c>.</remarks>
+/// <remarks>C# has no per-property methods, so anime.js's <c>animatable.x(100)</c> is <c>Set("X", 100)</c> and <c>animatable.x()</c> is <c>Get("X")</c>.</remarks>
 public sealed class Animatable : IRevertible
 {
     private readonly List<object> _targets = [];
@@ -259,7 +259,7 @@ public sealed class Animatable : IRevertible
         {
             var eases = new Ease[tween._numbers.Length];
             var isColor = tween._valueType == ValueKind.Color;
-            var blended = tween._composition == Composition.Blend;
+            var additive = tween._composition == Composition.Additive;
             var (oldFromAlpha, oldToAlpha) = isColor ? (tween._fromNumbers[3], tween._toNumbers[3]) : (0, 0);
             var fromAlpha = isColor ? tween._modifier(tween._numbers[3]) : 0;
             var toAlpha = to.Count > 3 ? to[3] : fromAlpha;
@@ -268,13 +268,13 @@ public sealed class Animatable : IRevertible
                 var squared = isColor && i < 3;
                 var from = tween._modifier(tween._numbers[i]);
                 var target = i < to.Count ? to[i] : from;
-                var distance = squared ? SquaredTravel(from, target, fromAlpha, toAlpha, blended ? 0 : fromAlpha, from) : target - from;
+                var distance = squared ? SquaredTravel(from, target, fromAlpha, toAlpha, additive ? 0 : fromAlpha, from) : target - from;
                 Spring? thrown = null;
                 if (distance != 0)
                 {
                     var ease = tween._channelEases?[i] ?? tween._ease;
                     var (oldFrom, oldTo) = (tween._fromNumbers[i], tween._toNumbers[i]);
-                    var oldAlpha = !squared || blended ? 0 : Helpers.Lerp(oldFromAlpha, oldToAlpha, Pure(ease)(tween._currentTime / tween._updateDuration));
+                    var oldAlpha = !squared || additive ? 0 : Helpers.Lerp(oldFromAlpha, oldToAlpha, Pure(ease)(tween._currentTime / tween._updateDuration));
                     var traveled = squared ? SquaredTravel(oldFrom, oldTo, oldFromAlpha, oldToAlpha, oldAlpha, from) : oldTo - oldFrom;
                     var velocity = animation.Paused ? 0 : Velocity(tween, ease, traveled) * Constants.K * Globals.TimeScale / distance;
                     thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);

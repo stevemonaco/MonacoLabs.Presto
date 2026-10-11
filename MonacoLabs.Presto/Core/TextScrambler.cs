@@ -4,13 +4,13 @@ using System.Text;
 namespace MonacoLabs.Presto.Core;
 
 /// <summary>
-/// Port of anime.js <c>scrambleText</c>: the property value that fills a target's text with random characters and settles
+/// The property value that fills a target's text with random characters and settles
 /// them, one at a time along a reveal wave, on the text the scramble ends with.
 /// </summary>
 /// <remarks>
 /// The text the scramble starts from is read from the target's <c>Text</c> property whichever property the animation
-/// writes, as upstream reads <c>textContent</c>. Upstream's function-based <c>chars</c>, <c>text</c>, <c>duration</c> and
-/// <c>delay</c> and its <c>onChange</c> callback are not ported.
+/// writes. anime.js's function-based <c>chars</c>, <c>text</c>, <c>duration</c> and
+/// <c>delay</c> and its <c>onChange</c> callback have no equivalent.
 /// </remarks>
 internal static class TextScrambler
 {
@@ -85,7 +85,7 @@ internal static class TextScrambler
                 };
                 var indices = new int[animLength];
                 for (var i = 0; i < animLength; i++) indices[i] = i;
-                // The index breaks ties the way upstream's stable sort leaves them.
+                // The index breaks ties, since Array.Sort is not stable.
                 Array.Sort(indices, (a, b) =>
                 {
                     var distance = Math.Abs(a - reference).CompareTo(Math.Abs(b - reference));

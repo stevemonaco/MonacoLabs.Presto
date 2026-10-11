@@ -6,12 +6,12 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// A timer that drives tweens. Port of anime.js <c>JSAnimation</c>: the parameters are resolved into one <see cref="Tween"/>
+/// A timer that drives tweens: the parameters are resolved into one <see cref="Tween"/>
 /// per target and property, and the animation's own delay and duration are derived from the tweens that result.
 /// </summary>
 public sealed class Animation : Timer
 {
-    // Mutated in place and read back immediately, as upstream does, so building tweens allocates nothing extra.
+    // Mutated in place and read back immediately, so building tweens allocates nothing extra.
     [ThreadStatic] private static DecomposedValue? s_fromValue;
     [ThreadStatic] private static DecomposedValue? s_toValue;
     [ThreadStatic] private static DecomposedValue? s_originalValue;
@@ -41,7 +41,7 @@ public sealed class Animation : Timer
         if (reduceAll) IterationCount = 1;
 
         var properties = parameters.Keyframes is { } keyframes
-            // Upstream's generateKeyframes reads the engine defaults, not the parent timeline's.
+            // Keyframes fall back to the engine's default duration, not the parent timeline's.
             ? KeyframeExpander.Expand(keyframes, parameters, OwnerEngine.Defaults.Duration.AsDouble ?? 0)
             : (IReadOnlyList<KeyValuePair<string, TweenValue>>)parameters.Properties;
 
@@ -67,7 +67,7 @@ public sealed class Animation : Timer
         var tDelay = parameters.Delay ?? animDefaults.Delay;
         var tModifier = parameters.Modifier ?? animDefaults.Modifier;
         // A large target count defaults to no composition, which skips the sibling bookkeeping entirely.
-        var tComposition = parameters.Composition ?? (fastSet || Targets.Count >= Constants.K ? Composition.None : animDefaults.Composition);
+        var tComposition = parameters.Composition ?? (fastSet || Targets.Count >= Constants.K ? Composition.Overlap : animDefaults.Composition);
         var absoluteOffsetTime = _offset + (parent?._offset ?? 0);
         var groupTargets = allTargets ?? Targets;
         var total = groupTargets.Count;
@@ -111,8 +111,8 @@ public sealed class Animation : Timer
                     Func<TweenValue>? fromFunc = null;
 
                     var tweenComposition = key?.Composition ?? tComposition;
-                    if (codec is DiscreteCodec && tweenComposition == Composition.Blend) throw new ArgumentException($"'{declaredName}' is discrete, so it cannot be blended.", nameof(parameters));
-                    if (siblings == null && tweenComposition != Composition.None) siblings = Composer.GetTweenSiblings(target, propertyName);
+                    if (codec is DiscreteCodec && tweenComposition == Composition.Additive) throw new ArgumentException($"'{declaredName}' is discrete, so it cannot be additive.", nameof(parameters));
+                    if (siblings == null && tweenComposition != Composition.Overlap) siblings = Composer.GetTweenSiblings(target, propertyName);
                     // A timeline child chains off the tail sibling of the same timeline; anything else off its own previous keyframe.
                     var tailTween = siblings?._tail;
                     var chainedTween = parent != null && tailTween != null && tailTween.Parent.Parent == parent ? tailTween : prevTween;
@@ -171,7 +171,7 @@ public sealed class Animation : Timer
 
                     var prevSibling = prevTween;
 
-                    if (tweenComposition != Composition.None)
+                    if (tweenComposition != Composition.Overlap)
                     {
                         var nextSibling = siblings!._head;
                         // Overridden siblings are skipped so the chain resolves to the latest live value.
@@ -317,7 +317,7 @@ public sealed class Animation : Timer
                     };
                     inlineValue = null;
 
-                    if (tweenComposition != Composition.None) Composer.ComposeTween(tween, siblings!);
+                    if (tweenComposition != Composition.Overlap) Composer.ComposeTween(tween, siblings!);
 
                     // Pre-computed so a later function based value can chain off this tween's end value.
                     if (tween._discrete != null)

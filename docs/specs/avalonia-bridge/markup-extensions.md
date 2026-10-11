@@ -177,7 +177,7 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 
 - Not on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

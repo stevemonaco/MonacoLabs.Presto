@@ -186,7 +186,7 @@ depends:
 
 - Not on the tick path in the engine sense. Each auto-scroll frame does a `TranslatePoint`, possibly a scroll and layout pass, and a shorthand write; each step allocates one `ReorderMovingEventArgs`. The mover delegate is created once per items-source type by reflection.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 - Reorder owns the pointer instead of driving a `Draggable` per container, sharing only the arena's gate and `Draggable`'s edge-scroll formula, because a `Move` takes the capture a `Draggable` depends on (see Reorder owns the pointer).

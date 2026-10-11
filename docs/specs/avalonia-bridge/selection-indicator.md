@@ -145,7 +145,7 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 
 - Not on the tick path beyond the glide's own animation; a placement allocates nothing on the steady `LayoutUpdated` path except the `TreeView` part lookup after a selection change.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

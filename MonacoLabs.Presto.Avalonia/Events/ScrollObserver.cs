@@ -13,15 +13,15 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto.Events;
 
 /// <summary>
-/// Port of anime.js <c>onScroll</c>: watches a control crossing a <see cref="ScrollViewer"/>'s enter and leave
+/// Watches a control crossing a <see cref="ScrollViewer"/>'s enter and leave
 /// thresholds, reporting it through callbacks and, once <see cref="Link"/>ed to a timer, animation or timeline, driving
 /// that object either by playback methods or by seeking it to the scroll position.
 /// </summary>
 /// <remarks>
-/// Upstream's <c>debug</c> overlay draws DOM elements and is not ported, nor are the function forms of <c>axis</c>,
+/// anime.js's <c>debug</c> overlay draws DOM elements and has no counterpart, nor do the function forms of <c>axis</c>,
 /// <c>repeat</c>, <c>enter</c> and <c>leave</c> — the values are read again on every <see cref="Refresh"/> instead.
-/// Upstream also links through <c>autoplay: onScroll()</c>; here the linked object is created paused and handed to
-/// <see cref="Link"/>, which still ties the two lifetimes together. Upstream has no pin or snap;
+/// anime.js also links through <c>autoplay: onScroll()</c>; here the linked object is created paused and handed to
+/// <see cref="Link"/>, which still ties the two lifetimes together. anime.js has no pin or snap;
 /// <see cref="ScrollObserverParams.Pin"/> and <see cref="ScrollObserverParams.Snap"/> are GSAP ScrollTrigger's.
 /// </remarks>
 public sealed class ScrollObserver : IRevertible

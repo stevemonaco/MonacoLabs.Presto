@@ -49,7 +49,7 @@ public sealed class ParticleFieldSceneTests
     }
 
     [AvaloniaFact]
-    public async Task ABurstBlendsOntoTheDriftWhereTheSameKickWithReplaceNeverLands()
+    public async Task ABurstAddsOntoTheDriftWhereTheSameKickWithReplaceNeverLands()
     {
         var canvas = await ShowField();
 
@@ -63,13 +63,13 @@ public sealed class ParticleFieldSceneTests
         }));
         Assert.False(
             await SceneHarness.Pump(() => Read(canvas).Max(p => p.Drift.Length) > 30, rounds: 30),
-            "the replacing kick reached the particles, so the drift is not blending");
+            "the replacing kick reached the particles, so the drift is not additive");
         Assert.True(replacing is { Completed: true }, "the replacing kick never ran, so it proves nothing");
 
         canvas.Post(new ParticleFieldScene.BurstAt(Center));
         Assert.True(
             await SceneHarness.Pump(() => Read(canvas).Max(p => p.Drift.Length) > 40),
-            "the blended burst never moved the field");
+            "the additive burst never moved the field");
 
         Assert.True(
             await SceneHarness.Pump(() => Read(canvas).Max(p => p.Drift.Length) < 20, rounds: 240),
@@ -78,7 +78,7 @@ public sealed class ParticleFieldSceneTests
         await SceneHarness.Pump(() => false, rounds: 10);
         Assert.True(
             settled.Zip(Read(canvas)).Any(pair => pair.First.Drift != pair.Second.Drift),
-            "the drift did not outlive the burst that blended onto it");
+            "the drift did not outlive the burst that added onto it");
     }
 
     [AvaloniaFact]

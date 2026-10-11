@@ -89,7 +89,7 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
   - Tests: `EasesTests.CompositionMirrorsAndHalvesACustomEase`, `EasesTests.BuiltInEaseTypesAtMidpoint`
 - **CORE-EASES-015** — `OutIn(Ease f)` shall return `(1 − f(1 − 2t))/2` for t < 0.5 and `(f(2t − 1) + 1)/2` otherwise.
   - Tests: `EasesTests.BuiltInEaseTypesAtMidpoint`
-- **CORE-EASES-016** — The engine's default ease shall be `out(2)`, as upstream's is.
+- **CORE-EASES-016** — The engine's default ease shall be `out(2)`.
   - Tests: `EasesTests.DefaultEaseIsOutTwo`
 
 ### CubicBezier
@@ -223,11 +223,11 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 
 ### Defaults
 
-- **CORE-EASES-071** — When `power` is not set, `Out`, `InOut` and `OutIn` shall use power 1.68, as anime.js does.
+- **CORE-EASES-071** — When `power` is not set, `Out`, `InOut` and `OutIn` shall use power 1.68.
   - Tests: `EasesTests.BuiltInEaseTypesAtMidpoint`
-- **CORE-EASES-072** — When `steps` is not set, `Steps` shall use 10 steps, as anime.js does.
+- **CORE-EASES-072** — When `steps` is not set, `Steps` shall use 10 steps.
   - Tests: untested
-- **CORE-EASES-073** — When `length` and `randomness` are not set, `Irregular` shall use 10 stops and randomness 1, as anime.js does.
+- **CORE-EASES-073** — When `length` and `randomness` are not set, `Irregular` shall use 10 stops and randomness 1.
   - Tests: untested
 - **CORE-EASES-074** — When `wiggles` and `type` are not set, `Wiggle` shall swing 10 times with the `EaseOut` envelope, GSAP's defaults.
   - Tests: `EasePackTests.EaseOutWigglePeaksDecay`
@@ -266,7 +266,7 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - Calling an ease allocates nothing: the factories precompute their tables, envelopes and stops. Pinned by `EasePackTests.InvokingDoesNotAllocate` and `CustomEaseTests.InvokingDoesNotAllocate`.
 - Creating one allocates its closure, and naming it while diagnostics are active formats a string.
 
-## Deviations from anime.js
+## Provenance
 
 - `Eases.None` is the single identity; upstream's `eases.linear` and `none` are the same function, as here.
 - `Linear` takes typed `LinearStop`s, with string and number conversions standing in for upstream's mixed arguments.
@@ -281,13 +281,14 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - **`Wiggle` is a displacement ease, 0 at both ends.** The tween's to-value is the swing amplitude and the property ends where it started. Reason: GSAP's CustomWiggle behaves so.
 - **`Rough` takes GSAP's full option set, seeded through `Random`.** It takes points, strength, clamp, taper, randomize and template, and draws from `Random.Shared` unless given a `Random`. Reason: not recorded. Rejected: a `seeded` flag.
 - **Upstream's chained ease is not ported.** Ease resolution receives no previous sibling tween. Reason: `EaseValue` resolves a three-argument function value, and nothing needs the sibling.
+- **Factory defaults are kept from upstream.** Power 1.68, 10 steps and `Irregular`'s 10 stops with randomness 1 (CORE-EASES-071 to 073) are upstream's numbers; no other reason recorded.
 - **Ease names are registered only while diagnostics are active.** Fixed eases register at static initialization; parameterized factories register only while diagnostics are active, in a weak table. Reason: those factories mint a delegate per call, often in loops, and must not pay a locked table insert in a release app; an overlay can always draw the sampled curve.
 
 ## Non-goals
 
 - No validation of curve arguments beyond what upstream and GSAP do.
 - No `Q`, `S`, `T`, `A` or `Z` path commands in `FromPath`.
-- No string syntax for `Steps`, `Linear`, `Irregular` or `CubicBezier`, as upstream removed it (CORE-EASEPARSER).
+- No string syntax for `Steps`, `Linear`, `Irregular` or `CubicBezier` (CORE-EASEPARSER).
 
 ## Open items
 

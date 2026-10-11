@@ -230,7 +230,7 @@ depends:
 - A running filter or effect tween holds the `double`-property budget on the managed side; native filters are created per render and are not budgeted.
   - Pinned by `BridgeAllocationTests.AnImageFilterTweenTicksWithinBudget`.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. CSS `filter` chains are user-ordered; these properties compose in a fixed order so each can animate on its own.
 

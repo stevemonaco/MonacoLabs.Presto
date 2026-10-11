@@ -252,7 +252,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 
 - Not on the core tick path. Each UI-thread render allocates one draw operation, plus a filter paint while a color filter is active; each render-thread scene message allocates a filter paint the same way. The recipe's per-target function values allocate a segment lookup per call.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

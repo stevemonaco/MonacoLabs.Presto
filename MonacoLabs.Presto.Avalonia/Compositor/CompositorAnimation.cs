@@ -6,12 +6,12 @@ using MonacoLabs.Presto.Targets;
 namespace MonacoLabs.Presto.Compositor;
 
 /// <summary>
-/// Upstream's <c>WAAPIAnimation</c>: a <see cref="CompositorAnimationParams"/> compiled into composition key frame
+/// A <see cref="CompositorAnimationParams"/> compiled into composition key frame
 /// animations and started on each target's own composition visual, so it keeps running while the UI thread is busy.
 /// </summary>
 /// <remarks>
 /// The paused Presto <see cref="Animation"/> the key frames were sampled from runs alongside as the playback model, so the
-/// timing and the callbacks are anime.js's own. It is a model rather than the animation itself: while the UI thread is
+/// timing and the callbacks match the same animation played on the UI thread. It is a model rather than the animation itself: while the UI thread is
 /// blocked it falls behind what the render thread draws, and catches up once the thread is free again.
 /// </remarks>
 public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner

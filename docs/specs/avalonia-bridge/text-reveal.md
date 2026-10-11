@@ -157,7 +157,7 @@ depends:
 
 - Not on the tick path: splitting and ghosting allocate at the trigger. The per-piece animation ticks like any animation over its targets.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js leaves per-piece animation to user code over `splitText`.
 

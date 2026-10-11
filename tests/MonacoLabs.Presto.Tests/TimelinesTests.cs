@@ -63,11 +63,11 @@ public sealed class TimelinesTests : EngineTestBase
                 Ease = "inOut",
                 Alternate = true,
                 Loop = 3,
-                Composition = Composition.None,
+                Composition = Composition.Overlap,
             },
         })
         .Add(target, new() { ["TranslateX"] = 100, Duration = 15 })
-        .Add(target, new() { ["TranslateX"] = 200, Reversed = false, Ease = "outExpo", Composition = Composition.Blend });
+        .Add(target, new() { ["TranslateX"] = 200, Reversed = false, Ease = "outExpo", Composition = Composition.Additive });
 
         var first = TestHelpers.GetChildAtIndex(tl, 0)!;
         var second = TestHelpers.GetChildAtIndex(tl, 1)!;
@@ -78,8 +78,8 @@ public sealed class TimelinesTests : EngineTestBase
         Assert.Equal(200, tl.Duration);
         Assert.Equal(Eases.InOut()(.75), first._headTween!._ease(.75));
         Assert.Equal(Eases.OutExpo(.75), second._headTween!._ease(.75));
-        Assert.Equal(Composition.None, first._headTween!._composition);
-        Assert.Equal(Composition.Blend, second._headTween!._composition);
+        Assert.Equal(Composition.Overlap, first._headTween!._composition);
+        Assert.Equal(Composition.Additive, second._headTween!._composition);
     }
 
     [Fact]

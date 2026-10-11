@@ -38,7 +38,7 @@ depends:
 
 ## Purpose
 
-`Utils` ports anime.js's `utils` module: numeric helpers (clamp, round, snap, wrap, map, lerp, damp, angle conversion, fixed formatting), random helpers (unseeded and seeded generators, pick, shuffle) and time helpers (`Sync`, `KeepTime`). Every numeric helper has an overload that omits the value and returns a `ChainedUtil`, a composable transform usable wherever a `Modifier` delegate is expected. `ChainedFunctionValue` is the function-based value that also receives the tween it chains off. Target utilities (`get`/`set`/`remove`) are on the facade (CORE-PRESTO).
+`Utils` holds numeric helpers (clamp, round, snap, wrap, map, lerp, damp, angle conversion, fixed formatting), random helpers (unseeded and seeded generators, pick, shuffle) and time helpers (`Sync`, `KeepTime`). Every numeric helper has an overload that omits the value and returns a `ChainedUtil`, a composable transform usable wherever a `Modifier` delegate is expected. `ChainedFunctionValue` is the function-based value that also receives the tween it chains off. Target utilities (`get`/`set`/`remove`) are on the facade (CORE-PRESTO).
 
 ## Requirements
 
@@ -127,9 +127,9 @@ depends:
 
 ### Defaults
 
-- **CORE-UTILS-035** — When `Random` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively, as anime.js does.
+- **CORE-UTILS-035** (inherited) — When `Random` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
   - Tests: untested
-- **CORE-UTILS-036** — When a seeded `RandomGenerator` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively, as anime.js's seeded defaults do.
+- **CORE-UTILS-036** (inherited) — When a seeded `RandomGenerator` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
   - Tests: untested
 
 ## Invariants
@@ -158,7 +158,7 @@ depends:
 
 - Not on the tick path, except a `ChainedUtil` used as a modifier, which runs per tween per frame; invoking it allocates nothing, but each link adds a delegate call.
 
-## Deviations from anime.js
+## Provenance
 
 - `padStart`/`padEnd` are omitted; `string.PadLeft`/`PadRight` cover them.
 - `CreateSeededRandom` drops `seededMin`/`seededMax`/`seededDecimalLength`: C# optional arguments must be constants, so the delegate could never default to them.

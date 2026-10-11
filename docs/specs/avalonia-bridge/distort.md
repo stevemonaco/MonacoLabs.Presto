@@ -103,7 +103,7 @@ depends:
 
 - Not budgeted. Each draw with an effect active creates native filters, as BRIDGE-IMAGE's do; each redraw of the child allocates a new snapshot bitmap; the per-frame check walks the child's subtree.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. anime.js leaves raster effects to CSS and SVG filters; `Goo` is the classic SVG goo filter.
 

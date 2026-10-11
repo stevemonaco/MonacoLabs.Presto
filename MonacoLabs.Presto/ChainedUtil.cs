@@ -38,10 +38,10 @@ public readonly struct ChainedUtil
     /// <inheritdoc cref="Utils.RadToDeg(double)"/>
     public ChainedUtil RadToDeg() => Then(Utils.RadToDeg);
 
-    /// <summary>Chains a lerp whose factor is the chained value, matching upstream's right-curried <c>lerp</c>.</summary>
+    /// <summary>Chains a lerp whose factor is the chained value.</summary>
     public ChainedUtil Lerp(double start, double end) => Then(v => Utils.Lerp(start, end, v));
 
-    /// <summary>Chains a damp whose factor is the chained value, matching upstream's right-curried <c>damp</c>.</summary>
+    /// <summary>Chains a damp whose factor is the chained value.</summary>
     public ChainedUtil Damp(double start, double end, double deltaTime) => Then(v => Utils.Damp(start, end, deltaTime, v));
 
     /// <summary>Ends the chain: <see cref="Utils.RoundPad(double, int)"/> produces a string, which nothing further can consume.</summary>

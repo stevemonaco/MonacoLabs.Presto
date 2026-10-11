@@ -43,6 +43,7 @@ public sealed class MicroInteractionsPageTests
         TestFrames.Tick(40);
         Assert.Equal(submit.Height, submit.Width, 1);
 
+        Assert.True(SceneHarness.WaitFor(() => SubmitButton.GetState(submit) != SubmitState.Busy));
         TestFrames.Tick(200);
         Assert.Equal(width, submit.Width, 1);
         Assert.Equal(1, page.GetControl<TextBlock>("SubmitLabel").Opacity, 2);

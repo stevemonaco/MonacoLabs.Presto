@@ -144,7 +144,7 @@ depends:
 
 - Not on the tick path. Each layout pass with held rows measures them; each crossing frame allocates arrays to sort the batch.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. The observer path reuses the `ScrollObserver` port (BRIDGE-SCROLLOBSERVER), which follows anime.js `onScroll`.
 

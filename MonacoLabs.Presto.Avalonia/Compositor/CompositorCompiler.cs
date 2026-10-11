@@ -12,7 +12,7 @@ namespace MonacoLabs.Presto.Compositor;
 /// </summary>
 internal static class CompositorCompiler
 {
-    // Matches upstream easingToLinear's default.
+    // Enough linear segments that the sampled ease reads as its curve; anime.js's easingToLinear uses the same count.
     private const int SamplesPerIteration = 100;
 
     // A recompiled cycle covers every iteration that is left, so its sample count is bounded rather than per iteration.

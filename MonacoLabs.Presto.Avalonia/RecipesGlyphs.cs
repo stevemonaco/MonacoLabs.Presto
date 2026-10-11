@@ -86,7 +86,7 @@ public static partial class Recipes
     /// <summary>
     /// Turns <paramref name="textBlock"/>'s text into <paramref name="text"/> by morphing each character's outline into the
     /// character at the same position of <paramref name="text"/>, counted from the end when both texts are numbers so a
-    /// counter's units column stays put, over <see cref="MotionTokens.Long"/> with <see cref="MotionTokens.EmphasizedEase"/>.
+    /// counter's units column stays put, over <see cref="MotionTokens.Long"/> with <see cref="MotionTokens.Ease"/>.
     /// Characters with no partner grow from or collapse into the center of their slot, and a pair where either character has no
     /// outline crossfades. Reduced, the block crossfades as <see cref="MorphText"/> does.
     /// </summary>
@@ -365,6 +365,6 @@ public static partial class Recipes
             .X(from: (FunctionValue)((_, i, _) => pairs[i].Offset.X), to: 0)
             .Y(from: (FunctionValue)((_, i, _) => pairs[i].Offset.Y), to: 0)
             .Property("Data", (ChainedFunctionValue)((target, i, total, previous) => shapes[i](target, i, total, previous)))
-            .Duration(tokens.Long).Ease(tokens.EmphasizedEase), 0);
+            .Duration(tokens.Long).Ease(tokens.Ease), 0);
     }
 }

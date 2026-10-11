@@ -142,7 +142,7 @@ depends:
 
 - Not on the tick path. Each play allocates its params and animation.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js has no declarative or XAML trigger layer.
 

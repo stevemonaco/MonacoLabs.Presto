@@ -220,7 +220,7 @@ depends:
 
 - Not on the tick path, except a held exit's per-frame base-visibility read (`OnUpdate`), which allocates nothing. Each arrival allocates its params, animation and a copy of its batch's targets.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. A growing batch staggers because `Presto.Stagger` rebuilds its cache when the target count changes, a deviation CORE-STAGGER owns.
 

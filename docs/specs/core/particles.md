@@ -174,7 +174,7 @@ depends:
 
 - Allocation-free stepping (CORE-PARTICLES-029). The constructor allocates the pool and the seeded random generator; `ParticleCurve` resolves its ease when set.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

@@ -147,7 +147,7 @@ depends:
 
 - Not on the tick path. Each open allocates its run, params and animation; the 30 ms poll reads one base value.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

@@ -194,7 +194,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 
 - A pass that does not move the control measures one parent walk and allocates nothing. Each move allocates a mirror animation and composition animations.
 
-## Deviations from anime.js
+## Provenance
 
 - Upstream `createLayout` records and animates a root's subtree on demand (`record()`, `animate()`), animating real CSS size and transform with enter, leave and swap states. Presto arms per control, reacts to every layout pass automatically, and inverts onto composition `Translation`/`Scale` instead of an implicit `Offset` animation, because an implicit `Offset` animation snaps on the Windows desktop backend while an explicit one on `Translation` survives a blocked UI thread. Enter and leave belong to `Presence`, because they need a presenter hook rather than a layout hook.
 - Shared elements and keyed preparation follow the Windows Community Toolkit's connected animations, not anime.js, because upstream has no shared-element API and framework-driven navigation needs one.

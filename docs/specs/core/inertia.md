@@ -135,7 +135,7 @@ depends:
   - Tests: untested
 - **CORE-INERTIA-038** — `Add` shall not allocate.
   - Tests: `VelocityTrackerTests.AddDoesNotAllocate`
-- **CORE-INERTIA-039** — The tracker's internal displacement sampler (the one the draggable uses) shall reproduce upstream's `computeVelocity` exactly: each accepted sample scaled, clamped and rounded to 5 digits, and the velocity the plain maximum of the window.
+- **CORE-INERTIA-039** — The tracker's internal displacement sampler (the one the draggable uses) shall scale, clamp and round each accepted sample to 5 digits and take the plain maximum of the window as the velocity (upstream's `computeVelocity`).
   - Tests: `VelocityTrackerTests.ReproducesTheDraggableSampler`
 
 ### Defaults
@@ -152,7 +152,7 @@ depends:
   - Tests: untested
 - **CORE-INERTIA-045** (inherited) — When `Acceleration` or `Friction` is not set, a projectile shall use 0 for it, and `Projectile.Launch` without `friction` shall use 0.
   - Tests: `ProjectileTests.ConstantVelocityWithoutGravityMovesLinearly`
-- **CORE-INERTIA-046** — When `VelocityTracker` is constructed without arguments, it shall use an interval of 17 and a window of 3 samples, as anime.js draggable's sampler does.
+- **CORE-INERTIA-046** — When `VelocityTracker` is constructed without arguments, it shall use an interval of 17 and a window of 3 samples.
   - Tests: `VelocityTrackerTests.SamplesCloserThanTheIntervalAreIgnored`
 
 ## Invariants
@@ -183,7 +183,7 @@ depends:
 - `VelocityTracker.Add` and the internal displacement sampler are allocation-free.
 - The solvers allocate the plan and ease closures once per tween at construction; the resolved eases allocate nothing per frame.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. `Inertia` follows Framer Motion's `inertia`, with `Power` 1 and `TimeConstant` 350 ms instead of Framer's 0.8 and 700, so the motion starts at exactly the release velocity (see Exponential decay with Power 1 and TimeConstant 350); `Projectile` follows GSAP Physics2D, solved in closed form so it stays an ordinary tween (see Projectile is a closed-form to-value with a declared flight time). `VelocityTracker` is extracted from anime.js draggable's `computeVelocity`, but its public form takes values and keeps the sign, so apps can feed it positions and `Animatable.Fling` gets a direction (see VelocityTracker is a public core type).
 
@@ -200,7 +200,7 @@ depends:
 - **Projectile is a closed-form to-value with a declared flight time.** A `Projectile` rides `Inertia`'s slot and is solved in closed form at build into an ordinary tween with the physical end and a normalized displacement ease; its flight time is `Projectile.Duration` or the tween's duration; a throw that turns back is split at its apex with `Plan.Then`; `Friction` is per millisecond in either time unit; `Launch` gives the angle form with +Y down and per-axis velocity, gravity on Y only. Reason: as an ordinary tween it composes, seeks, reverses and hands over like any tween, splitting keeps each tween monotonic, and per-tween normalized eases make a seek match the ballistic formula. Rejected: deriving the duration from the physics as `Inertia` does; a projectile counterpart to `Animatable.Fling`.
 - **Reduced motion lands on the resolved end at once.** Under `ReduceAll` an inertia or projectile is resolved first and then collapses like any other tween, landing on the snapped, clamped rest or the physical end. Reason: the target is resolved before the duration is read, so the existing collapse lands on the right value with no special case.
 - **Time fields are in the engine's unit.** Time fields are in engine-time units and velocity per engine-time unit; the spring handover multiplies by `Globals.TimeScale`. Reason: switching units converts `TimeConstant` and velocity together, as `Spring.Duration` does.
-- **VelocityTracker is a public core type.** Draggable's sampler is extracted as a public, allocation-free `VelocityTracker` (interval 17, 3 samples; the first `Add` after `Reset` is a baseline; `Velocity` is the signed sample of largest magnitude), and the draggable uses it through an internal displacement sampler that keeps upstream's clamp, rounding and plain maximum. Reason: apps with their own gestures can feed it and pass the velocity to an `Inertia`; it needs only numbers and time, so it belongs in the core; strongest-by-magnitude is right for `Animatable.Fling` while the draggable keeps upstream parity.
+- **VelocityTracker is a public core type.** Draggable's sampler is extracted as a public, allocation-free `VelocityTracker` (interval 17, 3 samples; the first `Add` after `Reset` is a baseline; `Velocity` is the signed sample of largest magnitude), and the draggable uses it through an internal displacement sampler that keeps upstream's clamp, rounding and plain maximum. Reason: apps with their own gestures can feed it and pass the velocity to an `Inertia`; it needs only numbers and time, so it belongs in the core; strongest-by-magnitude is right for `Animatable.Fling`; 17 is one 60 Hz frame, so the 3-sample window spans the last few frames and survives one slow final frame.
 - **Each axis decays on its own.** There is no two-dimensional inertia with a shared direction, and no scroll-viewer flinging. Reason: Framer Motion decays axes independently; the platform scroll gesture has its own inertia, and replacing it is a control-level change.
 
 ## Non-goals

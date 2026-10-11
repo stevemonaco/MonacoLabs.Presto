@@ -3,7 +3,7 @@
 namespace MonacoLabs.Presto.Core;
 
 /// <summary>
-/// Port of anime.js <c>composition.js</c>: the per-(target, property) sibling registries and the composition of a new tween
+/// The per-(target, property) sibling registries and the composition of a new tween
 /// against the tweens already animating the same property.
 /// </summary>
 internal static class Composer
@@ -38,13 +38,13 @@ internal static class Composer
     public static void ComposeTween(Tween tween, TweenSiblings siblings)
     {
         if (tween._composition == Composition.Replace) ComposeReplacedTween(tween, siblings);
-        else if (tween._composition == Composition.Blend) ComposeBlendedTween(tween);
+        else if (tween._composition == Composition.Additive) ComposeAdditiveTween(tween);
     }
 
     public static void RemoveTweenSiblings(Tween tween)
     {
         var composition = tween._composition;
-        if (composition == Composition.None) return;
+        if (composition == Composition.Overlap) return;
 
         if (s_replaceLookups.TryGetValue(tween.Target, out var replaceProperties) &&
             replaceProperties.TryGetValue(tween.Property, out var replaceSiblings))
@@ -52,7 +52,7 @@ internal static class Composer
             TweenList.RemoveChild(replaceSiblings, tween, TweenLink.Replace);
         }
 
-        if (composition != Composition.Blend) return;
+        if (composition != Composition.Additive) return;
 
         var additive = tween.Parent.OwnerEngine.Additive;
         if (!additive.Lookups.TryGetValue(tween.Target, out var additiveProperties) ||
@@ -200,7 +200,7 @@ internal static class Composer
         prevParentTimeline.Cancel();
     }
 
-    private static void ComposeBlendedTween(Tween tween)
+    private static void ComposeAdditiveTween(Tween tween)
     {
         var additive = tween.Parent.OwnerEngine.Additive;
         var additiveSiblings = GetTweenSiblings(tween.Target, tween.Property, additive);
@@ -221,7 +221,7 @@ internal static class Composer
             TweenList.AddChild(additiveAnimation, lookupTween);
         }
 
-        // The lookup tween holds the composed value the blended tweens add their deltas to.
+        // The lookup tween holds the composed value the additive tweens add their deltas to.
         var toNumber = tween._toNumber;
         tween._fromNumber = lookupTween._fromNumber - toNumber;
         tween._toNumber = 0;

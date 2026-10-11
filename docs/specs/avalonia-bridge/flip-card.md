@@ -98,7 +98,7 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 
 - Not on the tick path beyond the turn's own animation; each rendered frame reads the angle back and sets two `IsVisible` values.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

@@ -146,7 +146,7 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
 
 - Not on the tick path; each read of the flag is a field read. The probe allocates nothing on Windows, iOS and macOS beyond the interop call.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js leaves `prefers-reduced-motion` to the app.
 

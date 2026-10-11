@@ -142,7 +142,7 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 - `Color`, the structs and the font enums box one value per frame. A brush tween mutates its reused brush; pinned by `BridgeAllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame.
 
-## Deviations from anime.js
+## Provenance
 
 - Upstream interpolates CSS strings and pads mismatched numbers by position; here gradients, box-shadow lists and paths are reconciled by codec (`IReconcilingValueCodec`, CORE-TARGETS), because padding by position is wrong for colors and offsets when the two ends differ in shape.
 - Color interpolation uses premultiplied alpha, because upstream's straight alpha shows a transparent color's RGB mid-fade (CORE-COLORS); gradient stop resampling does too, while gradient and shadow color slots lerp as plain channels.

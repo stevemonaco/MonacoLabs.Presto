@@ -36,7 +36,7 @@ public sealed class GalleryHistoryTests
         gallery.GoBack();
         Assert.Same(opened[10], gallery.SelectedPage);
         Assert.Same(last, gallery.CurrentPage);
-        Assert.IsType<AnimationBasicsPage>(gallery.CurrentPage);
+        Assert.IsType<PlaybackSettingsPage>(gallery.CurrentPage);
 
         gallery.SelectedPage = NavScene.Pages[2];
         Assert.False(gallery.IsBack);

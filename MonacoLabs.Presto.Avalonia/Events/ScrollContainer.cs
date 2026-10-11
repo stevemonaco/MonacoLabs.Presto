@@ -8,13 +8,13 @@ using MonacoLabs.Presto.Diagnostics;
 namespace MonacoLabs.Presto.Events;
 
 /// <summary>
-/// Port of anime.js's <c>ScrollContainer</c>: the scroll state one <see cref="ScrollViewer"/>'s observers share —
+/// The scroll state one <see cref="ScrollViewer"/>'s observers share —
 /// offset, velocity and direction — sampled by tickers that only run while the scroller is moving.
 /// </summary>
 /// <remarks>
 /// One container exists per scroller for as long as an observer, a <see cref="PrestoAvalonia.ScrollValue"/> or a
 /// <see cref="Scroll.SpeedProperty"/> element watches it, and reverts with the last of them.
-/// The data timer is paused with the scroll ticker when the wake window closes — a deliberate divergence from upstream,
+/// The data timer is paused with the scroll ticker when the wake window closes — a deliberate divergence from anime.js,
 /// where it runs on forever — so the engine runs out of children and can sleep while an idle observer is alive.
 /// </remarks>
 public sealed class ScrollContainer

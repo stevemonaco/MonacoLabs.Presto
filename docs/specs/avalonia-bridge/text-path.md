@@ -85,7 +85,7 @@ depends:
 
 - Re-placement allocates nothing; a frame costs only the property changes the characters' transforms raise (`BridgeAllocationTests.TextPathRePlacementTicksWithinBudget`). Splitting allocates, as BRIDGE-TEXT's does.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

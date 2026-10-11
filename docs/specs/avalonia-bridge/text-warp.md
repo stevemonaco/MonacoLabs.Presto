@@ -107,7 +107,7 @@ With `a` the `Warp` amount, `R` the `WarpRadius`, `o` the `WarpOrigin`, `W` × `
 
 - A warp frame allocates each warped piece's new `StreamGeometry` (with its context and Skia path) and the `Data` change it raises, nothing else: about 640 bytes per character (`BridgeAllocationTests.ATextWarpFrameAllocatesOnlyItsGeometries`). Jelly's spring buffers are allocated when the composer takes up a split's pieces.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: DOM text has no outline.
 

@@ -159,7 +159,7 @@ depends:
 
 - Pointer moves set the animatable without allocating; a release allocates one fling. Arrange allocates the resolved detent array.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

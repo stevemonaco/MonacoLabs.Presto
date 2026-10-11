@@ -37,6 +37,26 @@ public sealed class SwipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ActionsStayPutWhileARowIsDraggedByFractionalOffsets()
+    {
+        var (window, rows) = Stage();
+        var action = (Button)Swipe.GetTrailing(rows[0])!;
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+
+        touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, from + new Vector(-12, 0));
+        foreach (var dx in new[] { -16.0, -20.3, -20.7, -31.45, -44.5, -52.25 })
+        {
+            touch.Move(1, from + new Vector(dx, 0));
+            Assert.Equal(dx, X(rows[0]), 6);
+            Assert.Equal(200 - Open, action.TranslatePoint(default, window)!.Value.X, 6);
+        }
+        touch.Up(1, from + new Vector(-52.25, 0));
+    }
+
+    [AvaloniaFact]
     public void AShortDragSnapsClosed()
     {
         var (window, rows) = Stage();

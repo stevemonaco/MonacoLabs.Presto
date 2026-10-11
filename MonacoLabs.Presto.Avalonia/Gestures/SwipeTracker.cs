@@ -125,6 +125,8 @@ internal sealed class SwipeTracker : IGestureMember
         e.PreventGestureRecognition();
         var (min, max) = Range(commit: true);
         Animator().Set("X", TransformMath.Cushion(_grabbedAt + (e.GetPosition(null) - _pressedAt).X, min, max, Friction), 0);
+        // Changed is raised on the next engine frame, but the row has moved already.
+        Place();
         _velocity.Add(X, Engine.Current.Now);
     }
 
@@ -381,6 +383,8 @@ internal sealed class SwipeTracker : IGestureMember
             View = view;
             _trailing = trailing;
             ClipToBounds = true;
+            // The row moves by a fractional transform; a rounded strip would shift against it by up to a pixel.
+            UseLayoutRounding = false;
             IsVisible = false;
             VisualChildren.Add(view);
             LogicalChildren.Add(view);

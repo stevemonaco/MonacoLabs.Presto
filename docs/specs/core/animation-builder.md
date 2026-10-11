@@ -127,7 +127,7 @@ depends:
 
 - Configuration time only; never on the tick path. Each `ToParams` allocates params, a property dictionary and keyframes.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart; the builder is a C# spelling over the anime.js parameter object, which it only builds, so it adds no behavior to deviate.
 

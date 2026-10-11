@@ -151,7 +151,7 @@ depends:
 
 - A frame of a `double` property costs only the property-changed args Avalonia raises. Other value types box their value per frame; a discrete property pushes its cached object and costs nothing between flips. Resolution and binding allocate once per (property, target).
 
-## Deviations from anime.js
+## Provenance
 
 - Upstream writes inline styles and attributes; here every write is an `Animation`-priority binding, so revert uncovers the underlying value instead of restoring a captured one, except for direct properties. Reason: a local, style or binding value written underneath during the animation then shows once reverted.
 - Discrete fallback for types without a codec, where upstream writes non-numeric values as strings: `bool` and enum properties such as `IsVisible` have no string form to write, and timelines, keyframes and `Presto.Set` must still be able to set them.

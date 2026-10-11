@@ -71,7 +71,7 @@ depends:
 
 - `PrestoEasing.Ease` allocates nothing per call.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

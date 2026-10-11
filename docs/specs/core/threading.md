@@ -69,8 +69,8 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
   - Tests: untested
 - **CORE-THREADING-014** — Each engine shall own its current scope, so `Scope.Execute` swaps only its own engine's scope and defaults.
   - Tests: `EnginesTests.ScopeExecuteSwapsOnlyItsOwnEnginesDefaults`
-- **CORE-THREADING-015** — Each engine shall own its blend (additive) lookups and additive animation, so blended tweens on one engine are invisible to another.
-  - Tests: `EnginesTests.BlendedTweensAreInvisibleToAnotherEngine`
+- **CORE-THREADING-015** — Each engine shall own its additive lookups and additive animation, so additive tweens on one engine are invisible to another.
+  - Tests: `EnginesTests.AdditiveTweensAreInvisibleToAnotherEngine`
 - **CORE-THREADING-016** (inherited) — When an engine is constructed while seconds mode is on, it shall start at the same internal speed as the main engine, so it plays durations in seconds.
   - Tests: `EnginesTests.AnEngineCreatedInSecondsModeRunsAtTheSameSpeedAsTheMainOne`
 
@@ -135,7 +135,7 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 - `EngineScope` is a struct, so `using (engine.MakeCurrent())` allocates nothing on a per-frame path.
 - The thread pin compiles out of Release builds.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js has one module-level engine. Presto makes engines instantiable so a render-thread scene can own one, the only way the full timing model keeps running while the UI thread is stalled.
 

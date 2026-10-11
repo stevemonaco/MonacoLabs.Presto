@@ -157,7 +157,7 @@ depends:
 
 - Not on the tick path. Each `Start` allocates two params and their animations.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

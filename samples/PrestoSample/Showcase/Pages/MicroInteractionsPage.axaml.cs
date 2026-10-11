@@ -42,8 +42,8 @@ public partial class MicroInteractionsPage : ShowcasePage
     private void SubmitClicked(object? sender, RoutedEventArgs e)
     {
         if (SubmitButton.GetState(Submit) != SubmitState.Idle) return;
-        // A Presto timer stands in for the request.
-        _ = SubmitButton.Run(Submit, Presto.CreateTimer(new() { Duration = 1100 }).Then());
+        // Task.Delay stands in for the request.
+        _ = SubmitButton.Run(Submit, Task.Delay(1100));
     }
     #endregion
 
@@ -57,9 +57,9 @@ public partial class MicroInteractionsPage : ShowcasePage
     private async Task SaveAsync()
     {
         _saving = true;
-        await Presto.CreateTimer(new() { Duration = 600 });
+        await Presto.Delay(600);
         await Recipes.MorphGlyphs(SaveLabel, "✓");
-        await Presto.CreateTimer(new() { Duration = 1400 });
+        await Presto.Delay(1400);
         await Recipes.MorphGlyphs(SaveLabel, "Save");
         _saving = false;
     }

@@ -142,18 +142,18 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 
 - The frame-request delegate is cached at construction; a frame allocates nothing in the source. The fallback timer and its handler are allocated once per fallback period.
 
-## Deviations from anime.js
+## Provenance
 
 - Upstream ticks from `requestAnimationFrame` in a browser and `setImmediate` elsewhere; here `TopLevel.RequestAnimationFrame` with a `DispatcherTimer` fallback, since `RequestAnimationFrame` is the host's equivalent and needs a `TopLevel` that may not exist yet.
 - Upstream's `visibilitychange` listener becomes the hidden signal, driven by minimized windows and `Background` activations, because desktop minimize is visible only through `WindowState` and mobile or Browser backgrounding only through `ActivationKind.Background` (see CORE-ENGINE for what `Hidden` does).
 
 ## Decisions
 
-- **The frame source is `RequestAnimationFrame`, with a timer fallback.** `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, from any live `TopLevel`, and pumps from a render-priority `DispatcherTimer` while none exists; it is installed on first use, or by `UsePresto()`. Reason: it mirrors upstream's `requestAnimationFrame` loop, and any `TopLevel` works because the request is a one-shot on the global `MediaContext`.
+- **The frame source is `RequestAnimationFrame`, with a timer fallback.** `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, from any live `TopLevel`, and pumps from a render-priority `DispatcherTimer` while none exists; it is installed on first use, or by `UsePresto()`. Reason: `RequestAnimationFrame` ticks in step with the host's rendering, once per drawn frame, the timer covers the time before a `TopLevel` exists, and any `TopLevel` works because the request is a one-shot on the global `MediaContext`.
 - **Without a lifetime `TopLevel`, the pump takes one from an animated visual.** On Android (and wherever the lifetime yields none) the frame source resolves its `TopLevel` from a visual the bridge animates, the last one a property was resolved on; the timer pumps until then. The handover is tested through a seeded visual. Once found, that `TopLevel` is kept for when the last animated visual is detached. Reason: `IActivityApplicationLifetime` publishes only a `MainViewFactory` (`MainView` stays null) and `ISingleTopLevelApplicationLifetime` is `[PrivateApi]`; lifetime interfaces are `[NotClientImplementable]`, so a test cannot fake one. The kept `TopLevel` is needed because an animated visual is often detached (a measuring `TextBlock`, a page navigated away from), and on Android the 60 Hz render-priority fallback timer keeps the main looper from going idle, which is the only time Avalonia runs `Input`-priority jobs: touch scroll inertia stalled until it was kept.
 - **The bridge runs `Input`-priority jobs while a touch scroll coasts.** `InertiaWake` runs `Dispatcher.RunJobs(DispatcherPriority.Input)` from a 16 ms `Default`-priority `DispatcherTimer` between a scroll gesture's inertia start and its end. Reason: in Avalonia 12.1 each inertia step is an `Input`-priority job, and the Android dispatcher runs those only while `MessageQueue.IsIdle` holds; on the Android 16 test device that is false from the UI thread whenever any message is queued, even a timer due later, so a fling stalled (11 of 18 adb flings on Activity feed) while any `DispatcherTimer` was armed, and renders fell to `Input` priority after Avalonia's one-second starvation guard. A `Default` timer runs above that check. It lives in the bridge because every Android app on Presto hits it, and it only runs while a gesture coasts. Rejected: re-requesting animation frames (renders starve with the inertia step) and waking the looper from another thread (the woken dispatcher still skips `Input` jobs). Remove once Avalonia checks pending input reliably.
 - **Bridge builder extensions self-initialize.** See BRIDGE-HELPERS.
-- **Hidden pauses the engine, as upstream's `pauseOnDocumentHidden` does.** See CORE-ENGINE.
+- **Hidden pauses the engine.** See CORE-ENGINE.
 - **Wall-clock reads take a `TimeProvider`.** See CORE-ENGINE.
 
 ## Non-goals

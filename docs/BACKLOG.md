@@ -58,12 +58,19 @@ When an item is closed, its line is deleted.
 - [CORE-TARGETS] Originals of 0 or empty are captured for `Revert`, unlike upstream; done when a decision records it.
 - [CORE-TIMELINE] An unknown label with an operator resolves against the timeline's end; done when a decision records or reverts it.
 - [CORE-TIMELINE] `Timeline.Set` copies its params; done when a decision records or reverts it.
-- [CORE-COLORS] The achromatic `hsl` branch keeps upstream's unscaled 0–1 channels (an upstream bug kept for parity); done when a decision says whether to fix it.
+- [CORE-COLORS] The achromatic `hsl` branch keeps upstream's unscaled 0–1 channels (an upstream bug); done when a decision says whether to fix it.
 - [CORE-EASES] Chained ease (upstream passing `prevSiblingTween` into ease resolution) is unported; done when it is ported or the omission is recorded, revisited if `FunctionValue`/`EaseValue.Resolve` is reshaped.
 - [CORE-COMPOSITION] `Composition` is a plain enum while upstream runs it through `getFunctionValue` per target; done when a decision keeps it or makes it function-based.
 - [CORE-TIMER] `TimerParams.Autoplay` is `bool?` plus `observer.Link(timer)` rather than accepting a scroll observer (`autoplay: onScroll(...)`); done when a decision keeps or changes it.
 - [CORE-UTILS] `Utils.Damp` treats a NaN factor differently from upstream (`!factor` returns `start`); done when it matches upstream or a decision records the difference.
 - [CORE-ANIMATION] `Modifier`/`TextModifier` take a number only, like upstream, so counters wanting different precision cannot share one animation; done when a decision says whether they resolve per target `(target, index, total)`.
+- [CORE-ENGINE] Showing a hidden engine calls `Resume` even after a manual pause, kept from upstream's `visibilitychange` handler; done when a decision keeps or changes it.
+- [CORE-TIMER] The `IterationCurrentTime`, `IterationProgress` and `CurrentIteration` setters ignore `LoopDelay`, kept from upstream; done when a decision keeps or changes it.
+- [CORE-EASEPARSER] The removed `steps(`, `irregular(`, `linear(` and `cubicBezier(` string forms return `Eases.None` instead of throwing, kept from upstream; done when a decision keeps or changes it.
+- [CORE-SPRING] The default perceived duration 628 is not scaled by the time unit, kept from upstream, so seconds-mode springs misbehave; done when a decision keeps or changes it.
+- [CORE-VALUES] A complex string's exponent matches one digit, so `"1e10"` splits into `1e1` and `0`, kept from upstream; done when a decision keeps or fixes it.
+- [CORE-INERTIA] The draggable's sampler takes the plain maximum of its window, kept from upstream, while `VelocityTracker.Velocity` takes the largest magnitude; done when a decision keeps or unifies them.
+- [CORE-EASES] [CORE-SCRAMBLE] [CORE-UTILS] [BRIDGE-DRAGGABLE] [BRIDGE-SHAPES] Inherited upstream defaults (marked `(inherited)` in the eases, scramble, utils, draggable and shapes specs) need a keep-or-change decision; done when each spec's Decisions section records one.
 
 ## Stale XML docs
 
@@ -117,7 +124,7 @@ When an item is closed, its line is deleted.
 ## Candidate features
 
 - [CORE-COLORS] HSL, HWB and CIE Lab/LCH interpolation spaces beside OKLCH, for CSS completeness, once something asks.
-- [CORE-COMPOSITION] A relative/delta `To` for blended tweens ("add this much") that does not move the additive group's base, so a layered effect need not know the animation beneath it; done when a spelling is chosen and built.
+- [CORE-COMPOSITION] A relative/delta `To` for additive tweens ("add this much") that does not move the additive group's base, so a layered effect need not know the animation beneath it; done when a spelling is chosen and built.
 - [CORE-TIMELINE] A `Timeline.Set` overload that takes a stagger for its position, as upstream allows; add if a sample needs it.
 - [CORE-STAGGER] A stagger "from element or point" (a pixel position or a target element rather than a normalized grid cell), so Connected and ConnectedNav can scatter siblings from the selected item.
 - [CORE-BUILDER] `AnimationBuilder.Freeze()`, if users report a shared builder being mutated under them.
@@ -271,7 +278,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-ATTACH](specs/avalonia-bridge/xaml-attach.md): 9 untested requirements, plus `OnTapped`/`OnChanged` ignoring builder swaps and `OnTapped` inert on non-input visuals.
 - [CORE-ANIMATABLE](specs/core/animatable.md): 7 untested requirements, plus the callbacks animation's 1000 ms default, `ReduceAll` handling, the `Fling` velocity fallback, channel `Set` versus a saved fling, `Fling` on colors, and the `ValueOf` leak.
 - [CORE-BUILDER](specs/core/animation-builder.md): 0 untested requirements, plus a cross-engine builder reading the current engine's `ReducedMotion`.
-- [CORE-ANIMATION](specs/core/animation.md): 11 untested requirements, plus `GetCurrent` on a `None` tween returning the from value and the original-capture deviation lacking a decision.
+- [CORE-ANIMATION](specs/core/animation.md): 11 untested requirements, plus `GetCurrent` on an `Overlap` tween returning the from value and the original-capture deviation lacking a decision.
 - [CORE-CALLBACKS](specs/core/callbacks.md): 10 untested requirements, plus `Then` never completing after `Cancel`/`Revert` or a throwing callback.
 - [CORE-COLORS](specs/core/colors.md): 5 untested requirements, plus the `rgb()` decimal bug and the achromatic `hsl` deviation.
 - [CORE-COMPOSITION](specs/core/composition.md): 3 untested requirements, plus cross-engine `Replace` overriding.

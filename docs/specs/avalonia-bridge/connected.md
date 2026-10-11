@@ -116,7 +116,7 @@ Three attached properties give MVVM navigation connected animations with no code
 
 - Not on the tick path. Each layout pass of a keyed element walks its parents and stores a `Rect`; each arrival allocates a transition.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: the model is the Windows Community Toolkit's `Connected.Key` and `Connected.AnchorElement`, which splits the feature into the same separate properties.
 

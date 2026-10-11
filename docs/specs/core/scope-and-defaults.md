@@ -44,7 +44,7 @@ depends:
 
 ## Purpose
 
-`PrestoDefaults` holds the parameter values every timer and animation falls back to; each engine owns one, and `DefaultsParams` overrides it per timeline. `Scope` ports anime.js `createScope`: a lifetime that everything constructed while it is current registers with, so one `Revert` undoes it all, with its own defaults in force while it executes and constructors that `Refresh` re-runs. `IRevertible` is the contract a scope reverts through. Bridge scopes tied to a control's lifetime build on this (see BRIDGE-HELPERS).
+`PrestoDefaults` holds the parameter values every timer and animation falls back to; each engine owns one, and `DefaultsParams` overrides it per timeline. `Scope`, initially ported from anime.js `createScope`, is a lifetime that everything constructed while it is current registers with, so one `Revert` undoes it all, with its own defaults in force while it executes and constructors that `Refresh` re-runs. `IRevertible` is the contract a scope reverts through. Bridge scopes tied to a control's lifetime build on this (see BRIDGE-HELPERS).
 
 ## Requirements
 
@@ -145,25 +145,25 @@ depends:
 
 ### Defaults
 
-- **CORE-SCOPE-038** — When `PlaybackRate` is not set, a new `PrestoDefaults` shall hold 1, as anime.js does.
+- **CORE-SCOPE-038** — When `PlaybackRate` is not set, a new `PrestoDefaults` shall hold 1.
   - Tests: untested
-- **CORE-SCOPE-039** — When `FrameRate` is not set, a new `PrestoDefaults` shall hold 240, as anime.js's `maxFps` does.
+- **CORE-SCOPE-039** — When `FrameRate` is not set, a new `PrestoDefaults` shall hold 240.
   - Tests: `ClockTests.FpsHigherThanDefaultFrameRateRaisesDefault`
-- **CORE-SCOPE-040** — When `Loop` is not set, a new `PrestoDefaults` shall hold 0 (one iteration), as anime.js does.
+- **CORE-SCOPE-040** — When `Loop` is not set, a new `PrestoDefaults` shall hold 0 (one iteration).
   - Tests: untested
-- **CORE-SCOPE-041** — When `Reversed` and `Alternate` are not set, a new `PrestoDefaults` shall hold false for both, as anime.js does.
+- **CORE-SCOPE-041** — When `Reversed` and `Alternate` are not set, a new `PrestoDefaults` shall hold false for both.
   - Tests: untested
-- **CORE-SCOPE-042** — When `Autoplay` is not set, a new `PrestoDefaults` shall hold true, as anime.js does.
+- **CORE-SCOPE-042** — When `Autoplay` is not set, a new `PrestoDefaults` shall hold true.
   - Tests: untested
-- **CORE-SCOPE-043** — When `Delay` and `LoopDelay` are not set, a new `PrestoDefaults` shall hold 0 for both, as anime.js does.
+- **CORE-SCOPE-043** — When `Delay` and `LoopDelay` are not set, a new `PrestoDefaults` shall hold 0 for both.
   - Tests: untested
-- **CORE-SCOPE-044** — When `PlaybackEase` is not set, a new `PrestoDefaults` shall hold null, so playback is not eased, as anime.js does.
+- **CORE-SCOPE-044** — When `PlaybackEase` is not set, a new `PrestoDefaults` shall hold null, so playback is not eased.
   - Tests: untested
-- **CORE-SCOPE-045** — When `Modifier` is not set, a new `PrestoDefaults` shall hold the identity function, as anime.js's `noopModifier` does.
+- **CORE-SCOPE-045** — When `Modifier` is not set, a new `PrestoDefaults` shall hold the identity function.
   - Tests: untested
-- **CORE-SCOPE-046** — When the callbacks are not set, a new `PrestoDefaults` shall hold null for each, as anime.js's `noop` callbacks do.
+- **CORE-SCOPE-046** — When the callbacks are not set, a new `PrestoDefaults` shall hold null for each.
   - Tests: untested
-- **CORE-SCOPE-047** — When `parameters` is not given, the `Scope` constructor shall behave as with an empty `ScopeParams`, as anime.js's `createScope` does.
+- **CORE-SCOPE-047** — When `parameters` is not given, the `Scope` constructor shall behave as with an empty `ScopeParams`.
   - Tests: untested
 
 ## Invariants
@@ -192,7 +192,7 @@ depends:
 
 - Not on the tick path. Registration is amortized constant time; pruning runs only at power-of-two counts.
 
-## Deviations from anime.js
+## Provenance
 
 - `Execute` restores the scope, defaults and ambient engine in a `finally`; upstream restores them only on return. Reason: a throwing callback would otherwise leave the scope's defaults and current scope installed on the engine.
 - Media queries, `matches` and the `handleEvent` refresh are DOM-specific and not ported; the root is stored but not resolved from a selector or ref.
@@ -203,7 +203,8 @@ depends:
 
 ## Decisions
 
-- **The default ease is `out(2)`.** `PrestoDefaults.Ease` starts as `Eases.Out(2)`, not linear. Reason: it matches anime.js.
+- **The default ease is `out(2)`.** `PrestoDefaults.Ease` starts as `Eases.Out(2)`, not linear. Kept from upstream; no other reason recorded.
+- **A new `PrestoDefaults` holds the timer's plain choices.** Its timing values are the ones CORE-TIMER's "Unset timer parameters are the plain choices" gives, the modifier is the identity and no callback is set (CORE-SCOPE-038 to 047). Reason: an unchanged engine then adds nothing to a call, so only the parameters a call sets change it.
 
 ## Non-goals
 
@@ -211,6 +212,6 @@ depends:
 
 ## Open items
 
-- `Scope.Defaults`' XML doc says the scope holds "a copy of its engine's" defaults, but without `ScopeParams.Defaults` it shares the engine's instance (as upstream does); the code wins, the doc is wrong.
+- `Scope.Defaults`' XML doc says the scope holds "a copy of its engine's" defaults, but without `ScopeParams.Defaults` it shares the engine's instance (kept from upstream); the code wins, the doc is wrong.
 - Clearing `Methods`/`Data` on revert, once-list routing after `AddOnce`/`KeepTime`, `Refresh` leaving the once-lists alone, `AddOnce` cleanups, nested `Execute` and reuse after `Revert` have no test.
 - A timeline without `Defaults` reads live engine defaults per child while one with `Defaults` snapshots them; unpinned.

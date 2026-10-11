@@ -53,8 +53,8 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 
 - **BRIDGE-SWIPE-007** — The actions shall be hosted lazily on the first grab or context request, each side in a clipping layer appended as a visual and logical child of the element itself, and re-appended if a re-template drops it.
   - Tests: untested
-- **BRIDGE-SWIPE-008** — Each side's layer shall be arranged at the strip the element uncovers, outside the element's box (left of it for leading, right of it for trailing), as tall as the element and as wide as the offset.
-  - Tests: `SwipeTests.APartialRevealSnapsOpen`
+- **BRIDGE-SWIPE-008** — Each side's layer shall be arranged at the strip the element uncovers, outside the element's box (left of it for leading, right of it for trailing), as tall as the element and as wide as the offset, unrounded and in step with the offset on every drag move, so the actions hold still on screen while the element slides.
+  - Tests: `SwipeTests.APartialRevealSnapsOpen`, `SwipeTests.ActionsStayPutWhileARowIsDraggedByFractionalOffsets`
 - **BRIDGE-SWIPE-009** — Within its strip, a side's actions shall be laid out at least as wide as they measure, aligned to the element's edge they sit against, and clipped to the strip.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`
 - **BRIDGE-SWIPE-010** (inherited) — Only the side being revealed shall be visible; at offset 0 both shall be hidden unless a context request is opening one.
@@ -179,7 +179,7 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 
 - Per pointer move: one `Animatable.Set` and a velocity sample; no LINQ. Hosting and context requests allocate and are off the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
@@ -190,6 +190,7 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 - **`Reveal` turns off resting open, not the actions.** With it false the actions still show under the drag and a full swipe still commits, but no release pins them. Reason: on touch a small sideways drift snapped Tempo's rows open on their check and delete, and the user had to start another gesture to close them; a context request stays the way to open them on purpose. Rejected: removing the actions, which loses the feedback of what a full swipe will do.
 - **A touch or pen needs a wider slop and a clearly horizontal start** (BRIDGE-GESTURES' crosswise gate). Reason: a finger drifts a few DIPs and rarely moves dead straight, so on the 3-DIP majority rule an intended scroll or reorder hold in Tempo's task list often grabbed the row and a small flick snapped it open. Rejected: a wider slop for every pointer, which makes mouse swipes feel sticky.
 - **Action layers live inside the swiped element.** Each side's actions sit in a clipping layer appended to the element's own visual and logical children, hosted lazily on the first reveal, re-appended if a re-template drops it, and arranging itself at the strip the element uncovers outside its box; a side opens as wide as its actions measure. Reason: the parent's children belong to a panel or a generator by index; in the element, the layer's draw order never matters and the element moves only through its X shorthand, so it must not clip to its bounds. Rejected: appending the layers to the parent.
+- **The strip is placed without layout rounding, and on each drag move.** Reason: the element slides by a fractional render transform, so a rounded strip shifted against it by up to a pixel, and placing it only from the offset's `Changed` (raised on the next engine frame) left it a move behind; both read as the actions shaking. Rejected: rounding the offset itself, which steps the drag.
 - **A full swipe commits by position alone.** A release past half the element's width commits, never one judged by its projected fling. Reason: not recorded.
 - **The axis lock drops a vertical-first press.** The lock is the arena's crosswise gate (BRIDGE-GESTURES for the numbers); a press whose gate drops out is forgotten without capturing or handling it. Reason: a touch scroll then reaches the ancestor `ScrollViewer`. Rejected: closing an open row on any arena loss, which a vertical drop-out never did.
 - **Swipe claims `GestureOwners`.** A `Draggable` or `Transformable` on the same element throws. Reason: not recorded.

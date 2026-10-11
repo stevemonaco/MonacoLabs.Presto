@@ -126,7 +126,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 ### Defaults
 
-- **CORE-SPRING-035** — When `onComplete` is not given, the spring shall invoke nothing when it completes, as anime.js's `noop` does.
+- **CORE-SPRING-035** — When `onComplete` is not given, the spring shall invoke nothing when it completes.
   - Tests: untested
 
 ## Invariants
@@ -158,7 +158,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - Calling `Ease` or `PureEase` allocates nothing.
 - Every constructor and setter runs the settling search, up to 3001 solver steps; parameter changes are not meant for the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - `PureEase` has no upstream; it serves samplers that must not raise `OnComplete`, such as velocity measurement.
 - `DampingRatio` has no upstream; it is public so a caller can tell the damping regime without a velocity API on the ease (No core velocity API for an ease).
@@ -171,7 +171,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - **No core velocity API for an ease; `DampingRatio` is public.** Callers that need the ease's velocity compute it numerically from `PureEase`. Reason: no core API until a use shows it is generally useful.
 - **Preserved velocity is measured from the running ease.** See CORE-ANIMATABLE.
 - **Spring presets live in the core, fresh per read.** `Springs` is a static class in `MonacoLabs.Presto`, each read returning a new `Spring`; `Eases.Spring` stays the way to build a custom one. Reason: a preset is just a `Spring`, a core type, and a `Spring` carries completion state, so it cannot be shared. Replaces BRIDGE-EASES's `Spring presets live in the bridge, fresh per read`, whose reasons (completion state, use from XAML) did not depend on where the class lives.
-- **Preset durations follow the time unit; the default 628 does not.** A preset names a perceived duration in milliseconds and converts it on each read, so `Springs.Gentle` feels the same in seconds mode instead of clamping to 10 s. Reason: presets have no upstream to stay faithful to, and an unscaled preset made the default `Timer.Settle` crawl in seconds mode. The default 628 stays unscaled for upstream parity.
+- **Preset durations follow the time unit; the default 628 does not.** A preset names a perceived duration in milliseconds and converts it on each read, so `Springs.Gentle` feels the same in seconds mode instead of clamping to 10 s. Reason: an unscaled preset made the default `Timer.Settle` crawl in seconds mode. The default 628 stays unscaled, kept from upstream; no other reason recorded (see Open items).
 
 ## Non-goals
 
@@ -181,7 +181,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 ## Open items
 
-- In seconds mode, a physically configured spring's `OnComplete` never fires and a bounce-only spring derives from a 10 s duration, because the default perceived duration 628 is not scaled (upstream parity).
-- The two-way derivation is meant to keep physical and designer settings in step, but setting `Mass` or `Velocity` leaves `Bounce` and `Duration` stale, and setting `Bounce` or `Duration` silently resets `Mass` and `Velocity` (upstream parity; the XML docs mention neither).
+- In seconds mode, a physically configured spring's `OnComplete` never fires and a bounce-only spring derives from a 10 s duration, because the default perceived duration 628 is not scaled (kept from upstream).
+- The two-way derivation is meant to keep physical and designer settings in step, but setting `Mass` or `Velocity` leaves `Bounce` and `Duration` stale, and setting `Bounce` or `Duration` silently resets `Mass` and `Velocity` (kept from upstream; the XML docs mention neither).
 - `Duration` and `Bounce` of a spring built from physical arguments stay at 628 and 0.5, not the values its parameters imply.
 - Untested: the stiffness/damping → bounce/duration derivation (009, 010), the natural-frequency clamp (014), `PureEase` leaving completion alone (028), `Parent` assignment by an animation (030), and time-unit behavior beyond `SettlingDuration` (033, 034).

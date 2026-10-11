@@ -189,7 +189,7 @@ depends:
 
 - A travel allocates one `Animation`; a selection change in `Dots` mode allocates one staggered animation over the dots. A looping drag re-arranges the strip each frame without allocating. Not otherwise on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

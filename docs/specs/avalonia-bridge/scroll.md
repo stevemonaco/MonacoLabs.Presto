@@ -245,7 +245,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 
 - A `"ScrollY"` tween ticks within the allocation budget (`BridgeAllocationTests.AScrollYTweenTicksWithinBudget`). Parallax updates allocate nothing per notification.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js 4.5.0 has no parallax, wheel smoothing or animated scrolling (GSAP ScrollSmoother/ScrollToPlugin, Compose and Flutter were the models).
 

@@ -137,7 +137,7 @@ depends:
 
 - Not on the tick path. A layout pass with no move and no flag change allocates nothing; each arm allocates a transition.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: this is Framer Motion's `layout` prop over BRIDGE-LAYOUT's FLIP.
 

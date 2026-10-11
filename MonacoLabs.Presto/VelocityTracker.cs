@@ -1,7 +1,7 @@
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Measures the velocity of a sampled value the way anime.js draggables do: samples at least an interval apart, and the
+/// Measures the velocity of a sampled value: samples at least an interval apart, and the
 /// strongest of the last few taken as the velocity, so one slow final frame does not kill a flick.
 /// </summary>
 public sealed class VelocityTracker
@@ -38,7 +38,7 @@ public sealed class VelocityTracker
         }
     }
 
-    /// <summary>Clears the samples and the value baseline; the time of the last sample is kept, as upstream does.</summary>
+    /// <summary>Clears the samples and the value baseline; the time of the last sample is kept.</summary>
     public void Reset()
     {
         Array.Clear(_samples);
@@ -61,7 +61,7 @@ public sealed class VelocityTracker
     }
 
     /// <summary>
-    /// Draggable's sampler, as upstream's <c>computeVelocity</c>: each sample is scaled, clamped and rounded when taken,
+    /// Draggable's sampler: each sample is scaled, clamped and rounded when taken,
     /// and the velocity is the plain maximum of the window, zero seeds included.
     /// </summary>
     internal bool AddDisplacement(double distance, double time, double multiplier, double min, double max)

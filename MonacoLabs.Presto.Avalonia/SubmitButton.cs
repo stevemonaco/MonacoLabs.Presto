@@ -20,7 +20,7 @@ namespace MonacoLabs.Presto;
 /// <remarks>
 /// The spinner and the mark are drawn in the button's <c>Foreground</c> over its content, which fades out while it is
 /// collapsed. The collapse takes <see cref="MotionTokens.Medium"/>, the mark draws in with <see cref="Recipes.DrawIn"/>
-/// and the button expands on <see cref="Springs.Bouncy"/>, ending on the width, corner radius and background it had
+/// and the button expands on <see cref="Springs.Gentle"/>, ending on the width, corner radius and background it had
 /// before. Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each state change, every state shows at once and the
 /// spinner stands still.
 /// </remarks>
@@ -82,7 +82,7 @@ public static class SubmitButton
         await Task.WhenAny(work);
         var succeeded = work.IsCompletedSuccessfully && work is not Task<bool> { Result: false };
         button.SetCurrentValue(StateProperty, succeeded ? SubmitState.Succeeded : SubmitState.Failed);
-        await Presto.CreateTimer(new() { Duration = Recipes.Tokens.Medium + Recipes.Tokens.Long });
+        await Presto.Delay(Recipes.Tokens.Medium + Recipes.Tokens.Long);
         button.SetCurrentValue(StateProperty, SubmitState.Idle);
         return succeeded;
     }
@@ -184,7 +184,7 @@ public static class SubmitButton
             _collapsed = false;
             _mark.Animate(Recipes.DrawOut(duration: Recipes.Tokens.Short));
             Content?.Animate(new() { ["Opacity"] = 1, Duration = reduced ? 0 : Recipes.Tokens.Medium, OnComplete = fade => fade.Revert() });
-            var expand = reduced ? Presto.Build().Duration(0) : Presto.Build().Ease(Springs.Bouncy);
+            var expand = reduced ? Presto.Build().Duration(0) : Presto.Build().Ease(Springs.Gentle);
             expand.Width(_width).CornerRadius(_corner).OnComplete(animation => animation.Revert());
             if (_tinted && _background is not null) expand.Background(_background);
             _tinted = false;

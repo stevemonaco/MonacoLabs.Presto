@@ -121,7 +121,7 @@ depends:
 
 - Each open and close builds its `Presence` builders and one backdrop animation. Not on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

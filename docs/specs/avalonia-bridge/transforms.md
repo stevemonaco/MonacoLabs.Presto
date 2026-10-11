@@ -110,7 +110,7 @@ The transform shorthands `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `SkewX
 - A frame writes a reused transform's property, costing only Avalonia's property-changed args (BRIDGE-TARGETS). Allocation happens when a shorthand joins or leaves the group.
   - Pinned by `BridgeAllocationTests.TransformShorthandTweenTicksWithinBudget`.
 
-## Deviations from anime.js
+## Provenance
 
 - `translateZ`, `rotateZ`, `scaleZ`, `skew` and `matrix` have no shorthand; `x`/`y` are `X`/`Y` and `rotate` is `Rotate`.
 - Upstream emits `perspective` first in the string; here the depth rides in the `Rotate3DTransform` at the 3D rotation's slot, because one transform carries both angles and the depth.

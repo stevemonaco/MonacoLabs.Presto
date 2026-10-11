@@ -7,7 +7,7 @@ using Timer = MonacoLabs.Presto.Timer;
 namespace PrestoSample.Showcase.Pages;
 
 /// <summary>
-/// The SAMPLES-PLAN §4.3 field: thousands of <see cref="Particle"/>s drifting on one staggered, blended animation,
+/// The SAMPLES-PLAN §4.3 field: thousands of <see cref="Particle"/>s drifting on one staggered, additive animation,
 /// parting around the pointer and bursting from a click, all ticked and drawn on the render thread.
 /// </summary>
 public sealed class ParticleFieldScene : CompositorScene
@@ -118,7 +118,7 @@ public sealed class ParticleFieldScene : CompositorScene
             ["X"] = (FunctionValue)((_, _, _) => random(-Wander, Wander, 1)),
             ["Y"] = (FunctionValue)((_, _, _) => random(-Wander, Wander, 1)),
             ["Opacity"] = new TweenParams { To = (FunctionValue)((_, _, _) => random(.12, 1, 2)), Modifier = Utils.Snap(.05) },
-            // Adding color channels together means nothing, so the tint replaces while the rest of the animation blends.
+            // Adding color channels together means nothing, so the tint replaces while the rest of the animation is additive.
             ["Tint"] = new TweenParams
             {
                 To = (FunctionValue)((_, _, _) => TweenValue.Of(Palette.AccentRamp[(int)random(0, Palette.AccentRamp.Count - 1)])),
@@ -127,7 +127,7 @@ public sealed class ParticleFieldScene : CompositorScene
             Duration = 2800,
             Delay = Presto.Stagger(9, new StaggerParams { Grid = [columns, rows], From = StaggerFrom.Center }),
             Ease = Eases.InOutSine,
-            Composition = Composition.Blend,
+            Composition = Composition.Additive,
             Loop = true,
             Alternate = true,
         });
@@ -155,7 +155,7 @@ public sealed class ParticleFieldScene : CompositorScene
                 new() { To = (FunctionValue)((target, _, _) => Kick((Particle)target, at).Y), Duration = 150, Ease = Eases.OutQuad },
                 new() { To = 0, Ease = Eases.Spring(stiffness: 60, damping: 12) },
             },
-            Composition = Composition.Blend,
+            Composition = Composition.Additive,
         });
         #endregion
     }

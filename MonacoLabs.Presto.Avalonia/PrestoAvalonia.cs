@@ -116,7 +116,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>waapi.animate</c>: animates the transform and opacity of <paramref name="targets"/> on the render thread,
+    /// Animates the transform and opacity of <paramref name="targets"/> on the render thread,
     /// so the animation carries on while the UI thread is busy.
     /// </summary>
     /// <remarks>
@@ -222,7 +222,7 @@ public static class PrestoAvalonia
         AnimateOnCompositor(targets, Presto.Build(build));
 
     /// <summary>
-    /// Upstream <c>createLayout</c>: eases <paramref name="control"/> into its new place over <paramref name="duration"/>
+    /// Eases <paramref name="control"/> into its new place over <paramref name="duration"/>
     /// milliseconds whenever layout moves it, on the render thread (COMPOSITOR-PLAN §4.4). From XAML, set
     /// <see cref="Animate.LayoutProperty"/> or <see cref="Animate.ItemLayoutProperty"/>.
     /// </summary>
@@ -431,7 +431,7 @@ public static class PrestoAvalonia
         Presto.GetAnimations(target, AvaloniaObjectTargetAdapter.Encode(property));
 
     /// <summary>
-    /// Upstream <c>svg.createDrawable</c>: puts <paramref name="shape"/> into the stroke dash state that reveals only the
+    /// Puts <paramref name="shape"/> into the stroke dash state that reveals only the
     /// contour between <paramref name="start"/> and <paramref name="end"/> (both 0-1), and returns it ready to animate
     /// through its "Draw" property (<c>["Draw"] = "0 1"</c>).
     /// </summary>
@@ -443,7 +443,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>svg.createMotionPath</c>: the "X", "Y" and "Rotate" tweens that ride <paramref name="path"/>'s contour,
+    /// The "X", "Y" and "Rotate" tweens that ride <paramref name="path"/>'s contour,
     /// with <paramref name="offset"/> (0-1) shifting where along it the animation starts — clamping at the two ends when it
     /// is 0, wrapping around otherwise — and <paramref name="autoRotate"/> degrees added to the tangent angle.
     /// </summary>
@@ -507,7 +507,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>svg.morphTo</c>: the from/to pair that morphs the target's <see cref="Geometry"/> <c>Data</c> property
+    /// The from/to pair that morphs the target's <see cref="Geometry"/> <c>Data</c> property
     /// (<see cref="Path.Data"/>, <see cref="PathIcon.Data"/>) into <paramref name="destination"/>, by resampling both
     /// contours at <paramref name="precision"/> points per unit of the longer one and interpolating the two point by point.
     /// When either geometry has several figures, its contours are paired outer with outer and hole with hole and each pair is
@@ -520,7 +520,7 @@ public static class PrestoAvalonia
     /// a <see cref="Geometry"/> and cannot be morphed; use a <see cref="Path"/>.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="precision"/> is zero or negative. Upstream reads that as its raw-attribute morph, which needs the
+    /// <paramref name="precision"/> is zero or negative. anime.js reads that as its raw-attribute morph, which needs the
     /// source path string an Avalonia <see cref="Geometry"/> does not carry.
     /// </exception>
     public static ChainedFunctionValue MorphTo(Geometry destination, double precision = GeometryCodec.DefaultPrecision)
@@ -553,7 +553,7 @@ public static class PrestoAvalonia
         ContourMorph.Of(from, to, precision)?.Points ?? GeometryCodec.PointCount(Math.Max(from.ContourLength, to.ContourLength), precision);
 
     /// <summary>
-    /// Upstream <c>splitText</c>: takes <paramref name="textBlock"/>'s text apart into the per-line, per-word and
+    /// Takes <paramref name="textBlock"/>'s text apart into the per-line, per-word and
     /// per-character controls <paramref name="parameters"/> asks for, and keeps them in step with the block's width.
     /// </summary>
     public static TextSplitter SplitText(TextBlock textBlock, SplitTextParams? parameters = null)
@@ -591,7 +591,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>createDraggable</c>: makes <paramref name="target"/> draggable by pointer, moving it through the
+    /// Makes <paramref name="target"/> draggable by pointer, moving it through the
     /// transform shorthands "X" and "Y" unless <paramref name="parameters"/> maps the axes elsewhere.
     /// </summary>
     public static Draggable CreateDraggable(Control target, DraggableParams? parameters = null)
@@ -612,7 +612,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>onScroll</c>: watches a control crossing a <see cref="ScrollViewer"/>'s thresholds, and drives
+    /// Watches a control crossing a <see cref="ScrollViewer"/>'s thresholds, and drives
     /// whatever is handed to <see cref="ScrollObserver.Link"/> from the scroll position.
     /// </summary>
     /// <remarks>

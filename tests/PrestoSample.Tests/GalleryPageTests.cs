@@ -89,20 +89,20 @@ public sealed class GalleryPageTests
     }
 
     [AvaloniaFact]
-    public void OnlyTheAnimeJsMirrorPagesNameABuilderTwin()
+    public void OnlyTheReferencePagesNameABuilderTwin()
     {
+        string[] withTwin = ["Timer", "Playback settings", "Callbacks", "Controls", "Animation basics", "Value types", "Keyframes", "Timeline", "Stagger", "Eases", "Animatable", "Draggable", "Scroll", "Shapes", "Text"];
         var sections = new MainViewModel().Sections;
-        var reference = sections.Single(section => section.Name == "Reference").Pages;
-        var mirrors = reference.SkipWhile(page => page.Title != "Timer").TakeWhile(page => page.Title != "Compositor").Where(page => page.Title != "Springs").ToList();
+        var twinned = sections.SelectMany(section => section.Pages).Where(page => page.Twin is not null).ToList();
         var builders = sections.Single(section => section.Name == "Builder").Pages.Select(page => page.Title).ToList();
 
-        Assert.Equal(15, mirrors.Count);
-        Assert.All(mirrors, page => Assert.Contains(page.Twin, builders));
-        Assert.All(sections.SelectMany(section => section.Pages).Except(mirrors), page => Assert.Null(page.Twin));
+        Assert.Equal(withTwin, twinned.Select(page => page.Title));
+        Assert.All(twinned, page => Assert.Equal("Reference", page.Section));
+        Assert.All(twinned, page => Assert.Contains(page.Twin, builders));
     }
 
     [AvaloniaFact]
-    public void AMirrorPageShowsTheExemptionLineAndItsLinkOpensTheTwin()
+    public void AReferencePageShowsTheExemptionLineAndItsLinkOpensTheTwin()
     {
         var gallery = new MainViewModel();
         var window = SceneHarness.Show(new MainView { DataContext = gallery }, 1400, 1000);

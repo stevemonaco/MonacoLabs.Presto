@@ -155,7 +155,7 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 
 - Not on the tick path. Each exit allocates its bitmap(s), images, canvases and params; the per-layout-pass re-placement allocates nothing beyond the clip intersection.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

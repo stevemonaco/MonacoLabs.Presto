@@ -82,7 +82,7 @@ An internal gesture arena, one per pressed pointer, modelled on Flutter's and ru
 
 - Each move evaluates the pending gates in a loop over the members, without LINQ or allocation; a press allocates the arena and one entry per member.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

@@ -252,7 +252,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - A `MotionObjectValue` boxes one struct per changed frame unless its codec reuses the instance.
 - A pointer move over any number of pointer proximity and offset values allocates nothing beyond Avalonia's routing (`BridgeAllocationTests.APointerMoveOverProximityValuesAllocatesNothing`); a layout pass costs them nothing while the pointer is absent.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart (Compose / Flutter / Motion-inspired).
 

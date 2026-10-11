@@ -40,7 +40,7 @@ depends:
 
 ## Purpose
 
-`Draggable` is the port of anime.js `createDraggable`: single-pointer dragging of a control, written through a core `Animatable` (CORE-ANIMATABLE) over two mapped axis properties, with a drag threshold, per-axis enabling, snapping, modifiers, container bounds and friction, edge auto-scroll of the nearest `ScrollViewer`, and a release that throws the target on with the pointer's velocity, plus an opt-in inertia release (CORE-INERTIA). `Transformable` (BRIDGE-TRANSFORMABLE) is its multi-touch counterpart; `Pager`, `Reorder` and other controls reuse its edge-scroll defaults, and its 3-DIP default threshold is one of the shared drag thresholds in BRIDGE-GESTURES. Also specifies `PrestoAvalonia.CreateDraggable`.
+`Draggable`, initially ported from anime.js `createDraggable`, is single-pointer dragging of a control, written through a core `Animatable` (CORE-ANIMATABLE) over two mapped axis properties, with a drag threshold, per-axis enabling, snapping, modifiers, container bounds and friction, edge auto-scroll of the nearest `ScrollViewer`, and a release that throws the target on with the pointer's velocity, plus an opt-in inertia release (CORE-INERTIA). `Transformable` (BRIDGE-TRANSFORMABLE) is its multi-touch counterpart; `Pager`, `Reorder` and other controls reuse its edge-scroll defaults, and its 3-DIP default threshold is one of the shared drag thresholds in BRIDGE-GESTURES. Also specifies `PrestoAvalonia.CreateDraggable`.
 
 ## Requirements
 
@@ -126,7 +126,7 @@ depends:
   - Tests: `DraggableTests.ReleasingWithVelocityThrowsTheTargetOnAndSettles`
 - **BRIDGE-DRAGGABLE-034** — When `ReleaseEase` is a `Spring`, it shall replace the release springs and be used as the ease over its full settling duration, and it shall land on the same coordinates an eased release does.
   - Tests: `DraggableTests.AReleaseEaseAndAReleaseSpringSettleAtTheSameCoordinates`
-- **BRIDGE-DRAGGABLE-035** — When the throw lands past a bound, no release spring is supplied and the release friction is below 1, the draggable shall play two blended tweens on an internal target: out to the cushioned point over 65 % of the duration, and back to the clamped destination over the full duration.
+- **BRIDGE-DRAGGABLE-035** — When the throw lands past a bound, no release spring is supplied and the release friction is below 1, the draggable shall play two additive tweens on an internal target: out to the cushioned point over 65 % of the duration, and back to the clamped destination over the full duration.
   - Tests: `DraggableTests.AnOutOfBoundsReleaseEasesBackIntoTheContainer`
 - **BRIDGE-DRAGGABLE-036** — When a release moves only one axis, or every axis duration is 0, the draggable shall raise `OnSettle` once, after both axes are written.
   - Tests: `DraggableTests.AReleaseThatOnlyMovesOneAxisSettlesOnceBothAreWritten`
@@ -184,7 +184,7 @@ depends:
 - **BRIDGE-DRAGGABLE-055** — When `Stop` is called, the draggable shall pause the drag and every animation on its axes, cancel its own overshoot and scroll animations and drop its references to them, and leave animations on other targets running, also when called from another animation's callback mid-frame.
   - Tests: `DraggableTests.ResetMidOvershootLeavesAnAnimationOnAnotherControlRunning`
 - **BRIDGE-DRAGGABLE-056** — Grabbing an overshooting throw repeatedly (canceling the overshoot each time, including after its out leg completed) shall leave every engine and additive tween list acyclic and intact.
-  - Tests: `DraggableTests.RegrabbingAnOvershootingThrowRepeatedlyKeepsTheTweenListsAcyclic`, `TweenListIntegrityTests.CancelingABlendedAnimationTwiceKeepsTheListsIntactForTheNextBlend`, `TweenListIntegrityTests.CancelingACompletedBlendedAnimationKeepsTheListsIntact`
+  - Tests: `DraggableTests.RegrabbingAnOvershootingThrowRepeatedlyKeepsTheTweenListsAcyclic`, `TweenListIntegrityTests.CancelingAnAdditiveAnimationTwiceKeepsTheListsIntactForTheNextOne`, `TweenListIntegrityTests.CancelingACompletedAdditiveAnimationKeepsTheListsIntact`
 - **BRIDGE-DRAGGABLE-057** — When `Reset` is called, the draggable shall stop, cancel a pending resize, end any drag state and Escape listener, write both axes to 0 without raising `OnUpdate`, and clear the velocity.
   - Tests: `DraggableTests.ResetMidOvershootLeavesAnAnimationOnAnotherControlRunning`, `DraggableTests.ResettingInsideOnSettleLeavesBothAxesAtZero`
 - **BRIDGE-DRAGGABLE-058** — When `Disable` is called, the draggable shall drop the drag in progress and the pointer capture, restore the cursor and stop listening for pointers, leaving the target where it is; `Enable` shall attach the listeners again and is a no-op while enabled.
@@ -194,33 +194,33 @@ depends:
 
 ### Defaults
 
-- **BRIDGE-DRAGGABLE-060** — When `Trigger` is not set, the draggable shall listen for pointers on the target itself, as anime.js does.
+- **BRIDGE-DRAGGABLE-060** — When `Trigger` is not set, the draggable shall listen for pointers on the target itself.
   - Tests: `DraggableTests.DraggingMovesTheTargetByThePointerDelta`
-- **BRIDGE-DRAGGABLE-061** — When an axis's `Enabled` is not set, or the axis has no `DraggableAxisParams`, that axis shall be enabled, as anime.js does.
+- **BRIDGE-DRAGGABLE-061** — When an axis's `Enabled` is not set, or the axis has no `DraggableAxisParams`, that axis shall be enabled.
   - Tests: `DraggableTests.DraggingMovesTheTargetByThePointerDelta`
-- **BRIDGE-DRAGGABLE-062** — When an axis's `Composition` is not set, the axis shall write with `Composition.Replace`, as anime.js's animatable does.
+- **BRIDGE-DRAGGABLE-062** — When an axis's `Composition` is not set, the axis shall write with `Composition.Replace`.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-063** — When `ContainerPadding` is not set, the bounds shall have no padding, as anime.js does.
+- **BRIDGE-DRAGGABLE-063** — When `ContainerPadding` is not set, the bounds shall have no padding.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-064** — When `ContainerFriction` is not set, the drag friction past a bound shall be 0.8, as anime.js does.
+- **BRIDGE-DRAGGABLE-064** — When `ContainerFriction` is not set, the drag friction past a bound shall be 0.8.
   - Tests: `DraggableTests.AnOutOfBoundsReleaseEasesBackIntoTheContainer`
-- **BRIDGE-DRAGGABLE-065** — When `ReleaseContainerFriction` is not set, the release friction shall equal the drag friction, as anime.js does.
+- **BRIDGE-DRAGGABLE-065** — When `ReleaseContainerFriction` is not set, the release friction shall equal the drag friction.
   - Tests: untested
 - **BRIDGE-DRAGGABLE-066** (inherited) — When `CancelOnEscape` is not set, Escape shall not cancel a drag.
   - Tests: `DraggableTests.EscapeIsIgnoredWithoutCancelOnEscape`
-- **BRIDGE-DRAGGABLE-067** — When `DragThreshold` is not set, the drag threshold shall be 3, as anime.js's mouse threshold is.
+- **BRIDGE-DRAGGABLE-067** — When `DragThreshold` is not set, the drag threshold shall be 3.
   - Tests: `DraggableTests.MovementBelowTheDragThresholdIsSuppressed`
-- **BRIDGE-DRAGGABLE-068** — When `ReleaseEase` is not set, the release shall ease with `Eases.OutQuint`, as anime.js does.
+- **BRIDGE-DRAGGABLE-068** — When `ReleaseEase` is not set, the release shall ease with `Eases.OutQuint`.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-069** — When `ReleaseMass`, `ReleaseStiffness` or `ReleaseDamping` is not set, the release spring shall use mass 1, stiffness 80 and damping 20 respectively, as anime.js does.
+- **BRIDGE-DRAGGABLE-069** — When `ReleaseMass`, `ReleaseStiffness` or `ReleaseDamping` is not set, the release spring shall use mass 1, stiffness 80 and damping 20 respectively.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-070** — When `MinVelocity`, `MaxVelocity` or `VelocityMultiplier` is not set, the velocity shall be clamped to at least 0 and at most 50 and scaled by 1 respectively, as anime.js does.
+- **BRIDGE-DRAGGABLE-070** — When `MinVelocity`, `MaxVelocity` or `VelocityMultiplier` is not set, the velocity shall be clamped to at least 0 and at most 50 and scaled by 1 respectively.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-071** — When `ScrollSpeed` is not set, the edge auto-scroll speed shall be 1.5, and when `ScrollThreshold` is not set, the edge band shall be 20 wide, as anime.js does.
+- **BRIDGE-DRAGGABLE-071** — When `ScrollSpeed` is not set, the edge auto-scroll speed shall be 1.5, and when `ScrollThreshold` is not set, the edge band shall be 20 wide.
   - Tests: untested
 - **BRIDGE-DRAGGABLE-072** (inherited) — When `Cursor` is not set, cursors shall be enabled, and when `OnHover` or `OnGrab` is not set, the draggable shall show `StandardCursorType.Hand` on hover and `StandardCursorType.SizeAll` while grabbed.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-073** — When `ScrollInView` or `AnimateInView` is called without a duration, gap or ease, it shall animate over 350 ms with a gap of 0 and `Eases.InOutQuad`, as anime.js does.
+- **BRIDGE-DRAGGABLE-073** — When `ScrollInView` or `AnimateInView` is called without a duration, gap or ease, it shall animate over 350 ms with a gap of 0 and `Eases.InOutQuad`.
   - Tests: untested
 
 ## Invariants
@@ -256,7 +256,7 @@ depends:
 
 - The per-frame drag update and the render callback allocate nothing of their own; axis writes go through `Animatable.Set` (CORE-ANIMATABLE). A release allocates its animations (and, out of bounds, two overshoot animations); `XValue`/`YValue` are created once on first read.
 
-## Deviations from anime.js
+## Provenance
 
 - No `dragSpeed`; `DragThreshold` is one number with no mouse/touch split (upstream: 3 mouse, 7 touch). Reason: not recorded.
 - Parameters are plain values, not function-based (`parseDraggableFunctionParameter`), except `ContainerBounds`, which is a delegate read on every measurement; `ContainerPadding` is a `Thickness`. Reason: not recorded.
@@ -264,15 +264,15 @@ depends:
 - The grab does not raise the target's z-index, and there is no touch-scroll pass-through inside scrollable children of the trigger. Reason: not recorded.
 - Cursors are set on the trigger (Hand / SizeAll), not on the document body (grab / grabbing). Reason: not recorded.
 - Not upstream: `CancelOnEscape` (reason not recorded), `ReleaseInertia` (see Decisions), `XValue`/`YValue` (MotionValue sources, CORE-MOTIONVALUE), and `Refresh` re-aiming a release in flight, because a container resized mid-throw otherwise replaced the release with a muted zero-duration write, leaving the target stopped mid-air with no `OnSettle`.
-- `Stop` cancels the overshoot and scroll animations and drops its references instead of removing the overshoot target, because canceling the overshoot on every grab removed blended tweens twice and corrupted the tween lists; the idempotent sibling removal underneath is a core deviation (CORE-COMPOSITION).
+- `Stop` cancels the overshoot and scroll animations and drops its references instead of removing the overshoot target, because canceling the overshoot on every grab removed additive tweens twice and corrupted the tween lists; the idempotent sibling removal underneath is a core deviation (CORE-COMPOSITION).
 - The release's zero-duration axis writes rely on the core's top-level `Stretch` keeping its offset (CORE-TIMER), because stretching a 1e-11 setter otherwise scaled the offset by ~10¹⁴ and started the release late or never; release springs set their own velocity, which is why `Animatable` momentum is opt-in (CORE-ANIMATABLE).
-- Velocity is sampled through the core `VelocityTracker` with upstream's three-sample, 17 ms, max-of-three behavior, so the ported parity tests hold.
 
 ## Decisions
 
 - **Draggable reads engine time.** Velocity timing reads the engine's public `Now`, not the frame source's. Reason: the frame source keeps wall time while the engine is frozen or dilated.
-- **Draggable samples velocity with upstream semantics; `VelocityTracker` keeps its own.** The draggable feeds the core `VelocityTracker` through an internal overload that clamps and rounds each sample when taken and reports the plain maximum of a zero-seeded three-sample stack, as `draggable.js` does; the public tracker stays signed and strongest-by-magnitude. Reason: strongest-by-magnitude suits `Animatable.Fling`, but upstream differs with a negative `VelocityMultiplier` (the zero seeds win) and with limits changed mid-drag (each sample is clamped once); the overload allocates nothing. Rejected: only documenting the difference, since the mid-drag `Refresh` case argued for the fix.
-- **The projection release stays the default; inertia is opt-in.** Without `ReleaseInertia` the release is anime.js's projection and ease; with it, each axis is flung at `Velocity·cos/sin(Angle)` with the bounds as `Min`/`Max` and the axis snap as `ModifyTarget` unless set, bypassing overshoot, cushion and `ReleaseEase`, ignoring the template's `Velocity`, `Min` and `Max`, and re-flinging on `Refresh` only when the rest point leaves the new bounds. Reason: the ported parity tests pin the upstream release. Rejected: rebuilding the release on inertia, as first planned.
+- **Draggable samples velocity with upstream semantics; `VelocityTracker` keeps its own.** The draggable feeds the core `VelocityTracker` through an internal overload that clamps and rounds each sample when taken and reports the plain maximum of a zero-seeded three-sample stack, as `draggable.js` does; the public tracker stays signed and strongest-by-magnitude. Reason: clamping each sample once means a mid-drag `Refresh` that changes the limits applies only to later samples, and the overload allocates nothing; the plain maximum, which differs from the public tracker's only under a negative `VelocityMultiplier` (the zero seeds win), is kept from upstream with no other reason recorded (reopened in BACKLOG). Rejected: feeding the public tracker unchanged and only documenting the difference, since the mid-drag `Refresh` case argued for the fix.
+- **The projection release stays the default; inertia is opt-in.** Without `ReleaseInertia` the release projects the throw and eases to the snapped, clamped destination; with it, each axis is flung at `Velocity·cos/sin(Angle)` with the bounds as `Min`/`Max` and the axis snap as `ModifyTarget` unless set, bypassing overshoot, cushion and `ReleaseEase`, ignoring the template's `Velocity`, `Min` and `Max`, and re-flinging on `Refresh` only when the rest point leaves the new bounds. Reason: the projection's feel is tuned through `ReleaseEase` or a release spring and the container cushion, all of which an inertia release bypasses, so existing draggables keep their tuning; a decay suits content flicked like a page, which is where `Pager` opts in. Rejected: rebuilding the release on inertia, as first planned.
+- **Unset options drag the target freely; the feel constants are upstream's.** Without `Trigger`, an axis `Enabled` or `Composition`, `ContainerPadding` or `ReleaseContainerFriction`, the target is its own handle, both axes move and write with the core default `Replace`, the bounds are the container's box and the release cushions as the drag does (BRIDGE-DRAGGABLE-060 to 063, 065). Reason: `CreateDraggable(control)` then drags the control, and each option narrows that. The 3-DIP threshold (067) is the one the other Presto drags share on their scroll axis (BRIDGE-GESTURES). The drag friction 0.8, `Eases.OutQuint`, the release spring (mass 1, stiffness 80, damping 20), the velocity limits 0 to 50, the scroll speed 1.5 and 20-wide band, and `ScrollInView`'s 350 ms `InOutQuad` (064, 068 to 071, 073) are kept from upstream; no other reason recorded.
 - **VelocityTracker is a public core type.** See CORE-INERTIA.
 - **Sibling removal is idempotent.** See CORE-COMPOSITION.
 - **Spring momentum on retarget is opt-in.** See CORE-ANIMATABLE.
@@ -291,5 +291,5 @@ depends:
 - `DraggableParams.OnDrag` is documented as running "on the first movement past DragThreshold", but the code raises it on every move of the drag after the threshold (pinned by `OnUpdateOnlyFiresWhenTheTargetMoves`, which expects 3); the XML doc is wrong.
 - The manual Desktop check of flinging and re-grabbing cards on the Draggable page, is still open.
 - `GestureOwners.Claim` only rejects a different gesture type, so two `Draggable`s on one target are allowed; the first's `Revert` then leaves ownership with the second only because `Release` checks the reference. Unspecified whether this is intended.
-- `Reset` writes 0 unclamped even with a container that excludes 0; unclear whether upstream parity or a bug.
+- `Reset` writes 0 unclamped even with a container that excludes 0; kept from upstream, unclear whether intended or a bug.
 - No tests for `ContainerBounds`, `ProgressX`/`ProgressY`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.

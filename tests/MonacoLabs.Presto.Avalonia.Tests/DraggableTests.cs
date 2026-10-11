@@ -534,7 +534,7 @@ public sealed class DraggableTests : BridgeTestBase
 
     [AvaloniaTheory]
     [InlineData(10)] // lands inside the old bounds
-    [InlineData(20)] // thrown past them, so the blended overshoot is in flight
+    [InlineData(20)] // thrown past them, so the additive overshoot is in flight
     public void AContainerResizedMidThrowRetargetsTheReleaseAndSettlesOnce(double step)
     {
         var (window, container, target) = Show();
@@ -560,7 +560,7 @@ public sealed class DraggableTests : BridgeTestBase
 
     [AvaloniaTheory]
     [InlineData(false)]
-    [InlineData(true)] // mid-frame, with the blended overshoot tweens next in the engine's list
+    [InlineData(true)] // mid-frame, with the additive overshoot tweens next in the engine's list
     public void ResetMidOvershootLeavesAnAnimationOnAnotherControlRunning(bool fromItsCallback)
     {
         var (window, container, target) = Show();

@@ -87,7 +87,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
   - Tests: `TimelinesTests.DefaultParametersAreInheritedByChildren`
 - **CORE-ANIMATION-010** — When a property's value is a `TweenParams`, its non-null settings shall override the animation's for that property.
   - Tests: `ParametersTests.SpecificPropertyParameters`, `TweensTests.ProperlyAssignSpecificTweenProperties`
-- **CORE-ANIMATION-011** — When `Composition` is unset and the animation has 1000 targets or more, its tweens shall use `Composition.None`.
+- **CORE-ANIMATION-011** — When `Composition` is unset and the animation has 1000 targets or more, its tweens shall use `Composition.Overlap`.
   - Tests: untested
 - **CORE-ANIMATION-012** — When a value, duration, delay or ease is a `FunctionValue`, the animation shall evaluate it per target with the target, its index and the target count, reading numeric strings as numbers.
   - Tests: `FunctionBasedValuesTests.BasicFunctionBasedValues`, `FunctionBasedValuesTests.FunctionBasedStringValuesAreConvertedToNumbers`
@@ -128,8 +128,8 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
   - Tests: `TimelinesTests.TimelineValues`, `TimelineCallbacksTests.TimelineMixSetAndAdd`
 - **CORE-ANIMATION-029** — When the property is discrete, its tween shall run one channel from 0 to 1 and write the from or to object whole, switching by the `TweenParams.Discrete` rule or else the property's own rule.
   - Tests: `DiscreteValuesTests.ABoolSwitchesHalfwayByDefault`, `DiscreteValuesTests.EachRuleSwitchesAtItsOwnPoint`
-- **CORE-ANIMATION-030** — When a discrete property is given `Composition.Blend`, the constructor shall throw `ArgumentException`.
-  - Tests: `DiscreteValuesTests.BlendingThrows`
+- **CORE-ANIMATION-030** — When a discrete property is given `Composition.Additive`, the constructor shall throw `ArgumentException`.
+  - Tests: `DiscreteValuesTests.AdditiveThrows`
 - **CORE-ANIMATION-031** — When an `Inertia` or `Projectile` is a keyframe or part of a from/to pair, or targets a color or complex property, the constructor shall throw `ArgumentException`.
   - Tests: `InertiaTests.AnInertiaInAKeyframeArrayThrows`, `InertiaTests.AColorPropertyThrows`
 - **CORE-ANIMATION-032** — When a `TweenParams` has a `TextModifier`, the tween shall write the string it returns for the current number instead of the composed value.
@@ -165,7 +165,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ### Set
 
-- **CORE-ANIMATION-044** — When `Presto.Set` is called, the animation shall build every tween as a from/to pair of the given value with a `Constants.MinValue` duration and `Composition.None` unless set, and start at once so the values are written before it returns.
+- **CORE-ANIMATION-044** — When `Presto.Set` is called, the animation shall build every tween as a from/to pair of the given value with a `Constants.MinValue` duration and `Composition.Overlap` unless set, and start at once so the values are written before it returns.
   - Tests: `UtilsTargetsTests.SetObjectProperties`, `UtilsTargetsTests.SetObjectPropertiesToSpecificUnit`, `DiscreteValuesTests.SetWritesABoolAndAnEnum`
 - **CORE-ANIMATION-045** (inherited) — When `Presto.Set` is called, it shall not raise the engine's `TimerCreated`.
   - Tests: untested
@@ -211,7 +211,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
   - Tests: `IntrospectionTests.IsOverriddenFlipsWhenANewerAnimationTakesTheProperty`
 - **CORE-ANIMATION-060** — `GetFrom`, `GetTo` and `GetCurrent` shall return copies: the number, the channels of a color or complex value, and the value composed as the string a target would receive.
   - Tests: `IntrospectionTests.GetCurrentMatchesTheTarget`
-- **CORE-ANIMATION-061** (inherited) — When a number or unit tween has `Composition.None`, `GetCurrent` shall read as its from value, since such a tween does not track its number.
+- **CORE-ANIMATION-061** (inherited) — When a number or unit tween has `Composition.Overlap`, `GetCurrent` shall read as its from value, since such a tween does not track its number.
   - Tests: untested
 
 ### Reduced motion
@@ -234,7 +234,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ## Edge cases
 
-- A target count above 1000 silently switches the default composition to `None`, so a large group never overrides an earlier animation of the same properties.
+- A target count above 1000 silently switches the default composition to `Overlap`, so a large group never overrides an earlier animation of the same properties.
 - A keyframe array of length 1 is one plain keyframe; a `TweenParams` array of any length is keyframes even at length 2.
 - `Refresh` does not re-run function-based durations, delays or eases.
 - Animating a `Timer` or `Animation` as a target (its `CurrentTime` or `Progress`) works through the plain object adapter (`AnimationsTests.AnimateTheProgressOfAnAnimationWithZeroDurationTweens`).
@@ -256,7 +256,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - Rendering a number or unit tween allocates nothing beyond what the accessor's write costs; complex and color strings are composed only when a target needs a string.
 - `Tweens` enumerates without allocating. `GetFrom`, `GetTo` and `GetCurrent` allocate and are meant for tools.
 
-## Deviations from anime.js
+## Provenance
 
 - Original values are captured even when 0 or empty, so `Revert` restores them; upstream skips falsy originals.
 - `Stretch` of a top-level animation keeps its offset and rebuilds absolute times: a top-level offset is the engine time the timer was created at, and multiplying it by the factor of a stretch from a `Constants.MinValue` duration lost the precision a frame needs, so a release tween started late or never.
@@ -267,7 +267,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ## Decisions
 
-- **Upstream's linked lists are kept, and tweens hang off the timer.** Engine children, timeline children and tweens use upstream's intrusive linked lists, and the tween list lives on `Timer`. Reason: structural parity with upstream for one-to-one test ports and zero-allocation ticking; on `Timer`, the renderer and the additive animation work on any timer.
+- **Upstream's linked lists are kept, and tweens hang off the timer.** Engine children, timeline children and tweens use upstream's intrusive linked lists, and the tween list lives on `Timer`. Reason: an intrusive list links and unlinks in O(1) and ticks without allocating, and keeping upstream's structure lets its regression suites port one-to-one; on `Timer`, the renderer and the additive animation work on any timer.
 - **Params are init-only records with a key indexer.** `AnimationParams` mixes property tweens (through its `PropertyKey` indexer, CORE-TARGETS) and settings in one initializer, and a derived params type can add a typed indexer; `TweenParams` is a sealed class. Reason: records let `Timeline.Set` override with `with`, and indexer initializers are the only C# syntax that mixes typed members and arbitrary keys in one initializer, mirroring the JS object literal. Rejected: a collection-initializer `Add` design, which cannot mix with settings.
 - **Function values receive the group's target list.** Reason: it lets `Stagger` resolve auto-grids from the targets.
 - **Dictionary params take `WhenReduced`; timers and timelines do not.** `AnimationParams.WhenReduced` has the builder's semantics: under the flag its properties replace these and the settings it sets override them, and a nested `WhenReduced` is ignored. Reason: a timer animates nothing, and each timeline child picks its own form.
@@ -284,5 +284,5 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 ## Open items
 
 - `Id` defaults, `Presto.Set` not raising `TimerCreated`, kind homogenization, complex padding, the 1000-target composition switch, string rounding precision, a function value returning `TweenParams`, and the setter restart in `Refresh` have no test.
-- `GetCurrent` on a `Composition.None` number tween returns the from value rather than the rendered one (documented on the member); tools reading it get a stale value.
+- `GetCurrent` on a `Composition.Overlap` number tween returns the from value rather than the rendered one (documented on the member); tools reading it get a stale value.
 - The original-value capture deviation from upstream is noted only in code comments; no decision records it.

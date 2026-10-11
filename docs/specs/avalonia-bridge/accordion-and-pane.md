@@ -146,7 +146,7 @@ depends:
 
 - The codec decodes and encodes without allocating beyond the boxed `GridLength`. `Pane`'s per-frame margin write allocates a `Thickness` value only. Accordion allocates on enable, template apply and each chevron spring.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

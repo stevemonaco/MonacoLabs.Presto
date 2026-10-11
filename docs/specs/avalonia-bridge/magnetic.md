@@ -75,7 +75,7 @@ depends:
 
 - Building the graph allocates on attach, `Radius` change and enable. A pointer move allocates nothing beyond Avalonia's routing (BRIDGE-FOLLOW-071), and a frame costs the `MotionValue`-driven `Follow.X` budget per axis (BRIDGE-FOLLOW Allocation); neither is pinned by a `Magnetic` test.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

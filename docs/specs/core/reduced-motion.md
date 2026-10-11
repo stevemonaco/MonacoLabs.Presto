@@ -134,7 +134,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 
 - Not on the tick path; resolving a dictionary reduced form allocates one params copy at construction.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart; anime.js has no reduced-motion support.
 

@@ -30,7 +30,7 @@ depends:
 
 ## Purpose
 
-Port of anime.js `scrambleText`. `Presto.ScrambleText` is a chained function value for a string property that fills the text with random characters and settles it along a reveal wave. It works on any target with a string `Text` property.
+Initially ported from anime.js `scrambleText`. `Presto.ScrambleText` is a chained function value for a string property that fills the text with random characters and settles it along a reveal wave. It works on any target with a string `Text` property.
 
 ## Requirements
 
@@ -75,23 +75,23 @@ Port of anime.js `scrambleText`. `Presto.ScrambleText` is a chained function val
 
 ### Defaults
 
-- **CORE-SCRAMBLE-019** — When `ScrambleTextParams.Chars` is not set, the scramble shall draw from `a-zA-Z0-9!%#_`, as anime.js does.
+- **CORE-SCRAMBLE-019** — When `ScrambleTextParams.Chars` is not set, the scramble shall draw from `a-zA-Z0-9!%#_`.
   - Tests: untested
-- **CORE-SCRAMBLE-020** — When `From` is not set, it shall be `Auto`, and when `Reversed` is not set, the order shall not be inverted, as anime.js does.
+- **CORE-SCRAMBLE-020** — When `From` is not set, it shall be `Auto`, and when `Reversed` is not set, the order shall not be inverted.
   - Tests: untested
-- **CORE-SCRAMBLE-021** — When `Perturbation` is not set, it shall be 0, so no window is offset, as anime.js does.
+- **CORE-SCRAMBLE-021** — When `Perturbation` is not set, it shall be 0, so no window is offset.
   - Tests: untested
-- **CORE-SCRAMBLE-022** — When `RevealRate` is not set, the reveal shall advance 60 characters per second, as anime.js does.
+- **CORE-SCRAMBLE-022** — When `RevealRate` is not set, the reveal shall advance 60 characters per second.
   - Tests: untested
-- **CORE-SCRAMBLE-023** — When `SettleRate` is not set, scramble characters shall be redrawn 30 times per second, as anime.js does.
+- **CORE-SCRAMBLE-023** — When `SettleRate` is not set, scramble characters shall be redrawn 30 times per second.
   - Tests: untested
-- **CORE-SCRAMBLE-024** — When `SettleDuration` is not set, each character's settle window shall last 300 ms, scaled by `Globals.TimeScale`, as anime.js does.
+- **CORE-SCRAMBLE-024** — When `SettleDuration` is not set, each character's settle window shall last 300 ms, scaled by `Globals.TimeScale`.
   - Tests: untested
-- **CORE-SCRAMBLE-025** — When `Delay` or `RevealDelay` is not set, it shall be 0, as anime.js does.
+- **CORE-SCRAMBLE-025** — When `Delay` or `RevealDelay` is not set, it shall be 0.
   - Tests: untested
-- **CORE-SCRAMBLE-026** — When `Ease` is not set, the reveal shall be spread linearly, as anime.js does.
+- **CORE-SCRAMBLE-026** — When `Ease` is not set, the reveal shall be spread linearly.
   - Tests: untested
-- **CORE-SCRAMBLE-027** — When `Cursor` is not set, no cursor characters shall run ahead of the reveal, as anime.js does.
+- **CORE-SCRAMBLE-027** — When `Cursor` is not set, no cursor characters shall run ahead of the reveal.
   - Tests: untested
 
 ## Invariants
@@ -115,13 +115,14 @@ Port of anime.js `scrambleText`. `Presto.ScrambleText` is a chained function val
 
 - A scramble frame builds one string per distinct progress value; that is by design.
 
-## Deviations from anime.js
+## Provenance
 
 - Scramble's function-based `chars`, `text`, `duration` and `delay` and its `onChange` callback are not ported.
 
 ## Decisions
 
 - **ScrambleText is a core value function.** `Presto.ScrambleText` scrambles any target's string `Text` property. Reason: it is pure, built only from core types, and upstream's `scrambleText` is not DOM-bound; only `splitText` needs a UI framework. Rejected: keeping a forwarder in the bridge (BRIDGE-TEXT), which would give one feature two entry points.
+- **Unset options reveal plainly; the rates are upstream's.** Without `From`, `Reversed`, `Perturbation`, delays, `Ease` or `Cursor`, the reveal runs in order, linearly and at once (CORE-SCRAMBLE-020, 021, 025 to 027). Reason: each option then adds one effect to a plain reveal. The character set, 60 characters per second, 30 redraws per second and the 300 ms settle window (CORE-SCRAMBLE-019, 022 to 024) are kept from upstream; no other reason recorded.
 
 ## Non-goals
 

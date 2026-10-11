@@ -36,7 +36,7 @@ depends:
 
 ## Purpose
 
-Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart into line, word and character controls laid out inside the block, re-splits when the block's width changes, and runs registered effects over each split. With `Outlines`, character pieces draw the glyph outlines of BRIDGE-GLYPHS instead of text. Per-piece triggers built on the splitter are BRIDGE-TEXTREVEAL. Also specifies `PrestoAvalonia.SplitText`.
+Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart into line, word and character controls laid out inside the block, re-splits when the block's width changes, and runs registered effects over each split. With `Outlines`, character pieces draw the glyph outlines of BRIDGE-GLYPHS instead of text. Per-piece triggers built on the splitter are BRIDGE-TEXTREVEAL. Also specifies `PrestoAvalonia.SplitText`.
 
 ## Requirements
 
@@ -122,15 +122,15 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
 
 ### Defaults
 
-- **BRIDGE-TEXT-040** — When `SplitTextParams.Words` is not set, the splitter shall split words, so parameters that set only `Lines` or `Chars` still give word pieces, as anime.js does.
+- **BRIDGE-TEXT-040** — When `SplitTextParams.Words` is not set, the splitter shall split words, so parameters that set only `Lines` or `Chars` still give word pieces.
   - Tests: `TextSplitTests.SplitsWordsAndLines`, `TextSplitTests.SplitsWordsAndChars`
-- **BRIDGE-TEXT-041** — When `SplitTextParams.Lines` or `Chars` is not set, the splitter shall make no pieces of that kind, as anime.js does.
+- **BRIDGE-TEXT-041** — When `SplitTextParams.Lines` or `Chars` is not set, the splitter shall make no pieces of that kind.
   - Tests: `TextSplitTests.SplitsWordsAndChars`
-- **BRIDGE-TEXT-042** — When `IncludeSpaces` is not set, it shall be false, as anime.js does.
+- **BRIDGE-TEXT-042** — When `IncludeSpaces` is not set, it shall be false.
   - Tests: `TextSplitTests.SplitsWordsAndChars`
-- **BRIDGE-TEXT-043** — When a kind's `Class` is not set, its pieces shall get no added style class, as anime.js does.
+- **BRIDGE-TEXT-043** — When a kind's `Class` is not set, its pieces shall get no added style class.
   - Tests: untested
-- **BRIDGE-TEXT-044** — When a kind's `Wrap` is not set, its pieces shall not be wrapped in a clipping `Border`, as anime.js does.
+- **BRIDGE-TEXT-044** — When a kind's `Wrap` is not set, its pieces shall not be wrapped in a clipping `Border`.
   - Tests: untested
 - **BRIDGE-TEXT-058** — When `Outlines` is not set, it shall be false, so character pieces are text pieces.
   - Tests: `TextSplitTests.SplitsCharsOnly`
@@ -168,7 +168,7 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
 
 - Not on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - Pieces are `Control`s inside the block's `InlineUIContainer`, not DOM spans; the piece tree comes from `SplitPieceParams` instead of HTML templates, and upstream's `clone`, `debug`, function templates and `wrap` modes other than clip are not ported.
 - Accessibility uses the block's automation name instead of a visually hidden copy.
@@ -178,6 +178,7 @@ Port of anime.js `splitText`. A `TextSplitter` takes a `TextBlock`'s text apart 
 
 ## Decisions
 
+- **Unset options split words and nothing else.** Without settings the splitter makes plain word pieces, with no line or character pieces, spaces, classes or clipping wrap (BRIDGE-TEXT-040 to 044). Reason: `SplitText(block)` alone then gives pieces to animate, and each option adds one kind of piece or decoration.
 - **Line-aware stagger and line height are public helpers.** `TextSplitter.StaggerByLine` returns a function value stepping by line index and by position in the line, and `LineHeightOf` reads the owning split's `LineHeight` (0 for a non-piece). Reason: recipes must say "from one line down" before pieces have bounds, which the Typography sample page had computed by hand.
 - **`SlotOf` instead of a `Measure` API.** `MorphText` captures the old slots, sets the new text, splits it, and FLIPs each new piece from its partner's old slot. Nothing has to be measured offscreen. Rejected: `TextSplitter.Measure(block, text)`, a second layout path that would have to match the real one.
 - **The split lays its pieces out itself.** Effects run before the host's next layout pass, so the split measures and arranges its piece tree at the block's padding and text alignment, where the host's arrange puts it. Reason: `SlotOf` and exit ghosts need bounds from the first effect, without forcing a layout pass on the host from inside its own `SizeChanged`.

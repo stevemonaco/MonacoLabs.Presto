@@ -23,10 +23,10 @@ public sealed class InterruptionPageTests
     private const double HoverJump = 0.02;
     private const int HoverFrames = 3; // early, while OutQuint still rises steeply, or restart's snap is under a frame's travel
 
-    private static readonly Composition[] Modes = [Composition.Replace, Composition.None, Composition.Blend];
+    private static readonly Composition[] Modes = [Composition.Replace, Composition.Overlap, Composition.Additive];
 
     [AvaloniaFact]
-    public void ABurstLeavesReplaceHoldingOneAnimationAndNoneHoldingAllFiveUntilTheyComplete()
+    public void ABurstLeavesReplaceHoldingOneAnimationAndOverlapHoldingAllFiveUntilTheyComplete()
     {
         var page = new InterruptionPage();
         var window = SceneHarness.Show(page, Width, Height);
@@ -35,7 +35,7 @@ public sealed class InterruptionPageTests
         TestFrames.Tick(BurstFrames);
 
         Assert.Equal(1, page.Alive(Composition.Replace));
-        Assert.Equal(5, page.Alive(Composition.None));
+        Assert.Equal(5, page.Alive(Composition.Overlap));
 
         TestFrames.Tick(RetargetFrames);
         foreach (var mode in Modes) Assert.Equal(0, page.Alive(mode));
@@ -44,7 +44,7 @@ public sealed class InterruptionPageTests
     }
 
     [AvaloniaFact]
-    public void CancelingTheNewestYanksNoneBackTowardTheOlderTargetsAndStopsReplaceWhereItIs()
+    public void CancelingTheNewestYanksOverlapBackTowardTheOlderTargetsAndStopsReplaceWhereItIs()
     {
         var page = new InterruptionPage();
         var window = SceneHarness.Show(page, Width, Height);
@@ -52,19 +52,19 @@ public sealed class InterruptionPageTests
 
         foreach (var relative in script)
         {
-            ClickAt(window, page, Composition.None, relative);
+            ClickAt(window, page, Composition.Overlap, relative);
             TestFrames.Tick(10);
         }
 
-        var last = Mirrored(page, Composition.None, script[^1]);
-        var noneBefore = Point.Distance(page.Drawn(Composition.None), last);
+        var last = Mirrored(page, Composition.Overlap, script[^1]);
+        var overlapBefore = Point.Distance(page.Drawn(Composition.Overlap), last);
         var replaceBefore = page.Drawn(Composition.Replace);
 
         page.CancelNewest();
         TestFrames.Tick(4);
 
-        var noneAfter = Point.Distance(page.Drawn(Composition.None), last);
-        Assert.True(noneAfter > noneBefore + 4, $"none went from {noneBefore:0.#}px to {noneAfter:0.#}px off the last target");
+        var overlapAfter = Point.Distance(page.Drawn(Composition.Overlap), last);
+        Assert.True(overlapAfter > overlapBefore + 4, $"overlap went from {overlapBefore:0.#}px to {overlapAfter:0.#}px off the last target");
         for (var frame = 0; frame < 10; frame++)
         {
             Assert.True(Point.Distance(page.Drawn(Composition.Replace), replaceBefore) < 1, "replace kept moving after its only animation was canceled");
@@ -81,7 +81,7 @@ public sealed class InterruptionPageTests
         var window = SceneHarness.Show(page, Width, Height);
         var relative = new Point(0.7, 0.4);
 
-        ClickAt(window, page, Composition.Blend, relative);
+        ClickAt(window, page, Composition.Additive, relative);
         TestFrames.Tick(RetargetFrames);
 
         foreach (var mode in Modes)
@@ -103,7 +103,7 @@ public sealed class InterruptionPageTests
 
         page.Burst();
         TestFrames.Tick(BurstFrames);
-        Assert.True(page.Alive(Composition.None) > 0, "the burst never retargeted anything");
+        Assert.True(page.Alive(Composition.Overlap) > 0, "the burst never retargeted anything");
 
         SceneHarness.Click(window, page.GetControl<Button>("ResetPucks"));
         TestFrames.Tick(2);

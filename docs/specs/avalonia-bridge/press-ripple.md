@@ -139,7 +139,7 @@ depends:
 - Fifty concurrent ripples stay within 20 000 bytes per frame (measured about 16 900, mostly Avalonia redrawing invalidated custom visuals); brushes are cached per faded color.
   - Pinned by `BridgeAllocationTests.FiftyConcurrentRipplesDrawWithinTheirBudget`.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

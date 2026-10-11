@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace MonacoLabs.Presto.Core;
 
-/// <summary>Ports upstream <c>generateKeyframes</c>: turns the <c>keyframes</c> parameter into per-property keyframe arrays.</summary>
+/// <summary>Turns the <c>keyframes</c> parameter into per-property keyframe arrays.</summary>
 internal static class KeyframeExpander
 {
     /// <summary>

@@ -159,11 +159,11 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 
 ### Defaults
 
-- **CORE-TIMELINE-041** — When `Composition` is not set, the timeline shall compose children against its state (true), as anime.js does.
+- **CORE-TIMELINE-041** — When `Composition` is not set, the timeline shall compose children against its state (true).
   - Tests: `TimelinesTests.TimelineValues`
-- **CORE-TIMELINE-042** — When `PlaybackEase` is not set, the timeline shall use the engine defaults' `PlaybackEase`, as anime.js does.
+- **CORE-TIMELINE-042** — When `PlaybackEase` is not set, the timeline shall use the engine defaults' `PlaybackEase`.
   - Tests: untested
-- **CORE-TIMELINE-043** — When `OnRender` is not set, the timeline shall use the engine defaults' `OnRender`, as anime.js does.
+- **CORE-TIMELINE-043** — When `OnRender` is not set, the timeline shall use the engine defaults' `OnRender`.
   - Tests: untested
 
 ## Invariants
@@ -192,7 +192,7 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 
 - Adding children allocates. Ticking a timeline allocates nothing beyond its children's rendering; `Children` enumerates without allocating.
 
-## Deviations from anime.js
+## Provenance
 
 - An unknown label before a relative operator resolves against the timeline's end instead of NaN, matching upstream's own fallback for a bare unknown label.
 - `Set` copies its parameters instead of mutating them, because parameters are immutable init-only records.
@@ -209,6 +209,7 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 - **Typed positions resolve exactly as their string twins.** `label + n` is `"label+=n"`, `PreviousEnd - n` is `"<-=n"`, `End + n` is `"+=n"`, and a typed label not on the timeline falls back to the timeline's end like an unknown string label (CORE-TIMELINE-016). Successive `+`/`-` fold into one offset. Reason: one resolution rule; the `out` overload makes an unplaced label rare. Rejected: throwing for an unplaced typed label (a second rule for the same lookup).
 - **`+`/`-` on a string position add to its resolved time.** `(TimelinePosition)"L" + 10` resolves the string as before, then adds the folded offset, so it equals `"L+=10"`. Reason: one rule for every anchor (resolve, then add the offset), and the string parse path stays untouched. Rejected: rewriting the string (allocates, and has no meaning for `"*=2"`).
 - **`Seek(TimelineLabel)` seeks to the label's raw time and throws for an unknown label.** It is `Seek(Labels[label.Name], muteCallbacks)` returning the timeline, and a label not on the timeline throws `KeyNotFoundException`, as the `Labels` lookup it replaces does. Reason: seeking to a section is what labels are kept for, and a seek has no upstream end-fallback to stay consistent with; silently seeking to the end would hide the mistake. Rejected: `TimeOf(TimelinePosition)` (resolving relative anchors like `PreviousEnd` at seek time has no clear meaning once children are added); seeking to the end for an unknown label.
+- **Unset timeline parameters compose and inherit.** Without `Composition` a timeline composes its children, and without `PlaybackEase` or `OnRender` it takes the engine defaults' (CORE-TIMELINE-041 to 043). Reason: overlapping children that animate one property then hand it over in order, as separate animations would; the ease and render callback fall back to the defaults like every other timer parameter.
 - **No typed `*=`.** Multiplication stays string-only. Reason: rarely used, and it composes poorly with folded offsets (`(label + 100) * 2` has no string twin).
 
 ## Non-goals

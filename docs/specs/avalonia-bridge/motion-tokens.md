@@ -83,7 +83,7 @@ depends:
 
 - Not on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

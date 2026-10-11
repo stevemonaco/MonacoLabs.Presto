@@ -310,7 +310,7 @@ public class Timer : Clock, IRevertible
         {
             TweenList.ForEachChildren(timer, static tween =>
             {
-                if (tween._composition != Composition.None) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property));
+                if (tween._composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property));
             });
         }
         timer._canceled = false;
@@ -567,7 +567,7 @@ public class Timer : Clock, IRevertible
     }
 
     /// <summary>Rescales the total duration to <paramref name="newDuration"/>, scaling the iteration duration, delay and loop delay proportionally.</summary>
-    /// <remarks>As upstream, <see cref="CurrentTime"/> stays where it was and <see cref="Progress"/> is not preserved.</remarks>
+    /// <remarks><see cref="CurrentTime"/> stays where it was and <see cref="Progress"/> is not preserved.</remarks>
     public virtual Timer Stretch(double newDuration)
     {
         var currentDuration = Duration;
@@ -614,7 +614,7 @@ public class Timer : Clock, IRevertible
         return _completion.Task;
     }
 
-    /// <summary>Makes the timer directly awaitable, so <c>await timer</c> stands in for upstream's <c>await timer.then()</c>.</summary>
+    /// <summary>Makes the timer directly awaitable: <c>await timer</c> resumes once it completes, as <see cref="Then"/> does.</summary>
     public TaskAwaiter<Timer> GetAwaiter() => Then().GetAwaiter();
 
     internal void Resolve()

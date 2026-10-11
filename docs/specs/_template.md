@@ -61,9 +61,9 @@ Two or three sentences: what the feature is for and where it sits (which spec it
 
 - The hot-path rules that apply, or "Not on the tick path."
 
-## Deviations from anime.js
+## Provenance
 
-- Each deviation, with its reason. "None." or "No upstream counterpart." when that is the case.
+- Where behavior differs from the anime.js code it was ported from, each with its reason. "None." when it does not, "No upstream counterpart." when nothing was ported.
 
 ## Decisions
 

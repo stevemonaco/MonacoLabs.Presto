@@ -4,8 +4,7 @@ namespace MonacoLabs.Presto;
 /// Parameters for animations: property tweens through the indexer (<c>["X"] = 100</c>) mixed with timer settings and the
 /// tween defaults every property inherits. <see cref="Duration"/> and <see cref="Delay"/> hide the <see cref="TimerParams"/>
 /// members because they also accept a <see cref="FunctionValue"/>; the base members stay <c>null</c>, so the timer
-/// constructor starts from its infinite/zero defaults and the animation then overrides them with the tween-derived values,
-/// as upstream's <c>super()</c> call does.
+/// constructor starts from its infinite/zero defaults and the animation then overrides them with the tween-derived values.
 /// </summary>
 public record AnimationParams : TimerParams
 {

@@ -13,15 +13,15 @@ using Path = Avalonia.Controls.Shapes.Path;
 namespace MonacoLabs.Presto.Text;
 
 /// <summary>
-/// Port of anime.js <c>splitText</c>: a <see cref="TextBlock"/>'s text taken apart into per-line, per-word and
+/// A <see cref="TextBlock"/>'s text taken apart into per-line, per-word and
 /// per-character pieces that are animated individually. The pieces are <see cref="Control"/>s laid out inside the block
 /// itself, one row per wrapped line, and the split is redone whenever the block's width changes.
 /// </summary>
 /// <remarks>
-/// Upstream's <c>clone</c> and <c>debug</c> options and its HTML templates are not ported; the piece tree is built from
+/// anime.js's <c>clone</c> and <c>debug</c> options and its HTML templates have no counterpart; the piece tree is built from
 /// <see cref="SplitPieceParams"/> instead. Only the block's plain text is split, so inline formatting is not preserved,
 /// and the text is left to automation through <see cref="AutomationProperties.NameProperty"/> on the block where
-/// upstream leaves a visually hidden copy. While split, the block's <see cref="Visual.ClipToBounds"/> is off so pieces
+/// anime.js leaves a visually hidden copy. While split, the block's <see cref="Visual.ClipToBounds"/> is off so pieces
 /// animated past its edges stay visible.
 /// </remarks>
 public sealed class TextSplitter : IRevertible

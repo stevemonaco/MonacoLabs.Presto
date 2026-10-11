@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -59,6 +60,21 @@ internal static class SceneHarness
     {
         for (var i = 0; i < rounds && !until(); i++) TestFrames.Tick();
         return Task.FromResult(until());
+    }
+
+    /// <summary>
+    /// Ticks a frame per 16 ms of wall-clock time until <paramref name="until"/> holds or 5 s pass,
+    /// for a flow that waits on <see cref="Task.Delay(int)"/>, which test frames do not advance.
+    /// </summary>
+    public static bool WaitFor(Func<bool> until)
+    {
+        var clock = Stopwatch.StartNew();
+        while (!until() && clock.ElapsedMilliseconds < 5000)
+        {
+            Thread.Sleep(16);
+            TestFrames.Tick();
+        }
+        return until();
     }
 
     /// <summary>

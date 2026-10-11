@@ -215,17 +215,17 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 
 - Not on the Presto tick path: the overlay polls after the engine's frame. Rows are reused, but each refresh formats strings for visible rows and takes snapshots for every tween in the tween table and every expanded tween row; target summaries and property lists are recomputed only when a timer's shape changes.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js 4.5.0 has no inspector.
 
 ## Decisions
 
-- **The inspector is purely additive.** Everything DevTools needs is an addition modeled on GSAP's GSDevTools and the Chrome Animations panel; no upstream semantics change and no parity test moves. Reason: anime.js 4.5.0 has no equivalent.
+- **The inspector is purely additive.** Everything DevTools needs is an addition modeled on GSAP's GSDevTools and the Chrome Animations panel; it changes no engine semantics and no existing test moves. Reason: inspecting must not change what is inspected, so an app behaves the same with the overlay attached.
 - **DevTools is a separate package.** The overlay is `MonacoLabs.Presto.Avalonia.DevTools`, its headless tests live in the bridge test project, and the diagnostics it reads stay in the core. Reason: a release app does not carry the overlay.
 - **The overlay never observes or freezes itself.** It lives in the window's `OverlayLayer`, with highlights in the `AdornerLayer`, and runs no Presto animations; opening it enables diagnostics, and closing it disables them and thaws and undilates the engine. Reason: freezing the main engine must leave the overlay responsive, and closing must leave nothing slowed.
 - **The default toggle is Ctrl+Shift+F12.** It is configurable through `PrestoDevTools.Attach`. Reason: F12 belongs to Avalonia DevTools.
-- **Slow motion is dilation; `Speed` is read-only; controls act on roots.** The transport's presets set time dilation and show engine `Speed` read-only; the inspector's controls always act on the root, so a timeline child is selectable and highlighted on its parent's track but never seeked on its own; scrubbing pauses and seeks the root and restores the previous play state on release. Reason: an app-set rate must not be mistaken for the inspector's, and upstream semantics do not cleanly support seeking a timeline child on its own.
+- **Slow motion is dilation; `Speed` is read-only; controls act on roots.** The transport's presets set time dilation and show engine `Speed` read-only; the inspector's controls always act on the root, so a timeline child is selectable and highlighted on its parent's track but never seeked on its own; scrubbing pauses and seeks the root and restores the previous play state on release. Reason: an app-set rate must not be mistaken for the inspector's, and the timing model does not cleanly support seeking a timeline child on its own.
 - **An ended root needs an explicit revive; revert is not one click away.** A recently ended root can be scrubbed only after Revive, which first warns when it would override a live tween; revert sits behind a confirmation. Reason: `Seek` on an ended timer revives it, re-composing its tweens and possibly overriding a newer animation, and reverting is destructive to app state.
 - **Targets map back to visuals through `TargetOwner`.** Bridge-made brushes and composer-owned transforms map to their visual, split-text pieces resolve to themselves, and anything else (plain objects, view models) gets no outline, only a type name; pick mode searches the registry. Reason: highlighting and pick mode need a visual, and the registry includes paused and pending animations, unlike `Presto.GetAnimations`.
 - **Non-Presto motion is out of scope.** Avalonia `Transitions` and `Animation`s are not made to obey freeze or dilation; `FramePlayer` and `LottieView.Play`/`PlaySegment` tween on the main engine and obey both, while `LottieView.PlayOnRenderThread` does not. Reason: not recorded.

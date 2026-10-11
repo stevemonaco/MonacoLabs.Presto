@@ -5,7 +5,7 @@ using MonacoLabs.Presto.Targets;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// A timer whose children are other timers and animations. Port of anime.js <c>Timeline</c>: its duration starts at 0 and
+/// A timer whose children are other timers and animations: its duration starts at 0 and
 /// grows as children are added at the positions <see cref="TimelinePosition"/> resolves.
 /// </summary>
 public sealed class Timeline : Timer

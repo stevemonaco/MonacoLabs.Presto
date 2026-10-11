@@ -4,7 +4,7 @@ using MonacoLabs.Presto.Core;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Port of anime.js's <c>utils</c> module: numeric, random and time helpers. Every numeric helper also has an overload that
+/// Numeric, random and time helpers. Every numeric helper also has an overload that
 /// omits the value and returns a <see cref="ChainedUtil"/>, so transforms compose into an <c>AnimationParams.Modifier</c>.
 /// </summary>
 /// <remarks>Upstream's <c>padStart</c>/<c>padEnd</c> are omitted; <see cref="string.PadLeft(int, char)"/> and <see cref="string.PadRight(int, char)"/> already cover them.</remarks>
@@ -100,7 +100,7 @@ public static class Utils
 
     /// <summary>
     /// Creates a deterministic generator reproducing anime.js's seeded PRNG bit for bit. Omitting <paramref name="seed"/>
-    /// takes the next value of a process-wide counter, as upstream does.
+    /// takes the next value of a process-wide counter.
     /// </summary>
     /// <remarks>Upstream's <c>seededMin</c>/<c>seededMax</c>/<c>seededDecimalLength</c> are omitted: C# optional arguments must be constants, so they could never be reached.</remarks>
     public static RandomGenerator CreateSeededRandom(int? seed = null)

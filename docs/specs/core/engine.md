@@ -201,9 +201,9 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 ### Defaults
 
-- **CORE-ENGINE-061** — When `UseDefaultMainLoop` is not set, the engine shall run its own frame pump (true), as anime.js does.
+- **CORE-ENGINE-061** — When `UseDefaultMainLoop` is not set, the engine shall run its own frame pump (true).
   - Tests: untested
-- **CORE-ENGINE-062** — When `PauseOnHidden` is not set, the engine shall pause while `Hidden` (true), as anime.js's `pauseOnDocumentHidden` does.
+- **CORE-ENGINE-062** — When `PauseOnHidden` is not set, the engine shall pause while `Hidden` (true).
   - Tests: `EngineHiddenTests.HidingPausesAndShowingResumesWithoutAJump`
 - **CORE-ENGINE-063** (inherited) — When `Hidden` has not been set by the host, the engine shall treat itself as shown (false).
   - Tests: untested
@@ -211,11 +211,11 @@ The engine is the root clock: it owns the linked list of running root timers and
   - Tests: untested
 - **CORE-ENGINE-065** — When `Step` is called without an argument, the engine shall advance by one 60 fps frame (`1000 / 60` ms).
   - Tests: untested
-- **CORE-ENGINE-066** — When `Speed` is not set, the engine and every `Clock` shall run at a playback rate of 1, as anime.js does.
+- **CORE-ENGINE-066** — When `Speed` is not set, the engine and every `Clock` shall run at a playback rate of 1.
   - Tests: `EnginesTests.AnEngineCreatedInSecondsModeRunsAtTheSameSpeedAsTheMainOne`
-- **CORE-ENGINE-067** — When `TimeUnit` has not been set, time values shall be read in milliseconds, as anime.js does.
+- **CORE-ENGINE-067** — When `TimeUnit` has not been set, time values shall be read in milliseconds.
   - Tests: untested
-- **CORE-ENGINE-068** — When `Fps` is not set, a clock shall render at up to 240 fps, as anime.js does.
+- **CORE-ENGINE-068** — When `Fps` is not set, a clock shall render at up to 240 fps.
   - Tests: untested
 - **CORE-ENGINE-069** (inherited) — A new `ManualFrameSource` shall start with `Now` at 0.
   - Tests: `FrameSourceTests.ManualAdvanceBumpsNowWithoutRunningBeforeStart`
@@ -232,7 +232,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 ## Edge cases
 
 - `Step` by less than the frame duration minus its tolerance (about 3.2 ms at 240 fps) advances engine time but `Update` skips the tick; the next accepted tick catches up.
-- `Engine.Speed` of 0 or a negative value is stored as given and makes rebasing divide by zero (upstream parity).
+- `Engine.Speed` of 0 or a negative value is stored as given and makes rebasing divide by zero (kept from upstream; untested).
 - `Pause` on an idle engine does not stop the next `Wake`, so a timer created afterwards plays.
 - A function-based default duration is not rescaled by `TimeUnit`.
 - `Update()` may be called while the pump runs; it ticks only if the frame grid allows, so it does not double-advance timers.
@@ -253,7 +253,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 - `StopwatchFrameSource` allocates a thread and a pump object per `Start`, not per frame.
 - Pinned by `AllocationTests.LoopingTimerTicksWithoutAllocating` and `AllocationTests.MotionValueGraphFlushesWithoutAllocating`.
 
-## Deviations from anime.js
+## Provenance
 
 - Engines are instances with a public constructor, one per ticking thread, instead of a module singleton, because a thread that ticks its own timers needs its own clock without locks (CORE-THREADING).
 - The pump is an `IFrameSource` instead of `requestAnimationFrame`/`setImmediate`, because the core has no host loop of its own; it keeps running while `MotionValue` sinks or moving values remain, because those are not tickables in the child list (CORE-MOTIONVALUE).
@@ -265,15 +265,16 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 ## Decisions
 
-- **Hidden pauses the engine, as upstream's `pauseOnDocumentHidden` does.** `PauseOnHidden` defaults to true; the host sets `Hidden`, hiding pauses the engine and showing calls `Resume`, even after a manual pause, as upstream's `visibilitychange` handler does. Reason: without it a minimized window keeps the engine ticking at full rate; the core cannot detect visibility, so the host reports it (BRIDGE-INIT).
+- **Hidden pauses the engine.** `PauseOnHidden` defaults to true; the host sets `Hidden`, hiding pauses the engine and showing calls `Resume`. Reason: without it a minimized window keeps the engine ticking at full rate; the core cannot detect visibility, so the host reports it (BRIDGE-INIT). Showing resumes even after a manual pause, which is kept from upstream's `visibilitychange` handler; no other reason recorded.
 - **A hidden engine does not pump.** While hidden, `Wake` does not start the frame source, and hiding an idle engine marks it paused so the show's `Resume` rebases timers created while hidden. Reason: upstream's `wake()` restarts the loop while hidden, which costs nothing in a browser that stops frames in hidden tabs, but a minimized desktop window keeps delivering frames at display rate.
-- **Each engine owns its time base, and dilation is separate from `Speed`.** `Now` advances by the frame source's delta times `TimeDilation`, so timers, timeline tick time and `MotionValue` springs and samples all follow it; dilation applies to raw time before the seconds scale, and it is set per engine. Reason: `Speed` is upstream API the app may own and did not reach springs or velocity tracking, so slow motion would have left springs at full speed; velocity sampled in dilated time stays visually consistent. Rejected: a process-wide dilation switch, which would cross threads to reach other engines.
-- **Freeze, Thaw and Step are separate from Pause and Resume.** `Freeze` stops engine time and the frame source, `Thaw` restarts them with no rebase because engine time never moved, and `Step` advances engine time and runs one `Update`, frozen or not; `Freeze` fires no `OnPause`. Reason: engine time was the frame source's wall clock and could not be advanced by one frame, and keeping freeze separate leaves upstream's `Pause` (the `Paused` flag, the rebase on `Resume`) untouched.
+- **Each engine owns its time base, and dilation is separate from `Speed`.** `Now` advances by the frame source's delta times `TimeDilation`, so timers, timeline tick time and `MotionValue` springs and samples all follow it; dilation applies to raw time before the seconds scale, and it is set per engine. Reason: `Speed` is the app's own playback-rate setting and did not reach springs or velocity tracking, so slow motion would have left springs at full speed; velocity sampled in dilated time stays visually consistent. Rejected: a process-wide dilation switch, which would cross threads to reach other engines.
+- **Freeze, Thaw and Step are separate from Pause and Resume.** `Freeze` stops engine time and the frame source, `Thaw` restarts them with no rebase because engine time never moved, and `Step` advances engine time and runs one `Update`, frozen or not; `Freeze` fires no `OnPause`. Reason: engine time was the frame source's wall clock and could not be advanced by one frame, and keeping freeze separate leaves `Pause` (the `Paused` flag, the rebase on `Resume`) and the ported suites that pin it untouched.
 - **Child loops survive a callback unlinking a sibling.** Unlinking a child that is not linked does nothing, and the engine and timeline loops read their next child from a cursor that unlinking advances; a callback that re-renders its own timeline reuses the cursor, so the outer loop ends the frame where the inner one did. Reason: removing a target from a callback could unlink the cached next child and empty the engine's list for good (upstream has the same bug, untested); the loop keeps upstream's shape so ported suites are untouched, and nothing is deferred or allocated. Rejected: a deferred unlink.
+- **Unset engine settings are the plain choices.** With nothing set the engine pumps itself and reads milliseconds (CORE-ENGINE-061, 067). Reason: an app that only calls `Presto.Animate` gets motion without wiring a frame loop or a unit. Speed 1 and the 240 fps cap (CORE-ENGINE-066, 068) follow CORE-TIMER's "Unset timer parameters are the plain choices".
 - **Wall-clock reads take a `TimeProvider`.** `StopwatchFrameSource.Now` reads a `TimeProvider`, `TimeProvider.System` by default, while its pump thread stays on real time. Reason: tests can use a fake time provider instead of sleeping; the pump is a background thread pacing a real engine.
 - **Defaults, scope and additive state are per engine; a few statics are process-wide and documented, not locked.** See CORE-THREADING.
 - **Sinks flush from an engine after-update list, not as tickables.** See CORE-MOTIONVALUE.
-- **Time is `double` milliseconds; seconds mode is a scale factor.** A project-wide decision, recorded in [docs/ARCHITECTURE.md §5](../../ARCHITECTURE.md#5-project-wide-decisions).
+- **Time is `double` milliseconds; seconds mode is a scale factor.** A project-wide decision, recorded in [docs/ARCHITECTURE.md §4](../../ARCHITECTURE.md#4-project-wide-decisions).
 
 ## Non-goals
 
@@ -284,5 +285,5 @@ The engine is the root clock: it owns the linked list of running root timers and
 ## Open items
 
 - `TimeUnit` can be set on any engine, but it rescales only that engine's default duration and speed while changing process-wide state; the per-engine state decision (CORE-THREADING) says it is set on the main engine only, which nothing enforces.
-- `Engine.Speed` is not clamped, unlike `Clock.Speed`; a 0 or negative engine speed produces infinite or NaN start times (upstream parity, untested).
+- `Engine.Speed` is not clamped, unlike `Clock.Speed`; a 0 or negative engine speed produces infinite or NaN start times (kept from upstream; untested).
 - Untested: replacing `FrameSource` while running, `Pause` on an idle engine, `Wake` after `Pause`, `PauseOnHidden` turned on while hidden, and `Advance(ms, step)` with a non-positive step.

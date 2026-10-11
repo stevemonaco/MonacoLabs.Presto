@@ -163,7 +163,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 
 - A frame mutates the bridge-owned effect, geometry or brush in place, costing Avalonia's property-changed args, a residual allocation accepted as for every animated property (BRIDGE-TARGETS). Pinned by `BridgeAllocationTests.EffectShorthandTweenTicksWithinBudget`, `BridgeAllocationTests.MaskSweepTicksWithinBudget` and `BridgeAllocationTests.AnIdleTiltAllocatesNothingPerFrame`.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: CSS filters, `clip-path` and masks are strings upstream animates like any other; these shorthands are bridge-defined.
 

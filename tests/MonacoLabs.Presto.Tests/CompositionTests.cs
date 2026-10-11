@@ -31,7 +31,7 @@ public sealed class CompositionTests : EngineTestBase
             _absoluteEndTime = start + duration,
         };
         TweenList.AddChild(parent, tween);
-        if (composition != Composition.None) Composer.ComposeTween(tween, Composer.GetTweenSiblings(target, property));
+        if (composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(target, property));
         return tween;
     }
 
@@ -141,10 +141,10 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
-    public void BlendedTweensShareOneLookupTweenPerProperty()
+    public void AdditiveTweensShareOneLookupTweenPerProperty()
     {
         var target = CreateTarget();
-        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
+        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 100);
 
         var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive);
         var lookupTween = siblings._head;
@@ -155,7 +155,7 @@ public sealed class CompositionTests : EngineTestBase
         Assert.Equal(0, first._toNumber);
         Assert.Same(first, siblings._tail);
 
-        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 50);
+        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 50);
 
         Assert.Same(lookupTween, siblings._head);
         Assert.Equal(50, lookupTween._fromNumber);
@@ -165,11 +165,11 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
-    public void AdditiveUpdateSumsTheBlendedTweensIntoTheLookupTween()
+    public void AdditiveUpdateSumsTheAdditiveTweensIntoTheLookupTween()
     {
         var target = CreateTarget();
-        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
-        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 50);
+        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 100);
+        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 50);
         first._number = 10;
         second._number = 5;
 
@@ -180,11 +180,11 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
-    public void RemoveTweenSiblingsDropsTheLookupTweenWithTheLastBlendedTween()
+    public void RemoveTweenSiblingsDropsTheLookupTweenWithTheLastAdditiveTween()
     {
         var target = CreateTarget();
-        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
-        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 50);
+        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 100);
+        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 50);
         var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive);
         var lookupTween = siblings._head!;
 

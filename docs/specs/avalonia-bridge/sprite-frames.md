@@ -132,7 +132,7 @@ depends:
 - A playing sheet stays within 112 bytes per tick: a `double` tween plus `CurrentFrame`'s change args on ticks that reach a new frame.
   - Pinned by `BridgeAllocationTests.APlayingSpriteSheetTicksWithinBudget`.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

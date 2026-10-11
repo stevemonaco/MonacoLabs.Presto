@@ -11,7 +11,7 @@ using MonacoLabs.Presto.Diagnostics;
 namespace MonacoLabs.Presto.Draggables;
 
 /// <summary>
-/// Port of anime.js <c>createDraggable</c>: pointer dragging of a control, written through an <see cref="Animatable"/>
+/// Pointer dragging of a control, written through an <see cref="Animatable"/>
 /// over the two mapped axis properties, with per-axis enabling and modifiers, a drag threshold, snapping, container
 /// bounds and container friction, and a release that throws the target on with the pointer's velocity.
 /// </summary>
@@ -677,21 +677,21 @@ public sealed class Draggable : IRevertible
 
         if (!_hasReleaseSpring && outOfBounds && friction != 0 && (durationX != 0 || durationY != 0))
         {
-            // Two blended tweens: out to where the throw would have landed, then back to the clamped destination.
+            // Two additive tweens: out to where the throw would have landed, then back to the clamped destination.
             using var origin = PrestoDiagnostics.Origin("Draggable");
             _overshootOut = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = cushionedX, Duration = durationX * .65 },
                 ["Y"] = new TweenParams { To = cushionedY, Duration = durationY * .65 },
                 Ease = _releaseEase,
-                Composition = Composition.Blend,
+                Composition = Composition.Additive,
             });
             _overshootBack = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = destX, Duration = durationX },
                 ["Y"] = new TweenParams { To = destY, Duration = durationY },
                 Ease = _releaseEase,
-                Composition = Composition.Blend,
+                Composition = Composition.Additive,
             });
             _overshootTicker.Stretch(Math.Max(durationX, durationY)).Restart();
         }

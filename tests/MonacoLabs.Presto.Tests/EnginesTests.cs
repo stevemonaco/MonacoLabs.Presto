@@ -3,7 +3,7 @@
 namespace MonacoLabs.Presto.Tests;
 
 /// <summary>
-/// The acceptance suite for COMPOSITOR-PLAN §4.1: a second engine owns its own timers, defaults, scopes and blend state,
+/// The acceptance suite for COMPOSITOR-PLAN §4.1: a second engine owns its own timers, defaults, scopes and additive state,
 /// even when it is ticked from another thread. Upstream has no equivalent, since anime.js only ever has one engine.
 /// </summary>
 public sealed class EnginesTests : EngineTestBase
@@ -177,7 +177,7 @@ public sealed class EnginesTests : EngineTestBase
     }
 
     [Fact]
-    public void BlendedTweensAreInvisibleToAnotherEngine()
+    public void AdditiveTweensAreInvisibleToAnotherEngine()
     {
         var first = new IsolatedEngine();
         var second = new IsolatedEngine();
@@ -185,7 +185,7 @@ public sealed class EnginesTests : EngineTestBase
 
         using (first.Engine.MakeCurrent())
         {
-            Presto.Animate(target, new() { ["X"] = 100, Duration = 100, Composition = Composition.Blend });
+            Presto.Animate(target, new() { ["X"] = 100, Duration = 100, Composition = Composition.Additive });
         }
 
         Assert.Single(first.Engine.Additive.Lookups);

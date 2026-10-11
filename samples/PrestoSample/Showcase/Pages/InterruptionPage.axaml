@@ -45,18 +45,18 @@
                     </Canvas>
                 </Border>
                 <Border Grid.Column="1" Classes="stage">
-                    <Canvas x:Name="NonePane" Classes="pane" PointerPressed="PanePressed">
-                        <Border x:Name="NonePuck" Classes="puck" Background="{x:Static showcase:Palette.Aqua}" />
+                    <Canvas x:Name="OverlapPane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="OverlapPuck" Classes="puck" Background="{x:Static showcase:Palette.Aqua}" />
                     </Canvas>
                 </Border>
                 <Border Grid.Column="2" Classes="stage">
-                    <Canvas x:Name="BlendPane" Classes="pane" PointerPressed="PanePressed">
-                        <Border x:Name="BlendPuck" Classes="puck" Background="{x:Static showcase:Palette.AccentPale}" />
+                    <Canvas x:Name="AdditivePane" Classes="pane" PointerPressed="PanePressed">
+                        <Border x:Name="AdditivePuck" Classes="puck" Background="{x:Static showcase:Palette.AccentPale}" />
                     </Canvas>
                 </Border>
                 <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ReplaceCount" Classes="mono" />
-                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="NoneCount" Classes="mono" />
-                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="BlendCount" Classes="mono" />
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="OverlapCount" Classes="mono" />
+                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="AdditiveCount" Classes="mono" />
             </Grid>
 
             <Border Classes="rail showcase">

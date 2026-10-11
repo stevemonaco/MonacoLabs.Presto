@@ -119,7 +119,7 @@
                                     <TextBlock TextWrapping="Wrap" Text="• Showcase pages stop their autoplay, parallax and endless loops" />
                                 </StackPanel>
                                 <TextBlock TextWrapping="Wrap" FontStyle="Italic"
-                                           Text="The anime.js Reference pages play in full on purpose, as anime.js does, and each links its Builder twin. Other hand-written loops, such as Loaders, Particle field, Stress bench, DevTools, Compositor and Properties and keyframes, also play as normal. A page picks up a change when it is reopened or replayed." />
+                                           Text="Reference pages that link a Builder twin play in full on purpose: each shows one API's raw behavior, and its twin shows the reduced-motion-aware form. Other hand-written loops, such as Loaders, Particle field, Stress bench, DevTools, Compositor and Properties and keyframes, also play as normal. A page picks up a change when it is reopened or replayed." />
                             </StackPanel>
                         </ToolTip.Tip>
                     </Border>

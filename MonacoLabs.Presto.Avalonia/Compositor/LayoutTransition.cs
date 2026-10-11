@@ -8,7 +8,7 @@ using Avalonia.VisualTree;
 namespace MonacoLabs.Presto.Compositor;
 
 /// <summary>
-/// Upstream's <c>createLayout</c> as FLIP played on the compositor (COMPOSITOR-PLAN §4.4): where the control was and where
+/// A layout transition played as FLIP on the compositor (COMPOSITOR-PLAN §4.4): where the control was and where
 /// layout has just put it are measured on the UI thread, the move is inverted onto the composition <c>Translation</c>, and
 /// the render thread eases that back to identity, so the transition keeps running while the UI thread is busy.
 /// </summary>

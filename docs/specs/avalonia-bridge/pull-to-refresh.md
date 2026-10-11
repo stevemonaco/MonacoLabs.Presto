@@ -133,7 +133,7 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 - Per pointer move: one `Animatable.Set`; the indicator writes go through `Follow`'s mapped `MotionValue`s. A refresh allocates its animations and is off the steady path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
