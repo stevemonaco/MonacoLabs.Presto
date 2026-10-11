@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -231,19 +232,48 @@ public sealed class SwipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
-    public void APressWhoseEndTheRowNeverSawDoesNotBlockTheNextSwipe()
+    public void APressAnotherGestureCapturesIsLostAndTheNextSwipeOpens()
     {
         var (window, rows) = Stage();
         var touch = new Touch(window);
-        var pressed = touch.Down(1, Center(rows[0], window));
-        // Another gesture takes the pointer, so the row never sees this press end.
-        pressed.Pointer.Capture(window);
-        touch.Up(1, Center(rows[0], window));
+        var at = Center(rows[0], window);
+        var pointer = touch.Press(1, at);
+        pointer.Capture(window);
+        touch.Move(1, at - new Point(40, 0));
+        touch.Up(1, at - new Point(40, 0));
+        Assert.Equal(0, X(rows[0]), 3);
 
-        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
+        new Touch(window).Drag(Frames, at, new Vector(-40, 0));
         Frames.Advance(3000, 20);
 
         Assert.Equal(-Open, X(rows[0]), 3);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(PointerType.Mouse, -6, true)]
+    [InlineData(PointerType.Pen, -6, false)]
+    [InlineData(PointerType.Pen, -40, true)]
+    public void APenSwipesWithTouchsSlop(PointerType type, double dx, bool opens)
+    {
+        var (window, rows) = Stage(row => Swipe.SetTrailing(row, new Button { Width = 4 }));
+        var at = Center(rows[0], window);
+
+        if (type == PointerType.Mouse)
+        {
+            window.MouseDown(at, MouseButton.Left);
+            window.MouseMove(at + new Point(dx, 0));
+            window.MouseUp(at + new Point(dx, 0), MouseButton.Left);
+        }
+        else
+        {
+            var pen = new Touch(window);
+            pen.Press(1, at, type);
+            pen.Move(1, at + new Point(dx, 0));
+            pen.Up(1, at + new Point(dx, 0));
+        }
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(opens, X(rows[0]) < 0);
     }
 
     [AvaloniaFact]

@@ -7,7 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Metadata;
 using Avalonia.VisualTree;
-using MonacoLabs.Presto.Draggables;
+using MonacoLabs.Presto.Gestures;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace MonacoLabs.Presto.Controls;
@@ -29,7 +29,7 @@ namespace MonacoLabs.Presto.Controls;
 /// shows at once, and the ring holds still while the refresh runs.
 /// </para>
 /// </remarks>
-public sealed class PullToRefresh : Control
+public sealed class PullToRefresh : Control, IGestureMember
 {
     private const double Reach = 2.2;
     private const double RingShare = .8;
@@ -60,6 +60,7 @@ public sealed class PullToRefresh : Control
         VerticalAlignment = VerticalAlignment.Center,
     };
     private readonly MotionValue _pull = new(Engine.Current, [], 0);
+    private readonly GestureGate _gate;
     private Animatable? _animate;
     private IPointer? _pointer;
     private Point _pressedAt;
@@ -82,6 +83,7 @@ public sealed class PullToRefresh : Control
         _indicator.Children.AddRange([_ring, _arrow]);
         _track.Children.AddRange([_indicator, _host]);
         PlaceIndicator();
+        _gate = GestureGate.SameAxis(Orientation.Vertical) with { Accepts = travel => travel.Y > 0 && _scroller is not { Offset.Y: > 0 } };
         VisualChildren.Add(_track);
         LogicalChildren.Add(_track);
         AddHandler(PointerPressedEvent, HandlePressed, handledEventsToo: true);
@@ -118,6 +120,10 @@ public sealed class PullToRefresh : Control
     /// <summary>How far the content is pulled down, in DIPs, as it renders.</summary>
     public MotionValue Pull => _pull;
 
+    Visual IGestureMember.Element => this;
+
+    IInputElement IGestureMember.CaptureTarget => this;
+
     private double Range => Reach * Threshold;
 
     /// <inheritdoc/>
@@ -152,51 +158,46 @@ public sealed class PullToRefresh : Control
         _pointer = e.Pointer;
         _pressedAt = e.GetPosition(null);
         _scroller = (e.Source as Visual)?.GetSelfAndVisualAncestors().TakeWhile(visual => visual != this).OfType<ScrollViewer>().FirstOrDefault();
+        GestureArena.Join(e, this, _gate);
     }
 
     private void HandleMoved(object? sender, PointerEventArgs e)
     {
-        if (e.Pointer != _pointer) return;
-        var moved = e.GetPosition(null) - _pressedAt;
-        if (!_dragging)
-        {
-            if (Math.Abs(moved.X) <= Draggable.DefaultDragThreshold && Math.Abs(moved.Y) <= Draggable.DefaultDragThreshold) return;
-            if (moved.Y <= Math.Abs(moved.X) || _scroller is { Offset.Y: > 0 })
-            {
-                _pointer = null;
-                return;
-            }
-            _dragging = true;
-            e.Pointer.Capture(this);
-            // Picks a pull still springing back up where it is drawn.
-            var drawn = Math.Clamp(_animate?.Get("Y") ?? 0, 0, Range - 1);
-            _grabbedAt = -Range * Math.Log(1 - (drawn / Range));
-        }
+        if (!_dragging || e.Pointer != _pointer) return;
         e.Handled = true;
         // Gesture recognizers see handled events too, and an inner scroll would steal the capture.
         e.PreventGestureRecognition();
-        _pulled = Range * (1 - Math.Exp(-Math.Max(0, _grabbedAt + moved.Y) / Range));
+        _pulled = Range * (1 - Math.Exp(-Math.Max(0, _grabbedAt + (e.GetPosition(null) - _pressedAt).Y) / Range));
         Animator().Set("Y", _pulled, 0);
     }
 
     private void HandleReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (e.Pointer != _pointer) return;
-        e.Handled = _dragging;
+        if (!_dragging || e.Pointer != _pointer) return;
+        e.Handled = true;
         Lift();
     }
 
     private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
-        if (e.Pointer == _pointer) Lift();
+        if (_dragging && e.Pointer == _pointer) Lift();
     }
+
+    void IGestureMember.Won()
+    {
+        _dragging = true;
+        // Picks a pull still springing back up where it is drawn.
+        var drawn = Math.Clamp(_animate?.Get("Y") ?? 0, 0, Range - 1);
+        _grabbedAt = -Range * Math.Log(1 - (drawn / Range));
+    }
+
+    void IGestureMember.Lost() => _pointer = null;
 
     private void Lift()
     {
         // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.
         var pointer = _pointer!;
         _pointer = null;
-        if (!_dragging) return;
         _dragging = false;
         if (ReferenceEquals(pointer.Captured, this)) pointer.Capture(null);
         if (_pulled >= Threshold) RunRefresh();

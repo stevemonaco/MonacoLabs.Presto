@@ -16,6 +16,7 @@ types:
 tests:
   - ReorderTests
   - ReorderContainerTests
+  - GestureArenaTests
   - RecipeTests
   - RecipeMarkupTests
   - BoardPageTests
@@ -26,6 +27,7 @@ depends:
   - BRIDGE-TRANSFORMS
   - BRIDGE-PRESENCE
   - BRIDGE-DRAGGABLE
+  - BRIDGE-GESTURES
   - BRIDGE-RECIPES
   - BRIDGE-MARKUP
   - CORE-ANIMATION
@@ -58,10 +60,12 @@ depends:
   - Tests: `ReorderTests.DraggingAcrossSeveralRowsMovesOneStepPerRowInOrderDownAndUp`
 - **BRIDGE-REORDER-006** — When a container has any descendant with `Reorder.Handle` set, the container shall be grabbed only by a press inside one of its handles.
   - Tests: `ReorderTests.AContainerWithAHandleIsGrabbedOnlyByIt`, `BoardPageTests.DraggingAPriorityByItsGripReordersTheListAndSettlesItInItsNewSlot`
-- **BRIDGE-REORDER-007** — The list shall start the drag only once the pointer has moved more than `Draggable`'s default drag threshold (3 DIPs) from the press with its travel along `Reorder.Axis` greater than across it; when the first travel past the threshold is mostly across the axis, the list shall forget the press, leaving it to the crosswise gesture (a swipe, a horizontal scroll).
-  - Tests: `ReorderTests.AHorizontalListReordersAlongX`, `ReorderTests.APressThatMovesAcrossTheAxisFirstIsLeftToThatGestureEvenAfterDriftingAlongIt`
-- **BRIDGE-REORDER-041** — While `Reorder.TouchHold` is above 0, a touch or pen press shall start nothing until it has held within `Draggable`'s 10-DIP touch slop for that many milliseconds, then lift its container and drag from there without a further threshold; one that moves past the slop first, or is released first, shall be forgotten, and a mouse press shall drag as BRIDGE-REORDER-007 says.
-  - Tests: `ReorderTests.WithATouchHoldATouchThatMovesFirstIsLeftAloneAndOneHeldStillLiftsWhileAMouseDragsAtOnce`, `ReorderTests.ATouchHoldSurvivesAFingersJitterWithinItsSlop`
+- **BRIDGE-REORDER-007** — On a press that passes BRIDGE-REORDER-005 and -006, the list shall join the pointer's gesture arena (BRIDGE-GESTURES) with a same-axis gate along `Reorder.Axis` (3 DIPs, travel along greater than across, for a mouse and for touch or a pen) on the pressed container, and start the drag when it wins; when the gate drops out on a crosswise start, or the arena gives the press to another gesture, the list shall forget the press, leaving it to that gesture (a swipe, a scroll).
+  - Tests: `ReorderTests.AHorizontalListReordersAlongX`, `ReorderTests.APressThatMovesAcrossTheAxisFirstIsLeftToThatGestureEvenAfterDriftingAlongIt`, `GestureArenaTests.AHorizontalMouseDragSwipesAndAVerticalOneReorders`
+- **BRIDGE-REORDER-041** — While `Reorder.TouchHold` is above 0, a touch or pen press shall join with that many milliseconds as its gate's hold (10-DIP hold slop) and claim by nothing else, then, when the hold wins, lift its container and drag from there without a further threshold. The hold shall stop when anything else wins the press first; one that moves more than 10 DIPs along either axis first, or is released first, shall be forgotten, and a mouse press shall drag as BRIDGE-REORDER-007 says.
+  - Tests: `ReorderTests.WithATouchHoldATouchThatMovesFirstIsLeftAloneAndOneHeldStillLiftsWhileAMouseDragsAtOnce`, `ReorderTests.ATouchHoldSurvivesAFingersJitterWithinItsSlop`, `ReorderTests.ATouchHoldIsCancelledWhenASwipeOnTheRowWinsFirst`
+- **BRIDGE-REORDER-044** — When a scroller captures a touch before its hold is up, the list shall not lift the container.
+  - Tests: `GestureArenaTests.ATouchThatScrollsWithinTheHoldSlopAndRestsDoesNotLift`
 - **BRIDGE-REORDER-043** — When a hold has lifted a container and is released with its item still at its start index and within the touch slop of where it lifted, the list shall settle it as usual and then run `Reorder.HoldCommand` with the item, when `CanExecute` allows; a hold that moved the item, or a mouse drag, shall not run it.
   - Tests: `ReorderTests.AHoldLetGoInPlaceRunsTheHoldCommandWhileAHoldThatDragsReordersInstead`
 - **BRIDGE-REORDER-008** — When the drag starts, the list shall capture the pointer on the list itself (not the container), raise the container's `ZIndex` to `int.MaxValue` at `Animation` priority, focus the container, and suspend the container's item `LayoutArm`.
@@ -120,7 +124,7 @@ depends:
   - Tests: `ReorderTests.ReleaseSpringsTheItemIntoItsSlotAndLeavesNothingBehind`
 - **BRIDGE-REORDER-029** — When the settle spring completes, the list shall revert the lift, remove the `ZIndex` raise and the shorthand, and resume the container's `LayoutArm` as if attaching, leaving no effect, z-order or transform behind.
   - Tests: `ReorderTests.ReleaseSpringsTheItemIntoItsSlotAndLeavesNothingBehind`, `ReorderTests.ALiftSetOnTheListPlaysInPlaceOfTheDefaultAndIsRevertedOnRelease`
-- **BRIDGE-REORDER-030** (inherited) — When the pointer is released before the threshold was passed, the list shall forget the press without handling the release or moving anything.
+- **BRIDGE-REORDER-030** (inherited) — When the pointer is released before the list won the press, the list shall forget the press without handling the release or moving anything.
   - Tests: `ReorderTests.AContainerWithAHandleIsGrabbedOnlyByIt`
 - **BRIDGE-REORDER-031** (inherited) — When the list loses the pointer capture during a drag, the list shall release as on pointer up (with the settle spring).
   - Tests: untested
@@ -185,14 +189,15 @@ depends:
 ## Deviations from anime.js
 
 - No upstream counterpart.
-- Reorder owns the pointer instead of driving a `Draggable` per container, sharing only `Draggable`'s threshold and edge-scroll formula, because a `Move` takes the capture a `Draggable` depends on (see Reorder owns the pointer).
+- Reorder owns the pointer instead of driving a `Draggable` per container, sharing only the arena's gate and `Draggable`'s edge-scroll formula, because a `Move` takes the capture a `Draggable` depends on (see Reorder owns the pointer).
 
 ## Decisions
 
 - **Reorder moves one step at a time, through `Command` or `ObservableCollection.Move`.** Each midpoint crossing is a one-step move (`NewIndex − OldIndex` = ±1): it raises the cancellable, bubbling `Reorder.Moving`, then runs `Reorder.Command` when set (the view model owns the change), else calls `Move(old, new)` on an `ObservableCollection<T>` `ItemsSource` through a delegate cached per type; any other `IList` needs the command, and without one the drag only lifts and springs back with a logged warning. Reason: Presence and scroll anchoring would read a remove-and-insert as a removal and an insert; routing the event lets XAML attach it. Rejected: `RemoveAt` plus `Insert`.
-- **Reorder owns the pointer.** It handles `PointerPressed` on the list in the tunnel phase, applies `Draggable`'s threshold, captures the list and tracks the dragged item, re-finding its container with `ContainerFromItem` after every move; it shares only `Draggable`'s threshold and edge-scroll formula, through an internal helper. Reason: a `Draggable` releases when its capture is lost, and a `Move` takes capture from the moved container (or replaces the container outright in an `ItemsControl`); tunnel handling stops a `ListBoxItem` swallowing the press. Rejected: a `Draggable` per container, as first sketched.
+- **Reorder owns the pointer.** It handles `PointerPressed` on the list in the tunnel phase, joins the gesture arena, which captures the list when it wins, and tracks the dragged item, re-finding its container with `ContainerFromItem` after every move; it shares only the arena's gate and `Draggable`'s edge-scroll formula. Reason: a `Draggable` releases when its capture is lost, and a `Move` takes capture from the moved container (or replaces the container outright in an `ItemsControl`); tunnel handling stops a `ListBoxItem` swallowing the press. Rejected: a `Draggable` per container, as first sketched.
 - **A touch hold is opt-in, and for touch and pen.** `Reorder.TouchHold` makes a touch or pen press hold still before it lifts, the mobile convention, so a whole-row drag target leaves vertical touch scrolling and horizontal swipe actions to the list; a touch that moves first is dropped rather than handled. Reason: without a handle, a 3 DIP threshold along the axis took every vertical touch scroll as a drag (Tempo's task rows); a mouse has no scroll gesture to protect, so it keeps dragging at once, while a pen pans scrollers as touch does and, at first limited to touch, never reached `HoldCommand` on a drawing tablet. Rejected: a hold for every pointer, which slows mouse reordering for nothing, and a handle, which on a phone sits beside the checkbox and invites misses.
-- **A crosswise start gives the press away.** The first travel past the threshold decides: mostly along the axis grabs, mostly across forgets the press, mirroring `Swipe`, which drops a press that starts vertical. Reason: with movement across the axis ignored, a swipe on a whole-row reorder target (Tempo's task rows) turned into a reorder at the first few DIPs of vertical drift and lost its pointer. Rejected: checking whether a swipe holds the capture, which ties Reorder to one gesture.
+- **A crosswise start gives the press away.** The same-axis gate decides on the first travel past its slop, and a crosswise start drops Reorder out of the arena; the numbers and the arbitration are BRIDGE-GESTURES's. Reason: with movement across the axis ignored, a swipe on a whole-row reorder target (Tempo's task rows) turned into a reorder at the first few DIPs of vertical drift and lost its pointer.
+- **A held touch claims only by its hold.** With `TouchHold` set, a touch or pen gate never claims by moving and drops out once either axis passes the 10-DIP touch slop, so a touch that moves first is left to a scroll or a swipe. Reason: a whole-row target must not drag before its hold, and the arena's hold stops the moment a scroller or a swipe wins, which Reorder's own timer could not hear. Rejected: keeping the 3-DIP same-axis claim beside the hold, which drags on the first vertical scroll.
 - **A hold let go in place runs `HoldCommand`.** One long press both picks an item up and, released where it lifted, opens it, the touch pattern where lifting is the feedback and the drag decides. Reason: Tempo's touch rows had no long-press action besides reorder, and a separate long-press gesture would race the lift. Rejected: raising a routed event, which XAML cannot bind to a view-model command.
 - **The dragged container is excluded from FLIP.** Its item `LayoutArm` is suspended from grab until the release spring settles, and its translation is rebased to `pointer delta − (slot now − slot at grab)` in the same layout pass as each move, while the neighbors keep easing. Reason: the drag's shorthand adds to the FLIP's `Translation` rather than replacing it, so both would move the container; the rebase keeps it from jumping.
 - **Focus keeps the dragged container realized.** Reorder focuses the container on grab and after every move; a non-focusable container may still be recycled in a long virtualized drag, as the docs on `Enabled` say. Reason: capture on the list does not keep a container realized but focus does, and a `Move` takes focus away.

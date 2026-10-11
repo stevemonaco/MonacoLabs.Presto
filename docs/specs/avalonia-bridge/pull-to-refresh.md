@@ -20,6 +20,7 @@ depends:
   - BRIDGE-FOLLOW
   - BRIDGE-SHAPES
   - BRIDGE-TOKENS
+  - BRIDGE-GESTURES
 ---
 
 # Pull to refresh
@@ -45,11 +46,11 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 ### Starting a pull
 
-- **BRIDGE-PULL-006** (inherited) — A press on the control shall arm a pull unless a pull is already armed or a refresh is running; a mouse press shall arm it only with the left button.
+- **BRIDGE-PULL-006** (inherited) — A press on the control shall arm a pull, joining the pointer's gesture arena (BRIDGE-GESTURES), unless a pull is already armed or a refresh is running; a mouse press shall arm it only with the left button.
   - Tests: `PullToRefreshTests.AShortPullSpringsBackWithoutRefreshing`
-- **BRIDGE-PULL-007** — When the pointer first moves more than `Draggable`'s 3-DIP threshold on either axis, the pull shall start only if the downward travel exceeds the horizontal travel and the nearest `ScrollViewer` between the pressed element and the control is not scrolled away from its top; otherwise the press shall be dropped without capturing anything.
+- **BRIDGE-PULL-007** — The pull shall join with a vertical gate (3 DIPs at 1:1 for every pointer) whose `Accepts` takes only downward travel while the nearest `ScrollViewer` between the pressed element and the control is not scrolled away from its top; when the gate drops out, the press shall be forgotten without capturing anything.
   - Tests: `PullToRefreshTests.APullIsLeftToAListScrolledAwayFromItsTop`
-- **BRIDGE-PULL-008** (inherited) — When a pull starts, the control shall capture the pointer and from then on mark each move handled and prevent gesture recognition.
+- **BRIDGE-PULL-008** (inherited) — When the pull wins the arena (which captures the pointer for it), the control shall from then on mark each move handled and prevent gesture recognition.
   - Tests: untested
 - **BRIDGE-PULL-009** (inherited) — When a pull starts while the content is still springing back, it shall pick the content up where it is drawn.
   - Tests: untested

@@ -27,6 +27,7 @@ depends:
   - BRIDGE-PRESENCE
   - BRIDGE-TOKENS
   - BRIDGE-RECIPES
+  - BRIDGE-GESTURES
 ---
 
 # Sheet and drawer
@@ -82,11 +83,11 @@ depends:
 
 - **BRIDGE-SHEET-016** — The sheet shall consider a press only on its panel or a descendant of it, or on its edge strip, one pointer at a time, and for a mouse only with the left button.
   - Tests: `DrawerTests.ASwipeAwayFromTheEdgeDoesNothing`
-- **BRIDGE-SHEET-017** — Until the pointer moves more than 3 DIPs along or across the axis, the sheet shall not take the drag; when that first move is at least as far across as along, it shall drop the press.
-  - Tests: untested
-- **BRIDGE-SHEET-018** — When the press began inside a `ScrollViewer` within the panel that can still scroll the way the pointer moves, the sheet shall leave the drag to it, unless the move opens the sheet further while it is below its last detent.
+- **BRIDGE-SHEET-017** — A press the sheet considers shall join the pointer's gesture arena (BRIDGE-GESTURES) with a same-axis gate along the sheet's axis, whose `Accepts` is the scroller hand-off of BRIDGE-SHEET-018; when the gate drops out, as on a first move at least as far across as along, the sheet shall forget the press.
+  - Tests: `SheetTests.ACrosswiseFirstMoveDropsThePressAndTheSheetStays`
+- **BRIDGE-SHEET-018** — When the press began inside a `ScrollViewer` within the panel that can still scroll the way the pointer moves, the gate's `Accepts` shall refuse the move, leaving the drag to the scroller, unless the move opens the sheet further while it is below its last detent.
   - Tests: `SheetTests.AnInnerScrollerHandsTheDragOffAtItsTopAndScrollsOtherwise`
-- **BRIDGE-SHEET-019** (inherited) — When the sheet takes a drag, it shall capture the pointer, pause its running motion, show its panel and pick up from its current extent, including one rubber-banded past a bound.
+- **BRIDGE-SHEET-019** (inherited) — When the sheet wins the arena, it shall pause its running motion, show its panel and pick up from its current extent, including one rubber-banded past a bound; the arena captures the pointer for it.
   - Tests: `SheetTests.ADragReleasedBetweenDetentsSettlesOnTheNearest`
 - **BRIDGE-SHEET-020** — While dragging, the sheet shall follow the pointer along its axis at once, rubber-banding with friction 0.35 past the first and last detents, and mark the moves handled and withheld from gesture recognizers.
   - Tests: `SheetTests.TheScrimOpacityTracksThePosition`, `SheetTests.AnInnerScrollerHandsTheDragOffAtItsTopAndScrollsOtherwise`
@@ -164,7 +165,7 @@ depends:
 
 ## Decisions
 
-- **Sheet is an untemplated control with its own drag.** `Sheet`, with a sealed `Drawer` subclass, is a control that builds its scrim, panel and edge strip as visual children and takes its look from its `Content`; its drag is its own pointer handling, built like `Swipe`'s. Reason: the scrim and edge strip are siblings an attached property on the panel could only add by reaching into its parent's children; the bridge ships no themes; `Draggable`'s press captures the pointer, so it could never hand a touch scroll to an inner `ScrollViewer`. Rejected: an attached form; a drag built on `Draggable`.
+- **Sheet is an untemplated control with its own drag.** `Sheet`, with a sealed `Drawer` subclass, is a control that builds its scrim, panel and edge strip as visual children and takes its look from its `Content`; its drag is its own pointer handling, built like `Swipe`'s and started through the gesture arena (BRIDGE-GESTURES). Reason: the scrim and edge strip are siblings an attached property on the panel could only add by reaching into its parent's children; the bridge ships no themes; `Draggable`'s press captures the pointer, so it could never hand a touch scroll to an inner `ScrollViewer`. Rejected: an attached form; a drag built on `Draggable`.
 - **`TimeConstant` on `Sheet`, not a duration.** The settle's speed is set by a `TimeConstant` styled property. Reason: the settle is inertia, so its knob is the inertia's time constant, which keeps the fling physics: a shorter one settles sooner while a fast fling still projects from its release velocity. Rejected: a `Duration`; a shared `Inertia` property, which would expose the internal `ModifyTarget` and bounds.
 
 ## Non-goals
@@ -177,4 +178,4 @@ depends:
 
 - `DetentIndex` is never coerced into the detent range, so `IsOpen` can read true while the sheet rests at its only, closed detent.
 - `Drawer` docs say Left or Right, but any `Edge` works, including Top and Bottom with an edge strip.
-- Untested: the 3-DIP threshold and cross-axis drop, the handled release, the `Edge` change rebuild, the `Drawer` default edge, and `Scrim = null` letting taps through.
+- Untested: the handled release, the `Edge` change rebuild, the `Drawer` default edge, and `Scrim = null` letting taps through.

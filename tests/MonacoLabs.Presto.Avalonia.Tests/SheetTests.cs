@@ -64,6 +64,27 @@ public sealed class SheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ACrosswiseFirstMoveDropsThePressAndTheSheetStays()
+    {
+        var (window, sheet) = Opened();
+        var touch = new Touch(window);
+
+        touch.Press(1, new Point(100, 150));
+        Frames.Advance(20);
+        touch.Move(1, new Point(110, 148));
+        for (var i = 1; i <= 3; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, new Point(110, 148 - (20 * i)));
+        }
+        touch.Up(1, new Point(110, 88));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(1, sheet.DetentIndex);
+        Assert.Equal(100, sheet.Position.Value, 1);
+    }
+
+    [AvaloniaFact]
     public void AShorterTimeConstantSettlesSooner()
     {
         var (_, snappy) = Stage(new Border { Background = Brushes.Red });

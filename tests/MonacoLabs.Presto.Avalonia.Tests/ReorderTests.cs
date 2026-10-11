@@ -9,6 +9,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using MonacoLabs.Presto.Gestures;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -238,6 +239,27 @@ public sealed class ReorderTests : CompositorTestBase
         touch.Move(1, OnRed + new Point(0, 50));
 
         Assert.Equal([(1, 2), (2, 3)], moves);
+    }
+
+    [AvaloniaFact]
+    public void ATouchHoldIsCancelledWhenASwipeOnTheRowWinsFirst()
+    {
+        var (list, _, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        Reorder.SetTouchHold(list, 400);
+        var container = list.ContainerFromItem("red")!;
+        Swipe.SetLeading(container, new Button { Width = 60 });
+        var touch = new Touch(window);
+
+        Press(touch, OnRed);
+        Frames.Advance(100);
+        touch.Move(1, OnRed + new Point(20, 1));
+        Frames.Advance(450);
+
+        Assert.NotEqual(int.MaxValue, container.ZIndex);
+        touch.Move(1, OnRed + new Point(20, 50));
+        touch.Up(1, OnRed + new Point(20, 50));
+        Assert.Empty(moves);
     }
 
     [AvaloniaTheory]

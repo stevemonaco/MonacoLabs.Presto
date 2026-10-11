@@ -40,7 +40,7 @@ depends:
 
 ## Purpose
 
-`Draggable` is the port of anime.js `createDraggable`: single-pointer dragging of a control, written through a core `Animatable` (CORE-ANIMATABLE) over two mapped axis properties, with a drag threshold, per-axis enabling, snapping, modifiers, container bounds and friction, edge auto-scroll of the nearest `ScrollViewer`, and a release that throws the target on with the pointer's velocity, plus an opt-in inertia release (CORE-INERTIA). `Transformable` (BRIDGE-TRANSFORMABLE) is its multi-touch counterpart; `Pager`, `Reorder` and other controls reuse its threshold and edge-scroll defaults. Also specifies `PrestoAvalonia.CreateDraggable`.
+`Draggable` is the port of anime.js `createDraggable`: single-pointer dragging of a control, written through a core `Animatable` (CORE-ANIMATABLE) over two mapped axis properties, with a drag threshold, per-axis enabling, snapping, modifiers, container bounds and friction, edge auto-scroll of the nearest `ScrollViewer`, and a release that throws the target on with the pointer's velocity, plus an opt-in inertia release (CORE-INERTIA). `Transformable` (BRIDGE-TRANSFORMABLE) is its multi-touch counterpart; `Pager`, `Reorder` and other controls reuse its edge-scroll defaults, and its 3-DIP default threshold is one of the shared drag thresholds in BRIDGE-GESTURES. Also specifies `PrestoAvalonia.CreateDraggable`.
 
 ## Requirements
 

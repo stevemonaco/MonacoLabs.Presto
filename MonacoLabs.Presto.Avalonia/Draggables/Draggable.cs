@@ -18,10 +18,6 @@ namespace MonacoLabs.Presto.Draggables;
 /// <remarks>One pointer drags at a time, mouse and touch alike, through a pointer capture on the trigger.</remarks>
 public sealed class Draggable : IRevertible
 {
-    internal const double DefaultDragThreshold = 3;
-
-    /// <summary>A finger's slop: touch drifts further than a mouse before it means to move.</summary>
-    internal const double TouchSlop = 10;
     internal const double DefaultScrollSpeed = 1.5;
     internal const double DefaultScrollThreshold = 20;
     private const double ResizeDebounce = 150;
@@ -64,7 +60,7 @@ public sealed class Draggable : IRevertible
     private Cursor? _grabCursor;
     private Cursor? _originalCursor;
     private bool _cursorTaken;
-    private double _dragThreshold = DefaultDragThreshold;
+    private double _dragThreshold = GestureGate.DefaultDragThreshold;
     private double _containerFriction;
     private double _releaseContainerFriction;
     private double _minVelocity;
@@ -265,7 +261,7 @@ public sealed class Draggable : IRevertible
         _padding = _parameters.ContainerPadding ?? default;
         _snapX = _parameters.X?.Snap ?? _parameters.Snap;
         _snapY = _parameters.Y?.Snap ?? _parameters.Snap;
-        _dragThreshold = _parameters.DragThreshold ?? DefaultDragThreshold;
+        _dragThreshold = _parameters.DragThreshold ?? GestureGate.DefaultDragThreshold;
         _containerFriction = Utils.Clamp(_parameters.ContainerFriction ?? .8, 0, 1);
         _releaseContainerFriction = Utils.Clamp(_parameters.ReleaseContainerFriction ?? _containerFriction, 0, 1);
         _minVelocity = _parameters.MinVelocity ?? 0;

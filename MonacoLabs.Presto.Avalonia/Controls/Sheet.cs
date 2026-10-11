@@ -3,10 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Metadata;
 using Avalonia.VisualTree;
-using MonacoLabs.Presto.Draggables;
 using MonacoLabs.Presto.Gestures;
 
 namespace MonacoLabs.Presto.Controls;
@@ -33,7 +33,7 @@ namespace MonacoLabs.Presto.Controls;
 /// sheet lands on its detent at once and the scrim fades to match over <see cref="MotionTokens.Short"/>.
 /// </para>
 /// </remarks>
-public class Sheet : Control
+public class Sheet : Control, IGestureMember
 {
     private const double Friction = .35;
 
@@ -161,6 +161,10 @@ public class Sheet : Control
     /// <summary>How far the sheet stands out from its edge, in DIPs, as it renders; link content to it with <see cref="MotionValue.Map(Func{double, double})"/> or read its <see cref="MotionValue.Velocity"/>.</summary>
     public MotionValue Position => _position;
 
+    Visual IGestureMember.Element => this;
+
+    IInputElement IGestureMember.CaptureTarget => this;
+
     /// <summary>How wide a strip along the edge starts a drag while the sheet is closed and hidden.</summary>
     private protected virtual double EdgeSwipe => 0;
 
@@ -270,23 +274,18 @@ public class Sheet : Control
         _pointer = e.Pointer;
         _pressedAt = e.GetPosition(null);
         _scroller = (e.Source as Visual)?.GetSelfAndVisualAncestors().TakeWhile(visual => visual != _panel).OfType<ScrollViewer>().FirstOrDefault();
+        var horizontal = Horizontal;
+        GestureArena.Join(e, this, GestureGate.SameAxis(horizontal ? Orientation.Horizontal : Orientation.Vertical) with
+        {
+            Accepts = travel => TakesFromScroller(horizontal ? travel.X : travel.Y),
+        });
     }
 
     private void HandleMoved(object? sender, PointerEventArgs e)
     {
-        if (e.Pointer != _pointer) return;
+        if (!_dragging || e.Pointer != _pointer) return;
         var moved = e.GetPosition(null) - _pressedAt;
-        var (along, across) = Horizontal ? (moved.X, moved.Y) : (moved.Y, moved.X);
-        if (!_dragging)
-        {
-            if (Math.Abs(along) <= Draggable.DefaultDragThreshold && Math.Abs(across) <= Draggable.DefaultDragThreshold) return;
-            if (Math.Abs(across) >= Math.Abs(along) || !TakesFromScroller(along))
-            {
-                _pointer = null;
-                return;
-            }
-            Grab(e.Pointer);
-        }
+        var along = Horizontal ? moved.X : moved.Y;
         e.Handled = true;
         // Gesture recognizers see handled events too, and an inner scroll would steal the capture.
         e.PreventGestureRecognition();
@@ -297,14 +296,14 @@ public class Sheet : Control
 
     private void HandleReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (e.Pointer != _pointer) return;
-        e.Handled = _dragging;
+        if (!_dragging || e.Pointer != _pointer) return;
+        e.Handled = true;
         Lift();
     }
 
     private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
-        if (e.Pointer == _pointer) Lift();
+        if (_dragging && e.Pointer == _pointer) Lift();
     }
 
     // A scroller that can still scroll the way the pointer moves keeps the drag, unless it opens the sheet further.
@@ -318,10 +317,9 @@ public class Sheet : Control
         return !scrolls || (Direction * along > 0 && Extent < _stops[^1]);
     }
 
-    private void Grab(IPointer pointer)
+    void IGestureMember.Won()
     {
         _dragging = true;
-        pointer.Capture(this);
         foreach (var animation in Animator().Animations.Values) animation.Pause();
         Show(true);
         _grabbedAt = TransformMath.Cushion(Extent, _stops[0], _stops[^1], 1 / Friction);
@@ -329,12 +327,13 @@ public class Sheet : Control
         _velocity.Add(Extent, Engine.Current.Now);
     }
 
+    void IGestureMember.Lost() => _pointer = null;
+
     private void Lift()
     {
         // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.
         var pointer = _pointer!;
         _pointer = null;
-        if (!_dragging) return;
         _dragging = false;
         if (ReferenceEquals(pointer.Captured, this)) pointer.Capture(null);
         var extent = Extent;
