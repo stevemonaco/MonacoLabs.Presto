@@ -2,17 +2,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
              xmlns:m="using:Tempo.Motion"
+             xmlns:v="using:Tempo.Views"
              xmlns:vm="using:Tempo.ViewModels"
              x:Class="Tempo.Views.TasksView"
              x:DataType="vm:MainViewModel">
-    <DockPanel>
+    <DockPanel Container.Name="tasks" Container.Sizing="Width">
         <TextBlock DockPanel.Dock="Top" Classes="heading" Text="Today" Margin="2,0,0,10" />
         <TextBox x:Name="AddBox" DockPanel.Dock="Top" PlaceholderText="Add a task" Text="{Binding NewTaskTitle}" Margin="0,0,0,12">
             <TextBox.KeyBindings>
                 <KeyBinding Gesture="Enter" Command="{Binding AddTaskCommand}" />
             </TextBox.KeyBindings>
             <TextBox.InnerRightContent>
-                <Button Classes="icon" Command="{Binding AddTaskCommand}" ToolTip.Tip="Add task (Enter)">
+                <Button Classes="icon" Command="{Binding AddTaskCommand}" ToolTip.Tip="Add task (Enter)"
+                        presto:Magnetic.Enabled="True" presto:Magnetic.Strength="0.25" presto:Magnetic.Radius="24">
                     <Path x:Name="AddIcon" Classes="add-icon" Classes.ready="{Binding HasNewTaskText}" Data="{StaticResource PlusIcon}">
                         <presto:Motion.States>
                             <presto:MotionStates>
@@ -33,10 +35,14 @@
                     <Run Text="{Binding DoneTasks.Count}" />
                 </TextBlock>
             </Expander.Header>
-            <ScrollViewer MaxHeight="220">
-                <ItemsControl ItemsSource="{Binding DoneTasks}" ItemTemplate="{StaticResource TaskRowTemplate}"
-                              presto:Animate.ItemLayout="{presto:Reflow}" DoubleTapped="OpenDetail" />
-            </ScrollViewer>
+            <Panel>
+                <ScrollViewer x:Name="DoneScroll" MaxHeight="220">
+                    <ItemsControl ItemsSource="{Binding DoneTasks}" ItemTemplate="{StaticResource TaskRowTemplate}"
+                                  presto:Animate.ItemLayout="{presto:Reflow}" DoubleTapped="OpenDetail" />
+                </ScrollViewer>
+                <Border Classes="scroll-shadow top" v:ScrollEdge.ShadowTop="{Binding #DoneScroll}" />
+                <Border Classes="scroll-shadow bottom" v:ScrollEdge.ShadowBottom="{Binding #DoneScroll}" />
+            </Panel>
         </Expander>
 
         <Panel>
@@ -52,11 +58,11 @@
                     </MultiBinding>
                 </TextBlock.IsVisible>
             </TextBlock>
-            <ListBox x:Name="TaskList" Classes="tasks" Background="Transparent"
+            <ListBox x:Name="TaskList" Classes="tasks edge-scroll" Background="Transparent"
                      ItemsSource="{Binding VisibleTasks}" SelectedItem="{Binding SelectedTask}"
                      ItemContainerTheme="{StaticResource TaskRow}" ItemTemplate="{StaticResource TaskRowTemplate}"
                      presto:Animate.ItemLayout="{presto:Reflow}"
-                     presto:Reorder.Enabled="True" presto:Reorder.Lift="{x:Static m:TempoMotion.RowLift}"
+                     presto:Reorder.Enabled="True" presto:Reorder.TouchHold="400" presto:Reorder.HoldCommand="{Binding OpenDetailCommand}" presto:Reorder.Lift="{x:Static m:TempoMotion.RowLift}"
                      presto:Selection.Motion="{x:Static m:TempoMotion.RowSelect}"
                      DoubleTapped="OpenDetail">
                 <presto:Selection.Indicator>
@@ -65,6 +71,8 @@
                     </Template>
                 </presto:Selection.Indicator>
             </ListBox>
+            <Border Classes="scroll-shadow top" v:ScrollEdge.ShadowTop="{Binding #TaskList}" />
+            <Border Classes="scroll-shadow bottom" v:ScrollEdge.ShadowBottom="{Binding #TaskList}" />
         </Panel>
     </DockPanel>
 </UserControl>

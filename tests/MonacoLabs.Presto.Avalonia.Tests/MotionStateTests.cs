@@ -175,6 +175,25 @@ public sealed class MotionStateTests : BridgeTestBase
         Assert.Equal(1, box.Opacity, 6);
     }
 
+    // A plain geometry tween resamples a two-figure shape as one polyline, which loses the bar until the return settles.
+    [AvaloniaFact]
+    public void AGeometryMorphedByAStateMorphsBackToRest()
+    {
+        var rest = Geometry.Parse("M6,5 L15,12 L6,19 Z M17,5 L19,5 L19,19 L17,19 Z");
+        var path = new Path { Data = rest, Fill = Brushes.Black };
+        Show(path);
+        Motion.SetStates(path, States(".on", Linear().Data(PrestoAvalonia.MorphTo(Geometry.Parse("M6,5 L12.5,12 L6,19 Z M12.5,5 L19,12 L12.5,19 Z")))));
+        path.Classes.Add("on");
+        Frames.Advance(200, 10);
+
+        path.Classes.Remove("on");
+        Frames.Advance(50, 10);
+        Assert.True(path.Data!.FillContains(new Point(18, 12)));
+        Assert.True(path.Data.FillContains(new Point(7, 12)));
+        Frames.Advance(200, 10);
+        Assert.Same(rest, path.Data);
+    }
+
     [AvaloniaFact]
     public void CheckedOnAToggleButtonEnters()
     {

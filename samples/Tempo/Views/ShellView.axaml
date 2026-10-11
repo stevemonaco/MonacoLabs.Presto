@@ -10,12 +10,21 @@
              presto:Motion.StaggerChildren="40">
     <Grid Classes="shell" RowDefinitions="Auto,*,Auto">
         <Border Grid.RowSpan="3" Classes="backdrop accent-bg handoff" />
-        <!-- Each blob drifts on the compositor from code-behind, in BlobDrift's order. -->
+        <!-- Each blob's slot drifts on the compositor from code-behind, in BlobDrift's order, while the blob inside leans towards
+             the pointer, and swells and brightens as it nears (Swell); the strengths differ so the blobs part like layers. -->
         <Panel x:Name="Blobs" Grid.RowSpan="3" Classes="blobs handoff">
-            <Border Classes="blob accent-bg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-160,-120,0,0" />
-            <Border Classes="blob accent-bg" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-60,-200,0" />
-            <Border Classes="blob accent-bg" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,120,-240" />
-            <Border Classes="blob accent-bg" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-80,-140" />
+            <Panel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-160,-120,0,0">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.16" />
+            </Panel>
+            <Panel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-60,-200,0">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.25" />
+            </Panel>
+            <Panel HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,120,-240">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.12" />
+            </Panel>
+            <Panel HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-80,-140">
+                <Border Classes="blob accent-bg" presto:Magnetic.Strength="0.2" />
+            </Panel>
         </Panel>
         <!-- Above the panels, so the wordmark's flight in from the intro is not drawn under them. -->
         <Border Classes="titlebar" ZIndex="1" WindowDecorationProperties.ElementRole="TitleBar">
@@ -33,7 +42,8 @@
                 </ListBox>
                 <Button x:Name="SettingsButton" Grid.Column="3" Classes="icon handoff" Command="{Binding OpenSettingsCommand}"
                         WindowDecorationProperties.ElementRole="User" ToolTip.Tip="Settings (Ctrl+,)"
-                        presto:Motion.Hover="{x:Static m:TempoMotion.GearSpin}">
+                        presto:Motion.Hover="{x:Static m:TempoMotion.GearSpin}"
+                        presto:Magnetic.Enabled="True" presto:Magnetic.Strength="0.3" presto:Magnetic.Radius="28">
                     <presto:Motion.States>
                         <presto:MotionStates>
                             <presto:MotionState When=".open" Motion="{x:Static m:TempoMotion.GearSpin}" />

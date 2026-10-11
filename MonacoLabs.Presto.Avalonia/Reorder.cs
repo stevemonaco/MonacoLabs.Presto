@@ -33,6 +33,20 @@ public static class Reorder
     public static readonly AttachedProperty<bool> HandleProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("Handle", typeof(Reorder));
 
+    /// <summary>
+    /// Milliseconds a touch or pen press must hold still before it lifts its container, so one that moves first scrolls or swipes
+    /// instead; 0, the default, drags on touch and pen as on a mouse. A mouse always drags at once.
+    /// </summary>
+    public static readonly AttachedProperty<double> TouchHoldProperty =
+        AvaloniaProperty.RegisterAttached<ItemsControl, double>("TouchHold", typeof(Reorder));
+
+    /// <summary>
+    /// Runs with the item when a <see cref="TouchHoldProperty"/> hold lifts its container and is let go without moving it, so a
+    /// long press can open the item while a long press and drag reorders it.
+    /// </summary>
+    public static readonly AttachedProperty<ICommand?> HoldCommandProperty =
+        AvaloniaProperty.RegisterAttached<ItemsControl, ICommand?>("HoldCommand", typeof(Reorder));
+
     /// <summary>The builder played on a container while it is dragged and reversed on release; null plays <see cref="Recipes.ReorderLift"/>.</summary>
     public static readonly AttachedProperty<AnimationBuilder?> LiftProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, AnimationBuilder?>("Lift", typeof(Reorder));
@@ -70,6 +84,18 @@ public static class Reorder
 
     /// <summary>Sets whether <paramref name="control"/> is a grab handle.</summary>
     public static void SetHandle(Control control, bool value) => control.SetValue(HandleProperty, value);
+
+    /// <summary>Gets how long a touch or pen press on <paramref name="list"/> must hold still before it lifts.</summary>
+    public static double GetTouchHold(ItemsControl list) => list.GetValue(TouchHoldProperty);
+
+    /// <summary>Sets how long a touch or pen press on <paramref name="list"/> must hold still before it lifts.</summary>
+    public static void SetTouchHold(ItemsControl list, double value) => list.SetValue(TouchHoldProperty, value);
+
+    /// <summary>Gets the command a hold released in place on <paramref name="list"/> runs.</summary>
+    public static ICommand? GetHoldCommand(ItemsControl list) => list.GetValue(HoldCommandProperty);
+
+    /// <summary>Sets the command a hold released in place on <paramref name="list"/> runs.</summary>
+    public static void SetHoldCommand(ItemsControl list, ICommand? value) => list.SetValue(HoldCommandProperty, value);
 
     /// <summary>Gets the builder played on a dragged container of <paramref name="list"/>.</summary>
     public static AnimationBuilder? GetLift(ItemsControl list) => list.GetValue(LiftProperty);

@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
@@ -252,6 +253,75 @@ public sealed class FocusViewTests : TempoTestBase
         Assert.Equal(0, ring.Value);
         window.Close();
         await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData("hero-face")]
+    [InlineData("skip-face")]
+    [InlineData("TaskList")]
+    public async Task SpaceStartsAndPausesWhicheverControlHasFocus(string focused)
+    {
+        var (window, vm) = await ShowAsync(reduced: true);
+        var target = window.GetVisualDescendants().OfType<InputElement>()
+            .First(c => c is Control control && (control.Name == focused || control.Classes.Contains(focused)));
+        target.Focus();
+
+        Space(window);
+        Assert.True(vm.Focus.IsRunning);
+        Space(window);
+        Assert.False(vm.Focus.IsRunning);
+        Assert.Equal(FocusMode.Focus, vm.Focus.Mode);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheDigitsHoldTheRingsCenterAndTheModeLabelStaysCentered(bool withTask)
+    {
+        var (window, vm) = await ShowSeededAsync(reduced: false);
+        if (withTask)
+            vm.SelectedTask = vm.Tasks[0];
+        TestFrames.Tick(30);
+        var dial = window.GetVisualDescendants().OfType<Panel>().Single(p => p.Name == "Dial");
+        var digits = window.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "Digits");
+        Assert.Equal(withTask, vm.Focus.ActiveTask is not null);
+        Assert.Equal(dial.Bounds.Height / 2, digits.TranslatePoint(new Point(0, digits.Bounds.Height / 2), dial)!.Value.Y, tolerance: 1);
+
+        vm.Focus.SkipCommand.Execute(null);
+        TestFrames.Tick(8);
+        var mode = window.GetVisualDescendants().OfType<TransitioningContentControl>().Single(t => t.Classes.Contains("mode"));
+        Assert.All(mode.GetVisualDescendants().OfType<TextBlock>(), label =>
+            Assert.Equal(mode.Bounds.Width / 2, label.TranslatePoint(new Point(label.TextLayout.Width / 2, 0), mode)!.Value.X, tolerance: 1));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StartingPingsTheHaloAndTurnsTheIconIntoPause(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced);
+        var halo = window.GetVisualDescendants().OfType<Panel>().Single(p => p.Name == "StartHalo");
+
+        vm.Focus.StartPauseCommand.Execute(null);
+        TestFrames.Tick(4);
+        Assert.Equal(!reduced, halo.Opacity > 0);
+        TestFrames.Tick(60);
+        Assert.Equal(0, halo.Opacity);
+        var icon = window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.Name == "PlayPause");
+        Assert.Equal(TempoMotion.PauseIcon.Bounds.Left, icon.Data!.Bounds.Left, 1);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    private static void Space(Window window)
+    {
+        window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        window.KeyReleaseQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        TestFrames.Tick(2);
     }
 
     private static ProgressRing Ring(Window window) => window.GetVisualDescendants().OfType<ProgressRing>().Single(r => r.Name == "Ring");

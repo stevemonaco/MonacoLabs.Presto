@@ -58,6 +58,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     public event EventHandler? AddBoxFocusRequested;
 
+    /// <summary>Raised after the add box adds a task, so the view can bring its row into view.</summary>
+    public event EventHandler<TaskItemViewModel>? TaskAdded;
+
     public event EventHandler? SettingsRequested;
 
     /// <summary>Raised when Restore or Clear asks to be confirmed; the view opens the dialog, which sets <see cref="IsConfirmOpen"/>.</summary>
@@ -207,8 +210,10 @@ public sealed partial class MainViewModel : ObservableObject
         var title = NewTaskTitle.Trim();
         if (title.Length == 0)
             return;
-        Tasks.Add(Track(new TaskItemViewModel(new TaskItem { Title = title, Created = _time.GetUtcNow(), Tag = TagFilter })));
+        var task = Track(new TaskItemViewModel(new TaskItem { Title = title, Created = _time.GetUtcNow(), Tag = TagFilter }));
+        Tasks.Add(task);
         NewTaskTitle = "";
+        TaskAdded?.Invoke(this, task);
     }
 
     private void DeleteTask(TaskItemViewModel task)

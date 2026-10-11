@@ -20,6 +20,148 @@ public sealed class TasksViewTests : TempoTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task AWheelNotchOverTheTaskListEasesUnlessReduced(bool reduced)
+    {
+        var (window, vm) = await ShowSeededAsync(reduced, new Size(1100, 560));
+        TestFrames.Tick(30);
+        var list = Find<ListBox>(window, "TaskList");
+        var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().First();
+        Assert.True(MonacoLabs.Presto.Scroll.GetSmooth(scroll));
+
+        window.MouseWheel(list.TranslatePoint(new Point(40, 40), window)!.Value, new Vector(0, -1));
+        TestFrames.Tick();
+        if (reduced)
+            Assert.Equal(50, scroll.Offset.Y, 1);
+        else
+            Assert.InRange(scroll.Offset.Y, .01, 49);
+        TestFrames.Tick(30);
+        Assert.Equal(50, scroll.Offset.Y, 1);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task CompactRowsOpenTheirDetailsFromTheMoreButtonWhichWideHides()
+    {
+        var (window, vm) = await ShowSeededAsync(reduced: true, new Size(1100, 700));
+        TestFrames.Tick(30);
+        Assert.All(MoreButtons(window), b => Assert.False(b.IsEffectivelyVisible));
+
+        window.Width = 400;
+        vm.CurrentView = AppView.Tasks;
+        TestFrames.Tick(30);
+        var more = Find<ListBox>(window, "TaskList").ContainerFromIndex(1)!.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("row-more"));
+        Assert.True(more.IsEffectivelyVisible);
+        more.Command!.Execute(more.CommandParameter);
+        TestFrames.Tick(2);
+
+        Assert.True(vm.IsDetailOpen);
+        Assert.Same(vm.VisibleTasks[1], vm.SelectedTask);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    private static IEnumerable<Button> MoreButtons(Window window) =>
+        window.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("row-more"));
+
+    [AvaloniaFact]
+    public async Task ASwipeThatDriftsVerticallyKeepsSwipingAndNeverReorders()
+    {
+        var (window, vm) = await ShowSeededAsync(reduced: true);
+        TestFrames.Tick(90);
+        var order = vm.VisibleTasks.ToList();
+        var container = Find<ListBox>(window, "TaskList").ContainerFromIndex(1)!;
+        var row = container.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("task-row"));
+        var title = container.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "Title");
+        var start = title.TranslatePoint(new Point(10, title.Bounds.Height / 2), window)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Point(-12, 1));
+        window.MouseMove(start + new Point(-40, 25));
+        window.MouseMove(start + new Point(-60, 45));
+
+        Assert.True(Convert.ToDouble(MonacoLabs.Presto.Presto.Get(row, "X", withUnit: false)) < -30);
+        window.MouseUp(start + new Point(-60, 45), MouseButton.Left);
+        TestFrames.Tick(60);
+        Assert.Equal(order, vm.VisibleTasks);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task ATouchHoldLetGoInPlaceOpensTheRowsDetails()
+    {
+        var (window, vm) = await ShowSeededAsync(reduced: true);
+        TestFrames.Tick(90);
+        var title = Find<ListBox>(window, "TaskList").ContainerFromIndex(1)!.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "Title");
+        var at = title.TranslatePoint(new Point(10, title.Bounds.Height / 2), window)!.Value;
+        var pointer = new Pointer(Pointer.GetNextFreeId(), PointerType.Touch, true);
+
+        title.RaiseEvent(new PointerPressedEventArgs(title, pointer, window, at, 1,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None));
+        pointer.Capture(title);
+        TestFrames.Tick(30);
+        var target = (Interactive)pointer.Captured!;
+        target.RaiseEvent(new PointerReleasedEventArgs(target, pointer, window, at, 2,
+            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+        TestFrames.Tick(30);
+
+        Assert.True(vm.IsDetailOpen);
+        Assert.Same(vm.VisibleTasks[1], vm.SelectedTask);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task DraggingARowByItsTitleReordersWithoutTickingIt()
+    {
+        var (window, vm) = await ShowSeededAsync(reduced: true);
+        TestFrames.Tick(30);
+        var list = Find<ListBox>(window, "TaskList");
+        var first = vm.VisibleTasks[0];
+        var title = list.ContainerFromIndex(0)!.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "Title");
+        var start = title.TranslatePoint(new Point(10, title.Bounds.Height / 2), window)!.Value;
+        var row = list.ContainerFromIndex(0)!.Bounds.Height;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Point(0, 10));
+        window.MouseMove(start + new Point(0, row * 2));
+        window.MouseUp(start + new Point(0, row * 2), MouseButton.Left);
+        TestFrames.Tick(30);
+
+        Assert.True(vm.VisibleTasks.IndexOf(first) > 0);
+        Assert.False(first.IsDone);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AnAddedTaskScrollsIntoViewWhenTheListOverflows(bool reduced)
+    {
+        var (window, vm) = await ShowSeededAsync(reduced, new Size(1100, 560));
+        var list = Find<ListBox>(window, "TaskList");
+        var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().First();
+        TestFrames.Tick(30);
+        Assert.True(scroll.Extent.Height > scroll.Viewport.Height);
+        Assert.Equal(0, scroll.Offset.Y);
+
+        vm.NewTaskTitle = "Brand new";
+        vm.AddTaskCommand.Execute(null);
+        TestFrames.Tick(60);
+
+        Assert.True(scroll.Offset.Y > 0);
+        var row = list.ContainerFromIndex(vm.VisibleTasks.Count - 1)!;
+        var bottom = row.TranslatePoint(new Point(0, row.Bounds.Height), scroll)!.Value.Y;
+        Assert.InRange(bottom, row.Bounds.Height, scroll.Viewport.Height + .5);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task TypingATitleAndEnterAddsARowWithoutTriggeringTheWindowShortcuts(bool reduced)
     {
         var (window, vm) = await ShowAsync(reduced);

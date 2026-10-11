@@ -56,6 +56,13 @@ public static class Swipe
     public static readonly AttachedProperty<bool> DismissProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("Dismiss", typeof(Swipe));
 
+    /// <summary>
+    /// Whether a drag released short of committing can rest open on its side's actions; true by default. False springs every
+    /// such release closed, so the actions show only during the drag and a full swipe commits; a context request still opens them.
+    /// </summary>
+    public static readonly AttachedProperty<bool> RevealProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("Reveal", typeof(Swipe), true);
+
     private static readonly AttachedProperty<SwipeTracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, SwipeTracker?>("Tracker", typeof(Swipe));
 
@@ -65,6 +72,12 @@ public static class Swipe
         TrailingProperty.Changed.AddClassHandler<Control>(HandleActionsChanged);
         DismissProperty.Changed.AddClassHandler<Control>(HandleActionsChanged);
     }
+
+    /// <summary>Gets whether a released drag of <paramref name="control"/> can rest open on its actions.</summary>
+    public static bool GetReveal(Control control) => control.GetValue(RevealProperty);
+
+    /// <summary>Sets whether a released drag of <paramref name="control"/> can rest open on its actions.</summary>
+    public static void SetReveal(Control control, bool value) => control.SetValue(RevealProperty, value);
 
     /// <summary>Gets the actions revealed by a drag of <paramref name="control"/> towards the right.</summary>
     public static object? GetLeading(Control control) => control.GetValue(LeadingProperty);

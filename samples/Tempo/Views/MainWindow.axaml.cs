@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using MonacoLabs.Presto.Controls;
 using Tempo.Model;
 using Tempo.ViewModels;
 
@@ -16,9 +18,12 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _plainKeys = [.. KeyBindings.Where(b => b.Gesture?.KeyModifiers == KeyModifiers.None)];
-        // Avalonia runs key bindings before the focused control sees the key, so Space, N and Del would fire while typing.
+        // Avalonia runs key bindings before the focused control sees the key, so N and Del would fire while typing.
         AddHandler(GotFocusEvent, (_, e) => EnablePlainKeys(e.Source is not TextBox));
         AddHandler(LostFocusEvent, (_, _) => EnablePlainKeys(true));
+        // Tunneling, so it wins over the focused control: as a key binding, Space also clicked a focused button.
+        AddHandler(KeyDownEvent, HandleSpace, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, HandleSpace, RoutingStrategies.Tunnel);
     }
 
     /// <summary>
@@ -36,6 +41,16 @@ public partial class MainWindow : Window
         await intro.HandedOff;
         Content = shell;
         EnablePlainKeys(true);
+    }
+
+    // Typing keeps its spaces and a hold ring keeps its Space hold.
+    private void HandleSpace(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Space || e.KeyModifiers != KeyModifiers.None || Content is not ShellView || e.Source is TextBox or ProgressRing { HoldDuration: > 0 })
+            return;
+        e.Handled = true;
+        if (e.RoutedEvent == KeyDownEvent)
+            (DataContext as MainViewModel)?.Focus.StartPauseCommand.Execute(null);
     }
 
     /// <summary>Sizes the window for this run only: it wins over the restored placement, which is then not saved over.</summary>

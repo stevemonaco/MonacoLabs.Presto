@@ -106,6 +106,17 @@ public sealed class ScrollSmoothTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void UnderReducedMotionANotchTakesItsNativeStepAtOnce()
+    {
+        var (window, scroller, _, _) = Show();
+        Presto.Defaults.ReducedMotion = true;
+
+        window.MouseWheel(Inside, new Vector(0, -1));
+
+        Assert.Equal(50, scroller.Offset.Y);
+    }
+
+    [AvaloniaFact]
     public void TurningSmoothOffRestoresNativeNotches()
     {
         var (window, scroller, _, _) = Show();

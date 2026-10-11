@@ -30,8 +30,18 @@ public abstract class TempoTestBase : IDisposable
     public void Dispose()
     {
         Presto.Defaults.ReducedMotion = _reducedWas;
-        if (Directory.Exists(Root))
-            Directory.Delete(Root, recursive: true);
+        // A test that never flushes can leave a debounced save writing; the folder is temp, so a few retries then leave it.
+        for (var attempt = 0; attempt < 5 && Directory.Exists(Root); attempt++)
+        {
+            try
+            {
+                Directory.Delete(Root, recursive: true);
+            }
+            catch (IOException)
+            {
+                Thread.Sleep(20);
+            }
+        }
         GC.SuppressFinalize(this);
     }
 

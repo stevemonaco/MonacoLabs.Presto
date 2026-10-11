@@ -16,9 +16,9 @@ internal sealed class Touch(Window window)
     private readonly Dictionary<int, Pointer> _pointers = [];
     private ulong _timestamp;
 
-    public PointerPressedEventArgs Down(int id, Point point)
+    public PointerPressedEventArgs Down(int id, Point point, PointerType type = PointerType.Touch)
     {
-        var pointer = _pointers[id] = new Pointer(id, PointerType.Touch, _pointers.Count == 0);
+        var pointer = _pointers[id] = new Pointer(id, type, _pointers.Count == 0);
         var args = new PointerPressedEventArgs(Target(pointer, point), pointer, window, point, ++_timestamp,
             new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None);
         return Raise(args);

@@ -22,6 +22,7 @@ public partial class ShellView : UserControl
 
     private MainViewModel? _viewModel;
     private CompositorAnimation? _drift;
+    private ControlScope? _swell;
     private bool? _compact;
     private IDisposable? _detailOpen;
 
@@ -82,6 +83,7 @@ public partial class ShellView : UserControl
     {
         base.OnLoaded(e);
         Drift();
+        Swell();
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
@@ -143,6 +145,24 @@ public partial class ShellView : UserControl
     {
         _drift?.Revert();
         _drift = PrestoAvalonia.AnimateOnCompositor(Blobs.Children, TempoMotion.BlobDrift);
+    }
+
+    // Code-only: a proximity value has no XAML spelling. The scope reverts with the blobs, stopping the values.
+    private void Swell()
+    {
+        _swell?.Revert();
+        _swell = PrestoAvalonia.CreateScope(Blobs);
+        _swell.Execute(_ =>
+        {
+            foreach (var blob in Blobs.Children.Select(slot => ((Panel)slot).Children[0]))
+            {
+                var near = PrestoAvalonia.PointerProximityValue(blob, TempoMotion.BlobReach, fromCenter: true)
+                    .Map(p => Presto.Defaults.ReducedMotion ? 0 : p)
+                    .Spring(TempoMotion.BlobSpring);
+                Follow.SetScale(blob, near.Map(TempoMotion.BlobSwell));
+                Follow.Bind(blob, OpacityProperty, near.Map(TempoMotion.BlobGlow));
+            }
+        });
     }
 
     // The reduced form is resolved when the drift starts, and nothing signals a change of the flag.

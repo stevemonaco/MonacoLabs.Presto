@@ -121,7 +121,7 @@ public sealed class TempoMotionTests : TempoTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task TheBackdropBlobsDriftOnTheCompositorAndHoldStillWhenReduced(bool reduced)
+    public async Task TheBackdropBlobsDriftOnTheCompositorLeanAndSwellTowardsThePointerAndHoldStillWhenReduced(bool reduced)
     {
         var (window, vm) = await ShowAsync(reduced);
         var blobs = window.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("blob")).ToList();
@@ -130,6 +130,21 @@ public sealed class TempoMotionTests : TempoTestBase
         Assert.Equal(4, blobs.Count);
         Assert.True(PrestoAvalonia.CanAnimateOnCompositor(TempoMotion.BlobDrift, out var reason), reason);
         Assert.Equal(!reduced, drift.Loop!.Value.IsInfinite);
+
+        window.MouseMove(new Point(200, 200));
+        TestFrames.Tick(150);
+        var leaning = blobs.Count(b => Math.Abs(Convert.ToDouble(Presto.Get(b, "X", withUnit: false))) > .5);
+        var swelling = blobs.Count(b => Convert.ToDouble(Presto.Get(b, "Scale", withUnit: false)) > 1.01 && b.Opacity > TempoMotion.BlobGlow(0));
+        if (reduced)
+        {
+            Assert.Equal(0, leaning);
+            Assert.Equal(0, swelling);
+        }
+        else
+        {
+            Assert.InRange(leaning, 1, 4);
+            Assert.InRange(swelling, 1, 4);
+        }
         window.Close();
         await vm.FlushAsync();
     }

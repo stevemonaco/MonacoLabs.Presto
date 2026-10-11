@@ -48,7 +48,6 @@ When an item is closed, its line is deleted.
 ## Reduced-motion gaps
 
 - [BRIDGE-SCROLLOBSERVER] The `ScrollObserver` snap's 400 ms ease ignores `ReducedMotion`; done when it has a stated reduced form.
-- [BRIDGE-SCROLL] `Scroll.Smooth`'s 300 ms ease ignores `ReducedMotion`; done when it has a stated reduced form.
 - [BRIDGE-FOLLOW] The `Follow.*` shorthands cannot opt into `WhenReduced` (or `AnimateInitial`); `Follow.Timing` is their only option; done when they state and honor a reduced form.
 - [BRIDGE-RECIPES] `PageBloom`'s exit (`ClipCircle` to 1 over `Short`) has no `WhenReduced` alternative; done when it has one.
 - [CORE-ANIMATABLE] Under `ReduceAll`, `Animatable.Set` with a duration, momentum retargets and `Fling` animate rather than snap, and the callbacks animation completes on its first frame; done when animatables honor `ReduceAll` on every retarget, with tests.
@@ -129,7 +128,6 @@ When an item is closed, its line is deleted.
 - [BRIDGE-SCROLL] A `Scroll.Progress` convenience for a scroll progress bar.
 - [BRIDGE-RECIPES] A one-line `Recipes.ArcFlight` to replace the sample's `Showcase/PhotoFlight.cs`.
 - [BRIDGE-RECIPES] A text-shaped mask reveal and `MorphTo` clip-geometry reveals.
-- [BRIDGE-MAGNETIC] A configurable `Magnetic.Spring` (parsed like `FollowParams.Spring`).
 - [BRIDGE-HELPERS] Lift `AfterFirstArrange` (`Showcase/ShowcasePage.cs`, used by ChatLog, GalleryFlip and Liquid) into a `PrestoAvalonia` utility.
 - [BRIDGE-IMAGE] Decide whether `FilteredImage` should resize to an incoming image of another aspect only when the source transition ends, rather than at its start.
 - [BRIDGE-IMAGE] A pre-baked crossfade mode (a filtered copy faded with `Opacity`, compositor-capable), if UI-thread filtering proves too costly on Browser or Android.
@@ -247,7 +245,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-REDUCED](specs/avalonia-bridge/reduced-motion.md): 0 untested requirements, plus the follower capturing `Engine.Current` and the never-retried activation hook.
 - [BRIDGE-REORDER](specs/avalonia-bridge/reorder.md): 10 untested requirements, plus a refused step re-raising `Moving` on every move and a spacing typo in `ReorderList.Raise`.
 - [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 11 untested requirements, plus the snap's missing velocity check and reduced form, and the missing-target exception thrown from a tick.
-- [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 11 untested requirements, plus `Scroll.Smooth`'s missing reduced form and two manual checks (non-Windows head, XAML previewer).
+- [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 11 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
 - [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 17 untested requirements, plus the stale `Motion` doc, `X`/`Y`/`Scale` silently ignored in `Motion`, and a late `NotSupportedException`.
 - [BRIDGE-SHAPES](specs/avalonia-bridge/shapes.md): 10 untested requirements.
 - [BRIDGE-SHEET](specs/avalonia-bridge/sheet.md): 11 untested requirements, plus the uncoerced `DetentIndex` and `Drawer` docs naming only Left and Right.

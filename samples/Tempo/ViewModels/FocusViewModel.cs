@@ -37,7 +37,7 @@ public sealed partial class FocusViewModel : ObservableObject
     public partial double Progress { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsBreak), nameof(ModeLabel), nameof(MotionState))]
+    [NotifyPropertyChangedFor(nameof(IsBreak), nameof(ModeLabel), nameof(SkipLabel), nameof(MotionState))]
     public partial FocusMode Mode { get; private set; }
 
     [ObservableProperty]
@@ -49,6 +49,9 @@ public sealed partial class FocusViewModel : ObservableObject
     /// <summary>What a press of start/pause does: "Start focus" or "Start break" idle, "Resume" paused, and empty while running, when the button is only the pause icon.</summary>
     [ObservableProperty]
     public partial string StartPauseLabel { get; private set; } = "";
+
+    /// <summary>Where a skip goes, as the skip button's tooltip.</summary>
+    public string SkipLabel => IsBreak ? "Skip to focus" : "Skip to break";
 
     public string ModeLabel => Mode switch
     {

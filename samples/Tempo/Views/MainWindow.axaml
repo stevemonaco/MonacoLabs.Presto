@@ -7,12 +7,12 @@
         Title="Tempo"
         Width="1100"
         Height="720"
+        MinWidth="320"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="44"
         TransparencyLevelHint="Mica, AcrylicBlur, None">
-    <!-- On the window rather than the shell, so they work while nothing has focus. -->
+    <!-- On the window rather than the shell, so they work while nothing has focus. Space is handled in code-behind. -->
     <Window.KeyBindings>
-        <KeyBinding Gesture="Space" Command="{Binding Focus.StartPauseCommand}" />
         <KeyBinding Gesture="N" Command="{Binding FocusAddBoxCommand}" />
         <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}" />
         <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding OpenSettingsCommand}" />

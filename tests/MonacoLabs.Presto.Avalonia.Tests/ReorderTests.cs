@@ -180,6 +180,111 @@ public sealed class ReorderTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void WithATouchHoldATouchThatMovesFirstIsLeftAloneAndOneHeldStillLiftsWhileAMouseDragsAtOnce()
+    {
+        var (list, items, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        Reorder.SetTouchHold(list, 400);
+        var touch = new Touch(window);
+
+        Press(touch, OnRed);
+        Frames.Advance(100);
+        touch.Move(1, OnRed + new Point(0, 50));
+        Frames.Advance(500);
+        touch.Move(1, OnRed + new Point(0, 60));
+        touch.Up(1, OnRed + new Point(0, 60));
+        Assert.Empty(moves);
+
+        Press(touch, OnRed);
+        Frames.Advance(450);
+        touch.Move(1, OnRed + new Point(0, 50));
+        Assert.Equal([(1, 2), (2, 3)], moves);
+        touch.Up(1, OnRed + new Point(0, 50));
+        Frames.Advance(1000);
+
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 50));
+        Assert.Equal([(1, 2), (2, 3), (1, 2), (2, 3)], moves);
+        Assert.Equal(["a", "d", "red", "green", "e"], items);
+    }
+
+    [AvaloniaFact]
+    public void APressThatMovesAcrossTheAxisFirstIsLeftToThatGestureEvenAfterDriftingAlongIt()
+    {
+        var (list, items, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(10, 1));
+        window.MouseMove(OnRed + new Point(30, 60));
+        window.MouseUp(OnRed + new Point(30, 60), MouseButton.Left);
+
+        Assert.Empty(moves);
+        Assert.Equal(["a", "red", "green", "d", "e"], items);
+    }
+
+    [AvaloniaFact]
+    public void ATouchHoldSurvivesAFingersJitterWithinItsSlop()
+    {
+        var (list, _, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        Reorder.SetTouchHold(list, 400);
+        var touch = new Touch(window);
+
+        Press(touch, OnRed);
+        Frames.Advance(100);
+        touch.Move(1, OnRed + new Point(4, 6));
+        Frames.Advance(350);
+        touch.Move(1, OnRed + new Point(0, 50));
+
+        Assert.Equal([(1, 2), (2, 3)], moves);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(PointerType.Touch)]
+    [InlineData(PointerType.Pen)]
+    public void AHoldLetGoInPlaceRunsTheHoldCommandWhileAHoldThatDragsReordersInstead(PointerType type)
+    {
+        var (list, items, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        var held = new List<object?>();
+        Reorder.SetTouchHold(list, 400);
+        Reorder.SetHoldCommand(list, new ItemCommand(held.Add));
+        var touch = new Touch(window);
+
+        Press(touch, OnRed, type);
+        Frames.Advance(450);
+        touch.Move(1, OnRed + new Point(2, 3));
+        touch.Up(1, OnRed + new Point(2, 3));
+        Frames.Advance(1000);
+        Assert.Equal(["red"], held);
+        Assert.Empty(moves);
+
+        Press(touch, OnRed, type);
+        Frames.Advance(450);
+        touch.Move(1, OnRed + new Point(0, 50));
+        touch.Up(1, OnRed + new Point(0, 50));
+        Assert.Equal(["red"], held);
+        Assert.Equal([(1, 2), (2, 3)], moves);
+    }
+
+    private sealed class ItemCommand(Action<object?> run) : ICommand
+    {
+        public event EventHandler? CanExecuteChanged { add { } remove { } }
+
+        public bool CanExecute(object? parameter) => true;
+
+        public void Execute(object? parameter) => run(parameter);
+    }
+
+    // As the platform's touch device does, the touch is captured to what it pressed.
+    private static void Press(Touch touch, Point at, PointerType type = PointerType.Touch)
+    {
+        var pressed = touch.Down(1, at, type);
+        pressed.Pointer.Capture(pressed.Pointer.Captured ?? (IInputElement)pressed.Source!);
+    }
+
+    [AvaloniaFact]
     public void DisablingMidDragRevertsTheDragAndStopsListening()
     {
         var (list, _, moves) = Show(virtualized: false, itemLayout: true);
@@ -217,7 +322,7 @@ public sealed class ReorderTests : CompositorTestBase
         Tick();
 
         window.MouseDown(new Point(50, 10), MouseButton.Left);
-        window.MouseMove(new Point(50, 40));
+        window.MouseMove(new Point(51, 12));
         Assert.Equal(["a", "red", "green", "d", "e"], items);
 
         window.MouseMove(new Point(115, 10));

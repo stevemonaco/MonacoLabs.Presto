@@ -7,7 +7,7 @@ using MonacoLabs.Presto;
 
 namespace Tempo.Views;
 
-/// <summary>A − / value / + stepper, clamped to its limits, whose value morphs glyph by glyph on each step (set at once under reduced motion).</summary>
+/// <summary>A − / value / + stepper, clamped to its limits, whose value morphs glyph by glyph on each step (set at once under reduced motion); a bound change sets it at once.</summary>
 public partial class Stepper : UserControl
 {
     public static readonly StyledProperty<int> ValueProperty =
@@ -18,6 +18,7 @@ public partial class Stepper : UserControl
     private const int Min = 1;
 
     private Timeline? _morph;
+    private bool _stepping;
 
     public Stepper()
     {
@@ -51,14 +52,19 @@ public partial class Stepper : UserControl
         _morph?.Complete();
     }
 
-    private void Step(object? sender, RoutedEventArgs e) =>
+    private void Step(object? sender, RoutedEventArgs e)
+    {
+        _stepping = true;
         Value = Math.Clamp(Value + (sender == Increase ? 1 : -1), Min, Maximum);
+        _stepping = false;
+    }
 
     // Code-only: MorphGlyphs has no XAML trigger on a binding change (BACKLOG, BRIDGE-RECIPES).
+    // Only a step morphs: a surface move drops the DataContext while loaded, and that morph, cut off in the native popup, blanked it.
     private void ShowValue()
     {
         var text = Value.ToString(CultureInfo.InvariantCulture);
-        if (IsLoaded && !Presto.Defaults.ReducedMotion)
+        if (_stepping && IsLoaded && !Presto.Defaults.ReducedMotion)
         {
             _morph = Recipes.MorphGlyphs(Number, text);
             return;

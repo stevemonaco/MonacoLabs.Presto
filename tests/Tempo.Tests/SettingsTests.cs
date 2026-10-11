@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -245,6 +246,34 @@ public sealed class SettingsTests : TempoTestBase
         window.Close();
         await vm.FlushAsync();
     }
+
+    [AvaloniaFact]
+    public async Task CrossingTheBreakpointMovesTheSteppersWithoutMorphingAndAStepStillMorphs()
+    {
+        var (window, vm) = await ShowAsync(reduced: false);
+        vm.OpenSettingsCommand.Execute(null);
+        TestFrames.Tick(50);
+        var steppers = window.GetVisualDescendants().OfType<Stepper>().ToList();
+        Assert.Equal(4, steppers.Count);
+
+        window.Width = 400;
+        TestFrames.Tick(30);
+        window.Width = 1100;
+        TestFrames.Tick(30);
+        Assert.All(steppers, stepper => Assert.Null(Morph(stepper)));
+
+        vm.OpenSettingsCommand.Execute(null);
+        TestFrames.Tick(50);
+        var work = Find<Stepper>(window, "WorkStepper");
+        Assert.Equal(vm.WorkMinutes.ToString(), work.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Number").Text);
+        Click(work, "Increase");
+        Assert.NotNull(Morph(work));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_morph")]
+    private static extern ref Timeline? Morph(Stepper stepper);
 
     private static void Click(Stepper stepper, string button) =>
         stepper.GetVisualDescendants().OfType<RepeatButton>().Single(b => b.Name == button).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

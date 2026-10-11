@@ -42,6 +42,10 @@ public static class TempoMotion
 
     public static readonly Geometry PauseIcon = Geometry.Parse("M7,5 L10,5 L10,19 L7,19 Z M14,5 L17,5 L17,19 L14,19 Z");
     public static readonly Geometry CheckIcon = Geometry.Parse("M9,16.2 L4.8,12 L3.4,13.4 L9,19 L21,7 L19.6,5.6 Z");
+    public static readonly Geometry StopIcon = Geometry.Parse("M6,6 L18,6 L18,18 L6,18 Z");
+
+    // The stop square's bounds, so the icon keeps its size through the morph.
+    public static readonly Geometry CrossIcon = Geometry.Parse("M6,7.5 L7.5,6 L12,10.5 L16.5,6 L18,7.5 L13.5,12 L18,16.5 L16.5,18 L12,13.5 L7.5,18 L6,16.5 L10.5,12 Z");
 
     public static readonly AnimationBuilder RowEnter = Presto.Build()
         .Opacity(from: 0)
@@ -79,12 +83,45 @@ public static class TempoMotion
         .Ease(Eases.OutQuad)
         .WhenReduced(reduced => reduced.Opacity(k => k.To(.4).To(1)));
 
+    /// <summary>
+    /// The play triangle turning into the pause bars with a half-turn and a small pop; the bars are the same upside down,
+    /// so the turn lands square, and leaving turns it back. Reduced: the morph alone, at once.
+    /// </summary>
     public static readonly AnimationBuilder IconToPause = Presto.Build()
         .Data(PrestoAvalonia.MorphTo(PauseIcon))
-        .Duration(260)
+        .Rotate(180)
+        .Scale(k => k.To(.75, duration: 180).To(1, duration: 240, ease: Eases.OutBack()))
+        .Duration(420)
         .Ease(Eases.InOutCubic)
         // Not 0: a zero-duration state never settles its return to rest (BACKLOG, BRIDGE-MOTION).
         .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(PauseIcon)).Duration(1));
+
+    /// <summary>The accent halo pinging out from the start pill as a session starts or resumes. Reduced: none.</summary>
+    public static readonly AnimationBuilder StartPing = Presto.Build()
+        .Scale(1.45)
+        .Opacity(k => k.To(.5, duration: 1).To(0, duration: 720))
+        .Duration(720)
+        .Ease(Eases.OutCubic)
+        .WhenReduced(_ => { });
+
+    public static readonly Geometry SkipIcon = Geometry.Parse("M6,5 L15,12 L6,19 Z M17,5 L19,5 L19,19 L17,19 Z");
+
+    // The skip glyph's bounds, so the icon keeps its size through the morph.
+    public static readonly Geometry FastForwardIcon = Geometry.Parse("M6,5 L12.5,12 L6,19 Z M12.5,5 L19,12 L12.5,19 Z");
+
+    /// <summary>The skip glyph opening into a fast-forward while hovered, and back. Reduced: the morph, at once.</summary>
+    public static readonly AnimationBuilder SkipToForward = Presto.Build()
+        .Data(PrestoAvalonia.MorphTo(FastForwardIcon))
+        .Duration(240)
+        .Ease(Eases.OutCubic)
+        .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(FastForwardIcon)).Duration(1));
+
+    /// <summary>The glass disc behind skip and stop brightening while hovered. Reduced: the same fade.</summary>
+    public static readonly AnimationBuilder DiscLight = Presto.Build()
+        .Opacity(.14)
+        .Duration(180)
+        .Ease(Eases.OutQuad)
+        .WhenReduced(reduced => reduced.Opacity(.14).Duration(180));
 
     /// <summary>The start/pause pill's width easing between pill and circle as its label shows and hides. Reduced: instant.</summary>
     public static readonly AnimationBuilder PillResize = Presto.Build()
@@ -100,11 +137,18 @@ public static class TempoMotion
         .Ease(Eases.InOutCubic)
         .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(CheckIcon)).Duration(1));
 
-    /// <summary>The skip button's nudge forward while hovered. Reduced: none.</summary>
-    public static readonly AnimationBuilder SkipNudge = Presto.Build()
-        .X(k => k.To(5).To(3))
-        .Duration(280)
-        .Ease(Eases.OutQuad)
+    /// <summary>The skip icon fast-forwarding: out to the right, and a fresh one in from the left. Reduced: an opacity blink.</summary>
+    public static readonly AnimationBuilder SkipForward = Presto.Build()
+        .X(k => k.To(14, duration: 140, ease: Eases.InCubic).To(-14, duration: 1).To(0, duration: 260, ease: Eases.OutCubic))
+        .Opacity(k => k.To(0, duration: 140).To(0, duration: 1).To(1, duration: 260))
+        .WhenReduced(reduced => reduced.Opacity(k => k.To(.4).To(1)).Duration(240));
+
+    /// <summary>One sweep round the skip button's ring as it skips, echoing the stop button's hold. Reduced: none.</summary>
+    public static readonly AnimationBuilder SkipSweep = Presto.Build()
+        .Draw(from: "0 0", to: "0 1")
+        .Opacity(k => k.To(.9, duration: 1).To(.9, duration: 300).To(0, duration: 220))
+        .Duration(420)
+        .Ease(Eases.OutCubic)
         .WhenReduced(_ => { });
 
     /// <summary>The settings button's quarter turn while hovered or while settings are open. Reduced: none.</summary>
@@ -116,6 +160,18 @@ public static class TempoMotion
 
     /// <summary>The hold-to-abandon control let go before it confirms. Reduced: an opacity blink.</summary>
     public static readonly AnimationBuilder AbandonShake = Recipes.Shake(.6);
+
+    /// <summary>The stop square crossing out as an abandon confirms, then squaring up again. Reduced: an opacity blink.</summary>
+    public static readonly AnimationBuilder AbandonCross = Presto.Build()
+        .Data(k => k.To(PrestoAvalonia.MorphTo(CrossIcon), duration: 200).To(PrestoAvalonia.MorphTo(StopIcon), duration: 260, delay: 420))
+        .Ease(Eases.InOutCubic)
+        .WhenReduced(reduced => reduced.Opacity(k => k.To(.3).To(1)).Duration(300));
+
+    /// <summary>The full hold ring collapsing inward as an abandon confirms, and springing back once it has rewound. Reduced: an opacity blink.</summary>
+    public static readonly AnimationBuilder AbandonCollapse = Presto.Build()
+        .Scale(k => k.To(.55, duration: 240, ease: Eases.InCubic).To(1, duration: 420, delay: 400, ease: Eases.OutBack()))
+        .Opacity(k => k.To(0, duration: 240).To(1, duration: 300, delay: 400))
+        .WhenReduced(reduced => reduced.Opacity(k => k.To(.3).To(1)).Duration(300));
 
     /// <summary>The confirm dialog on Escape once its hold has been pressed. Reduced: an opacity blink.</summary>
     public static readonly AnimationBuilder DialogShake = Recipes.Shake();
@@ -192,6 +248,18 @@ public static class TempoMotion
     private static readonly (double X, double Y, double Scale, double Duration)[] s_blobDrifts =
         [(180, 120, 1.2, 26000), (-200, 90, .85, 33000), (140, -130, 1.15, 39000), (-120, -90, 1.1, 21000)];
 
+    /// <summary>How far from a blob's center, in DIPs, the pointer swells and brightens it.</summary>
+    public const double BlobReach = 520;
+
+    /// <summary>The blobs' slow, soft follow of the pointer, matching their <c>Magnetic.Spring</c>.</summary>
+    public static readonly Spring BlobSpring = new(bounce: 0, duration: 1400);
+
+    /// <summary>A blob's scale at a pointer proximity from 0 to 1: up to 15% larger with the pointer at its center.</summary>
+    public static double BlobSwell(double proximity) => 1 + .15 * proximity;
+
+    /// <summary>A blob's opacity at a pointer proximity: resting at 80%, full with the pointer at its center.</summary>
+    public static double BlobGlow(double proximity) => .8 + .2 * proximity;
+
     /// <summary>The backdrop blobs' drift, each blob on its own period so they never line up. Runs on the compositor; reduced, the blobs hold still.</summary>
     public static readonly AnimationBuilder BlobDrift = Presto.Build()
         .X((FunctionValue)((_, i, _) => s_blobDrifts[i].X))
@@ -204,6 +272,12 @@ public static class TempoMotion
         .WhenReduced(reduced => reduced.Loop(false).Alternate(false));
 
     public static readonly AnimationBuilder FlyoutOpen = Recipes.PopoverIn(duration: 220);
+
+    /// <summary>Every tooltip opening, a quicker <see cref="FlyoutOpen"/>.</summary>
+    public static readonly AnimationBuilder TipOpen = Recipes.PopoverIn(duration: 160);
+
+    /// <summary>Every tooltip closing, on a ghost since nothing can hold a tooltip open (BRIDGE-POPOVER).</summary>
+    public static readonly AnimationBuilder TipClose = Recipes.PopoverOut(duration: 120);
 
     /// <summary>The settings panel sliding back into the button, the reverse of <see cref="FlyoutOpen"/>. Reduced: the panel closes at once (BRIDGE-POPOVER-026).</summary>
     public static readonly AnimationBuilder FlyoutClose = Recipes.PopoverOut(duration: 180);

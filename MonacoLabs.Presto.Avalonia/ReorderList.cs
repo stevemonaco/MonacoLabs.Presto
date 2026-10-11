@@ -27,6 +27,9 @@ internal sealed class ReorderList
     private IPointer? _pointer;
     private TopLevel? _root;
     private Point _pointerAt;
+    private Point _pressedAt;
+    private Timer? _hold;
+    private bool _held;
     private Control? _pressed;
     private Orientation _axis;
     private double _grabAt;
@@ -117,16 +120,39 @@ internal sealed class ReorderList
         _pointer = e.Pointer;
         _root = TopLevel.GetTopLevel(_list);
         _pointerAt = e.GetPosition(_root);
+        _pressedAt = _pointerAt;
         _pressed = container;
         _axis = Reorder.GetAxis(_list);
         _grabAt = Along(e.GetPosition(_list.ItemsPanelRoot));
+        var hold = Reorder.GetTouchHold(_list);
+        if (e.Pointer.Type == PointerType.Mouse || !(hold > 0)) return;
+        using var origin = PrestoDiagnostics.Origin("Reorder");
+        _hold = Presto.CreateTimer(new TimerParams { Duration = hold, OnComplete = _ => Lift() });
     }
 
     private void HandleMoved(object? sender, PointerEventArgs e)
     {
         if (e.Pointer != _pointer) return;
         _pointerAt = e.GetPosition(_root);
-        if (!_dragging && (Math.Abs(Offset()) <= Draggable.DefaultDragThreshold || !Grab())) return;
+        if (_hold is not null)
+        {
+            // Moving before the hold is up leaves the touch or pen to the scroller or a swipe.
+            if (Point.Distance(_pointerAt, _pressedAt) > Draggable.TouchSlop) Drop(settle: false);
+            return;
+        }
+        if (!_dragging)
+        {
+            var moved = _pointerAt - _pressedAt;
+            var (along, across) = _axis == Orientation.Vertical ? (Math.Abs(moved.Y), Math.Abs(moved.X)) : (Math.Abs(moved.X), Math.Abs(moved.Y));
+            if (along <= Draggable.DefaultDragThreshold && across <= Draggable.DefaultDragThreshold) return;
+            // Across first: the press belongs to a crosswise gesture, such as a swipe, for the rest of it.
+            if (across >= along)
+            {
+                Drop(settle: false);
+                return;
+            }
+            if (!Grab()) return;
+        }
         e.Handled = true;
         Drag();
     }
@@ -158,7 +184,10 @@ internal sealed class ReorderList
     {
         if (e.Pointer != _pointer) return;
         e.Handled = _dragging;
+        var inPlace = _held && _container is { } container && _list.IndexFromContainer(container) == _start && Math.Abs(_offset) <= Draggable.TouchSlop;
+        var item = _item;
         Drop(settle: true);
+        if (inPlace && Reorder.GetHoldCommand(_list) is { } command && command.CanExecute(item)) command.Execute(item);
     }
 
     private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e)
@@ -169,6 +198,14 @@ internal sealed class ReorderList
     private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e) => Drop(settle: false);
 
     private void HandleLayoutUpdated(object? sender, EventArgs e) => Follow();
+
+    private void Lift()
+    {
+        _hold = null;
+        if (_pointer is null || _dragging || !Grab()) return;
+        _held = true;
+        Drag();
+    }
 
     private bool Grab()
     {
@@ -331,6 +368,9 @@ internal sealed class ReorderList
 
     private void Drop(bool settle)
     {
+        _hold?.Cancel();
+        _hold = null;
+        _held = false;
         if (_pointer is { } pointer)
         {
             // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.

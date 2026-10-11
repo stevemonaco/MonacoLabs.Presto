@@ -136,6 +136,28 @@ public sealed class MagneticTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ASpringSetsHowThePullMovesAndANameThatIsNoSpringThrows()
+    {
+        var box = Box();
+        Magnetic.SetEnabled(box, true);
+        Magnetic.SetSpring(box, "0,2000");
+        var window = Show(box);
+
+        window.MouseMove(new Point(50, 25));
+        Frames.Advance(160, 16);
+        Assert.InRange(X(box), .01, 25 * .35 / 2);
+        Frames.Advance(5000, 16);
+        Assert.Equal(25 * .35, X(box), 6);
+
+        Magnetic.SetSpring(box, "Stiff");
+        window.MouseMove(new Point(49, 25));
+        Frames.Advance(1000, 16);
+        Assert.Equal(24 * .35, X(box), 6);
+        Assert.Throws<FormatException>(() => Magnetic.SetSpring(box, "wobbly"));
+        Assert.Equal("Stiff", Magnetic.GetSpring(box));
+    }
+
+    [AvaloniaFact]
     public void DoesNothingInDesignMode()
     {
         var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
