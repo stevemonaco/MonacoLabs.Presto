@@ -1,0 +1,55 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoGallery.Showcase.Pages.ParticleTypePage">
+    <Grid RowDefinitions="*,Auto,Auto,Auto" RowSpacing="12">
+        <Border Grid.Row="0" Classes="stage" Padding="0">
+            <presto:CompositorCanvas x:Name="Field" SizeChanged="FieldResized" />
+        </Border>
+
+        <Border Grid.Row="1" Classes="rail showcase">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,*,Auto,Auto,Auto" ColumnSpacing="14">
+                <ComboBox Grid.Column="0" x:Name="SamplingPicker" SelectedIndex="1" SelectionChanged="SamplingChanged">
+                    <ComboBoxItem Content="Edge" />
+                    <ComboBoxItem Content="Fill" />
+                    <ComboBoxItem Content="Edge + Fill" />
+                </ComboBox>
+                <TextBlock Grid.Column="1" x:Name="CountText" Classes="mono" Margin="0" Width="118" VerticalAlignment="Center" Text="0 particles" />
+                <Slider Grid.Column="2" x:Name="SpacingSlider" Minimum="3" Maximum="12" Value="5" TickFrequency="1" IsSnapToTickEnabled="True"
+                        ToolTip.Tip="Spacing" VerticalAlignment="Center" ValueChanged="SamplingChanged" />
+                <ComboBox Grid.Column="3" x:Name="TransitionPicker" SelectedIndex="0" ToolTip.Tip="Transition">
+                    <ComboBoxItem Content="Nearest" />
+                    <ComboBoxItem Content="Sweep" />
+                    <ComboBoxItem Content="Burst" />
+                    <ComboBoxItem Content="Swarm" />
+                </ComboBox>
+                <Slider Grid.Column="4" x:Name="DurationSlider" Minimum="150" Maximum="2000" Value="400" TickFrequency="50" IsSnapToTickEnabled="True"
+                        ToolTip.Tip="{Binding $self.Value, StringFormat='Duration {0:0} ms'}" VerticalAlignment="Center" />
+                <ComboBox Grid.Column="5" x:Name="ColorPicker" SelectedIndex="0" SelectionChanged="ColorChanged">
+                    <ComboBoxItem Content="Accent" Foreground="{x:Static showcase:Palette.AccentBright}" />
+                    <ComboBoxItem Content="Aqua" Foreground="{x:Static showcase:Palette.Aqua}" />
+                    <ComboBoxItem Content="Coral" Foreground="{x:Static showcase:Palette.Coral}" />
+                    <ComboBoxItem Content="Amber" Foreground="{x:Static showcase:Palette.Amber}" />
+                    <ComboBoxItem Content="Ink" Foreground="{x:Static showcase:Palette.Ink}" />
+                </ComboBox>
+                <Button Grid.Column="6" Content="Next word, freeze UI 2 s" Click="Freeze" />
+                <showcase:FpsMeter Grid.Column="7" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Classes="rail showcase">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                <TextBlock x:Name="Caption" Text="Dust to dust" FontFamily="{StaticResource DisplayFont}" FontWeight="Black" FontSize="44"
+                           Foreground="{x:Static showcase:Palette.Amber}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" x:Name="DisintegrateButton" Content="Disintegrate" Click="Disintegrate" />
+                <Button Grid.Column="2" x:Name="AssembleButton" Classes="accent" Content="Assemble" Click="Assemble" />
+            </Grid>
+        </Border>
+
+        <showcase:CodePanel Grid.Row="3" x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />
+    </Grid>
+</showcase:ShowcasePage>

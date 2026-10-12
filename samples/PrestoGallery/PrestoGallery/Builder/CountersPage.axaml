@@ -1,0 +1,66 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1200"
+                       x:Class="PrestoGallery.Builder.CountersPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.tile">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="Margin" Value="6" />
+        </Style>
+        <Style Selector="Border.tile TextBlock.readout">
+            <Setter Property="FontSize" Value="22" />
+        </Style>
+        <Style Selector="StackPanel#Odometer Border">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="StackPanel#Odometer TextBlock">
+            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+            <Setter Property="FontSize" Value="36" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock#RollReadout">
+            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+            <Setter Property="FontSize" Value="36" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Button Content="New data" Click="Refresh" HorizontalAlignment="Left" />
+
+            <TextBlock Classes="caption" Text="A Text tween per tile, formatted by its textModifier and counted on from the value it shows" />
+            <Border Classes="stage" MinHeight="0">
+                <UniformGrid x:Name="Tiles" Columns="4" />
+            </Border>
+            <showcase:CodePanel x:Name="CountersCode" />
+
+            <TextBlock Classes="caption" Text="An odometer: one Y tween over every digit strip, the target digit supplied per index by a function value" />
+            <Border Classes="stage" MinHeight="0">
+                <StackPanel Spacing="16" HorizontalAlignment="Center">
+                    <StackPanel x:Name="Odometer" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" />
+                    <CheckBox x:Name="MechanicalBox" Content="Mechanical: a Modifier snaps each strip to whole digits" HorizontalAlignment="Center"
+                              IsCheckedChanged="Refresh" />
+                </StackPanel>
+            </Border>
+            <showcase:CodePanel x:Name="OdometerCode" Code="{x:Static showcase:Snippets.CountersOdometer}" />
+
+            <TextBlock Classes="caption" Text="Recipes.RollDigits: only the characters that change roll, each in its own clipped column, right to left" />
+            <Border Classes="stage" MinHeight="0">
+                <StackPanel Spacing="16" HorizontalAlignment="Center">
+                    <TextBlock x:Name="RollReadout" Text="0" HorizontalAlignment="Center" />
+                    <Button Content="Roll to a random value" Click="RollDigits" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.CountersRollDigits}" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

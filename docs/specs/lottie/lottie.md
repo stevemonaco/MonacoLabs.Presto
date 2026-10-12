@@ -196,7 +196,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 ### Platforms
 
 - **LOTTIE-PLAYBACK-057** — The package shall load, parse and draw compositions in the Browser head with no extra build flags, trimmed or not.
-  - Tests: manual — spiked with a startup probe only; the gallery's Lottie page (`samples/PrestoSample/Pages/LottiePage.axaml`) has not been driven in the Browser head (Phase 44 open check).
+  - Tests: manual — spiked with a startup probe only; the gallery's Lottie page (`samples/PrestoGallery/PrestoGallery/Pages/LottiePage.axaml`) has not been driven in the Browser head (Phase 44 open check).
 - **LOTTIE-PLAYBACK-058** — In the Browser head, render-thread playback shall run on the UI thread and therefore stall with it (see Browser's blocked-UI-thread limitation is documented, not worked around).
   - Tests: manual — block the UI thread with the Lottie page's render-thread spinner on in the Browser head.
 

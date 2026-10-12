@@ -1,0 +1,85 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1100"
+                       x:Class="PrestoGallery.Builder.MotionTokensPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.row">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,10" />
+        </Style>
+        <Style Selector="Border.row > TextBlock">
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <ComboBox x:Name="TokensBox" SelectedIndex="0" Width="150">
+                    <ComboBoxItem Content="Standard" />
+                    <ComboBoxItem Content="Expressive" />
+                    <ComboBoxItem Content="Reduced" />
+                </ComboBox>
+                <ComboBox x:Name="SpaceBox" SelectedIndex="2" Width="150">
+                    <ComboBoxItem Content="Srgb" />
+                    <ComboBoxItem Content="LinearSrgb" />
+                    <ComboBoxItem Content="Oklab" />
+                    <ComboBoxItem Content="Oklch" />
+                </ComboBox>
+                <ComboBox x:Name="HueBox" SelectedIndex="0" Width="150">
+                    <ComboBoxItem Content="Shorter" />
+                    <ComboBoxItem Content="Longer" />
+                    <ComboBoxItem Content="Increasing" />
+                    <ComboBoxItem Content="Decreasing" />
+                </ComboBox>
+                <Button Content="Replay" Click="Replay" />
+            </StackPanel>
+
+            <Border Classes="stage">
+                <Grid ColumnDefinitions="*,220" ColumnSpacing="20">
+                    <StackPanel x:Name="Rows" Spacing="8">
+                        <Border Classes="row"><TextBlock Text="Quarterly report is ready" /></Border>
+                        <Border Classes="row"><TextBlock Text="Ada commented on your draft" /></Border>
+                        <Border Classes="row"><TextBlock Text="Build 482 passed" /></Border>
+                        <Border Classes="row"><TextBlock Text="Three new sign-ups today" /></Border>
+                        <Border Classes="row"><TextBlock Text="Invoice #1043 was paid" /></Border>
+                    </StackPanel>
+                    <Button x:Name="Fab" Classes="specimen" Width="48" Height="48" CornerRadius="24" Padding="0"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,-12"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                        <PathIcon Data="{StaticResource StarIcon}" />
+                    </Button>
+                    <Border x:Name="Panel" Grid.Column="1" Classes="specimen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Details" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
+                            <TextBlock Text="Every motion on this stage is a library recipe reading Recipes.Tokens. Pick a preset and the same three recipes replay with its durations, eases and distances; turn on Reduced motion in the sidebar and each plays its reduced form instead."
+                                       TextWrapping="Wrap" Foreground="{x:Static showcase:Palette.InkDim}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <TextBlock Classes="caption" Text="Color states: hover, press or mute the card; its shades derive from one accent and blend in the tokens' color space" />
+            <Border Classes="stage short">
+                <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border x:Name="StateCard" Width="260" Height="96" CornerRadius="16" Cursor="Hand">
+                        <TextBlock Text="Hover or press me" Foreground="White" FontSize="16" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <CheckBox x:Name="MutedBox" Content="Muted" />
+                </StackPanel>
+            </Border>
+            <showcase:CodePanel x:Name="StateCode" />
+
+            <TextBlock Classes="caption" Text="The app-wide settings every recipe reads when it is called" />
+            <showcase:CodePanel x:Name="TokensCode" />
+
+            <TextBlock Classes="caption" Text="What ran" />
+            <showcase:CodePanel x:Name="PlayCode" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

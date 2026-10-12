@@ -1,0 +1,76 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoGallery.Showcase.Pages.TitleSequencePage">
+    <showcase:ShowcasePage.Resources>
+        <StreamGeometry x:Key="MarkGeometry">M 44,14 L 114,62 L 44,110 L 64,62 Z</StreamGeometry>
+    </showcase:ShowcasePage.Resources>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Border Classes="stage" Padding="0" Height="420">
+                <Grid>
+                    <Canvas x:Name="DotField" Width="980" Height="420"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                        <Canvas Width="132" Height="126" HorizontalAlignment="Center">
+                            <Path x:Name="Monogram" Stretch="None" Fill="Transparent"
+                                  Stroke="{x:Static showcase:Palette.Accent}" StrokeThickness="6"
+                                  StrokeLineCap="Round" StrokeJoin="Round"
+                                  Data="M 44,110 L 44,18 L 76,18 A 26,26 0 0 1 76,70 L 44,70" />
+                        </Canvas>
+
+                        <TextBlock x:Name="Headline" Text="PRESTO" HorizontalAlignment="Center"
+                                   FontSize="68" FontWeight="Bold" LetterSpacing="12"
+                                   Foreground="{x:Static showcase:Palette.AccentPale}" />
+
+                        <TextBlock x:Name="Subtitle" Classes="mono" Margin="0" Opacity="0"
+                                   HorizontalAlignment="Center" FontSize="14" Text="animation for avalonia" />
+
+                        <StackPanel x:Name="Cards" Orientation="Horizontal" Spacing="12"
+                                    HorizontalAlignment="Center" Margin="0,22,0,0">
+                            <Border Classes="card showcase">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Timelines" FontWeight="SemiBold" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Labels, positions, nested children" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="card showcase">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Shapes" FontWeight="SemiBold" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Strokes that draw, geometries that morph" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="card showcase">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Text" FontWeight="SemiBold" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Split into characters, staggered into place" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Classes="rail showcase">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Classes="eyebrow showcase" Text="SEEK" VerticalAlignment="Center" Margin="2,0,6,0" />
+                    <Button Content="draw" Tag="draw" Click="SeekLabel" />
+                    <Button Content="mark" Tag="mark" Click="SeekLabel" />
+                    <Button Content="title" Tag="title" Click="SeekLabel" />
+                    <Button Content="cards" Tag="cards" Click="SeekLabel" />
+                    <Button Content="out" Tag="out" Click="SeekLabel" />
+                    <TextBlock x:Name="BeatText" Classes="mono" Margin="10,0,0,0" Text="out · 0 crossings" />
+                </StackPanel>
+            </Border>
+
+            <showcase:TransportBar x:Name="Bar" />
+
+            <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.TitleSequenceTimeline}" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

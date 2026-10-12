@@ -1,0 +1,46 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1200"
+                       x:Class="PrestoGallery.Builder.SubmitFlowPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Button#Submit Path">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Stroke" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Border Classes="stage">
+                <StackPanel Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button x:Name="Submit" Classes="specimen" Width="200" Height="48" Padding="0" FontSize="15"
+                            HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            Click="SubmitClicked">
+                        <Grid>
+                            <TextBlock x:Name="Label" Text="Send message" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Path x:Name="Spinner" Opacity="0" StrokeThickness="2.5" Data="M11,2 A9,9 0 1 1 2,11" />
+                            <Path x:Name="Tick" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Check}" />
+                            <Path x:Name="Cross" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Cross}" />
+                        </Grid>
+                    </Button>
+                    <CheckBox x:Name="FailBox" Content="Fail the next request" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="caption" Text="The recipes: static builders, plus the library's Pulse, Shake and Confetti" />
+            <showcase:CodePanel x:Name="RecipesCode" Code="{x:Static showcase:Snippets.SubmitFlowRecipes}" />
+
+            <TextBlock Classes="caption" Text="The click handler awaits them in turn, and a Presto timer stands in for the request" />
+            <showcase:CodePanel x:Name="SendCode" Code="{x:Static showcase:Snippets.SubmitFlowSend}" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

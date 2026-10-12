@@ -1745,8 +1745,8 @@ manual acceptance surface.
 
 ```powershell
 dotnet build MonacoLabs.Presto.slnx
-dotnet run --project samples/PrestoSample.Desktop
-dotnet watch --project samples/PrestoSample.Desktop        # hot reload
+dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop
+dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop        # hot reload
 
 dotnet test --project tests/MonacoLabs.Presto.Tests            # note --project, not a bare path
 dotnet test --project tests/MonacoLabs.Presto.Avalonia.Tests
@@ -1754,7 +1754,7 @@ dotnet test --solution MonacoLabs.Presto.slnx
 ```
 
 Below 720 DIP the gallery switches to a compact layout: the nav fills the window as Home, and a page opens over it with
-a back button (`dotnet run --project samples/PrestoSample.Desktop -- --size 400x850` to try it). Alt+Left, the mouse
+a back button (`dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --size 400x850` to try it). Alt+Left, the mouse
 back button and the platform back request (Android's back button, compact layout only) go back.
 
 Tests use xunit v3 on Microsoft.Testing.Platform, which the .NET 10 SDK requires — hence `--project`.

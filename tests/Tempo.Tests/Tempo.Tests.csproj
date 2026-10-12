@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\samples\Tempo\Tempo.csproj" />
+    <ProjectReference Include="..\..\samples\Tempo\Tempo\Tempo.csproj" />
   </ItemGroup>
 
   <ItemGroup>

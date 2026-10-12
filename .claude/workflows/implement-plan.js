@@ -134,8 +134,8 @@ const READ_ONLY_RULES = ` Do not edit files, build, or run tests.`
 const HOT_RELOAD = `
 Visual verification (this item changes what the sample shows):
 - Load the avalonia_devtools tools with ToolSearch("+avalonia").
-- If a PrestoSample.Desktop process is already running, attach-to-app and reuse it: hot reload applies your edits to the live instance.
-- Otherwise run \`dotnet watch --project samples/PrestoSample.Desktop\` in the background, wait for the window, then attach-to-app. .axaml edits are patched live; C# edits hot-reload through dotnet watch except rude edits (new types, changed signatures), which need the watch process restarted.
+- If a PrestoGallery.Desktop process is already running, attach-to-app and reuse it: hot reload applies your edits to the live instance.
+- Otherwise run \`dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop\` in the background, wait for the window, then attach-to-app. .axaml edits are patched live; C# edits hot-reload through dotnet watch except rude edits (new types, changed signatures), which need the watch process restarted.
 - Drive the page with input, then confirm end states with screenshot and props. Record what you saw in \`verified\`.
 - Send input only through the avalonia_devtools \`input\`, \`action\` and \`set-prop\` tools. Never use real OS input (SendInput, mouse_event, keybd_event, SetCursorPos, UI Automation, AutoHotkey, or anything else that moves the real cursor or types on the user's desktop). If DevTools cannot drive something (drags, wheel, multi-touch), say so in \`blockers\` and leave it for the user.
 - Look only at MonacoLabs.Presto's own apps: DevTools screenshots of the attached app, or a window capture targeted at a Presto process's window handle. Never capture the whole screen or desktop, and never capture, inspect or read other applications' windows.

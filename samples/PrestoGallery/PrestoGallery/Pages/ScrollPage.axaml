@@ -1,0 +1,91 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoGallery.Pages.ScrollPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#18808080" />
+            <Setter Property="BorderBrush" Value="#40808080" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <Style Selector="Border.spacer">
+            <Setter Property="Height" Value="240" />
+        </Style>
+
+        <Style Selector="TextBlock.value">
+            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,10">
+            <Grid ColumnDefinitions="Auto,80,Auto,80,Auto,90,Auto,*" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Classes="mono" Text="Progress" />
+                <TextBlock Grid.Column="1" x:Name="ProgressText" Classes="value" Text="—" />
+                <TextBlock Grid.Column="2" Classes="mono" Text="Velocity" />
+                <TextBlock Grid.Column="3" x:Name="VelocityText" Classes="value" Text="—" />
+                <TextBlock Grid.Column="4" Classes="mono" Text="Direction" />
+                <TextBlock Grid.Column="5" x:Name="DirectionText" Classes="value" Text="—" />
+                <TextBlock Grid.Column="6" Classes="mono" Text="Thresholds" />
+                <TextBlock Grid.Column="7" x:Name="StateText" Classes="value" Text="ThresholdCard out of view" />
+            </Grid>
+            <WrapPanel ItemSpacing="8" LineSpacing="8">
+                <Button Content="Back to top" Click="BackToTop" />
+                <Button Content="Default thresholds" Tag="{Binding #RevealCard}" Click="JumpTo" />
+                <Button Content="Named thresholds" Tag="{Binding #ThresholdCard}" Click="JumpTo" />
+                <Button Content="Scrubbed timeline" Tag="{Binding #SyncCard}" Click="JumpTo" />
+            </WrapPanel>
+            <showcase:CodePanel Header="Jumps" IsExpanded="False" Code="{x:Static showcase:Snippets.ScrollJumps}" />
+        </StackPanel>
+
+        <ScrollViewer x:Name="Scroller" Grid.Row="1">
+            <StackPanel Spacing="16" Margin="0,0,16,16">
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="Scroll this panel. The readout above follows the third card's observer; velocity and direction are shared by every observer of the same ScrollViewer." />
+
+                <Border Classes="spacer" />
+
+                <Border x:Name="RevealCard" Classes="card">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Default thresholds" FontSize="18" />
+                        <TextBlock Classes="caption" TextWrapping="Wrap"
+                                   Text="Presence.Reveal with no RevealThreshold: the card is held hidden until its top reaches the bottom of the viewport, an observer's default &quot;end start&quot; enter threshold, and then fades up once." />
+                        <showcase:CodePanel Code="{x:Static showcase:Snippets.ScrollReveal}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="spacer" />
+
+                <Border x:Name="ThresholdCard" Classes="card">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Named thresholds" FontSize="18" />
+                        <TextBlock Classes="caption" TextWrapping="Wrap"
+                                   Text="Enters 120 units before the bottom edge reaches its top, and leaves when the top edge reaches its center." />
+                        <showcase:CodePanel Code="{x:Static showcase:Snippets.ScrollThreshold}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="spacer" />
+
+                <Border x:Name="SyncCard" Classes="card">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Scrubbed timeline" FontSize="18" />
+                        <showcase:CodePanel Code="{x:Static showcase:Snippets.ScrollScrub}" />
+                        <Canvas Height="44" ClipToBounds="True">
+                            <Border x:Name="Rider" Width="32" Height="32" CornerRadius="6" Background="#f5c542" Canvas.Top="6" />
+                        </Canvas>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="spacer" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</showcase:ShowcasePage>

@@ -1,0 +1,124 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoGallery.Pages.StaggerPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.tile">
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="#304c8dff" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="14">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption" Text="Value stagger" />
+                <showcase:CodePanel x:Name="ValueCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="ValueStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption" Text="Time stagger" />
+                <showcase:CodePanel x:Name="TimeCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="TimeStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption" Text="The range is spread over the targets" />
+                <showcase:CodePanel x:Name="RangeCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="RangeStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <showcase:CodePanel x:Name="EaseCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="EaseStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <showcase:CodePanel x:Name="StartCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="StartStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <showcase:CodePanel x:Name="TotalCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="TotalStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <showcase:CodePanel x:Name="JitterCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="JitterStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <showcase:CodePanel x:Name="ModifierCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="ModifierStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption" Text="One timeline child per target" />
+                <showcase:CodePanel x:Name="TimelineCode" />
+                <Border Classes="demo lane">
+                    <StackPanel x:Name="TimelineStrip" Orientation="Horizontal" Spacing="6" />
+                </Border>
+            </StackPanel>
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The first grid names its own Grid = [7, 4]; the second measures the tiles where they were laid out through PrestoAvalonia.Stagger(…), which sets AutoGrid = true. The measured grid scales its distances by the smallest one it finds, so the two ripple identically whenever the origin sits on a tile — From = Center over an even number of rows lands between two and halves the step. From = Random shuffles each grid separately." />
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="From" />
+                    <ComboBox x:Name="FromBox" Width="150" SelectedIndex="0" SelectionChanged="GridOptionChanged">
+                        <ComboBoxItem>First</ComboBoxItem>
+                        <ComboBoxItem>Center</ComboBoxItem>
+                        <ComboBoxItem>Last</ComboBoxItem>
+                        <ComboBoxItem>Index 10</ComboBoxItem>
+                        <ComboBoxItem>Random</ComboBoxItem>
+                        <ComboBoxItem>At(1, 0)</ComboBoxItem>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="Axis" />
+                    <ComboBox x:Name="AxisBox" Width="130" SelectedIndex="0" SelectionChanged="GridOptionChanged">
+                        <ComboBoxItem>Distance</ComboBoxItem>
+                        <ComboBoxItem>X</ComboBoxItem>
+                        <ComboBoxItem>Y</ComboBoxItem>
+                    </ComboBox>
+                </StackPanel>
+
+                <CheckBox x:Name="ReversedCheck" Content="Reversed" VerticalAlignment="Bottom" IsCheckedChanged="GridOptionChanged" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,252" ColumnSpacing="16">
+                <showcase:CodePanel x:Name="ExplicitCode" VerticalAlignment="Top" />
+                <UniformGrid Grid.Column="1" x:Name="ExplicitTiles" Columns="7" Rows="4" Width="252" Height="144" VerticalAlignment="Top" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,252" ColumnSpacing="16">
+                <showcase:CodePanel x:Name="AutoCode" VerticalAlignment="Top" />
+                <UniformGrid Grid.Column="1" x:Name="AutoTiles" Columns="7" Rows="4" Width="252" Height="144" VerticalAlignment="Top" />
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

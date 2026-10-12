@@ -1,0 +1,25 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="600"
+                       x:Class="PrestoGallery.Builder.BuilderBasicsPage">
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Border Classes="stage">
+                <Button x:Name="LikeButton" Classes="specimen" Padding="16,10" FontSize="16" Click="Like">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource HeartIcon}" Width="18" Height="18" />
+                        <TextBlock Text="Like" />
+                        <TextBlock x:Name="LikeCount" Text="0" />
+                    </StackPanel>
+                </Button>
+            </Border>
+
+            <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
+
+            <showcase:CodePanel x:Name="CodeText" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

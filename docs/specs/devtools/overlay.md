@@ -64,7 +64,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - **DEVTOOLS-OVERLAY-008** — `UsePrestoDevTools` shall, after setup, call `Attach` with the given gesture on every `TopLevel` as it loads.
   - Tests: untested
 - **DEVTOOLS-OVERLAY-009** — The gesture shall work when pressed by hand on the Desktop head.
-  - Tests: manual — press Ctrl+Shift+F12 in `samples/PrestoSample.Desktop`; DevTools input cannot send modifier chords (Phase 48 open check).
+  - Tests: manual — press Ctrl+Shift+F12 in `samples/PrestoGallery/PrestoGallery.Desktop`; DevTools input cannot send modifier chords (Phase 48 open check).
 
 ### Panel
 
@@ -149,7 +149,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - **DEVTOOLS-OVERLAY-042** — The track shall span the root's delay through its duration, or only the current iteration for an infinitely looping root, and draw the delay, each iteration and loop delay, a timeline's child spans as a Gantt and its labels, the selection's span and the playhead.
   - Tests: untested
 - **DEVTOOLS-OVERLAY-043** — Drag-scrubbing the track and hover outlines shall work by hand on the Desktop head.
-  - Tests: manual — drag the scrub track and hover list rows in `samples/PrestoSample.Desktop`; DevTools input cannot send drags or hover (Phase 48 open check).
+  - Tests: manual — drag the scrub track and hover list rows in `samples/PrestoGallery/PrestoGallery.Desktop`; DevTools input cannot send drags or hover (Phase 48 open check).
 
 ### Reviving ended roots
 
@@ -187,7 +187,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - **DEVTOOLS-OVERLAY-055** (inherited) — The springs panel shall drop rows that are no longer active and hide while it has none.
   - Tests: untested
 - **DEVTOOLS-OVERLAY-056** — Freeze and dilation shall hold during a Draggable or Transformable drag by hand.
-  - Tests: manual — freeze and dilate during a drag in `samples/PrestoSample.Desktop`; headless only so far (Phase 48 open check).
+  - Tests: manual — freeze and dilate during a drag in `samples/PrestoGallery/PrestoGallery.Desktop`; headless only so far (Phase 48 open check).
 
 ## Invariants
 

@@ -1,0 +1,210 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:local="using:PrestoGallery.Pages"
+                       mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="2400"
+                       x:Class="PrestoGallery.Pages.EffectsPage">
+    <showcase:ShowcasePage.Resources>
+        <DrawingImage x:Key="Landscape">
+            <DrawingGroup>
+                <GeometryDrawing Geometry="M0,0 H320 V200 H0 Z">
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Offset="0" Color="#16305e" />
+                            <GradientStop Offset="0.55" Color="#f472b6" />
+                            <GradientStop Offset="1" Color="#ffb547" />
+                        </LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ffe8a3">
+                    <GeometryDrawing.Geometry>
+                        <EllipseGeometry Center="236,78" RadiusX="28" RadiusY="28" />
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#2b579f" Geometry="M0,200 L0,128 L70,86 L140,140 L206,98 L320,158 L320,200 Z" />
+                <GeometryDrawing Brush="#0b0e14" Geometry="M0,200 L0,166 L90,134 L180,172 L262,140 L320,170 L320,200 Z" />
+            </DrawingGroup>
+        </DrawingImage>
+    </showcase:ShowcasePage.Resources>
+
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Width" Value="200" />
+            <Setter Property="Height" Value="120" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="#f8fafc" />
+            <Setter Property="TextElement.Foreground" Value="#0f172a" />
+            <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Border.card TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Ellipse.badge">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Fill" Value="{x:Static showcase:Palette.Coral}" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,-12,-12,0" />
+        </Style>
+        <Style Selector="Image.picture">
+            <Setter Property="Source" Value="{StaticResource Landscape}" />
+            <Setter Property="Width" Value="240" />
+            <Setter Property="Height" Value="150" />
+        </Style>
+        <Style Selector="Border.row">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,0,4,0" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.AccentPale}" />
+            <Setter Property="TextElement.Foreground" Value="#101010" />
+        </Style>
+        <Style Selector="Border.row Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#101010" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <TextBlock Classes="caption" Text="Blur: text and a picture blurred out and back in" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel x:Name="BlurRow" Orientation="Horizontal" Spacing="32">
+                        <TextBlock Text="Soft focus" FontSize="40" FontWeight="Bold"
+                                   Foreground="{x:Static showcase:Palette.Ink}" VerticalAlignment="Center" />
+                        <Image x:Name="BlurPicture" Classes="picture" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                        <Button Content="Blur out" Click="BlurOutClicked" />
+                        <Button Content="Blur in" Click="BlurInClicked" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <showcase:CodePanel x:Name="BlurCode" Code="// Press Blur out" />
+
+            <TextBlock Classes="caption" Text="A drop shadow driven live by the five Shadow shorthands" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,280" ColumnSpacing="24">
+                    <Border x:Name="ShadowCard" Classes="card" Margin="0,24">
+                        <TextBlock Text="DropShadowEffect" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Classes="caption" Text="{Binding #ShadowXSlider.Value, StringFormat='ShadowX {0:0}'}" />
+                        <Slider x:Name="ShadowXSlider" Minimum="-40" Maximum="40" Value="8" ValueChanged="ShadowChanged" />
+                        <TextBlock Classes="caption" Text="{Binding #ShadowYSlider.Value, StringFormat='ShadowY {0:0}'}" />
+                        <Slider x:Name="ShadowYSlider" Minimum="-40" Maximum="40" Value="16" ValueChanged="ShadowChanged" />
+                        <TextBlock Classes="caption" Text="{Binding #ShadowBlurSlider.Value, StringFormat='ShadowBlur {0:0}'}" />
+                        <Slider x:Name="ShadowBlurSlider" Minimum="0" Maximum="60" Value="24" ValueChanged="ShadowChanged" />
+                        <TextBlock Classes="caption" Text="{Binding #ShadowHueSlider.Value, StringFormat='ShadowColor hue {0:0}'}" />
+                        <Slider x:Name="ShadowHueSlider" Minimum="0" Maximum="360" Value="220" ValueChanged="ShadowChanged" />
+                        <TextBlock Classes="caption" Text="{Binding #ShadowOpacitySlider.Value, StringFormat='ShadowOpacity {0:0.00}'}" />
+                        <Slider x:Name="ShadowOpacitySlider" Minimum="0" Maximum="1" Value="0.8" ValueChanged="ShadowChanged" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <showcase:CodePanel x:Name="ShadowCode" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="BoxShadow beside DropShadowEffect: the box shadow is drawn from the Border's rounded rectangle, so the badge overhanging its corner casts nothing; the effect shadows whatever the visual draws, badge and text included" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="48" Margin="12,24">
+                        <Border x:Name="BoxCard" Classes="card" BoxShadow="0 2 6 0 #664c8dff">
+                            <Grid>
+                                <TextBlock Text="BoxShadow" />
+                                <Ellipse Classes="badge" />
+                            </Grid>
+                        </Border>
+                        <Border x:Name="EffectCard" Classes="card">
+                            <Border.Effect>
+                                <DropShadowEffect OffsetX="0" OffsetY="2" BlurRadius="6" Color="#664c8dff" />
+                            </Border.Effect>
+                            <Grid>
+                                <TextBlock Text="DropShadowEffect" />
+                                <Ellipse Classes="badge" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Raise" Click="RaiseClicked" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <showcase:CodePanel x:Name="CompareCode" Code="// Press Raise" />
+
+            <TextBlock Classes="caption" Text="A Flip card: it turns through RotateY in perspective and shows its back once past 90°" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <!-- snippet: EffectsFlip -->
+                    <presto:Flip x:Name="FlipCard" Width="200" Height="120" Margin="0,12"
+                                 IsFlipped="{Binding #FlipToggle.IsChecked}" Motion="{x:Static local:EffectsPage.FlipMotion}">
+                    <!-- /snippet -->
+                        <presto:Flip.Front>
+                            <Border Classes="card" Background="{x:Static showcase:Palette.Accent}">
+                                <TextBlock Text="Front" Foreground="{x:Static showcase:Palette.Ink}" FontSize="22" />
+                            </Border>
+                        </presto:Flip.Front>
+                        <presto:Flip.Back>
+                            <Border Classes="card" Background="{x:Static showcase:Palette.Amber}">
+                                <TextBlock Text="Back" FontSize="22" />
+                            </Border>
+                        </presto:Flip.Back>
+                    </presto:Flip>
+                    <ToggleButton x:Name="FlipToggle" Grid.Column="1" Content="Flip" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.EffectsFlip}" />
+
+            <TextBlock Classes="caption" Text="A pointer-driven tilt: move over the stage, and leave it to spring back" />
+            <Border x:Name="TiltStage" Classes="stage" MinHeight="220" Background="{x:Static showcase:Palette.Surface}"
+                    PointerMoved="TiltMoved" PointerExited="TiltExited">
+                <Border x:Name="TiltCard" Classes="card" Width="240" Height="150" Background="{x:Static showcase:Palette.AccentPale}">
+                    <TextBlock Text="Tilt me" FontSize="22" />
+                </Border>
+            </Border>
+            <showcase:CodePanel x:Name="TiltCode" />
+
+            <TextBlock Classes="caption" Text="Reveals over one picture: ClipInset, ClipCircle and MaskSweep" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Image x:Name="RevealPicture" Classes="picture" />
+                    <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                        <Button Content="Inset" Click="InsetClicked" />
+                        <Button Content="Circle" Click="CircleClicked" />
+                        <Button Content="Sweep" Click="SweepClicked" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <showcase:CodePanel x:Name="RevealCode" Code="// Press a reveal" />
+
+            <TextBlock Classes="caption" Text="A row removed with a blur-out Presence.Exit, played on the row's ghost while Animate.ItemLayout closes the gap" />
+            <Border Classes="stage" MinHeight="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <!-- snippet: EffectsList -->
+                    <ItemsControl x:Name="Rows" Width="300" HorizontalAlignment="Left" ClipToBounds="False"
+                                  presto:Animate.ItemLayout="{presto:Reflow 320, Ease=outQuint}">
+                    <!-- /snippet -->
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <!-- snippet: EffectsRow -->
+                                <Border Classes="row" presto:Presence.Exit="{x:Static local:EffectsPage.BlurOut}">
+                                <!-- /snippet -->
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                        <Button Grid.Column="1" Content="✕" Click="RemoveRow" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Grid.Column="1" Content="Refill" Click="RefillClicked" VerticalAlignment="Top" />
+                </Grid>
+            </Border>
+            <showcase:CodeTabs x:Name="ExitCode" SelectedLanguage="Xaml" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

@@ -1,0 +1,121 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoGallery.Showcase.Pages.MorphClockPage">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Border Classes="stage short">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="eyebrow showcase" Text="CLOCK · ONLY THE CHANGED DIGITS MORPH" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <StackPanel.Styles>
+                            <Style Selector="TextBlock">
+                                <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+                                <Setter Property="FontSize" Value="120" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                                <Setter Property="Foreground" Value="{x:Static showcase:Palette.AccentPale}" />
+                            </Style>
+                        </StackPanel.Styles>
+                        <TextBlock x:Name="Hours" />
+                        <TextBlock x:Name="FirstColon" Text=":" Foreground="{x:Static showcase:Palette.Accent}" />
+                        <TextBlock x:Name="Minutes" />
+                        <TextBlock x:Name="SecondColon" Text=":" Foreground="{x:Static showcase:Palette.Accent}" />
+                        <TextBlock x:Name="Seconds" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="stage short">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock Classes="eyebrow showcase" Text="COUNTDOWN · 0:00 BECOMES DONE" VerticalAlignment="Center" />
+                        <Button x:Name="StartButton" Grid.Column="1" Content="Start" Click="StartStop" />
+                    </Grid>
+                    <TextBlock x:Name="Countdown" Text="0:10" FontFamily="{StaticResource DisplayFont}" FontSize="96" FontWeight="Bold"
+                               Foreground="{x:Static showcase:Palette.Amber}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="stage short">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="eyebrow showcase" Text="BUTTONS · LABELS THAT MORPH INTO A GLYPH AND BACK" />
+                    <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
+                        <StackPanel.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Height" Value="56" />
+                                <Setter Property="MinWidth" Value="56" />
+                                <Setter Property="FontSize" Value="24" />
+                                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                <Setter Property="VerticalContentAlignment" Value="Center" />
+                            </Style>
+                        </StackPanel.Styles>
+                        <Button x:Name="SubmitButton" Width="160" Click="Submit">
+                            <TextBlock x:Name="SubmitLabel" Text="Submit" />
+                        </Button>
+                        <Button Click="PlayPause">
+                            <TextBlock x:Name="PlayLabel" Text="▶" />
+                        </Button>
+                        <Button Click="Menu">
+                            <TextBlock x:Name="MenuLabel" Text="≡" FontFamily="{StaticResource DisplayFont}" FontSize="32" />
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="stage">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock Classes="eyebrow showcase" Text="STATS · MORPHGLYPHS VS ROLLDIGITS VS SPLITFLAP" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="Refresh" Click="Refresh" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="24" RowSpacing="12">
+                        <Grid.Styles>
+                            <Style Selector="TextBlock.stat">
+                                <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+                                <Setter Property="FontSize" Value="40" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                                <Setter Property="Foreground" Value="{x:Static showcase:Palette.Aqua}" />
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                            </Style>
+                            <Style Selector="presto|SplitFlap">
+                                <Setter Property="Cells" Value="5" />
+                                <Setter Property="Charset" Value=" 0123456789" />
+                                <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+                                <Setter Property="FontSize" Value="32" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                                <Setter Property="Foreground" Value="{x:Static showcase:Palette.Aqua}" />
+                                <Setter Property="CellBackground" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+                                <Setter Property="CornerRadius" Value="3" />
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </Grid.Styles>
+                        <TextBlock Grid.Column="1" Classes="eyebrow showcase" Text="VISITORS" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Column="2" Classes="eyebrow showcase" Text="ORDERS" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Column="3" Classes="eyebrow showcase" Text="RETURNS" HorizontalAlignment="Right" />
+
+                        <TextBlock Grid.Row="1" Classes="eyebrow showcase" Text="MORPHGLYPHS" VerticalAlignment="Center" />
+                        <TextBlock x:Name="MorphVisitors" Text="12480" Grid.Row="1" Grid.Column="1" Classes="stat" />
+                        <TextBlock x:Name="MorphOrders" Text="836" Grid.Row="1" Grid.Column="2" Classes="stat" />
+                        <TextBlock x:Name="MorphReturns" Text="41" Grid.Row="1" Grid.Column="3" Classes="stat" />
+
+                        <TextBlock Grid.Row="2" Classes="eyebrow showcase" Text="ROLLDIGITS" VerticalAlignment="Center" />
+                        <TextBlock x:Name="RollVisitors" Text="12480" Grid.Row="2" Grid.Column="1" Classes="stat" />
+                        <TextBlock x:Name="RollOrders" Text="836" Grid.Row="2" Grid.Column="2" Classes="stat" />
+                        <TextBlock x:Name="RollReturns" Text="41" Grid.Row="2" Grid.Column="3" Classes="stat" />
+
+                        <TextBlock Grid.Row="3" Classes="eyebrow showcase" Text="SPLITFLAP" VerticalAlignment="Center" />
+                        <presto:SplitFlap x:Name="FlapVisitors" Text="12480" Grid.Row="3" Grid.Column="1" />
+                        <presto:SplitFlap x:Name="FlapOrders" Text="  836" Grid.Row="3" Grid.Column="2" />
+                        <presto:SplitFlap x:Name="FlapReturns" Text="   41" Grid.Row="3" Grid.Column="3" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

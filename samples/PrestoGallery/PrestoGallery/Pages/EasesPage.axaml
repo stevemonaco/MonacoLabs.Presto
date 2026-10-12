@@ -1,0 +1,49 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:vm="clr-namespace:PrestoGallery.ViewModels"
+                       mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
+                       x:Class="PrestoGallery.Pages.EasesPage">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <Border Classes="stage compact">
+                    <Canvas x:Name="PlotCanvas" Width="380" Height="220">
+                        <Line x:Name="ZeroLine" Stroke="#60808080" StrokeThickness="1" StrokeDashArray="4,4" />
+                        <Line x:Name="OneLine" Stroke="#60808080" StrokeThickness="1" StrokeDashArray="4,4" />
+                        <Polyline x:Name="Curve" Stroke="#4c8dff" StrokeThickness="2" />
+                    </Canvas>
+                </Border>
+
+                <Border Classes="stage compact" Width="110" Height="244">
+                    <Border x:Name="Dot" Classes="swatch" Width="28" Height="28"
+                            HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="Eases catalog" />
+                    <ComboBox x:Name="EaseBox" Width="300" SelectionChanged="EaseSelected" />
+                </StackPanel>
+
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="EaseParser.Parse(…) — overrides the picker while it has text" />
+                    <TextBox x:Name="EaseNameBox" Width="280" TextChanged="EaseTyped"
+                             PlaceholderText="inOutQuint, out(2), wiggle(6, anticipate)" />
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock x:Name="StatusText" Classes="caption" TextWrapping="Wrap" />
+            <StackPanel x:Name="SpringsLine" Orientation="Horizontal" Spacing="4">
+                <TextBlock Classes="caption" VerticalAlignment="Center" Text="Tune a spring by its physics or by bounce and duration on" />
+                <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
+                                 Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
+            </StackPanel>
+
+            <showcase:CodePanel x:Name="Code" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

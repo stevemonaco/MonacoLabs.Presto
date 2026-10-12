@@ -1,0 +1,120 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoGallery.Showcase.Pages.GalleryFlipPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.stage">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style Selector="Border.card.showcase">
+            <Setter Property="Width" Value="127" />
+            <Setter Property="Padding" Value="9,5" />
+            <Setter Property="Margin" Value="0,0,8,4" />
+        </Style>
+        <Style Selector="Border.card TextBlock.eyebrow">
+            <Setter Property="FontSize" Value="9" />
+        </Style>
+        <Style Selector="Border.card TextBlock.caption, Border.card TextBlock.mono">
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+
+        <Style Selector="Border.card.row">
+            <Setter Property="Width" Value="331" />
+            <Setter Property="Padding" Value="10,2" />
+            <Setter Property="Margin" Value="0,0,8,3" />
+        </Style>
+        <Style Selector="Border.card.row > StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="8" />
+        </Style>
+        <Style Selector="Border.card.row > StackPanel > Control">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.card.row TextBlock.eyebrow">
+            <Setter Property="Width" Value="44" />
+        </Style>
+        <Style Selector="Border.card.row TextBlock.title">
+            <Setter Property="Width" Value="112" />
+        </Style>
+
+        <Style Selector="Border.card">
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Border.card.expanded">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="22,18" />
+        </Style>
+        <Style Selector="Border.card.expanded TextBlock.eyebrow">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="Border.card.expanded TextBlock.title">
+            <Setter Property="FontSize" Value="34" />
+        </Style>
+        <Style Selector="Border.card.expanded TextBlock.caption, Border.card.expanded TextBlock.mono">
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+
+        <Style Selector="ListBox.filters">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6" />
+                </ItemsPanelTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.filters ListBoxItem">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12,3" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+        <Border Grid.Row="0" Classes="rail showcase">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+                <ListBox Grid.Column="0" x:Name="Filters" Classes="filters" VerticalAlignment="Center"
+                         SelectionChanged="Rebuild" />
+                <ToggleSwitch Grid.Column="2" x:Name="ByValue" VerticalAlignment="Center"
+                              OffContent="by title" OnContent="by value" IsCheckedChanged="Rebuild" />
+                <ToggleSwitch Grid.Column="3" x:Name="AsRows" VerticalAlignment="Center"
+                              OffContent="grid" OnContent="list" IsCheckedChanged="Rebuild" />
+                <ToggleSwitch Grid.Column="4" x:Name="Sized" VerticalAlignment="Center" IsChecked="True"
+                              OffContent="Position" OnContent="Position+Size" IsCheckedChanged="Rearm" />
+                <Button Grid.Column="5" x:Name="Drop" VerticalAlignment="Center"
+                        Content="Drop mid-reflow" Click="Churn" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Classes="stage">
+            <Grid>
+                <ItemsControl x:Name="Field" VerticalAlignment="Top">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <presto:Modal x:Name="Detail" Margin="-12" Scrim="#A60B0E14" Backdrop="{Binding #Field}" Closed="Dismissed">
+                    <Grid Margin="12" ColumnDefinitions="*,236" ColumnSpacing="16">
+                        <Border x:Name="Host" />
+                        <StackPanel Grid.Column="1" Spacing="10" presto:Presence.Enter="{presto:Fade}">
+                            <Button Content="Close" HorizontalAlignment="Left" Click="Dismiss" />
+                        </StackPanel>
+                    </Grid>
+                </presto:Modal>
+            </Grid>
+        </Border>
+
+        <showcase:CodePanel Grid.Row="2" Header="How it's built" IsExpanded="False"
+                            Code="{x:Static showcase:Snippets.GalleryFlipLayout}" />
+    </Grid>
+</showcase:ShowcasePage>
