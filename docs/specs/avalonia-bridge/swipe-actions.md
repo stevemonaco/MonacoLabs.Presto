@@ -81,7 +81,8 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 ### Releasing
 
 - **BRIDGE-SWIPE-018** — When a drag is released short of committing, the element shall coast through an `Inertia` with a 120 ms time constant to its side's open width when the projected rest (`x + velocity · TimeConstant`) reaches half that width, and to 0 otherwise, staying on the side it was dragged to.
-  - Tests: `SwipeTests.APartialRevealSnapsOpen`, `SwipeTests.AShortDragSnapsClosed`, `SwipeTests.AShortReleaseIsBackAtRestWithinFourHundredMilliseconds`
+  - Tests: `SwipeTests.APartialRevealSnapsOpen`, `SwipeTests.AShortDragSnapsClosed`
+, `SwipeTests.AShortReleaseIsBackAtRestWithinFourHundredMilliseconds`
 - **BRIDGE-SWIPE-019** — When a short drag is released with a fling whose projected rest passes half the open width, the side shall open.
   - Tests: `SwipeTests.AFlingOpens`
 - **BRIDGE-SWIPE-020** (inherited) — When a drag is released beyond its side's open width without committing, the element shall land on the open width.
@@ -193,7 +194,7 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 - **The strip is placed without layout rounding, and on each drag move.** Reason: the element slides by a fractional render transform, so a rounded strip shifted against it by up to a pixel, and placing it only from the offset's `Changed` (raised on the next engine frame) left it a move behind; both read as the actions shaking. Rejected: rounding the offset itself, which steps the drag.
 - **A full swipe commits by position alone.** A release past half the element's width commits, never one judged by its projected fling. Reason: not recorded.
 - **The axis lock drops a vertical-first press.** The lock is the arena's crosswise gate (BRIDGE-GESTURES for the numbers); a press whose gate drops out is forgotten without capturing or handling it. Reason: a touch scroll then reaches the ancestor `ScrollViewer`. Rejected: closing an open row on any arena loss, which a vertical drop-out never did.
-- **Swipe claims `GestureOwners`.** A `Draggable` or `Transformable` on the same element throws. Reason: not recorded.
+- **Swipe claims `GestureOwners`.** A `Draggable` or `Transformable` on the same element throws. Reason: one live gesture per control (see BRIDGE-DRAGGABLE).
 - **One element is open per list.** A grab or open closes the list's other open element. Reason: not recorded.
 - **The accessible path is the context request.** `ContextRequested` (the menu key, Shift+F10, a right-click or a touch hold) cycles trailing, leading, closed. Reason: the actions must be reachable without swiping. Rejected: keyboard-only swiping.
 

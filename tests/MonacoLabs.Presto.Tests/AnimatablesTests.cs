@@ -490,12 +490,24 @@ public sealed class AnimatablesTests : EngineTestBase
     }
 
     [Fact]
+    public void AFlingWithoutAVelocityIgnoresTheSettingsVelocity()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+
+        animatable.Fling("X", new Inertia(3));
+        RunUntil(() => animatable.Animations["X"].Paused);
+
+        Assert.Equal(0, target.X);
+    }
+
+    [Fact]
     public void AFlingPastABoundSettlesOnIt()
     {
         var target = new StyleTarget();
         var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
 
-        animatable.Fling("X", 2, new Inertia(0) { Min = -50, Max = 300 });
+        animatable.Fling("X", 2, new Inertia() { Min = -50, Max = 300 });
         var peak = 0d;
         while (!animatable.Animations["X"].Paused)
         {
@@ -513,7 +525,7 @@ public sealed class AnimatablesTests : EngineTestBase
         var target = new StyleTarget();
         var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
 
-        animatable.Fling("X", 1, new Inertia(0) { Max = 0 });
+        animatable.Fling("X", 1, new Inertia() { Max = 0 });
         var peak = 0d;
         while (!animatable.Animations["X"].Paused)
         {

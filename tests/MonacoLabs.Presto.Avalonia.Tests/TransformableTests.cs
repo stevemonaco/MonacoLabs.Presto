@@ -499,4 +499,21 @@ public sealed class TransformableTests : BridgeTestBase
         transformable.Revert();
         PrestoAvalonia.CreateDraggable(target);
     }
+
+    [AvaloniaFact]
+    public void ASecondGestureOfTheSameTypeCannotShareATargetUntilTheFirstIsReverted()
+    {
+        var (_, _, target) = Scene();
+
+        var draggable = PrestoAvalonia.CreateDraggable(target);
+        var error = Assert.Throws<InvalidOperationException>(() => PrestoAvalonia.CreateDraggable(target));
+        Assert.Contains(nameof(Draggable), error.Message);
+
+        draggable.Revert();
+        var transformable = target.CreateTransformable();
+        Assert.Throws<InvalidOperationException>(() => target.CreateTransformable());
+
+        transformable.Revert();
+        target.CreateTransformable();
+    }
 }

@@ -206,7 +206,7 @@ public sealed class ReferencePageCodeTests
 
         page.GetControl<ComboBox>("ReleaseBox").SelectedIndex = 1;
 
-        Assert.Contains("ReleaseInertia = new Inertia(0)", spring.Code);
+        Assert.Contains("ReleaseInertia = new Inertia()", spring.Code);
         Assert.DoesNotContain("ReleaseStiffness", spring.Code);
         SceneHarness.Close(window);
     }

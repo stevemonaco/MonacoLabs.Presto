@@ -9,7 +9,12 @@ public sealed record Inertia
     /// <summary>Creates an inertia starting at <paramref name="velocity"/> units per engine-time unit.</summary>
     public Inertia(double velocity) => Velocity = velocity;
 
-    /// <summary>The start velocity, in units per engine-time unit.</summary>
+    /// <summary>Creates an inertia at rest, for settings whose velocity comes from elsewhere, such as <see cref="Animatable.Fling(PropertyKey, Inertia?)"/>.</summary>
+    public Inertia()
+    {
+    }
+
+    /// <summary>The start velocity, in units per engine-time unit; ignored by <see cref="Animatable.Fling(PropertyKey, Inertia?)"/>, which takes it from its argument or the property's motion.</summary>
     public double Velocity { get; init; }
 
     /// <summary>Scales the distance traveled: the ideal target is <c>from + Power · Velocity · TimeConstant</c>.</summary>

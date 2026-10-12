@@ -41,7 +41,7 @@ public partial class DraggablePage : ShowcasePage
     private void CreateSpring()
     {
         var (release, releaseCode) = ReleaseBox.SelectedIndex == 1
-            ? Snippet.Of(new DraggableParams { ReleaseInertia = new Inertia(0) { ModifyTarget = Utils.Snap(40) } })
+            ? Snippet.Of(new DraggableParams { ReleaseInertia = new Inertia() { ModifyTarget = Utils.Snap(40) } })
             : Snippet.Of(new DraggableParams { ReleaseStiffness = 40, ReleaseDamping = 8 });
         (_spring, var code) = Snippet.Of(PrestoAvalonia.CreateDraggable(SpringCard, release with
         {

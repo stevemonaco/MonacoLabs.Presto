@@ -363,7 +363,7 @@ public class Sheet : Control, IGestureMember
             animate.Set(Axis, direction * target, 0);
             return;
         }
-        animate.Fling(Axis, direction * velocity, new Inertia(0)
+        animate.Fling(Axis, direction * velocity, new Inertia()
         {
             TimeConstant = TimeConstant,
             ModifyTarget = t => direction * t < first || direction * t > last ? t : direction * target,

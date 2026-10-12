@@ -21,7 +21,7 @@ public sealed class Animatable : IRevertible
     private readonly Dictionary<string, Spring?> _momentum = [];
     // The eases and duration a flung property returns to on its next Set.
     private readonly Dictionary<string, (List<Ease> Eases, double Duration)> _flung = [];
-    private static readonly Inertia DefaultInertia = new(0);
+    private static readonly Inertia DefaultInertia = new();
     private static readonly Ease AtRest = static _ => 0;
     private readonly Animation _callbacks;
 

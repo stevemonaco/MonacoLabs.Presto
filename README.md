@@ -456,14 +456,14 @@ value, so a `Duration` beside it is ignored.
 ```csharp
 card.Animate(b => b.X(new Inertia(velocity) { ModifyTarget = Utils.Snap(240), Min = -960, Max = 0 }));
 
-follower.Fling("X", new Inertia(0) { Min = -300, Max = 300 });    // coasts from its current velocity
-follower.Fling("Y", tracker.Velocity, new Inertia(0) { Max = 0 }); // or from a given one
+follower.Fling("X", new Inertia() { Min = -300, Max = 300 });    // coasts from its current velocity
+follower.Fling("Y", tracker.Velocity, new Inertia() { Max = 0 }); // or from a given one
 
 PrestoAvalonia.CreateDraggable(Sheet, new()
 {
     Container = Stage,
     X = new DraggableAxisParams { Enabled = false },
-    ReleaseInertia = new Inertia(0) { TimeConstant = 250 },
+    ReleaseInertia = new Inertia() { TimeConstant = 250 },
 });
 ```
 

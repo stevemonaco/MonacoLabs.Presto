@@ -16,7 +16,7 @@ namespace MonacoLabs.Presto.Gestures;
 /// </remarks>
 public sealed class Transformable : IRevertible
 {
-    private static readonly Inertia s_defaultInertia = new(0);
+    private static readonly Inertia s_defaultInertia = new();
 
     // Pointer events arrive long after construction, when the ambient engine may be another one.
     private readonly Engine _engine;

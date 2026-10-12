@@ -27,7 +27,7 @@ namespace MonacoLabs.Presto.Controls;
 public sealed class Pager : Control
 {
     private static readonly EaseValue s_travel = Eases.Spring(bounce: .2, duration: 700);
-    private static readonly Inertia s_inertia = new(0);
+    private static readonly Inertia s_inertia = new();
 
     /// <summary>The slide the pager rests at or is heading for; setting it springs there.</summary>
     public static readonly StyledProperty<int> SelectedIndexProperty =

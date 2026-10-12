@@ -129,8 +129,10 @@ Timers, animations and timelines report their progress through seven callbacks, 
   - Tests: untested
 - **CORE-CALLBACKS-033** — Awaiting a timer, animation or timeline directly shall behave as awaiting `Then()`.
   - Tests: `PromisesTests.AwaitATimer`, `PromisesTests.AwaitAnAnimation`
-- **CORE-CALLBACKS-034** — A completion reached with callbacks muted, a `Cancel` and a `Revert` shall leave a pending `Then` task incomplete.
-  - Tests: untested
+- **CORE-CALLBACKS-034** — A completion reached with callbacks muted, a `Cancel` (including one by composition replacing every tween) and a `Revert` shall leave a pending `Then` task incomplete.
+  - Tests: `PromisesTests.CancelRevertAndAMutedCompleteLeaveAPendingThenIncomplete`, `PromisesTests.AnAnimationReplacedByCompositionLeavesItsThenIncomplete`
+- **CORE-CALLBACKS-038** — When a `Then` callback throws, the task shall still complete with the timer, and the exception shall escape the tick as any callback's does.
+  - Tests: `PromisesTests.AThrowingThenCallbackStillCompletesTheTask`
 - **CORE-CALLBACKS-035** — On the default frame pump, `Then` shall resolve without any manual ticking.
   - Tests: `PromisesTests.ThenResolvesOnTheDefaultFramePump`
 
@@ -153,7 +155,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - Setting `CurrentTime` on a playing timer fires `OnPause`, because the setter pauses, seeks and resumes.
 - `OnRender` does not fire on a frame that writes only at time 0 or when every tween was skipped.
 - A timer canceled by its engine after completing still reports `Completed`, so a later `Then` resolves at once.
-- An exception from a callback escapes the tick; one from a `Then` callback leaves the pending task incomplete for good, since it was cleared before the callbacks ran.
+- An exception from a callback escapes the tick; one from a `Then` callback skips the `Then` callbacks registered after it.
 - A timeline's `OnUpdate` sees its children in last frame's state, since they render after it.
 
 ## Threading and lifetime
@@ -179,15 +181,15 @@ Timers, animations and timelines report their progress through seven callbacks, 
 ## Decisions
 
 - **Every timer is awaitable.** Every `Timer` has `GetAwaiter` as well as `Then()`, and `Animation` narrows both to itself. Reason: `Then` gives a task to chain or store, `await timer` reads as waiting for it to finish, and the narrowing on `Animation` keeps the awaited result typed without a cast.
+- **An interrupted timer never resolves `Then`.** `Cancel`, `Revert` and a muted completion leave the pending task incomplete, as upstream's promise does. Reason: under `Replace` composition, interruption is routine, and the code after an `await` (hide the panel once it has faded out) is usually wrong once a newer animation owns the target; leaving it unrun keeps the screen right, as Flutter's `TickerFuture` does. Rejected: completing normally (runs that code anyway); a canceled task (every `await` in an `async void` handler would crash on a double-click).
+- **A throwing `Then` callback still completes the task.** `Resolve` sets the result in a `finally`. Reason: every caller shares one task, so faulting it with one caller's exception would throw at everyone's `await`, and leaving it incomplete hung them all.
 - **`Then()` completes asynchronously.** The task is created with `RunContinuationsAsynchronously`, so an `await` never resumes inside the tick, and awaiting a non-UI engine's timer resumes on the thread pool. Reason: not recorded; implied, continuations must not run inside a tick.
 
 ## Non-goals
 
 - No events or multicast subscription beyond the delegate itself (a caller can combine delegates).
-- No cancellation of a pending `Then`.
+- No cancellation of a pending `Then`, and no variant that throws on interruption (a candidate in BACKLOG).
 
 ## Open items
 
-- A `Then` task never completes after `Cancel`, `Revert` or a muted `Complete(true)`, so `await` on a canceled animation hangs (kept from upstream; untested; reopened in BACKLOG).
-- An exception from a `Then` callback leaves the task incomplete and later `Then` calls return a new task that the already-completed timer resolves at once; untested.
 - Untested: callbacks from inherited defaults, timeline `OnUpdate` before children, muted renders still updating `Began`/`Completed`, multiple `Then` callbacks, asynchronous continuations.

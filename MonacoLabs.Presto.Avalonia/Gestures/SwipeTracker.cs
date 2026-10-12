@@ -17,7 +17,7 @@ internal sealed class SwipeTracker : IGestureMember
     private const double CommitAt = .5;
     private static readonly GestureGate s_gate = GestureGate.Crosswise(Orientation.Horizontal);
     // A row settles in about half a second; the 350 ms default dragged a short release's spring-back out past a second.
-    private static readonly Inertia s_inertia = new(0) { TimeConstant = 120 };
+    private static readonly Inertia s_inertia = new() { TimeConstant = 120 };
     // The open element of each list, keyed by its nearest ItemsControl or, outside one, its parent.
     private static readonly ConditionalWeakTable<Visual, SwipeTracker> s_open = new();
 

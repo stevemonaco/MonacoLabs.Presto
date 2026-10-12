@@ -47,6 +47,8 @@ depends:
   - Tests: `InertiaTests.ThenCompletesAtTheResolvedDuration`, `InertiaTests.AFunctionValueReturningPerTargetInertiasStaggers`
 - **CORE-INERTIA-003** — When a function value returns an `Inertia` per target, each target's tween shall be resolved from its own inertia.
   - Tests: `InertiaTests.AFunctionValueReturningPerTargetInertiasStaggers`
+- **CORE-INERTIA-047** — `new Inertia()` shall have `Velocity` 0, for settings whose velocity comes from elsewhere (`Animatable.Fling`, a release template).
+  - Tests: `AnimatablesTests.AFlingWithoutAVelocityIgnoresTheSettingsVelocity`
 - **CORE-INERTIA-004** — The ideal target shall be `from + Power · Velocity · TimeConstant`, and the motion shall start at `Power · Velocity` when nothing snaps it.
   - Tests: `InertiaMathTests.StartsAtPowerTimesVelocity`, `InertiaMathTests.DoublingTheTimeConstantDoublesTheTravel`, `AnimatablesTests.AFlingTravelsPowerTimesVelocityTimesTimeConstant`
 - **CORE-INERTIA-005** — When `ModifyTarget` is set, the landed target shall be `ModifyTarget(ideal)`, and the start velocity shall follow from the modified travel.

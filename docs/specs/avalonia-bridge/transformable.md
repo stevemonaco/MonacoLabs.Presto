@@ -46,8 +46,8 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 
 - **BRIDGE-TRANSFORMABLE-001** — When `CreateTransformable` is called, the bridge shall ensure the frame pump is initialized, create the transformable with `new TransformableParams()` when `parameters` is null, and start listening on the trigger at once (enabled).
   - Tests: `TransformableTests.SpreadingTwoFingersDoublesTheScaleAndKeepsTheirMidpointFixed`
-- **BRIDGE-TRANSFORMABLE-002** — When the target is already driven by a live `Draggable`, `CreateTransformable` shall throw `InvalidOperationException` whose message names both `Draggable` and `Transformable`; likewise `CreateDraggable` on a target driven by a live `Transformable`.
-  - Tests: `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`
+- **BRIDGE-TRANSFORMABLE-002** — When the target is already driven by a live `Draggable` or `Transformable`, `CreateTransformable` shall throw `InvalidOperationException` whose message names the live owner's type and `Transformable`; likewise `CreateDraggable` on a target driven by either.
+  - Tests: `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`, `TransformableTests.ASecondGestureOfTheSameTypeCannotShareATargetUntilTheFirstIsReverted`
 - **BRIDGE-TRANSFORMABLE-003** — When a transformable is reverted, the target shall be released so that a `Draggable` can then be created on it.
   - Tests: `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`
 - **BRIDGE-TRANSFORMABLE-004** — When created inside a `Scope`, the transformable shall register with that scope so reverting the scope reverts it.
@@ -120,7 +120,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
   - Tests: `TransformableTests.OnReleaseAndOnSettleFireOncePerGesture`
 - **BRIDGE-TRANSFORMABLE-032** (inherited) — When nothing is left running after the release starts (e.g. everything landed at once), `OnSettle` shall fire synchronously after `OnRelease`; when `OnRelease` calls `Stop`, no `OnSettle` shall follow.
   - Tests: untested
-- **BRIDGE-TRANSFORMABLE-033** — When `ReleaseInertia` is null, the release shall use `new Inertia(0)` as its template.
+- **BRIDGE-TRANSFORMABLE-033** — When `ReleaseInertia` is null, the release shall use `new Inertia()` as its template.
   - Tests: untested
 
 ### Double-tap, wheel and trackpad
@@ -243,6 +243,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 
 ## Decisions
 
+- **One live gesture per control.** See BRIDGE-DRAGGABLE.
 - **A new `Transformable`, not an extended `Draggable`.** Pan, pinch-zoom and rotate live in their own type that shares Draggable's idioms (params record, a duration-0 `Animatable` over the shorthands, per-channel `VelocityTracker`s, an `Inertia` release, the same verbs and callback names) and includes one-finger pan, so it replaces `Draggable` wherever an element pans and zooms. Reason: `Draggable`'s single-pointer behavior is pinned by its suite and relied on by `Pager`, its axes are independent, and zooming about a point needs translation and scale solved together; the name says it also pans. Rejected: extending `Draggable`; the name `Pinchable`.
 - **Raw pointers in parent space.** The transformable tracks up to two pointers itself on its trigger, reading positions in the target's parent space; a third is ignored. Reason: Avalonia's recognizer reads positions relative to the element being transformed, which moves with the transform, freezes its origin at the start so a two-finger pan cannot move the focal point, and ends the pinch when one finger lifts. Rejected: `PinchGestureRecognizer`.
 - **One state of four numbers over the shorthands.** The state is translation `X`/`Y` in parent units, scale and rotation in degrees clockwise, composed by the shorthands about `RenderTransformOrigin`; a user `RenderTransform` stays underneath, outside the math, and the docs say so. Reason: it matches the composer's order (scale and rotate about the origin, then translate).
@@ -274,7 +275,6 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 
 ## Open items
 
-- `GestureOwners.Claim` rejects only a different gesture type, so a second `Transformable` on the same target is allowed and overwrites the owner; the first one's `Revert` then no longer releases it. Untested; decide whether that should throw.
 - Capture loss on the last pointer runs a full release (coast, `OnRelease`) rather than a drop; intended or not, it is untested.
 - A wheel with only a horizontal delta is marked handled under a zooming mode, which blocks an ancestor's horizontal scroll; untested.
 - Under reduced motion a custom `Settle` without `WhenReduced` still animates the scale spring-back; consistent with the reduced-motion decision but untested.

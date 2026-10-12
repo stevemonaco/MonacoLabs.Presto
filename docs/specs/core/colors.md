@@ -44,14 +44,14 @@ depends:
   - Tests: `ColorsTests.ConvertsFromToColorPairs`, `ColorsTests.AnimatesATypedColorMemberToTheParsedChannels`
 - **CORE-COLORS-002** — When a hex color carries alpha, the parser shall take it as the byte over 255, rounded to 3 decimals; otherwise alpha shall be 1.
   - Tests: `ColorsTests.ConvertsFromToColorPairs`
-- **CORE-COLORS-003** — When the string starts with `rgb`, the parser shall read `rgb(r, g, b)` with alpha 1 or `rgba(r, g, b, a)`, channels as integers and alpha as a decimal, whitespace allowed around each.
-  - Tests: `ColorsTests.ConvertsFromToColorPairs`, `ColorsTests.AnimatesATypedColorMemberToTheParsedChannels`
+- **CORE-COLORS-003** — When the string starts with `rgb`, the parser shall read `rgb(r, g, b)` with alpha 1 or `rgba(r, g, b, a)`, each channel a non-negative decimal or a percentage of 255 and alpha a decimal or a percentage of 1, whitespace allowed around each.
+  - Tests: `ColorsTests.ConvertsFromToColorPairs`, `ColorsTests.AnimatesATypedColorMemberToTheParsedChannels`, `ColorsTests.ParsesDecimalAndPercentageRgbChannels`
 - **CORE-COLORS-004** — When the string starts with `hsl`, the parser shall read `hsl(h, s%, l%)` or `hsla(h, s%, l%, a)` and convert it to RGB channels rounded to integers.
   - Tests: `ColorsTests.ConvertsFromToColorPairs`, `ColorsTests.AnimatesATypedColorMemberToTheParsedChannels`
-- **CORE-COLORS-005** (inherited) — When an `hsl` color's saturation is 0, the parser shall set R, G and B to the lightness fraction (0–1, unscaled); whether to fix this is open (see Open items).
-  - Tests: `ColorsTests.AchromaticHslKeepsUpstreamUnscaledChannels`
-- **CORE-COLORS-006** (inherited) — When the string is none of these forms, `TryParse` shall return false and `Parse` shall return opaque black.
-  - Tests: `ColorsTests.UnknownStringsParseToOpaqueBlack`
+- **CORE-COLORS-005** — When an `hsl` color's saturation is 0, the parser shall set R, G and B to the lightness times 255, rounded to an integer.
+  - Tests: `ColorsTests.AchromaticHslScalesToByteChannels`
+- **CORE-COLORS-006** — When the string is none of these forms, `TryParse` shall return false and `Parse` shall throw `FormatException`, so a tween to a string `ValueParser.IsColor` accepts but the parser does not fails when it is created.
+  - Tests: `ColorsTests.UnknownStringsFailToParse`, `ColorsTests.TweeningToAnUnparsableColorThrows`
 - **CORE-COLORS-042** — When an `hsl` color has no alpha, the parser shall set alpha to 1.
   - Tests: `ColorsTests.ConvertsFromToColorPairs`
 
@@ -152,10 +152,9 @@ depends:
 
 ## Edge cases
 
-- `"rgb(255.5, 0, 0)"` and `"rgb(100%, 0, 0)"` do not parse (integer channels only) and become opaque black; upstream throws on them.
+- Decimal and percentage `rgb` channels may be mixed in one color and are neither clamped nor rounded, so `"rgb(300, 0, 0)"` parses to R 300.
 - The `rgb` and `hsl` prefixes are matched case-sensitively, while the patterns after them are case-insensitive and unanchored, so trailing text after a well-formed color is ignored by `Parse`.
 - `rgb(r, g, b, a)` (four values without `rgba`) does not parse.
-- An `hsl` color with 0 saturation produces channels in 0–1, which render near black.
 - Interpolated alpha below 0 from an overshooting ease is written as is; only `Mix` clamps alpha.
 - `FromOklab`/`FromOklch` do not clamp `alpha`.
 
@@ -174,11 +173,12 @@ depends:
 ## Provenance
 
 - Premultiplied alpha when the ends' alphas differ, because upstream's straight alpha shows a transparent end's RGB mid-fade (see "Colors interpolate with premultiplied alpha"). Equal alphas and `Additive` keep upstream's expression bit for bit.
-- Unparsable `rgb`/`hsl` strings yield opaque black instead of a `TypeError`; this came with the port and no decision records why (see Open items).
+- Decimal and percentage `rgb` channels parse where upstream throws, and achromatic `hsl` is scaled to 0–255 where upstream leaves 0–1 (see "Color strings parse as CSS does, or throw").
 - `Mix`, OKLab/OKLCH, gamut mapping and the relative-color helpers have no upstream counterpart: they exist for the hue path no straight-line blend gives (see "Color spaces are a utility, not a per-tween setting"). The full turn for equal hues deviates from CSS Color 4 so a hue cycle can be written as one mix (see "Equal hues make a full turn").
 
 ## Decisions
 
+- **Color strings parse as CSS does, or throw.** `rgb` channels accept decimals and percentages, achromatic `hsl` scales to 0–255 like the chromatic branch, and `Parse` throws `FormatException` on anything else. Reason: CSS accepts these forms, and upstream's achromatic branch is a bug that renders grays near black; a silent opaque black hid typos until they showed on screen. Rejected: upstream parity on either (it throws a `TypeError` on the `rgb` forms and keeps the unscaled grays); returning opaque black.
 - **Colors interpolate with premultiplied alpha.** A color tween mixes RGB as `sqrt(lerp(a₀·c₀², a₁·c₁², p) / lerp(a₀, a₁, p))` with alpha linear, as CSS Color 4 does; equal alphas take the original expression, ends are exact and a lerped alpha of 0 or below falls back to the straight lerp. `Additive` composition and color slots inside complex values stay straight; `Mix` premultiplies the same way in every space (hue excluded). Reason: with straight alpha a fade from transparent shows the transparent color's RGB (transparent teal to gray flashed green); equal alphas stay bit-identical, so upstream tests and opaque tweens are unchanged. Rejected: anime.js's straight-alpha mix.
 - **The core parses colors.** `PrestoColor` parses `#rgb`, `#rrggbb(aa)`, `rgb(a)()` and `hsl(a)()`; typed structs decompose through their codec as complex values. Reason: color strings are part of the value syntax on every target, including plain objects with no UI framework to parse them; it also lets upstream `colors.test.js` run against the core.
 - **Color spaces are a utility, not a per-tween setting.** The CSS Color 4 math lives on `PrestoColor` (`Mix` in four spaces) and reaches tweens only as keyframes through CORE-KEYFRAMES's `Color` expander; tweens, the renderer, codecs, composition, `Animatable` and the compositor are unchanged, and gradients and shadows keep lerping color slots in plain sRGB. Reason: measured, the default premultiplied blend already matches OKLab lightness (midpoints within .01 L) and complementary pairs go gray in every straight-line space, so the real new capability is the hue path (OKLCH arcs, even-lightness sweeps), which keyframes express; existing tests and fixtures stay untouched. Rejected: a color space on every tween (per-tween space buffers, blending, `Animatable` retargets and codec color slots in the space), designed first and dropped once measured as buying little for its cost.
@@ -203,6 +203,3 @@ depends:
 ## Open items
 
 - CORE-COLORS-017 (modifier applied to channels, alpha included) and CORE-COLORS-027 (transparent mix picks the nearer end) have no test.
-- `rgb()` strings with decimal or percentage channels pass `ValueParser.IsColor` but fail `PrestoColor.TryParse`, so a tween to them silently goes to opaque black.
-- The achromatic `hsl` branch keeps upstream's unscaled 0–1 channels, a known upstream bug; whether to fix it is reopened in BACKLOG ("Undecided deviations from anime.js").
-- Unparsable color strings giving opaque black (CORE-COLORS-006) has no recorded decision; upstream throws.

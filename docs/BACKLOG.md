@@ -11,15 +11,11 @@ When an item is closed, its line is deleted.
 - [BRIDGE-EFFECTS] A mask animated only through `MaskSweepAngle`/`MaskSweepFeather`, or a circle reveal only through `ClipCircleCenter`, is never removed at rest; done when companion-only animations follow the same rest-removal rule as the main shorthands.
 - [BRIDGE-THREAD] An alternating compositor animation with `LoopDelay` and an odd iteration count plays one extra iteration on the render thread and ends on its start value while the mirror reports the end; done when the render thread and mirror agree and an odd-count test exists.
 - [BRIDGE-THREAD] A non-`Visual` target throws `InvalidCastException`, even under `PreferCompositor`, which must never throw; done when `PreferCompositor` falls back to the UI thread for such targets.
-- [CORE-COLORS] `rgb()` strings with decimal or percentage channels pass `ValueParser.IsColor` but fail `PrestoColor.TryParse`, so the tween silently goes to opaque black (upstream throws); done when they parse or fail loudly.
 - [CORE-TARGETS] `Animation.Revert` skips null originals, so a dictionary key an animation created survives the revert; done when revert removes keys the animation added.
-- [CORE-CALLBACKS] An exception in a `Then` callback leaves that task incomplete for good, and a pending `Then()` never completes after `Cancel`/`Revert` (upstream same); done when the behavior is decided (complete, fault or cancel the task) and tested.
 - [CORE-COMPOSITION] `Replace` sibling lists are process-wide while additive state is per engine, so `Replace` tweens on two engines override each other; done when replace lists are per engine.
 - [BRIDGE-INIT] `HiddenSignal` looks up `IActivatableLifetime` once, so an `EnsureInitialized` before `Application.Current` exists never hears background activations, and `FollowSystemReducedMotion`'s activation hook (BRIDGE-REDUCED) has the same shape; done when both hooks retry once an application exists.
 - [CORE-DIAGNOSTICS] Diagnostics enabled on an engine that is then garbage-collected keep `PrestoDiagnostics.Active` on for the rest of the process; done when a collected engine no longer counts as enabled.
 - [CORE-ANIMATABLE] `Animatable.ValueOf` never unsubscribes from the animation's render, so each call keeps a value alive for the animatable's lifetime; done when the subscription is released.
-- [CORE-ANIMATABLE] `Fling(property, settings)` ignores `settings.Velocity` instead of using it as a fallback; done when it is used or the parameter's role is documented and tested.
-- [BRIDGE-DRAGGABLE] `GestureOwners` lets two `Draggable`s (or two `Transformable`s, BRIDGE-TRANSFORMABLE) claim one target, after which the first one's `Revert` no longer releases it; done when a second claim of the same type is rejected or handed over explicitly.
 - [BRIDGE-TEXT] `TextSplitter`'s 150 ms resize debounce ignores `Globals.TimeScale`, so it misbehaves in seconds mode; done when it is scaled like every other bridge timer.
 - [CORE-SCRAMBLE] `Presto.ScrambleText` caches a target's first text forever, so a later unchained scramble without `Text` settles back on stale text; done when the cache refreshes from the target's current text.
 - [BRIDGE-PAGER] `Pager.SelectedIndex` set directly (binding or code) is never wrapped or clamped, so an out-of-range value sends the strip past the slides; done when it is coerced like `GoTo`.
@@ -58,7 +54,6 @@ When an item is closed, its line is deleted.
 - [CORE-TARGETS] Originals of 0 or empty are captured for `Revert`, unlike upstream; done when a decision records it.
 - [CORE-TIMELINE] An unknown label with an operator resolves against the timeline's end; done when a decision records or reverts it.
 - [CORE-TIMELINE] `Timeline.Set` copies its params; done when a decision records or reverts it.
-- [CORE-COLORS] The achromatic `hsl` branch keeps upstream's unscaled 0–1 channels (an upstream bug); done when a decision says whether to fix it.
 - [CORE-EASES] Chained ease (upstream passing `prevSiblingTween` into ease resolution) is unported; done when it is ported or the omission is recorded, revisited if `FunctionValue`/`EaseValue.Resolve` is reshaped.
 - [CORE-COMPOSITION] `Composition` is a plain enum while upstream runs it through `getFunctionValue` per target; done when a decision keeps it or makes it function-based.
 - [CORE-TIMER] `TimerParams.Autoplay` is `bool?` plus `observer.Link(timer)` rather than accepting a scroll observer (`autoplay: onScroll(...)`); done when a decision keeps or changes it.
@@ -123,6 +118,7 @@ When an item is closed, its line is deleted.
 
 ## Candidate features
 
+- [CORE-CALLBACKS] An opt-in `Then` variant whose task is canceled when the timer is canceled or reverted (Flutter's `TickerFuture.orCancel`), for code that must not hang on an interrupted animation; done when a spelling is chosen and built.
 - [CORE-COLORS] HSL, HWB and CIE Lab/LCH interpolation spaces beside OKLCH, for CSS completeness, once something asks.
 - [CORE-COMPOSITION] A relative/delta `To` for additive tweens ("add this much") that does not move the additive group's base, so a layered effect need not know the animation beneath it; done when a spelling is chosen and built.
 - [CORE-TIMELINE] A `Timeline.Set` overload that takes a stagger for its position, as upstream allows; add if a sample needs it.

@@ -183,7 +183,7 @@ depends:
 - Any character before `=` in the second position is taken as an operator (`"a=5"` multiplies, since every operator other than `+` and `-` multiplies); kept from upstream.
 - `"+="` with nothing after it is the relative number 0.
 - Strings that .NET cannot parse but JavaScript can (`"0x10"`) are not numbers here; they decompose as complex values.
-- A `"rgb(...)"` string whose channels are not integers counts as a color by `IsColor` but does not parse, and becomes opaque black (CORE-COLORS).
+- A `"rgb(...)"` or `"hsl(...)"` string that `IsColor` accepts but `PrestoColor` cannot parse throws `FormatException` when decomposed (CORE-COLORS).
 - Only lower-case `rgb`/`hsl` prefixes count as colors; `"RGB(1,2,3)"` is a complex value.
 - A unit string containing a space (`"42px "`) is not a unit value; it is a complex value.
 - A unit value written to a numeric member writes the number alone, dropping the unit (CORE-TARGETS).

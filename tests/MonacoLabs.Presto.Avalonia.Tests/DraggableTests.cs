@@ -719,7 +719,7 @@ public sealed class DraggableTests : BridgeTestBase
         {
             X = new DraggableAxisParams { Snap = Utils.Snap(100) },
             Y = new DraggableAxisParams { Snap = Utils.Snap(30) },
-            ReleaseInertia = new Inertia(0),
+            ReleaseInertia = new Inertia(),
             OnSettle = _ => settles++,
         });
 
@@ -743,7 +743,7 @@ public sealed class DraggableTests : BridgeTestBase
         {
             Container = container,
             Y = new DraggableAxisParams { Enabled = false },
-            ReleaseInertia = new Inertia(0),
+            ReleaseInertia = new Inertia(),
         });
         var peak = 0d;
 
@@ -767,7 +767,7 @@ public sealed class DraggableTests : BridgeTestBase
         {
             Container = container,
             Y = new DraggableAxisParams { Enabled = false },
-            ReleaseInertia = new Inertia(0) { TimeConstant = 200 },
+            ReleaseInertia = new Inertia() { TimeConstant = 200 },
             OnSettle = _ => settles++,
         });
 
@@ -798,7 +798,7 @@ public sealed class DraggableTests : BridgeTestBase
         var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
         {
             Y = new DraggableAxisParams { Enabled = false },
-            ReleaseInertia = new Inertia(0),
+            ReleaseInertia = new Inertia(),
         });
 
         Flick(window, 20, 20, 4);

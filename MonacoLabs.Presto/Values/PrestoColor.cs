@@ -13,10 +13,10 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
     [GeneratedRegex(@"(^#([\da-f]{3}){1,2}$)|(^#([\da-f]{4}){1,2}$)", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
     private static partial Regex HexTest();
 
-    [GeneratedRegex(@"rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"rgb\(\s*(\d*\.?\d+%?)\s*,\s*(\d*\.?\d+%?)\s*,\s*(\d*\.?\d+%?)\s*\)", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
     private static partial Regex RgbExec();
 
-    [GeneratedRegex(@"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(-?\d+|-?\d*.\d+)\s*\)", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"rgba\(\s*(\d*\.?\d+%?)\s*,\s*(\d*\.?\d+%?)\s*,\s*(\d*\.?\d+%?)\s*,\s*(-?\d*\.?\d+%?)\s*\)", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
     private static partial Regex RgbaExec();
 
     [GeneratedRegex(@"hsl\(\s*(-?\d+|-?\d*.\d+)\s*,\s*(-?\d+|-?\d*.\d+)%\s*,\s*(-?\d+|-?\d*.\d+)%\s*\)", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
@@ -27,8 +27,10 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
 
     internal static bool IsHex(string s) => HexTest().IsMatch(s);
 
-    /// <summary>Parses a color string; anything unrecognized is opaque black.</summary>
-    public static PrestoColor Parse(string s) => TryParse(s, out var color) ? color : new(0, 0, 0);
+    /// <summary>Parses a color string.</summary>
+    /// <exception cref="FormatException"><paramref name="s"/> is not one of the forms <see cref="TryParse"/> recognizes.</exception>
+    public static PrestoColor Parse(string s) =>
+        TryParse(s, out var color) ? color : throw new FormatException($"'{s}' is not a hex, rgb() or hsl() color.");
 
     /// <summary>Parses a color string, returning false for anything that is not one of the recognized hex, <c>rgb</c> or <c>hsl</c> forms.</summary>
     public static bool TryParse(string s, out PrestoColor color)
@@ -182,7 +184,7 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
             color = default;
             return false;
         }
-        color = new(Num(m.Groups[1]), Num(m.Groups[2]), Num(m.Groups[3]), m.Groups[4].Success ? Num(m.Groups[4]) : 1);
+        color = new(Channel(m.Groups[1]), Channel(m.Groups[2]), Channel(m.Groups[3]), m.Groups[4].Success ? Alpha(m.Groups[4]) : 1);
         return true;
     }
 
@@ -211,8 +213,8 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
         var a = m.Groups[4].Success ? Num(m.Groups[4]) : 1;
         if (sat == 0)
         {
-            // Unscaled 0-1 channels, an inherited bug; BACKLOG CORE-COLORS decides whether to fix it.
-            color = new(l, l, l, a);
+            var gray = Helpers.Round(l * 255, 0);
+            color = new(gray, gray, gray, a);
             return true;
         }
         var q = l < .5 ? l * (1 + sat) : l + sat - l * sat;
@@ -238,4 +240,8 @@ public readonly partial record struct PrestoColor(double R, double G, double B, 
     private static int HexPair(char hi, char lo) => int.Parse([hi, lo], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
     private static double Num(Group g) => JsNumber.ToNumber(g.ValueSpan);
+
+    private static double Channel(Group g) => g.ValueSpan[^1] == '%' ? JsNumber.ToNumber(g.ValueSpan[..^1]) * 255 / 100 : Num(g);
+
+    private static double Alpha(Group g) => g.ValueSpan[^1] == '%' ? JsNumber.ToNumber(g.ValueSpan[..^1]) / 100 : Num(g);
 }

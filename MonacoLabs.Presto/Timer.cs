@@ -624,7 +624,13 @@ public class Timer : Clock, IRevertible
         var onResolve = _onResolve;
         _completion = null;
         _onResolve = null;
-        onResolve?.Invoke(this);
-        completion.SetResult(this);
+        try
+        {
+            onResolve?.Invoke(this);
+        }
+        finally
+        {
+            completion.SetResult(this);
+        }
     }
 }

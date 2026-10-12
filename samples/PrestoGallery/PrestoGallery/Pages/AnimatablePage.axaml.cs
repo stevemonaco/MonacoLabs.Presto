@@ -83,8 +83,8 @@ public partial class AnimatablePage : ShowcasePage
         var edgeX = FollowerStage.Bounds.Width / 2 - Follower.Width / 2;
         var edgeY = FollowerStage.Bounds.Height / 2 - Follower.Height / 2;
         _follower
-            .Fling("X", new Inertia(0) { Min = -edgeX, Max = edgeX })
-            .Fling("Y", new Inertia(0) { Min = -edgeY, Max = edgeY });
+            .Fling("X", new Inertia() { Min = -edgeX, Max = edgeX })
+            .Fling("Y", new Inertia() { Min = -edgeY, Max = edgeY });
         #endregion
     }
 

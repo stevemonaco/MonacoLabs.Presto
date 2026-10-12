@@ -150,8 +150,8 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
   - Tests: `AnimatablesTests.AFlingTravelsPowerTimesVelocityTimesTimeConstant`
 - **CORE-ANIMATABLE-044** (inherited) — When `settings` is null, the fling shall use the default `Inertia` settings.
   - Tests: `AnimatablesTests.ASetAfterAFlingUsesTheDeclaredEaseAndDurationAgain`
-- **CORE-ANIMATABLE-045** — `Fling(property, settings)` shall coast from each tween's current velocity, or from rest when the property animation is paused.
-  - Tests: `AnimatablesTests.AFlingWithoutAVelocityContinuesARunningSetAtItsSpeed`
+- **CORE-ANIMATABLE-045** — `Fling(property, settings)` shall coast from each tween's current velocity, or from rest when the property animation is paused; `settings.Velocity` is ignored.
+  - Tests: `AnimatablesTests.AFlingWithoutAVelocityContinuesARunningSetAtItsSpeed`, `AnimatablesTests.AFlingWithoutAVelocityIgnoresTheSettingsVelocity`
 - **CORE-ANIMATABLE-046** — A fling that crosses a bound shall overshoot it and settle on it.
   - Tests: `AnimatablesTests.AFlingPastABoundSettlesOnIt`
 - **CORE-ANIMATABLE-047** — A fling released on a bound moving outward shall go out to a peak and back to the bound within one tween.
@@ -216,6 +216,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **Spring momentum on retarget is opt-in.** `PreserveVelocity` (`bool?` on the params and the property, the property winning, default false) hands the current velocity to a fresh `Spring` with the same mass, stiffness and damping when a spring-eased property is retargeted, in the scalar and the channel `Set` alike; earlier only the scalar `Set` carried it, extended because colors, thicknesses and points keep momentum too. Reason: momentum carried across a retarget is what makes a spring feel physical (Framer Motion, React Spring, Compose); opt-in because it changes what a spring-eased animatable does, and because Draggable drives its release springs through an `Animatable` and sets their velocity itself. Rejected: upstream's reset, where a spring always starts at rest, as the only behavior.
 - **Preserved velocity is measured from the running ease.** Only a `Spring` ease (the `Set`'s, the property's or the animatable's) preserves velocity; velocity is a central difference of the running ease, a spring sampled through its `PureEase`, normalized to the solver's progress per second; a paused, completed or unstarted tween, or a retarget to the current value, starts at rest; the animation lasts the longest settling duration (or the `Set` duration compresses them) and an early-settling tween holds its end. Nothing new is public on `Spring`. Reason: sampling through `PureEase` never raises the spring's `OnComplete`; a zero-distance retarget cannot carry velocity in an ease-based model; each tween's settling duration depends on its velocity.
 - **`Fling` retargets with an inertia.** `Fling(property, velocity, settings)` coasts the property under the inertia solver; without a velocity it measures the running tween's (0 when paused or finished); the animatable's ease and duration are replaced for that run and restored by the next scalar `Set`; differing per-target durations are sampled over the longest. Reason: a value that is already moving keeps coasting; it mirrors `Set(…, ease)` replacing the ease for one run.
+- **`Fling` settings carry no velocity.** Both overloads ignore `Inertia.Velocity`: the velocity is the argument or the property's measured one, and `settings` supplies only the decay, snap and bounds; settings are written `new Inertia { … }`. Reason: one source of velocity per call, and a fallback to `settings.Velocity` at rest would jump between a near-still property (coasts almost nowhere) and a still one (full kick). Rejected: `settings.Velocity` as an at-rest fallback.
 - **Out-and-back bounces fold into one ease.** When a fling's inertia becomes a degenerate bounce, `Fling` folds its two parts, out to the spring's first peak and back to the bound, into one ease. Reason: an animatable has one tween per target.
 - **A degenerate bounce goes out and back.** See CORE-INERTIA.
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
@@ -234,7 +235,6 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 - The callbacks animation has the engine's default duration (1000 ms): a burst longer than that completes it early, raising `OnComplete` while properties still move and stopping `OnUpdate` (kept from upstream). Untested.
 - Under `ReduceAll`, `Set` with a duration, momentum retargets and `Fling` animate rather than snap, and the callbacks animation completes on its first frame. Untested; decide whether an animatable should honor `ReduceAll` on every retarget.
-- `Fling(property, settings)` ignores `settings.Velocity` rather than using it as a fallback; documented only implicitly.
 - The channel `Set` neither consults nor clears a saved fling; the next scalar `Set` still restores the pre-fling eases.
 - `Fling` on a color or complex property is not rejected (an `Inertia` to-value throws for one); its behavior is unspecified and untested.
 - `ValueOf` never unsubscribes from the animation's render, so each call keeps a value alive for the animatable's lifetime.
