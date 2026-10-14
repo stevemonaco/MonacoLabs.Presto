@@ -89,8 +89,8 @@ depends:
   - Tests: `ValuesTests.ComplexWhiteSpaceValues`, `ValuesTests.ComplexMixedTypeValues`, `ValuesTests.ComplexCssFilterValues`
 - **CORE-VALUES-018** — When a complex string has no numbers, the parser shall produce empty `Numbers` and the whole string as the single entry of `Strings`.
   - Tests: `ValuesTests.ComplexValueWithoutNumbersKeepsTheWholeString`
-- **CORE-VALUES-019** (inherited) — When a complex string contains an exponent, the parser shall match only a single exponent digit (kept from upstream), so `"1e10"` splits into `1e1` and `0`.
-  - Tests: `ValuesTests.ComplexExponentsKeepUpstreamSingleDigitQuirk`
+- **CORE-VALUES-019** — When a complex string contains a number with an exponent, the parser shall read every exponent digit, so `"1e10"` is one number.
+  - Tests: `ValuesTests.ComplexExponentsKeepEveryDigit`
 - **CORE-VALUES-020** — When the raw value is a `PrestoColor`, the parser shall produce a `Color` value with its unrounded channels.
   - Tests: `ValuesTests.PrestoColorDecomposesToColor`
 - **CORE-VALUES-021** (inherited) — When the raw value is a `double[]`, the parser shall produce a `Complex` value of a copy of the numbers separated by single spaces.
@@ -203,6 +203,7 @@ depends:
 
 ## Provenance
 
+- A complex string's exponents keep every digit, where upstream's pattern reads one (see "Complex exponents keep every digit").
 - Units other than `deg`, `rad` and `turn` are adopted 1:1 rather than measured against a DOM clone; there is no layout to measure.
 - Upstream converts from any angle unit (yielding NaN for a non-angle target) and leaves the value's type unchanged through a no-op comparison; here only angle-to-angle pairs are scaled and the value always becomes a `Unit` value.
 - No CSS variable (`var(--x)`) resolution.
@@ -212,6 +213,7 @@ depends:
 
 ## Decisions
 
+- **Complex exponents keep every digit.** The complex-string number pattern reads `e[-+]?\d+`, as the unit pattern already does. Reason: upstream's single digit, with the full pattern commented out beside it, split `"1e10"` into `1e1` and `0`, so a path or shadow written with an exponent animated the wrong numbers and changed shape. Rejected: upstream's single digit.
 - **`TweenValue` is a small struct holding the raw value.** It converts implicitly from numbers, strings, `TweenParams`, `FunctionValue` and the other value types, takes any other object through `Of`, and is decoded by the target adapter against the property's current value. Reason: a property value of any accepted shape is then written as a literal in the params initializer, and only the adapter knows the property's type to decode it against.
 - **`FunctionValue` takes three arguments.** It is `(target, index, total)`; upstream's fourth argument, the timeline being resolved in, lives on `Stagger`, and its `prevTween` argument is not ported. Reason: only stagger positions use the timeline argument, and `prevTween` belongs to upstream's WAAPI and draggable code.
 - **Non-numeric strings keep upstream's complex-value path.** A string that is not a number stays a complex value and writes its end string from the first frame; strings are never routed to `DiscreteCodec`. Reason: a string with embedded numbers (`"blur(4px)"`, `"10px 20px"`) interpolates them on that path, and one rule for every string keeps its handling from depending on whether it holds a number.

@@ -46,8 +46,6 @@ When an item is closed, its line is deleted.
 
 ## Undecided deviations from anime.js
 
-- [CORE-VALUES] A complex string's exponent matches one digit, so `"1e10"` splits into `1e1` and `0`, kept from upstream; done when a decision keeps or fixes it.
-- [CORE-INERTIA] The draggable's sampler takes the plain maximum of its window, kept from upstream, while `VelocityTracker.Velocity` takes the largest magnitude; done when a decision keeps or unifies them.
 - [CORE-EASES] [CORE-SCRAMBLE] [CORE-UTILS] [BRIDGE-DRAGGABLE] [BRIDGE-SHAPES] Inherited upstream defaults (marked `(inherited)` in the eases, scramble, utils, draggable and shapes specs) need a keep-or-change decision; done when each spec's Decisions section records one.
 
 ## Stale XML docs

@@ -16,7 +16,7 @@ public static partial class ValueParser
     private static partial Regex UnitsExec();
 
     // Only a single exponent digit is matched, so "1e10" splits into "1e1" and "0".
-    [GeneratedRegex(@"[-+]?\d*\.?\d+(?:e[-+]?\d)?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"[-+]?\d*\.?\d+(?:e[-+]?\d+)?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
     private static partial Regex DigitWithExponent();
 
     [GeneratedRegex(@"\)\s*[-.\d]", RegexOptions.ECMAScript)]

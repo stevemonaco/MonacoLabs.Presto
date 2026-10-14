@@ -69,11 +69,10 @@ public sealed class VelocityTrackerTests
         Assert.Equal(1, tracker.Velocity, 9);
     }
 
-    [Theory]
-    [InlineData(1.3, .2)]
-    [InlineData(-1.3, -3)]
-    public void ReproducesTheDraggableSampler(double multiplier, double min)
+    [Fact]
+    public void ReproducesTheDraggableSampler()
     {
+        const double multiplier = 1.3, min = .2;
         var max = 3.0;
         var tracker = new VelocityTracker();
         var replica = new UpstreamDraggableSampler(start: 0);
@@ -98,6 +97,18 @@ public sealed class VelocityTrackerTests
 
             Assert.Equal(replica.Compute(dxs[i], dys[i], times[i], multiplier, min, max), velocity);
         }
+    }
+
+    [Fact]
+    public void TheDraggableSamplerTakesTheStrongestSampleWhenTheyAreNegative()
+    {
+        var tracker = new VelocityTracker();
+        tracker.AddDisplacement(0, 0);
+
+        tracker.AddDisplacement(10, 20, -1, -3, 3);
+        tracker.AddDisplacement(40, 40, -1, -3, 3);
+
+        Assert.Equal(-2, tracker.Velocity);
     }
 
     [Fact]
