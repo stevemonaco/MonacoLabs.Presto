@@ -172,6 +172,22 @@ public sealed class TimingsTests : EngineTestBase
     }
 
     [Fact]
+    public void IterationSettersStepOverTheLoopDelay()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 1000, Autoplay = false, Loop = 3, LoopDelay = 500 });
+
+        timer.CurrentIteration = 2;
+        Assert.Equal(3000, timer.CurrentTime);
+        Assert.Equal(2, timer.CurrentIteration);
+
+        timer.IterationCurrentTime = 250;
+        Assert.Equal(3250, timer.CurrentTime);
+        timer.IterationProgress = .5;
+        Assert.Equal(3500, timer.CurrentTime);
+        Assert.Equal(2, timer.CurrentIteration);
+    }
+
+    [Fact]
     public void GetAndSetCurrentTimeOnALoopedTimerWithPreDefinedIterations()
     {
         var timer = Presto.CreateTimer(new() { Duration = 1000, Autoplay = false, Loop = 4 });

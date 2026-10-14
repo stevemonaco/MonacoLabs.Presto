@@ -150,8 +150,8 @@ The engine is the root clock: it owns the linked list of running root timers and
   - Tests: `EngineHiddenTests.HidingPausesAndShowingResumesWithoutAJump`, `EngineHiddenTests.ATimerCreatedWhileHiddenWaitsForTheShow`
 - **CORE-ENGINE-039** — When `Hidden` becomes false while `PauseOnHidden` is on, the engine shall `Resume`.
   - Tests: `EngineHiddenTests.HidingPausesAndShowingResumesWithoutAJump`, `EngineHiddenTests.AnAnimationStartedBeforeHidingCompletesAfterShowing`
-- **CORE-ENGINE-040** — When the engine was paused by hand before it was hidden, showing it shall still `Resume` it.
-  - Tests: untested
+- **CORE-ENGINE-040** — When the engine was paused by hand before it was hidden, showing it shall still `Resume` it; a `Freeze` shall survive hiding and showing.
+  - Tests: `EngineHiddenTests.ShowingResumesAManualPauseButNotAFreeze`
 - **CORE-ENGINE-041** — While `Hidden` with `PauseOnHidden` on, `Wake` shall not start the frame source, so a timer created or resumed then waits for the show.
   - Tests: `EngineHiddenTests.ATimerCreatedWhileHiddenWaitsForTheShow`
 - **CORE-ENGINE-042** — While `PauseOnHidden` is off, setting `Hidden` shall not affect playback.
@@ -265,7 +265,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 ## Decisions
 
-- **Hidden pauses the engine.** `PauseOnHidden` defaults to true; the host sets `Hidden`, hiding pauses the engine and showing calls `Resume`. Reason: without it a minimized window keeps the engine ticking at full rate; the core cannot detect visibility, so the host reports it (BRIDGE-INIT). Showing resumes even after a manual pause, which is kept from upstream's `visibilitychange` handler; no other reason recorded.
+- **Hidden pauses the engine.** `PauseOnHidden` defaults to true; the host sets `Hidden`, hiding pauses the engine and showing calls `Resume`. Reason: without it a minimized window keeps the engine ticking at full rate; the core cannot detect visibility, so the host reports it (BRIDGE-INIT). Showing resumes even after a manual pause, as upstream's `visibilitychange` handler does, because `Pause` is soft anyway: any timer played afterwards wakes the frame source (CORE-ENGINE-024); a pause that must outlast backgrounding is `Freeze`, which `Wake` honors. Rejected: resuming only when the hide did the pausing, which would make `Pause` firm in that one case only.
 - **A hidden engine does not pump.** While hidden, `Wake` does not start the frame source, and hiding an idle engine marks it paused so the show's `Resume` rebases timers created while hidden. Reason: upstream's `wake()` restarts the loop while hidden, which costs nothing in a browser that stops frames in hidden tabs, but a minimized desktop window keeps delivering frames at display rate.
 - **Each engine owns its time base, and dilation is separate from `Speed`.** `Now` advances by the frame source's delta times `TimeDilation`, so timers, timeline tick time and `MotionValue` springs and samples all follow it; dilation applies to raw time before the seconds scale, and it is set per engine. Reason: `Speed` is the app's own playback-rate setting and did not reach springs or velocity tracking, so slow motion would have left springs at full speed; velocity sampled in dilated time stays visually consistent. Rejected: a process-wide dilation switch, which would cross threads to reach other engines.
 - **Freeze, Thaw and Step are separate from Pause and Resume.** `Freeze` stops engine time and the frame source, `Thaw` restarts them with no rebase because engine time never moved, and `Step` advances engine time and runs one `Update`, frozen or not; `Freeze` fires no `OnPause`. Reason: engine time was the frame source's wall clock and could not be advanced by one frame, and keeping freeze separate leaves `Pause` (the `Paused` flag, the rebase on `Resume`) and the ported suites that pin it untouched.

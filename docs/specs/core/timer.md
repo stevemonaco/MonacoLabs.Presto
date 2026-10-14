@@ -87,10 +87,10 @@ depends:
   - Tests: `TimingsTests.GetAndSetCurrentTimeOnALoopedTimerWithPreDefinedIterations`
 - **CORE-TIMER-014** — `Progress` shall be `CurrentTime / Duration` rounded to 10 decimals and clamped to `[0, 1]`, and setting it shall seek to `Duration × value`.
   - Tests: `ControlsTests.SeekATimer`
-- **CORE-TIMER-015** — `IterationProgress` and `IterationCurrentTime` shall report the position inside the current iteration, and setting either shall seek within the current iteration, measured as `IterationDuration × CurrentIteration` plus the value.
-  - Tests: `TimingsTests.GetAndSetIterationProgressOnNonLoopedTimer`, `TimingsTests.GetAndSetIterationProgressOnALoopedTimerWithPreDefinedIterations`, `TimingsTests.GetAndSetIterationCurrentTimeOnALoopedTimerWithPreDefinedIterations`
-- **CORE-TIMER-016** — Setting `CurrentIteration` shall clamp it to `[0, IterationCount − 1]` and seek to `IterationDuration ×` that index.
-  - Tests: `TimingsTests.GetAndSetCurrentIterationOnALoopedTimerWithPreDefinedIterations`
+- **CORE-TIMER-015** — `IterationProgress` and `IterationCurrentTime` shall report the position inside the current iteration, and setting either shall seek within the current iteration, measured as `(IterationDuration + LoopDelay) × CurrentIteration` plus the value.
+  - Tests: `TimingsTests.GetAndSetIterationProgressOnNonLoopedTimer`, `TimingsTests.GetAndSetIterationProgressOnALoopedTimerWithPreDefinedIterations`, `TimingsTests.GetAndSetIterationCurrentTimeOnALoopedTimerWithPreDefinedIterations`, `TimingsTests.IterationSettersStepOverTheLoopDelay`
+- **CORE-TIMER-016** — Setting `CurrentIteration` shall clamp it to `[0, IterationCount − 1]` and seek to `(IterationDuration + LoopDelay) ×` that index, the iteration's start.
+  - Tests: `TimingsTests.GetAndSetCurrentIterationOnALoopedTimerWithPreDefinedIterations`, `TimingsTests.IterationSettersStepOverTheLoopDelay`
 - **CORE-TIMER-017** — `IterationTime` shall report the rendered position inside the iteration after `Reversed`, alternation and the playback ease are applied.
   - Tests: `TimingsTests.IterationTimeReflectsPlaybackEaseAndReversed`
 - **CORE-TIMER-018** — When the playhead moves past the delay, `Began` shall become true, and when it returns to the delay or before, `Began` shall become false.
@@ -225,7 +225,6 @@ depends:
 
 ## Edge cases
 
-- `IterationCurrentTime`, `IterationProgress` and `CurrentIteration` setters ignore `LoopDelay` when computing the target time (kept from upstream; untested).
 - `Complete()` on a playing timer fires `OnComplete` and then `OnPause`, because the seek resumes it before `Cancel` pauses it.
 - `Scrub` and `Cancel` on a playing timer fire `OnPause`.
 - An infinite timer's `Progress` is `CurrentTime / 1e12`, effectively 0.
@@ -248,6 +247,8 @@ depends:
 
 ## Provenance
 
+- The iteration setters include `LoopDelay` in their step, where upstream leaves it out (see "The iteration setters step over the loop delay").
+- `Autoplay` takes no scroll observer; `ScrollObserver.Link` stands in for `autoplay: onScroll()` (see "`Autoplay` is a `bool?`; a scroll observer links the timer instead").
 - `Stretch` leaves a root timer's offset unchanged: scaling the creation-time offset lost precision when stretching a setter (see "Stretch keeps a root timer's offset").
 - A repeat `Cancel` leaves composition alone: upstream's double removal corrupted the sibling lists (see CORE-COMPOSITION, "Sibling removal is idempotent").
 - `FrameRate` of zero or less is uncapped, where upstream clamps it to a rate that never renders, because there was otherwise no way to ask for every frame.
@@ -258,6 +259,8 @@ depends:
 
 ## Decisions
 
+- **The iteration setters step over the loop delay.** `CurrentIteration`, `IterationCurrentTime` and `IterationProgress` seek in steps of `IterationDuration + LoopDelay`, the period the renderer counts iterations by. Reason: upstream steps by `IterationDuration` alone, so with a loop delay `CurrentIteration = 2` landed inside an earlier iteration; without one the result is unchanged. Rejected: upstream's step.
+- **`Autoplay` is a `bool?`; a scroll observer links the timer instead.** Upstream's `autoplay: onScroll(...)` is `ScrollObserver.Link(timer)` (BRIDGE-SCROLLOBSERVER), which pauses the timer and ties their lifetimes the same way. Reason: the observer is a bridge type the core cannot name, and `Link` gives the same behavior without a core driver interface and an `Autoplay` union across `TimerParams`, `DefaultsParams` and `PrestoDefaults` that only scroll would use. Rejected: an `ITimerDriver` interface with `Autoplay` accepting a driver.
 - **`tick()` is ported structurally, first.** `Renderer.Tick` keeps the structure of upstream `render.js` `tick()`, and was ported and tested (timings, controls, callbacks, directions) before tweens existed. Reason: it is the subtlest, highest-value part of the timing model, and a structural port lets the upstream suites be ported one-to-one.
 - **`LoopCount` converts from `int` and `bool`.** `Loop = true` is infinite, `false` is 0. Reason: one property then holds both a count and "forever", and `Loop = true` reads as looping without a sentinel number.
 - **Stretch keeps a root timer's offset.** For a root timer `Stretch` leaves the offset alone and rebuilds the tweens' absolute times from scaled local times; timeline children keep upstream's arithmetic. Reason: multiplying the creation-time offset by ~10¹⁴ when stretching from a setter's 1e-11 duration lost precision, so Draggable release tweens started late or never; upstream has the same arithmetic.

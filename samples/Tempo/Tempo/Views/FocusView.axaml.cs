@@ -70,14 +70,6 @@ public partial class FocusView : UserControl
         StartLabel.Text = _viewModel?.StartPauseLabel;
     }
 
-    protected override void OnUnloaded(RoutedEventArgs e)
-    {
-        base.OnUnloaded(e);
-        // A morph whose block detaches pauses for good, leaving its overlay host behind (BACKLOG, BRIDGE-RECIPES).
-        CompleteDigitMorphs();
-        _labelMorph?.Complete();
-    }
-
     // Code-only: MorphGlyphs has no XAML trigger on a binding change (BACKLOG, BRIDGE-RECIPES).
     private void Morph(object? sender, PropertyChangedEventArgs e)
     {

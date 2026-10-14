@@ -41,7 +41,7 @@ public static partial class Recipes
         {
             var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
                 .Add(textBlock, b => b.Opacity(from: 0).Duration(tokens.Short), delay ?? 0);
-            Morphs.AddOrUpdate(textBlock, fade);
+            TrackMorph(textBlock, fade);
             return fade;
         }
 
@@ -79,7 +79,7 @@ public static partial class Recipes
         }
         TimelinePosition withFill = outlines.Count > 0 ? "<<" : delay ?? 0;
         if (others.Count > 0) write.Add(others, b => b.Opacity(1).Duration(tokens.Medium).Ease(tokens.Ease), withFill);
-        Morphs.AddOrUpdate(textBlock, write);
+        TrackMorph(textBlock, write);
         return write;
     }
 
@@ -154,7 +154,7 @@ public static partial class Recipes
         {
             var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
                 .Add(textBlock, b => b.Opacity(0).Duration(tokens.Short).Ease(tokens.Ease), 0);
-            Morphs.AddOrUpdate(textBlock, fade);
+            TrackMorph(textBlock, fade);
             return fade;
         }
 
@@ -179,7 +179,7 @@ public static partial class Recipes
             // A 1 ms tween, not Set: a reversed timeline that ends at 0 leaves a Set at 0 applied.
             .Add(textBlock, b => b.Opacity(0).Duration(1), 0)
             .Add(pieces, Scatter(distance, spin, seed), 0);
-        Morphs.AddOrUpdate(textBlock, shatter);
+        TrackMorph(textBlock, shatter);
         return shatter;
     }
 
@@ -270,6 +270,19 @@ public static partial class Recipes
         return (points, (block.Foreground as ISolidColorBrush)?.Color ?? Colors.Black, spacing);
     }
 
+    // A morph's pieces, ghosts and width hold are released only when it completes, which a paused detached morph never does.
+    private static void TrackMorph(TextBlock textBlock, Timeline morph)
+    {
+        Morphs.AddOrUpdate(textBlock, morph);
+        textBlock.DetachedFromVisualTree -= CompleteMorph;
+        textBlock.DetachedFromVisualTree += CompleteMorph;
+    }
+
+    private static void CompleteMorph(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (Morphs.TryGetValue((TextBlock)sender!, out var running)) running.Complete();
+    }
+
     private static Timeline Crossfade(TextBlock textBlock, string text, MotionTokens tokens)
     {
         var opacity = textBlock.Opacity;
@@ -277,7 +290,7 @@ public static partial class Recipes
             .Add(textBlock, b => b.Opacity(to: 0).Duration(tokens.Short))
             .Call(_ => textBlock.Text = text)
             .Add(textBlock, b => b.Opacity(from: 0, to: opacity).Duration(tokens.Short));
-        Morphs.AddOrUpdate(textBlock, fade);
+        TrackMorph(textBlock, fade);
         return fade;
     }
 
@@ -348,7 +361,7 @@ public static partial class Recipes
                 Dismiss(host, ghosts);
             },
         });
-        Morphs.AddOrUpdate(textBlock, morph);
+        TrackMorph(textBlock, morph);
         return (morph, after, shift);
     }
 

@@ -47,12 +47,12 @@ public readonly struct TimelinePosition
     /// <summary>An absolute time on the timeline, in milliseconds from its start.</summary>
     public static implicit operator TimelinePosition(double value) => new(value);
 
-    /// <summary>The string forms listed on <see cref="TimelinePosition"/>; an unknown label falls back to the end of the timeline.</summary>
+    /// <summary>The string forms listed on <see cref="TimelinePosition"/>; a label the timeline does not have throws <see cref="ArgumentException"/> when the child is added.</summary>
     public static implicit operator TimelinePosition(string value) => new(value);
 
     internal double Parse(Timeline timeline) => _anchor switch
     {
-        Anchor.Label => LabelOrEnd(timeline, (string)_raw!),
+        Anchor.Label => Label(timeline, (string)_raw!),
         Anchor.PreviousEnd => PreviousChildOffset(timeline, start: false),
         Anchor.PreviousStart => PreviousChildOffset(timeline, start: true),
         _ => ParseRaw(timeline),
@@ -61,8 +61,8 @@ public readonly struct TimelinePosition
     private static double TimelineEnd(Timeline timeline) =>
         timeline.IterationDuration == Constants.MinValue ? 0 : timeline.IterationDuration;
 
-    private static double LabelOrEnd(Timeline timeline, string name) =>
-        timeline.Labels.TryGetValue(name, out var labelOffset) ? labelOffset : TimelineEnd(timeline);
+    private static double Label(Timeline timeline, string name) =>
+        timeline.Labels.TryGetValue(name, out var labelOffset) ? labelOffset : throw new ArgumentException($"The timeline has no label '{name}'.");
 
     private double ParseRaw(Timeline timeline)
     {
@@ -74,10 +74,9 @@ public readonly struct TimelinePosition
         if (!double.IsNaN(asNumber)) return asNumber;
 
         var operatorIndex = ValueParser.IndexOfRelativeOperator(text);
-        // Upstream resolves an unknown label before an operator to NaN; the duration fallback matches its bare label branch.
-        var offset = text.StartsWith('<')
-            ? PreviousChildOffset(timeline, start: text.Length > 1 && text[1] == '<')
-            : LabelOrEnd(timeline, operatorIndex < 0 ? text : text[..operatorIndex]);
+        var offset = text.StartsWith('<') ? PreviousChildOffset(timeline, start: text.Length > 1 && text[1] == '<') :
+            operatorIndex == 0 ? TimelineEnd(timeline) :
+            Label(timeline, operatorIndex < 0 ? text : text[..operatorIndex]);
         return operatorIndex < 0
             ? offset
             : ValueParser.GetRelativeValue(offset, JsNumber.ToNumber(text.AsSpan(operatorIndex + 2)), text[operatorIndex]);

@@ -181,6 +181,52 @@ public sealed class SheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AnOpenSheetGetsBackAndEscapeBeforeAnEarlierTopLevelHandler()
+    {
+        var window = new Window { Width = 200, Height = 200 };
+        var appSaw = 0;
+        window.AddHandler(TopLevel.BackRequestedEvent, (_, e) => appSaw++);
+        window.AddHandler(InputElement.KeyDownEvent, (_, e) => appSaw++);
+        var sheet = new Sheet { Detents = SheetDetents.Parse("0,0.5"), Content = new Border() };
+        window.Content = sheet;
+        window.Show();
+        sheet.IsOpen = true;
+
+        window.RaiseEvent(new RoutedEventArgs(TopLevel.BackRequestedEvent));
+        Assert.False(sheet.IsOpen);
+        sheet.IsOpen = true;
+        window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape, Source = window });
+        Assert.False(sheet.IsOpen);
+        Assert.Equal(0, appSaw);
+
+        window.RaiseEvent(new RoutedEventArgs(TopLevel.BackRequestedEvent));
+        Assert.Equal(1, appSaw);
+    }
+
+    [AvaloniaFact]
+    public void EscapeClosesTheMostRecentlyOpenedOverlayFirst()
+    {
+        var sheet = new Sheet { Detents = SheetDetents.Parse("0,0.5"), Content = new Border() };
+        var modal = new Modal { Content = new Border() };
+        var window = new Window { Content = new Panel { Children = { sheet, modal } }, Width = 200, Height = 200 };
+        window.Show();
+        void Escape() => window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape, Source = window });
+
+        modal.IsOpen = true;
+        sheet.IsOpen = true;
+        Escape();
+        Assert.False(sheet.IsOpen);
+        Assert.True(modal.IsOpen);
+
+        sheet.IsOpen = true;
+        modal.IsOpen = false;
+        modal.IsOpen = true;
+        Escape();
+        Assert.False(modal.IsOpen);
+        Assert.True(sheet.IsOpen);
+    }
+
+    [AvaloniaFact]
     public void ItFillsTheOverlayLayer()
     {
         var window = new Window { Width = 200, Height = 200 };

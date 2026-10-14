@@ -76,8 +76,8 @@ depends:
   - Tests: `SheetTests.TheScrimOpacityTracksThePosition`, `GesturesPageTests.PullingTheCurtainHalfwaySinksShrinksAndDimsTheContentWithIt`
 - **BRIDGE-SHEET-014** — The scrim shall take hits only while `IsOpen` is true, and a tap on it shall set `IsOpen` false.
   - Tests: `SheetTests.EscapeBackOrAScrimTapClosesIt`
-- **BRIDGE-SHEET-015** — While the sheet is in a visual tree and open, an Escape key reaching its top level unhandled, or the top level's `BackRequested`, shall close it and mark the event handled; while closed, those events shall pass.
-  - Tests: `SheetTests.EscapeBackOrAScrimTapClosesIt`
+- **BRIDGE-SHEET-015** — While the sheet is in a visual tree, open and the most recently opened overlay on its top level, an Escape key reaching that top level unhandled, or the top level's `BackRequested`, shall close it and mark the event handled before the top level's own handlers run; while closed, those events shall pass.
+  - Tests: `SheetTests.EscapeBackOrAScrimTapClosesIt`, `SheetTests.AnOpenSheetGetsBackAndEscapeBeforeAnEarlierTopLevelHandler`, `SheetTests.EscapeClosesTheMostRecentlyOpenedOverlayFirst`
 
 ### Drag
 
@@ -149,7 +149,7 @@ depends:
 
 ## Threading and lifetime
 
-- UI thread only. The animatable on the panel's axis shorthand is created on first move and reverted on an `Edge` change. Escape and back listeners live on the top level while the sheet is in a visual tree, and move with it.
+- UI thread only. The animatable on the panel's axis shorthand is created on first move and reverted on an `Edge` change. An open sheet is tracked on its top level while in a visual tree, and moves with it.
 
 ## Reduced motion
 
@@ -165,6 +165,7 @@ depends:
 
 ## Decisions
 
+- **The newest open overlay wins Escape and back.** `Dismissal` handles both through class handlers on `TopLevel`, which run before any instance handler there, and closes only the most recently opened `Sheet` or `Modal` still open on that top level. Reason: instance handlers run in subscription order, so an app handler subscribed before the overlay attached (the gallery shell's back navigation) ran first and had to resubscribe on every page load, and of two stacked overlays the first attached closed even when it lay underneath. Escape still reaches focused controls inside the overlay first, as it bubbles; an app can preempt Escape by tunneling. Rejected: fixing only the stacking order; documenting the subscription order.
 - **Sheet is an untemplated control with its own drag.** `Sheet`, with a sealed `Drawer` subclass, is a control that builds its scrim, panel and edge strip as visual children and takes its look from its `Content`; its drag is its own pointer handling, built like `Swipe`'s and started through the gesture arena (BRIDGE-GESTURES). Reason: the scrim and edge strip are siblings an attached property on the panel could only add by reaching into its parent's children; the bridge ships no themes; `Draggable`'s press captures the pointer, so it could never hand a touch scroll to an inner `ScrollViewer`. Rejected: an attached form; a drag built on `Draggable`.
 - **`TimeConstant` on `Sheet`, not a duration.** The settle's speed is set by a `TimeConstant` styled property. Reason: the settle is inertia, so its knob is the inertia's time constant, which keeps the fling physics: a shorter one settles sooner while a fast fling still projects from its release velocity. Rejected: a `Duration`; a shared `Inertia` property, which would expose the internal `ModifyTarget` and bounds.
 

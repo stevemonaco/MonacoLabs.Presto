@@ -72,7 +72,7 @@ public sealed class ScrollObserver : IRevertible
         _parameters = parameters;
 
         var mode = parameters.Sync?.Raw ?? DefaultSync;
-        var ease = mode switch { string name => EaseParser.Parse(name), Ease raw => raw, _ => null };
+        var ease = mode switch { string name => EaseParser.TryParse(name, out var parsed) ? parsed : null, Ease raw => raw, _ => null };
         var isLinear = mode is "linear" || (mode is Ease && ease == Eases.None);
         var isEase = ease != null && (ease != Eases.None || isLinear);
         var isSmooth = mode is double or true || isLinear;

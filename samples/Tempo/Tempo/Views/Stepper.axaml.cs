@@ -45,13 +45,6 @@ public partial class Stepper : UserControl
             ShowValue();
     }
 
-    protected override void OnUnloaded(RoutedEventArgs e)
-    {
-        base.OnUnloaded(e);
-        // A morph whose block detaches pauses for good, leaving its overlay host behind (BACKLOG, BRIDGE-RECIPES).
-        _morph?.Complete();
-    }
-
     private void Step(object? sender, RoutedEventArgs e)
     {
         _stepping = true;

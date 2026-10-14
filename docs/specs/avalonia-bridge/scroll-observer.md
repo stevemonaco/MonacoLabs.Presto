@@ -147,7 +147,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
   - Tests: `ScrollObserverTests.SyncTrueIsASmoothSyncOfOne`, `ScrollObserverTests.SyncLinearIsASmoothSyncOfOne`, `ScrollObserverTests.ASyncedObserverSeeksTheLinkedAnimationToTheScrollProgress`
 - **BRIDGE-SCROLLOBSERVER-040** — When `Sync` is a number below 1, the observer shall move the linked progress each evaluation by `Lerp(.01, .2, smoothing)` of the way to the scroll progress, nudged by .0001 at the ends, and keep the container awake while it converges.
   - Tests: `ScrollObserverTests.SyncANumberIsThatSmoothing`
-- **BRIDGE-SCROLLOBSERVER-041** — When `Sync` is an `Ease` or a string that parses to an ease other than `Eases.None`, the observer shall set `SyncEase`, leave `SyncSmooth` null and seek the linked object to the eased progress.
+- **BRIDGE-SCROLLOBSERVER-041** — When `Sync` is an `Ease` or a string `EaseParser.TryParse` accepts as an ease other than `Eases.None`, the observer shall set `SyncEase`, leave `SyncSmooth` null and seek the linked object to the eased progress.
   - Tests: `ScrollObserverTests.SyncAnEaseNameIsAnEasedSync`
 - **BRIDGE-SCROLLOBSERVER-042** — When `Sync` is `false`, the observer shall report `Sync` false and never drive the linked object.
   - Tests: untested

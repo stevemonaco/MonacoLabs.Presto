@@ -58,8 +58,8 @@ depends:
   - Tests: `UtilsTests.ChainedUtilityFunctions`
 - **CORE-UTILS-007** — `Lerp` shall return exactly `end` when `factor` is 1, exactly `start` when it is 0, and `start + (end - start) * factor` otherwise, without clamping `factor`.
   - Tests: untested
-- **CORE-UTILS-008** — `Damp` shall return `start` when `factor` is 0, `end` when it is 1, and otherwise `Lerp(start, end, 1 - exp(-factor * deltaTime * 0.1))`, with `deltaTime` in milliseconds.
-  - Tests: untested
+- **CORE-UTILS-008** — `Damp` shall return `start` when `factor` is 0, `end` when it is 1, and otherwise `Lerp(start, end, 1 - exp(-factor * deltaTime * 0.1))`, with `deltaTime` in milliseconds; a NaN factor gives NaN.
+  - Tests: `UtilsTests.DampEndsAtZeroAndOneAndPropagatesANaNFactor`
 - **CORE-UTILS-009** — `DegToRad` and `RadToDeg` shall convert by `π / 180` and `180 / π`.
   - Tests: untested
 - **CORE-UTILS-010** — `RoundPad` shall format `v` with exactly `decimals` decimal places in the invariant culture, like JavaScript `toFixed`.
@@ -140,7 +140,6 @@ depends:
 ## Edge cases
 
 - `Wrap` with `min == max` and `MapRange` with `inLow == inHigh` divide by zero and return NaN or an infinity.
-- `Damp` with a NaN factor returns NaN; upstream's `!factor` returns `start`.
 - `Snap(v, [])` returns `v`; upstream's `reduce` throws on an empty array.
 - `KeepTime` reverts the previous timer even when it has completed; reverting restores the targets it wrote (see CORE-ANIMATION).
 
@@ -160,6 +159,7 @@ depends:
 
 ## Provenance
 
+- `Damp` returns NaN for a NaN factor, where upstream's `!factor` returns `start` (see "A NaN damping factor propagates").
 - `padStart`/`padEnd` are omitted; `string.PadLeft`/`PadRight` cover them.
 - `CreateSeededRandom` drops `seededMin`/`seededMax`/`seededDecimalLength`: C# optional arguments must be constants, so the delegate could never default to them.
 - `ChainedUtil` replaces the JavaScript `Proxy` chain, which C# has no counterpart for; there is no value-less `Utils.RoundPad(decimals)` to start a chain with, and `RoundPad` can only end one.
@@ -168,6 +168,7 @@ depends:
 
 ## Decisions
 
+- **A NaN damping factor propagates.** `Damp` tests `factor == 0`, so NaN falls through to the lerp and returns NaN. Reason: a NaN factor is always a caller bug, and NaN in, NaN out is how .NET math reports it, at its source, where upstream's JavaScript truthiness froze the value at `start`. Rejected: upstream's `!factor`.
 None recorded.
 
 ## Non-goals
@@ -176,5 +177,4 @@ None recorded.
 
 ## Open items
 
-- `Wrap`, `Lerp`, `Damp`, `DegToRad`/`RadToDeg`, `RoundPad`, `Random`, `RandomPick`, the unseeded seed counter and the chainable `Lerp`/`Damp` have no direct test.
-- `Damp` treats a NaN factor differently from upstream (`!factor`); no decision records it.
+- `Wrap`, `Lerp`, `DegToRad`/`RadToDeg`, `RoundPad`, `Random`, `RandomPick`, the unseeded seed counter and the chainable `Lerp`/`Damp` have no direct test.

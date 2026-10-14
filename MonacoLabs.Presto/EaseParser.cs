@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace MonacoLabs.Presto;
@@ -10,8 +11,6 @@ namespace MonacoLabs.Presto;
 public static class EaseParser
 {
     private static readonly ConcurrentDictionary<string, Ease> _cache = new();
-
-    private static readonly string[] _deprecated = ["steps(", "irregular(", "linear(", "cubicBezier("];
 
     private static readonly Dictionary<string, Func<EaseArgs, Ease>> _parameterized = new()
     {
@@ -47,6 +46,8 @@ public static class EaseParser
             2 => Eases.SlowMo(a[0], a[1]),
             _ => Eases.SlowMo(a[0], a[1], a.Flag(2)),
         },
+        ["steps"] = a => a.Length switch { 0 => Eases.Steps(), 1 => Eases.Steps((int)a[0]), _ => Eases.Steps((int)a[0], a.Flag(1)) },
+        ["cubicBezier"] = a => a.Length == 4 ? Eases.CubicBezier(a[0], a[1], a[2], a[3]) : throw new FormatException("cubicBezier needs four numbers: x1, y1, x2, y2."),
         ["expoScale"] = a => a.Length < 2
             ? throw new FormatException("expoScale needs a start and an end scale.")
             : Eases.ExpoScale(a[0], a[1], a.Length == 2 ? null : Parse(string.Join(',', a.Tokens[2..]))),
@@ -58,16 +59,31 @@ public static class EaseParser
     /// Resolves an ease name (<c>linear</c>, <c>none</c>, <c>in</c>, <c>outQuad</c>, <c>inOutElastic</c>, ...) or its
     /// <see cref="Eases"/> PascalCase spelling, optionally with arguments in parentheses, to an <see cref="Ease"/>.
     /// <c>fromPath(...)</c> takes SVG path data for <see cref="Eases.FromPath"/>, <c>wiggle(10, anticipate)</c> a
-    /// <see cref="WiggleType"/> name, <c>slowMo(.5, .7, true)</c> a yoyo flag and <c>expoScale(1, 10, outQuad)</c> an ease string.
+    /// <see cref="WiggleType"/> name, <c>slowMo(.5, .7, true)</c> a yoyo flag, <c>expoScale(1, 10, outQuad)</c> an ease string,
+    /// <c>steps(5, true)</c> a count and a from-start flag, and <c>cubicBezier(.17, .67, .83, .67)</c> four control values.
     /// </summary>
     /// <remarks>
-    /// Unknown names and the removed <c>steps(</c>, <c>irregular(</c>, <c>linear(</c> and <c>cubicBezier(</c> forms resolve to
-    /// <see cref="Eases.None"/>. An empty argument list such as <c>"in()"</c> uses the factory
-    /// defaults rather than 0, and arguments on a fixed ease, unparsable arguments or unbalanced parentheses throw
-    /// <see cref="FormatException"/> instead of caching a broken ease. <c>rough</c> and <c>wiggle(n, random)</c> draw from a
+    /// An empty argument list such as <c>"in()"</c> uses the factory defaults rather than 0. Unknown names, <c>irregular(</c>
+    /// and <c>linear(</c> (built in code with <see cref="Eases.Irregular"/> and <see cref="Eases.Linear"/>), arguments on a
+    /// fixed ease, unparsable arguments and unbalanced parentheses throw <see cref="FormatException"/> instead of caching a broken ease. <c>rough</c> and <c>wiggle(n, random)</c> draw from a
     /// <see cref="Random"/> seeded with 1, so a string always parses to the same curve.
     /// </remarks>
     public static Ease Parse(string ease) => _cache.GetOrAdd(ease.Trim(), Create);
+
+    /// <summary>Resolves <paramref name="ease"/> as <see cref="Parse"/> does, returning false where it would throw.</summary>
+    public static bool TryParse(string ease, [NotNullWhen(true)] out Ease? result)
+    {
+        try
+        {
+            result = Parse(ease);
+            return true;
+        }
+        catch (FormatException)
+        {
+            result = null;
+            return false;
+        }
+    }
 
     // Strings parsed while diagnostics were inactive got no name from their factory; the cache key is that name.
     internal static void NameCached()
@@ -77,21 +93,21 @@ public static class EaseParser
 
     private static Ease Create(string input)
     {
-        foreach (var prefix in _deprecated)
-        {
-            if (input.StartsWith(prefix, StringComparison.Ordinal)) return Eases.None;
-        }
-
+        if (input.Length == 0) return Eases.None;
         var open = input.IndexOf('(');
         var name = open < 0 ? input : input[..open].TrimEnd();
         if (name.Length > 0 && char.IsUpper(name[0])) name = char.ToLowerInvariant(name[0]) + name[1..];
         var args = open < 0 ? EaseArgs.Empty : ParseArgs(input, open);
 
+        if (open >= 0 && name is "irregular" or "linear")
+        {
+            throw new FormatException($"Ease \"{name}(...)\" has no string form; build it with Eases.{char.ToUpperInvariant(name[0])}{name[1..]}.");
+        }
         if (Eases.Fixed.TryGetValue(name, out var ease))
         {
             return args.Length == 0 ? ease : throw new FormatException($"Ease \"{name}\" takes no arguments.");
         }
-        return _parameterized.TryGetValue(name, out var factory) ? factory(args) : Eases.None;
+        return _parameterized.TryGetValue(name, out var factory) ? factory(args) : throw new FormatException($"Unknown ease \"{name}\".");
     }
 
     private static EaseArgs ParseArgs(string input, int open)

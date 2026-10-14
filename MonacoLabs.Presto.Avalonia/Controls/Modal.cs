@@ -60,7 +60,7 @@ public sealed class Modal : Control
     {
         _scrim.Bind(Border.BackgroundProperty, this.GetObservable(ScrimProperty));
         _scrim.Tapped += (_, _) => IsOpen = false;
-        Dismissal.Attach(this, () => IsOpen, Close);
+        Dismissal.Attach(this, IsOpenProperty);
         Presence.SetEnterOnShow(_panel, true);
         VisualChildren.Add(_scrim);
         VisualChildren.Add(_panel);

@@ -257,6 +257,7 @@ public sealed class Engine : Clock
     }
 
     /// <summary>Stops the frame source, freezing every timer where it stands.</summary>
+    /// <remarks>A soft pause: a timer played afterwards, or showing a <see cref="Hidden"/> engine, resumes pumping; <see cref="Freeze"/> holds through both.</remarks>
     public Engine Pause()
     {
         AssertThreadAffinity();

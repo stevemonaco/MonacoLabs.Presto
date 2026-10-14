@@ -94,7 +94,7 @@ public class Sheet : Control, IGestureMember
     {
         _scrim.Bind(Border.BackgroundProperty, this.GetObservable(ScrimProperty));
         _scrim.Tapped += (_, _) => IsOpen = false;
-        Dismissal.Attach(this, () => IsOpen, () => IsOpen = false);
+        Dismissal.Attach(this, IsOpenProperty);
         var progress = _position.Map(p => _stops.Length > 1 && _stops[^1] > _stops[0] ? Math.Clamp((p - _stops[0]) / (_stops[^1] - _stops[0]), 0, 1) : 0);
         Follow.Bind(_scrim, OpacityProperty, progress, new FollowParams { Duration = 0, AnimateInitial = true, WhenReduced = Presto.Build().Duration(Recipes.Tokens.Short).Ease(Eases.None) });
         Presence.SetEnterOnShow(_panel, true);

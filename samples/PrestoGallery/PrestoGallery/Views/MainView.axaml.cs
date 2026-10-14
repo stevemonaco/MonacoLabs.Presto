@@ -20,7 +20,6 @@ public partial class MainView : UserControl
     private MainViewModel? _gallery;
     private bool? _compact;
     private CancellationTokenSource? _pushing;
-    private Control? _page;
     private Thickness _wideMargin;
 
     public MainView()
@@ -53,7 +52,6 @@ public partial class MainView : UserControl
         if (_gallery != null) _gallery.PropertyChanged -= GalleryChanged;
         _gallery = DataContext as MainViewModel;
         if (_gallery != null) _gallery.PropertyChanged += GalleryChanged;
-        WatchPage(_gallery?.CurrentPage);
         _compact = null;
         InvalidateMeasure();
     }
@@ -105,7 +103,6 @@ public partial class MainView : UserControl
 
     private void GalleryChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.CurrentPage)) WatchPage(_gallery!.CurrentPage);
         // Going wide from Home opens a page while _compact is still true; the switch itself plays no push.
         if (e.PropertyName != nameof(MainViewModel.AtHome) || _compact != true || !_gallery!.IsCompact) return;
         UpdatePageTransition();
@@ -113,20 +110,6 @@ public partial class MainView : UserControl
         _pushing = new CancellationTokenSource();
         var home = _gallery.AtHome;
         _ = _push.Start(home ? PageLevel : Home, home ? Home : PageLevel, !home, _pushing.Token);
-    }
-
-    private void WatchPage(Control? page)
-    {
-        if (_page != null) _page.Loaded -= ListenForBackLast;
-        _page = page;
-        if (_page != null) _page.Loaded += ListenForBackLast;
-    }
-
-    // Overlays subscribe to the back request as the page attaches, after the shell; Loaded follows their attach.
-    private void ListenForBackLast(object? sender, RoutedEventArgs e)
-    {
-        _top?.RemoveHandler(TopLevel.BackRequestedEvent, HandleBackRequest);
-        _top?.AddHandler(TopLevel.BackRequestedEvent, HandleBackRequest);
     }
 
     // Left unhandled at Home, so the platform can close or background the app.

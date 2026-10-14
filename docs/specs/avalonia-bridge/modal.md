@@ -76,8 +76,8 @@ depends:
   - Tests: `ModalTests.ReopeningMidCloseGrowsBackFromWhereTheCircleStands`
 - **BRIDGE-MODAL-019** — A tap on the scrim shall close the modal; a tap on the content shall not.
   - Tests: `ModalTests.AnOutsideClickClosesItAndAnInsideClickDoesNot`
-- **BRIDGE-MODAL-020** — While the modal is in a visual tree and open, an Escape key reaching its top level unhandled, or the top level's `BackRequested`, shall close it and mark the event handled.
-  - Tests: `ModalTests.EscapeOrBackClosesIt`
+- **BRIDGE-MODAL-020** — While the modal is in a visual tree, open and the most recently opened overlay on its top level, an Escape key reaching that top level unhandled, or the top level's `BackRequested`, shall close it and mark the event handled before the top level's own handlers run.
+  - Tests: `ModalTests.EscapeOrBackClosesIt`, `SheetTests.EscapeClosesTheMostRecentlyOpenedOverlayFirst`
 - **BRIDGE-MODAL-021** — When `Scrim` is null, the scrim shall draw nothing and leave a tap there to the host.
   - Tests: untested
 
@@ -111,7 +111,7 @@ depends:
 
 ## Threading and lifetime
 
-- UI thread only. Escape and back listeners live on the top level while the modal is in a visual tree. The recorded opener is held only while open.
+- UI thread only. An open modal is tracked on its top level while in a visual tree. The recorded opener is held only while open.
 
 ## Reduced motion
 
@@ -127,6 +127,7 @@ depends:
 
 ## Decisions
 
+- **The newest open overlay wins Escape and back.** See BRIDGE-SHEET.
 - **Modal is a control with `Open` methods.** `Modal` exposes `Open(element)`, `Open(point)` and `Close()` over a two-way `IsOpen`. Reason: every page hosts it over a particular view under its own chrome, which a static builder would have to locate and draw above, and the scrim is a sibling of the content, which an attached property could add only by reaching into a parent's children. Rejected: a static `Modal.Open(content, from:)` building an overlay in the window's `OverlayLayer`; an attached `IsOpen` on an overlay control.
 - **The origin is an argument to `Open`.** The reveal origin is passed to each `Open`, not held in a property. Reason: it belongs to one opening.
 - **The motion is fixed by `Recipes.Tokens`.** The reveal, shrink and fades use the token durations and ease, with no builders exposed. Reason: all three pages that hosted a modal wanted the same circle or none.

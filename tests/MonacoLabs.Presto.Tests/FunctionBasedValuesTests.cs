@@ -177,4 +177,28 @@ public sealed class FunctionBasedValuesTests : EngineTestBase
         Assert.All(written, value => Assert.Equal(text[..value.Length], value));
         Assert.Equal(text, target.Text);
     }
+
+    [Fact]
+    public void AFunctionReturningTweenParamsGivesEachTargetItsOwnModifiers()
+    {
+        TextTarget[] counters = [new(), new()];
+        int[] decimals = [0, 2];
+        var animation = Presto.Animate(counters, new()
+        {
+            ["Text"] = new FunctionValue((_, i, _) => new TweenParams
+            {
+                From = 0,
+                To = 10,
+                TextModifier = v => Utils.RoundPad(v, decimals[i]),
+            }),
+            Duration = 100,
+            Ease = Eases.None,
+            Autoplay = false,
+        });
+
+        animation.Seek(50);
+
+        Assert.Equal("5", counters[0].Text);
+        Assert.Equal("5.00", counters[1].Text);
+    }
 }

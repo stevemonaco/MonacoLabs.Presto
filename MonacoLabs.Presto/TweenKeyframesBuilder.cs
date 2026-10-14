@@ -30,7 +30,7 @@ public sealed class TweenKeyframesBuilder
     /// <summary>
     /// Adds a color tween from <paramref name="from"/> to <paramref name="to"/> that follows the <see cref="PrestoColor.Mix"/>
     /// path in <paramref name="space"/>, as <paramref name="segments"/> frames whose eases are slices of the one ease, so the
-    /// timing is exactly that ease's. Unset, segments are halved until the rendered color stays within deltaEOK 0.02 of the
+    /// timing is exactly that ease's. Unset, segments are halved until the rendered color stays within about deltaEOK 0.02 of the
     /// path, up to 16; with per-target ends, duration or ease they are 4, or one per 30° of hue arc (4-24) in <see cref="ColorSpace.Oklch"/>.
     /// </summary>
     /// <remarks>

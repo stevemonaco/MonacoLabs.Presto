@@ -168,6 +168,32 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         Assert.Equal(1, block.Opacity);
     }
 
+    [AvaloniaTheory]
+    [InlineData("MorphGlyphs")]
+    [InlineData("MorphText")]
+    [InlineData("WriteIn")]
+    public void ATextMorphWhoseBlockDetachesMidPlayCompletes(string recipe)
+    {
+        var block = Shown("12");
+        var window = (Window)TopLevel.GetTopLevel(block)!;
+        var overlay = OverlayLayer.GetOverlayLayer(window)!;
+        var before = overlay.Children.Count;
+        var morph = recipe switch
+        {
+            "MorphGlyphs" => Recipes.MorphGlyphs(block, "9"),
+            "MorphText" => Recipes.MorphText(block, "9"),
+            _ => Recipes.WriteIn(block),
+        };
+        Frames.Advance(100, 10);
+
+        window.Content = null;
+
+        Assert.True(morph.Completed);
+        Assert.Equal(before, overlay.Children.Count);
+        Assert.True(double.IsNaN(block.Width));
+        AssertPlain(block, recipe == "WriteIn" ? "12" : "9");
+    }
+
     private static TextBlock Shown(string text)
     {
         var block = new TextBlock { Text = text, FontSize = 40 };

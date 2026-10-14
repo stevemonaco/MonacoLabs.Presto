@@ -103,6 +103,8 @@ internal static class Renderer
                 var forcedRender = forcedTick || (isRunningBackwards ? -deltaTime : deltaTime) >= Globals.TickThreshold;
                 // Rounded to the precision of Tween._absoluteStartTime so equal-time boundary checks compare cleanly.
                 var absoluteTime = Helpers.Round(tickable._offset + (parent?._offset ?? 0) + tickableDelay + iterationTime, 12);
+                // A timeline child past its end clamps absoluteTime there; a later sibling created earlier has already written this frame, so must not be overwritten.
+                var playheadTime = parent != null && isCurrentTimeEqualOrAboveDuration ? Helpers.Round(tickable._offset + parent._offset + time, 12) : absoluteTime;
 
                 var tween = tickable._headTween;
                 while (tween != null)
@@ -139,7 +141,7 @@ internal static class Renderer
                             !tween._isOverridden &&
                             (!tween._isOverlapped || absoluteTime <= tweenAbsEndTime) &&
                             // The next sibling owns the value past its takeover point, the previous one up to its truncated end; explicit from values wait for their own start.
-                            (tweenNextRep == null || tweenNextRep._isOverridden || absoluteTime <= tweenNextRepTakeover) &&
+                            (tweenNextRep == null || tweenNextRep._isOverridden || (tweenNextRep.Parent != tween.Parent && tweenNextRep.Id < tween.Id ? playheadTime : absoluteTime) <= tweenNextRepTakeover) &&
                             (tweenPrevRep == null || tweenPrevRep._isOverridden || (!tweenPrevRepIsCrossParent
                                 ? absoluteTime >= tweenPrevRepEndTime + tween._delay
                                 : absoluteTime >= tween._absoluteStartTime || (!tween._hasFromValue && absoluteTime >= tweenPrevRepEndTime)))

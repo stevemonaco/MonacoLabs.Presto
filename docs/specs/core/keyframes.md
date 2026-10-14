@@ -110,7 +110,7 @@ Keyframes animate a property through a sequence of values instead of straight to
 
 - **CORE-KEYFRAMES-027** — `Color(from, to, space, hue)` shall add frames whose ends lie on `PrestoColor.Mix(from, to, ease(t), space, hue)` and whose eases are slices of the one ease, so the rendered color stays near that path with the ease's exact timing.
   - Tests: `ColorKeyframesTests.TheRenderedColorStaysNearThePath`
-- **CORE-KEYFRAMES-028** — When both ends, the duration and the ease are fixed and `segments` is unset, the builder shall halve the worst segment until every segment is within deltaEOK 0.02 of the path, up to 16 segments.
+- **CORE-KEYFRAMES-028** — When both ends, the duration and the ease are fixed and `segments` is unset, the builder shall halve the worst segment until every segment is within deltaEOK 0.02 of the path at its probes, up to 16 segments; 0.02 is the fitting target, not a bound on the rendered color (see "The path tolerance is a target, not a bound").
   - Tests: `ColorKeyframesTests.FittedSegmentsStayFewOnEasyPathsAndCappedOnHardOnes`
 - **CORE-KEYFRAMES-029** — The segment durations shall add up exactly to the duration.
   - Tests: `ColorKeyframesTests.FittedSegmentsSplitTheDurationExactly`
@@ -153,6 +153,7 @@ Keyframes animate a property through a sequence of values instead of straight to
 ## Edge cases
 
 - A dictionary built by hand may hold offsets above 100% or negative ones; only the builder's `At` checks the range.
+- Between probes a fitted path strays up to about deltaEOK 0.025; a spring on a fully saturated pair (blue to yellow) overshoots out of gamut, where even 16 segments stray up to about 0.07, and per-target colors with fixed segment counts up to about 0.05.
 - A percentage-based form whose only frame for a property is at 0% leaves that property with no segment.
 - `Color` captures `Engine.Current`'s default ease and duration when the builder runs, not when the animation is built, so it ignores a timeline's `Defaults`.
 - A per-target `Color` caches its last resolved target, so interleaving targets within one frame resolves again but stays consistent.
@@ -178,6 +179,7 @@ Keyframes animate a property through a sequence of values instead of straight to
 ## Decisions
 
 - **A color expansion keeps the ease exact.** Each segment ends on `Mix(from, to, E(tᵢ₊₁))` and its ease is the slice of the tween's ease E rescaled to 0–1; a flat slice holds; a spring first resolves to its ease and settling duration. Unset duration and ease are read from `Engine.Current`'s defaults when `Color` is called. Reason: E on every segment would restart the ease each segment, while slicing makes the timing exactly E and approximates only the color between segment ends; each frame carries its own duration and ease, so the animation's defaults would never reach them. Rejected: the tween's ease applied per segment.
+- **The path tolerance is a target, not a bound.** deltaEOK 0.02 drives the fitting; the tests pin 0.025 for ordinary paths and 0.07 for springs on saturated pairs. Reason: a second attempt at meeting 0.02 everywhere did not pay off, and the misses are springs overshooting out of gamut, where the gamut-mapped path itself wavers by about 0.02, and fixed per-target counts; 0.05–0.07 is visible only side by side on those extreme pairs. Rejected: more segments or probes for those cases.
 - **Segments are fitted to the path.** From one segment, the one whose rendered blend strays furthest from the mix (deltaEOK at 7 probes) is halved until all are within 0.02, capped at 16; with per-target ends, duration or ease the count is fixed (4, or one per 30° of arc, 4 to 24, in `Oklch`), and an explicit `segments` gives equal-time segments. Reason: equal-time segments do not converge (hard pairs need 48–64, easy ones 2, at about 5.5 µs and 2.3 KB per segment per animation), while fitting costs 0.01–0.5 ms per builder; per-target values are unknown at build time, so their count must be fixed. Rejected: fixed equal-time counts, which strayed to deltaEOK 0.05–0.19.
 - **Both ends of a color expansion are known at build time.** `from` is required; function-valued ends, duration or ease resolve once per target and are shared by its frames; a `Stagger` delay works, but a `Stagger` end or duration throws. Reason: the expander runs at build time and cannot read the current color, a `Stagger` end yields numbers rather than colors, and a `Stagger` duration cannot be split per segment. Rejected: starting from the current color, which needs a per-tween color space.
 - **Color spaces are a utility, not a per-tween setting.** See CORE-COLORS.

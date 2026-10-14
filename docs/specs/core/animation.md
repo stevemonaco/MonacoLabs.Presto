@@ -93,8 +93,8 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
   - Tests: `FunctionBasedValuesTests.BasicFunctionBasedValues`, `FunctionBasedValuesTests.FunctionBasedStringValuesAreConvertedToNumbers`
 - **CORE-ANIMATION-013** — When a function-based value returns a from/to pair, the tween shall use it as its from and to values.
   - Tests: `FunctionBasedValuesTests.FunctionBasedValuesReturningFromToArrayValues`, `FunctionBasedValuesTests.FunctionBasedValuesInsideFromToArrayValues`
-- **CORE-ANIMATION-014** — When a function-based value returns a `TweenParams` with a `To`, the tween shall take its `To` and its settings as if the property had been declared in object form.
-  - Tests: untested
+- **CORE-ANIMATION-014** — When a function-based value returns a `TweenParams` with a `To`, the tween shall take its `To` and its settings, `Modifier` and `TextModifier` included, as if the property had been declared in object form, so each target can have its own.
+  - Tests: `FunctionBasedValuesTests.AFunctionReturningTweenParamsGivesEachTargetItsOwnModifiers`
 - **CORE-ANIMATION-015** — When a value is a `ChainedFunctionValue`, the animation shall pass it the previous keyframe's tween, or in a timeline the latest sibling tween of the same timeline on that property.
   - Tests: `FunctionBasedValuesTests.ChainedFunctionValuesInKeyframesReadThePreviousKeyframeEndValue`, `FunctionBasedValuesTests.ChainedFunctionValuesOnTimelineChildrenReadThePreviousChildEndValue`
 - **CORE-ANIMATION-016** — When a duration or delay resolves to something that is not a number, the animation shall read it as 0.
@@ -267,6 +267,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ## Decisions
 
+- **Modifiers take a number; per-target modifiers come from a function value.** `Modifier` and `TextModifier` are `Func<double, …>`, as upstream's `modifier` is; a target that needs its own (counters with different precision in one call) gets it from a function-based value returning a `TweenParams` (CORE-ANIMATION-014). Reason: that form already carries every tween setting per target, so a second per-target spelling for the modifiers would duplicate it at the cost of a union on four parameter types. Rejected: a `(target, index, total)` form of `Modifier`/`TextModifier`.
 - **Upstream's linked lists are kept, and tweens hang off the timer.** Engine children, timeline children and tweens use upstream's intrusive linked lists, and the tween list lives on `Timer`. Reason: an intrusive list links and unlinks in O(1) and ticks without allocating, and keeping upstream's structure lets its regression suites port one-to-one; on `Timer`, the renderer and the additive animation work on any timer.
 - **Params are init-only records with a key indexer.** `AnimationParams` mixes property tweens (through its `PropertyKey` indexer, CORE-TARGETS) and settings in one initializer, and a derived params type can add a typed indexer; `TweenParams` is a sealed class. Reason: records let `Timeline.Set` override with `with`, and indexer initializers are the only C# syntax that mixes typed members and arbitrary keys in one initializer, mirroring the JS object literal. Rejected: a collection-initializer `Add` design, which cannot mix with settings.
 - **Function values receive the group's target list.** Reason: it lets `Stagger` resolve auto-grids from the targets.

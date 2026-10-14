@@ -238,7 +238,7 @@ public class Timer : Clock, IRevertible
     public double IterationCurrentTime
     {
         get => Helpers.Clamp(Helpers.Round(_iterationTime, Globals.Precision), 0, IterationDuration);
-        set => CurrentTime = (IterationDuration * _currentIteration) + value;
+        set => CurrentTime = IterationPeriod * _currentIteration + value;
     }
 
     /// <summary>The rendered position inside the current iteration, after <see cref="Reversed"/>, alternation and the playback ease are applied.</summary>
@@ -258,19 +258,17 @@ public class Timer : Clock, IRevertible
     public double IterationProgress
     {
         get => Helpers.Clamp(Helpers.Round(_iterationTime / IterationDuration, 10), 0, 1);
-        set
-        {
-            var iterationDuration = IterationDuration;
-            CurrentTime = (iterationDuration * _currentIteration) + (iterationDuration * value);
-        }
+        set => CurrentTime = IterationPeriod * _currentIteration + IterationDuration * value;
     }
 
     /// <summary>Zero based index of the iteration being played; setting it seeks to the start of that iteration.</summary>
     public int CurrentIteration
     {
         get => _currentIteration;
-        set => CurrentTime = IterationDuration * Helpers.Clamp(value, 0, IterationCount - 1);
+        set => CurrentTime = IterationPeriod * Helpers.Clamp(value, 0, IterationCount - 1);
     }
+
+    private double IterationPeriod => IterationDuration + _loopDelay;
 
     /// <summary>Whether the playhead runs towards 0; setting it calls <see cref="Reverse"/> or <see cref="Play"/>, so it also resumes the timer.</summary>
     public bool Reversed
