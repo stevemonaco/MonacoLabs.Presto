@@ -33,13 +33,13 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 ### Construction
 
-- **CORE-SPRING-001** — A spring constructed without arguments shall have mass 1, stiffness 100, damping 10, velocity 0, bounce 0.5 and duration 628.
-  - Tests: `EaseFixtureTests.SpringMatchesUpstream`
+- **CORE-SPRING-001** — A spring constructed without arguments shall have mass 1, stiffness 100, damping 10, velocity 0, bounce 0.5 and duration 628 times the time scale (628 ms, or 0.628 s in seconds mode).
+  - Tests: `EaseFixtureTests.SpringMatchesUpstream`, `SpringTests.TheDefaultDurationFollowsTheTimeUnit`
 - **CORE-SPRING-002** — The constructor shall clamp mass to [1, 10000], stiffness and damping to [1e-11, 10000], velocity to [−10000, 10000], bounce to [−1, 1] and duration to [10, 10000] times the time scale.
   - Tests: `SpringTests.SpringParametersMustBeClampedAt10000`, `SpringTests.SpringVelocityCanBeNegative`
 - **CORE-SPRING-003** — When `bounce` or `duration` is given, the constructor shall derive stiffness and damping from them and set mass to 1 and velocity to 0, whatever physical arguments were passed.
   - Tests: `EaseFixtureTests.SpringMatchesUpstream`
-- **CORE-SPRING-004** — When only physical arguments are given, the constructor shall leave `Bounce` at 0.5 and `Duration` at 628 rather than derive them.
+- **CORE-SPRING-004** — When only physical arguments are given, the constructor shall leave `Bounce` at 0.5 and `Duration` at its default (CORE-SPRING-001) rather than derive them.
   - Tests: `EaseFixtureTests.SpringMatchesUpstream`
 - **CORE-SPRING-005** — `Eases.Spring(...)` shall return a new spring constructed from the same arguments.
   - Tests: `SpringTests.SpringEaseParametersAffectSettlingDuration`
@@ -115,7 +115,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - **CORE-SPRING-033** — A spring shall read the process-wide time scale (CORE-ENGINE) when it computes, so switching the time unit later does not rescale existing springs.
   - Tests: untested
 - **CORE-SPRING-034** — In seconds mode, `Duration` shall be read and derived in seconds.
-  - Tests: untested
+  - Tests: `SpringTests.TheDefaultDurationFollowsTheTimeUnit`, `SpringTests.PresetsKeepTheirPerceivedDurationInSecondsMode`
 
 ### Presets
 
@@ -139,7 +139,6 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 - `bounce: 1` derives damping 0 after rounding: the spring never settles and `SettlingDuration` is 60000 ms.
 - `bounce: -1` divides by zero; the infinite damping clamps to 300.
-- In seconds mode the default `Duration` of 628 clamps to 10 s, so a physically configured spring's `OnComplete` threshold lies past its `SettlingDuration` and never fires; and a spring given only `bounce` derives from a 10 s duration.
 - `Ease` and `PureEase` do not clamp t; past 1 they keep solving the curve.
 - Passing physical arguments with `bounce` or `duration` silently discards the physical ones.
 
@@ -165,13 +164,14 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - Parameters are nullable constructor arguments instead of a params object; `OnComplete` may be null instead of `noop`.
 - The deprecated `createSpring()` is not ported.
 - `Springs` has no upstream: anime.js names no spring presets.
+- The default perceived duration is scaled by the time unit, where upstream leaves 628 unscaled in seconds mode (see "Preset and default durations follow the time unit").
 
 ## Decisions
 
 - **No core velocity API for an ease; `DampingRatio` is public.** Callers that need the ease's velocity compute it numerically from `PureEase`. Reason: no core API until a use shows it is generally useful.
 - **Preserved velocity is measured from the running ease.** See CORE-ANIMATABLE.
 - **Spring presets live in the core, fresh per read.** `Springs` is a static class in `MonacoLabs.Presto`, each read returning a new `Spring`; `Eases.Spring` stays the way to build a custom one. Reason: a preset is just a `Spring`, a core type, and a `Spring` carries completion state, so it cannot be shared. Replaces BRIDGE-EASES's `Spring presets live in the bridge, fresh per read`, whose reasons (completion state, use from XAML) did not depend on where the class lives.
-- **Preset durations follow the time unit; the default 628 does not.** A preset names a perceived duration in milliseconds and converts it on each read, so `Springs.Gentle` feels the same in seconds mode instead of clamping to 10 s. Reason: an unscaled preset made the default `Timer.Settle` crawl in seconds mode. The default 628 stays unscaled, kept from upstream; no other reason recorded (see Open items).
+- **Preset and default durations follow the time unit.** A preset names a perceived duration in milliseconds and converts it on each read, so `Springs.Gentle` feels the same in seconds mode instead of clamping to 10 s, and the default 628 is scaled the same way, to 0.628 s. Reason: an unscaled preset made the default `Timer.Settle` crawl in seconds mode, and the unscaled default clamped to 10 s, so a physically configured spring's `OnComplete` never fired and a bounce-only spring derived from a 10 s duration. Rejected: upstream's unscaled 628.
 
 ## Non-goals
 
@@ -181,7 +181,6 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 ## Open items
 
-- In seconds mode, a physically configured spring's `OnComplete` never fires and a bounce-only spring derives from a 10 s duration, because the default perceived duration 628 is not scaled (kept from upstream).
 - The two-way derivation is meant to keep physical and designer settings in step, but setting `Mass` or `Velocity` leaves `Bounce` and `Duration` stale, and setting `Bounce` or `Duration` silently resets `Mass` and `Velocity` (kept from upstream; the XML docs mention neither).
-- `Duration` and `Bounce` of a spring built from physical arguments stay at 628 and 0.5, not the values its parameters imply.
+- `Duration` and `Bounce` of a spring built from physical arguments stay at their defaults (628 ms and 0.5), not the values its parameters imply.
 - Untested: the stiffness/damping → bounce/duration derivation (009, 010), the natural-frequency clamp (014), `PureEase` leaving completion alone (028), `Parent` assignment by an animation (030), and time-unit behavior beyond `SettlingDuration` (033, 034).

@@ -171,6 +171,18 @@ public sealed class SpringTests : EngineTestBase
     }
 
     [Fact]
+    public void TheDefaultDurationFollowsTheTimeUnit()
+    {
+        var bounceOnly = new Spring(bounce: .4);
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+
+        Assert.Equal(.628, new Spring().Duration, 12);
+        var inSeconds = new Spring(bounce: .4);
+        Assert.Equal(bounceOnly.Stiffness, inSeconds.Stiffness, 3);
+        Assert.Equal(bounceOnly.SettlingDuration / 1000, inSeconds.SettlingDuration, 3);
+    }
+
+    [Fact]
     public void PresetsHaveTheirBounceAndDurationAndAreNewOnEachRead()
     {
         Assert.Equal((0, 500), (Springs.Gentle.Bounce, Springs.Gentle.Duration));

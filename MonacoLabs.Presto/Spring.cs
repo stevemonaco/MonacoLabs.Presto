@@ -45,7 +45,7 @@ public sealed class Spring
         Action<Timer?>? onComplete = null)
     {
         _bounce = Helpers.Clamp(bounce ?? .5, -1, 1);
-        _perceivedDuration = Helpers.Clamp(duration ?? 628, 10 * Globals.TimeScale, MaxSpringParamValue * Globals.TimeScale);
+        _perceivedDuration = Helpers.Clamp(duration ?? 628 * Globals.TimeScale, 10 * Globals.TimeScale, MaxSpringParamValue * Globals.TimeScale);
         _mass = Helpers.Clamp(mass ?? 1, 1, MaxSpringParamValue);
         _stiffness = Helpers.Clamp(stiffness ?? 100, Constants.MinValue, MaxSpringParamValue);
         _damping = Helpers.Clamp(damping ?? 10, Constants.MinValue, MaxSpringParamValue);
