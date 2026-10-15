@@ -518,6 +518,8 @@ public sealed class ScrollObserver : IRevertible
         _snapFrom = scroll;
         _snapTo = to;
         _snapTween!.Restart();
+        var defaults = _snapTween.Engine.Defaults;
+        if (defaults.ReducedMotion || defaults.ReduceAll) _snapTween.Complete();
     }
 
     private void WriteSnap(double value) => ScrollWriter.Of(Container!.Scroller).Write(this, Horizontal, value);

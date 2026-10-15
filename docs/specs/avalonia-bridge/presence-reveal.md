@@ -170,6 +170,5 @@ depends:
 
 ## Open items
 
-- The XML docs of `GetReveal`/`SetReveal` still describe only the list path ("when a list realizes it scrolled into view").
 - The manual wheel, touchpad and thumb-drag check of the Activity feed on Desktop is still pending.
 - BRIDGE-REVEAL-014, -020, -023 and -030 have no test.

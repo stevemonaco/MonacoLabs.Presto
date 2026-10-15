@@ -212,6 +212,5 @@ depends:
 
 ## Open items
 
-- `Scope.Defaults`' XML doc says the scope holds "a copy of its engine's" defaults, but without `ScopeParams.Defaults` it shares the engine's instance (kept from upstream); the code wins, the doc is wrong.
 - Clearing `Methods`/`Data` on revert, once-list routing after `AddOnce`/`KeepTime`, `Refresh` leaving the once-lists alone, `AddOnce` cleanups, nested `Execute` and reuse after `Revert` have no test.
 - A timeline without `Defaults` reads live engine defaults per child while one with `Defaults` snapshots them; unpinned.

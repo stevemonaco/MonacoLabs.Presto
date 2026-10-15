@@ -37,6 +37,9 @@ internal sealed class DrawAccessor : IPropertyAccessor
         state.Restore(shape);
     }
 
+    /// <summary>Where the drawn slice ends: 1 for a shape whose dashes Presto has not written.</summary>
+    internal static double End(Shape shape) => s_states.TryGetValue(shape, out var state) ? state.Values[1] : 1;
+
     internal static void Apply(Shape shape, double start, double end)
     {
         var state = State(shape);

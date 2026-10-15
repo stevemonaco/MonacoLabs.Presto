@@ -56,7 +56,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 
 - **LOTTIE-PLAYBACK-001** (inherited) — The composition shall read `Width`, `Height`, `FrameRate`, `InPoint` and `OutPoint` from the top-level `w`, `h`, `fr`, `ip` and `op`, and report `Size` as `Width` by `Height` and `Duration` as `(OutPoint - InPoint) / FrameRate * 1000` milliseconds.
   - Tests: `LottieCompositionTests.MetadataComesFromTheTopLevelFields`
-- **LOTTIE-PLAYBACK-002** (inherited) — When the input is not JSON, Skottie cannot build an animation from it, or any of `w`, `h`, `fr`, `ip`, `op` is missing or not a number, the factory shall throw `FormatException`.
+- **LOTTIE-PLAYBACK-002** — When the input is not JSON, Skottie cannot build an animation from it, any of `w`, `h`, `fr`, `ip`, `op` is missing or not a number, or `fr` is not above 0, the factory shall throw `FormatException`, so `Duration` is always finite.
   - Tests: `LottieCompositionTests.InvalidInputThrowsFormatException`
 - **LOTTIE-PLAYBACK-003** (inherited) — When `FromStream` reads JSON that starts with a UTF-8 byte order mark, the composition shall drop the mark before parsing.
   - Tests: `LottieCompositionTests.LoadsAFileUriOrPathWithAByteOrderMark`
@@ -143,8 +143,10 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
   - Tests: `LottieSegmentTests.StartingAnotherPlayReplacesTheFirst`
 - **LOTTIE-PLAYBACK-037** (inherited) — When the composition has no marker of the given name (or there is no composition), `Play(marker)` and `PlayOnRenderThread(segment)` shall throw `ArgumentException` listing the composition's marker names.
   - Tests: `LottieSegmentTests.AnUnknownMarkerThrowsNamingTheMarkers`
-- **LOTTIE-PLAYBACK-038** (inherited) — When the composition's `FrameRate` is not positive or `Composition` is null, a play's duration shall be 0.
+- **LOTTIE-PLAYBACK-038** (inherited) — When `Composition` is null, a play's duration shall be 0.
   - Tests: untested
+- **LOTTIE-PLAYBACK-070** — When `speed` is not above 0 (NaN included), `Play`, `Play(marker)`, `PlaySegment`, `PlayOnRenderThread` and both `PlayLottie` recipes shall throw `ArgumentOutOfRangeException` before looking up a segment; the recipes throw when built, not per target.
+  - Tests: `LottieSegmentTests.ANonPositiveSpeedThrowsFromEveryPlayMethod`, `LottieRecipeTests.ANonPositiveSpeedThrowsWhenTheRecipeIsBuilt`
 
 ### Recipe and markup
 
@@ -231,8 +233,6 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 
 - `Frame` set before `Composition` is not clamped; setting the composition then resets it to `InPoint`.
 - With no composition, or with `OutPoint == InPoint`, a `Frame` write does not update `Progress`, and a `Progress` write sets `Frame` to `InPoint` (0 without a composition).
-- `FrameRate` 0 in the JSON is accepted: `Duration` is then infinite or NaN, while play durations are 0 (LOTTIE-PLAYBACK-038).
-- `speed` is not validated: 0 gives an infinite play duration and a negative value a negative one.
 - A marker without `cm` gets the name `""`, not null; a marker without `tm` starts at 0. A marker's `tm + dr` is not clamped to `OutPoint`; the view's coercion clamps the frame drawn.
 - `PlaySegment` does not clamp `from`/`to`; out-of-range values are clamped by `Frame` coercion as the tween writes them.
 - The first scene the render-thread visual receives only sets where a queued play starts; it does not stop that play.
@@ -267,6 +267,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **Render-thread playback is opt-in.** `LottieView.RenderThread` plays through a `CompositionCustomVisual` on its own engine with the same frame tween as `Play`, so loop, speed and reduced motion match; it does not write `Frame` back, writing `Frame` or `Composition` stops it, and a play request replays on attach. Reason: for spinners that must survive UI-thread stalls, as `CompositorScene` offers.
 - **`SkiaSharp.Skottie` is pinned to Avalonia's SkiaSharp.** It is pinned to the exact SkiaSharp version Avalonia resolves, re-checked on every `AvaloniaVersion` bump. Reason: Skottie P/Invokes into that same `libSkiaSharp`.
 - **No per-layer recoloring, expressions, or text and effects beyond Skottie.** Reason: Skottie's property observers are not in SkiaSharp's public API, and Skottie does not run expressions.
+- **Lottie speed is rejected, not clamped.** `speed` not above 0 throws `ArgumentOutOfRangeException`, unlike `Engine.Speed`, which clamps. Reason: it is a method argument, not a live property, so a bad value is a caller bug; a negative speed would otherwise read as "reverse", which `reverse` already says.
 - **Filters live on an `Image`-compatible base control.** See BRIDGE-IMAGE.
 - **Browser's blocked-UI-thread limitation is documented, not worked around.** See BRIDGE-THREAD.
 
@@ -280,9 +281,5 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 ## Open items
 
 - Manual: the Lottie page has not been driven in the Browser head (Phase 44).
-- `LottieSegment`'s doc says `Name` is null for an unnamed range, but a marker with no `cm` yields `""`; only `Play()`'s whole-composition range has a null name.
-- `PlayLottieExtension`'s doc says it "has no exit form", but `RecipeExtension.Out` and `Presence.Exit` still accept it and play the forward recipe; nothing pins that.
-- `speed <= 0` is not validated in `Play`, `PlaySegment`, `PlayOnRenderThread` or the recipe; an infinite or negative duration results.
 - Reduced motion is pinned only through the recipe; nothing tests it for `Play`/`PlaySegment` or for render-thread playback, which Render-thread playback is opt-in says matches.
 - Render-thread playback ignores DevTools freeze and dilation; not tested either way.
-- `FrameRate` 0 makes `LottieComposition.Duration` infinite/NaN while play durations are 0; no test.

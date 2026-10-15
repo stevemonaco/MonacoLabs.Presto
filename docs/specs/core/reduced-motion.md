@@ -128,6 +128,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 ## Reduced motion
 
 - This spec is the core's reduced-motion rule set.
+- An `Animatable` builds its animations without the `ReduceAll` collapse and applies the flag on each retarget instead (CORE-ANIMATABLE, "An animatable honors `ReduceAll` on every retarget").
 
 ## Allocation
 
@@ -154,5 +155,4 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 
 ## Open items
 
-- `Animatable` builds its property animations through `Presto.Animate` at construction, so `ReduceAll` collapses them; what that does to later `Animatable.Set` calls is unpinned (CORE-ANIMATABLE).
 - Spring collapse, nested `WhenReduced`, `Priority` override, `Set` under either flag, and flag changes not touching live animations have no test.

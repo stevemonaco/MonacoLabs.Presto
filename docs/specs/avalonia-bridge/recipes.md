@@ -93,7 +93,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `RecipeTests.StaggerDelaysEachElementOfABatchByTheTokenStep`
 - **BRIDGE-RECIPES-006** — The intensity-taking recipes shall multiply their change from rest by `intensity` (default 1).
   - Tests: `RecipeTests.IntensityScalesTheTravel`, `RecipeTests.ReorderLiftGrowsOverARaisedShadowWithTheTokenTimingReadAtCallTime`
-- **BRIDGE-RECIPES-007** — Every recipe in this spec that animates shall carry a `WhenReduced` alternative, picked by `ToParams` while `PrestoDefaults.ReducedMotion` is set (CORE-REDUCED), except `PageBloom`'s exit and the stateful text recipes, which read the flag themselves.
+- **BRIDGE-RECIPES-007** — Every recipe in this spec that animates shall carry a `WhenReduced` alternative, picked by `ToParams` while `PrestoDefaults.ReducedMotion` is set (CORE-REDUCED), except the stateful text recipes, which read the flag themselves.
   - Tests: `RecipeTests.EachReducedFormOnlyFades`, `RecipeTests.EachReducedFormDropsTravelAndScaleAndOnlyLoadingLoops`
 - **BRIDGE-RECIPES-008** — Recipes that blur, filter, mask, clip, draw a shadow or rotate in 3D (`BlurIn`, `BlurOut`, `FlipIn`, `FlipOut`, `Develop`, `FlashTint`, `Lift`, `ReorderLift`, `Glow`, `Colorize`, `Shimmer`, the reveals, `WordBlur`/`WordBlurOut`, `LineWipe`/`LineWipeOut`) shall be rejected by `AnimateOnCompositor` with `NotSupportedException`; every other entrance, exit, attention, loop, interaction and loading recipe shall run on both the UI thread and the compositor.
   - Tests: `RecipeTests.EachRecipeRunsOnTheUIThreadAndOnTheCompositorUnlessDocumentedOtherwise`, `RevealTests.TheCompositorRejectsTheShorthandsOnlyTheBridgeRenders`
@@ -215,8 +215,8 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `RecipeTests.ReducedMotionPlaysEachPageRecipesShortCrossfade`
 - **BRIDGE-RECIPES-051** — `PageBloom` shall reveal the incoming page with `IncomingAbove` stacking in a `ClipCircle` over `Long` with `InOutQuart`, from the last pointer press in its window, or the host's center when a key was pressed since; the bloom that starts spends the press.
   - Tests: `PageBloomTests.TheClipGrowsFromThePressedPoint`, `PageBloomTests.TheKeyboardOriginIsTheCenter`, `PageBloomTests.ThePressIsSpentByTheBloomItStarted`
-- **BRIDGE-RECIPES-052** — `PageBloom`'s exit shall finish the outgoing page's circle to 1 over `Short`, so interrupted blooms never stack, and both directions shall bloom.
-  - Tests: `PageBloomTests.RapidNavigationLeavesNoStackedLayers`
+- **BRIDGE-RECIPES-052** — `PageBloom`'s exit shall finish the outgoing page's circle to 1 over `Short`, so interrupted blooms never stack, and both directions shall bloom; reduced, the exit shall set `ClipCircle` to 1 at once.
+  - Tests: `PageBloomTests.RapidNavigationLeavesNoStackedLayers`, `PageBloomTests.ReducedFinishesAnInterruptedBloomAtOnce`
 - **BRIDGE-RECIPES-053** — When a bloom begins and `ReducedMotion` is clear, the children of the incoming page's first `Panel` shall rise from `Y = Distance` and fade in over `Medium`, staggered by `StaggerStep` from the center, starting at 65% of `Long`; reduced, the page shall fade in over `Short` and the children shall not move.
   - Tests: `PageBloomTests.TheNewPagesChildrenRiseInFromTheCenterAt65Percent`, `PageBloomTests.ReducedFadesTheNewPageInWithNoBloom`
 
@@ -360,6 +360,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **Page recipes are transform and opacity only.** They live in `Prebuilt.Pages` and return a new transition reading the tokens when called. Reason: so they run on the compositor.
 - **Page recipe shapes.** `PageFadeThrough` spends 30% of its duration on the exit, delays the enter by as much, and plays the same pair going back; `PageSharedAxis` exits over `Short`, enters over `Medium` and ignores `distance` along Z; `PagePush` dims the outgoing page to 0.6. Reason: fade-through stages the same way both ways; shared-axis timing matches the entrance and exit families.
 - **`PageBloom` is a page recipe whose origin is the last press.** It returns a `PrestoPageTransition` (a `ClipCircle` reveal, `IncomingAbove`); a tunneling `TopLevel` handler records the last press per window, a key press clears it and the bloom that uses it spends it; its tiles are the first `Panel`'s children. Reason: it inherits the take-over and revert rules of the page recipes, and a transition is handed only the two hosts. Rejected: a transition type of its own; a colored disk over the old page.
+- **`PageBloom`'s reduced exit lands at once.** Its `WhenReduced` sets `ClipCircle` to 1 with zero duration. Reason: the exit only finishes an interrupted circle, and a growing circle is the motion reduced motion opts out of; the incoming page's fade is the whole reduced transition. Rejected: keeping the exit exempt from BRIDGE-RECIPES-007.
 - **`PopoverIn` predicts the facing edge from the placement.** It reads `Popup.Placement`, flipped by measured fit; a `Center` placement does not slide. Reason: nothing reports a constraint flip, and at open the placed rects do not exist yet.
 - **Random recipes are seeded.** `Scatter`, `Gather` and `Fall` take an optional `seed`; with one, the target at each index draws from a fixed position of that seed's stream, so the values do not depend on how often the builder was played, and without one they draw from the shared generator. `X` and `Y` are drawn independently, so `Scatter` fills a square. Reason: reproducible tests, and a replay that looks the same. Rejected: one generator consumed across plays, which would give a second play new values.
 - **`Wave` steps by index, not by line.** Reason: it is a loop recipe used on any batch, and on a split line the index is reading order. A multi-line wave can chain `.Delay(TextSplitter.StaggerByLine(…))`.
@@ -394,9 +395,6 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 ## Open items
 
-- `Interactions.PressIn`'s summary says it shrinks to 0.96, but the full form also dims `Opacity` to 0.8 (the "kept" part is applied to both forms); code wins.
-- `Loading`'s remarks say each iteration lasts twice `Long`, but `Spinner` defaults to one `Long`.
-- `PageBloom`'s exit (`ClipCircle` to 1 over `Short`) has no `WhenReduced` alternative, contrary to the rule that every recipe supplies a reduced form (Every recipe carries its own reduced form).
 - `PageSharedAxis` takes no duration: its sides are fixed at `Medium` and `Short`, unlike `PageFade`/`PageFadeThrough`.
 - The recorded decision that entrances and exits are compositor-safe named only `BlurIn`/`BlurOut`/`FlipIn`/`FlipOut` as exceptions; `Develop` is UI-thread-only too, and the decision below includes it.
 - At body size (the 14 px Save label on the Desktop Micro-interactions page), `MorphGlyphs`' unpaired letters collapsing into their slot centers draw as dark one-pixel specks for their last frames instead of fading out in the label's color.

@@ -44,6 +44,28 @@ public sealed class ScrollSnapTests : BridgeTestBase
         Assert.Equal(175, scroller.Offset.Y);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AReducedSnapJumpsToItsStepOnceSettledAndLetsTheEngineIdle(bool reduceAll)
+    {
+        if (reduceAll) Presto.Defaults.ReduceAll = true;
+        else Presto.Defaults.ReducedMotion = true;
+        var (_, scroller, target, _) = ScrollStage.Show();
+        Observe(new ScrollObserverParams { Target = target, Snap = .25 });
+
+        ScrollStage.ScrollTo(scroller, 160);
+        Frames.Advance(100, 16);
+        Assert.Equal(160, scroller.Offset.Y);
+
+        Frames.Advance(100, 16);
+        Assert.Equal(175, scroller.Offset.Y);
+
+        Frames.Advance(1000, 16);
+        Assert.False(Presto.Engine.IsRunning);
+        Assert.Equal(175, scroller.Offset.Y);
+    }
+
     [AvaloniaFact]
     public void TheSnapWaitsWhileAPointerIsPressedOnTheScroller()
     {

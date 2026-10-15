@@ -68,6 +68,9 @@ public sealed class LottieCompositionTests
     [InlineData("not json")]
     [InlineData("{}")]
     [InlineData("""{"w":"wide","h":10,"fr":30,"ip":0,"op":10,"layers":[]}""")]
+    [InlineData("""{"w":10,"h":10,"ip":0,"op":10,"layers":[]}""")]
+    [InlineData("""{"w":10,"h":10,"fr":0,"ip":0,"op":10,"layers":[]}""")]
+    [InlineData("""{"w":10,"h":10,"fr":-30,"ip":0,"op":10,"layers":[]}""")]
     public void InvalidInputThrowsFormatException(string json) =>
         Assert.Throws<FormatException>(() => LottieComposition.FromJson(json));
 }

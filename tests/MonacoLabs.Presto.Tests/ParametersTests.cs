@@ -62,6 +62,29 @@ public sealed class ParametersTests : EngineTestBase
         Assert.True(timer.Completed);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void EngineSpeedBelowMinValueClampsAndKeepsTimersFinite(double speed)
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(40);
+        var before = timer.CurrentTime;
+
+        Presto.Engine.Speed = speed;
+        Assert.Equal(Constants.MinValue, Presto.Engine.Speed);
+        Frames.Advance(16);
+        Frames.Advance(16);
+
+        Assert.True(double.IsFinite(timer.CurrentTime));
+        Assert.InRange(timer.CurrentTime, before, before + 1);
+
+        Presto.Engine.Speed = 1;
+        var paused = timer.CurrentTime;
+        Frames.Advance(16);
+        Assert.Equal(paused + 16, timer.CurrentTime, 6);
+    }
+
     [Fact]
     public void EngineFpsThrottlesUpdates()
     {

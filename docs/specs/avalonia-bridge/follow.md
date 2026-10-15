@@ -138,20 +138,20 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 - **BRIDGE-FOLLOW-033** — `Follow.X/Y/Scale/ScaleX/ScaleY/Rotate/Blur` shall ease the visual's render-transform shorthand or blur radius to each numeric value with the visual's `Follow.Timing`, landing exactly.
   - Tests: `FollowTests.XRotateScaleAndBlurAnimateToTheirBoundValuesAndLandExactly`
-- **BRIDGE-FOLLOW-034** — A shorthand's first value shall snap; a shorthand has no `AnimateInitial`.
-  - Tests: `FollowTests.TheFirstValueSnapsAndAUnitStringConverts`
+- **BRIDGE-FOLLOW-034** — A shorthand's first value shall snap, unless the visual's `Follow.AnimateInitial` is set, in which case it shall ease from the value the shorthand shows (its identity, a followed or animated value, or for `Draw` 1 when Presto has not written the dashes).
+  - Tests: `FollowTests.TheFirstValueSnapsAndAUnitStringConverts`, `FollowTests.AnimateInitialEasesTheFirstValueFromTheShownOne`
 - **BRIDGE-FOLLOW-035** (inherited) — When a shorthand gets a string, it shall parse it with `ValueParser`: `Rotate` converts any angle unit (`deg`, `rad`, `turn`…) to degrees, other shorthands accept a bare number or `px`.
   - Tests: `FollowTests.TheFirstValueSnapsAndAUnitStringConverts`
 - **BRIDGE-FOLLOW-036** (inherited) — When a shorthand's value cannot be converted to a number (a non-numeric string, a unit other than `px` outside `Rotate`), the shorthand shall release its followed layer while the attached property keeps the value.
   - Tests: untested
-- **BRIDGE-FOLLOW-037** (inherited) — When `Follow.Timing` changes, the new timing shall apply to every shorthand of the visual from its next value on, not to a motion in flight.
-  - Tests: `FollowTests.TimingIsHonoredAndAChangeTakesEffectFromTheNextValue`
+- **BRIDGE-FOLLOW-037** (inherited) — When `Follow.Timing`, `Follow.WhenReduced` or `Follow.AnimateInitial` changes, the new options shall apply to every shorthand of the visual from its next value on, not to a motion in flight.
+  - Tests: `FollowTests.TimingIsHonoredAndAChangeTakesEffectFromTheNextValue`, `FollowTests.WhenReducedGivesTheTimingUnderReducedMotionFromTheNextValue`, `FollowTests.AnimateInitialEasesTheFirstValueFromTheShownOne`
 - **BRIDGE-FOLLOW-038** — The followed value of a transform or blur shorthand shall be a base layer: an animation of the same shorthand starts from it, overrides it while it holds it, and reverting the animation shows the latest followed value.
   - Tests: `FollowTests.AnAnimationOfTheSameShorthandLayersOverTheFollowAndRevertsToIt`, `FollowTests.AnAnimatedBlurLayersOverTheFollowedBlurAndRevertsToIt`, `MotionValueSinkTests.AnXAnimationOverridesTheFollowedValueAndRevertsToTheLatestOne`
 - **BRIDGE-FOLLOW-039** — When a shorthand is set to `null` or cleared, it shall stop following and the shorthand shall return to identity, restoring the visual's own `RenderTransform` and `Effect` once nothing else holds them.
   - Tests: `FollowTests.ClearingRestoresTheIdentityAndTheVisualsOwnRenderTransform`
-- **BRIDGE-FOLLOW-040** — While `ReducedMotion` is set, a shorthand's numeric values shall snap.
-  - Tests: `FollowTests.ReducedMotionSnaps`
+- **BRIDGE-FOLLOW-040** — While `ReducedMotion` is set, a shorthand's numeric values shall snap, unless the visual's `Follow.WhenReduced` is set, in which case they shall ease with that builder's duration and ease.
+  - Tests: `FollowTests.ReducedMotionSnaps`, `FollowTests.WhenReducedGivesTheTimingUnderReducedMotionFromTheNextValue`
 - **BRIDGE-FOLLOW-041** — When a shorthand's value is caused by a `DataContext` change, it shall snap.
   - Tests: `FollowTests.ADataContextSwapSnaps`
 - **BRIDGE-FOLLOW-042** — When a shorthand gets a `MotionValue`, it shall write the current value at once and then each flushed value, ignoring `Follow.Timing` and reduced motion.
@@ -241,7 +241,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 ## Reduced motion
 
-- Followers snap every value unless `WhenReduced` gives a timing (`Follow.*` shorthands have no `WhenReduced`, so they always snap).
+- Followers snap every value unless `WhenReduced` gives a timing (`Follow.WhenReduced` for the `Follow.*` shorthands).
 - Motion value writes are not affected: a graph states its own smoothing; a zero-duration `Follow.Bind`/`{presto:Follow}` over a motion value eases only when `WhenReduced` is given.
 
 ## Allocation
@@ -272,6 +272,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **The spring text grammar belongs to Follow.** A preset name or `"bounce,duration"` is parsed privately by `FollowTiming` for `FollowParams.Spring` (and `{presto:Follow Spring=…}`). Reason: it exists for XAML, and the core keeps no spring string syntax (CORE-SPRING). Rejected: a public `Springs.Parse`, or extending `EaseParser` (no use outside Follow).
 - **One name, `Follow`, and `Follow.Bind` is a static method.** Reason: one name for the whole feature, and XAML resolves `{presto:Follow}` to `FollowExtension` before the `Follow` class; an extension method named `Bind` would lose to `AvaloniaObject.Bind`. Rejected: the earlier `Animated` naming.
 - **Shorthands are followed through attached properties, as a base layer.** `Follow.X`…`Follow.Blur` plus `Follow.Timing`; an animation of the same shorthand overrides the followed value while it holds it, then the latest followed value shows again. Reason: the shorthands are not Avalonia properties, so an extension cannot sit on them; the layering mirrors `Animation` priority over a `LocalValue` binding, and without it reverting an animation reset the shorthand to identity.
+- **The shorthands get attached `WhenReduced` and `AnimateInitial`.** `Follow.WhenReduced` and `Follow.AnimateInitial` sit beside `Follow.Timing` and reach each shorthand follower as the matching `FollowParams`; a first value with `AnimateInitial` eases from what the shorthand shows. Reason: mirrors `FollowExtension`, so both XAML forms take the same options. Rejected: reading the reduced form from the `Timing` builder's own `WhenReduced`, because an `AnimationBuilder` reduced form modifies the main one while `FollowParams.WhenReduced` is a whole timing.
 - **A motion value fed to a shorthand ignores `Follow.Timing`.** `Follow.Bind` is the one sink that takes options, and `{presto:Follow}` smooths unless `Duration=0`. Reason: a graph already states its smoothing; easing on top would lag a scroll- or drag-locked value and double-smooth a sprung one, while `Follow.Bind` is called with a value explicitly and can say so.
 - **`Follow.Draw` follows one number.** The drawn share from the start, written as a `"Draw"` tween writes it. Reason: every `Follow` shorthand is one double, and every value-bound draw in the sample starts at 0; `RotateX`/`RotateY` stay out because they need `Perspective` beside them. Rejected: a start/end pair.
 - **The core owns the cell, the bridge owns the sources.** See CORE-MOTIONVALUE.
@@ -298,7 +299,6 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 - The planned API lists `FollowExtension.Ease` as `EaseValue?`; the code takes a `string?` parsed with `EaseParser`.
 - The `Follow` XML remarks say a value that "arrives while detached" snaps, but a visual or target that has never been attached is not treated as detached, so a second value before the first attach eases.
-- `Follow.*` shorthands cannot opt into `AnimateInitial` or `WhenReduced`; `Follow.Timing` is their only option.
 - A non-numeric shorthand string (`"50%"`) silently releases the followed layer while the attached property keeps the string; untested.
 - Untested: `NotSupportedException` for a non-numeric builder duration (BRIDGE-FOLLOW-004), reduced-motion toggles between values (013), `Follow.Bind<T>` ignoring `DataContext` (021), zero-duration motion sinks under `WhenReduced` (029), shorthand detach/reattach (044), `ValueOf` conversion failure (052).
 - The derived-values plan lists a "timer" bridge source; it is the core `Timer.ProgressValue` (CORE-MOTIONVALUE), not a bridge type.

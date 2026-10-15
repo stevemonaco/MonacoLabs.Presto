@@ -134,6 +134,8 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
   - Tests: `EasesTests.StepsFromStart`
 - **CORE-EASES-033** — `Steps` shall clamp its input to [0, 1].
   - Tests: `EasesTests.StepsClampsOutOfRangeInput`
+- **CORE-EASES-077** — When `steps` is below 1, `Steps` shall throw `ArgumentOutOfRangeException`.
+  - Tests: `EasesTests.StepsBelowOneThrows`
 - **CORE-EASES-034** — `Irregular(length, randomness)` shall be a `Linear` ease through `length` stops, 0 first and 1 last, each interior stop drawn from its segment, mixed with the even spacing by `randomness` and clamped to [previous stop, 1], so it never decreases.
   - Tests: `EasesTests.IrregularStartsAtZeroEndsAtOneAndNeverDecreases`
 - **CORE-EASES-035** — When `randomness` is 0, or `length` is 2 or less, `Irregular` shall be the identity curve.
@@ -244,7 +246,6 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 
 ## Edge cases
 
-- `Steps(0)` or a negative step count returns NaN or meaningless values; nothing is validated.
 - Power eases with a fractional power return NaN for t < 0.
 - `Linear` stop positions are not validated or sorted; two stops at the same position, or positions out of order, give an ease that jumps or divides by zero.
 - A `Linear` ease with one stop is that value everywhere.
@@ -273,6 +274,7 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - `Irregular`, `Wiggle` and `Rough` take an optional `Random`; upstream's `irregular` uses `Math.random`.
 - `FromPath`, `Wiggle`, `Rough`, `SlowMo` and `ExpoScale` have no upstream; they follow GSAP's CustomEase, CustomWiggle and EasePack, because anime.js offers no path, wiggle, rough, slow-mo or expo-scale ease.
 - `TryGetName` and the name registry have no upstream counterpart.
+- `Steps` throws for a count below 1; upstream returns NaN.
 - A chained ease (upstream passes the previous sibling tween into ease resolution) is not ported, because `FunctionValue` takes three arguments (see Decisions).
 
 ## Decisions
@@ -286,12 +288,10 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 
 ## Non-goals
 
-- No validation of curve arguments beyond what upstream and GSAP do.
+- No validation of curve arguments beyond what upstream and GSAP do, except `Steps`' count (077).
 - No `Q`, `S`, `T`, `A` or `Z` path commands in `FromPath`.
 - No string syntax for `Steps`, `Linear`, `Irregular` or `CubicBezier` (CORE-EASEPARSER).
 
 ## Open items
 
-- `FromPath`'s XML doc says the path is normalized to end at (1, 1), but a flat path (equal start and end y) ends at 0.
-- `Steps` accepts 0 and negative step counts and returns NaN; untested and unvalidated.
 - Untested: `Elastic` argument clamping (008), `Linear` endpoint positions, negative t and stop copying (023, 025, 026), `FromPath` flat and too-short paths (043, 045), `Wiggle`/`Rough` argument errors (050, 056), `RoughTaper` scaling (053), `SlowMo` ratio clamping (058), and `EaseValue` string, function and default resolution (064–066).

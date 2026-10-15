@@ -74,6 +74,25 @@ public sealed class EaseParserTests
     }
 
     [Theory]
+    [InlineData("steps(0)")]
+    [InlineData("steps(-1)")]
+    [InlineData("steps(0.5, true)")]
+    [InlineData("steps(NaN)")]
+    public void ParsedStepsBelowOneIsAFormatError(string ease)
+    {
+        Assert.Throws<FormatException>(() => EaseParser.Parse(ease));
+        Assert.False(EaseParser.TryParse(ease, out var result));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void NullEaseStringThrowsArgumentNull()
+    {
+        Assert.Throws<ArgumentNullException>(() => EaseParser.Parse(null!));
+        Assert.Throws<ArgumentNullException>(() => EaseParser.TryParse(null!, out _));
+    }
+
+    [Theory]
     [InlineData("inQuad(2)")]
     [InlineData("in(abc)")]
     [InlineData("in(2")]

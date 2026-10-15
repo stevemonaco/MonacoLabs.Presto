@@ -2,7 +2,7 @@ using MonacoLabs.Presto.Lottie.Prebuilt;
 
 namespace MonacoLabs.Presto.Lottie;
 
-/// <summary><c>{presto:PlayLottie}</c>: <see cref="LottieRecipes.PlayLottie"/>, which has no exit form. <see cref="RecipeExtension.Duration"/> and <see cref="RecipeExtension.Ease"/> override the frame timing when set.</summary>
+/// <summary><c>{presto:PlayLottie}</c>: <see cref="LottieRecipes.PlayLottie"/>, which has no exit form, so an exit slot plays it forward. <see cref="RecipeExtension.Duration"/> and <see cref="RecipeExtension.Ease"/> override the frame timing when set.</summary>
 public sealed class PlayLottieExtension : RecipeExtension
 {
     /// <summary>The marker to play, or the whole composition when unset.</summary>

@@ -10,36 +10,9 @@ Each line was traced in code (2026-10).
 
 - [BRIDGE-RECIPES] Unverified since BRIDGE-RECIPES-096 (20b8d54 completes a text morph whose block detaches): a `MorphGlyphs` started in a native popup as its content moved away left the block split and blank; Tempo's `Stepper` still morphs only on a step. Done when the morph completes on Windows with the `Stepper` gate removed, plus a headless test of a morph started as its block leaves a second `Window` (headless has no native popups); delete if both pass.
 
-## Missing validation
-
-- [CORE-EASES] `Eases.Steps` accepts 0 or negative step counts and returns NaN; done when it throws `ArgumentOutOfRangeException`.
-- [LOTTIE-PLAYBACK] `speed <= 0` in `Play`, `PlaySegment`, `PlayOnRenderThread` and the recipe, and a composition with `"fr": 0`, produce infinite, negative or NaN durations; done when both are rejected.
-- [CORE-PARTICLES] Particle lifetime 0, a negative `dt` and a negative `MaxParticles` are not validated; done when each throws.
-- [CORE-ENGINE] `Engine.Speed` is not clamped, unlike `Clock.Speed`, so 0 or a negative speed produces infinite or NaN start times; done when it is clamped or rejected.
-- [CORE-PRESTO] Null inputs to `EaseParser.Parse` and the `Presto` methods throw `NullReferenceException`; done when they throw `ArgumentNullException`.
-
-## Reduced-motion gaps
-
-- [BRIDGE-SCROLLOBSERVER] The `ScrollObserver` snap's 400 ms ease ignores `ReducedMotion`; done when it has a stated reduced form.
-- [BRIDGE-FOLLOW] The `Follow.*` shorthands cannot opt into `WhenReduced` (or `AnimateInitial`); `Follow.Timing` is their only option; done when they state and honor a reduced form.
-- [BRIDGE-RECIPES] `PageBloom`'s exit (`ClipCircle` to 1 over `Short`) has no `WhenReduced` alternative; done when it has one.
-- [CORE-ANIMATABLE] Under `ReduceAll`, `Animatable.Set` with a duration, momentum retargets and `Fling` animate rather than snap, and the callbacks animation completes on its first frame; done when animatables honor `ReduceAll` on every retarget, with tests.
-
 ## Undecided deviations from anime.js
 
 - [CORE-EASES] [CORE-SCRAMBLE] [CORE-UTILS] [BRIDGE-DRAGGABLE] [BRIDGE-SHAPES] Inherited upstream defaults (marked `(inherited)` in the eases, scramble, utils, draggable and shapes specs) need a keep-or-change decision; done when each spec's Decisions section records one.
-
-## Stale XML docs
-
-- [BRIDGE-DRAGGABLE] `DraggableParams.OnDrag` says it runs "on the first movement past DragThreshold"; it runs on every move after the threshold.
-- [CORE-SCOPE] `Scope.Defaults` says it is "a copy of its engine's" defaults; without `ScopeParams.Defaults` it shares the engine's instance.
-- [LOTTIE-PLAYBACK] `LottieSegment.Name` says it is null for an unnamed range; a marker with no `cm` yields `""`.
-- [LOTTIE-PLAYBACK] `PlayLottieExtension` says it "has no exit form", but `Presence.Exit` accepts it and plays the forward recipe; fix the doc or reject it there.
-- [CORE-EASES] `Eases.FromPath` says the path is normalized to end at (1, 1); a flat path ends at 0.
-- [BRIDGE-RECIPES] `Interactions.PressIn`'s summary says it shrinks to 0.96; the full form also dims `Opacity` to 0.8.
-- [BRIDGE-RECIPES] `Recipes.Loading`'s remarks say each iteration lasts twice `Long`; `Spinner` defaults to one `Long`.
-- [BRIDGE-TOKENS] `MotionTokens.ColorSpace` says it is "the space color states interpolate in"; only `Recolor` reads it.
-- [BRIDGE-REVEAL] `Presence.GetReveal`/`SetReveal` describe only the list path; `Reveal` also works outside an item container.
 
 ## Manual and platform checks
 
@@ -190,12 +163,12 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-HELPERS](specs/avalonia-bridge/control-helpers.md): 1 untested requirement, plus no test that every shorthand has a typed builder method.
 - [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 7 untested requirements, plus two arms on one container being undecided.
 - [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 6 untested requirements, plus the scaled-away child's hit-testing, a static `Distort` requesting frames, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
-- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus the stale `OnDrag` doc, two draggables claiming one target, and `Reset` writing 0 outside the container.
+- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus two draggables claiming one target, and `Reset` writing 0 outside the container.
 - [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement.
 - [BRIDGE-GESTURES](specs/avalonia-bridge/gesture-arbitration.md): the by-hand touch and pen checks on Tempo and the Gestures page.
 - [BRIDGE-EFFECTS](specs/avalonia-bridge/effects.md): 7 untested requirements.
 - [BRIDGE-FLIP](specs/avalonia-bridge/flip-card.md): 4 untested requirements, plus `Motion` cloning the whole builder unvalidated and an `Orientation` change while flipped leaving the old axis turned.
-- [BRIDGE-FOLLOW](specs/avalonia-bridge/follow.md): 8 untested requirements, plus never-attached targets easing, shorthands lacking `AnimateInitial`/`WhenReduced`, and a non-numeric shorthand string silently releasing the layer.
+- [BRIDGE-FOLLOW](specs/avalonia-bridge/follow.md): 8 untested requirements, plus never-attached targets easing and a non-numeric shorthand string silently releasing the layer.
 - [BRIDGE-GLYPHS](specs/avalonia-bridge/glyph-outlines.md): 1 untested requirement, plus the missing-glyph case of BRIDGE-GLYPHS-004.
 - [BRIDGE-IMAGE](specs/avalonia-bridge/image-effects.md): 19 untested requirements, plus the resize-at-start question, `ImageTransition.Parse` accepting numeric kinds, a `Source` change mid-transition retargeting silently, and Browser/Android smoke runs.
 - [BRIDGE-INIT](specs/avalonia-bridge/initialization.md): 3 untested requirements.
@@ -203,23 +176,23 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-MARKUP](specs/avalonia-bridge/markup-extensions.md): 6 untested requirements, plus no XAML way to set `Lift`'s distance or `Glow`'s color, and entrance-only extensions silently accepted on `Presence.Exit`.
 - [BRIDGE-MODAL](specs/avalonia-bridge/modal.md): 9 untested requirements, plus `Open` while open ignoring its new origin and a replaced `Backdrop` staying blurred.
 - [BRIDGE-MOTION](specs/avalonia-bridge/motion-states.md): 12 untested requirements, plus the `Leave` per-property `Delay` mismatch, returns not resuming a lower state's loop, a function `Delay` dropped under orchestration, late rest-less-property errors, and `Motion.Add` running in design mode.
-- [BRIDGE-TOKENS](specs/avalonia-bridge/motion-tokens.md): 2 untested requirements, plus the stale `ColorSpace` doc.
+- [BRIDGE-TOKENS](specs/avalonia-bridge/motion-tokens.md): 2 untested requirements.
 - [BRIDGE-PAGES](specs/avalonia-bridge/page-transitions.md): 4 untested requirements.
 - [BRIDGE-PAGER](specs/avalonia-bridge/pager.md): 19 untested requirements.
 - [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 13 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, a capped formation losing its bottom rows' right end, single-color formations, and the manual Particle type Browser frame-rate check.
 - [BRIDGE-POPOVER](specs/avalonia-bridge/popovers.md): 5 untested requirements, plus builders on a plain popup's child doing nothing.
 - [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 5 untested requirements, plus `AnimateExit` ghosting hidden or transparent controls.
-- [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 5 untested requirements, plus the stale `GetReveal`/`SetReveal` docs and the manual Activity feed check.
+- [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 5 untested requirements, plus the manual Activity feed check.
 - [BRIDGE-PRESENCE](specs/avalonia-bridge/presence.md): 10 untested requirements, plus a partial builder change leaving the arrival playing.
 - [BRIDGE-RIPPLE](specs/avalonia-bridge/press-ripple.md): 6 untested requirements, plus the Browser/Android measurement.
 - [BRIDGE-SUBMIT](specs/avalonia-bridge/progress-and-submit.md): 15 untested requirements, plus no guard against overlapping `Run` calls.
 - [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 3 untested requirements.
 - [BRIDGE-PULL](specs/avalonia-bridge/pull-to-refresh.md): 13 untested requirements, plus a faulted `Refresh` task rethrowing onto the UI thread, undocumented.
 - [BRIDGE-RECIPES-MEDIA](specs/avalonia-bridge/recipes-media.md): 6 untested requirements.
-- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus the stale `PressIn` and `Loading` docs, `PageBloom`'s exit lacking `WhenReduced`, `PageSharedAxis` taking no duration, `Develop` missing from the UI-thread-only list, dark specks from `MorphGlyphs` at body size, `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, and `WriteIn`/`Shatter` not re-seekable in a timeline.
+- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus `PageSharedAxis` taking no duration, `Develop` missing from the UI-thread-only list, dark specks from `MorphGlyphs` at body size, `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, and `WriteIn`/`Shatter` not re-seekable in a timeline.
 - [BRIDGE-REDUCED](specs/avalonia-bridge/reduced-motion.md): 0 untested requirements, plus the follower capturing `Engine.Current`.
 - [BRIDGE-REORDER](specs/avalonia-bridge/reorder.md): 10 untested requirements, plus a refused step re-raising `Moving` on every move and a spacing typo in `ReorderList.Raise`.
-- [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 11 untested requirements, plus the snap's missing velocity check and reduced form, and the missing-target exception thrown from a tick.
+- [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 11 untested requirements, plus the snap's missing velocity check, and the missing-target exception thrown from a tick.
 - [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 11 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
 - [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 17 untested requirements, plus the stale `Motion` doc, `X`/`Y`/`Scale` silently ignored in `Motion`, and a late `NotSupportedException`.
 - [BRIDGE-SHAPES](specs/avalonia-bridge/shapes.md): 10 untested requirements.
@@ -242,16 +215,16 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [CORE-COMPOSITION](specs/core/composition.md): 3 untested requirements.
 - [CORE-DIAGNOSTICS](specs/core/diagnostics.md): 4 untested requirements, plus untagged animatable property animations.
 - [CORE-EASEPARSER](specs/core/ease-parser.md): 6 untested requirements, plus the case-sensitive deprecated-prefix check, `Parse(null)`, and an unbounded cache.
-- [CORE-EASES](specs/core/eases.md): 20 untested requirements, plus the stale `FromPath` doc and unvalidated `Steps`.
-- [CORE-ENGINE](specs/core/engine.md): 23 untested requirements, plus `TimeUnit` settable on any engine and the unclamped `Speed`.
+- [CORE-EASES](specs/core/eases.md): 20 untested requirements.
+- [CORE-ENGINE](specs/core/engine.md): 21 untested requirements, plus `TimeUnit` settable on any engine.
 - [CORE-INERTIA](specs/core/inertia.md): 7 untested requirements, plus the unscaled 60000 decay cap in seconds mode, `ModifyTarget` within `RestDelta`, and unvalidated `interval`, `Friction` and `Min <= Max`.
 - [CORE-KEYFRAMES](specs/core/keyframes.md): 7 untested requirements, plus percentage keyframes dropping per-frame settings.
 - [CORE-MOTIONPATH](specs/core/motion-path.md): 5 untested requirements.
 - [CORE-MOTIONVALUE](specs/core/motion-values.md): 6 untested requirements, plus no thread-affinity check on `Set`.
-- [CORE-PARTICLES](specs/core/particles.md): 15 untested requirements, plus the null-seed counter differing from the decision text and unvalidated lifetime, `dt` and `MaxParticles`.
-- [CORE-PRESTO](specs/core/presto.md): 12 untested requirements, plus `Set` raising no timer-created hook, `Get` not canonicalizing names, and null arguments throwing `NullReferenceException`.
-- [CORE-REDUCED](specs/core/reduced-motion.md): 8 untested requirements, plus `Animatable` under `ReduceAll`.
-- [CORE-SCOPE](specs/core/scope-and-defaults.md): 21 untested requirements, plus the stale `Scope.Defaults` doc and timeline defaults snapshotted versus read live.
+- [CORE-PARTICLES](specs/core/particles.md): 15 untested requirements, plus the null-seed counter differing from the decision text.
+- [CORE-PRESTO](specs/core/presto.md): 12 untested requirements, plus `Set` raising no timer-created hook and `Get` not canonicalizing names.
+- [CORE-REDUCED](specs/core/reduced-motion.md): 8 untested requirements.
+- [CORE-SCOPE](specs/core/scope-and-defaults.md): 21 untested requirements, plus timeline defaults snapshotted versus read live.
 - [CORE-SCRAMBLE](specs/core/scramble.md): 18 untested requirements.
 - [CORE-SPRING](specs/core/spring.md): 8 untested requirements, plus seconds-mode spring durations and physical and designer settings not updating each other.
 - [CORE-STAGGER](specs/core/stagger.md): 2 untested requirements, plus the cached start offset on reuse.
@@ -262,4 +235,4 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [CORE-UTILS](specs/core/utils.md): 18 untested requirements, plus the `Damp` NaN deviation.
 - [CORE-VALUES](specs/core/values.md): 5 untested requirements, plus `Refresh` skipping reconciliation and the implicit `PrestoColor` conversion's rounding.
 - [DEVTOOLS-OVERLAY](specs/devtools/overlay.md): 21 untested requirements, plus the manual Desktop checks, per-frame tween snapshots, and closing the overlay leaving `CaptureCreationTrace` on and root speeds changed.
-- [LOTTIE-PLAYBACK](specs/lottie/lottie.md): 12 untested requirements, plus the stale `LottieSegment.Name` and `PlayLottieExtension` docs, unvalidated `speed` and `FrameRate`, reduced-motion and DevTools coverage of render-thread playback, and a Browser run.
+- [LOTTIE-PLAYBACK](specs/lottie/lottie.md): 12 untested requirements, plus reduced-motion and DevTools coverage of render-thread playback, and a Browser run.

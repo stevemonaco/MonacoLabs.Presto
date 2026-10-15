@@ -163,8 +163,9 @@ depends:
 
 - **CORE-PRESTO-045** — The facade shall accept null `targets` everywhere it takes them, treating them as no targets.
   - Tests: `TargetsTests.AnimatingNullHasNoTargets`, `UtilsTargetsTests.UndefinedTargetsHaveNothingToGetOrRemove`
-- **CORE-PRESTO-046** (inherited) — The facade shall not validate its non-nullable arguments: a null `AnimationParams`, `AnimatableParams` or builder action surfaces as a `NullReferenceException` from the constructor or delegate call.
-  - Tests: untested
+- ~~**CORE-PRESTO-046**~~ — Removed: null non-nullable arguments are now rejected where they enter (CORE-PRESTO-055).
+- **CORE-PRESTO-055** — When a non-nullable reference argument of a `Presto` method is null, the method shall throw `ArgumentNullException` naming it; nullable parameters keep accepting null.
+  - Tests: `TargetsTests.AnimateRejectsNullParamsAndBuilder`, `TargetsTests.SetRejectsNullParamsAndBuilder`, `TargetsTests.CreateAnimatableRejectsNullParams`, `TargetsTests.GetRejectsANullUnit`, `TargetsTests.GetAnimationsRejectsANullTarget`
 
 ### Defaults
 
@@ -211,7 +212,7 @@ depends:
 
 ## Reduced motion
 
-- `Animate`, `CreateTimeline` children and `Animatable` animations follow CORE-REDUCED. `Set` is exempt from `ReduceAll` (it is instant already) but resolves a `WhenReduced` form while `ReducedMotion` is set. `CreateTimer` is unaffected.
+- `Animate` and `CreateTimeline` children follow CORE-REDUCED; an `Animatable` applies `ReduceAll` on each retarget instead (CORE-ANIMATABLE-055). `Set` is exempt from `ReduceAll` (it is instant already) but resolves a `WhenReduced` form while `ReducedMotion` is set. `CreateTimer` is unaffected.
 
 ## Allocation
 
@@ -223,7 +224,7 @@ depends:
 - `Get` with a unit converts only angle units; other units are adopted (no DOM to measure against).
 - `Remove` also tells registered adapters so they can stop work they drive outside the engine; upstream has the WAAPI-specific equivalent.
 - `GetAnimations` has no upstream counterpart; it omits paused animations once released (see "`GetAnimations` omits paused animations").
-- `Set` with null parameters is not a no-op, unlike upstream's `set(targets)`; the parameters are required.
+- `Set` with null parameters throws `ArgumentNullException` rather than being a no-op like upstream's `set(targets)`; the parameters are required.
 
 ## Decisions
 
@@ -243,5 +244,4 @@ depends:
 
 - `Presto.Set` raises no timer-created hook, so diagnostics never list a `Set` animation; unpinned either way.
 - `Get` does not canonicalize the property name while `Remove` and `GetAnimations` do; harmless for adapters whose `Resolve` accepts every spelling, unpinned otherwise.
-- Null non-nullable arguments throw `NullReferenceException` rather than `ArgumentNullException`.
 - `CreateMotionValue`, `CreateAnimatable`'s missing hook, `Set`'s forced duration and `Composition.Overlap` default, and `Get(…, withUnit: true)` have no direct test; nor do `Delay`'s registration disposal and asynchronous continuations.

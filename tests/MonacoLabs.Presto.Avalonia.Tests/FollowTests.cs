@@ -166,6 +166,40 @@ public sealed class FollowTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void WhenReducedGivesTheTimingUnderReducedMotionFromTheNextValue()
+    {
+        Presto.Engine.Defaults.ReducedMotion = true;
+        var border = Shown();
+        Follow.SetX(border, 0);
+        Follow.SetX(border, 100);
+        Assert.Equal(100, Part<TranslateTransform>(border).X);
+
+        Follow.SetWhenReduced(border, Presto.Build().Duration(100).Ease("linear"));
+        Follow.SetX(border, 0);
+        Frames.Advance(48, 16);
+        Assert.InRange(Part<TranslateTransform>(border).X, 30, 70);
+        Frames.Advance(64, 16);
+        Assert.Equal(0, Part<TranslateTransform>(border).X);
+    }
+
+    [AvaloniaFact]
+    public void AnimateInitialEasesTheFirstValueFromTheShownOne()
+    {
+        var border = Shown();
+        Follow.SetX(border, 40);
+        Assert.Equal(40, Part<TranslateTransform>(border).X);
+
+        Follow.SetAnimateInitial(border, true);
+        Follow.SetRotate(border, 90);
+        Follow.SetScale(border, 2);
+        Frames.Advance(48, 16);
+        Assert.InRange(Part<RotateTransform>(border).Angle, 20, 70);
+        Assert.InRange(Part<ScaleTransform>(border).ScaleX, 1.2, 1.8);
+        Frames.Advance(64, 16);
+        Assert.Equal((90, 2), (Part<RotateTransform>(border).Angle, Part<ScaleTransform>(border).ScaleX));
+    }
+
+    [AvaloniaFact]
     public void DrawTracksAMotionValueAndReleasingRestoresTheDashes()
     {
         var path = new Path { Data = Geometry.Parse("M0,0 L100,0"), Stroke = Brushes.Black, StrokeThickness = 2 };

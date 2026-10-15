@@ -1,4 +1,4 @@
-﻿namespace MonacoLabs.Presto;
+namespace MonacoLabs.Presto;
 
 /// <summary>
 /// A lifetime for everything created inside it. Timers, animations, animatables and
@@ -20,7 +20,7 @@ public class Scope : IRevertible
     private int _onceIndex;
 
     /// <summary>
-    /// Creates a scope on the current engine, taking a copy of that engine's defaults as its own and registering with
+    /// Creates a scope on the current engine, sharing that engine's defaults (or a configured copy of them) and registering with
     /// whichever scope is current.
     /// </summary>
     public Scope(ScopeParams? parameters = null)
@@ -40,7 +40,7 @@ public class Scope : IRevertible
     /// <inheritdoc cref="ScopeParams.Root"/>
     public object? Root { get; }
 
-    /// <summary>The defaults in force while the scope executes; a copy of its engine's as they stood when it was created.</summary>
+    /// <summary>The defaults in force while the scope executes: its engine's own instance, or a copy configured by <see cref="ScopeParams.Defaults"/> when one is given.</summary>
     public PrestoDefaults Defaults { get; }
 
     /// <summary>Scratch storage keyed by name, cleared by <see cref="Revert"/>.</summary>

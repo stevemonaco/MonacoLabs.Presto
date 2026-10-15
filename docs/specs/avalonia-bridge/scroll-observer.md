@@ -179,6 +179,8 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
   - Tests: `ScrollSnapTests.AnIncrementSnapEasesToTheNearestStepOnceSettledLandsExactlyAndLetsTheEngineIdle`
 - **BRIDGE-SCROLLOBSERVER-053** — When an extent shrink clamps the snap's own write, the snap shall treat the change as foreign, stop and snap again within the new range once settled.
   - Tests: `ScrollSpikeTests.ASnapTreatsAClampOfItsOwnWriteAsForeignAndSnapsAgainWithinTheNewRange`
+- **BRIDGE-SCROLLOBSERVER-059** — While the observer's engine has `ReducedMotion` or `ReduceAll` set when a snap starts, the snap shall write its target at once, after the usual `Delay`, instead of easing, and let the engine idle afterwards.
+  - Tests: `ScrollSnapTests.AReducedSnapJumpsToItsStepOnceSettledAndLetsTheEngineIdle`
 
 ### Revert and lifetime
 
@@ -219,7 +221,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 
 ## Reduced motion
 
-- Not affected: the observer follows the user's own scroll. The snap's ease is not shortened under `ReducedMotion` (see Open items).
+- The observer follows the user's own scroll and is not affected. Under `ReducedMotion` or `ReduceAll`, read as each snap starts, the snap jumps to its target after its `Delay` (059).
 
 ## Allocation
 
@@ -240,6 +242,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **The pin writes its own shorthand inside the `Offset` notification.** The pin owns the target's `"Y"` (or `"X"`) shorthand, so a linked animation should drive the target's descendants, and it is lifted while bounds are measured. Reason: written synchronously in the notification rather than on the next scroll tick, it never trails the content by a frame; it is lifted because `TranslatePoint` includes the render transform.
 - **`PinSpacing` is a trailing margin, not a spacer element.** It is recomputed from the margin the target had when pinning began. Reason: the tree is untouched, the margin lies outside `Bounds` so it never moves the thresholds it is sized from, and recomputing keeps a refresh from accumulating it. Rejected: GSAP's spacer element wrapping the target.
 - **The snap eases `Offset` with `SetCurrentValue` after a settle wait.** It starts after `Delay` with no offset change and no pointer down, inside the thresholds, and any offset change it did not write cancels it and restarts the wait. Reason: the write stays at the offset's local priority, below `Animation`, so the scroller's own input still moves it, and restarting on foreign changes means a snap starts only once a smooth scroll settles.
+- **A reduced scroll snap jumps.** Under `ReducedMotion` or `ReduceAll` the snap writes its target at once after the settle wait. Reason: the snap moves the viewport on the user's behalf, the motion reduced motion exists to stop, and jumping keeps the snap's position contract. Rejected: dropping the snap; a configurable reduced duration.
 - **`ScrollSnap.Labels` maps labels linearly onto progress.** A timeline lands on a label exactly only under a linear `Sync`. Reason: not recorded.
 - **A snap waits for a running scroll-to.** A scroll tween's first write cancels a running snap, the snap does not start while a tween holds the axis, and the tween restarts every observer's wait when it lets go, so the snap comes its `Delay` after the scroll-to ends. Reason: not recorded.
 - **Scroll velocity needs no API of its own.** It is `PrestoAvalonia.ScrollValue(scroller).VelocityOf()`. Reason: the motion value graph already provides it.
@@ -254,6 +257,5 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 ## Open items
 
 - The plan had the snap also wait for a settled `Velocity`; `StartSnap` has no velocity check, only the `Delay` of stillness, so the snap decision is recorded without it.
-- The snap's 400 ms ease ignores `ReducedMotion`; every other motion added since reduced motion was introduced states a reduced form.
 - 008: the "no target or no ScrollViewer" exception is thrown from an engine tick, not from `OnScroll`, and is untested.
 - Untested: scope registration (002), retargeting on `Link` after resolution (009), measuring with the linked object at 0 (017), reverse evaluation order (025), the edge force-enter (030), callback order (032), `Sync = false` (042), and `Revert` leaving the linked object alone (055).

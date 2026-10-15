@@ -6,7 +6,7 @@ namespace MonacoLabs.Presto.Prebuilt;
 /// </summary>
 /// <remarks>
 /// Arguments left null come from <see cref="Recipes.Tokens"/>, read when the recipe is called: each iteration lasts twice
-/// <see cref="MotionTokens.Long"/> and eases with <see cref="Eases.InOutSine"/>, or linearly for <see cref="Spinner"/>.
+/// <see cref="MotionTokens.Long"/> (once for <see cref="Spinner"/>) and eases with <see cref="Eases.InOutSine"/>, or linearly for <see cref="Spinner"/>.
 /// <c>stagger</c> delays each element of a batch by <see cref="MotionTokens.StaggerStep"/> more than the one before,
 /// starting at <c>delay</c>. <see cref="Spinner"/>, <see cref="Dots"/> and <see cref="Indeterminate"/> can run through
 /// <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>; <see cref="Shimmer"/> is UI thread only,

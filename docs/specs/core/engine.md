@@ -175,8 +175,9 @@ The engine is the root clock: it owns the linked list of running root timers and
   - Tests: `ClockTests.FpsHigherThanDefaultFrameRateRaisesDefault`
 - **CORE-ENGINE-050** — When `Clock.Speed` is set below 1e-11, the clock shall store 1e-11, so it never stops or runs backwards.
   - Tests: `ClockTests.SpeedClampsToMinValue`
-- **CORE-ENGINE-051** — The engine's `Speed` setter shall store any value without clamping.
-  - Tests: untested
+- ~~**CORE-ENGINE-051**~~ — Removed: the engine's `Speed` now clamps like `Clock.Speed` (CORE-ENGINE-071).
+- **CORE-ENGINE-071** — When the engine's `Speed` is set below 1e-11, the engine shall store 1e-11, so it never stops or runs backwards.
+  - Tests: `ParametersTests.EngineSpeedBelowMinValueClampsAndKeepsTimersFinite`
 
 ### Frame sources
 
@@ -232,7 +233,6 @@ The engine is the root clock: it owns the linked list of running root timers and
 ## Edge cases
 
 - `Step` by less than the frame duration minus its tolerance (about 3.2 ms at 240 fps) advances engine time but `Update` skips the tick; the next accepted tick catches up.
-- `Engine.Speed` of 0 or a negative value is stored as given and makes rebasing divide by zero (kept from upstream; untested).
 - `Pause` on an idle engine does not stop the next `Wake`, so a timer created afterwards plays.
 - A function-based default duration is not rescaled by `TimeUnit`.
 - `Update()` may be called while the pump runs; it ticks only if the frame grid allows, so it does not double-advance timers.
@@ -274,6 +274,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **Wall-clock reads take a `TimeProvider`.** `StopwatchFrameSource.Now` reads a `TimeProvider`, `TimeProvider.System` by default, while its pump thread stays on real time. Reason: tests can use a fake time provider instead of sleeping; the pump is a background thread pacing a real engine.
 - **Defaults, scope and composition state are per engine; a few statics are process-wide and documented, not locked.** See CORE-THREADING.
 - **Sinks flush from an engine after-update list, not as tickables.** See CORE-MOTIONVALUE.
+- **`Engine.Speed` clamps instead of throwing.** Reason: it matches `Clock.Speed` and `Timer.Speed`, which every slider-driven caller already relies on, and a speed of 0 is a natural slider end. Deviates from upstream, whose engine setter skips the clock's clamp. Rejected: throwing (the only speed setter in the library that would).
 - **Time is `double` milliseconds; seconds mode is a scale factor.** A project-wide decision, recorded in [docs/ARCHITECTURE.md §4](../../ARCHITECTURE.md#4-project-wide-decisions).
 
 ## Non-goals
@@ -285,5 +286,4 @@ The engine is the root clock: it owns the linked list of running root timers and
 ## Open items
 
 - `TimeUnit` can be set on any engine, but it rescales only that engine's default duration and speed while changing process-wide state; the per-engine state decision (CORE-THREADING) says it is set on the main engine only, which nothing enforces.
-- `Engine.Speed` is not clamped, unlike `Clock.Speed`; a 0 or negative engine speed produces infinite or NaN start times (kept from upstream; untested).
 - Untested: replacing `FrameSource` while running, `Pause` on an idle engine, `Wake` after `Pause`, `PauseOnHidden` turned on while hidden, and `Advance(ms, step)` with a non-positive step.

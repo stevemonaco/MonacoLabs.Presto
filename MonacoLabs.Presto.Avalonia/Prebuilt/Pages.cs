@@ -96,7 +96,7 @@ public static class Pages
     /// <remarks>
     /// An outgoing page still partly revealed, because its bloom was interrupted, finishes its circle over
     /// <see cref="MotionTokens.Short"/> under the new one, so blooms never stack. Reduced, the incoming page fades in
-    /// over <see cref="MotionTokens.Short"/> and its children do not move.
+    /// over <see cref="MotionTokens.Short"/>, its children do not move and the outgoing circle finishes at once.
     /// </remarks>
     public static PrestoPageTransition PageBloom()
     {
@@ -104,7 +104,7 @@ public static class Pages
         var tokens = Recipes.Tokens;
         var bloom = Reveals.Circle((FunctionValue)((target, _, _) => TweenValue.Of(BloomOrigin((Visual)target))), null, null, Eases.InOutQuart)
             .OnBegin(timer => Bloomed((Visual)((Animation)timer).Targets[0], tokens));
-        var finish = Presto.Build().ClipCircle(1).Duration(tokens.Short).Ease(tokens.Ease);
+        var finish = Presto.Build().ClipCircle(1).Duration(tokens.Short).Ease(tokens.Ease).WhenReduced(reduced => reduced.ClipCircle(1).Duration(0));
         return new() { Enter = bloom, Exit = finish, BackEnter = bloom, BackExit = finish, Stacking = PageStacking.IncomingAbove };
     }
 

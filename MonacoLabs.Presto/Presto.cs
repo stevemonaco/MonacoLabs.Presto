@@ -64,7 +64,12 @@ public static class Presto
     public static Timeline CreateTimeline(TimelineParams? parameters = null) => Created(new Timeline(parameters ?? new()).Init());
 
     /// <summary>Creates the paused per-property animations that <see cref="Animatable.Set(PropertyKey, double, double?, EaseValue?)"/> drives.</summary>
-    public static Animatable CreateAnimatable(object? targets, AnimatableParams parameters) => new(targets, parameters);
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is null.</exception>
+    public static Animatable CreateAnimatable(object? targets, AnimatableParams parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return new(targets, parameters);
+    }
 
     /// <summary>Creates a lifetime that everything constructed inside it registers with, so one <see cref="Scope.Revert"/> undoes it all.</summary>
     public static Scope CreateScope(ScopeParams? parameters = null) => new(parameters);
@@ -86,22 +91,32 @@ public static class Presto
     public static ChainedFunctionValue ScrambleText(ScrambleTextParams? parameters = null) => TextScrambler.Create(parameters ?? new());
 
     /// <summary>Animates the properties named in <paramref name="parameters"/> on every one of <paramref name="targets"/>.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is null.</exception>
     [OverloadResolutionPriority(1)]
-    public static Animation Animate(object? targets, AnimationParams parameters) =>
-        Created((Animation)new Animation(targets, parameters, null, 0).Init());
+    public static Animation Animate(object? targets, AnimationParams parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return Created((Animation)new Animation(targets, parameters, null, 0).Init());
+    }
 
     /// <summary>Animates <paramref name="targets"/> with the fresh builder <paramref name="build"/> configures.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="build"/> is null.</exception>
     public static Animation Animate(object? targets, Action<AnimationBuilder> build) => Animate(targets, Build(build).ToParams());
 
     /// <summary>Starts a fluent, reusable <see cref="AnimationBuilder"/>, a typed alternative to the <see cref="AnimationParams"/> indexer.</summary>
     public static AnimationBuilder Build() => new();
 
     /// <summary>Writes values to targets immediately; returns the zero duration animation that wrote them.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is null.</exception>
     [OverloadResolutionPriority(1)]
-    public static Animation Set(object? targets, AnimationParams parameters) =>
-        (Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume();
+    public static Animation Set(object? targets, AnimationParams parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return (Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume();
+    }
 
     /// <summary>Writes the values of the fresh builder <paramref name="build"/> configures to <paramref name="targets"/> immediately.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="build"/> is null.</exception>
     public static Animation Set(object? targets, Action<AnimationBuilder> build) => Set(targets, Build(build).ToParams());
 
     private static T Created<T>(T timer) where T : Timer
@@ -112,6 +127,7 @@ public static class Presto
 
     internal static AnimationBuilder Build(Action<AnimationBuilder> build)
     {
+        ArgumentNullException.ThrowIfNull(build);
         var builder = new AnimationBuilder();
         build(builder);
         return builder;
@@ -132,8 +148,10 @@ public static class Presto
     }
 
     /// <summary>Reads <paramref name="property"/> converted to <paramref name="unit"/>, or null when it holds no single number.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="unit"/> is null.</exception>
     public static string? Get(object? targets, PropertyKey property, string unit)
     {
+        ArgumentNullException.ThrowIfNull(unit);
         if (Decompose(targets, property.Unwrap()) is not { Kind: ValueKind.Number or ValueKind.Unit } value) return null;
         UnitConverter.Convert(value, unit);
         return JsNumber.Format(Helpers.Round(value.Number, Globals.Precision)) + value.Unit;
@@ -162,8 +180,10 @@ public static class Presto
     /// only those tweening its <paramref name="property"/> when one is named.
     /// </summary>
     /// <remarks>Completed and canceled animations are skipped, and a paused one drops out once the engine releases it on its next frame.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
     public static IReadOnlyList<Animation> GetAnimations(object target, PropertyKey? property = null)
     {
+        ArgumentNullException.ThrowIfNull(target);
         var animations = new List<Animation>();
         var name = property?.Unwrap();
         CollectAnimations(Engine.Current, target, string.IsNullOrEmpty(name) ? null : Canonicalize(target, name), animations);

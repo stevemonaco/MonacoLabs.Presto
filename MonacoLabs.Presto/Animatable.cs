@@ -25,10 +25,12 @@ public sealed class Animatable : IRevertible
     private static readonly Inertia DefaultInertia = new();
     private static readonly Ease AtRest = static _ => 0;
     private readonly Animation _callbacks;
+    private readonly PrestoDefaults _defaults;
 
     internal Animatable(object? targets, AnimatableParams parameters)
     {
         var engine = Engine.Current;
+        _defaults = engine.Defaults;
         engine.CurrentScope?.Register(this);
         if (engine.Diagnostics.Enabled) engine.Diagnostics.Register(this);
 
@@ -41,6 +43,7 @@ public sealed class Animatable : IRevertible
                 OnBegin = Wrap(parameters.OnBegin),
                 OnUpdate = Wrap(parameters.OnUpdate),
                 OnComplete = Wrap(parameters.OnComplete),
+                IsReducedMotion = true,
             });
         }
 
@@ -68,6 +71,8 @@ public sealed class Animatable : IRevertible
                 OnBegin = HandleBegin,
                 OnComplete = HandlePause,
                 OnPause = HandlePause,
+                // ReduceAll is honored per retarget in Replay, so the declared durations survive the flag clearing.
+                IsReducedMotion = true,
             });
             if (_targets.Count == 0) _targets.AddRange(animation.Targets);
             _animations[Key(property)] = animation;
@@ -213,7 +218,9 @@ public sealed class Animatable : IRevertible
     private Animatable Replay(Animation animation, double? duration)
     {
         if (duration is { } newDuration) animation.Stretch(newDuration);
-        animation.Reset(true).Resume();
+        animation.Reset(true);
+        if (_defaults.ReduceAll) animation.Seek(animation.Duration);
+        else animation.Resume();
         return this;
     }
 

@@ -8,8 +8,10 @@ public static class LottieRecipes
     /// does, reading the composition per target; any other target counts as a zero-length segment. Reduced: jumps to the
     /// frame the segment ends on, without looping.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="speed"/> is not above 0.</exception>
     public static AnimationBuilder PlayLottie(string? segment = null, bool loop = true, bool reverse = false, double speed = 1, double? delay = null)
     {
+        LottieView.ThrowIfNotPositive(speed);
         LottieSegment Range(object target) => target is LottieView view ? view.Segment(segment, reverse) : default;
         var builder = Frames(
             (FunctionValue)((target, _, _) => Range(target).From),

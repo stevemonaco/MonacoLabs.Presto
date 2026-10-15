@@ -16,13 +16,14 @@ namespace MonacoLabs.Presto;
 /// or <c>"1turn"</c> for <see cref="RotateProperty"/>; <see langword="null"/> or clearing the property releases the shorthand.
 /// </summary>
 /// <remarks>
-/// The first value snaps, as does a value caused by a new <c>DataContext</c>, one that arrives while detached, and every value
-/// under <see cref="PrestoDefaults.ReducedMotion"/>; detaching lands on the latest value. The followed value is the base of the
+/// The first value snaps unless <see cref="AnimateInitialProperty"/> is set, as does a value caused by a new <c>DataContext</c>,
+/// one that arrives while detached, and every value under <see cref="PrestoDefaults.ReducedMotion"/> unless
+/// <see cref="WhenReducedProperty"/> gives a timing; detaching lands on the latest value. The followed value is the base of the
 /// shorthand: an animation of the same shorthand overrides it while it holds it, and reverting that animation shows the latest
 /// followed value again. <see cref="DrawProperty"/> is the exception: it writes the shape's dashes as a <c>"Draw"</c> tween
 /// does, so the later write wins, and releasing it restores the dashes the shape had.
 /// <para>
-/// A <see cref="MotionValue"/> is written as each value flushes, ignoring <see cref="TimingProperty"/>: smoothing belongs to
+/// A <see cref="MotionValue"/> is written as each value flushes, ignoring the timing properties: smoothing belongs to
 /// the graph, as in <c>value.Spring(...)</c>. It is listened to only while the visual is attached.
 /// </para>
 /// </remarks>
@@ -70,6 +71,17 @@ public static class Follow
     public static readonly AttachedProperty<AnimationBuilder?> TimingProperty =
         AvaloniaProperty.RegisterAttached<Visual, AnimationBuilder?>("Timing", typeof(Follow));
 
+    /// <summary>
+    /// The builder whose duration and ease every shorthand of the visual moves with while <see cref="PrestoDefaults.ReducedMotion"/>
+    /// is set, from the next value on; unset, each value snaps.
+    /// </summary>
+    public static readonly AttachedProperty<AnimationBuilder?> WhenReducedProperty =
+        AvaloniaProperty.RegisterAttached<Visual, AnimationBuilder?>("WhenReduced", typeof(Follow));
+
+    /// <summary>Eases a shorthand's first value from what it shows, instead of snapping to it.</summary>
+    public static readonly AttachedProperty<bool> AnimateInitialProperty =
+        AvaloniaProperty.RegisterAttached<Visual, bool>("AnimateInitial", typeof(Follow));
+
     private static readonly FollowParams Immediate = new() { Duration = 0 };
 
     private static readonly AttachedProperty<Followed?> FollowedProperty =
@@ -82,7 +94,9 @@ public static class Follow
     static Follow()
     {
         foreach (var property in s_properties) property.Changed.AddClassHandler<Visual>(HandleValueChanged);
-        TimingProperty.Changed.AddClassHandler<Visual>((visual, _) => visual.GetValue(FollowedProperty)?.Retime());
+        TimingProperty.Changed.AddClassHandler<Visual>(Retime);
+        WhenReducedProperty.Changed.AddClassHandler<Visual>(Retime);
+        AnimateInitialProperty.Changed.AddClassHandler<Visual>(Retime);
     }
 
     /// <summary>Gets the value <paramref name="visual"/>'s horizontal offset follows.</summary>
@@ -139,6 +153,18 @@ public static class Follow
     /// <summary>Sets the builder whose timing <paramref name="visual"/>'s shorthands follow with.</summary>
     public static void SetTiming(Visual visual, AnimationBuilder? value) => visual.SetValue(TimingProperty, value);
 
+    /// <summary>Gets the builder whose timing <paramref name="visual"/>'s shorthands follow with under reduced motion.</summary>
+    public static AnimationBuilder? GetWhenReduced(Visual visual) => visual.GetValue(WhenReducedProperty);
+
+    /// <summary>Sets the builder whose timing <paramref name="visual"/>'s shorthands follow with under reduced motion.</summary>
+    public static void SetWhenReduced(Visual visual, AnimationBuilder? value) => visual.SetValue(WhenReducedProperty, value);
+
+    /// <summary>Gets whether <paramref name="visual"/>'s shorthands ease their first value.</summary>
+    public static bool GetAnimateInitial(Visual visual) => visual.GetValue(AnimateInitialProperty);
+
+    /// <summary>Sets whether <paramref name="visual"/>'s shorthands ease their first value.</summary>
+    public static void SetAnimateInitial(Visual visual, bool value) => visual.SetValue(AnimateInitialProperty, value);
+
     /// <summary>
     /// Binds <paramref name="property"/> at <see cref="BindingPriority.LocalValue"/> so it eases to each value of
     /// <paramref name="source"/>, which resolves against <paramref name="target"/> as it would on the property itself.
@@ -170,6 +196,8 @@ public static class Follow
 
     private static IDisposable BindCell(AvaloniaObject target, AvaloniaProperty property, object source, FollowParams? options) =>
         target.Bind(property, new FollowBinding(target, property, new Binding { Source = source }, options ?? Immediate, followsItems: false), BindingPriority.LocalValue);
+
+    private static void Retime(Visual visual, AvaloniaPropertyChangedEventArgs e) => visual.GetValue(FollowedProperty)?.Retime();
 
     private static void HandleValueChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
     {
@@ -222,7 +250,7 @@ public static class Follow
             }
             if (_followers[index] is not { } follower)
             {
-                follower = _followers[index] = new Follower(typeof(double), Parameters(), null);
+                follower = _followers[index] = new Follower(typeof(double), Parameters(), Current(index));
                 follower.PropertyChanged += (_, _) => Show(index, follower.Value);
             }
             follower.Target(ToNumber(index, value), snap: _detached || (_newItems & (1 << index)) != 0);
@@ -250,7 +278,17 @@ public static class Follow
             foreach (var follower in _followers) follower?.Retime(parameters);
         }
 
-        private FollowParams Parameters() => new() { Builder = _visual.GetValue(TimingProperty) };
+        private FollowParams Parameters() => new()
+        {
+            Builder = _visual.GetValue(TimingProperty),
+            WhenReduced = _visual.GetValue(WhenReducedProperty),
+            AnimateInitial = _visual.GetValue(AnimateInitialProperty),
+        };
+
+        private double Current(int index) =>
+            index == Blur ? (double)EffectComposer.Get(_visual, EffectShorthand.Blur)
+            : index == Draw ? DrawAccessor.End((Shape)_visual)
+            : RenderTransformComposer.Get(_visual, s_transforms[index]);
 
         private static object ToNumber(int index, object value)
         {

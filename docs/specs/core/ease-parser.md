@@ -92,12 +92,16 @@ depends:
   - Tests: `EaseParserTests.ParsesToMatchingEase`
 - **CORE-EASEPARSER-027** — When `expoScale` has fewer than two arguments, `Parse` shall throw `FormatException`.
   - Tests: `EaseParserTests.MalformedStringsThrow`
-- **CORE-EASEPARSER-028** (inherited) — `Parse` shall let a factory's `ArgumentOutOfRangeException` propagate, as for `wiggle(0)`, `rough(0)` or `expoScale(1, 1)`.
+- **CORE-EASEPARSER-028** (inherited) — Apart from `steps` (034), `Parse` shall let a factory's `ArgumentOutOfRangeException` propagate, as for `wiggle(0)`, `rough(0)` or `expoScale(1, 1)`.
   - Tests: untested
 - **CORE-EASEPARSER-029** — `steps` shall take an optional count, truncated to an integer, and an optional from-start flag; `cubicBezier` shall take exactly four numbers, and throw `FormatException` otherwise. `Parse` shall have no form for `Spring`, `Linear` stops or `Irregular`.
   - Tests: `EaseParserTests.StepsAndCubicBezierParseToTheirFactories`, `EaseParserTests.UnknownNamesAndCodeOnlyFormsThrow`
+- **CORE-EASEPARSER-034** — When the `steps` count is below 1 after truncation, `Parse` shall throw `FormatException`, so `TryParse` returns false (see Decisions).
+  - Tests: `EaseParserTests.ParsedStepsBelowOneIsAFormatError`
 - **CORE-EASEPARSER-033** — `TryParse` shall return what `Parse` returns, or false with a null ease where `Parse` would throw `FormatException`.
   - Tests: `EaseParserTests.UnknownNamesAndCodeOnlyFormsThrow`, `EaseParserTests.StepsAndCubicBezierParseToTheirFactories`
+- **CORE-EASEPARSER-035** — When the string is null, `Parse` and `TryParse` shall throw `ArgumentNullException`.
+  - Tests: `EaseParserTests.NullEaseStringThrowsArgumentNull`
 
 ### Names for diagnostics
 
@@ -118,11 +122,10 @@ depends:
 
 ## Edge cases
 
-- `Parse(null)` throws `NullReferenceException` from `Trim`, not `ArgumentNullException`.
 - `""` and whitespace-only strings resolve to `Eases.None`.
 - Only the first letter is lowered: `"INOUTQUAD"` is unknown and throws.
 - `"in2)"` has no `(`, so it is an unknown name and throws; `"in(2))"` throws because `"2)"` is not a number.
-- `TryParse` catches the parser's own `FormatException` only; a factory's `ArgumentOutOfRangeException` (028) still propagates.
+- `TryParse` catches `FormatException` only; a factory's `ArgumentOutOfRangeException` (028), as from `wiggle(0)`, still propagates.
 - `"in(1,)"` parses: the empty second token is never read.
 - `wiggle` accepts numeric type names that are defined values, so `"wiggle(4, 1)"` is `EaseInOut`.
 - `"wiggle(2.7)"` is `Wiggle(2)`; `"wiggle(0.5)"` truncates to 0 and throws `ArgumentOutOfRangeException`.
@@ -156,6 +159,7 @@ depends:
 - **Ease strings take raw and non-numeric arguments.** The factories receive the raw argument text and its comma tokens: `fromPath(...)` gets the whole text between the parentheses, `wiggle` a type name, `slowMo` a flag and `expoScale` a nested ease string; numeric forms are unchanged. Reason: upstream's parser reads only numbers, and path data contains commas.
 - **Parsed random eases are seeded.** Parsed `rough` and `wiggle(n, random)` draw from `new Random(1)`, where code defaults to `Random.Shared`. Reason: the parser caches what it returns, so a string must always parse to the same curve.
 - **Ease strings fail loudly; steps and cubicBezier parse.** An unknown name, `irregular(…)` and `linear(…)` throw `FormatException`, the code-only two naming their `Eases` factory; `steps(n, fromStart)` and `cubicBezier(x1, y1, x2, y2)` parse to their factories; an empty string is `None`; `TryParse` serves callers that probe a string, as `ScrollObserver`'s `Sync` does to tell an ease from method names. Reason: in XAML a string is the only way to give an ease, so a typo or a removed form silently going linear could not be noticed, and a cubic Bézier or a stepped ease could not be written at all; both take a few plain numbers, while `irregular` is random and `linear` takes a list of stops. Rejected: upstream's silent `none`; throwing for all four removed forms.
+- **A parsed `steps(0)` is a `FormatException`.** A `steps` count below 1 after truncation, `steps(0.5)` and `steps(NaN)` included, throws `FormatException` rather than letting `Eases.Steps`' `ArgumentOutOfRangeException` through. Reason: the parser's contract is that a bad string throws `FormatException` and `TryParse` returns false.
 - **Missing trailing arguments take the factory defaults.** Reason: `"out"` and `"out(2)"` then mean what `Eases.Out()` and `Eases.Out(2)` do, so a string and the call it names agree.
 - **Ease names are registered only while diagnostics are active.** See CORE-EASES.
 
@@ -166,6 +170,5 @@ depends:
 
 ## Open items
 
-- `Parse(null)` throws `NullReferenceException` rather than `ArgumentNullException`.
 - The cache is unbounded; a caller building ease strings from varying numbers grows it without limit.
 - Untested: concurrent use and no-cache-on-throw (003, 004), empty parentheses on a fixed ease (010), ignored extra arguments (016), `fromPath` error propagation (019), factory range errors (028).

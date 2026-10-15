@@ -95,8 +95,8 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
   - Tests: `AnimateLayoutAttachedTests.AReducedMoveIsInstant`, `ContentSizeTests.AReducedResizeIsInstant`, `LayoutTransitionTests.AReducedOrZeroDurationMoveLandsInOneFrame`
 - **BRIDGE-REDUCED-019** — While the flag is set, `Scroll.Speed` shall treat every element as speed 1, read at each offset change, so a flipped flag shows at the next scroll.
   - Tests: `ScrollParallaxTests.UnderReducedMotionTheElementKeepsItsLayoutPositionAndResumesAtTheScrollAfterItClears`
-- **BRIDGE-REDUCED-020** — While the flag is set, an animated scroll (`ScrollTo`, `ScrollIntoView`, `ScrollToIndex`, `StickToEnd`) shall jump with zero duration and delay, unless its params are already a `WhenReduced` form, which plays as given.
-  - Tests: `ScrollToTests.ReducedMotionJumpsOnTheFirstFrameAndTheEngineIdles`, `ScrollToTests.ReducedMotionPlaysTheBuildersReducedForm`, `ScrollIntoViewTests.ReducedMotionJumpsOnTheFirstFrameAndTheEngineIdles`, `ScrollToIndexTests.ReducedMotionLandsAlignedAndTheEngineIdles`, `ScrollStickToEndTests.ReducedMotionJumpsToTheNewEndAndTheEngineIdles`
+- **BRIDGE-REDUCED-020** — While the flag is set, an animated scroll (`ScrollTo`, `ScrollIntoView`, `ScrollToIndex`, `StickToEnd`) shall jump with zero duration and delay, unless its params are already a `WhenReduced` form, which plays as given; a `ScrollObserver` snap shall jump to its target after its settle delay, under `ReduceAll` too (BRIDGE-SCROLLOBSERVER-059).
+  - Tests: `ScrollToTests.ReducedMotionJumpsOnTheFirstFrameAndTheEngineIdles`, `ScrollToTests.ReducedMotionPlaysTheBuildersReducedForm`, `ScrollIntoViewTests.ReducedMotionJumpsOnTheFirstFrameAndTheEngineIdles`, `ScrollToIndexTests.ReducedMotionLandsAlignedAndTheEngineIdles`, `ScrollStickToEndTests.ReducedMotionJumpsToTheNewEndAndTheEngineIdles`, `ScrollSnapTests.AReducedSnapJumpsToItsStepOnceSettledAndLetsTheEngineIdle`
 - **BRIDGE-REDUCED-021** — `AvaloniaAnimationParams.WhenReduced` shall behave as the core dictionary `WhenReduced`, typed for the bridge indexer.
   - Tests: `AnimationBuilderBridgeTests.ATypedWhenReducedReplacesTheProperties`
 
@@ -104,8 +104,8 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
 
 - **BRIDGE-REDUCED-022** — A compositor animation shall play its params' reduced form while the flag is set, and `ReduceAll` shall land it on its end values at once unless it is already a reduced alternative.
   - Tests: `CompositorAnimationTests.DictionaryParamsOnTheCompositorPlayTheirReducedForm`, `CompositorAnimationTests.ReduceAllLandsACompositorAnimationOnItsEndValuesAtOnce`, `CompositorAnimationTests.ReduceAllLeavesAReducedAlternativeOnTheCompositorAlone`
-- **BRIDGE-REDUCED-023** — While the flag is set, a follower (`Follow`, `{presto:Follow}`) shall snap to each new value unless `FollowParams.WhenReduced` gives it a timing.
-  - Tests: `FollowerTests.ReducedMotionSnapsUnlessWhenReducedGivesATiming`, `FollowTests.ReducedMotionSnaps`, `FollowBindingTests.ReducedMotionSnaps`
+- **BRIDGE-REDUCED-023** — While the flag is set, a follower (`Follow`, `{presto:Follow}`) shall snap to each new value unless `FollowParams.WhenReduced` (`Follow.WhenReduced` for the `Follow.*` shorthands) gives it a timing.
+  - Tests: `FollowerTests.ReducedMotionSnapsUnlessWhenReducedGivesATiming`, `FollowTests.ReducedMotionSnaps`, `FollowTests.WhenReducedGivesTheTimingUnderReducedMotionFromTheNextValue`, `FollowBindingTests.ReducedMotionSnaps`
 
 ### Presence, text and popups
 

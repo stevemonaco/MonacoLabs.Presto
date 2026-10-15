@@ -46,7 +46,7 @@ public static class EaseParser
             2 => Eases.SlowMo(a[0], a[1]),
             _ => Eases.SlowMo(a[0], a[1], a.Flag(2)),
         },
-        ["steps"] = a => a.Length switch { 0 => Eases.Steps(), 1 => Eases.Steps((int)a[0]), _ => Eases.Steps((int)a[0], a.Flag(1)) },
+        ["steps"] = a => a.Length switch { 0 => Eases.Steps(), 1 => Eases.Steps(StepCount(a)), _ => Eases.Steps(StepCount(a), a.Flag(1)) },
         ["cubicBezier"] = a => a.Length == 4 ? Eases.CubicBezier(a[0], a[1], a[2], a[3]) : throw new FormatException("cubicBezier needs four numbers: x1, y1, x2, y2."),
         ["expoScale"] = a => a.Length < 2
             ? throw new FormatException("expoScale needs a start and an end scale.")
@@ -68,9 +68,16 @@ public static class EaseParser
     /// fixed ease, unparsable arguments and unbalanced parentheses throw <see cref="FormatException"/> instead of caching a broken ease. <c>rough</c> and <c>wiggle(n, random)</c> draw from a
     /// <see cref="Random"/> seeded with 1, so a string always parses to the same curve.
     /// </remarks>
-    public static Ease Parse(string ease) => _cache.GetOrAdd(ease.Trim(), Create);
+    /// <exception cref="ArgumentNullException"><paramref name="ease"/> is null.</exception>
+    /// <exception cref="FormatException"><paramref name="ease"/> is not a valid ease string.</exception>
+    public static Ease Parse(string ease)
+    {
+        ArgumentNullException.ThrowIfNull(ease);
+        return _cache.GetOrAdd(ease.Trim(), Create);
+    }
 
-    /// <summary>Resolves <paramref name="ease"/> as <see cref="Parse"/> does, returning false where it would throw.</summary>
+    /// <summary>Resolves <paramref name="ease"/> as <see cref="Parse"/> does, returning false where it would throw <see cref="FormatException"/>.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="ease"/> is null.</exception>
     public static bool TryParse(string ease, [NotNullWhen(true)] out Ease? result)
     {
         try
@@ -109,6 +116,9 @@ public static class EaseParser
         }
         return _parameterized.TryGetValue(name, out var factory) ? factory(args) : throw new FormatException($"Unknown ease \"{name}\".");
     }
+
+    private static int StepCount(EaseArgs args)
+        => (int)args[0] is var count and >= 1 ? count : throw new FormatException("steps needs a count of at least 1.");
 
     private static EaseArgs ParseArgs(string input, int open)
     {

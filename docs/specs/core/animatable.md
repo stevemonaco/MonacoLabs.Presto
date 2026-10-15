@@ -33,6 +33,7 @@ depends:
   - CORE-COMPOSITION
   - CORE-TARGETS
   - CORE-SCOPE
+  - CORE-REDUCED
 ---
 
 # Animatable
@@ -170,6 +171,19 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **CORE-ANIMATABLE-052** (inherited) — After `Revert`, or for a property that was never declared, `Get` shall return 0 and `GetChannels` an empty array.
   - Tests: untested
 
+### ReduceAll
+
+- **CORE-ANIMATABLE-055** — The property and callbacks animations shall be built without the `ReduceAll` collapse, and the animatable shall read `ReduceAll` at each retarget from the `PrestoDefaults` in force when it was created (its scope's when created inside one), so a change of the flag takes effect at the next retarget, a retarget under it stretching and saving fling state as without it (CORE-ANIMATABLE-019, -049).
+  - Tests: `AnimatablesTests.AnAnimatableCreatedInAReduceAllScopeLandsItsRetargetsOutsideIt`, `AnimatablesTests.ClearingReduceAllRestoresTheDurationsASetWouldHaveLeft`
+- **CORE-ANIMATABLE-056** — While `ReduceAll` is set, every retarget, scalar or channel `Set` with or without a duration and momentum retargets included, shall seek its property animation to the end instead of resuming it, so the property lands on its target at once and the engine idles.
+  - Tests: `AnimatablesTests.ReduceAllLandsASetWithADurationOnTheNextFrame`, `AnimatablesTests.ReduceAllLandsAMomentumSetOnTheNextFrame`
+- **CORE-ANIMATABLE-057** — While `ReduceAll` is set, `Fling` of either overload shall land the property at once on the inertia solver's resolved rest value, bounds and snap applied.
+  - Tests: `AnimatablesTests.ReduceAllLandsAFlingOnItsProjectedRestOnTheNextFrame`
+- **CORE-ANIMATABLE-058** — Under `ReduceAll`, each retarget shall raise `OnBegin` as CORE-ANIMATABLE-026 says, then exactly one `OnUpdate` and one `OnComplete`.
+  - Tests: `AnimatablesTests.ReduceAllRaisesOneUpdateAndOneCompletePerRetarget`
+- **CORE-ANIMATABLE-059** — `ReducedMotion` alone shall not change an animatable.
+  - Tests: `AnimatablesTests.ReducedMotionAloneLeavesASetWithADurationEasing`
+
 ### Defaults
 
 - **CORE-ANIMATABLE-053** — When `PreserveVelocity` is set on neither the property nor the params, a retargeted spring shall start from rest (see "Spring momentum on retarget is opt-in").
@@ -196,7 +210,8 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 ## Reduced motion
 
-- The property animations are built through `Presto.Animate`, so under `ReduceAll` they are created as setters and a `Set` without a duration snaps. A `Set` with a duration, a momentum retarget and a `Fling` stretch the animation to a real duration and so still animate (untested; see Open items). `WhenReduced` does not apply: an animatable has no builder form.
+- `ReduceAll` is honored on every retarget rather than at construction: each `Set`, momentum retarget and `Fling` lands at once on its end value, the callbacks raising one update and one complete, while the durations evolve as without the flag (CORE-ANIMATABLE-055 to CORE-ANIMATABLE-058).
+- `ReducedMotion` changes nothing and `WhenReduced` does not apply: an animatable has no builder form (CORE-ANIMATABLE-059).
 
 ## Allocation
 
@@ -213,6 +228,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 ## Decisions
 
+- **An animatable honors `ReduceAll` on every retarget.** Its animations are built uncollapsed, and while the flag is set a retarget aims and stretches as usual, then seeks to the end instead of resuming. Reason: `ReduceAll` promises no motion and retargets are the motion; seeking keeps the durations, staggers and saved fling state as they would be, so nothing leaks once the flag clears, and an animatable created under the flag eases normally after it. Rejected: honoring it only at creation, where a `Set` with a duration, a momentum retarget or a `Fling` still animated and the callbacks completed on their first frame; collapsing each retarget through a zero-duration stretch, which loses per-target durations and needs the real one saved and restored.
 - **Spring momentum on retarget is opt-in.** `PreserveVelocity` (`bool?` on the params and the property, the property winning, default false) hands the current velocity to a fresh `Spring` with the same mass, stiffness and damping when a spring-eased property is retargeted, in the scalar and the channel `Set` alike; earlier only the scalar `Set` carried it, extended because colors, thicknesses and points keep momentum too. Reason: momentum carried across a retarget is what makes a spring feel physical (Framer Motion, React Spring, Compose); opt-in because it changes what a spring-eased animatable does, and because Draggable drives its release springs through an `Animatable` and sets their velocity itself. Rejected: upstream's reset, where a spring always starts at rest, as the only behavior.
 - **Preserved velocity is measured from the running ease.** Only a `Spring` ease (the `Set`'s, the property's or the animatable's) preserves velocity; velocity is a central difference of the running ease, a spring sampled through its `PureEase`, normalized to the solver's progress per second; a paused, completed or unstarted tween, or a retarget to the current value, starts at rest; the animation lasts the longest settling duration (or the `Set` duration compresses them) and an early-settling tween holds its end. Nothing new is public on `Spring`. Reason: sampling through `PureEase` never raises the spring's `OnComplete`; a zero-distance retarget cannot carry velocity in an ease-based model; each tween's settling duration depends on its velocity.
 - **`Fling` retargets with an inertia.** `Fling(property, velocity, settings)` coasts the property under the inertia solver; without a velocity it measures the running tween's (0 when paused or finished); the animatable's ease and duration are replaced for that run and restored by the next scalar `Set`; differing per-target durations are sampled over the longest. Reason: a value that is already moving keeps coasting; it mirrors `Set(…, ease)` replacing the ease for one run.
@@ -235,7 +251,6 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 ## Open items
 
 - The callbacks animation has the engine's default duration (1000 ms): a burst longer than that completes it early, raising `OnComplete` while properties still move and stopping `OnUpdate` (kept from upstream). Untested.
-- Under `ReduceAll`, `Set` with a duration, momentum retargets and `Fling` animate rather than snap, and the callbacks animation completes on its first frame. Untested; decide whether an animatable should honor `ReduceAll` on every retarget.
 - The channel `Set` neither consults nor clears a saved fling; the next scalar `Set` still restores the pre-fling eases.
 - `Fling` on a color or complex property is not rejected (an `Inertia` to-value throws for one); its behavior is unspecified and untested.
 - No core test for canonical-name lookup (only a bridge test pins it), unknown properties, `PlaybackRate`/`FrameRate` passthrough, or per-property `Composition`.

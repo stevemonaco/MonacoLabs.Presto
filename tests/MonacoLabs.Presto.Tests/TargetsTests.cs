@@ -87,6 +87,32 @@ public sealed class TargetsTests : EngineTestBase
     public void AnimatingNullHasNoTargets() => Assert.Empty(Presto.Animate(null, new() { Duration = 10 }).Targets);
 
     [Fact]
+    public void AnimateRejectsNullParamsAndBuilder()
+    {
+        Assert.Equal("parameters", Assert.Throws<ArgumentNullException>(() => Presto.Animate(_first, (AnimationParams)null!)).ParamName);
+        Assert.Equal("build", Assert.Throws<ArgumentNullException>(() => Presto.Animate(_first, (Action<AnimationBuilder>)null!)).ParamName);
+    }
+
+    [Fact]
+    public void SetRejectsNullParamsAndBuilder()
+    {
+        Assert.Equal("parameters", Assert.Throws<ArgumentNullException>(() => Presto.Set(_first, (AnimationParams)null!)).ParamName);
+        Assert.Equal("build", Assert.Throws<ArgumentNullException>(() => Presto.Set(_first, (Action<AnimationBuilder>)null!)).ParamName);
+    }
+
+    [Fact]
+    public void CreateAnimatableRejectsNullParams() =>
+        Assert.Equal("parameters", Assert.Throws<ArgumentNullException>(() => Presto.CreateAnimatable(_first, null!)).ParamName);
+
+    [Fact]
+    public void GetRejectsANullUnit() =>
+        Assert.Equal("unit", Assert.Throws<ArgumentNullException>(() => Presto.Get(_first, "x", (string)null!)).ParamName);
+
+    [Fact]
+    public void GetAnimationsRejectsANullTarget() =>
+        Assert.Equal("target", Assert.Throws<ArgumentNullException>(() => Presto.GetAnimations(null!)).ParamName);
+
+    [Fact]
     public void RemovingEverythingTellsTheAdapters()
     {
         var target = new TestObject();

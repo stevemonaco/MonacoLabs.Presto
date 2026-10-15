@@ -232,10 +232,10 @@ public static class Presence
     /// <summary>Sets the builder played on <paramref name="control"/> when it appears with its view or arrives on its own.</summary>
     public static void SetArrive(Control control, AnimationBuilder? value) => control.SetValue(ArriveProperty, value);
 
-    /// <summary>Gets the builder played on <paramref name="control"/> when a list realizes it scrolled into view.</summary>
+    /// <summary>Gets the builder played on <paramref name="control"/> when it is scrolled into view.</summary>
     public static AnimationBuilder? GetReveal(Control control) => control.GetValue(RevealProperty);
 
-    /// <summary>Sets the builder played on <paramref name="control"/> when a list realizes it scrolled into view.</summary>
+    /// <summary>Sets the builder played on <paramref name="control"/> when it is scrolled into view.</summary>
     public static void SetReveal(Control control, AnimationBuilder? value) => control.SetValue(RevealProperty, value);
 
     /// <summary>Gets whether <paramref name="control"/> reveals only the first time its item is shown.</summary>

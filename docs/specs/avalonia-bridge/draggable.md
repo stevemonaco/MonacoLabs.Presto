@@ -289,7 +289,6 @@ depends:
 
 ## Open items
 
-- `DraggableParams.OnDrag` is documented as running "on the first movement past DragThreshold", but the code raises it on every move of the drag after the threshold (pinned by `OnUpdateOnlyFiresWhenTheTargetMoves`, which expects 3); the XML doc is wrong.
 - The manual Desktop check of flinging and re-grabbing cards on the Draggable page, is still open.
 - `Reset` writes 0 unclamped even with a container that excludes 0; kept from upstream, unclear whether intended or a bug.
 - No tests for `ContainerBounds`, `ProgressX`/`ProgressY`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.

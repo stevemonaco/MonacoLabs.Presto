@@ -74,6 +74,12 @@ public sealed class LottieRecipeTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ANonPositiveSpeedThrowsWhenTheRecipeIsBuilt()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Recipes.PlayLottie(speed: 0));
+    }
+
+    [AvaloniaFact]
     public void TheMarkupExtensionTakesAnExplicitDurationAndEase()
     {
         var builder = (AnimationBuilder)new PlayLottieExtension { Duration = 500, Ease = "outQuad" }.ProvideValue(null!);

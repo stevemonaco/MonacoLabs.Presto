@@ -146,6 +146,13 @@ depends:
 - **CORE-PARTICLES-045** (inherited) — When `Area` is not set, every particle shall spawn exactly at the origin.
   - Tests: `ParticleSystemTests.WithoutForcesParticleTravelsSpeedTimesTimeAlongItsAngle`
 
+### Validation
+
+- **CORE-PARTICLES-046** — The constructor shall throw `ArgumentOutOfRangeException` when `MaxParticles` is negative, when `Lifetime.Min` is not above 0 (NaN included), or when `Lifetime.Max` is not at least `Lifetime.Min`; a `MaxParticles` of 0 is valid and never spawns.
+  - Tests: `ParticleSystemTests.ConstructorRejectsNegativeMaxParticlesAndNonPositiveOrInvertedLifetime`
+- **CORE-PARTICLES-047** — `Step` shall throw `ArgumentOutOfRangeException` for a negative `dt`; a `dt` of 0 is valid.
+  - Tests: `ParticleSystemTests.StepRejectsNegativeDtAndAcceptsZero`
+
 ## Invariants
 
 - `0 ≤ Live ≤ MaxParticles`, and `Particles.Length == Live`.
@@ -156,9 +163,8 @@ depends:
 
 - Particles emitted during a step are spawned at its end with age 0, so emission times are quantized to steps; only gravity and drag are step-size exact.
 - `Rate` 0 with `Duration` set emits only the burst.
-- A lifetime of 0 samples the curves at a NaN age when spawning, and the particle dies on the next step.
-- `MaxParticles` 0 never spawns; a negative value throws from the array allocation in the constructor.
-- `dt` is not validated: 0 resamples without moving, negative steps run time backwards without reviving dead particles.
+- `MaxParticles` 0 never spawns.
+- A `dt` of 0 resamples without moving.
 - Changing `X`/`Y` moves only later spawns.
 
 ## Threading and lifetime
@@ -198,4 +204,3 @@ depends:
 
 - The seeded-randomness decision as first recorded said a null `Seed` "draws a fresh seed"; the code takes the next value of a process-wide counter, so unseeded systems are deterministic per process order.
 - No test for the initial stopped state, initial rotation and flutter phase, spin and flutter integration, `Area`, or the null-seed path.
-- Lifetime 0, negative `dt` and negative `MaxParticles` are not validated.

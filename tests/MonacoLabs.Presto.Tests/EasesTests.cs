@@ -205,6 +205,11 @@ public sealed class EasesTests : EngineTestBase
         Assert.Equal(1, Eases.Steps(4)(2));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void StepsBelowOneThrows(int steps) => Assert.Throws<ArgumentOutOfRangeException>(() => Eases.Steps(steps));
+
     [Fact]
     public void IrregularStartsAtZeroEndsAtOneAndNeverDecreases()
     {

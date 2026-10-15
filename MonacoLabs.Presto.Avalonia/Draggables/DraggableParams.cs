@@ -88,7 +88,7 @@ public sealed record DraggableParams
     /// <summary>Runs when the pointer takes hold of the trigger, before it has moved.</summary>
     public Action<Draggable>? OnGrab { get; init; }
 
-    /// <summary>Runs on the first movement past <see cref="DragThreshold"/>, where the drag itself begins.</summary>
+    /// <summary>Runs on every pointer move once the drag has passed <see cref="DragThreshold"/>.</summary>
     public Action<Draggable>? OnDrag { get; init; }
 
     /// <summary>Runs on every frame the target actually moves on.</summary>

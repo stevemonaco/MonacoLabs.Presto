@@ -102,5 +102,4 @@ depends:
 
 ## Open items
 
-- The `ColorSpace` XML doc says "the space color states interpolate in", but only `Recolor` reads it; `Motion` color states do not.
 - The `Reduced` preset and the `ColorSpace`/`Hue` defaults have no direct test.

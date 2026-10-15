@@ -38,6 +38,8 @@ public sealed class LottieComposition : IImage
             Width = Number(root, "w");
             Height = Number(root, "h");
             FrameRate = Number(root, "fr");
+            if (!(FrameRate > 0))
+                throw new FormatException($"Lottie JSON 'fr' must be above 0, not {FrameRate}.");
             InPoint = Number(root, "ip");
             OutPoint = Number(root, "op");
             var markers = root.TryGetProperty("markers", out var array) && array.ValueKind == JsonValueKind.Array

@@ -565,6 +565,132 @@ public sealed class AnimatablesTests : EngineTestBase
         Assert.Equal(10, target.X);
     }
 
+    [Fact]
+    public void ReduceAllLandsASetWithADurationOnTheNextFrame()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100, ["BackgroundColor"] = 100 });
+        Presto.Defaults.ReduceAll = true;
+
+        animatable.Set("X", 100, 500).Set("BackgroundColor", [55, 155, 255, 1], 500);
+        Frames.Advance(16);
+
+        Assert.Equal(100, target.X);
+        Assert.Equal<double[]>([55, 155, 255, 1], animatable.GetChannels("BackgroundColor"));
+        Assert.False(Presto.Engine._hasChildren);
+    }
+
+    [Fact]
+    public void ReduceAllLandsAMomentumSetOnTheNextFrame()
+    {
+        var target = new StyleTarget();
+        var scalar = MomentumFollower(target, preserveVelocity: true);
+        var channels = ChannelFollower(target, "BackgroundColor", preserveVelocity: true);
+
+        scalar.Set("X", 100);
+        channels.Set("BackgroundColor", [55, 155, 255, 1]);
+        Frames.Advance(80, 16);
+        Presto.Defaults.ReduceAll = true;
+        scalar.Set("X", -50);
+        channels.Set("BackgroundColor", [200, 0, 30, .5]);
+        Frames.Advance(16);
+
+        Assert.Equal(-50, target.X);
+        Assert.Equal<double[]>([200, 0, 30, .5], channels.GetChannels("BackgroundColor"));
+        Assert.False(Presto.Engine._hasChildren);
+    }
+
+    [Fact]
+    public void ReduceAllLandsAFlingOnItsProjectedRestOnTheNextFrame()
+    {
+        var (thrown, bounded, continued, reference) = (new StyleTarget(), new StyleTarget(), new StyleTarget(), new StyleTarget());
+        var unreduced = Presto.CreateAnimatable(reference, new() { ["X"] = 1000, Ease = "outQuad" });
+        unreduced.Set("X", 500);
+        Frames.Advance(160, 16);
+        unreduced.Fling("X");
+        RunUntil(() => unreduced.Animations["X"].Paused);
+        var running = Presto.CreateAnimatable(continued, new() { ["X"] = 1000, Ease = "outQuad" });
+        running.Set("X", 500);
+        Frames.Advance(160, 16);
+        Presto.Defaults.ReduceAll = true;
+
+        Presto.CreateAnimatable(thrown, new() { ["X"] = 100 }).Fling("X", .5, new Inertia(3) { Power = 2, TimeConstant = 200 });
+        Presto.CreateAnimatable(bounded, new() { ["X"] = 100 }).Fling("X", 2, new Inertia() { Min = -50, Max = 300 });
+        running.Fling("X");
+        Frames.Advance(16);
+
+        Assert.Equal(200, thrown.X, 1e-9);
+        Assert.Equal(300, bounded.X, 1e-9);
+        Assert.Equal(reference.X, continued.X, 1e-9);
+        Assert.False(Presto.Engine._hasChildren);
+    }
+
+    [Fact]
+    public void ReduceAllRaisesOneUpdateAndOneCompletePerRetarget()
+    {
+        var calls = new List<string>();
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new()
+        {
+            ["X"] = 100,
+            ["Y"] = 100,
+            OnBegin = _ => calls.Add("begin"),
+            OnUpdate = _ => calls.Add("update"),
+            OnComplete = _ => calls.Add("complete"),
+        });
+        Presto.Defaults.ReduceAll = true;
+
+        animatable.Set("X", 100, 500);
+        Frames.Advance(48, 16);
+        animatable.Fling("Y", 1);
+        Frames.Advance(48, 16);
+
+        Assert.Equal(["begin", "update", "complete", "begin", "update", "complete"], calls);
+    }
+
+    [Fact]
+    public void ClearingReduceAllRestoresTheDurationsASetWouldHaveLeft()
+    {
+        var target = new StyleTarget();
+        Presto.Defaults.ReduceAll = true;
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100, ["Y"] = 100, Ease = "linear" });
+
+        animatable.Set("X", 100).Set("Y", 100, 400);
+        Frames.Advance(16);
+        Presto.Defaults.ReduceAll = false;
+        animatable.Set("X", 0).Set("Y", 0);
+
+        Assert.Equal(100, animatable.Animations["X"].Duration);
+        Assert.Equal(400, animatable.Animations["Y"].Duration);
+        Frames.Advance(16);
+        Assert.InRange(target.X, 1, 99);
+    }
+
+    [Fact]
+    public void AnAnimatableCreatedInAReduceAllScopeLandsItsRetargetsOutsideIt()
+    {
+        var target = new StyleTarget();
+        var scope = Presto.CreateScope(new() { Defaults = d => d.ReduceAll = true });
+        var animatable = scope.Execute(_ => Presto.CreateAnimatable(target, new() { ["X"] = 100 }));
+
+        animatable.Set("X", 100, 500);
+        Frames.Advance(16);
+
+        Assert.Equal(100, target.X);
+    }
+
+    [Fact]
+    public void ReducedMotionAloneLeavesASetWithADurationEasing()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+        Presto.Defaults.ReducedMotion = true;
+
+        animatable.Set("X", 100, 400);
+        Frames.Advance(16);
+
+        Assert.InRange(target.X, 0.001, 99);
+    }
+
     private static Animatable MomentumFollower(StyleTarget target, bool preserveVelocity) =>
         Presto.CreateAnimatable(target, new() { ["X"] = new(), Ease = new Spring(stiffness: 120, damping: 12), PreserveVelocity = preserveVelocity });
 

@@ -352,14 +352,14 @@ public sealed class Engine : Clock
         return Wake();
     }
 
-    /// <summary>Global playback rate multiplied into every timer's own; setting it rebases the running timers so they do not jump.</summary>
+    /// <summary>Global playback rate multiplied into every timer's own; clamped to a tiny positive value, and setting it rebases the running timers so they do not jump.</summary>
     public override double Speed
     {
         get => _speed * (Globals.TimeScale == 1 ? 1 : Constants.K);
         set
         {
             AssertThreadAffinity();
-            var speed = value * Globals.TimeScale;
+            var speed = (value < Constants.MinValue ? Constants.MinValue : value) * Globals.TimeScale;
             if (_speed == speed) return;
             _speed = speed;
             Helpers.ForEachChildren(this, static child => child.Speed = child._speed);
