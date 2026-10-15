@@ -53,7 +53,7 @@
                 <TextBlock Classes="caption" TextWrapping="Wrap"
                            Text="Everything below is driven by the scroll: observers seek animations to its position or start them at a threshold, and the rail across the top follows it as a MotionValue." />
 
-                <ToggleSwitch x:Name="SmoothWheel" Content="Smooth mouse-wheel scrolling (Scroll.Smooth, Windows only)" />
+                <ToggleSwitch x:Name="SmoothWheel" IsChecked="True" Content="Smooth mouse-wheel scrolling (Scroll.Smooth, Windows only)" />
 
                 <Border x:Name="Chapter1" Classes="stage" presto:Presence.RevealThreshold="bottom-=120 top"
                         presto:Presence.Reveal="{presto:Fade Direction=Up, Distance=52, Duration=640, Ease=outQuint}">

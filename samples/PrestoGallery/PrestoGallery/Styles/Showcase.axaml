@@ -506,4 +506,8 @@
         <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
 
+    <!-- Every scroller, template parts included: wheel notches ease on Windows, and reduced motion keeps native steps. -->
+    <Style Selector="ScrollViewer">
+        <Setter Property="presto:Scroll.Smooth" Value="True" />
+    </Style>
 </Styles>

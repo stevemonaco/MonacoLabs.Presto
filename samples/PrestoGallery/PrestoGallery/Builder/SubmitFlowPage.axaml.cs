@@ -83,7 +83,7 @@ public partial class SubmitFlowPage : ShowcasePage
     private async Task Send(bool fail)
     {
         Label.Animate(Hide);
-        await Submit.Animate(Collapse);
+        await Resize(Collapse);
         Spinner.Animate(Show);
         var spin = Scope.Execute(_ => Spinner.Animate(Spin));
 
@@ -93,7 +93,7 @@ public partial class SubmitFlowPage : ShowcasePage
         Spinner.Animate(Hide);
         var mark = fail ? Cross : Tick;
         Submit.Animate(fail ? Fail : Succeed);
-        Submit.Animate(fail ? Shake : Pop);
+        Field.Animate(fail ? Shake : Pop);
         if (!fail) _ = Celebrate(Submit);
         await mark.Animate(DrawIn);
         await Presto.Delay(700);
@@ -101,7 +101,15 @@ public partial class SubmitFlowPage : ShowcasePage
         await mark.Animate(Erase);
         Label.Text = fail ? "Try again" : "Send another";
         Label.Animate(Show);
-        await Submit.Animate(Expand);
+        await Resize(Expand);
+    }
+
+    // Unrounded while the width moves, so at fractional scaling both edges glide instead of stepping one side at a time.
+    private async Task Resize(AnimationBuilder resize)
+    {
+        Submit.UseLayoutRounding = false;
+        await Submit.Animate(resize);
+        Submit.UseLayoutRounding = true;
     }
     #endregion
 }
