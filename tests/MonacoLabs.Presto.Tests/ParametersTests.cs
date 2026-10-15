@@ -305,6 +305,27 @@ public sealed class ParametersTests : EngineTestBase
         Assert.Equal(100, target.X);
     }
 
+    [Theory]
+    [InlineData(50)]
+    [InlineData(100)]
+    public void ZeroDurationAnimationWaitsOutItsDelay(double delay)
+    {
+        var target = new StyleTarget();
+        var completions = 0;
+        Timer animation = Presto.Animate(target, new() { ["X"] = 100, Duration = 0, Delay = delay, OnComplete = _ => completions++ });
+        var then = animation.Then();
+
+        Assert.Equal(0, target.X);
+        Frames.Advance(delay / 2 - 12, 5);
+        Assert.Equal(0, target.X);
+        Assert.False(then.IsCompleted);
+
+        Frames.Advance(delay, 5);
+        Assert.Equal(100, target.X);
+        Assert.Equal(1, completions);
+        Assert.True(then.IsCompleted);
+    }
+
     [Fact]
     public void ZeroDurationTimerWithInfiniteLoop() =>
         Assert.Equal(Constants.MinValue, Presto.CreateTimer(new() { Duration = 0, Loop = true, Autoplay = false }).Duration);

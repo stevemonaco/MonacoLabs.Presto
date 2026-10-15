@@ -139,10 +139,12 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 - **CORE-ANIMATION-033** — The animation shall start each tween at its delay after the previous keyframe's end, apply the animation delay to the first keyframe only, and move the earliest first-tween start out of the tweens into its own `Delay`, so `Duration` excludes it.
   - Tests: `TweensTests.SingleTweenTimings`, `TweensTests.KeyframesTweenTimings`, `AnimationsTests.TweensTimingInheritance`, `KeyframesTests.TheFirstKeyframeDelayIsTransferredToTheAnimationDelay`
-- **CORE-ANIMATION-034** — The animation's `IterationDuration` shall be the latest tween end, and its `Duration` the iterations with their loop delays, or `Constants.MinValue` when that is 0 or NaN.
-  - Tests: `AnimationsTests.TweensTimingInheritance`, `ParametersTests.ZeroDurationAnimationWithInfiniteLoop`
+- **CORE-ANIMATION-034** — The animation's `IterationDuration` shall be the latest tween end, never below `Constants.MinValue` once the delay is moved out, and its `Duration` the iterations with their loop delays, or `Constants.MinValue` when that is 0 or NaN.
+  - Tests: `AnimationsTests.TweensTimingInheritance`, `ParametersTests.ZeroDurationAnimationWithInfiniteLoop`, `ParametersTests.ZeroDurationAnimationWaitsOutItsDelay`
 - **CORE-ANIMATION-035** — When a tween's duration is 0 or NaN, the animation shall give it `Constants.MinValue`, so it writes its end value on its first render.
   - Tests: `ParametersTests.ZeroDurationAnimation`, `AnimationsTests.AnimateTheProgressOfAnAnimationWithZeroDurationTweens`
+- **CORE-ANIMATION-066** — When an animation with a `Constants.MinValue` duration has a `Delay`, it shall hold its start values through the delay and land, firing `OnComplete` once, when the delay ends; without a delay it lands synchronously (CORE-TIMER-038).
+  - Tests: `ParametersTests.ZeroDurationAnimationWaitsOutItsDelay`, `ParametersTests.ZeroDurationAnimation`
 - **CORE-ANIMATION-036** — The animation shall round tween start, end and duration times to 12 decimals.
   - Tests: `KeyframesTests.ArrayBasedKeyframesWithFloatingPointDurations`, `ValuesTests.RendersNextKeyframeAtExactBoundaryWhenOffsetHasFloatRoundingDrift`
 - **CORE-ANIMATION-037** — The animation shall place each tween's absolute start and end at its own offset plus its parent's offset plus the tween's local times.
@@ -262,6 +264,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - `Stretch` of a top-level animation keeps its offset and rebuilds absolute times: a top-level offset is the engine time the timer was created at, and multiplying it by the factor of a stretch from a `Constants.MinValue` duration lost the precision a frame needs, so a release tween started late or never.
 - Color channels interpolate with premultiplied alpha, so a fade from a transparent color does not take on its RGB mid-way (CORE-COLORS).
 - Discrete properties tween instead of throwing, so `bool` and enum properties can be animated (CORE-TARGETS).
+- A zero-duration animation with a delay waits it out, where upstream `resume()` renders it once inside the delay (see "A zero-duration animation honors its delay").
 - `TextModifier`, `Inertia`/`Projectile` values, `WhenReduced` and `ReduceAll` have no upstream counterpart.
 - No DOM-specific tween types, `persist` or WAAPI conversion: there is no DOM, and upstream's `persist` exists only on its WAAPI path.
 
@@ -273,6 +276,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **`Presto.Set` sets the last value of a function returning an array.** Upstream `utils.set` wraps a function value as a from/to pair of itself, so a function that returns a from/to pair or keyframes nests an array in each end and fails to decompose; `Set` resolves the function once and sets the array's last item, the value the animation would end on (CORE-ANIMATION-044). Reason: a motion-state motion (BRIDGE-MOTION) that morphs from the current value applies through `Set` when its element attaches already in the state.
 - **Function values receive the group's target list.** Reason: it lets `Stagger` resolve auto-grids from the targets.
 - **Dictionary params take `WhenReduced`; timers and timelines do not.** `AnimationParams.WhenReduced` has the builder's semantics: under the flag its properties replace these and the settings it sets override them, and a nested `WhenReduced` is ignored. Reason: a timer animates nothing, and each timeline child picks its own form.
+- **A zero-duration animation honors its delay.** `Resume` renders a zero-duration timer at once only when it has no delay; otherwise it waits the delay out and lands (CORE-ANIMATION-066, CORE-TIMER-038). Reason: a delay is part of the schedule (stagger, orchestration). Upstream's render lands inside the delay and never links the timer into the engine, so whenever float noise left the duration at or below `Constants.MinValue` (a 50 ms delay, not a 100 ms one) the animation held its start for good, which broke zero-duration motion-state returns under `StaggerChildren`/`DelayChildren`. Rejected: keeping upstream and documenting a 1 ms duration as the workaround.
 - **`persist` is not ported.** Reason: in anime.js 4.5.0 it exists only on the WAAPI path.
 - **Inertia is a to-value, shaped like Spring is an ease.** See CORE-INERTIA.
 - **The builder is the documented, typed spelling; the indexer stays beside it.** See CORE-BUILDER.

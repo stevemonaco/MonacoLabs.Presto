@@ -175,7 +175,7 @@ public sealed class RecipeTests : CompositorTestBase
     {
         var build = Entrances.TryGetValue(name, out var entrance) ? entrance : Exits[name].Build;
         Presto.Defaults.ReducedMotion = true;
-        var reduced = build().ToParams();
+        var reduced = build().Resolve();
 
         Assert.Equal(["Opacity"], reduced.Properties.Keys);
         Assert.Equal((TweenValue)MotionTokens.Standard.Short, reduced.Duration);
@@ -220,7 +220,7 @@ public sealed class RecipeTests : CompositorTestBase
     {
         Presto.Defaults.ReducedMotion = true;
 
-        var reduced = Recipes.Reflow(delay: 100).ToParams();
+        var reduced = Recipes.Reflow(delay: 100).Resolve();
 
         Assert.Equal((TweenValue)0, reduced.Duration);
         Assert.Equal((TweenValue)0, reduced.Delay);
@@ -312,7 +312,7 @@ public sealed class RecipeTests : CompositorTestBase
         var box = Box();
         var window = Show(box);
         Presto.Defaults.ReducedMotion = reduced;
-        var properties = Interactions[name]().ToParams().Properties.Keys.ToArray();
+        var properties = Interactions[name]().Resolve().Properties.Keys.ToArray();
         var rest = properties.Select(p => PrestoAvalonia.Get(box, p)).ToArray();
         Motion.SetHover(box, Interactions[name]());
 
@@ -356,7 +356,7 @@ public sealed class RecipeTests : CompositorTestBase
     {
         Presto.Defaults.ReducedMotion = true;
 
-        Assert.Equal(["ShadowBlur", "ShadowY", "ShadowOpacity"], Recipes.ReorderLift().ToParams().Properties.Keys);
+        Assert.Equal(["ShadowBlur", "ShadowY", "ShadowOpacity"], Recipes.ReorderLift().Resolve().Properties.Keys);
     }
 
     [AvaloniaFact]
@@ -384,7 +384,7 @@ public sealed class RecipeTests : CompositorTestBase
     public void EachReducedFormDropsTravelAndScaleAndOnlyLoadingLoops(string name)
     {
         Presto.Defaults.ReducedMotion = true;
-        var reduced = Build(name)().ToParams();
+        var reduced = Build(name)().Resolve();
 
         Assert.Null(reduced.Keyframes);
         Assert.DoesNotContain(reduced.Properties.Keys, p => p is "X" or "Y" || p.StartsWith("Scale") || p.StartsWith("Rotate") || p.StartsWith("Skew"));
@@ -546,10 +546,10 @@ public sealed class RecipeTests : CompositorTestBase
         var transition = Pages[name]();
         Presto.Defaults.ReducedMotion = true;
 
-        var enter = transition.Enter!.ToParams();
-        var exit = transition.Exit!.ToParams();
+        var enter = transition.Enter!.Resolve();
+        var exit = transition.Exit!.Resolve();
 
-        foreach (var reduced in PageBuilders(transition).Select(b => b.ToParams()))
+        foreach (var reduced in PageBuilders(transition).Select(b => b.Resolve()))
         {
             Assert.Equal(["Opacity"], reduced.Properties.Keys);
             Assert.Equal((TweenValue)MotionTokens.Standard.Short, reduced.Duration);
@@ -681,7 +681,7 @@ public sealed class RecipeTests : CompositorTestBase
 
         foreach (var build in new Func<AnimationBuilder>[] { () => Recipes.Develop(), () => Recipes.FlashTint() })
         {
-            Assert.Equal(["Opacity"], build().ToParams().Properties.Keys);
+            Assert.Equal(["Opacity"], build().Resolve().Properties.Keys);
             var animation = build().Animate(image);
             Assert.Equal(MotionTokens.Standard.Short, animation.Duration);
             RunUntil(() => animation.Completed);
@@ -730,9 +730,9 @@ public sealed class RecipeTests : CompositorTestBase
     [AvaloniaFact]
     public void RecolorIsTheSameUnderReducedMotionAndFromXaml()
     {
-        var plain = Recipes.Recolor(Colors.Gold).ToParams();
+        var plain = Recipes.Recolor(Colors.Gold).Resolve();
         Presto.Defaults.ReducedMotion = true;
-        var reduced = Recipes.Recolor(Colors.Gold).ToParams();
+        var reduced = Recipes.Recolor(Colors.Gold).Resolve();
         var markup = ((AnimationBuilder)new RecolorExtension { To = Colors.Gold, Property = "BorderBrush", Space = ColorSpace.Oklch }.ProvideValue(null!)).ToParams();
 
         Assert.Equal(["Background"], plain.Properties.Keys);

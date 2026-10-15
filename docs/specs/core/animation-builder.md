@@ -78,8 +78,8 @@ depends:
   - Tests: `AnimationBuilderTests.EveryTimerSettingAndCallbackMatchesTheIndexer`, `AnimationBuilderTests.SettingsChainedAfterWhenReducedCarryIntoTheReducedFormButMainPropertiesDoNot`
 - **CORE-BUILDER-019** — An animation built from a builder shall render the same values on every frame as one built from the equivalent indexer params, across loops, alternation and keyframes.
   - Tests: `AnimationBuilderTests.BuilderAndIndexerAnimationsReadTheSameValuesAcrossLoopsAndAlternation`, `AnimationBuilderTests.KeyframedBuilderAndIndexerAnimationsReadTheSameValues`
-- **CORE-BUILDER-020** — `ToParams` shall build the reduced form instead while the current engine's `ReducedMotion` is set and a `WhenReduced` action exists (CORE-REDUCED).
-  - Tests: `AnimationBuilderTests.WhenReducedIsPickedOnlyWhileReducedMotionIsSet`
+- **CORE-BUILDER-020** — `ToParams` shall read no engine: when a `WhenReduced` action exists it shall return the main form with the reduced form in `WhenReduced`, and the animation shall pick between them against its owner engine when it is constructed (CORE-REDUCED).
+  - Tests: `AnimationBuilderTests.WhenReducedIsPickedOnlyWhileReducedMotionIsSet`, `AnimationBuilderTests.ATimelinePicksABuildersReducedFormAgainstItsOwnEngine`
 - **CORE-BUILDER-021** — `Animate(targets)` shall return `Presto.Animate(targets, ToParams())`.
   - Tests: `AnimationBuilderTests.LambdaAnimateAndSetMatchTheBuilderForm`
 - **CORE-BUILDER-022** — `Set(targets)` shall return `Presto.Set(targets, ToParams())`, writing at once.
@@ -116,12 +116,12 @@ depends:
 
 ## Threading and lifetime
 
-- Configuration and `ToParams` touch no engine, except that `ToParams` reads `Engine.Current.Defaults.ReducedMotion`; terminals run on the current engine's thread like `Presto.Animate`.
+- Configuration and `ToParams` touch no engine; terminals run on the current engine's thread like `Presto.Animate`.
 - A builder keeps references to every value and delegate given to it until it is collected.
 
 ## Reduced motion
 
-- `WhenReduced` and its selection by `ToParams` are specified in CORE-REDUCED.
+- `WhenReduced` and its selection at construction are specified in CORE-REDUCED.
 
 ## Allocation
 
@@ -149,6 +149,7 @@ depends:
 - **`Clone` and `With` vary a shared builder without mutating it.** `Clone` is a deep copy (settings, properties, keyframes, reduced alternative) and `With(change)` is clone-then-change. Reason: the only alternatives were mutating the shared builder for everyone, or `ToParams() with { … }`, which cannot add or override a property and yields params that builder-only surfaces reject.
 - **Builders are not freezable.** No `Freeze`; the library's own shared default builders hand out a `Clone()` from their getters instead. Reason: mutating a shared builder is sometimes the intent (a slider retuning a recipe for later plays), and guarding every setter, keyframes and `WhenReduced` is not worth it; `Freeze()` can be added later without a break. Rejected: `Freeze()`, cost not worth it now.
 - **Reduced motion is an app-set flag with a per-builder alternative.** See CORE-REDUCED.
+- **Builders resolve against what they are added under.** `ToParams` carries both forms and the animation picks against its owner engine at construction, and a color expansion with unset timing takes the defaults it is added under (CORE-KEYFRAMES). Reason: the dictionary path already does, and a timeline on another engine or with its own `Defaults` must get the same result from a builder. Rejected: keeping `ToParams` picking against `Engine.Current` when it runs.
 
 ## Non-goals
 
@@ -157,4 +158,4 @@ depends:
 
 ## Open items
 
-- A builder passed to a timeline on another engine reads the current engine's `ReducedMotion` (see CORE-REDUCED).
+None.

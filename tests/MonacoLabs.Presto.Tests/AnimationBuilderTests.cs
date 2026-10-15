@@ -515,12 +515,33 @@ public sealed class AnimationBuilderTests : EngineTestBase
     {
         var builder = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
 
-        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["X"], builder.Resolve().Properties.Keys);
         Presto.Defaults.ReducedMotion = true;
-        Assert.Equal(["Opacity"], builder.ToParams().Properties.Keys);
-        Assert.Equal(["X"], Presto.Build().Property("X", 100).ToParams().Properties.Keys);
-        Presto.Defaults.ReducedMotion = false;
         Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["Opacity"], builder.ToParams().WhenReduced?.Properties.Keys);
+        Assert.Equal(["Opacity"], builder.Resolve().Properties.Keys);
+        Assert.Null(Presto.Build().Property("X", 100).ToParams().WhenReduced);
+        Presto.Defaults.ReducedMotion = false;
+        Assert.Equal(["X"], builder.Resolve().Properties.Keys);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ATimelinePicksABuildersReducedFormAgainstItsOwnEngine(bool timelineReduced)
+    {
+        var engine = new Engine(new ManualFrameSource());
+        engine.Defaults.ReducedMotion = timelineReduced;
+        Presto.Defaults.ReducedMotion = !timelineReduced;
+        Timeline timeline;
+        using (engine.MakeCurrent()) timeline = Presto.CreateTimeline(new() { Autoplay = false });
+        var target = new StyleTarget();
+
+        timeline.Add(target, Presto.Build().Property("X", 100).Duration(100).WhenReduced(b => b.Property("Opacity", .5)));
+        timeline.Seek(timeline.Duration);
+
+        Assert.Equal(timelineReduced ? 0 : 100, target.X);
+        Assert.Equal(timelineReduced ? .5 : 0, target.Opacity);
     }
 
     [Fact]
@@ -538,7 +559,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             .WhenReduced(b => b.Property("Opacity", 1).Duration(150))
             .Delay(delay)
             .OnComplete(onComplete)
-            .ToParams();
+            .Resolve();
 
         Assert.Equal(["Opacity"], parameters.Properties.Keys);
         Assert.Null(parameters.Keyframes);
@@ -557,9 +578,9 @@ public sealed class AnimationBuilderTests : EngineTestBase
         var changed = source.With(b => b.WhenReduced(r => r.Property("Scale", 1)));
         Presto.Defaults.ReducedMotion = true;
 
-        Assert.Equal(["Opacity"], clone.ToParams().Properties.Keys);
-        Assert.Equal(["Scale"], changed.ToParams().Properties.Keys);
-        Assert.Equal(["Opacity"], source.ToParams().Properties.Keys);
+        Assert.Equal(["Opacity"], clone.Resolve().Properties.Keys);
+        Assert.Equal(["Scale"], changed.Resolve().Properties.Keys);
+        Assert.Equal(["Opacity"], source.Resolve().Properties.Keys);
     }
 
     private static void AssertEquivalent(AnimationParams expected, AnimationParams actual)

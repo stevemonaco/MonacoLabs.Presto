@@ -61,8 +61,10 @@ depends:
   - Tests: `SheetTests.AnInnerScrollerHandsTheDragOffAtItsTopAndScrollsOtherwise`, `GesturesPageTests.TappingTheHandleStepsTheCurtainToHalfThenFullWithTheContentLinked`
 - **BRIDGE-SHEET-009** — When `IsOpen` is set true on a sheet at detent 0, the sheet shall go to detent 1; when set false on an open sheet, to detent 0.
   - Tests: `SheetTests.OpeningShowsTheContentAndPlaysTheEntrancesInside`, `SheetTests.EscapeBackOrAScrimTapClosesIt`
-- **BRIDGE-SHEET-010** (inherited) — A `DetentIndex` beyond the detents shall resolve to the nearest end for its target, without being coerced.
-  - Tests: untested
+- **BRIDGE-SHEET-010** — `DetentIndex` shall be coerced into the declared `Detents` (`[0, Count - 1]`, 0 when there are none), not the arranged stops, and coerced again from the value last set when `Detents` changes.
+  - Tests: `SheetTests.TheDetentIndexIsCoercedIntoTheDeclaredDetents`
+- **BRIDGE-SHEET-038** — When `IsOpen` is set true on a sheet with no detent past the first, the index shall stay 0 and `IsOpen` shall revert to false, leaving the scrim taking no hits.
+  - Tests: `SheetTests.OpeningASheetWithASingleDetentLeavesItClosed`
 - **BRIDGE-SHEET-011** — While the sheet rests at an extent of 0, its panel shall be hidden; when it heads for an extent above 0 or is grabbed, the panel shall show, and it shall hide again when an animation to an extent of 0 completes.
   - Tests: `SheetTests.OpeningShowsTheContentAndPlaysTheEntrancesInside`, `SheetTests.EscapeBackOrAScrimTapClosesIt`
 - **BRIDGE-SHEET-012** — When the panel shows, the entrances inside the content shall replay through `Presence.EnterOnShow` on the panel.
@@ -142,7 +144,7 @@ depends:
 ## Edge cases
 
 - A first detent above 0 (a peek): the sheet closes to it, stays shown, and its scrim is 0 there.
-- A single detent: `IsOpen = true` sets `DetentIndex` 1, which targets the only detent, so the sheet reads open while resting closed.
+- An `Auto` detent over empty content resolves to 0, yet its index is above 0, so the sheet reads open.
 - A drag released with no motion outside the detents lands on the nearer end.
 - `Scrim = null`: the scrim draws nothing and a tap there reaches the host.
 - Capture lost mid-drag (another control captures) settles as a release.
@@ -167,6 +169,7 @@ depends:
 
 - **The newest open overlay wins Escape and back.** `Dismissal` handles both through class handlers on `TopLevel`, which run before any instance handler there, and closes only the most recently opened `Sheet` or `Modal` still open on that top level. Reason: instance handlers run in subscription order, so an app handler subscribed before the overlay attached (the gallery shell's back navigation) ran first and had to resubscribe on every page load, and of two stacked overlays the first attached closed even when it lay underneath. Escape still reaches focused controls inside the overlay first, as it bubbles; an app can preempt Escape by tunneling. Rejected: fixing only the stacking order; documenting the subscription order.
 - **Sheet is an untemplated control with its own drag.** `Sheet`, with a sealed `Drawer` subclass, is a control that builds its scrim, panel and edge strip as visual children and takes its look from its `Content`; its drag is its own pointer handling, built like `Swipe`'s and started through the gesture arena (BRIDGE-GESTURES). Reason: the scrim and edge strip are siblings an attached property on the panel could only add by reaching into its parent's children; the bridge ships no themes; `Draggable`'s press captures the pointer, so it could never hand a touch scroll to an inner `ScrollViewer`. Rejected: an attached form; a drag built on `Draggable`.
+- **`IsOpen` means "index above 0".** `DetentIndex` is coerced into the declared detents, and the `IsOpen` handler re-syncs after writing the index, so opening a single-detent sheet reads closed again. Reason: it stays independent of layout and cannot flip after an arrange. Rejected: "resolved extent above 0", which would change as the host or content resizes.
 - **`TimeConstant` on `Sheet`, not a duration.** The settle's speed is set by a `TimeConstant` styled property. Reason: the settle is inertia, so its knob is the inertia's time constant, which keeps the fling physics: a shorter one settles sooner while a fast fling still projects from its release velocity. Rejected: a `Duration`; a shared `Inertia` property, which would expose the internal `ModifyTarget` and bounds.
 
 ## Non-goals
@@ -177,6 +180,5 @@ depends:
 
 ## Open items
 
-- `DetentIndex` is never coerced into the detent range, so `IsOpen` can read true while the sheet rests at its only, closed detent.
 - `Drawer` docs say Left or Right, but any `Edge` works, including Top and Bottom with an edge strip.
 - Untested: the handled release, the `Edge` change rebuild, the `Drawer` default edge, and `Scrim = null` letting taps through.

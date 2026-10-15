@@ -85,13 +85,13 @@ public sealed class ReducedMotionTests : EngineTestBase
         var builder = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
 
         var inside = scope.Execute(_ => Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 1000 }));
-        var insideParams = scope.Execute(_ => builder.ToParams());
+        var insideParams = scope.Execute(_ => builder.Resolve());
         var outside = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 1000 });
 
         Assert.Equal(Constants.MinValue, inside.Duration);
         Assert.Equal(["Opacity"], insideParams.Properties.Keys);
         Assert.Equal(1000, outside.Duration);
-        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["X"], builder.Resolve().Properties.Keys);
     }
 
     // GAPS-2-PLAN §1.3: WhenReduced on dictionary params.

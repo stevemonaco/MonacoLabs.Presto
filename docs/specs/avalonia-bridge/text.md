@@ -16,6 +16,7 @@ types:
   - SplitPieceParams
 tests:
   - TextSplitTests
+  - TextRevealTests
 upstream:
   - src/text/split.js
   - tests/suites/text.test.js
@@ -85,8 +86,12 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
   - Tests: `TextSplitTests.TheAnimationAnEffectReturnsKeepsItsTimeAcrossARespilt`, `TextSplitTests.RevertRevertsTheAnimationAnEffectReturned`
 - **BRIDGE-TEXT-020** — `Refresh` shall split again at the current width, running the cleanups and then the effects.
   - Tests: `TextSplitTests.RefreshRunsTheCleanupsAndTheEffectsAgain`
-- **BRIDGE-TEXT-021** — `Revert` shall stop responding to resizes, run the cleanups, empty the piece lists, put back the text the block had when the splitter was created, and clear the automation name and the clip override.
-  - Tests: `TextSplitTests.RevertRunsTheCleanupsAndStopsRespondingToResizes`, `TextSplitTests.RevertRestoresTheOriginalTextBlock`
+- **BRIDGE-TEXT-021** — `Revert` shall stop responding to resizes and text changes, run the cleanups, empty the piece lists, put back the block's current text (its text when the splitter was created, or the last one set from outside since, BRIDGE-TEXT-059) when it is split, and clear the automation name and the clip override.
+  - Tests: `TextSplitTests.RevertRunsTheCleanupsAndStopsRespondingToResizes`, `TextSplitTests.RevertRestoresTheOriginalTextBlock`, `TextRevealTests.ABoundTextChangedMidRevealResplitsKeepingTheTimeAndEndsOnTheNewTextStillBound`
+- **BRIDGE-TEXT-059** — When the block's `Text` is set by anything other than the splitter, the splitter shall take the new text as its own and, once it has split, split it again at once: cleanups first, then the effects over the new pieces.
+  - Tests: `TextRevealTests.ABoundTextChangedMidRevealResplitsKeepingTheTimeAndEndsOnTheNewTextStillBound`
+- **BRIDGE-TEXT-060** — The splitter shall write the block's `Text` only with `SetCurrentValue`, so a binding on it survives the split and the revert.
+  - Tests: `TextRevealTests.ABoundTextChangedMidRevealResplitsKeepingTheTimeAndEndsOnTheNewTextStillBound`, `TextRevealTests.ABindingSurvivesARevealWithNoTextChange`
 - **BRIDGE-TEXT-054** — `SlotOf` shall return the piece's layout box in the block's coordinates, before transforms, for any piece of the current split, valid from the first effect of that split; for a control that is not a piece of this splitter it shall throw `ArgumentException`.
   - Tests: `TextSplitTests.SlotOfGivesEachPiecesLayoutBoxInBlockCoordinates`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffect`, `TextSplitTests.SlotOfIsValidInsideTheFirstEffectOnACenteredBlock`, `TextSplitTests.SlotOfIgnoresRenderTransforms`, `TextSplitTests.SlotOfFollowsAResplit`, `TextSplitTests.SlotOfRejectsAControlThatIsNotAPieceOfThisSplit`
 
@@ -153,11 +158,12 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 
 - With `Lines`, `Words` and `Chars` all null the block is still re-laid out as one plain row per line, with no recorded pieces.
 - `Refresh` after `Revert` splits again but no longer follows resizes.
-- Text changed on the block after the splitter was created is overwritten by the original on revert.
+- A `Text` set before the first split only changes the text that split is made from.
+- A `Text` set after `Revert` is kept: a second `Revert` writes no text.
 
 ## Threading and lifetime
 
-- UI thread only. The resize debounce is an engine timer; the splitter listens to the block's `SizeChanged` until reverted.
+- UI thread only. The resize debounce is an engine timer; the splitter listens to the block's `SizeChanged` and `Text` changes until reverted.
 - Splitters and their debounce timer belong to the ambient scope when one is active.
 
 ## Reduced motion
@@ -184,6 +190,7 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 - **The split lays its pieces out itself.** Effects run before the host's next layout pass, so the split measures and arranges its piece tree at the block's padding and text alignment, where the host's arrange puts it. Reason: `SlotOf` and exit ghosts need bounds from the first effect, without forcing a layout pass on the host from inside its own `SizeChanged`.
 - **Outline pieces are `Path` controls inside the existing splitter, not a new text control.** Reason: every split-piece feature (stagger, `SlotOf`, re-split on resize, reveal triggers, effects, `Draw`, `MorphTo`) then works on outlines for free, and warps get per-letter stagger for free. Rejected: an `OutlineText` control drawing the whole string as one geometry, which would need its own copy of all of that.
 - **An outline piece keeps its flattened contours and its grapheme.** Each outline piece carries the contour model of its outline (BRIDGE-GLYPHS) and the text it stands for, read internally by `"Draw"` and `MorphText` and later by warps and shards. Reason: the outline is read once per split rather than by every feature again, and a `Path` has no `Text` to pair letters by.
+- **An outside `Text` change re-splits, and the splitter's own writes keep the binding.** While split, a `Text` the splitter did not write becomes its text and is split at once, keeping an effect's time as a resize re-split does; every write goes through `SetCurrentValue`, and `Revert` puts back the current text. Reason: a bound block then ends showing its current text with its binding intact (a reveal on Tempo's Stats best-day line froze the text it started with). Rejected: ending the reveal at once, which loses the animation of a value that changes during the arrival.
 - **An outline piece is sized by measuring its text.** Its `Width` and `Height` come from measuring the piece's text in the block's font, so its slot is exactly the text piece's, trailing no-break space included. Reason: an outline's bounds are its ink, not the advance and line box that layout needs.
 
 ## Non-goals

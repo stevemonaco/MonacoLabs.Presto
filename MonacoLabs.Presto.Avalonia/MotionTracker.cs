@@ -185,7 +185,7 @@ internal sealed class MotionTracker
         var properties = new Dictionary<string, KeyValuePair<string, TweenValue>>();
         if (state.Motion != null)
         {
-            foreach (var pair in Expand(state.Motion.ToParams())) properties[Presto.Canonicalize(_control, pair.Key)] = pair;
+            foreach (var pair in Expand(state.Motion.Resolve())) properties[Presto.Canonicalize(_control, pair.Key)] = pair;
         }
         return properties;
     }
@@ -278,7 +278,7 @@ internal sealed class MotionTracker
             var (name, value) = entry.Properties[property];
             chosen[name] = value;
         }
-        var parameters = entry.State.Motion!.ToParams();
+        var parameters = entry.State.Motion!.Resolve();
         return Animate(parameters with
         {
             Properties = chosen, Keyframes = null, Composition = Composition.Replace, Delay = Delayed(parameters.Delay, delay),
@@ -287,7 +287,7 @@ internal sealed class MotionTracker
 
     private Animation Leave(Entry entry, List<string> properties, double delay)
     {
-        var timing = (entry.State.Leave ?? entry.State.Motion!).ToParams();
+        var timing = (entry.State.Leave ?? entry.State.Motion!).Resolve();
         var values = new OrderedDictionary<string, TweenValue>();
         List<string>? resting = null;
         foreach (var property in properties)
@@ -493,7 +493,7 @@ internal sealed class MotionTracker
         foreach (var (property, entry) in _winners)
         {
             values[property] = Target(entry, property);
-            if (entry.State.Motion!.ToParams().Loop is { Value: not 0 }) Group(ref looping, entry, property);
+            if (entry.State.Motion!.Resolve().Loop is { Value: not 0 }) Group(ref looping, entry, property);
         }
         var set = Presto.Set(_control, new AnimationParams { Properties = values });
         foreach (var property in _winners.Keys) _drivers[property] = set;

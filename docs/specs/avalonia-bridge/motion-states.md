@@ -186,8 +186,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionOrchestrationTests.TheStaggerFollowsWhereChildrenAreLaidOutRatherThanTreeOrder`, `MotionOrchestrationTests.AChildWithItsOwnStateIsLeftOutOfTheStagger`
 - **BRIDGE-MOTION-050** — When `StaggerChildren` is non-zero, each follower's state animations shall be delayed by the core `Stagger(StaggerChildren, From = StaggerFrom, Total = followers)` value for its index.
   - Tests: `MotionOrchestrationTests.StaggerChildrenBeginsEachChildItsAmountAfterThePrevious`, `MotionOrchestrationTests.StaggerFromLastReversesTheOrder`
-- **BRIDGE-MOTION-051** — `DelayChildren` shall be added to every follower's delay, on top of the state's own delay and the stagger offset.
-  - Tests: `MotionOrchestrationTests.DelayChildrenShiftsEveryChild`
+- **BRIDGE-MOTION-051** — `DelayChildren` shall be added to every follower's delay, on top of the state's own delay and the stagger offset, a zero-duration animation or return included (CORE-ANIMATION-066).
+  - Tests: `MotionOrchestrationTests.DelayChildrenShiftsEveryChild`, `MotionOrchestrationTests.AZeroDurationReturnWaitsOutDelayChildren`
 - **BRIDGE-MOTION-052** — With `Order = Together`, the source's own state animations shall start with no added delay, alongside its followers.
   - Tests: untested
 - **BRIDGE-MOTION-053** — With `Order = BeforeChildren`, the end of the source's own state animations (delay plus duration) shall be added to every follower's delay.

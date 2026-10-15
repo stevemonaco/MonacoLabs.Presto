@@ -227,6 +227,36 @@ public sealed class SheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void OpeningASheetWithASingleDetentLeavesItClosed()
+    {
+        var (window, sheet) = Stage(new Border { Background = Brushes.Red });
+        sheet.Detents = SheetDetents.Parse("0");
+
+        sheet.IsOpen = true;
+        Tick();
+
+        Assert.False(sheet.IsOpen);
+        Assert.Equal(0, sheet.DetentIndex);
+        Assert.False(Scrim(sheet).IsHitTestVisible);
+        Assert.NotSame(Scrim(sheet), window.InputHitTest(new Point(100, 40)));
+    }
+
+    [AvaloniaFact]
+    public void TheDetentIndexIsCoercedIntoTheDeclaredDetents()
+    {
+        var sheet = new Sheet { Content = new Border() };
+
+        sheet.DetentIndex = 5;
+        Assert.Equal(1, sheet.DetentIndex);
+        Assert.True(sheet.IsOpen);
+
+        sheet.Detents = SheetDetents.Parse("0,0.5,1");
+        sheet.DetentIndex = 2;
+        sheet.Detents = SheetDetents.Parse("0,0.5");
+        Assert.Equal(1, sheet.DetentIndex);
+    }
+
+    [AvaloniaFact]
     public void ItFillsTheOverlayLayer()
     {
         var window = new Window { Width = 200, Height = 200 };

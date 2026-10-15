@@ -181,6 +181,34 @@ public sealed class ScrambleTextTests : EngineTestBase
         Assert.Equal(Sentence, label.Text);
     }
 
+    [Fact]
+    public void AnUnchainedScrambleSettlesOnTextTheAppChangedSince()
+    {
+        var label = new Label();
+        var first = Presto.Animate(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Duration = 100, Seed = 1 }) });
+        RunUntil(() => first.Completed);
+
+        label.Text = "Changed";
+        var second = Presto.Animate(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Duration = 100, Seed = 1 }) });
+        RunUntil(() => second.Completed);
+
+        Assert.Equal("Changed", label.Text);
+    }
+
+    [Fact]
+    public void AScrambleInterruptingARunningOneSettlesOnTheOriginalText()
+    {
+        var label = new Label();
+        Presto.Animate(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Duration = 200, Seed = 1 }) });
+        Frames.Advance(100, 16);
+        Assert.NotEqual(Sentence, label.Text);
+
+        var second = Presto.Animate(label, new AnimationParams { ["Text"] = Presto.ScrambleText(new() { Duration = 100, Seed = 2 }) });
+        RunUntil(() => second.Completed);
+
+        Assert.Equal(Sentence, label.Text);
+    }
+
     private sealed class Label
     {
         public string Text { get; set; } = Sentence;

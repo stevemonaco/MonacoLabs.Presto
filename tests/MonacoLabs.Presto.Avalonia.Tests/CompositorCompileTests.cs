@@ -162,13 +162,30 @@ public sealed class CompositorCompileTests : BridgeTestBase
         Assert.Equal(track.Values[^2], track.Values[^1]);
     }
 
-    [AvaloniaFact]
-    public void AnAlternatingLoopDelayExpandsIntoATwoIterationCycle()
+    [AvaloniaTheory]
+    [InlineData(2, 1600, 100)]
+    [InlineData(1, 1000, 0)]
+    public void AFiniteAlternatingLoopDelayUnrollsIntoOneTrackEndingWithTheMirror(int loop, double duration, double end)
     {
-        var track = Assert.Single(Compile(new Border(), new() { ["X"] = 100, Duration = 400, Loop = 3, LoopDelay = 200, Alternate = true }));
+        var (mirror, tracks) = CompositorCompiler.Compile(0, [new Border()], new() { ["X"] = 100, Duration = 400, Loop = loop, LoopDelay = 200, Alternate = true });
+        var track = Assert.Single(tracks);
+
+        Assert.Equal(duration, mirror.Duration);
+        Assert.Equal(TimeSpan.FromMilliseconds(duration), track.Duration);
+        Assert.Equal(1, track.IterationCount);
+        Assert.False(track.Forever);
+        Assert.Equal(PlaybackDirection.Normal, track.Direction);
+        Assert.Equal(100, track.Values[(int)Math.Round(500 / duration * (track.Keys.Length - 1))][0], 1e-6);
+        Assert.Equal(end, track.Values[^1][0], 1e-6);
+    }
+
+    [AvaloniaFact]
+    public void AnAlternatingLoopDelayForeverPlaysForwardAndBackCycles()
+    {
+        var track = Assert.Single(Compile(new Border(), new() { ["X"] = 100, Duration = 400, Loop = true, LoopDelay = 200, Alternate = true }));
 
         Assert.Equal(TimeSpan.FromMilliseconds(1200), track.Duration);
-        Assert.Equal(2, track.IterationCount);
+        Assert.True(track.Forever);
         Assert.Equal(PlaybackDirection.Normal, track.Direction);
         Assert.Equal(.5, track.Keys[track.Keys.Length / 2], 1e-6);
         Assert.Equal(100, track.Values[track.Keys.Length / 2][0], 1e-6);

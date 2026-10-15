@@ -425,7 +425,7 @@ public static class Presence
     private static IRevertible Arrive(Control control, AnimationBuilder builder, bool laidOut = false, Visual? batchKey = null)
     {
         PrestoAvalonia.EnsureInitialized();
-        var parameters = builder.ToParams() with { HostLifetime = WhenDetached.Continue };
+        var parameters = builder.Resolve() with { HostLifetime = WhenDetached.Continue };
         using var origin = PrestoDiagnostics.Origin("Presence");
         if (PieceTargets.Play(control, parameters) is { } reveal) return reveal;
         var key = batchKey ?? control.FindAncestorOfType<Panel>() ?? (Visual?)TopLevel.GetTopLevel(control) ?? control;
@@ -742,7 +742,7 @@ public static class Presence
 
             using var origin = PrestoDiagnostics.Origin("Presence");
             PrestoAvalonia.EnsureInitialized();
-            var parameters = exit.ToParams();
+            var parameters = exit.Resolve();
             var updated = parameters.OnUpdate;
             var completed = parameters.OnComplete;
             var paused = parameters.OnPause;
@@ -890,7 +890,7 @@ public static class Presence
         if (size.Width <= 0 || size.Height <= 0 || TopLevel.GetTopLevel(anchor) is not { } top || OverlayLayer.GetOverlayLayer(anchor) is not { } overlay) return null;
         if (overlay.TranslatePoint(default, top) is not { } overlayOrigin) return null;
 
-        var parameters = exit.ToParams() with { HostLifetime = WhenDetached.Continue };
+        var parameters = exit.Resolve() with { HostLifetime = WhenDetached.Continue };
         Control ghost = null!;
         Image[] ghosts = [];
         Styled(element, anchor, () =>

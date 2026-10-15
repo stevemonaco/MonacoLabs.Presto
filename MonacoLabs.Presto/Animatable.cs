@@ -17,6 +17,7 @@ public sealed class Animatable : IRevertible
     private const double VelocityStep = 1e-4;
 
     private readonly Dictionary<string, Animation> _animations = [];
+    private readonly Dictionary<string, MotionValue> _values = [];
     // The properties that keep their momentum, each with the spring it was declared with, if any.
     private readonly Dictionary<string, Spring?> _momentum = [];
     // The eases and duration a flung property returns to on its next Set.
@@ -94,13 +95,15 @@ public sealed class Animatable : IRevertible
     public double[] GetChannels(PropertyKey property) =>
         _animations.TryGetValue(Key(property.Unwrap()), out var animation) && animation._headTween is { } tween ? tween._numbers : [];
 
-    /// <summary>A <see cref="MotionValue"/> mirroring <see cref="Get"/> for the property, updated whenever its animation renders.</summary>
+    /// <summary>The property's <see cref="MotionValue"/>, mirroring <see cref="Get"/> and updated whenever its animation renders; every call returns the same one.</summary>
     public MotionValue ValueOf(PropertyKey property)
     {
         var key = Key(property.Unwrap());
+        if (_values.TryGetValue(key, out var cached)) return cached;
         _animations.TryGetValue(key, out var animation);
         var value = new MotionValue(animation?.OwnerEngine ?? Engine.Current, [], Get(key));
         if (animation != null) animation._onRender += _ => value.Assign(Get(key));
+        _values[key] = value;
         return value;
     }
 
@@ -199,6 +202,7 @@ public sealed class Animatable : IRevertible
     {
         foreach (var animation in _animations.Values) animation.Revert();
         _animations.Clear();
+        _values.Clear();
         _targets.Clear();
         _callbacks.Revert();
         return this;

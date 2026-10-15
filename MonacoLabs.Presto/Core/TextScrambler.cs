@@ -25,7 +25,7 @@ internal static class TextScrambler
         ["shades"] = "░-▓",
     };
 
-    private static readonly ConditionalWeakTable<object, string> s_originalTexts = new();
+    private static readonly ConditionalWeakTable<object, TextState> s_texts = new();
 
     internal static ChainedFunctionValue Create(ScrambleTextParams parameters)
     {
@@ -49,9 +49,11 @@ internal static class TextScrambler
             var rng = Utils.CreateSeededRandom(parameters.Seed);
 
             var currentText = Presto.Get(target, "Text") as string ?? "";
-            if (!s_originalTexts.TryGetValue(target, out var originalText)) s_originalTexts.Add(target, originalText = currentText);
+            var state = s_texts.GetOrCreateValue(target);
+            // The scrambler's own last write means a scramble is running or just settled, so the cached text is still the real one.
+            if (previous == null && currentText != state.LastWrite) state.Original = currentText;
             var startingText = previous?._value as string ?? currentText;
-            var settledText = parameters.Text ?? (previous != null ? startingText : originalText);
+            var settledText = parameters.Text ?? (previous != null ? startingText : state.Original!);
             var startLength = startingText.Length;
             var endLength = settledText.Length;
 
@@ -225,9 +227,15 @@ internal static class TextScrambler
                 Duration = duration,
                 Delay = delay,
                 Ease = Eases.None,
-                TextModifier = Scramble,
+                TextModifier = v => state.LastWrite = Scramble(v),
             };
         };
+    }
+
+    private sealed class TextState
+    {
+        public string? Original;
+        public string? LastWrite;
     }
 
     private static string Expand(string chars)

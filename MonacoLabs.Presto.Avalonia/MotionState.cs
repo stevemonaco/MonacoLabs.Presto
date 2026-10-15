@@ -21,8 +21,8 @@ public sealed class MotionState
     /// <exception cref="NotSupportedException"><see cref="Motion"/> has a relative or from-only value, or <see cref="Leave"/> has any value.</exception>
     internal void Validate()
     {
-        if (Motion != null) ValidateMotion(Motion.ToParams());
-        if (Leave != null) ValidateLeave(Leave.ToParams());
+        if (Motion != null) ValidateMotion(Motion.Resolve());
+        if (Leave != null) ValidateLeave(Leave.Resolve());
     }
 
     private void ValidateMotion(AnimationParams p)

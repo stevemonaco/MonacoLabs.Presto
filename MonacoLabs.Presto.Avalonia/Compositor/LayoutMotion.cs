@@ -19,7 +19,7 @@ internal readonly record struct LayoutMotion(
     /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honor.</exception>
     public static LayoutMotion From(AnimationBuilder builder)
     {
-        var p = builder.ToParams();
+        var p = builder.Resolve();
         var unsupported =
             p.Keyframes != null ? nameof(p.Keyframes) :
             p.Loop != null ? nameof(p.Loop) :

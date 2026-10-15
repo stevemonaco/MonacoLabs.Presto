@@ -128,8 +128,8 @@ Keyframes animate a property through a sequence of values instead of straight to
   - Tests: `ColorKeyframesTests.FunctionValuedEndsResolvePerTargetUnderAStagger`
 - **CORE-KEYFRAMES-036** — Only the first frame shall carry `from` and `delay`, so the animation's delay, staggered or not, still applies when `delay` is unset.
   - Tests: `ColorKeyframesTests.FunctionValuedEndsResolvePerTargetUnderAStagger`
-- **CORE-KEYFRAMES-037** — When `duration` or `ease` is unset, the builder shall use `Engine.Current`'s defaults at the time of the call; a `Spring` ease shall set the duration to its settling duration.
-  - Tests: `ColorKeyframesTests.TheRenderedColorStaysNearThePath`
+- **CORE-KEYFRAMES-037** — When `duration` or `ease` is unset, the expansion shall wait until the animation is built and take them from the defaults it is added under (its engine's, its scope's, or its timeline's `Defaults`), never from the animation's own `Duration` or `Ease`; a `Spring` ease shall set the duration to its settling duration.
+  - Tests: `ColorKeyframesTests.UnsetTimingComesFromTheDefaultsTheAnimationIsAddedUnder`, `ColorKeyframesTests.TheRenderedColorStaysNearThePath`
 - **CORE-KEYFRAMES-038** (inherited) — When a fixed end is neither a `PrestoColor` nor a parsable color string, `Color` shall throw `ArgumentException`.
   - Tests: `ColorKeyframesTests.AnEndThatIsNotAColorThrows`
 - **CORE-KEYFRAMES-039** (inherited) — When `segments` is below 1, `Color` shall throw `ArgumentOutOfRangeException`.
@@ -155,12 +155,11 @@ Keyframes animate a property through a sequence of values instead of straight to
 - A dictionary built by hand may hold offsets above 100% or negative ones; only the builder's `At` checks the range.
 - Between probes a fitted path strays up to about deltaEOK 0.025; a spring on a fully saturated pair (blue to yellow) overshoots out of gamut, where even 16 segments stray up to about 0.07, and per-target colors with fixed segment counts up to about 0.05.
 - A percentage-based form whose only frame for a property is at 0% leaves that property with no segment.
-- `Color` captures `Engine.Current`'s default ease and duration when the builder runs, not when the animation is built, so it ignores a timeline's `Defaults`.
 - A per-target `Color` caches its last resolved target, so interleaving targets within one frame resolves again but stays consistent.
 
 ## Threading and lifetime
 
-- Plain data and builders; no engine state. `Color` reads `Engine.Current` on the calling thread.
+- Plain data and builders; no engine state. A `Color` call is expanded when the animation is built, on that animation's engine thread.
 
 ## Reduced motion
 
@@ -178,11 +177,12 @@ Keyframes animate a property through a sequence of values instead of straight to
 
 ## Decisions
 
-- **A color expansion keeps the ease exact.** Each segment ends on `Mix(from, to, E(tᵢ₊₁))` and its ease is the slice of the tween's ease E rescaled to 0–1; a flat slice holds; a spring first resolves to its ease and settling duration. Unset duration and ease are read from `Engine.Current`'s defaults when `Color` is called. Reason: E on every segment would restart the ease each segment, while slicing makes the timing exactly E and approximates only the color between segment ends; each frame carries its own duration and ease, so the animation's defaults would never reach them. Rejected: the tween's ease applied per segment.
+- **A color expansion keeps the ease exact.** Each segment ends on `Mix(from, to, E(tᵢ₊₁))` and its ease is the slice of the tween's ease E rescaled to 0–1; a flat slice holds; a spring first resolves to its ease and settling duration. Unset duration and ease come from the defaults the animation is added under (see "Builders resolve against what they are added under"). Reason: E on every segment would restart the ease each segment, while slicing makes the timing exactly E and approximates only the color between segment ends; each frame carries its own duration and ease, so the animation's defaults would never reach them. Rejected: the tween's ease applied per segment.
 - **The path tolerance is a target, not a bound.** deltaEOK 0.02 drives the fitting; the tests pin 0.025 for ordinary paths and 0.07 for springs on saturated pairs. Reason: a second attempt at meeting 0.02 everywhere did not pay off, and the misses are springs overshooting out of gamut, where the gamut-mapped path itself wavers by about 0.02, and fixed per-target counts; 0.05–0.07 is visible only side by side on those extreme pairs. Rejected: more segments or probes for those cases.
 - **Segments are fitted to the path.** From one segment, the one whose rendered blend strays furthest from the mix (deltaEOK at 7 probes) is halved until all are within 0.02, capped at 16; with per-target ends, duration or ease the count is fixed (4, or one per 30° of arc, 4 to 24, in `Oklch`), and an explicit `segments` gives equal-time segments. Reason: equal-time segments do not converge (hard pairs need 48–64, easy ones 2, at about 5.5 µs and 2.3 KB per segment per animation), while fitting costs 0.01–0.5 ms per builder; per-target values are unknown at build time, so their count must be fixed. Rejected: fixed equal-time counts, which strayed to deltaEOK 0.05–0.19.
 - **Both ends of a color expansion are known at build time.** `from` is required; function-valued ends, duration or ease resolve once per target and are shared by its frames; a `Stagger` delay works, but a `Stagger` end or duration throws. Reason: the expander runs at build time and cannot read the current color, a `Stagger` end yields numbers rather than colors, and a `Stagger` duration cannot be split per segment. Rejected: starting from the current color, which needs a per-tween color space.
 - **Color spaces are a utility, not a per-tween setting.** See CORE-COLORS.
+- **Builders resolve against what they are added under.** A `Color` call records its inputs and expands when the animation is built, taking an unset ease or duration from the defaults of its engine, scope or timeline. Reason: the dictionary path already resolves against the owner, and a timeline with its own `Defaults` or on another engine must get the same result from a builder. Rejected: the animation's own `Ease` and `Duration` reaching the expansion (it would reverse "A color expansion keeps the ease exact"), and keeping the defaults read when `Color` is called.
 
 ## Non-goals
 
@@ -193,4 +193,3 @@ Keyframes animate a property through a sequence of values instead of straight to
 
 - Percentage keyframes silently drop a frame's `Duration`, `Delay`, `Modifier` and `Composition`, which `KeyframeBuilder` lets the `At` form set; nothing tests or documents it.
 - A percentage-based property whose first frame is after 0%, a malformed percentage key, `segments < 1` and a `Stagger` duration in `Color` have no test.
-- `Color`'s defaults come from `Engine.Current` at build time rather than the animation's parent defaults, so a timeline's `Defaults.Ease` does not reach it.

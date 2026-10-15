@@ -315,7 +315,7 @@ public static class Animate
             Stop();
             if (!_visual.IsAttachedToVisualTree() || _visual.GetValue(_builder) is not { } builder) return;
             PrestoAvalonia.EnsureInitialized();
-            var parameters = builder.ToParams();
+            var parameters = builder.Resolve();
             using var origin = PrestoDiagnostics.Origin("Animate");
             // A text reveal reverts itself when it completes.
             if (_builder != OnChangedProperty && PieceTargets.Play(_visual, parameters) is { } reveal)

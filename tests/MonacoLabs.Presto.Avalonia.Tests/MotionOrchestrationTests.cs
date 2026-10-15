@@ -183,6 +183,24 @@ public sealed class MotionOrchestrationTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AZeroDurationReturnWaitsOutDelayChildren()
+    {
+        var box = Box();
+        Motion.SetStates(box, [new MotionState { When = "Open", Motion = Presto.Build().Duration(0).Opacity(0), Leave = Presto.Build().Duration(0) }]);
+        var parent = new StackPanel { Children = { box } };
+        Show(parent);
+        Open(parent, 16);
+        Motion.SetDelayChildren(parent, 50);
+
+        parent.ClearValue(Motion.StateProperty);
+        Frames.Advance(25, 5);
+
+        Assert.Equal(0, box.Opacity, 6);
+        Frames.Advance(50, 5);
+        Assert.Equal(1, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
     public void UnderReduceAllEveryChildLandsAtOnce()
     {
         Presto.Defaults.ReduceAll = true;

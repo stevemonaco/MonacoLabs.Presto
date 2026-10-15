@@ -288,7 +288,7 @@ public static partial class Recipes
         var opacity = textBlock.Opacity;
         var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
             .Add(textBlock, b => b.Opacity(to: 0).Duration(tokens.Short))
-            .Call(_ => textBlock.Text = text)
+            .Call(_ => textBlock.SetCurrentValue(TextBlock.TextProperty, text))
             .Add(textBlock, b => b.Opacity(from: 0, to: opacity).Duration(tokens.Short));
         TrackMorph(textBlock, fade);
         return fade;
@@ -345,7 +345,7 @@ public static partial class Recipes
     // Completing the timeline unsplits the block and dismisses the ghosts.
     private static (Timeline Morph, TextSplitter After, Vector Shift) Retext(TextBlock textBlock, string text, Point oldOrigin, bool outlines, Canvas host, Dictionary<int, Image> ghosts)
     {
-        textBlock.Text = text;
+        textBlock.SetCurrentValue(TextBlock.TextProperty, text);
         textBlock.UpdateLayout();
         var shift = oldOrigin - OriginInWindow(textBlock);
         // A re-split detaches the pieces the morph plays on, which pauses it, so the width cannot change until it ends.

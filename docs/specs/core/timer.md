@@ -146,10 +146,10 @@ depends:
 
 - **CORE-TIMER-036** — When `Pause` is called on a playing timer, it shall set `Paused` and fire `OnPause`; on a paused timer it shall do nothing.
   - Tests: `CallbacksTests.OnPauseOnTimer`
-- **CORE-TIMER-037** — When `Resume` is called on a paused timer with a duration, it shall clear `Paused`, link into its engine's child list if not linked, rebase its start time to carry on from `CurrentTime` backdated by 12 ms, and wake the engine.
+- **CORE-TIMER-037** — When `Resume` is called on a paused timer with a duration, a delay or children, it shall clear `Paused`, link into its engine's child list if not linked, rebase its start time to carry on from `CurrentTime` backdated by 12 ms, and wake the engine.
   - Tests: `EngineTimeTests.ATimerCreatedWhileFrozenStartsFromFrozenTime`, `EnginesTests.ResumingAfterTheBlockEndsReRegistersWithTheEngineTheTimerWasCreatedUnder`, `IntrospectionTests.TimerGettersMatchTheParameters`
-- **CORE-TIMER-038** — When `Resume` is called on a paused zero-duration timer without children, it shall render to its end synchronously, without linking into the engine.
-  - Tests: `CallbacksTests.AllCallbacksButOnLoopTriggerOnZeroDurationAnimation`, `ParametersTests.ZeroDurationAnimation`
+- **CORE-TIMER-038** — When `Resume` is called on a paused zero-duration timer without a delay or children, it shall render to its end synchronously, without linking into the engine; with a delay it plays through CORE-TIMER-037 and lands when the delay ends.
+  - Tests: `CallbacksTests.AllCallbacksButOnLoopTriggerOnZeroDurationAnimation`, `ParametersTests.ZeroDurationAnimation`, `ParametersTests.ZeroDurationAnimationWaitsOutItsDelay`
 - **CORE-TIMER-039** — `Seek(time)` shall revive a canceled timer, clear `Completed`, render at `time + Delay` and leave the timer playing or paused as it was.
   - Tests: `ControlsTests.SeekATimer`, `ControlsTests.ResetAPlayingTimer`
 - **CORE-TIMER-040** — When `Seek` is called with `muteCallbacks`, it shall fire no callback, including those of iterations skipped over; with `internalRender`, it shall update timing state without writing to targets.
@@ -251,6 +251,7 @@ depends:
 - `Autoplay` takes no scroll observer; `ScrollObserver.Link` stands in for `autoplay: onScroll()` (see "`Autoplay` is a `bool?`; a scroll observer links the timer instead").
 - `Stretch` leaves a root timer's offset unchanged: scaling the creation-time offset lost precision when stretching a setter (see "Stretch keeps a root timer's offset").
 - A repeat `Cancel` leaves composition alone: upstream's double removal corrupted the sibling lists (see CORE-COMPOSITION, "Sibling removal is idempotent").
+- A zero-duration timer with a delay waits it out on `Resume`, where upstream renders it once inside the delay and never links it into the engine (see CORE-ANIMATION, "A zero-duration animation honors its delay").
 - `FrameRate` of zero or less is uncapped, where upstream clamps it to a rate that never renders, because there was otherwise no way to ask for every frame.
 - A function-based default delay gives a plain timer a delay of 0; `Duration` and `Delay` are numbers, not function values.
 - `Loop` is settable after creation, `Scrub`, `ProgressValue`, `IsScheduled` and the introspection getters have no upstream counterpart.

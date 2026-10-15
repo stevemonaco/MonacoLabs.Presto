@@ -45,13 +45,13 @@ public class Sheet : Control, IGestureMember
     public static readonly StyledProperty<SheetDetents> DetentsProperty =
         AvaloniaProperty.Register<Sheet, SheetDetents>(nameof(Detents), SheetDetents.Parse("0,Auto"));
 
-    /// <summary>The index in <see cref="Detents"/> the sheet rests at or is heading for; setting it glides there.</summary>
+    /// <summary>The index in <see cref="Detents"/> the sheet rests at or is heading for, clamped to them; setting it glides there.</summary>
     public static readonly StyledProperty<int> DetentIndexProperty =
-        AvaloniaProperty.Register<Sheet, int>(nameof(DetentIndex), defaultBindingMode: BindingMode.TwoWay);
+        AvaloniaProperty.Register<Sheet, int>(nameof(DetentIndex), defaultBindingMode: BindingMode.TwoWay, coerce: CoerceDetentIndex);
 
     /// <summary>
     /// Whether the sheet rests above its first detent. Setting it true opens a closed sheet to its second detent, and false
-    /// closes it to its first.
+    /// closes it to its first; on a sheet with a single detent it stays false.
     /// </summary>
     public static readonly StyledProperty<bool> IsOpenProperty =
         AvaloniaProperty.Register<Sheet, bool>(nameof(IsOpen), defaultBindingMode: BindingMode.TwoWay);
@@ -188,8 +188,14 @@ public class Sheet : Control, IGestureMember
         }
         else if (change.Property == IsOpenProperty)
         {
-            _scrim.IsHitTestVisible = IsOpen;
             if (IsOpen != DetentIndex > 0) DetentIndex = IsOpen ? 1 : 0;
+            // A single detent coerces the index back to 0 without a change, so nothing else closes the sheet.
+            if (IsOpen && DetentIndex == 0) IsOpen = false;
+            _scrim.IsHitTestVisible = IsOpen;
+        }
+        else if (change.Property == DetentsProperty)
+        {
+            CoerceValue(DetentIndexProperty);
         }
         else if (change.Property == ContentProperty)
         {
@@ -348,6 +354,9 @@ public class Sheet : Control, IGestureMember
         _settling = false;
         MoveTo(nearest, _velocity.Velocity);
     }
+
+    private static int CoerceDetentIndex(AvaloniaObject sheet, int index) =>
+        Math.Clamp(index, 0, Math.Max(0, ((Sheet)sheet).Detents.Count - 1));
 
     private int Index(int detent) => Math.Clamp(detent, 0, _stops.Length - 1);
 

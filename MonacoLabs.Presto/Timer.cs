@@ -381,7 +381,7 @@ public class Timer : Clock, IRevertible
         EndSettle();
         if (!Paused) return this;
         Paused = false;
-        if (Duration <= Constants.MinValue && !_hasChildren)
+        if (Duration <= Constants.MinValue && _delay <= Constants.MinValue && !_hasChildren)
         {
             Renderer.Tick(this, Constants.MinValue, false, false, TickMode.Force);
         }

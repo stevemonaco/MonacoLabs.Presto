@@ -129,7 +129,7 @@ public sealed class TempoMotionTests : TempoTestBase
 
         Assert.Equal(4, blobs.Count);
         Assert.True(PrestoAvalonia.CanAnimateOnCompositor(TempoMotion.BlobDrift, out var reason), reason);
-        Assert.Equal(!reduced, drift.Loop!.Value.IsInfinite);
+        Assert.Equal(!reduced, (reduced ? drift.WhenReduced! : drift).Loop!.Value.IsInfinite);
 
         window.MouseMove(new Point(200, 200));
         TestFrames.Tick(150);

@@ -32,7 +32,7 @@ public sealed class TextSplitter : IRevertible
 
     private readonly TextBlock _host;
     private readonly SplitTextParams _parameters;
-    private readonly string _text;
+    private string _text;
     private readonly Timer _resize;
     // An effect returns either an Action to undo it or a Timer that keeps running, as upstream's effectsCleanups holds both.
     private readonly List<Func<TextSplitter, object?>> _effects = [];
@@ -44,6 +44,7 @@ public sealed class TextSplitter : IRevertible
     private IDisposable? _unclip;
     private double _width;
     private bool _ready;
+    private bool _writing;
 
     internal TextSplitter(TextBlock host, SplitTextParams parameters)
     {
@@ -64,6 +65,7 @@ public sealed class TextSplitter : IRevertible
         });
 
         host.SizeChanged += HandleSizeChanged;
+        host.PropertyChanged += HandleTextChanged;
         if (host.Bounds.Width > 0) Split();
     }
 
@@ -105,7 +107,7 @@ public sealed class TextSplitter : IRevertible
     /// <summary>The height of one line of the block's text, measured before the pieces are laid out.</summary>
     public double LineHeight { get; private set; }
 
-    /// <summary>The block's text as it was before the split.</summary>
+    /// <summary>The text the block is split from: its text at creation or the last one set on it from outside since.</summary>
     internal string Text => _text;
 
     /// <summary>The index of the wrapped line <paramref name="piece"/> sits on.</summary>
@@ -184,17 +186,19 @@ public sealed class TextSplitter : IRevertible
         return this;
     }
 
-    /// <summary>Runs the effect cleanups and puts the original text back, leaving the block as it was found.</summary>
+    /// <summary>Runs the effect cleanups and puts the block's current text back, leaving it whole.</summary>
     public TextSplitter Revert()
     {
         _host.SizeChanged -= HandleSizeChanged;
+        _host.PropertyChanged -= HandleTextChanged;
         _resize.Revert();
         RunCleanups(true);
         _lines.Clear();
         _words.Clear();
         _chars.Clear();
         _host.Inlines = null;
-        _host.Text = _text;
+        // A splitter reverted before must not write over a text set since.
+        if (_ready) _host.SetCurrentValue(TextBlock.TextProperty, _text);
         _host.ClearValue(AutomationProperties.NameProperty);
         if (Of(_host) == this) _host.ClearValue(SplitProperty);
         _unclip?.Dispose();
@@ -210,6 +214,13 @@ public sealed class TextSplitter : IRevertible
     {
         if (e.NewSize.Width == _width) return;
         if (_ready) _resize.Restart(); else Split();
+    }
+
+    private void HandleTextChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property != TextBlock.TextProperty || _writing) return;
+        _text = _host.Text ?? "";
+        if (_ready) Split();
     }
 
     private TextSplitter Register(Func<TextSplitter, object?> effect)
@@ -234,7 +245,9 @@ public sealed class TextSplitter : IRevertible
         TextBlock.SetBaselineOffset(root, baseline);
         for (var i = 0; i < lines.Count; i++) root.Children.Add(BuildLine(lines[i].TrimEnd(), i));
 
-        _host.Text = null;
+        _writing = true;
+        _host.SetCurrentValue(TextBlock.TextProperty, null);
+        _writing = false;
         _host.Inlines = [new InlineUIContainer(root)];
         AutomationProperties.SetName(_host, _text);
         // Above local priority so a local or style value is never overwritten, only covered until Revert.

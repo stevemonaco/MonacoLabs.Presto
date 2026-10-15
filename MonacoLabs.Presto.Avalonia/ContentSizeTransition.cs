@@ -117,7 +117,7 @@ public sealed class ContentSizeTransition : IRevertible
     /// <exception cref="NotSupportedException">The builder animates a property, or sets anything else a layout transition cannot honor.</exception>
     internal static LayoutMotion Motion(AnimationBuilder builder)
     {
-        if (builder.ToParams().Properties.Count > 0)
+        if (builder.Resolve().Properties.Count > 0)
             throw new NotSupportedException("Layout decides the size a content size transition eases to, so give it only timing and an ease.");
         return LayoutMotion.From(builder);
     }

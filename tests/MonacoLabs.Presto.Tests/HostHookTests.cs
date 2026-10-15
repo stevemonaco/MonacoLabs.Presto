@@ -40,8 +40,8 @@ public sealed class HostHookTests : EngineTestBase
             WhenReduced = new() { ["Opacity"] = 1 },
         };
 
-        Assert.Same(Lifetime, inherits.ToParams().HostLifetime);
-        Assert.Same(ReducedLifetime, overrides.ToParams().HostLifetime);
+        Assert.Same(Lifetime, inherits.Resolve().HostLifetime);
+        Assert.Same(ReducedLifetime, overrides.Resolve().HostLifetime);
         Assert.Same(Lifetime, reducedParams.Resolve(Presto.Engine).HostLifetime);
         Assert.Same(ReducedLifetime, (reducedParams with { WhenReduced = new() { HostLifetime = ReducedLifetime } }).Resolve(Presto.Engine).HostLifetime);
     }

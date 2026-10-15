@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Targets;
 using MonacoLabs.Presto.Values;
@@ -30,7 +30,7 @@ public sealed class Animation : Timer
         bool fastSet = false,
         int index = 0,
         IReadOnlyList<object>? allTargets = null)
-        : base(parameters = parameters.Resolve(parent?.OwnerEngine ?? Engine.Current), parent, parentPosition)
+        : base(parameters = parameters.Resolve(parent?.OwnerEngine ?? Engine.Current, parent?.ChildDefaults), parent, parentPosition)
     {
         var animationId = Interlocked.Increment(ref s_animationId);
 
@@ -379,6 +379,8 @@ public sealed class Animation : Timer
                 tween._startTime -= iterationDelay;
             }
             iterationDuration -= iterationDelay;
+            // Float noise can leave a delayed zero-duration iteration under MinValue, so its tweens would never reach their end.
+            if (iterationDuration < Constants.MinValue) iterationDuration = Constants.MinValue;
         }
         else
         {

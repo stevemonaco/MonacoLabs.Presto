@@ -283,6 +283,8 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `GlyphRecipeTests.WritingInAgainMidWriteCompletesTheFirst`, `GlyphRecipeTests.MorphingGlyphsAgainMidMorphCompletesTheFirst`, `MorphTextTests.MorphingAgainMidMorphCompletesTheFirst`
 - **BRIDGE-RECIPES-096** — When a block that `WriteIn`, `MorphGlyphs`, `MorphText` or `Shatter` is still playing on leaves the visual tree, the recipe shall complete at once: the block unsplit at its end text with its width released, and its snapshots and shards removed from the overlay.
   - Tests: `GlyphRecipeTests.ATextMorphWhoseBlockDetachesMidPlayCompletes`
+- **BRIDGE-RECIPES-097** — `MorphText`, `MorphGlyphs`, their reduced crossfade and `RollDigits` shall write the block's `Text` with `SetCurrentValue`, so a binding on it survives and a later source change still updates the block.
+  - Tests: `TextRevealTests.MorphTextKeepsTheBlocksBinding`
 - **BRIDGE-RECIPES-090** — When `ReducedMotion` is set as `WriteIn` is called, it shall not split the block and shall fade its `Opacity` from 0 over `Tokens.Short` after `delay`; as `MorphGlyphs` is called, it shall crossfade as -080.
   - Tests: `GlyphRecipeTests.ReducedWriteInFadesTheBlockInWithoutSplitting`, `GlyphRecipeTests.ReducedMorphGlyphsCrossfadesWithoutSplitting`
 - **BRIDGE-RECIPES-091** — `Shatter` shall cut each character's outline into `GlyphShards.Of(outline, count ?? 8, (seed ?? 0) + index)` (BRIDGE-GLYPHS) and put each shard, as a `Path` filled with the block's `Foreground` turning about its bounds center, at its character's slot in a canvas at the block's origin in the window's overlay layer; a character without an outline shall leave as a snapshot there, as -076.

@@ -90,7 +90,7 @@ public sealed class AnimationBuilder : PropertyBuilder<AnimationBuilder>
     }
 
     /// <summary>
-    /// Sets the form <see cref="ToParams"/> builds while <see cref="PrestoDefaults.ReducedMotion"/> is set: a new builder
+    /// Sets the form played while the owner engine's <see cref="PrestoDefaults.ReducedMotion"/> is set: a new builder
     /// carrying this one's settings, including those chained later, but none of its properties or keyframes, changed by <paramref name="reduced"/>.
     /// </summary>
     public AnimationBuilder WhenReduced(Action<AnimationBuilder> reduced) { _reduced = reduced; return this; }
@@ -107,14 +107,20 @@ public sealed class AnimationBuilder : PropertyBuilder<AnimationBuilder>
         return copy;
     }
 
-    /// <summary>Snapshots the builder into new <see cref="AnimationParams"/>, equal to the indexer form of the same calls.</summary>
+    /// <summary>
+    /// Snapshots the builder into new <see cref="AnimationParams"/>, equal to the indexer form of the same calls, with its
+    /// <see cref="WhenReduced"/> form as <see cref="AnimationParams.WhenReduced"/>, which the animation picks against its owner engine.
+    /// </summary>
     public AnimationParams ToParams()
     {
-        if (_reduced == null || !Engine.Current.Defaults.ReducedMotion) return Snapshot(false);
+        if (_reduced == null) return Snapshot(false);
         var reduced = new AnimationBuilder { _settings = _settings };
         _reduced(reduced);
-        return reduced.Snapshot(true);
+        return Snapshot(false) with { WhenReduced = reduced.Snapshot(true) };
     }
+
+    /// <summary>The params to play on the current engine: <see cref="ToParams"/> with its form picked and its color keyframes expanded.</summary>
+    internal AnimationParams Resolve() => ToParams().Resolve(Engine.Current);
 
     /// <summary>Animates <paramref name="targets"/> with a snapshot of this builder, as <see cref="Presto.Animate(object?, AnimationParams)"/> does.</summary>
     public Animation Animate(object? targets) => Presto.Animate(targets, ToParams());

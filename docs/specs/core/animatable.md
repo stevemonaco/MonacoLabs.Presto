@@ -78,8 +78,8 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
   - Tests: `PropertyNamingTests.AnAnimatableDeclaredByNameIsReadAndSetByHandle`
 - **CORE-ANIMATABLE-015** (inherited) — When the property is not declared, `Get` shall return 0, `GetChannels` an empty array, and `Set` and `Fling` shall do nothing and return the animatable.
   - Tests: untested
-- **CORE-ANIMATABLE-016** — `ValueOf` shall return a new `MotionValue` that starts at `Get(property)` and is assigned `Get(property)` every time the property's animation renders.
-  - Tests: `MotionValueDynamicsTests.AnimatableValueOfFollowsSet`
+- **CORE-ANIMATABLE-016** — `ValueOf` shall return the same `MotionValue` for a property on every call, subscribed once to the property's animation: it starts at `Get(property)` and is assigned `Get(property)` every time that animation renders.
+  - Tests: `MotionValueDynamicsTests.AnimatableValueOfFollowsSet`, `MotionValueDynamicsTests.AnimatableValueOfReturnsOneValuePerPropertySubscribedOnce`
 
 ### Set
 
@@ -192,7 +192,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 - UI-thread (engine thread) only, like every timer. Created on `Engine.Current`; its animations belong to that engine.
 - The animatable's property animations are ordinary top-level animations: each completes and leaves the engine's list when it settles, and is revived by the next `Set`.
-- `ValueOf` subscribes the returned value to the animation's render for the animatable's lifetime; there is no unsubscribe.
+- `ValueOf` subscribes one cached value per property to its animation's render for the animatable's lifetime; `Revert` drops the cache.
 
 ## Reduced motion
 
@@ -219,6 +219,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **`Fling` settings carry no velocity.** Both overloads ignore `Inertia.Velocity`: the velocity is the argument or the property's measured one, and `settings` supplies only the decay, snap and bounds; settings are written `new Inertia { … }`. Reason: one source of velocity per call, and a fallback to `settings.Velocity` at rest would jump between a near-still property (coasts almost nowhere) and a still one (full kick). Rejected: `settings.Velocity` as an at-rest fallback.
 - **Out-and-back bounces fold into one ease.** When a fling's inertia becomes a degenerate bounce, `Fling` folds its two parts, out to the spring's first peak and back to the bound, into one ease. Reason: an animatable has one tween per target.
 - **A degenerate bounce goes out and back.** See CORE-INERTIA.
+- **`ValueOf` caches one value per property.** Repeated calls return the same `MotionValue` and add no subscriptions. Reason: no new API and no lifetime trap. Rejected: weak subscriptions (`ValueOf("X").Bind(...)` with no stored reference stops after a GC) and a disposable handle (API and burden on every caller).
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
 - **Discrete values reject relative values and `Additive`.** See CORE-TARGETS.
 - **The builder is the documented, typed spelling; the indexer stays beside it.** See CORE-BUILDER.
@@ -237,5 +238,4 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - Under `ReduceAll`, `Set` with a duration, momentum retargets and `Fling` animate rather than snap, and the callbacks animation completes on its first frame. Untested; decide whether an animatable should honor `ReduceAll` on every retarget.
 - The channel `Set` neither consults nor clears a saved fling; the next scalar `Set` still restores the pre-fling eases.
 - `Fling` on a color or complex property is not rejected (an `Inertia` to-value throws for one); its behavior is unspecified and untested.
-- `ValueOf` never unsubscribes from the animation's render, so each call keeps a value alive for the animatable's lifetime.
 - No core test for canonical-name lookup (only a bridge test pins it), unknown properties, `PlaybackRate`/`FrameRate` passthrough, or per-property `Composition`.

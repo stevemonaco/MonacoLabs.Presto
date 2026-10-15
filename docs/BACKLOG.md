@@ -6,18 +6,9 @@ When an item is closed, its line is deleted.
 
 ## Likely bugs
 
-Each line was traced in code (2026-10). Lines marked **decision:** name the design choice a change proposal must settle; the rest are direct fixes.
+Each line was traced in code (2026-10).
 
-- [BRIDGE-CODECS] A solid brush's `Opacity` is dropped by every brush tween: solid→solid writes 1, solid→gradient snaps to the gradient's opacity, gradient→solid ends on the gradient's (BRIDGE-CODECS-005/-008 encode the drop); **decision:** fold opacity into alpha at decode (as `Tints` does; a color end then ends opaque) or carry it beside the channels; done when that is decided and `CodecTests` pins solid→solid, solid→gradient and gradient→solid.
-- [BRIDGE-THREAD] An alternating compositor animation with `LoopDelay` compiles ⌈n/2⌉ forward-and-back cycles (BRIDGE-THREAD-023), so an odd count plays one extra iteration plus two loop delays past the mirror's end and rests on the start value while the mirror reports the end (even counts trail by one invisible delay); **decision:** unroll finite expanded loops into one sampled track spanning the mirror's duration (cycles kept for `Forever`); done when compiled tracks last exactly the mirror's duration and end on its end value, -023 is rewritten, and an odd-count `CompositorCompileTests` case exists.
-- [CORE-ANIMATABLE] Each `Animatable.ValueOf` call adds an `_onRender` subscription that is never removed (CORE-ANIMATABLE-016 asks for a new value per call), so values and their subscribers accumulate and every render assigns all of them; **decision:** one cached `MotionValue` per property (recommended) vs. weak or disposable subscriptions; done when repeated calls add no subscriptions and -016 is updated.
-- [CORE-SCRAMBLE] `Presto.ScrambleText` caches a target's first text forever (as upstream does, so interrupting a running scramble still settles on the real text), so an unchained scramble without `Text` after the app changed the text settles on the old one; **decision:** refresh the cache unless the current text is the scrambler's own last write; done when that deviation is recorded and tested both ways.
-- [BRIDGE-PAGER] `Pager.SelectedIndex` set directly is never coerced (BRIDGE-PAGER-014 says so), so without `Loop` an out-of-range value sends the strip past the slides and with `Loop` the view is right but the index and dots are not; slide removal leaves it past the end too; **decision:** coerce the styled property (re-coerced on `Slides`/`Loop` change, value kept with no slides, two-way binding checked) vs. normalize only at travel; done when it reads in range like `GoTo`.
-- [BRIDGE-SHEET] `Sheet.DetentIndex` is never coerced (BRIDGE-SHEET-010, inherited), so it can read past the detents (also after `Detents` shrinks), and on a single-detent sheet `IsOpen = true` sets the index to 1, leaving `IsOpen` true and the scrim taking hits while the sheet rests closed; **decision:** whether `IsOpen` means "index above 0" or "resolved extent above 0" (an `Auto` detent over empty content); done when the index is coerced to the declared detents and `IsOpen` re-syncs after its handler writes the index.
-- [CORE-BUILDER] [CORE-REDUCED] [CORE-KEYFRAMES] Builders resolve at build time against `Engine.Current` by requirement (CORE-BUILDER-020, CORE-REDUCED-004, CORE-KEYFRAMES-037): `Timeline.Add(builder)` on another engine's timeline picks the reduced form by the wrong engine (the dictionary path uses the owner engine), and `TweenKeyframesBuilder.Color` ignores the timeline's `Defaults`; **decision:** `ToParams` emits both forms for `Resolve` to pick, and whether the animation's own `Ease`/`Duration` reach a color expansion; done when both resolve against what they are added under and the requirements are rewritten.
-- [CORE-ANIMATION] A zero-duration animation with a `Delay` lands at once, because `Resume` force-renders `MinValue`-duration animations without waiting out `_delay` (upstream does the same), so a zero-duration state return under `StaggerChildren`/`DelayChildren` ignores its orchestration delay; done when a decision keeps or fixes it.
 - [BRIDGE-RECIPES] Unverified since BRIDGE-RECIPES-096 (20b8d54 completes a text morph whose block detaches): a `MorphGlyphs` started in a native popup as its content moved away left the block split and blank; Tempo's `Stepper` still morphs only on a step. Done when the morph completes on Windows with the `Stepper` gate removed, plus a headless test of a morph started as its block leaves a second `Window` (headless has no native popups); delete if both pass.
-- [BRIDGE-REVEAL] [BRIDGE-TEXT] A split arrival freezes a bound `Text` that changes mid-arrival: `TextSplitter` captures the text at trigger time, splits from it, and on completion `Revert` writes it back as a local value (BRIDGE-TEXT-021), over the binding's newer value (Tempo's Stats best-day line); `Split`/`Revert` and the text morphs may also be dropping the binding itself; **decision:** re-split on the new text (keeping time) vs. end the reveal, and `SetCurrentValue` for every splitter/morph write; done when the block shows its current `Text` once the arrival ends and its binding still updates afterward, with a test.
 
 ## Missing validation
 
@@ -192,7 +183,7 @@ Friction found while building the Tempo sample (`samples/Tempo/Tempo/`): first t
 Each spec's Open items section lists its untested requirements and other loose ends; these specs have some.
 
 - [BRIDGE-ACCORDION](specs/avalonia-bridge/accordion-and-pane.md): 10 untested requirements.
-- [BRIDGE-THREAD](specs/avalonia-bridge/animation-thread.md): 11 untested requirements, plus the odd-count alternation bug, settings `RunOnCompositor` drops silently, and the `Visual.Opacity` hold after `Cancel`.
+- [BRIDGE-THREAD](specs/avalonia-bridge/animation-thread.md): 11 untested requirements, plus settings `RunOnCompositor` drops silently, and the `Visual.Opacity` hold after `Cancel`.
 - [BRIDGE-SCENES](specs/avalonia-bridge/compositor-scenes.md): 8 untested requirements, plus no guard on a scene shared by two canvases and a detached scene keeping its handler.
 - [BRIDGE-CONNECTED](specs/avalonia-bridge/connected.md): 6 untested requirements, plus late `Motion` validation and the registry keeping the last flight's control alive.
 - [BRIDGE-CONTENTSIZE](specs/avalonia-bridge/content-size.md): 8 untested requirements, plus the `ClipToBounds` decision text not matching the code's `Clip` hold.
@@ -214,7 +205,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-MOTION](specs/avalonia-bridge/motion-states.md): 12 untested requirements, plus the `Leave` per-property `Delay` mismatch, returns not resuming a lower state's loop, a function `Delay` dropped under orchestration, late rest-less-property errors, and `Motion.Add` running in design mode.
 - [BRIDGE-TOKENS](specs/avalonia-bridge/motion-tokens.md): 2 untested requirements, plus the stale `ColorSpace` doc.
 - [BRIDGE-PAGES](specs/avalonia-bridge/page-transitions.md): 4 untested requirements.
-- [BRIDGE-PAGER](specs/avalonia-bridge/pager.md): 20 untested requirements, plus the uncoerced `SelectedIndex`.
+- [BRIDGE-PAGER](specs/avalonia-bridge/pager.md): 19 untested requirements.
 - [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 13 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, a capped formation losing its bottom rows' right end, single-color formations, and the manual Particle type Browser frame-rate check.
 - [BRIDGE-POPOVER](specs/avalonia-bridge/popovers.md): 5 untested requirements, plus builders on a plain popup's child doing nothing.
 - [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 5 untested requirements, plus `AnimateExit` ghosting hidden or transparent controls.
@@ -232,7 +223,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 11 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
 - [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 17 untested requirements, plus the stale `Motion` doc, `X`/`Y`/`Scale` silently ignored in `Motion`, and a late `NotSupportedException`.
 - [BRIDGE-SHAPES](specs/avalonia-bridge/shapes.md): 10 untested requirements.
-- [BRIDGE-SHEET](specs/avalonia-bridge/sheet.md): 11 untested requirements, plus the uncoerced `DetentIndex` and `Drawer` docs naming only Left and Right.
+- [BRIDGE-SHEET](specs/avalonia-bridge/sheet.md): 9 untested requirements, plus `Drawer` docs naming only Left and Right.
 - [BRIDGE-FRAMES](specs/avalonia-bridge/sprite-frames.md): 8 untested requirements, plus in-place `Frames` mutation not being observed.
 - [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 12 untested requirements, plus a later `Command` widening the range, undocumented.
 - [BRIDGE-TEXTREVEAL](specs/avalonia-bridge/text-reveal.md): 7 untested requirements.
@@ -241,10 +232,10 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 6 untested requirements, plus `Items`/`ItemsSource` desync and a re-prepared container doubling handlers.
 - [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 17 untested requirements, plus shared target ownership, capture loss running a full release, a horizontal wheel handled under zoom, and the macOS, Android and Browser hardware checks.
 - [BRIDGE-TRANSFORMS](specs/avalonia-bridge/transforms.md): 1 untested requirement, plus a local `RenderTransform` set while held not being picked up.
-- [BRIDGE-CODECS](specs/avalonia-bridge/value-codecs.md): 5 untested requirements, plus the solid-brush opacity bug.
+- [BRIDGE-CODECS](specs/avalonia-bridge/value-codecs.md): 4 untested requirements.
 - [BRIDGE-ATTACH](specs/avalonia-bridge/xaml-attach.md): 9 untested requirements, plus `OnTapped`/`OnChanged` ignoring builder swaps and `OnTapped` inert on non-input visuals.
-- [CORE-ANIMATABLE](specs/core/animatable.md): 7 untested requirements, plus the callbacks animation's 1000 ms default, `ReduceAll` handling, the `Fling` velocity fallback, channel `Set` versus a saved fling, `Fling` on colors, and the `ValueOf` leak.
-- [CORE-BUILDER](specs/core/animation-builder.md): 0 untested requirements, plus a cross-engine builder reading the current engine's `ReducedMotion`.
+- [CORE-ANIMATABLE](specs/core/animatable.md): 7 untested requirements, plus the callbacks animation's 1000 ms default, `ReduceAll` handling, the `Fling` velocity fallback, channel `Set` versus a saved fling, and `Fling` on colors.
+- [CORE-BUILDER](specs/core/animation-builder.md): 0 untested requirements.
 - [CORE-ANIMATION](specs/core/animation.md): 11 untested requirements, plus `GetCurrent` on an `Overlap` tween returning the from value.
 - [CORE-CALLBACKS](specs/core/callbacks.md): 10 untested requirements, plus `Then` never completing after `Cancel`/`Revert` or a throwing callback.
 - [CORE-COLORS](specs/core/colors.md): 5 untested requirements, plus the `rgb()` decimal bug and the achromatic `hsl` deviation.
@@ -254,14 +245,14 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [CORE-EASES](specs/core/eases.md): 20 untested requirements, plus the stale `FromPath` doc and unvalidated `Steps`.
 - [CORE-ENGINE](specs/core/engine.md): 23 untested requirements, plus `TimeUnit` settable on any engine and the unclamped `Speed`.
 - [CORE-INERTIA](specs/core/inertia.md): 7 untested requirements, plus the unscaled 60000 decay cap in seconds mode, `ModifyTarget` within `RestDelta`, and unvalidated `interval`, `Friction` and `Min <= Max`.
-- [CORE-KEYFRAMES](specs/core/keyframes.md): 7 untested requirements, plus percentage keyframes dropping per-frame settings and `Color` reading `Engine.Current` defaults.
+- [CORE-KEYFRAMES](specs/core/keyframes.md): 7 untested requirements, plus percentage keyframes dropping per-frame settings.
 - [CORE-MOTIONPATH](specs/core/motion-path.md): 5 untested requirements.
 - [CORE-MOTIONVALUE](specs/core/motion-values.md): 6 untested requirements, plus no thread-affinity check on `Set`.
 - [CORE-PARTICLES](specs/core/particles.md): 15 untested requirements, plus the null-seed counter differing from the decision text and unvalidated lifetime, `dt` and `MaxParticles`.
 - [CORE-PRESTO](specs/core/presto.md): 12 untested requirements, plus `Set` raising no timer-created hook, `Get` not canonicalizing names, and null arguments throwing `NullReferenceException`.
-- [CORE-REDUCED](specs/core/reduced-motion.md): 9 untested requirements, plus a cross-engine builder's `ReducedMotion` and `Animatable` under `ReduceAll`.
+- [CORE-REDUCED](specs/core/reduced-motion.md): 8 untested requirements, plus `Animatable` under `ReduceAll`.
 - [CORE-SCOPE](specs/core/scope-and-defaults.md): 21 untested requirements, plus the stale `Scope.Defaults` doc and timeline defaults snapshotted versus read live.
-- [CORE-SCRAMBLE](specs/core/scramble.md): 18 untested requirements, plus the first-text cache that never refreshes.
+- [CORE-SCRAMBLE](specs/core/scramble.md): 18 untested requirements.
 - [CORE-SPRING](specs/core/spring.md): 8 untested requirements, plus seconds-mode spring durations and physical and designer settings not updating each other.
 - [CORE-STAGGER](specs/core/stagger.md): 2 untested requirements, plus the cached start offset on reuse.
 - [CORE-TARGETS](specs/core/targets.md): 3 untested requirements, plus codecs registered after first resolution never applying.

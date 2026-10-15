@@ -54,7 +54,7 @@ internal static class FollowTiming
 
     private static AnimatableProperty From(AnimationBuilder builder)
     {
-        var p = builder.ToParams();
+        var p = builder.Resolve();
         return Of(p.Ease, p.Duration switch
         {
             null => null,

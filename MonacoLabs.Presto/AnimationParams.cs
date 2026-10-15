@@ -43,21 +43,36 @@ public record AnimationParams : TimerParams
     public Action<Timer>? OnRender { get; init; }
 
     /// <summary>
-    /// The form played while <see cref="PrestoDefaults.ReducedMotion"/> is set, as <see cref="AnimationBuilder.WhenReduced"/>
+    /// The form played while the owner engine's <see cref="PrestoDefaults.ReducedMotion"/> is set, as <see cref="AnimationBuilder.WhenReduced"/>
     /// gives a builder: its properties and keyframes replace these, and the settings and callbacks it sets override these.
     /// </summary>
     /// <remarks>
     /// A <see cref="WhenReduced"/> inside this one is ignored, and <see cref="PrestoDefaults.ReduceAll"/> leaves the reduced form alone.
-    /// <see cref="AnimationBuilder.ToParams"/> never sets this: the builder has already picked its own form.
+    /// <see cref="AnimationBuilder.ToParams"/> puts a builder's reduced form here.
     /// </remarks>
     public AnimationParams? WhenReduced { get; init; }
 
     /// <summary>Set on params built from a <see cref="AnimationBuilder.WhenReduced"/> alternative, which <see cref="PrestoDefaults.ReduceAll"/> leaves alone.</summary>
     internal bool IsReducedMotion { get; init; }
 
-    /// <summary>The params to play on <paramref name="engine"/>: these, or merged with <see cref="WhenReduced"/> while its defaults ask for reduced motion.</summary>
-    internal AnimationParams Resolve(Engine engine) =>
-        WhenReduced is not { } r || !engine.Defaults.ReducedMotion ? this : this with
+    /// <summary>
+    /// The params to play on <paramref name="engine"/>: these, or merged with <see cref="WhenReduced"/> while its defaults ask for
+    /// reduced motion, with deferred color keyframes expanded against <paramref name="defaults"/> (the engine's when null).
+    /// </summary>
+    internal AnimationParams Resolve(Engine engine, PrestoDefaults? defaults = null)
+    {
+        var p = WhenReduced is not { } r || !engine.Defaults.ReducedMotion ? this : Merge(r);
+        OrderedDictionary<string, TweenValue>? expanded = null;
+        foreach (var (name, value) in p.Properties)
+        {
+            if (value.Raw is TweenValue[] frames && TweenKeyframesBuilder.Expand(frames, defaults ?? engine.Defaults) is var colors && colors != frames)
+                (expanded ??= new(p.Properties))[name] = colors;
+        }
+        return expanded == null ? p : p with { Properties = expanded };
+    }
+
+    private AnimationParams Merge(AnimationParams r) =>
+        this with
         {
             Properties = r.Properties,
             Keyframes = r.Keyframes,

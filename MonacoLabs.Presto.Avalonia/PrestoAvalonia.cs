@@ -655,7 +655,7 @@ public static class PrestoAvalonia
     public static Animation ScrollTo(ScrollViewer scroller, Vector offset, AnimationBuilder? builder = null)
     {
         EnsureInitialized();
-        var p = builder?.ToParams() ?? new AnimationParams();
+        var p = builder?.Resolve() ?? new AnimationParams();
         var from = scroller.Offset;
         var max = scroller.ScrollBarMaximum;
         var to = new Vector(Math.Clamp(offset.X, 0, max.X), Math.Clamp(offset.Y, 0, max.Y));
@@ -692,7 +692,7 @@ public static class PrestoAvalonia
     public static Animation ScrollIntoView(Control element, ScrollAlignment alignment = ScrollAlignment.Nearest, Thickness margin = default, AnimationBuilder? builder = null)
     {
         EnsureInitialized();
-        var p = builder?.ToParams() ?? new AnimationParams();
+        var p = builder?.Resolve() ?? new AnimationParams();
         var moves = ScrollGeometry.Targets(element, alignment, margin);
         var properties = new OrderedDictionary<string, TweenValue>(p.Properties);
         var viewports = 0d;
@@ -736,7 +736,7 @@ public static class PrestoAvalonia
         if (list.ItemsPanelRoot is not VirtualizingStackPanel panel)
             return ScrollIntoView(list.ContainerFromIndex(index) ?? throw new InvalidOperationException("The list has no container for that index yet."), alignment, default, builder);
         var scroller = panel.FindAncestorOfType<ScrollViewer>() ?? throw new InvalidOperationException("The list has no ScrollViewer.");
-        return new IndexScroller(list, panel, scroller, index, alignment).Start(builder?.ToParams() ?? new AnimationParams());
+        return new IndexScroller(list, panel, scroller, index, alignment).Start(builder?.Resolve() ?? new AnimationParams());
     }
 
     /// <inheritdoc cref="ScrollToIndex(ItemsControl, int, ScrollAlignment, AnimationBuilder?)"/>

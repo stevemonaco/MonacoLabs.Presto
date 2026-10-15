@@ -81,8 +81,8 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     {
         PrestoAvalonia.EnsureInitialized();
         using var origin = PrestoDiagnostics.Origin("PageTransition");
-        var enter = to == null ? null : forward ? Enter?.ToParams() : BackEnter?.ToParams() ?? Reversed(Exit);
-        var exit = from == null ? null : forward ? Exit?.ToParams() : BackExit?.ToParams() ?? Reversed(Enter);
+        var enter = to == null ? null : forward ? Enter?.Resolve() : BackEnter?.Resolve() ?? Reversed(Exit);
+        var exit = from == null ? null : forward ? Exit?.Resolve() : BackExit?.Resolve() ?? Reversed(Enter);
         var compositor = !seekable && Thread switch
         {
             AnimationThread.UIThread => false,
@@ -104,7 +104,7 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     }
 
     private static AnimationParams? Reversed(AnimationBuilder? builder) =>
-        builder?.ToParams() is { } parameters ? parameters with { Reversed = parameters.Reversed != true } : null;
+        builder?.Resolve() is { } parameters ? parameters with { Reversed = parameters.Reversed != true } : null;
 
     private static async Task Finish(HostRun? incoming, HostRun? outgoing, CancellationToken cancellationToken)
     {

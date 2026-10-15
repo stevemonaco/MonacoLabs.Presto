@@ -453,7 +453,7 @@ public sealed class Transformable : IRevertible
     {
         var tokens = Recipes.Tokens;
         var settle = _parameters.Settle ?? new AnimationBuilder().Duration(tokens.Medium).Ease(tokens.Ease).WhenReduced(r => r.Duration(0));
-        var p = settle.ToParams();
+        var p = settle.Resolve();
         return ((p.Duration ?? _engine.Defaults.Duration).AsDouble ?? 0, p.Ease ?? _engine.Defaults.Ease);
     }
 

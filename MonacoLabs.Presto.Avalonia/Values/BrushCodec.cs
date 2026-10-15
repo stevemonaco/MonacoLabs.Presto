@@ -6,7 +6,7 @@ using MonacoLabs.Presto.Targets;
 namespace MonacoLabs.Presto.Values;
 
 /// <summary>
-/// Tweens solid brushes as colors and linear, radial and conic gradients as complex values: a header of discrete fields,
+/// Tweens solid brushes as colors, their opacity folded into the alpha, and linear, radial and conic gradients as complex values: a header of discrete fields,
 /// the opacity, six geometry numbers and one <c>(offset, r, g, b, a)</c> run per stop. Two ends of different shapes are
 /// reconciled first: a solid, or missing, brush takes the gradient's shape, and two gradients are resampled onto the
 /// union of their stop offsets.
@@ -40,6 +40,7 @@ internal sealed class BrushCodec : IReconcilingValueCodec
             case ISolidColorBrush solid:
                 into.Kind = ValueKind.Color;
                 into.Numbers = solid.Color.ToPresto().ToChannels();
+                into.Numbers[3] *= solid.Opacity;
                 return true;
             case IGradientBrush gradient when Decompose(gradient) is { } numbers:
                 ValueParser.Decompose(numbers, into);
@@ -74,29 +75,28 @@ internal sealed class BrushCodec : IReconcilingValueCodec
     public object Encode(double number, Tween tween)
     {
         var numbers = tween._numbers;
-        if (tween._valueType == ValueKind.Color) return SolidBrush(tween, PrestoColor.FromChannels(numbers).ToAvalonia(), 1);
+        if (tween._valueType == ValueKind.Color) return SolidBrush(tween, PrestoColor.FromChannels(numbers).ToAvalonia());
 
         var kind = (int)tween._toNumbers[Kind];
         if (kind == Solid)
         {
             if (tween._currentTime >= tween._changeDuration)
             {
-                return SolidBrush(tween, PrestoColor.FromChannels(numbers.AsSpan(Stops + 1)).ToAvalonia(), numbers[Opacity]);
+                return SolidBrush(tween, PrestoColor.FromChannels(numbers.AsSpan(Stops + 1)).ToAvalonia());
             }
             kind = (int)tween._fromNumbers[Kind];
         }
         return GradientBrush(tween, kind);
     }
 
-    private IBrush SolidBrush(Tween tween, Color color, double opacity)
+    private IBrush SolidBrush(Tween tween, Color color)
     {
         if (_brushes.TryGetValue(tween, out var existing) && existing is SolidColorBrush brush)
         {
             brush.Color = color;
-            brush.Opacity = Math.Clamp(opacity, 0, 1);
             return brush;
         }
-        brush = new SolidColorBrush(color, Math.Clamp(opacity, 0, 1));
+        brush = new SolidColorBrush(color);
         _brushes.AddOrUpdate(tween, brush);
         TargetOwner.Record(brush, tween.Target);
         return brush;
@@ -185,11 +185,12 @@ internal sealed class BrushCodec : IReconcilingValueCodec
 
     private static bool IsGradient(DecomposedValue value) => value.Kind == ValueKind.Complex && value.Numbers is { Length: >= Stops };
 
-    /// <summary>Gives <paramref name="value"/>, a color or a missing brush, <paramref name="gradient"/>'s shape in its own color, or a missing brush the gradient's stop colors at alpha 0.</summary>
     private static void Shape(DecomposedValue value, DecomposedValue gradient)
     {
         var numbers = (double[])gradient.Numbers!.Clone();
         var color = value.Kind == ValueKind.Color ? value.Numbers : null;
+        // the solid's opacity is already in its folded alpha
+        if (color != null) numbers[Opacity] = 1;
         for (var at = Stops; at < numbers.Length; at += StopSize)
         {
             if (color != null) color.CopyTo(numbers, at + 1);

@@ -96,6 +96,39 @@ public sealed class CodecTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ASolidBrushesOpacityFoldsIntoItsAlpha()
+    {
+        var from = new SolidColorBrush(Colors.Red, .5);
+
+        var start = Assert.IsType<SolidColorBrush>(Tweened<IBrush>(from, "#0000ff", 0));
+        var end = Assert.IsType<SolidColorBrush>(Tweened<IBrush>(from, "#0000ff"));
+        var faded = Assert.IsType<SolidColorBrush>(Tweened<IBrush>(new SolidColorBrush(Colors.Red, .2), TweenValue.Of(new SolidColorBrush(Colors.Red)), .5));
+
+        Assert.Equal((Color.FromArgb(128, 255, 0, 0), 1d), (start.Color, start.Opacity));
+        Assert.Equal((Colors.Blue, 1d), (end.Color, end.Opacity));
+        Assert.Equal((Color.FromArgb(153, 255, 0, 0), 1d), (faded.Color, faded.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void ASolidBrushesOpacityCarriesIntoAndOutOfAGradient()
+    {
+        var solid = new SolidColorBrush(Color.FromRgb(200, 0, 0), .5);
+        var gradient = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(0, 200, 0)));
+        gradient.Opacity = .8;
+
+        var intoStart = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(solid, TweenValue.Of(gradient), 0));
+        var intoEnd = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(solid, TweenValue.Of(gradient)));
+        var outOfStart = Assert.IsType<LinearGradientBrush>(Tweened<IBrush>(gradient, TweenValue.Of(solid), 0));
+        var outOfEnd = Assert.IsType<SolidColorBrush>(Tweened<IBrush>(gradient, TweenValue.Of(solid)));
+
+        Assert.Equal(1, intoStart.Opacity);
+        Assert.All(intoStart.GradientStops, stop => Assert.Equal(Color.FromArgb(128, 200, 0, 0), stop.Color));
+        Assert.Equal(.8, intoEnd.Opacity, 6);
+        Assert.Equal(.8, outOfStart.Opacity, 6);
+        Assert.Equal((Color.FromArgb(128, 200, 0, 0), 1d), (outOfEnd.Color, outOfEnd.Opacity));
+    }
+
+    [AvaloniaFact]
     public void LinearGradientInterpolatesItsStopsAndPoints()
     {
         var from = Linear(new(0, 0), new(1, 0), (0, Color.FromRgb(0, 0, 200)), (1, Color.FromRgb(200, 0, 0)));

@@ -70,8 +70,12 @@ depends:
   - Tests: `PagerTests.GoToSpringsAndSettlesOnTheIndex`
 - **BRIDGE-PAGER-013** (inherited) — When `GoTo` is called on a pager with no slides, it shall do nothing.
   - Tests: untested
-- **BRIDGE-PAGER-014** — When `SelectedIndex` is set other than by a settling drag or `GoTo`, the pager shall spring the strip to that slide and restart autoplay, without wrapping or clamping the value.
-  - Tests: untested
+- **BRIDGE-PAGER-014** — When `SelectedIndex` is set on a pager with slides, the pager shall coerce it as BRIDGE-PAGER-012 and BRIDGE-PAGER-050 coerce `GoTo` (wrapped when looping, clamped otherwise), a two-way binding's source receiving the coerced value; when it is set other than by a settling drag or `GoTo`, the pager shall spring the strip to the coerced slide and restart autoplay.
+  - Tests: `PagerTests.ASelectedIndexPastTheSlidesIsClampedAndTheStripRestsOnTheLast`, `PagerTests.ALoopingSelectedIndexWrapsAndIsReCoercedWhenLoopChanges`, `PagerTests.ATwoWayBindingSourceGetsTheCoercedIndex`
+- **BRIDGE-PAGER-052** — When `Slides` or `Loop` changes, the pager shall coerce `SelectedIndex` again from the value last set, springing to the slide it now names when that changes.
+  - Tests: `PagerTests.RemovingSlidesPastTheIndexReCoercesIt`, `PagerTests.ALoopingSelectedIndexWrapsAndIsReCoercedWhenLoopChanges`
+- **BRIDGE-PAGER-053** — While the pager has no slides, `SelectedIndex` shall keep the value set, so an index set before the slides are added (an earlier XAML attribute) survives once they are.
+  - Tests: `PagerTests.ASelectedIndexSetBeforeTheSlidesAreAddedSurvives`
 - **BRIDGE-PAGER-015** — While looping, a travel shall take the slide's column nearest the page shown, so paging takes the shorter way round.
   - Tests: `PagerTests.LoopingWrapsOnToTheFirstSlideAndBackToTheLast`
 - **BRIDGE-PAGER-016** (inherited) — While the pager is detached or 0 wide, a change of `SelectedIndex` shall not move the strip; the next attach or arrange shall place it.
@@ -172,7 +176,6 @@ depends:
 
 - No slides: `GoTo`, a settle and an autoplay advance do nothing; the indicator draws nothing in `Dots` mode and an empty bar in `Progress` mode.
 - A 0-wide pager does not travel, and the snap passes X through unchanged.
-- `SelectedIndex` set out of range is not coerced (BRIDGE-PAGER-014); the strip travels past the slides.
 - Left at the first slide of a non-looping pager calls `GoTo(-1)`, which clamps to 0, still restarts autoplay and still handles the key.
 - A drag ending while a travel animation is paused leaves that animation paused; the next travel replaces it.
 
@@ -199,6 +202,7 @@ depends:
 - **The slides sit on a private strip moved by a `Draggable` the pager triggers.** The pager is untemplated, like `Sheet`, and the strip moves through its X shorthand. Reason: the slides give the look, and triggering from the pager keeps a press on a button inside a slide the button's.
 - **A looping pager places each slide at its nearest column copy.** The strip is re-arranged on every move. Reason: not recorded. Rejected: cloning slides.
 - **`Position` is set from the strip's render.** Reason: `OffsetOf` then moves parallax layers in the same frame as the strip. Rejected: following `XValue.Changed`.
+- **`SelectedIndex` is coerced on the property.** It wraps or clamps like `GoTo`, is re-coerced when `Slides` or `Loop` change, and passes through while there are no slides. Reason: bindings, the indicator dots and anything watching the property read it, so it must read in range. Rejected: normalizing only at travel, which leaves the index and dots wrong while the view is right.
 - **Autoplay holds for keyboard focus within, not any focus.** It also holds while the pointer is over the pager and while it is dragged, and restarts when the user pages. Reason: a click focuses the pager, so pausing on any focus would stop autoplay for good after the first drag.
 
 ## Non-goals
@@ -210,5 +214,4 @@ depends:
 
 ## Open items
 
-- `SelectedIndex` set directly (binding or code) is neither wrapped nor clamped, unlike `GoTo` and a settle; an out-of-range value sends the strip past the slides.
 - Untested: `Loop` changed at runtime, autoplay holding during a drag, pointer-originated focus not holding autoplay, the restart on every manual page, and the detach cleanup (BRIDGE-PAGER-039).

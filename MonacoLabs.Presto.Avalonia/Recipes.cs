@@ -437,7 +437,7 @@ public static partial class Recipes
         var gap = line.TextRuns.Count > 0 && line.TextRuns[0] is ShapedTextRun run ? line.Baseline + run.TextMetrics.Ascent : 0;
         var row = new StackPanel { Orientation = Orientation.Horizontal, UseLayoutRounding = false, Margin = new(0, -gap, 0, line.Baseline - line.Height) };
         row.Children.AddRange(columns);
-        textBlock.Text = null;
+        textBlock.SetCurrentValue(TextBlock.TextProperty, null);
         textBlock.Inlines = [new InlineUIContainer(row)];
 
         using var origin = PrestoDiagnostics.Origin("Recipe");
@@ -451,7 +451,7 @@ public static partial class Recipes
             {
                 Rolls.Remove(textBlock);
                 textBlock.Inlines = null;
-                textBlock.Text = newText;
+                textBlock.SetCurrentValue(TextBlock.TextProperty, newText);
             })
             .Animate(glyphs);
         Rolls.AddOrUpdate(textBlock, roll);
