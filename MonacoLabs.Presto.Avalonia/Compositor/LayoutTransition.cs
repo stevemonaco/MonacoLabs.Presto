@@ -34,6 +34,8 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private readonly CompositorScratch _scratch = new() { Scale = 1, ScaleX = 1, ScaleY = 1 };
 
     private Rect? _first;
+    private Control? _carrier;
+    private Rect? _firstWithin;
     private bool _firstOnScreen;
     private bool _armed = true;
     private Animation? _mirror;
@@ -52,7 +54,8 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         _mode = mode;
         Once = once;
         // Measuring now rather than on the first layout pass is what lets the very next move ease instead of only recording.
-        _first = first ?? (recordFirst ? null : Measure(control));
+        if (first is null) Record(recordFirst ? null : Measure(control));
+        else _first = first;
         _firstOnScreen = first != null && firstOnScreen;
 
         s_live.TryGetValue(control, out var replaced);
@@ -169,16 +172,33 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         return TimeProvider.GetElapsedTime(prepared.At) <= s_preparedLifetime ? prepared.OnScreen : null;
     }
 
-    private static Rect? Measure(Control control, bool onScreen)
+    private static Rect? Measure(Control control, bool onScreen, Visual? within = null)
     {
         if (TopLevel.GetTopLevel(control) is null) return null;
         var position = default(Point);
-        for (Visual? visual = control; visual is not null and not TopLevel; visual = visual.GetVisualParent())
+        for (Visual? visual = control; visual is not null and not TopLevel && visual != within; visual = visual.GetVisualParent())
         {
             position += visual.Bounds.Position;
             if (!onScreen && visual.GetVisualParent() is ScrollContentPresenter scroller) position += scroller.Offset;
         }
         return new Rect(position, control.Bounds.Size);
+    }
+
+    /// <summary>The nearest ancestor whose live transition eases its moves, and so carries <paramref name="control"/> along with it.</summary>
+    private static Control? Carrier(Control control)
+    {
+        for (var visual = control.GetVisualParent(); visual is not null and not TopLevel; visual = visual.GetVisualParent())
+        {
+            if (visual is Control ancestor && Live(ancestor) is { } live && (!live.Once || live.InFlight)) return ancestor;
+        }
+        return null;
+    }
+
+    private void Record(Rect? window)
+    {
+        _first = window;
+        _carrier = window is null ? null : Carrier(_control);
+        _firstWithin = _carrier is null ? null : Measure(_control, onScreen: false, _carrier);
     }
 
     /// <summary>
@@ -213,12 +233,19 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
         // A transition reverted by an earlier handler of this pass still runs from the event's snapshot.
-        if (Live(_control) != this || Measure(_control) is not { } last) return;
+        if (Live(_control) != this || Measure(_control) is not { } window) return;
         var first = _first;
+        var last = window;
         // Adding this control's own scroll offsets moves an on-screen source into its layout frame.
-        if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(last.Position - screenSlot.Position);
+        if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(window.Position - screenSlot.Position);
+        // An ancestor easing its own move draws this control along with it, so only the move within that ancestor is left to ease.
+        else if (_carrier is { } carrier && carrier == Carrier(_control) && Measure(_control, onScreen: false, carrier) is { } within)
+        {
+            first = _firstWithin;
+            last = within;
+        }
         _firstOnScreen = false;
-        _first = last;
+        Record(window);
         // A virtualizing panel also repositions realized rows as it corrects estimated sizes during a scroll,
         // and a content size resize beside the control already eases its move, which a flight would trail behind.
         if (List is { Scrolled: true, Pending: false } or { Anchoring: true } || ContentSizeTransition.ResizingBeside(_control))

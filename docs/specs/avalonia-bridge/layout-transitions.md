@@ -67,6 +67,8 @@ Eases a control into the place layout gives it instead of letting it jump: where
   - Tests: `LayoutTransitionTests.ALayoutPassDoesNotInvertAShorthandTranslation`
 - **BRIDGE-LAYOUT-008** — When a pass leaves the slot's position unchanged and nothing scales, the transition shall do nothing.
   - Tests: untested
+- **BRIDGE-LAYOUT-047** — While the nearest ancestor with a live transition still eases its moves (any `AnimateLayout`, or a one-shot until its move lands) at both passes, the transition shall measure the control's slot within that ancestor rather than its window, so a move the ancestor eases is not eased twice; otherwise it measures the window slot.
+  - Tests: `LayoutTransitionTests.ANestedTransitionRidesItsAncestorsMoveInsteadOfAddingToIt`, `LayoutTransitionTests.ANestedTransitionFliesItsWholeMoveOnceItsAncestorStopsEasing`
 
 ### Playing a move
 
@@ -192,7 +194,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 
 ## Allocation
 
-- A pass that does not move the control measures one parent walk and allocates nothing. Each move allocates a mirror animation and composition animations.
+- A pass that does not move the control walks its ancestors at most three times (window slot, carrier, slot within the carrier) and allocates nothing. Each move allocates a mirror animation and composition animations.
 
 ## Provenance
 
@@ -210,6 +212,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **Shared-element sources are measured on screen.** A source is measured where it is drawn, scroll included, and the rect is moved into the target's layout frame at the target's first pass by adding the target's scroll offsets; later passes take scroll out. Reason: taking scroll out keeps scrolling from counting as a move, but a flight between a scrolled and an unscrolled view would land off by the difference in their offsets.
 - **Keyed shared elements store a rect, return null when unprepared, and expire.** `PrepareSharedElement` stores only the on-screen rect under the key, replacing any earlier entry; the keyed `AnimateSharedElement` consumes it, returns null when there is none, and an entry expires three seconds after it was prepared. Reason: framework-driven navigation never has both controls at once, storing no control keeps nothing alive, null mirrors the Windows Community Toolkit's `GetAnimation(key)?.TryStart(...)`, and the expiry stops a navigation that never completed from flying a later, unrelated element from a stale place.
 - **Layout-transition builders carry timing and eases only; per-axis eases make arcs.** Builders give `Duration`, `Delay` (the control holds its inverted place during it) and `Ease`; `X`, `Y` and `Scale` may carry only an ease, and anything else throws `NotSupportedException` naming it. One ease plays as one exact segment, differing X and Y eases are sampled into 100 segments, and the mirror carries the same eases. Reason: the layout decides where the control goes, so it owns the values, and the mirror must follow the arc so an interruption measures where the control is drawn.
+- **A nested transition measures within the ancestor that carries it.** A control whose ancestor has a transition easing its moves measures its slot relative to that ancestor, falling back to the window slot when the ancestor changes or stops easing between passes. Reason: the ancestor's `Translation` already draws the child along its move, so a window-relative child inverted the same move a second time and first flew the wrong way (the Gallery nav's pages inside a section that reflows); measuring within the ancestor is independent of which `LayoutUpdated` handler runs first. Rejected: subtracting the ancestor's move from the child's, which depends on the ancestor having handled the pass first.
 - **Zero-length moves are not started.** A move whose compiled track has zero duration and zero delay lands in one frame without a composition animation. Reason: a zero-length composition animation can draw its first key for a frame, which broke `ReduceAll` making layout moves instant.
 - **Duration overloads land at once under the flag.** The `(duration, ease)` overloads read `ReducedMotion` as each move starts and land in one frame, as `Recipes.Reflow`'s reduced form does. Reason: they built their motion directly and kept easing, forcing workarounds in the sample.
 - **The flag has no change notification.** See CORE-REDUCED.
