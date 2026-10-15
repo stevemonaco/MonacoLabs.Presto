@@ -15,6 +15,12 @@ public sealed class EngineDiagnostics
 
     internal EngineDiagnostics(Engine engine) => _engine = engine;
 
+    /// <summary>Stops counting a collected engine that was still enabled toward <see cref="PrestoDiagnostics.Active"/>.</summary>
+    ~EngineDiagnostics()
+    {
+        if (_enabled) PrestoDiagnostics.EngineToggled(false);
+    }
+
     /// <summary>Whether the engine registers its roots and records <see cref="LastFrame"/>; enabling picks up the roots already running, disabling forgets everything.</summary>
     public bool Enabled
     {

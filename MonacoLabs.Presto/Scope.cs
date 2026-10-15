@@ -200,11 +200,14 @@ public class Scope : IRevertible
     {
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
-            if (tween._inlineValue != null && FindSuccessor(tween, revertibles, start) == null) return false;
+            if (tween._hasInlineValue && FindSuccessor(tween, revertibles, start) == null) return false;
         }
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
-            if (tween._inlineValue != null) FindSuccessor(tween, revertibles, start)!._inlineValue = tween._inlineValue;
+            if (!tween._hasInlineValue) continue;
+            var successor = FindSuccessor(tween, revertibles, start)!;
+            successor._inlineValue = tween._inlineValue;
+            successor._hasInlineValue = true;
         }
         return true;
     }

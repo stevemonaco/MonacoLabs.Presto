@@ -33,7 +33,11 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
 
         public void SetValue(object target, double number, Tween tween) => Entries(target)[property] = tween.ComposeValue(number);
 
-        public void Revert(object target, object? originalValue) => Entries(target)[property] = originalValue;
+        public void Revert(object target, object? originalValue)
+        {
+            if (originalValue == null) Entries(target).Remove(property);
+            else Entries(target)[property] = originalValue;
+        }
 
         private static IDictionary<string, object?> Entries(object target) => (IDictionary<string, object?>)target;
     }

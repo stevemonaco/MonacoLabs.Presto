@@ -7,7 +7,6 @@ using MonacoLabs.Presto;
 using Tempo.Model;
 using Tempo.Motion;
 using Tempo.ViewModels;
-using PrestoMotion = MonacoLabs.Presto.Motion;
 
 namespace Tempo.Views;
 
@@ -60,11 +59,9 @@ public partial class FocusView : UserControl
         return base.MeasureOverride(availableSize);
     }
 
-    // Not in XAML: attaching mid-session would apply IconToPause's MorphTo at once, which throws (BACKLOG, BRIDGE-MOTION).
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
-        PrestoMotion.SetStates(PlayPause, (MotionStates)Resources["IconStates"]!);
         if (_viewModel is not null)
             ShowRemaining(_viewModel.RemainingText, morph: false);
         StartLabel.Text = _viewModel?.StartPauseLabel;

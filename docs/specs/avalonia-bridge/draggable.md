@@ -98,8 +98,8 @@ depends:
   - Tests: untested
 - **BRIDGE-DRAGGABLE-023** (inherited) — When the container leaves the visual tree mid-drag, the draggable shall keep its last measured bounds and not throw, including on a later `Refresh` and `Revert`.
   - Tests: `DraggableTests.RemovingTheParentMidDragDoesNotThrow`
-- **BRIDGE-DRAGGABLE-024** — When the target or the container changes size, the draggable shall wait 150 ms of quiet (restarting on each change), then raise `OnResize`, call `Refresh`, then raise `OnAfterResize`.
-  - Tests: `DraggableTests.RevertingDetachesTheResizeAndPointerHandlers`
+- **BRIDGE-DRAGGABLE-024** — When the target or the container changes size, the draggable shall wait 150 ms × `Globals.TimeScale` of quiet (restarting on each change), then raise `OnResize`, call `Refresh`, then raise `OnAfterResize`.
+  - Tests: `DraggableTests.RevertingDetachesTheResizeAndPointerHandlers`, `DraggableTests.ResizeRaisesOnResizeWithinTheDebounceInSecondsMode`
 
 ### Snapping and modifiers
 
@@ -220,7 +220,7 @@ depends:
   - Tests: untested
 - **BRIDGE-DRAGGABLE-072** (inherited) — When `Cursor` is not set, cursors shall be enabled, and when `OnHover` or `OnGrab` is not set, the draggable shall show `StandardCursorType.Hand` on hover and `StandardCursorType.SizeAll` while grabbed.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-073** — When `ScrollInView` or `AnimateInView` is called without a duration, gap or ease, it shall animate over 350 ms with a gap of 0 and `Eases.InOutQuad`.
+- **BRIDGE-DRAGGABLE-073** — When `ScrollInView` or `AnimateInView` is called without a duration, gap or ease, it shall animate over 350 ms × `Globals.TimeScale` with a gap of 0 and `Eases.InOutQuad`.
   - Tests: untested
 
 ## Invariants

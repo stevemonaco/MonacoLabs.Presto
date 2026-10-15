@@ -118,6 +118,8 @@ depends:
   - Tests: `PageTransitionTests.ResetRevertsWhatUpdateApplied`
 - **BRIDGE-PAGES-029** — `Update` shall ignore `pageLength`.
   - Tests: untested
+- **BRIDGE-PAGES-034** — `Reset` of either host of the progress run shall revert both hosts of that run and forget the run.
+  - Tests: `PageTransitionTests.ResettingEitherHostOfTheProgressRunReleasesBoth`
 
 ### Diagnostics and Presence
 
@@ -140,7 +142,6 @@ depends:
 ## Edge cases
 
 - A `Carousel` lays out and swipes horizontally whatever the builders do: `Carousel.GetTransitionAxis` recognizes only Avalonia's `PageSlide`.
-- A swipe that completes leaves the landed page at its seeked end values at `Animation` priority until the next transition or recycle takes it over or resets it (`VirtualizingCarouselPanel` does not reset that page).
 - `IsVisible` writes (`to` shown, `from` hidden) are local values, as Avalonia's built-in transitions write them.
 - A seek ignores `Delay` staging.
 
@@ -172,7 +173,7 @@ depends:
 - **Show first, hide before revert, never fault.** `to` is shown and given its start values in the same call before anything plays; on completion `from` is hidden first, then both animations and the `ZIndex` writes are reverted, and the task never faults or cancels. Reason: the incoming host's first frame is never at rest, and hiding before reverting avoids a visible snap and leaves nothing at `Animation` priority where a host's local reset (`NavigationPage`) could not reach it.
 - **Cancellation hands over; it does not revert.** Canceled animations stop where they stand, each host remembers its driving run, a later `Start` given that host takes it over from its current values, and a host nobody claims by the next frame is reverted. Reason: `TransitioningContentControl`'s mid-entrance presenter becomes the next `from` and must exit from where it is, and reverting unclaimed hosts means switching to another transition, or none, leaves nothing behind.
 - **A take-over across threads hands the state over.** UI thread to compositor reverts the old UI-thread run right after the compositor seeds from it, in the same commit; compositor to UI thread copies the paused mirror's transform and opacity out first, sets them as the new run's own values, reverts the compositor run, then starts. Reason: otherwise the page was drawn offset twice, or the UI run started from rest under a still-applied composition `Translation`; values are copied before the revert because it winds the mirror back, and the set belongs to the new run so properties it does not animate are not left behind.
-- **Progress seeks one paused run per transition.** `Update` creates the pair paused on first use for a (from, to, forward) triple and seeks it to `progress × Duration`; a new triple or a taken-over or reset host reverts the previous run first, a host a running `Start` holds is reverted rather than taken over, and seeks ignore `Delay` and `pageLength`. Reason: a seek measures from base values, and staging collapses while dragging.
+- **Progress seeks one paused run per transition.** `Update` creates the pair paused on first use for a (from, to, forward) triple and seeks it to `progress × Duration`; a new triple or a taken-over host, or a reset of either host, reverts the whole run, a host a running `Start` holds is reverted rather than taken over, and seeks ignore `Delay` and `pageLength`. Reason: a seek measures from base values, staging collapses while dragging, and `VirtualizingCarouselPanel` resets only the page it recycles on a committed swipe.
 - **Peeking carousels are not animated.** `Update` with a non-empty `visibleItems` does nothing, as `PageSlide` does. Reason: matches Avalonia's `PageSlide`. Rejected for now: an offset-to-builder mapping like `CrossFade`'s offset-to-opacity.
 - **A `Carousel`'s layout axis stays horizontal.** Reason: `Carousel.GetTransitionAxis` recognizes only Avalonia's `PageSlide`. Rejected: having the page recipes return a `CompositePageTransition` with a zero-duration `PageSlide` purely to steer the axis.
 - **`Connected` flights compose with the host's motion.** A claimed element flies on its composition `Translation` inside the incoming host, so a moving host adds to the flight's path while it still lands right; `PageFade` and `PageFadeThrough` are the documented pairing for connected navigation. Reason: counter-moving keyed elements needs a shared clock or start frame, and was left open.

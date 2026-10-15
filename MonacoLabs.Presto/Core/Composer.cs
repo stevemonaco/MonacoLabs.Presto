@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace MonacoLabs.Presto.Core;
+﻿namespace MonacoLabs.Presto.Core;
 
 /// <summary>
 /// The per-(target, property) sibling registries and the composition of a new tween
@@ -8,21 +6,18 @@ namespace MonacoLabs.Presto.Core;
 /// </summary>
 internal static class Composer
 {
-    // Keyed by target and never iterated, so unlike the additive lookups it can stay process-wide (COMPOSITOR-PLAN §4.1).
-    private static readonly ConditionalWeakTable<object, Dictionary<string, TweenSiblings>> s_replaceLookups = new();
+    public static TweenSiblings GetTweenSiblings(object target, string property, Engine engine) =>
+        GetPropertySiblings(engine.ReplaceLookups.GetValue(target, static _ => []), property);
 
-    public static TweenSiblings GetTweenSiblings(object target, string property, Additive? additive = null)
+    public static TweenSiblings GetTweenSiblings(object target, string property, Additive additive)
     {
-        Dictionary<string, TweenSiblings>? targetLookup;
-        if (additive != null)
-        {
-            var lookups = additive.Lookups;
-            if (!lookups.TryGetValue(target, out targetLookup)) lookups[target] = targetLookup = [];
-        }
-        else
-        {
-            targetLookup = s_replaceLookups.GetValue(target, static _ => []);
-        }
+        var lookups = additive.Lookups;
+        if (!lookups.TryGetValue(target, out var targetLookup)) lookups[target] = targetLookup = [];
+        return GetPropertySiblings(targetLookup, property);
+    }
+
+    private static TweenSiblings GetPropertySiblings(Dictionary<string, TweenSiblings> targetLookup, string property)
+    {
         if (!targetLookup.TryGetValue(property, out var siblings)) targetLookup[property] = siblings = new();
         return siblings;
     }
@@ -46,7 +41,8 @@ internal static class Composer
         var composition = tween._composition;
         if (composition == Composition.Overlap) return;
 
-        if (s_replaceLookups.TryGetValue(tween.Target, out var replaceProperties) &&
+        var engine = tween.Parent.OwnerEngine;
+        if (engine.ReplaceLookups.TryGetValue(tween.Target, out var replaceProperties) &&
             replaceProperties.TryGetValue(tween.Property, out var replaceSiblings))
         {
             TweenList.RemoveChild(replaceSiblings, tween, TweenLink.Replace);
@@ -54,7 +50,7 @@ internal static class Composer
 
         if (composition != Composition.Additive) return;
 
-        var additive = tween.Parent.OwnerEngine.Additive;
+        var additive = engine.Additive;
         if (!additive.Lookups.TryGetValue(tween.Target, out var additiveProperties) ||
             !additiveProperties.TryGetValue(tween.Property, out var additiveSiblings)) return;
 

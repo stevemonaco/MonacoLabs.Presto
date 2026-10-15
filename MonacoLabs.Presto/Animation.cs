@@ -88,9 +88,17 @@ public sealed class Animation : Timer
                 var propertyName = Presto.Canonicalize(target, declaredName);
                 var accessor = Presto.ResolveAccessor(target, propertyName);
                 var codec = accessor.Codec;
-                var frames = NormalizeKeyframes(propertyValue, fastSet);
+                var frameValue = propertyValue;
+                // Unlike upstream utils.set, a function resolving to a from/to pair or keyframes sets their last value.
+                if (fastSet && ValueFunction(propertyValue, target, ti, groupTargets, null) is { } setFunction)
+                {
+                    frameValue = setFunction();
+                    if (frameValue.Raw is TweenValue[] { Length: > 0 } items) frameValue = items[^1];
+                }
+                var frames = NormalizeKeyframes(frameValue, fastSet);
 
                 object? inlineValue = null;
+                var hasInlineValue = false;
                 TweenSiblings? siblings = null;
                 Tween? prevTween = null;
                 var firstTweenChangeStartTime = double.NaN;
@@ -98,7 +106,8 @@ public sealed class Animation : Timer
 
                 object? ReadOriginalValue()
                 {
-                    // Deviation from upstream, which skips falsy originals: captured even when 0 or empty so Revert can restore it.
+                    // Deviation from upstream, which skips nil and empty originals: any read original, null included, is restored by Revert.
+                    hasInlineValue = true;
                     return inlineValue = accessor.GetValue(target);
                 }
 
@@ -112,7 +121,7 @@ public sealed class Animation : Timer
 
                     var tweenComposition = key?.Composition ?? tComposition;
                     if (codec is DiscreteCodec && tweenComposition == Composition.Additive) throw new ArgumentException($"'{declaredName}' is discrete, so it cannot be additive.", nameof(parameters));
-                    if (siblings == null && tweenComposition != Composition.Overlap) siblings = Composer.GetTweenSiblings(target, propertyName);
+                    if (siblings == null && tweenComposition != Composition.Overlap) siblings = Composer.GetTweenSiblings(target, propertyName, OwnerEngine);
                     // A timeline child chains off the tail sibling of the same timeline; anything else off its own previous keyframe.
                     var tailTween = siblings?._tail;
                     var chainedTween = parent != null && tailTween != null && tailTween.Parent.Parent == parent ? tailTween : prevTween;
@@ -311,11 +320,13 @@ public sealed class Animation : Timer
                         _valueType = ScratchTo.Kind,
                         _composition = tweenComposition,
                         _inlineValue = inlineValue,
+                        _hasInlineValue = hasInlineValue,
                         _discrete = codec is DiscreteCodec discrete ? key?.Discrete ?? discrete.Rule : null,
                         _fromObject = ScratchFrom.Discrete,
                         _toObject = ScratchTo.Discrete,
                     };
                     inlineValue = null;
+                    hasInlineValue = false;
 
                     if (tweenComposition != Composition.Overlap) Composer.ComposeTween(tween, siblings!);
 
@@ -477,8 +488,7 @@ public sealed class Animation : Timer
         base.Revert();
         for (var tween = _headTween; tween != null; tween = tween._next)
         {
-            // Upstream skips nil and empty originals; ours are captured unconditionally, so a plain 0 or "" is restored too.
-            if (tween._inlineValue != null) tween.Accessor.Revert(tween.Target, tween._inlineValue);
+            if (tween._hasInlineValue) tween.Accessor.Revert(tween.Target, tween._inlineValue);
         }
         return this;
     }

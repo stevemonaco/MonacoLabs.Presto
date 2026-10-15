@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -43,6 +42,7 @@ public static class PrestoAvalonia
     /// </summary>
     public static void EnsureInitialized()
     {
+        ActivationHook.TryHook();
         if (Initialized) return;
         Initialized = true;
         Presto.Engine.FrameSource = new AvaloniaFrameSource();
@@ -121,7 +121,7 @@ public static class PrestoAvalonia
     /// </summary>
     /// <remarks>
     /// Only "X", "Y", "Rotate", "Scale", "ScaleX", "ScaleY" and "Opacity" have composition counterparts; anything else throws.
-    /// Every target has to be a <see cref="Visual"/>, and one outside the visual tree starts when it is attached to one.
+    /// Every target has to be a <see cref="Visual"/>, or this throws <see cref="NotSupportedException"/>, and one outside the visual tree starts when it is attached to one.
     /// Each target gets its own playback mirror and composition animations, so this is meant for a handful of visuals, not
     /// thousands.
     /// </remarks>
@@ -160,11 +160,12 @@ public static class PrestoAvalonia
         CanAnimateOnCompositor(builder.ToParams(), out reason);
 
     /// <summary>Animates <paramref name="targets"/> on the thread <paramref name="thread"/> picks.</summary>
-    /// <exception cref="NotSupportedException"><paramref name="thread"/> is <see cref="AnimationThread.Compositor"/> and the compositor has no counterpart for a property or setting.</exception>
+    /// <remarks><see cref="AnimationThread.PreferCompositor"/> also falls back when any target is not a <see cref="Visual"/>.</remarks>
+    /// <exception cref="NotSupportedException"><paramref name="thread"/> is <see cref="AnimationThread.Compositor"/> and the compositor has no counterpart for a property or setting, or a target is not a <see cref="Visual"/>.</exception>
     public static ThreadedAnimation Animate(object? targets, AnimationParams parameters, AnimationThread thread)
     {
         EnsureInitialized();
-        return thread == AnimationThread.Compositor || (thread == AnimationThread.PreferCompositor && CanAnimateOnCompositor(parameters, out _))
+        return thread == AnimationThread.Compositor || (thread == AnimationThread.PreferCompositor && CanAnimateOnCompositor(parameters, out _) && AllVisuals(targets))
             ? new ThreadedAnimation(null, RunOnCompositor(targets, parameters))
             : new ThreadedAnimation(Presto.Animate(targets, parameters), null);
     }
@@ -200,6 +201,15 @@ public static class PrestoAvalonia
         };
         foreach (var (name, value) in p.Properties) parameters.Properties[name] = value;
         return AnimateOnCompositor(targets, parameters);
+    }
+
+    private static bool AllVisuals(object? targets)
+    {
+        foreach (var target in TargetParser.Parse(targets))
+        {
+            if (target is not Visual) return false;
+        }
+        return true;
     }
 
     private static string? UnsupportedOnCompositor(AnimationParams p) =>
@@ -877,6 +887,7 @@ public static class PrestoAvalonia
 
     private static SystemMotionReader ReadSystemReducedMotion(Action read)
     {
+        ActivationHook.TryHook();
         if (!s_reducedMotionHooked)
         {
             s_reducedMotionHooked = true;
@@ -884,7 +895,6 @@ public static class PrestoAvalonia
             {
                 if (window.IsActive) RefreshSystemReducedMotion();
             });
-            if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime) lifetime.Activated += (_, _) => RefreshSystemReducedMotion();
             ReducedMotionProbe.Listen(RefreshSystemReducedMotion);
         }
         var reader = new SystemMotionReader(read);

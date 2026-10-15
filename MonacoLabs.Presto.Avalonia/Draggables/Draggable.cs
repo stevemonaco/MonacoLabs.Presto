@@ -160,7 +160,7 @@ public sealed class Draggable : IRevertible
         _resizeTicker = Presto.CreateTimer(new TimerParams
         {
             Autoplay = false,
-            Duration = ResizeDebounce,
+            Duration = ResizeDebounce * Globals.TimeScale,
             OnComplete = _ =>
             {
                 _parameters.OnResize?.Invoke(this);
@@ -297,7 +297,7 @@ public sealed class Draggable : IRevertible
         {
             ["X"] = ClampScroll(offset.X + overflow.X, scroller.Extent.Width, scroller.Viewport.Width),
             ["Y"] = ClampScroll(offset.Y + overflow.Y, scroller.Extent.Height, scroller.Viewport.Height),
-            Duration = duration ?? ScrollInViewDuration,
+            Duration = duration ?? ScrollInViewDuration * Globals.TimeScale,
             Ease = ease ?? (EaseValue)Eases.InOutQuad,
             OnUpdate = _ => scroller.Offset = new Vector(_scroll.X, _scroll.Y),
             OnComplete = _ => _scrollLocked = false,
@@ -312,7 +312,7 @@ public sealed class Draggable : IRevertible
         UpdateBoundingValues();
         if (OutOfView(gap, 0, 0) is not { } overflow) return this;
         var easeValue = ease ?? (EaseValue)Eases.InOutQuad;
-        var length = duration ?? ScrollInViewDuration;
+        var length = duration ?? ScrollInViewDuration * Globals.TimeScale;
         SetAxes(
             overflow.X != 0 ? Snapped(X - overflow.X, _snapX, _boundsLeft, _boundsRight) : null, length, easeValue,
             overflow.Y != 0 ? Snapped(Y - overflow.Y, _snapY, _boundsTop, _boundsBottom) : null, length, easeValue);

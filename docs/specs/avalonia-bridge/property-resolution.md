@@ -81,8 +81,8 @@ depends:
   - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `BridgeAllocationTests.StyledPropertyTweenTicksWithinBudget`
 - **BRIDGE-TARGETS-014** — After the animation completes, the value shall stay held at `Animation` priority until it is reverted, so a local, style or binding value written underneath meanwhile does not show.
   - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`
-- **BRIDGE-TARGETS-015** — When a tween on a styled property is reverted, the accessor shall dispose its binding, uncovering whatever value the property has underneath.
-  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `TargetUtilsTests.SetWritesAtAnimationPriorityAndRevertUncoversTheLocalValue`
+- **BRIDGE-TARGETS-015** — When a tween on a styled property is reverted, the accessor shall dispose its binding, uncovering whatever value the property has underneath, `null` included.
+  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `TargetUtilsTests.SetWritesAtAnimationPriorityAndRevertUncoversTheLocalValue`, `TargetAdapterTests.RevertClearsAPropertyThatWasNullBeforeTheAnimation`
 - **BRIDGE-TARGETS-016** (inherited) — When the property is a direct property, which ignores binding priority, the accessor shall capture its value before the first frame and write that value back on revert.
   - Tests: `TargetAdapterTests.RevertRestoresADirectPropertyToTheValueItHadBeforeTheAnimation`
 - **BRIDGE-TARGETS-017** (inherited) — A `double` property shall be written unboxed through a typed binding, a `float` property as the frame number cast to `float`, an `int` property as the frame number rounded to an integer, and a `string` property as the tween's composed string.

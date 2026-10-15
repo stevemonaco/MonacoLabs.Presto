@@ -73,8 +73,8 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 
 - **BRIDGE-CONTENTSIZE-015** — A layout transition on a host with a content size transition shall ease only its position, whatever its `LayoutAnimateMode`.
   - Tests: `ContentSizePresenceTests.ALayoutTransitionOnAContentSizeHostEasesOnlyItsPosition`
-- **BRIDGE-CONTENTSIZE-016** — While a host resizes, and through the layout pass that lays out its last frame, a layout transition on another control under the same parent (not the host's ancestor) shall cancel its move and land in one frame, since the resize already eases it.
-  - Tests: `ContentSizePresenceTests.TheRowsBelowAnExpandingRowFollowItAndEndInTheirSlots`
+- **BRIDGE-CONTENTSIZE-016** — While a host resizes, and through the layout pass that lays out its last frame, a layout transition on any control in the host's top level that is neither the host, inside it, nor its ancestor shall cancel its move and land in one frame, since the resize already eases it.
+  - Tests: `ContentSizePresenceTests.TheRowsBelowAnExpandingRowFollowItAndEndInTheirSlots`, `ContentSizePresenceTests.ARowInAListBelowAnExpandingRowFollowsItInItsSlot`
 
 ### Ending
 
@@ -154,7 +154,7 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 - **Only an axis that follows the content eases, within 1 px.** An axis eases only when the host grew by as much as its content. Reason: a change of a pixel or less is not worth easing, and layout rounding can leave the host's growth a fraction off its content's; a stretched axis then moves in one frame.
 - **The margin is written in the `LayoutUpdated` that sees the change.** Reason: the re-layout it triggers then runs before the next render, so that frame still shows the old size.
 - **The content is clipped, not the host.** While a resize is in flight the child's `Clip` is held at `Animation` priority to the host's inner box and released with the margin. Reason: the host's shadow and rounded corners still draw outside it.
-- **A content size host owns its size.** A layout transition on the host eases only position; while it resizes, layout moves of its siblings under the same parent land in one frame; a content swap resizes from the drawn size while `Presence` ghosts the old content clipped to the box at the swap. Reason: the resize already eases the siblings and a compositor flight would trail behind it; before this, `ItemLayout` neighbors of an expanding row lagged.
+- **A content size host owns its size.** A layout transition on the host eases only position; while it resizes, layout moves anywhere else in its top level (outside it and not above it) land in one frame; a content swap resizes from the drawn size while `Presence` ghosts the old content clipped to the box at the swap. Reason: the resize already eases whatever it moves and a compositor flight would trail behind it; before this, `ItemLayout` neighbors of an expanding row lagged, and limiting it to the host's parent let a list nested under a sibling (the gallery nav's pages in a section below one that unfolds) fly after the move. Accepted: an unrelated layout move elsewhere in the window during a resize also lands in one frame.
 - **Duration overloads land at once under the flag.** See BRIDGE-LAYOUT.
 - **The flag has no change notification.** See CORE-REDUCED.
 

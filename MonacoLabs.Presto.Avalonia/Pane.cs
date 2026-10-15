@@ -38,13 +38,12 @@ public static class Pane
     {
         PrestoAvalonia.EnsureInitialized();
         var state = s_states.GetValue(column, static c => new State { MinWidth = c.MinWidth });
-        // The column keeps its MinWidth only while expanded and at rest, which is when a splitter may have moved it.
-        if (!state.Collapsed && column.MinWidth > 0) state.Expanded = column.ActualWidth;
+        if (!state.Collapsed && state.Run is not { Completed: false, Canceled: false }) state.Expanded = column.ActualWidth;
         state.Collapsed = collapse;
         column.MinWidth = 0;
         var width = collapse ? 0 : state.Expanded;
         var tokens = Recipes.Tokens;
-        return Presto.Animate(column, new AnimationParams
+        return state.Run = Presto.Animate(column, new AnimationParams
         {
             ["Width"] = width,
             Duration = collapse ? tokens.Short : tokens.Medium,
@@ -72,5 +71,7 @@ public static class Pane
         public double Expanded { get; set; }
 
         public bool Collapsed { get; set; }
+
+        public Animation? Run { get; set; }
     }
 }

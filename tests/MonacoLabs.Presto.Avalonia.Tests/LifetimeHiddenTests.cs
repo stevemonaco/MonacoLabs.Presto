@@ -98,6 +98,25 @@ public sealed class LifetimeHiddenTests : CompositorTestBase
         Assert.Equal(progress + 16, animation.CurrentTime);
     }
 
+    [AvaloniaFact]
+    public void ALifetimeFoundAfterInstallIsHookedOnceFromTheNextEntryPoint()
+    {
+        using var lifetime = FakeActivatableLifetime.Install();
+        PrestoAvalonia.EnsureInitialized();
+        lifetime.Found = true;
+
+        PrestoAvalonia.EnsureInitialized();
+        PrestoAvalonia.EnsureInitialized();
+        lifetime.Background(activated: false);
+
+        Assert.Equal(1, lifetime.DeactivatedHandlers);
+        Assert.True(Presto.Engine.Hidden);
+
+        lifetime.Background(activated: true);
+
+        Assert.False(Presto.Engine.Hidden);
+    }
+
     [AvaloniaTheory]
     [InlineData(ActivationKind.File, false)]
     [InlineData(ActivationKind.File, true)]

@@ -54,8 +54,8 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 ### Timing resolution
 
-- **BRIDGE-FOLLOW-001** — The follower shall take its timing from exactly one source, in this precedence: `Builder` (its duration and ease only), then `Spring`, then `Bounce` (with `Duration` as perceived duration, default 500 ms), then `Duration`/`Ease`, then `Token` (`Medium` duration and `Ease`), and otherwise `Springs.Gentle`.
-  - Tests: `FollowerTests.EachTimingSourceResolves`, `FollowMarkupTests.TheTimingAttributesAreHonored`
+- **BRIDGE-FOLLOW-001** — The follower shall take its timing from exactly one source, in this precedence: `Builder` (its duration and ease only), then `Spring`, then `Bounce` (with `Duration` as perceived duration, default 500 ms × `Globals.TimeScale`), then `Duration`/`Ease`, then `Token` (`Medium` duration and `Ease`), and otherwise `Springs.Gentle`.
+  - Tests: `FollowerTests.EachTimingSourceResolves`, `FollowerTests.ABounceWithoutADurationLastsHalfASecondInSecondsMode`, `FollowMarkupTests.TheTimingAttributesAreHonored`
 - **BRIDGE-FOLLOW-002** (inherited) — When `Builder` is combined with `Duration`, `Ease`, `Spring` or `Bounce`, when `Spring` is combined with `Bounce`, `Duration` or `Ease`, when `Bounce` is combined with `Ease`, or when a spring `Ease` is combined with `Duration`, the follower shall throw `ArgumentException` at construction.
   - Tests: `FollowerTests.ConflictingTimingSourcesThrow`
 - **BRIDGE-FOLLOW-003** (inherited) — When `Spring` names no preset and is not `"bounce,duration"` (including a single number, more than two parts, or a preset followed by a duration), the follower shall throw `FormatException` at construction naming the presets and the `"bounce,duration"` form.

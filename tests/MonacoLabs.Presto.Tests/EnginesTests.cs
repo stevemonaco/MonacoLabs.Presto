@@ -201,6 +201,29 @@ public sealed class EnginesTests : EngineTestBase
     }
 
     [Fact]
+    public void ReplaceTweensDoNotComposeAcrossEngines()
+    {
+        var first = new IsolatedEngine();
+        var second = new IsolatedEngine();
+        var target = new StyleTarget();
+
+        Animation firstAnimation, secondAnimation;
+        using (first.Engine.MakeCurrent()) firstAnimation = Presto.Animate(target, new() { ["X"] = new TweenParams { From = 0, To = 100 }, Duration = 100 });
+        using (second.Engine.MakeCurrent()) secondAnimation = Presto.Animate(target, new() { ["X"] = new TweenParams { From = 200, To = 300 }, Duration = 100 });
+
+        first.Frames.Advance(50, 10);
+        Assert.InRange(target.X, 1, 99);
+
+        second.Frames.Advance(50, 10);
+        Assert.InRange(target.X, 201, 299);
+
+        Assert.False(firstAnimation.Canceled);
+        Assert.False(secondAnimation.Canceled);
+        Assert.False(firstAnimation._headTween!._isOverridden);
+        Assert.False(secondAnimation._headTween!._isOverridden);
+    }
+
+    [Fact]
     public async Task ATimerTickedOnAWorkerThreadStaysOnItsOwnEngine()
     {
         var (sceneEngine, timer) = await Task.Run(() =>

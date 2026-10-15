@@ -7,6 +7,7 @@ using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -54,7 +55,7 @@ public sealed class TextSplitter : IRevertible
         using var origin = PrestoDiagnostics.Origin("TextSplitter");
         _resize = Presto.CreateTimer(new TimerParams
         {
-            Duration = ResizeDebounce,
+            Duration = ResizeDebounce * Globals.TimeScale,
             Autoplay = false,
             OnComplete = _ =>
             {

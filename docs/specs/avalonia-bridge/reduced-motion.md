@@ -63,7 +63,9 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
   - Tests: `SystemReducedMotionTests.WatchingReportsTheSettingAndEachChangeWithoutTouchingTheFlag`, `GalleryPageTests.TheOsPreferenceIsShownWhicheverChoiceIsPicked`
 - **BRIDGE-REDUCED-007** — `RefreshSystemReducedMotion` shall read the setting again for every follower and watcher still active.
   - Tests: `SystemReducedMotionTests.ARefreshPicksUpAFlippedProbeAndReportsIt`
-- **BRIDGE-REDUCED-008** — Once any follower or watcher exists, the bridge shall refresh whenever a window becomes active, the app is activated (`IActivatableLifetime.Activated`) and, in the browser, when the media query reports a change.
+- **BRIDGE-REDUCED-008** — The bridge shall refresh whenever the app is activated (`IActivatableLifetime.Activated`), including when the lifetime is found only after the first follower or watcher (BRIDGE-INIT-027).
+  - Tests: `SystemReducedMotionTests.AnAppActivationAfterALateLifetimeLookupReadsTheSettingAgain`
+- **BRIDGE-REDUCED-030** — Once any follower or watcher exists, the bridge shall also refresh whenever a window becomes active and, in the browser, when the media query reports a change.
   - Tests: manual — toggle the OS reduce-motion setting while the Desktop sample (Gallery's motion picker on System) is in the background, then activate its window.
 - **BRIDGE-REDUCED-009** — The built-in probe shall read the OS setting on Windows (client-area animation off means reduced), macOS (`NSWorkspace.accessibilityDisplayShouldReduceMotion`), iOS (`UIAccessibilityIsReduceMotionEnabled`) and the browser (`prefers-reduced-motion: reduce`), and return `null` on every other platform, Android and Linux included.
   - Tests: `SystemReducedMotionTests.ThePlatformProbeReadsWithoutThrowing`
@@ -132,11 +134,11 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
 
 - Several followers may run at once; each writes the flag of its own engine, and the last reading wins.
 - Following on a platform the probe cannot read never touches the flag; the app keeps whatever it set.
-- A follower created before the app's lifetime exists misses app activation, since the hook is installed with the first follower or watcher only.
+- A follower created before the app's lifetime exists starts hearing app activation once a later bridge entry point finds the lifetime (BRIDGE-INIT-027).
 
 ## Threading and lifetime
 
-- UI thread. The window-activation, app-activation and browser hooks are installed once per process with the first follower or watcher and never removed; disposing a handle only removes its reader from the list.
+- UI thread. The window-activation and browser hooks are installed once per process with the first follower or watcher, the app-activation hook once the lifetime is found (BRIDGE-INIT-027), and none is removed; disposing a handle only removes its reader from the list.
 
 ## Reduced motion
 
@@ -169,6 +171,5 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
 
 ## Open items
 
-- The activation and browser-change refreshes (BRIDGE-REDUCED-008) are untested; only the Gallery page exercises them by hand.
+- The window-activation and browser-change refreshes (BRIDGE-REDUCED-030) are untested; only the Gallery page exercises them by hand.
 - A follower captures `Engine.Current` at creation, so following from a scope or secondary engine writes that engine's flag, not the main one; this is undocumented outside the XML summary.
-- The app-activation hook is skipped when no `Application.Current` exists at the first call and is never retried.

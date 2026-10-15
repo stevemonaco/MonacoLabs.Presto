@@ -71,8 +71,8 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
   - Tests: `RevealTests.APercentInsetFollowsAResize`, `RevealRenderTests.EachFrameOfARevealReachesTheScreen`
 - **BRIDGE-EFFECTS-015** — `ClipCircle` shall drive a bridge-owned `EllipseGeometry` circle centered at `ClipCircleCenter` (resolved against the bounds, default the center) with radius `max(0, ClipCircle) ×` the distance from the center to the farthest corner.
   - Tests: `RevealTests.TheCircleCenterMovesTheEllipse`
-- **BRIDGE-EFFECTS-016** — When a reveal's tween ends fully visible (every inset 0, or a radius of 1 or more), the bridge shall remove its clip.
-  - Tests: `RevealTests.AnInsetBackToZeroEndsWithNoClip`, `RevealTests.ACircleRevealEndsWithNoClip`
+- **BRIDGE-EFFECTS-016** — When a `ClipInset` tween ends with every inset 0, the bridge shall remove its clip; a circle clip shall be absent whenever its radius is 1 or more and the `ClipCircle` tween has ended or `ClipCircle` is not animated, so `ClipCircleCenter` alone, or with `ClipCircle` reverted, leaves no clip.
+  - Tests: `RevealTests.AnInsetBackToZeroEndsWithNoClip`, `RevealTests.ACircleRevealEndsWithNoClip`, `RevealTests.TheCircleCenterAloneLeavesNoClip`
 - **BRIDGE-EFFECTS-017** — When an `Animate` or `Set` call would animate `ClipInset` and `ClipCircle` or `ClipCircleCenter` on one visual at once, the call shall throw `InvalidOperationException`; one after the other switches the kind.
   - Tests: `RevealTests.AnInsetAndACircleTogetherThrow`
 - **BRIDGE-EFFECTS-018** — Clip shorthands shall start from their identities, not from the user's own clip, and reverting the last one shall dispose the bridge clip, uncovering the user's `Clip`.
@@ -84,8 +84,8 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
   - Tests: `RevealTests.TheSweepEdgeSitsAtProgressAlongTheAngle`
 - **BRIDGE-EFFECTS-020** — `MaskSweepFeather` shall set the edge's width (no less than 0.001), and `MaskSweepAngle` shall take degrees, converting `turn` and `rad`.
   - Tests: `RevealTests.TheFeatherWidensTheEdgeAndTheAngleTakesTurns`
-- **BRIDGE-EFFECTS-021** — When a `MaskSweep` tween ends at 1 or more, the bridge shall remove its mask.
-  - Tests: `RevealTests.AMaskSweepEndsWithNoMask`
+- **BRIDGE-EFFECTS-021** — The mask shall be absent whenever the sweep progress is 1 or more and the `MaskSweep` tween has ended or `MaskSweep` is not animated, so `MaskSweepAngle` or `MaskSweepFeather` alone, or with `MaskSweep` reverted, leaves no mask.
+  - Tests: `RevealTests.AMaskSweepEndsWithNoMask`, `RevealTests.AMaskCompanionAloneLeavesNoMask`, `RevealTests.RevertingTheSweepWhileACompanionRunsLeavesNoMask`
 - **BRIDGE-EFFECTS-022** — Each mask shorthand shall animate, revert to its identity and read its identity when not animated on its own; reverting the last shall uncover the user's `OpacityMask`.
   - Tests: `RevealTests.RevertRestoresTheUsersMask`
 - **BRIDGE-EFFECTS-023** — The mask shorthands shall never conflict with each other or with the effect or clip shorthands.
@@ -145,8 +145,6 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 ## Edge cases
 
 - A blur removed at radius 0 mid-tween comes back on the next frame above 0; a shadow is removed only when its opacity tween has ended at 0.
-- Animating only `MaskSweepAngle` or `MaskSweepFeather` installs a mask at progress 1 that is never removed until reverted.
-- `ClipCircleCenter` alone never marks the reveal done, so its circle at the default radius 1 stays installed until reverted.
 - Changing `Tilt.Strength` while hovering takes effect on the next pointer move; turning reduced motion on while tilted leaves the tilt until the pointer leaves.
 - Tilt sets `Perspective` on attach, so an enabled, attached control carries a transform group even before the pointer enters.
 
@@ -172,7 +170,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 - **Effects are bridge-owned composers.** Per visual, one composer owns `Visual.Effect`, one `Visual.Clip` and one `Visual.OpacityMask`, as `RenderTransformComposer` owns `RenderTransform`: each writes one bridge-owned mutable object at `Animation` priority and mutates it per frame, `Revert` uncovers the user's own value, and a user effect of the same kind supplies the starting values. Reason: no per-frame allocation beyond Avalonia's property-changed args (the `BrushCodec` reuse pattern), and reverting restores what the user set.
 - **A visual holds one effect and one clip; animating two kinds at once throws.** Blur and shadow shorthands together, or `ClipInset` and `ClipCircle` together, throw `InvalidOperationException` naming both; one after the other switches the kind; `MaskSweep` has one kind and cannot conflict. Reason: Avalonia has no effect group and a visual holds one clip; for a `Border`, `BoxShadow` is cheaper and not exclusive. Rejected: a documented "last kind wins".
 - **Conflicts are caught when the accessor resolves, with same-job claims.** The check runs as the adapter resolves the shorthand, so `Animate`/`Set` throws, and a kind conflicts with the other kind's running animations or with a claim made earlier in the same dispatcher job. Reason: it catches a blur and a shadow in one animation before either has rendered, and a claim that lapses with the job means a `Presto.Get` does not hold one.
-- **An effect at rest is removed.** A blur at radius 0 on any frame, a shadow whose opacity tween ends at 0, and a reveal at full visibility revert instead of leaving a zero effect, clip or mask installed. Reason: any effect costs an offscreen pass.
+- **An effect at rest is removed.** A blur at radius 0 on any frame, a shadow whose opacity tween ends at 0, and a reveal at full visibility revert instead of leaving a zero effect, clip or mask installed. A mask or circle is at rest whenever its main shorthand (`MaskSweep`, `ClipCircle`) stands at 1 and has ended or is not animated, so a companion alone never installs one. Reason: any effect costs an offscreen pass, and a companion only shapes a reveal its main shorthand shows.
 - **A shadow's identity is black at opacity 1.** Without a user `DropShadowEffect`, a shadow starts black, opaque, with blur and offset 0. Reason: animating `ShadowBlur` alone then shows a shadow.
 - **3D rotation joins the transform group on first use.** `RotateX`, `RotateY` and `Perspective` (its `Depth`, identity 0) drive one `Rotate3DTransform` inserted between the scale and the 2D rotate only when first animated; the compositor has no counterpart, so they throw there. Reason: 2D-only visuals keep their group and allocations, and the slot is upstream's `validTransforms` order reversed, with perspective at the rotation's slot because one transform carries both angles and the depth.
 - **Reveals are shorthands with companion shorthands.** `ClipInset` and `ClipCircle` drive a bridge-owned geometry on `Clip` and `MaskSweep` an `OpacityMask`; their extra parameters (`ClipCircleCenter`, default the center; `MaskSweepAngle`; `MaskSweepFeather`, default 0.2) are shorthands of their own, each with builder methods, an identity and a revert. A reveal starts from its identity, never the user's `Clip` or `OpacityMask`, and each `ClipInset` side takes its end value's unit without converting the start. Reason: one scalar cannot carry a reveal's extra parameters.
@@ -189,4 +187,3 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 ## Open items
 
 - BRIDGE-EFFECTS-008, -023 and -032 are untested.
-- A mask or circle reveal driven only by its companion shorthand never removes itself at rest (edge cases above), against the decision that an effect at rest is removed.

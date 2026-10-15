@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
 
@@ -15,6 +16,7 @@ public sealed class Engine : Clock
     private List<MotionValue> _sinks = [];
     private List<MotionValue> _flushingSinks = [];
     internal readonly List<MotionValue> _activeValues = [];
+    internal ConditionalWeakTable<object, Dictionary<string, TweenSiblings>> ReplaceLookups { get; } = new();
     // Engine time is the frame source's time times _rate plus _timeOffset; _rate is TimeDilation, or 0 while frozen.
     internal double _timeOffset;
     private double _rate = 1;

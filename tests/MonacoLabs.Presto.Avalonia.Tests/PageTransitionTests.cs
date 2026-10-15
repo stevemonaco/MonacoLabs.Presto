@@ -437,6 +437,21 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ResettingEitherHostOfTheProgressRunReleasesBoth()
+    {
+        var (from, to) = ShowPair();
+        var transition = new PrestoPageTransition { Enter = SlideIn, Exit = FadeOut };
+        transition.Update(0.5, from, to, true, 0, []);
+        transition.Update(1, from, to, true, 0, []);
+
+        transition.Reset(from);
+
+        Assert.False(to.IsAnimating(Visual.ZIndexProperty));
+        Assert.False(to.IsAnimating(Visual.RenderTransformProperty));
+        Assert.Equal(1, from.Opacity);
+    }
+
+    [AvaloniaFact]
     public void UpdateWithVisibleItemsChangesNothing()
     {
         var (from, to) = ShowPair();

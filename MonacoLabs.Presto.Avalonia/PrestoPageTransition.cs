@@ -68,7 +68,13 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     /// <inheritdoc/>
     public void Reset(Visual visual)
     {
-        if (s_hosts.TryGetValue(visual, out var run)) run.Release();
+        if (_progress is { } progress && (progress.From == visual || progress.To == visual))
+        {
+            progress.Incoming?.Release();
+            progress.Outgoing?.Release();
+            _progress = null;
+        }
+        else if (s_hosts.TryGetValue(visual, out var run)) run.Release();
     }
 
     private (HostRun? Incoming, HostRun? Outgoing) Begin(Visual? from, Visual? to, bool forward, bool seekable)

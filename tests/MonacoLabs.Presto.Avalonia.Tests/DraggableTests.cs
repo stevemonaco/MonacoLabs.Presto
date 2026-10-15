@@ -658,6 +658,21 @@ public sealed class DraggableTests : BridgeTestBase
         draggable.Refresh().Revert();
     }
 
+    [AvaloniaFact]
+    public void ResizeRaisesOnResizeWithinTheDebounceInSecondsMode()
+    {
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+        var (_, container, target) = Show();
+        var resizes = 0;
+        PrestoAvalonia.CreateDraggable(target, new DraggableParams { Container = container, OnResize = _ => resizes++ });
+
+        container.Width = 150;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(200, 16);
+
+        Assert.Equal(1, resizes);
+    }
+
     /// <summary>Upstream "Reverting a draggable should properly disconect the ResizeObserver attached to it".</summary>
     [AvaloniaFact]
     public void RevertingDetachesTheResizeAndPointerHandlers()

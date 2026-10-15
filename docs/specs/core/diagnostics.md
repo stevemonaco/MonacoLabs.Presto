@@ -47,8 +47,8 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
   - Tests: `EngineDiagnosticsTests.EnablingRegistersTheRunningRoots`
 - **CORE-DIAGNOSTICS-003** — When `Enabled` turns off, the registry shall forget its roots, animatables and recently ended roots and reset `LastFrame` to its default.
   - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`
-- **CORE-DIAGNOSTICS-004** — `PrestoDiagnostics.Active` shall be true while any engine has diagnostics enabled.
-  - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`
+- **CORE-DIAGNOSTICS-004** — `PrestoDiagnostics.Active` shall be true while any engine has diagnostics enabled; an engine dropped while enabled keeps it on until its `EngineDiagnostics` is finalized.
+  - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`, `EngineDiagnosticsTests.ACollectedEnabledEngineStopsCountingAsActive`
 - **CORE-DIAGNOSTICS-005** (inherited) — Setting `Enabled` to its current value shall do nothing.
   - Tests: untested
 
@@ -134,7 +134,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 
 - `EngineDiagnostics` is single-threaded like its engine; `Enabled`'s setter asserts thread affinity in debug builds.
 - The origin tag is per thread (`[ThreadStatic]`); `Active` and `CaptureCreationTrace` are process-wide.
-- An engine that is collected while enabled never decrements the enabled-engine count.
+- An engine dropped while enabled stops counting toward `Active` only when the finalizer of its `EngineDiagnostics` runs, using nothing but the interlocked counter.
 
 ## Reduced motion
 
@@ -156,6 +156,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 - **Inspectors poll state instead of receiving per-frame events.** `LastFrame` is a struct filled by the engine update while enabled, and timer state changes are read by polling public flags, not hooked into the renderer's tick; a later break-on-event feature would add one internal notification behind the enabled branch. Reason: the overlay redraws every frame anyway, and polling keeps the tick allocation-free, avoids callbacks inside the update, and leaves the tick code that the ported regression suites pin untouched.
 - **Origins are tagged through an ambient scope.** `PrestoDiagnostics.Origin(tag)` is a disposable scope shaped like `Engine.MakeCurrent()`; bridge features tag their timers, the core tags the additive animation, and untagged means app code. `CaptureCreationTrace` is off by default and honored only while enabled. Reason: without an origin, library timers flood the list indistinguishably from the app's; an inactive `Origin()` returns an empty struct so release apps pay nothing; stack traces are expensive by design.
 - **Frame cost is measured on real time.** The update cost in `LastFrame` is read from a `Stopwatch`, not from the frame source's `TimeProvider`. Reason: diagnostics measure real cost, not animation time.
+- **A dropped enabled engine is released by a finalizer.** `EngineDiagnostics` decrements the enabled-engine count from its finalizer when still enabled. Reason: engines are retired by being dropped, not disposed, and a count that never fell kept `Active` and ease naming on for the rest of the process; the finalizer touches only the interlocked counter, so running on the finalizer thread is safe. Rejected: making `Engine` disposable.
 - **Ease names are registered only while diagnostics are active.** See CORE-EASES.
 
 ## Non-goals
@@ -166,6 +167,5 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 
 ## Open items
 
-- The enabled-engine counter behind `PrestoDiagnostics.Active` is never decremented for an engine collected while enabled, so `Active` (and ease naming) can stay on for the rest of the process.
 - An animatable's property animations are not tagged `"Animatable"`; only its callbacks animation is. Untested either way.
 - No test for `ActiveValues`, idempotent `Enabled` sets, or a repeated `Cancel` not re-ending a root.

@@ -337,12 +337,12 @@ public static class Presence
     }
 
     /// <summary>
-    /// The list whose item <paramref name="parent"/> hosts as content: <paramref name="parent"/> is an item container, or
-    /// part of one's template, such as a <see cref="ListBoxItem"/>'s presenter. Null for anything else.
+    /// The list whose item <paramref name="parent"/> hosts as content: <paramref name="parent"/> is a list's items panel, an
+    /// item container, or part of one's template, such as a <see cref="ListBoxItem"/>'s presenter. Null for anything else.
     /// </summary>
     internal static ItemsControl? OwnerOfItem(Visual? parent) =>
         // Found through the panel: a container being recycled has already lost the logical parent ItemsControlFromItemContainer reads.
-        ItemContainerOf(parent) is { } container ? container.GetVisualParent()!.FindAncestorOfType<ItemsControl>() : null;
+        (parent is Panel { IsItemsHost: true } ? parent : ItemContainerOf(parent)?.GetVisualParent())?.FindAncestorOfType<ItemsControl>();
 
     /// <summary>The item container <paramref name="parent"/> is, or is part of the template of; null for anything else.</summary>
     internal static Control? ItemContainerOf(Visual? parent)

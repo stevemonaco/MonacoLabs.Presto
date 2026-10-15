@@ -40,6 +40,16 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Assert.Equal("40px 41em 42% 43ch", target.MultipleValuesWithUnits);
     }
 
+    [Fact]
+    public void SetWritesTheToValueOfAFunctionReturningAFromToPair()
+    {
+        var target = new TestObject();
+
+        Presto.Set(target, new() { ["PlainValue"] = new FunctionValue((_, _, _) => TweenValue.FromTo(10, 42)) });
+
+        Assert.Equal(42, target.PlainValue);
+    }
+
     /// <summary>Upstream measures CSS units against the DOM; the core scales the angle units and adopts any other unit as is.</summary>
     [Fact]
     public void GetObjectPropertiesAndConvertUnit()

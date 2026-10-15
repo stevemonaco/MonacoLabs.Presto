@@ -522,6 +522,25 @@ public sealed class TextSplitTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ResizeResplitsWithinTheDebounceInSecondsMode()
+    {
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+        var block = ShowText();
+        var calls = 0;
+        PrestoAvalonia.SplitText(block, new() { Lines = new() }).AddEffect(_ =>
+        {
+            calls++;
+            return () => { };
+        });
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(2, calls);
+    }
+
+    [AvaloniaFact]
     public void CleanupSeesThePiecesItsEffectWasGiven()
     {
         var block = ShowText();

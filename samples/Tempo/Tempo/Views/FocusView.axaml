@@ -5,11 +5,6 @@
              xmlns:vm="using:Tempo.ViewModels"
              x:Class="Tempo.Views.FocusView"
              x:DataType="vm:FocusViewModel">
-    <UserControl.Resources>
-        <presto:MotionStates x:Key="IconStates">
-            <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.IconToPause}" />
-        </presto:MotionStates>
-    </UserControl.Resources>
     <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="20" Margin="0,16">
         <!-- Full width, each label centered: sized to its content, it took the wider label's width mid-swap and left-aligned the other. -->
         <TransitioningContentControl Classes="mode accent-fg handoff" Content="{Binding ModeLabel}"
@@ -64,7 +59,13 @@
                     <Button Classes="hero-face" Command="{Binding StartPauseCommand}" ToolTip.Tip="Start or pause (Space)"
                             presto:Ripple.Enabled="True">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Path x:Name="PlayPause" Classes="play" Data="{StaticResource PlayIcon}" />
+                            <Path x:Name="PlayPause" Classes="play" Data="{StaticResource PlayIcon}">
+                                <presto:Motion.States>
+                                    <presto:MotionStates>
+                                        <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.IconToPause}" />
+                                    </presto:MotionStates>
+                                </presto:Motion.States>
+                            </Path>
                             <TextBlock x:Name="StartLabel" Classes="start-label" IsVisible="{Binding StartPauseLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                         </StackPanel>
                     </Button>

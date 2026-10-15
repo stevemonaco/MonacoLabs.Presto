@@ -794,6 +794,51 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
         Assert.Equal(.5, enterEntering.Opacity);
     }
 
+    [AvaloniaFact]
+    public void APageInATreeViewSectionBelongsToTheSection()
+    {
+        var (tree, sections) = SectionTree();
+        var section = (TreeViewItem)tree.ContainerFromItem(sections[0])!;
+        var page = (Control)section.ContainerFromIndex(0)!;
+
+        Assert.Same(section, Presence.OwnerOfItem(page.GetVisualParent()));
+    }
+
+    [AvaloniaFact]
+    public void APageRemovedFromATreeViewSectionExits()
+    {
+        var (tree, sections) = SectionTree();
+        Frames.Advance(300, 16);
+        Tick();
+
+        sections[0].Pages.RemoveAt(0);
+        Tick();
+
+        Assert.Single(OverlayLayer.GetOverlayLayer(tree)!.Children.OfType<Canvas>());
+    }
+
+    private sealed record Section(string Name, ObservableCollection<string> Pages);
+
+    private static (TreeView Tree, Section[] Sections) SectionTree()
+    {
+        Section[] sections = [new("one", ["a", "b"]), new("two", ["c"])];
+        var tree = new TreeView
+        {
+            ItemsSource = sections,
+            ItemTemplate = new FuncTreeDataTemplate<Section>((section, _) => new TextBlock { Text = section.Name }, section => section.Pages),
+            Styles =
+            {
+                new Style(x => x.OfType<TreeViewItem>())
+                {
+                    Setters = { new Setter(TreeViewItem.IsExpandedProperty, true), new Setter(Presence.ExitProperty, FadeOut) },
+                },
+            },
+        };
+        new Window { Content = tree, Background = Brushes.White, Width = 200, Height = 200 }.Show();
+        Tick();
+        return (tree, sections);
+    }
+
     private static (Control Control, List<PresenceMoment> Moments) Recorded(Control control)
     {
         var moments = new List<PresenceMoment>();

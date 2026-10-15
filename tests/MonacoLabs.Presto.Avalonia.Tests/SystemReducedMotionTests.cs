@@ -73,6 +73,28 @@ public sealed class SystemReducedMotionTests : BridgeTestBase, IDisposable
     }
 
     [AvaloniaFact]
+    public void AnAppActivationAfterALateLifetimeLookupReadsTheSettingAgain()
+    {
+        using var lifetime = FakeActivatableLifetime.Install();
+        bool? system = true;
+        var reads = 0;
+        using var following = PrestoAvalonia.FollowSystemReducedMotion(() =>
+        {
+            reads++;
+            return system;
+        });
+        lifetime.Found = true;
+        using var watching = PrestoAvalonia.WatchSystemReducedMotion(_ => { });
+
+        system = false;
+        reads = 0;
+        lifetime.Background(activated: true);
+
+        Assert.Equal(1, reads);
+        Assert.False(Presto.Defaults.ReducedMotion);
+    }
+
+    [AvaloniaFact]
     public void ThePlatformProbeReadsWithoutThrowing()
     {
         var reading = ReducedMotionProbe.Read();

@@ -98,8 +98,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionStateTests.RestFollowsALocalValueChangedMidHover`
 - **BRIDGE-MOTION-018** — For a transform, effect, clip, mask or warp shorthand, rest shall be the shorthand's identity.
   - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`
-- **BRIDGE-MOTION-019** — When a return to rest completes while it still drives a property, the tracker shall revert that property's animation-priority value, leaving no animation, no residual render transform and no residual effect.
-  - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `MotionStateTests.RestFollowsALocalValueChangedMidHover`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`
+- **BRIDGE-MOTION-019** — When a return to rest completes while it still drives a property, the tracker shall revert that property's animation-priority value, leaving no animation, no residual render transform and no residual effect, a zero-duration return included.
+  - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `MotionStateTests.RestFollowsALocalValueChangedMidHover`, `MotionStateTests.AZeroDurationReturnToRestSettles`, `MotionStateTests.AGeometryMorphedByAStateReturnsToRestAtOnceWithAZeroDurationLeave`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`
 - **BRIDGE-MOTION-020** — When a property returning to rest has no resolvable `AvaloniaProperty` and is not a shorthand, the return shall throw `NotSupportedException`.
   - Tests: untested
 
@@ -144,7 +144,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-033** (inherited) — While the element is detached, condition changes shall play nothing.
   - Tests: untested
 - **BRIDGE-MOTION-034** — When the element attaches, the states that hold shall be applied instantly with `Presto.Set` at their final values, with no animation left running.
-  - Tests: `MotionStateTests.AReattachedElementSnapsToItsActiveStates`, `MotionPropagationTests.AChildAddedUnderAnOpenParentArrivesSnapped`
+  - Tests: `MotionStateTests.AReattachedElementSnapsToItsActiveStates`, `MotionStateTests.AMorphingStateActiveAtAttachSnapsToItsShape`, `MotionPropagationTests.AChildAddedUnderAnOpenParentArrivesSnapped`
 - **BRIDGE-MOTION-035** (inherited) — When a state that holds at attach loops, it shall also be played from the snapped value, so it keeps looping.
   - Tests: `MotionStateTests.ALoopingStateActiveAtAttachKeepsLooping`
 - **BRIDGE-MOTION-036** — When the element detaches, every state animation shall be canceled and its properties reverted; the definitions stay.

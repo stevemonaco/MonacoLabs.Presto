@@ -77,8 +77,8 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 
 ### Re-split and effects
 
-- **BRIDGE-TEXT-017** — After the first split, a width change shall restart a 150 ms debounce, and when it completes with a width different from the last split the splitter shall split again: cleanups first, then the effects over the new pieces.
-  - Tests: `TextSplitTests.EffectRunsAgainWhenTheWidthChanges`
+- **BRIDGE-TEXT-017** — After the first split, a width change shall restart a 150 ms × `Globals.TimeScale` debounce, and when it completes with a width different from the last split the splitter shall split again: cleanups first, then the effects over the new pieces.
+  - Tests: `TextSplitTests.EffectRunsAgainWhenTheWidthChanges`, `TextSplitTests.ResizeResplitsWithinTheDebounceInSecondsMode`
 - **BRIDGE-TEXT-018** — `AddEffect` shall run the effect at once when the pieces exist and again after every split, running the `Action` it returned before the next split and on revert.
   - Tests: `TextSplitTests.EffectRunsOnceAfterTheSplit`, `TextSplitTests.CleanupSeesThePiecesItsEffectWasGiven`
 - **BRIDGE-TEXT-019** — The `Timer` overload of `AddEffect` shall hand the returned timer's playback position to the timer the next split creates (`Utils.KeepTime`), and revert the last one with the splitter.
@@ -193,5 +193,4 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 
 ## Open items
 
-- The 150 ms resize debounce is not scaled by `Globals.TimeScale`, unlike every other bridge timer, so it misbehaves in seconds mode.
 - Untested: scope registration (002), automation (014), plain-text only (016).

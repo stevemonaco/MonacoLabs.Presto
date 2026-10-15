@@ -195,6 +195,54 @@ public sealed class MotionStateTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AGeometryMorphedByAStateReturnsToRestAtOnceWithAZeroDurationLeave()
+    {
+        var rest = Geometry.Parse("M6,5 L15,12 L6,19 Z M17,5 L19,5 L19,19 L17,19 Z");
+        var path = new Path { Data = rest, Fill = Brushes.Black };
+        Show(path);
+        Motion.SetStates(path, States(".on", Linear().Data(PrestoAvalonia.MorphTo(Geometry.Parse("M6,5 L12.5,12 L6,19 Z M12.5,5 L19,12 L12.5,19 Z"))), Presto.Build().Duration(0)));
+        path.Classes.Add("on");
+        Frames.Advance(200, 10);
+
+        path.Classes.Remove("on");
+        Frames.Advance(16);
+
+        Assert.Same(rest, path.Data);
+    }
+
+    [AvaloniaFact]
+    public void AZeroDurationReturnToRestSettles()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".on", Linear().Opacity(0.4), Presto.Build().Duration(0)));
+        box.Classes.Add("on");
+        Frames.Advance(200, 10);
+
+        box.Classes.Remove("on");
+        Frames.Advance(16);
+        box.Opacity = 0.8;
+
+        Assert.Equal(0.8, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void AMorphingStateActiveAtAttachSnapsToItsShape()
+    {
+        var panel = new StackPanel();
+        Show(panel);
+        var path = new Path { Data = Geometry.Parse("M0,0 L10,0 L10,10 Z"), Fill = Brushes.Black };
+        path.Classes.Add("on");
+        Motion.SetStates(path, States(".on", Linear().Data(PrestoAvalonia.MorphTo(Geometry.Parse("M0,0 L20,0 L20,20 L0,20 Z")))));
+
+        panel.Children.Add(path);
+
+        Assert.True(path.Data!.FillContains(new Point(2, 18)));
+        Frames.Advance(16);
+        Assert.Empty(Presto.GetAnimations(path));
+    }
+
+    [AvaloniaFact]
     public void CheckedOnAToggleButtonEnters()
     {
         var toggle = new ToggleButton { Content = "t" };

@@ -165,8 +165,8 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ### Set
 
-- **CORE-ANIMATION-044** — When `Presto.Set` is called, the animation shall build every tween as a from/to pair of the given value with a `Constants.MinValue` duration and `Composition.Overlap` unless set, and start at once so the values are written before it returns.
-  - Tests: `UtilsTargetsTests.SetObjectProperties`, `UtilsTargetsTests.SetObjectPropertiesToSpecificUnit`, `DiscreteValuesTests.SetWritesABoolAndAnEnum`
+- **CORE-ANIMATION-044** — When `Presto.Set` is called, the animation shall build every tween as a from/to pair of the given value with a `Constants.MinValue` duration and `Composition.Overlap` unless set, and start at once so the values are written before it returns. A function value is resolved once per target, and one that returns an array (a from/to pair or keyframes) sets its last item.
+  - Tests: `UtilsTargetsTests.SetObjectProperties`, `UtilsTargetsTests.SetWritesTheToValueOfAFunctionReturningAFromToPair`, `UtilsTargetsTests.SetObjectPropertiesToSpecificUnit`, `DiscreteValuesTests.SetWritesABoolAndAnEnum`
 - **CORE-ANIMATION-045** (inherited) — When `Presto.Set` is called, it shall not raise the engine's `TimerCreated`.
   - Tests: untested
 
@@ -185,8 +185,8 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ### Revert
 
-- **CORE-ANIMATION-051** (inherited) — The animation shall capture each property's original value from the target when it first reads it, including 0 and empty values.
-  - Tests: `ControlsTests.RevertAnAnimation`
+- **CORE-ANIMATION-051** — The animation shall capture each property's original value from the target when it first reads it, 0, `""` and `null` included (CORE-TARGETS "Revert restores falsy originals").
+  - Tests: `ControlsTests.RevertAnAnimation`, `ObjectTargetAdapterTests.RevertRemovesADictionaryKeyTheAnimationAdded`, `ObjectTargetAdapterTests.RevertRestoresANullMember`
 - **CORE-ANIMATION-052** — When `Revert` is called, the animation shall seek to 0 without callbacks, cancel, and write every captured original value back through its accessor's `Revert`.
   - Tests: `ControlsTests.RevertAnAnimation`, `DiscreteValuesTests.RevertRestoresTheOriginalValue`, `InertiaTests.RevertRestoresTheStart`
 - **CORE-ANIMATION-053** — When an animation that replaced earlier ones is reverted, the property shall return to the value captured before the first of them.
@@ -258,7 +258,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ## Provenance
 
-- Original values are captured even when 0 or empty, so `Revert` restores them; upstream skips falsy originals.
+- Original values are captured even when 0, empty or null, so `Revert` restores them; upstream skips falsy originals.
 - `Stretch` of a top-level animation keeps its offset and rebuilds absolute times: a top-level offset is the engine time the timer was created at, and multiplying it by the factor of a stretch from a `Constants.MinValue` duration lost the precision a frame needs, so a release tween started late or never.
 - Color channels interpolate with premultiplied alpha, so a fade from a transparent color does not take on its RGB mid-way (CORE-COLORS).
 - Discrete properties tween instead of throwing, so `bool` and enum properties can be animated (CORE-TARGETS).
@@ -270,6 +270,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **Modifiers take a number; per-target modifiers come from a function value.** `Modifier` and `TextModifier` are `Func<double, …>`, as upstream's `modifier` is; a target that needs its own (counters with different precision in one call) gets it from a function-based value returning a `TweenParams` (CORE-ANIMATION-014). Reason: that form already carries every tween setting per target, so a second per-target spelling for the modifiers would duplicate it at the cost of a union on four parameter types. Rejected: a `(target, index, total)` form of `Modifier`/`TextModifier`.
 - **Upstream's linked lists are kept, and tweens hang off the timer.** Engine children, timeline children and tweens use upstream's intrusive linked lists, and the tween list lives on `Timer`. Reason: an intrusive list links and unlinks in O(1) and ticks without allocating, and keeping upstream's structure lets its regression suites port one-to-one; on `Timer`, the renderer and the additive animation work on any timer.
 - **Params are init-only records with a key indexer.** `AnimationParams` mixes property tweens (through its `PropertyKey` indexer, CORE-TARGETS) and settings in one initializer, and a derived params type can add a typed indexer; `TweenParams` is a sealed class. Reason: records let `Timeline.Set` override with `with`, and indexer initializers are the only C# syntax that mixes typed members and arbitrary keys in one initializer, mirroring the JS object literal. Rejected: a collection-initializer `Add` design, which cannot mix with settings.
+- **`Presto.Set` sets the last value of a function returning an array.** Upstream `utils.set` wraps a function value as a from/to pair of itself, so a function that returns a from/to pair or keyframes nests an array in each end and fails to decompose; `Set` resolves the function once and sets the array's last item, the value the animation would end on (CORE-ANIMATION-044). Reason: a motion-state motion (BRIDGE-MOTION) that morphs from the current value applies through `Set` when its element attaches already in the state.
 - **Function values receive the group's target list.** Reason: it lets `Stagger` resolve auto-grids from the targets.
 - **Dictionary params take `WhenReduced`; timers and timelines do not.** `AnimationParams.WhenReduced` has the builder's semantics: under the flag its properties replace these and the settings it sets override them, and a nested `WhenReduced` is ignored. Reason: a timer animates nothing, and each timeline child picks its own form.
 - **`persist` is not ported.** Reason: in anime.js 4.5.0 it exists only on the WAAPI path.
@@ -286,4 +287,3 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 - `Id` defaults, `Presto.Set` not raising `TimerCreated`, kind homogenization, complex padding, the 1000-target composition switch, string rounding precision, a function value returning `TweenParams`, and the setter restart in `Refresh` have no test.
 - `GetCurrent` on a `Composition.Overlap` number tween returns the from value rather than the rendered one (documented on the member); tools reading it get a stale value.
-- The original-value capture deviation from upstream is noted only in code comments; no decision records it.

@@ -147,6 +147,21 @@ public sealed class TargetAdapterTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void RevertClearsAPropertyThatWasNullBeforeTheAnimation()
+    {
+        var border = new Border();
+        var animation = border.Animate(new() { ["Background"] = "#f00", Duration = 100, Autoplay = false });
+        animation.Seek(animation.Duration);
+
+        Assert.NotNull(border.Background);
+
+        animation.Revert();
+
+        Assert.Null(border.Background);
+        Assert.False(border.IsAnimating(Border.BackgroundProperty));
+    }
+
+    [AvaloniaFact]
     public void APanelsChildrenFlattenIntoOneTargetPerControl()
     {
         var panel = new StackPanel();

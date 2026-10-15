@@ -93,8 +93,7 @@ public static class TempoMotion
         .Scale(k => k.To(.75, duration: 180).To(1, duration: 240, ease: Eases.OutBack()))
         .Duration(420)
         .Ease(Eases.InOutCubic)
-        // Not 0: a zero-duration state never settles its return to rest (BACKLOG, BRIDGE-MOTION).
-        .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(PauseIcon)).Duration(1));
+        .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(PauseIcon)).Duration(0));
 
     /// <summary>The accent halo pinging out from the start pill as a session starts or resumes. Reduced: none.</summary>
     public static readonly AnimationBuilder StartPing = Presto.Build()
@@ -114,7 +113,7 @@ public static class TempoMotion
         .Data(PrestoAvalonia.MorphTo(FastForwardIcon))
         .Duration(240)
         .Ease(Eases.OutCubic)
-        .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(FastForwardIcon)).Duration(1));
+        .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(FastForwardIcon)).Duration(0));
 
     /// <summary>The glass disc behind skip and stop brightening while hovered. Reduced: the same fade.</summary>
     public static readonly AnimationBuilder DiscLight = Presto.Build()
@@ -135,7 +134,7 @@ public static class TempoMotion
         .Rotate(360)
         .Duration(420)
         .Ease(Eases.InOutCubic)
-        .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(CheckIcon)).Duration(1));
+        .WhenReduced(reduced => reduced.Data(PrestoAvalonia.MorphTo(CheckIcon)).Duration(0));
 
     /// <summary>The skip icon fast-forwarding: out to the right, and a fresh one in from the left. Reduced: an opacity blink.</summary>
     public static readonly AnimationBuilder SkipForward = Presto.Build()

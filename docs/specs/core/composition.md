@@ -46,8 +46,8 @@ Composition decides what happens when a new tween animates a target property tha
 
 ### Sibling registry
 
-- **CORE-COMPOSITION-001** — Every tween whose composition is not `Overlap` shall be registered in the replace sibling list of its target and canonical property, which is shared process-wide and keyed weakly by target.
-  - Tests: `CompositionTests.ReplacedTweensAreSortedByAbsoluteStartTime`
+- **CORE-COMPOSITION-001** — Every tween whose composition is not `Overlap` shall be registered in its owner engine's replace sibling list for its target and canonical property, keyed weakly by target, so tweens on different engines never compose.
+  - Tests: `CompositionTests.ReplacedTweensAreSortedByAbsoluteStartTime`, `EnginesTests.ReplaceTweensDoNotComposeAcrossEngines`
 - **CORE-COMPOSITION-002** — The replace siblings shall be kept sorted by absolute start time, an inserted tween going before any overridden tail siblings.
   - Tests: `CompositionTests.ReplacedTweensAreSortedByAbsoluteStartTime`, `CompositionTests.OverriddenTweensAreSkippedWhenInsertingASibling`
 - **CORE-COMPOSITION-003** — When a tween is built with a composition other than `Overlap`, every non-overridden registered sibling starting at or after its absolute start, following one that starts before or with it, shall be overridden, and the new tween shall chain its implicit from value off the latest non-overridden sibling before it.
@@ -156,13 +156,12 @@ Composition decides what happens when a new tween animates a target property tha
 
 - A tween inserted before every registered sibling overrides none of them; the later siblings keep rendering in their own windows.
 - A plain timer or `Call` child has no tweens, so it counts as fully overlapped when composition decides whether to cancel its timeline.
-- Replace lists are process-wide while additive state is per engine, so `Replace` tweens on two engines animating one target still override each other.
 - Restarting a canceled `Additive` animation recomposes it against the current base, so its from value can differ from its first run.
 
 ## Threading and lifetime
 
 - All composition runs on the owner engine's thread; there are no locks.
-- Replace lists live in a `ConditionalWeakTable` keyed by target, so composition never keeps a target alive. The additive lookups hold their targets strongly until the last additive tween leaves.
+- Each engine keeps its replace lists in a `ConditionalWeakTable` keyed by target, so composition never keeps a target alive. The additive lookups hold their targets strongly until the last additive tween leaves.
 
 ## Reduced motion
 
@@ -178,7 +177,7 @@ Composition decides what happens when a new tween animates a target property tha
 - `Composition` is one value per call, where upstream resolves it per target (see "`Composition` is a plain enum, not a function value").
 - Removing a tween from a list it is not in is a no-op, and a repeat cancel leaves composition alone, because upstream's double removal corrupts its lists (see "Sibling removal is idempotent").
 - Debug builds check list integrity before walks and sorted inserts, so a corrupted list throws instead of hanging the thread (see "Debug integrity checks run only before walks and sorted inserts").
-- Additive state is per engine, replace lists stay process-wide, because replace lookups are keyed by target and so cannot collide across engines (see CORE-THREADING).
+- Replace lists and additive state are per engine, where upstream has one global lookup table, because composition compares start times on one engine's clock and a cancel must stay on that engine's thread (see CORE-THREADING).
 - Child lists survive a callback unlinking a sibling mid-loop, because upstream's loop could empty the engine's list for good (see CORE-ENGINE).
 - `Remove` does not re-flag a previous transform tween, which upstream does; transform composition belongs to the bridge.
 - Moving back out of an explicit-from tween into the gap after a sibling of another child writes that sibling's hold, where upstream leaves the tween's last frame in place (see "A backward exit from an explicit from hands the value back").
@@ -193,7 +192,7 @@ Composition decides what happens when a new tween animates a target property tha
 - **A forward jump does not depend on the path.** A timeline child past its end gates its next replace sibling's takeover on the timeline's playhead, not its own clamped end time, when that sibling's tween was created first and so has already rendered this frame. Reason: anime.js 4.5.0 renders children in insertion order and clamps a past-end child's time to its end, so a `.Set` at 0 added after a fade at 1000 rendered last on a jump from 0 to the end and left opacity 0, while seeking through 1500 first left 1 (the Title sequence cards ended hidden); limited to siblings created first because a sibling rendering after the child overwrites its end anyway, and skipping that end would change what the child's `OnComplete` sees. Rejected: upstream parity; gating on the playhead for every past-end child; rendering a jump's children in start-time order.
 - **A backward exit from an explicit from hands the value back.** Leaving an explicit-from tween backwards into the gap after a sibling of another child writes that sibling's value at its truncated end, once. Reason: upstream's gate keeps an explicit from from writing before its own start, and the sibling's timer is past its end so it never renders again, which left the tween's last frame on the target (the Title sequence cards played in reverse held at 0.4–4% opacity until time 0); the forward pass shows the sibling's hold in that gap, so the backward pass now matches it.
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
-- **Defaults, scope and additive state are per engine; a few statics are process-wide and documented, not locked.** See CORE-THREADING.
+- **Defaults, scope and composition state are per engine; a few statics are process-wide and documented, not locked.** See CORE-THREADING.
 - **Discrete values reject relative values and `Additive`.** See CORE-TARGETS.
 - **Colors interpolate with premultiplied alpha.** See CORE-COLORS.
 - **The modes are `Replace`, `Overlap` and `Additive`.** Reason: `None` read as "no animation" rather than "tweens overlap without composing", and `Additive` is the standard term for summed animation. Rejected: keeping the upstream names `none` and `blend`.
@@ -209,4 +208,3 @@ Composition decides what happens when a new tween animates a target property tha
 - One record of the integrity-check decision says the check runs only before sorted inserts; the code (`TweenList.ForEachChildren`) also checks before every walk, and the decision above follows the code.
 - CORE-COMPOSITION-024 (the additive pass overwriting a `Replace` write) is documented on `Composition.Additive` but has no core test.
 - `Additive` tweens overriding later replace siblings (CORE-COMPOSITION-028) and the 1000-target `Overlap` default have no test.
-- Cross-engine `Replace` overriding through the process-wide replace lists is unspecified by any plan and untested.

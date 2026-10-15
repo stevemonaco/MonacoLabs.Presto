@@ -28,12 +28,6 @@ internal static class HiddenSignal
         // Posted so the lifetime has added or removed the window by the time the list is read.
         Window.WindowOpenedEvent.AddClassHandler(typeof(Window), (_, _) => Dispatcher.UIThread.Post(Update));
         Window.WindowClosedEvent.AddClassHandler(typeof(Window), (_, _) => Dispatcher.UIThread.Post(Update));
-        // Mobile backgrounding and Browser page visibility both arrive as Background activations; File and OpenUri share the events.
-        if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime)
-        {
-            lifetime.Activated += (_, e) => OnActivation(e.Kind, activated: true);
-            lifetime.Deactivated += (_, e) => OnActivation(e.Kind, activated: false);
-        }
         Update();
     }
 

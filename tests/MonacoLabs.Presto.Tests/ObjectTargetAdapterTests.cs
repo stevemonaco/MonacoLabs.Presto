@@ -146,6 +146,32 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
     }
 
     [Fact]
+    public void RevertRemovesADictionaryKeyTheAnimationAdded()
+    {
+        var dictionary = new Dictionary<string, object?>();
+        var animation = Presto.Animate(dictionary, new() { ["x"] = 100, Duration = 100, Autoplay = false });
+
+        animation.Seek(100);
+        Assert.Equal(100.0, dictionary["x"]);
+        animation.Revert();
+
+        Assert.False(dictionary.ContainsKey("x"));
+    }
+
+    [Fact]
+    public void RevertRestoresANullMember()
+    {
+        _target.Size = null!;
+        var animation = Presto.Animate(_target, new() { ["Size"] = "40px", Duration = 100, Autoplay = false });
+
+        animation.Seek(100);
+        Assert.Equal("40px", _target.Size);
+        animation.Revert();
+
+        Assert.Null(_target.Size);
+    }
+
+    [Fact]
     public void UnknownMemberThrows() => Assert.Throws<ArgumentException>(() => Presto.ResolveAccessor(_target, "Nope"));
 
     [Fact]

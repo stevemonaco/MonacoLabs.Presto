@@ -312,7 +312,9 @@ internal sealed class MotionTracker
         {
             Duration = timing.Duration, Delay = Delayed(timing.Delay, delay), Ease = timing.Ease, Composition = Composition.Replace, Properties = values,
         }, properties);
-        if (resting != null) animation.OnComplete = _ => Settle(animation, resting);
+        if (resting == null) return animation;
+        if (animation.Completed) Settle(animation, resting);
+        else animation.OnComplete = _ => Settle(animation, resting);
         return animation;
     }
 

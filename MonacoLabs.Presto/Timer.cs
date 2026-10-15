@@ -308,7 +308,7 @@ public class Timer : Clock, IRevertible
         {
             TweenList.ForEachChildren(timer, static tween =>
             {
-                if (tween._composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property));
+                if (tween._composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property, tween.Parent.OwnerEngine));
             });
         }
         timer._canceled = false;

@@ -31,7 +31,7 @@ public sealed class CompositionTests : EngineTestBase
             _absoluteEndTime = start + duration,
         };
         TweenList.AddChild(parent, tween);
-        if (composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(target, property));
+        if (composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(target, property, Presto.Engine));
         return tween;
     }
 
@@ -43,7 +43,7 @@ public sealed class CompositionTests : EngineTestBase
         var last = AddTween(CreateAnimation(), target, "x", 40, 10);
         var middle = AddTween(CreateAnimation(), target, "x", 20, 10);
 
-        var siblings = Composer.GetTweenSiblings(target, "x");
+        var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine);
         Assert.Same(first, siblings._head);
         Assert.Same(middle, first._nextRep);
         Assert.Same(last, middle._nextRep);
@@ -59,7 +59,7 @@ public sealed class CompositionTests : EngineTestBase
 
         var added = AddTween(CreateAnimation(), target, "x", 40, 10);
 
-        var siblings = Composer.GetTweenSiblings(target, "x");
+        var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine);
         Assert.Same(added, siblings._head);
         Assert.Same(overridden, added._nextRep);
         Assert.Null(added._prevRep);
@@ -223,12 +223,12 @@ public sealed class CompositionTests : EngineTestBase
         Assert.True(animation.Paused);
         Assert.Null(tween._nextRep);
         Assert.Null(later._prevRep);
-        Assert.Same(later, Composer.GetTweenSiblings(target, "x")._head);
+        Assert.Same(later, Composer.GetTweenSiblings(target, "x", Presto.Engine)._head);
 
         animation.Seek(0);
 
         Assert.False(animation._canceled);
         Assert.Same(later, tween._nextRep);
-        Assert.Same(tween, Composer.GetTweenSiblings(target, "x")._head);
+        Assert.Same(tween, Composer.GetTweenSiblings(target, "x", Presto.Engine)._head);
     }
 }

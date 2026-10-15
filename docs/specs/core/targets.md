@@ -86,8 +86,8 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
   - Tests: `ValuesTests.FalsyValuesDecomposeToZero`
 - **CORE-TARGETS-015** (inherited) — The renderer shall call `SetValue` with the modified, interpolated number for number and unit tweens, and with NaN for color and complex tweens, whose channels are on the tween.
   - Tests: `ObjectTargetAdapterTests.WritesColorChannelsToColorAndStringMembers`, `ObjectTargetAdapterTests.WritesComplexValuesToStringMembers`
-- **CORE-TARGETS-016** — When an animation is reverted, the core shall call `Revert` with the value `GetValue` returned before the animation first wrote, unless that value was `null`.
-  - Tests: `ObjectTargetAdapterTests.RevertRestoresTheValueReadBeforeTheAnimation`, `DiscreteValuesTests.RevertRestoresTheOriginalValue`
+- **CORE-TARGETS-016** — When an animation is reverted, the core shall call `Revert` with the value `GetValue` returned before the animation first wrote, `null` included; a dictionary key whose original was `null` is removed.
+  - Tests: `ObjectTargetAdapterTests.RevertRestoresTheValueReadBeforeTheAnimation`, `DiscreteValuesTests.RevertRestoresTheOriginalValue`, `ObjectTargetAdapterTests.RevertRemovesADictionaryKeyTheAnimationAdded`, `ObjectTargetAdapterTests.RevertRestoresANullMember`
 - **CORE-TARGETS-017** — When an accessor has a `Codec`, the core shall decompose the property's values through it (CORE-VALUES) and the accessor shall build each frame's typed value with `Encode`.
   - Tests: `ObjectTargetAdapterTests.RegisteredCodecDecodesAndEncodesItsType`
 
@@ -200,7 +200,6 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - A collection of value types (`int[]`, `List<double>`) is not an `IEnumerable<object>` and is one target; each boxed value-type target is distinct by reference.
 - A `Dictionary<string, double>` is not an `IDictionary<string, object?>`, so it is reached by reflection and its keys throw `ArgumentException`.
 - A read-only or write-only property is not reached; a public field of the same name is used instead if there is one.
-- A dictionary key that was missing before the animation is not removed on `Revert` (its original is `null`), so it keeps the last written value.
 - A unit tween into a numeric member writes the number without its unit; a number to value on a `PrestoColor` member is made transparent black (CORE-VALUES).
 - A discrete tween's `Modifier` applies to its 0–1 channel, so it moves the switch point.
 - An enum value given as a string (`"Right"`) is not parsed; it throws `ArgumentException`.
@@ -226,12 +225,12 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - Targets are objects only; there are no selectors or node lists, so a string is a target rather than a query.
 - Upstream's non-browser `parseTargets` flattens without skipping `null` or removing duplicates; here both are always done, which is what upstream's browser path does.
 - Upstream picks a tween type (CSS, attribute, transform, object) per property; here adapters, accessors and codecs take that role, and typed members are written in their own type.
-- Originals of 0 and `""` are captured and restored by `Revert`, where upstream keeps only truthy ones (see "Revert restores falsy originals").
+- Originals of 0, `""` and `null` are captured and restored by `Revert`, where upstream skips nil and empty ones (see "Revert restores falsy originals").
 - Discrete values and reconciling codecs have no upstream counterpart: typed `bool` and enum members could not otherwise be animated, and padding differently shaped values with zeros interpolates them wrongly. Upstream treats a non-numeric string as a complex value, which Presto keeps for strings.
 
 ## Decisions
 
-- **Revert restores falsy originals.** An original of 0 or `""` is captured and written back like any other; only `null` is skipped. Reason: upstream's truthy check fits the DOM, where an empty inline style means "none" and revert removes it, but on objects and typed members 0 and `""` are real values, and skipping them left a reverted `{ x: 0 }` at its animated value. Rejected: upstream's truthy check.
+- **Revert restores falsy originals.** Any original the animation read, 0, `""` and `null` included, is written back like any other. The dictionary accessor removes the key when the original is `null`, as a missing key and a stored `null` both read as `null`. Reason: upstream's nil and empty check fits the DOM, where an empty inline style means "none" and revert removes it, but on objects and typed members these are real values: skipping 0 left a reverted `{ x: 0 }` at its animated value, and skipping `null` left an added dictionary key, a null string member and a bridge property that was `null` at their animated values. Rejected: upstream's check; telling a missing key from a stored `null`, which `GetValue` cannot and would need a wider `IPropertyAccessor`.
 - **Property keys are canonicalized, not keyed on accessors.** Every spelling of a property (a name, a typed property handle) resolves to one canonical string key wherever a caller-supplied name meets a target: tween construction, the `Remove` filter and `Animatable`'s lookups. Reason: two spellings landed in different sibling registries, so composition never fired between them and `Remove` missed tweens declared the other way; canonicalizing fixes all three with no change to the composer and keeps plain-object targets working. Rejected: keying the composer on the resolved accessor or a property-key struct (structurally cleaner, but it touches tweens, animations, the composer and `Animatable`).
 - **One key type for every key-taking API.** `PropertyKey` replaces `string` (not an overload beside it) on every public API that names a property, with an implicit conversion from `string` and none back, so no overload becomes ambiguous. The core defines the type; the bridge defines the shorthand keys. Reason: the withdrawn string constants (`bc0f00f`) typed only the indexer and became a third spelling; a key type accepted everywhere is the same spelling in every position, and replacing rather than overloading keeps one indexer. Rejected: string constants again (no type at the parameter); a second indexer overload beside `this[string]`; an analyzer (could check only shorthands).
 - **A key is its name.** Keys compare by ordinal name, and every API unwraps the name at its public boundary, before canonicalization; the adapter interfaces, the composer and the params' storage keep `string`. Reason: tweens are keyed by canonical name (above), and a key that carried more would need a second composition path.
@@ -251,6 +250,5 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 ## Open items
 
 - A codec registered in `Presto.Codecs` after a (type, property) accessor was first resolved never applies to it, since the process-wide accessor cache keeps the codec chosen then (CORE-TARGETS-030); no test, no decision.
-- `Revert` skips `null` originals, so a dictionary key added by an animation survives the revert; `Animation` claims to capture originals unconditionally so "a plain 0 or empty is restored too", which holds for 0 and `""` but not for a missing key.
 - `IReconcilingValueCodec` has no core test; it is pinned only through the bridge's codecs (`CodecTests`).
 - CORE-TARGETS-009 (one resolution per target and property, by canonical name) and CORE-TARGETS-044 (non-convertible discrete value throws) have no test.

@@ -28,6 +28,10 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     {
         _onComplete = parameters.OnComplete;
         var parsed = TargetParser.Parse(targets);
+        foreach (var target in parsed)
+        {
+            if (target is not Visual) throw new NotSupportedException($"{target.GetType().Name} is not a Visual. The compositor animates Visuals only.");
+        }
         _targets = new TargetAnimation[parsed.Count];
         var compiled = CompositorCompiler.Compile(parsed, parameters);
         for (var i = 0; i < parsed.Count; i++)

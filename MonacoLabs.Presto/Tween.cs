@@ -44,6 +44,7 @@ public sealed class Tween
     internal bool _isOverlapped;
     internal bool _isOverridden;
     internal object? _inlineValue;
+    internal bool _hasInlineValue;
     // Set only on a discrete tween, whose channel runs 0 to 1 and picks one of these whole.
     internal DiscreteRule? _discrete;
     internal object? _fromObject;

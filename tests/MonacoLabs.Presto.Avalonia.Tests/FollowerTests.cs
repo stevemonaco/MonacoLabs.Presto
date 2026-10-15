@@ -278,6 +278,14 @@ public sealed class FollowerTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ABounceWithoutADurationLastsHalfASecondInSecondsMode()
+    {
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+
+        AssertSpring(FollowTiming.Resolve(new() { Bounce = .3 }, false), .3, .5);
+    }
+
+    [AvaloniaFact]
     public void ConflictingTimingSourcesThrow()
     {
         Assert.Throws<ArgumentException>(() => FollowTiming.Resolve(new() { Builder = Presto.Build(), Duration = 100 }, false));
