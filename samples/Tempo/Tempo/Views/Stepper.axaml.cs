@@ -53,7 +53,7 @@ public partial class Stepper : UserControl
     }
 
     // Code-only: MorphGlyphs has no XAML trigger on a binding change (BACKLOG, BRIDGE-RECIPES).
-    // Only a step morphs: a surface move drops the DataContext while loaded, and that morph, cut off in the native popup, blanked it.
+    // Only a step morphs: a surface move drops and restores the DataContext while loaded, which would morph to 0 and back.
     private void ShowValue()
     {
         var text = Value.ToString(CultureInfo.InvariantCulture);

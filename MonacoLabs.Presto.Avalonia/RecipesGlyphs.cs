@@ -37,12 +37,12 @@ public static partial class Recipes
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion)
+        if (Engine.Current.Defaults.ReducedMotion || IsDetached(textBlock))
         {
             var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
                 .Add(textBlock, b => b.Opacity(from: 0).Duration(tokens.Short), delay ?? 0);
             TrackMorph(textBlock, fade);
-            return fade;
+            return CompleteIfDetached(textBlock, fade);
         }
 
         var hold = textBlock.SetValue(Layoutable.WidthProperty, textBlock.Bounds.Width, BindingPriority.Animation);
@@ -96,7 +96,7 @@ public static partial class Recipes
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion) return Crossfade(textBlock, text, tokens);
+        if (Engine.Current.Defaults.ReducedMotion || IsDetached(textBlock)) return CompleteIfDetached(textBlock, Crossfade(textBlock, text, tokens));
 
         var oldOrigin = OriginInWindow(textBlock);
         var numeric = IsNumber(textBlock.Text) && IsNumber(text);
@@ -155,7 +155,7 @@ public static partial class Recipes
             var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
                 .Add(textBlock, b => b.Opacity(0).Duration(tokens.Short).Ease(tokens.Ease), 0);
             TrackMorph(textBlock, fade);
-            return fade;
+            return CompleteIfDetached(textBlock, fade);
         }
 
         var split = PieceGhosts.Split(textBlock, TextPieces.Chars);
@@ -276,6 +276,15 @@ public static partial class Recipes
         Morphs.AddOrUpdate(textBlock, morph);
         textBlock.DetachedFromVisualTree -= CompleteMorph;
         textBlock.DetachedFromVisualTree += CompleteMorph;
+    }
+
+    private static bool IsDetached(TextBlock textBlock) => TopLevel.GetTopLevel(textBlock) is null;
+
+    // A morph on a block already out of the tree would pause before its first frame and never reach the cleanup that unsplits it.
+    private static Timeline CompleteIfDetached(TextBlock textBlock, Timeline morph)
+    {
+        if (IsDetached(textBlock)) morph.Complete();
+        return morph;
     }
 
     private static void CompleteMorph(object? sender, VisualTreeAttachmentEventArgs e)

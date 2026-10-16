@@ -6,13 +6,11 @@ When an item is closed, its line is deleted.
 
 ## Likely bugs
 
-Each line was traced in code (2026-10).
-
-- [BRIDGE-RECIPES] Unverified since BRIDGE-RECIPES-096 (20b8d54 completes a text morph whose block detaches): a `MorphGlyphs` started in a native popup as its content moved away left the block split and blank; Tempo's `Stepper` still morphs only on a step. Done when the morph completes on Windows with the `Stepper` gate removed, plus a headless test of a morph started as its block leaves a second `Window` (headless has no native popups); delete if both pass.
-- [BRIDGE-TARGETS] `AvaloniaObjectTargetAdapter` caches one accessor per `AvaloniaProperty` with the codec found when it was created, so a codec registered in `Presto.Codecs` afterwards never applies to that property (the core adapter clears its cache on every `Presto.Codecs` change, CORE-TARGETS-030).
+None open.
 
 ## Manual and platform checks
 
+- [BRIDGE-RECIPES] On Windows, with Tempo's `Stepper` step gate (`_stepping`) disabled, move the settings between the popover and the sheet across the breakpoint and confirm no stepper value is left split or blank in the native popup (BRIDGE-RECIPES-096, -098).
 - [DEVTOOLS-OVERLAY] On Desktop, drive by hand the Ctrl+Shift+F12 gesture, hover outlines, drag-scrubbing the track, and freeze/dilation during a `Draggable` or `Transformable` drag (DevTools MCP sends no modifier chords, hover or drags).
 - [BRIDGE-RIPPLE] Measure the per-host render-thread ripple visual on Browser and Android, where a single-threaded Browser build may have no render thread.
 - [BRIDGE-SWIPE] Hand-check the swipe-action, `Sheet` and drawer drags on Desktop.

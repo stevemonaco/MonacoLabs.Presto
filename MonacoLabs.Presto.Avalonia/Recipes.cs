@@ -474,7 +474,7 @@ public static partial class Recipes
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion) return Crossfade(textBlock, text, tokens);
+        if (Engine.Current.Defaults.ReducedMotion || IsDetached(textBlock)) return CompleteIfDetached(textBlock, Crossfade(textBlock, text, tokens));
 
         var oldOrigin = OriginInWindow(textBlock);
         var before = PieceGhosts.Split(textBlock, TextPieces.Chars);

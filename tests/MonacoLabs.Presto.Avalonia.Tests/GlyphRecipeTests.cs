@@ -194,6 +194,33 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         AssertPlain(block, recipe == "WriteIn" ? "12" : "9");
     }
 
+    [AvaloniaTheory]
+    [InlineData("AfterDetach")]
+    [InlineData("DuringDetach")]
+    [InlineData("BeforeClose")]
+    public void AMorphStartedAsItsBlockLeavesASecondWindowCompletes(string when)
+    {
+        Show(new Border());
+        var block = new TextBlock { Text = "12", FontSize = 40 };
+        var parent = new Border { Child = block };
+        var window = Show(parent);
+        Timeline? morph = null;
+        if (when == "DuringDetach") parent.DetachedFromVisualTree += (_, _) => morph = Recipes.MorphGlyphs(block, "9");
+
+        if (when == "BeforeClose") morph = Recipes.MorphGlyphs(block, "9");
+        if (when == "BeforeClose") window.Close();
+        else window.Content = null;
+        if (when == "AfterDetach") morph = Recipes.MorphGlyphs(block, "9");
+        Frames.Advance(100, 10);
+
+        Assert.True(morph!.Completed);
+        Assert.True(double.IsNaN(block.Width));
+        Assert.Equal("9", block.Text);
+        Assert.Empty(block.Inlines ?? []);
+        Assert.Null(TextSplitter.Of(block));
+        Assert.Equal(1, block.Opacity);
+    }
+
     private static TextBlock Shown(string text)
     {
         var block = new TextBlock { Text = text, FontSize = 40 };
