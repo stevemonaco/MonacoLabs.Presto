@@ -178,6 +178,7 @@ depends:
 - A 0-wide pager does not travel, and the snap passes X through unchanged.
 - Left at the first slide of a non-looping pager calls `GoTo(-1)`, which clamps to 0, still restarts autoplay and still handles the key.
 - A drag ending while a travel animation is paused leaves that animation paused; the next travel replaces it.
+- Escape mid-swipe springs the strip back to the slide it was grabbed on, through the draggable's default (BRIDGE-DRAGGABLE-066).
 
 ## Threading and lifetime
 

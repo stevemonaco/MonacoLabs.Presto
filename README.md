@@ -414,8 +414,8 @@ PrestoAvalonia.CreateDraggable(SpringCard, new()
 });
 ```
 
-`CancelOnEscape = true` adds what anime.js does not have: Escape mid-drag ends the drag and springs the target back to
-where it was grabbed, then `OnRelease` and `OnSettle` run as for a release.
+Escape mid-drag, which anime.js does not handle, ends the drag and springs the target back to where it was grabbed,
+then `OnRelease` and `OnSettle` run as for a release; `CancelOnEscape = false` turns that off.
 
 #### Drag to reorder
 

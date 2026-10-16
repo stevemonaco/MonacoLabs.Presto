@@ -32,7 +32,9 @@ public readonly struct EaseValue
             Spring s => s.Ease,
             Ease ease => ease,
             string name => EaseParser.Parse(name),
-            _ => Eases.None,
+            null => Eases.None,
+            _ => throw new InvalidOperationException(
+                $"An ease function returned a {raw.GetType().Name}; it must return an Ease, a Spring or an ease name."),
         };
     }
 }

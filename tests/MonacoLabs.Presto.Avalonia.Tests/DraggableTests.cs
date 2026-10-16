@@ -73,7 +73,6 @@ public sealed class DraggableTests : BridgeTestBase
         var settled = 0;
         var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
         {
-            CancelOnEscape = true,
             OnRelease = _ => released++,
             OnSettle = _ => settled++,
         });
@@ -126,7 +125,7 @@ public sealed class DraggableTests : BridgeTestBase
     public void EscapeIsIgnoredWithoutCancelOnEscape()
     {
         var (window, _, target) = Show();
-        var draggable = PrestoAvalonia.CreateDraggable(target);
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { CancelOnEscape = false });
 
         Drag(window, 20, 3);
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

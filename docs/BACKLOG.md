@@ -10,10 +10,6 @@ Each line was traced in code (2026-10).
 
 - [BRIDGE-RECIPES] Unverified since BRIDGE-RECIPES-096 (20b8d54 completes a text morph whose block detaches): a `MorphGlyphs` started in a native popup as its content moved away left the block split and blank; Tempo's `Stepper` still morphs only on a step. Done when the morph completes on Windows with the `Stepper` gate removed, plus a headless test of a morph started as its block leaves a second `Window` (headless has no native popups); delete if both pass.
 
-## Undecided deviations from anime.js
-
-- [CORE-EASES] [CORE-SCRAMBLE] [CORE-UTILS] [BRIDGE-DRAGGABLE] [BRIDGE-SHAPES] Inherited upstream defaults (marked `(inherited)` in the eases, scramble, utils, draggable and shapes specs) need a keep-or-change decision; done when each spec's Decisions section records one.
-
 ## Manual and platform checks
 
 - [DEVTOOLS-OVERLAY] On Desktop, drive by hand the Ctrl+Shift+F12 gesture, hover outlines, drag-scrubbing the track, and freeze/dilation during a `Draggable` or `Transformable` drag (DevTools MCP sends no modifier chords, hover or drags).
@@ -165,7 +161,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-HELPERS](specs/avalonia-bridge/control-helpers.md): 1 untested requirement, plus no test that every shorthand has a typed builder method.
 - [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 7 untested requirements, plus two arms on one container being undecided.
 - [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 6 untested requirements, plus the scaled-away child's hit-testing, a static `Distort` requesting frames, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
-- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus two draggables claiming one target, and `Reset` writing 0 outside the container.
+- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus two draggables claiming one target, `Reset` writing 0 outside the container, and whether touch gets its own `DragThreshold`.
 - [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement.
 - [BRIDGE-GESTURES](specs/avalonia-bridge/gesture-arbitration.md): the by-hand touch and pen checks on Tempo and the Gestures page.
 - [BRIDGE-EFFECTS](specs/avalonia-bridge/effects.md): 7 untested requirements.
@@ -197,7 +193,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 11 untested requirements, plus the snap's missing velocity check, and the missing-target exception thrown from a tick.
 - [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 11 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
 - [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 17 untested requirements, plus the stale `Motion` doc, `X`/`Y`/`Scale` silently ignored in `Motion`, and a late `NotSupportedException`.
-- [BRIDGE-SHAPES](specs/avalonia-bridge/shapes.md): 10 untested requirements.
+- [BRIDGE-SHAPES](specs/avalonia-bridge/shapes.md): 9 untested requirements.
 - [BRIDGE-SHEET](specs/avalonia-bridge/sheet.md): 9 untested requirements, plus `Drawer` docs naming only Left and Right.
 - [BRIDGE-FRAMES](specs/avalonia-bridge/sprite-frames.md): 8 untested requirements, plus in-place `Frames` mutation not being observed.
 - [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 12 untested requirements, plus a later `Command` widening the range, undocumented.
@@ -217,7 +213,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [CORE-COMPOSITION](specs/core/composition.md): 3 untested requirements.
 - [CORE-DIAGNOSTICS](specs/core/diagnostics.md): 4 untested requirements, plus untagged animatable property animations.
 - [CORE-EASEPARSER](specs/core/ease-parser.md): 6 untested requirements, plus the case-sensitive deprecated-prefix check, `Parse(null)`, and an unbounded cache.
-- [CORE-EASES](specs/core/eases.md): 20 untested requirements.
+- [CORE-EASES](specs/core/eases.md): 17 untested requirements.
 - [CORE-ENGINE](specs/core/engine.md): 21 untested requirements, plus `TimeUnit` settable on any engine.
 - [CORE-INERTIA](specs/core/inertia.md): 7 untested requirements, plus the unscaled 60000 decay cap in seconds mode, `ModifyTarget` within `RestDelta`, and unvalidated `interval`, `Friction` and `Min <= Max`.
 - [CORE-KEYFRAMES](specs/core/keyframes.md): 7 untested requirements, plus percentage keyframes dropping per-frame settings.
@@ -234,7 +230,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [CORE-THREADING](specs/core/threading.md): 14 untested requirements, plus `TimeUnit` settable on any engine and `Precision`'s missing thread assertion.
 - [CORE-TIMELINE](specs/core/timeline.md): 5 untested requirements, plus `Remove` keeping `Duration`, the zero-duration shift reading only explicit durations, and positions under `ReduceAll`.
 - [CORE-TIMER](specs/core/timer.md): 17 untested requirements, plus `Complete()` firing `OnPause` after `OnComplete`.
-- [CORE-UTILS](specs/core/utils.md): 18 untested requirements, plus the `Damp` NaN deviation.
+- [CORE-UTILS](specs/core/utils.md): 16 untested requirements, plus the `Damp` NaN deviation.
 - [CORE-VALUES](specs/core/values.md): 5 untested requirements, plus `Refresh` skipping reconciliation and the implicit `PrestoColor` conversion's rounding.
 - [DEVTOOLS-OVERLAY](specs/devtools/overlay.md): 21 untested requirements, plus the manual Desktop checks, per-frame tween snapshots, and closing the overlay leaving `CaptureCreationTrace` on and root speeds changed.
 - [LOTTIE-PLAYBACK](specs/lottie/lottie.md): 12 untested requirements, plus reduced-motion and DevTools coverage of render-thread playback, and a Browser run.

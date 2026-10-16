@@ -63,9 +63,9 @@ depends:
 
 - **BRIDGE-DRAGGABLE-007** — When a pointer is pressed on the trigger and no drag is in progress, the draggable shall mark the press handled, capture the pointer on the trigger, stop any running release, re-measure the bounds, reset `Velocity` and `Angle` to 0 and raise `OnGrab` before any movement.
   - Tests: `DraggableTests.OnUpdateOnlyFiresWhenTheTargetMoves`
-- **BRIDGE-DRAGGABLE-008** (inherited) — While a drag is in progress, the draggable shall ignore further presses and moves from any pointer other than the one that grabbed.
+- **BRIDGE-DRAGGABLE-008** — While a drag is in progress, the draggable shall ignore further presses and moves from any pointer other than the one that grabbed.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-009** (inherited) — When the trigger's press is already handled by the time it reaches the trigger (for example a `ListBoxItem`), the draggable shall never grab.
+- **BRIDGE-DRAGGABLE-009** — When the trigger's press is already handled by the time it reaches the trigger (for example a `ListBoxItem`), the draggable shall never grab.
   - Tests: `ReorderContainerTests.ADraggableOnAListBoxItemNeverGrabsBecauseTheItemHandlesThePress`
 - **BRIDGE-DRAGGABLE-010** — While the pointer has moved no more than `DragThreshold` from the grab point on every enabled axis, the draggable shall not move the target or raise `OnDrag`.
   - Tests: `DraggableTests.MovementBelowTheDragThresholdIsSuppressed`
@@ -96,7 +96,7 @@ depends:
   - Tests: `DraggableTests.AContainerClampsToItsBoundsMinusPadding`, `DraggableTests.AnOutOfBoundsReleaseEasesBackIntoTheContainer`
 - **BRIDGE-DRAGGABLE-022** — When a drag is grabbed while the target sits past a bound, the draggable shall continue from the raw coordinate the cushioned position came from, so the target does not jump.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-023** (inherited) — When the container leaves the visual tree mid-drag, the draggable shall keep its last measured bounds and not throw, including on a later `Refresh` and `Revert`.
+- **BRIDGE-DRAGGABLE-023** — When the container leaves the visual tree mid-drag, the draggable shall keep its last measured bounds and not throw, including on a later `Refresh` and `Revert`.
   - Tests: `DraggableTests.RemovingTheParentMidDragDoesNotThrow`
 - **BRIDGE-DRAGGABLE-024** — When the target or the container changes size, the draggable shall wait 150 ms × `Globals.TimeScale` of quiet (restarting on each change), then raise `OnResize`, call `Refresh`, then raise `OnAfterResize`.
   - Tests: `DraggableTests.RevertingDetachesTheResizeAndPointerHandlers`, `DraggableTests.ResizeRaisesOnResizeWithinTheDebounceInSecondsMode`
@@ -134,7 +134,7 @@ depends:
   - Tests: `DraggableTests.ReleasingWithVelocityThrowsTheTargetOnAndSettles`
 - **BRIDGE-DRAGGABLE-038** — While the release animates, `Velocity` and `Angle` shall report the target's own motion; once the axes have nothing left to play the draggable shall reset them to 0 and raise `OnSettle` once.
   - Tests: `DraggableTests.ReleasingWithVelocityThrowsTheTargetOnAndSettles`, `MotionValueSourceTests.DraggableValuesFollowADragAndTheReleaseSpring`
-- **BRIDGE-DRAGGABLE-039** (inherited) — When `OnSettle` calls `Reset`, both axes shall end at 0 and a new drag begun from inside it shall not be taken for the tail of the previous one.
+- **BRIDGE-DRAGGABLE-039** — When `OnSettle` calls `Reset`, both axes shall end at 0 and a new drag begun from inside it shall not be taken for the tail of the previous one.
   - Tests: `DraggableTests.ResettingInsideOnSettleLeavesBothAxesAtZero`, `DraggableTests.AReleaseThatOnlyMovesOneAxisSettlesOnceBothAreWritten`
 
 ### Release (inertia, opt-in)
@@ -165,9 +165,9 @@ depends:
 
 ### Escape
 
-- **BRIDGE-DRAGGABLE-050** (inherited) — When `CancelOnEscape` is true and Escape is pressed mid-drag, the draggable shall handle the key, end the drag, spring the target back to its value at the grab, raise `OnRelease` once and `OnSettle` once, and ignore the later pointer release.
+- **BRIDGE-DRAGGABLE-050** — When `CancelOnEscape` is true and Escape is pressed mid-drag, the draggable shall handle the key, end the drag, spring the target back to its value at the grab, raise `OnRelease` once and `OnSettle` once, and ignore the later pointer release.
   - Tests: `DraggableTests.EscapeMidDragSpringsTheTargetBackToWhereItWasGrabbed`
-- **BRIDGE-DRAGGABLE-051** (inherited) — When `CancelOnEscape` is false, Escape shall not affect the drag.
+- **BRIDGE-DRAGGABLE-051** — When `CancelOnEscape` is false, Escape shall not affect the drag.
   - Tests: `DraggableTests.EscapeIsIgnoredWithoutCancelOnEscape`
 
 ### Values and progress
@@ -206,8 +206,8 @@ depends:
   - Tests: `DraggableTests.AnOutOfBoundsReleaseEasesBackIntoTheContainer`
 - **BRIDGE-DRAGGABLE-065** — When `ReleaseContainerFriction` is not set, the release friction shall equal the drag friction.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-066** (inherited) — When `CancelOnEscape` is not set, Escape shall not cancel a drag.
-  - Tests: `DraggableTests.EscapeIsIgnoredWithoutCancelOnEscape`
+- **BRIDGE-DRAGGABLE-066** — When `CancelOnEscape` is not set, Escape shall cancel a drag as BRIDGE-DRAGGABLE-050 describes.
+  - Tests: `DraggableTests.EscapeMidDragSpringsTheTargetBackToWhereItWasGrabbed`
 - **BRIDGE-DRAGGABLE-067** — When `DragThreshold` is not set, the drag threshold shall be 3.
   - Tests: `DraggableTests.MovementBelowTheDragThresholdIsSuppressed`
 - **BRIDGE-DRAGGABLE-068** — When `ReleaseEase` is not set, the release shall ease with `Eases.OutQuint`.
@@ -218,7 +218,7 @@ depends:
   - Tests: untested
 - **BRIDGE-DRAGGABLE-071** — When `ScrollSpeed` is not set, the edge auto-scroll speed shall be 1.5, and when `ScrollThreshold` is not set, the edge band shall be 20 wide.
   - Tests: untested
-- **BRIDGE-DRAGGABLE-072** (inherited) — When `Cursor` is not set, cursors shall be enabled, and when `OnHover` or `OnGrab` is not set, the draggable shall show `StandardCursorType.Hand` on hover and `StandardCursorType.SizeAll` while grabbed.
+- **BRIDGE-DRAGGABLE-072** — When `Cursor` is not set, cursors shall be enabled, and when `OnHover` or `OnGrab` is not set, the draggable shall show `StandardCursorType.Hand` on hover and `StandardCursorType.SizeAll` while grabbed.
   - Tests: untested
 - **BRIDGE-DRAGGABLE-073** — When `ScrollInView` or `AnimateInView` is called without a duration, gap or ease, it shall animate over 350 ms × `Globals.TimeScale` with a gap of 0 and `Eases.InOutQuad`.
   - Tests: untested
@@ -258,12 +258,12 @@ depends:
 
 ## Provenance
 
-- No `dragSpeed`; `DragThreshold` is one number with no mouse/touch split (upstream: 3 mouse, 7 touch). Reason: not recorded.
-- Parameters are plain values, not function-based (`parseDraggableFunctionParameter`), except `ContainerBounds`, which is a delegate read on every measurement; `ContainerPadding` is a `Thickness`. Reason: not recorded.
+- No `dragSpeed`, as nothing has asked for it. `DragThreshold` is one number with no mouse/touch split (upstream: 3 mouse, 7 touch), because the other Presto drags share the 3-DIP threshold (BRIDGE-GESTURES); a touch value is an open item.
+- Parameters are plain values, not function-based (`parseDraggableFunctionParameter`), except `ContainerBounds`, which is a delegate read on every measurement; `ContainerPadding` is a `Thickness`. Reason: a draggable has one target, so per-target functions buy nothing, and the bounds are the only option a control needed to change while live (`Pager`'s `Loop`).
 - No container defaults to unbounded; upstream defaults to the document body, which has no counterpart here.
-- The grab does not raise the target's z-index, and there is no touch-scroll pass-through inside scrollable children of the trigger. Reason: not recorded.
-- Cursors are set on the trigger (Hand / SizeAll), not on the document body (grab / grabbing). Reason: not recorded.
-- Not upstream: `CancelOnEscape` (reason not recorded), `ReleaseInertia` (see Decisions), `XValue`/`YValue` (MotionValue sources, CORE-MOTIONVALUE), and `Refresh` re-aiming a release in flight, because a container resized mid-throw otherwise replaced the release with a muted zero-duration write, leaving the target stopped mid-air with no `OnSettle`.
+- The grab does not raise the target's z-index, because Avalonia's `ZIndex` orders siblings within one panel only, so lifting is the app's call (the Board sample lifts in `OnDrag`). There is no touch-scroll pass-through inside scrollable children of the trigger; joining the gesture arena is a backlog candidate.
+- Cursors are set on the trigger (Hand / SizeAll), not on the document body (grab / grabbing), because Avalonia has no document body and no grab cursors.
+- Not upstream: `CancelOnEscape` (see Decisions), `ReleaseInertia` (see Decisions), `XValue`/`YValue` (MotionValue sources, CORE-MOTIONVALUE), and `Refresh` re-aiming a release in flight, because a container resized mid-throw otherwise replaced the release with a muted zero-duration write, leaving the target stopped mid-air with no `OnSettle`.
 - `Stop` cancels the overshoot and scroll animations and drops its references instead of removing the overshoot target, because canceling the overshoot on every grab removed additive tweens twice and corrupted the tween lists; the idempotent sibling removal underneath is a core deviation (CORE-COMPOSITION).
 - The release's zero-duration axis writes rely on the core's top-level `Stretch` keeping its offset (CORE-TIMER), because stretching a 1e-11 setter otherwise scaled the offset by ~10¹⁴ and started the release late or never; release springs set their own velocity, which is why `Animatable` momentum is opt-in (CORE-ANIMATABLE).
 
@@ -274,6 +274,9 @@ depends:
 - **Draggable samples velocity through `VelocityTracker` with upstream's clamping.** The draggable feeds the core `VelocityTracker` through an internal overload that clamps and rounds each sample when taken, from a zero-seeded three-sample stack as `draggable.js` does, and reports the strongest sample as the public tracker does. Reason: clamping each sample once means a mid-drag `Refresh` that changes the limits applies only to later samples, and the overload allocates nothing; the draggable's samples are speeds, never negative under the default `MinVelocity` of 0, so the strongest sample is upstream's plain maximum, and one selection rule serves both. Only a negative `MinVelocity` with a negative `VelocityMultiplier` tells them apart, where the throw now runs backwards instead of upstream's 0. Rejected: upstream's plain maximum as a second rule; feeding the public tracker unchanged.
 - **The projection release stays the default; inertia is opt-in.** Without `ReleaseInertia` the release projects the throw and eases to the snapped, clamped destination; with it, each axis is flung at `Velocity·cos/sin(Angle)` with the bounds as `Min`/`Max` and the axis snap as `ModifyTarget` unless set, bypassing overshoot, cushion and `ReleaseEase`, ignoring the template's `Velocity`, `Min` and `Max`, and re-flinging on `Refresh` only when the rest point leaves the new bounds. Reason: the projection's feel is tuned through `ReleaseEase` or a release spring and the container cushion, all of which an inertia release bypasses, so existing draggables keep their tuning; a decay suits content flicked like a page, which is where `Pager` opts in. Rejected: rebuilding the release on inertia, as first planned.
 - **Unset options drag the target freely; the feel constants are upstream's.** Without `Trigger`, an axis `Enabled` or `Composition`, `ContainerPadding` or `ReleaseContainerFriction`, the target is its own handle, both axes move and write with the core default `Replace`, the bounds are the container's box and the release cushions as the drag does (BRIDGE-DRAGGABLE-060 to 063, 065). Reason: `CreateDraggable(control)` then drags the control, and each option narrows that. The 3-DIP threshold (067) is the one the other Presto drags share on their scroll axis (BRIDGE-GESTURES). The drag friction 0.8, `Eases.OutQuint`, the release spring (mass 1, stiffness 80, damping 20), the velocity limits 0 to 50, the scroll speed 1.5 and 20-wide band, and `ScrollInView`'s 350 ms `InOutQuad` (064, 068 to 071, 073) are kept from upstream; no other reason recorded.
+- **Escape cancels a drag by default.** `CancelOnEscape` defaults to true, springing the target back to its grab value (BRIDGE-DRAGGABLE-050, 066). Reason: `Reorder` always cancels on Escape, as Windows drag and drop does, and a drag that cannot be backed out of strands the user mid-gesture. Rejected: keeping it opt-in, which left most draggables without it.
+- **One pointer, and only an unhandled press, grabs.** Other pointers are ignored mid-drag and a press already handled never grabs (BRIDGE-DRAGGABLE-008, 009). Reason: a second pointer is multi-touch, which is a `Transformable`'s job, and a control that handled the press (a `ListBoxItem` selecting) owns it, as Avalonia's routing intends.
+- **Teardown mid-drag is quiet.** A container leaving the tree keeps its last bounds without throwing, and a `Reset` inside `OnSettle` starts the next drag clean (BRIDGE-DRAGGABLE-023, 039). Reason: both happen while a view tears down or recycles a card, where an exception or a stale tail would break the code doing it.
 - **VelocityTracker is a public core type.** See CORE-INERTIA.
 - **Sibling removal is idempotent.** See CORE-COMPOSITION.
 - **Spring momentum on retarget is opt-in.** See CORE-ANIMATABLE.
@@ -291,4 +294,5 @@ depends:
 
 - The manual Desktop check of flinging and re-grabbing cards on the Draggable page, is still open.
 - `Reset` writes 0 unclamped even with a container that excludes 0; kept from upstream, unclear whether intended or a bug.
+- Whether touch should get its own, larger `DragThreshold` (upstream 7 against 3 for a mouse) is undecided.
 - No tests for `ContainerBounds`, `ProgressX`/`ProgressY`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.

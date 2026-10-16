@@ -74,9 +74,9 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
   - Tests: untested
 - **CORE-EASES-009** — The `Elastic` ease-in shall return exactly t at t = 0 and t = 1.
   - Tests: `EaseFixtureTests.EaseMatchesUpstream`
-- **CORE-EASES-010** (inherited) — The fixed eases shall be singletons: each property read returns the same delegate instance.
+- **CORE-EASES-010** — The fixed eases shall be singletons: each property read returns the same delegate instance.
   - Tests: untested
-- **CORE-EASES-011** (inherited) — Each call of a parameterized factory shall return a new delegate, except where a requirement below says it returns `None`.
+- **CORE-EASES-011** — Each call of a parameterized factory shall return a new delegate, except where a requirement below says it returns `None`.
   - Tests: untested
 
 ### Composition
@@ -115,15 +115,15 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
   - Tests: `EasesTests.LinearReturnsLastValuePastTheEnd`
 - **CORE-EASES-025** — When t < 0, a `Linear` ease shall extrapolate along its first segment.
   - Tests: untested
-- **CORE-EASES-026** (inherited) — `Linear` shall copy the stops when it is created, so later changes to the array do not change the ease.
+- **CORE-EASES-026** — `Linear` shall copy the stops when it is created, so later changes to the array do not change the ease.
   - Tests: untested
 - **CORE-EASES-027** — A `LinearStop` converted from a number shall have that value and no `Position`.
   - Tests: `EasesTests.CustomLinear`
 - **CORE-EASES-028** — A `LinearStop` converted from a string shall read `"value"` or `"value percent"` (whitespace-separated, trailing `%` optional), the percent divided by 100 as its `Position`.
   - Tests: `EasesTests.LinearStopParsesValueAndPercent`
-- **CORE-EASES-029** (inherited) — When the string has other than one or two parts or a part is not a number, the conversion shall throw `FormatException`.
+- **CORE-EASES-029** — When the string has other than one or two parts or a part is not a number, the conversion shall throw `FormatException`.
   - Tests: `EasesTests.LinearStopRejectsGarbage`
-- **CORE-EASES-030** (inherited) — The string conversion shall parse numbers with the invariant culture.
+- **CORE-EASES-030** — The string conversion shall parse numbers with the invariant culture.
   - Tests: `EasesTests.LinearStopParsesCultureInvariantly`
 
 ### Steps and Irregular
@@ -174,7 +174,7 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
   - Tests: `EasePackTests.EaseOutWigglePeaksDecay`, `EasePackTests.AnticipateSwingsAgainstTheValueFirst`, `EasePackTests.UniformWigglePeaksAreEqual`
 - **CORE-EASES-049** — For `WiggleType.Random`, `Wiggle` shall draw one amplitude per half swing (2·wiggles) from the given `Random`, or `Random.Shared`, while it is created, each multiplied by `1 − t`.
   - Tests: `EasePackTests.WiggleRestsAtBothEndsAndCrossesZeroTwicePerWiggle`
-- **CORE-EASES-050** (inherited) — When `wiggles` < 1 or `type` is not a defined `WiggleType`, `Wiggle` shall throw `ArgumentOutOfRangeException`.
+- **CORE-EASES-050** — When `wiggles` < 1 or `type` is not a defined `WiggleType`, `Wiggle` shall throw `ArgumentOutOfRangeException`.
   - Tests: untested
 - **CORE-EASES-051** — `Rough` shall be a `Linear` ease through `points` points jittered around `template` (default `None`), exactly 0 at t = 0 and 1 at t = 1.
   - Tests: `EasePackTests.RoughIsExactAtTheEnds`, `EasePackTests.RoughIsJagged`
@@ -186,7 +186,7 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
   - Tests: `EasePackTests.ClampedRoughStaysInTheUnitRange`
 - **CORE-EASES-055** — `Rough` shall draw from the given `Random`, or `Random.Shared`, only while it is created, so one seed gives one curve.
   - Tests: `EasePackTests.RoughWithTheSameSeedIsIdentical`
-- **CORE-EASES-056** (inherited) — When `points` < 1, `Rough` shall throw `ArgumentOutOfRangeException`.
+- **CORE-EASES-056** — When `points` < 1, `Rough` shall throw `ArgumentOutOfRangeException`.
   - Tests: untested
 - **CORE-EASES-057** — `SlowMo(linearRatio, power)` shall run a linear middle over `linearRatio` of the time with slope `1 − power`, eased in and out at the ends, from 0 at t = 0 to 1 at t = 1.
   - Tests: `EasePackTests.SlowMoHasConstantSlopeOverItsLinearSection`
@@ -205,12 +205,14 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
   - Tests: `EasesTests.AnAnimationAppliesItsEase`
 - **CORE-EASES-063** — When an `EaseValue` holds a `Spring`, it shall resolve to the spring's `Ease` and report the spring, so its `SettlingDuration` becomes the tween's duration (CORE-SPRING).
   - Tests: `SpringTests.SpringEaseOverridesTheTweenDurationParameter`
-- **CORE-EASES-064** (inherited) — When an `EaseValue` holds a string, it shall resolve through `EaseParser.Parse` each time it is resolved.
-  - Tests: untested
+- **CORE-EASES-064** — When an `EaseValue` holds a string, it shall resolve through `EaseParser.Parse` each time it is resolved.
+  - Tests: `TweenValueTests.EaseValueResolvesEachForm`
 - **CORE-EASES-065** — When an `EaseValue` holds a `FunctionValue`, it shall call it once per target with (target, index, total) and resolve its result as above.
-  - Tests: untested
-- **CORE-EASES-066** (inherited) — When an `EaseValue` is default, holds a null string, or the function's result is not an ease, spring or string, it shall resolve to `Eases.None`.
-  - Tests: untested
+  - Tests: `TweenValueTests.EaseValueFunctionsResolvePerTarget`
+- **CORE-EASES-066** — When an `EaseValue` is default or holds a null string, or its function returns no value, it shall resolve to `Eases.None`.
+  - Tests: `TweenValueTests.EaseValueResolvesEachForm`, `TweenValueTests.AnEaseFunctionReturningNothingResolvesToNone`
+- **CORE-EASES-078** — When an `EaseValue`'s function returns a value that is not an ease, a spring or a string, resolving it shall throw `InvalidOperationException`.
+  - Tests: `TweenValueTests.AnEaseFunctionReturningANonEaseThrows`
 
 ### Names
 
@@ -281,17 +283,21 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 
 - **`FromPath` reads y up and normalizes to the unit square, keeping overshoot.** Path data (M, L, H, V, C, absolute or relative) is read with x as progress and y pointing up, not flipped; the start maps to (0, 0) and the end to (1, 1), and the table is not forced monotone. A decreasing x or zero width throws `ArgumentException`, other bad data `FormatException`, and the path is sampled into a table so calls do not allocate. Reason: a path from `0,0` to `1,1` then reads as it would on a graph.
 - **`Wiggle` is a displacement ease, 0 at both ends.** The tween's to-value is the swing amplitude and the property ends where it started. Reason: GSAP's CustomWiggle behaves so.
-- **`Rough` takes GSAP's full option set, seeded through `Random`.** It takes points, strength, clamp, taper, randomize and template, and draws from `Random.Shared` unless given a `Random`. Reason: not recorded. Rejected: a `seeded` flag.
+- **`Rough` takes GSAP's full option set, seeded through `Random`.** It takes points, strength, clamp, taper, randomize and template, and draws from `Random.Shared` unless given a `Random`. Reason: GSAP's RoughEase is the rough ease people know, and an injected `Random` makes a curve reproducible in tests and replays. Rejected: a `seeded` flag.
 - **Upstream's chained ease is not ported.** Ease resolution receives no previous sibling tween. Reason: no upstream ease reads it (only `scrambleText`'s and `morphTo`'s to-values do, which `ChainedFunctionValue` covers), and carrying momentum across a retarget is `PreserveVelocity`'s job, with the real velocity; a chained `EaseValue` would reshape ease resolution for an unused hook. Rejected: a chained `EaseValue` form.
-- **Factory defaults are kept from upstream.** Power 1.68, 10 steps and `Irregular`'s 10 stops with randomness 1 (CORE-EASES-071 to 073) are upstream's numbers; no other reason recorded.
+- **Factory defaults are kept from upstream.** Power 1.68, 10 steps and `Irregular`'s 10 stops with randomness 1 (CORE-EASES-071 to 073) are upstream's numbers. Reason: an animation ported from anime.js looks the same.
+- **Eases are immutable delegates, and fixed ones are singletons.** Each fixed ease is one instance; each factory call returns a new delegate; `Linear` copies its stops (CORE-EASES-010, 011, 026). Reason: one ease is shared by many tweens and threads, so it must not change under them, and singletons can be compared by reference and named. Rejected: caching factory results, which needs a table keyed by arguments that grows without bound.
+- **Ease strings parse invariantly and fail loudly.** `LinearStop` strings parse with the invariant culture and throw `FormatException` on garbage, and an `EaseValue` string is parsed on each resolution (CORE-EASES-029, 030, 064). Reason: ease strings come from XAML and defaults, which must mean the same on every machine; `EaseParser` caches, so parsing per resolution is cheap.
+- **Counts are validated.** `Steps`, `Wiggle` and `Rough` throw `ArgumentOutOfRangeException` for a count below 1, and `Wiggle` for an undefined `WiggleType` (CORE-EASES-050, 056, 077). Reason: such a count is a caller's bug, and upstream's NaN would surface far from it.
+- **An ease function must return an ease.** No value means `None`, as a default `EaseValue` does; any other value throws (CORE-EASES-066, 078). Reason: a function returning the wrong thing is a bug, and silently animating linearly hid it. Rejected: resolving every unknown result to `None`.
 - **Ease names are registered only while diagnostics are active.** Fixed eases register at static initialization; parameterized factories register only while diagnostics are active, in a weak table. Reason: those factories mint a delegate per call, often in loops, and must not pay a locked table insert in a release app; an overlay can always draw the sampled curve.
 
 ## Non-goals
 
-- No validation of curve arguments beyond what upstream and GSAP do, except `Steps`' count (077).
+- No validation of curve arguments beyond what upstream and GSAP do, except the counts under "Counts are validated".
 - No `Q`, `S`, `T`, `A` or `Z` path commands in `FromPath`.
 - No string syntax for `Steps`, `Linear`, `Irregular` or `CubicBezier` (CORE-EASEPARSER).
 
 ## Open items
 
-- Untested: `Elastic` argument clamping (008), `Linear` endpoint positions, negative t and stop copying (023, 025, 026), `FromPath` flat and too-short paths (043, 045), `Wiggle`/`Rough` argument errors (050, 056), `RoughTaper` scaling (053), `SlowMo` ratio clamping (058), and `EaseValue` string, function and default resolution (064–066).
+- Untested: `Elastic` argument clamping (008), `Linear` endpoint positions, negative t and stop copying (023, 025, 026), `FromPath` flat and too-short paths (043, 045), `Wiggle`/`Rough` argument errors (050, 056), `RoughTaper` scaling (053), and `SlowMo` ratio clamping (058).

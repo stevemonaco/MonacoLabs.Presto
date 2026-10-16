@@ -79,8 +79,8 @@ depends:
   - Tests: `UtilsTests.ChainedUtilityFunctions`
 - **CORE-UTILS-016** — `ChainedUtil.RoundPad(decimals)` shall end the chain with a `Func<double, string>` that formats the chain's result as `Utils.RoundPad` does.
   - Tests: untested
-- **CORE-UTILS-017** (inherited) — `Invoke` on a `default(ChainedUtil)` shall throw `NullReferenceException`.
-  - Tests: untested
+- **CORE-UTILS-017** — `Invoke` on a `default(ChainedUtil)` shall return its input unchanged, and a chain built on one shall start from the identity.
+  - Tests: `UtilsTests.ADefaultChainPassesValuesThrough`
 
 ### Random
 
@@ -127,9 +127,9 @@ depends:
 
 ### Defaults
 
-- **CORE-UTILS-035** (inherited) — When `Random` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
+- **CORE-UTILS-035** — When `Random` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
   - Tests: untested
-- **CORE-UTILS-036** (inherited) — When a seeded `RandomGenerator` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
+- **CORE-UTILS-036** — When a seeded `RandomGenerator` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
   - Tests: untested
 
 ## Invariants
@@ -164,12 +164,13 @@ depends:
 - `CreateSeededRandom` drops `seededMin`/`seededMax`/`seededDecimalLength`: C# optional arguments must be constants, so the delegate could never default to them.
 - `ChainedUtil` replaces the JavaScript `Proxy` chain, which C# has no counterpart for; there is no value-less `Utils.RoundPad(decimals)` to start a chain with, and `RoundPad` can only end one.
 - `Utils.KeepTime` takes a one-argument constructor returning a timer; upstream's variadic form and its branch for constructors returning a cleanup function are not ported, because that branch serves scopes, which `Scope.KeepTime` covers (CORE-SCOPE).
-- `RandomPick` takes a list only, not a string. Reason: not recorded.
+- `RandomPick` takes a list only, not a string, because a string overload would return a `char` where upstream returns a one-character string; `s.ToList()` passes a string's characters in.
 
 ## Decisions
 
 - **A NaN damping factor propagates.** `Damp` tests `factor == 0`, so NaN falls through to the lerp and returns NaN. Reason: a NaN factor is always a caller bug, and NaN in, NaN out is how .NET math reports it, at its source, where upstream's JavaScript truthiness froze the value at `start`. Rejected: upstream's `!factor`.
-None recorded.
+- **A default chain is the identity.** `Invoke` on a `default(ChainedUtil)` returns its input, and chaining from one starts a chain (CORE-UTILS-017). Reason: an unset `ChainedUtil` field or parameter then behaves as no modifier rather than throwing `NullReferenceException`. Rejected: throwing `InvalidOperationException`.
+- **`Random`'s bounds default to 0, 1 and 0 decimals.** Unseeded and seeded alike (CORE-UTILS-035, 036). Reason: each bound can be given alone, and with none `Random()` is a coin flip, 0 or 1.
 
 ## Non-goals
 

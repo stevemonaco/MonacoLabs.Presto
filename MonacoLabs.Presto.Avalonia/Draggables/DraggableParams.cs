@@ -34,10 +34,10 @@ public sealed record DraggableParams
     public double? ReleaseContainerFriction { get; init; }
 
     /// <summary>
-    /// Lets Escape end a drag in progress and spring the target back to where it was grabbed, false by default.
+    /// Lets Escape end a drag in progress and spring the target back to where it was grabbed, true by default.
     /// <see cref="OnRelease"/> and <see cref="OnSettle"/> then run as they do for a release.
     /// </summary>
-    public bool CancelOnEscape { get; init; }
+    public bool CancelOnEscape { get; init; } = true;
 
     /// <summary>How far the pointer has to travel before the drag starts, 3 by default.</summary>
     public double? DragThreshold { get; init; }

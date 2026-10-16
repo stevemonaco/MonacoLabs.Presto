@@ -85,7 +85,6 @@ public partial class BoardPage : ShowcasePage
             ReleaseStiffness = 700,
             ReleaseDamping = 50,
             MaxVelocity = 1.5,
-            CancelOnEscape = true,
             ScrollSpeed = 2,
             ScrollThreshold = 28,
             OnDrag = _ => Lift(card),

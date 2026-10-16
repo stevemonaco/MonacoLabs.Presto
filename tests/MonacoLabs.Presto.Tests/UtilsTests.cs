@@ -81,6 +81,16 @@ public sealed class UtilsTests : EngineTestBase
     }
 
     [Fact]
+    public void ADefaultChainPassesValuesThrough()
+    {
+        var chain = default(ChainedUtil);
+
+        Assert.Equal(7.5, chain.Invoke(7.5));
+        Assert.Equal(5, chain.Clamp(0, 5).Invoke(7.5));
+        Assert.Equal("7.50", chain.RoundPad(2)(7.5));
+    }
+
+    [Fact]
     public void SyncRunsTheCallbackOnTheNextTick()
     {
         var ran = false;

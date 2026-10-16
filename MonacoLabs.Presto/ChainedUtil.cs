@@ -6,12 +6,16 @@ namespace MonacoLabs.Presto;
 /// </summary>
 public readonly struct ChainedUtil
 {
-    private readonly Func<double, double> _fn;
+    private static readonly Func<double, double> s_identity = v => v;
+
+    private readonly Func<double, double>? _fn;
 
     internal ChainedUtil(Func<double, double> fn) => _fn = fn;
 
-    /// <summary>Runs <paramref name="v"/> through the chain.</summary>
-    public double Invoke(double v) => _fn(v);
+    private Func<double, double> Fn => _fn ?? s_identity;
+
+    /// <summary>Runs <paramref name="v"/> through the chain; a <c>default</c> chain returns it unchanged.</summary>
+    public double Invoke(double v) => Fn(v);
 
     /// <inheritdoc cref="Utils.Clamp(double, double, double)"/>
     public ChainedUtil Clamp(double min, double max) => Then(v => Utils.Clamp(v, min, max));
@@ -47,7 +51,7 @@ public readonly struct ChainedUtil
     /// <summary>Ends the chain: <see cref="Utils.RoundPad(double, int)"/> produces a string, which nothing further can consume.</summary>
     public Func<double, string> RoundPad(int decimals)
     {
-        var fn = _fn;
+        var fn = Fn;
         return v => Utils.RoundPad(fn(v), decimals);
     }
 
@@ -56,7 +60,7 @@ public readonly struct ChainedUtil
 
     private ChainedUtil Then(Func<double, double> next)
     {
-        var fn = _fn;
+        var fn = Fn;
         return new(v => next(fn(v)));
     }
 }
