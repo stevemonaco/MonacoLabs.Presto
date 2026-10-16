@@ -210,7 +210,7 @@ depends:
 
 ## Non-goals
 
-- Cross-list or grouped drags (Kanban); the Board sample implements its own.
+- Cross-list or grouped drags (Kanban); the Board sample builds them on Draggable drop zones (BRIDGE-DRAGGABLE).
 - Exposing threshold, edge-scroll speed/band or the settle ease as properties.
 - Two-dimensional reordering in wrap or grid panels.
 - Multi-pointer or touch-multi drags.

@@ -137,7 +137,7 @@ public sealed class BoardPageTests
     }
 
     [AvaloniaFact]
-    public async Task TheLaneACardIsAimedAtOpensAGapThatTheDropFillsWithoutMovingAnythingElse()
+    public async Task TheLaneACardIsAimedAtIsMarkedDragoverAndOpensAGapThatTheDropFillsWithoutMovingAnythingElse()
     {
         const int slot = 1;
         var page = new BoardPage();
@@ -153,9 +153,11 @@ public sealed class BoardPageTests
         window.MouseDown(grab, MouseButton.Left);
         var pointer = MoveTo(window, grab, Over(1, slot));
         Assert.Equal(lane.Select((_, i) => (i >= slot ? i + 1 : i) * RowPitch), lane.Select(Canvas.GetTop));
+        Assert.Equal([1], Hovered(page));
 
         pointer = MoveTo(window, pointer, Over(2, 0));
         Assert.Equal(lane.Select((_, i) => i * RowPitch), lane.Select(Canvas.GetTop));
+        Assert.Equal([2], Hovered(page));
 
         pointer = MoveTo(window, pointer, Over(1, slot));
         // The draggable samples velocity every other frame and keeps the fastest of three, so this lets it fall to rest.
@@ -170,6 +172,35 @@ public sealed class BoardPageTests
 
         Assert.True(frames <= 20, $"a gentle drop took {frames} frames to settle");
         Assert.Same(card, Cards(page, 1)[slot]);
+        Assert.Empty(Hovered(page));
+        for (var i = 0; i < Datasets.Lanes.Count; i++)
+        {
+            var left = Cards(page, i);
+            Assert.Equal(left.Select((_, row) => row * RowPitch), left.Select(Canvas.GetTop));
+        }
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public async Task EscapeMidDragSpringsTheCardBackIntoTheSlotItLeft()
+    {
+        var page = new BoardPage();
+        var window = SceneHarness.Show(page, 900, 520);
+        await SceneHarness.Settle();
+        var before = Cards(page, 0);
+        var card = before[1];
+        var grab = SceneHarness.Center(card, window);
+
+        window.MouseDown(grab, MouseButton.Left);
+        var pointer = MoveTo(window, grab, grab + new Vector(LanePitch, RowPitch));
+        Assert.Equal([1], Hovered(page));
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        window.MouseUp(pointer, MouseButton.Left);
+        await SceneHarness.Settle();
+
+        Assert.Empty(Hovered(page));
+        Assert.Same(Lane(page, 0), card.Parent);
+        Assert.Equal(before, Cards(page, 0));
         for (var i = 0; i < Datasets.Lanes.Count; i++)
         {
             var left = Cards(page, i);
@@ -286,6 +317,9 @@ public sealed class BoardPageTests
 
     private static Canvas Lane(Visual page, int lane) =>
         page.GetLogicalDescendants().OfType<Canvas>().First(canvas => canvas.Name == $"Lane{lane}");
+
+    private static int[] Hovered(Visual page) =>
+        [.. Enumerable.Range(0, Datasets.Lanes.Count).Where(lane => ((Control)Lane(page, lane).Parent!.Parent!).Classes.Contains(":dragover"))];
 
     // In slot order, which is not the order the canvas holds them in once one has been dropped back.
     private static Border[] Cards(Visual page, int lane) =>

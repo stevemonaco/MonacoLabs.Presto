@@ -52,7 +52,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 
 | Spec | Id | Owns |
 |---|---|---|
-| [Draggable](draggable.md) | BRIDGE-DRAGGABLE | `Draggable`, `DraggableParams`, `DraggableAxisParams`, `DraggableCursorParams` |
+| [Draggable](draggable.md) | BRIDGE-DRAGGABLE | `Draggable`, `DraggableParams`, `DraggableAxisParams`, `DraggableCursorParams`, `Drop`, `DropHit`, `DropMiss` |
 | [Transformable (pan, pinch-zoom, rotate)](transformable.md) | BRIDGE-TRANSFORMABLE | `Transformable`, `TransformableParams`, `PanBounds`, `WheelZoom` |
 | [Drag-to-reorder lists](reorder.md) | BRIDGE-REORDER | `Reorder`, `ReorderExtension`, `ReorderMovingEventArgs` |
 | [Magnetic pull](magnetic.md) | BRIDGE-MAGNETIC | `Magnetic` |

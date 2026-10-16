@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Controls;
+using MonacoLabs.Presto.Draggables;
 using MonacoLabs.Presto.Gestures;
 using MonacoLabs.Presto.Platform;
 using Path = Avalonia.Controls.Shapes.Path;
@@ -400,6 +401,30 @@ public sealed class BridgeAllocationTests : CompositorTestBase
             new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DropHitTestingAllocatesNothingPerFrame(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var target = Box();
+        var canvas = new Canvas();
+        for (var i = 0; i < 3; i++)
+        {
+            var zone = new Border { Width = 60, Height = 100 };
+            Canvas.SetLeft(zone, i * 50);
+            Drop.SetGroup(zone, "lanes");
+            canvas.Children.Add(zone);
+        }
+        canvas.Children.Add(target);
+        var window = Show(canvas);
+
+        var plain = BytesPerDragFrame(window, target, new());
+        var hovering = BytesPerDragFrame(window, target, new() { DropGroup = "lanes", DropHit = DropHit.Overlap });
+
+        Assert.True(hovering - plain <= 0, $"{hovering:0.##} bytes per frame hovering, {plain:0.##} without a drop group");
+    }
+
     [AvaloniaFact]
     public void PacingAFrameAllocatesNothing()
     {
@@ -412,6 +437,19 @@ public sealed class BridgeAllocationTests : CompositorTestBase
         var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.True(bytes == 0, $"{bytes} bytes over 1000 frames");
+    }
+
+    // The target is held still, but the drag's update still runs every frame.
+    private double BytesPerDragFrame(Window window, Control target, DraggableParams parameters)
+    {
+        var draggable = PrestoAvalonia.CreateDraggable(target, parameters);
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        window.MouseMove(new Point(40, 25));
+        var bytes = BytesPerTick();
+        Assert.Equal(parameters.DropGroup is not null, draggable.Zone is not null);
+        window.MouseUp(new Point(40, 25), MouseButton.Left);
+        draggable.Revert();
+        return bytes;
     }
 
     private double BytesPerMove(Interactive on, PointerEventArgs[] moves)

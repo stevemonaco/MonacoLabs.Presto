@@ -100,6 +100,13 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
 
     void IRevertible.Revert() => Revert();
 
+    internal void Rearm()
+    {
+        s_live.AddOrUpdate(_control, this);
+        _control.LayoutUpdated += OnLayoutUpdated;
+        Record(Measure(_control));
+    }
+
     private void Disarm()
     {
         _armed = false;

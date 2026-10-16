@@ -13,8 +13,13 @@ types:
   - DraggableParams
   - DraggableAxisParams
   - DraggableCursorParams
+  - Drop
+  - DropHit
+  - DropMiss
 tests:
+  - BridgeAllocationTests
   - DraggableTests
+  - DropZoneTests
   - MotionValueSourceTests
   - DevToolsOriginTests
   - ReorderContainerTests
@@ -34,6 +39,7 @@ depends:
   - BRIDGE-TRANSFORMS
   - BRIDGE-TARGETS
   - BRIDGE-HELPERS
+  - BRIDGE-LAYOUT
 ---
 
 # Draggable
@@ -225,11 +231,50 @@ depends:
 - **BRIDGE-DRAGGABLE-073** — When `ScrollInView` or `AnimateInView` is called without a duration, gap or ease, it shall animate over 350 ms × `Globals.TimeScale` with a gap of 0 and `Eases.InOutQuad`.
   - Tests: untested
 
+### Drop zones
+
+- **BRIDGE-DRAGGABLE-075** — When `Drop.Group` is set on a control attached to a `TopLevel`, the control shall be a drop zone of that group in that `TopLevel` until the group is cleared or the control detaches; a zone that attaches again is registered after every zone already there.
+  - Tests: `DropZoneTests.AZoneRegistersOnAttachAndLeavesOnDetach`
+- **BRIDGE-DRAGGABLE-076** — When `Drop.IsEnabled` is false, or the zone is not effectively visible (itself or through an ancestor), the draggable shall not consider it.
+  - Tests: `DropZoneTests.ADisabledOrHiddenZoneIsIgnored`
+- **BRIDGE-DRAGGABLE-077** — When `Drop.IsEnabled` is not set, the zone shall be enabled.
+  - Tests: `DropZoneTests.ADisabledOrHiddenZoneIsIgnored`
+- **BRIDGE-DRAGGABLE-078** — While a draggable with a `DropGroup` is dragged past the threshold, and while the release that follows moves the target until it settles, the draggable shall hit test that group's usable zones in the target's `TopLevel` on every frame, comparing bounds as drawn in `TopLevel` coordinates (render transforms included), and never count the target or its descendants as a zone.
+  - Tests: `DropZoneTests.CenterHitsTheZoneUnderTheTargetsCenter`, `DropZoneTests.AFlungCardTracksZonesThroughTheThrow`
+- **BRIDGE-DRAGGABLE-079** — With `DropHit.Center` the hit zone shall be one containing the drawn target's center; with `DropHit.Pointer`, one containing the grabbing pointer, with the zone held at release kept through the release; with `DropHit.Overlap`, the one whose bounds intersect the drawn target's over the largest non-empty area.
+  - Tests: `DropZoneTests.CenterHitsTheZoneUnderTheTargetsCenter`, `DropZoneTests.PointerHitsTheZoneUnderThePointer`, `DropZoneTests.OverlapPicksTheLargestIntersection`
+- **BRIDGE-DRAGGABLE-080** — When several zones hit (or, for `Overlap`, share the largest area), the zone registered last shall win.
+  - Tests: `DropZoneTests.TheLastRegisteredZoneWinsATie`
+- **BRIDGE-DRAGGABLE-081** — When the hit zone changes, the draggable shall set `Zone` to it (or null), remove the `:dragover` pseudo-class from the previous zone, set it on the new one, then raise `OnZoneChange` once.
+  - Tests: `DropZoneTests.ZoneChangesRaiseOnceAndMoveThePseudoClass`
+- **BRIDGE-DRAGGABLE-082** — A zone for which `CanDrop` returns false shall never become `Zone`; the best accepting zone is hit instead.
+  - Tests: `DropZoneTests.ARejectedZoneNeverBecomesZone`
+- **BRIDGE-DRAGGABLE-083** — When `DropHit` is not set, the draggable shall hit test with `DropHit.Center`.
+  - Tests: `DropZoneTests.CenterHitsTheZoneUnderTheTargetsCenter`
+- **BRIDGE-DRAGGABLE-084** — When the release of a drag that passed the threshold settles with `Zone` set, a draggable with a `DropGroup` shall raise `OnDrop` once, after `OnSettle`, with `Zone` naming the zone taken before `OnSettle` ran (even if `OnSettle` reset the draggable), then clear `Zone` and the `:dragover` pseudo-class without raising `OnZoneChange`.
+  - Tests: `DropZoneTests.SettlingOverAZoneDropsAfterOnSettle`, `DropZoneTests.AResetInOnSettleStillDropsOnTheZone`, `DropZoneTests.AFlungCardTracksZonesThroughTheThrow`
+- **BRIDGE-DRAGGABLE-085** — When that release settles with no `Zone`, the draggable shall raise `OnDropMiss` once, after `OnSettle`; with `DropMiss.ReturnHome` and the target away from its value at the grab, it shall first start springing the target back there with the release spring, a return that does not hit test, resolves no drop and ends in an `OnSettle` of its own.
+  - Tests: `DropZoneTests.SettlingOverNothingMissesAndReturnsHome`
+- **BRIDGE-DRAGGABLE-086** — When Escape cancels a drag that passed the threshold (BRIDGE-DRAGGABLE-050), a draggable with a `DropGroup` shall clear `Zone` and the pseudo-class without raising `OnZoneChange`, stop hit testing, raise `OnDropMiss` once after `OnRelease`, and never raise `OnDrop` for that drag.
+  - Tests: `DropZoneTests.EscapeIsAMiss`
+- **BRIDGE-DRAGGABLE-087** — When the zone that is a draggable's `Zone` detaches, has its `Drop.Group` changed or cleared, or has `Drop.IsEnabled` set false, the draggable shall clear `Zone` and the pseudo-class and raise `OnZoneChange`, whether or not its target is moving.
+  - Tests: `DropZoneTests.AZoneDetachingMidDragClearsZone`
+- **BRIDGE-DRAGGABLE-088** — When `Stop`, `Reset`, `Disable` or `Revert` is called, the draggable shall clear `Zone` and the pseudo-class and end the drop, raising neither `OnDrop` nor `OnDropMiss` for it; a grab during the release keeps `Zone`, and the drop resolves when the new release settles.
+  - Tests: `DropZoneTests.RevertClearsZoneWithoutDropping`, `DropZoneTests.ARegrabMidThrowKeepsZoneAndDropsOnTheNextSettle`
+- **BRIDGE-DRAGGABLE-089** — When `DropMiss` is not set, a miss shall leave the target where it settled.
+  - Tests: `DropZoneTests.AZoneDetachingMidDragClearsZone`
+- **BRIDGE-DRAGGABLE-090** — `Reparent(panel, index)` shall measure where the target is drawn, move it from its parent panel into `panel` at `index` (appended when null), reset both axes to 0 without raising `OnUpdate`, and fly it from the measured bounds into its new slot as a position-only one-shot shared element (BRIDGE-LAYOUT) over the release settling duration with the release ease; an `AnimateLayout` armed on the target in code shall be armed again once the flight lands.
+  - Tests: `DropZoneTests.ReparentMovesIntoThePanelAndFliesFromWhereTheDragLeftIt`
+- **BRIDGE-DRAGGABLE-091** — When the target's parent is not a `Panel`, `Reparent` shall throw `InvalidOperationException` and move nothing.
+  - Tests: `DropZoneTests.ReparentOnANonPanelParentThrows`
+
 ## Invariants
 
 - At most one pointer drives the draggable at a time, and the trigger holds that pointer's capture until release.
 - An axis with `Enabled = false` is never written, by the drag, the release, the setters or `Reset`.
-- `OnSettle` fires at most once per release, after both axes have been written; `Velocity` and `Angle` are 0 when it fires.
+- `OnSettle` fires at most once per release, after both axes have been written; `Velocity` and `Angle` are 0 when it fires. A `DropMiss.ReturnHome` return is not a release: it ends in an `OnSettle` of its own.
+- `OnDrop` and `OnDropMiss` fire at most once per release, never both, and only for a draggable with a `DropGroup`.
+- Once a drag has fully ended (its release or return settled, or it was canceled, stopped, reset, disabled or reverted), `Zone` is null and no zone carries `:dragover` from it.
 - After `Stop`, the draggable holds no reference to a canceled overshoot or scroll animation, so no animation is canceled twice through it.
 - A target is driven by at most one gesture type (`Draggable` or `Transformable`) at a time.
 
@@ -247,16 +292,16 @@ depends:
 ## Threading and lifetime
 
 - UI thread only. The draggable captures `Engine.Current` at construction and uses that engine for pointer-time work (velocity timing, precision), since pointer events arrive when another engine may be ambient.
-- It registers with the engine's current `Scope`; the scope's revert, or `Revert`, releases every handler. Until then the trigger's and container's event handlers keep the draggable alive as long as those controls are.
+- It registers with the engine's current `Scope`; the scope's revert, or `Revert`, releases every handler and reverts a `Reparent` flight still in the air. Until then the trigger's and container's event handlers keep the draggable alive as long as those controls are.
 - Velocity uses dilated engine time (`Engine.Now`), so `TimeDilation` and DevTools freezes apply.
 
 ## Reduced motion
 
-- The drag itself is direct manipulation and is never reduced. The release, overshoot and scroll animations are ordinary engine animations, so `ReduceAll` collapses them to their end values like any other animation (CORE-REDUCED); the draggable has no reduced form of its own. Untested.
+- The drag itself is direct manipulation and is never reduced. The release, overshoot and scroll animations are ordinary engine animations, so `ReduceAll` collapses them to their end values like any other animation (CORE-REDUCED); the draggable has no reduced form of its own. A `DropMiss.ReturnHome` return is such an animation. `Reparent`'s flight is a layout transition, so it lands in one frame under `ReducedMotion` (BRIDGE-LAYOUT). Untested.
 
 ## Allocation
 
-- The per-frame drag update and the render callback allocate nothing of their own; axis writes go through `Animatable.Set` (CORE-ANIMATABLE). A release allocates its animations (and, out of bounds, two overshoot animations); `XValue`/`YValue` are created once on first read.
+- The per-frame drag update and the render callback allocate nothing of their own; axis writes go through `Animatable.Set` (CORE-ANIMATABLE). A release allocates its animations (and, out of bounds, two overshoot animations); `XValue`/`YValue` are created once on first read. Drop-zone hit testing allocates nothing per frame (`BridgeAllocationTests.DropHitTestingAllocatesNothingPerFrame`); only a zone change allocates, in the pseudo-class update and the zone-left subscription.
 
 ## Provenance
 
@@ -284,6 +329,22 @@ depends:
 - **Spring momentum on retarget is opt-in.** See CORE-ANIMATABLE.
 - **One owner per element.** See BRIDGE-TRANSFORMABLE.
 - **The axis `Modifier` stays re-applied on release, documented as needing idempotence.** From the release on, the animatable re-applies an axis modifier to its own output, and `DraggableAxisParams.Modifier` documents that it must be idempotent. Reason: the only feature it hurt, pull-to-refresh, damps its travel itself instead (BRIDGE-PULL). Rejected: changing how the release applies the modifier.
+- **Zones are attached properties on a new `Drop` class, matched by a string group.** Reason: zones are usually declared in XAML next to their content, while draggables are created in code; a string key lets the two meet without holding references. Rejected: `DraggableParams.Zones` as a control list (stale when zones are templated or recycled); a zone-side `Accepts` type filter (`CanDrop` on the draggable is enough and has the dragged item in hand).
+- **Zones are found per `TopLevel` through a registry the attached property maintains on attach/detach.** Reason: hit testing stays a walk over a short list with no visual-tree search per frame. Rejected: scanning the tree on grab (misses zones that appear mid-drag, costs per grab).
+- **Hit testing defaults to the target's center; `Pointer` and `Overlap` are opt-in.** `Center`: the drawn target's center lies inside the zone's bounds. `Pointer`: the grabbing pointer lies inside. `Overlap`: the zone with the largest intersection with the drawn target's bounds, any intersection counting. Ties go to the zone registered last (topmost by convention). Reason: center is what users expect for cards; pointer suits large or offset-grabbed targets; overlap removes dead gaps between adjacent zones (Board's column spacing). Rejected: nearest zone by distance (Board's earlier rule), which always picks something and so cannot express "dropped nowhere".
+- **The hover tracks the drawn target through the release throw, and the drop resolves when the release settles.** Reason: a flung card drops where it visibly comes to rest, as Board did with `OnUpdate`/`OnSettle`. Rejected: resolving at pointer release from the projected destination, which disagrees with what the user sees when bounds or friction cushion the throw.
+- **The draggable does not reparent on its own; `Reparent` is an explicit helper called from `OnDrop`.** Reason: what a drop means (move, copy, delete, update a view model whose template then moves the item) is the app's; but the measure-before-reparent ordering is subtle enough to package once.
+- **A zone `CanDrop` rejects is skipped, not a blocker.** The hit falls to the best zone that accepts, or to none. Reason: a rejected zone under an accepting one (a locked column over the board) should not hide the accepting one, and "over a zone that refuses" is no different to the drop from "over nothing". Rejected: a rejected hit clearing `Zone` even when another zone accepts.
+- **During the drag, zones are hit tested once per frame after both axes are written.** The drag frame tests in its update rather than in each axis's render callback, which runs once per axis write. Reason: a diagonal move would otherwise be tested half-applied, raising a spurious `OnZoneChange` at a corner. The release has no such split and tests in the render callback.
+- **Escape is a miss, raised at cancel time.** With `CancelOnEscape` (the default), the drag already springs home (BRIDGE-DRAGGABLE-050); it clears the zone, stops hit testing and raises `OnDropMiss` right after `OnRelease`, never `OnDrop`, so `ReturnHome` adds nothing. Reason: the outcome is known when the key is pressed, and the app can react while the target is still springing back. Rejected: waiting for the return to settle.
+- **A drop or a miss clears `Zone` without `OnZoneChange`.** Reason: `OnDrop` and `OnDropMiss` already report the end of the hover, and a trailing `OnZoneChange(null)` would make every drop look like a leave first. A zone that leaves mid-drag (BRIDGE-DRAGGABLE-087) is not a resolution, so it does raise `OnZoneChange`.
+- **The drop target is taken before `OnSettle`.** `OnDrop` names the zone the release settled over even when `OnSettle` calls `Reset`, which clears `Zone`. Reason: `Reset` from `OnSettle` is the common way to land a card (BRIDGE-DRAGGABLE-039), and it must not swallow the drop it precedes.
+- **The `ReturnHome` return is not a release.** It starts before `OnDropMiss` (so `OnDropMiss` can stop or reset it, as `OnRelease` can cancel a release), does not hit test, resolves nothing, and ends in its own `OnSettle`, as any other non-drag motion of the axes (`AnimateInView`, a scripted `Animate.Set`) does. Reason: `OnSettle` then always means the target came to rest, and "at most once per release" stays true. Rejected: suppressing the second `OnSettle`, which would leave an app with no signal that the target is home.
+- **Only a drag that passed the threshold resolves a drop.** A press released without moving, or a settle of a motion the drag did not start, raises neither callback. Reason: a click on a card is not a drop on the zone it already sits in.
+- **A grab during the release keeps `Zone`; `Stop` clears it.** The grab halts the release without `Stop`'s zone clearing, so a card caught mid-throw resolves against the zone it is over when the new release settles. `Stop`, `Reset`, `Disable` and `Revert` end the drop with neither callback. Reason: catching a flung card continues the same gesture, while the public calls are the app taking over.
+- **A draggable listens for zones leaving only while it holds one.** It subscribes to the registry's internal event when `Zone` becomes non-null and unsubscribes when it clears. Reason: the event is static, so a permanent subscription would keep every draggable with a `DropGroup` alive until it is reverted.
+- **Drop targets stay small for v1.** `OnDrop` fires when the release settles only, never early at release; zones get no routed `Drop.DragEnter`/`DragLeave`/`Dropped` events, as the `:dragover` pseudo-class covers zone styling; `Reparent` lives on `Draggable`, not as a general `PrestoAvalonia` helper, as only a drop needs it; the class is named `Drop` despite Avalonia's `DragDrop`, because `presto:Drop.Group` reads as what it declares and the namespace keeps them apart. Rejected: an early `OnDrop` for long releases; zone-side routed events; the name `DropZone`.
+- **`Reparent` flies like the release settles and keeps the target's own layout transition.** The flight lasts the release spring's settling duration at rest, less the spring's rest tail (`Spring.RestDuration` × `Globals.TimeScale`) unless `ReleaseEase` is itself a spring, as a `DropMiss.ReturnHome` return does, and eases with `ReleaseEase` (`Eases.OutQuint` by default, the spring's ease when it is a spring). It is position-only and one-shot, and the draggable owns it, so a scope revert, which reverts the draggable, cannot orphan it; a code `AnimateLayout` it displaces is armed again when it lands, while a XAML `Animate.Layout` re-arms itself. Reason: the landing then reads as the end of the release, and a card keeps the reflow it had between drops. Rejected: a duration parameter, which every caller would set to the release's; easing size, as a dropped card keeps its size.
 - **`Reset` writes 0 unclamped.** Both axes go to 0 even when the container's bounds exclude it. Reason: reset means the origin, the transform the target had before the draggable, as upstream's `reset` (`setX(0)`, `setY(0)`) does. Rejected: clamping into the bounds, which would make `Reset` land somewhere other than where the target started.
 
 ## Non-goals
@@ -291,10 +352,11 @@ depends:
 - Multi-touch pan, pinch or rotate (BRIDGE-TRANSFORMABLE).
 - Per-axis velocity: `Velocity` is a speed with an `Angle`.
 - Reordering items in a list (BRIDGE-REORDER owns its own pointer).
-- A XAML surface: draggables are created in code.
+- Draggables are created in code; drop zones are declared through `Drop` attached properties.
 
 ## Open items
 
 - The manual Desktop check of flinging and re-grabbing cards on the Draggable page, is still open.
+- The hand-driven Desktop check of drop zones on the Board page (highlight, fling landing, bin, Escape) is still open; DevTools cannot drag, so only the resting states and the `:dragover` style were checked.
 - Whether touch should get its own, larger `DragThreshold` (upstream 7 against 3 for a mouse) is undecided.
 - No tests for `ContainerBounds`, `ProgressX`/`ProgressY`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.
