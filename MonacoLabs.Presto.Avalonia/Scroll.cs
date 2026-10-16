@@ -247,10 +247,11 @@ public static class Scroll
                 return;
             }
             e.Handled = true;
+            var easing = _to != null;
             _from = _scroller.Offset;
             _to = to;
-            // Without the rebase, Resume's one-frame head start jumps the ease ahead at every notch.
-            _ease.Restart().ResetTime();
+            // Rebasing drops Resume's head start; mid-ease, _from is the last frame's offset, so it times from that frame.
+            _ease.Restart().ResetTime(easing ? _ease.Engine._currentTime : _ease.Engine.Now);
         }
 
         private void HandlePropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)

@@ -350,11 +350,12 @@ public class Timer : Clock, IRevertible
     }
 
     /// <summary>Rebases the start time against the engine clock so the timer carries on from <see cref="CurrentTime"/> instead of jumping (upstream <c>timer.resetTime()</c>).</summary>
-    public Timer ResetTime()
+    public Timer ResetTime() => ResetTime(OwnerEngine.Now);
+
+    internal Timer ResetTime(double now)
     {
-        var engine = OwnerEngine;
-        var timeScale = 1 / (_speed * engine._speed);
-        _startTime = engine.Now - (_currentTime + _delay) * timeScale;
+        var timeScale = 1 / (_speed * OwnerEngine._speed);
+        _startTime = now - (_currentTime + _delay) * timeScale;
         return this;
     }
 

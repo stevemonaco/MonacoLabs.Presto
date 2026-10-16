@@ -64,6 +64,21 @@ public sealed class ScrollSmoothTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ANotchMidEaseCarriesOnFromTheLastFrameWithoutAStall()
+    {
+        var (window, scroller, _, _) = Show();
+        window.MouseWheel(Inside, new Vector(0, -1));
+        Frames.Advance(64, 16);
+        var from = scroller.Offset.Y;
+
+        Presto.Engine._timeOffset += 10;
+        window.MouseWheel(Inside, new Vector(0, -1));
+        Frames.Advance(6);
+
+        Assert.Equal(from + (100 - from) * Eases.OutQuad(16 / Ease), scroller.Offset.Y, 6);
+    }
+
+    [AvaloniaFact]
     public void ANotchPastTheEndWhileEasingIsSwallowedInsteadOfJumping()
     {
         var (window, scroller, _, _) = Show();
