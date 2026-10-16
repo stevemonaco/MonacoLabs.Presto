@@ -437,6 +437,8 @@ public class Timer : Clock, IRevertible
         var isPaused = Paused;
         Paused = true;
         Renderer.Tick(this, time + _delay, muteCallbacks, internalRender, TickMode.Auto);
+        // A paused timer leaves the engine, whose update would otherwise be the only additive pass to show this render.
+        if (!internalRender) OwnerEngine.Additive.Update();
         return isPaused ? this : Resume();
     }
 

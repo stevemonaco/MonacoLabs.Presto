@@ -43,6 +43,7 @@ public sealed class TextSplitter : IRevertible
     private StackPanel? _root;
     private IDisposable? _unclip;
     private double _width;
+    private double _splitWidth;
     private bool _ready;
     private bool _writing;
 
@@ -213,6 +214,12 @@ public sealed class TextSplitter : IRevertible
     private void HandleSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         if (e.NewSize.Width == _width) return;
+        // Pieces measured one by one lose kerning, so a block sized to its text widens to its own split.
+        if (_ready && Math.Abs(e.NewSize.Width - _splitWidth) < 1)
+        {
+            _width = e.NewSize.Width;
+            return;
+        }
         if (_ready) _resize.Restart(); else Split();
     }
 
@@ -256,7 +263,8 @@ public sealed class TextSplitter : IRevertible
         // Laid out where the host's arrange will put it, so slots exist before the host's next layout pass.
         root.Measure(Size.Infinity);
         var padding = _host.Padding;
-        var free = Math.Max(0, _width - padding.Left - padding.Right - root.DesiredSize.Width);
+        _splitWidth = root.DesiredSize.Width + padding.Left + padding.Right;
+        var free = Math.Max(0, _width - _splitWidth);
         root.Arrange(new Rect(new Point(padding.Left + free * AlignmentFactor(), padding.Top), root.DesiredSize));
         _ready = true;
 

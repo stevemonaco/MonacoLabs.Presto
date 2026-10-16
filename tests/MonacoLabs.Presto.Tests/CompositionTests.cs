@@ -180,6 +180,68 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
+    public void SeekingAPausedAdditiveAnimationWritesTheSumWithoutAnEngineUpdate()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["X"] = 100,
+            Duration = 100,
+            Ease = "linear",
+            Composition = Composition.Additive,
+            Autoplay = false,
+        });
+
+        animation.Seek(50);
+        Assert.Equal(50, target.X, 6);
+
+        animation.Seek(20);
+        Assert.Equal(20, target.X, 6);
+    }
+
+    [Fact]
+    public void SeekingACanceledAdditiveAnimationRecomposesItFromItsOwnValues()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["X"] = new TweenParams[] { new() { To = 200 }, new() { To = 0 } },
+            Duration = 200,
+            Ease = "linear",
+            Composition = Composition.Additive,
+            Autoplay = false,
+        });
+        animation.Seek(50);
+
+        animation.Cancel();
+        animation.Seek(50);
+        Assert.Equal(100, target.X, 6);
+
+        animation.Seek(150);
+        Assert.Equal(100, target.X, 6);
+    }
+
+    [Fact]
+    public void SeekingACanceledAdditiveColorAnimationSumsTheKeyframeThatHasNotRenderedAtItsFrom()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["BackgroundColor"] = new TweenParams[] { new() { To = "rgb(155,255,255)" }, new() { To = "rgb(55,255,255)" } },
+            Duration = 200,
+            Ease = "linear",
+            Composition = Composition.Additive,
+            Autoplay = false,
+        });
+        animation.Seek(50);
+        var firstPlay = target.BackgroundColor;
+
+        animation.Cancel();
+        animation.Seek(50);
+        Assert.Equal(firstPlay, target.BackgroundColor);
+    }
+
+    [Fact]
     public void RemoveTweenSiblingsDropsTheLookupTweenWithTheLastAdditiveTween()
     {
         var target = CreateTarget();

@@ -27,6 +27,11 @@ public sealed class Tween
     internal double _toNumber;
     internal double[] _numbers = [];
     internal double _number;
+    // An additive tween's own from and to, which composing turns into a delta; restored when it leaves its list so it can recompose.
+    internal double _ownFromNumber;
+    internal double _ownToNumber;
+    internal double[]? _ownFromNumbers;
+    internal double[]? _ownToNumbers;
     internal string? _unit;
     internal Func<double, double> _modifier = static v => v;
     internal Func<double, string>? _textModifier;

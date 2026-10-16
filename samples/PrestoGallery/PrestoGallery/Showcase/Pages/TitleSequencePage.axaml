@@ -13,55 +13,74 @@
         <StackPanel Spacing="12">
             <Border Classes="stage" Padding="0" Height="420">
                 <Grid>
-                    <Canvas x:Name="DotField" Width="980" Height="420"
-                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Panel x:Name="Camera">
+                        <Canvas x:Name="DotField" Width="980" Height="420"
+                                HorizontalAlignment="Center" VerticalAlignment="Center" />
 
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                        <Canvas Width="132" Height="126" HorizontalAlignment="Center">
-                            <Path x:Name="Monogram" Stretch="None" Fill="Transparent"
-                                  Stroke="{x:Static showcase:Palette.Accent}" StrokeThickness="6"
-                                  StrokeLineCap="Round" StrokeJoin="Round"
-                                  Data="M 44,110 L 44,18 L 76,18 A 26,26 0 0 1 76,70 L 44,70" />
-                        </Canvas>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                            <Canvas Width="132" Height="126" HorizontalAlignment="Center">
+                                <Path x:Name="Trail" Stretch="None" Stroke="{x:Static showcase:Palette.AccentBright}"
+                                      StrokeThickness="3" StrokeLineCap="Round"
+                                      Data="M -470,30 C -280,250 -60,250 44,110" />
+                                <Path x:Name="Monogram" Stretch="None" Fill="Transparent" RenderTransformOrigin="44,110"
+                                      Stroke="{x:Static showcase:Palette.Accent}" StrokeThickness="6"
+                                      StrokeLineCap="Round" StrokeJoin="Round"
+                                      Data="M 44,110 L 44,18 L 76,18 A 26,26 0 0 1 76,70 L 44,70" />
+                                <Ellipse x:Name="Comet" Width="16" Height="8" Canvas.Left="-8" Canvas.Top="-4" Opacity="0"
+                                         Fill="{x:Static showcase:Palette.AccentPale}" />
+                            </Canvas>
 
-                        <TextBlock x:Name="Headline" Text="PRESTO" HorizontalAlignment="Center"
-                                   FontSize="68" FontWeight="Bold" LetterSpacing="12"
-                                   Foreground="{x:Static showcase:Palette.AccentPale}" />
+                            <Panel HorizontalAlignment="Center">
+                                <TextBlock x:Name="Headline" Text="PRESTO"
+                                           FontSize="68" FontWeight="Bold" LetterSpacing="12"
+                                           Foreground="{x:Static showcase:Palette.AccentPale}" />
+                                <TextBlock x:Name="HeadlineShine" Text="PRESTO" IsHitTestVisible="False"
+                                           FontSize="68" FontWeight="Bold" LetterSpacing="12" Foreground="White" />
+                            </Panel>
 
-                        <TextBlock x:Name="Subtitle" Classes="mono" Margin="0" Opacity="0"
-                                   HorizontalAlignment="Center" FontSize="14" Text="animation for avalonia" />
+                            <TextBlock x:Name="Subtitle" Classes="mono" Margin="0" Opacity="0"
+                                       HorizontalAlignment="Center" FontSize="14" Text="animation for avalonia" />
 
-                        <StackPanel x:Name="Cards" Orientation="Horizontal" Spacing="12"
-                                    HorizontalAlignment="Center" Margin="0,22,0,0">
-                            <Border Classes="card showcase">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Timelines" FontWeight="SemiBold" />
-                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Labels, positions, nested children" />
-                                </StackPanel>
-                            </Border>
-                            <Border Classes="card showcase">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Shapes" FontWeight="SemiBold" />
-                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Strokes that draw, geometries that morph" />
-                                </StackPanel>
-                            </Border>
-                            <Border Classes="card showcase">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Text" FontWeight="SemiBold" />
-                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Split into characters, staggered into place" />
-                                </StackPanel>
-                            </Border>
+                            <StackPanel x:Name="Cards" Orientation="Horizontal" Spacing="12"
+                                        HorizontalAlignment="Center" Margin="0,22,0,0">
+                                <Border Classes="card showcase">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Timelines" FontWeight="SemiBold" />
+                                        <TextBlock Classes="caption" TextWrapping="Wrap" Text="Labels, positions, nested children" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Classes="card showcase">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Shapes" FontWeight="SemiBold" />
+                                        <TextBlock Classes="caption" TextWrapping="Wrap" Text="Strokes that draw, geometries that morph" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Classes="card showcase">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Text" FontWeight="SemiBold" />
+                                        <TextBlock Classes="caption" TextWrapping="Wrap" Text="Split into characters, staggered into place" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Panel>
+
+                    <Border x:Name="TopBar" Height="30" VerticalAlignment="Top" RenderTransformOrigin="50%,0%"
+                            Background="{x:Static showcase:Palette.Background}" />
+                    <Border x:Name="BottomBar" Height="30" VerticalAlignment="Bottom" RenderTransformOrigin="50%,100%"
+                            Background="{x:Static showcase:Palette.Background}" />
                 </Grid>
             </Border>
 
             <Border Classes="rail showcase">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock Classes="eyebrow showcase" Text="SEEK" VerticalAlignment="Center" Margin="2,0,6,0" />
+                    <Button Content="open" Tag="open" Click="SeekLabel" />
                     <Button Content="draw" Tag="draw" Click="SeekLabel" />
                     <Button Content="mark" Tag="mark" Click="SeekLabel" />
                     <Button Content="title" Tag="title" Click="SeekLabel" />
+                    <Button Content="subtitle" Tag="subtitle" Click="SeekLabel" />
+                    <Button Content="shine" Tag="shine" Click="SeekLabel" />
                     <Button Content="cards" Tag="cards" Click="SeekLabel" />
                     <Button Content="out" Tag="out" Click="SeekLabel" />
                     <TextBlock x:Name="BeatText" Classes="mono" Margin="10,0,0,0" Text="out · 0 crossings" />

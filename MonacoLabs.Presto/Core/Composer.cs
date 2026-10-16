@@ -1,4 +1,4 @@
-﻿namespace MonacoLabs.Presto.Core;
+namespace MonacoLabs.Presto.Core;
 
 /// <summary>
 /// The per-(target, property) sibling registries and the composition of a new tween
@@ -55,6 +55,13 @@ internal static class Composer
             !additiveProperties.TryGetValue(tween.Property, out var additiveSiblings)) return;
 
         TweenList.RemoveChild(additiveSiblings, tween, TweenLink.Additive);
+        if (tween._ownFromNumbers is { } ownFromNumbers)
+        {
+            tween._fromNumber = tween._ownFromNumber;
+            tween._toNumber = tween._ownToNumber;
+            tween._fromNumbers = ownFromNumbers;
+            tween._toNumbers = tween._ownToNumbers!;
+        }
 
         // A single remaining tween in an additive list is the lookup tween itself, so the whole entry goes with it.
         var lookupTween = additiveSiblings._head;
@@ -217,12 +224,17 @@ internal static class Composer
             TweenList.AddChild(additiveAnimation, lookupTween);
         }
 
+        tween._ownFromNumber = tween._fromNumber;
+        tween._ownToNumber = tween._toNumber;
+        tween._ownFromNumbers = Helpers.CloneNumbers(tween._fromNumbers);
+        tween._ownToNumbers = Helpers.CloneNumbers(tween._toNumbers);
+
         // The lookup tween holds the composed value the additive tweens add their deltas to.
         var toNumber = tween._toNumber;
         tween._fromNumber = lookupTween._fromNumber - toNumber;
         tween._toNumber = 0;
-        tween._numbers = Helpers.CloneNumbers(tween._fromNumbers);
-        tween._number = 0;
+        // Upstream starts at 0, so a keyframe that has not rendered since its timer was revived would drop its delta from the sum.
+        tween._number = tween._fromNumber;
         lookupTween._fromNumber = toNumber;
 
         if (tween._toNumbers.Length > 0)
@@ -235,6 +247,7 @@ internal static class Composer
             }
             lookupTween._fromNumbers = toNumbers;
         }
+        tween._numbers = Helpers.CloneNumbers(tween._fromNumbers);
 
         TweenList.AddChild(additiveSiblings, tween, TweenLink.Additive);
     }
