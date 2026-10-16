@@ -31,7 +31,7 @@ dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop      # hot re
 dotnet run --project samples/Tempo/Tempo                       # the Tempo app; -- --skip-intro starts on the main view
 ```
 
-The Desktop head takes launch options after `--`, e.g. `dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --page carousel --motion reduced --size 1400x1000`: `--page` takes a slug or title, `--motion` is `full|reduced|system`, and `--list-pages` prints the slugs. Its output shows under `dotnet run`, though it is a WinExe, so launched directly its output appears only when redirected; bad arguments exit with code 2. Use these to start DevTools checks on a page instead of navigating the sidebar.
+The Desktop head takes launch options after `--`, e.g. `dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --page carousel --motion reduced --size 1400x1000`: `--page` takes a slug or title, `--motion` is `full|reduced|system`, `--frame-pacing on|off` sets `AvaloniaFrameSource.Paced` for A/B checks, and `--list-pages` prints the slugs. Its output shows under `dotnet run`, though it is a WinExe, so launched directly its output appears only when redirected; bad arguments exit with code 2. Use these to start DevTools checks on a page instead of navigating the sidebar.
 
 Tests use xunit v3 on Microsoft.Testing.Platform (`UseMicrosoftTestingPlatformRunner`), which the .NET 10 SDK requires; test projects are `Exe` and can also be run directly.
 

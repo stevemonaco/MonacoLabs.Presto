@@ -8,7 +8,7 @@ using PrestoGallery.ViewModels;
 namespace PrestoGallery;
 
 /// <summary>Command-line options that open the gallery in a known state, so manual and automated checks start from the same place.</summary>
-public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? Motion = null, int? Width = null, int? Height = null)
+public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? Motion = null, int? Width = null, int? Height = null, bool? FramePacing = null)
 {
     public static string Usage =>
         """
@@ -16,6 +16,7 @@ public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? M
           --page <key>                 Open a page at launch: its slug (see --list-pages) or its title, case-insensitive.
           --motion full|reduced|system Set the gallery's motion preference.
           --size <width>x<height>      Set the window size in DIPs, e.g. 1400x1000.
+          --frame-pacing on|off        Turn frame pacing on or off (on by default), for A/B checks.
           --list-pages                 Print every page's slug and title, then exit.
         """;
 
@@ -34,7 +35,7 @@ public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? M
                 listPages = true;
                 continue;
             }
-            if (name is not ("--page" or "--motion" or "--size"))
+            if (name is not ("--page" or "--motion" or "--size" or "--frame-pacing"))
             {
                 error = $"Unknown argument '{args[i]}'.";
                 return false;
@@ -62,6 +63,14 @@ public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? M
                         return false;
                     }
                     options = options with { Motion = motion };
+                    break;
+                case "--frame-pacing":
+                    if (value is not ("on" or "off"))
+                    {
+                        error = $"--frame-pacing must be on or off, not '{value}'.";
+                        return false;
+                    }
+                    options = options with { FramePacing = value == "on" };
                     break;
                 default:
                     if (value.Split('x', 'X') is not [var w, var h]

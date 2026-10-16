@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using MonacoLabs.Presto.Platform;
 
 namespace MonacoLabs.Presto;
 
@@ -13,7 +14,8 @@ namespace MonacoLabs.Presto;
 /// The <see cref="TopLevel"/> comes from the application lifetime, or, when that exposes none, from the last visual the
 /// bridge animated, or else the last top level such a visual was found in. An <see cref="IActivityApplicationLifetime"/>
 /// (Android) publishes only a factory for its main view and never the view itself, so there the timer pumps until the first
-/// visual is animated.
+/// visual is animated. Frame times from a <see cref="TopLevel"/> are snapped to the display's refresh interval (see
+/// <see cref="Paced"/>); the timer's are the wall clock.
 /// </remarks>
 public sealed class AvaloniaFrameSource : IFrameSource
 {
@@ -24,9 +26,13 @@ public sealed class AvaloniaFrameSource : IFrameSource
     private readonly TimeProvider _timeProvider;
     private readonly long _origin;
     private readonly Action<TimeSpan> _requestedFrame;
+    private readonly FramePacer _pacer = new();
     private Action? _onFrame;
     private DispatcherTimer? _timer;
     private bool _requested;
+    private bool _paced = true;
+    private bool _inFrame;
+    private double _lastFrame;
 
     /// <summary>Creates a frame source; <see cref="PrestoAvalonia.EnsureInitialized"/> already gives the engine one, so applications rarely construct their own.</summary>
     public AvaloniaFrameSource() : this(TimeProvider.System)
@@ -41,8 +47,27 @@ public sealed class AvaloniaFrameSource : IFrameSource
         _requestedFrame = RequestedFrame;
     }
 
-    /// <summary>Milliseconds since this source was created, read from its <see cref="TimeProvider"/> so it is also valid outside a frame.</summary>
-    public double Now => _timeProvider.GetElapsedTime(_origin).TotalMilliseconds;
+    /// <summary>
+    /// Milliseconds since this source was created, read from its <see cref="TimeProvider"/> so it is also valid outside a
+    /// frame, but never below the last frame's time; during a frame callback it is that frame's time.
+    /// </summary>
+    public double Now => _inFrame ? _lastFrame : Math.Max(Wall, _lastFrame);
+
+    /// <summary>
+    /// Whether frame times from a <see cref="TopLevel"/> are snapped to the display's refresh interval, so motion advances
+    /// evenly per displayed frame; set false for the raw dispatch time. True by default.
+    /// </summary>
+    public bool Paced
+    {
+        get => _paced;
+        set
+        {
+            if (value && !_paced) _pacer.Restart();
+            _paced = value;
+        }
+    }
+
+    private double Wall => _timeProvider.GetElapsedTime(_origin).TotalMilliseconds;
 
     /// <summary>True while frames come from the <see cref="DispatcherTimer"/> fallback instead of a <see cref="TopLevel"/>.</summary>
     internal bool IsUsingFallbackTimer => _timer is not null;
@@ -66,6 +91,7 @@ public sealed class AvaloniaFrameSource : IFrameSource
     {
         if (_onFrame is not null) return;
         _onFrame = onFrame;
+        _pacer.Restart();
         Pump();
     }
 
@@ -94,6 +120,8 @@ public sealed class AvaloniaFrameSource : IFrameSource
     {
         _requested = false;
         if (_onFrame is not { } onFrame) return;
+        var wall = Wall;
+        BeginFrame(_paced ? _pacer.Frame(wall) : wall);
         var completed = false;
         try
         {
@@ -102,6 +130,7 @@ public sealed class AvaloniaFrameSource : IFrameSource
         }
         finally
         {
+            _inFrame = false;
             // Re-request only while still started, so a Stop() from inside the callback retires the pump.
             if (_onFrame is not null)
             {
@@ -114,6 +143,7 @@ public sealed class AvaloniaFrameSource : IFrameSource
     private void FallbackFrame()
     {
         if (_onFrame is not { } onFrame) return;
+        BeginFrame(Wall);
         var completed = false;
         try
         {
@@ -122,6 +152,7 @@ public sealed class AvaloniaFrameSource : IFrameSource
         }
         finally
         {
+            _inFrame = false;
             if (!completed) Rebuild();
             else if (_onFrame is not null && FindTopLevel() is not null)
             {
@@ -131,6 +162,12 @@ public sealed class AvaloniaFrameSource : IFrameSource
                 Pump();
             }
         }
+    }
+
+    private void BeginFrame(double time)
+    {
+        _lastFrame = Math.Max(time, _lastFrame);
+        _inFrame = true;
     }
 
     /// <summary>

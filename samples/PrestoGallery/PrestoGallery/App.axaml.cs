@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using MonacoLabs.Presto;
 using MonacoLabs.Presto.DevTools;
 using PrestoGallery.ViewModels;
 using PrestoGallery.Views;
@@ -30,6 +31,7 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        if (Launch.FramePacing is { } paced && Presto.Engine.FrameSource is AvaloniaFrameSource source) source.Paced = paced;
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var window = new MainWindow { DataContext = CreateViewModel() };

@@ -47,7 +47,7 @@ This structure is what the ported regression tests exercise, and it ticks withou
 
 ### 2.2 Avalonia bridge (`MonacoLabs.Presto.Avalonia`)
 
-- **Frame pump**: `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, falling back to a `DispatcherTimer` before any `TopLevel` exists; installed on first use. Minimized windows and backgrounded apps set `Engine.Hidden` ([initialization](specs/avalonia-bridge/initialization.md)).
+- **Frame pump**: `AvaloniaFrameSource` re-requests `TopLevel.RequestAnimationFrame` each frame while the engine has children, pacing its frame times to the display's refresh interval, and falls back to a `DispatcherTimer` before any `TopLevel` exists; installed on first use. Minimized windows and backgrounded apps set `Engine.Hidden` ([initialization](specs/avalonia-bridge/initialization.md)).
 - **Targets**: `AvaloniaObjectTargetAdapter` resolves typed `AvaloniaProperty` keys, names (including attached `"Canvas.Left"`) and the bridge's shorthands; writes go in at `BindingPriority.Animation`, so `Revert` clears them cleanly ([property-resolution](specs/avalonia-bridge/property-resolution.md)).
 - **Shorthands**: transform (`X`, `Y`, `Rotate`, `Scale`…) composed into a bridge-owned `TransformGroup`; effects, 3D rotation, clips and masks over bridge-owned visuals ([transforms](specs/avalonia-bridge/transforms.md), [effects](specs/avalonia-bridge/effects.md)).
 - **Codecs** for colors, brushes and gradients, box shadows, thickness, corner radius, points, sizes, rects, vectors, relative points, geometry and `GridLength` ([value-codecs](specs/avalonia-bridge/value-codecs.md)).

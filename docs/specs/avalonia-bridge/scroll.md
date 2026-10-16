@@ -79,14 +79,14 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 
 - **BRIDGE-SCROLL-012** — When `Smooth` is true on Windows, a wheel event whose delta is whole on both axes shall be handled and move the target by `−delta × 50` from the running target (or the offset when none), clamped to the scrollable range.
   - Tests: `ScrollSmoothTests.ANotchEasesToItsStepAndLandsExactly`, `ScrollSmoothTests.QuickNotchesAccumulateIntoOneTarget`, `ScrollSmoothTests.TheTargetClampsAtTheEnd`
-- **BRIDGE-SCROLL-013** — The smooth scroll shall ease from the current offset to the target over 300 ms (× `Globals.TimeScale`) on `OutQuad` with `SetCurrentValue`, landing exactly.
-  - Tests: `ScrollSmoothTests.ANotchEasesToItsStepAndLandsExactly`
+- **BRIDGE-SCROLL-013** — The smooth scroll shall ease from the current offset to the target over 300 ms (× `Globals.TimeScale`) on `OutQuad` with `SetCurrentValue`, timed from the notch with no head start, landing exactly.
+  - Tests: `ScrollSmoothTests.ANotchEasesToItsStepAndLandsExactly`, `ScrollSmoothTests.ANotchEasesFromItsOwnTimeWithoutAHeadStart`
 - **BRIDGE-SCROLL-014** — A wheel delta with a fractional part, touch, scrollbar and keyboard input shall pass through unsmoothed.
   - Tests: `ScrollSmoothTests.APreciseDeltaScrollsAtOnceUnsmoothed`
 - **BRIDGE-SCROLL-015** — With Shift held and no horizontal delta, a vertical notch shall move the horizontal target.
   - Tests: untested
-- **BRIDGE-SCROLL-016** — When a notch would not move the target (the range's end), the event shall be left unhandled so the presenter and outer scrollers get it.
-  - Tests: untested
+- **BRIDGE-SCROLL-016** — When a notch would not move the target (the range's end), the event shall be handled while an ease is running, and otherwise left unhandled so the presenter and outer scrollers get it.
+  - Tests: `ScrollSmoothTests.ANotchPastTheEndWhileEasingIsSwallowedInsteadOfJumping`
 - **BRIDGE-SCROLL-017** — Any offset change the smooth scroll did not write, including an extent shrink clamping its own write, shall stop it where it is.
   - Tests: `ScrollSmoothTests.ADirectOffsetSetCancelsTheEase`, `ScrollSpikeTests.SmoothTreatsItsOwnWriteClampedByAShrunkExtentAsForeignAndStops`
 - **BRIDGE-SCROLL-018** — A `ScrollObserver` snap shall wait until the smooth scroll has settled.
@@ -258,7 +258,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **`ScrollIntoView` scrolls every ancestor scroller at once.** Innermost first, each outer one aiming at the element's rect at the inner's final offset cut to the inner viewport; rects come from summed layout slots; one `Animation` drives them; nothing to move returns a completed animation. Reason: browser `scrollIntoView` and Flutter `ensureVisible` behave so.
 - **`ScrollToIndex` jumps close, then animates a measured last stretch.** On a `VirtualizingStackPanel`, beyond 2 viewports it jumps to 1 viewport short of `index × mean size` (up to 3 layout passes), then eases the rest re-aimed every frame and writes the measured offset until it holds; it tracks the item, not the index; other panels scroll the container into view. Reason: Compose's `animateScrollToItem` does so; the item is not realized yet, the panel's extent estimate is stale and private, and the panel places a jump clear of its realized items.
 - **The parallax entry is clamped at 0 and measured at once.** `Speed` translates by `(1 − speed) × max(0, scroll − entry)`, written in the same `Offset` notification, and re-measured immediately on layout, viewport or extent changes, not after the observers' debounce. Reason: without the clamp an element in view at load was pushed off its layout position before any scroll; the element is visible meanwhile, so the re-measure cannot wait.
-- **Smoothed wheel is opt-in and Win32 only.** `Smooth` smooths whole notches on Windows only, accumulating into one target, and passes fractional deltas, touch, scrollbar, keyboard and end-of-range notches through; a touchpad delta that is an exact multiple of 120 is accepted as a known caveat. Reason: wheel events carry only `Delta`, and only Win32 makes a notch distinguishable; the Browser head divides DOM deltas by 50 ignoring `deltaMode` and macOS passes already-smoothed deltas. Passing end-of-range notches keeps scroll chaining.
+- **Smoothed wheel is opt-in and Win32 only.** `Smooth` smooths whole notches on Windows only, accumulating into one target, and passes fractional deltas, touch, scrollbar, keyboard and end-of-range notches through; a touchpad delta that is an exact multiple of 120 is accepted as a known caveat. Reason: wheel events carry only `Delta`, and only Win32 makes a notch distinguishable; the Browser head divides DOM deltas by 50 ignoring `deltaMode` and macOS passes already-smoothed deltas. Passing end-of-range notches keeps scroll chaining; they are held back only while an ease is running, where the presenter would jump the rest of the way and cancel it. Each notch rebases the ease's start to the notch itself, because `Resume` adds a one-frame head start that jumped the scroll ahead at every notch of a long scroll.
 - **`StickToEnd` arms by position and never acts on the same change as `ScrollAnchor`.** It is armed within 1 DIP of `ScrollBarMaximum`, judged on every offset change; while armed a maximum change eases to the end, retargeting one running ease; a change short of the end not written by that ease releases it; `ItemChanges` records no anchor while armed. Reason: at the end it follows growth and scrolled up the anchor holds the row, so one change is never handled twice.
 - **Pin, spacing and snap follow GSAP ScrollTrigger, layered on the ported observer.** See BRIDGE-SCROLLOBSERVER.
 - **The flag has no change notification.** See CORE-REDUCED.
@@ -271,5 +271,5 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 
 ## Open items
 
-- Untested: missing `ScrollViewer` ancestor for parallax (009), Shift-wheel (015), end-of-range pass-through (016), `ScrollTo` with no moving axis (036), layout-slot rects ignoring render transforms (039), the non-virtualizing and no-scroller `ScrollToIndex` paths (047, 048), `Nearest` fixing (053), already-aligned `ScrollToIndex` (057).
+- Untested: missing `ScrollViewer` ancestor for parallax (009), Shift-wheel (015), `ScrollTo` with no moving axis (036), layout-slot rects ignoring render transforms (039), the non-virtualizing and no-scroller `ScrollToIndex` paths (047, 048), `Nearest` fixing (053), already-aligned `ScrollToIndex` (057).
 - 020 and 065 need manual checks (non-Windows head; XAML previewer).
