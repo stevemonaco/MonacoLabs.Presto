@@ -1,4 +1,5 @@
-﻿using static MonacoLabs.Presto.Tests.TestHelpers;
+﻿using MonacoLabs.Presto.Core;
+using static MonacoLabs.Presto.Tests.TestHelpers;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -174,6 +175,18 @@ public sealed class EnginesTests : EngineTestBase
 
         scene.Frames.Advance(500, 16);
         Assert.Equal(100, target.X);
+    }
+
+    [Fact]
+    public void SettingTheTimeUnitOnAnotherEngineThrowsAndLeavesTheTimeScale()
+    {
+        var scene = new IsolatedEngine();
+
+        Assert.Throws<InvalidOperationException>(() => scene.Engine.TimeUnit = TimeUnit.Seconds);
+        Assert.Throws<InvalidOperationException>(() => scene.Engine.TimeUnit = TimeUnit.Milliseconds);
+
+        Assert.Equal(1, Globals.TimeScale);
+        Assert.Equal(1, scene.Engine.Speed);
     }
 
     [Fact]

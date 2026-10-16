@@ -27,37 +27,36 @@ depends:
 
 ## Purpose
 
-A damped-harmonic-oscillator ease whose length is computed, not supplied: the solver finds when the spring comes to rest and that `SettlingDuration` becomes the duration of any tween eased by it. It is configured either physically (mass, stiffness, damping, velocity) or perceptually (bounce, duration), each side derived from the other. It is an ease (CORE-EASES); animations adopt its duration (CORE-ANIMATION), and `Animatable` and `Inertia` sample its `PureEase`. `Springs` names four ready-made springs (`Gentle`, `Snappy`, `Bouncy`, `Stiff`). Also specifies `Eases.Spring`.
+A damped-harmonic-oscillator ease whose length is computed, not supplied: the solver finds when the spring comes to rest and that `SettlingDuration` becomes the duration of any tween eased by it. It is configured either physically (mass, stiffness, damping, velocity) or perceptually (bounce, duration), each side kept in step with the other. It is an ease (CORE-EASES); animations adopt its duration (CORE-ANIMATION), and `Animatable` and `Inertia` sample its `PureEase`. `Springs` names four ready-made springs (`Gentle`, `Snappy`, `Bouncy`, `Stiff`). Also specifies `Eases.Spring`.
 
 ## Requirements
 
 ### Construction
 
-- **CORE-SPRING-001** — A spring constructed without arguments shall have mass 1, stiffness 100, damping 10, velocity 0, bounce 0.5 and duration 628 times the time scale (628 ms, or 0.628 s in seconds mode).
+- **CORE-SPRING-001** — A spring constructed without arguments shall have mass 1, stiffness 100, damping 10 and velocity 0, and report the bounce 0.5 and duration 628.319 ms (0.628 s in seconds mode) those imply (CORE-SPRING-009).
   - Tests: `EaseFixtureTests.SpringMatchesUpstream`, `SpringTests.TheDefaultDurationFollowsTheTimeUnit`
 - **CORE-SPRING-002** — The constructor shall clamp mass to [1, 10000], stiffness and damping to [1e-11, 10000], velocity to [−10000, 10000], bounce to [−1, 1] and duration to [10, 10000] times the time scale.
   - Tests: `SpringTests.SpringParametersMustBeClampedAt10000`, `SpringTests.SpringVelocityCanBeNegative`
-- **CORE-SPRING-003** — When `bounce` or `duration` is given, the constructor shall derive stiffness and damping from them and set mass to 1 and velocity to 0, whatever physical arguments were passed.
-  - Tests: `EaseFixtureTests.SpringMatchesUpstream`
-- **CORE-SPRING-004** — When only physical arguments are given, the constructor shall leave `Bounce` at 0.5 and `Duration` at its default (CORE-SPRING-001) rather than derive them.
-  - Tests: `EaseFixtureTests.SpringMatchesUpstream`
+- **CORE-SPRING-003** — When `bounce` or `duration` is given, the constructor shall derive stiffness and damping from them for the given (or default) mass, keeping the given mass and velocity and discarding any stiffness and damping arguments; a missing one of the two takes its default, 0.5 or 628 times the time scale.
+  - Tests: `EaseFixtureTests.SpringMatchesUpstream`, `SpringTests.PhysicalAndDesignerFormsRoundTrip`
+- **CORE-SPRING-004** — When neither `bounce` nor `duration` is given, the constructor shall derive `Bounce` and `Duration` from the physical arguments (CORE-SPRING-009).
+  - Tests: `SpringTests.PhysicalAndDesignerFormsRoundTrip`, `SpringTests.TheDefaultDurationFollowsTheTimeUnit`
 - **CORE-SPRING-005** — `Eases.Spring(...)` shall return a new spring constructed from the same arguments.
   - Tests: `SpringTests.SpringEaseParametersAffectSettlingDuration`
 
 ### Two-way derivation
 
-- **CORE-SPRING-006** — Deriving from bounce and duration shall set stiffness to (2π/D)², with D the duration in seconds, clamped to [1e-11, 10000] and rounded to 3 decimals.
-  - Tests: `EaseFixtureTests.SpringMatchesUpstream`
-- **CORE-SPRING-007** — Deriving from bounce and duration shall set damping to (1 − bounce)·4π/D for bounce ≥ 0 and 4π/(D·(1 + bounce)) for bounce < 0, clamped to [1e-11, 300] and then rounded to 3 decimals.
-  - Tests: `EaseFixtureTests.SpringMatchesUpstream`, `SpringTests.BounceSignPicksTheDampingRegime`
-- **CORE-SPRING-008** — When `Bounce` or `Duration` is set, the spring shall clamp it, set mass to 1 and velocity to 0, re-derive stiffness and damping, and recompute.
-  - Tests: `SpringTests.SettingBounceAfterConstructionRederivesStiffnessAndDamping`
-- **CORE-SPRING-009** — When `Stiffness` or `Damping` is set, the spring shall clamp it, re-derive `Duration` as 2π/√stiffness (in the engine unit) and `Bounce` as 1 − damping·D/4π when damping/(2√stiffness) ≤ 1, else 4π/(damping·D) − 1, each clamped and rounded to 3 decimals, and recompute.
-  - Tests: untested
-- **CORE-SPRING-010** — The derivation from stiffness and damping shall assume mass 1, whatever `Mass` is.
-  - Tests: untested
-- **CORE-SPRING-011** — When `Mass` or `Velocity` is set, the spring shall clamp it and recompute, leaving `Bounce` and `Duration` unchanged.
-  - Tests: `SpringTests.SettingASpringParameterAfterCreationShouldUpdateItsDuration`
+- **CORE-SPRING-006** — Deriving from bounce and duration shall set stiffness to mass·(2π/D)², with D the duration in seconds, clamped to [1e-11, 10000] and rounded to 3 decimals.
+  - Tests: `EaseFixtureTests.SpringMatchesUpstream`, `SpringTests.SettingBounceOrDurationKeepsMassAndVelocity`
+- **CORE-SPRING-007** — Deriving from bounce and duration shall set damping to mass·(1 − bounce)·4π/D for bounce ≥ 0 and mass·4π/(D·(1 + bounce)) for bounce < 0, so the damping ratio is 1 − bounce or 1/(1 + bounce) at any mass, clamped to [1e-11, 300] and then rounded to 3 decimals.
+  - Tests: `EaseFixtureTests.SpringMatchesUpstream`, `SpringTests.BounceSignPicksTheDampingRegime`, `SpringTests.SettingBounceOrDurationKeepsMassAndVelocity`
+- **CORE-SPRING-008** — When `Bounce` or `Duration` is set, the spring shall clamp it, re-derive stiffness and damping for the current mass, leave mass and velocity as set, and recompute.
+  - Tests: `SpringTests.SettingBounceAfterConstructionRederivesStiffnessAndDamping`, `SpringTests.SettingBounceOrDurationKeepsMassAndVelocity`
+- **CORE-SPRING-009** — When `Mass`, `Stiffness` or `Damping` is set, the spring shall clamp it, re-derive `Duration` as 2π·√(mass/stiffness) (in the engine unit) and `Bounce` as 1 − ζ when ζ ≤ 1, else 1/ζ − 1, with ζ = damping/(2√(stiffness·mass)), each clamped and rounded to 3 decimals, and recompute.
+  - Tests: `SpringTests.SettingMassRederivesBounceAndDuration`, `SpringTests.PhysicalAndDesignerFormsRoundTrip`
+- ~~**CORE-SPRING-010**~~ — Removed: the derivation from stiffness and damping now uses the current mass (CORE-SPRING-009; see "Spring settings stay in step").
+- **CORE-SPRING-011** — When `Velocity` is set, the spring shall clamp it, re-derive `Bounce` and `Duration` from stiffness, damping and mass as CORE-SPRING-009 does (velocity enters neither formula), and recompute.
+  - Tests: `SpringTests.SettingASpringParameterAfterCreationShouldUpdateItsDuration`, `SpringTests.SettingBounceOrDurationKeepsMassAndVelocity`
 - **CORE-SPRING-012** — Every setter shall clamp to the constructor's ranges.
   - Tests: `SpringTests.SpringParametersMustBeClampedAt10000`, `SpringTests.SpringVelocityCanBeNegative`
 
@@ -140,7 +139,8 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - `bounce: 1` derives damping 0 after rounding: the spring never settles and `SettlingDuration` is 60000 ms.
 - `bounce: -1` divides by zero; the infinite damping clamps to 300.
 - `Ease` and `PureEase` do not clamp t; past 1 they keep solving the curve.
-- Passing physical arguments with `bounce` or `duration` silently discards the physical ones.
+- Passing `stiffness` or `damping` with `bounce` or `duration` silently discards the stiffness and damping.
+- Clamping and rounding can leave the two views slightly apart: a bounce of −1 clamps damping to 300, and a set `Bounce` or `Duration` is kept as given, not re-derived from the rounded stiffness and damping.
 
 ## Threading and lifetime
 
@@ -164,6 +164,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - Parameters are nullable constructor arguments instead of a params object; `OnComplete` may be null instead of `noop`.
 - The deprecated `createSpring()` is not ported.
 - `Springs` has no upstream: anime.js names no spring presets.
+- Both derivations take mass into account and keep mass and velocity, and a physically configured spring reports its implied bounce and duration, where upstream assumes mass 1, resets mass and velocity, and leaves bounce 0.5 and duration 628 (see "Spring settings stay in step").
 - The default perceived duration is scaled by the time unit, where upstream leaves 628 unscaled in seconds mode (see "Preset and default durations follow the time unit").
 
 ## Decisions
@@ -171,16 +172,14 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - **No core velocity API for an ease; `DampingRatio` is public.** Callers that need the ease's velocity compute it numerically from `PureEase`. Reason: no core API until a use shows it is generally useful.
 - **Preserved velocity is measured from the running ease.** See CORE-ANIMATABLE.
 - **Spring presets live in the core, fresh per read.** `Springs` is a static class in `MonacoLabs.Presto`, each read returning a new `Spring`; `Eases.Spring` stays the way to build a custom one. Reason: a preset is just a `Spring`, a core type, and a `Spring` carries completion state, so it cannot be shared. Replaces BRIDGE-EASES's `Spring presets live in the bridge, fresh per read`, whose reasons (completion state, use from XAML) did not depend on where the class lives.
+- **Spring settings stay in step.** Setting `Mass`, `Stiffness`, `Damping` or `Velocity` re-derives `Bounce` and `Duration`; setting `Bounce` or `Duration` re-derives `Stiffness` and `Damping` for the current `Mass`, leaving `Mass` and `Velocity` as set; a spring built from physical arguments reports the `Bounce` and `Duration` they imply. Both derivations use ω0 = √(stiffness/mass) and ζ = damping/(2√(stiffness·mass)), so at mass 1 they match upstream exactly. `Velocity` enters neither formula, so setting it only re-snaps `Bounce` and `Duration` to what the rounded stiffness and damping imply. Reason: the physical and designer settings are two views of one spring, and a view that goes stale or resets the other misreports it. Rejected: documenting upstream's one-way derivation.
 - **Preset and default durations follow the time unit.** A preset names a perceived duration in milliseconds and converts it on each read, so `Springs.Gentle` feels the same in seconds mode instead of clamping to 10 s, and the default 628 is scaled the same way, to 0.628 s. Reason: an unscaled preset made the default `Timer.Settle` crawl in seconds mode, and the unscaled default clamped to 10 s, so a physically configured spring's `OnComplete` never fired and a bounce-only spring derived from a 10 s duration. Rejected: upstream's unscaled 628.
 
 ## Non-goals
 
 - No velocity readout of the ease; callers differentiate `PureEase` numerically.
 - No string syntax (CORE-EASEPARSER).
-- No re-derivation of bounce and duration from mass or velocity.
 
 ## Open items
 
-- The two-way derivation is meant to keep physical and designer settings in step, but setting `Mass` or `Velocity` leaves `Bounce` and `Duration` stale, and setting `Bounce` or `Duration` silently resets `Mass` and `Velocity` (kept from upstream; the XML docs mention neither).
-- `Duration` and `Bounce` of a spring built from physical arguments stay at their defaults (628 ms and 0.5), not the values its parameters imply.
-- Untested: the stiffness/damping → bounce/duration derivation (009, 010), the natural-frequency clamp (014), `PureEase` leaving completion alone (028), `Parent` assignment by an animation (030), and time-unit behavior beyond `SettlingDuration` (033, 034).
+- Untested: the natural-frequency clamp (014), `PureEase` leaving completion alone (028), `Parent` assignment by an animation (030), and time-unit behavior beyond `SettlingDuration` (033, 034).

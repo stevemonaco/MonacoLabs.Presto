@@ -58,6 +58,35 @@ public sealed class FollowTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void BeforeTheFirstAttachALaterValueSnaps()
+    {
+        var border = Box();
+        Follow.SetTiming(border, Presto.Build().Duration(100).Ease("linear"));
+        Follow.SetX(border, 0);
+
+        Follow.SetX(border, 100);
+        Assert.Equal(100, Part<TranslateTransform>(border).X);
+        Assert.Null(Presto.Engine._head);
+
+        Show(border);
+        Follow.SetX(border, 0);
+        Frames.Advance(48, 16);
+        Assert.InRange(Part<TranslateTransform>(border).X, 30, 70);
+    }
+
+    [AvaloniaFact]
+    public void ANonNumericStringThrowsAndKeepsTheFollowedValue()
+    {
+        var border = Shown();
+        Follow.SetX(border, 40);
+
+        Assert.Throws<FormatException>(() => Follow.SetX(border, "50%"));
+        Assert.Throws<FormatException>(() => Follow.SetY(border, "10deg"));
+
+        Assert.Equal(40, Part<TranslateTransform>(border).X);
+    }
+
+    [AvaloniaFact]
     public void AMidFlightRetargetKeepsTheVelocity()
     {
         var border = Box();

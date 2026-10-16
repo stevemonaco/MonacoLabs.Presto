@@ -26,7 +26,7 @@ namespace MonacoLabs.Presto;
 /// </para>
 /// <para>
 /// On a <see cref="Popup"/>, set directly or through <c>/template/</c> (such as <c>ComboBox /template/ Popup#PART_Popup</c>),
-/// they play on its child, and a Close set as it opens holds <c>IsOpen</c> true at <see cref="Avalonia.Data.BindingPriority.Animation"/>:
+/// or on its child, they play on its child, and a Close set as it opens holds <c>IsOpen</c> true at <see cref="Avalonia.Data.BindingPriority.Animation"/>:
 /// writing <c>IsOpen</c> false underneath, through a local value or a binding such as the <c>ComboBox</c>'s, plays Close
 /// and then closes, and writing it true again plays Close back. A <c>ClearValue</c> under the hold is lost, so close it by
 /// writing false. Light dismiss closes the popup at once and plays Close on a ghost; the popup detaching closes it at once.
@@ -70,7 +70,7 @@ public static class Popover
             if (!popup.IsOpen) End(owner);
             // A flyout's or context menu's presenter can carry the builders too, but only that owner plays them.
             else if (popup.Child is { } child && child.IsAttachedToVisualTree() &&
-                     (owner is ToolTip || popup.GetValue(OpenProperty) is not null || popup.GetValue(CloseProperty) is not null))
+                     (child is not (ContextMenu or FlyoutPresenter or MenuFlyoutPresenter) || popup.GetValue(OpenProperty) is not null || popup.GetValue(CloseProperty) is not null))
                 Start(owner, child, popup);
         });
     }

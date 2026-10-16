@@ -4,6 +4,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.Logging;
 using Avalonia.Media;
 using Avalonia.Metadata;
 using Avalonia.VisualTree;
@@ -114,7 +115,10 @@ public sealed class PullToRefresh : Control, IGestureMember
         set => SetValue(ForegroundProperty, value);
     }
 
-    /// <summary>The work a release past <see cref="Threshold"/> runs; the content is held at the threshold until its task ends.</summary>
+    /// <summary>
+    /// The work a release past <see cref="Threshold"/> runs; the content is held at the threshold until its task ends. A
+    /// faulted or canceled task is logged through Avalonia's <see cref="Logger"/>, not rethrown, and the content still springs back.
+    /// </summary>
     public Func<Task>? Refresh { get; set; }
 
     /// <summary>How far the content is pulled down, in DIPs, as it renders.</summary>
@@ -215,6 +219,11 @@ public sealed class PullToRefresh : Control, IGestureMember
         try
         {
             if (Refresh is { } work) await work();
+        }
+        catch (Exception e)
+        {
+            Logger.TryGet(e is OperationCanceledException ? LogEventLevel.Warning : LogEventLevel.Error, LogArea.Control)
+                ?.Log(this, "PullToRefresh.Refresh ended with {Exception}", e);
         }
         finally
         {

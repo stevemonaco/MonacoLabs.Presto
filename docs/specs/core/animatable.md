@@ -113,6 +113,8 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
   - Tests: `AnimatablesTests.AnimatableOnUpdateCallbacks`
 - **CORE-ANIMATABLE-028** — When a property animation completes or pauses and every property animation is paused, the animatable shall complete the callbacks animation, raising `OnComplete` once.
   - Tests: `AnimatablesTests.AnimatableOnCompleteCallbacks`
+- **CORE-ANIMATABLE-060** — The callbacks animation shall have no end of its own: only CORE-ANIMATABLE-028 completes it, so a burst of any length raises `OnUpdate` until its last property animation stops and `OnComplete` only then (see "The callbacks animation ends with its properties").
+  - Tests: `AnimatablesTests.TheCallbacksLastAsLongAsTheSet`
 - **CORE-ANIMATABLE-029** — Each callback shall receive the animatable.
   - Tests: untested
 
@@ -159,8 +161,10 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
   - Tests: `AnimatablesTests.AFlingOutwardFromABoundGoesOutAndBack`
 - **CORE-ANIMATABLE-048** — When a property's targets resolve to fling plans of different lengths, the animation shall last the longest and every tween shall be sampled over it, ending on its own plan's end.
   - Tests: untested
-- **CORE-ANIMATABLE-049** — The first fling after a `Set` shall save the property's eases and animation duration; the next scalar `Set` shall restore them, using the `Set` arguments where given.
-  - Tests: `AnimatablesTests.ASetAfterAFlingUsesTheDeclaredEaseAndDurationAgain`
+- **CORE-ANIMATABLE-049** — The first fling after a `Set` shall save the property's eases and animation duration; the next `Set`, scalar or channel, shall clear and restore them, using the `Set` arguments where given. A flung property is scalar (CORE-ANIMATABLE-061), so a channel `Set` after a fling moves no channel and only restores.
+  - Tests: `AnimatablesTests.ASetAfterAFlingUsesTheDeclaredEaseAndDurationAgain`, `AnimatablesTests.AChannelSetAfterAFlingUsesTheDeclaredEaseAndDurationAgain`
+- **CORE-ANIMATABLE-061** — When the property is a color or complex one, `Fling` of either overload shall throw `NotSupportedException` before changing anything.
+  - Tests: `AnimatablesTests.FlingRejectsAColorProperty`
 
 ### Revert
 
@@ -193,7 +197,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 - `Animations` holds exactly one animation per declared property until `Revert`, and none after.
 - Every tween of a property animation ends exactly on the value last passed to `Set`, or on the resolved fling target.
-- The callbacks animation is playing whenever any property animation is running, except as noted in Open items.
+- The callbacks animation is playing whenever any property animation is running.
 
 ## Edge cases
 
@@ -231,8 +235,10 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **An animatable honors `ReduceAll` on every retarget.** Its animations are built uncollapsed, and while the flag is set a retarget aims and stretches as usual, then seeks to the end instead of resuming. Reason: `ReduceAll` promises no motion and retargets are the motion; seeking keeps the durations, staggers and saved fling state as they would be, so nothing leaks once the flag clears, and an animatable created under the flag eases normally after it. Rejected: honoring it only at creation, where a `Set` with a duration, a momentum retarget or a `Fling` still animated and the callbacks completed on their first frame; collapsing each retarget through a zero-duration stretch, which loses per-target durations and needs the real one saved and restored.
 - **Spring momentum on retarget is opt-in.** `PreserveVelocity` (`bool?` on the params and the property, the property winning, default false) hands the current velocity to a fresh `Spring` with the same mass, stiffness and damping when a spring-eased property is retargeted, in the scalar and the channel `Set` alike; earlier only the scalar `Set` carried it, extended because colors, thicknesses and points keep momentum too. Reason: momentum carried across a retarget is what makes a spring feel physical (Framer Motion, React Spring, Compose); opt-in because it changes what a spring-eased animatable does, and because Draggable drives its release springs through an `Animatable` and sets their velocity itself. Rejected: upstream's reset, where a spring always starts at rest, as the only behavior.
 - **Preserved velocity is measured from the running ease.** Only a `Spring` ease (the `Set`'s, the property's or the animatable's) preserves velocity; velocity is a central difference of the running ease, a spring sampled through its `PureEase`, normalized to the solver's progress per second; a paused, completed or unstarted tween, or a retarget to the current value, starts at rest; the animation lasts the longest settling duration (or the `Set` duration compresses them) and an early-settling tween holds its end. Nothing new is public on `Spring`. Reason: sampling through `PureEase` never raises the spring's `OnComplete`; a zero-distance retarget cannot carry velocity in an ease-based model; each tween's settling duration depends on its velocity.
-- **`Fling` retargets with an inertia.** `Fling(property, velocity, settings)` coasts the property under the inertia solver; without a velocity it measures the running tween's (0 when paused or finished); the animatable's ease and duration are replaced for that run and restored by the next scalar `Set`; differing per-target durations are sampled over the longest. Reason: a value that is already moving keeps coasting; it mirrors `Set(…, ease)` replacing the ease for one run.
+- **`Fling` retargets with an inertia.** `Fling(property, velocity, settings)` coasts the property under the inertia solver; without a velocity it measures the running tween's (0 when paused or finished); the animatable's ease and duration are replaced for that run and restored by the next `Set`; differing per-target durations are sampled over the longest. Reason: a value that is already moving keeps coasting; it mirrors `Set(…, ease)` replacing the ease for one run.
 - **`Fling` settings carry no velocity.** Both overloads ignore `Inertia.Velocity`: the velocity is the argument or the property's measured one, and `settings` supplies only the decay, snap and bounds; settings are written `new Inertia { … }`. Reason: one source of velocity per call, and a fallback to `settings.Velocity` at rest would jump between a near-still property (coasts almost nowhere) and a still one (full kick). Rejected: `settings.Velocity` as an at-rest fallback.
+- **The callbacks animation ends with its properties.** It is built with a `Constants.MaxValue` duration, so only CORE-ANIMATABLE-028 (every property animation paused or completed) completes it, `ReduceAll` included. Reason: with the engine's default duration a burst longer than 1000 ms raised `OnComplete` while properties still moved and stopped `OnUpdate`. Rejected: upstream's default duration; stretching it to the longest running property animation on each begin, which a retarget mid-burst outlives.
+- **`Fling` coasts scalars only.** A color or complex property throws `NotSupportedException`. Reason: the inertia solver resolves one number, and an `Inertia` to-value already throws for channels.
 - **Out-and-back bounces fold into one ease.** When a fling's inertia becomes a degenerate bounce, `Fling` folds its two parts, out to the spring's first peak and back to the bound, into one ease. Reason: an animatable has one tween per target.
 - **A degenerate bounce goes out and back.** See CORE-INERTIA.
 - **`ValueOf` caches one value per property.** Repeated calls return the same `MotionValue` and add no subscriptions. Reason: no new API and no lifetime trap. Rejected: weak subscriptions (`ValueOf("X").Bind(...)` with no stored reference stops after a GC) and a disposable handle (API and burden on every caller).
@@ -250,7 +256,4 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 ## Open items
 
-- The callbacks animation has the engine's default duration (1000 ms): a burst longer than that completes it early, raising `OnComplete` while properties still move and stopping `OnUpdate` (kept from upstream). Untested.
-- The channel `Set` neither consults nor clears a saved fling; the next scalar `Set` still restores the pre-fling eases.
-- `Fling` on a color or complex property is not rejected (an `Inertia` to-value throws for one); its behavior is unspecified and untested.
 - No core test for canonical-name lookup (only a bridge test pins it), unknown properties, `PlaybackRate`/`FrameRate` passthrough, or per-property `Composition`.

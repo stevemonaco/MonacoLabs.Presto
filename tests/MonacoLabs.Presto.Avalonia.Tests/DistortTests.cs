@@ -104,7 +104,7 @@ public sealed class DistortTests : CompositorTestBase
         var (distort, bar) = ShowDistort(d => d.Glitch = 6);
         Assert.Equal(1, distort.Snapshots);
 
-        ((SolidColorBrush)bar.Background!).Color = Colors.Blue;
+        bar.Background = new SolidColorBrush(Colors.Blue);
         Tick();
         Tick();
 
@@ -115,6 +115,34 @@ public sealed class DistortTests : CompositorTestBase
         Tick();
         Tick();
         Assert.Equal(2, distort.Snapshots);
+    }
+
+    [AvaloniaFact]
+    public void AHeldEffectStopsCheckingForRedrawsOnceNothingChanges()
+    {
+        var (distort, _) = ShowDistort(d => d.Glitch = 6);
+        Tick();
+        var checks = distort.Checks;
+
+        for (var i = 0; i < 5; i++) Tick();
+
+        Assert.Equal(checks, distort.Checks);
+        Assert.Equal(1, distort.Snapshots);
+    }
+
+    [AvaloniaFact]
+    public void AnAnimatedEffectIsCheckedEveryFrame()
+    {
+        var (distort, _) = ShowDistort(d => d.Turbulence = 8);
+        distort.Animate(b => b.Property(Distort.TurbulencePhaseProperty, from: 0.0, to: 4.0).Duration(1000).Ease(Eases.None));
+
+        for (var i = 0; i < 3; i++)
+        {
+            var checks = distort.Checks;
+            Frames.Advance(16);
+            Tick();
+            Assert.True(distort.Checks > checks, $"frame {i} was not checked");
+        }
     }
 
     [AvaloniaFact]

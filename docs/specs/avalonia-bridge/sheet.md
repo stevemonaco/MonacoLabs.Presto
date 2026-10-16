@@ -34,7 +34,7 @@ depends:
 
 ## Purpose
 
-`Sheet` is a control that slides its content out from an edge of its host over a scrim and rests on a list of detents. A drag moves it, and a release coasts through inertia to the detent nearest where the fling would carry it. `Drawer` is the side variant with an edge swipe to open. Both fill their host (a page's panel or the window's `OverlayLayer`); their drag is their own pointer handling, not a `Draggable`, so an inner `ScrollViewer` can keep a touch scroll.
+`Sheet` is a control that slides its content out from an edge of its host over a scrim and rests on a list of detents. A drag moves it, and a release coasts through inertia to the detent nearest where the fling would carry it. `Drawer` is the variant with an edge swipe to open, from any `Edge` (`Left` by default). Both fill their host (a page's panel or the window's `OverlayLayer`); their drag is their own pointer handling, not a `Draggable`, so an inner `ScrollViewer` can keep a touch scroll.
 
 ## Requirements
 
@@ -180,5 +180,4 @@ depends:
 
 ## Open items
 
-- `Drawer` docs say Left or Right, but any `Edge` works, including Top and Bottom with an edge strip.
 - Untested: the handled release, the `Edge` change rebuild, the `Drawer` default edge, and `Scrim = null` letting taps through.

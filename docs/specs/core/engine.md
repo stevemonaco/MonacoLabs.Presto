@@ -116,9 +116,9 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 - **CORE-ENGINE-025** — The engine's `Speed` shall multiply the playback rate of every child, and setting it shall rebase the running children so they continue from their current time.
   - Tests: `ParametersTests.EngineSpeedDoublesTimerPlayback`, `ParametersTests.ChangingEngineSpeedContinuesRunningTimersFromTheirCurrentTime`
-- **CORE-ENGINE-026** — When `TimeUnit` is set to `Seconds`, every duration, delay and time value in the API shall be read in seconds: the numeric default duration and the engine's internal speed are multiplied by 0.001 and the forced-render threshold becomes 0.2, while `Speed` still reads 1; setting `Milliseconds` reverses it.
+- **CORE-ENGINE-026** — When `TimeUnit` is set to `Seconds` on `Presto.Engine`, every duration, delay and time value in the API shall be read in seconds: the numeric default duration and the engine's internal speed are multiplied by 0.001 and the forced-render threshold becomes 0.2, while `Speed` still reads 1; setting `Milliseconds` reverses it.
   - Tests: `EngineTests.ChangingTheTimeUnitShouldAffectDurationValues`, `EngineTests.EngineSpeedReads1InSecondsMode`, `SecondsTests.ATimerPlaysInSeconds`
-- **CORE-ENGINE-027** — When `TimeUnit` is set to the unit already in force, the engine shall change nothing.
+- **CORE-ENGINE-027** — When `TimeUnit` is set on `Presto.Engine` to the unit already in force, the engine shall change nothing; on any other engine it throws (CORE-THREADING-029).
   - Tests: untested
 - **CORE-ENGINE-028** (inherited) — When the default duration is function-based, switching `TimeUnit` shall leave it unscaled.
   - Tests: untested
@@ -285,5 +285,4 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 ## Open items
 
-- `TimeUnit` can be set on any engine, but it rescales only that engine's default duration and speed while changing process-wide state; the per-engine state decision (CORE-THREADING) says it is set on the main engine only, which nothing enforces.
 - Untested: replacing `FrameSource` while running, `Pause` on an idle engine, `Wake` after `Pause`, `PauseOnHidden` turned on while hidden, and `Advance(ms, step)` with a non-positive step.

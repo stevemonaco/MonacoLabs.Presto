@@ -95,6 +95,8 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
   - Tests: `OriginTests.ChildrenInheritTheirRootsOrigin`, `OriginTests.TheTagAppliesInsideTheScopeAndNests`
 - **CORE-DIAGNOSTICS-021** — The core shall tag its own roots: the additive composition animation as `"Additive"`, and an animatable's callbacks animation as `"Animatable"` unless an outer tag is set.
   - Tests: `OriginTests.TheAdditiveAnimationIsTagged`
+- **CORE-DIAGNOSTICS-028** — An animatable's property animations shall be tagged `"Animatable"` like its callbacks animation, unless an outer tag is set.
+  - Tests: `OriginTests.AnAnimatablesPropertyAnimationsAreTaggedUnlessAnOuterTagIsSet`
 - **CORE-DIAGNOSTICS-022** — When both the engine's diagnostics and `CaptureCreationTrace` are on, a root timer shall record the stack trace of its creation, with file information, in `CreationTrace`; otherwise it shall be null.
   - Tests: `OriginTests.CreationTraceNeedsBothFlags`
 - **CORE-DIAGNOSTICS-023** — When a registered root is created inside a scope, `Timer.Scope` shall be that scope; otherwise null.
@@ -167,5 +169,4 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 
 ## Open items
 
-- An animatable's property animations are not tagged `"Animatable"`; only its callbacks animation is. Untested either way.
 - No test for `ActiveValues`, idempotent `Enabled` sets, or a repeated `Cancel` not re-ending a root.

@@ -45,6 +45,29 @@ public sealed class AnimationThreadTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData("whenDetached", "WhenDetached")]
+    [InlineData("subclass", "A setting")]
+    public void EverySettingTheCompositorDoesNotCarryIsRejected(string kind, string reason)
+    {
+        AnimationParams parameters = kind switch
+        {
+            "whenDetached" => new AvaloniaAnimationParams { ["X"] = 20, WhenDetached = WhenDetached.Continue },
+            _ => new TaggedParams { ["X"] = 20, Tag = "tag" },
+        };
+
+        var thrown = Assert.Throws<NotSupportedException>(() => PrestoAvalonia.Animate(ShowBar(), parameters, AnimationThread.Compositor));
+
+        Assert.Equal($"{reason} has no counterpart on the compositor.", thrown.Message);
+        Assert.False(PrestoAvalonia.CanAnimateOnCompositor(parameters, out var actual));
+        Assert.Equal(reason, actual);
+    }
+
+    private sealed record TaggedParams : AnimationParams
+    {
+        public string? Tag { get; init; }
+    }
+
+    [AvaloniaTheory]
     [InlineData("property")]
     [InlineData("setting")]
     public async Task AFallbackEndsWhereAnimateEnds(string kind)

@@ -271,7 +271,7 @@ public static partial class Recipes
     public static PrestoPageTransition PageFadeThrough(double? duration = null) => Pages.PageFadeThrough(duration);
 
     /// <inheritdoc cref="Pages.PageSharedAxis"/>
-    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null) => Pages.PageSharedAxis(axis, distance);
+    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null, double? duration = null) => Pages.PageSharedAxis(axis, distance, duration);
 
     /// <inheritdoc cref="Pages.PageSlide"/>
     public static PrestoPageTransition PageSlide(Edge edge) => Pages.PageSlide(edge);

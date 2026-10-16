@@ -50,6 +50,8 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
   - Tests: `CompositorSceneTests.DetachRevertsTheSceneScopeAndEmptiesItsEngine`, `CompositorPageTests.ThePageRunsAndRevertsEverythingOnDetach`
 - **BRIDGE-SCENES-005** — When a canvas attaches again, its scene shall get a new engine and scope and `OnAttached` shall run again.
   - Tests: untested
+- **BRIDGE-SCENES-032** — When a canvas attaches with, or is given while attached, a scene another attached canvas holds, it shall throw `InvalidOperationException` and leave the scene with the first canvas.
+  - Tests: `CompositorSceneTests.ASceneAttachedToOneCanvasCannotBeAttachedToAnother`
 - **BRIDGE-SCENES-006** — `Post` on an attached canvas shall deliver the message to `OnMessage` on the render thread, in posting order, on the compositor frame after it was posted.
   - Tests: `CompositorMessagingTests.MessagesArriveInOrderIncludingTheOnesPostedBeforeAttach`
 - **BRIDGE-SCENES-007** (inherited) — `Post` on a canvas outside the visual tree shall queue the message and send the queue, in order, right behind the attach message.
@@ -88,8 +90,8 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
   - Tests: `CompositorRenderTests.ASceneThatNeverInvalidatesLeavesThePixelsAlone`
 - **BRIDGE-SCENES-021** — `Invalidate` shall redraw an idle scene once.
   - Tests: `CompositorRenderTests.InvalidateRedrawsAnIdleSceneAndNothingElseDoes`
-- **BRIDGE-SCENES-022** — `Now`, `Size` and `Invalidate` before the scene first attaches shall throw `InvalidOperationException`, and in Debug fail an assertion when called off the scene engine's thread.
-  - Tests: untested
+- **BRIDGE-SCENES-022** — `Now`, `Size` and `Invalidate` before the scene first attaches, or once its canvas has detached it, shall throw `InvalidOperationException`, and in Debug fail an assertion when called off the scene engine's thread.
+  - Tests: `CompositorSceneTests.TheHandlerMembersThrowBeforeAttachAndAfterDetach`
 - **BRIDGE-SCENES-023** (inherited) — `Brush` shall return the same instance for the same color and opacity, with opacity clamped to 0..1 and rounded to 256 steps.
   - Tests: `CompositorRenderTests.TheBrushCacheReusesInstancesAndQuantizesOpacity`
 - **BRIDGE-SCENES-024** — When the brush cache holds 1 024 brushes, the next new brush shall clear it first.
@@ -123,6 +125,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - After attach the scene belongs to the render thread: `OnAttached`, `OnMessage`, `OnRender` and every callback of what they create run there, and none touches an `AvaloniaObject` except through `PostToUI`.
 - The UI thread reaches an attached scene only through `Post` and `Invoke`.
 - One engine and one scope per attachment; detaching leaves the engine with no children.
+- A scene is attached to at most one canvas at a time.
 
 ## Edge cases
 
@@ -158,6 +161,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - **After attach a scene belongs to the render thread.** The UI thread reaches it only through `Post` and `Invoke`, the scene reaches back with `PostToUI`, callbacks must not touch controls, and `Then()` on a scene timer completes on the thread pool; a scene built on the UI thread (in XAML) is handed over untouched at attach. Reason: the render thread has no synchronization context, and handing over at attach is safe because the composition batch queue publishes the object.
 - **Browser's blocked-UI-thread limitation is documented, not worked around.** See BRIDGE-THREAD.
 - **Hidden pauses the engine.** See CORE-ENGINE.
+- **A scene has one canvas at a time.** A canvas claims its scene on the UI thread when it attaches it and gives it up on detach, and a second attached canvas taking the scene throws; on detach the handler lets go of the scene, so `Now`, `Size` and `Invalidate` throw as they do before the first attach. Reason: the scene holds a single handler, so a second attach overwrote the one the first canvas's callbacks read, and a stray callback after detach read a dead handler instead of failing. Rejected: rendering one scene on two canvases, which would need one engine per canvas and so per-canvas scene state.
 
 ## Non-goals
 
@@ -167,6 +171,4 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 
 ## Open items
 
-- Untested: replacing `Scene` while attached (003), re-attaching (005), the off-thread `Post` assertion (008), the defaults snapshot (012), tick exception logging (016), pre-attach `InvalidOperationException` (022), `Then()` completing on the thread pool (027).
-- A scene instance shared by two attached canvases is not guarded: the second attach overwrites the handler the first one's callbacks read.
-- After detach the scene keeps its handler, so `Now`, `Size` and `Invalidate` called from a stray callback read a detached handler instead of throwing.
+- Untested: replacing `Scene` while attached (003), re-attaching (005), the off-thread `Post` assertion (008), the defaults snapshot (012), tick exception logging (016), `Then()` completing on the thread pool (027).

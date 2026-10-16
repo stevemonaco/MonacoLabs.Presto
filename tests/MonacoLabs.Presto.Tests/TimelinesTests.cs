@@ -295,6 +295,21 @@ public sealed class TimelinesTests : EngineTestBase
     }
 
     [Fact]
+    public void AZeroDurationFromTheDefaultsOrAFunctionLandsOnThePosition()
+    {
+        var byDefaults = new StyleTarget();
+        var byFunction = new StyleTarget();
+        var tl = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { Duration = 0 } })
+            .Add(byDefaults, new() { ["Y"] = -100 }, 2000)
+            .Add(byFunction, new() { ["Y"] = -100, Duration = new FunctionValue((_, _, _) => 0) }, 2000);
+
+        tl.Seek(2000);
+
+        Assert.Equal(-100, byDefaults.Y);
+        Assert.Equal(-100, byFunction.Y);
+    }
+
+    [Fact]
     public void RaisingAChildLoopGrowsTheTimelineToFitIt()
     {
         var tl = Presto.CreateTimeline().Add(new TimerParams { Duration = 100 });

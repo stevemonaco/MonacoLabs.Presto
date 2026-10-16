@@ -30,6 +30,7 @@ public sealed record Inertia
     public Func<double, double>? ModifyTarget { get; init; }
 
     /// <summary>The lower bound; crossing it hands over to a bounce spring that settles on it.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the inertia is resolved, by an animation or a fling, with <see cref="Min"/> above <see cref="Max"/>.</exception>
     public double? Min { get; init; }
 
     /// <summary>The upper bound; crossing it hands over to a bounce spring that settles on it.</summary>

@@ -47,8 +47,12 @@ public sealed class EaseFixtureTests : EngineTestBase
         Assert.Equal(fixture.Stiffness, spring.Stiffness);
         Assert.Equal(fixture.Damping, spring.Damping);
         Assert.Equal(fixture.Velocity, spring.Velocity);
-        Assert.Equal(fixture.Bounce, spring.Bounce);
-        Assert.Equal(fixture.Duration, spring.Duration);
+        // Upstream leaves a physical spring's bounce and duration at their defaults; Presto derives them (SpringTests).
+        if (p.Bounce != null || p.Duration != null)
+        {
+            Assert.Equal(fixture.Bounce, spring.Bounce);
+            Assert.Equal(fixture.Duration, spring.Duration);
+        }
         Assert.Equal(fixture.SettlingDuration, spring.SettlingDuration);
         Assert.Equal(fixture.SolverDuration, spring.SolverDuration, 1e-9);
         AssertSamples(fixture.Samples, spring.Ease);

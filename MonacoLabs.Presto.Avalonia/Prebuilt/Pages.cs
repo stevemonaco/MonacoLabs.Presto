@@ -47,13 +47,15 @@ public static class Pages
     /// Material shared axis: along <see cref="PageAxis.X"/> or <see cref="PageAxis.Y"/> the pages fade while the incoming one
     /// arrives from <paramref name="distance"/> DIPs (default <see cref="MotionTokens.Distance"/>) ahead and the outgoing one
     /// leaves as far behind; along <see cref="PageAxis.Z"/> the incoming page grows from <see cref="MotionTokens.Scale"/> and
-    /// the outgoing one grows as much past full size, and <paramref name="distance"/> is unused.
+    /// the outgoing one grows as much past full size, and <paramref name="distance"/> is unused. The incoming page takes
+    /// <paramref name="duration"/> and the outgoing one <see cref="MotionTokens.Short"/>/<see cref="MotionTokens.Medium"/> of it.
     /// </summary>
-    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null)
+    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null, double? duration = null)
     {
         var tokens = Recipes.Tokens;
-        var enter = Side(tokens, tokens.Medium, enter: true).Opacity(from: 0);
-        var exit = Side(tokens, tokens.Short, enter: false).Opacity(0);
+        var exitMs = duration is { } ms && tokens.Medium > 0 ? ms * tokens.Short / tokens.Medium : tokens.Short;
+        var enter = Side(tokens, duration ?? tokens.Medium, enter: true).Opacity(from: 0);
+        var exit = Side(tokens, exitMs, enter: false).Opacity(0);
         var d = distance ?? tokens.Distance;
         switch (axis)
         {

@@ -112,7 +112,7 @@ public static class Presto
     public static Animation Set(object? targets, AnimationParams parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        return (Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume();
+        return Created((Animation)new Animation(targets, parameters, null, 0, fastSet: true).Resume());
     }
 
     /// <summary>Writes the values of the fresh builder <paramref name="build"/> configures to <paramref name="targets"/> immediately.</summary>
@@ -137,7 +137,7 @@ public static class Presto
     public static object? Get(object? targets, PropertyKey property)
     {
         var parsed = TargetParser.Parse(targets);
-        return parsed.Count == 0 ? null : ResolveAccessor(parsed[0], property.Unwrap()).GetValue(parsed[0]);
+        return parsed.Count == 0 ? null : ResolveAccessor(parsed[0], Canonicalize(parsed[0], property.Unwrap())).GetValue(parsed[0]);
     }
 
     /// <summary>Reads <paramref name="property"/>, dropping the unit it is stored with unless <paramref name="withUnit"/> is true.</summary>
@@ -213,7 +213,7 @@ public static class Presto
     {
         var parsed = TargetParser.Parse(targets);
         if (parsed.Count == 0) return null;
-        var accessor = ResolveAccessor(parsed[0], property);
+        var accessor = ResolveAccessor(parsed[0], Canonicalize(parsed[0], property));
         var value = s_getValue ??= new();
         ValueParser.Decompose(accessor.GetValue(parsed[0]), value, accessor.Codec);
         return value;

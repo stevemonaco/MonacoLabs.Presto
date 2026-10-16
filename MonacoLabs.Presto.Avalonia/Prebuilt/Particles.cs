@@ -13,7 +13,7 @@ namespace MonacoLabs.Presto.Prebuilt;
 /// <remarks>
 /// While <see cref="PrestoDefaults.ReducedMotion"/> is set they emit nothing and play <c>reduced</c> on the anchor instead,
 /// by default <see cref="Recipes.Pulse"/>, which reduced motion turns into an opacity blink; the effect is then already
-/// complete. An anchor outside a window emits nothing either.
+/// complete, even for an anchor outside a window. Otherwise an anchor outside a window emits and plays nothing.
 /// </remarks>
 public static class Particles
 {

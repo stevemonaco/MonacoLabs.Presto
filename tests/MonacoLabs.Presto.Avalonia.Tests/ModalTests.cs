@@ -127,6 +127,33 @@ public sealed class ModalTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void OpeningAgainWhileOpenTakesTheNewOriginForTheClose()
+    {
+        var (_, modal, _) = Opened();
+
+        modal.Open(new Point(150, 160));
+        modal.Close();
+        Frames.Advance(Recipes.Tokens.Medium / 2, 20);
+
+        Assert.Equal(new Point(150, 160), ((EllipseGeometry)Panel(modal).Clip!).Rect.Center);
+    }
+
+    [AvaloniaFact]
+    public void ABackdropReplacedWhileOpenUnblursAndTheNewOneBlurs()
+    {
+        var (window, modal, _) = Opened();
+        var old = modal.Backdrop!;
+        var replacement = new Border();
+        ((Panel)window.Content!).Children.Insert(0, replacement);
+
+        modal.Backdrop = replacement;
+        Frames.Advance(3000, 20);
+
+        Assert.Null(old.Effect);
+        Assert.True(replacement.Effect is BlurEffect { Radius: > 5 }, $"the new backdrop showed {replacement.Effect}");
+    }
+
+    [AvaloniaFact]
     public void UnderReducedMotionTheContentShowsAndHidesAtOnceAndTheScrimFades()
     {
         var (_, modal, opener) = Stage();

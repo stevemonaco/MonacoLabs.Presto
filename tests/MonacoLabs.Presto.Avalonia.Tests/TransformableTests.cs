@@ -439,6 +439,23 @@ public sealed class TransformableTests : BridgeTestBase
         Assert.Equal(scrolls, scroller.Offset.Y > 0);
     }
 
+    [AvaloniaTheory]
+    [InlineData(WheelZoom.WithControl)]
+    [InlineData(WheelZoom.Always)]
+    public void AHorizontalOnlyWheelUnderAZoomingModeIsLeftToTheAncestor(WheelZoom mode)
+    {
+        var (window, _, target) = Scene();
+        var transformable = target.CreateTransformable(new TransformableParams { WheelZoom = mode });
+        var wheels = 0;
+        window.AddHandler(InputElement.PointerWheelChangedEvent, (_, _) => wheels++, handledEventsToo: false);
+
+        window.MouseWheel(new Point(60, 80), new Vector(1, 0), RawInputModifiers.Control);
+        Assert.Equal((1, 1), (transformable.Scale, wheels));
+
+        window.MouseWheel(new Point(60, 80), new Vector(1, 1), RawInputModifiers.Control);
+        Assert.Equal((1.15, 1), (Math.Round(transformable.Scale, 3), wheels));
+    }
+
     [AvaloniaFact]
     public void ZoomPanAndRotateToClampAndPlayThroughSettle()
     {

@@ -172,4 +172,3 @@ The core owns the flags: `PrestoDefaults.ReducedMotion` picks each builder's `Wh
 ## Open items
 
 - The window-activation and browser-change refreshes (BRIDGE-REDUCED-030) are untested; only the Gallery page exercises them by hand.
-- A follower captures `Engine.Current` at creation, so following from a scope or secondary engine writes that engine's flag, not the main one; this is undocumented outside the XML summary.

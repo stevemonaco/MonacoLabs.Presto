@@ -13,7 +13,7 @@ namespace MonacoLabs.Presto.Targets;
 /// </summary>
 public sealed class ObjectTargetAdapter : ITargetAdapter
 {
-    private static readonly ConcurrentDictionary<(Type Type, string Property), IPropertyAccessor> s_accessors = new();
+    private static readonly ConcurrentDictionary<(Type Type, string Property), MemberAccessor> s_accessors = new();
 
     /// <summary>
     /// Private, static and write-only members are not reached. A member whose type is not numeric, <see cref="string"/>,
@@ -22,7 +22,9 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
     public IPropertyAccessor Resolve(object target, string property)
     {
         if (target is IDictionary<string, object?>) return new DictionaryAccessor(property);
-        return s_accessors.GetOrAdd((target.GetType(), property), static key => MemberAccessor.Create(key.Type, key.Property));
+        var type = target.GetType();
+        var accessor = s_accessors.GetOrAdd((type, property), static key => MemberAccessor.Create(key.Type, key.Property));
+        return accessor.CodecIsCurrent ? accessor : s_accessors[(type, property)] = MemberAccessor.Create(type, property);
     }
 
     private sealed class DictionaryAccessor(string property) : IPropertyAccessor
@@ -57,6 +59,7 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
         Action<object, double>? setNumber,
         Action<object, PrestoColor>? setColor,
         MemberWrite write,
+        Type memberType,
         IValueCodec? codec) : IPropertyAccessor
     {
         public static MemberAccessor Create(Type type, string name)
@@ -104,10 +107,15 @@ public sealed class ObjectTargetAdapter : ITargetAdapter
                 setNumber,
                 setColor,
                 memberWrite,
+                memberType,
                 memberCodec);
         }
 
         public IValueCodec? Codec => codec;
+
+        public bool CodecIsCurrent =>
+            write != MemberWrite.Codec ||
+            (Presto.Codecs.TryGetValue(memberType, out var registered) ? ReferenceEquals(registered, codec) : codec is DiscreteCodec);
 
         public object? GetValue(object target) => get(target);
 

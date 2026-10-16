@@ -94,8 +94,8 @@ depends:
   - Tests: untested
 - **CORE-PRESTO-018** — `Set` shall skip `Init()` and resume the animation instead, which renders it at once and leaves nothing registered with the engine.
   - Tests: `LeaksTests.EngineShouldNotContainAnyActiveTickable`
-- **CORE-PRESTO-019** (inherited) — `Set` shall not raise the timer-created hook.
-  - Tests: untested
+- **CORE-PRESTO-019** — `Set` shall raise the timer-created hook once, after it has written the values, so the hook receives an already completed animation.
+  - Tests: `HostHookTests.TimerCreatedFiresForSet`
 - **CORE-PRESTO-020** — `Set` shall register its animation with the current scope like any timer, so the scope's `Revert` restores the values it overwrote.
   - Tests: untested
 
@@ -115,6 +115,8 @@ depends:
   - Tests: untested
 - **CORE-PRESTO-027** (inherited) — When the built-in object adapter resolves a property that the target type has no public readable and writable instance property or field for, `Get` shall throw `ArgumentException`; a dictionary target with no such key yields null.
   - Tests: `ObjectTargetAdapterTests.UnknownMemberThrows`, `ObjectTargetAdapterTests.ReadsMembersAndTreatsMissingDictionaryKeysAsNull`
+- **CORE-PRESTO-056** — Every `Get` overload shall canonicalize the property name against the first parsed target (CORE-PRESTO-043) before resolving it, as `Remove` and `GetAnimations` do, so an alias reads the canonical property.
+  - Tests: `UtilsTargetsTests.GetReadsTheCanonicalPropertyOfAnAlias`
 
 ### Remove
 
@@ -193,13 +195,12 @@ depends:
 
 - `Presto.Engine` is the same instance for the life of the process; `Defaults` always reads through it.
 - Every timer the factories create belongs to `Engine.Current` at creation and registers with that engine's current scope.
-- `Animate`, `CreateTimer` and `CreateTimeline` announce a timer only after `Init()`; `Set` never announces.
+- `Animate`, `CreateTimer` and `CreateTimeline` announce a timer only after `Init()`; `Set` announces after it has written.
 
 ## Edge cases
 
 - `Set` forces only the duration; a `Delay` in the params or the defaults still reaches its tweens, and what that does to the immediate write is unpinned.
 - `Get` reads only the first target; the rest are ignored.
-- `Get` passes the property name to the adapter as given, while `Remove` and `GetAnimations` canonicalize it first.
 - `Remove` on targets with no tweens anywhere is a no-op apart from notifying the adapters.
 - `GetAnimations` takes one target, not a targets parameter; a collection passed as `target` matches nothing.
 
@@ -229,6 +230,7 @@ depends:
 ## Decisions
 
 - **`Set` is a fast-set animation.** `Presto.Set(targets, parameters)` (upstream `utils.set()`) builds an animation through the constructor's fast-set path: a minimal duration and, unless set, `Overlap` composition, resumed at once. Reason: a set value then goes through the same parsing, codecs, relative values and function values as an animated one, with no second write path.
+- **`Set` announces like the factories.** `Set` raises the timer-created hook after it has written. Reason: a host hook that sees every other root missed `Set` animations, so whatever it tracks or lists skipped them. Rejected: keeping `Set` silent because it completes before returning.
 - **The params overloads win over their lambda twins.** The `AnimationParams` overloads of `Animate` and `Set` carry `[OverloadResolutionPriority(1)]`. Reason: a target-typed `new() { … }` argument then keeps binding to the params overload beside the `Action<AnimationBuilder>` one.
 - **`GetAnimations` omits paused animations.** Reason: the engine drops paused tickables from its children, so listing them would need a per-target registry maintained by every state change, and code that pauses already holds the handle. Rejected: a per-target registry of paused animations.
 - **`Delay` waits on a plain timer.** `Presto.Delay` is backed by a `CreateTimer` whose `OnComplete` completes the task; why an engine-time wait exists is in CORE-TIMER's Decisions. Rejected: a dedicated engine-side delay list, which would duplicate timer scheduling.
@@ -242,6 +244,4 @@ depends:
 
 ## Open items
 
-- `Presto.Set` raises no timer-created hook, so diagnostics never list a `Set` animation; unpinned either way.
-- `Get` does not canonicalize the property name while `Remove` and `GetAnimations` do; harmless for adapters whose `Resolve` accepts every spelling, unpinned otherwise.
 - `CreateMotionValue`, `CreateAnimatable`'s missing hook, `Set`'s forced duration and `Composition.Overlap` default, and `Get(…, withUnit: true)` have no direct test; nor do `Delay`'s registration disposal and asynchronous continuations.

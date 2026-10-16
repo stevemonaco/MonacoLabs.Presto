@@ -33,7 +33,8 @@ public sealed class Spring
     /// <summary>
     /// Creates a spring, each parameter falling back to its upstream default when null. Supplying
     /// <paramref name="bounce"/> or <paramref name="duration"/> derives <see cref="Stiffness"/> and
-    /// <see cref="Damping"/> rather than taking them from the arguments.
+    /// <see cref="Damping"/> for the given mass, discarding those two arguments; otherwise <see cref="Bounce"/>
+    /// and <see cref="Duration"/> are derived from the physical arguments.
     /// </summary>
     public Spring(
         double? mass = null,
@@ -52,6 +53,7 @@ public sealed class Spring
         _velocity = Helpers.Clamp(velocity ?? 0, -MaxSpringParamValue, MaxSpringParamValue);
         OnComplete = onComplete;
         if (bounce != null || duration != null) CalculateSDFromBD();
+        else CalculateBDFromSD();
         Compute();
         PureEase = t => t == 0 || t == 1 ? t : Solve(t * SolverDuration);
         Ease = t =>
@@ -93,18 +95,19 @@ public sealed class Spring
     /// <summary>Raised when the spring reaches <see cref="Duration"/>, before it has finished settling.</summary>
     public Action<Timer?>? OnComplete { get; set; }
 
-    /// <summary>Mass of the weight on the spring, clamped to [1, 10000]; a heavier weight takes longer to settle. Defaults to 1.</summary>
+    /// <summary>Mass of the weight on the spring, clamped to [1, 10000]; a heavier weight takes longer to settle. Defaults to 1. Setting it re-derives <see cref="Bounce"/> and <see cref="Duration"/>.</summary>
     public double Mass
     {
         get => _mass;
         set
         {
             _mass = Helpers.Clamp(value, 1, MaxSpringParamValue);
+            CalculateBDFromSD();
             Compute();
         }
     }
 
-    /// <summary>Stiffness of the spring, clamped to (0, 10000]; a stiffer spring snaps back harder. Defaults to 100.</summary>
+    /// <summary>Stiffness of the spring, clamped to (0, 10000]; a stiffer spring snaps back harder. Defaults to 100. Setting it re-derives <see cref="Bounce"/> and <see cref="Duration"/>.</summary>
     public double Stiffness
     {
         get => _stiffness;
@@ -116,7 +119,7 @@ public sealed class Spring
         }
     }
 
-    /// <summary>Friction opposing the motion, clamped to (0, 10000]; more damping means fewer oscillations. Defaults to 10.</summary>
+    /// <summary>Friction opposing the motion, clamped to (0, 10000]; more damping means fewer oscillations. Defaults to 10. Setting it re-derives <see cref="Bounce"/> and <see cref="Duration"/>.</summary>
     public double Damping
     {
         get => _damping;
@@ -128,18 +131,19 @@ public sealed class Spring
         }
     }
 
-    /// <summary>Speed the weight starts with, clamped to [-10000, 10000]; a negative one launches it backwards. Defaults to 0.</summary>
+    /// <summary>Speed the weight starts with, clamped to [-10000, 10000]; a negative one launches it backwards. Defaults to 0. Setting it re-derives <see cref="Bounce"/> and <see cref="Duration"/>.</summary>
     public double Velocity
     {
         get => _velocity;
         set
         {
             _velocity = Helpers.Clamp(value, -MaxSpringParamValue, MaxSpringParamValue);
+            CalculateBDFromSD();
             Compute();
         }
     }
 
-    /// <summary>Bounciness in [-1, 1]; setting it derives <see cref="Stiffness"/> and <see cref="Damping"/>.</summary>
+    /// <summary>Bounciness in [-1, 1]; setting it derives <see cref="Stiffness"/> and <see cref="Damping"/> for the current <see cref="Mass"/>, leaving <see cref="Mass"/> and <see cref="Velocity"/> as set.</summary>
     public double Bounce
     {
         get => _bounce;
@@ -151,7 +155,7 @@ public sealed class Spring
         }
     }
 
-    /// <summary>Perceived duration in the engine's unit; setting it derives <see cref="Stiffness"/> and <see cref="Damping"/>.</summary>
+    /// <summary>Perceived duration in the engine's unit; setting it derives <see cref="Stiffness"/> and <see cref="Damping"/> for the current <see cref="Mass"/>, leaving <see cref="Mass"/> and <see cref="Velocity"/> as set.</summary>
     public double Duration
     {
         get => _perceivedDuration;
@@ -192,12 +196,10 @@ public sealed class Spring
     private void CalculateSDFromBD()
     {
         var pds = Globals.TimeScale == 1 ? _perceivedDuration / Constants.K : _perceivedDuration;
-        _mass = 1;
-        _velocity = 0;
-        _stiffness = Math.Pow((2 * Math.PI) / pds, 2);
-        _damping = _bounce >= 0
+        _stiffness = _mass * Math.Pow((2 * Math.PI) / pds, 2);
+        _damping = _mass * (_bounce >= 0
             ? ((1 - _bounce) * 4 * Math.PI) / pds
-            : (4 * Math.PI) / (pds * (1 + _bounce));
+            : (4 * Math.PI) / (pds * (1 + _bounce)));
         _stiffness = Helpers.Round(Helpers.Clamp(_stiffness, Constants.MinValue, MaxSpringParamValue), 3);
         // Damping above 300 produces insane values in the solver.
         _damping = Helpers.Round(Helpers.Clamp(_damping, Constants.MinValue, 300), 3);
@@ -205,12 +207,10 @@ public sealed class Spring
 
     private void CalculateBDFromSD()
     {
-        var pds = (2 * Math.PI) / Math.Sqrt(_stiffness);
+        var pds = (2 * Math.PI) / Math.Sqrt(_stiffness / _mass);
         _perceivedDuration = pds * (Globals.TimeScale == 1 ? Constants.K : 1);
-        var zeta = _damping / (2 * Math.Sqrt(_stiffness));
-        _bounce = zeta <= 1
-            ? 1 - (_damping * pds) / (4 * Math.PI)
-            : (4 * Math.PI) / (_damping * pds) - 1;
+        var zeta = _damping / (2 * Math.Sqrt(_stiffness * _mass));
+        _bounce = zeta <= 1 ? 1 - zeta : 1 / zeta - 1;
         _bounce = Helpers.Round(Helpers.Clamp(_bounce, -1, 1), 3);
         _perceivedDuration = Helpers.Round(Helpers.Clamp(_perceivedDuration, 10 * Globals.TimeScale, MaxSpringParamValue * Globals.TimeScale), 3);
     }

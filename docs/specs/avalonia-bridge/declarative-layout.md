@@ -91,7 +91,7 @@ depends:
 
 ### Precedence
 
-- **BRIDGE-DECLLAYOUT-021** — When a one-shot flight (a `Connected` flight or a once `AnimateSharedElement`) takes the control over, the flight shall win its move, and once its `Then` completes after the next layout pass the property shall arm again, unless it was disarmed or re-armed meanwhile.
+- **BRIDGE-DECLLAYOUT-021** — When a one-shot flight (a `Connected` flight or a once `AnimateSharedElement`) takes the control over, the flight shall win its move, and once its `Then` completes the property shall arm again, unless it was disarmed or re-armed meanwhile.
   - Tests: `AnimateLayoutAttachedTests.AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt`
 - **BRIDGE-DECLLAYOUT-022** — When the property arms while a one-shot flight on the control is still in flight, it shall wait for that flight instead of replacing it.
   - Tests: untested
@@ -99,6 +99,8 @@ depends:
   - Tests: untested
 - **BRIDGE-DECLLAYOUT-024** — While `Reorder` drags a container, its `ItemLayout` arm shall stay disarmed whatever attaches or changes, and on release it shall arm again as if attaching, while the neighbors keep easing.
   - Tests: `ReorderContainerTests.ADraggablesTranslationAddsToTheFlipThatIsEasingTheSameContainer`, `ReorderTests.NeighborsEaseWithItemLayoutAndSnapWithout`
+- **BRIDGE-DECLLAYOUT-028** — When an item container would be armed both by its own `Animate.Layout` and by its list's `Animate.ItemLayout`, the second to arm shall throw `InvalidOperationException`.
+  - Tests: `ItemLayoutTests.ArmingAContainerThroughBothItsOwnLayoutAndItsListsItemLayoutThrows`
 
 ### Reduced motion
 
@@ -119,7 +121,6 @@ depends:
 
 ## Edge cases
 
-- A container with both `Animate.Layout` and its list's `Animate.ItemLayout` gets two arms; the one armed last owns the transition and the other is not re-armed (BRIDGE-LAYOUT-004).
 - An item moved by `ObservableCollection.Move` that the list rebuilds a container for records in its new container and does not ease.
 - A host with `Animate.ContentSize` eases only its position here, and controls beside a resizing host land in one frame (BRIDGE-CONTENTSIZE).
 - Layout and a `Presence` entrance on the same element compete for `Translation`/`Scale`; the later owner wins and the other freezes. The documented pattern is layout on the container, `Presence` on the content.
@@ -127,7 +128,7 @@ depends:
 ## Threading and lifetime
 
 - UI thread only. Each arm subscribes to its control's attach, detach and `LayoutUpdated`; releasing the property unsubscribes. A list's arms subscribe to `ContainerPrepared` and `ContainerClearing`.
-- The re-arm after a flight runs from a background dispatcher job posted after the next layout pass.
+- The re-arm after a flight runs when the flight's `Then()` resolves, which waits for its first layout pass (BRIDGE-LAYOUT-016).
 
 ## Reduced motion
 
@@ -151,6 +152,7 @@ depends:
 - **Lists arm through `Animate.ItemLayout`, and recycled containers land rather than fly.** `ItemLayout` arms every item container with the list's mode; clearing a container releases its arm and preparing it arms again as if attaching, and index changes are ignored. Reason: a virtualizing panel reuses containers without detaching them, so an armed container would otherwise measure its old slot as First; an insert or removal above a row is exactly the move that should ease; it replaces sample `ContainerPrepared` handlers and `ItemContainerTheme` workarounds. Earlier a `Rebase()` on clearing was planned; the release-and-re-arm form replaced it.
 - **Scrolling a list never eases.** A container armed through `ItemLayout`, or `Animate.Layout` on an item container, cancels to identity and records on a pass where its `ScrollViewer` offset changed with no collection change pending. Reason: offsets are already taken out, but a virtualizing panel also repositions realized rows as estimated sizes are corrected during a scroll.
 - **A one-shot flight or code transition wins its move.** A keyed `Connected` or shared-element flight wins and the arm re-arms record-first after the flight's `Then()` if still attached; a persistent code `AnimateLayout` wins until the next attach or value change, with no re-arm. Reason: preserves the one-live-transition-per-control rule.
+- **One arm per container.** `Animate.Layout` on an item container whose list sets `Animate.ItemLayout` throws `InvalidOperationException` on whichever arms second. Reason: two arms on one control replace each other's transition (BRIDGE-LAYOUT-004), so the one armed last silently owned the moves and the other never re-armed; one owner at a time, as a `CompositorScene` has one canvas.
 - **Layout goes on the container, `Presence` on the content.** When layout and a transform entrance or exit share an element, the later owner takes the compositor `Translation`/`Scale` track and the other freezes, with a Debug warning; opacity-only or blur entrances may share. Reason: entrance and exit recipes run on the same tracks a layout transition inverts onto. Rejected: detecting the conflict and throwing, because sequential use (an enter that finishes before the first reflow) is legitimate.
 - **Style setters can share one builder.** All three properties are plain attached properties, and one shared builder is safe because it is snapshotted per arm. Reason: not recorded beyond the snapshot guarantee.
 - **Reduced motion is read at arm time.** `WhenReduced` applies when the builder is read at arm; an arm re-arms at its next layout pass when the flag differs from the value it armed with, and reduced motion makes a layout move instant. Reason: `ReducedMotion` has no change notification, so consumers read it when their own trigger fires.
@@ -165,5 +167,4 @@ depends:
 
 ## Open items
 
-- Two arms on one container (`Animate.Layout` plus `ItemLayout`) is covered by no decision and untested.
 - Untested: scope (010), design mode (011), container clearing (014), early validation of `ItemLayout` (016), a list's `LayoutMode` change (017), waiting for a flight already in the air (022), a persistent code transition winning (023).

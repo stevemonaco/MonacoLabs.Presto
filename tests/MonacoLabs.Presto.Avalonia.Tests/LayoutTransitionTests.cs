@@ -449,6 +449,23 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public async Task ThenOnAFreshFlightWaitsForItsMove()
+    {
+        var (spacer, bar) = ShowStack();
+        var flight = PrestoAvalonia.AnimateSharedElement(bar, bar, 200, Eases.None);
+        var then = flight.Then();
+        Assert.False(then.IsCompleted, "Then resolved before the flight's first layout pass");
+
+        spacer.Height += Shift;
+        Tick();
+        Assert.False(then.IsCompleted, "Then resolved before the move landed");
+
+        Frames.Advance(400);
+        Assert.Same(flight, await then);
+        Assert.Equal(1, flight.Progress);
+    }
+
+    [AvaloniaFact]
     public void ARecordFirstTransitionDoesNotEaseItsFirstPass()
     {
         var (spacer, bar) = ShowStack();

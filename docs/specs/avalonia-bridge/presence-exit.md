@@ -123,7 +123,9 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
   - Tests: `PresenceTests.CancelingTheExitRemovesTheGhost`
 - **BRIDGE-PRESENCE-EXIT-033** — The `Action<AnimationBuilder>` overload shall behave as the builder overload with `Presto.Build(exit)`.
   - Tests: `AnimationBuilderBridgeTests.ALambdaExitPlaysOnAGhostAsItsBuilderDoes`
-- **BRIDGE-PRESENCE-EXIT-034** (inherited) — `AnimateExit` shall apply none of the departure rules (visibility, opacity, page hosts, lists) and start no `Wait`.
+- **BRIDGE-PRESENCE-EXIT-034** — When the control is not effectively visible (it or an ancestor is hidden), or it or any ancestor has opacity 0, `AnimateExit` shall return `null` and draw no ghost, as a departure does (BRIDGE-PRESENCE-EXIT-005/006).
+  - Tests: `PresenceTests.AnimateExitGhostsNothingHiddenOrAtOpacityZeroItselfOrThroughAnAncestor`
+- **BRIDGE-PRESENCE-EXIT-036** (inherited) — `AnimateExit` shall apply none of the other departure rules (loaded parent, page hosts, lists, single-child branch) and start no `Wait`.
   - Tests: untested
 
 ### Defaults
@@ -169,6 +171,7 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **Ghosts are re-placed on every layout pass.** A ghost's host is re-placed and its clip recomputed on each layout pass while it lives. Reason: placing it once at the exit's start left ghosts shifted and outside their card after a scroll mid-exit. Rejected: hosting ghosts in a layer inside the nearest clipping ancestor (reason not recorded).
 - **Exit builders animate only what an `Image` has.** An exit animates transform shorthands, `Opacity`, effects and other `Image` properties; a property only the original control has (such as `Background`) throws as on any other target, as the docs on `Exit` say. Reason: a consequence of the ghost being an `Image`.
 - **A ghost's clip is not inflated for blur.** Effect shorthands apply to the ghost directly. Reason: the clip box is the set of ancestor clips that would have cut the live element's blur too.
+- **`AnimateExit` ghosts only what is drawn.** A control hidden or at opacity 0, itself or through an ancestor, gets no ghost and `null`, by the same on-screen test a departure uses. Reason: a snapshot of an undrawn control would pop into view as it exits; before, `AnimateExit` ghosted it anyway, unlike a departure.
 - **A leaving block exits as one ghost per piece.** See BRIDGE-TEXTREVEAL.
 - **One overlay host per text exit.** See BRIDGE-TEXTREVEAL.
 - **Hiding split text follows `HideMode`.** See BRIDGE-TEXTREVEAL.
@@ -188,5 +191,4 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 
 ## Open items
 
-- `AnimateExit` ghosts a control even when it or an ancestor is at opacity 0 or hidden, unlike a departure (BRIDGE-PRESENCE-EXIT-034). Untested.
-- BRIDGE-PRESENCE-EXIT-018 (clip boxes keep their exit-start size), -022 and -023 have no test.
+- BRIDGE-PRESENCE-EXIT-018 (clip boxes keep their exit-start size), -022, -023 and -036 have no test.

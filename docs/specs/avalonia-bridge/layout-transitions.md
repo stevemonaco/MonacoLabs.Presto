@@ -86,8 +86,8 @@ Eases a control into the place layout gives it instead of letting it jump: where
   - Tests: `LayoutTransitionTests.ABuilderDelayHoldsTheControlWhereItWasBeforeItMoves`
 - **BRIDGE-LAYOUT-015** — When a move's compiled duration and delay are both zero, the transition shall start no composition animation, cancel any move in flight and let the control land in one frame.
   - Tests: `LayoutTransitionTests.AReducedOrZeroDurationMoveLandsInOneFrame`
-- **BRIDGE-LAYOUT-016** — `Then` shall resolve with the transition when the move in flight completes, and at once when no move has started.
-  - Tests: `LayoutTransitionTests.ThenResolvesWhenTheMoveCompletes`
+- **BRIDGE-LAYOUT-016** — `Then` shall resolve with the transition when the move in flight completes, and at once when no move has started, except that a one-shot awaited before its first layout pass shall wait for that pass and then for the move it starts.
+  - Tests: `LayoutTransitionTests.ThenResolvesWhenTheMoveCompletes`, `LayoutTransitionTests.ThenOnAFreshFlightWaitsForItsMove`
 - **BRIDGE-LAYOUT-017** — A move in flight shall keep running and complete after its control leaves the visual tree.
   - Tests: `WhenDetachedTests.ALayoutTransitionFinishesWhenItsControlDetaches`
 
@@ -133,7 +133,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
   - Tests: `LayoutTransitionTests.ASharedElementOutOfAScrolledListStartsWhereItIsDrawn`, `LayoutTransitionTests.ASharedElementIntoAScrolledListStartsWhereTheSourceIsDrawn`
 - **BRIDGE-LAYOUT-034** — With `once` true (the default) the transition shall stop listening to layout once its move has started; with `once` false it shall keep easing later moves as `AnimateLayout` does.
   - Tests: untested
-- **BRIDGE-LAYOUT-035** (inherited) — When `source` is not in a window, the transition shall measure `target` itself as First, so nothing flies.
+- **BRIDGE-LAYOUT-035** — When `source` is not in a window, the transition shall measure `target` itself as First, so nothing flies from the source and `target`'s next layout move eases as a one-shot `AnimateLayout` would.
   - Tests: untested
 - **BRIDGE-LAYOUT-036** — `PrepareSharedElement` shall record only where `source` is drawn under the key, replacing any earlier entry, and return true; when `source` is not on screen it shall remove the key's entry and return false.
   - Tests: `LayoutTransitionTests.AKeyedSharedElementFliesFromWhereItsSourceWasPreparedAfterTheSourceIsGone`
@@ -213,6 +213,8 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **Keyed shared elements store a rect, return null when unprepared, and expire.** `PrepareSharedElement` stores only the on-screen rect under the key, replacing any earlier entry; the keyed `AnimateSharedElement` consumes it, returns null when there is none, and an entry expires three seconds after it was prepared. Reason: framework-driven navigation never has both controls at once, storing no control keeps nothing alive, null mirrors the Windows Community Toolkit's `GetAnimation(key)?.TryStart(...)`, and the expiry stops a navigation that never completed from flying a later, unrelated element from a stale place.
 - **Layout-transition builders carry timing and eases only; per-axis eases make arcs.** Builders give `Duration`, `Delay` (the control holds its inverted place during it) and `Ease`; `X`, `Y` and `Scale` may carry only an ease, and anything else throws `NotSupportedException` naming it. One ease plays as one exact segment, differing X and Y eases are sampled into 100 segments, and the mirror carries the same eases. Reason: the layout decides where the control goes, so it owns the values, and the mirror must follow the arc so an interruption measures where the control is drawn.
 - **A nested transition measures within the ancestor that carries it.** A control whose ancestor has a transition easing its moves measures its slot relative to that ancestor, falling back to the window slot when the ancestor changes or stops easing between passes. Reason: the ancestor's `Translation` already draws the child along its move, so a window-relative child inverted the same move a second time and first flew the wrong way (the Gallery nav's pages inside a section that reflows); measuring within the ancestor is independent of which `LayoutUpdated` handler runs first. Rejected: subtracting the ancestor's move from the child's, which depends on the ancestor having handled the pass first.
+- **A fresh one-shot's `Then()` waits for its flight.** Awaited before its first layout pass, a one-shot waits for that pass, then for the move it starts, and resolves at once if the pass moves nothing or it is reverted first. Reason: a flight plays on the target's next layout pass, so resolving at once returned before it flew and made `Animate.Layout` wait a layout pass before awaiting it. A persistent transition still resolves at once before its first move, since it may never move.
+- **An off-screen source degrades to a one-shot `AnimateLayout`.** With nothing on screen to measure, the unkeyed `AnimateSharedElement` measures the target as First and still returns a transition, documented on the member. Reason: the target still eases its next layout move, which suits a caller that started the flight without checking the source, while the keyed form's null mirrors the Toolkit's `GetAnimation(key)` and has no source to fall back on.
 - **Zero-length moves are not started.** A move whose compiled track has zero duration and zero delay lands in one frame without a composition animation. Reason: a zero-length composition animation can draw its first key for a frame, which broke `ReduceAll` making layout moves instant.
 - **Duration overloads land at once under the flag.** The `(duration, ease)` overloads read `ReducedMotion` as each move starts and land in one frame, as `Recipes.Reflow`'s reduced form does. Reason: they built their motion directly and kept easing, forcing workarounds in the sample.
 - **The flag has no change notification.** See CORE-REDUCED.
@@ -229,6 +231,4 @@ Eases a control into the place layout gives it instead of letting it jump: where
 
 ## Open items
 
-- `Then()` before the first move resolves at once, so awaiting a fresh shared-element flight right after creating it returns before it flies (BRIDGE-DECLLAYOUT waits a layout pass for this reason).
-- A source that is not on screen silently degrades to a one-shot `AnimateLayout` on the target (BRIDGE-LAYOUT-035) rather than returning null as the keyed form does.
 - Untested: scope registration (005), the no-op pass (008), `once: false` (034), an off-screen source (035).

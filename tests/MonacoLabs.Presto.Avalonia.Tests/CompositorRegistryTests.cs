@@ -127,7 +127,7 @@ public sealed class CompositorRegistryTests : CompositorTestBase
     {
         var shorthandFirst = ShowBar();
         var compositorFirst = ShowBar();
-        using var warnings = new WarningSink();
+        using var warnings = new LogSink(LogArea.Animations, LogEventLevel.Warning);
 
         _ = shorthandFirst.Animate(new() { ["X"] = 40, Duration = 2000 });
         Frames.Advance(16);
@@ -137,9 +137,9 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         _ = compositorFirst.Animate(new() { ["Rotate"] = 90, Duration = 2000 });
         Frames.Advance(16);
 
-        Assert.Equal(2, warnings.Messages.Count);
+        Assert.Equal(2, warnings.Entries.Count);
         Frames.Advance(160);
-        Assert.Equal(2, warnings.Messages.Count);
+        Assert.Equal(2, warnings.Entries.Count);
     }
 
     /// <summary>The transition keeps the translation across later layout passes, so taking it over — and warning — happens once.</summary>
@@ -147,7 +147,7 @@ public sealed class CompositorRegistryTests : CompositorTestBase
     public void MixingAShorthandAndALayoutTransitionWarnsOnceHoweverOftenLayoutMoves()
     {
         var bar = ShowBar();
-        using var warnings = new WarningSink();
+        using var warnings = new LogSink(LogArea.Animations, LogEventLevel.Warning);
 
         _ = bar.Animate(new() { ["X"] = 40, Duration = 2000 });
         Frames.Advance(16);
@@ -158,14 +158,14 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         Canvas.SetTop(bar, 80);
         Tick();
 
-        Assert.Single(warnings.Messages);
+        Assert.Single(warnings.Entries);
     }
 
     [AvaloniaFact]
     public void AShorthandThatHasEndedDoesNotWarnWhenALayoutTransitionMoves()
     {
         var bar = ShowBar();
-        using var warnings = new WarningSink();
+        using var warnings = new LogSink(LogArea.Animations, LogEventLevel.Warning);
 
         _ = bar.Animate(new() { ["X"] = 40, Duration = 200 });
         Frames.Advance(400);
@@ -173,25 +173,7 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         Canvas.SetTop(bar, 60);
         Tick();
 
-        Assert.Empty(warnings.Messages);
+        Assert.Empty(warnings.Entries);
     }
 #endif
-
-    private sealed class WarningSink : ILogSink, IDisposable
-    {
-        private readonly ILogSink? _previous = Logger.Sink;
-
-        public WarningSink() => Logger.Sink = this;
-
-        public List<string> Messages { get; } = [];
-
-        public bool IsEnabled(LogEventLevel level, string area) => level == LogEventLevel.Warning && area == LogArea.Animations;
-
-        public void Log(LogEventLevel level, string area, object? source, string messageTemplate) => Messages.Add(messageTemplate);
-
-        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues) =>
-            Messages.Add(messageTemplate);
-
-        public void Dispose() => Logger.Sink = _previous;
-    }
 }

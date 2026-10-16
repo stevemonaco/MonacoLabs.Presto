@@ -170,8 +170,8 @@ depends:
 
 - **BRIDGE-IMAGE-054** — `ImageTransition.Parse` shall accept a case-insensitive kind optionally followed by a duration in ms (invariant culture), eased with `Eases.InOutQuad`; the Avalonia XAML compiler shall use it for attributes and style setters, and the element form shall set the tuning.
   - Tests: `ImageTransitionTests.XamlGivesSourceTransitionAsAStringAStyleSetterOrAnElement`
-- **BRIDGE-IMAGE-055** (inherited) — When the string is empty, has more than two parts, or its first part is not a kind, `Parse` shall throw `FormatException`; a second part that is not a number shall also throw `FormatException`.
-  - Tests: untested
+- **BRIDGE-IMAGE-055** — When the string is empty, has more than two parts, or its first part is not the name of a defined kind (a number or a comma list included), `Parse` shall throw `FormatException`; a second part that is not a number shall also throw `FormatException`.
+  - Tests: `ImageTransitionTests.ParseRejectsNumericAndUndefinedKinds`
 - **BRIDGE-IMAGE-056** (inherited) — `ImageTransition` shall compare by value.
   - Tests: `ImageTransitionTests.XamlGivesSourceTransitionAsAStringAStyleSetterOrAnElement`
 
@@ -213,7 +213,6 @@ depends:
 - `Pixelate` at or below 1 and `Dissolve` at or below 0 are identity; a negative `Ripple` displaces the other way and is not identity.
 - A `TransitionTo(null, …)` transitions to nothing: the outgoing image fades, wipes or dissolves away over an empty incoming.
 - A `Source` change while a transition runs and `SourceTransition` is null does not start a new one: the running transition continues from its outgoing image to the new source.
-- `ImageTransition.Parse` takes a numeric kind ("1") through `Enum.TryParse`, and an undefined value draws as `Crossfade`.
 - Only `DrawingImage` invalidation is observed; another custom `IImage` re-rasterizes only when its key (image, source rect, size, scaling) changes.
 
 ## Threading and lifetime
@@ -260,6 +259,8 @@ depends:
 - **Transition progress and the wipe stay internal.** Progress is an internal styled property (default 1) animated by an ordinary builder; the wipe is an internal field of the effect; noise tuning comes from the image, not `ImageTransition`. Reason: a user-set progress has no outgoing image to show, animating a styled property makes `Revert` return to 1 and release the outgoing image, and `MaskSweep` already wipes any element.
 - **Subclasses draw through a protected `DrawImage`.** The overload taking an image and source rect is protected; the full overload stays `private protected`. Reason: the full overload exposes internal types.
 - **`ImageTransition` has a string form through a static `Parse`.** A kind and an optional duration in ms, eased `InOutQuad`; a null `Builder` plays 600 ms. Reason: the Avalonia XAML compiler finds a static `Parse` for attributes and setters. Rejected: a type converter or markup extension.
+- **`Parse` takes kind names only.** A number, an undefined name or a comma list throws `FormatException`. Reason: `Enum.TryParse` alone accepted them and an undefined value drew as `Crossfade`, hiding a typo.
+- **A `Source` change mid-transition with `SourceTransition` null retargets the running transition.** It continues from its outgoing image to the new source rather than snapping. Reason: rapid source changes stay smooth. Rejected: snapping as BRIDGE-IMAGE-051 does at rest.
 - **Exit ghosts do not carry pixel effects.** An exit cannot dissolve or pixelate; the documented route is to animate the live `FilteredImage`, await it, then remove it. Reason: the `Presence` exit ghost is a plain `Image` snapshot.
 - **Tint defaults to white, Duotone to black and white.** An unset `TintColor` is white, and unset `DuotoneShadow` and `DuotoneHighlight` are black and white. Reason: a white tint is a plain monotone gray, and black-to-white duotone is the identity mapping of luminance.
 - **Builder methods write the typed property key.** See BRIDGE-HELPERS.
@@ -274,7 +275,5 @@ depends:
 ## Open items
 
 - A source of another aspect resizes the control when a transition starts, re-placing the old image inside the new bounds; whether it should resize only when the transition ends is open.
-- The no-lease fallback (BRIDGE-IMAGE-016), the clamped filter amounts (BRIDGE-IMAGE-022), the 1e-3 floors (BRIDGE-IMAGE-033), raster release on detach (BRIDGE-IMAGE-014), the 600 ms default (BRIDGE-IMAGE-038), `TransitionTo` with `SourceTransition` also set (BRIDGE-IMAGE-052) and `Parse` errors (BRIDGE-IMAGE-055) have no test.
-- `ImageTransition.Parse` accepts numeric and undefined kind values through `Enum.TryParse`; undefined ones render as `Crossfade`.
-- A `Source` change during a running transition with `SourceTransition` null silently retargets the running transition; unspecified by the plan and untested.
+- The no-lease fallback (BRIDGE-IMAGE-016), the clamped filter amounts (BRIDGE-IMAGE-022), the 1e-3 floors (BRIDGE-IMAGE-033), raster release on detach (BRIDGE-IMAGE-014), the 600 ms default (BRIDGE-IMAGE-038), `TransitionTo` with `SourceTransition` also set (BRIDGE-IMAGE-052) and a `Source` change mid-transition with `SourceTransition` null have no test.
 - manual — the Browser and Android heads were never smoke-run with a filtered image, so the README has no Platforms note; the Desktop checks (slideshow mid-way screenshots, pixelate card) are manual on the Image effects page.

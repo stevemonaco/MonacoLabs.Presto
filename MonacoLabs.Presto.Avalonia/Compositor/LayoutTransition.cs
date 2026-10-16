@@ -38,6 +38,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private Rect? _firstWithin;
     private bool _firstOnScreen;
     private bool _armed = true;
+    private TaskCompletionSource? _firstPass;
     private Animation? _mirror;
     private bool _translating;
     private bool _scaling;
@@ -91,13 +92,19 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     public LayoutTransition Revert()
     {
         Cancel();
-        _armed = false;
+        Disarm();
         _control.LayoutUpdated -= OnLayoutUpdated;
         if (s_live.TryGetValue(_control, out var live) && live == this) s_live.Remove(_control);
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    private void Disarm()
+    {
+        _armed = false;
+        _firstPass?.TrySetResult();
+    }
 
     /// <summary>Called with the transition that has just reverted this one by arming on the same control.</summary>
     internal Action<LayoutTransition>? Replaced { get; set; }
@@ -109,8 +116,11 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     internal ItemChanges? List { get; init; }
 
     /// <inheritdoc cref="Animation.Then"/>
+    /// <remarks>A one-shot awaited before its first layout pass waits for that pass, and then for the move it starts.</remarks>
     public async Task<LayoutTransition> Then(Action<LayoutTransition>? callback = null)
     {
+        // Continuations run after the pass's handler returns, by when its move is under way.
+        if (Once && _armed) await (_firstPass ??= new(TaskCreationOptions.RunContinuationsAsynchronously)).Task;
         if (_mirror is { } mirror) await mirror.Then(callback == null ? null : _ => callback(this));
         else callback?.Invoke(this);
         return this;
@@ -254,7 +264,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
             return;
         }
         if (first is not { } from || ElementComposition.GetElementVisual(_control) is not { } element) return;
-        _armed = false;
+        Disarm();
 
         var sizable = _mode != LayoutAnimateMode.Position && !ContentSizeTransition.Eases(_control) && last.Width > 0 && last.Height > 0;
         var scaled = sizable && (from.Size != last.Size || _scratch.ScaleX != 1 || _scratch.ScaleY != 1);

@@ -14,8 +14,10 @@ public sealed class VelocityTracker
 
     /// <param name="interval">The minimum time between accepted samples; closer samples are ignored.</param>
     /// <param name="samples">How many recent samples the velocity is the strongest of.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="interval"/> is not positive, or <paramref name="samples"/> is less than 1.</exception>
     public VelocityTracker(double interval = 17, int samples = 3)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(interval);
         ArgumentOutOfRangeException.ThrowIfLessThan(samples, 1);
         _interval = interval;
         _samples = new double[samples];

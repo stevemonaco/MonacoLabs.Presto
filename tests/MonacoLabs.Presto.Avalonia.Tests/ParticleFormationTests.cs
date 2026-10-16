@@ -189,6 +189,20 @@ public sealed class ParticleFormationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ACappedFormationThinsItsPointsEvenly()
+    {
+        var row = Enumerable.Range(0, 40).Select(i => new Point(i * 4, 0)).ToArray();
+        var formation = new ParticleScene { MaxLive = 10 }.AddFormation(row, Colors.White);
+
+        Assert.Equal(Enumerable.Range(0, 10).Select(i => i * 16d), formation.Dots.ToArray().Select(d => d.TargetX));
+
+        formation.Retarget(row.Select(p => p + new Vector(0, 50)).ToArray());
+
+        Assert.Equal(10, formation.Count);
+        Assert.Equal(Enumerable.Range(0, 10).Select(i => i * 16d), formation.Dots.ToArray().Select(d => d.TargetX).Order());
+    }
+
+    [AvaloniaFact]
     public void DisintegrateHidesTheBlockAndBlowsItsFillPointsAway()
     {
         var block = ShowText();

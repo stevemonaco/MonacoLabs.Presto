@@ -595,8 +595,13 @@ public class Timer : Clock, IRevertible
 
     void IRevertible.Revert() => Revert();
 
-    /// <summary>Seeks to the end, firing <see cref="OnComplete"/> unless muted, then cancels.</summary>
-    public Timer Complete(bool muteCallbacks = false) => Seek(Duration, muteCallbacks).Cancel();
+    /// <summary>Seeks to the end, firing <see cref="OnComplete"/> unless muted, then cancels without firing <see cref="OnPause"/>.</summary>
+    public Timer Complete(bool muteCallbacks = false)
+    {
+        // Paused first so the seek does not resume the timer only for Cancel to pause it again.
+        Paused = true;
+        return Seek(Duration, muteCallbacks).Cancel();
+    }
 
     /// <summary>Completes when the timer completes; an already completed timer resolves immediately.</summary>
     /// <param name="callback">Invoked synchronously on completion, before the task completes.</param>

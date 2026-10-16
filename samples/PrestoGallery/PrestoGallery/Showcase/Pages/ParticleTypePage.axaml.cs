@@ -43,13 +43,7 @@ public partial class ParticleTypePage : ShowcasePage
         var scale = Math.Min(size.Width * .85 / bounds.Width, size.Height * .6 / bounds.Height);
         var center = new Point(size.Width / 2, size.Height / 2);
         // Sampled at 100 and scaled up, so the spacing is divided by the scale to stay in canvas DIPs.
-        var sampling = (GlyphSampling)(SamplingPicker.SelectedIndex + 1);
-        var spacing = SpacingSlider.Value / scale;
-        var points = GlyphPoints.Sample(outline, spacing, sampling);
-        // Points past the scene cap get no particle, which would cut off the end of its bottom rows, so sample coarser instead.
-        // The count falls with the square of the spacing, so one rescaled pass usually fits.
-        var cap = ((ParticleScene)Field.Scene!).MaxLive;
-        while (points.Count > cap) points = GlyphPoints.Sample(outline, spacing *= Math.Sqrt((double)points.Count / cap) * 1.02, sampling);
+        var points = GlyphPoints.Sample(outline, SpacingSlider.Value / scale, (GlyphSampling)(SamplingPicker.SelectedIndex + 1));
         return [.. points.Select(p => center + (p - bounds.Center) * scale)];
     }
 

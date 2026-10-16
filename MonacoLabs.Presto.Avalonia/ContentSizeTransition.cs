@@ -115,12 +115,8 @@ public sealed class ContentSizeTransition : IRevertible
 
     /// <summary>The builder's timing and ease, which is all a content size transition takes.</summary>
     /// <exception cref="NotSupportedException">The builder animates a property, or sets anything else a layout transition cannot honor.</exception>
-    internal static LayoutMotion Motion(AnimationBuilder builder)
-    {
-        if (builder.Resolve().Properties.Count > 0)
-            throw new NotSupportedException("Layout decides the size a content size transition eases to, so give it only timing and an ease.");
-        return LayoutMotion.From(builder);
-    }
+    internal static LayoutMotion Motion(AnimationBuilder builder) =>
+        LayoutMotion.Timing(builder, "Layout decides the size a content size transition eases to, so give it only timing and an ease.");
 
     private Layoutable? SoleChild() =>
         _host.GetVisualChildren() is IReadOnlyList<Visual> { Count: 1 } children ? children[0] as Layoutable : null;

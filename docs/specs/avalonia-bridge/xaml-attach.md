@@ -67,8 +67,8 @@ depends:
   - Tests: `AnimateAttachedTests.OnTappedRestartsOnEachTap`
 - **BRIDGE-ATTACH-013** — When `OnTapped` is set to `null`, `Animate` shall revert the running animation and stop listening for taps.
   - Tests: `AnimateAttachedTests.ClearingOnTappedStopsListening`
-- **BRIDGE-ATTACH-014** (inherited) — When `OnTapped` is set on a `Visual` that is not an `InputElement`, the trigger shall never play, since there is no `Tapped` event to listen to.
-  - Tests: untested
+- **BRIDGE-ATTACH-014** — When `OnTapped` is set to a builder on a `Visual` that is not an `InputElement`, `Animate` shall throw `InvalidOperationException`.
+  - Tests: `AnimateAttachedTests.OnTappedOnAVisualThatIsNotAnInputElementThrows`
 
 ### OnChanged and Watch
 
@@ -91,8 +91,8 @@ depends:
 
 - **BRIDGE-ATTACH-022** — When a visual with a running `OnTapped` or `OnChanged` animation detaches, `Animate` shall revert that animation.
   - Tests: `AnimateAttachedTests.DetachingRevertsTheTriggers`
-- **BRIDGE-ATTACH-023** (inherited) — When `OnTapped` or `OnChanged` changes from one non-null builder to another, `Animate` shall leave any running animation alone and play the new builder on the next tap or `Watch` change.
-  - Tests: untested
+- **BRIDGE-ATTACH-023** — When `OnTapped` or `OnChanged` changes from one non-null builder to another, `Animate` shall play the new builder on the next tap or `Watch` change, and, while an animation of the old builder is running, revert it and play the new builder from the start.
+  - Tests: `AnimateAttachedTests.ChangingOnTappedPlaysTheNewBuilderOnTheNextTapAndRestartsARunningOneWithIt`, `AnimateAttachedTests.ChangingOnChangedMidPlayRevertsItAndPlaysTheNewBuilder`
 - **BRIDGE-ATTACH-024** — When the target is a `TextBlock` whose `TextReveal.Pieces` is not `None` and the builder is not a reduced form, `OnAttached` and `OnTapped` shall play the builder on the block's split pieces as a text reveal (BRIDGE-TEXTREVEAL) instead of on the block, and a tap mid-reveal shall restart it.
   - Tests: `TextRevealTests.OnTappedRevealsThePiecesAndATapMidRevealRestartsIt`, `TextRevealTests.DetachingRevertsTheSplit`, `TextRevealTests.DetachingBeforeTheSplitReleasesTheHold`
 - **BRIDGE-ATTACH-025** — `OnChanged` shall always animate the visual itself, never its text pieces.
@@ -154,6 +154,8 @@ depends:
 - **`OnAttached` lifetime is predictable over seamless.** Setting it on an attached visual (or attaching with a value) plays the builder; a detach reverts the animation so a re-attached visual starts clean; a new value reverts the previous animation, then plays; `null` reverts and unsubscribes; design mode does nothing. Reason: a mid-flight swap restarts from the visual's own values, and the previewer must not animate the design surface. Rejected: a seamless mid-flight handover on a value change.
 - **`OnAttached` is the "while attached" trigger.** It plays on every attach with no classification and is meant for loops and timers tied to being on screen (shimmer, countdown); entrances and exits live on `Presence`, states on `Motion`. Reason: it plays on every attach, including a virtualizing panel's recycling, which `Presence` deliberately ignores; triggers are separated by meaning.
 - **One-shot triggers stay on `Animate`, separate from states.** `OnTapped` plays and restarts on each tap; `OnChanged` with `Watch` plays on each change of the watched value but not on its first value; both revert when they complete. Reason: `Animate` is the raw-trigger class, and skipping the first value is what pulsing counters and bumping badges need.
+- **A one-shot trigger's builder swap replays only a running animation.** Changing `OnTapped` or `OnChanged` reverts a running animation and plays the new builder, as an `OnAttached` change does; with nothing running it plays nothing until the next tap or change. Reason: a running animation stands for a trigger that already fired, so it follows the latest builder; playing with nothing running would fire a trigger nobody raised. Rejected: leaving the running animation alone until the next trigger, which kept showing the replaced builder.
+- **`OnTapped` on a visual that is not an `InputElement` throws `InvalidOperationException`.** Reason: such a visual raises no `Tapped`, so the trigger was silently inert; the builder is valid and the host is not, as with two layout arms on one container.
 - **No timelines or keyframes in XAML.** Reason: builders and recipes already reach XAML as values, multi-step sequences usually need code-side targets and state, and XAML elements would add verbosity without capability.
 - **The piece trigger handle is an `IRevertible`, not an `Animation`.** See BRIDGE-TEXTREVEAL.
 - **The thread is an argument on bridge entry points.** See BRIDGE-THREAD.
@@ -166,6 +168,4 @@ depends:
 
 ## Open items
 
-- `OnTapped` and `OnChanged` ignore a change from one non-null builder to another until the next trigger (BRIDGE-ATTACH-023), unlike `OnAttached`, which replays at once; the XML docs do not say so. Untested.
-- `OnTapped` set on a non-`InputElement` visual is silently inert (BRIDGE-ATTACH-014). Untested.
 - BRIDGE-ATTACH-019, -021, -025, -027, -028 and -029 have no test.

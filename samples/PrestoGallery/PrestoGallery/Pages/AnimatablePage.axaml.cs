@@ -80,8 +80,8 @@ public partial class AnimatablePage : ShowcasePage
     {
         if (_follower is null) return;
         #region snippet AnimatableFling
-        var edgeX = FollowerStage.Bounds.Width / 2 - Follower.Width / 2;
-        var edgeY = FollowerStage.Bounds.Height / 2 - Follower.Height / 2;
+        var edgeX = Math.Max(0, FollowerStage.Bounds.Width / 2 - Follower.Width / 2);
+        var edgeY = Math.Max(0, FollowerStage.Bounds.Height / 2 - Follower.Height / 2);
         _follower
             .Fling("X", new Inertia() { Min = -edgeX, Max = edgeX })
             .Fling("Y", new Inertia() { Min = -edgeY, Max = edgeY });

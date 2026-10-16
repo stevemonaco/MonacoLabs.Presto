@@ -96,6 +96,8 @@ depends:
   - Tests: `ReorderTests.DraggingAcrossSeveralRowsMovesOneStepPerRowInOrderDownAndUp`
 - **BRIDGE-REORDER-018** — Each step shall first raise `Reorder.Moving` on the list with `Item`, `OldIndex` and `NewIndex = OldIndex ± 1`, and a handler that sets `Cancel` shall stop the step and leave the collection untouched.
   - Tests: `ReorderTests.CancelingMovingLeavesTheCollectionUntouched`
+- **BRIDGE-REORDER-045** — When a drag's step is canceled, refused or left undone by the command, the list shall not raise `Moving` for that crossing again on later pointer moves or auto-scroll frames while the center stays past the neighbor's midpoint; once the center falls back short of it, the next crossing shall raise it again.
+  - Tests: `ReorderTests.ACanceledStepRaisesMovingOncePerCrossingNotOnEveryMoveOrFrame`
 - **BRIDGE-REORDER-019** — When `Reorder.Command` is set, each uncanceled step shall call `CanExecute` and then `Execute` with the `ReorderMovingEventArgs` as parameter, and the list shall move nothing itself; `CanExecute` false refuses the step.
   - Tests: `ReorderTests.ACommandReceivesEachStepAndOwnsTheMove`
 - **BRIDGE-REORDER-020** (inherited) — When the command does not change the item's index, the step shall end the current run of crossings, and the drag shall continue.
@@ -144,8 +146,8 @@ depends:
 
 ### Lift recipe and markup
 
-- **BRIDGE-REORDER-037** — `ReorderExtension` shall build `Recipes.ReorderLift(null, Intensity, Duration, Delay, ease)`, with `Intensity` 1 by default and `Ease` parsed by the ease parser; `Out` has no effect since the recipe has no exit form.
-  - Tests: `RecipeMarkupTests.ReorderParsesItsIntensityAndDuration`, `BuilderPagesTests.ReorderPageListsLiftWithTheirRecipeAndReorder`
+- **BRIDGE-REORDER-037** — `ReorderExtension` shall build `Recipes.ReorderLift(null, Intensity, Duration, Delay, ease)`, with `Intensity` 1 by default and `Ease` parsed by the ease parser; since the recipe has no exit form, asking for one (`Out="True"` or an exit property) throws (BRIDGE-MARKUP-006).
+  - Tests: `RecipeMarkupTests.ReorderParsesItsIntensityAndDuration`, `RecipeMarkupTests.AnExtensionWithNoExitFormThrowsWhereTheExitFormIsAskedFor`, `BuilderPagesTests.ReorderPageListsLiftWithTheirRecipeAndReorder`
 - **BRIDGE-REORDER-038** — The default lift shall grow to scale `1 + 0.03 × intensity` over `ShadowBlur 16×intensity`, `ShadowY 6×intensity`, `ShadowOpacity 0.3`, with token timing read at call time, and shall not animate `X` or `Y`.
   - Tests: `RecipeTests.ReorderLiftGrowsOverARaisedShadowWithTheTokenTimingReadAtCallTime`
 
@@ -167,7 +169,7 @@ depends:
 
 ## Edge cases
 
-- A canceled `Moving` (or a refused/no-op command) is raised again on every later pointer move and every auto-scroll frame while the center stays past the neighbor's midpoint.
+- A canceled `Moving` (or a refused/no-op command) is raised once per crossing (045); Escape's walk back stops at the first one.
 - A non-focusable container can be recycled in a virtualized drag far past the viewport; the drag then drops without settling (BRIDGE-REORDER-014).
 - An `IList` that is not an `ObservableCollection<T>` without a command: every step is refused, the drag lifts and springs back.
 - Only `SelectedItem` is restored after a move; other entries of a multi-selection are not.
@@ -203,6 +205,8 @@ depends:
 - **Focus keeps the dragged container realized.** Reorder focuses the container on grab and after every move; a non-focusable container may still be recycled in a long virtualized drag, as the docs on `Enabled` say. Reason: capture on the list does not keep a container realized but focus does, and a `Move` takes focus away.
 - **Release, Escape and keyboard share the step path.** Release springs the shorthand to 0 with `Eases.Spring()`, reverses the lift and resumes the `LayoutArm` as if attaching; Escape walks the item back one step at a time, and Alt+arrows move one step, both through `Moving`/`Command`/`Move`. The default lift has no translation. Reason: a view model sees every step; resuming as attaching records the slot rather than flying there; the drag owns `X`/`Y`.
 - **A `Move` is tracked as a move.** See BRIDGE-PRESENCE.
+- **A refused step is raised once per crossing.** A canceled, refused or no-op step is not raised again while the center stays past that midpoint, only after it falls back and crosses again. Reason: re-raising it on every pointer move and auto-scroll frame flooded handlers with the same step they had already refused.
+- **A non-movable items source logs a warning at each grab.** Without `Command`, an `ItemsSource` that is not an `ObservableCollection<T>` logs one Avalonia `Logger` warning (area `Control`) per grab, and the drag still lifts and springs back. Reason: the drag looks like it works but cannot move anything, and a warning per grab shows up where the developer tries it without throwing from an input handler. Rejected: a `Trace` warning, as first designed, outside the sinks an Avalonia app configures.
 
 ## Non-goals
 
@@ -213,8 +217,4 @@ depends:
 
 ## Open items
 
-- The plan's test list cites `BuilderPagesTests.XamlPageReorderListsLiftWithTheirRecipeAndReorder`; the test is now `BuilderPagesTests.ReorderPageListsLiftWithTheirRecipeAndReorder` on the Builder › Reorder page.
-- The design recorded a "trace warning" for a non-movable items source; the code logs an Avalonia `Logger` warning once per grab (the decision is recorded as the code has it), untested.
-- A canceled or refused step re-raises `Moving` every pointer move and every auto-scroll frame while held past the midpoint; untested and possibly surprising for handlers.
-- Untested: design-mode no-op, detach mid-drag, capture loss mid-drag, container loss mid-drag, re-grab during the settle, non-Escape keys during a drag, Alt+arrow ignoring handles, and the `"Reorder"` diagnostics origin.
-- `ReorderList.cs` `Raise` has `_raised =container.SetValue(...)` (missing space); cosmetic.
+- Untested: design-mode no-op, detach mid-drag, capture loss mid-drag, container loss mid-drag, re-grab during the settle, non-Escape keys during a drag, Alt+arrow ignoring handles, the `"Reorder"` diagnostics origin, and the non-movable items source warning (011).

@@ -159,6 +159,21 @@ public sealed class InertiaTests : EngineTestBase
     }
 
     [Fact]
+    public void AModifyTargetWithinRestDeltaOfTheStartLandsOnTheModifiedTarget()
+    {
+        var target = new StyleTarget { X = .3 };
+        var animation = Presto.Animate(target, new() { ["X"] = new Inertia(.0001) { ModifyTarget = Utils.Snap(1) } });
+
+        RunUntil(() => animation.Completed);
+
+        Assert.Equal(0, target.X);
+    }
+
+    [Fact]
+    public void MinAboveMaxThrows() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => Presto.Animate(new StyleTarget(), new() { ["X"] = new Inertia(1) { Min = 10, Max = 0 } }));
+
+    [Fact]
     public void AReleaseOnABoundMovingOutwardGoesOutAndBack()
     {
         var target = new StyleTarget { X = 300 };

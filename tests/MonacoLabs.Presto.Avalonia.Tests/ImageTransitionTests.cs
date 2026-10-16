@@ -267,6 +267,13 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Assert.All(Pixels(image), pixel => AssertNear(Colors.Blue, pixel, 3));
     }
 
+    [Theory]
+    [InlineData("3")]
+    [InlineData("1 800")]
+    [InlineData("Swirl")]
+    [InlineData("Crossfade,Dissolve")]
+    public void ParseRejectsNumericAndUndefinedKinds(string s) => Assert.Throws<FormatException>(() => ImageTransition.Parse(s));
+
     [AvaloniaFact]
     public void WithoutSourceTransitionSourceSnaps()
     {

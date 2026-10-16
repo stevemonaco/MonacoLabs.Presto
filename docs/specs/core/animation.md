@@ -169,8 +169,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 - **CORE-ANIMATION-044** — When `Presto.Set` is called, the animation shall build every tween as a from/to pair of the given value with a `Constants.MinValue` duration and `Composition.Overlap` unless set, and start at once so the values are written before it returns. A function value is resolved once per target, and one that returns an array (a from/to pair or keyframes) sets its last item.
   - Tests: `UtilsTargetsTests.SetObjectProperties`, `UtilsTargetsTests.SetWritesTheToValueOfAFunctionReturningAFromToPair`, `UtilsTargetsTests.SetObjectPropertiesToSpecificUnit`, `DiscreteValuesTests.SetWritesABoolAndAnEnum`
-- **CORE-ANIMATION-045** (inherited) — When `Presto.Set` is called, it shall not raise the engine's `TimerCreated`.
-  - Tests: untested
+- ~~**CORE-ANIMATION-045**~~ — Removed: `Presto.Set` now raises `TimerCreated` (CORE-PRESTO-019).
 
 ### Refresh
 
@@ -213,8 +212,8 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
   - Tests: `IntrospectionTests.IsOverriddenFlipsWhenANewerAnimationTakesTheProperty`
 - **CORE-ANIMATION-060** — `GetFrom`, `GetTo` and `GetCurrent` shall return copies: the number, the channels of a color or complex value, and the value composed as the string a target would receive.
   - Tests: `IntrospectionTests.GetCurrentMatchesTheTarget`
-- **CORE-ANIMATION-061** (inherited) — When a number or unit tween has `Composition.Overlap`, `GetCurrent` shall read as its from value, since such a tween does not track its number.
-  - Tests: untested
+- **CORE-ANIMATION-061** — `GetCurrent` shall return the value the tween last rendered whatever its composition, a `Composition.Overlap` number or unit tween included.
+  - Tests: `IntrospectionTests.GetCurrentOnAnOverlapTweenReadsTheRenderedValue`
 
 ### Reduced motion
 
@@ -265,6 +264,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - Color channels interpolate with premultiplied alpha, so a fade from a transparent color does not take on its RGB mid-way (CORE-COLORS).
 - Discrete properties tween instead of throwing, so `bool` and enum properties can be animated (CORE-TARGETS).
 - A zero-duration animation with a delay waits it out, where upstream `resume()` renders it once inside the delay (see "A zero-duration animation honors its delay").
+- Every tween stores its rendered number; upstream skips it for `composition: 'none'`, which left `GetCurrent` on an `Overlap` tween reading its from value.
 - `TextModifier`, `Inertia`/`Projectile` values, `WhenReduced` and `ReduceAll` have no upstream counterpart.
 - No DOM-specific tween types, `persist` or WAAPI conversion: there is no DOM, and upstream's `persist` exists only on its WAAPI path.
 
@@ -289,5 +289,4 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ## Open items
 
-- `Id` defaults, `Presto.Set` not raising `TimerCreated`, kind homogenization, complex padding, the 1000-target composition switch, string rounding precision, a function value returning `TweenParams`, and the setter restart in `Refresh` have no test.
-- `GetCurrent` on a `Composition.Overlap` number tween returns the from value rather than the rendered one (documented on the member); tools reading it get a stale value.
+- `Id` defaults, kind homogenization, complex padding, the 1000-target composition switch, string rounding precision, a function value returning `TweenParams`, and the setter restart in `Refresh` have no test.

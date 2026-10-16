@@ -15,6 +15,7 @@ depends:
   - CORE-BUILDER
   - CORE-REDUCED
   - BRIDGE-EFFECTS
+  - BRIDGE-LAYOUT
   - BRIDGE-RECIPES
   - BRIDGE-TOKENS
 ---
@@ -46,16 +47,18 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-007** — While `Motion` is null, the turn shall last `Recipes.Tokens.Long` and ease with `Recipes.Tokens.Ease`, read at the toggle.
   - Tests: untested
-- **BRIDGE-FLIP-008** — When `Motion` is set, the turn shall be a clone of it, so its timing, ease (a spring setting the duration) and other settings apply, and the builder itself is not changed.
+- **BRIDGE-FLIP-008** — When `Motion` is set, the turn shall be a clone of it, so its timing and ease (a spring setting the duration) apply, and the builder itself is not changed.
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
+- **BRIDGE-FLIP-017** — Setting `Motion` to a builder that animates a property or sets anything a layout transition cannot honor (BRIDGE-LAYOUT-040) shall throw `NotSupportedException`.
+  - Tests: `FlipTests.AMotionWithMoreThanTimingAndEaseThrowsWhenSet`
 - **BRIDGE-FLIP-009** — When `IsFlipped` is toggled mid-turn, the new turn shall start from the card's current angle.
   - Tests: `FlipTests.TogglingMidFlipTurnsBackFromWhereTheCardStands`
 - **BRIDGE-FLIP-010** — When the control leaves the visual tree mid-turn, the turn shall complete at once, landing on its end angle and face.
   - Tests: `FlipTests.LeavingTheTreeMidTurnLandsTheTurn`
 - **BRIDGE-FLIP-011** — When `IsFlipped` changes while the control has no visual root, the card shall be set to its end angle and perspective and the faces shall swap at once.
   - Tests: `FlipTests.ACardOutsideATreeTurnsAtOnce`
-- **BRIDGE-FLIP-012** (inherited) — When `Orientation` changes, only the back face's mirror shall change; the card's current angle stays on the previous axis until the next toggle.
-  - Tests: untested
+- **BRIDGE-FLIP-012** — When `Orientation` changes while the card is flipped or turning, the turn shall be canceled, the old axis set to 0° and the new axis to the end angle (180° flipped, 0° not), with the face for that angle shown.
+  - Tests: `FlipTests.ChangingTheOrientationWhileFlippedMovesTheTurnOntoTheNewAxis`
 
 ### Reduced motion
 
@@ -84,7 +87,6 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 
 - A null face leaves its holder empty; the card still turns.
 - Setting `IsFlipped` in XAML before the control is in a tree lands it at once, with no turn on first show.
-- A `Motion` with its own callbacks or loop is honored as given, since it is cloned whole.
 
 ## Threading and lifetime
 
@@ -105,6 +107,8 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 ## Decisions
 
 - **Flip is an untemplated control.** `Flip` has `Front`, `Back` and `IsFlipped`; the card that turns 0↔180° (with `Recipes.FlipPerspective`, 800) and the mirror on the back face are its own children, and it is not templated. Reason: the card and the mirror belong to the control rather than to a panel the page owns, so neither a page's layout nor its `RenderTransform` is touched and a face never sees its rotation; the bridge ships no themes. Rejected: attached properties on a page's panel.
+- **`Motion` takes timing and ease only, validated where it is set.** It is read as `Selection.Motion` is, and a builder with properties, loops, callbacks or anything else throws `NotSupportedException` when assigned. Reason: the card decides the angles, and the whole-builder clone let loops, callbacks and extra properties ride along against the documented contract; throwing at the assignment points at the mistake.
+- **An orientation change moves the turn onto the new axis at once.** While flipped or turning, the old axis is reset to 0° and the new one set to the end angle, with no turn. Reason: leaving 180° on the old axis made the next toggle turn on the new axis with the old rotation still applied; an orientation change is not a toggle, so it does not animate.
 
 ## Non-goals
 
@@ -113,6 +117,4 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 
 ## Open items
 
-- `Motion` is documented as "the turn's timing and ease, the builder's only", but the code clones the whole builder without validating it (unlike `Selection.Motion`, which rejects other settings), so loops, callbacks and extra properties ride along (code wins).
-- Changing `Orientation` while flipped (BRIDGE-FLIP-012) leaves the old axis at 180° and the new one at 0°, so the next toggle turns on the new axis with the old rotation still applied; untested.
 - The default timing (007) and face replacement (002) have no tests.

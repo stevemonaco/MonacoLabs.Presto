@@ -19,7 +19,7 @@ public sealed class SpringsPageTests
     private const double RaceDistance = 300;
 
     [AvaloniaFact]
-    public void MovingBounceRederivesStiffnessDampingAndTheRatio()
+    public void MovingBounceRederivesDampingAndTheRatio()
     {
         var page = new SpringsPage();
         var window = SceneHarness.Show(page, 1280, 900);
@@ -28,7 +28,7 @@ public sealed class SpringsPageTests
 
         Slider(page, "BounceSlider").Value = -.5;
 
-        Assert.NotEqual(stiffness, Slider(page, "StiffnessSlider").Value);
+        Assert.Equal(stiffness, Slider(page, "StiffnessSlider").Value, 1e-3);
         Assert.NotEqual(damping, Slider(page, "DampingSlider").Value);
         Assert.EndsWith("overdamped", Text(page, "RatioText"));
         Assert.StartsWith("var spring = Eases.Spring(bounce: -0.5, duration: 628", page.GetControl<CodePanel>("LabCode").Code);

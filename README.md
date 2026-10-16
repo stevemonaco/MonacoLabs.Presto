@@ -1375,7 +1375,7 @@ Each markup extension provides a new builder per element from its recipe:
 | `{presto:Reorder}` | `ReorderLift` | `Intensity` | |
 
 All of them take `Duration`, `Delay`, `Ease` (a string such as `outBack`), `Stagger` (the step in ms) and `Out`. Set
-on `Presence.Exit`, an extension with an exit form provides it. A style `Setter` is not the property it sets, so there
+on `Presence.Exit`, an extension with an exit form provides it, and one without throws. A style `Setter` is not the property it sets, so there
 `Out=True` asks for the exit form; `Out=False` forces the entrance form anywhere. Arguments are separated by commas.
 
 Set on a `TextBlock`, the text reveal extensions also set the `TextReveal.Pieces` (and for `LineMask`, `Mask`) their
@@ -1597,7 +1597,9 @@ following.Dispose();   // stops following and leaves the flag as it is
 ```
 
 It sets `ReducedMotion` on the current engine straight away, and again whenever a window or the app is activated, the
-browser reports a change, or you call `PrestoAvalonia.RefreshSystemReducedMotion()`. The built-in probe reads
+browser reports a change, or you call `PrestoAvalonia.RefreshSystemReducedMotion()`. It keeps writing to the engine that
+was current when you called it: called inside a scope or on a secondary engine, it sets that engine's flag, not
+`Presto.Engine`'s. The built-in probe reads
 Windows (client-area animation), macOS and iOS (reduce motion) and the browser (`prefers-reduced-motion`). On Android,
 Linux and elsewhere it reads unknown, which leaves the flag alone. There, pass your own `probe: () => …` and call
 `RefreshSystemReducedMotion` when it changes.

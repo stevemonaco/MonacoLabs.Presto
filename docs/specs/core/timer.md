@@ -194,6 +194,8 @@ depends:
   - Tests: untested
 - **CORE-TIMER-073** — `Seek`, `Play`, `Resume`, `Reverse`, `Restart`, `Pause`, `Cancel`, `Revert` and `Complete` shall end a running `Settle` (CORE-MOTIONVALUE).
   - Tests: `SettleTests.APlayheadControlEndsTheSettleWithTheCurrentProgress`
+- **CORE-TIMER-074** — When `Complete` is called, the timer shall fire `OnComplete` unless callbacks are muted, and shall not fire `OnPause`, whether it was playing or paused.
+  - Tests: `CallbacksTests.CompleteFiresOnCompleteAndNotOnPause`
 
 ### Defaults
 
@@ -225,7 +227,7 @@ depends:
 
 ## Edge cases
 
-- `Complete()` on a playing timer fires `OnComplete` and then `OnPause`, because the seek resumes it before `Cancel` pauses it.
+- `Complete()` on a playing timer fires `OnComplete` only, though it ends paused and canceled (see "`Complete()` does not fire `OnPause`").
 - `Scrub` and `Cancel` on a playing timer fire `OnPause`.
 - An infinite timer's `Progress` is `CurrentTime / 1e12`, effectively 0.
 - A time jump bigger than the tick threshold (200 ms, 0.2 s in seconds mode) forces every tween to re-render.
@@ -252,6 +254,7 @@ depends:
 - `Stretch` leaves a root timer's offset unchanged: scaling the creation-time offset lost precision when stretching a setter (see "Stretch keeps a root timer's offset").
 - A repeat `Cancel` leaves composition alone: upstream's double removal corrupted the sibling lists (see CORE-COMPOSITION, "Sibling removal is idempotent").
 - A zero-duration timer with a delay waits it out on `Resume`, where upstream renders it once inside the delay and never links it into the engine (see CORE-ANIMATION, "A zero-duration animation honors its delay").
+- `Complete()` never fires `OnPause`, where upstream's seek resumes a playing timer and its cancel then pauses it, firing `onPause` after `onComplete` (see "`Complete()` does not fire `OnPause`").
 - `FrameRate` of zero or less is uncapped, where upstream clamps it to a rate that never renders, because there was otherwise no way to ask for every frame.
 - A function-based default delay gives a plain timer a delay of 0; `Duration` and `Delay` are numbers, not function values.
 - `Loop` is settable after creation, `Scrub`, `ProgressValue`, `IsScheduled` and the introspection getters have no upstream counterpart.
@@ -268,6 +271,7 @@ depends:
 - **Unset timer parameters are the plain choices.** With nothing set a timer starts at once, plays one iteration forwards at rate 1 with no delays or alternation, renders at up to 240 fps and has priority 1 (CORE-TIMER-059 to 067). Reason: `Presto.CreateTimer` or `Presto.Animate` with only a duration then does what the call reads as; 240 fps is above common display refresh rates, so the default cap never drops a frame the display could show; priority 1 leaves 0 for a timer that must tick before the default ones.
 - **Introspection is read-only and allocation-free.** The introspection surface is public getters only; `Children` and `Tweens` are struct enumerators over the linked lists; `IsAlternating` names the flag because `Alternate` is the method; `TweenSnapshot` methods allocate and are for tools only. Reason: inspection must not allocate on enumeration nor add mutation surface.
 - **Sibling removal is idempotent.** See CORE-COMPOSITION.
+- **`Complete()` does not fire `OnPause`.** `Complete` pauses the timer silently before seeking to the end, so neither the seek nor the cancel that follows fires `OnPause`; a plain `Pause` or `Cancel` still does. Reason: a completion is not a pause, and a handler that resumes or saves state on pause would misfire. Rejected: upstream's order (`OnComplete`, then `OnPause`).
 - **`Presto.Delay` is the idiomatic wait; awaiting a timer stays supported.** `Then` and `GetAwaiter` still complete when the timer does, but a hold between animations is written `await Presto.Delay(ms)` (CORE-PRESTO). Reason: `Task.Delay` ignores engine time, so a hold would desync under DevTools dilation and never complete in headless tests driven by `Frames.Advance`, and a named wait says what it is. Rejected: keeping `await Presto.CreateTimer(...)` as the documented wait, which reads as a workaround.
 
 ## Non-goals
@@ -277,5 +281,4 @@ depends:
 
 ## Open items
 
-- `Complete()` on a playing timer fires `OnPause` after `OnComplete` (kept from upstream); nothing pins it and it may surprise callers.
 - Untested: the defaults fallback at construction, a null `Duration`, function-based default delay, generated ids, `Backwards`, child-never-autoplays, the `Reversed` setter, `Seek` with `muteCallbacks`/`internalRender`, and `Loop` set on a timeline child.

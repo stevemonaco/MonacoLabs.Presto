@@ -43,8 +43,9 @@ public sealed class ParticleScene : CompositorScene
 
     /// <summary>
     /// Places one particle of <paramref name="color"/>, a square <paramref name="size"/> DIPs wide, on each of
-    /// <paramref name="points"/> in canvas coordinates, as far as <see cref="MaxLive"/> allows; each then springs back to its
-    /// point when pushed. Call on the render thread, as <see cref="Add(EmitterParams, Point)"/>.
+    /// <paramref name="points"/> in canvas coordinates, as far as <see cref="MaxLive"/> allows (beyond that, points are taken
+    /// evenly across the list); each then springs back to its point when pushed.
+    /// Call on the render thread, as <see cref="Add(EmitterParams, Point)"/>.
     /// </summary>
     public ParticleFormation AddFormation(IReadOnlyList<Point> points, Color color, double size = 3) => AddFormation(points, null, color, size, null, null);
 

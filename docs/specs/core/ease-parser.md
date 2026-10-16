@@ -31,10 +31,12 @@ depends:
 
 - **CORE-EASEPARSER-001** (inherited) — `Parse` shall trim leading and trailing whitespace from its input before reading it.
   - Tests: `EaseParserTests.ParsesToMatchingEase`
-- **CORE-EASEPARSER-002** — `Parse` shall cache its result by the trimmed input, so the same string returns the same instance.
+- **CORE-EASEPARSER-002** — `Parse` shall cache its result by the trimmed input, so the same string returns the same instance while it stays cached.
   - Tests: `EaseParserTests.SameStringReturnsSameInstance`
-- **CORE-EASEPARSER-003** (inherited) — The cache shall be process-wide, safe for concurrent callers, and never evicted.
+- **CORE-EASEPARSER-003** (inherited) — The cache shall be process-wide and safe for concurrent callers.
   - Tests: untested
+- **CORE-EASEPARSER-036** — When the cache holds 256 entries, `Parse` shall clear it before caching a new result, and a string parsed again after a clear shall give an equivalent ease (see "The ease parser cache is bounded").
+  - Tests: `EaseParserTests.TheCacheIsClearedWhenFullAndReparsesAfterwards`
 - **CORE-EASEPARSER-004** (inherited) — When parsing throws, `Parse` shall cache nothing, so the same string throws again.
   - Tests: untested
 
@@ -117,7 +119,7 @@ depends:
 
 ## Invariants
 
-- A cached string maps to one `Ease` for the life of the process, and that ease is deterministic.
+- A cached string maps to one `Ease` until the cache is cleared, and that ease is deterministic, so a reparse gives an equivalent one.
 - `Parse` never returns null.
 
 ## Edge cases
@@ -134,7 +136,7 @@ depends:
 ## Threading and lifetime
 
 - `Parse` may be called from any thread; the cache is a `ConcurrentDictionary`. Two threads parsing one new string at once may both run the factory, and one result wins.
-- Cached eases live for the process.
+- Cached eases live until the cache fills and is cleared.
 
 ## Reduced motion
 
@@ -161,6 +163,7 @@ depends:
 - **Ease strings fail loudly; steps and cubicBezier parse.** An unknown name, `irregular(…)` and `linear(…)` throw `FormatException`, the code-only two naming their `Eases` factory; `steps(n, fromStart)` and `cubicBezier(x1, y1, x2, y2)` parse to their factories; an empty string is `None`; `TryParse` serves callers that probe a string, as `ScrollObserver`'s `Sync` does to tell an ease from method names. Reason: in XAML a string is the only way to give an ease, so a typo or a removed form silently going linear could not be noticed, and a cubic Bézier or a stepped ease could not be written at all; both take a few plain numbers, while `irregular` is random and `linear` takes a list of stops. Rejected: upstream's silent `none`; throwing for all four removed forms.
 - **A parsed `steps(0)` is a `FormatException`.** A `steps` count below 1 after truncation, `steps(0.5)` and `steps(NaN)` included, throws `FormatException` rather than letting `Eases.Steps`' `ArgumentOutOfRangeException` through. Reason: the parser's contract is that a bad string throws `FormatException` and `TryParse` returns false.
 - **Missing trailing arguments take the factory defaults.** Reason: `"out"` and `"out(2)"` then mean what `Eases.Out()` and `Eases.Out(2)` do, so a string and the call it names agree.
+- **The ease parser cache is bounded.** Past 256 entries it is cleared before inserting. Reason: callers building strings from varying numbers grew it without limit; clear-on-full stays simple, lock-free and allocation-light. Rejected: an LRU, more state for a cache of cheap parses.
 - **Ease names are registered only while diagnostics are active.** See CORE-EASES.
 
 ## Non-goals
@@ -170,5 +173,4 @@ depends:
 
 ## Open items
 
-- The cache is unbounded; a caller building ease strings from varying numbers grows it without limit.
 - Untested: concurrent use and no-cache-on-throw (003, 004), empty parentheses on a fixed ease (010), ignored extra arguments (016), `fromPath` error propagation (019), factory range errors (028).

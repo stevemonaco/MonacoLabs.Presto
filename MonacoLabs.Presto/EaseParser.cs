@@ -6,7 +6,7 @@ namespace MonacoLabs.Presto;
 
 /// <summary>
 /// Parses ease strings such as <c>"inOutQuint"</c>, <c>"out(2)"</c> or <c>"outElastic(1.5, .5)"</c> into
-/// <see cref="Ease"/> delegates, caching every result by input string.
+/// <see cref="Ease"/> delegates, caching every result by input string; the cache is cleared when it holds 256 strings.
 /// </summary>
 public static class EaseParser
 {
@@ -53,6 +53,10 @@ public static class EaseParser
             : Eases.ExpoScale(a[0], a[1], a.Length == 2 ? null : Parse(string.Join(',', a.Tokens[2..]))),
     };
 
+    internal const int CacheLimit = 256;
+
+    internal static int CachedCount => _cache.Count;
+
     private const int Seed = 1;
 
     /// <summary>
@@ -73,7 +77,11 @@ public static class EaseParser
     public static Ease Parse(string ease)
     {
         ArgumentNullException.ThrowIfNull(ease);
-        return _cache.GetOrAdd(ease.Trim(), Create);
+        var key = ease.Trim();
+        if (_cache.TryGetValue(key, out var cached)) return cached;
+        var created = Create(key);
+        if (_cache.Count >= CacheLimit) _cache.Clear();
+        return _cache.GetOrAdd(key, created);
     }
 
     /// <summary>Resolves <paramref name="ease"/> as <see cref="Parse"/> does, returning false where it would throw <see cref="FormatException"/>.</summary>

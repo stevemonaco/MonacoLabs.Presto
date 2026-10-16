@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -352,6 +353,46 @@ public sealed class ConnectedTests : CompositorTestBase
 
         Assert.Equal(SlotOf(arriving), Box(arriving));
         Assert.Equal(SlotOf(anchored), Extent(host, Colors.Lime));
+    }
+
+    [AvaloniaFact]
+    public void AMotionTheElementsRoleCannotCarryThrowsWhereItIsSet()
+    {
+        const string key = nameof(AMotionTheElementsRoleCannotCarryThrowsWhereItIsSet);
+        Assert.Throws<NotSupportedException>(() => Keyed(key, Brushes.Red, Presto.Build().Opacity(to: 0)));
+        Assert.Throws<NotSupportedException>(() => Anchored(key, Presto.Build().Opacity(from: 0).OnUpdate(_ => { })));
+
+        var later = new Border();
+        Connected.SetMotion(later, Presto.Build().Loop(2));
+        Assert.Throws<NotSupportedException>(() => Connected.SetKey(later, key));
+    }
+
+    [AvaloniaFact]
+    public void AnAnchorLeftUnderTheKeyDoesNotKeepTheFlownElementAlive()
+    {
+        const string key = nameof(AnAnchorLeftUnderTheKeyDoesNotKeepTheFlownElementAlive);
+        var host = new ContentControl { Content = View(Keyed(key, Brushes.Blue), 0, 50) };
+        ShowRoot().Children.AddRange([host, Anchored(key)]);
+
+        var flown = FlyAndLeave(host, key);
+        Pump(() => false, 10);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(flown.TryGetTarget(out _), "the registry kept the flight's control alive");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private WeakReference<Border> FlyAndLeave(ContentControl host, string key)
+    {
+        var arriving = Keyed(key, Brushes.Red, Presto.Build().Duration(50));
+        host.Content = View(arriving, 80, 130);
+        Tick();
+        Frames.Advance(100);
+        host.Content = null;
+        Tick();
+        return new(arriving);
     }
 
     /// <summary>The default entrance holds the element transparent through its delay, then brings it to rest in its slot.</summary>

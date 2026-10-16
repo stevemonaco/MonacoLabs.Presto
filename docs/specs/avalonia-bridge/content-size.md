@@ -164,5 +164,4 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 
 ## Open items
 
-- The recorded margin decision said `ClipToBounds` is held while a resize is in flight; the code holds the child's `Clip` geometry and never touches `ClipToBounds`, and Decisions follow the code.
 - Untested: recording at creation (002), the stretched-axis rule (006), a host without a sole child (008), one live transition per host (019), scope registration (020), the attached form's scope and design mode (026).

@@ -193,6 +193,29 @@ public sealed class AnimatablesTests : EngineTestBase
         Assert.InRange(updates, 2, 5);
     }
 
+    [Theory]
+    [InlineData(300)]
+    [InlineData(3000)]
+    public void TheCallbacksLastAsLongAsTheSet(double duration)
+    {
+        var (updates, completes) = (0, 0);
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new()
+        {
+            ["X"] = 100,
+            OnUpdate = _ => updates++,
+            OnComplete = _ => completes++,
+        });
+
+        animatable.Set("X", 100, duration);
+        Frames.Advance(duration - 50, 16);
+        var updatesBeforeTheEnd = updates;
+
+        Assert.Equal(0, completes);
+        Frames.Advance(100, 16);
+        Assert.Equal(1, completes);
+        Assert.True(updates > updatesBeforeTheEnd);
+    }
+
     [Fact]
     public void StaggersAnimatableDurationsPerTarget()
     {
@@ -548,6 +571,28 @@ public sealed class AnimatablesTests : EngineTestBase
 
         Assert.Equal(100, animatable.Animations["X"].Duration);
         Assert.Equal(.25, animatable.Animations["X"]._headTween!._ease(.25));
+    }
+
+    [Fact]
+    public void AChannelSetAfterAFlingUsesTheDeclaredEaseAndDurationAgain()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100, Ease = "linear" });
+
+        animatable.Fling("X", 1);
+        Frames.Advance(48, 16);
+        animatable.Set("X", [0]);
+
+        Assert.Equal(100, animatable.Animations["X"].Duration);
+        Assert.Equal(.25, animatable.Animations["X"]._headTween!._ease(.25));
+    }
+
+    [Fact]
+    public void FlingRejectsAColorProperty()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["BackgroundColor"] = 100 });
+
+        Assert.Throws<NotSupportedException>(() => animatable.Fling("BackgroundColor", 1));
+        Assert.Throws<NotSupportedException>(() => animatable.Fling("BackgroundColor"));
     }
 
     [Fact]

@@ -64,6 +64,21 @@ public sealed class ColorsTests : EngineTestBase
     }
 
     [Fact]
+    public void AnImplicitColorKeepsItsFractionalChannels()
+    {
+        var mixed = PrestoColor.Mix(new(255, 0, 0), new(0, 0, 255), .3);
+        var target = new ColorTarget { Background = new(255, 255, 255) };
+        var animation = Presto.Animate(target, new() { ["Background"] = mixed, Autoplay = false });
+
+        animation.Seek(animation.Duration);
+
+        Assert.NotEqual(Math.Round(mixed.R), mixed.R, 3);
+        Assert.Equal(mixed.R, target.Background.R, 9);
+        Assert.Equal(mixed.G, target.Background.G, 9);
+        Assert.Equal(mixed.B, target.Background.B, 9);
+    }
+
+    [Fact]
     public void BoxShadowShouldNotBeParsedAsColorValue()
     {
         const string shadow = "rgb(255, 0, 0) 0px 0px 6px 0px";

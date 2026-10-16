@@ -39,8 +39,7 @@ public sealed class Timeline : Timer
     public Timeline Add(object? targets, AnimationParams parameters, TimelinePosition position = default)
     {
         _hasChildren = true;
-        var childPosition = ChildPosition(position, parameters.Duration?.AsDouble);
-        AddChild(new Animation(targets, parameters, this, childPosition));
+        AddChild(new Animation(targets, parameters, this, ChildPosition(position, null)));
         return this;
     }
 
@@ -52,16 +51,16 @@ public sealed class Timeline : Timer
         var parsedTargets = TargetParser.Parse(targets);
         var duration = Duration;
         var iterationDuration = IterationDuration;
+        var start = position.StartOffset(this);
         for (var i = 0; i < parsedTargets.Count; i++)
         {
             // Every child is positioned against the timeline as it was before the group, not against the child before it.
             Duration = duration;
             IterationDuration = iterationDuration;
             var childParameters = parameters.Id is { } id ? parameters with { Id = $"{id}-{i}" } : parameters;
-            var staggered = position.Invoke(parsedTargets[i], i, parsedTargets, this);
+            var staggered = position.Invoke(parsedTargets[i], i, parsedTargets, start);
             TimelinePosition offset = staggered.Raw is string text ? text : staggered.Raw as double? ?? 0;
-            var childPosition = ChildPosition(offset, childParameters.Duration?.AsDouble);
-            AddChild(new Animation(parsedTargets[i], childParameters, this, childPosition, index: i, allTargets: parsedTargets));
+            AddChild(new Animation(parsedTargets[i], childParameters, this, ChildPosition(offset, null), index: i, allTargets: parsedTargets));
         }
         return this;
     }
@@ -87,8 +86,7 @@ public sealed class Timeline : Timer
     public Timeline Add(TimerParams parameters, TimelinePosition position = default)
     {
         _hasChildren = true;
-        var childPosition = ChildPosition(position, parameters.Duration);
-        AddChild(new Timer(parameters, this, childPosition));
+        AddChild(new Timer(parameters, this, ChildPosition(position, parameters.Duration)));
         return this;
     }
 
@@ -112,7 +110,7 @@ public sealed class Timeline : Timer
     /// <summary>Names the time <paramref name="position"/> resolves to, so later children can be added at <paramref name="name"/>.</summary>
     public Timeline Label(string name, TimelinePosition position = default)
     {
-        Labels[name] = position.Parse(this);
+        Labels[name] = ResolvePosition(position);
         return this;
     }
 
@@ -191,10 +189,17 @@ public sealed class Timeline : Timer
         return this;
     }
 
+    // Parsed even under ReduceAll, so an unknown label still throws.
+    private double ResolvePosition(TimelinePosition position)
+    {
+        var time = position.Parse(this);
+        return OwnerEngine.Defaults.ReduceAll ? 0 : time;
+    }
+
     // Renders the timeline at the resolved time so the child starts from the values its siblings leave behind.
     private double ChildPosition(TimelinePosition position, double? childDuration)
     {
-        var time = position.Parse(this);
+        var time = ResolvePosition(position);
         // A setter or 0 duration child starts one minValue early so its end value lands on the requested position.
         if (childDuration <= Constants.MinValue) time -= Constants.MinValue;
         if (Composition) Renderer.Tick(this, time, true, true, TickMode.Auto);
@@ -203,6 +208,8 @@ public sealed class Timeline : Timer
 
     private void AddChild(Timer child)
     {
+        // An animation's duration is only known once built (defaults, a function, ReduceAll), so it gets the setter shift here.
+        if (child is Animation { Duration: <= Constants.MinValue } animation) animation.ShiftOffset(-Constants.MinValue);
         if (Composition) child.Init(true);
         Helpers.AddChild(this, child);
         FitChildren();

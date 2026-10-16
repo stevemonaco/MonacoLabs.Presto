@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Data;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MonacoLabs.Presto.Bindings;
 using MonacoLabs.Presto.Effects;
 using MonacoLabs.Presto.Shapes;
@@ -14,12 +15,13 @@ namespace MonacoLabs.Presto;
 /// Attached shorthands that ease a visual's transform, blur or a shape's drawn stroke to each new value, usually bound to a view-model property:
 /// <c>presto:Follow.Rotate="{Binding Angle}"</c>. A value is a number, or a string with a unit such as <c>"45deg"</c>
 /// or <c>"1turn"</c> for <see cref="RotateProperty"/>; <see langword="null"/> or clearing the property releases the shorthand.
+/// Any other string throws <see cref="FormatException"/>, and the shorthand keeps following its previous value.
 /// </summary>
 /// <remarks>
 /// The first value snaps unless <see cref="AnimateInitialProperty"/> is set, as does a value caused by a new <c>DataContext</c>,
-/// one that arrives while detached, and every value under <see cref="PrestoDefaults.ReducedMotion"/> unless
-/// <see cref="WhenReducedProperty"/> gives a timing; detaching lands on the latest value. The followed value is the base of the
-/// shorthand: an animation of the same shorthand overrides it while it holds it, and reverting that animation shows the latest
+/// a later one that arrives while the visual is detached (or not yet attached), and every value under
+/// <see cref="PrestoDefaults.ReducedMotion"/> unless <see cref="WhenReducedProperty"/> gives a timing; detaching lands on the
+/// latest value. The followed value is the base of the shorthand: an animation of the same shorthand overrides it while it holds it, and reverting that animation shows the latest
 /// followed value again. <see cref="DrawProperty"/> is the exception: it writes the shape's dashes as a <c>"Draw"</c> tween
 /// does, so the later write wins, and releasing it restores the dashes the shape had.
 /// <para>
@@ -208,8 +210,22 @@ public static class Follow
             followed?.Release(index);
             return;
         }
+        var value = e.NewValue is string text ? ToNumber(index, text) : e.NewValue;
         if (followed is null) visual.SetValue(FollowedProperty, followed = new Followed(visual));
-        followed.Target(index, e.NewValue);
+        followed.Target(index, value);
+    }
+
+    private static double ToNumber(int index, string text)
+    {
+        var parsed = new DecomposedValue();
+        ValueParser.Decompose(text, parsed);
+        if (parsed.Kind is ValueKind.Number or ValueKind.Unit)
+        {
+            if (s_properties[index] == RotateProperty) return TransformShorthands.ToDegrees(parsed.Number, parsed.Unit);
+            if (parsed.Unit is null or "px") return parsed.Number;
+        }
+        var units = s_properties[index] == RotateProperty ? "an angle unit" : "px";
+        throw new FormatException($"Follow.{s_properties[index].Name} takes a number or a number in {units}, not \"{text}\".");
     }
 
     private sealed class Followed
@@ -228,6 +244,7 @@ public static class Follow
         public Followed(Visual visual)
         {
             _visual = visual;
+            _detached = !visual.IsAttachedToVisualTree();
             _itemSettled = () => _newItems = 0;
             visual.DataContextChanged += OnDataContextChanged;
             visual.AttachedToVisualTree += OnAttached;
@@ -253,7 +270,7 @@ public static class Follow
                 follower = _followers[index] = new Follower(typeof(double), Parameters(), Current(index));
                 follower.PropertyChanged += (_, _) => Show(index, follower.Value);
             }
-            follower.Target(ToNumber(index, value), snap: _detached || (_newItems & (1 << index)) != 0);
+            follower.Target(value, snap: (_detached && follower.Started) || (_newItems & (1 << index)) != 0);
             _newItems &= ~(1 << index);
         }
 
@@ -289,16 +306,6 @@ public static class Follow
             index == Blur ? (double)EffectComposer.Get(_visual, EffectShorthand.Blur)
             : index == Draw ? DrawAccessor.End((Shape)_visual)
             : RenderTransformComposer.Get(_visual, s_transforms[index]);
-
-        private static object ToNumber(int index, object value)
-        {
-            if (value is not string text) return value;
-            var parsed = new DecomposedValue();
-            ValueParser.Decompose(text, parsed);
-            if (parsed.Kind is not (ValueKind.Number or ValueKind.Unit)) return text;
-            if (s_properties[index] == RotateProperty) return TransformShorthands.ToDegrees(parsed.Number, parsed.Unit);
-            return parsed.Unit is null or "px" ? parsed.Number : text;
-        }
 
         private void Show(int index, object? value)
         {

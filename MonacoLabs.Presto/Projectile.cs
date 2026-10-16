@@ -16,7 +16,17 @@ public sealed record Projectile
     public double Acceleration { get; init; }
 
     /// <summary>The fraction of velocity lost per millisecond, from 0 up to but excluding 1.</summary>
-    public double Friction { get; init; }
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative, or 1 or more.</exception>
+    public double Friction
+    {
+        get;
+        init
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(value, 1);
+            field = value;
+        }
+    }
 
     /// <summary>The flight time in engine-time units; the tween's own duration when null.</summary>
     public double? Duration { get; init; }

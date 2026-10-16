@@ -106,10 +106,13 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
   - Tests: `ReducedMotionTests.ReduceAllCollapsesTimelineChildren`
 - **CORE-REDUCED-029** — `ReduceAll` shall leave params built from a builder's or dictionary's reduced form alone.
   - Tests: `ReducedMotionTests.ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone`, `ReducedMotionTests.ReduceAllLeavesADictionaryReducedFormAlone`
-- **CORE-REDUCED-030** — `ReduceAll` shall leave plain timers alone, and the timeline itself: its loop, positions and gaps.
-  - Tests: `ReducedMotionTests.ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone`
+- ~~**CORE-REDUCED-030**~~ — Removed: `ReduceAll` now collapses timeline positions and gaps (see "`ReduceAll` collapses timeline positions"); the rest moved to CORE-REDUCED-032.
 - **CORE-REDUCED-031** — `ReduceAll` shall not change `Presto.Set`, which is instant already.
   - Tests: untested
+- **CORE-REDUCED-032** — `ReduceAll` shall leave a plain timer's duration and the timeline's loop alone.
+  - Tests: `ReducedMotionTests.ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone`
+- **CORE-REDUCED-033** — While `ReduceAll` is set, a timeline shall place every child, `Call` and label added at 0, a zero-duration or collapsed child `Constants.MinValue` before it (CORE-TIMELINE-017), so it lands every collapsed child's end state and fires its `Call`s on its first frame, in add order.
+  - Tests: `ReducedMotionTests.ReduceAllCollapsesTimelinePositions`
 
 ## Invariants
 
@@ -142,6 +145,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 
 - **Reduced motion is an app-set flag with a per-builder alternative.** `PrestoDefaults.ReducedMotion` is a `bool` the app sets; `AnimationBuilder.WhenReduced` stores an alternative built on a fresh builder that carries this one's settings and callbacks (those chained after it too) but none of its properties or keyframes, picked when the builder becomes params; every recipe supplies one. Reason: the app decides whether to follow the operating system's setting, and carrying the settings lets a stagger or callback survive while the reduced form states its own values. Earlier Presto shipped no way to follow the system setting; following it is now an opt-in in the bridge (BRIDGE-REDUCED), and the core still never sets the flag.
 - **`ReduceAll` collapses everything without an alternative.** It makes the `Animation` constructor give every tween a minimal duration and no delay, keyframes and springs included, and force one iteration; params built from a reduced form, `Presto.Set` and plain timers are left alone, and timeline children collapse like any animation. Reason: not recorded.
+- **`ReduceAll` collapses timeline positions.** While the flag is set, a timeline resolves the position of every child, `Call` and label added to 0, after parsing it so an unknown label still throws; plain timers keep their durations, and a reduced alternative plays from 0. Labels and `Call`s follow so callbacks keep their add order against the collapsed children. Reason: a fully reduced timeline lands every child's end state at once, as `ReduceAll` promises. Rejected: keeping positions, which still takes the full length.
 - **The flag has no change notification.** Each consumer reads the flag when its own trigger fires, and an animation keeps the form it was built with. Reason: `PrestoDefaults` is a record copied with `with` into every scope and engine, so an event on it would be compared by record equality and carried into each copy, and a subscriber would not know which copy to watch; an app that must react at once has the bridge's system-following callback. Rejected: an event on `PrestoDefaults`.
 - **Dictionary params take `WhenReduced` with builder semantics.** `AnimationParams.WhenReduced` replaces the properties and keyframes and overrides only the settings it sets; `ReduceAll` leaves the result alone, a nested `WhenReduced` is ignored, `ToParams` puts a builder's reduced form in it, and `TimerParams` and `TimelineParams` have none. Reason: a timer animates nothing, and each timeline child picks its own form.
 - **Reduced motion lands on the resolved end at once.** See CORE-INERTIA.

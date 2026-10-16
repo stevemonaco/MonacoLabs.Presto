@@ -29,11 +29,13 @@ public sealed record ImageTransition
     internal AnimationBuilder Timing => Builder ?? Eased(600);
 
     /// <summary>Parses a kind and an optional duration in ms, such as <c>"Wipe 800"</c>, eased with <see cref="Eases.InOutQuad"/>.</summary>
-    /// <exception cref="FormatException"><paramref name="s"/> is not a kind optionally followed by a number.</exception>
+    /// <exception cref="FormatException"><paramref name="s"/> is not a kind name optionally followed by a number.</exception>
     public static ImageTransition Parse(string s)
     {
         var parts = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length is 0 or > 2 || !Enum.TryParse<ImageTransitionKind>(parts[0], true, out var kind))
+        // Enum.TryParse also takes numbers and comma lists; only a kind's own name is accepted.
+        if (parts.Length is 0 or > 2 || !Enum.TryParse<ImageTransitionKind>(parts[0], true, out var kind)
+            || !kind.ToString().Equals(parts[0], StringComparison.OrdinalIgnoreCase))
             throw new FormatException($"\"{s}\" is not an image transition kind optionally followed by a duration in ms.");
         return parts.Length == 1 ? new() { Kind = kind } : new() { Kind = kind, Builder = Eased(double.Parse(parts[1], CultureInfo.InvariantCulture)) };
     }

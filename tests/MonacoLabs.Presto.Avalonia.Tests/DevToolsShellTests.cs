@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Threading;
 using MonacoLabs.Presto.DevTools;
+using MonacoLabs.Presto.Diagnostics;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -98,6 +99,27 @@ public sealed class DevToolsShellTests : BridgeTestBase, IDisposable
 
         Assert.False(Presto.Engine.Frozen);
         Assert.Equal(1, Presto.Engine.TimeDilation);
+    }
+
+    [AvaloniaFact]
+    public void ClosingRestoresCaptureTracesAndTheRootSpeedsSetFromTheInspector()
+    {
+        Open();
+        var overlay = OverlayLayer.GetOverlayLayer(_window)!.Children.OfType<DevToolsOverlay>().Single();
+        var timer = Presto.CreateTimer(new TimerParams { Duration = 1000 });
+        overlay.List.CaptureTraces.IsChecked = true;
+        overlay.Inspector.Refresh(timer, null);
+        overlay.Inspector.Speed.Text = "2";
+        overlay.Inspector.Speed.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
+        overlay.Inspector.Speed.Text = "3";
+        overlay.Inspector.Speed.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
+        Assert.True(PrestoDiagnostics.CaptureCreationTrace);
+        Assert.Equal(3, timer.Speed);
+
+        PrestoDevTools.Close(_window);
+
+        Assert.False(PrestoDiagnostics.CaptureCreationTrace);
+        Assert.Equal(1, timer.Speed);
     }
 
     [AvaloniaFact]

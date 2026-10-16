@@ -108,8 +108,8 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `FollowBindingTests.ADataContextSwapSnapsAndAnUnchangedValueStillLetsTheNextChangeAnimate`, `FollowBindingTests.ARecycledContainerInAVirtualizedListSnapsToItsNewItem`, `FollowMarkupTests.InAnItemTemplateEachRowSnapsToItsItemAnimatesItsChangesAndSnapsToANewItem`
 - **BRIDGE-FOLLOW-021** (inherited) — `Follow.Bind<T>` over an `IObservable<T>` shall not watch `DataContext`, so it never snaps for a new item.
   - Tests: untested
-- **BRIDGE-FOLLOW-022** — When the target detaches from the visual tree, the follower shall land on the latest target and stop ticking; a value arriving while detached shall snap.
-  - Tests: `FollowBindingTests.DetachLandsOnTheLatestTargetAndReattachSnaps`, `FollowerTests.StopLandsOnTheLatestTargetAndStopsTicking`
+- **BRIDGE-FOLLOW-022** — When the target detaches from the visual tree, the follower shall land on the latest target and stop ticking; a value after the first that arrives while the target is detached, or before it has first attached, shall snap.
+  - Tests: `FollowBindingTests.DetachLandsOnTheLatestTargetAndReattachSnaps`, `FollowBindingTests.BeforeTheFirstAttachALaterValueSnaps`, `FollowerTests.StopLandsOnTheLatestTargetAndStopsTicking`
 - **BRIDGE-FOLLOW-023** — When the returned `IDisposable` (or the binding expression) is disposed, the follow shall stop ticking, remove the companion binding and stop following the source, so the property falls back to its lower-priority value; a `ClearValue` or local write shall not end it.
   - Tests: `FollowBindingTests.DisposingRestoresThePropertyAndStopsTicking`, `FollowBindingPlumbingTests.OnlyRemovingTheBindingExpressionUnsubscribesTheFollower`
 
@@ -127,8 +127,8 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `MotionValueSinkTests.ADataContextSwapRebindsToTheNewItemsValueAndSnaps`
 - **BRIDGE-FOLLOW-029** — While a zero-duration motion value sink runs under `ReducedMotion` with a `WhenReduced` timing, it shall ease with that timing rather than pass values through.
   - Tests: untested
-- **BRIDGE-FOLLOW-030** — While its target is detached, every motion value sink shall stop listening; on reattach it shall resubscribe and show the latest value at once.
-  - Tests: `MotionValueSinkTests.BindStopsListeningWhileDetachedAndSnapsOnReattach`
+- **BRIDGE-FOLLOW-030** — While its target is detached or not yet attached, every motion value sink shall stop listening; on attach it shall subscribe and show the latest value at once.
+  - Tests: `MotionValueSinkTests.BindStopsListeningWhileDetachedAndSnapsOnReattach`, `MotionValueSinkTests.BindWaitsForTheFirstAttachAndThenShowsTheLatestValue`
 - **BRIDGE-FOLLOW-031** — A motion value sink shall layer under an animation of the same property and show the latest value when that animation reverts.
   - Tests: `MotionValueSinkTests.AnAnimationOfThePropertyLayersOverTheBindingAndRevertsToTheLatestValue`
 - **BRIDGE-FOLLOW-032** — When a motion value sink's `IDisposable` is disposed, it shall stop writing.
@@ -142,8 +142,8 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `FollowTests.TheFirstValueSnapsAndAUnitStringConverts`, `FollowTests.AnimateInitialEasesTheFirstValueFromTheShownOne`
 - **BRIDGE-FOLLOW-035** (inherited) — When a shorthand gets a string, it shall parse it with `ValueParser`: `Rotate` converts any angle unit (`deg`, `rad`, `turn`…) to degrees, other shorthands accept a bare number or `px`.
   - Tests: `FollowTests.TheFirstValueSnapsAndAUnitStringConverts`
-- **BRIDGE-FOLLOW-036** (inherited) — When a shorthand's value cannot be converted to a number (a non-numeric string, a unit other than `px` outside `Rotate`), the shorthand shall release its followed layer while the attached property keeps the value.
-  - Tests: untested
+- **BRIDGE-FOLLOW-036** — When a shorthand is set to a string that is not a number (`"50%"`, or a unit other than `px` outside `Rotate`), setting it shall throw `FormatException`; the attached property shall keep the string that was set, while the followed layer and the drawn value keep the previous number.
+  - Tests: `FollowTests.ANonNumericStringThrowsAndKeepsTheFollowedValue`
 - **BRIDGE-FOLLOW-037** (inherited) — When `Follow.Timing`, `Follow.WhenReduced` or `Follow.AnimateInitial` changes, the new options shall apply to every shorthand of the visual from its next value on, not to a motion in flight.
   - Tests: `FollowTests.TimingIsHonoredAndAChangeTakesEffectFromTheNextValue`, `FollowTests.WhenReducedGivesTheTimingUnderReducedMotionFromTheNextValue`, `FollowTests.AnimateInitialEasesTheFirstValueFromTheShownOne`
 - **BRIDGE-FOLLOW-038** — The followed value of a transform or blur shorthand shall be a base layer: an animation of the same shorthand starts from it, overrides it while it holds it, and reverting the animation shows the latest followed value.
@@ -154,6 +154,8 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `FollowTests.ReducedMotionSnaps`, `FollowTests.WhenReducedGivesTheTimingUnderReducedMotionFromTheNextValue`
 - **BRIDGE-FOLLOW-041** — When a shorthand's value is caused by a `DataContext` change, it shall snap.
   - Tests: `FollowTests.ADataContextSwapSnaps`
+- **BRIDGE-FOLLOW-073** — When a shorthand gets a value after its first while the visual is detached or has not yet attached, it shall snap.
+  - Tests: `FollowTests.BeforeTheFirstAttachALaterValueSnaps`
 - **BRIDGE-FOLLOW-042** — When a shorthand gets a `MotionValue`, it shall write the current value at once and then each flushed value, ignoring `Follow.Timing` and reduced motion.
   - Tests: `MotionValueSinkTests.EachShorthandWritesEachFlushedValueIgnoringTheTiming`, `BridgeAllocationTests.AMotionValueFollowedXTicksWithinBudget`
 - **BRIDGE-FOLLOW-043** — When a shorthand holding a `MotionValue` is set to a number, another value or `null`, it shall unsubscribe from the old value; a number then snaps as a first value.
@@ -226,7 +228,6 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 - `Follow.Bind` over a `BindingBase` validates mode and timing synchronously, so a bad call throws before anything binds.
 - A recycled virtualized row gets a fresh template root (a first value); a row scrolled away is handed `null` as its `DataContext` clears, which passes through.
-- The detached flag is set only by a detach, so values that arrive before the target was ever attached are not snapped by it (after the first value they ease).
 - A `Follow.Timing` change rebuilds the animation on the next value from the displayed value, so velocity across a retime is not kept.
 - A `Follow.Timing` builder with a non-numeric duration throws from the next shorthand value or from the `Timing` change itself.
 - A `Spring` bounce outside -1..1 or duration outside the spring's range is clamped by `Spring` itself (CORE-SPRING), not rejected.
@@ -276,6 +277,9 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **A motion value fed to a shorthand ignores `Follow.Timing`.** `Follow.Bind` is the one sink that takes options, and `{presto:Follow}` smooths unless `Duration=0`. Reason: a graph already states its smoothing; easing on top would lag a scroll- or drag-locked value and double-smooth a sprung one, while `Follow.Bind` is called with a value explicitly and can say so.
 - **`Follow.Draw` follows one number.** The drawn share from the start, written as a `"Draw"` tween writes it. Reason: every `Follow` shorthand is one double, and every value-bound draw in the sample starts at 0; `RotateX`/`RotateY` stay out because they need `Perspective` beside them. Rejected: a start/end pair.
 - **The core owns the cell, the bridge owns the sources.** See CORE-MOTIONVALUE.
+- **A target that has never been attached counts as detached.** Its values after the first snap and its motion value sinks wait for the first attach; the first value still follows `AnimateInitial`. Reason: a value easing on a visual nobody sees is wasted motion, and a template's bindings resolve before the first attach, where an `AnimateInitial` first value must still ease. Rejected: snapping the first value too, which would make `AnimateInitial` inert for values bound in XAML.
+- **A shorthand string that is not a number throws `FormatException`.** The throw comes from setting the shorthand: the attached property keeps the string that was set, while the followed layer and the drawn value keep the previous number. Reason: settings with no meaning are rejected rather than dropped, and silently releasing the followed layer hid the mistake; `FormatException` is what bad `Spring` text throws. Rejected: `ArgumentException`, since the value's type is right and only its text is wrong.
+- **`FollowExtension.Ease` is a `string?` parsed with `EaseParser`.** `FollowParams.Ease` is an `EaseValue?`; the extension parses its text into one. Reason: a markup extension's properties are set from attribute text, and the string goes through the same grammar as every other XAML ease. Rejected: an `EaseValue?` property on the extension, as the planned API listed.
 - **Pointer proximity and offset are tracked over the `TopLevel` by default, with an optional `over` surface.** Reason: proximity only means something while the pointer is outside the control; `over` limits the effect to a stage or card. `over` is an `InputElement`, since a plain `Visual` cannot take pointer handlers. A control not yet attached resolves its `TopLevel` on first attach, so values can be made in a constructor. Rejected: listening on the control (BRIDGE-FOLLOW-050's shape), which is blind until the pointer arrives.
 - **The surface listens with a tunnel handler and `handledEventsToo`.** Reason: buttons, text boxes and a capturing `Draggable` mark pointer events handled, and the effect must keep tracking over them.
 - **One shared tracker per surface.** All pointer proximity and offset values over one surface share one set of handlers held in a private attached value. Reason: a split wordmark makes one value per letter, and N handlers per move would cost N event dispatches.
@@ -297,8 +301,4 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 ## Open items
 
-- The planned API lists `FollowExtension.Ease` as `EaseValue?`; the code takes a `string?` parsed with `EaseParser`.
-- The `Follow` XML remarks say a value that "arrives while detached" snaps, but a visual or target that has never been attached is not treated as detached, so a second value before the first attach eases.
-- A non-numeric shorthand string (`"50%"`) silently releases the followed layer while the attached property keeps the string; untested.
 - Untested: `NotSupportedException` for a non-numeric builder duration (BRIDGE-FOLLOW-004), reduced-motion toggles between values (013), `Follow.Bind<T>` ignoring `DataContext` (021), zero-duration motion sinks under `WhenReduced` (029), shorthand detach/reattach (044), `ValueOf` conversion failure (052).
-- The derived-values plan lists a "timer" bridge source; it is the core `Timer.ProgressValue` (CORE-MOTIONVALUE), not a bridge type.

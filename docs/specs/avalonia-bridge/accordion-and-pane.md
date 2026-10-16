@@ -164,5 +164,4 @@ depends:
 
 ## Open items
 
-- The `GridLength` codec is specified here but was also listed under value codecs when the specs were extracted; BRIDGE-CODECS should reference this spec rather than restate it.
 - Untested: re-found parts after a template change, `Enabled` false releasing everything, design-mode no-op, chevron relink and unlink, the `Expander`-only group, and `Pane` on a star column throwing.

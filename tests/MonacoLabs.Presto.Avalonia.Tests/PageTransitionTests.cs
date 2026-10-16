@@ -405,6 +405,19 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ASharedAxisDurationTimesTheIncomingPageAndScalesTheOutgoingOneByShortOverMedium()
+    {
+        var tokens = Recipes.Tokens;
+        var axis = Recipes.PageSharedAxis(PageAxis.X);
+        var timed = Recipes.PageSharedAxis(PageAxis.X, duration: 900);
+
+        Assert.Equal((TweenValue)tokens.Medium, axis.Enter!.ToParams().Duration);
+        Assert.Equal((TweenValue)tokens.Short, axis.Exit!.ToParams().Duration);
+        Assert.Equal((TweenValue)900, timed.Enter!.ToParams().Duration);
+        Assert.Equal((TweenValue)(900 * tokens.Short / tokens.Medium), timed.Exit!.ToParams().Duration);
+    }
+
+    [AvaloniaFact]
     public void UpdateSeeksBothSidesOnTheUIThread()
     {
         var (from, to) = ShowPair();

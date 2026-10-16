@@ -31,6 +31,25 @@ public sealed class SelectionIndicatorTests : BridgeTestBase
         Assert.Equal(to, Indicator(list).Bounds);
     }
 
+    [AvaloniaTheory]
+    [InlineData("X")]
+    [InlineData("Y")]
+    [InlineData("Scale")]
+    [InlineData("Loop")]
+    public void AMotionWithMoreThanTimingAndEaseThrowsWhenSet(string setting)
+    {
+        var motion = Presto.Build().Duration(200);
+        _ = setting switch
+        {
+            "X" => motion.X(ease: Eases.OutQuad),
+            "Y" => motion.Y(ease: Eases.OutQuad),
+            "Scale" => motion.Scale(ease: Eases.OutQuad),
+            _ => motion.Loop(2),
+        };
+
+        Assert.Throws<NotSupportedException>(() => Selection.SetMotion(new ListBox(), motion));
+    }
+
     [AvaloniaFact]
     public void ItSnapsWhenTheSelectedItemMovesOnAResize()
     {

@@ -102,6 +102,22 @@ public sealed class CompositorAnimationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void CancelHandsVisualOpacityBackToTheControl()
+    {
+        var bar = ShowBar();
+        var opaque = Capture(bar);
+        var animation = bar.AnimateOnCompositor(new() { ["Opacity"] = 0, Duration = 2000, Ease = "linear" });
+        Assert.True(Pump(() => Difference(opaque, Capture(bar)) > 0), "the fade never reached the render thread");
+
+        _ = animation.Cancel();
+        var frozen = Difference(opaque, Capture(bar));
+        bar.Opacity = 0;
+
+        Assert.Equal(0, bar.Opacity);
+        Assert.True(Pump(() => Difference(opaque, Capture(bar)) > frozen), "the local opacity never reached the screen");
+    }
+
+    [AvaloniaFact]
     public void RevertPutsTheControlBackAsItWas()
     {
         var bar = ShowBar();

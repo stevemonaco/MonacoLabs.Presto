@@ -7,5 +7,8 @@ public sealed class ReorderExtension : RecipeExtension
     public double Intensity { get; set; } = 1;
 
     /// <inheritdoc/>
+    protected override bool HasExitForm => false;
+
+    /// <inheritdoc/>
     protected override AnimationBuilder Build(bool exit, EaseValue? ease) => Recipes.ReorderLift(null, Intensity, Duration, Delay, ease);
 }

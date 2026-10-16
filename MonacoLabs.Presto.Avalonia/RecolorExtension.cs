@@ -19,5 +19,8 @@ public sealed class RecolorExtension : RecipeExtension
     public HueInterpolation? Hue { get; set; }
 
     /// <inheritdoc/>
+    protected override bool HasExitForm => false;
+
+    /// <inheritdoc/>
     protected override AnimationBuilder Build(bool exit, EaseValue? ease) => Recipes.Recolor(To, Property, Space, Hue, Duration, Delay, ease);
 }

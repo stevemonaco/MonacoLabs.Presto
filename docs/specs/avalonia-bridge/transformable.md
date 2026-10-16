@@ -131,8 +131,8 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
   - Tests: `TransformableTests.WithZoomOffTheWheelAndADoubleTapLeaveTheScale`
 - **BRIDGE-TRANSFORMABLE-036** — When a wheel event arrives with `Zoom` on and either `WheelZoom.Always`, or `WheelZoom.WithControl` with Ctrl held, the transformable shall mark it handled and set the scale at once to `Scale · WheelZoomStep^Delta.Y`, clamped to the limits, about the cursor, with no rubber band or animation.
   - Tests: `TransformableTests.ControlWheelZoomsAboutTheCursorAtOnce`, `TransformableTests.APlainWheelZoomsOnlyUnderAlwaysAndOtherwiseScrollsTheAncestor`
-- **BRIDGE-TRANSFORMABLE-037** — Otherwise (`WheelZoom.None`, a plain wheel under `WithControl`, or `Zoom` off) the wheel event shall be left unhandled, so an ancestor `ScrollViewer` scrolls.
-  - Tests: `TransformableTests.APlainWheelZoomsOnlyUnderAlwaysAndOtherwiseScrollsTheAncestor`, `TransformableTests.WithZoomOffTheWheelAndADoubleTapLeaveTheScale`
+- **BRIDGE-TRANSFORMABLE-037** — Otherwise (`WheelZoom.None`, a plain wheel under `WithControl`, `Zoom` off, or a wheel with no vertical delta) the wheel event shall be left unhandled, so an ancestor `ScrollViewer` scrolls.
+  - Tests: `TransformableTests.APlainWheelZoomsOnlyUnderAlwaysAndOtherwiseScrollsTheAncestor`, `TransformableTests.WithZoomOffTheWheelAndADoubleTapLeaveTheScale`, `TransformableTests.AHorizontalOnlyWheelUnderAZoomingModeIsLeftToTheAncestor`
 - **BRIDGE-TRANSFORMABLE-038** — When a touchpad magnify gesture arrives with `Zoom` on, the transformable shall mark it handled and set the scale at once to `Scale · (1 + Delta.X)`, clamped, about the pointer.
   - Tests: manual — macOS trackpad pinch on the Photo viewer page (Avalonia.Native only).
 - **BRIDGE-TRANSFORMABLE-039** — When a touchpad rotate gesture arrives with `Rotate` on, the transformable shall mark it handled and rotate at once by `-Delta.X` degrees about the pointer.
@@ -220,7 +220,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - Two pointers whose start distance is 0 give a zoom ratio of 1.
 - The turn between moves is taken as the IEEE remainder of the angle change by 360, so crossing ±180° never spins the target.
 - Losing a pointer's capture is treated as its release (the last one coasts and fires `OnRelease`).
-- A wheel with only a horizontal delta, under a zooming mode, is still marked handled and leaves the scale unchanged.
+- A wheel with only a horizontal delta, under a zooming mode, is left unhandled; a wheel with both deltas zooms by its vertical one.
 - `ScaleFriction = 0` pins the target to the limits during a gesture.
 - `DoubleTapScale` above `MaxScale` lands at `MaxScale`.
 
@@ -266,6 +266,8 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **Grabbed pointers skip gesture recognition.** Every press and move the transformable takes calls `PreventGestureRecognition()`. Reason: Avalonia's recognizers see handled events too, so a swipe-enabled `Carousel` around a zoomed photo stole the pan's capture.
 - **Linux trackpad pinch is unsupported.** It is documented as such; Ctrl+wheel still zooms. Reason: X11 raises no touchpad gestures, and XInput2 gestures are not an Avalonia API. Rejected: reading XInput2 gestures directly.
 - **Draggable reads engine time.** See BRIDGE-DRAGGABLE.
+- **Capture loss is a release.** Losing the last pointer's capture runs the full release (coast, `OnRelease`, `OnSettle`), not a drop. Reason: a `Draggable`'s does the same (BRIDGE-DRAGGABLE edge cases), and the target must still settle into its limits and bounds.
+- **A horizontal-only wheel is not a zoom.** Under a zooming mode a wheel with no vertical delta is left unhandled. Reason: zoom reads only `Delta.Y`, so handling it changed nothing while blocking an ancestor's horizontal scroll.
 
 ## Non-goals
 
@@ -276,8 +278,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 
 ## Open items
 
-- Capture loss on the last pointer runs a full release (coast, `OnRelease`) rather than a drop; intended or not, it is untested.
-- A wheel with only a horizontal delta is marked handled under a zooming mode, which blocks an ancestor's horizontal scroll; untested.
+- Capture loss on the last pointer running a full release is untested.
 - Under reduced motion a custom `Settle` without `WhenReduced` still animates the scale spring-back; consistent with the reduced-motion decision but untested.
 - The macOS trackpad rotate sign (`-Delta.X`) is unverified on hardware.
 - Android and Browser real-touch smoke runs are still to do, including a check that an ancestor `ScrollViewer`'s recognizer does not capture the first touch before the second lands.

@@ -79,4 +79,15 @@ public sealed class HostHookTests : EngineTestBase
 
         Assert.True(running);
     }
+
+    [Fact]
+    public void TimerCreatedFiresForSet()
+    {
+        var created = new List<Timer>();
+        Presto.Engine.TimerCreated = created.Add;
+
+        var animation = Presto.Set(new StyleTarget(), new() { ["X"] = 100 });
+
+        Assert.Equal([animation], created);
+    }
 }

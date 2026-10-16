@@ -30,14 +30,17 @@ public static class Animate
 
     /// <summary>
     /// Plays the builder on the element each time it is tapped, restarting it from the start on every tap, and reverts it
-    /// when it completes or the element detaches; <see langword="null"/> stops listening.
+    /// when it completes or the element detaches; changing the value while it plays reverts it and plays the new builder,
+    /// and <see langword="null"/> stops listening.
     /// </summary>
+    /// <remarks>Setting it on a visual that is not an <see cref="InputElement"/> throws <see cref="InvalidOperationException"/>.</remarks>
     public static readonly AttachedProperty<AnimationBuilder?> OnTappedProperty =
         AvaloniaProperty.RegisterAttached<InputElement, AnimationBuilder?>("OnTapped", typeof(Animate));
 
     /// <summary>
     /// Plays the builder each time <see cref="WatchProperty"/> changes after its first value, restarting it on every change,
-    /// and reverts it when it completes or the visual detaches; <see langword="null"/> stops listening.
+    /// and reverts it when it completes or the visual detaches; changing the value while it plays reverts it and plays the
+    /// new builder, and <see langword="null"/> stops listening.
     /// </summary>
     public static readonly AttachedProperty<AnimationBuilder?> OnChangedProperty =
         AvaloniaProperty.RegisterAttached<Visual, AnimationBuilder?>("OnChanged", typeof(Animate));
@@ -52,7 +55,10 @@ public static class Animate
     /// detaching reverts, changing the value re-arms, and <see langword="null"/> stops listening. A keyed flight wins its move
     /// and the property takes over again once it has landed.
     /// </summary>
-    /// <remarks>Applying a builder that sets anything a layout transition cannot honor throws <see cref="NotSupportedException"/>.</remarks>
+    /// <remarks>
+    /// Applying a builder that sets anything a layout transition cannot honor throws <see cref="NotSupportedException"/>, and
+    /// arming an item container whose list already arms it through <see cref="ItemLayoutProperty"/> throws <see cref="InvalidOperationException"/>.
+    /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> LayoutProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Layout", typeof(Animate));
 
@@ -68,7 +74,10 @@ public static class Animate
     /// <see cref="LayoutModeProperty"/>. A container realized or recycled records where it is rather than flying there, a pass
     /// that only scrolls the list moves its containers in one frame, and <see langword="null"/> reverts every container.
     /// </summary>
-    /// <remarks>Applying a builder that sets anything a layout transition cannot honor throws <see cref="NotSupportedException"/>.</remarks>
+    /// <remarks>
+    /// Applying a builder that sets anything a layout transition cannot honor throws <see cref="NotSupportedException"/>, and
+    /// arming a container that already has its own <see cref="LayoutProperty"/> throws <see cref="InvalidOperationException"/>.
+    /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> ItemLayoutProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, AnimationBuilder?>("ItemLayout", typeof(Animate));
 
@@ -194,9 +203,16 @@ public static class Animate
             control.ClearValue(LayoutArmProperty);
             return;
         }
-        if (arm is null) control.SetValue(LayoutArmProperty, arm = new LayoutArm(control));
+        if (arm is null)
+        {
+            if (ItemArmOf(control) is not null) throw TwoArms();
+            control.SetValue(LayoutArmProperty, arm = new LayoutArm(control));
+        }
         arm.Arm(attaching: false);
     }
+
+    private static InvalidOperationException TwoArms() =>
+        new("Animate.Layout and its list's Animate.ItemLayout would both arm this container; set one of them.");
 
     private static void HandleContentSizeChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
@@ -231,6 +247,8 @@ public static class Animate
     private static void HandleTriggerChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
     {
         if (Design.IsDesignMode) return;
+        if (e.Property == OnTappedProperty && e.NewValue is not null && visual is not InputElement)
+            throw new InvalidOperationException($"Animate.OnTapped listens for Tapped, which a {visual.GetType().Name} does not raise; set it on an InputElement.");
         var holder = e.Property == OnTappedProperty ? TappedTriggerProperty : ChangedTriggerProperty;
         var trigger = visual.GetValue(holder);
         if (e.NewValue is null)
@@ -241,6 +259,10 @@ public static class Animate
         else if (trigger is null)
         {
             visual.SetValue(holder, new Trigger(visual, (AttachedProperty<AnimationBuilder?>)e.Property) { Seen = visual.IsSet(WatchProperty) });
+        }
+        else if (trigger.Running)
+        {
+            trigger.Play();
         }
     }
 
@@ -277,7 +299,11 @@ public static class Animate
         private void Arm(Control container, bool attaching)
         {
             var arm = container.GetValue(ItemArmProperty);
-            if (arm is null) container.SetValue(ItemArmProperty, arm = new LayoutArm(container, _list));
+            if (arm is null)
+            {
+                if (container.GetValue(LayoutArmProperty) is not null) throw TwoArms();
+                container.SetValue(ItemArmProperty, arm = new LayoutArm(container, _list));
+            }
             arm.Arm(attaching);
         }
 
@@ -310,28 +336,30 @@ public static class Animate
 
         public bool Seen { get; set; }
 
+        public bool Running => _animation != null;
+
         public void Play()
         {
             Stop();
             if (!_visual.IsAttachedToVisualTree() || _visual.GetValue(_builder) is not { } builder) return;
             PrestoAvalonia.EnsureInitialized();
             var parameters = builder.Resolve();
-            using var origin = PrestoDiagnostics.Origin("Animate");
-            // A text reveal reverts itself when it completes.
-            if (_builder != OnChangedProperty && PieceTargets.Play(_visual, parameters) is { } reveal)
+            if (_builder != OnAttachedProperty)
             {
-                _animation = reveal;
-                return;
+                var completed = parameters.OnComplete;
+                parameters = parameters with
+                {
+                    OnComplete = timer =>
+                    {
+                        completed?.Invoke(timer);
+                        Stop();
+                    },
+                };
             }
-            var animation = Presto.Animate(_visual, parameters);
-            _animation = animation;
-            if (_builder == OnAttachedProperty) return;
-            var completed = animation.OnComplete;
-            animation.OnComplete = timer =>
-            {
-                completed?.Invoke(timer);
-                Stop();
-            };
+            using var origin = PrestoDiagnostics.Origin("Animate");
+            _animation = _builder != OnChangedProperty && PieceTargets.Play(_visual, parameters) is { } reveal
+                ? reveal
+                : Presto.Animate(_visual, parameters);
         }
 
         public void Release()

@@ -188,4 +188,3 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 
 - `UsePresto` has no test (BRIDGE-INIT-009).
 - The lifetime-based `TopLevel` choice (BRIDGE-INIT-012) and the open/close re-evaluation of the hidden signal are untested: the headless platform has no application lifetime.
-- The frame-source and Android decisions were recorded as resolving from "the first animated control"; the code keeps the last visual any property was resolved on, so the Decisions record the code.

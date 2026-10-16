@@ -204,6 +204,7 @@ depends:
 ## Decisions
 
 - **The default ease is `out(2)`.** `PrestoDefaults.Ease` starts as `Eases.Out(2)`, not linear. Kept from upstream; no other reason recorded.
+- **Timeline defaults: explicit ones are snapshotted, engine ones are read live.** A timeline given `Defaults` merges them over a copy of its engine's defaults at construction; one without reads the engine's defaults instance as each child is added (CORE-SCOPE-009, 010). Reason: explicit defaults are a value passed in, and engine defaults are global settings every animation reads when it is built.
 - **A new `PrestoDefaults` holds the timer's plain choices.** Its timing values are the ones CORE-TIMER's "Unset timer parameters are the plain choices" gives, the modifier is the identity and no callback is set (CORE-SCOPE-038 to 047). Reason: an unchanged engine then adds nothing to a call, so only the parameters a call sets change it.
 
 ## Non-goals
@@ -213,4 +214,3 @@ depends:
 ## Open items
 
 - Clearing `Methods`/`Data` on revert, once-list routing after `AddOnce`/`KeepTime`, `Refresh` leaving the once-lists alone, `AddOnce` cleanups, nested `Execute` and reuse after `Revert` have no test.
-- A timeline without `Defaults` reads live engine defaults per child while one with `Defaults` snapshots them; unpinned.

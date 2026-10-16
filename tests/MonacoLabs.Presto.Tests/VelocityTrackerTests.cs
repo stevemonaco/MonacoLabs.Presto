@@ -124,6 +124,16 @@ public sealed class VelocityTrackerTests
         Assert.Equal(0, bytes);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-17)]
+    public void ANonPositiveIntervalThrows(double interval) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VelocityTracker(interval));
+
+    [Fact]
+    public void FewerThanOneSampleThrows() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VelocityTracker(samples: 0));
+
     /// <summary><c>computeVelocity</c> in draggable.js, line for line.</summary>
     private sealed class UpstreamDraggableSampler(double start)
     {

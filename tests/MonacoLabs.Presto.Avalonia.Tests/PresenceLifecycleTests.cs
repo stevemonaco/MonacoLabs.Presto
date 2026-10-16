@@ -776,6 +776,22 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ChangingOrClearingOneBuilderWhileOthersStaySetRestartsTheArrivalWithTheNewSet()
+    {
+        var panel = Show();
+        var row = Arriving(enter: FadeIn, exit: FadeOut);
+        panel.Children.Add(row);
+
+        Presence.SetEnter(row, Presto.Build().Opacity(from: .5, to: 1).Duration(200).Ease("linear"));
+
+        Assert.Equal(.5, row.Opacity);
+
+        Presence.SetEnter(row, null);
+
+        Assert.Equal(1, row.Opacity);
+    }
+
+    [AvaloniaFact]
     public void ASetInitialOrEnterWinsOverArriveForItsOwnMoment()
     {
         var fadeHalf = Presto.Build().Opacity(from: .5, to: 1).Duration(200).Ease("linear");

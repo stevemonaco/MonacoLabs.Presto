@@ -119,6 +119,7 @@ The transform shorthands `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `SkewX
 ## Decisions
 
 - **Transform shorthands own a `TransformGroup`.** They write a bridge-owned group to `RenderTransform`, and a pre-existing render transform is wrapped as its first child, not replaced. Reason: it mirrors upstream's `transforms.js` managing the CSS transform string, and it preserves the user's own transform.
+- **A local `RenderTransform` set while the group is held is not picked up.** The visual's own transform is wrapped once, when the group is installed; a local value set later stays masked by the `Animation`-priority group and shows only when the last shorthand is released. Reason: the masked write raises no change notification to observe, and re-reading the local value each frame would cost the hot path for a rare case; apps set their own transform before animating shorthands, or after reverting them. Rejected: watching the local value to rewrap it mid-animation.
 - **3D rotation joins the transform group on first use.** See BRIDGE-EFFECTS.
 - **Shorthands are followed through attached properties, as a base layer.** See BRIDGE-FOLLOW.
 - **One binding per animated property, with residual allocations accepted.** See BRIDGE-TARGETS.
@@ -132,4 +133,3 @@ The transform shorthands `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `SkewX
 ## Open items
 
 - BRIDGE-TRANSFORMS-015 (origin) is untested.
-- A local `RenderTransform` set while the group is held is not picked up as the first child (edge case above); untested and possibly surprising.

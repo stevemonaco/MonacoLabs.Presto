@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -16,6 +17,7 @@ internal sealed class RootInspector : DockPanel
 {
     private readonly StackPanel _controls;
     private readonly TextBlock _time = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+    private readonly ConditionalWeakTable<Timer, StrongBox<double>> _speeds = new();
     private Timer? _revived;
     private bool _warned;
     private bool _resumeAfterScrub;
@@ -40,7 +42,9 @@ internal sealed class RootInspector : DockPanel
         };
         Speed.KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Enter && TryParse(Speed, out var speed) && speed > 0) Root!.Speed = speed;
+            if (e.Key != Key.Enter || !TryParse(Speed, out var speed) || speed <= 0) return;
+            _speeds.TryAdd(Root!, new StrongBox<double>(Root!.Speed));
+            Root.Speed = speed;
         };
 
         _controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { Play, Pause, Reverse, Restart, Seek, Speed, Revert } };
@@ -129,6 +133,11 @@ internal sealed class RootInspector : DockPanel
     }
 
     internal void ScrubTo(double time) => Root?.Seek(time);
+
+    internal void RestoreSpeeds()
+    {
+        foreach (var (root, speed) in _speeds) root.Speed = speed.Value;
+    }
 
     internal void EndScrub()
     {

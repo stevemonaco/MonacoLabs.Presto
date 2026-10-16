@@ -372,10 +372,10 @@ public static class Presence
         _ => OwnerOfItem(host) is Carousel carousel ? carousel.PageTransition : null,
     }) is PrestoPageTransition;
 
-    private static bool IsOnScreen(Visual parent)
+    internal static bool IsOnScreen(Visual from)
     {
-        if (!parent.IsEffectivelyVisible) return false;
-        for (Visual? visual = parent; visual is not null; visual = visual.GetVisualParent())
+        if (!from.IsEffectivelyVisible) return false;
+        for (Visual? visual = from; visual is not null; visual = visual.GetVisualParent())
         {
             if (visual.Opacity == 0) return false;
         }
@@ -407,11 +407,23 @@ public static class Presence
         {
             control.SetValue(TrackerProperty, new Tracker(control));
         }
+        else if (e.Property != ExitProperty && e.Property != EnterOnShowProperty)
+        {
+            tracker.Restart();
+        }
     }
 
     private static bool IsUnused(Control control) =>
         GetInitial(control) is null && GetEnter(control) is null && GetArrive(control) is null && GetReveal(control) is null && GetExit(control) is null &&
         !GetEnterOnShow(control);
+
+    private static AnimationBuilder? ArrivalBuilder(Control control, PresenceMoment moment) => moment switch
+    {
+        PresenceMoment.Initial => GetInitial(control) ?? GetArrive(control),
+        PresenceMoment.Enter => GetEnter(control) ?? GetArrive(control),
+        PresenceMoment.Realize => GetReveal(control),
+        _ => null,
+    };
 
     /// <summary>
     /// Animates <paramref name="control"/> as the next arrival of its panel's batch, which gives the animation its index and
@@ -445,6 +457,7 @@ public static class Presence
     {
         private readonly Control _control;
         private IRevertible? _arrival;
+        private PresenceMoment _moment;
         private ItemChanges? _list;
         private Animation? _ghost;
         private Point? _slot;
@@ -530,12 +543,8 @@ public static class Presence
             else
             {
                 changes?.Seen.Add(_control.DataContext!);
-                var builder = moment switch
-                {
-                    PresenceMoment.Initial => GetInitial(_control) ?? GetArrive(_control),
-                    PresenceMoment.Enter => GetEnter(_control) ?? GetArrive(_control),
-                    _ => null,
-                };
+                _moment = moment;
+                var builder = moment is PresenceMoment.Initial or PresenceMoment.Enter ? ArrivalBuilder(_control, moment) : null;
                 if (moment is PresenceMoment.Initial or PresenceMoment.Enter && ModeHost(_control.GetVisualParent())?.GetValue(WaitingProperty) is { } waiting)
                 {
                     waiting.Hold(_control, builder is null ? null : () => _arrival = Arrive(_control, builder, laidOut: true));
@@ -551,7 +560,17 @@ public static class Presence
 
         public void Reveal()
         {
-            if (GetReveal(_control) is { } builder) _arrival = Arrive(_control, builder, laidOut: true);
+            if (GetReveal(_control) is not { } builder) return;
+            _moment = PresenceMoment.Realize;
+            _arrival = Arrive(_control, builder, laidOut: true);
+        }
+
+        /// <summary>Replays a running arrival from the builders now set, or reverts it when its moment has none left.</summary>
+        public void Restart()
+        {
+            if (_arrival is not (Animation { Completed: false } or PieceTargets { Animation.Completed: false })) return;
+            _arrival.Revert();
+            _arrival = ArrivalBuilder(_control, _moment) is { } builder ? Arrive(_control, builder) : null;
         }
 
         private void Watch(ScrollViewer scroller)
@@ -602,6 +621,7 @@ public static class Presence
             _unseen?.Dispose();
             _unseen = null;
             _arrival?.Revert();
+            _moment = PresenceMoment.Realize;
             _arrival = GetReveal(_control) is { } builder ? Arrive(_control, builder, laidOut: true, Window) : null;
         }
 
@@ -680,8 +700,8 @@ public static class Presence
             _ghost = null;
             _arrival?.Revert();
             _arrival = null;
-            var builder = LoadMoment(_control) == PresenceMoment.Initial ? GetInitial(_control) ?? GetArrive(_control) : GetEnter(_control) ?? GetArrive(_control);
-            if (builder is not null) _arrival = Arrive(_control, builder);
+            _moment = LoadMoment(_control);
+            if (ArrivalBuilder(_control, _moment) is { } builder) _arrival = Arrive(_control, builder);
             if (GetEnterOnShow(_control) && s_revealing.Add(_control)) _control.LayoutUpdated += EnterRevealed;
         }
 
@@ -711,7 +731,8 @@ public static class Presence
 
         private void Reenter(Visual batchKey)
         {
-            if (_hide is not null || (GetEnter(_control) ?? GetArrive(_control)) is not { } builder) return;
+            if (_hide is not null || ArrivalBuilder(_control, PresenceMoment.Enter) is not { } builder) return;
+            _moment = PresenceMoment.Enter;
             _arrival?.Revert();
             _arrival = Arrive(_control, builder, laidOut: true, batchKey);
         }

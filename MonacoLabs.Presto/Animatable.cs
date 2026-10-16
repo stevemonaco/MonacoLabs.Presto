@@ -39,46 +39,48 @@ public sealed class Animatable : IRevertible
             _callbacks = Presto.Animate(new CallbacksTarget(), new AnimationParams
             {
                 ["V"] = 1,
+                // Never ends first: HandlePause completes it once every property animation has stopped.
+                Duration = Constants.MaxValue,
                 Autoplay = false,
                 OnBegin = Wrap(parameters.OnBegin),
                 OnUpdate = Wrap(parameters.OnUpdate),
                 OnComplete = Wrap(parameters.OnComplete),
                 IsReducedMotion = true,
             });
-        }
 
-        foreach (var (property, settings) in parameters.Properties)
-        {
-            var animation = Presto.Animate(targets, new AnimationParams
+            foreach (var (property, settings) in parameters.Properties)
             {
-                // The relative zero starts and ends the tween on the target's current value, which is what carries its unit over.
-                // A discrete value has no relative form and no unit, so it starts and ends there with no to value at all.
-                [property] = new TweenParams
+                var animation = Presto.Animate(targets, new AnimationParams
                 {
-                    To = IsDiscrete(targets, property) ? (TweenValue?)null : "+=0" + settings.Unit,
-                    Duration = settings.Duration,
-                    Ease = settings.Ease,
-                    Modifier = settings.Modifier,
-                    Composition = settings.Composition,
-                },
-                Duration = parameters.Duration,
-                Ease = parameters.Ease,
-                Modifier = parameters.Modifier,
-                Composition = Composition.Replace,
-                PlaybackRate = parameters.PlaybackRate,
-                FrameRate = parameters.FrameRate,
-                Autoplay = false,
-                OnBegin = HandleBegin,
-                OnComplete = HandlePause,
-                OnPause = HandlePause,
-                // ReduceAll is honored per retarget in Replay, so the declared durations survive the flag clearing.
-                IsReducedMotion = true,
-            });
-            if (_targets.Count == 0) _targets.AddRange(animation.Targets);
-            _animations[Key(property)] = animation;
-            if (settings.PreserveVelocity ?? parameters.PreserveVelocity ?? false)
-            {
-                _momentum[Key(property)] = (settings.Ease ?? parameters.Ease)?.Raw as Spring;
+                    // The relative zero starts and ends the tween on the target's current value, which is what carries its unit over.
+                    // A discrete value has no relative form and no unit, so it starts and ends there with no to value at all.
+                    [property] = new TweenParams
+                    {
+                        To = IsDiscrete(targets, property) ? (TweenValue?)null : "+=0" + settings.Unit,
+                        Duration = settings.Duration,
+                        Ease = settings.Ease,
+                        Modifier = settings.Modifier,
+                        Composition = settings.Composition,
+                    },
+                    Duration = parameters.Duration,
+                    Ease = parameters.Ease,
+                    Modifier = parameters.Modifier,
+                    Composition = Composition.Replace,
+                    PlaybackRate = parameters.PlaybackRate,
+                    FrameRate = parameters.FrameRate,
+                    Autoplay = false,
+                    OnBegin = HandleBegin,
+                    OnComplete = HandlePause,
+                    OnPause = HandlePause,
+                    // ReduceAll is honored per retarget in Replay, so the declared durations survive the flag clearing.
+                    IsReducedMotion = true,
+                });
+                if (_targets.Count == 0) _targets.AddRange(animation.Targets);
+                _animations[Key(property)] = animation;
+                if (settings.PreserveVelocity ?? parameters.PreserveVelocity ?? false)
+                {
+                    _momentum[Key(property)] = (settings.Ease ?? parameters.Ease)?.Raw as Spring;
+                }
             }
         }
     }
@@ -140,16 +142,22 @@ public sealed class Animatable : IRevertible
 
     /// <summary>Coasts the property from where it is now at <paramref name="velocity"/> units per engine-time unit, decaying as <paramref name="settings"/> describes.</summary>
     /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(PropertyKey, double, double?, EaseValue?)"/>.</remarks>
+    /// <exception cref="NotSupportedException">The property is a color or complex one.</exception>
     public Animatable Fling(PropertyKey property, double velocity, Inertia? settings = null) => Coast(property.Unwrap(), velocity, settings);
 
     /// <summary>Coasts the property from its current velocity, or from rest when it is not moving, decaying as <paramref name="settings"/> describes.</summary>
     /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(PropertyKey, double, double?, EaseValue?)"/>.</remarks>
+    /// <exception cref="NotSupportedException">The property is a color or complex one.</exception>
     public Animatable Fling(PropertyKey property, Inertia? settings = null) => Coast(property.Unwrap(), null, settings);
 
     private Animatable Coast(string property, double? velocity, Inertia? settings)
     {
         var key = Key(property);
         if (!_animations.TryGetValue(key, out var animation)) return this;
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            if (tween._valueType is ValueKind.Color or ValueKind.Complex) throw new NotSupportedException($"'{key}' is a color or complex property; Fling coasts single numbers only.");
+        }
         settings ??= DefaultInertia;
         var eases = _flung.ContainsKey(key) ? null : new List<Ease>();
         var span = 0d;
@@ -184,10 +192,12 @@ public sealed class Animatable : IRevertible
     {
         var key = Key(property.Unwrap());
         if (!_animations.TryGetValue(key, out var animation)) return this;
+        _flung.Remove(key, out var flung);
         if (_momentum.TryGetValue(key, out var declared) && (ease is { } given ? given.Raw as Spring : declared) is { } spring)
         {
             return CarryChannelMomentum(animation, spring, to, duration);
         }
+        var index = 0;
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             for (var i = 0; i < to.Count && i < tween._numbers.Length; i++)
@@ -196,10 +206,11 @@ public sealed class Animatable : IRevertible
                 tween._toNumbers[i] = to[i];
             }
             if (ease is { } easeValue) tween._ease = easeValue.Resolve(tween.Target, 0, 1, out _);
+            else if (flung.Eases is { } eases) tween._ease = eases[index++];
             tween._channelEases = null;
             tween._currentTime = 0;
         }
-        return Replay(animation, duration);
+        return Replay(animation, duration ?? (flung.Eases != null ? flung.Duration : null));
     }
 
     /// <summary>Reverts every property to the value it held before the animatable ran and leaves <see cref="Set(PropertyKey, double, double?, EaseValue?)"/> a no-op.</summary>

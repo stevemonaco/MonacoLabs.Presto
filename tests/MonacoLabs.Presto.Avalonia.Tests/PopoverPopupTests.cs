@@ -311,6 +311,30 @@ public sealed class PopoverPopupTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void BuildersOnAPlainPopupsChildOpenAndHoldItAsOnThePopup()
+    {
+        var stage = Stage(comboBox: false);
+        var popup = stage.Popup();
+        var child = popup.Child!;
+        Popover.SetOpen(child, ScaleIn);
+        Popover.SetClose(child, FadeOut);
+
+        stage.Open();
+
+        Assert.Equal(0, child.Opacity);
+
+        RunUntil(() => child.Opacity == 1);
+        stage.Close();
+        Frames.Advance(100, 16);
+
+        Assert.True(popup.IsOpen);
+        Assert.InRange(child.Opacity, .3, .7);
+
+        RunUntil(() => !popup.IsOpen);
+        Assert.False(popup.IsOpen);
+    }
+
+    [AvaloniaFact]
     public void WithoutPopoverAPopupClosesAtOnce()
     {
         var stage = Stage(comboBox: false);

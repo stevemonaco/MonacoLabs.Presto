@@ -9,13 +9,12 @@ public sealed class MotionOrchestrationTests : BridgeTestBase
     private readonly Dictionary<Control, double> _begins = [];
     private double _start;
 
-    private Border Child()
+    private Border Child(FunctionValue? delay = null)
     {
         var box = Box();
-        Motion.SetStates(box,
-        [
-            new MotionState { When = "Open", Motion = Presto.Build().Duration(100).Ease(Eases.None).Opacity(0).OnBegin(_ => _begins[box] = Frames.Now - _start) },
-        ]);
+        var motion = Presto.Build().Duration(100).Ease(Eases.None).Opacity(0).OnBegin(_ => _begins[box] = Frames.Now - _start);
+        if (delay != null) motion.Delay(delay);
+        Motion.SetStates(box, [new MotionState { When = "Open", Motion = motion }]);
         return box;
     }
 
@@ -43,6 +42,21 @@ public sealed class MotionOrchestrationTests : BridgeTestBase
         AssertBegins(b, 50);
         AssertBegins(c, 100);
         Assert.All([a, b, c], child => Assert.Equal(0, child.Opacity, 6));
+    }
+
+    [AvaloniaFact]
+    public void AFunctionDelayAddsToTheStaggerAndDelayChildren()
+    {
+        var (a, b) = (Child((_, _, _) => 30), Child((_, _, _) => 30));
+        var parent = new StackPanel { Children = { a, b } };
+        Motion.SetStaggerChildren(parent, 50);
+        Motion.SetDelayChildren(parent, 20);
+        Show(parent);
+
+        Open(parent);
+
+        AssertBegins(a, 50);
+        AssertBegins(b, 100);
     }
 
     [AvaloniaFact]

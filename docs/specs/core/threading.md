@@ -76,10 +76,12 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 
 ### Process-wide state
 
-- **CORE-THREADING-017** — Setting `TimeUnit` on any engine shall change the time scale and forced-render threshold for every engine in the process.
+- **CORE-THREADING-017** — Setting `TimeUnit` on the main engine shall change the time scale and forced-render threshold for every engine in the process.
   - Tests: untested
 - **CORE-THREADING-018** — Setting `Precision` on any engine shall change the reported precision for every engine in the process.
   - Tests: untested
+- **CORE-THREADING-029** — When `TimeUnit` is set on an engine other than `Presto.Engine`, the engine shall throw `InvalidOperationException` and change nothing, even when the unit is already in force.
+  - Tests: `EnginesTests.SettingTheTimeUnitOnAnotherEngineThrowsAndLeavesTheTimeScale`
 - **CORE-THREADING-019** — Each engine shall keep its own replace-composition sibling lists, so animations of one target property on two engines never replace each other.
   - Tests: `EnginesTests.ReplaceTweensDoNotComposeAcrossEngines`
 - **CORE-THREADING-020** — `Presto.Adapters` and `Presto.Codecs` shall be shared by every engine and read without locks, so they must be filled before any engine animates.
@@ -95,7 +97,7 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 
 - **CORE-THREADING-024** — In a Debug build of the library, an engine shall pin itself to the thread of its first `Update`.
   - Tests: untested
-- **CORE-THREADING-025** — In a Debug build, once pinned, the engine's `Pause`, `Resume`, `Freeze`, `Thaw`, `Speed`, `TimeUnit`, `Hidden` and `PauseOnHidden` setters and its timers' `Pause`, `Resume`, `Seek` and `Reset` shall fail a debug assertion when called from another thread.
+- **CORE-THREADING-025** — In a Debug build, once pinned, the engine's `Pause`, `Resume`, `Freeze`, `Thaw`, `Speed`, `TimeUnit`, `Precision`, `Hidden` and `PauseOnHidden` setters and its timers' `Pause`, `Resume`, `Seek` and `Reset` shall fail a debug assertion when called from another thread.
   - Tests: untested
 - **CORE-THREADING-026** (inherited) — When `FrameSource` is replaced, the engine shall drop its thread pin and re-pin on its next `Update`.
   - Tests: untested
@@ -117,7 +119,6 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 
 - `EngineScope.Dispose` restores the engine it recorded without checking order, so disposing nested scopes out of order leaves a stale engine current; disposing the same scope twice restores the same engine twice.
 - A timer created on the main engine and touched from a worker thread is not marshaled; in Debug it fails the pin, in Release it races.
-- `Precision` has no thread-affinity check, unlike `TimeUnit`.
 
 ## Threading and lifetime
 
@@ -141,7 +142,8 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 ## Decisions
 
 - **The engine is ambient, captured per timer.** `Engine.Current` is thread-static and falls back to `Presto.Engine`, `MakeCurrent()` installs another engine for a block, and every timer captures its engine at construction (its parent's, else the ambient one) and uses it afterwards; there is one engine per ticking thread and no locks. Reason: whoever owns a thread sets its engine, as `Scope.Execute` installs defaults, so the factories keep anime.js's call shape, and capturing at construction means a call from another thread on a timer never resolves to the wrong clock. Rejected: an engine parameter on every factory, which breaks the anime.js call shape.
-- **Defaults, scope and composition state are per engine; a few statics are process-wide and documented, not locked.** Each engine owns its `Defaults` (a copy of the main engine's at construction, the snapshot rule `Scope` applies), current scope, children, replace-composition lookups and additive table. The time scale, precision, tick threshold and `Presto.Adapters`/`Presto.Codecs` are process-wide, to be configured before a second engine exists. The time scale is set through any engine's `TimeUnit`, although the design asked for the main engine only (see Open items). Reason: the process-wide values are read on hot and construction paths and written once at initialization; composition is per engine because its start-time offsets are on each engine's own clock and a replace that cancels another engine's timer would do so from the wrong thread. Rejected: process-wide replace lookups, as upstream's single engine has.
+- **Defaults, scope and composition state are per engine; a few statics are process-wide and documented, not locked.** Each engine owns its `Defaults` (a copy of the main engine's at construction, the snapshot rule `Scope` applies), current scope, children, replace-composition lookups and additive table. The time scale, precision, tick threshold and `Presto.Adapters`/`Presto.Codecs` are process-wide, to be configured before a second engine exists. The time scale is set through the main engine's `TimeUnit` only (see "TimeUnit is set on the main engine only"). Reason: the process-wide values are read on hot and construction paths and written once at initialization; composition is per engine because its start-time offsets are on each engine's own clock and a replace that cancels another engine's timer would do so from the wrong thread. Rejected: process-wide replace lookups, as upstream's single engine has.
+- **TimeUnit is set on the main engine only.** Setting `TimeUnit` on any other engine throws, even to the unit already in force. Reason: it changes the process-wide time scale but rescaled only the engine it was set on, leaving the main engine's speed and default duration out of step; throwing on every set catches the misuse wherever it is written. Rejected: a silent no-op for the unit already in force, which would hide the misuse until the unit changes.
 - **Other shared statics are made thread-safe.** Scratch decomposition values are thread-static, id counters are interlocked, the accessor and ease-parser caches are locked or concurrent, and a `Spring` stays single-threaded (one animation each). Reason: a second ticking thread now reaches these statics.
 - **Each engine pins its thread in Debug.** An engine arms a Debug-only thread pin on its first `Update`. Reason: not recorded.
 - **Render-thread work is a separate API named "Compositor", and a scene owns its engine.** See BRIDGE-SCENES.
@@ -155,6 +157,4 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 
 ## Open items
 
-- The design called for `Engine.TimeUnit` to be set on the main engine only; the code lets any engine set it, changing the process-wide time scale but rescaling only that engine's speed and default duration.
-- `Engine.Precision`'s setter skips the Debug thread-affinity assertion that every other engine-wide setter makes.
 - The thread pin, the process-wide statics and timeline-child engine capture have no tests.

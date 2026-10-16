@@ -256,7 +256,7 @@ internal static class Renderer
             number = double.NaN;
         }
 
-        if (tweenComposition != Composition.Overlap) tween._number = number;
+        tween._number = number;
 
         if (!internalRender && tweenComposition != Composition.Additive)
         {

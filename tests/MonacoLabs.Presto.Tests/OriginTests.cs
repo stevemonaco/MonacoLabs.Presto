@@ -82,6 +82,18 @@ public sealed class OriginTests : EngineTestBase
     }
 
     [Fact]
+    public void AnAnimatablesPropertyAnimationsAreTaggedUnlessAnOuterTagIsSet()
+    {
+        Presto.Engine.Diagnostics.Enabled = true;
+        var untagged = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100 });
+        Animatable tagged;
+        using (PrestoDiagnostics.Origin("Feature")) tagged = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100 });
+
+        Assert.Equal("Animatable", untagged.Animations["X"].Origin);
+        Assert.Equal("Feature", tagged.Animations["X"].Origin);
+    }
+
+    [Fact]
     public void TheAdditiveAnimationIsTagged()
     {
         var engine = new Engine(new ManualFrameSource());

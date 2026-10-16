@@ -115,6 +115,7 @@ public sealed class ScrollObserver : IRevertible
         {
             Container = ScrollContainer.Register(scroller, this);
         }
+        if (Target != null) ThrowIfUnresolvable();
         // Resolution waits a frame so an observer created before the animation it watches can still take its target.
         Utils.Sync(_ => Resolve());
     }
@@ -194,16 +195,20 @@ public sealed class ScrollObserver : IRevertible
     /// control it animates.
     /// </summary>
     /// <remarks>Reverting <paramref name="linked"/> reverts the observer with it, as upstream's <c>autoplay: onScroll()</c> does.</remarks>
+    /// <exception cref="InvalidOperationException">
+    /// The observer has not resolved and has no target, or its loaded target has no <see cref="ScrollViewer"/> and no container is set.
+    /// </exception>
     public ScrollObserver Link(Timer linked)
     {
         linked.Pause();
         Linked = linked;
         linked._onRevert += HandleLinkedRevert;
-        if (_parameters.Target == null && Ready && LinkedTarget() is { } target)
+        if (_parameters.Target == null && LinkedTarget() is { } target)
         {
             Target = target;
             Refresh();
         }
+        if (!Ready) ThrowIfUnresolvable();
         return this;
     }
 
@@ -420,7 +425,6 @@ public sealed class ScrollObserver : IRevertible
     private void Resolve()
     {
         if (Reverted) return;
-        Target ??= LinkedTarget();
         // A target created during the layout pass this frame renders has neither its ScrollViewer ancestor nor bounds yet.
         if (Target is { IsLoaded: false } pending)
         {
@@ -431,12 +435,15 @@ public sealed class ScrollObserver : IRevertible
         {
             Container = ScrollContainer.Register(scroller, this);
         }
-        if (Target == null || Container == null)
-        {
-            throw new InvalidOperationException(
-                "A ScrollObserver watches a control inside a ScrollViewer: set ScrollObserverParams.Target, or link an animation of one.");
-        }
+        ThrowIfUnresolvable();
         Measure();
+    }
+
+    private void ThrowIfUnresolvable()
+    {
+        if (Target is { IsLoaded: false } || (Target != null && (Container != null || Target.FindAncestorOfType<ScrollViewer>() != null))) return;
+        throw new InvalidOperationException(
+            "A ScrollObserver watches a control inside a ScrollViewer: set ScrollObserverParams.Target, or link an animation of one.");
     }
 
     private void UpdateBounds()

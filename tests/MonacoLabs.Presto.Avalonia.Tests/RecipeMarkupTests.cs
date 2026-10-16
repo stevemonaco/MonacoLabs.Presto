@@ -229,6 +229,19 @@ public sealed class RecipeMarkupTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AnExtensionWithNoExitFormThrowsWhereTheExitFormIsAskedFor()
+    {
+        var card = new Avalonia.Controls.Border();
+        RecipeExtension[] exitless = [new ShakeExtension(), new LiftExtension(), new PressInExtension(), new GlowExtension(), new ShimmerExtension(),
+            new RecolorExtension(), new ReflowExtension(), new PlayFramesExtension(), new ReorderExtension()];
+
+        Assert.Throws<NotSupportedException>(() => new ShakeExtension().ProvideValue(new ProvidedTarget(card, Presence.ExitProperty)));
+        Assert.Throws<NotSupportedException>(() => new ShakeExtension().ProvideValue(new ProvidedTarget(new Avalonia.Controls.Flyout(), Popover.CloseProperty)));
+        Assert.All(exitless, extension => Assert.Throws<NotSupportedException>(() => { extension.Out = true; extension.ProvideValue(null!); }));
+        Assert.IsType<AnimationBuilder>(new ShakeExtension().ProvideValue(new ProvidedTarget(card, Presence.EnterProperty)));
+    }
+
+    [AvaloniaFact]
     public void PlayFramesTakesAnExplicitDurationAndEaseOverTheFrameTiming()
     {
         var builder = (AnimationBuilder)new PlayFramesExtension { Duration = 500, Ease = "outQuad" }.ProvideValue(null!);

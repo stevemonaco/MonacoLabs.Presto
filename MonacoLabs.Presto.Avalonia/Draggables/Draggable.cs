@@ -234,7 +234,7 @@ public sealed class Draggable : IRevertible
         return this;
     }
 
-    /// <summary>Stops the drag and puts both axes back to 0.</summary>
+    /// <summary>Stops the drag and puts both axes back to 0, unclamped even when the container's bounds exclude it.</summary>
     public Draggable Reset()
     {
         Stop();
@@ -743,7 +743,8 @@ public sealed class Draggable : IRevertible
     // Returns where the axis comes to rest.
     private double Fling(string property, double? velocity, Inertia template, Func<double, double>? snap, double min, double max, ref double longest)
     {
-        var settings = template with { ModifyTarget = template.ModifyTarget ?? snap, Min = min, Max = max };
+        // A target larger than its container inverts its bounds, which Inertia rejects.
+        var settings = template with { ModifyTarget = template.ModifyTarget ?? snap, Min = Math.Min(min, max), Max = Math.Max(min, max) };
         if (velocity is { } v) Animate.Fling(property, v, settings);
         else Animate.Fling(property, settings);
         var animation = Animate.Animations[Presto.Canonicalize(_target, property)];

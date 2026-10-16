@@ -119,7 +119,7 @@ public sealed class CarouselPageTests
             TestFrames.Tick();
         }
         window.MouseUp(grab - new Vector(600, 0), MouseButton.Left);
-        TestFrames.Tick(200);
+        TestFrames.Tick(240);
 
         var slide = Position(page);
         Assert.Equal(Math.Round(slide), slide, 3);

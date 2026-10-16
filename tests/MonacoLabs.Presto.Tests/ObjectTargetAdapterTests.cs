@@ -193,6 +193,31 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
     }
 
     [Fact]
+    public void ACodecRegisteredAfterAResolutionAppliesToLaterAnimations()
+    {
+        Assert.IsType<DiscreteCodec>(Presto.ResolveAccessor(_target, "Height").Codec);
+        Presto.Codecs[typeof(Feet)] = new StructCodec<Feet>(feet => [feet.Value], channels => new Feet(channels[0]));
+        try
+        {
+            var animation = Presto.Animate(_target, new()
+            {
+                ["Height"] = TweenValue.Of(new Feet(10)),
+                Duration = 100,
+                Ease = Eases.Linear(),
+                Autoplay = false,
+            });
+
+            animation.Seek(50);
+
+            Assert.Equal(new Feet(5), _target.Height);
+        }
+        finally
+        {
+            Presto.Codecs.Remove(typeof(Feet));
+        }
+    }
+
+    [Fact]
     public void AccessorsAreCachedPerTypeAndProperty()
     {
         Assert.Same(Presto.ResolveAccessor(_target, "Opacity"), Presto.ResolveAccessor(new Poco(), "Opacity"));
@@ -234,9 +259,12 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
         public object? Value { get; set; }
         public TimeSpan Elapsed { get; set; }
         public Meters Distance { get; set; }
+        public Feet Height { get; set; }
     }
 
     private readonly record struct Meters(double Value);
+
+    private readonly record struct Feet(double Value);
 
     private sealed class MetersCodec : IValueCodec
     {

@@ -44,8 +44,8 @@ depends:
   - Tests: `PopoverFlyoutTests.OpenRendersItsStartValuesOnTheFirstFrame`, `PopoverPopupTests.PopupOpenRendersItsStartValuesOnTheFirstFrame`, `PopoverPopupTests.AToolTipOpensFromItsStartValuesAndClosesAtOnceWhileCloseFadesItsGhost`
 - **BRIDGE-POPOVER-002** — Each builder shall be read from the owner first and the presenter second, so a style reaches a flyout through its presenter (narrowed by a class from `FlyoutPresenterClasses`) and a value on the flyout wins.
   - Tests: `PopoverFlyoutTests.AStyleNarrowedByAPresenterClassSetsTheBuildersAndAValueOnTheFlyoutWins`, `PopupSpikeTests.FlyoutBaseIsNotStyleableSoStylesReachFlyoutsThroughTheirPresenters`
-- **BRIDGE-POPOVER-003** — A `Popup` shall play only when the `Popup` itself carries `Open` or `Close` (set directly or through a `/template/` style such as `ComboBox /template/ Popup#PART_Popup`); the `Popup` hosting a flyout's or context menu's presenter shall leave the builders to that owner.
-  - Tests: `PopoverPopupTests.TheHoldKeepsThePopupDrawnUntilCloseEndsThenClosesIt`
+- **BRIDGE-POPOVER-003** — A `Popup` shall play when the `Popup` itself carries `Open` or `Close` (set directly or through a `/template/` style such as `ComboBox /template/ Popup#PART_Popup`) or, by the presenter fallback (BRIDGE-POPOVER-002), its child does; the `Popup` hosting a flyout's or context menu's presenter (a `FlyoutPresenter`, `MenuFlyoutPresenter` or `ContextMenu` child) shall leave the presenter's builders to that owner.
+  - Tests: `PopoverPopupTests.TheHoldKeepsThePopupDrawnUntilCloseEndsThenClosesIt`, `PopoverPopupTests.BuildersOnAPlainPopupsChildOpenAndHoldItAsOnThePopup`
 - **BRIDGE-POPOVER-004** — When a popup opens and neither builder is found on its owner or presenter, `Popover` shall not handle it: it opens and closes as Avalonia does and its presenter's transitions are left alone.
   - Tests: `PopoverFlyoutTests.OnlyAnOwnerWithPopoverIsHandledAndHasItsPresentersOpacityTransitionLifted`, `PopoverPopupTests.WithoutPopoverAPopupClosesAtOnce`
 - **BRIDGE-POPOVER-005** (inherited) — A `Popup` whose child is not in the visual tree when `IsOpen` turns true shall get no run.
@@ -158,6 +158,7 @@ depends:
 - **A `Popup` is held open by an `IsOpen` hold polled on a dispatcher timer.** The hold is pushed at `Animation` priority as the popup opens and the base value read every 30 ms, so the popup is closed by writing false. Reason: a hold taken in `IsOpen`'s change notification comes too late (class handlers have already closed the popup), writes under a hold raise nothing, so the base must be polled, and a dispatcher timer lets the engine idle. Rejected: an engine timer for the poll.
 - **Popups that cannot be held close at once and play `Close` on a ghost.** A `ToolTip` and a light-dismissed held `Popup` are snapshotted (with `Opacity` held at 1) at their recorded position in the anchor window's overlay. Reason: `ToolTipClosing` cannot cancel, `ToolTipService` clears `IsOpen`, and light dismiss calls the popup's close directly, past any hold; earlier, light dismiss closed with no motion, replaced so it closes like a tooltip.
 - **Only a `ContextMenu` plays `Close` back when reopened mid-close.** On a flyout, `ShowAt` on the same target or `Hide()` mid-close counts as a repeated close, and `ShowAt` on another target ends the run and replays `Open`. Reason: `ShowAt` returns early while the flyout is open, and only `ContextMenu` raises `Opening` again.
+- **A plain `Popup`'s child is its presenter, builders included.** Builders set only on the child start a run, held open as on the `Popup`; a `FlyoutPresenter`, `MenuFlyoutPresenter` or `ContextMenu` child belongs to its flyout or menu, which plays them. Reason: the presenter fallback promised it, while a run started only from the `Popup`, so builders on a plain popup's child did nothing; the presenter types tell another owner's popup apart without tracking which popups flyouts and menus create.
 - **Presenter `Opacity` transitions are lifted while open.** Reason: the Fluent `ToolTip`'s own opacity transition would fight the builder.
 - **Reduced popups close at once.** Read at close, with no `Close` and no ghost; `Open` plays the builder's reduced form, and a `Close` that completes on its first frame closes at once. Reason: not recorded beyond the reduced-motion rule (BRIDGE-REDUCED).
 - **Shown again mid-exit plays the exit back.** See BRIDGE-PRESENCE.
@@ -171,5 +172,4 @@ depends:
 
 ## Open items
 
-- `Popover.Builder` falls back to the presenter, but a `Popup` starts a run only from builders on the `Popup` itself (BRIDGE-POPOVER-003), so builders set only on a plain popup's child do nothing. Untested.
 - BRIDGE-POPOVER-005, -006, -009 and -012 have no test.

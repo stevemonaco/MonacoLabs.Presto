@@ -189,7 +189,7 @@ depends:
 - **Emitted particles are simulated, not tweened.** Particles are integrated directly: velocity and gravity step with position taking half a step of gravity, so gravity is exact at any step size; drag is exponential (`v *= e^(−drag·dt)`), spin is a constant rate drawn per particle, and size, opacity and color over life are `from → to` curves shaped by an ease at normalized age. Reason: tweens suit a fixed population but allocate an animation and tweens per spawn, while an emitter spawns and retires particles every frame; exponential drag is frame-rate independent; plain semi-implicit Euler drifts from the parabola by 0.5·g·t·dt (it was the first design, replaced for that reason, and a spin-rate over-life curve was dropped as built). Rejected: tweening each particle.
 - **Simulation in the core, drawing in the bridge.** `ParticleSystem` and `EmitterParams` are UI-framework-free core types (colors are `PrestoColor`) in the root `MonacoLabs.Presto` namespace, as `Spring` and `VelocityTracker` are. Reason: unit-testable with plain `Step(dt)` calls and usable by a custom renderer, and one `using` still suffices.
 - **Particle storage is pooled and allocation-free.** A system owns one preallocated struct array sized to its cap; a spawn takes a dead slot and a death swaps with the last live slot, so steady-state stepping allocates nothing. Reason: emitters spawn and retire particles every frame, on the hot path.
-- **Randomness is deterministic and seeded.** Every random draw comes from `Utils.CreateSeededRandom(Seed)`, so the same seed and `dt` sequence give identical states. Reason: not recorded (it makes a seeded burst testable and replayable from the start).
+- **Randomness is deterministic and seeded.** Every random draw comes from `Utils.CreateSeededRandom(Seed)`, so the same seed and `dt` sequence give identical states. A null `Seed` takes the next value of the process-wide seed counter, so unseeded systems are deterministic per process order rather than freshly seeded. Reason: not recorded (it makes a seeded burst testable and replayable from the start).
 - **Particles are not seekable; pause is per effect.** See BRIDGE-PARTICLES.
 - **Reduced motion emits nothing; hand-built scenes are exempt.** See BRIDGE-PARTICLES.
 - **Particle caps drop over-cap spawns.** See BRIDGE-PARTICLES.
@@ -202,5 +202,4 @@ depends:
 
 ## Open items
 
-- The seeded-randomness decision as first recorded said a null `Seed` "draws a fresh seed"; the code takes the next value of a process-wide counter, so unseeded systems are deterministic per process order.
 - No test for the initial stopped state, initial rotation and flutter phase, spin and flutter integration, `Area`, or the null-seed path.

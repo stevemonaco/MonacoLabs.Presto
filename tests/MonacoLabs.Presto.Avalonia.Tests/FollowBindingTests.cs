@@ -175,6 +175,23 @@ public sealed class FollowBindingTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void BeforeTheFirstAttachALaterValueSnaps()
+    {
+        var border = Unsized();
+        var width = new Pushed<double>(10);
+        Follow.Bind(border, Layoutable.WidthProperty, width, Linear100);
+
+        width.Push(100);
+        Assert.Equal(100, border.Width);
+        Assert.Null(Presto.Engine._head);
+
+        Show(border);
+        width.Push(40);
+        Frames.Advance(48, 16);
+        Assert.InRange(border.Width, 41, 99);
+    }
+
+    [AvaloniaFact]
     public void AStyleValueAtALowerPriorityIsOverridden()
     {
         var border = Styled(new LevelViewModel());
@@ -247,6 +264,7 @@ public sealed class FollowBindingTests : BridgeTestBase
     public void ColorBrushThicknessAndCornerRadiusAnimate()
     {
         var border = Unsized();
+        Show(border);
         var brush = new SolidColorBrush(Colors.Red);
         var color = new Pushed<Color>(Colors.Red);
         var background = new Pushed<IBrush?>(Brushes.Red);

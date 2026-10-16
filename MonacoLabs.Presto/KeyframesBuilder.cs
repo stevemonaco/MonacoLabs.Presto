@@ -21,13 +21,20 @@ public sealed class KeyframesBuilder
         return this;
     }
 
-    /// <summary>Places a frame at <paramref name="percent"/> (0-100) of the animation's duration, replacing any frame already there.</summary>
+    /// <summary>
+    /// Places a frame at <paramref name="percent"/> (0-100) of the animation's duration, replacing any frame already there.
+    /// The frame may set its ease but no other setting.
+    /// </summary>
+    /// <exception cref="ArgumentException">The frame sets a duration, delay, modifier or composition.</exception>
     public KeyframesBuilder At(double percent, Action<KeyframeBuilder> frame)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(percent, 0);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(percent, 100);
         if (_frames.Count > 0) throw new InvalidOperationException("At cannot be mixed with Frame in the same keyframes.");
-        _percentages[percent.ToString(CultureInfo.InvariantCulture) + "%"] = Build(frame);
+        var key = percent.ToString(CultureInfo.InvariantCulture) + "%";
+        var built = Build(frame);
+        Keyframes.RejectSettings(key, built.ToKeyframe());
+        _percentages[key] = built;
         return this;
     }
 

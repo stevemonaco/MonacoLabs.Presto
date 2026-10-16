@@ -167,6 +167,7 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 - The element must not clip to its bounds, or the strip outside it is clipped away.
 - A `Control` given as `Leading`/`Trailing` can only be hosted by one element; share actions through an `IDataTemplate`.
 - A commit needs `Command` or `Dismiss`; with neither, a drag stops at the actions' width plus rubber band.
+- `Command` is read on each drag move and release, not when the element becomes swipeable, so a command set later widens the range (BRIDGE-SWIPE-016) on the next drag, and clearing it narrows it.
 
 ## Threading and lifetime
 
@@ -207,4 +208,3 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 ## Open items
 
 - The rubber-band range rules (BRIDGE-SWIPE-016), landing on the open width from beyond it (020), capture loss (022), reset on attach/recycle/re-show (036) and the `GestureOwners` throw (005) have no tests.
-- `Command` changes do not rebuild the tracker, but `Commits` is read live, so a command set later still widens the range on the next drag; documented nowhere.

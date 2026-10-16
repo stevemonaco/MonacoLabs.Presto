@@ -65,13 +65,13 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
   - Tests: `ScrollObserverTests.CompletingTheResizeTickerBeforeTheObserverResolvesDoesNotThrow`
 - **BRIDGE-SCROLLOBSERVER-005** — The observer shall resolve its target and container and measure its bounds on the next engine tick, not inside `OnScroll`; until then `Ready` is false and `Refresh` does nothing.
   - Tests: `ScrollObserverTests.RefreshBeforeTheObserverResolvesDoesNothing`
-- **BRIDGE-SCROLLOBSERVER-006** — When no `Target` is set, the observer shall watch the first `Control` target of the linked `Animation`, or the first `Control` target among a linked `Timeline`'s child animations.
+- **BRIDGE-SCROLLOBSERVER-006** — When no `Target` is set, the observer shall watch the first `Control` target of the linked `Animation`, or the first `Control` target among a linked `Timeline`'s child animations, read when `Link` is called, so children added to a linked `Timeline` afterwards are not seen.
   - Tests: `ScrollObserverTests.AnObserverWithoutATargetTakesTheLinkedAnimationsControl`, `ScrollObserverTests.AnObserverWithoutATargetTakesTheLinkedTimelinesFirstControl`
 - **BRIDGE-SCROLLOBSERVER-007** — When the target is not loaded at resolution, the observer shall wait for its `Loaded` event and resolve then, finding its `ScrollViewer` ancestor at that point.
   - Tests: `ScrollObserverTests.AnObserverOfAnUnlaidOutTargetResolvesOnceItLoads`
-- **BRIDGE-SCROLLOBSERVER-008** (inherited) — When resolution finds no target or no `ScrollViewer`, the observer shall throw `InvalidOperationException` from that engine tick.
-  - Tests: untested
-- **BRIDGE-SCROLLOBSERVER-009** — When `Link` is called on a `Ready` observer whose parameters name no target, the observer shall switch to the linked object's first control and refresh.
+- **BRIDGE-SCROLLOBSERVER-008** — The observer shall throw `InvalidOperationException` for a missing target or `ScrollViewer` from `OnScroll` when a loaded `Target` has no `ScrollViewer` ancestor and no `Container` is set, and from `Link` when an unresolved observer is left with no target or with such a target; otherwise from its resolution, at the target's `Loaded` or, for an observer never linked and without a target, on its first engine tick.
+  - Tests: `ScrollObserverTests.ALoadedTargetOutsideAScrollViewerThrowsFromOnScrollAndLink`, `ScrollObserverTests.LinkingAnObjectWithNoControlThrowsFromLink`
+- **BRIDGE-SCROLLOBSERVER-009** — When `Link` is called on an observer whose parameters name no target, resolved or not, the observer shall switch to the linked object's first control and refresh.
   - Tests: untested
 
 ### Thresholds and bounds
@@ -211,6 +211,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - Completing the container's resize ticker before the observer resolves does not throw (`ScrollObserverTests.CompletingTheResizeTickerBeforeTheObserverResolvesDoesNotThrow`).
 - An observer can revert itself from inside a callback; the container's loop re-reads its list, so no observer is skipped or run twice.
 - Thresholds that cross give `Distance` 0, so `Progress` is 0 and no snap runs.
+- Linking a `Timeline` that has no children yet throws from `Link` (008), since its first control is read then.
 - `Sync = 0d` reports `Sync` true but seeks nothing.
 - A sync string that is neither a method name nor an ease (for example `"none"`) is a method sync that does nothing.
 
@@ -243,6 +244,8 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **`PinSpacing` is a trailing margin, not a spacer element.** It is recomputed from the margin the target had when pinning began. Reason: the tree is untouched, the margin lies outside `Bounds` so it never moves the thresholds it is sized from, and recomputing keeps a refresh from accumulating it. Rejected: GSAP's spacer element wrapping the target.
 - **The snap eases `Offset` with `SetCurrentValue` after a settle wait.** It starts after `Delay` with no offset change and no pointer down, inside the thresholds, and any offset change it did not write cancels it and restarts the wait. Reason: the write stays at the offset's local priority, below `Animation`, so the scroller's own input still moves it, and restarting on foreign changes means a snap starts only once a smooth scroll settles.
 - **A reduced scroll snap jumps.** Under `ReducedMotion` or `ReduceAll` the snap writes its target at once after the settle wait. Reason: the snap moves the viewport on the user's behalf, the motion reduced motion exists to stop, and jumping keeps the snap's position contract. Rejected: dropping the snap; a configurable reduced duration.
+- **The snap waits on stillness alone.** It starts after `Delay` with no offset change; it does not also wait for `Velocity` to settle. Reason: every offset change restarts the wait, so `Delay` of stillness already means the velocity is zero. Rejected: a velocity threshold on top.
+- **A missing target or `ScrollViewer` throws where it is first known.** `OnScroll` throws for a loaded `Target` in no `ScrollViewer` without a `Container`, and `Link` throws on an unresolved observer left with no target or with such a target; only an unloaded target (at its `Loaded`) or an observer never linked and without a target (on its first tick) throws at resolution. Reason: an exception from an engine tick points nowhere near the mistake. Rejected: resolving inside `OnScroll`, since an observer created before the animation it watches takes its target from `Link`.
 - **`ScrollSnap.Labels` maps labels linearly onto progress.** A timeline lands on a label exactly only under a linear `Sync`. Reason: not recorded.
 - **A snap waits for a running scroll-to.** A scroll tween's first write cancels a running snap, the snap does not start while a tween holds the axis, and the tween restarts every observer's wait when it lets go, so the snap comes its `Delay` after the scroll-to ends. Reason: not recorded.
 - **Scroll velocity needs no API of its own.** It is `PrestoAvalonia.ScrollValue(scroller).VelocityOf()`. Reason: the motion value graph already provides it.
@@ -256,6 +259,4 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 
 ## Open items
 
-- The plan had the snap also wait for a settled `Velocity`; `StartSnap` has no velocity check, only the `Delay` of stillness, so the snap decision is recorded without it.
-- 008: the "no target or no ScrollViewer" exception is thrown from an engine tick, not from `OnScroll`, and is untested.
 - Untested: scope registration (002), retargeting on `Link` after resolution (009), measuring with the linked object at 0 (017), reverse evaluation order (025), the edge force-enter (030), callback order (032), `Sync = false` (042), and `Revert` leaving the linked object alone (055).

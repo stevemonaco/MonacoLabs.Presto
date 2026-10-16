@@ -59,8 +59,10 @@ depends:
   - Tests: `PresenceLifecycleTests.InitialPlaysOnlyWithTheViewAndEnterOnlyOnItsOwn`
 - **BRIDGE-PRESENCE-002** — When every lifecycle builder is cleared and `EnterOnShow` is false, `Presence` shall stop tracking and revert the running arrival and any held hide.
   - Tests: `PresenceLifecycleTests.ClearingEveryLifecycleBuilderRevertsTheArrival`, `PresenceVisibilityTests.ClearingTheBuildersMidHoldReleasesTheHold`
-- **BRIDGE-PRESENCE-003** (inherited) — Setting a builder on a control that is already attached shall play nothing until the control's next arrival or show.
+- **BRIDGE-PRESENCE-003** (inherited) — Setting a builder on a control that is already attached, with no arrival running, shall play nothing until the control's next arrival or show.
   - Tests: untested
+- **BRIDGE-PRESENCE-057** — When `Initial`, `Enter`, `Arrive` or `Reveal` is changed or cleared while another lifecycle builder stays set and an arrival is running, `Presence` shall revert the arrival and play its moment's builder from the builders now set (BRIDGE-PRESENCE-014), or nothing when that moment has none left.
+  - Tests: `PresenceLifecycleTests.ChangingOrClearingOneBuilderWhileOthersStaySetRestartsTheArrivalWithTheNewSet`
 - **BRIDGE-PRESENCE-004** (inherited) — While `Design.IsDesignMode` is true, setting a lifecycle property shall start no tracking.
   - Tests: untested
 
@@ -202,7 +204,6 @@ depends:
 
 - A list is watched from the first lifecycle arrival in it with a `DataContext`; until the first layout pass after that ends, its rows are classified by the general walk (BRIDGE-PRESENCE-006/007).
 - An item container with lifecycle builders of its own (a `TreeViewItem` styled with `Presence.Exit`) is classified by its list like row content, top-level containers included.
-- Changing one builder while others stay set does not restart or revert the running arrival.
 - A host whose nearest `Mode` setter is `Sync` shadows a `Wait` further up.
 - An element hidden by its parent (not its own `IsVisible`) plays nothing; only `EnterOnShow` on the parent replays it.
 
@@ -244,6 +245,7 @@ depends:
 - **Ancestor reveal is opt-in `EnterOnShow`.** A shown host replays its effectively visible descendants' `Enter ?? Arrive` as one batch in visual-tree order, laid out; a nested host shown in the same pass joins the outer batch, and hiding plays only the host's `Exit`. Reason: expanding a deep subtree should not replay everything by default, one batch in tree order keeps order staggers working, and joining avoids a double replay.
 - **Shown again mid-exit plays the exit back.** Under `Hold` the held exit reverses from where it stands (hidden again, it plays forward); under `Ghost` the ghost is dismissed and `Enter` plays; a held hide starts no `Wait`. Reason: an entrance with a `from` would snap and a from-less one would land on the mid-exit value, while reversing lands on the exit's start.
 - **No `AutoAlpha` shorthand; `VisibilityHold` stays.** A GSAP-style `AutoAlpha` was built and removed, and the internal owner-keyed hold backs the held hide. Reason: `IsVisible = false` takes the element out of layout, unlike CSS `visibility: hidden`, so a fade ending hidden jumps; `HideMode.Hold` covers the need. Rejected: `AutoAlpha`.
+- **A builder change restarts a running arrival.** Changing or clearing `Initial`, `Enter`, `Arrive` or `Reveal` while the element stays tracked reverts a running arrival and replays its moment from the builders now set; a finished arrival is left alone, and `Exit` or `EnterOnShow` changes restart nothing. Reason: a replaced surface follows its latest input; before, only clearing every builder reverted the arrival, so a cleared or swapped `Enter` kept playing the old one.
 - **Lifecycle animations run on the UI thread.** A compositor option for arrivals (`AnimateOnCompositor`, as `Connected` anchors use) is deferred, and the XAML entry points have no thread mode yet. Reason: not recorded.
 - **Features that manage their own lifetimes pass `WhenDetached.Continue`.** See BRIDGE-HELPERS.
 - **A stagger rebuilds when the target count changes.** See CORE-STAGGER.
@@ -258,6 +260,4 @@ depends:
 
 ## Open items
 
-- The recorded `Presence.Mode` decision cites `PresenceModeTests.WithoutWaitTheEnterPlaysWhileTheGhostExits`; the test is named `UnderSyncTheEnterPlaysWhileTheGhostExits`.
-- Changing or clearing one lifecycle builder while others stay set leaves the running arrival playing; only clearing all reverts it. Untested.
 - BRIDGE-PRESENCE-003, -004, -013, -019, -021, -032, -049, -050, -054 and -056 have no test.

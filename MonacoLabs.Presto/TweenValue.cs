@@ -35,8 +35,8 @@ public readonly struct TweenValue
     /// </summary>
     public static implicit operator TweenValue(string value) => new(value);
 
-    /// <summary>A color as its <c>rgba()</c> string, so a <see cref="PrestoColor.Mix"/> or OKLCH-derived color can be a tween value.</summary>
-    public static implicit operator TweenValue(PrestoColor value) => new(value.ToString());
+    /// <summary>A color with its channels kept exact, so a <see cref="PrestoColor.Mix"/> or OKLCH-derived color can be a tween value.</summary>
+    public static implicit operator TweenValue(PrestoColor value) => new(value);
 
     /// <summary>Per-property settings in place of a bare value, so this one property can carry its own from, duration, delay, ease or composition.</summary>
     public static implicit operator TweenValue(TweenParams value) => new(value);

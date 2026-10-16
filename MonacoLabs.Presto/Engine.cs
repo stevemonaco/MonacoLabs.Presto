@@ -370,11 +370,13 @@ public sealed class Engine : Clock
     /// Unit every duration, delay and time value in the API is expressed in: milliseconds unless this is
     /// <see cref="TimeUnit.Seconds"/>. Switching rescales the default duration and the engine speed, so set it before creating timers.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Set on an engine other than <see cref="Presto.Engine"/>; the unit is process-wide.</exception>
     public TimeUnit TimeUnit
     {
         get => Globals.TimeScale == 1 ? TimeUnit.Milliseconds : TimeUnit.Seconds;
         set
         {
+            if (this != Presto.Engine) throw new InvalidOperationException("TimeUnit is process-wide and can only be set on Presto.Engine.");
             AssertThreadAffinity();
             const double secondsScale = 0.001;
             var isSecond = value == TimeUnit.Seconds;
@@ -392,7 +394,11 @@ public sealed class Engine : Clock
     public int Precision
     {
         get => Globals.Precision;
-        set => Globals.Precision = value;
+        set
+        {
+            AssertThreadAffinity();
+            Globals.Precision = value;
+        }
     }
 
     [Conditional("DEBUG")]

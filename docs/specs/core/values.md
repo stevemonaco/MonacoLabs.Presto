@@ -54,8 +54,8 @@ depends:
   - Tests: `ValuesTests.NumberTypeTweenValuesFromNumbersAndStrings`
 - **CORE-VALUES-002** — When `TweenValue.Of` is given an `int`, `float`, `long`, `short`, `byte` or `decimal`, it shall store the value as a `double`; given a `TweenValue` it shall return it unchanged; given anything else, `null` included, it shall store the object as is.
   - Tests: `TweenValueTests.CoerceFollowsGetFunctionValue`, `ValuesTests.TweenEndValueTypes`
-- **CORE-VALUES-003** — The implicit conversion from `PrestoColor` shall store the color's `rgba()` string (CORE-COLORS), so its RGB channels are rounded to integers.
-  - Tests: `ColorKeyframesTests.AnOklchFullTurnCirclesTheHue`
+- **CORE-VALUES-003** — The implicit conversion from `PrestoColor` shall store the color itself, so its channels stay exact.
+  - Tests: `ColorsTests.AnImplicitColorKeepsItsFractionalChannels`, `ColorKeyframesTests.AnOklchFullTurnCirclesTheHue`
 - **CORE-VALUES-004** — When a property value is an array of one raw item, the animation shall treat it as that single value.
   - Tests: `KeyframesTests.AnArrayOfOneRawValueIsASimpleValue`
 - **CORE-VALUES-005** — When a property value is an array of two raw items, or is built with `TweenValue.FromTo`, the animation shall treat it as a from/to pair.
@@ -171,6 +171,8 @@ depends:
   - Tests: untested
 - **CORE-VALUES-053** — The animation shall keep a tween's from and to functions and re-evaluate them on `Refresh`, re-applying a relative to value against the refreshed from value; a tween with no from function re-reads the target's current value.
   - Tests: `DiscreteValuesTests.RefreshReReadsAFunctionValue`
+- **CORE-VALUES-054** — `Refresh` shall reconcile the refreshed ends as the build does (codec `Reconcile`, kind homogenizing, unit conversion and padding), except for the unitless-end rule in Decisions.
+  - Tests: `FunctionBasedValuesTests.RefreshConvertsTheFromValueToARefreshedEndsUnit`, `FunctionBasedValuesTests.RefreshPadsAFromValueShorterThanARefreshedEnd`, `ControlsTests.RefreshAnAnimationWithFromToUnitConversionAndRelativeOperator`
 
 ## Invariants
 
@@ -215,6 +217,8 @@ depends:
 
 - **Complex exponents keep every digit.** The complex-string number pattern reads `e[-+]?\d+`, as the unit pattern already does. Reason: upstream's single digit, with the full pattern commented out beside it, split `"1e10"` into `1e1` and `0`, so a path or shadow written with an exponent animated the wrong numbers and changed shape. Rejected: upstream's single digit.
 - **`TweenValue` is a small struct holding the raw value.** It converts implicitly from numbers, strings, `TweenParams`, `FunctionValue` and the other value types, takes any other object through `Of`, and is decoded by the target adapter against the property's current value. Reason: a property value of any accepted shape is then written as a literal in the params initializer, and only the adapter knows the property's type to decode it against.
+- **No implicit conversion from `object`.** An arbitrary object, such as a bridge-typed color or thickness, goes through `TweenValue.Of`. Reason: C# forbids a user-defined conversion from `object`, and `Of` also normalizes the numeric types. Rejected: the original design's implicit conversion from any object.
+- **A refresh keeps the tween's unit for a unitless end.** A refreshed to value without a unit lands in the unit the tween was built with, and the from value is converted into it before a relative to value applies. Reason: kept from upstream `refresh()` and pinned by the ported `ControlsTests.RefreshAnAnimationWithFromToUnitConversionAndRelativeOperator`; the build would instead give the end the from value's unit. Rejected: reconciling a refresh exactly as a fresh build.
 - **`FunctionValue` takes three arguments.** It is `(target, index, total)`; upstream's fourth argument, the timeline being resolved in, lives on `Stagger`, and its `prevTween` argument is not ported. Reason: only stagger positions use the timeline argument, and `prevTween` belongs to upstream's WAAPI and draggable code.
 - **Non-numeric strings keep upstream's complex-value path.** A string that is not a number stays a complex value and writes its end string from the first frame; strings are never routed to `DiscreteCodec`. Reason: a string with embedded numbers (`"blur(4px)"`, `"10px 20px"`) interpolates them on that path, and one rule for every string keeps its handling from depending on whether it holds a number.
 - **No CSS-specific value handling.** There is no `px`/`em`/`rem` conversion, no CSS variables and no DOM attribute animation; numbers, angle units and percentages pass through for the target adapters to interpret. Reason: the targets are UI object properties, not the DOM.
@@ -228,7 +232,4 @@ depends:
 
 ## Open items
 
-- `Refresh` re-decomposes function-valued ends but skips `IReconcilingValueCodec.Reconcile`, kind homogenizing, padding and the to value's unit conversion, so a refreshed end whose shape or unit differs from the other is interpolated unreconciled.
 - CORE-VALUES-030 (unit inheritance of a plain-number from), CORE-VALUES-033 (number to color), CORE-VALUES-035 (padding), CORE-VALUES-041 (4-decimal rounding of in-between frames) and CORE-VALUES-052 (function returning `TweenParams`) have no test.
-- The original design made `TweenValue` implicitly convertible from any object; the code has no `object` conversion, and an arbitrary object goes through `TweenValue.Of`.
-- The implicit `PrestoColor` conversion rounds channels through the `rgba()` string, while `TweenValue.Of(color)` keeps them exact; the XML doc presents the implicit conversion as the way to pass a `Mix` result.

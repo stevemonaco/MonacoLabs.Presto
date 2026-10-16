@@ -24,6 +24,7 @@ public sealed class CompositorCanvas : Control
     public CompositorCanvas() => PrestoAvalonia.EnsureInitialized();
 
     /// <summary>The scene this canvas draws; replacing it while attached reverts the old scene and attaches the new one.</summary>
+    /// <remarks>Attaching a scene another attached canvas holds throws <see cref="InvalidOperationException"/>.</remarks>
     public CompositorScene? Scene
     {
         get => GetValue(SceneProperty);
@@ -55,12 +56,14 @@ public sealed class CompositorCanvas : Control
     {
         base.OnAttachedToVisualTree(e);
         if (ElementComposition.GetElementVisual(this) is not { } element) return;
+        var scene = Scene;
+        if (scene != null) Claim(scene);
         _visual = element.Compositor.CreateCustomVisual(new CompositorSceneHandler());
         ElementComposition.SetElementChildVisual(this, _visual);
         _visual.Size = new Vector(Bounds.Width, Bounds.Height);
         HiddenSignal.Changed += SendHidden;
         if (HiddenSignal.Hidden) SendHidden();
-        if (Scene is { } scene) _visual.SendHandlerMessage(new CompositorSceneHandler.AttachMessage(scene));
+        if (scene != null) _visual.SendHandlerMessage(new CompositorSceneHandler.AttachMessage(scene));
         if (_queued is not { } queued) return;
         foreach (var message in queued) _visual.SendHandlerMessage(message);
         _queued = null;
@@ -72,8 +75,20 @@ public sealed class CompositorCanvas : Control
         base.OnDetachedFromVisualTree(e);
         HiddenSignal.Changed -= SendHidden;
         _visual?.SendHandlerMessage(CompositorSceneHandler.DetachMessage);
+        Release(Scene);
         ElementComposition.SetElementChildVisual(this, null);
         _visual = null;
+    }
+
+    private void Claim(CompositorScene scene)
+    {
+        if (scene.Canvas is { } other && other != this) throw new InvalidOperationException("The scene is already attached to another CompositorCanvas.");
+        scene.Canvas = this;
+    }
+
+    private void Release(CompositorScene? scene)
+    {
+        if (scene?.Canvas == this) scene.Canvas = null;
     }
 
     private void SendHidden() => _visual?.SendHandlerMessage(new CompositorSceneHandler.HiddenMessage(HiddenSignal.Hidden));
@@ -90,8 +105,10 @@ public sealed class CompositorCanvas : Control
         else if (change.Property == SceneProperty)
         {
             visual.SendHandlerMessage(CompositorSceneHandler.DetachMessage);
+            Release(change.GetOldValue<CompositorScene?>());
             if (change.GetNewValue<CompositorScene?>() is { } scene)
             {
+                Claim(scene);
                 visual.SendHandlerMessage(new CompositorSceneHandler.AttachMessage(scene));
             }
         }

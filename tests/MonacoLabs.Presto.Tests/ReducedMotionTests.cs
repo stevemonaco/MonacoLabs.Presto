@@ -62,6 +62,30 @@ public sealed class ReducedMotionTests : EngineTestBase
     }
 
     [Fact]
+    public void ReduceAllCollapsesTimelinePositions()
+    {
+        var target = new StyleTarget();
+        var calls = new List<string>();
+        Presto.Defaults.ReduceAll = true;
+
+        var timeline = Presto.CreateTimeline()
+            .Add(target, new() { ["X"] = 100, Duration = 300 }, 0)
+            .Call(_ => calls.Add("call"), 400)
+            .Add(target, new() { ["Y"] = 50, Duration = 300 }, 500)
+            .Label("end", 1900)
+            .Add(target, new() { ["X"] = 20, Duration = 300 }, 2000)
+            .Add(target, new() { ["Opacity"] = 0.5, Duration = 300 }, "end");
+        Frames.Advance(16);
+
+        Assert.True(timeline.Completed);
+        Assert.Equal(0, timeline.Labels["end"]);
+        Assert.Equal(20, target.X);
+        Assert.Equal(50, target.Y);
+        Assert.Equal(0.5, target.Opacity);
+        Assert.Equal(["call"], calls);
+    }
+
+    [Fact]
     public void ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone()
     {
         Presto.Defaults.ReduceAll = true;

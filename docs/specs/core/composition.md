@@ -205,6 +205,5 @@ Composition decides what happens when a new tween animates a target property tha
 
 ## Open items
 
-- One record of the integrity-check decision says the check runs only before sorted inserts; the code (`TweenList.ForEachChildren`) also checks before every walk, and the decision above follows the code.
 - CORE-COMPOSITION-024 (the additive pass overwriting a `Replace` write) is documented on `Composition.Additive` but has no core test.
 - `Additive` tweens overriding later replace siblings (CORE-COMPOSITION-028) and the 1000-target `Overlap` default have no test.

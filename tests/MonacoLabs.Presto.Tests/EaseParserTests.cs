@@ -113,6 +113,16 @@ public sealed class EaseParserTests
     public void SameStringReturnsSameInstance(string ease) => Assert.Same(EaseParser.Parse(ease), EaseParser.Parse(ease));
 
     [Fact]
+    public void TheCacheIsClearedWhenFullAndReparsesAfterwards()
+    {
+        var first = EaseParser.Parse("out(1.001)");
+        for (var i = 0; i < 300; i++) EaseParser.Parse(string.Create(CultureInfo.InvariantCulture, $"out({2 + (i / 1000d)})"));
+
+        Assert.InRange(EaseParser.CachedCount, 1, EaseParser.CacheLimit);
+        AssertSameSamples(first, EaseParser.Parse("out(1.001)"));
+    }
+
+    [Fact]
     public void ParsesArgumentsCultureInvariantly()
     {
         var culture = CultureInfo.CurrentCulture;

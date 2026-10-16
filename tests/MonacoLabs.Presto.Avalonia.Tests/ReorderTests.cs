@@ -146,6 +146,29 @@ public sealed class ReorderTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ACanceledStepRaisesMovingOncePerCrossingNotOnEveryMoveOrFrame()
+    {
+        var (list, _, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        var raised = 0;
+        Reorder.AddMovingHandler(list, (_, e) =>
+        {
+            raised++;
+            e.Cancel = true;
+        });
+
+        window.MouseDown(OnRed, MouseButton.Left);
+        foreach (var dy in new[] { 25, 30, 35 }) window.MouseMove(OnRed + new Point(0, dy));
+        for (var i = 0; i < 5; i++) Frames.Advance(16);
+        Assert.Equal(1, raised);
+
+        window.MouseMove(OnRed + new Point(0, 5));
+        window.MouseMove(OnRed + new Point(0, 30));
+        Assert.Equal(2, raised);
+        Assert.Empty(moves);
+    }
+
+    [AvaloniaFact]
     public void ACommandReceivesEachStepAndOwnsTheMove()
     {
         var (list, items, moves) = Show(virtualized: false);

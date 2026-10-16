@@ -29,7 +29,6 @@ internal sealed class Follower : INotifyPropertyChanged, IDisposable
     private readonly Action<object, object?> _rendered;
     private readonly object? _initial;
     private object? _target = AvaloniaProperty.UnsetValue;
-    private bool _started;
     private AnimatableProperty _timing;
     private bool _reduced;
     private bool _retimed;
@@ -53,12 +52,15 @@ internal sealed class Follower : INotifyPropertyChanged, IDisposable
     /// <summary>The displayed value, <see cref="AvaloniaProperty.UnsetValue"/> until the first <see cref="Target"/>.</summary>
     public object? Value { get; private set; } = AvaloniaProperty.UnsetValue;
 
+    /// <summary>Whether <see cref="Target"/> has been called, so the next value is not the first.</summary>
+    public bool Started { get; private set; }
+
     /// <summary>Eases towards <paramref name="value"/>, or shows it at once when <paramref name="snap"/> is set or it cannot be eased.</summary>
     public void Target(object? value, bool snap = false)
     {
         value = Convert(value);
-        var from = _started ? _target : _initial;
-        _started = true;
+        var from = Started ? _target : _initial;
+        Started = true;
         _target = value;
         var reduced = Engine.Current.Defaults.ReducedMotion;
         if (snap || (reduced && _parameters.WhenReduced == null) || !CanEase(from, value, out var channels))

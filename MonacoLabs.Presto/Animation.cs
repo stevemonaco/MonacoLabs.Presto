@@ -259,24 +259,7 @@ public sealed class Animation : Timer
                         ScratchFrom.Number = ValueParser.GetRelativeValue(relativeTo, ScratchFrom.Number, ScratchFrom.Operator);
                     }
 
-                    if (ScratchTo.Operator != '\0')
-                    {
-                        ScratchTo.Number = ValueParser.GetRelativeValue(ScratchFrom.Number, ScratchTo.Number, ScratchTo.Operator);
-                    }
-
-                    if (codec is DiscreteCodec) (ScratchFrom.Number, ScratchTo.Number) = (0, 1);
-                    if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(ScratchFrom, ScratchTo);
-                    if (ScratchFrom.Kind != ScratchTo.Kind) Homogenize(ScratchFrom, ScratchTo);
-
-                    if (ScratchFrom.Unit != ScratchTo.Unit)
-                    {
-                        UnitConverter.Convert(ScratchTo.Unit != null ? ScratchFrom : ScratchTo, ScratchTo.Unit ?? ScratchFrom.Unit!);
-                    }
-
-                    if (ScratchTo.Numbers != null && ScratchFrom.Numbers != null && ScratchTo.Numbers.Length != ScratchFrom.Numbers.Length)
-                    {
-                        PadShorterValue(ScratchFrom, ScratchTo);
-                    }
+                    Reconcile(ScratchFrom, ScratchTo, codec);
 
                     if (physics != null)
                     {
@@ -441,6 +424,17 @@ public sealed class Animation : Timer
         return this;
     }
 
+    internal void ShiftOffset(double delta)
+    {
+        _offset += delta;
+        for (var tween = _headTween; tween != null; tween = tween._next)
+        {
+            tween._absoluteStartTime = Helpers.Round(tween._absoluteStartTime + delta, 12);
+            tween._absoluteUpdateStartTime = Helpers.Round(tween._absoluteUpdateStartTime + delta, 12);
+            tween._absoluteEndTime = Helpers.Round(tween._absoluteEndTime + delta, 12);
+        }
+    }
+
     /// <summary>Re-evaluates the function based from and to values of every tween against the targets' current state.</summary>
     public Animation Refresh()
     {
@@ -451,33 +445,23 @@ public sealed class Animation : Timer
             if (toFunc == null && fromFunc == null) continue;
 
             var codec = tween.Accessor.Codec;
-            if (fromFunc != null)
-            {
-                ValueParser.Decompose(fromFunc().Raw, ScratchFrom, codec);
-                if (tween._unit is { } unit && ScratchFrom.Unit != unit) UnitConverter.Convert(ScratchFrom, unit);
-                tween._fromNumbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
-                tween._fromNumber = ScratchFrom.Number;
-                tween._fromObject = ScratchFrom.Discrete;
-            }
-            else
-            {
-                ValueParser.Decompose(tween.Accessor.GetValue(tween.Target), ScratchOriginal, codec);
-                tween._fromNumbers = Helpers.CloneNumbers(ScratchOriginal.Numbers);
-                tween._fromNumber = ScratchOriginal.Number;
-                tween._fromObject = ScratchOriginal.Discrete;
-            }
+            ValueParser.Decompose(fromFunc != null ? fromFunc().Raw : tween.Accessor.GetValue(tween.Target), ScratchFrom, codec);
+            if (toFunc != null) ValueParser.Decompose(toFunc().Raw, ScratchTo, codec);
+            else ValueParser.DecomposeTween(tween, ScratchTo);
+            // A unitless end keeps the tween's unit, and the from value is in it before a relative end applies (anime issue #1025).
+            if (ScratchFrom.Kind is ValueKind.Number or ValueKind.Unit && (ScratchTo.Unit ?? tween._unit) is { } unit && ScratchFrom.Unit != unit) UnitConverter.Convert(ScratchFrom, unit);
+            Reconcile(ScratchFrom, ScratchTo, codec);
 
-            if (toFunc != null)
-            {
-                ValueParser.Decompose(toFunc().Raw, ScratchTo, codec);
-                tween._toNumbers = Helpers.CloneNumbers(ScratchTo.Numbers);
-                tween._strings = ScratchTo.Strings is { } strings ? (string[])strings.Clone() : [];
-                tween._toObject = ScratchTo.Discrete;
-                // Re-applied against the refreshed from value, see anime issue #1025.
-                tween._toNumber = tween._discrete != null ? 1 : ScratchTo.Operator != '\0'
-                    ? ValueParser.GetRelativeValue(tween._fromNumber, ScratchTo.Number, ScratchTo.Operator)
-                    : ScratchTo.Number;
-            }
+            tween._fromNumbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
+            tween._fromNumber = ScratchFrom.Number;
+            tween._fromObject = ScratchFrom.Discrete;
+            tween._toNumbers = Helpers.CloneNumbers(ScratchTo.Numbers);
+            tween._toNumber = ScratchTo.Number;
+            tween._toObject = ScratchTo.Discrete;
+            tween._strings = ScratchTo.Strings is { } strings ? (string[])strings.Clone() : [];
+            tween._valueType = ScratchTo.Kind;
+            tween._unit = ScratchTo.Unit;
+            if (tween._numbers.Length != tween._toNumbers.Length) tween._numbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
         }
         // Forces setter animations to render the refreshed values once.
         if (Duration == Constants.MinValue) Restart();
@@ -541,9 +525,19 @@ public sealed class Animation : Timer
     {
         FunctionValue function => () => function(target, index, targets.Count).Coerce(),
         ChainedFunctionValue function => () => function(target, index, targets.Count, chained).Coerce(),
-        Stagger stagger => () => stagger.Invoke(target, index, targets, null).Coerce(),
+        Stagger stagger => () => stagger.Invoke(target, index, targets, stagger.StartOffset(null)).Coerce(),
         _ => null,
     };
+
+    private static void Reconcile(DecomposedValue from, DecomposedValue to, IValueCodec? codec)
+    {
+        if (to.Operator != '\0') to.Number = ValueParser.GetRelativeValue(from.Number, to.Number, to.Operator);
+        if (codec is DiscreteCodec) (from.Number, to.Number) = (0, 1);
+        if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(from, to);
+        if (from.Kind != to.Kind) Homogenize(from, to);
+        if (from.Unit != to.Unit) UnitConverter.Convert(to.Unit != null ? from : to, to.Unit ?? from.Unit!);
+        if (to.Numbers != null && from.Numbers != null && to.Numbers.Length != from.Numbers.Length) PadShorterValue(from, to);
+    }
 
     private static void Homogenize(DecomposedValue from, DecomposedValue to)
     {

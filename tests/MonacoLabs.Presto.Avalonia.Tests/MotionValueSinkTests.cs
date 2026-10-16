@@ -158,6 +158,25 @@ public sealed class MotionValueSinkTests : BridgeTestBase
         Assert.Equal(80, border.Width);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BindWaitsForTheFirstAttachAndThenShowsTheLatestValue(bool timed)
+    {
+        var border = Unsized();
+        var source = Presto.CreateMotionValue(20);
+        Follow.Bind(border, Layoutable.WidthProperty, source, timed ? new() { Duration = 100, Ease = "linear" } : null);
+
+        source.Set(60);
+        source.Set(80);
+        Assert.False(source._queued);
+        Assert.Null(Presto.Engine._head);
+        Assert.False(Frames.IsRunning);
+
+        Show(border);
+        Assert.Equal(80, border.Width);
+    }
+
     [AvaloniaFact]
     public void TheXamlExtensionPassesAViewModelValueThroughAtZeroDurationAndSmoothsItWithASpring()
     {

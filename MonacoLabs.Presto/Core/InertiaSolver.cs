@@ -6,7 +6,7 @@ namespace MonacoLabs.Presto.Core;
 /// </summary>
 internal static class InertiaSolver
 {
-    private const double MaxDuration = 60000;
+    private const double MaxDurationMs = 60000;
     private const double MaxSpringVelocity = Constants.K * 10;
     private const double PeakStep = 1e-3;
 
@@ -17,6 +17,7 @@ internal static class InertiaSolver
     {
         var (power, tau, restDelta, min, max) = (settings.Power, settings.TimeConstant, settings.RestDelta, settings.Min, settings.Max);
         var (bounceStiffness, bounceDamping) = (settings.BounceStiffness, settings.BounceDamping);
+        if (min > max) throw new ArgumentOutOfRangeException(nameof(settings), $"Inertia.Min ({min}) must not exceed Inertia.Max ({max}).");
         var solverScale = Constants.K * Globals.TimeScale;
         if (from < min || from > max)
         {
@@ -28,12 +29,16 @@ internal static class InertiaSolver
         var ideal = from + power * velocity * tau;
         var target = settings.ModifyTarget?.Invoke(ideal) ?? ideal;
         var travel = target - from;
-        if (Math.Abs(travel) <= restDelta) return new(from, Constants.MinValue, Eases.None);
+        if (Math.Abs(travel) <= restDelta)
+        {
+            var landed = settings.ModifyTarget is null ? from : Math.Clamp(target, min ?? double.NegativeInfinity, max ?? double.PositiveInfinity);
+            return new(landed, Constants.MinValue, Eases.None);
+        }
 
         double? crossed = travel > 0 && target > max ? max : travel < 0 && target < min ? min : null;
         if (crossed is not { } bound)
         {
-            var duration = Math.Clamp(tau * Math.Log(Math.Abs(travel) / restDelta), 0, MaxDuration);
+            var duration = Math.Clamp(tau * Math.Log(Math.Abs(travel) / restDelta), 0, MaxDurationMs * Globals.TimeScale);
             var norm = 1 - Math.Exp(-duration / tau);
             return new(target, duration, u => (1 - Math.Exp(-u * duration / tau)) / norm);
         }

@@ -9,8 +9,10 @@ namespace MonacoLabs.Presto.Controls;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The host owns its <see cref="ItemsControl.Items"/>, so leave <see cref="ItemsControl.ItemsSource"/> unset. Each toast's
-/// content is an item, built by <see cref="ItemsControl.ItemTemplate"/>. The motion is the template's: put
+/// The host owns its <see cref="ItemsControl.Items"/>: changing them other than through <see cref="Show"/> and
+/// <see cref="Toast.Dismiss"/>, or setting <see cref="ItemsControl.ItemsSource"/>, throws
+/// <see cref="InvalidOperationException"/>. Each toast's content is an item, built by
+/// <see cref="ItemsControl.ItemTemplate"/>. The motion is the template's: put
 /// <see cref="Presence.ArriveProperty"/> and <see cref="Presence.ExitProperty"/> on its root, and
 /// <see cref="Animate.ItemLayoutProperty"/> on the host to restack the rest. Mark an element of the template with
 /// <see cref="CountdownProperty"/> to make it the countdown bar. A swiped toast has slid out already, so it leaves
@@ -39,6 +41,16 @@ public sealed class ToastHost : ItemsControl
         AvaloniaProperty.RegisterAttached<ToastHost, Control, Toast?>("Toast", inherits: true);
 
     private readonly List<Toast> _toasts = [];
+    private bool _changing;
+
+    /// <summary>Creates an empty host.</summary>
+    public ToastHost() => Items.CollectionChanged += (_, _) =>
+    {
+        if (!_changing)
+        {
+            throw new InvalidOperationException("A ToastHost owns its Items: add toasts with Show, remove them with Toast.Dismiss, and leave ItemsSource unset.");
+        }
+    };
 
     /// <inheritdoc cref="MaxCountProperty"/>
     public int MaxCount
@@ -65,7 +77,9 @@ public sealed class ToastHost : ItemsControl
         while (_toasts.Count >= Math.Max(MaxCount, 1)) _toasts[0].Dismiss();
         var toast = new Toast(this, duration);
         _toasts.Add(toast);
+        _changing = true;
         Items.Add(content);
+        _changing = false;
         return toast;
     }
 
@@ -74,7 +88,9 @@ public sealed class ToastHost : ItemsControl
         var index = _toasts.IndexOf(toast);
         if (index < 0) return;
         _toasts.RemoveAt(index);
+        _changing = true;
         Items.RemoveAt(index);
+        _changing = false;
     }
 
     /// <inheritdoc/>
@@ -82,5 +98,12 @@ public sealed class ToastHost : ItemsControl
     {
         base.PrepareContainerForItemOverride(container, item, index);
         _toasts[index].Attach(container);
+    }
+
+    /// <inheritdoc/>
+    protected override void ClearContainerForItemOverride(Control container)
+    {
+        base.ClearContainerForItemOverride(container);
+        GetToast(container)?.Detach();
     }
 }

@@ -112,6 +112,12 @@ public sealed class ProjectileTests : EngineTestBase
     public void AColorPropertyThrows() =>
         Assert.Throws<ArgumentException>(() => Presto.Animate(new StyleTarget(), new() { ["BackgroundColor"] = new Projectile(1) }));
 
+    [Theory]
+    [InlineData(-.1)]
+    [InlineData(1)]
+    public void FrictionOutsideZeroUpToOneThrows(double friction) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Projectile(1) { Friction = friction });
+
     [Fact]
     public void SecondsModeGivesTheSameTrajectoryScaled()
     {

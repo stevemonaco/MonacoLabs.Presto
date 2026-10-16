@@ -88,14 +88,14 @@ Keyframes animate a property through a sequence of values instead of straight to
   - Tests: `KeyframesTests.PercentageBasedKeyframesValues`, `KeyframeExpanderTests.PercentageKeyframesSortByOffsetAndShiftEasesToTheFollowingSegment`
 - **CORE-KEYFRAMES-019** — When a property's first frame is after 0%, its first segment shall run from the target's current value from 0 to that offset.
   - Tests: untested
-- **CORE-KEYFRAMES-020** — A percentage frame's `Duration`, `Delay`, `Modifier` and `Composition` shall be ignored.
-  - Tests: untested
+- **CORE-KEYFRAMES-020** — When a percentage frame sets `Duration`, `Delay`, `Modifier` or `Composition`, the conversion of the dictionary to `Keyframes` and `KeyframesBuilder.At` shall throw `ArgumentException` naming the key and the setting, while a frame's `Ease` stays allowed (see "Percentage keyframes reject per-frame settings").
+  - Tests: `KeyframesTests.PercentageKeyframesRejectPerFrameSettings`, `KeyframesTests.PercentageKeyframesKeepAFramesEase`
 - **CORE-KEYFRAMES-021** (inherited) — When a key does not parse as a number followed by an optional `%`, the animation constructor shall throw `FormatException`.
   - Tests: untested
 
 ### Builders
 
-- **CORE-KEYFRAMES-022** — `KeyframesBuilder.Frame` shall add the next duration-based frame, and `At` shall place a frame at that percentage, replacing any frame already there; each `KeyframeBuilder` sets its frame's properties and settings.
+- **CORE-KEYFRAMES-022** — `KeyframesBuilder.Frame` shall add the next duration-based frame, and `At` shall place a frame at that percentage, replacing any frame already there; each `KeyframeBuilder` sets its frame's properties and settings, an `At` frame only its ease (020).
   - Tests: `AnimationBuilderTests.DurationBasedKeyframesMatchTheIndexer`, `AnimationBuilderTests.PercentageBasedKeyframesMatchTheIndexerAndTheLastAtAndKeyframesCallWin`, `AnimationBuilderTests.KeyframedBuilderAndIndexerAnimationsReadTheSameValues`
 - **CORE-KEYFRAMES-023** — When `Frame` and `At` are mixed on one builder, the second call shall throw `InvalidOperationException`.
   - Tests: `AnimationBuilderTests.MixingFrameAndAtThrows`
@@ -182,6 +182,7 @@ Keyframes animate a property through a sequence of values instead of straight to
 - **Segments are fitted to the path.** From one segment, the one whose rendered blend strays furthest from the mix (deltaEOK at 7 probes) is halved until all are within 0.02, capped at 16; with per-target ends, duration or ease the count is fixed (4, or one per 30° of arc, 4 to 24, in `Oklch`), and an explicit `segments` gives equal-time segments. Reason: equal-time segments do not converge (hard pairs need 48–64, easy ones 2, at about 5.5 µs and 2.3 KB per segment per animation), while fitting costs 0.01–0.5 ms per builder; per-target values are unknown at build time, so their count must be fixed. Rejected: fixed equal-time counts, which strayed to deltaEOK 0.05–0.19.
 - **Both ends of a color expansion are known at build time.** `from` is required; function-valued ends, duration or ease resolve once per target and are shared by its frames; a `Stagger` delay works, but a `Stagger` end or duration throws. Reason: the expander runs at build time and cannot read the current color, a `Stagger` end yields numbers rather than colors, and a `Stagger` duration cannot be split per segment. Rejected: starting from the current color, which needs a per-tween color space.
 - **Color spaces are a utility, not a per-tween setting.** See CORE-COLORS.
+- **Percentage keyframes reject per-frame settings.** A percentage frame that sets `Duration`, `Delay`, `Modifier` or `Composition` throws `ArgumentException` when the keyframes are built (the dictionary conversion, or `At`), not when the animation starts. Reason: the percentage fixes the frame's time, and dropping the other settings silently hid them. Rejected: applying `Modifier` and `Composition` per frame, which has no tween-level support.
 - **Builders resolve against what they are added under.** A `Color` call records its inputs and expands when the animation is built, taking an unset ease or duration from the defaults of its engine, scope or timeline. Reason: the dictionary path already resolves against the owner, and a timeline with its own `Defaults` or on another engine must get the same result from a builder. Rejected: the animation's own `Ease` and `Duration` reaching the expansion (it would reverse "A color expansion keeps the ease exact"), and keeping the defaults read when `Color` is called.
 
 ## Non-goals
@@ -191,5 +192,4 @@ Keyframes animate a property through a sequence of values instead of straight to
 
 ## Open items
 
-- Percentage keyframes silently drop a frame's `Duration`, `Delay`, `Modifier` and `Composition`, which `KeyframeBuilder` lets the `At` form set; nothing tests or documents it.
 - A percentage-based property whose first frame is after 0%, a malformed percentage key, `segments < 1` and a `Stagger` duration in `Color` have no test.

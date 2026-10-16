@@ -25,23 +25,27 @@ public sealed class Toast
     /// <summary>Removes the toast from its host, which plays its exit.</summary>
     public void Dismiss()
     {
-        if (_container is { } container)
-        {
-            container.Loaded -= HandleLoaded;
-            container.PropertyChanged -= HandlePropertyChanged;
-        }
+        Detach();
         _countdown?.Cancel();
         _host.Remove(this);
     }
 
     internal void Attach(Control container)
     {
+        Detach();
         _container = container;
         container.SetValue(ToastHost.ToastProperty, this);
         Swipe.SetDismiss(container, true);
         Swipe.SetCommand(container, new Swiped(this));
         container.Loaded += HandleLoaded;
         container.PropertyChanged += HandlePropertyChanged;
+    }
+
+    internal void Detach()
+    {
+        if (_container is not { } container) return;
+        container.Loaded -= HandleLoaded;
+        container.PropertyChanged -= HandlePropertyChanged;
     }
 
     private void HandleLoaded(object? sender, RoutedEventArgs e)

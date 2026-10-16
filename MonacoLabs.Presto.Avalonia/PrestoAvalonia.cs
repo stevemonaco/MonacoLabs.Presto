@@ -225,7 +225,20 @@ public static class PrestoAvalonia
         p.OnLoop != null ? nameof(p.OnLoop) :
         p.OnPause != null ? nameof(p.OnPause) :
         p.OnRender != null ? nameof(p.OnRender) :
+        p.HostLifetime != null ? nameof(AvaloniaAnimationParams.WhenDetached) :
+        !CarriesEverySetting(p) ? "A setting" :
         null;
+
+    private static readonly AnimationParams s_uncarried = new();
+    private static AvaloniaAnimationParams? s_uncarriedAvalonia;
+
+    // A whitelist of what RunOnCompositor copies, so a setting added later is rejected until it is carried.
+    private static bool CarriesEverySetting(AnimationParams p) =>
+        p with
+        {
+            Properties = s_uncarried.Properties, Duration = null, Delay = null, Ease = null, Loop = null, LoopDelay = null, Alternate = null,
+            Reversed = null, Autoplay = null, PlaybackRate = null, OnBegin = null, OnComplete = null, WhenReduced = null, IsReducedMotion = false,
+        } == (p is AvaloniaAnimationParams ? s_uncarriedAvalonia ??= new() { Properties = s_uncarried.Properties } : s_uncarried);
 
     /// <inheritdoc cref="AnimateOnCompositor(object?, AnimationBuilder)"/>
     public static CompositorAnimation AnimateOnCompositor(object? targets, Action<AnimationBuilder> build) =>
@@ -310,7 +323,9 @@ public static class PrestoAvalonia
     /// <remarks>
     /// <paramref name="source"/> is measured where it is drawn on screen — scroll offsets, render-transform translation and
     /// any live transition included — so a dropped drag, a control re-armed mid-move or an item in a scrolled list flies from
-    /// where it is seen. The two have to share a window. By default a one-shot, off again once the move is under way;
+    /// where it is seen. The two have to share a window: with <paramref name="source"/> off screen there is nothing to fly
+    /// from, and the transition eases <paramref name="target"/>'s next layout move from where it is now, as <c>AnimateLayout</c>
+    /// does. By default a one-shot, off again once the move is under way;
     /// passing <paramref name="once"/> false keeps easing later layout changes as
     /// <see cref="AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/> does. Passing the same control twice reparents it.
     /// A move that starts while <see cref="PrestoDefaults.ReducedMotion"/> is set lands in one frame.
@@ -331,6 +346,7 @@ public static class PrestoAvalonia
     /// <see cref="AnimateSharedElement(Control, Control, double, EaseValue?, LayoutAnimateMode, bool)"/> with the motion
     /// taken from <paramref name="builder"/>, as <see cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/> takes it.
     /// </summary>
+    /// <inheritdoc cref="AnimateSharedElement(Control, Control, double, EaseValue?, LayoutAnimateMode, bool)" path="/remarks"/>
     /// <inheritdoc cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)" path="/exception"/>
     public static LayoutTransition AnimateSharedElement(
         Control source,
@@ -411,11 +427,11 @@ public static class PrestoAvalonia
     /// Plays <paramref name="exit"/> on a ghost of <paramref name="control"/> drawn where the control is now, so code that
     /// removes the control itself can do so in the same frame: <see cref="Presence.ExitProperty"/> for imperative removal.
     /// </summary>
-    /// <returns>The ghost's animation, whose completion or cancellation removes the ghost; <c>null</c> when <paramref name="control"/> is not on screen.</returns>
+    /// <returns>The ghost's animation, whose completion or cancellation removes the ghost; <c>null</c> when <paramref name="control"/> is not on screen, as when it or an ancestor is hidden or at opacity 0.</returns>
     public static Animation? AnimateExit(Control control, AnimationBuilder exit)
     {
         EnsureInitialized();
-        if (control.GetVisualParent() is not { } parent || TopLevel.GetTopLevel(control) is not { } top) return null;
+        if (control.GetVisualParent() is not { } parent || TopLevel.GetTopLevel(control) is not { } top || !Presence.IsOnScreen(control)) return null;
         return parent.TranslatePoint(control.Bounds.Position, top) is { } position ? Presence.Ghost(control, parent, position, exit) : null;
     }
 
@@ -629,6 +645,7 @@ public static class PrestoAvalonia
     /// With <see cref="ScrollObserverParams.Pin"/> set, the target is held in place while its thresholds pass, moved in the
     /// same notification as the scroll so it never trails it by a frame.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">The loaded <see cref="ScrollObserverParams.Target"/> has no <see cref="ScrollViewer"/> and no <see cref="ScrollObserverParams.Container"/> is set.</exception>
     public static ScrollObserver OnScroll(ScrollObserverParams? parameters = null)
     {
         EnsureInitialized();

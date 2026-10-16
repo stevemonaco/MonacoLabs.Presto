@@ -120,6 +120,45 @@ public sealed class ToastHostTests : CompositorTestBase
         Assert.Single(Ghosts(window));
     }
 
+    [AvaloniaTheory]
+    [InlineData("add")]
+    [InlineData("remove")]
+    [InlineData("source")]
+    public void ChangingItemsOrSettingItemsSourceThrows(string how)
+    {
+        var (_, host) = Stage();
+        if (how == "remove") host.Show("a");
+        Run(2);
+
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            if (how == "add") host.Items.Add("b");
+            else if (how == "remove") host.Items.RemoveAt(0);
+            else host.ItemsSource = new[] { "b" };
+        });
+    }
+
+    [AvaloniaFact]
+    public void ARepreparedToastFollowsItsNewContainer()
+    {
+        var (window, host) = Stage();
+        host.Show("a", 500);
+        Run(10);
+        var old = host.ContainerFromIndex(0)!;
+
+        host.ItemTemplate = Template();
+        Run(2);
+        var container = host.ContainerFromIndex(0)!;
+        Assert.NotSame(old, container);
+        window.MouseMove(Center(container, window));
+        Run(60);
+        Assert.Single(host.Items);
+
+        window.MouseMove(new Point(1, 199));
+        Run(40);
+        Assert.Empty(host.Items);
+    }
+
     [AvaloniaFact]
     public void UnderReducedMotionTheToastArrivesInPlaceAndTheBarFadesInsteadOfShrinking()
     {
@@ -144,25 +183,27 @@ public sealed class ToastHostTests : CompositorTestBase
         var host = new ToastHost
         {
             VerticalAlignment = VerticalAlignment.Top,
-            ItemTemplate = new FuncDataTemplate<string>((_, _) =>
-            {
-                var bar = new Border { Height = 4, Background = Brushes.Blue };
-                ToastHost.SetCountdown(bar, "ScaleX");
-                var root = new Border
-                {
-                    Background = Brushes.Red,
-                    Child = new StackPanel { Children = { new Button { Height = 30 }, bar } },
-                };
-                Presence.SetArrive(root, Recipes.SlideIn(Edge.Right, distance: 100, duration: 100, ease: Eases.None));
-                Presence.SetExit(root, Presto.Build().Opacity(to: 0).Duration(200).Ease("linear"));
-                return root;
-            }),
+            ItemTemplate = Template(),
         };
         var window = new Window { Content = new StackPanel { Children = { host, new Button() } }, Background = Brushes.White, Width = 200, Height = 200 };
         window.Show();
         Tick();
         return (window, host);
     }
+
+    private static FuncDataTemplate<string> Template() => new((_, _) =>
+    {
+        var bar = new Border { Height = 4, Background = Brushes.Blue };
+        ToastHost.SetCountdown(bar, "ScaleX");
+        var root = new Border
+        {
+            Background = Brushes.Red,
+            Child = new StackPanel { Children = { new Button { Height = 30 }, bar } },
+        };
+        Presence.SetArrive(root, Recipes.SlideIn(Edge.Right, distance: 100, duration: 100, ease: Eases.None));
+        Presence.SetExit(root, Presto.Build().Opacity(to: 0).Duration(200).Ease("linear"));
+        return root;
+    });
 
     private static Border Root(ToastHost host, string item) => (Border)((ContentPresenter)host.ContainerFromItem(item)!).Child!;
 

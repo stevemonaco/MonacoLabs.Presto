@@ -143,6 +143,8 @@ depends:
   - Tests: `DraggableTests.AnInertiaReleaseDecaysOntoEachAxisSnap`
 - **BRIDGE-DRAGGABLE-041** — When an inertia release crosses a bound, the axis shall bounce past it and settle on the bound.
   - Tests: `DraggableTests.AnInertiaReleaseBouncesOffTheContainerAndSettlesOnItsBound`
+- **BRIDGE-DRAGGABLE-074** — When a target is larger than its container on an axis, an inertia release shall pass that axis's bounds to `Animatable.Fling` in ascending order and settle between them.
+  - Tests: `DraggableTests.AnInertiaReleaseOfATargetWiderThanItsContainerSettlesBetweenItsBounds`
 - **BRIDGE-DRAGGABLE-042** — When `ReleaseInertia` is set and an axis is disabled, the release shall leave that axis unwritten.
   - Tests: `DraggableTests.AnInertiaReleaseLeavesADisabledAxisAlone`
 
@@ -282,6 +284,7 @@ depends:
 - **Spring momentum on retarget is opt-in.** See CORE-ANIMATABLE.
 - **One owner per element.** See BRIDGE-TRANSFORMABLE.
 - **The axis `Modifier` stays re-applied on release, documented as needing idempotence.** From the release on, the animatable re-applies an axis modifier to its own output, and `DraggableAxisParams.Modifier` documents that it must be idempotent. Reason: the only feature it hurt, pull-to-refresh, damps its travel itself instead (BRIDGE-PULL). Rejected: changing how the release applies the modifier.
+- **`Reset` writes 0 unclamped.** Both axes go to 0 even when the container's bounds exclude it. Reason: reset means the origin, the transform the target had before the draggable, as upstream's `reset` (`setX(0)`, `setY(0)`) does. Rejected: clamping into the bounds, which would make `Reset` land somewhere other than where the target started.
 
 ## Non-goals
 
@@ -293,6 +296,5 @@ depends:
 ## Open items
 
 - The manual Desktop check of flinging and re-grabbing cards on the Draggable page, is still open.
-- `Reset` writes 0 unclamped even with a container that excludes 0; kept from upstream, unclear whether intended or a bug.
 - Whether touch should get its own, larger `DragThreshold` (upstream 7 against 3 for a mouse) is undecided.
 - No tests for `ContainerBounds`, `ProgressX`/`ProgressY`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.

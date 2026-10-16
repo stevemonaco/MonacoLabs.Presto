@@ -7,7 +7,7 @@ namespace MonacoLabs.Presto;
 /// The base of the recipe markup extensions, such as <c>{presto:Fade}</c>: each provides a new builder from its
 /// <see cref="Recipes"/> factory per element. Set on <see cref="Presence.ExitProperty"/>, <see cref="Popover.CloseProperty"/>,
 /// <see cref="PrestoPageTransition.Exit"/> or <see cref="PrestoPageTransition.BackExit"/>, or with <see cref="Out"/> set,
-/// a recipe that has an exit form provides that instead.
+/// it provides the recipe's exit form instead, and throws <see cref="NotSupportedException"/> when the recipe has none.
 /// </summary>
 public abstract class RecipeExtension : MarkupExtension
 {
@@ -36,6 +36,8 @@ public abstract class RecipeExtension : MarkupExtension
         // Compiled XAML names a plain object's CLR property with an IPropertyInfo that does not know its declaring type.
         var exit = Out ?? (ReferenceEquals(target?.TargetProperty, Presence.ExitProperty) || ReferenceEquals(target?.TargetProperty, Popover.CloseProperty)
             || target is { TargetObject: PrestoPageTransition, TargetProperty: IPropertyInfo { Name: nameof(PrestoPageTransition.Exit) or nameof(PrestoPageTransition.BackExit) } });
+        if (exit && !HasExitForm)
+            throw new NotSupportedException($"{{presto:{GetType().Name[..^"Extension".Length]}}} has no exit form, so it cannot be set where an exit is asked for.");
         Configure(target);
         var builder = Build(exit, Ease is { } name ? (EaseValue?)EaseParser.Parse(name) : null);
         return Stagger is { } step ? builder.Delay(Presto.Stagger(step, new() { Start = Delay })) : builder;
@@ -46,6 +48,9 @@ public abstract class RecipeExtension : MarkupExtension
     {
     }
 
-    /// <summary>Calls the recipe's factory with <see cref="Duration"/>, <see cref="Delay"/> and <paramref name="ease"/>: its exit form when <paramref name="exit"/> is set and it has one.</summary>
+    /// <summary>Whether the recipe has an exit form; without one, asking for the exit form throws.</summary>
+    protected virtual bool HasExitForm => true;
+
+    /// <summary>Calls the recipe's factory with <see cref="Duration"/>, <see cref="Delay"/> and <paramref name="ease"/>: its exit form when <paramref name="exit"/> is set.</summary>
     protected abstract AnimationBuilder Build(bool exit, EaseValue? ease);
 }

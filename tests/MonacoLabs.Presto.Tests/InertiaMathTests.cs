@@ -143,6 +143,13 @@ public sealed class InertiaMathTests : EngineTestBase
         }
     }
 
+    [Fact]
+    public void SecondsModeCapsTheDecayAtSixtySeconds()
+    {
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+        Assert.Equal(60, Resolve(0, 1e6, tau: 100).Duration, 1e-9);
+    }
+
     private static (double X, double V) Rk4((double X, double V) s, double h, Func<(double X, double V), (double X, double V)> f)
     {
         var k1 = f(s);

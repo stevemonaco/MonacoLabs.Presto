@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace MonacoLabs.Presto.Bindings;
 
@@ -66,6 +67,7 @@ internal sealed class FollowBinding : IObservable<object?>, IDisposable
         {
             visual.AttachedToVisualTree += OnAttached;
             visual.DetachedFromVisualTree += OnDetached;
+            _detached = !visual.IsAttachedToVisualTree();
         }
         _input = _target.Bind(_companion, _source);
         _observer = observer;
@@ -94,7 +96,8 @@ internal sealed class FollowBinding : IObservable<object?>, IDisposable
     private void OnTargetChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
         if (e.Property != _companion) return;
-        var snap = _newItem || _detached;
+        // The first value follows AnimateInitial even before the first attach.
+        var snap = _newItem || (_detached && _follower.Started);
         _newItem = false;
         Listen(e.NewValue is MotionValue or MotionObjectValue ? e.NewValue : null);
         if (_listened != null) Show(snap: true);

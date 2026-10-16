@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using MonacoLabs.Presto.Compositor;
 
 namespace MonacoLabs.Presto.Controls;
 
@@ -35,6 +36,7 @@ public sealed class Flip : Control
     /// The turn's timing and ease, the builder's only; null (the default) turns over <see cref="MotionTokens.Long"/> with
     /// <see cref="MotionTokens.Ease"/>. A spring sets the duration.
     /// </summary>
+    /// <remarks>Setting a builder that animates a property or sets anything else throws <see cref="NotSupportedException"/>.</remarks>
     public static readonly StyledProperty<AnimationBuilder?> MotionProperty =
         AvaloniaProperty.Register<Flip, AnimationBuilder?>(nameof(Motion));
 
@@ -86,7 +88,7 @@ public sealed class Flip : Control
         set => SetValue(MotionProperty, value);
     }
 
-    private string Rotation => Orientation == Orientation.Horizontal ? "RotateY" : "RotateX";
+    private string Rotation => Axis(Orientation);
 
     /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -94,8 +96,10 @@ public sealed class Flip : Control
         base.OnPropertyChanged(change);
         if (change.Property == FrontProperty) _front.Child = Front;
         else if (change.Property == BackProperty) _back.Child = Back;
-        else if (change.Property == OrientationProperty) _back.RenderTransform = Orientation == Orientation.Horizontal ? new ScaleTransform(-1, 1) : new ScaleTransform(1, -1);
+        else if (change.Property == OrientationProperty) Reorient(change.GetOldValue<Orientation>());
         else if (change.Property == IsFlippedProperty) Turn();
+        else if (change.Property == MotionProperty && Motion is { } motion)
+            LayoutMotion.Timing(motion, "The card turns to its own angles, so Flip.Motion takes only timing and an ease.");
     }
 
     /// <inheritdoc/>
@@ -121,6 +125,17 @@ public sealed class Flip : Control
             .OnRender(_ => ShowFacing())
             .Animate(_card);
     }
+
+    private void Reorient(Orientation old)
+    {
+        _back.RenderTransform = Orientation == Orientation.Horizontal ? new ScaleTransform(-1, 1) : new ScaleTransform(1, -1);
+        if (!IsFlipped && _turn is not { Completed: false }) return;
+        _turn?.Cancel();
+        Presto.Set(_card, new AnimationParams { [Axis(old)] = 0, [Rotation] = IsFlipped ? 180 : 0, ["Perspective"] = Recipes.FlipPerspective });
+        ShowFacing();
+    }
+
+    private static string Axis(Orientation orientation) => orientation == Orientation.Horizontal ? "RotateY" : "RotateX";
 
     private void ShowFacing()
     {

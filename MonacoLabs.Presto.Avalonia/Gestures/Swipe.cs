@@ -42,7 +42,8 @@ public static class Swipe
 
     /// <summary>
     /// Runs when a swipe is released past half the element's width, with the <see cref="Edge"/> the element moved towards as
-    /// its parameter: <see cref="Edge.Right"/> for the leading side, <see cref="Edge.Left"/> for the trailing one.
+    /// its parameter: <see cref="Edge.Right"/> for the leading side, <see cref="Edge.Left"/> for the trailing one. Setting it
+    /// does not make an element swipeable, but on one that is, a command set later widens the drag range from the next drag.
     /// </summary>
     public static readonly AttachedProperty<ICommand?> CommandProperty =
         AvaloniaProperty.RegisterAttached<Control, ICommand?>("Command", typeof(Swipe));

@@ -40,6 +40,7 @@ internal sealed class ReorderList : IGestureMember
     private Control? _container;
     private double _slotAtGrab;
     private double _offset;
+    private int _refused = -1;
     private Animation? _lift;
     private IDisposable? _raised;
     private Animation? _settle;
@@ -206,6 +207,7 @@ internal sealed class ReorderList : IGestureMember
         Finish();
         if (_list.ItemFromContainer(_pressed!) is not { } item) return false;
         _dragging = true;
+        _refused = -1;
         _item = item;
         _start = _list.IndexFromContainer(_pressed!);
         _slotAtGrab = Slot(_pressed!);
@@ -287,7 +289,10 @@ internal sealed class ReorderList : IGestureMember
             var index = _list.IndexFromContainer(container);
             var center = _slotAtGrab + _offset + (Size(container) / 2);
             var to = Crosses(index + 1, center) ? index + 1 : index > 0 && Crosses(index - 1, center) ? index - 1 : -1;
+            if (to == _refused) return;
+            _refused = to;
             if (to < 0 || !Step(index, to)) return;
+            _refused = -1;
         }
     }
 
@@ -338,7 +343,7 @@ internal sealed class ReorderList : IGestureMember
     {
         _container = container;
         Animate.ItemArmOf(container)?.Suspend();
-        _raised =container.SetValue(Panel.ZIndexProperty, int.MaxValue, BindingPriority.Animation);
+        _raised = container.SetValue(Panel.ZIndexProperty, int.MaxValue, BindingPriority.Animation);
         container.Focus();
         PrestoAvalonia.EnsureInitialized();
         using var origin = PrestoDiagnostics.Origin("Reorder");

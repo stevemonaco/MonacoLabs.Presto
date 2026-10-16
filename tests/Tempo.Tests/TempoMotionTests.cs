@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -33,16 +34,18 @@ public sealed class TempoMotionTests : TempoTestBase
     [AvaloniaFact]
     public void EveryStateValidatesInBothMotionModes()
     {
-        List<MotionStates> lists = [.. StyleStates(Application.Current!.Styles)];
+        // A state is checked against the type it lands on, since its properties need a rest there.
+        List<(Type Target, MotionStates States)> lists = [.. StyleStates(Application.Current!.Styles)];
         Assert.NotEmpty(lists);
-        lists.Add([new MotionState { When = "Running", Motion = TempoMotion.IconToPause }, new MotionState { When = "Running", Motion = TempoMotion.RingBreathe }]);
+        lists.Add((typeof(Avalonia.Controls.Shapes.Path), [new MotionState { When = "Running", Motion = TempoMotion.IconToPause }]));
+        lists.Add((typeof(Panel), [new MotionState { When = "Running", Motion = TempoMotion.RingBreathe }]));
 
-        foreach (var states in lists)
-            PrestoMotion.SetStates(new Border(), states);
+        foreach (var (target, states) in lists)
+            PrestoMotion.SetStates((Control)Activator.CreateInstance(target)!, states);
         using (ReducedMotion.On())
         {
-            foreach (var states in lists)
-                PrestoMotion.SetStates(new Border(), states);
+            foreach (var (target, states) in lists)
+                PrestoMotion.SetStates((Control)Activator.CreateInstance(target)!, states);
         }
     }
 
@@ -151,14 +154,22 @@ public sealed class TempoMotionTests : TempoTestBase
 
     private static Color Color(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
 
-    private static IEnumerable<MotionStates> StyleStates(IEnumerable<IStyle> styles) => styles.SelectMany(style => style switch
+    private static IEnumerable<(Type Target, MotionStates States)> StyleStates(IEnumerable<IStyle> styles) => styles.SelectMany(style => style switch
     {
         StyleInclude include => StyleStates([include.Loaded]),
         Styles nested => StyleStates(nested),
-        Style rule => rule.Setters.OfType<Setter>().Where(s => s.Property == PrestoMotion.StatesProperty).Select(s => (MotionStates)s.Value!)
+        Style rule => rule.Setters.OfType<Setter>().Where(s => s.Property == PrestoMotion.StatesProperty)
+            .Select(s => (Target(rule), (MotionStates)s.Value!))
             .Concat(StyleStates(rule.Children)),
         _ => [],
     });
+
+    // An :is(Control) rule targets any control, so it is checked on one with a background and a foreground.
+    private static Type Target(Style rule) =>
+        rule.Selector is { } selector && TargetType(selector) is { } type && type != typeof(Control) ? type : typeof(TemplatedControl);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_TargetType")]
+    private static extern Type? TargetType(Selector selector);
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_reduced")]
     private static extern ref Action<AnimationBuilder>? Reduced(AnimationBuilder builder);
