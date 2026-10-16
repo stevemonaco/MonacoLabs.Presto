@@ -626,22 +626,40 @@ public sealed class BuilderRecipePagesTests
         var window = SceneHarness.Show(page, 1280, 900);
         TestFrames.Tick(10);
 
-        Assert.Equal(0, page.Animation!.CurrentTime);
+        Assert.Equal(0, page.Timeline!.CurrentTime);
 
         page.GetControl<Slider>("ScrubSlider").Value = .5;
-        Assert.Equal(1200, page.Animation.CurrentTime, 1);
+        Assert.Equal(page.Timeline.IterationDuration / 2, page.Timeline.CurrentTime, 1);
 
         page.GetControl<Button>("PlayButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         TestFrames.Tick(10);
-        var time = page.Animation.CurrentTime;
-        Assert.True(time > 1200);
+        var time = page.Timeline.CurrentTime;
+        Assert.True(time > page.Timeline.IterationDuration / 2);
 
-        var before = page.Animation;
+        var before = page.Timeline;
         page.GetControl<ComboBox>("FpsBox").SelectedIndex = 3;
 
-        Assert.NotSame(before, page.Animation);
-        Assert.Equal(time, page.Animation.CurrentTime, 1);
-        Assert.False(page.Animation.Paused);
+        Assert.NotSame(before, page.Timeline);
+        Assert.Equal(time, page.Timeline.CurrentTime, 1);
+        Assert.False(page.Timeline.Paused);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void StoryboardTrailKeepsChasingTheCometWhileTheTimelineIsPaused()
+    {
+        var page = new StoryboardPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        TestFrames.Tick(10);
+        var comet = page.GetControl<Control>("Comet");
+        var tail = page.GetControl<Panel>("Sky").Children[0];
+
+        page.GetControl<Slider>("ScrubSlider").Value = .5;
+        TestFrames.Tick(1);
+        Assert.True(Get(comet, "X") - Get(tail, "X") > 50);
+
+        TestFrames.Tick(120);
+        Assert.Equal(Get(comet, "X"), Get(tail, "X"), 1);
         SceneHarness.Close(window);
     }
 
@@ -650,8 +668,9 @@ public sealed class BuilderRecipePagesTests
     {
         var code = new StoryboardPage().GetControl<CodePanel>("CodeText").Code;
 
-        Assert.Contains(".PlaybackRate(rate)", code);
-        Assert.Contains(".FrameRate(fps)", code);
+        Assert.Contains("PlaybackRate = rate", code);
+        Assert.Contains("FrameRate = fps", code);
+        Assert.Contains(".Trail(TrailLength, Springs.Snappy)", code);
         Assert.DoesNotContain("ShowProgress", code);
         Assert.DoesNotContain("LoopsText", code);
     }

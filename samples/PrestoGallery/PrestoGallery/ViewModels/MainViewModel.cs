@@ -178,7 +178,7 @@ public partial class MainViewModel : ObservableObject
                 () => new ToastsPage()),
             new GalleryPage("Form states", "A sign-up form as a state machine: Idle, Validating, Error and Success. The card and badge bind Motion.State to the view model's State and list a MotionState per value in XAML, so each transition plays the entering state and returns whatever it no longer names to rest: a breathing pulse and spinning badge while checking, a shake on error, a spring pop on success, and a gentle float at rest; under reduced motion nothing loops, travels, spins or shakes.",
                 () => new FormStatesPage()),
-            new GalleryPage("Storyboard", "A keyframed hop built paused with Autoplay(false): Play, Restart or drag the slider to seek it, and read CurrentTime, IterationProgress, OnLoop calls and OnUpdate calls per second back live. Change PlaybackEase, FrameRate or PlaybackRate and it rebuilds at the same moment; drop to 6 fps and the updates per second follow.",
+            new GalleryPage("Storyboard", "A looping scene of hops, landing flashes, an equalizer, a turning sun and a swooping comet, all one timeline built paused with Autoplay(false): Play, Restart or drag the slider to seek it, and read CurrentTime, IterationProgress, OnLoop calls and OnUpdate calls per second back live. Change PlaybackEase, FrameRate or PlaybackRate and it rebuilds at the same moment; drop to 6 fps and the updates per second follow. The comet's spring trail is not in the timeline: pause or scrub and it keeps settling onto the comet.",
                 () => new StoryboardPage())),
     ];
 
