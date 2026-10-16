@@ -103,9 +103,9 @@ public sealed class PremultipliedColorTests : EngineTestBase
     }
 
     [Fact]
-    public void BlendedColorTweensKeepTheStraightBlend()
+    public void AdditiveColorTweensKeepTheStraightBlend()
     {
-        var (animation, tween) = Fade("rgba(45, 212, 191, .2)", Gray, composition: Composition.Blend);
+        var (animation, tween) = Fade("rgba(45, 212, 191, .2)", Gray, composition: Composition.Additive);
         Assert.NotEqual(tween._fromNumbers[3], tween._toNumbers[3]);
 
         animation.Seek(40);

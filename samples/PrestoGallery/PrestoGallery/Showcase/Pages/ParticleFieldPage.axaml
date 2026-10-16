@@ -1,0 +1,28 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoGallery.Showcase.Pages.ParticleFieldPage">
+    <Grid RowDefinitions="*,Auto,Auto" RowSpacing="12">
+        <Border Grid.Row="0" Classes="stage" Padding="0">
+            <presto:CompositorCanvas x:Name="Field" />
+        </Border>
+
+        <Border Grid.Row="1" Classes="rail showcase">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+                <TextBlock Grid.Column="0" Classes="mono" Margin="0" Width="118"
+                           Text="{Binding #CountSlider.Value, StringFormat='{}{0:0} particles'}" />
+                <Slider Grid.Column="1" x:Name="CountSlider" Minimum="500" Maximum="20000"
+                        TickFrequency="500" IsSnapToTickEnabled="True"
+                        VerticalAlignment="Center" ValueChanged="CountChanged" />
+                <Button Grid.Column="2" Content="Freeze UI thread for 2 s" Click="Freeze" />
+                <showcase:FpsMeter Grid.Column="3" x:Name="Meter" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <showcase:CodePanel Grid.Row="2" x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />
+    </Grid>
+</showcase:ShowcasePage>

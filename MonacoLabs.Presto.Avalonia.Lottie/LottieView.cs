@@ -88,14 +88,29 @@ public sealed class LottieView : PrestoImageBase
     protected override IImage? CurrentImage => Composition;
 
     /// <summary>Tweens <see cref="Frame"/> linearly from <see cref="LottieComposition.InPoint"/> to <see cref="LottieComposition.OutPoint"/>, or back when <paramref name="reverse"/> is set, at the composition's frame rate times <paramref name="speed"/>.</summary>
-    public Animation Play(bool loop = false, bool reverse = false, double speed = 1) => PlayRange(Segment(null, reverse), loop, speed);
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="speed"/> is not above 0.</exception>
+    public Animation Play(bool loop = false, bool reverse = false, double speed = 1)
+    {
+        ThrowIfNotPositive(speed);
+        return PlayRange(Segment(null, reverse), loop, speed);
+    }
 
     /// <summary>Plays the segment of the marker named <paramref name="marker"/>, ignoring case, as <see cref="Play(bool, bool, double)"/> plays the whole composition.</summary>
     /// <exception cref="ArgumentException">The composition has no such marker.</exception>
-    public Animation Play(string marker, bool loop = false, bool reverse = false, double speed = 1) => PlayRange(Segment(marker, reverse), loop, speed);
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="speed"/> is not above 0.</exception>
+    public Animation Play(string marker, bool loop = false, bool reverse = false, double speed = 1)
+    {
+        ThrowIfNotPositive(speed);
+        return PlayRange(Segment(marker, reverse), loop, speed);
+    }
 
     /// <summary>Tweens <see cref="Frame"/> linearly from <paramref name="from"/> to <paramref name="to"/>, backwards when <paramref name="to"/> is the lower.</summary>
-    public Animation PlaySegment(double from, double to, bool loop = false, double speed = 1) => PlayRange(new(null, from, to), loop, speed);
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="speed"/> is not above 0.</exception>
+    public Animation PlaySegment(double from, double to, bool loop = false, double speed = 1)
+    {
+        ThrowIfNotPositive(speed);
+        return PlayRange(new(null, from, to), loop, speed);
+    }
 
     /// <summary>
     /// Plays the marker named <paramref name="segment"/>, or the whole composition when null, on the render thread while
@@ -103,8 +118,10 @@ public sealed class LottieView : PrestoImageBase
     /// </summary>
     /// <remarks>The request is kept, so it starts once the view is attached with <see cref="RenderThread"/> set and restarts each time that happens again.</remarks>
     /// <exception cref="ArgumentException">The composition has no such marker.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="speed"/> is not above 0.</exception>
     public void PlayOnRenderThread(string? segment = null, bool loop = true, double speed = 1)
     {
+        ThrowIfNotPositive(speed);
         var range = Segment(segment, false);
         _playRequest = new(range.From, range.To, Milliseconds(range, speed), loop);
         _visual?.SendHandlerMessage(_playRequest);
@@ -124,6 +141,12 @@ public sealed class LottieView : PrestoImageBase
             : throw new ArgumentException(
                 $"The Lottie composition has no marker '{marker}'. Markers: {string.Join(", ", Composition?.Segments.Select(s => s.Name) ?? [])}.", nameof(marker));
         return reverse ? new(segment.Name, segment.To, segment.From) : segment;
+    }
+
+    internal static void ThrowIfNotPositive(double speed)
+    {
+        if (!(speed > 0))
+            throw new ArgumentOutOfRangeException(nameof(speed), speed, "Speed must be above 0.");
     }
 
     internal double Milliseconds(LottieSegment segment, double speed) =>

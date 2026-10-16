@@ -77,6 +77,19 @@ public sealed class CollapsiblePaneTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AColumnWithoutAMinWidthExpandsBackToItsWidth()
+    {
+        var (column, content) = Stage(minWidth: 0);
+
+        Pane.Collapse(column, content);
+        Run(40);
+        Pane.Expand(column, content);
+        Run(60);
+
+        Assert.Equal(120, column.ActualWidth);
+    }
+
+    [AvaloniaFact]
     public void UnderReducedMotionTheWidthJumps()
     {
         Presto.Defaults.ReducedMotion = true;
@@ -92,12 +105,12 @@ public sealed class CollapsiblePaneTests : CompositorTestBase
         Assert.Equal(MinWidth, column.MinWidth);
     }
 
-    private static (ColumnDefinition Column, Border Content) Stage()
+    private static (ColumnDefinition Column, Border Content) Stage(double minWidth = MinWidth)
     {
         var content = new Border { Background = Brushes.Red };
         var grid = new Grid
         {
-            ColumnDefinitions = { new ColumnDefinition(new GridLength(120)) { MinWidth = MinWidth }, new ColumnDefinition(GridLength.Star) },
+            ColumnDefinitions = { new ColumnDefinition(new GridLength(120)) { MinWidth = minWidth }, new ColumnDefinition(GridLength.Star) },
             Children = { new Border { ClipToBounds = true, Child = content } },
         };
         new Window { Content = grid, Width = 300, Height = 100 }.Show();

@@ -86,8 +86,8 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
   - Tests: `ValuesTests.FalsyValuesDecomposeToZero`
 - **CORE-TARGETS-015** (inherited) — The renderer shall call `SetValue` with the modified, interpolated number for number and unit tweens, and with NaN for color and complex tweens, whose channels are on the tween.
   - Tests: `ObjectTargetAdapterTests.WritesColorChannelsToColorAndStringMembers`, `ObjectTargetAdapterTests.WritesComplexValuesToStringMembers`
-- **CORE-TARGETS-016** (inherited) — When an animation is reverted, the core shall call `Revert` with the value `GetValue` returned before the animation first wrote, unless that value was `null`.
-  - Tests: `ObjectTargetAdapterTests.RevertRestoresTheValueReadBeforeTheAnimation`, `DiscreteValuesTests.RevertRestoresTheOriginalValue`
+- **CORE-TARGETS-016** — When an animation is reverted, the core shall call `Revert` with the value `GetValue` returned before the animation first wrote, `null` included; a dictionary key whose original was `null` is removed.
+  - Tests: `ObjectTargetAdapterTests.RevertRestoresTheValueReadBeforeTheAnimation`, `DiscreteValuesTests.RevertRestoresTheOriginalValue`, `ObjectTargetAdapterTests.RevertRemovesADictionaryKeyTheAnimationAdded`, `ObjectTargetAdapterTests.RevertRestoresANullMember`
 - **CORE-TARGETS-017** — When an accessor has a `Codec`, the core shall decompose the property's values through it (CORE-VALUES) and the accessor shall build each frame's typed value with `Encode`.
   - Tests: `ObjectTargetAdapterTests.RegisteredCodecDecodesAndEncodesItsType`
 
@@ -117,8 +117,8 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
   - Tests: `ObjectTargetAdapterTests.MemberTypeWithoutCodecIsDiscrete`
 - **CORE-TARGETS-029** — The adapter shall cache one accessor per (target type, property name) for the process, shared by every instance and engine, and shall return a new accessor per call for dictionary targets.
   - Tests: `ObjectTargetAdapterTests.AccessorsAreCachedPerTypeAndProperty`
-- **CORE-TARGETS-030** (inherited) — The adapter shall choose a member's codec when its accessor is first created, so a codec registered afterwards does not apply to an accessor already cached.
-  - Tests: untested
+- **CORE-TARGETS-030** — When a cached accessor's codec is no longer the one `Presto.Codecs` gives for its member type (or `DiscreteCodec` when none is registered), the adapter shall rebuild that accessor on resolution, so later resolutions use the registry as it stands; tweens already built keep their accessors.
+  - Tests: `ObjectTargetAdapterTests.ACodecRegisteredAfterAResolutionAppliesToLaterAnimations`
 - **CORE-TARGETS-031** — `Revert` shall write the original value back through the member or dictionary entry.
   - Tests: `ObjectTargetAdapterTests.RevertRestoresTheValueReadBeforeTheAnimation`
 
@@ -162,8 +162,8 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
   - Tests: `DiscreteValuesTests.RelativeValuesThrow`
 - **CORE-TARGETS-044** (inherited) — When a discrete value is neither of the type nor a convertible number, `DiscreteCodec` shall throw `ArgumentException`.
   - Tests: untested
-- **CORE-TARGETS-045** — When a discrete property's composition is `Blend`, the animation shall throw `ArgumentException`.
-  - Tests: `DiscreteValuesTests.BlendingThrows`
+- **CORE-TARGETS-045** — When a discrete property's composition is `Additive`, the animation shall throw `ArgumentException`.
+  - Tests: `DiscreteValuesTests.AdditiveThrows`
 - **CORE-TARGETS-046** — `Presto.Set` shall write a discrete value at once, and `Revert` shall restore the original value.
   - Tests: `DiscreteValuesTests.SetWritesABoolAndAnEnum`, `DiscreteValuesTests.RevertRestoresTheOriginalValue`
 - **CORE-TARGETS-047** — `Refresh` shall re-read a function-valued discrete end.
@@ -200,7 +200,6 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - A collection of value types (`int[]`, `List<double>`) is not an `IEnumerable<object>` and is one target; each boxed value-type target is distinct by reference.
 - A `Dictionary<string, double>` is not an `IDictionary<string, object?>`, so it is reached by reflection and its keys throw `ArgumentException`.
 - A read-only or write-only property is not reached; a public field of the same name is used instead if there is one.
-- A dictionary key that was missing before the animation is not removed on `Revert` (its original is `null`), so it keeps the last written value.
 - A unit tween into a numeric member writes the number without its unit; a number to value on a `PrestoColor` member is made transparent black (CORE-VALUES).
 - A discrete tween's `Modifier` applies to its 0–1 channel, so it moves the switch point.
 - An enum value given as a string (`"Right"`) is not parsed; it throws `ArgumentException`.
@@ -209,7 +208,7 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 ## Threading and lifetime
 
 - `Presto.Adapters` and `Presto.Codecs` are plain collections read from every engine's thread without locks: populate them before any animation starts and do not change them while animations may resolve.
-- The `ObjectTargetAdapter` accessor cache is a `ConcurrentDictionary` held for the process; accessors hold compiled delegates, not targets, so they keep no target alive.
+- The `ObjectTargetAdapter` accessor cache is a `ConcurrentDictionary` held for the process, whose codec-typed entries are rebuilt on resolution when their codec no longer matches `Presto.Codecs`; accessors hold compiled delegates, not targets, so they keep no target alive.
 - `Removed` runs on the thread that called `Presto.Remove`.
 
 ## Reduced motion
@@ -221,23 +220,26 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - Resolution allocates (reflection and expression compilation on the first resolve of a (type, property) pair, a new accessor per dictionary resolve) and runs when tweens are built.
 - Per frame, writes to numeric members and `PrestoColor` members and discrete writes allocate nothing; string, `object` and dictionary writes allocate the string or the boxed number.
 
-## Deviations from anime.js
+## Provenance
 
 - Targets are objects only; there are no selectors or node lists, so a string is a target rather than a query.
-- Upstream's non-browser `parseTargets` flattens without skipping `null` or removing duplicates; here both are always done, as upstream's browser path does.
+- Upstream's non-browser `parseTargets` flattens without skipping `null` or removing duplicates; here both are always done, which is what upstream's browser path does.
 - Upstream picks a tween type (CSS, attribute, transform, object) per property; here adapters, accessors and codecs take that role, and typed members are written in their own type.
-- Discrete values and reconciling codecs have no upstream counterpart: typed `bool` and enum members could not otherwise be animated, and padding differently shaped values with zeros interpolates them wrongly. Upstream treats a non-numeric string as a complex value, which this port keeps for strings.
+- Originals of 0, `""` and `null` are captured and restored by `Revert`, where upstream skips nil and empty ones (see "Revert restores falsy originals").
+- Discrete values and reconciling codecs have no upstream counterpart: typed `bool` and enum members could not otherwise be animated, and padding differently shaped values with zeros interpolates them wrongly. Upstream treats a non-numeric string as a complex value, which Presto keeps for strings.
 
 ## Decisions
 
-- **Property keys are canonicalized, not keyed on accessors.** Every spelling of a property (a name, a typed property handle) resolves to one canonical string key wherever a caller-supplied name meets a target: tween construction, the `Remove` filter and `Animatable`'s lookups. Reason: two spellings landed in different sibling registries, so composition never fired between them and `Remove` missed tweens declared the other way; canonicalizing fixes all three with no core change, keeps the upstream composition port intact and keeps plain-object targets working. Rejected: keying the composer on the resolved accessor or a property-key struct (structurally cleaner, but it moves the port away from upstream and touches tweens, animations, the composer and `Animatable`).
+- **Revert restores falsy originals.** Any original the animation read, 0, `""` and `null` included, is written back like any other. The dictionary accessor removes the key when the original is `null`, as a missing key and a stored `null` both read as `null`. Reason: upstream's nil and empty check fits the DOM, where an empty inline style means "none" and revert removes it, but on objects and typed members these are real values: skipping 0 left a reverted `{ x: 0 }` at its animated value, and skipping `null` left an added dictionary key, a null string member and a bridge property that was `null` at their animated values. Rejected: upstream's check; telling a missing key from a stored `null`, which `GetValue` cannot and would need a wider `IPropertyAccessor`.
+- **Property keys are canonicalized, not keyed on accessors.** Every spelling of a property (a name, a typed property handle) resolves to one canonical string key wherever a caller-supplied name meets a target: tween construction, `Get`, the `Remove` filter and `Animatable`'s lookups. Reason: two spellings landed in different sibling registries, so composition never fired between them and `Remove` missed tweens declared the other way; canonicalizing fixes all three with no change to the composer and keeps plain-object targets working. Rejected: keying the composer on the resolved accessor or a property-key struct (structurally cleaner, but it touches tweens, animations, the composer and `Animatable`).
 - **One key type for every key-taking API.** `PropertyKey` replaces `string` (not an overload beside it) on every public API that names a property, with an implicit conversion from `string` and none back, so no overload becomes ambiguous. The core defines the type; the bridge defines the shorthand keys. Reason: the withdrawn string constants (`bc0f00f`) typed only the indexer and became a third spelling; a key type accepted everywhere is the same spelling in every position, and replacing rather than overloading keeps one indexer. Rejected: string constants again (no type at the parameter); a second indexer overload beside `this[string]`; an analyzer (could check only shorthands).
 - **A key is its name.** Keys compare by ordinal name, and every API unwraps the name at its public boundary, before canonicalization; the adapter interfaces, the composer and the params' storage keep `string`. Reason: tweens are keyed by canonical name (above), and a key that carried more would need a second composition path.
-- **Types without a codec animate as discrete values.** `DiscreteCodec` runs one channel from 0 to 1 and writes the from or to object whole, both boxed once on the tween; non-numeric strings keep upstream's complex path. Reason: `bool` and enum properties could not be set by timelines, keyframes or `Presto.Set`, while CSS (`allow-discrete`) and GSAP handle them; frames stay allocation-free. Rejected: throwing `NotSupportedException`.
+- **Types without a codec animate as discrete values.** `DiscreteCodec` runs one channel from 0 to 1 and writes the from or to object whole, both boxed once on the tween; non-numeric strings keep the complex-value path (CORE-VALUES). Reason: `bool` and enum properties could not be set by timelines, keyframes or `Presto.Set`, while CSS (`allow-discrete`) and GSAP handle them; frames stay allocation-free. Rejected: throwing `NotSupportedException`.
 - **The discrete switch rule is a hybrid.** `TweenParams.Discrete` overrides the rule the codec was built with; the core default is CSS's `Midpoint`, and an adapter may build a property's codec with another (a visibility flag with `TrueThroughout`). The rule is read from eased progress, and the throughout rules act as `Midpoint` unless exactly one end is that `bool`. Reason: a fade-out should stay visible until it ends and a fade-in show from its first frame, CSS's midpoint is the general default, and reading eased progress makes seeks, reversals and keyframe segments switch at the same point.
-- **Discrete values reject relative values and `Blend`.** Both throw, and an `Animatable` over a discrete member snaps to each new value. Reason: not recorded beyond there being no meaningful arithmetic on discrete values.
+- **Discrete values reject relative values and `Additive`.** Both throw, and an `Animatable` over a discrete member snaps to each new value. Reason: not recorded beyond there being no meaningful arithmetic on discrete values.
 - **Codecs can reconcile ends of different shapes.** An `IReconcilingValueCodec` claims non-relative string end values before the core parses them and makes both ends the same kind and channel count before the core pads them; discrete fields ride as channels. Reason: the core can only pad the shorter channel list with zeros, which is wrong for colors and offsets when shapes differ (two- against three-stop gradients, one shadow against two), and it misparses strings like `"0 4 16 0 #40000000"` as a complex value whose numbers include hex digits.
 - **`StructCodec<T>` is a public core codec.** It moved from the bridge, which registers `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect` and `Vector` through it. Reason: tweening a struct of doubles needs no UI framework, and any adapter or app can register one in `Presto.Codecs`; `compose` receives the tween's reused channel array, which the constructor documents.
+- **Changing a codec invalidates cached accessors.** A cached accessor for a codec-typed member keeps the codec it captured, and resolution compares it with `Presto.Codecs` (or `DiscreteCodec` when none is registered) and rebuilds the entry when they differ; tweens already built keep their accessors. The check runs when tweens are built, not per frame, and keeps `Presto.Codecs` a plain dictionary. Reason: registration order otherwise silently decided which codec applied, since a member resolved before its codec was registered stayed discrete for the life of the process. Rejected: documenting that codecs must be registered before the first resolution.
 - **No scene-graph adapter ships.** The adapter interface allows one, but upstream's three.js adapter is not ported. Reason: not recorded.
 
 ## Non-goals
@@ -248,7 +250,5 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 
 ## Open items
 
-- A codec registered in `Presto.Codecs` after a (type, property) accessor was first resolved never applies to it, since the process-wide accessor cache keeps the codec chosen then (CORE-TARGETS-030); no test, no decision.
-- `Revert` skips `null` originals, so a dictionary key added by an animation survives the revert; `Animation` claims to capture originals unconditionally so "a plain 0 or empty is restored too", which holds for 0 and `""` but not for a missing key.
 - `IReconcilingValueCodec` has no core test; it is pinned only through the bridge's codecs (`CodecTests`).
 - CORE-TARGETS-009 (one resolution per target and property, by canonical name) and CORE-TARGETS-044 (non-convertible discrete value throws) have no test.

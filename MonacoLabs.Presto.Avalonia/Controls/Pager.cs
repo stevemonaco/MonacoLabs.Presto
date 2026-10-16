@@ -27,11 +27,14 @@ namespace MonacoLabs.Presto.Controls;
 public sealed class Pager : Control
 {
     private static readonly EaseValue s_travel = Eases.Spring(bounce: .2, duration: 700);
-    private static readonly Inertia s_inertia = new(0);
+    private static readonly Inertia s_inertia = new();
 
-    /// <summary>The slide the pager rests at or is heading for; setting it springs there.</summary>
+    /// <summary>
+    /// The slide the pager rests at or is heading for; setting it springs there. Like <see cref="GoTo"/>, it wraps when
+    /// <see cref="Loop"/> is set and is clamped to the slides otherwise, and it is kept as set while there are no slides.
+    /// </summary>
     public static readonly StyledProperty<int> SelectedIndexProperty =
-        AvaloniaProperty.Register<Pager, int>(nameof(SelectedIndex), defaultBindingMode: BindingMode.TwoWay);
+        AvaloniaProperty.Register<Pager, int>(nameof(SelectedIndex), defaultBindingMode: BindingMode.TwoWay, coerce: CoerceSelectedIndex);
 
     /// <summary>Whether the last slide leads on to the first, for a drag as well as for paging.</summary>
     public static readonly StyledProperty<bool> LoopProperty =
@@ -64,6 +67,7 @@ public sealed class Pager : Control
         _strip = new Strip(this);
         VisualChildren.Add(_strip);
         LogicalChildren.Add(_strip);
+        Slides.CollectionChanged += (_, _) => CoerceValue(SelectedIndexProperty);
         AddHandler(GotFocusEvent, HandleGotFocus);
     }
 
@@ -108,7 +112,7 @@ public sealed class Pager : Control
     public void GoTo(int index)
     {
         if (Slides.Count == 0) return;
-        Select(Wrap(index));
+        Select(index);
         RestartAutoplay();
     }
 
@@ -125,6 +129,7 @@ public sealed class Pager : Control
         {
             _drag?.Refresh();
             _strip.InvalidateArrange();
+            CoerceValue(SelectedIndexProperty);
         }
         else if (change.Property == AutoplayIntervalProperty && _drag is not null)
         {
@@ -217,7 +222,10 @@ public sealed class Pager : Control
 
     private static int Mod(int value, int count) => ((value % count) + count) % count;
 
-    private int Wrap(int index) => Loop ? Mod(index, Slides.Count) : Math.Clamp(index, 0, Slides.Count - 1);
+    private static int CoerceSelectedIndex(AvaloniaObject pager, int index) =>
+        pager is Pager { Slides.Count: > 0 } p
+            ? p.Loop ? Mod(index, p.Slides.Count) : Math.Clamp(index, 0, p.Slides.Count - 1)
+            : index;
 
     // The column a slide is laid out in; a looping pager moves each slide to the copy nearest the page shown.
     private double Slot(int slide, double page)
@@ -235,7 +243,7 @@ public sealed class Pager : Control
     private void Select(int index)
     {
         SetSelected(index);
-        Travel(index);
+        Travel(SelectedIndex);
     }
 
     private void SetSelected(int index)
@@ -278,7 +286,7 @@ public sealed class Pager : Control
     private void Settle()
     {
         if (_dragging || Slides.Count == 0) return;
-        SetSelected(Wrap((int)Math.Round(_position.Value)));
+        SetSelected((int)Math.Round(_position.Value));
     }
 
     private void StartAutoplay()

@@ -4,16 +4,18 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using MonacoLabs.Presto.Diagnostics;
 
 namespace MonacoLabs.Presto.DevTools;
 
 /// <summary>Shows the Presto DevTools overlay, an inspector of what <see cref="Presto.Engine"/> runs, over a window.</summary>
-/// <remarks>While any overlay is open the engine's diagnostics are enabled; closing the last one disables them and thaws and undilates the engine.</remarks>
+/// <remarks>While any overlay is open the engine's diagnostics are enabled; closing the last one disables them, thaws and undilates the engine and restores <see cref="PrestoDiagnostics.CaptureCreationTrace"/>. Closing one restores the root speeds set from its inspector.</remarks>
 public static class PrestoDevTools
 {
     private static readonly ConditionalWeakTable<TopLevel, EventHandler<KeyEventArgs>> s_attached = new();
     private static readonly ConditionalWeakTable<TopLevel, DevToolsOverlay> s_open = new();
     private static int s_openCount;
+    private static bool s_captureTraces;
 
     /// <summary>Toggles the overlay on <paramref name="top"/> whenever <paramref name="gesture"/> is pressed; the default is Ctrl+Shift+F12, since F12 belongs to Avalonia DevTools.</summary>
     public static void Attach(TopLevel top, KeyGesture? gesture = null)
@@ -52,7 +54,9 @@ public static class PrestoDevTools
         var overlay = new DevToolsOverlay(() => Close(top));
         layer.Children.Add(overlay);
         s_open.Add(top, overlay);
-        if (s_openCount++ == 0) Presto.Engine.Diagnostics.Enabled = true;
+        if (s_openCount++ > 0) return;
+        Presto.Engine.Diagnostics.Enabled = true;
+        s_captureTraces = PrestoDiagnostics.CaptureCreationTrace;
     }
 
     /// <summary>Removes the overlay from <paramref name="top"/>.</summary>
@@ -61,11 +65,13 @@ public static class PrestoDevTools
         if (!s_open.TryGetValue(top, out var overlay)) return;
         s_open.Remove(top);
         (overlay.Parent as Panel)?.Children.Remove(overlay);
+        overlay.Inspector.RestoreSpeeds();
         if (--s_openCount > 0) return;
         var engine = Presto.Engine;
         engine.Diagnostics.Enabled = false;
         engine.Thaw();
         engine.TimeDilation = 1;
+        PrestoDiagnostics.CaptureCreationTrace = s_captureTraces;
     }
 
     /// <summary>Opens the overlay on <paramref name="top"/> when it is closed, and closes it otherwise.</summary>

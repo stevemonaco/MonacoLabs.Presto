@@ -34,7 +34,8 @@ internal sealed class TweenTable : StackPanel
             Children.Clear();
             foreach (var tween in TickableRow.AllTweens(timer)) Children.Add(new Row(tween));
         }
-        foreach (var control in Children) ((Row)control).Update(selected);
+        var (top, bottom) = Parent is ScrollViewer scroll ? (scroll.Offset.Y, scroll.Offset.Y + scroll.Viewport.Height) : (0, double.PositiveInfinity);
+        foreach (var control in Children) ((Row)control).Update(selected, control.Bounds.Bottom >= top && control.Bounds.Top <= bottom);
     }
 
     private static bool Takes(Timer timer, Tween tween) =>
@@ -71,10 +72,10 @@ internal sealed class TweenTable : StackPanel
 
         internal TextBlock Marker { get; } = new() { FontSize = 12, Foreground = Brushes.OrangeRed, IsVisible = false, VerticalAlignment = VerticalAlignment.Center };
 
-        internal void Update(Tween? selected)
+        internal void Update(Tween? selected, bool inView)
         {
             Background = Tween == selected ? s_selected : null;
-            Values.Text = TickableRow.Values(Tween);
+            if (inView) Values.Text = TickableRow.Values(Tween);
             Thumbnail.Progress = TickableRow.ProgressOf(Tween);
             if (Marker.IsVisible == Tween.IsOverridden) return;
             Marker.IsVisible = Tween.IsOverridden;

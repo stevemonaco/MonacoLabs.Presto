@@ -11,6 +11,7 @@ using Avalonia.Media;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Controls;
 using MonacoLabs.Presto.Gestures;
+using MonacoLabs.Presto.Platform;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace MonacoLabs.Presto.Tests;
@@ -397,6 +398,20 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         PointerEventArgs Move(Point point) => new(InputElement.PointerMovedEvent, boxes, mouse, window, point, 0,
             new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None);
+    }
+
+    [AvaloniaFact]
+    public void PacingAFrameAllocatesNothing()
+    {
+        var pacer = new FramePacer();
+        var now = 0.0;
+        for (var i = 0; i < 100; i++) pacer.Frame(now += 5.56);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++) pacer.Frame(now += i % 3 == 0 ? 4.3 : 6.2);
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(bytes == 0, $"{bytes} bytes over 1000 frames");
     }
 
     private double BytesPerMove(Interactive on, PointerEventArgs[] moves)

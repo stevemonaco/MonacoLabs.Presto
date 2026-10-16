@@ -1,9 +1,9 @@
 namespace MonacoLabs.Presto.Targets;
 
-/// <summary>Flattens the targets parameter into the list an animation tweens, porting upstream <c>parseTargets</c>.</summary>
+/// <summary>Flattens the targets parameter into the list an animation tweens.</summary>
 public static class TargetParser
 {
-    // Below this many targets the upstream linear scan beats hashing.
+    // Below this many targets a linear scan beats hashing.
     private const int HashThreshold = 16;
 
     /// <summary>Nested collections are flattened, nulls are skipped and a target repeated in the list is kept once, at its first position.</summary>

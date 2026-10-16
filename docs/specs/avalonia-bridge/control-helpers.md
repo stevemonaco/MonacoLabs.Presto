@@ -175,7 +175,7 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 
 - Not on the tick path. Tracking costs one tracker per root and one attached list per visual, at creation.
 
-## Deviations from anime.js
+## Provenance
 
 - `WhenDetached` has no upstream counterpart: upstream animations keep running on removed elements, but here a loop on a removed control would keep the engine awake and the control alive (see Animations pause when their controls leave the tree).
 - Upstream `utils.get`/`set`/`remove` take DOM targets; these take Avalonia objects, typed properties and the bridge's shorthands.

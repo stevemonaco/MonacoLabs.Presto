@@ -47,8 +47,8 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
   - Tests: `EngineDiagnosticsTests.EnablingRegistersTheRunningRoots`
 - **CORE-DIAGNOSTICS-003** — When `Enabled` turns off, the registry shall forget its roots, animatables and recently ended roots and reset `LastFrame` to its default.
   - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`
-- **CORE-DIAGNOSTICS-004** — `PrestoDiagnostics.Active` shall be true while any engine has diagnostics enabled.
-  - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`
+- **CORE-DIAGNOSTICS-004** — `PrestoDiagnostics.Active` shall be true while any engine has diagnostics enabled; an engine dropped while enabled keeps it on until its `EngineDiagnostics` is finalized.
+  - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`, `EngineDiagnosticsTests.ACollectedEnabledEngineStopsCountingAsActive`
 - **CORE-DIAGNOSTICS-005** (inherited) — Setting `Enabled` to its current value shall do nothing.
   - Tests: untested
 
@@ -95,6 +95,8 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
   - Tests: `OriginTests.ChildrenInheritTheirRootsOrigin`, `OriginTests.TheTagAppliesInsideTheScopeAndNests`
 - **CORE-DIAGNOSTICS-021** — The core shall tag its own roots: the additive composition animation as `"Additive"`, and an animatable's callbacks animation as `"Animatable"` unless an outer tag is set.
   - Tests: `OriginTests.TheAdditiveAnimationIsTagged`
+- **CORE-DIAGNOSTICS-028** — An animatable's property animations shall be tagged `"Animatable"` like its callbacks animation, unless an outer tag is set.
+  - Tests: `OriginTests.AnAnimatablesPropertyAnimationsAreTaggedUnlessAnOuterTagIsSet`
 - **CORE-DIAGNOSTICS-022** — When both the engine's diagnostics and `CaptureCreationTrace` are on, a root timer shall record the stack trace of its creation, with file information, in `CreationTrace`; otherwise it shall be null.
   - Tests: `OriginTests.CreationTraceNeedsBothFlags`
 - **CORE-DIAGNOSTICS-023** — When a registered root is created inside a scope, `Timer.Scope` shall be that scope; otherwise null.
@@ -134,7 +136,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 
 - `EngineDiagnostics` is single-threaded like its engine; `Enabled`'s setter asserts thread affinity in debug builds.
 - The origin tag is per thread (`[ThreadStatic]`); `Active` and `CaptureCreationTrace` are process-wide.
-- An engine that is collected while enabled never decrements the enabled-engine count.
+- An engine dropped while enabled stops counting toward `Active` only when the finalizer of its `EngineDiagnostics` runs, using nothing but the interlocked counter.
 
 ## Reduced motion
 
@@ -145,7 +147,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 - Off: no allocation per timer or frame, 8 bytes per timer for the side-object field (measured when the feature landed).
 - On: one side object and one weak reference per root; `Roots`/`Animatables` allocate a list per read; `CaptureCreationTrace` allocates a stack trace per root. The tick itself stays allocation-free (CORE-DIAGNOSTICS-026).
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
@@ -153,9 +155,10 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 
 - **Diagnostics are opt-in and pay-for-play.** With diagnostics off, the hot path gains one branch in the timer constructor and one in the engine update, no allocation and no thread-static read; a timer's origin, creation trace and scope live in one lazily created side object behind a single field (8 bytes per timer). Reason: a release app must not pay for the inspector, and the tick stays allocation-free with diagnostics on or off.
 - **Weak registry of roots plus a strong recently-ended ring.** Only root timers are registered (children are reached through `Timer.Children`), held weakly and compacted lazily; a ring of 32 strong references keeps roots that completed, were canceled or reverted, and is cleared on disable. Enabling discovers only what is in the engine list at that moment. Reason: weak so the inspector never extends a lifetime; the ring keeps short animations inspectable after they finish.
-- **Inspectors poll state instead of receiving per-frame events.** `LastFrame` is a struct filled by the engine update while enabled, and timer state changes are read by polling public flags, not hooked into the renderer's tick; a later break-on-event feature would add one internal notification behind the enabled branch. Reason: the overlay redraws every frame anyway, and polling keeps the tick allocation-free, avoids callbacks inside the update, and leaves parity-critical tick code untouched.
+- **Inspectors poll state instead of receiving per-frame events.** `LastFrame` is a struct filled by the engine update while enabled, and timer state changes are read by polling public flags, not hooked into the renderer's tick; a later break-on-event feature would add one internal notification behind the enabled branch. Reason: the overlay redraws every frame anyway, and polling keeps the tick allocation-free, avoids callbacks inside the update, and leaves the tick code that the ported regression suites pin untouched.
 - **Origins are tagged through an ambient scope.** `PrestoDiagnostics.Origin(tag)` is a disposable scope shaped like `Engine.MakeCurrent()`; bridge features tag their timers, the core tags the additive animation, and untagged means app code. `CaptureCreationTrace` is off by default and honored only while enabled. Reason: without an origin, library timers flood the list indistinguishably from the app's; an inactive `Origin()` returns an empty struct so release apps pay nothing; stack traces are expensive by design.
 - **Frame cost is measured on real time.** The update cost in `LastFrame` is read from a `Stopwatch`, not from the frame source's `TimeProvider`. Reason: diagnostics measure real cost, not animation time.
+- **A dropped enabled engine is released by a finalizer.** `EngineDiagnostics` decrements the enabled-engine count from its finalizer when still enabled. Reason: engines are retired by being dropped, not disposed, and a count that never fell kept `Active` and ease naming on for the rest of the process; the finalizer touches only the interlocked counter, so running on the finalizer thread is safe. Rejected: making `Engine` disposable.
 - **Ease names are registered only while diagnostics are active.** See CORE-EASES.
 
 ## Non-goals
@@ -166,6 +169,4 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 
 ## Open items
 
-- The enabled-engine counter behind `PrestoDiagnostics.Active` is never decremented for an engine collected while enabled, so `Active` (and ease naming) can stay on for the rest of the process.
-- An animatable's property animations are not tagged `"Animatable"`; only its callbacks animation is. Untested either way.
 - No test for `ActiveValues`, idempotent `Enabled` sets, or a repeated `Cancel` not re-ending a root.

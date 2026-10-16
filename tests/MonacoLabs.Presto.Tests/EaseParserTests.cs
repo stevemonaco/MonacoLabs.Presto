@@ -44,12 +44,53 @@ public sealed class EaseParserTests
     [Theory]
     [InlineData("linear")]
     [InlineData("none")]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void ResolvesToEasesNone(string ease) => Assert.Same(Eases.None, EaseParser.Parse(ease));
+
+    [Theory]
     [InlineData("bogus")]
-    [InlineData("steps(4)")]
-    [InlineData("cubicBezier(0,0,1,1)")]
+    [InlineData("outQaud")]
     [InlineData("linear(0, 1)")]
     [InlineData("irregular(5)")]
-    public void ResolvesToEasesNone(string ease) => Assert.Same(Eases.None, EaseParser.Parse(ease));
+    [InlineData("cubicBezier(.5, 0)")]
+    public void UnknownNamesAndCodeOnlyFormsThrow(string ease)
+    {
+        Assert.Throws<FormatException>(() => EaseParser.Parse(ease));
+        Assert.False(EaseParser.TryParse(ease, out _));
+    }
+
+    [Fact]
+    public void StepsAndCubicBezierParseToTheirFactories()
+    {
+        Ease[] parsed = [EaseParser.Parse("steps(4)"), EaseParser.Parse("steps(4, true)"), EaseParser.Parse("cubicBezier(.17, .67, .83, .67)")];
+        Ease[] built = [Eases.Steps(4), Eases.Steps(4, true), Eases.CubicBezier(.17, .67, .83, .67)];
+        for (var i = 0; i < parsed.Length; i++)
+        {
+            for (var t = 0.0; t <= 1; t += .05) Assert.Equal(built[i](t), parsed[i](t), 12);
+        }
+        Assert.True(EaseParser.TryParse("Steps(3)", out var pascal));
+        Assert.Equal(Eases.Steps(3)(.5), pascal(.5));
+    }
+
+    [Theory]
+    [InlineData("steps(0)")]
+    [InlineData("steps(-1)")]
+    [InlineData("steps(0.5, true)")]
+    [InlineData("steps(NaN)")]
+    public void ParsedStepsBelowOneIsAFormatError(string ease)
+    {
+        Assert.Throws<FormatException>(() => EaseParser.Parse(ease));
+        Assert.False(EaseParser.TryParse(ease, out var result));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void NullEaseStringThrowsArgumentNull()
+    {
+        Assert.Throws<ArgumentNullException>(() => EaseParser.Parse(null!));
+        Assert.Throws<ArgumentNullException>(() => EaseParser.TryParse(null!, out _));
+    }
 
     [Theory]
     [InlineData("inQuad(2)")]
@@ -70,6 +111,16 @@ public sealed class EaseParserTests
     [InlineData("out(2)")]
     [InlineData("fromPath(M0,0 L1,1)")]
     public void SameStringReturnsSameInstance(string ease) => Assert.Same(EaseParser.Parse(ease), EaseParser.Parse(ease));
+
+    [Fact]
+    public void TheCacheIsClearedWhenFullAndReparsesAfterwards()
+    {
+        var first = EaseParser.Parse("out(1.001)");
+        for (var i = 0; i < 300; i++) EaseParser.Parse(string.Create(CultureInfo.InvariantCulture, $"out({2 + (i / 1000d)})"));
+
+        Assert.InRange(EaseParser.CachedCount, 1, EaseParser.CacheLimit);
+        AssertSameSamples(first, EaseParser.Parse("out(1.001)"));
+    }
 
     [Fact]
     public void ParsesArgumentsCultureInvariantly()

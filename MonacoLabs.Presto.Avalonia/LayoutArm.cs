@@ -94,15 +94,11 @@ internal sealed class LayoutArm
         if (next.Once) Follow(next);
     }
 
-    // A flight plays on its first layout pass, and until then its Then() has nothing to wait for.
-    private void Follow(LayoutTransition flight)
+    private async void Follow(LayoutTransition flight)
     {
         var generation = _generation;
-        ItemChanges.AfterLayout(_control, async () =>
-        {
-            await flight.Then();
-            if (_generation == generation) Arm(attaching: false);
-        });
+        await flight.Then();
+        if (_generation == generation) Arm(attaching: false);
     }
 
     private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e) => Arm(attaching: true);

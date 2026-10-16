@@ -405,6 +405,19 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ASharedAxisDurationTimesTheIncomingPageAndScalesTheOutgoingOneByShortOverMedium()
+    {
+        var tokens = Recipes.Tokens;
+        var axis = Recipes.PageSharedAxis(PageAxis.X);
+        var timed = Recipes.PageSharedAxis(PageAxis.X, duration: 900);
+
+        Assert.Equal((TweenValue)tokens.Medium, axis.Enter!.ToParams().Duration);
+        Assert.Equal((TweenValue)tokens.Short, axis.Exit!.ToParams().Duration);
+        Assert.Equal((TweenValue)900, timed.Enter!.ToParams().Duration);
+        Assert.Equal((TweenValue)(900 * tokens.Short / tokens.Medium), timed.Exit!.ToParams().Duration);
+    }
+
+    [AvaloniaFact]
     public void UpdateSeeksBothSidesOnTheUIThread()
     {
         var (from, to) = ShowPair();
@@ -434,6 +447,21 @@ public sealed class PageTransitionTests : CompositorTestBase
         Assert.Equal(1, from.Opacity);
         Assert.False(to.IsAnimating(Visual.ZIndexProperty));
         Assert.False(from.IsAnimating(Visual.OpacityProperty));
+    }
+
+    [AvaloniaFact]
+    public void ResettingEitherHostOfTheProgressRunReleasesBoth()
+    {
+        var (from, to) = ShowPair();
+        var transition = new PrestoPageTransition { Enter = SlideIn, Exit = FadeOut };
+        transition.Update(0.5, from, to, true, 0, []);
+        transition.Update(1, from, to, true, 0, []);
+
+        transition.Reset(from);
+
+        Assert.False(to.IsAnimating(Visual.ZIndexProperty));
+        Assert.False(to.IsAnimating(Visual.RenderTransformProperty));
+        Assert.Equal(1, from.Opacity);
     }
 
     [AvaloniaFact]

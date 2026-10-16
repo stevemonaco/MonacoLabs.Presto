@@ -196,6 +196,34 @@ public sealed class ContentSizePresenceTests : CompositorTestBase
         Assert.Equal(SlotOf(below).Top, Top(list));
     }
 
+    [AvaloniaFact]
+    public void ARowInAListBelowAnExpandingRowFollowsItInItsSlot()
+    {
+        var content = new Border { Height = Small, Width = 40 };
+        var row = new Border { Child = content, HorizontalAlignment = HorizontalAlignment.Left };
+        var list = new ItemsControl
+        {
+            ItemsSource = new[] { "red" },
+            ItemTemplate = new FuncDataTemplate<string>((_, _) => new Border { Height = Small, Width = 40, HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Red }),
+        };
+        Animate.SetItemLayout(list, HeldMove);
+        ShowWhite(new StackPanel { Children = { row, list } });
+        var item = (Control)list.ContainerFromIndex(0)!;
+        Animate.SetContentSize(row, Linear);
+        Tick();
+
+        content.Height = Large;
+        for (var frame = 0; frame < 6; frame++)
+        {
+            Tick();
+            Assert.Equal(SlotOf(item).Top, Top(list));
+            Frames.Advance(Duration / 4);
+        }
+        Tick();
+        Assert.Equal(Large, SlotOf(item).Top);
+        Assert.Equal(Large, Top(list));
+    }
+
     private static Border Bar(double height)
     {
         var bar = new Border { Height = height, Width = 100, HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Red };

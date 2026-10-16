@@ -221,6 +221,29 @@ public sealed class ParticleSystemTests
     }
 
     [Fact]
+    public void ConstructorRejectsNegativeMaxParticlesAndNonPositiveOrInvertedLifetime()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>("parameters", () => new ParticleSystem(Straight with { MaxParticles = -1 }));
+        Assert.Throws<ArgumentOutOfRangeException>("parameters", () => new ParticleSystem(Straight with { Lifetime = (0, 100) }));
+        Assert.Throws<ArgumentOutOfRangeException>("parameters", () => new ParticleSystem(Straight with { Lifetime = (200, 100) }));
+
+        var empty = new ParticleSystem(Straight with { MaxParticles = 0 });
+        empty.Start();
+        Assert.Equal(0, empty.Live);
+    }
+
+    [Fact]
+    public void StepRejectsNegativeDtAndAcceptsZero()
+    {
+        var system = new ParticleSystem(Straight);
+        system.Start();
+
+        Assert.Throws<ArgumentOutOfRangeException>("dt", () => system.Step(-1));
+        system.Step(0);
+        Assert.Equal(0, system.Particles[0].Age);
+    }
+
+    [Fact]
     public void ClearRemovesLiveParticlesAtOnce()
     {
         var system = new ParticleSystem(Straight with { Burst = 10 });

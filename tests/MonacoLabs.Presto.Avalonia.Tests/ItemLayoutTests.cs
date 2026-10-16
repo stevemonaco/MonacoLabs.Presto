@@ -118,6 +118,25 @@ public sealed class ItemLayoutTests : CompositorTestBase
         Assert.Equal(start, Top(list));
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ArmingAContainerThroughBothItsOwnLayoutAndItsListsItemLayoutThrows(bool itemLayoutFirst)
+    {
+        var items = new ObservableCollection<string> { "a", "red" };
+        var list = new ItemsControl { ItemsSource = items, ItemTemplate = Rows(), VerticalAlignment = VerticalAlignment.Top };
+        if (itemLayoutFirst) Show(list);
+        else ShowInWindow(list);
+        var container = list.ContainerFromIndex(0)!;
+
+        if (itemLayoutFirst) Assert.Throws<InvalidOperationException>(() => Animate.SetLayout(container, HeldMove));
+        else
+        {
+            Animate.SetLayout(container, HeldMove);
+            Assert.Throws<InvalidOperationException>(() => Animate.SetItemLayout(list, HeldMove));
+        }
+    }
+
     private static T Show<T>(T list) where T : ItemsControl
     {
         Animate.SetItemLayout(list, HeldMove);

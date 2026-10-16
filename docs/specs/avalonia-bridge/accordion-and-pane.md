@@ -98,8 +98,8 @@ depends:
   - Tests: `CollapsiblePaneTests.MinWidthIsLiftedWhileTheWidthMovesAndRestoredOnceExpanded`
 - **BRIDGE-ACCORDION-021** — `Pane.IsCollapsed` shall report whether the last `Pane` call on the column collapsed it, and false for a column never passed to `Pane`.
   - Tests: `CollapsiblePaneTests.CollapsingEasesToZeroAndExpandingRestoresTheDraggedWidth`
-- **BRIDGE-ACCORDION-022** (inherited) — On its first call for a column, `Pane` shall remember the column's `MinWidth`; on any call made while the column is expanded with a `MinWidth` above 0, it shall record the column's `ActualWidth` as the width to expand back to.
-  - Tests: `CollapsiblePaneTests.CollapsingEasesToZeroAndExpandingRestoresTheDraggedWidth`
+- **BRIDGE-ACCORDION-022** — On its first call for a column, `Pane` shall remember the column's `MinWidth`; on any call made while the column is expanded and no `Pane` animation on it is in flight (neither completed nor canceled), it shall record the column's `ActualWidth` as the width to expand back to, whatever its `MinWidth`.
+  - Tests: `CollapsiblePaneTests.CollapsingEasesToZeroAndExpandingRestoresTheDraggedWidth`, `CollapsiblePaneTests.AColumnWithoutAMinWidthExpandsBackToItsWidth`
 - **BRIDGE-ACCORDION-023** — Each `Pane` call shall set the column's `MinWidth` to 0 for the run, and when an expand completes it shall restore the remembered `MinWidth`; a completed collapse leaves it at 0.
   - Tests: `CollapsiblePaneTests.MinWidthIsLiftedWhileTheWidthMovesAndRestoredOnceExpanded`
 - **BRIDGE-ACCORDION-024** — On each frame of a `Pane` animation, the content's right margin shall be set to `min(0, width − remembered MinWidth)`, keeping its other margins, so below its minimum it keeps its width and is clipped by its cell rather than reflowed.
@@ -131,8 +131,7 @@ depends:
 - `Enabled` on a `TemplatedControl` other than `Expander` or `TreeViewItem` gets `Animate.ContentSize` and the `PART_ItemsPresenter` marks, but no chevron link.
 - Disabling `Enabled` clears an `Animate.ContentSize` the user set on the item.
 - An item without the Fluent header parts gets no automatic chevron; `Chevron` can still be set on a template element.
-- `Pane.Toggle` mid-run reverses from the current width; the expanded width is not re-recorded, since `MinWidth` is 0 then.
-- A column whose `MinWidth` is 0 never records its expanded width (see Open items).
+- `Pane.Toggle` mid-run reverses from the current width; the expanded width is not re-recorded, since a `Pane` animation is in flight.
 
 ## Threading and lifetime
 
@@ -146,7 +145,7 @@ depends:
 
 - The codec decodes and encodes without allocating beyond the boxed `GridLength`. `Pane`'s per-frame margin write allocates a `Thickness` value only. Accordion allocates on enable, template apply and each chevron spring.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
@@ -154,7 +153,7 @@ depends:
 
 - **Accordion is an attached form, not a style.** `Accordion.Enabled`, `Group` and `Chevron` attach to an `Expander` or `TreeViewItem`: `Animate.ContentSize` goes on the item itself, the body fades under a held hide before folding and replays its entrances through `EnterOnShow`, the chevron's path gets a `TransformOperations` render transform and springs, and `Group`'s single-open covers `Expander`s only. Reason: the bridge ships no themes; the item's template root never hides; Avalonia's `TransformAnimator` skips `TransformOperations`, so Fluent's own 62 ms flip does not add to the spring; the nav needs no single-open. Rejected: an `Expander` style or a templated control.
 - **The `GridLength` codec is pixel-only.** A pixel `GridLength` tweens as its pixel count, a value below 0 (a spring's overshoot) writes 0, and a star or auto length at either end throws `ArgumentException`. Reason: a column jumping between star and pixels mid-tween would reflow its whole grid. Rejected: switching discretely between star or auto and pixels.
-- **`Pane` works on `Grid` columns only and ends on a local width.** `Pane.Collapse`, `Expand` and `Toggle` keep per-column state in a weak table, lift `MinWidth` for the run, clip the content below its minimum through a negative right margin, and end on a local pixel width with the animation reverted. Reason: a `SplitView` already animates its own pane; clipping avoids reflowing the content below its minimum; a held animation value would mask a `GridSplitter`'s writes.
+- **`Pane` works on `Grid` columns only and ends on a local width.** `Pane.Collapse`, `Expand` and `Toggle` keep per-column state in a weak table, lift `MinWidth` for the run, clip the content below its minimum through a negative right margin, and end on a local pixel width with the animation reverted; the width to expand back to is recorded whenever the column is expanded and its last `Pane` animation is no longer in flight. Reason: a `SplitView` already animates its own pane; clipping avoids reflowing the content below its minimum; a held animation value would mask a `GridSplitter`'s writes; the run's own state, unlike `MinWidth`, marks rest for a column without a minimum.
 
 ## Non-goals
 
@@ -165,7 +164,4 @@ depends:
 
 ## Open items
 
-- `Pane` records the expanded width only while `MinWidth > 0`, using it as the "at rest" marker; for a column with no `MinWidth`, the first `Collapse` records nothing, so `Expand` eases back to 0.
-- The `GridLength` codec is specified here but was also listed under value codecs when the specs were extracted; BRIDGE-CODECS should reference this spec rather than restate it.
 - Untested: re-found parts after a template change, `Enabled` false releasing everything, design-mode no-op, chevron relink and unlink, the `Expander`-only group, and `Pane` on a star column throwing.
-- The nav arms `Accordion.Enabled` only while not searching, because a layout transition trails a content-size resize beside one of its ancestors.

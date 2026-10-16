@@ -24,6 +24,14 @@ internal sealed class Touch(Window window)
         return Raise(args);
     }
 
+    public IPointer Press(int id, Point at, PointerType type = PointerType.Touch)
+    {
+        var pressed = Down(id, at, type);
+        // Implicitly, as the platform's touch device captures each touch to what it pressed.
+        pressed.Pointer.Capture(pressed.Pointer.Captured ?? (IInputElement)pressed.Source!);
+        return pressed.Pointer;
+    }
+
     public PointerEventArgs Move(int id, Point point)
     {
         var pointer = _pointers[id];
@@ -48,9 +56,7 @@ internal sealed class Touch(Window window)
     /// </summary>
     public void Drag(ManualFrameSource frames, Point from, Vector by, int steps = 5, bool hold = true)
     {
-        var pressed = Down(1, from);
-        // Implicitly, as the platform's touch device captures each touch to what it pressed.
-        pressed.Pointer.Capture(pressed.Pointer.Captured ?? (IInputElement)pressed.Source!);
+        Press(1, from);
         for (var i = 1; i <= steps; i++)
         {
             frames.Advance(20);

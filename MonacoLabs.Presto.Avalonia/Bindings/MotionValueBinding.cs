@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.VisualTree;
 
 namespace MonacoLabs.Presto.Bindings;
 
@@ -18,8 +19,9 @@ internal sealed class MotionValueBinding(AvaloniaObject target, MotionValue sour
         {
             visual.AttachedToVisualTree += OnAttached;
             visual.DetachedFromVisualTree += OnDetached;
+            _detached = !visual.IsAttachedToVisualTree();
         }
-        source.Changed += OnChanged;
+        if (!_detached) source.Changed += OnChanged;
         observer.OnNext(source.Value);
         return this;
     }

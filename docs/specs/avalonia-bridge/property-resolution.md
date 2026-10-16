@@ -81,14 +81,16 @@ depends:
   - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `BridgeAllocationTests.StyledPropertyTweenTicksWithinBudget`
 - **BRIDGE-TARGETS-014** — After the animation completes, the value shall stay held at `Animation` priority until it is reverted, so a local, style or binding value written underneath meanwhile does not show.
   - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`
-- **BRIDGE-TARGETS-015** — When a tween on a styled property is reverted, the accessor shall dispose its binding, uncovering whatever value the property has underneath.
-  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `TargetUtilsTests.SetWritesAtAnimationPriorityAndRevertUncoversTheLocalValue`
+- **BRIDGE-TARGETS-015** — When a tween on a styled property is reverted, the accessor shall dispose its binding, uncovering whatever value the property has underneath, `null` included.
+  - Tests: `TargetAdapterTests.AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue`, `TargetUtilsTests.SetWritesAtAnimationPriorityAndRevertUncoversTheLocalValue`, `TargetAdapterTests.RevertClearsAPropertyThatWasNullBeforeTheAnimation`
 - **BRIDGE-TARGETS-016** (inherited) — When the property is a direct property, which ignores binding priority, the accessor shall capture its value before the first frame and write that value back on revert.
   - Tests: `TargetAdapterTests.RevertRestoresADirectPropertyToTheValueItHadBeforeTheAnimation`
 - **BRIDGE-TARGETS-017** (inherited) — A `double` property shall be written unboxed through a typed binding, a `float` property as the frame number cast to `float`, an `int` property as the frame number rounded to an integer, and a `string` property as the tween's composed string.
   - Tests: `TargetAdapterTests.NamedPropertiesAnimateToCompletion`
-- **BRIDGE-TARGETS-018** — A property of any other type with a codec in `Presto.Codecs` (looked up by the exact property type when the accessor is created) shall be written through that codec (BRIDGE-CODECS).
+- **BRIDGE-TARGETS-018** — A property of any other type with a codec in `Presto.Codecs` (looked up by the exact property type) shall be written through that codec (BRIDGE-CODECS).
   - Tests: `TargetAdapterTests.PropertiesWithACodecAnimateThroughIt`
+- **BRIDGE-TARGETS-032** — When a cached accessor's codec is no longer the one `Presto.Codecs` gives for its property type (or `DiscreteCodec` when none is registered), the adapter shall rebuild that accessor on resolution, sharing the old accessor's per-target bindings and captured values; tweens already built keep their accessors (CORE-TARGETS-030).
+  - Tests: `TargetAdapterTests.ACodecRegisteredAfterAResolutionAppliesToLaterAnimations`
 - **BRIDGE-TARGETS-019** — `Visual.OpacityProperty` shall be clamped to 0–1 on every frame, so an overshooting ease holds at the ends.
   - Tests: `TargetAdapterTests.AnOvershootingEaseNeverWritesOpacityOutsideZeroToOne`
 - **BRIDGE-TARGETS-020** — A property type with no codec shall be discrete (CORE-TARGETS `DiscreteCodec`), switching at the midpoint of eased progress.
@@ -134,7 +136,7 @@ depends:
 ## Edge cases
 
 - A qualified name must use the `OwnerType` of the registered instance, which for a property added with `AddOwner` is the original owner.
-- The codec is chosen when the accessor is created, the first time any target resolves that property; a codec registered later is not seen. A `double?` or other nullable property has no codec and is discrete.
+- The shorthand accessors read the built-in `Color`, `RelativePoint` and `Point` codecs once; replacing those registrations does not reach them. A `double?` or other nullable property has no codec and is discrete.
 - Animating a control through plain `AnimationParams` before anything has initialized the bridge resolves it with the core's reflection adapter, which knows no shorthand.
 - Reverting a direct property writes the captured value back with `SetValue`, overwriting a value set by hand during the animation.
 
@@ -151,7 +153,7 @@ depends:
 
 - A frame of a `double` property costs only the property-changed args Avalonia raises. Other value types box their value per frame; a discrete property pushes its cached object and costs nothing between flips. Resolution and binding allocate once per (property, target).
 
-## Deviations from anime.js
+## Provenance
 
 - Upstream writes inline styles and attributes; here every write is an `Animation`-priority binding, so revert uncovers the underlying value instead of restoring a captured one, except for direct properties. Reason: a local, style or binding value written underneath during the animation then shows once reverted.
 - Discrete fallback for types without a codec, where upstream writes non-numeric values as strings: `bool` and enum properties such as `IsVisible` have no string form to write, and timelines, keyframes and `Presto.Set` must still be able to set them.

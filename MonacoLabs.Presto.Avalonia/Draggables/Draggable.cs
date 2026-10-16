@@ -11,17 +11,13 @@ using MonacoLabs.Presto.Diagnostics;
 namespace MonacoLabs.Presto.Draggables;
 
 /// <summary>
-/// Port of anime.js <c>createDraggable</c>: pointer dragging of a control, written through an <see cref="Animatable"/>
+/// Pointer dragging of a control, written through an <see cref="Animatable"/>
 /// over the two mapped axis properties, with per-axis enabling and modifiers, a drag threshold, snapping, container
 /// bounds and container friction, and a release that throws the target on with the pointer's velocity.
 /// </summary>
 /// <remarks>One pointer drags at a time, mouse and touch alike, through a pointer capture on the trigger.</remarks>
 public sealed class Draggable : IRevertible
 {
-    internal const double DefaultDragThreshold = 3;
-
-    /// <summary>A finger's slop: touch drifts further than a mouse before it means to move.</summary>
-    internal const double TouchSlop = 10;
     internal const double DefaultScrollSpeed = 1.5;
     internal const double DefaultScrollThreshold = 20;
     private const double ResizeDebounce = 150;
@@ -64,7 +60,7 @@ public sealed class Draggable : IRevertible
     private Cursor? _grabCursor;
     private Cursor? _originalCursor;
     private bool _cursorTaken;
-    private double _dragThreshold = DefaultDragThreshold;
+    private double _dragThreshold = GestureGate.DefaultDragThreshold;
     private double _containerFriction;
     private double _releaseContainerFriction;
     private double _minVelocity;
@@ -164,7 +160,7 @@ public sealed class Draggable : IRevertible
         _resizeTicker = Presto.CreateTimer(new TimerParams
         {
             Autoplay = false,
-            Duration = ResizeDebounce,
+            Duration = ResizeDebounce * Globals.TimeScale,
             OnComplete = _ =>
             {
                 _parameters.OnResize?.Invoke(this);
@@ -238,7 +234,7 @@ public sealed class Draggable : IRevertible
         return this;
     }
 
-    /// <summary>Stops the drag and puts both axes back to 0.</summary>
+    /// <summary>Stops the drag and puts both axes back to 0, unclamped even when the container's bounds exclude it.</summary>
     public Draggable Reset()
     {
         Stop();
@@ -265,7 +261,7 @@ public sealed class Draggable : IRevertible
         _padding = _parameters.ContainerPadding ?? default;
         _snapX = _parameters.X?.Snap ?? _parameters.Snap;
         _snapY = _parameters.Y?.Snap ?? _parameters.Snap;
-        _dragThreshold = _parameters.DragThreshold ?? DefaultDragThreshold;
+        _dragThreshold = _parameters.DragThreshold ?? GestureGate.DefaultDragThreshold;
         _containerFriction = Utils.Clamp(_parameters.ContainerFriction ?? .8, 0, 1);
         _releaseContainerFriction = Utils.Clamp(_parameters.ReleaseContainerFriction ?? _containerFriction, 0, 1);
         _minVelocity = _parameters.MinVelocity ?? 0;
@@ -301,7 +297,7 @@ public sealed class Draggable : IRevertible
         {
             ["X"] = ClampScroll(offset.X + overflow.X, scroller.Extent.Width, scroller.Viewport.Width),
             ["Y"] = ClampScroll(offset.Y + overflow.Y, scroller.Extent.Height, scroller.Viewport.Height),
-            Duration = duration ?? ScrollInViewDuration,
+            Duration = duration ?? ScrollInViewDuration * Globals.TimeScale,
             Ease = ease ?? (EaseValue)Eases.InOutQuad,
             OnUpdate = _ => scroller.Offset = new Vector(_scroll.X, _scroll.Y),
             OnComplete = _ => _scrollLocked = false,
@@ -316,7 +312,7 @@ public sealed class Draggable : IRevertible
         UpdateBoundingValues();
         if (OutOfView(gap, 0, 0) is not { } overflow) return this;
         var easeValue = ease ?? (EaseValue)Eases.InOutQuad;
-        var length = duration ?? ScrollInViewDuration;
+        var length = duration ?? ScrollInViewDuration * Globals.TimeScale;
         SetAxes(
             overflow.X != 0 ? Snapped(X - overflow.X, _snapX, _boundsLeft, _boundsRight) : null, length, easeValue,
             overflow.Y != 0 ? Snapped(Y - overflow.Y, _snapY, _boundsTop, _boundsBottom) : null, length, easeValue);
@@ -681,21 +677,21 @@ public sealed class Draggable : IRevertible
 
         if (!_hasReleaseSpring && outOfBounds && friction != 0 && (durationX != 0 || durationY != 0))
         {
-            // Two blended tweens: out to where the throw would have landed, then back to the clamped destination.
+            // Two additive tweens: out to where the throw would have landed, then back to the clamped destination.
             using var origin = PrestoDiagnostics.Origin("Draggable");
             _overshootOut = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = cushionedX, Duration = durationX * .65 },
                 ["Y"] = new TweenParams { To = cushionedY, Duration = durationY * .65 },
                 Ease = _releaseEase,
-                Composition = Composition.Blend,
+                Composition = Composition.Additive,
             });
             _overshootBack = Presto.Animate(_overshoot, new AnimationParams
             {
                 ["X"] = new TweenParams { To = destX, Duration = durationX },
                 ["Y"] = new TweenParams { To = destY, Duration = durationY },
                 Ease = _releaseEase,
-                Composition = Composition.Blend,
+                Composition = Composition.Additive,
             });
             _overshootTicker.Stretch(Math.Max(durationX, durationY)).Restart();
         }
@@ -747,7 +743,8 @@ public sealed class Draggable : IRevertible
     // Returns where the axis comes to rest.
     private double Fling(string property, double? velocity, Inertia template, Func<double, double>? snap, double min, double max, ref double longest)
     {
-        var settings = template with { ModifyTarget = template.ModifyTarget ?? snap, Min = min, Max = max };
+        // A target larger than its container inverts its bounds, which Inertia rejects.
+        var settings = template with { ModifyTarget = template.ModifyTarget ?? snap, Min = Math.Min(min, max), Max = Math.Max(min, max) };
         if (velocity is { } v) Animate.Fling(property, v, settings);
         else Animate.Fling(property, settings);
         var animation = Animate.Animations[Presto.Canonicalize(_target, property)];

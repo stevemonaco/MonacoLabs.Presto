@@ -64,6 +64,21 @@ public sealed class ColorsTests : EngineTestBase
     }
 
     [Fact]
+    public void AnImplicitColorKeepsItsFractionalChannels()
+    {
+        var mixed = PrestoColor.Mix(new(255, 0, 0), new(0, 0, 255), .3);
+        var target = new ColorTarget { Background = new(255, 255, 255) };
+        var animation = Presto.Animate(target, new() { ["Background"] = mixed, Autoplay = false });
+
+        animation.Seek(animation.Duration);
+
+        Assert.NotEqual(Math.Round(mixed.R), mixed.R, 3);
+        Assert.Equal(mixed.R, target.Background.R, 9);
+        Assert.Equal(mixed.G, target.Background.G, 9);
+        Assert.Equal(mixed.B, target.Background.B, 9);
+    }
+
+    [Fact]
     public void BoxShadowShouldNotBeParsedAsColorValue()
     {
         const string shadow = "rgb(255, 0, 0) 0px 0px 6px 0px";
@@ -74,15 +89,26 @@ public sealed class ColorsTests : EngineTestBase
     }
 
     [Fact]
-    public void UnknownStringsParseToOpaqueBlack()
+    public void UnknownStringsFailToParse()
     {
         Assert.False(PrestoColor.TryParse("red", out _));
-        Assert.Equal(new PrestoColor(0, 0, 0, 1), PrestoColor.Parse("red"));
+        Assert.Throws<FormatException>(() => PrestoColor.Parse("red"));
     }
 
     [Fact]
-    public void AchromaticHslKeepsUpstreamUnscaledChannels() =>
-        Assert.Equal(new PrestoColor(.5, .5, .5, 1), PrestoColor.Parse("hsl(0, 0%, 50%)"));
+    public void TweeningToAnUnparsableColorThrows() =>
+        Assert.Throws<FormatException>(() => Presto.Animate(new Dictionary<string, object?>(), new() { ["Color"] = "rgb(red, 0, 0)", Autoplay = false }));
+
+    [Theory]
+    [InlineData("rgb(255.5, 0, 0)", 255.5, 0, 0, 1)]
+    [InlineData("rgb(100%, 50%, 0%)", 255, 127.5, 0, 1)]
+    [InlineData("rgba(10.5, 20, 30, 50%)", 10.5, 20, 30, .5)]
+    public void ParsesDecimalAndPercentageRgbChannels(string s, double r, double g, double b, double a) =>
+        Assert.Equal(new PrestoColor(r, g, b, a), PrestoColor.Parse(s));
+
+    [Fact]
+    public void AchromaticHslScalesToByteChannels() =>
+        Assert.Equal(new PrestoColor(128, 128, 128, 1), PrestoColor.Parse("hsl(0, 0%, 50%)"));
 
     [Fact]
     public void ToStringWritesCompactRgba()

@@ -27,6 +27,27 @@ public sealed class EngineHiddenTests : EngineTestBase
     }
 
     [Fact]
+    public void ShowingResumesAManualPauseButNotAFreeze()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(100, 16);
+
+        Presto.Engine.Pause();
+        Presto.Engine.Hidden = true;
+        Presto.Engine.Hidden = false;
+        Assert.False(Presto.Engine.Paused);
+        Assert.True(Frames.IsRunning);
+
+        Presto.Engine.Freeze();
+        var frozenAt = timer.CurrentTime;
+        Presto.Engine.Hidden = true;
+        Presto.Engine.Hidden = false;
+        Frames.Advance(100, 16);
+        Assert.True(Presto.Engine.Frozen);
+        Assert.Equal(frozenAt, timer.CurrentTime);
+    }
+
+    [Fact]
     public void HiddenIsANoOpWithoutPauseOnHidden()
     {
         Presto.Engine.PauseOnHidden = false;

@@ -44,7 +44,10 @@ public sealed class Modal : Control
     public static readonly StyledProperty<IBrush?> ScrimProperty =
         AvaloniaProperty.Register<Modal, IBrush?>(nameof(Scrim), Dismissal.Scrim);
 
-    /// <summary>The element under the modal that blurs while it is open, such as the view it covers.</summary>
+    /// <summary>
+    /// The element under the modal that blurs while it is open, such as the view it covers. Replaced while open, the old one
+    /// unblurs and the new one blurs.
+    /// </summary>
     public static readonly StyledProperty<Control?> BackdropProperty =
         AvaloniaProperty.Register<Modal, Control?>(nameof(Backdrop));
 
@@ -60,7 +63,7 @@ public sealed class Modal : Control
     {
         _scrim.Bind(Border.BackgroundProperty, this.GetObservable(ScrimProperty));
         _scrim.Tapped += (_, _) => IsOpen = false;
-        Dismissal.Attach(this, () => IsOpen, Close);
+        Dismissal.Attach(this, IsOpenProperty);
         Presence.SetEnterOnShow(_panel, true);
         VisualChildren.Add(_scrim);
         VisualChildren.Add(_panel);
@@ -100,10 +103,16 @@ public sealed class Modal : Control
         set => SetValue(BackdropProperty, value);
     }
 
-    /// <summary>Opens the modal, revealing its content from the center of <paramref name="from"/>, or at once without it.</summary>
+    /// <summary>
+    /// Opens the modal, revealing its content from the center of <paramref name="from"/>, or at once without it. Called while
+    /// open, it only replaces the origin the close shrinks into.
+    /// </summary>
     public void Open(Visual? from = null) => Reveal(from?.TranslatePoint(new Point(from.Bounds.Width / 2, from.Bounds.Height / 2), this));
 
-    /// <summary>Opens the modal, revealing its content from <paramref name="origin"/>, in the modal's coordinates.</summary>
+    /// <summary>
+    /// Opens the modal, revealing its content from <paramref name="origin"/>, in the modal's coordinates. Called while open,
+    /// it only replaces the origin the close shrinks into.
+    /// </summary>
     public void Open(Point origin) => Reveal(origin);
 
     /// <summary>Closes the modal, shrinking its content back into the origin it opened from.</summary>
@@ -115,6 +124,11 @@ public sealed class Modal : Control
         base.OnPropertyChanged(change);
         if (change.Property == IsOpenProperty) Toggle(IsOpen);
         else if (change.Property == ContentProperty) _panel.Child = Content;
+        else if (change.Property == BackdropProperty && IsOpen)
+        {
+            BlurBackdrop(change.GetOldValue<Control?>(), 0);
+            BlurBackdrop(Backdrop, BackdropRadius);
+        }
     }
 
     /// <inheritdoc/>
@@ -137,7 +151,6 @@ public sealed class Modal : Control
 
     private void Reveal(Point? origin)
     {
-        if (IsOpen) return;
         _origin = origin;
         IsOpen = true;
     }
@@ -159,7 +172,7 @@ public sealed class Modal : Control
         }
         _scrim.IsHitTestVisible = _panel.IsHitTestVisible = open;
         _scrim.IsVisible = _panel.IsVisible = open;
-        Backdrop?.Animate(b => b.Blur(open ? BackdropRadius : 0).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease));
+        BlurBackdrop(Backdrop, open ? BackdropRadius : 0);
         if (open)
         {
             _panel.Focus();
@@ -169,6 +182,9 @@ public sealed class Modal : Control
         _opener = null;
         Closed?.Invoke(this, EventArgs.Empty);
     }
+
+    private static void BlurBackdrop(Control? backdrop, double radius) =>
+        backdrop?.Animate(b => b.Blur(radius).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease));
 
     private static AnimationBuilder Shrink(Point at)
     {

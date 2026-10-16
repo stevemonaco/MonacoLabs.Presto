@@ -1,4 +1,5 @@
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -8,6 +9,7 @@ public sealed class AnimationThreadTests : CompositorTestBase
     private static AnimationBuilder Builder(string kind) => kind switch
     {
         "fits" => Presto.Build().X(20).Opacity(0.5).Duration(100).Ease("linear"),
+        "x" => Presto.Build().X(20).Duration(100).Ease("linear"),
         "property" => Presto.Build().X(20).Property("Width", 60).Duration(100).Ease("linear"),
         "setting" => Presto.Build().X(20).Opacity(0.5).Duration(100).Ease("linear").OnUpdate(_ => { }),
         "keyframes" => Presto.Build().Keyframes(k => k.Frame(f => f.X(10))).Duration(100),
@@ -43,6 +45,29 @@ public sealed class AnimationThreadTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData("whenDetached", "WhenDetached")]
+    [InlineData("subclass", "A setting")]
+    public void EverySettingTheCompositorDoesNotCarryIsRejected(string kind, string reason)
+    {
+        AnimationParams parameters = kind switch
+        {
+            "whenDetached" => new AvaloniaAnimationParams { ["X"] = 20, WhenDetached = WhenDetached.Continue },
+            _ => new TaggedParams { ["X"] = 20, Tag = "tag" },
+        };
+
+        var thrown = Assert.Throws<NotSupportedException>(() => PrestoAvalonia.Animate(ShowBar(), parameters, AnimationThread.Compositor));
+
+        Assert.Equal($"{reason} has no counterpart on the compositor.", thrown.Message);
+        Assert.False(PrestoAvalonia.CanAnimateOnCompositor(parameters, out var actual));
+        Assert.Equal(reason, actual);
+    }
+
+    private sealed record TaggedParams : AnimationParams
+    {
+        public string? Tag { get; init; }
+    }
+
+    [AvaloniaTheory]
     [InlineData("property")]
     [InlineData("setting")]
     public async Task AFallbackEndsWhereAnimateEnds(string kind)
@@ -60,6 +85,28 @@ public sealed class AnimationThreadTests : CompositorTestBase
         Assert.Equal(X(expected), X(actual));
         Assert.Equal(expected.Width, actual.Width);
         Assert.Equal(expected.Opacity, actual.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void PreferringTheCompositorForAVisualAndANonVisualRunsBothOnTheUIThread()
+    {
+        var bar = ShowBar();
+        var transform = new TranslateTransform();
+
+        var animation = PrestoAvalonia.Animate(new object[] { bar, transform }, Builder("x"), AnimationThread.PreferCompositor);
+        Frames.Advance(200);
+
+        Assert.False(animation.OnCompositor);
+        Assert.Equal(20, X(bar));
+        Assert.Equal(20, transform.X);
+    }
+
+    [AvaloniaFact]
+    public void ForcingTheCompositorForANonVisualThrowsNamingIt()
+    {
+        var thrown = Assert.Throws<NotSupportedException>(() => PrestoAvalonia.Animate(new TranslateTransform(), Builder("x"), AnimationThread.Compositor));
+
+        Assert.Equal("TranslateTransform is not a Visual. The compositor animates Visuals only.", thrown.Message);
     }
 
     [AvaloniaFact]

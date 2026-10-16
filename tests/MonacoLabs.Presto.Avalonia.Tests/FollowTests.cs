@@ -58,6 +58,35 @@ public sealed class FollowTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void BeforeTheFirstAttachALaterValueSnaps()
+    {
+        var border = Box();
+        Follow.SetTiming(border, Presto.Build().Duration(100).Ease("linear"));
+        Follow.SetX(border, 0);
+
+        Follow.SetX(border, 100);
+        Assert.Equal(100, Part<TranslateTransform>(border).X);
+        Assert.Null(Presto.Engine._head);
+
+        Show(border);
+        Follow.SetX(border, 0);
+        Frames.Advance(48, 16);
+        Assert.InRange(Part<TranslateTransform>(border).X, 30, 70);
+    }
+
+    [AvaloniaFact]
+    public void ANonNumericStringThrowsAndKeepsTheFollowedValue()
+    {
+        var border = Shown();
+        Follow.SetX(border, 40);
+
+        Assert.Throws<FormatException>(() => Follow.SetX(border, "50%"));
+        Assert.Throws<FormatException>(() => Follow.SetY(border, "10deg"));
+
+        Assert.Equal(40, Part<TranslateTransform>(border).X);
+    }
+
+    [AvaloniaFact]
     public void AMidFlightRetargetKeepsTheVelocity()
     {
         var border = Box();
@@ -163,6 +192,40 @@ public sealed class FollowTests : BridgeTestBase
         Follow.SetX(border, 100);
 
         Assert.Equal(100, Part<TranslateTransform>(border).X);
+    }
+
+    [AvaloniaFact]
+    public void WhenReducedGivesTheTimingUnderReducedMotionFromTheNextValue()
+    {
+        Presto.Engine.Defaults.ReducedMotion = true;
+        var border = Shown();
+        Follow.SetX(border, 0);
+        Follow.SetX(border, 100);
+        Assert.Equal(100, Part<TranslateTransform>(border).X);
+
+        Follow.SetWhenReduced(border, Presto.Build().Duration(100).Ease("linear"));
+        Follow.SetX(border, 0);
+        Frames.Advance(48, 16);
+        Assert.InRange(Part<TranslateTransform>(border).X, 30, 70);
+        Frames.Advance(64, 16);
+        Assert.Equal(0, Part<TranslateTransform>(border).X);
+    }
+
+    [AvaloniaFact]
+    public void AnimateInitialEasesTheFirstValueFromTheShownOne()
+    {
+        var border = Shown();
+        Follow.SetX(border, 40);
+        Assert.Equal(40, Part<TranslateTransform>(border).X);
+
+        Follow.SetAnimateInitial(border, true);
+        Follow.SetRotate(border, 90);
+        Follow.SetScale(border, 2);
+        Frames.Advance(48, 16);
+        Assert.InRange(Part<RotateTransform>(border).Angle, 20, 70);
+        Assert.InRange(Part<ScaleTransform>(border).ScaleX, 1.2, 1.8);
+        Frames.Advance(64, 16);
+        Assert.Equal((90, 2), (Part<RotateTransform>(border).Angle, Part<ScaleTransform>(border).ScaleX));
     }
 
     [AvaloniaFact]

@@ -106,6 +106,7 @@ internal sealed class CompositorSceneHandler : CompositionCustomVisualHandler, I
             // Nothing will tick this engine again, so the timers the revert canceled have to be pruned here.
             engine.DropChildren();
         }
+        _scene?.Detach(this);
         _scene = null;
         _scope = null;
         _engine = null;

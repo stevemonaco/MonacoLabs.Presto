@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Targets;
 using MonacoLabs.Presto.Values;
@@ -6,12 +6,12 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// A timer that drives tweens. Port of anime.js <c>JSAnimation</c>: the parameters are resolved into one <see cref="Tween"/>
+/// A timer that drives tweens: the parameters are resolved into one <see cref="Tween"/>
 /// per target and property, and the animation's own delay and duration are derived from the tweens that result.
 /// </summary>
 public sealed class Animation : Timer
 {
-    // Mutated in place and read back immediately, as upstream does, so building tweens allocates nothing extra.
+    // Mutated in place and read back immediately, so building tweens allocates nothing extra.
     [ThreadStatic] private static DecomposedValue? s_fromValue;
     [ThreadStatic] private static DecomposedValue? s_toValue;
     [ThreadStatic] private static DecomposedValue? s_originalValue;
@@ -30,7 +30,7 @@ public sealed class Animation : Timer
         bool fastSet = false,
         int index = 0,
         IReadOnlyList<object>? allTargets = null)
-        : base(parameters = parameters.Resolve(parent?.OwnerEngine ?? Engine.Current), parent, parentPosition)
+        : base(parameters = parameters.Resolve(parent?.OwnerEngine ?? Engine.Current, parent?.ChildDefaults), parent, parentPosition)
     {
         var animationId = Interlocked.Increment(ref s_animationId);
 
@@ -41,7 +41,7 @@ public sealed class Animation : Timer
         if (reduceAll) IterationCount = 1;
 
         var properties = parameters.Keyframes is { } keyframes
-            // Upstream's generateKeyframes reads the engine defaults, not the parent timeline's.
+            // Keyframes fall back to the engine's default duration, not the parent timeline's.
             ? KeyframeExpander.Expand(keyframes, parameters, OwnerEngine.Defaults.Duration.AsDouble ?? 0)
             : (IReadOnlyList<KeyValuePair<string, TweenValue>>)parameters.Properties;
 
@@ -67,7 +67,7 @@ public sealed class Animation : Timer
         var tDelay = parameters.Delay ?? animDefaults.Delay;
         var tModifier = parameters.Modifier ?? animDefaults.Modifier;
         // A large target count defaults to no composition, which skips the sibling bookkeeping entirely.
-        var tComposition = parameters.Composition ?? (fastSet || Targets.Count >= Constants.K ? Composition.None : animDefaults.Composition);
+        var tComposition = parameters.Composition ?? (fastSet || Targets.Count >= Constants.K ? Composition.Overlap : animDefaults.Composition);
         var absoluteOffsetTime = _offset + (parent?._offset ?? 0);
         var groupTargets = allTargets ?? Targets;
         var total = groupTargets.Count;
@@ -88,9 +88,17 @@ public sealed class Animation : Timer
                 var propertyName = Presto.Canonicalize(target, declaredName);
                 var accessor = Presto.ResolveAccessor(target, propertyName);
                 var codec = accessor.Codec;
-                var frames = NormalizeKeyframes(propertyValue, fastSet);
+                var frameValue = propertyValue;
+                // Unlike upstream utils.set, a function resolving to a from/to pair or keyframes sets their last value.
+                if (fastSet && ValueFunction(propertyValue, target, ti, groupTargets, null) is { } setFunction)
+                {
+                    frameValue = setFunction();
+                    if (frameValue.Raw is TweenValue[] { Length: > 0 } items) frameValue = items[^1];
+                }
+                var frames = NormalizeKeyframes(frameValue, fastSet);
 
                 object? inlineValue = null;
+                var hasInlineValue = false;
                 TweenSiblings? siblings = null;
                 Tween? prevTween = null;
                 var firstTweenChangeStartTime = double.NaN;
@@ -98,7 +106,8 @@ public sealed class Animation : Timer
 
                 object? ReadOriginalValue()
                 {
-                    // Deviation from upstream, which skips falsy originals: captured even when 0 or empty so Revert can restore it.
+                    // Deviation from upstream, which skips nil and empty originals: any read original, null included, is restored by Revert.
+                    hasInlineValue = true;
                     return inlineValue = accessor.GetValue(target);
                 }
 
@@ -111,8 +120,8 @@ public sealed class Animation : Timer
                     Func<TweenValue>? fromFunc = null;
 
                     var tweenComposition = key?.Composition ?? tComposition;
-                    if (codec is DiscreteCodec && tweenComposition == Composition.Blend) throw new ArgumentException($"'{declaredName}' is discrete, so it cannot be blended.", nameof(parameters));
-                    if (siblings == null && tweenComposition != Composition.None) siblings = Composer.GetTweenSiblings(target, propertyName);
+                    if (codec is DiscreteCodec && tweenComposition == Composition.Additive) throw new ArgumentException($"'{declaredName}' is discrete, so it cannot be additive.", nameof(parameters));
+                    if (siblings == null && tweenComposition != Composition.Overlap) siblings = Composer.GetTweenSiblings(target, propertyName, OwnerEngine);
                     // A timeline child chains off the tail sibling of the same timeline; anything else off its own previous keyframe.
                     var tailTween = siblings?._tail;
                     var chainedTween = parent != null && tailTween != null && tailTween.Parent.Parent == parent ? tailTween : prevTween;
@@ -171,7 +180,7 @@ public sealed class Animation : Timer
 
                     var prevSibling = prevTween;
 
-                    if (tweenComposition != Composition.None)
+                    if (tweenComposition != Composition.Overlap)
                     {
                         var nextSibling = siblings!._head;
                         // Overridden siblings are skipped so the chain resolves to the latest live value.
@@ -250,24 +259,7 @@ public sealed class Animation : Timer
                         ScratchFrom.Number = ValueParser.GetRelativeValue(relativeTo, ScratchFrom.Number, ScratchFrom.Operator);
                     }
 
-                    if (ScratchTo.Operator != '\0')
-                    {
-                        ScratchTo.Number = ValueParser.GetRelativeValue(ScratchFrom.Number, ScratchTo.Number, ScratchTo.Operator);
-                    }
-
-                    if (codec is DiscreteCodec) (ScratchFrom.Number, ScratchTo.Number) = (0, 1);
-                    if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(ScratchFrom, ScratchTo);
-                    if (ScratchFrom.Kind != ScratchTo.Kind) Homogenize(ScratchFrom, ScratchTo);
-
-                    if (ScratchFrom.Unit != ScratchTo.Unit)
-                    {
-                        UnitConverter.Convert(ScratchTo.Unit != null ? ScratchFrom : ScratchTo, ScratchTo.Unit ?? ScratchFrom.Unit!);
-                    }
-
-                    if (ScratchTo.Numbers != null && ScratchFrom.Numbers != null && ScratchTo.Numbers.Length != ScratchFrom.Numbers.Length)
-                    {
-                        PadShorterValue(ScratchFrom, ScratchTo);
-                    }
+                    Reconcile(ScratchFrom, ScratchTo, codec);
 
                     if (physics != null)
                     {
@@ -311,13 +303,15 @@ public sealed class Animation : Timer
                         _valueType = ScratchTo.Kind,
                         _composition = tweenComposition,
                         _inlineValue = inlineValue,
+                        _hasInlineValue = hasInlineValue,
                         _discrete = codec is DiscreteCodec discrete ? key?.Discrete ?? discrete.Rule : null,
                         _fromObject = ScratchFrom.Discrete,
                         _toObject = ScratchTo.Discrete,
                     };
                     inlineValue = null;
+                    hasInlineValue = false;
 
-                    if (tweenComposition != Composition.None) Composer.ComposeTween(tween, siblings!);
+                    if (tweenComposition != Composition.Overlap) Composer.ComposeTween(tween, siblings!);
 
                     // Pre-computed so a later function based value can chain off this tween's end value.
                     if (tween._discrete != null)
@@ -368,6 +362,8 @@ public sealed class Animation : Timer
                 tween._startTime -= iterationDelay;
             }
             iterationDuration -= iterationDelay;
+            // Float noise can leave a delayed zero-duration iteration under MinValue, so its tweens would never reach their end.
+            if (iterationDuration < Constants.MinValue) iterationDuration = Constants.MinValue;
         }
         else
         {
@@ -428,6 +424,17 @@ public sealed class Animation : Timer
         return this;
     }
 
+    internal void ShiftOffset(double delta)
+    {
+        _offset += delta;
+        for (var tween = _headTween; tween != null; tween = tween._next)
+        {
+            tween._absoluteStartTime = Helpers.Round(tween._absoluteStartTime + delta, 12);
+            tween._absoluteUpdateStartTime = Helpers.Round(tween._absoluteUpdateStartTime + delta, 12);
+            tween._absoluteEndTime = Helpers.Round(tween._absoluteEndTime + delta, 12);
+        }
+    }
+
     /// <summary>Re-evaluates the function based from and to values of every tween against the targets' current state.</summary>
     public Animation Refresh()
     {
@@ -438,33 +445,23 @@ public sealed class Animation : Timer
             if (toFunc == null && fromFunc == null) continue;
 
             var codec = tween.Accessor.Codec;
-            if (fromFunc != null)
-            {
-                ValueParser.Decompose(fromFunc().Raw, ScratchFrom, codec);
-                if (tween._unit is { } unit && ScratchFrom.Unit != unit) UnitConverter.Convert(ScratchFrom, unit);
-                tween._fromNumbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
-                tween._fromNumber = ScratchFrom.Number;
-                tween._fromObject = ScratchFrom.Discrete;
-            }
-            else
-            {
-                ValueParser.Decompose(tween.Accessor.GetValue(tween.Target), ScratchOriginal, codec);
-                tween._fromNumbers = Helpers.CloneNumbers(ScratchOriginal.Numbers);
-                tween._fromNumber = ScratchOriginal.Number;
-                tween._fromObject = ScratchOriginal.Discrete;
-            }
+            ValueParser.Decompose(fromFunc != null ? fromFunc().Raw : tween.Accessor.GetValue(tween.Target), ScratchFrom, codec);
+            if (toFunc != null) ValueParser.Decompose(toFunc().Raw, ScratchTo, codec);
+            else ValueParser.DecomposeTween(tween, ScratchTo);
+            // A unitless end keeps the tween's unit, and the from value is in it before a relative end applies (anime issue #1025).
+            if (ScratchFrom.Kind is ValueKind.Number or ValueKind.Unit && (ScratchTo.Unit ?? tween._unit) is { } unit && ScratchFrom.Unit != unit) UnitConverter.Convert(ScratchFrom, unit);
+            Reconcile(ScratchFrom, ScratchTo, codec);
 
-            if (toFunc != null)
-            {
-                ValueParser.Decompose(toFunc().Raw, ScratchTo, codec);
-                tween._toNumbers = Helpers.CloneNumbers(ScratchTo.Numbers);
-                tween._strings = ScratchTo.Strings is { } strings ? (string[])strings.Clone() : [];
-                tween._toObject = ScratchTo.Discrete;
-                // Re-applied against the refreshed from value, see anime issue #1025.
-                tween._toNumber = tween._discrete != null ? 1 : ScratchTo.Operator != '\0'
-                    ? ValueParser.GetRelativeValue(tween._fromNumber, ScratchTo.Number, ScratchTo.Operator)
-                    : ScratchTo.Number;
-            }
+            tween._fromNumbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
+            tween._fromNumber = ScratchFrom.Number;
+            tween._fromObject = ScratchFrom.Discrete;
+            tween._toNumbers = Helpers.CloneNumbers(ScratchTo.Numbers);
+            tween._toNumber = ScratchTo.Number;
+            tween._toObject = ScratchTo.Discrete;
+            tween._strings = ScratchTo.Strings is { } strings ? (string[])strings.Clone() : [];
+            tween._valueType = ScratchTo.Kind;
+            tween._unit = ScratchTo.Unit;
+            if (tween._numbers.Length != tween._toNumbers.Length) tween._numbers = Helpers.CloneNumbers(ScratchFrom.Numbers);
         }
         // Forces setter animations to render the refreshed values once.
         if (Duration == Constants.MinValue) Restart();
@@ -477,8 +474,7 @@ public sealed class Animation : Timer
         base.Revert();
         for (var tween = _headTween; tween != null; tween = tween._next)
         {
-            // Upstream skips nil and empty originals; ours are captured unconditionally, so a plain 0 or "" is restored too.
-            if (tween._inlineValue != null) tween.Accessor.Revert(tween.Target, tween._inlineValue);
+            if (tween._hasInlineValue) tween.Accessor.Revert(tween.Target, tween._inlineValue);
         }
         return this;
     }
@@ -529,9 +525,19 @@ public sealed class Animation : Timer
     {
         FunctionValue function => () => function(target, index, targets.Count).Coerce(),
         ChainedFunctionValue function => () => function(target, index, targets.Count, chained).Coerce(),
-        Stagger stagger => () => stagger.Invoke(target, index, targets, null).Coerce(),
+        Stagger stagger => () => stagger.Invoke(target, index, targets, stagger.StartOffset(null)).Coerce(),
         _ => null,
     };
+
+    private static void Reconcile(DecomposedValue from, DecomposedValue to, IValueCodec? codec)
+    {
+        if (to.Operator != '\0') to.Number = ValueParser.GetRelativeValue(from.Number, to.Number, to.Operator);
+        if (codec is DiscreteCodec) (from.Number, to.Number) = (0, 1);
+        if (codec is IReconcilingValueCodec reconciling) reconciling.Reconcile(from, to);
+        if (from.Kind != to.Kind) Homogenize(from, to);
+        if (from.Unit != to.Unit) UnitConverter.Convert(to.Unit != null ? from : to, to.Unit ?? from.Unit!);
+        if (to.Numbers != null && from.Numbers != null && to.Numbers.Length != from.Numbers.Length) PadShorterValue(from, to);
+    }
 
     private static void Homogenize(DecomposedValue from, DecomposedValue to)
     {

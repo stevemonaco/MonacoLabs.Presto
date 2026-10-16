@@ -98,6 +98,31 @@ public sealed class FlipTests : CompositorTestBase
         Assert.Equal(180, Angle(flip));
     }
 
+    [AvaloniaFact]
+    public void AMotionWithMoreThanTimingAndEaseThrowsWhenSet()
+    {
+        Assert.Throws<NotSupportedException>(() => new Flip { Motion = Presto.Build().Duration(400).Opacity(to: 0) });
+        Assert.Throws<NotSupportedException>(() => new Flip { Motion = Presto.Build().Duration(400).OnComplete(_ => { }) });
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChangingTheOrientationWhileFlippedMovesTheTurnOntoTheNewAxis(bool midTurn)
+    {
+        var flip = Card();
+        flip.IsFlipped = true;
+        Frames.Advance(midTurn ? 120 : 1000, 20);
+
+        flip.Orientation = Orientation.Vertical;
+        Frames.Advance(1000, 20);
+
+        var card = flip.Front!.Parent!.Parent!;
+        Assert.Equal(0, Convert.ToDouble(Presto.Get(card, "RotateY", withUnit: false)));
+        Assert.Equal(180, Convert.ToDouble(Presto.Get(card, "RotateX", withUnit: false)));
+        Assert.True(Shows(flip.Back!));
+    }
+
     private static Flip Card(Orientation orientation = Orientation.Horizontal, bool show = true)
     {
         // The back's first half is red and its second blue, along the axis the card turns across.

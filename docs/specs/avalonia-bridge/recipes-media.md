@@ -63,9 +63,9 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
   - Tests: `ParticleRecipeTests.SparklesRunUntilStopped`
 - **BRIDGE-RECIPES-MEDIA-009** — `Burst` shall emit `count` circles in `color` (default the first accent) out of the anchor's center in a full ring that slows and fades over `Medium` to `Long`.
   - Tests: `ParticleRecipeTests.OneOverlayIsSharedPerWindowAndRemovedOnceIdle`
-- **BRIDGE-RECIPES-MEDIA-010** — While `ReducedMotion` is set, a particle recipe shall emit nothing, play `reduced` (default `Recipes.Pulse()`, itself reduced to a blink) on the anchor, and return an effect that is already complete.
+- **BRIDGE-RECIPES-MEDIA-010** — While `ReducedMotion` is set, a particle recipe shall emit nothing, play `reduced` (default `Recipes.Pulse()`, itself reduced to a blink) on the anchor, and return an effect that is already complete; this check runs before the window check, so it holds for an anchor outside a window too.
   - Tests: `ParticleRecipeTests.UnderReducedMotionNothingSpawnsAndTheReducedFormPlays`, `BuilderRecipePagesTests.SubmitFlowThrowsConfettiOnSuccessUnlessMotionIsReduced`
-- **BRIDGE-RECIPES-MEDIA-011** — When the anchor is not in a window and `ReducedMotion` is clear, a particle recipe shall emit nothing and return an effect that is already complete.
+- **BRIDGE-RECIPES-MEDIA-011** — When `ReducedMotion` is clear and the anchor is not in a window, a particle recipe shall emit nothing, play nothing on the anchor, and return an effect that is already complete.
   - Tests: untested
 - **BRIDGE-RECIPES-MEDIA-012** — Canceling a particle effect shall clear its particles and complete it at once.
   - Tests: `ParticleRecipeTests.CancelClearsAndCompletesAtOnce`
@@ -122,7 +122,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 
 - Not on the tick path for the builders. `PlayFrames`' duration and end are function values evaluated once per target. Particle emission cost is BRIDGE-PARTICLES'.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
@@ -141,4 +141,3 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 ## Open items
 
 - `Confetti` from an edge, and an anchor outside a window, have no tests.
-- The particle design says an anchor outside a window "does not play `reduced`"; that holds only while `ReducedMotion` is clear, because the reduced check runs first and plays `reduced` regardless of the window.

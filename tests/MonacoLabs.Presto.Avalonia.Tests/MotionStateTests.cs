@@ -195,6 +195,54 @@ public sealed class MotionStateTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AGeometryMorphedByAStateReturnsToRestAtOnceWithAZeroDurationLeave()
+    {
+        var rest = Geometry.Parse("M6,5 L15,12 L6,19 Z M17,5 L19,5 L19,19 L17,19 Z");
+        var path = new Path { Data = rest, Fill = Brushes.Black };
+        Show(path);
+        Motion.SetStates(path, States(".on", Linear().Data(PrestoAvalonia.MorphTo(Geometry.Parse("M6,5 L12.5,12 L6,19 Z M12.5,5 L19,12 L12.5,19 Z"))), Presto.Build().Duration(0)));
+        path.Classes.Add("on");
+        Frames.Advance(200, 10);
+
+        path.Classes.Remove("on");
+        Frames.Advance(16);
+
+        Assert.Same(rest, path.Data);
+    }
+
+    [AvaloniaFact]
+    public void AZeroDurationReturnToRestSettles()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".on", Linear().Opacity(0.4), Presto.Build().Duration(0)));
+        box.Classes.Add("on");
+        Frames.Advance(200, 10);
+
+        box.Classes.Remove("on");
+        Frames.Advance(16);
+        box.Opacity = 0.8;
+
+        Assert.Equal(0.8, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void AMorphingStateActiveAtAttachSnapsToItsShape()
+    {
+        var panel = new StackPanel();
+        Show(panel);
+        var path = new Path { Data = Geometry.Parse("M0,0 L10,0 L10,10 Z"), Fill = Brushes.Black };
+        path.Classes.Add("on");
+        Motion.SetStates(path, States(".on", Linear().Data(PrestoAvalonia.MorphTo(Geometry.Parse("M0,0 L20,0 L20,20 L0,20 Z")))));
+
+        panel.Children.Add(path);
+
+        Assert.True(path.Data!.FillContains(new Point(2, 18)));
+        Frames.Advance(16);
+        Assert.Empty(Presto.GetAnimations(path));
+    }
+
+    [AvaloniaFact]
     public void CheckedOnAToggleButtonEnters()
     {
         var toggle = new ToggleButton { Content = "t" };
@@ -319,6 +367,81 @@ public sealed class MotionStateTests : BridgeTestBase
         Frames.Advance(200, 10);
         Assert.Equal(0, Get(box, "X"), 6);
         Assert.Empty(Presto.GetAnimations(box));
+    }
+
+    [AvaloniaFact]
+    public void ReturningToALowerLoopingStateResumesItsLoop()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box,
+        [
+            new MotionState { When = ".busy", Motion = Linear().Loop().Alternate().X(20) },
+            new MotionState { When = ".lifted", Motion = Linear().X(40) },
+        ]);
+        box.Classes.Add("busy");
+        Frames.Advance(50, 10);
+        box.Classes.Add("lifted");
+        Frames.Advance(200, 10);
+        Assert.Equal(40, Get(box, "X"), 6);
+
+        box.Classes.Remove("lifted");
+        Frames.Advance(250, 10);
+        var x = Get(box, "X");
+        Frames.Advance(50, 10);
+
+        Assert.NotEqual(x, Get(box, "X"), 3);
+        Assert.Single(Presto.GetAnimations(box));
+    }
+
+    [AvaloniaFact]
+    public void ReturningToALowerKeyframedStateReplaysItsKeyframes()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box,
+        [
+            new MotionState
+            {
+                When = ".busy",
+                Motion = Presto.Build().Ease(Eases.None).Keyframes(k => k.Frame(f => f.X(20).Duration(100)).Frame(f => f.X(0).Duration(100))),
+            },
+            new MotionState { When = ".lifted", Motion = Linear().X(40) },
+        ]);
+        box.Classes.Add("busy");
+        box.Classes.Add("lifted");
+        Frames.Advance(300, 10);
+        Assert.Equal(40, Get(box, "X"), 6);
+
+        box.Classes.Remove("lifted");
+        Frames.Advance(100, 10);
+        Assert.InRange(Get(box, "X"), 15, 25);
+        Frames.Advance(150, 10);
+        Assert.Equal(0, Get(box, "X"), 6);
+    }
+
+    [AvaloniaFact]
+    public void NothingIsTrackedInDesignMode()
+    {
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
+        var box = Box();
+        var window = Show(box);
+        isDesignMode.SetValue(null, true);
+        IDisposable handle;
+        try
+        {
+            Motion.SetHover(box, Linear().Scale(1.2));
+            handle = box.WhileHover(Linear().Opacity(0.5));
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        window.MouseMove(Inside);
+        Frames.Advance(200, 10);
+        Assert.Empty(Presto.GetAnimations(box));
+        handle.Dispose();
     }
 
     [AvaloniaFact]
@@ -531,5 +654,32 @@ public sealed class MotionStateTests : BridgeTestBase
         Frames.Advance(200, 10);
         Assert.Null(Motion.GetState(arrow));
         Assert.Equal(0, Get(arrow, "X"), 6);
+    }
+
+    [AvaloniaFact]
+    public void ALeavePerPropertyDelayHoldsThatPropertyBeforeItReturns()
+    {
+        var box = Box();
+        var window = Show(box);
+        Motion.SetStates(box, States(":pointerover", Linear().Opacity(0.5).X(20), Linear().Property("Opacity", delay: 100)));
+        window.MouseMove(Inside);
+        Frames.Advance(200, 10);
+
+        window.MouseMove(Outside);
+        Frames.Advance(80, 10);
+        Assert.Equal(0.5, box.Opacity, 6);
+        Assert.InRange(Get(box, "X"), 1, 8);
+        Frames.Advance(170, 10);
+        Assert.Equal(1, box.Opacity, 6);
+        Assert.Empty(Presto.GetAnimations(box));
+    }
+
+    [AvaloniaFact]
+    public void AStatePropertyWithNoRestThrowsWhenTheStateIsSet()
+    {
+        var box = Box();
+
+        Assert.Throws<NotSupportedException>(() => Motion.SetStates(box, States(".busy", Presto.Build().Property("NoSuchProperty", 1))));
+        Assert.Throws<NotSupportedException>(() => Box().While(".busy", Presto.Build().Property("NoSuchProperty", 1)));
     }
 }

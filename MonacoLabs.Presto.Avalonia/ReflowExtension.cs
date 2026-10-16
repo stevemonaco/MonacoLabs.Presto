@@ -10,5 +10,8 @@ public sealed class ReflowExtension : RecipeExtension
     public ReflowExtension(double duration) => Duration = duration;
 
     /// <inheritdoc/>
+    protected override bool HasExitForm => false;
+
+    /// <inheritdoc/>
     protected override AnimationBuilder Build(bool exit, EaseValue? ease) => Recipes.Reflow(Duration, Delay, ease);
 }

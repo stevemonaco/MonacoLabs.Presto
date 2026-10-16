@@ -16,7 +16,7 @@ namespace MonacoLabs.Presto.Effects;
 /// <c>MaskSweep</c> is the progress (0 hidden, 1 shown) and the companions <c>MaskSweepAngle</c> (degrees, 0 sweeping left to
 /// right) and <c>MaskSweepFeather</c> (the edge's width as a fraction of the sweep, default 0.2) tune it. The edge is placed
 /// by the brush's start and end points over fixed stops, since Skia pins stop offsets to 0-1 and the edge runs past both
-/// ends. A sweep that ends at 1 is removed.
+/// ends. The mask is removed whenever the sweep is at rest at 1: ended there, or not animated.
 /// </remarks>
 internal sealed class MaskComposer
 {
@@ -28,7 +28,7 @@ internal sealed class MaskComposer
     private double _angle;
     private double _feather = DefaultFeather;
     private IDisposable? _written;
-    private bool _revealed;
+    private bool _sweepEnded;
     private int _animated;
 
     public static object Identity(MaskShorthand shorthand) => shorthand switch
@@ -83,7 +83,7 @@ internal sealed class MaskComposer
         {
             case MaskShorthand.MaskSweep:
                 _progress = value;
-                _revealed = ended && value >= 1;
+                _sweepEnded = ended;
                 break;
             case MaskShorthand.MaskSweepAngle:
                 _angle = value;
@@ -96,7 +96,7 @@ internal sealed class MaskComposer
 
     private void Show(Visual visual)
     {
-        if (_revealed)
+        if (_progress >= 1 && (_sweepEnded || !Animates(MaskShorthand.MaskSweep)))
         {
             Hide();
             return;

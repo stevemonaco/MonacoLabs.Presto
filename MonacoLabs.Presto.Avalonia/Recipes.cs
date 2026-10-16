@@ -271,7 +271,7 @@ public static partial class Recipes
     public static PrestoPageTransition PageFadeThrough(double? duration = null) => Pages.PageFadeThrough(duration);
 
     /// <inheritdoc cref="Pages.PageSharedAxis"/>
-    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null) => Pages.PageSharedAxis(axis, distance);
+    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null, double? duration = null) => Pages.PageSharedAxis(axis, distance, duration);
 
     /// <inheritdoc cref="Pages.PageSlide"/>
     public static PrestoPageTransition PageSlide(Edge edge) => Pages.PageSlide(edge);
@@ -437,7 +437,7 @@ public static partial class Recipes
         var gap = line.TextRuns.Count > 0 && line.TextRuns[0] is ShapedTextRun run ? line.Baseline + run.TextMetrics.Ascent : 0;
         var row = new StackPanel { Orientation = Orientation.Horizontal, UseLayoutRounding = false, Margin = new(0, -gap, 0, line.Baseline - line.Height) };
         row.Children.AddRange(columns);
-        textBlock.Text = null;
+        textBlock.SetCurrentValue(TextBlock.TextProperty, null);
         textBlock.Inlines = [new InlineUIContainer(row)];
 
         using var origin = PrestoDiagnostics.Origin("Recipe");
@@ -451,7 +451,7 @@ public static partial class Recipes
             {
                 Rolls.Remove(textBlock);
                 textBlock.Inlines = null;
-                textBlock.Text = newText;
+                textBlock.SetCurrentValue(TextBlock.TextProperty, newText);
             })
             .Animate(glyphs);
         Rolls.AddOrUpdate(textBlock, roll);
@@ -474,7 +474,7 @@ public static partial class Recipes
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion) return Crossfade(textBlock, text, tokens);
+        if (Engine.Current.Defaults.ReducedMotion || IsDetached(textBlock)) return CompleteIfDetached(textBlock, Crossfade(textBlock, text, tokens));
 
         var oldOrigin = OriginInWindow(textBlock);
         var before = PieceGhosts.Split(textBlock, TextPieces.Chars);

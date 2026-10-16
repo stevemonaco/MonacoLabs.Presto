@@ -59,4 +59,21 @@ public sealed class TweenValueTests
         Assert.Same(spring.Ease, byIndex.Resolve(target, 2, 3, out var resolvedSpring));
         Assert.Same(spring, resolvedSpring);
     }
+
+    [Fact]
+    public void AnEaseFunctionReturningNothingResolvesToNone()
+    {
+        EaseValue nothing = new FunctionValue((_, _, _) => default);
+
+        Assert.Same(Eases.None, nothing.Resolve(new object(), 0, 1, out _));
+        Assert.Same(Eases.None, ((EaseValue)(string)null!).Resolve(new object(), 0, 1, out _));
+    }
+
+    [Fact]
+    public void AnEaseFunctionReturningANonEaseThrows()
+    {
+        EaseValue number = new FunctionValue((_, _, _) => 5.0);
+
+        Assert.Throws<InvalidOperationException>(() => number.Resolve(new object(), 0, 1, out _));
+    }
 }

@@ -114,6 +114,48 @@ public sealed class PromisesTests : EngineTestBase
         Assert.Equal(30, timer.CurrentTime);
     }
 
+    [Fact]
+    public void AThrowingThenCallbackStillCompletesTheTask()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 30 });
+        var task = timer.Then(_ => throw new InvalidOperationException("callback"));
+
+        Assert.Throws<InvalidOperationException>(() => RunUntil(() => timer.Completed));
+
+        Assert.True(task.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public void CancelRevertAndAMutedCompleteLeaveAPendingThenIncomplete()
+    {
+        var canceled = Presto.Animate(new StyleTarget(), new() { ["Y"] = 100, Duration = 30 });
+        var reverted = Presto.Animate(new StyleTarget(), new() { ["Y"] = 100, Duration = 30 });
+        var completed = Presto.Animate(new StyleTarget(), new() { ["Y"] = 100, Duration = 30 });
+        var tasks = new[] { canceled.Then(), reverted.Then(), completed.Then() };
+
+        canceled.Cancel();
+        reverted.Revert();
+        completed.Complete(muteCallbacks: true);
+        RunUntil(() => false, max: 100);
+
+        Assert.All(tasks, task => Assert.False(task.IsCompleted));
+    }
+
+    [Fact]
+    public void AnAnimationReplacedByCompositionLeavesItsThenIncomplete()
+    {
+        var target = new StyleTarget();
+        var first = Presto.Animate(target, new() { ["Y"] = 100, Duration = 30 });
+        var task = first.Then();
+        Frames.Advance(16);
+
+        var second = Presto.Animate(target, new() { ["Y"] = 0, Duration = 30 });
+        RunUntil(() => second.Completed);
+
+        Assert.True(first.Canceled);
+        Assert.False(task.IsCompleted);
+    }
+
     /// <summary>Real time rather than the manual clock: the default pump ticks the engine on the test thread through its SynchronizationContext and resolves the awaitable.</summary>
     [Fact]
     public void ThenResolvesOnTheDefaultFramePump()

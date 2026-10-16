@@ -1,7 +1,7 @@
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Measures the velocity of a sampled value the way anime.js draggables do: samples at least an interval apart, and the
+/// Measures the velocity of a sampled value: samples at least an interval apart, and the
 /// strongest of the last few taken as the velocity, so one slow final frame does not kill a flick.
 /// </summary>
 public sealed class VelocityTracker
@@ -14,8 +14,10 @@ public sealed class VelocityTracker
 
     /// <param name="interval">The minimum time between accepted samples; closer samples are ignored.</param>
     /// <param name="samples">How many recent samples the velocity is the strongest of.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="interval"/> is not positive, or <paramref name="samples"/> is less than 1.</exception>
     public VelocityTracker(double interval = 17, int samples = 3)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(interval);
         ArgumentOutOfRangeException.ThrowIfLessThan(samples, 1);
         _interval = interval;
         _samples = new double[samples];
@@ -38,7 +40,7 @@ public sealed class VelocityTracker
         }
     }
 
-    /// <summary>Clears the samples and the value baseline; the time of the last sample is kept, as upstream does.</summary>
+    /// <summary>Clears the samples and the value baseline; the time of the last sample is kept.</summary>
     public void Reset()
     {
         Array.Clear(_samples);
@@ -53,26 +55,26 @@ public sealed class VelocityTracker
         var elapsed = time - _time;
         if (elapsed < _interval) return false;
         Push(distance / elapsed, time);
-        var velocity = 0.0;
-        foreach (var sample in _samples)
-            if (Math.Abs(sample) > Math.Abs(velocity)) velocity = sample;
-        Velocity = velocity;
+        Velocity = Strongest();
         return true;
     }
 
-    /// <summary>
-    /// Draggable's sampler, as upstream's <c>computeVelocity</c>: each sample is scaled, clamped and rounded when taken,
-    /// and the velocity is the plain maximum of the window, zero seeds included.
-    /// </summary>
+    /// <summary>Draggable's sampler: each sample is scaled, clamped and rounded when taken.</summary>
     internal bool AddDisplacement(double distance, double time, double multiplier, double min, double max)
     {
         var elapsed = time - _time;
         if (elapsed < _interval) return false;
         Push(Utils.Round(Utils.Clamp(distance / elapsed * multiplier, min, max), 5), time);
-        var velocity = double.NegativeInfinity;
-        foreach (var sample in _samples) velocity = Math.Max(velocity, sample);
-        Velocity = velocity;
+        Velocity = Strongest();
         return true;
+    }
+
+    private double Strongest()
+    {
+        var velocity = 0.0;
+        foreach (var sample in _samples)
+            if (Math.Abs(sample) > Math.Abs(velocity)) velocity = sample;
+        return velocity;
     }
 
     private void Push(double sample, double time)

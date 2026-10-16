@@ -133,6 +133,7 @@ public static class Motion
     /// <summary>Adds <paramref name="state"/> after every other state of <paramref name="control"/>, until the returned handle is disposed.</summary>
     internal static IDisposable Add(Control control, MotionState state)
     {
+        if (Design.IsDesignMode) return new Handle(null, null);
         var tracker = control.GetValue(TrackerProperty);
         if (tracker is null) control.SetValue(TrackerProperty, tracker = new MotionTracker(control));
         return new Handle(tracker, tracker.Add(state));
@@ -172,7 +173,7 @@ public static class Motion
         var end = 0d;
         for (var i = 0; i < children.Count; i++)
         {
-            var offset = stagger?.Invoke(children[i].Tracker, i, [], null).AsDouble ?? 0;
+            var offset = stagger?.Invoke(children[i].Tracker, i, [], 0).AsDouble ?? 0;
             end = Math.Max(end, children[i].Tracker.Play(delay + offset));
         }
         if (playsOwn && order != MotionOrder.BeforeChildren) own!.Play(order == MotionOrder.AfterChildren ? end : 0);
@@ -207,8 +208,8 @@ public static class Motion
     }
 
     /// <summary>Removes a code-added state; the tracker ignores an entry it no longer holds, so a second dispose does nothing.</summary>
-    private sealed class Handle(MotionTracker tracker, MotionTracker.Entry entry) : IDisposable
+    private sealed class Handle(MotionTracker? tracker, MotionTracker.Entry? entry) : IDisposable
     {
-        public void Dispose() => tracker.Remove(entry);
+        public void Dispose() => tracker?.Remove(entry!);
     }
 }

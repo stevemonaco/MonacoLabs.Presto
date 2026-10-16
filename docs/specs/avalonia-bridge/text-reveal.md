@@ -58,6 +58,8 @@ depends:
   - Tests: untested
 - **BRIDGE-TEXTREVEAL-006** — When the block re-splits mid-reveal, the animation shall be rebuilt over the new pieces at the time the old one had reached.
   - Tests: `TextRevealTests.AResizeMidRevealResplitsAndKeepsTheTime`
+- **BRIDGE-TEXTREVEAL-036** — When the block's `Text` changes from outside mid-reveal, the reveal shall be rebuilt over the new text's pieces at the time the old one had reached (BRIDGE-TEXT-059), and when it completes the block shall show that text with its binding intact.
+  - Tests: `TextRevealTests.ABoundTextChangedMidRevealResplitsKeepingTheTimeAndEndsOnTheNewTextStillBound`
 - **BRIDGE-TEXTREVEAL-007** — When the reveal completes, the split shall be reverted so the block shows its plain text again.
   - Tests: `TextRevealTests.ACompletedRevealPutsTheTextBack`, `TextRevealTests.LineMaskRisesEachLineBehindItsClipToRest`, `ScrollStoryPageTests.AChapterHeadingMasksInByLineAsItsChapterEntersAndIsRejoinedAfter`
 - **BRIDGE-TEXTREVEAL-008** — A looping reveal shall stay split.
@@ -157,7 +159,7 @@ depends:
 
 - Not on the tick path: splitting and ghosting allocate at the trigger. The per-piece animation ticks like any animation over its targets.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js leaves per-piece animation to user code over `splitText`.
 

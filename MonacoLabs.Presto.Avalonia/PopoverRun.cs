@@ -68,7 +68,7 @@ internal sealed class PopoverRun
 
     public void Open()
     {
-        if (Popover.Builder(Popover.OpenProperty, _owner, _presenter) is { } open) _open = Play(open.ToParams());
+        if (Popover.Builder(Popover.OpenProperty, _owner, _presenter) is { } open) _open = Play(open.Resolve());
     }
 
     public void End()
@@ -128,7 +128,7 @@ internal sealed class PopoverRun
         else
         {
             _close?.Revert();
-            _close = Play(Closing(close.ToParams()));
+            _close = Play(Closing(close.Resolve()));
             // An instant close, as PrestoDefaults.ReduceAll makes every one, has nothing to wait for.
             if (_close.Completed) return false;
         }

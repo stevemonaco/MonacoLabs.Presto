@@ -97,8 +97,8 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
   - Tests: `RecipeMarkupTests.AFadeIsAnEntranceOnEnterAndAnExitOnExit`
 - **BRIDGE-MARKUP-005** — When `Out` is true the extension shall provide the exit form, and when false the entrance form, whatever the target.
   - Tests: `RecipeMarkupTests.OutTrueGivesTheExitFormInAStyleSetter`, `RecipeMarkupTests.TextRevealExtensionsProvideTheirRecipe`
-- **BRIDGE-MARKUP-006** — A recipe with no exit form (`Shake`, `Lift`, `PressIn`, `Glow`, `Shimmer`, `Recolor`, `Reflow`, `PlayFrames`) shall provide the same builder whichever form is asked for.
-  - Tests: untested
+- **BRIDGE-MARKUP-006** — When the exit form is asked for (BRIDGE-MARKUP-002/003/005) of an extension whose recipe has none (`Shake`, `Lift`, `PressIn`, `Glow`, `Shimmer`, `Recolor`, `Reflow`, `PlayFrames`, and BRIDGE-REORDER's `Reorder`), `ProvideValue` shall throw `NotSupportedException`; asked for the entrance form, it shall provide its recipe.
+  - Tests: `RecipeMarkupTests.AnExtensionWithNoExitFormThrowsWhereTheExitFormIsAskedFor`
 - **BRIDGE-MARKUP-007** — `Duration` and `Delay` shall be passed to the factory, null leaving the recipe's token defaults.
   - Tests: `RecipeMarkupTests.TextRevealExtensionsProvideTheirRecipe`, `RecipeMarkupTests.ReflowTakesItsDurationPositionallyAndParsesItsEase`
 - **BRIDGE-MARKUP-008** (inherited) — `Ease` shall be parsed with `EaseParser.Parse` and passed to the factory; an unparseable string shall throw the parser's exception from `ProvideValue`.
@@ -139,7 +139,7 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 
 ### Page extensions
 
-- **BRIDGE-MARKUP-021** — `{presto:PageFade Duration=…}`, `{presto:PageFadeThrough Duration=…}`, `{presto:PageSharedAxis Axis=… Distance=…}`, `{presto:PageSlide Edge=…}`, `{presto:PagePush Edge=…}` and `{presto:PageBloom}` shall each provide a new `PrestoPageTransition` from the same-named recipe with those settings.
+- **BRIDGE-MARKUP-021** — `{presto:PageFade Duration=…}`, `{presto:PageFadeThrough Duration=…}`, `{presto:PageSharedAxis Axis=… Distance=… Duration=…}`, `{presto:PageSlide Edge=…}`, `{presto:PagePush Edge=…}` and `{presto:PageBloom}` shall each provide a new `PrestoPageTransition` from the same-named recipe with those settings.
   - Tests: `RecipeMarkupTests.PageMarkupExtensionsProduceTransitionsWithTheirSettings`
 - **BRIDGE-MARKUP-022** (inherited) — The page extensions shall not derive from `RecipeExtension`: they take no `Delay`, `Ease`, `Stagger` or `Out`.
   - Tests: untested
@@ -177,13 +177,14 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 
 - Not on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
 ## Decisions
 
 - **One markup extension per family verb, with the exit form detected from the target.** Each derives from `RecipeExtension`, reads `IProvideValueTarget` and provides the exit form under `Presence.Exit`, else the entrance form; `Out` states the form explicitly, and with no service provider the entrance form is provided. Reason: one attribute should be the whole ceremony, and inside a style `Setter` the target is the setter rather than the property, so the form cannot be detected there and `Out="True"` is needed.
+- **An extension with no exit form throws where the exit form is asked for.** Each extension declares whether its recipe has an exit form (`RecipeExtension.HasExitForm`), and `ProvideValue` throws `NotSupportedException` when the target or `Out="True"` asks for one it lacks. Reason: settings without a meaning are rejected, not dropped; before, `{presto:Shake}` on `Presence.Exit` silently provided its entrance-style builder and shook on exit.
 - **The text reveal extensions have exit forms.** Under `Presence.Exit` they provide the recipe's `*Out` form; earlier they had none, replaced when text exits gained per-piece ghosts. Reason: not recorded beyond that.
 - **A page transition's exit properties take the exit form.** On a `PrestoPageTransition`'s `Exit` or `BackExit` the extension provides the exit form, detected as a `PrestoPageTransition` target object plus the property's name. Reason: in compiled XAML a CLR property reports a property info that names the property but not its declaring type.
 - **Markup: `{presto:Scatter}` only.** It provides `Gather` on enter and `Scatter` on exit; `Fall` and `Wave` are code-only, like `Grow`, `Dim` and `Pulse`. Reason: one extension per family verb, and no family has an extension for every recipe.
@@ -201,5 +202,4 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 ## Open items
 
 - No extension exposes `Lift`'s distance or `Glow`'s color, so XAML cannot set them.
-- A no-exit-form extension on `Presence.Exit` silently provides its entrance-style builder (`{presto:Shake}` shakes on exit); nothing tests or warns about it.
 - `{presto:Shimmer}` and the page extensions' lack of the shared settings have no tests.

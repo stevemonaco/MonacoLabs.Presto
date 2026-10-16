@@ -37,5 +37,5 @@ public sealed class MotionStateValidationTests
 
     [Fact]
     public void ALeaveWithOnlyTimingIsAccepted() =>
-        Validate(leave: Presto.Build().Duration(120).Delay(20).Ease("outQuad").Property("X", ease: "linear").Property("Y", duration: 80));
+        Validate(leave: Presto.Build().Duration(120).Delay(20).Ease("outQuad").Property("X", ease: "linear").Property("Y", duration: 80).Property("Z", delay: 30));
 }

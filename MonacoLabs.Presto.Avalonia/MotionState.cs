@@ -15,14 +15,14 @@ public sealed class MotionState
     /// <summary>Where properties go, and how, while <see cref="When"/> holds. Values must be absolute.</summary>
     public AnimationBuilder? Motion { get; init; }
 
-    /// <summary>Timing for the return when <see cref="When"/> stops holding: duration, delay and eases only, no values.</summary>
+    /// <summary>Timing for the return when <see cref="When"/> stops holding: duration, delay and eases, overall or per property, but no values.</summary>
     public AnimationBuilder? Leave { get; init; }
 
     /// <exception cref="NotSupportedException"><see cref="Motion"/> has a relative or from-only value, or <see cref="Leave"/> has any value.</exception>
     internal void Validate()
     {
-        if (Motion != null) ValidateMotion(Motion.ToParams());
-        if (Leave != null) ValidateLeave(Leave.ToParams());
+        if (Motion != null) ValidateMotion(Motion.Resolve());
+        if (Leave != null) ValidateLeave(Leave.Resolve());
     }
 
     private void ValidateMotion(AnimationParams p)
@@ -66,9 +66,8 @@ public sealed class MotionState
             throw new NotSupportedException($"The Leave of \"{When}\" only times the return to rest, so it cannot have keyframes.");
         foreach (var (name, value) in p.Properties)
         {
-            if (value.Raw is not TweenParams tween || tween.To != null || tween.From != null || tween.Delay != null
-                || tween.Composition != null || tween.Modifier != null || tween.TextModifier != null)
-                throw new NotSupportedException($"The Leave of \"{When}\" only times the return to rest, so give {name} only an ease or duration: .{name}(ease: …).");
+            if (value.Raw is not TweenParams tween || tween.To != null || tween.From != null || tween.Composition != null || tween.Modifier != null || tween.TextModifier != null)
+                throw new NotSupportedException($"The Leave of \"{When}\" only times the return to rest, so give {name} only an ease, duration or delay: .{name}(ease: …).");
         }
     }
 }

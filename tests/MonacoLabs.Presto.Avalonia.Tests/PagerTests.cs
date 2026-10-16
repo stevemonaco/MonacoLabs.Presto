@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -115,6 +117,70 @@ public sealed class PagerTests : CompositorTestBase
         Frames.Advance(3000, 20);
 
         Assert.Equal(3, pager.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void ASelectedIndexPastTheSlidesIsClampedAndTheStripRestsOnTheLast()
+    {
+        var (_, pager) = Stage();
+
+        pager.SelectedIndex = 7;
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(3, pager.SelectedIndex);
+        Assert.Equal(-600, StripX(pager), 1);
+    }
+
+    [AvaloniaFact]
+    public void ALoopingSelectedIndexWrapsAndIsReCoercedWhenLoopChanges()
+    {
+        var (_, pager) = Stage();
+
+        pager.SelectedIndex = -2;
+        Assert.Equal(0, pager.SelectedIndex);
+        pager.Loop = true;
+        Assert.Equal(2, pager.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void RemovingSlidesPastTheIndexReCoercesIt()
+    {
+        var (_, pager) = Stage();
+        pager.GoTo(3);
+        Frames.Advance(3000, 20);
+
+        pager.Slides.RemoveAt(3);
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(2, pager.SelectedIndex);
+        Assert.Equal(2, pager.Position.Value, 3);
+    }
+
+    [AvaloniaFact]
+    public void ASelectedIndexSetBeforeTheSlidesAreAddedSurvives()
+    {
+        var pager = new Pager { SelectedIndex = 2 };
+        Assert.Equal(2, pager.SelectedIndex);
+
+        foreach (var color in new[] { Colors.Red, Colors.Green, Colors.Blue, Colors.Yellow })
+        {
+            pager.Slides.Add(new Border { Background = new SolidColorBrush(color) });
+        }
+
+        Assert.Equal(2, pager.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void ATwoWayBindingSourceGetsTheCoercedIndex()
+    {
+        var (_, pager) = Stage();
+        var source = new Selection();
+        pager.Bind(Pager.SelectedIndexProperty, new Binding(nameof(Selection.Index)) { Source = source });
+
+        source.Index = 9;
+
+        Assert.Equal(3, pager.SelectedIndex);
+        Assert.Equal(3, source.Index);
     }
 
     [AvaloniaTheory]
@@ -277,6 +343,23 @@ public sealed class PagerTests : CompositorTestBase
         ((Panel)pager.Parent!).Children.Add(indicator);
         Tick();
         return indicator;
+    }
+
+    private sealed class Selection : INotifyPropertyChanged
+    {
+        private int _index;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public int Index
+        {
+            get => _index;
+            set
+            {
+                _index = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Index)));
+            }
+        }
     }
 
     private static (Window Window, Pager Pager) Stage()

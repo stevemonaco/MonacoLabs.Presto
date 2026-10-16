@@ -16,7 +16,7 @@ namespace MonacoLabs.Presto.Effects;
 /// <c>ClipCircle</c> is a radius fraction, 1 reaching the corner farthest from the center. MOTION-KIT §3.2 gives it a center
 /// too, which one scalar cannot carry, so the center is the companion <c>ClipCircleCenter</c>, a <see cref="RelativePoint"/>
 /// defaulting to 50%,50%. A visual holds one clip, so an inset and a circle cannot animate it at once; one after the other
-/// switches the kind. A reveal that ends at full visibility, every inset 0 or a radius of 1, is removed.
+/// switches the kind. An inset that ends at 0 on every side is removed, as is a circle whose radius is at rest at 1: ended there, or not animated.
 /// </remarks>
 internal sealed class ClipComposer
 {
@@ -32,7 +32,7 @@ internal sealed class ClipComposer
     private readonly ExclusiveKinds<ClipShorthand> _kinds = new(
         ClipShorthand.ClipCircle, ClipShorthand.ClipCircleCenter, "a visual holds one clip. Put one reveal on an inner element.");
     private IDisposable? _written;
-    private bool _revealed;
+    private bool _ended;
 
     public static object Identity(ClipShorthand shorthand) => shorthand switch
     {
@@ -62,7 +62,7 @@ internal sealed class ClipComposer
         var composer = Begin(visual, ClipShorthand.ClipInset);
         inset.CopyTo(composer._inset, 0);
         composer._insetUnits = units;
-        composer._revealed = ended && inset[0] == 0 && inset[1] == 0 && inset[2] == 0 && inset[3] == 0;
+        composer._ended = ended;
         composer.Show(visual);
     }
 
@@ -70,7 +70,7 @@ internal sealed class ClipComposer
     {
         var composer = Begin(visual, ClipShorthand.ClipCircle);
         composer._radius = radius;
-        composer._revealed = ended && radius >= 1;
+        composer._ended = ended;
         composer.Show(visual);
     }
 
@@ -110,15 +110,16 @@ internal sealed class ClipComposer
 
     private void Reset(ClipShorthand shorthand)
     {
-        _revealed = false;
         switch (shorthand)
         {
             case ClipShorthand.ClipInset:
                 Array.Clear(_inset);
                 _insetUnits = s_dips;
+                _ended = false;
                 break;
             case ClipShorthand.ClipCircle:
                 _radius = 1;
+                _ended = false;
                 break;
             default:
                 _center = RelativePoint.Center;
@@ -129,9 +130,13 @@ internal sealed class ClipComposer
     private string FormatInset() =>
         $"{JsNumber.Format(_inset[0])}{_insetUnits[1]}{JsNumber.Format(_inset[1])}{_insetUnits[2]}{JsNumber.Format(_inset[2])}{_insetUnits[3]}{JsNumber.Format(_inset[3])}{_insetUnits[4]}";
 
+    private bool Revealed => _kinds.IsKindB
+        ? _radius >= 1 && (_ended || !_kinds.Animates(ClipShorthand.ClipCircle))
+        : _ended && _inset[0] == 0 && _inset[1] == 0 && _inset[2] == 0 && _inset[3] == 0;
+
     private void Show(Visual visual)
     {
-        if (_revealed)
+        if (Revealed)
         {
             Hide(visual);
             return;

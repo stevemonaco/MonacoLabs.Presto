@@ -233,7 +233,7 @@ public sealed class TweensTests : EngineTestBase
     }
 
     [Fact]
-    public void DoNotOverrideTweensWithCompositionNone()
+    public void DoNotOverrideTweensWithCompositionOverlap()
     {
         var target = new StyleTarget();
         var shortDone = false;
@@ -243,7 +243,7 @@ public sealed class TweensTests : EngineTestBase
             ["X"] = 100,
             ["Scale"] = 2,
             Duration = 80,
-            Composition = Composition.None,
+            Composition = Composition.Overlap,
             OnComplete = _ => longDone = true,
         });
 
@@ -251,7 +251,7 @@ public sealed class TweensTests : EngineTestBase
         {
             ["Scale"] = 4,
             Duration = 40,
-            Composition = Composition.None,
+            Composition = Composition.Overlap,
             OnComplete = _ =>
             {
                 Assert.False(animation1.Completed);
@@ -268,7 +268,7 @@ public sealed class TweensTests : EngineTestBase
     }
 
     [Fact]
-    public void ProperlyBlendTweensWithCompositionBlend()
+    public void ProperlySumTweensWithCompositionAdditive()
     {
         var target = new StyleTarget();
         var shortDone = false;
@@ -278,7 +278,7 @@ public sealed class TweensTests : EngineTestBase
             ["X"] = 100,
             ["Scale"] = 2,
             Duration = 200,
-            Composition = Composition.Blend,
+            Composition = Composition.Additive,
             Ease = "linear",
             OnComplete = _ => longDone = true,
         });
@@ -288,7 +288,7 @@ public sealed class TweensTests : EngineTestBase
             ["X"] = 200,
             ["Scale"] = 4,
             Duration = 100,
-            Composition = Composition.Blend,
+            Composition = Composition.Additive,
             Ease = "linear",
             OnComplete = _ =>
             {
@@ -302,8 +302,8 @@ public sealed class TweensTests : EngineTestBase
 
         RunUntil(() => shortDone && longDone);
 
-        Assert.True(target.X > 180, $"Expected the blended x above 180, got {target.X}.");
-        Assert.True(target.Scale > 3.9, $"Expected the blended scale above 3.9, got {target.Scale}.");
+        Assert.True(target.X > 180, $"Expected the summed x above 180, got {target.X}.");
+        Assert.True(target.Scale > 3.9, $"Expected the summed scale above 3.9, got {target.Scale}.");
     }
 
     [Fact]
@@ -316,9 +316,9 @@ public sealed class TweensTests : EngineTestBase
 
         var animation = Presto.Animate(new StyleTarget(), new()
         {
-            ["X"] = new TweenParams { To = 100, Modifier = modifierA, Composition = Composition.Blend, Ease = easeA },
+            ["X"] = new TweenParams { To = 100, Modifier = modifierA, Composition = Composition.Additive, Ease = easeA },
             ["Y"] = 100,
-            Composition = Composition.None,
+            Composition = Composition.Overlap,
             Ease = easeB,
             Modifier = modifierB,
             Autoplay = false,
@@ -327,11 +327,11 @@ public sealed class TweensTests : EngineTestBase
         var tweenX = TestHelpers.GetTweenAtIndex(animation, 0)!;
         Assert.Same(modifierA, tweenX._modifier);
         Assert.Same(easeA, tweenX._ease);
-        Assert.Equal(Composition.Blend, tweenX._composition);
+        Assert.Equal(Composition.Additive, tweenX._composition);
 
         var tweenY = TestHelpers.GetTweenAtIndex(animation, 1)!;
         Assert.Same(modifierB, tweenY._modifier);
         Assert.Same(easeB, tweenY._ease);
-        Assert.Equal(Composition.None, tweenY._composition);
+        Assert.Equal(Composition.Overlap, tweenY._composition);
     }
 }

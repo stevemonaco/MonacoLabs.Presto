@@ -54,6 +54,23 @@ public sealed class CallbacksTests : EngineTestBase
     }
 
     [Fact]
+    public void CompleteFiresOnCompleteAndNotOnPause()
+    {
+        int paused = 0, completed = 0;
+        var timer = Presto.CreateTimer(new() { Duration = 100, OnPause = _ => paused++, OnComplete = _ => completed++ });
+        var animation = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 100, OnPause = _ => paused++, OnComplete = _ => completed++ });
+        Frames.Advance(16);
+
+        timer.Complete();
+        animation.Complete();
+
+        Assert.Equal(2, completed);
+        Assert.Equal(0, paused);
+        Assert.True(timer.Canceled);
+        Assert.True(animation.Canceled);
+    }
+
+    [Fact]
     public void OnBeginOnAnimation()
     {
         var callbackCheck = 0;

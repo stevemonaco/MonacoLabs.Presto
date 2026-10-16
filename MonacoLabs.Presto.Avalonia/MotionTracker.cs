@@ -11,6 +11,7 @@ using MonacoLabs.Presto.Text;
 using MonacoLabs.Presto.Transforms;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
+using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto;
 
@@ -185,7 +186,13 @@ internal sealed class MotionTracker
         var properties = new Dictionary<string, KeyValuePair<string, TweenValue>>();
         if (state.Motion != null)
         {
-            foreach (var pair in Expand(state.Motion.ToParams())) properties[Presto.Canonicalize(_control, pair.Key)] = pair;
+            foreach (var pair in Expand(state.Motion.Resolve()))
+            {
+                var property = Presto.Canonicalize(_control, pair.Key);
+                // Throws now, from the setter, for a property with no rest, rather than later from an input handler.
+                Rest(property);
+                properties[property] = pair;
+            }
         }
         return properties;
     }
@@ -239,7 +246,7 @@ internal sealed class MotionTracker
         {
             var previous = _winners.GetValueOrDefault(property);
             if (previous == winner) continue;
-            if (previous is { Active: false } && winner.WasActive) Group(ref _leaving, previous, property);
+            if (previous is { Active: false } && winner.WasActive && !Resumes(winner, property)) Group(ref _leaving, previous, property);
             else Group(ref _entering, winner, property);
         }
         foreach (var (property, previous) in _winners)
@@ -278,7 +285,7 @@ internal sealed class MotionTracker
             var (name, value) = entry.Properties[property];
             chosen[name] = value;
         }
-        var parameters = entry.State.Motion!.ToParams();
+        var parameters = entry.State.Motion!.Resolve();
         return Animate(parameters with
         {
             Properties = chosen, Keyframes = null, Composition = Composition.Replace, Delay = Delayed(parameters.Delay, delay),
@@ -287,7 +294,7 @@ internal sealed class MotionTracker
 
     private Animation Leave(Entry entry, List<string> properties, double delay)
     {
-        var timing = (entry.State.Leave ?? entry.State.Motion!).ToParams();
+        var timing = (entry.State.Leave ?? entry.State.Motion!).Resolve();
         var values = new OrderedDictionary<string, TweenValue>();
         List<string>? resting = null;
         foreach (var property in properties)
@@ -305,19 +312,21 @@ internal sealed class MotionTracker
                 (resting ??= []).Add(property);
             }
             values[property] = Timing(timing, property) is { } tween
-                ? new TweenParams { To = to, Duration = tween.Duration, Delay = tween.Delay, Ease = tween.Ease }
+                ? new TweenParams { To = to, Duration = tween.Duration, Delay = tween.Delay is { } own ? Delayed(own, delay) : null, Ease = tween.Ease }
                 : to;
         }
         var animation = Animate(new AnimationParams
         {
             Duration = timing.Duration, Delay = Delayed(timing.Delay, delay), Ease = timing.Ease, Composition = Composition.Replace, Properties = values,
         }, properties);
-        if (resting != null) animation.OnComplete = _ => Settle(animation, resting);
+        if (resting == null) return animation;
+        if (animation.Completed) Settle(animation, resting);
+        else animation.OnComplete = _ => Settle(animation, resting);
         return animation;
     }
 
-    private static TweenValue? Delayed(TweenValue? delay, double extra) =>
-        extra == 0 ? delay : ((delay ?? Presto.Defaults.Delay).AsDouble ?? 0) + extra;
+    private TweenValue? Delayed(TweenValue? delay, double extra) =>
+        extra == 0 ? delay : JsNumber.ToNumber(Animation.GetFunctionValue(delay ?? Presto.Defaults.Delay, _control, 0, [_control], null)?.Raw, 0) + extra;
 
     private Animation Animate(AnimationParams parameters, List<string> properties)
     {
@@ -357,6 +366,10 @@ internal sealed class MotionTracker
 
     /// <summary>Where <paramref name="entry"/> holds <paramref name="property"/>: its value, or its last keyframe's.</summary>
     private static TweenValue Target(Entry entry, string property) => Final(entry.Properties[property].Value);
+
+    private static bool Resumes(Entry entry, string property) =>
+        entry.Properties[property].Value.Raw is TweenValue[] { Length: > 2 } or TweenValue[] and [{ IsParams: true }, ..]
+        || entry.State.Motion!.Resolve().Loop is { Value: not 0 };
 
     private static TweenValue Final(TweenValue value)
     {
@@ -491,7 +504,7 @@ internal sealed class MotionTracker
         foreach (var (property, entry) in _winners)
         {
             values[property] = Target(entry, property);
-            if (entry.State.Motion!.ToParams().Loop is { Value: not 0 }) Group(ref looping, entry, property);
+            if (entry.State.Motion!.Resolve().Loop is { Value: not 0 }) Group(ref looping, entry, property);
         }
         var set = Presto.Set(_control, new AnimationParams { Properties = values });
         foreach (var property in _winners.Keys) _drivers[property] = set;

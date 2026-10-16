@@ -122,8 +122,8 @@ public sealed class DiscreteValuesTests : EngineTestBase
         Assert.Throws<ArgumentException>(() => Animate(new Toggle(), "Side", value));
 
     [Fact]
-    public void BlendingThrows() =>
-        Assert.Throws<ArgumentException>(() => Presto.Animate(new Toggle(), new() { ["On"] = TweenValue.Of(true), Composition = Composition.Blend }));
+    public void AdditiveThrows() =>
+        Assert.Throws<ArgumentException>(() => Presto.Animate(new Toggle(), new() { ["On"] = TweenValue.Of(true), Composition = Composition.Additive }));
 
     [Fact]
     public void AnAnimatableRetargetSnaps()

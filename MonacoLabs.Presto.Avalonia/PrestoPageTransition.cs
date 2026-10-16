@@ -68,15 +68,21 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     /// <inheritdoc/>
     public void Reset(Visual visual)
     {
-        if (s_hosts.TryGetValue(visual, out var run)) run.Release();
+        if (_progress is { } progress && (progress.From == visual || progress.To == visual))
+        {
+            progress.Incoming?.Release();
+            progress.Outgoing?.Release();
+            _progress = null;
+        }
+        else if (s_hosts.TryGetValue(visual, out var run)) run.Release();
     }
 
     private (HostRun? Incoming, HostRun? Outgoing) Begin(Visual? from, Visual? to, bool forward, bool seekable)
     {
         PrestoAvalonia.EnsureInitialized();
         using var origin = PrestoDiagnostics.Origin("PageTransition");
-        var enter = to == null ? null : forward ? Enter?.ToParams() : BackEnter?.ToParams() ?? Reversed(Exit);
-        var exit = from == null ? null : forward ? Exit?.ToParams() : BackExit?.ToParams() ?? Reversed(Enter);
+        var enter = to == null ? null : forward ? Enter?.Resolve() : BackEnter?.Resolve() ?? Reversed(Exit);
+        var exit = from == null ? null : forward ? Exit?.Resolve() : BackExit?.Resolve() ?? Reversed(Enter);
         var compositor = !seekable && Thread switch
         {
             AnimationThread.UIThread => false,
@@ -98,7 +104,7 @@ public sealed class PrestoPageTransition : IPageTransition, IProgressPageTransit
     }
 
     private static AnimationParams? Reversed(AnimationBuilder? builder) =>
-        builder?.ToParams() is { } parameters ? parameters with { Reversed = parameters.Reversed != true } : null;
+        builder?.Resolve() is { } parameters ? parameters with { Reversed = parameters.Reversed != true } : null;
 
     private static async Task Finish(HostRun? incoming, HostRun? outgoing, CancellationToken cancellationToken)
     {

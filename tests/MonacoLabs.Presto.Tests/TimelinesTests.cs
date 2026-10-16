@@ -63,11 +63,11 @@ public sealed class TimelinesTests : EngineTestBase
                 Ease = "inOut",
                 Alternate = true,
                 Loop = 3,
-                Composition = Composition.None,
+                Composition = Composition.Overlap,
             },
         })
         .Add(target, new() { ["TranslateX"] = 100, Duration = 15 })
-        .Add(target, new() { ["TranslateX"] = 200, Reversed = false, Ease = "outExpo", Composition = Composition.Blend });
+        .Add(target, new() { ["TranslateX"] = 200, Reversed = false, Ease = "outExpo", Composition = Composition.Additive });
 
         var first = TestHelpers.GetChildAtIndex(tl, 0)!;
         var second = TestHelpers.GetChildAtIndex(tl, 1)!;
@@ -78,8 +78,8 @@ public sealed class TimelinesTests : EngineTestBase
         Assert.Equal(200, tl.Duration);
         Assert.Equal(Eases.InOut()(.75), first._headTween!._ease(.75));
         Assert.Equal(Eases.OutExpo(.75), second._headTween!._ease(.75));
-        Assert.Equal(Composition.None, first._headTween!._composition);
-        Assert.Equal(Composition.Blend, second._headTween!._composition);
+        Assert.Equal(Composition.Overlap, first._headTween!._composition);
+        Assert.Equal(Composition.Additive, second._headTween!._composition);
     }
 
     [Fact]
@@ -292,6 +292,21 @@ public sealed class TimelinesTests : EngineTestBase
         tl.Seek(2000);
 
         Assert.Equal(-100, target.Y);
+    }
+
+    [Fact]
+    public void AZeroDurationFromTheDefaultsOrAFunctionLandsOnThePosition()
+    {
+        var byDefaults = new StyleTarget();
+        var byFunction = new StyleTarget();
+        var tl = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { Duration = 0 } })
+            .Add(byDefaults, new() { ["Y"] = -100 }, 2000)
+            .Add(byFunction, new() { ["Y"] = -100, Duration = new FunctionValue((_, _, _) => 0) }, 2000);
+
+        tl.Seek(2000);
+
+        Assert.Equal(-100, byDefaults.Y);
+        Assert.Equal(-100, byFunction.Y);
     }
 
     [Fact]

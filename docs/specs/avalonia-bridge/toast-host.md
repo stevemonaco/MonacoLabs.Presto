@@ -45,6 +45,10 @@ depends:
   - Tests: `ToastHostTests.DismissRemovesTheToastAndToastFindsItFromInside`
 - **BRIDGE-TOAST-005** — A toast's entrance shall be its template root's `Presence.Arrive`, and the rest of the stack shall restack through the host's `Animate.ItemLayout` when set.
   - Tests: `ToastHostTests.ShowPlaysTheEntrance`, `ToastHostTests.PastMaxCountTheOldestLeavesAndTheRestRestack`
+- **BRIDGE-TOAST-020** — When `Items` is changed other than through `Show` and `Toast.Dismiss`, or `ItemsSource` is set, the host shall throw `InvalidOperationException`.
+  - Tests: `ToastHostTests.ChangingItemsOrSettingItemsSourceThrows`
+- **BRIDGE-TOAST-021** — When a toast's container is cleared, the toast shall drop its handlers on it; when a toast is prepared into a container, it shall first drop those on its previous one, so only its latest container holds and loads it.
+  - Tests: `ToastHostTests.ARepreparedToastFollowsItsNewContainer`
 
 ### Countdown
 
@@ -110,13 +114,14 @@ depends:
 
 - One timer or animation per toast. Not on the tick path otherwise.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
 ## Decisions
 
 - **`ToastHost` owns its items and trims instead of queueing.** It is an `ItemsControl` filled only through `Show`, which dismisses the oldest toasts past `MaxCount` before adding; the motion is the item template's `Presence` and the host's `Animate.ItemLayout`, and the swipe is `Swipe` on the container. Reason: a cap trimmed inside the collection's own `CollectionChanged` cannot change it there, so the host must add the items itself; no page waits for a toast, so trimming is enough. Rejected: a queue; a host over a view-model collection.
+- **Changes the host did not make throw.** Changing `Items` directly or setting `ItemsSource` throws `InvalidOperationException`, and a re-prepared container's toast drops its handlers on the old container before attaching to the new one. Reason: item `i` must belong to toast `i`, and a change the host did not make desyncs the two silently, so preparing a container indexes past the toast list; a toast attached twice would double its handlers. Rejected: ignoring outside changes; supporting `ItemsSource`.
 - **`GetAnimations` omitting paused animations is documented, not fixed.** See BRIDGE-HELPERS.
 
 ## Non-goals
@@ -127,6 +132,4 @@ depends:
 
 ## Open items
 
-- `Items` changed directly, or `ItemsSource` set, desyncs the host's toast list from its items; nothing guards it, and preparing a container for an item `Show` did not add indexes past the list.
-- A re-prepared container (template change) would call `Attach` again and double its handlers; untested.
 - Untested: the plain-timer countdown without a marked element, starting paused under an existing hover, a second `Dismiss`, and `MaxCount <= 0`.

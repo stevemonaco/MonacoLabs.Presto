@@ -34,10 +34,10 @@ public sealed record DraggableParams
     public double? ReleaseContainerFriction { get; init; }
 
     /// <summary>
-    /// Lets Escape end a drag in progress and spring the target back to where it was grabbed, false by default.
+    /// Lets Escape end a drag in progress and spring the target back to where it was grabbed, true by default.
     /// <see cref="OnRelease"/> and <see cref="OnSettle"/> then run as they do for a release.
     /// </summary>
-    public bool CancelOnEscape { get; init; }
+    public bool CancelOnEscape { get; init; } = true;
 
     /// <summary>How far the pointer has to travel before the drag starts, 3 by default.</summary>
     public double? DragThreshold { get; init; }
@@ -88,7 +88,7 @@ public sealed record DraggableParams
     /// <summary>Runs when the pointer takes hold of the trigger, before it has moved.</summary>
     public Action<Draggable>? OnGrab { get; init; }
 
-    /// <summary>Runs on the first movement past <see cref="DragThreshold"/>, where the drag itself begins.</summary>
+    /// <summary>Runs on every pointer move once the drag has passed <see cref="DragThreshold"/>.</summary>
     public Action<Draggable>? OnDrag { get; init; }
 
     /// <summary>Runs on every frame the target actually moves on.</summary>

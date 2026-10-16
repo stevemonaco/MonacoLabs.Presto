@@ -13,15 +13,15 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto.Events;
 
 /// <summary>
-/// Port of anime.js <c>onScroll</c>: watches a control crossing a <see cref="ScrollViewer"/>'s enter and leave
+/// Watches a control crossing a <see cref="ScrollViewer"/>'s enter and leave
 /// thresholds, reporting it through callbacks and, once <see cref="Link"/>ed to a timer, animation or timeline, driving
 /// that object either by playback methods or by seeking it to the scroll position.
 /// </summary>
 /// <remarks>
-/// Upstream's <c>debug</c> overlay draws DOM elements and is not ported, nor are the function forms of <c>axis</c>,
+/// anime.js's <c>debug</c> overlay draws DOM elements and has no counterpart, nor do the function forms of <c>axis</c>,
 /// <c>repeat</c>, <c>enter</c> and <c>leave</c> — the values are read again on every <see cref="Refresh"/> instead.
-/// Upstream also links through <c>autoplay: onScroll()</c>; here the linked object is created paused and handed to
-/// <see cref="Link"/>, which still ties the two lifetimes together. Upstream has no pin or snap;
+/// anime.js also links through <c>autoplay: onScroll()</c>; here the linked object is created paused and handed to
+/// <see cref="Link"/>, which still ties the two lifetimes together. anime.js has no pin or snap;
 /// <see cref="ScrollObserverParams.Pin"/> and <see cref="ScrollObserverParams.Snap"/> are GSAP ScrollTrigger's.
 /// </remarks>
 public sealed class ScrollObserver : IRevertible
@@ -72,7 +72,7 @@ public sealed class ScrollObserver : IRevertible
         _parameters = parameters;
 
         var mode = parameters.Sync?.Raw ?? DefaultSync;
-        var ease = mode switch { string name => EaseParser.Parse(name), Ease raw => raw, _ => null };
+        var ease = mode switch { string name => EaseParser.TryParse(name, out var parsed) ? parsed : null, Ease raw => raw, _ => null };
         var isLinear = mode is "linear" || (mode is Ease && ease == Eases.None);
         var isEase = ease != null && (ease != Eases.None || isLinear);
         var isSmooth = mode is double or true || isLinear;
@@ -115,6 +115,7 @@ public sealed class ScrollObserver : IRevertible
         {
             Container = ScrollContainer.Register(scroller, this);
         }
+        if (Target != null) ThrowIfUnresolvable();
         // Resolution waits a frame so an observer created before the animation it watches can still take its target.
         Utils.Sync(_ => Resolve());
     }
@@ -194,16 +195,20 @@ public sealed class ScrollObserver : IRevertible
     /// control it animates.
     /// </summary>
     /// <remarks>Reverting <paramref name="linked"/> reverts the observer with it, as upstream's <c>autoplay: onScroll()</c> does.</remarks>
+    /// <exception cref="InvalidOperationException">
+    /// The observer has not resolved and has no target, or its loaded target has no <see cref="ScrollViewer"/> and no container is set.
+    /// </exception>
     public ScrollObserver Link(Timer linked)
     {
         linked.Pause();
         Linked = linked;
         linked._onRevert += HandleLinkedRevert;
-        if (_parameters.Target == null && Ready && LinkedTarget() is { } target)
+        if (_parameters.Target == null && LinkedTarget() is { } target)
         {
             Target = target;
             Refresh();
         }
+        if (!Ready) ThrowIfUnresolvable();
         return this;
     }
 
@@ -420,7 +425,6 @@ public sealed class ScrollObserver : IRevertible
     private void Resolve()
     {
         if (Reverted) return;
-        Target ??= LinkedTarget();
         // A target created during the layout pass this frame renders has neither its ScrollViewer ancestor nor bounds yet.
         if (Target is { IsLoaded: false } pending)
         {
@@ -431,12 +435,15 @@ public sealed class ScrollObserver : IRevertible
         {
             Container = ScrollContainer.Register(scroller, this);
         }
-        if (Target == null || Container == null)
-        {
-            throw new InvalidOperationException(
-                "A ScrollObserver watches a control inside a ScrollViewer: set ScrollObserverParams.Target, or link an animation of one.");
-        }
+        ThrowIfUnresolvable();
         Measure();
+    }
+
+    private void ThrowIfUnresolvable()
+    {
+        if (Target is { IsLoaded: false } || (Target != null && (Container != null || Target.FindAncestorOfType<ScrollViewer>() != null))) return;
+        throw new InvalidOperationException(
+            "A ScrollObserver watches a control inside a ScrollViewer: set ScrollObserverParams.Target, or link an animation of one.");
     }
 
     private void UpdateBounds()
@@ -518,6 +525,8 @@ public sealed class ScrollObserver : IRevertible
         _snapFrom = scroll;
         _snapTo = to;
         _snapTween!.Restart();
+        var defaults = _snapTween.Engine.Defaults;
+        if (defaults.ReducedMotion || defaults.ReduceAll) _snapTween.Complete();
     }
 
     private void WriteSnap(double value) => ScrollWriter.Of(Container!.Scroller).Write(this, Horizontal, value);

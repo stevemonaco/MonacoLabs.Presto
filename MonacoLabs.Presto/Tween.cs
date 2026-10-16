@@ -27,6 +27,11 @@ public sealed class Tween
     internal double _toNumber;
     internal double[] _numbers = [];
     internal double _number;
+    // An additive tween's own from and to, which composing turns into a delta; restored when it leaves its list so it can recompose.
+    internal double _ownFromNumber;
+    internal double _ownToNumber;
+    internal double[]? _ownFromNumbers;
+    internal double[]? _ownToNumbers;
     internal string? _unit;
     internal Func<double, double> _modifier = static v => v;
     internal Func<double, string>? _textModifier;
@@ -44,6 +49,7 @@ public sealed class Tween
     internal bool _isOverlapped;
     internal bool _isOverridden;
     internal object? _inlineValue;
+    internal bool _hasInlineValue;
     // Set only on a discrete tween, whose channel runs 0 to 1 and picks one of these whole.
     internal DiscreteRule? _discrete;
     internal object? _fromObject;
@@ -128,7 +134,6 @@ public sealed class Tween
     public TweenSnapshot GetTo() => Snapshot(_toNumber, _toNumbers);
 
     /// <summary>The value the tween last rendered. Allocates; meant for tools.</summary>
-    /// <remarks>A <see cref="Composition.None"/> tween does not track its number, so a number or unit value reads as its from value.</remarks>
     public TweenSnapshot GetCurrent() => Snapshot(_number, _numbers);
 
     private TweenSnapshot Snapshot(double number, double[] numbers)

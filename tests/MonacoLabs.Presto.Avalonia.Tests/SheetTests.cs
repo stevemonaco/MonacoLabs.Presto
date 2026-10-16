@@ -64,6 +64,27 @@ public sealed class SheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ACrosswiseFirstMoveDropsThePressAndTheSheetStays()
+    {
+        var (window, sheet) = Opened();
+        var touch = new Touch(window);
+
+        touch.Press(1, new Point(100, 150));
+        Frames.Advance(20);
+        touch.Move(1, new Point(110, 148));
+        for (var i = 1; i <= 3; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, new Point(110, 148 - (20 * i)));
+        }
+        touch.Up(1, new Point(110, 88));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(1, sheet.DetentIndex);
+        Assert.Equal(100, sheet.Position.Value, 1);
+    }
+
+    [AvaloniaFact]
     public void AShorterTimeConstantSettlesSooner()
     {
         var (_, snappy) = Stage(new Border { Background = Brushes.Red });
@@ -157,6 +178,82 @@ public sealed class SheetTests : CompositorTestBase
         Assert.False(sheet.IsOpen);
         Assert.Equal(0, sheet.Position.Value, 1);
         Assert.False(sheet.Content!.IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public void AnOpenSheetGetsBackAndEscapeBeforeAnEarlierTopLevelHandler()
+    {
+        var window = new Window { Width = 200, Height = 200 };
+        var appSaw = 0;
+        window.AddHandler(TopLevel.BackRequestedEvent, (_, e) => appSaw++);
+        window.AddHandler(InputElement.KeyDownEvent, (_, e) => appSaw++);
+        var sheet = new Sheet { Detents = SheetDetents.Parse("0,0.5"), Content = new Border() };
+        window.Content = sheet;
+        window.Show();
+        sheet.IsOpen = true;
+
+        window.RaiseEvent(new RoutedEventArgs(TopLevel.BackRequestedEvent));
+        Assert.False(sheet.IsOpen);
+        sheet.IsOpen = true;
+        window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape, Source = window });
+        Assert.False(sheet.IsOpen);
+        Assert.Equal(0, appSaw);
+
+        window.RaiseEvent(new RoutedEventArgs(TopLevel.BackRequestedEvent));
+        Assert.Equal(1, appSaw);
+    }
+
+    [AvaloniaFact]
+    public void EscapeClosesTheMostRecentlyOpenedOverlayFirst()
+    {
+        var sheet = new Sheet { Detents = SheetDetents.Parse("0,0.5"), Content = new Border() };
+        var modal = new Modal { Content = new Border() };
+        var window = new Window { Content = new Panel { Children = { sheet, modal } }, Width = 200, Height = 200 };
+        window.Show();
+        void Escape() => window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape, Source = window });
+
+        modal.IsOpen = true;
+        sheet.IsOpen = true;
+        Escape();
+        Assert.False(sheet.IsOpen);
+        Assert.True(modal.IsOpen);
+
+        sheet.IsOpen = true;
+        modal.IsOpen = false;
+        modal.IsOpen = true;
+        Escape();
+        Assert.False(modal.IsOpen);
+        Assert.True(sheet.IsOpen);
+    }
+
+    [AvaloniaFact]
+    public void OpeningASheetWithASingleDetentLeavesItClosed()
+    {
+        var (window, sheet) = Stage(new Border { Background = Brushes.Red });
+        sheet.Detents = SheetDetents.Parse("0");
+
+        sheet.IsOpen = true;
+        Tick();
+
+        Assert.False(sheet.IsOpen);
+        Assert.Equal(0, sheet.DetentIndex);
+        Assert.False(Scrim(sheet).IsHitTestVisible);
+        Assert.NotSame(Scrim(sheet), window.InputHitTest(new Point(100, 40)));
+    }
+
+    [AvaloniaFact]
+    public void TheDetentIndexIsCoercedIntoTheDeclaredDetents()
+    {
+        var sheet = new Sheet { Content = new Border() };
+
+        sheet.DetentIndex = 5;
+        Assert.Equal(1, sheet.DetentIndex);
+        Assert.True(sheet.IsOpen);
+
+        sheet.Detents = SheetDetents.Parse("0,0.5,1");
+        sheet.DetentIndex = 2;
+        sheet.Detents = SheetDetents.Parse("0,0.5");
+        Assert.Equal(1, sheet.DetentIndex);
     }
 
     [AvaloniaFact]

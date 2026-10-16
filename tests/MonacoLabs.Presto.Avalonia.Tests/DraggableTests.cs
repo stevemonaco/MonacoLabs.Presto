@@ -73,7 +73,6 @@ public sealed class DraggableTests : BridgeTestBase
         var settled = 0;
         var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
         {
-            CancelOnEscape = true,
             OnRelease = _ => released++,
             OnSettle = _ => settled++,
         });
@@ -126,7 +125,7 @@ public sealed class DraggableTests : BridgeTestBase
     public void EscapeIsIgnoredWithoutCancelOnEscape()
     {
         var (window, _, target) = Show();
-        var draggable = PrestoAvalonia.CreateDraggable(target);
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { CancelOnEscape = false });
 
         Drag(window, 20, 3);
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
@@ -327,17 +326,14 @@ public sealed class DraggableTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void ANegativeMultiplierKeepsTheZeroSeedsUntilThreeSamplesAreTaken()
+    public void ANegativeMultiplierReportsANegativeVelocityAtOnce()
     {
         var (window, _, target) = Show();
         var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { VelocityMultiplier = -1, MinVelocity = -50 });
 
         Drag(window, 20, 2);
-        Assert.Equal(0d, draggable.Velocity);
 
-        window.MouseMove(new Point(85, 25));
-        Frames.Advance(20);
-        Assert.Equal(-1d, draggable.Velocity);
+        Assert.True(draggable.Velocity < 0, $"velocity {draggable.Velocity}");
     }
 
     [AvaloniaFact]
@@ -534,7 +530,7 @@ public sealed class DraggableTests : BridgeTestBase
 
     [AvaloniaTheory]
     [InlineData(10)] // lands inside the old bounds
-    [InlineData(20)] // thrown past them, so the blended overshoot is in flight
+    [InlineData(20)] // thrown past them, so the additive overshoot is in flight
     public void AContainerResizedMidThrowRetargetsTheReleaseAndSettlesOnce(double step)
     {
         var (window, container, target) = Show();
@@ -560,7 +556,7 @@ public sealed class DraggableTests : BridgeTestBase
 
     [AvaloniaTheory]
     [InlineData(false)]
-    [InlineData(true)] // mid-frame, with the blended overshoot tweens next in the engine's list
+    [InlineData(true)] // mid-frame, with the additive overshoot tweens next in the engine's list
     public void ResetMidOvershootLeavesAnAnimationOnAnotherControlRunning(bool fromItsCallback)
     {
         var (window, container, target) = Show();
@@ -661,6 +657,21 @@ public sealed class DraggableTests : BridgeTestBase
         draggable.Refresh().Revert();
     }
 
+    [AvaloniaFact]
+    public void ResizeRaisesOnResizeWithinTheDebounceInSecondsMode()
+    {
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+        var (_, container, target) = Show();
+        var resizes = 0;
+        PrestoAvalonia.CreateDraggable(target, new DraggableParams { Container = container, OnResize = _ => resizes++ });
+
+        container.Width = 150;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(200, 16);
+
+        Assert.Equal(1, resizes);
+    }
+
     /// <summary>Upstream "Reverting a draggable should properly disconect the ResizeObserver attached to it".</summary>
     [AvaloniaFact]
     public void RevertingDetachesTheResizeAndPointerHandlers()
@@ -719,7 +730,7 @@ public sealed class DraggableTests : BridgeTestBase
         {
             X = new DraggableAxisParams { Snap = Utils.Snap(100) },
             Y = new DraggableAxisParams { Snap = Utils.Snap(30) },
-            ReleaseInertia = new Inertia(0),
+            ReleaseInertia = new Inertia(),
             OnSettle = _ => settles++,
         });
 
@@ -743,7 +754,7 @@ public sealed class DraggableTests : BridgeTestBase
         {
             Container = container,
             Y = new DraggableAxisParams { Enabled = false },
-            ReleaseInertia = new Inertia(0),
+            ReleaseInertia = new Inertia(),
         });
         var peak = 0d;
 
@@ -767,7 +778,7 @@ public sealed class DraggableTests : BridgeTestBase
         {
             Container = container,
             Y = new DraggableAxisParams { Enabled = false },
-            ReleaseInertia = new Inertia(0) { TimeConstant = 200 },
+            ReleaseInertia = new Inertia() { TimeConstant = 200 },
             OnSettle = _ => settles++,
         });
 
@@ -792,13 +803,32 @@ public sealed class DraggableTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AnInertiaReleaseOfATargetWiderThanItsContainerSettlesBetweenItsBounds()
+    {
+        var (window, container, target) = Show();
+        target.Width = ContainerSize + 100;
+        Dispatcher.UIThread.RunJobs();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+            ReleaseInertia = new Inertia(),
+        });
+
+        Flick(window, 20, 0, 4);
+        Frames.Advance(5000, 20);
+
+        Assert.InRange(draggable.X, -100, 0);
+    }
+
+    [AvaloniaFact]
     public void AnInertiaReleaseLeavesADisabledAxisAlone()
     {
         var (window, _, target) = Show();
         var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
         {
             Y = new DraggableAxisParams { Enabled = false },
-            ReleaseInertia = new Inertia(0),
+            ReleaseInertia = new Inertia(),
         });
 
         Flick(window, 20, 20, 4);

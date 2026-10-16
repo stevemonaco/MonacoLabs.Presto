@@ -80,6 +80,38 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         Assert.Equal(start, Top(bar));
     }
 
+    [AvaloniaTheory]
+    [InlineData(0)]
+    [InlineData(Growth)]
+    public void ANestedTransitionRidesItsAncestorsMoveInsteadOfAddingToIt(double inner)
+    {
+        var (spacer, group, gap, bar) = ShowGroup();
+        _ = group.AnimateLayout(Held, Eases.None);
+        _ = bar.AnimateLayout(Held, Eases.None);
+        var start = Top(bar);
+
+        spacer.Height += Shift;
+        gap.Height += inner;
+        Tick();
+
+        Assert.Equal(start, Top(bar));
+    }
+
+    [AvaloniaFact]
+    public void ANestedTransitionFliesItsWholeMoveOnceItsAncestorStopsEasing()
+    {
+        var (spacer, group, _, bar) = ShowGroup();
+        var carrier = group.AnimateLayout(Held, Eases.None);
+        _ = bar.AnimateLayout(Held, Eases.None);
+        var start = Top(bar);
+
+        carrier.Revert();
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.Equal(start, Top(bar));
+    }
+
     /// <remarks>
     /// Advancing the mirror is what moves the control out of its slot here, since the rendered move runs on the compositor clock
     /// and has barely started; inverting from the stale slot instead would put the bar a whole <see cref="Shift"/> down.
@@ -417,6 +449,23 @@ public sealed class LayoutTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public async Task ThenOnAFreshFlightWaitsForItsMove()
+    {
+        var (spacer, bar) = ShowStack();
+        var flight = PrestoAvalonia.AnimateSharedElement(bar, bar, 200, Eases.None);
+        var then = flight.Then();
+        Assert.False(then.IsCompleted, "Then resolved before the flight's first layout pass");
+
+        spacer.Height += Shift;
+        Tick();
+        Assert.False(then.IsCompleted, "Then resolved before the move landed");
+
+        Frames.Advance(400);
+        Assert.Same(flight, await then);
+        Assert.Equal(1, flight.Progress);
+    }
+
+    [AvaloniaFact]
     public void ARecordFirstTransitionDoesNotEaseItsFirstPass()
     {
         var (spacer, bar) = ShowStack();
@@ -543,6 +592,24 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         }.Show();
         Tick();
         return (spacer, bar);
+    }
+
+    /// <summary>The bar under a gap inside a group, which sits under a spacer, as a page sits in its section in a list.</summary>
+    private static (Border Spacer, StackPanel Group, Border Gap, Border Bar) ShowGroup()
+    {
+        var spacer = new Border { Width = 40, Height = 10 };
+        var gap = new Border { Width = 40, Height = 10 };
+        var bar = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+        var group = new StackPanel { Children = { gap, bar } };
+        new Window
+        {
+            Content = new StackPanel { Children = { spacer, group } },
+            Background = Brushes.White,
+            Width = 100,
+            Height = 120,
+        }.Show();
+        Tick();
+        return (spacer, group, gap, bar);
     }
 
     /// <summary>The same bar 50 down the left of two 40-wide columns, so that a move to the right one is <see cref="Shift"/> each way.</summary>

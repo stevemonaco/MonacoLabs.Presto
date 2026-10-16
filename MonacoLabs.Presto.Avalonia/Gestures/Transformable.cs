@@ -16,7 +16,7 @@ namespace MonacoLabs.Presto.Gestures;
 /// </remarks>
 public sealed class Transformable : IRevertible
 {
-    private static readonly Inertia s_defaultInertia = new(0);
+    private static readonly Inertia s_defaultInertia = new();
 
     // Pointer events arrive long after construction, when the ambient engine may be another one.
     private readonly Engine _engine;
@@ -354,7 +354,7 @@ public sealed class Transformable : IRevertible
     {
         var zoom = _parameters.WheelZoom == WheelZoom.Always
             || (_parameters.WheelZoom == WheelZoom.WithControl && e.KeyModifiers.HasFlag(KeyModifiers.Control));
-        if (!zoom || !_parameters.Zoom || _target.GetVisualParent() is not { } parent) return;
+        if (!zoom || !_parameters.Zoom || e.Delta.Y == 0 || _target.GetVisualParent() is not { } parent) return;
         e.Handled = true;
         // Avalonia reports a notch (120 raw units) as a delta of 1.
         ZoomTo(Animate.Get("Scale") * Math.Pow(_parameters.WheelZoomStep, e.Delta.Y), e.GetPosition(parent), false);
@@ -453,7 +453,7 @@ public sealed class Transformable : IRevertible
     {
         var tokens = Recipes.Tokens;
         var settle = _parameters.Settle ?? new AnimationBuilder().Duration(tokens.Medium).Ease(tokens.Ease).WhenReduced(r => r.Duration(0));
-        var p = settle.ToParams();
+        var p = settle.Resolve();
         return ((p.Duration ?? _engine.Defaults.Duration).AsDouble ?? 0, p.Ease ?? _engine.Defaults.Ease);
     }
 

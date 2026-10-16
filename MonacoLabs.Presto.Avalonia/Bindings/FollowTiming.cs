@@ -1,4 +1,5 @@
 using System.Globalization;
+using MonacoLabs.Presto.Core;
 
 namespace MonacoLabs.Presto.Bindings;
 
@@ -24,7 +25,7 @@ internal static class FollowTiming
         if (reduced) return From(p.WhenReduced!);
         if (p.Builder is { } builder) return From(builder);
         if (p.Spring is { } spring) return Of(ParseSpring(spring), null);
-        if (p.Bounce is { } bounce) return Of(new Spring(bounce: bounce, duration: p.Duration ?? BounceDuration), null);
+        if (p.Bounce is { } bounce) return Of(new Spring(bounce: bounce, duration: p.Duration ?? BounceDuration * Globals.TimeScale), null);
         if (p.Duration != null || p.Ease != null) return Of(p.Ease, p.Duration);
         if (p.Token is { } token) return Of(token.Ease, token.Medium);
         return Of(Springs.Gentle, null);
@@ -53,7 +54,7 @@ internal static class FollowTiming
 
     private static AnimatableProperty From(AnimationBuilder builder)
     {
-        var p = builder.ToParams();
+        var p = builder.Resolve();
         return Of(p.Ease, p.Duration switch
         {
             null => null,

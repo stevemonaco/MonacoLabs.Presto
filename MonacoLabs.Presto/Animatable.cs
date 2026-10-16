@@ -6,28 +6,31 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// One paused animation per property, retargeted imperatively. Port of anime.js <c>createAnimatable</c>: <c>Set("X", 100)</c>
+/// One paused animation per property, retargeted imperatively: <c>Set("X", 100)</c>
 /// aims the property's tween at a new value from wherever it currently is and resumes it, so a stream of values — a cursor
 /// position, a scroll offset — is followed with that property's own duration and ease.
 /// </summary>
-/// <remarks>C# has no per-property methods, so upstream's <c>animatable.x(100)</c> is <c>Set("X", 100)</c> and <c>animatable.x()</c> is <c>Get("X")</c>.</remarks>
+/// <remarks>C# has no per-property methods, so anime.js's <c>animatable.x(100)</c> is <c>Set("X", 100)</c> and <c>animatable.x()</c> is <c>Get("X")</c>.</remarks>
 public sealed class Animatable : IRevertible
 {
     private readonly List<object> _targets = [];
     private const double VelocityStep = 1e-4;
 
     private readonly Dictionary<string, Animation> _animations = [];
+    private readonly Dictionary<string, MotionValue> _values = [];
     // The properties that keep their momentum, each with the spring it was declared with, if any.
     private readonly Dictionary<string, Spring?> _momentum = [];
     // The eases and duration a flung property returns to on its next Set.
     private readonly Dictionary<string, (List<Ease> Eases, double Duration)> _flung = [];
-    private static readonly Inertia DefaultInertia = new(0);
+    private static readonly Inertia DefaultInertia = new();
     private static readonly Ease AtRest = static _ => 0;
     private readonly Animation _callbacks;
+    private readonly PrestoDefaults _defaults;
 
     internal Animatable(object? targets, AnimatableParams parameters)
     {
         var engine = Engine.Current;
+        _defaults = engine.Defaults;
         engine.CurrentScope?.Register(this);
         if (engine.Diagnostics.Enabled) engine.Diagnostics.Register(this);
 
@@ -36,43 +39,48 @@ public sealed class Animatable : IRevertible
             _callbacks = Presto.Animate(new CallbacksTarget(), new AnimationParams
             {
                 ["V"] = 1,
+                // Never ends first: HandlePause completes it once every property animation has stopped.
+                Duration = Constants.MaxValue,
                 Autoplay = false,
                 OnBegin = Wrap(parameters.OnBegin),
                 OnUpdate = Wrap(parameters.OnUpdate),
                 OnComplete = Wrap(parameters.OnComplete),
+                IsReducedMotion = true,
             });
-        }
 
-        foreach (var (property, settings) in parameters.Properties)
-        {
-            var animation = Presto.Animate(targets, new AnimationParams
+            foreach (var (property, settings) in parameters.Properties)
             {
-                // The relative zero starts and ends the tween on the target's current value, which is what carries its unit over.
-                // A discrete value has no relative form and no unit, so it starts and ends there with no to value at all.
-                [property] = new TweenParams
+                var animation = Presto.Animate(targets, new AnimationParams
                 {
-                    To = IsDiscrete(targets, property) ? (TweenValue?)null : "+=0" + settings.Unit,
-                    Duration = settings.Duration,
-                    Ease = settings.Ease,
-                    Modifier = settings.Modifier,
-                    Composition = settings.Composition,
-                },
-                Duration = parameters.Duration,
-                Ease = parameters.Ease,
-                Modifier = parameters.Modifier,
-                Composition = Composition.Replace,
-                PlaybackRate = parameters.PlaybackRate,
-                FrameRate = parameters.FrameRate,
-                Autoplay = false,
-                OnBegin = HandleBegin,
-                OnComplete = HandlePause,
-                OnPause = HandlePause,
-            });
-            if (_targets.Count == 0) _targets.AddRange(animation.Targets);
-            _animations[Key(property)] = animation;
-            if (settings.PreserveVelocity ?? parameters.PreserveVelocity ?? false)
-            {
-                _momentum[Key(property)] = (settings.Ease ?? parameters.Ease)?.Raw as Spring;
+                    // The relative zero starts and ends the tween on the target's current value, which is what carries its unit over.
+                    // A discrete value has no relative form and no unit, so it starts and ends there with no to value at all.
+                    [property] = new TweenParams
+                    {
+                        To = IsDiscrete(targets, property) ? (TweenValue?)null : "+=0" + settings.Unit,
+                        Duration = settings.Duration,
+                        Ease = settings.Ease,
+                        Modifier = settings.Modifier,
+                        Composition = settings.Composition,
+                    },
+                    Duration = parameters.Duration,
+                    Ease = parameters.Ease,
+                    Modifier = parameters.Modifier,
+                    Composition = Composition.Replace,
+                    PlaybackRate = parameters.PlaybackRate,
+                    FrameRate = parameters.FrameRate,
+                    Autoplay = false,
+                    OnBegin = HandleBegin,
+                    OnComplete = HandlePause,
+                    OnPause = HandlePause,
+                    // ReduceAll is honored per retarget in Replay, so the declared durations survive the flag clearing.
+                    IsReducedMotion = true,
+                });
+                if (_targets.Count == 0) _targets.AddRange(animation.Targets);
+                _animations[Key(property)] = animation;
+                if (settings.PreserveVelocity ?? parameters.PreserveVelocity ?? false)
+                {
+                    _momentum[Key(property)] = (settings.Ease ?? parameters.Ease)?.Raw as Spring;
+                }
             }
         }
     }
@@ -94,13 +102,15 @@ public sealed class Animatable : IRevertible
     public double[] GetChannels(PropertyKey property) =>
         _animations.TryGetValue(Key(property.Unwrap()), out var animation) && animation._headTween is { } tween ? tween._numbers : [];
 
-    /// <summary>A <see cref="MotionValue"/> mirroring <see cref="Get"/> for the property, updated whenever its animation renders.</summary>
+    /// <summary>The property's <see cref="MotionValue"/>, mirroring <see cref="Get"/> and updated whenever its animation renders; every call returns the same one.</summary>
     public MotionValue ValueOf(PropertyKey property)
     {
         var key = Key(property.Unwrap());
+        if (_values.TryGetValue(key, out var cached)) return cached;
         _animations.TryGetValue(key, out var animation);
         var value = new MotionValue(animation?.OwnerEngine ?? Engine.Current, [], Get(key));
         if (animation != null) animation._onRender += _ => value.Assign(Get(key));
+        _values[key] = value;
         return value;
     }
 
@@ -132,16 +142,22 @@ public sealed class Animatable : IRevertible
 
     /// <summary>Coasts the property from where it is now at <paramref name="velocity"/> units per engine-time unit, decaying as <paramref name="settings"/> describes.</summary>
     /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(PropertyKey, double, double?, EaseValue?)"/>.</remarks>
+    /// <exception cref="NotSupportedException">The property is a color or complex one.</exception>
     public Animatable Fling(PropertyKey property, double velocity, Inertia? settings = null) => Coast(property.Unwrap(), velocity, settings);
 
     /// <summary>Coasts the property from its current velocity, or from rest when it is not moving, decaying as <paramref name="settings"/> describes.</summary>
     /// <remarks>The inertia replaces the property's ease and duration until the next <see cref="Set(PropertyKey, double, double?, EaseValue?)"/>.</remarks>
+    /// <exception cref="NotSupportedException">The property is a color or complex one.</exception>
     public Animatable Fling(PropertyKey property, Inertia? settings = null) => Coast(property.Unwrap(), null, settings);
 
     private Animatable Coast(string property, double? velocity, Inertia? settings)
     {
         var key = Key(property);
         if (!_animations.TryGetValue(key, out var animation)) return this;
+        for (var tween = animation._headTween; tween != null; tween = tween._next)
+        {
+            if (tween._valueType is ValueKind.Color or ValueKind.Complex) throw new NotSupportedException($"'{key}' is a color or complex property; Fling coasts single numbers only.");
+        }
         settings ??= DefaultInertia;
         var eases = _flung.ContainsKey(key) ? null : new List<Ease>();
         var span = 0d;
@@ -176,10 +192,12 @@ public sealed class Animatable : IRevertible
     {
         var key = Key(property.Unwrap());
         if (!_animations.TryGetValue(key, out var animation)) return this;
+        _flung.Remove(key, out var flung);
         if (_momentum.TryGetValue(key, out var declared) && (ease is { } given ? given.Raw as Spring : declared) is { } spring)
         {
             return CarryChannelMomentum(animation, spring, to, duration);
         }
+        var index = 0;
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             for (var i = 0; i < to.Count && i < tween._numbers.Length; i++)
@@ -188,10 +206,11 @@ public sealed class Animatable : IRevertible
                 tween._toNumbers[i] = to[i];
             }
             if (ease is { } easeValue) tween._ease = easeValue.Resolve(tween.Target, 0, 1, out _);
+            else if (flung.Eases is { } eases) tween._ease = eases[index++];
             tween._channelEases = null;
             tween._currentTime = 0;
         }
-        return Replay(animation, duration);
+        return Replay(animation, duration ?? (flung.Eases != null ? flung.Duration : null));
     }
 
     /// <summary>Reverts every property to the value it held before the animatable ran and leaves <see cref="Set(PropertyKey, double, double?, EaseValue?)"/> a no-op.</summary>
@@ -199,6 +218,7 @@ public sealed class Animatable : IRevertible
     {
         foreach (var animation in _animations.Values) animation.Revert();
         _animations.Clear();
+        _values.Clear();
         _targets.Clear();
         _callbacks.Revert();
         return this;
@@ -209,7 +229,9 @@ public sealed class Animatable : IRevertible
     private Animatable Replay(Animation animation, double? duration)
     {
         if (duration is { } newDuration) animation.Stretch(newDuration);
-        animation.Reset(true).Resume();
+        animation.Reset(true);
+        if (_defaults.ReduceAll) animation.Seek(animation.Duration);
+        else animation.Resume();
         return this;
     }
 
@@ -259,7 +281,7 @@ public sealed class Animatable : IRevertible
         {
             var eases = new Ease[tween._numbers.Length];
             var isColor = tween._valueType == ValueKind.Color;
-            var blended = tween._composition == Composition.Blend;
+            var additive = tween._composition == Composition.Additive;
             var (oldFromAlpha, oldToAlpha) = isColor ? (tween._fromNumbers[3], tween._toNumbers[3]) : (0, 0);
             var fromAlpha = isColor ? tween._modifier(tween._numbers[3]) : 0;
             var toAlpha = to.Count > 3 ? to[3] : fromAlpha;
@@ -268,13 +290,13 @@ public sealed class Animatable : IRevertible
                 var squared = isColor && i < 3;
                 var from = tween._modifier(tween._numbers[i]);
                 var target = i < to.Count ? to[i] : from;
-                var distance = squared ? SquaredTravel(from, target, fromAlpha, toAlpha, blended ? 0 : fromAlpha, from) : target - from;
+                var distance = squared ? SquaredTravel(from, target, fromAlpha, toAlpha, additive ? 0 : fromAlpha, from) : target - from;
                 Spring? thrown = null;
                 if (distance != 0)
                 {
                     var ease = tween._channelEases?[i] ?? tween._ease;
                     var (oldFrom, oldTo) = (tween._fromNumbers[i], tween._toNumbers[i]);
-                    var oldAlpha = !squared || blended ? 0 : Helpers.Lerp(oldFromAlpha, oldToAlpha, Pure(ease)(tween._currentTime / tween._updateDuration));
+                    var oldAlpha = !squared || additive ? 0 : Helpers.Lerp(oldFromAlpha, oldToAlpha, Pure(ease)(tween._currentTime / tween._updateDuration));
                     var traveled = squared ? SquaredTravel(oldFrom, oldTo, oldFromAlpha, oldToAlpha, oldAlpha, from) : oldTo - oldFrom;
                     var velocity = animation.Paused ? 0 : Velocity(tween, ease, traveled) * Constants.K * Globals.TimeScale / distance;
                     thrown = new Spring(spring.Mass, spring.Stiffness, spring.Damping, velocity);

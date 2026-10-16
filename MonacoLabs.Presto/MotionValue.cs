@@ -132,6 +132,7 @@ public sealed class MotionValue
     public void Set(double value)
     {
         if (_derived) throw new InvalidOperationException("A derived MotionValue follows its sources and cannot be set.");
+        _engine.AssertThreadAffinity();
         Assign(value);
     }
 

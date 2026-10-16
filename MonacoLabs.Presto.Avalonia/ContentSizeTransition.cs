@@ -102,24 +102,21 @@ public sealed class ContentSizeTransition : IRevertible
     /// <summary>Whether <paramref name="visual"/> is a host whose content a resize under way clips to its drawn box.</summary>
     internal static bool Clips(Visual visual) => visual is Control host && s_resizing.Contains(host);
 
-    /// <summary>Whether a host other than <paramref name="control"/> or one inside it is resizing under <paramref name="control"/>'s parent.</summary>
+    /// <summary>Whether a host in <paramref name="control"/>'s top level is resizing that is neither <paramref name="control"/>, inside it, nor its ancestor.</summary>
     internal static bool ResizingBeside(Control control)
     {
+        if (TopLevel.GetTopLevel(control) is not { } top) return false;
         foreach (var host in s_resizing)
         {
-            if (host != control && !control.IsVisualAncestorOf(host) && control.GetVisualParent().IsVisualAncestorOf(host)) return true;
+            if (host != control && !control.IsVisualAncestorOf(host) && !host.IsVisualAncestorOf(control) && TopLevel.GetTopLevel(host) == top) return true;
         }
         return false;
     }
 
     /// <summary>The builder's timing and ease, which is all a content size transition takes.</summary>
     /// <exception cref="NotSupportedException">The builder animates a property, or sets anything else a layout transition cannot honor.</exception>
-    internal static LayoutMotion Motion(AnimationBuilder builder)
-    {
-        if (builder.ToParams().Properties.Count > 0)
-            throw new NotSupportedException("Layout decides the size a content size transition eases to, so give it only timing and an ease.");
-        return LayoutMotion.From(builder);
-    }
+    internal static LayoutMotion Motion(AnimationBuilder builder) =>
+        LayoutMotion.Timing(builder, "Layout decides the size a content size transition eases to, so give it only timing and an ease.");
 
     private Layoutable? SoleChild() =>
         _host.GetVisualChildren() is IReadOnlyList<Visual> { Count: 1 } children ? children[0] as Layoutable : null;

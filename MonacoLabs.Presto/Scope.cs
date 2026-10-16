@@ -1,7 +1,7 @@
-﻿namespace MonacoLabs.Presto;
+namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Port of anime.js <c>createScope</c>: a lifetime for everything created inside it. Timers, animations, animatables and
+/// A lifetime for everything created inside it. Timers, animations, animatables and
 /// nested scopes register themselves with the scope that is current while they are constructed, so one
 /// <see cref="Revert"/> undoes the lot, and constructors added with <see cref="Add(Func{Scope, Action})"/> can be re-run
 /// as a group by <see cref="Refresh"/>.
@@ -20,7 +20,7 @@ public class Scope : IRevertible
     private int _onceIndex;
 
     /// <summary>
-    /// Creates a scope on the current engine, taking a copy of that engine's defaults as its own and registering with
+    /// Creates a scope on the current engine, sharing that engine's defaults (or a configured copy of them) and registering with
     /// whichever scope is current.
     /// </summary>
     public Scope(ScopeParams? parameters = null)
@@ -40,7 +40,7 @@ public class Scope : IRevertible
     /// <inheritdoc cref="ScopeParams.Root"/>
     public object? Root { get; }
 
-    /// <summary>The defaults in force while the scope executes; a copy of its engine's as they stood when it was created.</summary>
+    /// <summary>The defaults in force while the scope executes: its engine's own instance, or a copy configured by <see cref="ScopeParams.Defaults"/> when one is given.</summary>
     public PrestoDefaults Defaults { get; }
 
     /// <summary>Scratch storage keyed by name, cleared by <see cref="Revert"/>.</summary>
@@ -64,7 +64,7 @@ public class Scope : IRevertible
     internal int RevertibleCount => _revertibles.Count + _revertiblesOnce.Count;
 
     /// <summary>Runs <paramref name="callback"/> with this scope current, its defaults in force and its engine ambient.</summary>
-    /// <remarks>All three are restored in a <c>finally</c>, where upstream restores them only when the callback returns.</remarks>
+    /// <remarks>All three are restored even when the callback throws.</remarks>
     public T Execute<T>(Func<Scope, T> callback)
     {
         var activeScope = _engine.CurrentScope;
@@ -200,11 +200,14 @@ public class Scope : IRevertible
     {
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
-            if (tween._inlineValue != null && FindSuccessor(tween, revertibles, start) == null) return false;
+            if (tween._hasInlineValue && FindSuccessor(tween, revertibles, start) == null) return false;
         }
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
-            if (tween._inlineValue != null) FindSuccessor(tween, revertibles, start)!._inlineValue = tween._inlineValue;
+            if (!tween._hasInlineValue) continue;
+            var successor = FindSuccessor(tween, revertibles, start)!;
+            successor._inlineValue = tween._inlineValue;
+            successor._hasInlineValue = true;
         }
         return true;
     }

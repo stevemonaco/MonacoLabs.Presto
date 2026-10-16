@@ -44,8 +44,8 @@ public sealed class ParticleFormation
         _dots = new Dot[count];
         for (var i = 0; i < count; i++)
         {
-            var start = starts?[i] ?? points[i];
-            _dots[i] = new Dot(start, points[i], starts is null ? 1 : 0, starts is null ? 0 : 1 / FadeTime, i);
+            var p = Spread(i, count, points.Count);
+            _dots[i] = new Dot(starts?[p] ?? points[p], points[p], starts is null ? 1 : 0, starts is null ? 0 : 1 / FadeTime, i);
         }
         Count = count;
     }
@@ -80,8 +80,9 @@ public sealed class ParticleFormation
 
     /// <summary>
     /// Sends the formation to <paramref name="points"/>, pairing them with particles as <paramref name="transition"/> says;
-    /// points left over spawn a particle there that fades in, as far as <see cref="ParticleScene.MaxLive"/> allows, and
-    /// particles left over fade out. An empty list fades the whole formation out.
+    /// points left over spawn a particle there that fades in, and particles left over fade out. When <see cref="ParticleScene.MaxLive"/>
+    /// leaves too few particles for every point, the points are first thinned evenly across the list. An empty list fades
+    /// the whole formation out.
     /// </summary>
     public void Retarget(IReadOnlyList<Point> points, FormationTransition transition = FormationTransition.Nearest)
     {
@@ -90,8 +91,15 @@ public sealed class ParticleFormation
         var shuffled = transition == FormationTransition.Swarm ? Shuffled() : null;
         var grid = shuffled is null ? new DotGrid(_dots.AsSpan(0, Count)) : null;
         var next = 0;
-        for (var p = 0; p < points.Count; p++)
+        var active = 0;
+        for (var i = 0; i < Count; i++)
         {
+            if (!_dots[i].Leaving) active++;
+        }
+        var used = Math.Min(points.Count, active + Math.Max(0, _scene.MaxLive - _scene.Live));
+        for (var q = 0; q < used; q++)
+        {
+            var p = Spread(q, used, points.Count);
             var nearest = grid?.TakeNearest(_dots, points[p]) ?? (next < shuffled!.Count ? shuffled[next++] : -1);
             if (nearest < 0)
             {
@@ -105,12 +113,13 @@ public sealed class ParticleFormation
         {
             if (!taken[i] && !_dots[i].Leaving) _dots[i].FadeRate = -1 / FadeTime;
         }
-        var room = Math.Min(spawns.Count, Math.Max(0, _scene.MaxLive - _scene.Live));
-        if (Count + room > _dots.Length) Array.Resize(ref _dots, Count + room);
-        for (var k = 0; k < room; k++) _dots[Count++] = new Dot(points[spawns[k]], points[spawns[k]], 0, 1 / FadeTime, Count);
+        if (Count + spawns.Count > _dots.Length) Array.Resize(ref _dots, Count + spawns.Count);
+        foreach (var p in spawns) _dots[Count++] = new Dot(points[p], points[p], 0, 1 / FadeTime, Count);
         if (transition == FormationTransition.Sweep) Sweep();
         else if (transition == FormationTransition.Burst) Burst();
     }
+
+    private static int Spread(int i, int count, int total) => (int)((long)i * total / count);
 
     private List<int> Shuffled()
     {

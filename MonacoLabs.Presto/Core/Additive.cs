@@ -3,10 +3,10 @@ using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto.Core;
 
-/// <summary>Port of anime.js <c>additive.js</c>: one engine's blended tweens, summed into their lookup tween and rendered.</summary>
+/// <summary>One engine's additive tweens, summed into their lookup tween and rendered.</summary>
 internal sealed class Additive(Engine engine)
 {
-    /// <summary>The blended tween siblings of the targets animated on this engine, keyed by target then property.</summary>
+    /// <summary>The additive tween siblings of the targets animated on this engine, keyed by target then property.</summary>
     public Dictionary<object, Dictionary<string, TweenSiblings>> Lookups { get; } = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>Owns the additive lookup tweens; never added to the engine and only rendered by <see cref="Update"/>.</summary>

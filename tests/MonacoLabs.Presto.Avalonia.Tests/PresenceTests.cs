@@ -164,6 +164,19 @@ public sealed class PresenceTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AnimateExitGhostsNothingHiddenOrAtOpacityZeroItselfOrThroughAnAncestor()
+    {
+        Border Red() => new() { Width = 40, Height = 20, Background = Brushes.Red };
+        Border hidden = Red(), transparent = Red(), underHidden = Red(), underTransparent = Red();
+        hidden.IsVisible = false;
+        transparent.Opacity = 0;
+        var (window, _) = Show(hidden, transparent, new Border { IsVisible = false, Child = underHidden }, new Border { Opacity = 0, Child = underTransparent });
+
+        Assert.All(new[] { hidden, transparent, underHidden, underTransparent }, control => Assert.Null(PrestoAvalonia.AnimateExit(control, Fade)));
+        Assert.Empty(Ghosts(window));
+    }
+
+    [AvaloniaFact]
     public void CancelingTheExitRemovesTheGhost()
     {
         var item = new Border { Width = 40, Height = 20, Background = Brushes.Red };

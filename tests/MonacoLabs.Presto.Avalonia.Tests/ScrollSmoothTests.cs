@@ -52,6 +52,50 @@ public sealed class ScrollSmoothTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ANotchEasesFromItsOwnTimeWithoutAHeadStart()
+    {
+        var (window, scroller, _, _) = Show();
+        Frames.Advance(48, 16);
+
+        window.MouseWheel(Inside, new Vector(0, -1));
+        Frames.Advance(16);
+
+        Assert.Equal(50 * Eases.OutQuad(16 / Ease), scroller.Offset.Y, 6);
+    }
+
+    [AvaloniaFact]
+    public void ANotchMidEaseCarriesOnFromTheLastFrameWithoutAStall()
+    {
+        var (window, scroller, _, _) = Show();
+        window.MouseWheel(Inside, new Vector(0, -1));
+        Frames.Advance(64, 16);
+        var from = scroller.Offset.Y;
+
+        Presto.Engine._timeOffset += 10;
+        window.MouseWheel(Inside, new Vector(0, -1));
+        Frames.Advance(6);
+
+        Assert.Equal(from + (100 - from) * Eases.OutQuad(16 / Ease), scroller.Offset.Y, 6);
+    }
+
+    [AvaloniaFact]
+    public void ANotchPastTheEndWhileEasingIsSwallowedInsteadOfJumping()
+    {
+        var (window, scroller, _, _) = Show();
+        scroller.Offset = new Vector(0, 780);
+        Dispatcher.UIThread.RunJobs();
+        window.MouseWheel(Inside, new Vector(0, -1));
+        Frames.Advance(16);
+        var easing = scroller.Offset.Y;
+
+        window.MouseWheel(Inside, new Vector(0, -1));
+
+        Assert.Equal(easing, scroller.Offset.Y);
+        Frames.Advance(Ease, 16);
+        Assert.Equal(800, scroller.Offset.Y);
+    }
+
+    [AvaloniaFact]
     public void TheTargetClampsAtTheEnd()
     {
         var (window, scroller, _, _) = Show();

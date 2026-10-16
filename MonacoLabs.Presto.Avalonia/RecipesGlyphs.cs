@@ -37,12 +37,12 @@ public static partial class Recipes
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion)
+        if (Engine.Current.Defaults.ReducedMotion || IsDetached(textBlock))
         {
             var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
                 .Add(textBlock, b => b.Opacity(from: 0).Duration(tokens.Short), delay ?? 0);
-            Morphs.AddOrUpdate(textBlock, fade);
-            return fade;
+            TrackMorph(textBlock, fade);
+            return CompleteIfDetached(textBlock, fade);
         }
 
         var hold = textBlock.SetValue(Layoutable.WidthProperty, textBlock.Bounds.Width, BindingPriority.Animation);
@@ -79,14 +79,14 @@ public static partial class Recipes
         }
         TimelinePosition withFill = outlines.Count > 0 ? "<<" : delay ?? 0;
         if (others.Count > 0) write.Add(others, b => b.Opacity(1).Duration(tokens.Medium).Ease(tokens.Ease), withFill);
-        Morphs.AddOrUpdate(textBlock, write);
+        TrackMorph(textBlock, write);
         return write;
     }
 
     /// <summary>
     /// Turns <paramref name="textBlock"/>'s text into <paramref name="text"/> by morphing each character's outline into the
     /// character at the same position of <paramref name="text"/>, counted from the end when both texts are numbers so a
-    /// counter's units column stays put, over <see cref="MotionTokens.Long"/> with <see cref="MotionTokens.EmphasizedEase"/>.
+    /// counter's units column stays put, over <see cref="MotionTokens.Long"/> with <see cref="MotionTokens.Ease"/>.
     /// Characters with no partner grow from or collapse into the center of their slot, and a pair where either character has no
     /// outline crossfades. Reduced, the block crossfades as <see cref="MorphText"/> does.
     /// </summary>
@@ -96,7 +96,7 @@ public static partial class Recipes
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion) return Crossfade(textBlock, text, tokens);
+        if (Engine.Current.Defaults.ReducedMotion || IsDetached(textBlock)) return CompleteIfDetached(textBlock, Crossfade(textBlock, text, tokens));
 
         var oldOrigin = OriginInWindow(textBlock);
         var numeric = IsNumber(textBlock.Text) && IsNumber(text);
@@ -154,8 +154,8 @@ public static partial class Recipes
         {
             var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
                 .Add(textBlock, b => b.Opacity(0).Duration(tokens.Short).Ease(tokens.Ease), 0);
-            Morphs.AddOrUpdate(textBlock, fade);
-            return fade;
+            TrackMorph(textBlock, fade);
+            return CompleteIfDetached(textBlock, fade);
         }
 
         var split = PieceGhosts.Split(textBlock, TextPieces.Chars);
@@ -179,7 +179,7 @@ public static partial class Recipes
             // A 1 ms tween, not Set: a reversed timeline that ends at 0 leaves a Set at 0 applied.
             .Add(textBlock, b => b.Opacity(0).Duration(1), 0)
             .Add(pieces, Scatter(distance, spin, seed), 0);
-        Morphs.AddOrUpdate(textBlock, shatter);
+        TrackMorph(textBlock, shatter);
         return shatter;
     }
 
@@ -270,14 +270,36 @@ public static partial class Recipes
         return (points, (block.Foreground as ISolidColorBrush)?.Color ?? Colors.Black, spacing);
     }
 
+    // A morph's pieces, ghosts and width hold are released only when it completes, which a paused detached morph never does.
+    private static void TrackMorph(TextBlock textBlock, Timeline morph)
+    {
+        Morphs.AddOrUpdate(textBlock, morph);
+        textBlock.DetachedFromVisualTree -= CompleteMorph;
+        textBlock.DetachedFromVisualTree += CompleteMorph;
+    }
+
+    private static bool IsDetached(TextBlock textBlock) => TopLevel.GetTopLevel(textBlock) is null;
+
+    // A morph on a block already out of the tree would pause before its first frame and never reach the cleanup that unsplits it.
+    private static Timeline CompleteIfDetached(TextBlock textBlock, Timeline morph)
+    {
+        if (IsDetached(textBlock)) morph.Complete();
+        return morph;
+    }
+
+    private static void CompleteMorph(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (Morphs.TryGetValue((TextBlock)sender!, out var running)) running.Complete();
+    }
+
     private static Timeline Crossfade(TextBlock textBlock, string text, MotionTokens tokens)
     {
         var opacity = textBlock.Opacity;
         var fade = Presto.CreateTimeline(new() { OnComplete = _ => Morphs.Remove(textBlock) })
             .Add(textBlock, b => b.Opacity(to: 0).Duration(tokens.Short))
-            .Call(_ => textBlock.Text = text)
+            .Call(_ => textBlock.SetCurrentValue(TextBlock.TextProperty, text))
             .Add(textBlock, b => b.Opacity(from: 0, to: opacity).Duration(tokens.Short));
-        Morphs.AddOrUpdate(textBlock, fade);
+        TrackMorph(textBlock, fade);
         return fade;
     }
 
@@ -332,7 +354,7 @@ public static partial class Recipes
     // Completing the timeline unsplits the block and dismisses the ghosts.
     private static (Timeline Morph, TextSplitter After, Vector Shift) Retext(TextBlock textBlock, string text, Point oldOrigin, bool outlines, Canvas host, Dictionary<int, Image> ghosts)
     {
-        textBlock.Text = text;
+        textBlock.SetCurrentValue(TextBlock.TextProperty, text);
         textBlock.UpdateLayout();
         var shift = oldOrigin - OriginInWindow(textBlock);
         // A re-split detaches the pieces the morph plays on, which pauses it, so the width cannot change until it ends.
@@ -348,7 +370,7 @@ public static partial class Recipes
                 Dismiss(host, ghosts);
             },
         });
-        Morphs.AddOrUpdate(textBlock, morph);
+        TrackMorph(textBlock, morph);
         return (morph, after, shift);
     }
 
@@ -365,6 +387,6 @@ public static partial class Recipes
             .X(from: (FunctionValue)((_, i, _) => pairs[i].Offset.X), to: 0)
             .Y(from: (FunctionValue)((_, i, _) => pairs[i].Offset.Y), to: 0)
             .Property("Data", (ChainedFunctionValue)((target, i, total, previous) => shapes[i](target, i, total, previous)))
-            .Duration(tokens.Long).Ease(tokens.EmphasizedEase), 0);
+            .Duration(tokens.Long).Ease(tokens.Ease), 0);
     }
 }

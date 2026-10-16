@@ -1,0 +1,122 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       xmlns:showcase="using:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="1100"
+                       x:Class="PrestoGallery.Pages.RipplePage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Width" Value="180" />
+            <Setter Property="Height" Value="104" />
+            <Setter Property="Padding" Value="16,14" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        </Style>
+        <Style Selector="Border.card TextBlock.title">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="ListBox#Rows ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+        </Style>
+
+        <!-- snippet: RippleButtons -->
+        <Style Selector="Button.accent">
+            <Setter Property="presto:Ripple.Enabled" Value="True" />
+            <Setter Property="presto:Ripple.Color" Value="#47FFFFFF" />
+        </Style>
+        <!-- No Color: the theme accent at 24 % alpha. -->
+        <Style Selector="Button.plain">
+            <Setter Property="presto:Ripple.Enabled" Value="True" />
+        </Style>
+        <Style Selector="Button.icon">
+            <Setter Property="presto:Ripple.Enabled" Value="True" />
+            <Setter Property="presto:Ripple.Bounded" Value="False" />
+        </Style>
+        <!-- /snippet -->
+
+        <!-- snippet: RippleCards -->
+        <Style Selector="Border.card">
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="presto:Ripple.Enabled" Value="True" />
+            <Setter Property="presto:Ripple.StateLayer" Value="True" />
+        </Style>
+        <Style Selector="Border.card.aqua">
+            <Setter Property="presto:Ripple.Color" Value="#5C2DD4BF" />
+        </Style>
+        <Style Selector="Border.card.amber">
+            <Setter Property="presto:Ripple.Color" Value="#5CF59E0B" />
+        </Style>
+        <Style Selector="Border.card.rose">
+            <Setter Property="presto:Ripple.Color" Value="#5CF472B6" />
+        </Style>
+        <!-- /snippet -->
+
+        <!-- snippet: RippleList -->
+        <Style Selector="ListBox#Rows ListBoxItem">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="presto:Ripple.Enabled" Value="True" />
+            <Setter Property="presto:Ripple.StateLayer" Value="True" />
+        </Style>
+        <!-- The state layer replaces Fluent's hover and pressed fills. -->
+        <Style Selector="ListBox#Rows ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBox#Rows ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <!-- /snippet -->
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Border Classes="stage">
+                <StackPanel Spacing="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
+                        <Button x:Name="Filled" Classes="accent" Content="Filled" Padding="22,10" />
+                        <Button x:Name="Plain" Classes="plain" Content="Default color" Padding="22,10" />
+                        <Button x:Name="Icon" Classes="icon" Width="44" Height="44" CornerRadius="22" Background="Transparent"
+                                VerticalAlignment="Center" Margin="12,0,0,0">
+                            <PathIcon Data="{StaticResource HeartIcon}" Width="18" Height="18" />
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
+                        <Border x:Name="AquaCard" Classes="card aqua">
+                            <StackPanel Spacing="4" VerticalAlignment="Bottom">
+                                <TextBlock Classes="title" Text="Tide pools" />
+                                <TextBlock Classes="caption" Text="A plain Border" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="card amber">
+                            <StackPanel Spacing="4" VerticalAlignment="Bottom">
+                                <TextBlock Classes="title" Text="Night market" />
+                                <TextBlock Classes="caption" Text="Tab here, press Space" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="card rose">
+                            <StackPanel Spacing="4" VerticalAlignment="Bottom">
+                                <TextBlock Classes="title" Text="Aurora" />
+                                <TextBlock Classes="caption" Text="Hover for the state layer" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <showcase:CodePanel x:Name="SurfacesCode" Language="Xaml" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Hold a press and the ink grows from your finger until it covers the element; let go and it fades while it keeps growing, so a quick tap still reads. Ripple.Enabled works on any Control: the cards are plain Borders, made focusable so Enter or Space ripples them from the center. The ink is clipped to each element's rounded corners unless Bounded is false, as on the heart, whose circle grows from the center past its edges. StateLayer adds Material's tint in the ink's hue, 8 % on hover and 10 % on keyboard focus or press. The ink is drawn on the render thread by a composition visual of the element's own, over its content." />
+
+            <Border Classes="stage" Padding="6">
+                <ListBox x:Name="Rows" Height="320" Background="Transparent" />
+            </Border>
+
+            <showcase:CodePanel x:Name="ListCode" Language="Xaml" />
+
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Every row is bounded and state-layered, and the style clears Fluent's own hover and pressed fills so the two do not stack. Dragging out of a row, losing the pointer or scrolling the list cancels a held ripple. On touch a press inside a scroller waits 100 ms before it shows, so a fling never ripples, and a tap released sooner still gets a short one. Under reduced motion there is no ink at all: a press only tints, at once." />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

@@ -522,6 +522,48 @@ public sealed class TextSplitTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ResizeResplitsWithinTheDebounceInSecondsMode()
+    {
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+        var block = ShowText();
+        var calls = 0;
+        PrestoAvalonia.SplitText(block, new() { Lines = new() }).AddEffect(_ =>
+        {
+            calls++;
+            return () => { };
+        });
+
+        block.Width = 120;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.Equal(2, calls);
+    }
+
+    [AvaloniaFact]
+    public void ASizeToContentBlockWidenedByItsOwnSplitIsNotSplitAgain()
+    {
+        var block = new TextBlock { Text = "AVATAR To WAVY", FontSize = 68, LetterSpacing = 12, HorizontalAlignment = HorizontalAlignment.Left };
+        new Window { Content = new Decorator { Child = block }, Width = 1200, Height = 400 }.Show();
+        Dispatcher.UIThread.RunJobs();
+        var width = block.Bounds.Width;
+        var calls = 0;
+        var split = PrestoAvalonia.SplitText(block, new() { Words = null, Chars = new() }).AddEffect(_ =>
+        {
+            calls++;
+            return () => { };
+        });
+        var first = split.Chars[0];
+
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(400, 16);
+
+        Assert.NotEqual(width, block.Bounds.Width);
+        Assert.Equal(1, calls);
+        Assert.Same(first, split.Chars[0]);
+    }
+
+    [AvaloniaFact]
     public void CleanupSeesThePiecesItsEffectWasGiven()
     {
         var block = ShowText();

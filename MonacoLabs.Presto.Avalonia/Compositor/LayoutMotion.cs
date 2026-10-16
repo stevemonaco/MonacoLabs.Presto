@@ -19,7 +19,7 @@ internal readonly record struct LayoutMotion(
     /// <exception cref="NotSupportedException">The builder sets something a layout transition cannot honor.</exception>
     public static LayoutMotion From(AnimationBuilder builder)
     {
-        var p = builder.ToParams();
+        var p = builder.Resolve();
         var unsupported =
             p.Keyframes != null ? nameof(p.Keyframes) :
             p.Loop != null ? nameof(p.Loop) :
@@ -64,6 +64,14 @@ internal readonly record struct LayoutMotion(
             easeX,
             easeY,
             easeScale);
+    }
+
+    /// <summary><see cref="From"/> for a motion whose owner decides every value, so it takes timing and an ease but no property.</summary>
+    /// <exception cref="NotSupportedException">The builder animates a property, with <paramref name="why"/> as the message, or sets anything else a layout transition cannot honor.</exception>
+    public static LayoutMotion Timing(AnimationBuilder builder, string why)
+    {
+        if (builder.Resolve().Properties.Count > 0) throw new NotSupportedException(why);
+        return From(builder);
     }
 
     private static EaseValue? AxisEase(string name, TweenValue value)

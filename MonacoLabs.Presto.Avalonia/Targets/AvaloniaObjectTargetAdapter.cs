@@ -32,7 +32,7 @@ namespace MonacoLabs.Presto.Targets;
 public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
 {
     private static readonly Dictionary<(Type Type, string Name), AvaloniaProperty> s_resolved = [];
-    private static readonly Dictionary<AvaloniaProperty, IPropertyAccessor> s_accessors = [];
+    private static readonly Dictionary<AvaloniaProperty, AvaloniaPropertyAccessor> s_accessors = [];
     private static readonly IPropertyAccessor?[] s_transforms = new IPropertyAccessor?[Enum.GetValues<TransformShorthand>().Length];
     private static readonly IPropertyAccessor?[] s_effects = new IPropertyAccessor?[Enum.GetValues<EffectShorthand>().Length];
     private static readonly IPropertyAccessor?[] s_clips = new IPropertyAccessor?[Enum.GetValues<ClipShorthand>().Length];
@@ -83,10 +83,8 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             throw new ArgumentException($"{type} has no registered Avalonia property named '{property}'.", nameof(property));
         }
 
-        if (!s_accessors.TryGetValue(resolved, out var accessor))
-        {
-            s_accessors[resolved] = accessor = new AvaloniaPropertyAccessor(resolved);
-        }
+        s_accessors.TryGetValue(resolved, out var accessor);
+        if (accessor is not { CodecIsCurrent: true }) s_accessors[resolved] = accessor = new AvaloniaPropertyAccessor(resolved, accessor);
         return accessor;
     }
 
@@ -249,14 +247,16 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         private readonly bool _isDouble;
         private readonly bool _isOpacity;
         private readonly bool _isString;
-        private readonly ConditionalWeakTable<AvaloniaObject, IDisposable> _animated = new();
+        private readonly ConditionalWeakTable<AvaloniaObject, IDisposable> _animated;
         private readonly ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>? _original;
 
-        public AvaloniaPropertyAccessor(AvaloniaProperty property)
+        // A replacement for a stale codec shares its predecessor's bindings, so a target never holds two for one property.
+        public AvaloniaPropertyAccessor(AvaloniaProperty property, AvaloniaPropertyAccessor? previous)
         {
             _property = property;
+            _animated = previous?._animated ?? new();
             // A direct property's write returns no disposable, so its pre-animation value has to be kept for Revert.
-            if (property.IsDirect) _original = new ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>();
+            if (property.IsDirect) _original = previous?._original ?? new ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>();
             _isOpacity = property == Visual.OpacityProperty;
             var type = property.PropertyType;
             if (type == typeof(double)) _isDouble = true;
@@ -268,6 +268,9 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         }
 
         public IValueCodec? Codec { get; }
+
+        public bool CodecIsCurrent =>
+            Codec == null || (Presto.Codecs.TryGetValue(_property.PropertyType, out var registered) ? ReferenceEquals(registered, Codec) : Codec is DiscreteCodec);
 
         public object? GetValue(object target) => ((AvaloniaObject)target).GetValue(_property);
 

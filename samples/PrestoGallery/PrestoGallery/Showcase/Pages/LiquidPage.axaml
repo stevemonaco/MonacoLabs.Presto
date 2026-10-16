@@ -1,0 +1,57 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="712" d:DesignHeight="440"
+                       x:Class="PrestoGallery.Showcase.Pages.LiquidPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="StackPanel#Tabs Button">
+            <Setter Property="Width" Value="60" />
+            <Setter Property="Height" Value="64" />
+        </Style>
+        <Style Selector="StackPanel#Tabs PathIcon">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+        </Style>
+        <Style Selector="StackPanel#Tabs TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <Grid ColumnDefinitions="*,*" RowDefinitions="*,Auto" ColumnSpacing="12" RowSpacing="12">
+        <Border Grid.Column="0" Classes="panel showcase">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="eyebrow showcase" Text="LIQUID TAB BAR" />
+                <Border CornerRadius="16" Padding="6" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Background="{x:Static showcase:Palette.SurfaceHigh}">
+                    <Panel>
+                        <Canvas x:Name="Rail">
+                            <Border x:Name="Pill" Height="56" Canvas.Top="4" CornerRadius="14"
+                                    Background="{x:Static showcase:Palette.Accent}" />
+                        </Canvas>
+                        <StackPanel x:Name="Tabs" Orientation="Horizontal" />
+                    </Panel>
+                </Border>
+            </DockPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="panel showcase">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="eyebrow showcase" Text="GOOEY BUTTON" />
+                <Canvas Width="300" Height="340" VerticalAlignment="Bottom">
+                    <Path x:Name="Goo" Fill="{x:Static showcase:Palette.Accent}" />
+                    <Button x:Name="Toggle" Classes="bare" Width="56" Height="56" CornerRadius="28"
+                            Canvas.Left="122" Canvas.Top="262">
+                        <PathIcon x:Name="Plus" Width="22" Height="22" Foreground="{x:Static showcase:Palette.Ink}"
+                                  Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                    </Button>
+                </Canvas>
+            </DockPanel>
+        </Border>
+        <showcase:CodePanel Grid.Row="1" Grid.ColumnSpan="2" x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />
+    </Grid>
+</showcase:ShowcasePage>

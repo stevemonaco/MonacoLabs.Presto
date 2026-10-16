@@ -2,11 +2,11 @@ using MonacoLabs.Presto.Core;
 
 namespace MonacoLabs.Presto.Tests;
 
-/// <summary>Repeat cancels and removals of blended animations keep every tween list intact (PLAN Phase 51, a deviation from upstream).</summary>
+/// <summary>Repeat cancels and removals of additive animations keep every tween list intact (PLAN Phase 51, a deviation from upstream).</summary>
 public sealed class TweenListIntegrityTests : EngineTestBase
 {
-    private static Animation Blend(StyleTarget target, double to) =>
-        Presto.Animate(target, new() { ["X"] = to, Duration = 100, Composition = Composition.Blend });
+    private static Animation Additive(StyleTarget target, double to) =>
+        Presto.Animate(target, new() { ["X"] = to, Duration = 100, Composition = Composition.Additive });
 
     private static void AssertAllIntact(StyleTarget target, params Timer[] animations)
     {
@@ -20,15 +20,15 @@ public sealed class TweenListIntegrityTests : EngineTestBase
     }
 
     [Fact]
-    public void CancelingABlendedAnimationTwiceKeepsTheListsIntactForTheNextBlend()
+    public void CancelingAnAdditiveAnimationTwiceKeepsTheListsIntactForTheNextOne()
     {
         var target = new StyleTarget();
-        var first = Blend(target, 100);
-        var second = Blend(target, 50);
+        var first = Additive(target, 100);
+        var second = Additive(target, 50);
 
         first.Cancel();
         first.Cancel();
-        var third = Blend(target, 25);
+        var third = Additive(target, 25);
 
         AssertAllIntact(target, first, second, third);
         Assert.Same(second._headTween, third._headTween!._prevAdd);
@@ -38,13 +38,13 @@ public sealed class TweenListIntegrityTests : EngineTestBase
     public void RemovingATargetAfterRepeatedCancelsEmptiesTheLists()
     {
         var target = new StyleTarget();
-        var first = Blend(target, 100);
-        var second = Blend(target, 50);
+        var first = Additive(target, 100);
+        var second = Additive(target, 50);
 
         first.Cancel();
         first.Cancel();
         second.Cancel();
-        var third = Blend(target, 25);
+        var third = Additive(target, 25);
         Presto.Remove(target);
 
         AssertAllIntact(target, first, second, third);
@@ -54,28 +54,28 @@ public sealed class TweenListIntegrityTests : EngineTestBase
     }
 
     [Fact]
-    public void CancelingACompletedBlendedAnimationKeepsTheListsIntact()
+    public void CancelingACompletedAdditiveAnimationKeepsTheListsIntact()
     {
         var target = new StyleTarget();
-        var first = Blend(target, 100);
-        var second = Blend(target, 50);
+        var first = Additive(target, 100);
+        var second = Additive(target, 50);
 
         first.Complete();
         first.Cancel();
-        var third = Blend(target, 25);
+        var third = Additive(target, 25);
 
         AssertAllIntact(target, first, second, third);
         Assert.Same(second._headTween, third._headTween!._prevAdd);
     }
 
     [Fact]
-    public void BlendingAndCancelingTwentyThousandTargetsStaysFast()
+    public void AnimatingAdditivelyAndCancelingTwentyThousandTargetsStaysFast()
     {
         var targets = new StyleTarget[20_000];
         for (var i = 0; i < targets.Length; i++) targets[i] = new StyleTarget();
         var clock = System.Diagnostics.Stopwatch.StartNew();
 
-        Presto.Animate(targets, new() { ["X"] = 100, Duration = 100, Composition = Composition.Blend }).Cancel();
+        Presto.Animate(targets, new() { ["X"] = 100, Duration = 100, Composition = Composition.Additive }).Cancel();
 
         Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), $"took {clock.Elapsed.TotalMilliseconds:0} ms");
     }

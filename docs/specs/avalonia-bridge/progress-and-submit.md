@@ -18,7 +18,7 @@ tests:
   - SubmitButtonTests
 upstream: []
 depends:
-  - CORE-TIMER
+  - CORE-PRESTO
   - CORE-REDUCED
   - BRIDGE-FOLLOW
   - BRIDGE-SHAPES
@@ -92,7 +92,7 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
 - **BRIDGE-SUBMIT-024** — When the state becomes `Succeeded` with a `SuccessBrush`, or `Failed` with a `FailureBrush`, the button's `Background` shall animate to that brush over `Tokens.Medium`; with no brush, the background shall be left alone.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
-- **BRIDGE-SUBMIT-025** — When the state becomes `Idle` while collapsed, the mark shall erase with `Recipes.DrawOut` over `Tokens.Short`, the content shall fade back to 1 over `Tokens.Medium`, and `Width`, `CornerRadius` and (when tinted) `Background` shall return to their recorded values on `Springs.Bouncy`.
+- **BRIDGE-SUBMIT-025** — When the state becomes `Idle` while collapsed, the mark shall erase with `Recipes.DrawOut` over `Tokens.Short`, the content shall fade back to 1 over `Tokens.Medium`, and `Width`, `CornerRadius` and (when tinted) `Background` shall return to their recorded values on `Springs.Gentle`.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
 - **BRIDGE-SUBMIT-026** — When the expand and the content fade land, their animations shall be reverted, so the button ends on its own local or styled width, corner radius, background and content opacity.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
@@ -107,7 +107,7 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
   - Tests: `SubmitButtonTests.AFaultedRunFailsWithoutThrowing`
 - **BRIDGE-SUBMIT-030** — When `work` ends, `Run` shall set `Succeeded` if it ran to completion and is not a `Task<bool>` returning false, and `Failed` otherwise.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`, `SubmitButtonTests.AFaultedRunFailsWithoutThrowing`
-- **BRIDGE-SUBMIT-031** — `Run` shall hold the outcome for `Tokens.Medium + Tokens.Long` on a Presto timer, then set `Idle` and return whether the work succeeded.
+- **BRIDGE-SUBMIT-031** — `Run` shall hold the outcome for `Tokens.Medium + Tokens.Long` of engine time with `Presto.Delay`, then set `Idle` and return whether the work succeeded.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`, `SubmitButtonTests.AFaultedRunFailsWithoutThrowing`
 
 ### Submit button: reduced motion
@@ -166,7 +166,7 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 
 - The ring redraws by writing dash arrays on `Value` changes; its geometry is rebuilt only when the arranged size, `Segments`, `Gap` or `Thickness` change. The submit button allocates its animations per state change, off the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
@@ -177,7 +177,9 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - **The submit button is an attached form.** `SubmitButton.State` (Idle/Busy/Succeeded/Failed) on any `Button`, set by a view model or by `SubmitButton.Run(button, work)`, with the spinner and mark in a layer appended to the button's visual and logical children and arranged at its bounds. Reason: a view model binds the state, a handler awaits `Run`, and the button keeps its own template and content, so no content needs a part. Rejected: a templated control or a builder chain.
 - **The outcome is drawn in, not morphed.** A check or a cross is drawn with `Recipes.DrawIn` after the spinner fades. Reason: the spinner's arc stops at whatever angle the wait left it, and a cross is two strokes. Rejected: a `MorphTo` of the spinner's arc.
 - **The expand reverts when it lands.** Collapsing and expanding animate `Width`, `CornerRadius` and, with a success or failure brush, `Background`, and the expand's animations are reverted on landing. Reason: the button ends on its own local or styled values.
+- **The expand does not overshoot.** It lands on `Springs.Gentle`. Reason: `Width` is a layout property, so an overshooting spring re-centers the content each frame through layout rounding and the label visibly wobbles by a pixel as the spring settles. Rejected: `Springs.Bouncy`, and keeping the bounce with layout rounding turned off during the expand.
 - **Run reports success unless the work failed.** The outcome is success unless the task faulted, was canceled or returned false, and it is shown for `Tokens.Medium + Tokens.Long`. Reason: not recorded.
+- **The outcome hold runs on engine time.** `Run` waits with `Presto.Delay`, while `work` keeps whatever clock the caller gave it. Reason: the hold is a beat between the mark drawing in and the expand, so it scales with the animations around it under the engine's speed or a DevTools slow-motion. Rejected: `Task.Delay`, which would leave the hold at full length while the animations slow.
 
 ## Non-goals
 

@@ -45,13 +45,13 @@ public sealed class AnimationBuilderTests : EngineTestBase
                 ["X"] = new TweenParams { From = -20, To = 0 },
                 ["Y"] = new TweenParams { To = 50, Duration = 200, Delay = 100, Ease = "outQuad" },
                 ["Opacity"] = new TweenParams { From = 0 },
-                ["Scale"] = new TweenParams { To = 2, Composition = Composition.Blend, Modifier = modifier, TextModifier = textModifier },
+                ["Scale"] = new TweenParams { To = 2, Composition = Composition.Additive, Modifier = modifier, TextModifier = textModifier },
             },
             Presto.Build()
                 .Property("X", from: -20, to: 0)
                 .Property("Y", 50, duration: 200, delay: 100, ease: "outQuad")
                 .Property("Opacity", from: 0)
-                .Property("Scale", 2, composition: Composition.Blend, modifier: modifier, textModifier: textModifier)
+                .Property("Scale", 2, composition: Composition.Additive, modifier: modifier, textModifier: textModifier)
                 .ToParams());
     }
 
@@ -123,7 +123,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             new()
             {
                 ["X"] = 1,
-                Duration = 400, Delay = delay, Ease = "outExpo", PlaybackEase = Eases.InQuad, Composition = Composition.None,
+                Duration = 400, Delay = delay, Ease = "outExpo", PlaybackEase = Eases.InQuad, Composition = Composition.Overlap,
                 Modifier = modifier, Id = "builder", Loop = 3, LoopDelay = 20, Alternate = true, Reversed = true,
                 Autoplay = false, FrameRate = 30, PlaybackRate = 2, Priority = 5,
                 OnBegin = onBegin, OnBeforeUpdate = onBeforeUpdate, OnUpdate = onUpdate, OnLoop = onLoop,
@@ -131,7 +131,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             },
             Presto.Build()
                 .Property("X", 1)
-                .Duration(400).Delay(delay).Ease("outExpo").PlaybackEase(Eases.InQuad).Composition(Composition.None)
+                .Duration(400).Delay(delay).Ease("outExpo").PlaybackEase(Eases.InQuad).Composition(Composition.Overlap)
                 .Modifier(modifier).Id("builder").Loop(3).LoopDelay(20).Alternate().Reversed()
                 .Autoplay(false).FrameRate(30).PlaybackRate(2).Priority(5)
                 .OnBegin(onBegin).OnBeforeUpdate(onBeforeUpdate).OnUpdate(onUpdate).OnLoop(onLoop)
@@ -283,7 +283,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
                 Keyframes = new Keyframe[]
                 {
                     new() { ["X"] = 100, ["Y"] = 50, Duration = 200, Ease = "outQuad" },
-                    new() { ["X"] = 0, Delay = 50, Composition = Composition.Blend, Modifier = modifier },
+                    new() { ["X"] = 0, Delay = 50, Composition = Composition.Additive, Modifier = modifier },
                 },
                 ["Scale"] = 2,
                 Duration = 600,
@@ -291,7 +291,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             Presto.Build()
                 .Keyframes(k => k
                     .Frame(f => f.Property("X", 100).Duration(200).Property("Y", 50).Ease("outQuad"))
-                    .Frame(f => f.Property("X", 0).Delay(50).Composition(Composition.Blend).Modifier(modifier)))
+                    .Frame(f => f.Property("X", 0).Delay(50).Composition(Composition.Additive).Modifier(modifier)))
                 .Property("Scale", 2)
                 .Duration(600)
                 .ToParams());
@@ -515,12 +515,33 @@ public sealed class AnimationBuilderTests : EngineTestBase
     {
         var builder = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
 
-        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["X"], builder.Resolve().Properties.Keys);
         Presto.Defaults.ReducedMotion = true;
-        Assert.Equal(["Opacity"], builder.ToParams().Properties.Keys);
-        Assert.Equal(["X"], Presto.Build().Property("X", 100).ToParams().Properties.Keys);
-        Presto.Defaults.ReducedMotion = false;
         Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["Opacity"], builder.ToParams().WhenReduced?.Properties.Keys);
+        Assert.Equal(["Opacity"], builder.Resolve().Properties.Keys);
+        Assert.Null(Presto.Build().Property("X", 100).ToParams().WhenReduced);
+        Presto.Defaults.ReducedMotion = false;
+        Assert.Equal(["X"], builder.Resolve().Properties.Keys);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ATimelinePicksABuildersReducedFormAgainstItsOwnEngine(bool timelineReduced)
+    {
+        var engine = new Engine(new ManualFrameSource());
+        engine.Defaults.ReducedMotion = timelineReduced;
+        Presto.Defaults.ReducedMotion = !timelineReduced;
+        Timeline timeline;
+        using (engine.MakeCurrent()) timeline = Presto.CreateTimeline(new() { Autoplay = false });
+        var target = new StyleTarget();
+
+        timeline.Add(target, Presto.Build().Property("X", 100).Duration(100).WhenReduced(b => b.Property("Opacity", .5)));
+        timeline.Seek(timeline.Duration);
+
+        Assert.Equal(timelineReduced ? 0 : 100, target.X);
+        Assert.Equal(timelineReduced ? .5 : 0, target.Opacity);
     }
 
     [Fact]
@@ -538,7 +559,7 @@ public sealed class AnimationBuilderTests : EngineTestBase
             .WhenReduced(b => b.Property("Opacity", 1).Duration(150))
             .Delay(delay)
             .OnComplete(onComplete)
-            .ToParams();
+            .Resolve();
 
         Assert.Equal(["Opacity"], parameters.Properties.Keys);
         Assert.Null(parameters.Keyframes);
@@ -557,9 +578,9 @@ public sealed class AnimationBuilderTests : EngineTestBase
         var changed = source.With(b => b.WhenReduced(r => r.Property("Scale", 1)));
         Presto.Defaults.ReducedMotion = true;
 
-        Assert.Equal(["Opacity"], clone.ToParams().Properties.Keys);
-        Assert.Equal(["Scale"], changed.ToParams().Properties.Keys);
-        Assert.Equal(["Opacity"], source.ToParams().Properties.Keys);
+        Assert.Equal(["Opacity"], clone.Resolve().Properties.Keys);
+        Assert.Equal(["Scale"], changed.Resolve().Properties.Keys);
+        Assert.Equal(["Opacity"], source.Resolve().Properties.Keys);
     }
 
     private static void AssertEquivalent(AnimationParams expected, AnimationParams actual)

@@ -110,6 +110,18 @@ public sealed class IntrospectionTests : EngineTestBase
     }
 
     [Fact]
+    public void GetCurrentOnAnOverlapTweenReadsTheRenderedValue()
+    {
+        var plain = new TestObject();
+        List<Tween> tweens = [.. Presto.Animate(plain, new() { ["PlainValue"] = 110, ["ValueWithUnit"] = 110, Duration = 1000, Composition = Composition.Overlap }).Tweens];
+        Frames.Advance(400);
+
+        Assert.NotEqual(10, plain.PlainValue);
+        Assert.Equal(plain.PlainValue, tweens[0].GetCurrent().Number);
+        Assert.Equal(plain.ValueWithUnit, tweens[1].GetCurrent().Text);
+    }
+
+    [Fact]
     public void EaseNamesForFactoriesAreKeptOnlyWhileDiagnosticsAreActive()
     {
         var inactive = Eases.Out(3);

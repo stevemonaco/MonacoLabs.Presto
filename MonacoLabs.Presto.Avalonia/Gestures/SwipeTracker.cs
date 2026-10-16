@@ -5,18 +5,19 @@ using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.VisualTree;
-using MonacoLabs.Presto.Draggables;
 
 namespace MonacoLabs.Presto.Gestures;
 
 /// <summary>The drag, reveal and commit <see cref="Swipe"/> keeps on an element, written through an <see cref="Animatable"/> over its X shorthand.</summary>
-internal sealed class SwipeTracker
+internal sealed class SwipeTracker : IGestureMember
 {
     private const double Friction = .35;
     private const double CommitAt = .5;
+    private static readonly GestureGate s_gate = GestureGate.Crosswise(Orientation.Horizontal);
     // A row settles in about half a second; the 350 ms default dragged a short release's spring-back out past a second.
-    private static readonly Inertia s_inertia = new(0) { TimeConstant = 120 };
+    private static readonly Inertia s_inertia = new() { TimeConstant = 120 };
     // The open element of each list, keyed by its nearest ItemsControl or, outside one, its parent.
     private static readonly ConditionalWeakTable<Visual, SwipeTracker> s_open = new();
 
@@ -53,6 +54,10 @@ internal sealed class SwipeTracker
         row.PropertyChanged += HandlePropertyChanged;
         row.SizeChanged += HandleSizeChanged;
     }
+
+    public Visual Element => _row;
+
+    public IInputElement CaptureTarget => _row;
 
     private double X => _animate?.Get("X") ?? 0;
 
@@ -105,48 +110,36 @@ internal sealed class SwipeTracker
 
     private void HandlePressed(object? sender, PointerPressedEventArgs e)
     {
-        // An armed press that never dragged ended out of sight, as when a reorder took its capture, so a new press replaces it.
-        if (_dragging || Within(e.Source, _leading) || Within(e.Source, _trailing)) return;
+        if (_pointer is not null || Within(e.Source, _leading) || Within(e.Source, _trailing)) return;
         if (e.Pointer.Type == PointerType.Mouse && !e.GetCurrentPoint(_row).Properties.IsLeftButtonPressed) return;
         _pointer = e.Pointer;
         _pressedAt = e.GetPosition(null);
+        GestureArena.Join(e, this, s_gate);
     }
 
     private void HandleMoved(object? sender, PointerEventArgs e)
     {
-        if (e.Pointer != _pointer) return;
-        var moved = e.GetPosition(null) - _pressedAt;
-        if (!_dragging)
-        {
-            var touch = e.Pointer.Type == PointerType.Touch;
-            var threshold = touch ? Draggable.TouchSlop : Draggable.DefaultDragThreshold;
-            if (Math.Abs(moved.X) <= threshold && Math.Abs(moved.Y) <= threshold) return;
-            // Vertical first, or on touch not clearly horizontal: the pointer is left to the ancestor scroller for the rest of this press.
-            if (Math.Abs(moved.Y) * (touch ? 2 : 1) >= Math.Abs(moved.X))
-            {
-                _pointer = null;
-                return;
-            }
-            Grab(e.Pointer);
-        }
+        if (!_dragging || e.Pointer != _pointer) return;
         e.Handled = true;
         // Gesture recognizers see handled events too, and an ancestor's scroll would steal the capture.
         e.PreventGestureRecognition();
         var (min, max) = Range(commit: true);
-        Animator().Set("X", TransformMath.Cushion(_grabbedAt + moved.X, min, max, Friction), 0);
+        Animator().Set("X", TransformMath.Cushion(_grabbedAt + (e.GetPosition(null) - _pressedAt).X, min, max, Friction), 0);
+        // Changed is raised on the next engine frame, but the row has moved already.
+        Place();
         _velocity.Add(X, Engine.Current.Now);
     }
 
     private void HandleReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (e.Pointer != _pointer) return;
-        e.Handled = _dragging;
+        if (!_dragging || e.Pointer != _pointer) return;
+        e.Handled = true;
         Lift();
     }
 
     private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
-        if (e.Pointer == _pointer) Lift();
+        if (_dragging && e.Pointer == _pointer) Lift();
     }
 
     private void HandleContextRequested(object? sender, ContextRequestedEventArgs e)
@@ -193,10 +186,9 @@ internal sealed class SwipeTracker
 
     private void HandleSizeChanged(object? sender, SizeChangedEventArgs e) => Place();
 
-    private void Grab(IPointer pointer)
+    public void Won()
     {
         _dragging = true;
-        pointer.Capture(_row);
         var animate = Animator();
         _then = null;
         foreach (var animation in animate.Animations.Values) animation.Pause();
@@ -209,17 +201,26 @@ internal sealed class SwipeTracker
         Open(true);
     }
 
-    private void Lift()
+    public void Lost() => Forget();
+
+    public void EndedWithoutClaim()
     {
-        // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.
+        Forget();
+        if (X != 0) Close();
+    }
+
+    private IPointer Forget()
+    {
         var pointer = _pointer!;
         _pointer = null;
         if (pointer.Type != PointerType.Mouse) _fingerLiftedAt = Environment.TickCount64;
-        if (!_dragging)
-        {
-            if (X != 0) Close();
-            return;
-        }
+        return pointer;
+    }
+
+    private void Lift()
+    {
+        // Forgotten first: dropping the capture raises PointerCaptureLost, which lands back here.
+        var pointer = Forget();
         _dragging = false;
         if (ReferenceEquals(pointer.Captured, _row)) pointer.Capture(null);
         var x = X;
@@ -382,6 +383,8 @@ internal sealed class SwipeTracker
             View = view;
             _trailing = trailing;
             ClipToBounds = true;
+            // The row moves by a fractional transform; a rounded strip would shift against it by up to a pixel.
+            UseLayoutRounding = false;
             IsVisible = false;
             VisualChildren.Add(view);
             LogicalChildren.Add(view);

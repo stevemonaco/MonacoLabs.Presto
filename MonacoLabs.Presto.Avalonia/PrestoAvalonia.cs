@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -43,6 +42,7 @@ public static class PrestoAvalonia
     /// </summary>
     public static void EnsureInitialized()
     {
+        ActivationHook.TryHook();
         if (Initialized) return;
         Initialized = true;
         Presto.Engine.FrameSource = new AvaloniaFrameSource();
@@ -116,12 +116,12 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>waapi.animate</c>: animates the transform and opacity of <paramref name="targets"/> on the render thread,
+    /// Animates the transform and opacity of <paramref name="targets"/> on the render thread,
     /// so the animation carries on while the UI thread is busy.
     /// </summary>
     /// <remarks>
     /// Only "X", "Y", "Rotate", "Scale", "ScaleX", "ScaleY" and "Opacity" have composition counterparts; anything else throws.
-    /// Every target has to be a <see cref="Visual"/>, and one outside the visual tree starts when it is attached to one.
+    /// Every target has to be a <see cref="Visual"/>, or this throws <see cref="NotSupportedException"/>, and one outside the visual tree starts when it is attached to one.
     /// Each target gets its own playback mirror and composition animations, so this is meant for a handful of visuals, not
     /// thousands.
     /// </remarks>
@@ -160,11 +160,12 @@ public static class PrestoAvalonia
         CanAnimateOnCompositor(builder.ToParams(), out reason);
 
     /// <summary>Animates <paramref name="targets"/> on the thread <paramref name="thread"/> picks.</summary>
-    /// <exception cref="NotSupportedException"><paramref name="thread"/> is <see cref="AnimationThread.Compositor"/> and the compositor has no counterpart for a property or setting.</exception>
+    /// <remarks><see cref="AnimationThread.PreferCompositor"/> also falls back when any target is not a <see cref="Visual"/>.</remarks>
+    /// <exception cref="NotSupportedException"><paramref name="thread"/> is <see cref="AnimationThread.Compositor"/> and the compositor has no counterpart for a property or setting, or a target is not a <see cref="Visual"/>.</exception>
     public static ThreadedAnimation Animate(object? targets, AnimationParams parameters, AnimationThread thread)
     {
         EnsureInitialized();
-        return thread == AnimationThread.Compositor || (thread == AnimationThread.PreferCompositor && CanAnimateOnCompositor(parameters, out _))
+        return thread == AnimationThread.Compositor || (thread == AnimationThread.PreferCompositor && CanAnimateOnCompositor(parameters, out _) && AllVisuals(targets))
             ? new ThreadedAnimation(null, RunOnCompositor(targets, parameters))
             : new ThreadedAnimation(Presto.Animate(targets, parameters), null);
     }
@@ -202,6 +203,15 @@ public static class PrestoAvalonia
         return AnimateOnCompositor(targets, parameters);
     }
 
+    private static bool AllVisuals(object? targets)
+    {
+        foreach (var target in TargetParser.Parse(targets))
+        {
+            if (target is not Visual) return false;
+        }
+        return true;
+    }
+
     private static string? UnsupportedOnCompositor(AnimationParams p) =>
         p.Keyframes != null ? nameof(p.Keyframes) :
         p.FrameRate != null ? nameof(p.FrameRate) :
@@ -215,14 +225,27 @@ public static class PrestoAvalonia
         p.OnLoop != null ? nameof(p.OnLoop) :
         p.OnPause != null ? nameof(p.OnPause) :
         p.OnRender != null ? nameof(p.OnRender) :
+        p.HostLifetime != null ? nameof(AvaloniaAnimationParams.WhenDetached) :
+        !CarriesEverySetting(p) ? "A setting" :
         null;
+
+    private static readonly AnimationParams s_uncarried = new();
+    private static AvaloniaAnimationParams? s_uncarriedAvalonia;
+
+    // A whitelist of what RunOnCompositor copies, so a setting added later is rejected until it is carried.
+    private static bool CarriesEverySetting(AnimationParams p) =>
+        p with
+        {
+            Properties = s_uncarried.Properties, Duration = null, Delay = null, Ease = null, Loop = null, LoopDelay = null, Alternate = null,
+            Reversed = null, Autoplay = null, PlaybackRate = null, OnBegin = null, OnComplete = null, WhenReduced = null, IsReducedMotion = false,
+        } == (p is AvaloniaAnimationParams ? s_uncarriedAvalonia ??= new() { Properties = s_uncarried.Properties } : s_uncarried);
 
     /// <inheritdoc cref="AnimateOnCompositor(object?, AnimationBuilder)"/>
     public static CompositorAnimation AnimateOnCompositor(object? targets, Action<AnimationBuilder> build) =>
         AnimateOnCompositor(targets, Presto.Build(build));
 
     /// <summary>
-    /// Upstream <c>createLayout</c>: eases <paramref name="control"/> into its new place over <paramref name="duration"/>
+    /// Eases <paramref name="control"/> into its new place over <paramref name="duration"/>
     /// milliseconds whenever layout moves it, on the render thread (COMPOSITOR-PLAN §4.4). From XAML, set
     /// <see cref="Animate.LayoutProperty"/> or <see cref="Animate.ItemLayoutProperty"/>.
     /// </summary>
@@ -300,7 +323,9 @@ public static class PrestoAvalonia
     /// <remarks>
     /// <paramref name="source"/> is measured where it is drawn on screen — scroll offsets, render-transform translation and
     /// any live transition included — so a dropped drag, a control re-armed mid-move or an item in a scrolled list flies from
-    /// where it is seen. The two have to share a window. By default a one-shot, off again once the move is under way;
+    /// where it is seen. The two have to share a window: with <paramref name="source"/> off screen there is nothing to fly
+    /// from, and the transition eases <paramref name="target"/>'s next layout move from where it is now, as <c>AnimateLayout</c>
+    /// does. By default a one-shot, off again once the move is under way;
     /// passing <paramref name="once"/> false keeps easing later layout changes as
     /// <see cref="AnimateLayout(Control, double, EaseValue?, LayoutAnimateMode)"/> does. Passing the same control twice reparents it.
     /// A move that starts while <see cref="PrestoDefaults.ReducedMotion"/> is set lands in one frame.
@@ -321,6 +346,7 @@ public static class PrestoAvalonia
     /// <see cref="AnimateSharedElement(Control, Control, double, EaseValue?, LayoutAnimateMode, bool)"/> with the motion
     /// taken from <paramref name="builder"/>, as <see cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/> takes it.
     /// </summary>
+    /// <inheritdoc cref="AnimateSharedElement(Control, Control, double, EaseValue?, LayoutAnimateMode, bool)" path="/remarks"/>
     /// <inheritdoc cref="AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)" path="/exception"/>
     public static LayoutTransition AnimateSharedElement(
         Control source,
@@ -401,11 +427,11 @@ public static class PrestoAvalonia
     /// Plays <paramref name="exit"/> on a ghost of <paramref name="control"/> drawn where the control is now, so code that
     /// removes the control itself can do so in the same frame: <see cref="Presence.ExitProperty"/> for imperative removal.
     /// </summary>
-    /// <returns>The ghost's animation, whose completion or cancellation removes the ghost; <c>null</c> when <paramref name="control"/> is not on screen.</returns>
+    /// <returns>The ghost's animation, whose completion or cancellation removes the ghost; <c>null</c> when <paramref name="control"/> is not on screen, as when it or an ancestor is hidden or at opacity 0.</returns>
     public static Animation? AnimateExit(Control control, AnimationBuilder exit)
     {
         EnsureInitialized();
-        if (control.GetVisualParent() is not { } parent || TopLevel.GetTopLevel(control) is not { } top) return null;
+        if (control.GetVisualParent() is not { } parent || TopLevel.GetTopLevel(control) is not { } top || !Presence.IsOnScreen(control)) return null;
         return parent.TranslatePoint(control.Bounds.Position, top) is { } position ? Presence.Ghost(control, parent, position, exit) : null;
     }
 
@@ -431,7 +457,7 @@ public static class PrestoAvalonia
         Presto.GetAnimations(target, AvaloniaObjectTargetAdapter.Encode(property));
 
     /// <summary>
-    /// Upstream <c>svg.createDrawable</c>: puts <paramref name="shape"/> into the stroke dash state that reveals only the
+    /// Puts <paramref name="shape"/> into the stroke dash state that reveals only the
     /// contour between <paramref name="start"/> and <paramref name="end"/> (both 0-1), and returns it ready to animate
     /// through its "Draw" property (<c>["Draw"] = "0 1"</c>).
     /// </summary>
@@ -443,7 +469,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>svg.createMotionPath</c>: the "X", "Y" and "Rotate" tweens that ride <paramref name="path"/>'s contour,
+    /// The "X", "Y" and "Rotate" tweens that ride <paramref name="path"/>'s contour,
     /// with <paramref name="offset"/> (0-1) shifting where along it the animation starts — clamping at the two ends when it
     /// is 0, wrapping around otherwise — and <paramref name="autoRotate"/> degrees added to the tangent angle.
     /// </summary>
@@ -507,7 +533,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>svg.morphTo</c>: the from/to pair that morphs the target's <see cref="Geometry"/> <c>Data</c> property
+    /// The from/to pair that morphs the target's <see cref="Geometry"/> <c>Data</c> property
     /// (<see cref="Path.Data"/>, <see cref="PathIcon.Data"/>) into <paramref name="destination"/>, by resampling both
     /// contours at <paramref name="precision"/> points per unit of the longer one and interpolating the two point by point.
     /// When either geometry has several figures, its contours are paired outer with outer and hole with hole and each pair is
@@ -520,7 +546,7 @@ public static class PrestoAvalonia
     /// a <see cref="Geometry"/> and cannot be morphed; use a <see cref="Path"/>.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="precision"/> is zero or negative. Upstream reads that as its raw-attribute morph, which needs the
+    /// <paramref name="precision"/> is zero or negative. anime.js reads that as its raw-attribute morph, which needs the
     /// source path string an Avalonia <see cref="Geometry"/> does not carry.
     /// </exception>
     public static ChainedFunctionValue MorphTo(Geometry destination, double precision = GeometryCodec.DefaultPrecision)
@@ -553,7 +579,7 @@ public static class PrestoAvalonia
         ContourMorph.Of(from, to, precision)?.Points ?? GeometryCodec.PointCount(Math.Max(from.ContourLength, to.ContourLength), precision);
 
     /// <summary>
-    /// Upstream <c>splitText</c>: takes <paramref name="textBlock"/>'s text apart into the per-line, per-word and
+    /// Takes <paramref name="textBlock"/>'s text apart into the per-line, per-word and
     /// per-character controls <paramref name="parameters"/> asks for, and keeps them in step with the block's width.
     /// </summary>
     public static TextSplitter SplitText(TextBlock textBlock, SplitTextParams? parameters = null)
@@ -591,7 +617,7 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>createDraggable</c>: makes <paramref name="target"/> draggable by pointer, moving it through the
+    /// Makes <paramref name="target"/> draggable by pointer, moving it through the
     /// transform shorthands "X" and "Y" unless <paramref name="parameters"/> maps the axes elsewhere.
     /// </summary>
     public static Draggable CreateDraggable(Control target, DraggableParams? parameters = null)
@@ -612,13 +638,14 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// Upstream <c>onScroll</c>: watches a control crossing a <see cref="ScrollViewer"/>'s thresholds, and drives
+    /// Watches a control crossing a <see cref="ScrollViewer"/>'s thresholds, and drives
     /// whatever is handed to <see cref="ScrollObserver.Link"/> from the scroll position.
     /// </summary>
     /// <remarks>
     /// With <see cref="ScrollObserverParams.Pin"/> set, the target is held in place while its thresholds pass, moved in the
     /// same notification as the scroll so it never trails it by a frame.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">The loaded <see cref="ScrollObserverParams.Target"/> has no <see cref="ScrollViewer"/> and no <see cref="ScrollObserverParams.Container"/> is set.</exception>
     public static ScrollObserver OnScroll(ScrollObserverParams? parameters = null)
     {
         EnsureInitialized();
@@ -645,7 +672,7 @@ public static class PrestoAvalonia
     public static Animation ScrollTo(ScrollViewer scroller, Vector offset, AnimationBuilder? builder = null)
     {
         EnsureInitialized();
-        var p = builder?.ToParams() ?? new AnimationParams();
+        var p = builder?.Resolve() ?? new AnimationParams();
         var from = scroller.Offset;
         var max = scroller.ScrollBarMaximum;
         var to = new Vector(Math.Clamp(offset.X, 0, max.X), Math.Clamp(offset.Y, 0, max.Y));
@@ -682,7 +709,7 @@ public static class PrestoAvalonia
     public static Animation ScrollIntoView(Control element, ScrollAlignment alignment = ScrollAlignment.Nearest, Thickness margin = default, AnimationBuilder? builder = null)
     {
         EnsureInitialized();
-        var p = builder?.ToParams() ?? new AnimationParams();
+        var p = builder?.Resolve() ?? new AnimationParams();
         var moves = ScrollGeometry.Targets(element, alignment, margin);
         var properties = new OrderedDictionary<string, TweenValue>(p.Properties);
         var viewports = 0d;
@@ -726,7 +753,7 @@ public static class PrestoAvalonia
         if (list.ItemsPanelRoot is not VirtualizingStackPanel panel)
             return ScrollIntoView(list.ContainerFromIndex(index) ?? throw new InvalidOperationException("The list has no container for that index yet."), alignment, default, builder);
         var scroller = panel.FindAncestorOfType<ScrollViewer>() ?? throw new InvalidOperationException("The list has no ScrollViewer.");
-        return new IndexScroller(list, panel, scroller, index, alignment).Start(builder?.ToParams() ?? new AnimationParams());
+        return new IndexScroller(list, panel, scroller, index, alignment).Start(builder?.Resolve() ?? new AnimationParams());
     }
 
     /// <inheritdoc cref="ScrollToIndex(ItemsControl, int, ScrollAlignment, AnimationBuilder?)"/>
@@ -877,6 +904,7 @@ public static class PrestoAvalonia
 
     private static SystemMotionReader ReadSystemReducedMotion(Action read)
     {
+        ActivationHook.TryHook();
         if (!s_reducedMotionHooked)
         {
             s_reducedMotionHooked = true;
@@ -884,7 +912,6 @@ public static class PrestoAvalonia
             {
                 if (window.IsActive) RefreshSystemReducedMotion();
             });
-            if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime) lifetime.Activated += (_, _) => RefreshSystemReducedMotion();
             ReducedMotionProbe.Listen(RefreshSystemReducedMotion);
         }
         var reader = new SystemMotionReader(read);

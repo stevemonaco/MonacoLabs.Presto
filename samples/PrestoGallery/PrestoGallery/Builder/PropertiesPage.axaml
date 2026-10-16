@@ -1,0 +1,40 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1400"
+                       x:Class="PrestoGallery.Builder.PropertiesPage">
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <TextBlock Classes="caption" Text="Per-property settings" />
+            <Border Classes="stage">
+                <Border x:Name="SettingsBox" Classes="swatch" Width="56" Height="56" HorizontalAlignment="Center" />
+            </Border>
+            <Button Content="Replay" Click="ReplaySettings" HorizontalAlignment="Left" />
+            <showcase:CodePanel x:Name="SettingsCode" />
+
+            <TextBlock Classes="caption" Text="Per-property and animation-level keyframes" />
+            <Border Classes="stage">
+                <Grid RowDefinitions="*,*">
+                    <Border x:Name="Ball" Classes="dot" Width="28" Height="28" CornerRadius="14" HorizontalAlignment="Center" />
+                    <Border x:Name="KeyframesBox" Grid.Row="1" Classes="swatch" Width="44" Height="44"
+                            Background="{x:Static showcase:Palette.Aqua}" HorizontalAlignment="Center" />
+                </Grid>
+            </Border>
+            <Button Content="Replay" Click="ReplayKeyframes" HorizontalAlignment="Left" />
+            <showcase:CodePanel x:Name="TweenKeyframesCode" />
+            <showcase:CodePanel x:Name="KeyframesCode" />
+
+            <TextBlock Classes="caption" Text="Typed values and any property" />
+            <Border Classes="stage">
+                <Border x:Name="Card" Classes="specimen" Width="220" Height="120" HorizontalAlignment="Center">
+                    <TextBlock Text="Card" Foreground="{x:Static showcase:Palette.Ink}" FontSize="18"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Border>
+            <Button Content="Replay" Click="ReplayCard" HorizontalAlignment="Left" />
+            <showcase:CodePanel x:Name="CardCode" />
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

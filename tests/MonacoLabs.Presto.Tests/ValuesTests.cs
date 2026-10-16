@@ -137,11 +137,11 @@ public sealed class ValuesTests : EngineTestBase
     }
 
     [Fact]
-    public void ComplexExponentsKeepUpstreamSingleDigitQuirk()
+    public void ComplexExponentsKeepEveryDigit()
     {
-        var value = Decompose("1e10 2");
-        Assert.Equal(new double[] { 10, 0, 2 }, value.Numbers);
-        Assert.Equal(new[] { "", "", " ", "" }, value.Strings);
+        var value = Decompose("1e10 2.5e-12");
+        Assert.Equal(new double[] { 1e10, 2.5e-12 }, value.Numbers);
+        Assert.Equal(new[] { "", " ", "" }, value.Strings);
     }
 
     [Fact]

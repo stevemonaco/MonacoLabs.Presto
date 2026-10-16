@@ -33,7 +33,7 @@ depends:
 
 ## Purpose
 
-A `Stagger` gives each target its own value from the target's distance to an origin: along the target list, across a grid, or across positions measured from the targets. It is accepted wherever a per-target value is (a delay, a duration, a property value, a keyframe setting) and as the position of timeline children, where it adds one child per target (CORE-TIMELINE). Port of anime.js `stagger()`. Also specifies `Presto.Stagger`.
+A `Stagger` gives each target its own value from the target's distance to an origin: along the target list, across a grid, or across positions measured from the targets. It is accepted wherever a per-target value is (a delay, a duration, a property value, a keyframe setting) and as the position of timeline children, where it adds one child per target (CORE-TIMELINE). Initially ported from anime.js `stagger()`. Also specifies `Presto.Stagger`.
 
 ## Requirements
 
@@ -116,8 +116,8 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 - **CORE-STAGGER-031** — The stagger shall compute its distances on first use and reuse them for every target of a group of the same size, recomputing them when a group of another size uses it.
   - Tests: `StaggerTests.AStaggerReusedOnALargerGroupStaggersEveryTarget`
-- **CORE-STAGGER-032** — The stagger shall resolve its start offset on first use and keep it for every later use.
-  - Tests: untested
+- **CORE-STAGGER-032** — The stagger shall resolve its start offset on each use: once per group added to a timeline, against that timeline as it is when the group is added, and on every call outside a timeline (see "A stagger's start offset is computed per use").
+  - Tests: `StaggerTests.AStaggerReusedAsAPositionOnAnotherTimelineUsesThatTimelinesEnd`, `StaggerTests.AStaggerReusedAfterItsTimelineGrowsUsesTheNewEnd`
 - **CORE-STAGGER-033** — As a timeline position, the stagger's offset shall be `Start`, as a number or a label, or else the timeline's end when the group is added.
   - Tests: `StaggerTests.StaggersTimelinePositions`, `StaggerTests.StaggersTimelinePositionsWithANumericStart`, `StaggerTests.StaggersTimelinePositionsStartingAtALabel`
 - **CORE-STAGGER-034** — A stagger used as a property value inside a staggered timeline group shall resolve against the whole group.
@@ -125,13 +125,13 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 ### Defaults
 
-- **CORE-STAGGER-035** — When `Total` is not set, the values shall be spaced over the target count, as anime.js does.
+- **CORE-STAGGER-035** — When `Total` is not set, the values shall be spaced over the target count.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`
-- **CORE-STAGGER-036** — When neither `Grid` nor `AutoGrid` is set, the distances shall be measured along the target list, as anime.js does.
+- **CORE-STAGGER-036** — When neither `Grid` nor `AutoGrid` is set, the distances shall be measured along the target list.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`
-- **CORE-STAGGER-037** — When `Axis` is not set, the value shall be the distance from the origin rather than a signed offset, as anime.js does.
+- **CORE-STAGGER-037** — When `Axis` is not set, the value shall be the distance from the origin rather than a signed offset.
   - Tests: `StaggerTests.StaggersAcrossA2DGrid`
-- **CORE-STAGGER-038** — When `Ease` is not set, the distances shall be used unmapped, as anime.js does.
+- **CORE-STAGGER-038** — When `Ease` is not set, the distances shall be used unmapped.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`
 
 ## Invariants
@@ -159,9 +159,10 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 - Not on the tick path. The first call allocates the distance cache (and jitter samples); later calls allocate only a unit string when the value has a unit.
 
-## Deviations from anime.js
+## Provenance
 
 - A stagger met by a group of a different size recomputes its distances; upstream keeps the first count and reads past its cache, which gave every target past the first group's size a zero delay (see "A stagger rebuilds when the target count changes").
+- The start offset is resolved per use; upstream caches the first one it resolves, so a reused stagger kept the first timeline's offset (see "A stagger's start offset is computed per use").
 - `Coordinates` lets the host measure positions; upstream reads `getBoundingClientRect` or `x`/`y`/`z`. The core cannot measure layout, so the bridge measures visuals through it (see "Auto grids measure through a coordinates provider").
 - `Use` is a delegate and `UseProperty` a property name, where upstream takes either in one `use` option, because a typed parameter cannot hold both; a fractional `Use` index is truncated.
 - `Seed` is an `int`; upstream also accepts `true` for seed 0, which a typed `int` parameter cannot express.
@@ -169,7 +170,9 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 ## Decisions
 
-- **A stagger rebuilds when the target count changes.** A stagger recomputes its cache when a group of another size uses it, instead of sizing it once by the first group as upstream's closure does. Reason: a builder's shared stagger read past its cache once a batch grew and gave every later element a zero delay.
+- **A stagger rebuilds when the target count changes.** A stagger recomputes its cache when a group of another size uses it, instead of sizing it once by the first group, which upstream's closure does. Reason: a builder's shared stagger read past its cache once a batch grew and gave every later element a zero delay.
+- **A stagger's start offset is computed per use.** Each timeline group resolves it once against its own timeline before placing its children, and a non-timeline use reads `Start` on every call; upstream caches the offset on first use. Reason: the cache made reuse depend on first use, so a stagger reused on a second timeline, or after the first grew, kept the first offset. Resolving it per group, not per child, keeps a relative `Start` such as `"<"` from cascading within the group.
+- **Unset options leave an even spacing by list position.** Without `Total`, `Grid`, `AutoGrid`, `Axis` or `Ease`, values step evenly by each target's distance from the origin along the list (CORE-STAGGER-035 to 038). Reason: `Presto.Stagger(50)` then spaces a group 50 apart, and each option adds one shape to that.
 - **Auto grids measure through a coordinates provider.** The core exposes `StaggerParams.Coordinates` as a provider, and the bridge fills it by measuring each visual. Reason: the core cannot measure layout.
 - **Function values receive the group's target list.** See CORE-ANIMATION.
 - **`FunctionValue` takes three arguments.** See CORE-VALUES.
@@ -181,5 +184,4 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 ## Open items
 
-- `From = Random`, the cached start offset, and a fractional `Use` index have no test.
-- A stagger caches its start offset once, so reusing one as a position on a second timeline (or after the first grows) keeps the first timeline's offset; the recompute-on-size deviation does not extend to it.
+- `From = Random` and a fractional `Use` index have no test.

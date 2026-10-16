@@ -36,9 +36,9 @@ const PLAN_SCHEMA = {
           id: { type: 'string', description: 'short slug, e.g. "clock"' },
           title: { type: 'string' },
           area: { type: 'string', enum: ['core', 'bridge', 'sample', 'tests', 'docs'] },
-          brief: { type: 'string', description: 'Self-contained instructions: what to build, existing files it extends, upstream files and test suites to port, acceptance criteria' },
+          brief: { type: 'string', description: 'Self-contained instructions: what to build, existing files it extends, upstream files to read when it touches a ported module, acceptance criteria' },
           files: STRINGS,
-          upstream: { type: 'array', items: { type: 'string' }, description: 'anime.js 4.5.0 paths to read first, e.g. src/timer/timer.js, tests/suites/timings.test.js' },
+          upstream: { type: 'array', items: { type: 'string' }, description: 'Optional provenance: anime.js 4.5.0 files to read when the item touches a ported module, e.g. src/timer/timer.js, tests/suites/timings.test.js' },
           visual: { type: 'boolean', description: 'true only when the result must be seen in the Desktop sample' },
         },
         required: ['id', 'title', 'area', 'brief', 'files', 'upstream', 'visual'],
@@ -127,15 +127,15 @@ const TEST_SCHEMA = {
 
 const EDIT_RULES = `
 
-Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. Never send real OS mouse or keyboard input (only the avalonia_devtools tools may drive a Presto app), and never capture the screen or inspect any window that is not a MonacoLabs.Presto app's own. When porting, read the anime.js 4.5.0 source first: a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch.`
+Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. Never send real OS mouse or keyboard input (only the avalonia_devtools tools may drive a Presto app), and never capture the screen or inspect any window that is not a MonacoLabs.Presto app's own. When touching a ported module or its ported tests, read the anime.js 4.5.0 source first as provenance (the specs, not upstream, decide behavior): a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch.`
 
 const READ_ONLY_RULES = ` Do not edit files, build, or run tests.`
 
 const HOT_RELOAD = `
 Visual verification (this item changes what the sample shows):
 - Load the avalonia_devtools tools with ToolSearch("+avalonia").
-- If a PrestoSample.Desktop process is already running, attach-to-app and reuse it: hot reload applies your edits to the live instance.
-- Otherwise run \`dotnet watch --project samples/PrestoSample.Desktop\` in the background, wait for the window, then attach-to-app. .axaml edits are patched live; C# edits hot-reload through dotnet watch except rude edits (new types, changed signatures), which need the watch process restarted.
+- If a PrestoGallery.Desktop process is already running, attach-to-app and reuse it: hot reload applies your edits to the live instance.
+- Otherwise run \`dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop\` in the background, wait for the window, then attach-to-app. .axaml edits are patched live; C# edits hot-reload through dotnet watch except rude edits (new types, changed signatures), which need the watch process restarted.
 - Drive the page with input, then confirm end states with screenshot and props. Record what you saw in \`verified\`.
 - Send input only through the avalonia_devtools \`input\`, \`action\` and \`set-prop\` tools. Never use real OS input (SendInput, mouse_event, keybd_event, SetCursorPos, UI Automation, AutoHotkey, or anything else that moves the real cursor or types on the user's desktop). If DevTools cannot drive something (drags, wheel, multi-touch), say so in \`blockers\` and leave it for the user.
 - Look only at MonacoLabs.Presto's own apps: DevTools screenshots of the attached app, or a window capture targeted at a Presto process's window handle. Never capture the whole screen or desktop, and never capture, inspect or read other applications' windows.
@@ -153,7 +153,7 @@ Resolve the input first:
 - anything else → the input is the plan text itself.
 Copy every docs/BACKLOG.md line the plan resolves into \`backlogItems\`, verbatim. Read docs/ARCHITECTURE.md in full either way for architecture and API conventions, then the feature specs in docs/specs/ (format in docs/specs/README.md; find them through each folder's index.md) for every feature the plan touches, then the parts of the codebase the plan touches (existing types, tests, samples) so items refer to what actually exists. Each \`brief\` names the spec files its item must update, or the draft spec it must create for a new feature.
 
-Produce 3–10 work items in dependency order. Each must be implementable by one agent in one sitting: merge tiny items, split anything touching more than ~8 files. Each \`brief\` is self-contained — what to build, which existing files it extends or must stay consistent with, which upstream anime.js 4.5.0 files (src/...) and test suites (tests/suites/...) to read and port, and concrete acceptance criteria. Tests belong inside the item that implements the behavior. Mark \`visual: true\` only when the result must be seen in the Desktop sample (bridge/sample work); core work is verified by tests.${READ_ONLY_RULES}`
+Produce 3–10 work items in dependency order. Each must be implementable by one agent in one sitting: merge tiny items, split anything touching more than ~8 files. Each \`brief\` is self-contained — what to build, which existing files it extends or must stay consistent with, which upstream anime.js 4.5.0 files (src/...) and test suites (tests/suites/...) to read when it touches a ported module, and concrete acceptance criteria. Tests belong inside the item that implements the behavior. Mark \`visual: true\` only when the result must be seen in the Desktop sample (bridge/sample work); core work is verified by tests.${READ_ONLY_RULES}`
 
 function implementPrompt(plan, item, done, remaining) {
   const doneText = done.length
@@ -174,7 +174,7 @@ ${remainingText}
 YOUR ITEM: ${item.id} — ${item.title} [${item.area}]
 ${item.brief}
 Files likely involved: ${item.files.join(', ') || 'see brief'}
-Upstream to read first: ${item.upstream.join(', ') || 'see brief'}
+Upstream provenance to read first: ${item.upstream.join(', ') || 'see brief'}
 
 How to work:
 1. Read the feature's spec in docs/specs/ and the existing code you are extending before writing anything.
@@ -198,9 +198,9 @@ Sprawl to look for:
 - new files or types that belong in an existing one; helpers duplicating something already in the repo or the BCL
 - speculative features, public surface the plan did not ask for, dead or unused members, guards against impossible states
 - comments that restate code, label sections, narrate steps or address the reviewer; XML docs on private members (the CLAUDE.md comment rules)
-- LINQ or allocations in tick/render hot paths (the repo keeps upstream's linked lists)
+- LINQ or allocations in tick/render hot paths (the tick path uses intrusive linked lists)
 - tests that duplicate each other or test the language instead of behavior
-Do NOT flag: structure ported faithfully from anime.js (parity is deliberate even when it looks redundant), naming or formatting taste, or missing functionality.
+Do NOT flag: ported structure that the regression tests ported from upstream pin, even when it looks redundant, naming or formatting taste, or missing functionality.
 
 Report only findings a maintainer would act on, each with a concrete \`fix\` that deletes or merges something. confidence: high = certain it is removable, medium = probably, low = a suggestion. Fewer, sharper findings beat a long list.`
 }
@@ -215,7 +215,7 @@ ${plan.summary}
 What each implementer reported:
 ${reported}
 
-Read the plan source and the change (\`git status --porcelain\`, \`git diff\`, and every untracked file in full). For every requirement in the plan confirm it is implemented and has a test where the plan or the upstream anime.js suite calls for one. Then confirm the specs in docs/specs/ match the change: every changed behavior is reflected in its spec's requirements with the tests that pin it, and nothing in a touched spec now contradicts the code; a change that diverges from its spec without updating it is a gap. Report each gap as a finding: file = where it should live, summary = what is missing, fix = the smallest change that closes it. Ignore style and concision — another reviewer covers those. confidence: high = the plan explicitly requires it and it is absent, medium = implied by the plan, low = nice to have.`
+Read the plan source and the change (\`git status --porcelain\`, \`git diff\`, and every untracked file in full). For every requirement in the plan confirm it is implemented and has a test where the plan or its spec calls for one; a ported upstream test counts only for behavior it already pins. Then confirm the specs in docs/specs/ match the change: every changed behavior is reflected in its spec's requirements with the tests that pin it, and nothing in a touched spec now contradicts the code; a change that diverges from its spec without updating it is a gap. Report each gap as a finding: file = where it should live, summary = what is missing, fix = the smallest change that closes it. Ignore style and concision — another reviewer covers those. confidence: high = the plan explicitly requires it and it is absent, medium = implied by the plan, low = nice to have.`
 }
 
 function tightenPrompt(findings, context) {
@@ -242,7 +242,7 @@ function testFixPrompt(tests, plan) {
 ${tests.buildOk ? 'Failing tests' : 'Build errors'}:
 ${problems}
 
-For each failure decide whether the implementation or the test is wrong by checking the plan and the upstream anime.js behavior, then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or upstream contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build MonacoLabs.Presto.slnx\` and \`dotnet test --solution MonacoLabs.Presto.slnx\` green.${EDIT_RULES}`
+For each failure decide whether the implementation or the test is wrong by checking the plan and the specs (upstream anime.js only for behavior a ported test pins), then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or a spec contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build MonacoLabs.Presto.slnx\` and \`dotnet test --solution MonacoLabs.Presto.slnx\` green.${EDIT_RULES}`
 }
 
 function closePrompt(plan) {

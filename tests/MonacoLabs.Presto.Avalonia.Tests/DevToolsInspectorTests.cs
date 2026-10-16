@@ -130,6 +130,25 @@ public sealed class DevToolsInspectorTests : BridgeTestBase, IDisposable
     }
 
     [AvaloniaFact]
+    public void OnlyTweenRowsInViewTakeValueSnapshots()
+    {
+        var boxes = Enumerable.Range(0, 40).Select(_ => new Border { Width = 10, Height = 10 }).ToArray();
+        ((Panel)_window.Content!).Children.AddRange(boxes);
+        var animation = Presto.Animate(boxes, new AvaloniaAnimationParams { ["Opacity"] = 0, Duration = 1000, Ease = Eases.None });
+        _inspector.Refresh(animation, null);
+        _window.UpdateLayout();
+        var first = _inspector.Tweens.Rows.First();
+        var last = _inspector.Tweens.Rows.Last();
+        var (firstBefore, lastBefore) = (first.Values.Text, last.Values.Text);
+
+        Frames.Advance(500);
+        _inspector.Refresh(animation, null);
+
+        Assert.NotEqual(firstBefore, first.Values.Text);
+        Assert.Equal(lastBefore, last.Values.Text);
+    }
+
+    [AvaloniaFact]
     public void TheOverriddenMarkerNamesTheNewerRoot()
     {
         var older = Animate(new() { ["Opacity"] = 0, ["Width"] = 100, Duration = 1000 });

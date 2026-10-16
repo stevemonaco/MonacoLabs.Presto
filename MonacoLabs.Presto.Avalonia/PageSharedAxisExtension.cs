@@ -11,6 +11,9 @@ public sealed class PageSharedAxisExtension : MarkupExtension
     /// <summary>How far the pages travel in DIPs, or <see cref="MotionTokens.Distance"/> when unset.</summary>
     public double? Distance { get; set; }
 
+    /// <summary>The incoming page's duration in ms, or <see cref="MotionTokens.Medium"/> when unset.</summary>
+    public double? Duration { get; set; }
+
     /// <inheritdoc/>
-    public override object ProvideValue(IServiceProvider serviceProvider) => Recipes.PageSharedAxis(Axis, Distance);
+    public override object ProvideValue(IServiceProvider serviceProvider) => Recipes.PageSharedAxis(Axis, Distance, Duration);
 }

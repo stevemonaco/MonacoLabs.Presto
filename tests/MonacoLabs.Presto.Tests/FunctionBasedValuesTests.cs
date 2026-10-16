@@ -177,4 +177,54 @@ public sealed class FunctionBasedValuesTests : EngineTestBase
         Assert.All(written, value => Assert.Equal(text[..value.Length], value));
         Assert.Equal(text, target.Text);
     }
+
+    [Fact]
+    public void RefreshConvertsTheFromValueToARefreshedEndsUnit()
+    {
+        var target = new StyleTarget { Rotate = "180deg" };
+        var to = "90deg";
+        var animation = Presto.Animate(target, new() { ["Rotate"] = new FunctionValue((_, _, _) => to), Duration = 100, Ease = "linear", Autoplay = false });
+
+        to = "1turn";
+        animation.Refresh().Seek(50);
+
+        Assert.Equal("0.75turn", target.Rotate);
+    }
+
+    [Fact]
+    public void RefreshPadsAFromValueShorterThanARefreshedEnd()
+    {
+        var target = new TestObject();
+        var to = "0 0";
+        var animation = Presto.Animate(target, new() { ["MultiplePlainValues"] = new FunctionValue((_, _, _) => to), Duration = 100, Ease = "linear", Autoplay = false });
+
+        to = "32 64 128 256 512";
+        animation.Refresh().Seek(50);
+
+        Assert.Equal("24 48 96 192 256", target.MultiplePlainValues);
+    }
+
+    [Fact]
+    public void AFunctionReturningTweenParamsGivesEachTargetItsOwnModifiers()
+    {
+        TextTarget[] counters = [new(), new()];
+        int[] decimals = [0, 2];
+        var animation = Presto.Animate(counters, new()
+        {
+            ["Text"] = new FunctionValue((_, i, _) => new TweenParams
+            {
+                From = 0,
+                To = 10,
+                TextModifier = v => Utils.RoundPad(v, decimals[i]),
+            }),
+            Duration = 100,
+            Ease = Eases.None,
+            Autoplay = false,
+        });
+
+        animation.Seek(50);
+
+        Assert.Equal("5", counters[0].Text);
+        Assert.Equal("5.00", counters[1].Text);
+    }
 }

@@ -7,21 +7,22 @@ using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace MonacoLabs.Presto.Text;
 
 /// <summary>
-/// Port of anime.js <c>splitText</c>: a <see cref="TextBlock"/>'s text taken apart into per-line, per-word and
+/// A <see cref="TextBlock"/>'s text taken apart into per-line, per-word and
 /// per-character pieces that are animated individually. The pieces are <see cref="Control"/>s laid out inside the block
 /// itself, one row per wrapped line, and the split is redone whenever the block's width changes.
 /// </summary>
 /// <remarks>
-/// Upstream's <c>clone</c> and <c>debug</c> options and its HTML templates are not ported; the piece tree is built from
+/// anime.js's <c>clone</c> and <c>debug</c> options and its HTML templates have no counterpart; the piece tree is built from
 /// <see cref="SplitPieceParams"/> instead. Only the block's plain text is split, so inline formatting is not preserved,
 /// and the text is left to automation through <see cref="AutomationProperties.NameProperty"/> on the block where
-/// upstream leaves a visually hidden copy. While split, the block's <see cref="Visual.ClipToBounds"/> is off so pieces
+/// anime.js leaves a visually hidden copy. While split, the block's <see cref="Visual.ClipToBounds"/> is off so pieces
 /// animated past its edges stay visible.
 /// </remarks>
 public sealed class TextSplitter : IRevertible
@@ -31,7 +32,7 @@ public sealed class TextSplitter : IRevertible
 
     private readonly TextBlock _host;
     private readonly SplitTextParams _parameters;
-    private readonly string _text;
+    private string _text;
     private readonly Timer _resize;
     // An effect returns either an Action to undo it or a Timer that keeps running, as upstream's effectsCleanups holds both.
     private readonly List<Func<TextSplitter, object?>> _effects = [];
@@ -42,7 +43,9 @@ public sealed class TextSplitter : IRevertible
     private StackPanel? _root;
     private IDisposable? _unclip;
     private double _width;
+    private double _splitWidth;
     private bool _ready;
+    private bool _writing;
 
     internal TextSplitter(TextBlock host, SplitTextParams parameters)
     {
@@ -54,7 +57,7 @@ public sealed class TextSplitter : IRevertible
         using var origin = PrestoDiagnostics.Origin("TextSplitter");
         _resize = Presto.CreateTimer(new TimerParams
         {
-            Duration = ResizeDebounce,
+            Duration = ResizeDebounce * Globals.TimeScale,
             Autoplay = false,
             OnComplete = _ =>
             {
@@ -63,6 +66,7 @@ public sealed class TextSplitter : IRevertible
         });
 
         host.SizeChanged += HandleSizeChanged;
+        host.PropertyChanged += HandleTextChanged;
         if (host.Bounds.Width > 0) Split();
     }
 
@@ -104,7 +108,7 @@ public sealed class TextSplitter : IRevertible
     /// <summary>The height of one line of the block's text, measured before the pieces are laid out.</summary>
     public double LineHeight { get; private set; }
 
-    /// <summary>The block's text as it was before the split.</summary>
+    /// <summary>The text the block is split from: its text at creation or the last one set on it from outside since.</summary>
     internal string Text => _text;
 
     /// <summary>The index of the wrapped line <paramref name="piece"/> sits on.</summary>
@@ -183,17 +187,19 @@ public sealed class TextSplitter : IRevertible
         return this;
     }
 
-    /// <summary>Runs the effect cleanups and puts the original text back, leaving the block as it was found.</summary>
+    /// <summary>Runs the effect cleanups and puts the block's current text back, leaving it whole.</summary>
     public TextSplitter Revert()
     {
         _host.SizeChanged -= HandleSizeChanged;
+        _host.PropertyChanged -= HandleTextChanged;
         _resize.Revert();
         RunCleanups(true);
         _lines.Clear();
         _words.Clear();
         _chars.Clear();
         _host.Inlines = null;
-        _host.Text = _text;
+        // A splitter reverted before must not write over a text set since.
+        if (_ready) _host.SetCurrentValue(TextBlock.TextProperty, _text);
         _host.ClearValue(AutomationProperties.NameProperty);
         if (Of(_host) == this) _host.ClearValue(SplitProperty);
         _unclip?.Dispose();
@@ -208,7 +214,20 @@ public sealed class TextSplitter : IRevertible
     private void HandleSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         if (e.NewSize.Width == _width) return;
+        // Pieces measured one by one lose kerning, so a block sized to its text widens to its own split.
+        if (_ready && Math.Abs(e.NewSize.Width - _splitWidth) < 1)
+        {
+            _width = e.NewSize.Width;
+            return;
+        }
         if (_ready) _resize.Restart(); else Split();
+    }
+
+    private void HandleTextChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property != TextBlock.TextProperty || _writing) return;
+        _text = _host.Text ?? "";
+        if (_ready) Split();
     }
 
     private TextSplitter Register(Func<TextSplitter, object?> effect)
@@ -233,7 +252,9 @@ public sealed class TextSplitter : IRevertible
         TextBlock.SetBaselineOffset(root, baseline);
         for (var i = 0; i < lines.Count; i++) root.Children.Add(BuildLine(lines[i].TrimEnd(), i));
 
-        _host.Text = null;
+        _writing = true;
+        _host.SetCurrentValue(TextBlock.TextProperty, null);
+        _writing = false;
         _host.Inlines = [new InlineUIContainer(root)];
         AutomationProperties.SetName(_host, _text);
         // Above local priority so a local or style value is never overwritten, only covered until Revert.
@@ -242,7 +263,8 @@ public sealed class TextSplitter : IRevertible
         // Laid out where the host's arrange will put it, so slots exist before the host's next layout pass.
         root.Measure(Size.Infinity);
         var padding = _host.Padding;
-        var free = Math.Max(0, _width - padding.Left - padding.Right - root.DesiredSize.Width);
+        _splitWidth = root.DesiredSize.Width + padding.Left + padding.Right;
+        var free = Math.Max(0, _width - _splitWidth);
         root.Arrange(new Rect(new Point(padding.Left + free * AlignmentFactor(), padding.Top), root.DesiredSize));
         _ready = true;
 

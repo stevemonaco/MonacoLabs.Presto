@@ -417,6 +417,30 @@ public sealed class ScrollObserverTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ALoadedTargetOutsideAScrollViewerThrowsFromOnScrollAndLink()
+    {
+        var target = new Border();
+        new Window { Content = target }.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Throws<InvalidOperationException>(() => PrestoAvalonia.OnScroll(new ScrollObserverParams { Target = target }));
+        var observer = PrestoAvalonia.OnScroll();
+        Assert.Throws<InvalidOperationException>(() => observer.Link(target.Animate(new() { ["X"] = 100, Autoplay = false })));
+        observer.Revert();
+        Frames.Advance(16);
+    }
+
+    [AvaloniaFact]
+    public void LinkingAnObjectWithNoControlThrowsFromLink()
+    {
+        var observer = PrestoAvalonia.OnScroll();
+
+        Assert.Throws<InvalidOperationException>(() => observer.Link(Presto.CreateTimeline(new TimelineParams { Autoplay = false })));
+        observer.Revert();
+        Frames.Advance(16);
+    }
+
+    [AvaloniaFact]
     public void OnResizeFiresOnEveryContainerRefresh()
     {
         var (_, _, target) = Show();

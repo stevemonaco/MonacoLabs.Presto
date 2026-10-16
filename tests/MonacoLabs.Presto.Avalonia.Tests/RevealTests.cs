@@ -79,6 +79,16 @@ public sealed class RevealTests : BridgeTestBase
         Assert.Equal(new Rect(-farthest / 2, -farthest / 2, farthest, farthest), Assert.IsType<EllipseGeometry>(box.Clip).Rect);
     }
 
+    [AvaloniaFact]
+    public void TheCircleCenterAloneLeavesNoClip()
+    {
+        var box = ShownBox();
+
+        Seeked(box, new() { ["ClipCircleCenter"] = TweenValue.Of(RelativePoint.TopLeft) }, 0.5);
+
+        Assert.Null(box.Clip);
+    }
+
     [AvaloniaTheory]
     [InlineData("ClipInset", "20%")]
     [InlineData("ClipCircle", "0.5")]
@@ -114,6 +124,31 @@ public sealed class RevealTests : BridgeTestBase
         var sweep = Seeked(box, new() { ["MaskSweep"] = TweenValue.FromTo(0, 1) }, 0.99);
         Assert.IsType<LinearGradientBrush>(box.OpacityMask);
         sweep.Seek(sweep.Duration);
+
+        Assert.Null(box.OpacityMask);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("MaskSweepAngle", 90)]
+    [InlineData("MaskSweepFeather", 0.5)]
+    public void AMaskCompanionAloneLeavesNoMask(string shorthand, double value)
+    {
+        var box = ShownBox();
+
+        Seeked(box, new() { [shorthand] = value }, 0.5);
+
+        Assert.Null(box.OpacityMask);
+    }
+
+    [AvaloniaFact]
+    public void RevertingTheSweepWhileACompanionRunsLeavesNoMask()
+    {
+        var box = ShownBox();
+        var sweep = Seeked(box, new() { ["MaskSweep"] = TweenValue.FromTo(0, 0.5) });
+        Seeked(box, new() { ["MaskSweepAngle"] = 90 }, 0.5);
+        Assert.IsType<LinearGradientBrush>(box.OpacityMask);
+
+        sweep.Revert();
 
         Assert.Null(box.OpacityMask);
     }

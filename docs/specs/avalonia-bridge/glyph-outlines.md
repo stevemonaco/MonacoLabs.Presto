@@ -101,7 +101,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 
 - Not on the tick path. Reading an outline shapes the text and allocates its geometry; flattening allocates each figure's point array once, for later per-frame use without further allocation.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: DOM text has no outline, so anime.js morphs only paths converted by hand.
 

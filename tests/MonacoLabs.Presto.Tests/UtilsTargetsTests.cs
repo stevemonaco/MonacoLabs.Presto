@@ -1,3 +1,5 @@
+using MonacoLabs.Presto.Targets;
+
 namespace MonacoLabs.Presto.Tests;
 
 /// <summary>Port of the target cases of anime.js tests/suites/utils.test.js: <c>utils.get</c>, <c>utils.set</c> and <c>utils.remove</c>.</summary>
@@ -12,6 +14,24 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Assert.Equal("10px", Presto.Get(target, "ValueWithUnit"));
         Assert.Equal("16 32 64 128", Presto.Get(target, "MultiplePlainValues"));
         Assert.Equal("16px 32em 64% 128ch", Presto.Get(target, "MultipleValuesWithUnits"));
+    }
+
+    [Fact]
+    public void GetReadsTheCanonicalPropertyOfAnAlias()
+    {
+        var adapter = new AliasAdapter();
+        Presto.Adapters.Add(adapter);
+        try
+        {
+            var target = new TestObject();
+
+            Assert.Equal("10px", Presto.Get(target, "Alias"));
+            Assert.Equal(10d, Presto.Get(target, "Alias", withUnit: false));
+        }
+        finally
+        {
+            Presto.Adapters.Remove(adapter);
+        }
     }
 
     [Fact]
@@ -38,6 +58,16 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Assert.Equal("42px", target.ValueWithUnit);
         Assert.Equal("40 41 42 43", target.MultiplePlainValues);
         Assert.Equal("40px 41em 42% 43ch", target.MultipleValuesWithUnits);
+    }
+
+    [Fact]
+    public void SetWritesTheToValueOfAFunctionReturningAFromToPair()
+    {
+        var target = new TestObject();
+
+        Presto.Set(target, new() { ["PlainValue"] = new FunctionValue((_, _, _) => TweenValue.FromTo(10, 42)) });
+
+        Assert.Equal(42, target.PlainValue);
     }
 
     /// <summary>Upstream measures CSS units against the DOM; the core scales the angle units and adopts any other unit as is.</summary>
@@ -289,5 +319,12 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Assert.Equal(0, TestHelpers.GetTweenCount(animation));
         Assert.True(animation.Canceled);
         Assert.True(animation.Paused);
+    }
+
+    private sealed class AliasAdapter : ITargetAdapter
+    {
+        public IPropertyAccessor? Resolve(object target, string property) => null;
+
+        public string? Canonicalize(object target, string property) => property == "Alias" ? "ValueWithUnit" : null;
     }
 }

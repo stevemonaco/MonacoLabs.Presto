@@ -1,12 +1,13 @@
 # MonacoLabs.Presto
 
-A .NET port of the [anime.js](https://animejs.com/documentation) v4.5.0 animation model: a framework-agnostic core that
-animates any property of any object, plus an Avalonia adapter that makes controls first-class targets.
+A .NET animation library inspired by, and initially ported from, [anime.js](https://animejs.com/documentation) v4.5.0:
+a framework-agnostic core that animates any property of any object, plus an Avalonia adapter that makes controls
+first-class targets.
 
-The core is a faithful port of anime.js's timing model — the same clock, the same `tick()` math for
-delay/loop/alternate/reverse/seek/stretch, the same composition rules — so the upstream test suites port across
-one-to-one. The API is C#-idiomatic: a fluent builder with a typed method per animatable property, the anime.js names in
-PascalCase, and `init`-only parameter records underneath for when the property names are only known at run time.
+The core's timing model (delay, loop, alternate, reverse, seek, stretch and composition) is covered by test suites
+ported from upstream, so changes to it are deliberate. The API is C#-idiomatic: a fluent builder with a typed method per
+animatable property, the anime.js names in PascalCase, and `init`-only parameter records underneath for when the
+property names are only known at run time.
 
 | Package | What it is |
 |---|---|
@@ -215,7 +216,12 @@ animation.Complete();
 animation.Cancel();
 animation.Revert();                     // undo the writes, restore the target
 await animation.Then(a => Log(a.Id));
+await Presto.Delay(300);                // hold between animations, in engine time
 ```
+
+Hold between animations with `Presto.Delay`: it waits in engine time, so it follows `Engine.Speed`, DevTools dilation
+and a manually advanced frame source in tests, and it takes a `CancellationToken`. Use `Task.Delay` only for simulated
+work that should take wall-clock time.
 
 ### Values
 
@@ -408,8 +414,8 @@ PrestoAvalonia.CreateDraggable(SpringCard, new()
 });
 ```
 
-`CancelOnEscape = true` adds what anime.js does not have: Escape mid-drag ends the drag and springs the target back to
-where it was grabbed, then `OnRelease` and `OnSettle` run as for a release.
+Escape mid-drag, which anime.js does not handle, ends the drag and springs the target back to where it was grabbed,
+then `OnRelease` and `OnSettle` run as for a release; `CancelOnEscape = false` turns that off.
 
 #### Drag to reorder
 
@@ -450,14 +456,14 @@ value, so a `Duration` beside it is ignored.
 ```csharp
 card.Animate(b => b.X(new Inertia(velocity) { ModifyTarget = Utils.Snap(240), Min = -960, Max = 0 }));
 
-follower.Fling("X", new Inertia(0) { Min = -300, Max = 300 });    // coasts from its current velocity
-follower.Fling("Y", tracker.Velocity, new Inertia(0) { Max = 0 }); // or from a given one
+follower.Fling("X", new Inertia() { Min = -300, Max = 300 });    // coasts from its current velocity
+follower.Fling("Y", tracker.Velocity, new Inertia() { Max = 0 }); // or from a given one
 
 PrestoAvalonia.CreateDraggable(Sheet, new()
 {
     Container = Stage,
     X = new DraggableAxisParams { Enabled = false },
-    ReleaseInertia = new Inertia(0) { TimeConstant = 250 },
+    ReleaseInertia = new Inertia() { TimeConstant = 250 },
 });
 ```
 
@@ -748,7 +754,7 @@ spin.Revert();
 
 It is a reduced model, not a second `Animate`. It animates `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY` and
 `Opacity` and throws for anything else; the animation is compiled up front into composition key frames, so there are no
-per-frame callbacks, no `Blend` composition and no timelines. `Pause`, `Resume`, `Play`, `Reverse`, `Alternate`,
+per-frame callbacks, no `Additive` composition and no timelines. `Pause`, `Resume`, `Play`, `Reverse`, `Alternate`,
 `Seek`, `Restart`, `Complete`, `Progress` and `Speed` are there, but a composition key frame animation has none of
 them of its own: each one stops what is running and starts a freshly compiled animation from where the UI-side model
 stands, so the two are a frame apart until the next call. `Cancel`, `Revert` and `Then` finish the surface. Everything
@@ -1369,7 +1375,7 @@ Each markup extension provides a new builder per element from its recipe:
 | `{presto:Reorder}` | `ReorderLift` | `Intensity` | |
 
 All of them take `Duration`, `Delay`, `Ease` (a string such as `outBack`), `Stagger` (the step in ms) and `Out`. Set
-on `Presence.Exit`, an extension with an exit form provides it. A style `Setter` is not the property it sets, so there
+on `Presence.Exit`, an extension with an exit form provides it, and one without throws. A style `Setter` is not the property it sets, so there
 `Out=True` asks for the exit form; `Out=False` forces the entrance form anywhere. Arguments are separated by commas.
 
 Set on a `TextBlock`, the text reveal extensions also set the `TextReveal.Pieces` (and for `LineMask`, `Mask`) their
@@ -1591,7 +1597,9 @@ following.Dispose();   // stops following and leaves the flag as it is
 ```
 
 It sets `ReducedMotion` on the current engine straight away, and again whenever a window or the app is activated, the
-browser reports a change, or you call `PrestoAvalonia.RefreshSystemReducedMotion()`. The built-in probe reads
+browser reports a change, or you call `PrestoAvalonia.RefreshSystemReducedMotion()`. It keeps writing to the engine that
+was current when you called it: called inside a scope or on a secondary engine, it sets that engine's flag, not
+`Presto.Engine`'s. The built-in probe reads
 Windows (client-area animation), macOS and iOS (reduce motion) and the browser (`prefers-reduced-motion`). On Android,
 Linux and elsewhere it reads unknown, which leaves the flag alone. There, pass your own `probe: () => …` and call
 `RefreshSystemReducedMotion` when it changes.
@@ -1665,7 +1673,7 @@ anime.js parameter objects become `init`-only records with the same names in Pas
 | `playbackRate` | `PlaybackRate` |
 | `ease` | `Ease` |
 | `playbackEase` | `PlaybackEase` |
-| `composition` | `Composition` (`Replace` / `None` / `Blend`) |
+| `composition` | `Composition` (`Replace` / `Overlap` / `Additive`) |
 | `modifier` | `Modifier` |
 | `keyframes` | `Keyframes` |
 | `id` | `Id` |
@@ -1694,12 +1702,12 @@ A handful of places where the JS shape does not survive the type system:
 - **`Loop` is a `LoopCount`**, with implicit conversions from `bool` and `int`: `Loop = true` is infinite, `Loop = 2` runs
   three iterations, and `LoopCount.Infinite` is the explicit form.
 - **`.then()` is `Then()` or `await`.** `await animation` works directly and yields the animation itself; `Then(callback)`
-  returns the `Task` for parity with upstream.
+  returns a `Task` for callback-style chaining.
 
 ## Platforms and status
 
 Version 0.1.0, pre-release: the API is settled enough to build against but not frozen, and a pass over it is planned
-before 1.0. Behavioral parity with anime.js 4.5.0 is covered by the upstream suites ported into
+before 1.0. The timing model is pinned by regression suites ported from anime.js 4.5.0 into
 `tests/MonacoLabs.Presto.Tests` and `tests/MonacoLabs.Presto.Avalonia.Tests`.
 
 The core is pure .NET and runs anywhere net10.0 does, and the bridge uses no desktop-only API. All four sample heads
@@ -1734,13 +1742,13 @@ Five platform notes:
 
 ## Running the sample and the tests
 
-The sample gallery has 17 pages — one per anime.js documentation area, plus the render-thread and layout ones — and doubles as the
+The sample gallery has a Reference page per feature, plus Builder and Showcase demos, and doubles as the
 manual acceptance surface.
 
 ```powershell
 dotnet build MonacoLabs.Presto.slnx
-dotnet run --project samples/PrestoSample.Desktop
-dotnet watch --project samples/PrestoSample.Desktop        # hot reload
+dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop
+dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop        # hot reload
 
 dotnet test --project tests/MonacoLabs.Presto.Tests            # note --project, not a bare path
 dotnet test --project tests/MonacoLabs.Presto.Avalonia.Tests
@@ -1748,19 +1756,19 @@ dotnet test --solution MonacoLabs.Presto.slnx
 ```
 
 Below 720 DIP the gallery switches to a compact layout: the nav fills the window as Home, and a page opens over it with
-a back button (`dotnet run --project samples/PrestoSample.Desktop -- --size 400x850` to try it). Alt+Left, the mouse
+a back button (`dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --size 400x850` to try it). Alt+Left, the mouse
 back button and the platform back request (Android's back button, compact layout only) go back.
 
 Tests use xunit v3 on Microsoft.Testing.Platform, which the .NET 10 SDK requires — hence `--project`.
 
-The architecture and anime.js module map live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), each feature's behavior and design decisions in the [feature specs](docs/specs/README.md), and open work in [docs/BACKLOG.md](docs/BACKLOG.md).
+The architecture and the anime.js provenance map live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), each feature's behavior and design decisions in the [feature specs](docs/specs/README.md), and open work in [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ## Credits
 
-Presto is a port of **[anime.js](https://github.com/juliangarnier/anime)** by Julian Garnier, used under the MIT
-license. The timing model, the parameter vocabulary and most of the test suites come from anime.js 4.5.0; the bugs are
-mine. If you write JavaScript, use the original — its
-[documentation](https://animejs.com/documentation) is also the best reference for this library.
+Presto is inspired by, and was initially ported from, **[anime.js](https://github.com/juliangarnier/anime)** by Julian
+Garnier, used under the MIT license. The timing model, the parameter vocabulary and many of the test suites began in
+anime.js 4.5.0; the bugs are mine. If you write JavaScript, use the original — its
+[documentation](https://animejs.com/documentation) explains many of the concepts the two libraries share.
 
 ## License
 

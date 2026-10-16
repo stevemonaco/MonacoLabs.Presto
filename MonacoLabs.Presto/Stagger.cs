@@ -4,7 +4,7 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Port of anime.js <c>stagger()</c>: a per-target value derived from the target's distance to an origin. Created through
+/// A per-target value derived from the target's distance to an origin. Created through
 /// <see cref="Presto.Stagger"/> and accepted wherever a per-target value is (a delay, a duration, a property value), or as
 /// the position of a <see cref="Timeline"/> child, which then adds one child per target.
 /// </summary>
@@ -25,7 +25,6 @@ public sealed class Stagger
     private double[]? _jitterSamples;
     private double _maxValue;
     private double _fromIndex;
-    private double? _cachedOffset;
 
     internal Stagger(TweenValue value, StaggerParams parameters)
     {
@@ -48,10 +47,10 @@ public sealed class Stagger
     }
 
     /// <summary>
-    /// The value for one target. The distances are computed on the first call and reused, so a stagger belongs to the one
-    /// group of targets it is first used with.
+    /// The value for one target, spaced from <paramref name="offset"/>, which the caller resolves with
+    /// <see cref="StartOffset"/> (once per timeline group). The distances are reused while the group size stays the same.
     /// </summary>
-    internal TweenValue Invoke(object target, int index, IReadOnlyList<object> targets, Timeline? timeline)
+    internal TweenValue Invoke(object target, int index, IReadOnlyList<object> targets, double offset)
     {
         var total = _parameters.Total ?? targets.Count;
         var from = _parameters.From;
@@ -66,13 +65,12 @@ public sealed class Stagger
 
         // Deviation: upstream keeps the first count it sees, which reads past the cache once a shared stagger meets a larger group.
         if (_values.Length != total) BuildValues(targets, total);
-        _cachedOffset ??= timeline != null ? StartPosition(timeline).Parse(timeline) : JsNumber.ToNumber(_start.Raw, double.NaN);
 
         // A Total below the target count leaves the trailing targets without a value, which upstream reads as undefined.
         var value = staggerIndex < _values.Length ? _values[staggerIndex] : double.NaN;
         var spacing = _isRange ? (_value2 - _value1) / _maxValue : _value1;
         var spaced = spacing * Helpers.Round(value, 2);
-        var output = _cachedOffset.Value + (double.IsNaN(spaced) ? 0 : spaced);
+        var output = offset + (double.IsNaN(spaced) ? 0 : spaced);
         if (_jitterSamples != null && staggerIndex < _jitterSamples.Length)
         {
             var progress = _maxValue == 0 ? 0 : value / _maxValue;
@@ -243,6 +241,10 @@ public sealed class Stagger
         _ => Math.Sqrt((x * x) + (y * y) + (is3D ? z * z : 0)),
     };
 
+    /// <summary>The offset every value is spaced from: <c>Start</c>, resolved against <paramref name="timeline"/> when given.</summary>
+    internal double StartOffset(Timeline? timeline) =>
+        timeline != null ? StartPosition(timeline).Parse(timeline) : JsNumber.ToNumber(_start.Raw, double.NaN);
+
     private TimelinePosition StartPosition(Timeline timeline)
     {
         if (!_hasStart) return timeline.IterationDuration;
@@ -279,7 +281,7 @@ public sealed class Stagger
         _ => false,
     };
 
-    // Upstream parseNumber is parseFloat, so a value carrying a unit keeps its number.
+    // Like JS parseFloat, so a value carrying a unit keeps its number.
     private static double ParseNumber(TweenValue value) =>
         value.Raw is string text && ValueParser.TryParseUnit(text, out var number, out _) ? number : JsNumber.ToNumber(value.Raw, double.NaN);
 }

@@ -17,8 +17,16 @@ public sealed class ParticleSystem
     private double _pending;
 
     /// <summary>Creates a stopped system emitting from (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <see cref="EmitterParams.MaxParticles"/> is negative, or <see cref="EmitterParams.Lifetime"/>'s minimum is not
+    /// positive or its maximum is below its minimum.
+    /// </exception>
     public ParticleSystem(EmitterParams parameters, double x = 0, double y = 0)
     {
+        if (parameters.MaxParticles < 0)
+            throw new ArgumentOutOfRangeException(nameof(parameters), parameters.MaxParticles, "MaxParticles must not be negative.");
+        if (!(parameters.Lifetime.Min > 0) || !(parameters.Lifetime.Max >= parameters.Lifetime.Min))
+            throw new ArgumentOutOfRangeException(nameof(parameters), parameters.Lifetime, "Lifetime must be positive with Max at least Min.");
         Params = parameters;
         X = x;
         Y = y;
@@ -70,8 +78,10 @@ public sealed class ParticleSystem
     public void Clear() => Live = 0;
 
     /// <summary>Advances every live particle by <paramref name="dt"/> ms, retires the ones past their lifetime and emits new ones.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="dt"/> is negative.</exception>
     public void Step(double dt)
     {
+        if (dt < 0) throw new ArgumentOutOfRangeException(nameof(dt), dt, "The step must not be negative.");
         var gravity = Params.Gravity;
         var damping = Math.Exp(-Params.Drag * dt / 1000);
         var flutter = Params.Flutter * 2 * Math.PI * dt / 1000;

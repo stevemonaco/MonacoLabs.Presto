@@ -1,0 +1,209 @@
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls.Primitives;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Styling;
+using MonacoLabs.Presto;
+using MonacoLabs.Presto.Controls;
+using PrestoGallery.Showcase;
+
+namespace PrestoGallery.Pages;
+
+/// <summary>
+/// The color filters of <see cref="FilteredImage"/>: a slider per filter printing the XAML and builder it amounts to,
+/// thumbnails that colorize on hover, a develop entrance, a duotone that follows its theme variant and a looping hue
+/// cycle, a slideshow with a transition picker and a card that dissolves in and pixelates out.
+/// </summary>
+public partial class ImageEffectsPage : ShowcasePage
+{
+    #region snippet ImageEffectsColorizeBuilder
+    public static readonly AnimationBuilder Colorize = Recipes.Colorize();
+    #endregion
+
+    #region snippet ImageEffectsDevelopBuilder
+    public static readonly AnimationBuilder Develop = Recipes.Develop();
+    #endregion
+
+    #region snippet ImageEffectsHueBuilder
+    public static readonly AnimationBuilder HueCycle = Presto.Build().HueRotate(from: 0, to: 360).Duration(6000).Ease(Eases.None).Loop()
+        .WhenReduced(reduced => reduced.Loop(false));
+    #endregion
+
+    #region snippet ImageEffectsCardBuilders
+    public static readonly AnimationBuilder DissolveIn = Presto.Build().Dissolve(from: 1, to: 0).Duration(900).Ease(Eases.OutQuad);
+
+    public static readonly AnimationBuilder PixelateOut = Presto.Build()
+        .Pixelate(to: 32, ease: Eases.InQuad)
+        .Opacity(to: 0, delay: 300, duration: 400)
+        .Duration(700);
+    #endregion
+
+    private const string CardSnippet = $"""
+        {Snippets.ImageEffectsCardBuilders}
+
+        // Hide
+        var exit = Card.Animate(PixelateOut);
+        await exit;
+        CardFrame.Child = null;
+        exit.Revert();
+
+        // Show: Presence.Enter plays DissolveIn
+        CardFrame.Child = Card;
+        """;
+
+    private readonly Bitmap[] _photos = new[] { "mongolia.jpg", "margarita-sunset.jpg", "port-blanc.jpg" }
+        .Select(file => new Bitmap(AssetLoader.Open(new Uri($"avares://PrestoGallery/Assets/Photos/{file}")))).ToArray();
+    private int _photo;
+
+    private static readonly (StyledProperty<double> Property, double Identity)[] Filters =
+    [
+        (PrestoImageBase.BrightnessProperty, 1),
+        (PrestoImageBase.ContrastProperty, 1),
+        (PrestoImageBase.SaturateProperty, 1),
+        (PrestoImageBase.GrayscaleProperty, 0),
+        (PrestoImageBase.SepiaProperty, 0),
+        (PrestoImageBase.HueRotateProperty, 0),
+        (PrestoImageBase.InvertProperty, 0),
+        (PrestoImageBase.TintProperty, 0),
+        (PrestoImageBase.DuotoneProperty, 0),
+    ];
+
+    public ImageEffectsPage()
+    {
+        InitializeComponent();
+        Photo.TintColor = TintColor(TintHueSlider.Value);
+        Photo.PropertyChanged += PhotoChanged;
+        DuotonePhoto.ActualThemeVariantChanged += (_, _) => FollowTheme();
+        PrintFilters();
+        ColorizeCode.CSharp = Snippets.ImageEffectsColorizeBuilder;
+        DevelopCode.CSharp = Snippets.ImageEffectsDevelopBuilder;
+        HueCode.CSharp = Snippets.ImageEffectsHueBuilder;
+        CardCode.CSharp = CardSnippet;
+        KindBox.ItemsSource = Enum.GetValues<ImageTransitionKind>();
+        KindBox.SelectedItem = ImageTransitionKind.Dissolve;
+        KindBox.SelectionChanged += (_, _) => TransitionChanged();
+        foreach (var slider in new[] { DurationSlider, AngleSlider, PeakSlider }) slider.ValueChanged += (_, _) => TransitionChanged();
+        PrintTransition();
+    }
+
+    private static Color TintColor(double hue) => HsvColor.ToRgb(hue, .8, 1);
+
+    private void PhotoChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == PrestoImageBase.TintColorProperty || Array.Exists(Filters, filter => filter.Property == e.Property)) PrintFilters();
+    }
+
+    private void PrintFilters()
+    {
+        List<(string Name, string Value)> changed = [];
+        foreach (var (property, identity) in Filters)
+        {
+            var value = Photo.GetValue(property);
+            if (Math.Abs(value - identity) > 1e-3) changed.Add((property.Name, value.ToString("0.##", CultureInfo.InvariantCulture)));
+        }
+        if (Photo.Tint > 1e-3) changed.Add(("TintColor", Photo.TintColor.ToString()));
+        if (Photo.Duotone > 1e-3)
+        {
+            changed.Add(("DuotoneShadow", Photo.DuotoneShadow.ToString()));
+            changed.Add(("DuotoneHighlight", Photo.DuotoneHighlight.ToString()));
+        }
+
+        var xaml = string.Concat(changed.Select(filter => $" {filter.Name}=\"{filter.Value}\""));
+        var builder = string.Concat(changed.Select(filter => filter.Value.StartsWith('#')
+            ? $".{filter.Name}(Color.Parse(\"{filter.Value}\"))"
+            : $".{filter.Name}({filter.Value})"));
+        FilterCode.Xaml = $"<presto:FilteredImage Source=\"/Assets/Photos/mongolia.jpg\"{xaml} />";
+        FilterCode.CSharp = changed.Count == 0 ? "// Every filter at its identity: the photo draws plain." : $"Presto.Build(){builder}.Animate(Photo);";
+    }
+
+    private void TintHueChanged(object? sender, RangeBaseValueChangedEventArgs e) => Photo.TintColor = TintColor(e.NewValue);
+
+    private void ResetClicked(object? sender, RoutedEventArgs e)
+    {
+        foreach (var (property, _) in Filters) Photo.ClearValue(property);
+    }
+
+    private void ReplayClicked(object? sender, RoutedEventArgs e) => Scope.Execute(_ => Developed.Animate(Develop));
+
+    private void PreviousClicked(object? sender, RoutedEventArgs e) => Show(_photo + _photos.Length - 1);
+
+    private void NextClicked(object? sender, RoutedEventArgs e) => Show(_photo + 1);
+
+    private void Show(int photo)
+    {
+        _photo = photo % _photos.Length;
+        Slideshow.Source = _photos[_photo];
+    }
+
+    private void TransitionChanged()
+    {
+        Slideshow.SourceTransition = new ImageTransition
+        {
+            Kind = (ImageTransitionKind)KindBox.SelectedItem!,
+            Builder = Presto.Build().Duration(DurationSlider.Value).Ease(Eases.InOutQuad),
+            Angle = AngleSlider.Value,
+            PeakPixelate = PeakSlider.Value,
+        };
+        PrintTransition();
+    }
+
+    private void PrintTransition()
+    {
+        var kind = (ImageTransitionKind)KindBox.SelectedItem!;
+        AngleSlider.IsVisible = kind == ImageTransitionKind.Wipe;
+        PeakSlider.IsVisible = kind == ImageTransitionKind.Pixelate;
+        var tuning = kind switch
+        {
+            ImageTransitionKind.Wipe when AngleSlider.Value != 0 => $"    Angle = {AngleSlider.Value:0},\n",
+            ImageTransitionKind.Pixelate when PeakSlider.Value != 24 => $"    PeakPixelate = {PeakSlider.Value:0},\n",
+            _ => "",
+        };
+        var xaml = tuning == "" ? $"\n\n// or in XAML: SourceTransition=\"{kind} {DurationSlider.Value:0}\"" : "";
+        SlideshowCode.Code = $$"""
+            Slideshow.SourceTransition = new ImageTransition
+            {
+                Kind = ImageTransitionKind.{{kind}},
+                Builder = Presto.Build().Duration({{DurationSlider.Value:0}}).Ease(Eases.InOutQuad),
+            {{tuning}}};
+            Slideshow.Source = next;{{xaml}}
+            """;
+    }
+
+    private async void CardClicked(object? sender, RoutedEventArgs e)
+    {
+        if (CardFrame.Child is null)
+        {
+            CardFrame.Child = Card;
+            CardButton.Content = "Hide";
+            return;
+        }
+
+        CardButton.IsEnabled = false;
+        var exit = Scope.Execute(_ => Card.Animate(PixelateOut));
+        await exit;
+        CardFrame.Child = null;
+        _ = exit.Revert();
+        CardButton.Content = "Show";
+        CardButton.IsEnabled = true;
+    }
+
+    private void LightChanged(object? sender, RoutedEventArgs e) =>
+        DuotoneScope.RequestedThemeVariant = LightToggle.IsChecked == true ? ThemeVariant.Light : null;
+
+    private void FollowTheme()
+    {
+        var (shadow, highlight) = DuotonePhoto.ActualThemeVariant == ThemeVariant.Light
+            ? (Color.Parse("#7c2d12"), Color.Parse("#fef3c7"))
+            : (Color.Parse("#0c1445"), Color.Parse("#5eead4"));
+        var (_, code) = Scope.Execute(_ => Snippet.Of(Presto.Build()
+            .DuotoneShadow(shadow)
+            .DuotoneHighlight(highlight)
+            .Duration(800)
+            .Ease(Eases.InOutQuad)
+            .Animate(DuotonePhoto)));
+        DuotoneCode.Code = $"// ActualThemeVariantChanged: {DuotonePhoto.ActualThemeVariant}\n{code};";
+    }
+}

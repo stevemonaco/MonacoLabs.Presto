@@ -146,6 +146,32 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
     }
 
     [Fact]
+    public void RevertRemovesADictionaryKeyTheAnimationAdded()
+    {
+        var dictionary = new Dictionary<string, object?>();
+        var animation = Presto.Animate(dictionary, new() { ["x"] = 100, Duration = 100, Autoplay = false });
+
+        animation.Seek(100);
+        Assert.Equal(100.0, dictionary["x"]);
+        animation.Revert();
+
+        Assert.False(dictionary.ContainsKey("x"));
+    }
+
+    [Fact]
+    public void RevertRestoresANullMember()
+    {
+        _target.Size = null!;
+        var animation = Presto.Animate(_target, new() { ["Size"] = "40px", Duration = 100, Autoplay = false });
+
+        animation.Seek(100);
+        Assert.Equal("40px", _target.Size);
+        animation.Revert();
+
+        Assert.Null(_target.Size);
+    }
+
+    [Fact]
     public void UnknownMemberThrows() => Assert.Throws<ArgumentException>(() => Presto.ResolveAccessor(_target, "Nope"));
 
     [Fact]
@@ -164,6 +190,31 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
 
         Assert.Equal(3, decomposed.Number);
         Assert.Equal(new Meters(7), _target.Distance);
+    }
+
+    [Fact]
+    public void ACodecRegisteredAfterAResolutionAppliesToLaterAnimations()
+    {
+        Assert.IsType<DiscreteCodec>(Presto.ResolveAccessor(_target, "Height").Codec);
+        Presto.Codecs[typeof(Feet)] = new StructCodec<Feet>(feet => [feet.Value], channels => new Feet(channels[0]));
+        try
+        {
+            var animation = Presto.Animate(_target, new()
+            {
+                ["Height"] = TweenValue.Of(new Feet(10)),
+                Duration = 100,
+                Ease = Eases.Linear(),
+                Autoplay = false,
+            });
+
+            animation.Seek(50);
+
+            Assert.Equal(new Feet(5), _target.Height);
+        }
+        finally
+        {
+            Presto.Codecs.Remove(typeof(Feet));
+        }
     }
 
     [Fact]
@@ -208,9 +259,12 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
         public object? Value { get; set; }
         public TimeSpan Elapsed { get; set; }
         public Meters Distance { get; set; }
+        public Feet Height { get; set; }
     }
 
     private readonly record struct Meters(double Value);
+
+    private readonly record struct Feet(double Value);
 
     private sealed class MetersCodec : IValueCodec
     {

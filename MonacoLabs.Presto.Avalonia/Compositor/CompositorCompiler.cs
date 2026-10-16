@@ -12,7 +12,7 @@ namespace MonacoLabs.Presto.Compositor;
 /// </summary>
 internal static class CompositorCompiler
 {
-    // Matches upstream easingToLinear's default.
+    // Enough linear segments that the sampled ease reads as its curve; anime.js's easingToLinear uses the same count.
     private const int SamplesPerIteration = 100;
 
     // A recompiled cycle covers every iteration that is left, so its sample count is bounded rather than per iteration.
@@ -146,32 +146,45 @@ internal static class CompositorCompiler
         var kinds = new CompositorTrackKind[tracks.Length];
         for (var k = 0; k < tracks.Length; k++) kinds[k] = tracks[k].Kind;
 
-        var scratch = (CompositorScratch)head.Target;
-        var iteration = mirror.IterationDuration;
         var forever = double.IsPositiveInfinity(mirror.IterationCount);
         var position = mirror.CurrentTime;
         var start = Math.Max(position, 0);
         var span = forever
-            ? (mirror._alternate ? 2 : 1) * (iteration + mirror._loopDelay)
+            ? (mirror._alternate ? 2 : 1) * (mirror.IterationDuration + mirror._loopDelay)
             : Math.Max(mirror.Duration - start, 0);
+        var compiled = Sample(mirror, (CompositorScratch)head.Target, kinds, start, span, Math.Max(-position, 0), forever);
+        mirror.Seek(position, muteCallbacks: true);
+        return compiled;
+    }
+
+    // One linear cycle playing forwards over [start, start + span] of the mirror's own time, delay in mirror ms.
+    private static CompiledTrack[] Sample(
+        Animation mirror,
+        CompositorScratch scratch,
+        IReadOnlyList<CompositorTrackKind> kinds,
+        double start,
+        double span,
+        double delay,
+        bool forever)
+    {
+        var iteration = mirror.IterationDuration;
         var segments = iteration > 0 ? (int)Math.Clamp(Math.Ceiling(span / iteration * SamplesPerIteration), 1, MaxSamples) : 1;
 
         var keys = new float[segments + 1];
         var easings = new Easing[segments + 1];
-        var values = new double[kinds.Length][][];
-        for (var k = 0; k < kinds.Length; k++) values[k] = new double[segments + 1][];
+        var values = new double[kinds.Count][][];
+        for (var k = 0; k < kinds.Count; k++) values[k] = new double[segments + 1][];
         for (var s = 0; s <= segments; s++)
         {
             keys[s] = (float)s / segments;
             easings[s] = s_linear;
             mirror.Seek(start + (span * s / segments), muteCallbacks: true);
-            for (var k = 0; k < kinds.Length; k++) values[k][s] = Read(scratch, kinds[k]);
+            for (var k = 0; k < kinds.Count; k++) values[k][s] = Read(scratch, kinds[k]);
         }
-        mirror.Seek(position, muteCallbacks: true);
 
         var timeScale = WallClock(mirror);
-        var compiled = new CompiledTrack[kinds.Length];
-        for (var k = 0; k < kinds.Length; k++)
+        var compiled = new CompiledTrack[kinds.Count];
+        for (var k = 0; k < kinds.Count; k++)
         {
             compiled[k] = new CompiledTrack(
                 kinds[k],
@@ -179,7 +192,7 @@ internal static class CompositorCompiler
                 values[k],
                 easings,
                 TimeSpan.FromMilliseconds(span * timeScale),
-                TimeSpan.FromMilliseconds(Math.Max(-position, 0) * timeScale),
+                TimeSpan.FromMilliseconds(delay * timeScale),
                 1,
                 forever,
                 PlaybackDirection.Normal);
@@ -224,8 +237,16 @@ internal static class CompositorCompiler
         var iteration = mirror.IterationDuration;
         var loops = mirror.IterationCount > 1;
         var loopDelay = loops ? mirror._loopDelay : 0;
-        // A KeyFrameAnimation has no loop delay, so an alternating one becomes a cycle holding both iterations.
+        // A KeyFrameAnimation has no loop delay, so an alternating one forever becomes a cycle holding both iterations.
         var expanded = loopDelay > 0 && mirror._alternate;
+        var forever = double.IsPositiveInfinity(mirror.IterationCount);
+        if (expanded && !forever)
+        {
+            // Half a cycle cannot be played, so a finite count is unrolled to end exactly where the mirror ends.
+            var unrolled = Sample(mirror, scratch, kinds, 0, mirror.Duration, mirror._delay, false);
+            SeekSample(mirror, iteration);
+            return unrolled;
+        }
         var cycle = expanded ? 2 * (iteration + loopDelay) : iteration + loopDelay;
 
         var exact = new Tween?[kinds.Count];
@@ -248,9 +269,7 @@ internal static class CompositorCompiler
         if (mirror._reversed) Array.Reverse(samples);
 
         var timeScale = WallClock(mirror);
-        var forever = double.IsPositiveInfinity(mirror.IterationCount);
         var iterations = forever ? 1 : (int)mirror.IterationCount;
-        if (expanded) iterations = (int)Math.Ceiling(iterations / 2d);
         var direction = mirror._alternate && !expanded ? PlaybackDirection.Alternate : PlaybackDirection.Normal;
 
         var tracks = new CompiledTrack[kinds.Count];

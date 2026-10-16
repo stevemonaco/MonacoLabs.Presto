@@ -129,16 +129,18 @@ Timers, animations and timelines report their progress through seven callbacks, 
   - Tests: untested
 - **CORE-CALLBACKS-033** — Awaiting a timer, animation or timeline directly shall behave as awaiting `Then()`.
   - Tests: `PromisesTests.AwaitATimer`, `PromisesTests.AwaitAnAnimation`
-- **CORE-CALLBACKS-034** — A completion reached with callbacks muted, a `Cancel` and a `Revert` shall leave a pending `Then` task incomplete.
-  - Tests: untested
+- **CORE-CALLBACKS-034** — A completion reached with callbacks muted, a `Cancel` (including one by composition replacing every tween) and a `Revert` shall leave a pending `Then` task incomplete.
+  - Tests: `PromisesTests.CancelRevertAndAMutedCompleteLeaveAPendingThenIncomplete`, `PromisesTests.AnAnimationReplacedByCompositionLeavesItsThenIncomplete`
+- **CORE-CALLBACKS-038** — When a `Then` callback throws, the task shall still complete with the timer, and the exception shall escape the tick as any callback's does.
+  - Tests: `PromisesTests.AThrowingThenCallbackStillCompletesTheTask`
 - **CORE-CALLBACKS-035** — On the default frame pump, `Then` shall resolve without any manual ticking.
   - Tests: `PromisesTests.ThenResolvesOnTheDefaultFramePump`
 
 ### Defaults
 
-- **CORE-CALLBACKS-036** — When a callback is set neither in the parameters nor in the inherited defaults, the timer shall fire nothing for it, as anime.js's `noop` default does.
+- **CORE-CALLBACKS-036** — When a callback is set neither in the parameters nor in the inherited defaults, the timer shall fire nothing for it.
   - Tests: untested
-- **CORE-CALLBACKS-037** — When `Then` is called without a callback, it shall only return the task, as anime.js's `then(callback = noop)` does.
+- **CORE-CALLBACKS-037** — When `Then` is called without a callback, it shall only return the task.
   - Tests: `PromisesTests.AwaitATimer`
 
 ## Invariants
@@ -153,7 +155,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - Setting `CurrentTime` on a playing timer fires `OnPause`, because the setter pauses, seeks and resumes.
 - `OnRender` does not fire on a frame that writes only at time 0 or when every tween was skipped.
 - A timer canceled by its engine after completing still reports `Completed`, so a later `Then` resolves at once.
-- An exception from a callback escapes the tick; one from a `Then` callback leaves the pending task incomplete for good, since it was cleared before the callbacks ran.
+- An exception from a callback escapes the tick; one from a `Then` callback skips the `Then` callbacks registered after it.
 - A timeline's `OnUpdate` sees its children in last frame's state, since they render after it.
 
 ## Threading and lifetime
@@ -170,7 +172,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - Firing callbacks allocates nothing beyond what the delegates do.
 - `Then` allocates one `TaskCompletionSource` per pending completion, and `Task.FromResult` for a completed timer.
 
-## Deviations from anime.js
+## Provenance
 
 - `Then` returns a `Task<Timer>` with asynchronous continuations, and `GetAwaiter` makes timers awaitable, standing in for upstream's thenable so C# callers can `await` (see "Every timer is awaitable" and "`Then()` completes asynchronously").
 - Several `Then` calls before completion share one task and all run their callbacks; upstream overwrites its resolver on each call, so only the last promise resolves. This follows from keeping one pending task per timer; no decision records it.
@@ -178,16 +180,16 @@ Timers, animations and timelines report their progress through seven callbacks, 
 
 ## Decisions
 
-- **Every timer is awaitable.** Every `Timer` has `GetAwaiter` as well as `Then()`, and `Animation` narrows both to itself. Reason: anime.js `.then()` parity plus idiomatic `await`.
+- **Every timer is awaitable.** Every `Timer` has `GetAwaiter` as well as `Then()`, and `Animation` narrows both to itself. Reason: `Then` gives a task to chain or store, `await timer` reads as waiting for it to finish, and the narrowing on `Animation` keeps the awaited result typed without a cast.
+- **An interrupted timer never resolves `Then`.** `Cancel`, `Revert` and a muted completion leave the pending task incomplete, as upstream's promise does. Reason: under `Replace` composition, interruption is routine, and the code after an `await` (hide the panel once it has faded out) is usually wrong once a newer animation owns the target; leaving it unrun keeps the screen right, as Flutter's `TickerFuture` does. Rejected: completing normally (runs that code anyway); a canceled task (every `await` in an `async void` handler would crash on a double-click).
+- **A throwing `Then` callback still completes the task.** `Resolve` sets the result in a `finally`. Reason: every caller shares one task, so faulting it with one caller's exception would throw at everyone's `await`, and leaving it incomplete hung them all.
 - **`Then()` completes asynchronously.** The task is created with `RunContinuationsAsynchronously`, so an `await` never resumes inside the tick, and awaiting a non-UI engine's timer resumes on the thread pool. Reason: not recorded; implied, continuations must not run inside a tick.
 
 ## Non-goals
 
 - No events or multicast subscription beyond the delegate itself (a caller can combine delegates).
-- No cancellation of a pending `Then`.
+- No cancellation of a pending `Then`, and no variant that throws on interruption (a candidate in BACKLOG).
 
 ## Open items
 
-- A `Then` task never completes after `Cancel`, `Revert` or a muted `Complete(true)`, so `await` on a canceled animation hangs (upstream parity, untested).
-- An exception from a `Then` callback leaves the task incomplete and later `Then` calls return a new task that the already-completed timer resolves at once; untested.
 - Untested: callbacks from inherited defaults, timeline `OnUpdate` before children, muted renders still updating `Began`/`Completed`, multiple `Then` callbacks, asynchronous continuations.

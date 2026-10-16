@@ -4,5 +4,8 @@ namespace MonacoLabs.Presto;
 public sealed class ShimmerExtension : RecipeExtension
 {
     /// <inheritdoc/>
+    protected override bool HasExitForm => false;
+
+    /// <inheritdoc/>
     protected override AnimationBuilder Build(bool exit, EaseValue? ease) => Recipes.Shimmer(Duration, Delay, ease);
 }

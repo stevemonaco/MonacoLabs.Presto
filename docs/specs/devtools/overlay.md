@@ -51,8 +51,8 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
   - Tests: `DevToolsShellTests.ToggleAddsAndRemovesTheOverlayAndDiagnostics`
 - **DEVTOOLS-OVERLAY-002** — When the first overlay opens, `Presto.Engine.Diagnostics.Enabled` shall be set to true.
   - Tests: `DevToolsShellTests.ToggleAddsAndRemovesTheOverlayAndDiagnostics`
-- **DEVTOOLS-OVERLAY-003** — When the last open overlay closes, the overlay shall disable the engine's diagnostics, thaw the engine and set `TimeDilation` back to 1; while another top level still has one open, closing shall leave them as they are.
-  - Tests: `DevToolsShellTests.ToggleAddsAndRemovesTheOverlayAndDiagnostics`, `DevToolsShellTests.ClosingWhileFrozenAndDilatedRestoresTime`
+- **DEVTOOLS-OVERLAY-003** — When the last open overlay closes, the overlay shall disable the engine's diagnostics, thaw the engine, set `TimeDilation` back to 1 and set `PrestoDiagnostics.CaptureCreationTrace` back to its value when the first overlay opened; while another top level still has one open, closing shall leave them as they are.
+  - Tests: `DevToolsShellTests.ToggleAddsAndRemovesTheOverlayAndDiagnostics`, `DevToolsShellTests.ClosingWhileFrozenAndDilatedRestoresTime`, `DevToolsShellTests.ClosingRestoresCaptureTracesAndTheRootSpeedsSetFromTheInspector`
 - **DEVTOOLS-OVERLAY-004** — `Toggle` shall close the top level's overlay when it is open and open it otherwise; `Close` on a top level without one shall do nothing.
   - Tests: `DevToolsShellTests.ToggleAddsAndRemovesTheOverlayAndDiagnostics`
 - **DEVTOOLS-OVERLAY-005** — `Attach` shall toggle the overlay whenever the gesture is pressed in the top level, handling the key event in the tunnel phase; the default gesture is Ctrl+Shift+F12, because F12 belongs to Avalonia DevTools.
@@ -64,7 +64,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - **DEVTOOLS-OVERLAY-008** — `UsePrestoDevTools` shall, after setup, call `Attach` with the given gesture on every `TopLevel` as it loads.
   - Tests: untested
 - **DEVTOOLS-OVERLAY-009** — The gesture shall work when pressed by hand on the Desktop head.
-  - Tests: manual — press Ctrl+Shift+F12 in `samples/PrestoSample.Desktop`; DevTools input cannot send modifier chords (Phase 48 open check).
+  - Tests: manual — press Ctrl+Shift+F12 in `samples/PrestoGallery/PrestoGallery.Desktop`; DevTools input cannot send modifier chords (Phase 48 open check).
 
 ### Panel
 
@@ -120,8 +120,8 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
   - Tests: untested
 - **DEVTOOLS-OVERLAY-032** — The search box shall show only roots whose id, target summary, scope or property names contain the text, ignoring case.
   - Tests: `DevToolsListTests.TheSearchFiltersByPropertyName`
-- **DEVTOOLS-OVERLAY-033** — "Capture traces" shall set `PrestoDiagnostics.CaptureCreationTrace`, so roots created from then on record their creation stack.
-  - Tests: untested
+- **DEVTOOLS-OVERLAY-033** — "Capture traces" shall set `PrestoDiagnostics.CaptureCreationTrace`, so roots created from then on record their creation stack, until the last overlay closes (DEVTOOLS-OVERLAY-003).
+  - Tests: `DevToolsShellTests.ClosingRestoresCaptureTracesAndTheRootSpeedsSetFromTheInspector`
 - **DEVTOOLS-OVERLAY-057** — A root shall show detached only while its pause came from its control leaving the tree, returning to running on reattach; a root the user paused before its control was removed shall stay paused.
   - Tests: `DevToolsListTests.ALoopOnARemovedControlShowsDetachedUntilItIsReattached`, `DevToolsListTests.AUserPausedRowStaysPausedWhenItsControlIsRemoved`
 
@@ -135,6 +135,8 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
   - Tests: untested
 - **DEVTOOLS-OVERLAY-037** — Enter in the seek box shall seek the root to the invariant-culture number typed; Enter in the speed box shall set the root's `Speed` when the number is positive, and the box shows the root's speed when it is selected.
   - Tests: untested
+- **DEVTOOLS-OVERLAY-058** — When an overlay closes, each root whose `Speed` was set from its speed box shall get back the speed it had before the first such change.
+  - Tests: `DevToolsShellTests.ClosingRestoresCaptureTracesAndTheRootSpeedsSetFromTheInspector`
 - **DEVTOOLS-OVERLAY-038** — Revert… shall open a flyout whose confirm button reverts the root, so reverting is never one click from scrubbing.
   - Tests: untested
 - **DEVTOOLS-OVERLAY-039** — When the root has a creation trace, the inspector shall show the first stack frame outside the `MonacoLabs.Presto` namespaces as `created at Type.Method (file:line)`, with the whole trace as its tooltip.
@@ -149,7 +151,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - **DEVTOOLS-OVERLAY-042** — The track shall span the root's delay through its duration, or only the current iteration for an infinitely looping root, and draw the delay, each iteration and loop delay, a timeline's child spans as a Gantt and its labels, the selection's span and the playhead.
   - Tests: untested
 - **DEVTOOLS-OVERLAY-043** — Drag-scrubbing the track and hover outlines shall work by hand on the Desktop head.
-  - Tests: manual — drag the scrub track and hover list rows in `samples/PrestoSample.Desktop`; DevTools input cannot send drags or hover (Phase 48 open check).
+  - Tests: manual — drag the scrub track and hover list rows in `samples/PrestoGallery/PrestoGallery.Desktop`; DevTools input cannot send drags or hover (Phase 48 open check).
 
 ### Reviving ended roots
 
@@ -164,6 +166,8 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 
 - **DEVTOOLS-OVERLAY-047** — The tween table shall list one row per tween of the selected timer and its descendants, each with property, from → current → to, ease name (`custom` when unnamed), an ease curve thumbnail with the current progress, span in root-iteration ms and composition, and highlight the selected tween.
   - Tests: `DevToolsInspectorTests.TheTweenTableShowsLiveValuesAndTheEaseName`
+- **DEVTOOLS-OVERLAY-059** — The tween table shall refresh the from → current → to values only of rows inside its scroll viewport; a row out of view keeps its last values until it is scrolled back in.
+  - Tests: `DevToolsInspectorTests.OnlyTweenRowsInViewTakeValueSnapshots`
 - **DEVTOOLS-OVERLAY-048** — While a tween is overridden, its row shall show "overridden by #id" naming the newer live root, or `#?` when none is found.
   - Tests: `DevToolsInspectorTests.TheOverriddenMarkerNamesTheNewerRoot`
 
@@ -187,12 +191,12 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - **DEVTOOLS-OVERLAY-055** (inherited) — The springs panel shall drop rows that are no longer active and hide while it has none.
   - Tests: untested
 - **DEVTOOLS-OVERLAY-056** — Freeze and dilation shall hold during a Draggable or Transformable drag by hand.
-  - Tests: manual — freeze and dilate during a drag in `samples/PrestoSample.Desktop`; headless only so far (Phase 48 open check).
+  - Tests: manual — freeze and dilate during a drag in `samples/PrestoGallery/PrestoGallery.Desktop`; headless only so far (Phase 48 open check).
 
 ## Invariants
 
 - The overlay only reads `Presto.Engine` and calls public timer and engine methods; it never touches another engine.
-- After the last overlay closes, the engine is thawed, undilated and has diagnostics disabled, whatever the overlay did while open.
+- After the last overlay closes, the engine is thawed, undilated and has diagnostics disabled, and `CaptureCreationTrace` and every root speed set from an inspector are back to their earlier values, whatever the overlay did while open.
 - Every refresh rebuilds the visible rows from the registry and drops rows not seen in it.
 
 ## Edge cases
@@ -205,7 +209,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 ## Threading and lifetime
 
 - UI thread only, on the overlay's own animation frames. Open overlays and attached gestures are kept per `TopLevel` in weak tables; one static count across top levels decides when diagnostics turn off.
-- Closing does not restore a root `Speed` set from the inspector, a root it paused, seeked or reverted, or `CaptureCreationTrace`.
+- Closing does not restore a root it paused, seeked or reverted. The speeds to restore are held weakly per root, so changing a speed does not keep the root alive.
 
 ## Reduced motion
 
@@ -213,22 +217,24 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 
 ## Allocation
 
-- Not on the Presto tick path: the overlay polls after the engine's frame. Rows are reused, but each refresh formats strings for visible rows and takes snapshots for every tween in the tween table and every expanded tween row; target summaries and property lists are recomputed only when a timer's shape changes.
+- Not on the Presto tick path: the overlay polls after the engine's frame. Rows are reused, but each refresh formats strings for visible rows and takes snapshots for the tween table's rows in view and every expanded tween row; target summaries and property lists are recomputed only when a timer's shape changes.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js 4.5.0 has no inspector.
 
 ## Decisions
 
-- **The inspector is purely additive.** Everything DevTools needs is an addition modeled on GSAP's GSDevTools and the Chrome Animations panel; no upstream semantics change and no parity test moves. Reason: anime.js 4.5.0 has no equivalent.
+- **The inspector is purely additive.** Everything DevTools needs is an addition modeled on GSAP's GSDevTools and the Chrome Animations panel; it changes no engine semantics and no existing test moves. Reason: inspecting must not change what is inspected, so an app behaves the same with the overlay attached.
 - **DevTools is a separate package.** The overlay is `MonacoLabs.Presto.Avalonia.DevTools`, its headless tests live in the bridge test project, and the diagnostics it reads stay in the core. Reason: a release app does not carry the overlay.
 - **The overlay never observes or freezes itself.** It lives in the window's `OverlayLayer`, with highlights in the `AdornerLayer`, and runs no Presto animations; opening it enables diagnostics, and closing it disables them and thaws and undilates the engine. Reason: freezing the main engine must leave the overlay responsive, and closing must leave nothing slowed.
 - **The default toggle is Ctrl+Shift+F12.** It is configurable through `PrestoDevTools.Attach`. Reason: F12 belongs to Avalonia DevTools.
-- **Slow motion is dilation; `Speed` is read-only; controls act on roots.** The transport's presets set time dilation and show engine `Speed` read-only; the inspector's controls always act on the root, so a timeline child is selectable and highlighted on its parent's track but never seeked on its own; scrubbing pauses and seeks the root and restores the previous play state on release. Reason: an app-set rate must not be mistaken for the inspector's, and upstream semantics do not cleanly support seeking a timeline child on its own.
+- **Slow motion is dilation; `Speed` is read-only; controls act on roots.** The transport's presets set time dilation and show engine `Speed` read-only; the inspector's controls always act on the root, so a timeline child is selectable and highlighted on its parent's track but never seeked on its own; scrubbing pauses and seeks the root and restores the previous play state on release. Reason: an app-set rate must not be mistaken for the inspector's, and the timing model does not cleanly support seeking a timeline child on its own.
 - **An ended root needs an explicit revive; revert is not one click away.** A recently ended root can be scrubbed only after Revive, which first warns when it would override a live tween; revert sits behind a confirmation. Reason: `Seek` on an ended timer revives it, re-composing its tweens and possibly overriding a newer animation, and reverting is destructive to app state.
 - **Targets map back to visuals through `TargetOwner`.** Bridge-made brushes and composer-owned transforms map to their visual, split-text pieces resolve to themselves, and anything else (plain objects, view models) gets no outline, only a type name; pick mode searches the registry. Reason: highlighting and pick mode need a visual, and the registry includes paused and pending animations, unlike `Presto.GetAnimations`.
 - **Non-Presto motion is out of scope.** Avalonia `Transitions` and `Animation`s are not made to obey freeze or dilation; `FramePlayer` and `LottieView.Play`/`PlaySegment` tween on the main engine and obey both, while `LottieView.PlayOnRenderThread` does not. Reason: not recorded.
+- **Closing restores the settings the overlay changed, not the edits made with it.** The last close sets `CaptureCreationTrace` back to its value at the first open, and each close sets the root speeds its inspector changed back to their first values; pauses, seeks and reverts stay. Reason: a trace or speed setting left behind is invisible once the overlay is gone and keeps the app slower or costlier than before, while a seek or revert is a visible, deliberate edit of app state.
+- **The tween table snapshots only the rows in view.** Reason: `GetFrom`, `GetCurrent` and `GetTo` allocate and a timeline can have hundreds of tweens; the list snapshots only the tween rows of expanded timers, and the table, which has no expansion, limits itself to what can be seen.
 - **Each engine owns its time base, and dilation is separate from `Speed`.** See CORE-ENGINE.
 - **Animations pause when their controls leave the tree.** See BRIDGE-HELPERS.
 
@@ -242,6 +248,4 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 ## Open items
 
 - Manual: the Ctrl+Shift+F12 gesture, hover outlines, drag-scrubbing the track, and freeze/dilation during a Draggable or Transformable drag have not been driven by hand on Desktop (Phase 48).
-- The design asked for a list that refreshes "without allocating", with snapshots only for expanded rows; the tween table snapshots every tween of the selection each frame.
-- Closing the overlay leaves `PrestoDiagnostics.CaptureCreationTrace` on if it was checked, and keeps root `Speed` changes made from the inspector.
 - No tests for `UsePrestoDevTools`, a repeat `Attach`, collapse and resize, the state filter, the inspector buttons and seek/speed boxes, frame stats, or the springs panel dropping rows.

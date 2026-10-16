@@ -238,7 +238,7 @@ public class Timer : Clock, IRevertible
     public double IterationCurrentTime
     {
         get => Helpers.Clamp(Helpers.Round(_iterationTime, Globals.Precision), 0, IterationDuration);
-        set => CurrentTime = (IterationDuration * _currentIteration) + value;
+        set => CurrentTime = IterationPeriod * _currentIteration + value;
     }
 
     /// <summary>The rendered position inside the current iteration, after <see cref="Reversed"/>, alternation and the playback ease are applied.</summary>
@@ -258,19 +258,17 @@ public class Timer : Clock, IRevertible
     public double IterationProgress
     {
         get => Helpers.Clamp(Helpers.Round(_iterationTime / IterationDuration, 10), 0, 1);
-        set
-        {
-            var iterationDuration = IterationDuration;
-            CurrentTime = (iterationDuration * _currentIteration) + (iterationDuration * value);
-        }
+        set => CurrentTime = IterationPeriod * _currentIteration + IterationDuration * value;
     }
 
     /// <summary>Zero based index of the iteration being played; setting it seeks to the start of that iteration.</summary>
     public int CurrentIteration
     {
         get => _currentIteration;
-        set => CurrentTime = IterationDuration * Helpers.Clamp(value, 0, IterationCount - 1);
+        set => CurrentTime = IterationPeriod * Helpers.Clamp(value, 0, IterationCount - 1);
     }
+
+    private double IterationPeriod => IterationDuration + _loopDelay;
 
     /// <summary>Whether the playhead runs towards 0; setting it calls <see cref="Reverse"/> or <see cref="Play"/>, so it also resumes the timer.</summary>
     public bool Reversed
@@ -310,7 +308,7 @@ public class Timer : Clock, IRevertible
         {
             TweenList.ForEachChildren(timer, static tween =>
             {
-                if (tween._composition != Composition.None) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property));
+                if (tween._composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(tween.Target, tween.Property, tween.Parent.OwnerEngine));
             });
         }
         timer._canceled = false;
@@ -352,11 +350,12 @@ public class Timer : Clock, IRevertible
     }
 
     /// <summary>Rebases the start time against the engine clock so the timer carries on from <see cref="CurrentTime"/> instead of jumping (upstream <c>timer.resetTime()</c>).</summary>
-    public Timer ResetTime()
+    public Timer ResetTime() => ResetTime(OwnerEngine.Now);
+
+    internal Timer ResetTime(double now)
     {
-        var engine = OwnerEngine;
-        var timeScale = 1 / (_speed * engine._speed);
-        _startTime = engine.Now - (_currentTime + _delay) * timeScale;
+        var timeScale = 1 / (_speed * OwnerEngine._speed);
+        _startTime = now - (_currentTime + _delay) * timeScale;
         return this;
     }
 
@@ -383,7 +382,7 @@ public class Timer : Clock, IRevertible
         EndSettle();
         if (!Paused) return this;
         Paused = false;
-        if (Duration <= Constants.MinValue && !_hasChildren)
+        if (Duration <= Constants.MinValue && _delay <= Constants.MinValue && !_hasChildren)
         {
             Renderer.Tick(this, Constants.MinValue, false, false, TickMode.Force);
         }
@@ -438,6 +437,8 @@ public class Timer : Clock, IRevertible
         var isPaused = Paused;
         Paused = true;
         Renderer.Tick(this, time + _delay, muteCallbacks, internalRender, TickMode.Auto);
+        // A paused timer leaves the engine, whose update would otherwise be the only additive pass to show this render.
+        if (!internalRender) OwnerEngine.Additive.Update();
         return isPaused ? this : Resume();
     }
 
@@ -567,7 +568,7 @@ public class Timer : Clock, IRevertible
     }
 
     /// <summary>Rescales the total duration to <paramref name="newDuration"/>, scaling the iteration duration, delay and loop delay proportionally.</summary>
-    /// <remarks>As upstream, <see cref="CurrentTime"/> stays where it was and <see cref="Progress"/> is not preserved.</remarks>
+    /// <remarks><see cref="CurrentTime"/> stays where it was and <see cref="Progress"/> is not preserved.</remarks>
     public virtual Timer Stretch(double newDuration)
     {
         var currentDuration = Duration;
@@ -596,8 +597,13 @@ public class Timer : Clock, IRevertible
 
     void IRevertible.Revert() => Revert();
 
-    /// <summary>Seeks to the end, firing <see cref="OnComplete"/> unless muted, then cancels.</summary>
-    public Timer Complete(bool muteCallbacks = false) => Seek(Duration, muteCallbacks).Cancel();
+    /// <summary>Seeks to the end, firing <see cref="OnComplete"/> unless muted, then cancels without firing <see cref="OnPause"/>.</summary>
+    public Timer Complete(bool muteCallbacks = false)
+    {
+        // Paused first so the seek does not resume the timer only for Cancel to pause it again.
+        Paused = true;
+        return Seek(Duration, muteCallbacks).Cancel();
+    }
 
     /// <summary>Completes when the timer completes; an already completed timer resolves immediately.</summary>
     /// <param name="callback">Invoked synchronously on completion, before the task completes.</param>
@@ -614,7 +620,7 @@ public class Timer : Clock, IRevertible
         return _completion.Task;
     }
 
-    /// <summary>Makes the timer directly awaitable, so <c>await timer</c> stands in for upstream's <c>await timer.then()</c>.</summary>
+    /// <summary>Makes the timer directly awaitable: <c>await timer</c> resumes once it completes, as <see cref="Then"/> does.</summary>
     public TaskAwaiter<Timer> GetAwaiter() => Then().GetAwaiter();
 
     internal void Resolve()
@@ -624,7 +630,13 @@ public class Timer : Clock, IRevertible
         var onResolve = _onResolve;
         _completion = null;
         _onResolve = null;
-        onResolve?.Invoke(this);
-        completion.SetResult(this);
+        try
+        {
+            onResolve?.Invoke(this);
+        }
+        finally
+        {
+            completion.SetResult(this);
+        }
     }
 }

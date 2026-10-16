@@ -38,8 +38,8 @@ Three attached properties give MVVM navigation connected animations with no code
   - Tests: `ConnectedTests.AFirstLoadWithNothingPreparedAnimatesNothing`, `ConnectedTests.APreparedRectIsTakenWithinThreeSecondsAndExpiresAfter`
 - **BRIDGE-CONNECTED-004** — A flight shall be a one-shot `PositionAndSize` shared-element transition with the arriving element's `Motion`, or `DefaultMotion` when it has none; the leaving element's `Motion` shall never be used.
   - Tests: `ConnectedTests.TheArrivingElementsMotionSetsTheFlight`, `ConnectedTests.TheLeavingElementsMotionIsIgnoredForTheDefault`, `ConnectedTests.DefaultMotionAppliesWhenNeitherElementSetsOne`
-- **BRIDGE-CONNECTED-005** — A flight shall follow BRIDGE-LAYOUT's builder rules, so a `Motion` the layout transition cannot honor throws `NotSupportedException` when the element arrives.
-  - Tests: untested
+- **BRIDGE-CONNECTED-005** — A flight shall follow BRIDGE-LAYOUT's builder rules, so a `Motion` the layout transition cannot honor on a keyed element throws `NotSupportedException` when `Motion` or `Key` is set, not when the element arrives.
+  - Tests: `ConnectedTests.AMotionTheElementsRoleCannotCarryThrowsWhereItIsSet`
 - **BRIDGE-CONNECTED-006** — Setting or changing `Key` on an element that is already attached shall re-register it without flying.
   - Tests: `ConnectedTests.ChangingTheKeyOfAnAttachedElementDoesNotFly`
 - **BRIDGE-CONNECTED-007** — When a keyed flight takes over an element that has `Animate.Layout`, the flight shall win its move and the layout property shall take over again once it lands (BRIDGE-DECLLAYOUT).
@@ -68,10 +68,12 @@ Three attached properties give MVVM navigation connected animations with no code
   - Tests: `ConnectedTests.AnAnchoredElementAttachedWithNoLiveFlightShowsNormally`, `ConnectedTests.AnAnchoredElementAttachedAfterAFlightThatDidNotMoveShowsNormally`
 - **BRIDGE-CONNECTED-016** — An entrance shall play on the compositor with the anchored element's `Motion`, or `DefaultAnchorMotion` when it has none, reverting any entrance it is already playing.
   - Tests: `ConnectedTests.MotionOnAnAnchoredElementOverridesTheDefaultEntrance`
-- **BRIDGE-CONNECTED-017** — A `Motion` on an anchored element that the compositor cannot carry shall throw `NotSupportedException` when the entrance plays.
-  - Tests: untested
+- **BRIDGE-CONNECTED-017** — A `Motion` on an anchored element that the compositor cannot carry shall throw `NotSupportedException` when `Motion` or `Anchor` is set, not when the entrance plays.
+  - Tests: `ConnectedTests.AMotionTheElementsRoleCannotCarryThrowsWhereItIsSet`
 - **BRIDGE-CONNECTED-018** — Detaching an anchored element, or clearing its `Anchor`, shall revert its entrance and unregister it.
   - Tests: `ConnectedTests.DetachingAnAnchoredElementRevertsItsEntrance`
+- **BRIDGE-CONNECTED-025** — The registry shall hold a key's last flight weakly, so an anchor left under the key does not keep the flight's control alive.
+  - Tests: `ConnectedTests.AnAnchorLeftUnderTheKeyDoesNotKeepTheFlownElementAlive`
 
 ### Defaults and environment
 
@@ -105,7 +107,7 @@ Three attached properties give MVVM navigation connected animations with no code
 ## Threading and lifetime
 
 - UI thread only. Arrival is visual-tree attachment, leaving is detachment; the recorded slot is cleared on detach.
-- The static registry keeps the key's last flight, which references its control, until the key has no attached element or anchor left.
+- The static registry keeps the key's last flight weakly (BRIDGE-CONNECTED-025) until the key has no attached element or anchor left; a live flight is kept alive by its control.
 - Each keyed element measures itself on every layout pass, one parent walk: fine for a page or a list of dozens, while a virtualizing list of thousands should key only what it needs.
 
 ## Reduced motion
@@ -116,7 +118,7 @@ Three attached properties give MVVM navigation connected animations with no code
 
 - Not on the tick path. Each layout pass of a keyed element walks its parents and stores a `Rect`; each arrival allocates a transition.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: the model is the Windows Community Toolkit's `Connected.Key` and `Connected.AnchorElement`, which splits the feature into the same separate properties.
 
@@ -133,6 +135,8 @@ Three attached properties give MVVM navigation connected animations with no code
 - **Claim order: live element, then prepared entry, then nothing.** Reason: covers both coexisting (`TransitioningContentControl`) and swapping navigation, while a first load or a list scrolling items into view animates nothing.
 - **Anchors enter only while their key's flight is live.** A starting flight plays the entrance of every attached anchor on its key, and an anchor attaching during its key's flight enters too; otherwise it shows normally, and detaching reverts its entrance. Reason: covers both attach orders within one swap without timing heuristics, and lets late-built content join a flight.
 - **Design mode does nothing, and flights register with the ambient scope.** Reason: consistency with `Animate.OnAttached` and other animations.
+- **`Motion` is validated where it is set, for the role the element has.** Setting `Motion`, `Key` or `Anchor` reads the motion under the layout-transition rules on a keyed element and the compositor's on an anchored one, and throws `NotSupportedException` there; a `Motion` on an element with neither role is not read. Reason: an exception from the attach handler points nowhere near the mistake; this matches `Animate.Layout`.
+- **The registry holds the last flight weakly.** Reason: a strong reference kept the flight's control alive for as long as an anchor stayed registered under the key, while a flight that is still live is already kept by its control.
 - **Shared-element sources are measured on screen.** See BRIDGE-LAYOUT.
 - **Keyed shared elements store a rect, return null when unprepared, and expire.** See BRIDGE-LAYOUT.
 - **A one-shot flight or code transition wins its move.** See BRIDGE-DECLLAYOUT.
@@ -143,6 +147,4 @@ Three attached properties give MVVM navigation connected animations with no code
 
 ## Open items
 
-- An invalid `Motion` throws from the attach handler (BRIDGE-CONNECTED-005, -017) rather than where it is set, unlike `Animate.Layout`, which validates on set.
-- The registry's strong reference to the key's last flight keeps that flight's control alive while an anchor stays registered under the key. Untested for leaks.
-- Untested: invalid motions (005, 017), a keyed element detaching before its first layout pass (011), scope registration and the diagnostics origin (022).
+- Untested: a keyed element detaching before its first layout pass (011), scope registration and the diagnostics origin (022).

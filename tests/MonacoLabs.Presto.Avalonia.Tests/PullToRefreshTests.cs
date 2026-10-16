@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Headless.XUnit;
+using Avalonia.Logging;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -58,6 +59,28 @@ public sealed class PullToRefreshTests : BridgeTestBase
         Dispatcher.UIThread.RunJobs();
         Frames.Advance(2000, 20);
 
+        Assert.Equal(0, pull.Pull.Value, 3);
+        Assert.Equal(0, Angle(Ring(pull)));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AFaultedOrCanceledRefreshIsLoggedAndTheContentStillSpringsBack(bool canceled)
+    {
+        var (window, pull) = Stage();
+        var work = new TaskCompletionSource();
+        pull.Refresh = () => work.Task;
+        using var log = new LogSink(LogArea.Control, LogEventLevel.Warning);
+
+        new Touch(window).Drag(Frames, Start, new Vector(0, 150));
+        Frames.Advance(2000, 20);
+        if (canceled) work.SetCanceled();
+        else work.SetException(new InvalidOperationException("offline"));
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(2000, 20);
+
+        Assert.Equal(canceled ? LogEventLevel.Warning : LogEventLevel.Error, Assert.Single(log.Entries).Level);
         Assert.Equal(0, pull.Pull.Value, 3);
         Assert.Equal(0, Angle(Ring(pull)));
     }

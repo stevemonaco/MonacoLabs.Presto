@@ -38,10 +38,10 @@ Copy [`_template.md`](_template.md). `SpecTests` (core test project) and `SpecCo
 | `sources` | Files or folders, relative to the repo root. Each must exist. |
 | `types` | The public top-level types this spec owns (generic types without type parameters). Every public type in the package is owned by exactly one spec. A static class with members for several features (`Presto`, `PrestoAvalonia`, `Recipes`) is owned by one spec; the others name the members they specify in their Purpose. |
 | `tests` | Test classes that cover the feature. |
-| `upstream` | anime.js 4.5.0 files (`src/…`, `tests/suites/…`), or `[]`. |
+| `upstream` | Provenance: the anime.js 4.5.0 files a ported feature came from (`src/…`, `tests/suites/…`), or `[]`. |
 | `depends` | Ids of specs this one builds on. |
 
-**Sections**, as `##` headings in this order: Purpose, Requirements, Invariants, Edge cases, Threading and lifetime, Reduced motion, Allocation, Deviations from anime.js, Decisions, Non-goals, Open items. A section that does not apply says why in one line ("Not on the tick path.", "No upstream counterpart."). Specs carry no API listings or code samples: signatures belong to the code, and API breaks are checked by tooling.
+**Sections**, as `##` headings in this order: Purpose, Requirements, Invariants, Edge cases, Threading and lifetime, Reduced motion, Allocation, Provenance, Decisions, Non-goals, Open items. A section that does not apply says why in one line ("Not on the tick path.", "No upstream counterpart."). Specs carry no API listings or code samples: signatures belong to the code, and API breaks are checked by tooling.
 
 **Requirements** may be grouped under `###` headings. Each is one bullet, one behavior:
 
@@ -54,7 +54,7 @@ Copy [`_template.md`](_template.md). `SpecTests` (core test project) and `SpecCo
 - Wording is EARS-style: "When …, the X shall …", "While …, the X shall …", or "The X shall …" for unconditional behavior. State observable behavior, not implementation.
 - `Tests:` lists `Class.Method` for each test that pins the requirement (theory methods by name only). Every cited test must exist. Otherwise it says `untested`, or `manual — <what has to be checked by hand, and where>`.
 
-**Decisions** record why the feature behaves as it does: one bullet per decision, led by a bold title, then the decision, its reason and, when known, the alternatives rejected. Requirements and deviations refer to a decision by its title, never by a number. A decision governing several features lives in the spec it most constrains; the others name that spec. Project-wide decisions are in [docs/ARCHITECTURE.md](../ARCHITECTURE.md) §5, and those about the test setup and the samples in its §4 and §6.
+**Decisions** record why the feature behaves as it does: one bullet per decision, led by a bold title, then the decision, its reason and, when known, the alternatives rejected. A reason is a behavioral one; matching anime.js is not a reason on its own. Requirements and deviations refer to a decision by its title, never by a number. A decision governing several features lives in the spec it most constrains; the others name that spec. Project-wide decisions are in [docs/ARCHITECTURE.md](../ARCHITECTURE.md) §4, and those about the test setup and the samples in its §3 and §5.
 
 ```markdown
 - **Colors interpolate with premultiplied alpha.** Each channel is weighted by its alpha before mixing, as CSS Color 4 does. Reason: with straight alpha, a fade from a transparent color shows that color's RGB mid-way (a transparent teal fading to gray flashes green). Rejected: anime.js's straight-alpha mix.
@@ -67,7 +67,7 @@ Copy [`_template.md`](_template.md). `SpecTests` (core test project) and `SpecCo
   - Tests: untested
 ```
 
-An inherited requirement records behavior the code has that may not have been human-guided: a default value, a threshold, or a choice made while implementing that no decision or upstream behavior asked for. It is specified so changes to it are visible, but it carries no design intent. Before relying on it as a contract, or when changing it, a human confirms it; once confirmed, the marker is removed. So far only default values are marked; the other requirements extracted in Phase 72 have not yet been classified, so an unmarked requirement is not yet proof of intent.
+An inherited requirement records behavior the code has that may not have been human-guided: a default value, a threshold, or a choice made while implementing that no decision or ported test asked for. It is specified so changes to it are visible, but it carries no design intent. Before relying on it as a contract, or when changing it, a human confirms it; once confirmed, the marker is removed. So far only default values are marked; the other requirements extracted in Phase 72 have not yet been classified, so an unmarked requirement is not yet proof of intent.
 
 ## Where the specs came from
 

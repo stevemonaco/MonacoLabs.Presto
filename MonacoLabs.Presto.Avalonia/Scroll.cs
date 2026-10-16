@@ -240,12 +240,18 @@ public static class Scroll
             var to = new Vector(
                 Math.Clamp(from.X - delta.X * WheelStep, 0, max.X),
                 Math.Clamp(from.Y - delta.Y * WheelStep, 0, max.Y));
-            // At the end the presenter gets the notch, so scroll chaining to an outer scroller still works.
-            if (to == from) return;
+            // At rest at the end the presenter gets the notch, so scroll chaining still works; mid-ease it would jump the rest.
+            if (to == from)
+            {
+                e.Handled = _to != null;
+                return;
+            }
             e.Handled = true;
+            var easing = _to != null;
             _from = _scroller.Offset;
             _to = to;
-            _ease.Restart();
+            // Rebasing drops Resume's head start; mid-ease, _from is the last frame's offset, so it times from that frame.
+            _ease.Restart().ResetTime(easing ? _ease.Engine._currentTime : _ease.Engine.Now);
         }
 
         private void HandlePropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)

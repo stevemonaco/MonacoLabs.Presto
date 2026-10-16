@@ -1,6 +1,6 @@
 namespace MonacoLabs.Presto.Values;
 
-/// <summary>What a <see cref="DecomposedValue"/> holds, and therefore how a tween interpolates and recomposes it (upstream <c>valueTypes</c>).</summary>
+/// <summary>What a <see cref="DecomposedValue"/> holds, and therefore how a tween interpolates and recomposes it.</summary>
 public enum ValueKind
 {
     /// <summary>A bare number, written to the target as a number wherever the property allows one.</summary>

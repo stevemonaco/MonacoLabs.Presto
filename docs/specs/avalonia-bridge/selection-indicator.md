@@ -95,8 +95,8 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
   - Tests: untested
 - **BRIDGE-SELECTION-027** — When the glide's ease is a spring, the glide shall last the spring's settling duration instead of the motion's duration.
   - Tests: untested
-- **BRIDGE-SELECTION-028** — When `Motion` sets anything a layout transition cannot honor (keyframes, loop, alternate, reversed, autoplay, frame rate, playback rate or ease, composition, modifier, id, priority, any callback, a per-target duration or delay, or a property other than an ease-only `X`, `Y` or `Scale`), the selection change shall throw `NotSupportedException`.
-  - Tests: untested
+- **BRIDGE-SELECTION-028** — When `Motion` is set to a builder that animates any property, `X`, `Y` and `Scale` included, or sets anything a layout transition cannot honor (keyframes, loop, alternate, reversed, autoplay, frame rate, playback rate or ease, composition, modifier, id, priority, any callback, a per-target duration or delay), setting it shall throw `NotSupportedException`.
+  - Tests: `SelectionIndicatorTests.AMotionWithMoreThanTimingAndEaseThrowsWhenSet`
 
 ### Stretch
 
@@ -145,7 +145,7 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 
 - Not on the tick path beyond the glide's own animation; a placement allocates nothing on the steady `LayoutUpdated` path except the `TreeView` part lookup after a selection change.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
@@ -153,6 +153,8 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 
 - **One indicator per list, in the items presenter.** `Selection.Indicator` builds one indicator, inserted behind the panel as a child of the list's `ItemsPresenter` through `UnsafeAccessor` and re-inserted when the panel rebuilds, placed from the selected container's slot on every `LayoutUpdated`; only a selection change glides, any other slot change snaps, and it hides while the container is unrealized, not effectively visible or clipped by an ancestor. Reason: it scrolls with the items and outlives recycled containers; the panel's children belong to the item generator by index, and child visuals or adorners would draw over the items. Rejected: a `Connected` key on a per-item element shown only when selected, which needs a per-item hide, pays an element per item and loses its source on recycle.
 - **`Stretch` follows Material's elastic tab indicator.** The leading edge runs ahead and the trailing edge follows on the elastic interpolator. Reason: not recorded. Rejected: the earlier two-step reach-and-contract stretch.
+- **`Motion` takes timing and ease only, validated where it is set.** A builder with any property, the layout parser's ease-only `X`, `Y` and `Scale` included, or any other setting throws `NotSupportedException` when assigned; the default glide reads the current `Recipes.Tokens`, so a replaced token set changes it. Reason: the glide has no per-axis eases to give those properties, so accepting and ignoring them hid the mistake, and an exception from the `SelectionChanged` handler points nowhere near it. `Animate.Layout` and `Connected` keep their per-axis eases.
+- **The clip check is the far corner, with 0.5 DIP tolerance.** The indicator hides only when the container's right or bottom corner lies more than 0.5 DIP outside a clipping ancestor below the presenter. Reason: a folding section clips from its far edge, which is what the check exists for, and the tolerance absorbs layout rounding; a container clipped at its near edge still shows the indicator.
 
 ## Non-goals
 
@@ -162,8 +164,4 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 
 ## Open items
 
-- The `Motion` doc says the default glide is `MotionTokens.Medium` on `MotionTokens.Ease`; the code reads the current `Recipes.Tokens`, so a replaced token set changes it (the code wins).
-- `Motion` accepts ease-only `X`/`Y`/`Scale` properties through the shared layout-motion parser but the glide ignores them; nothing documents or tests that.
-- An unsupported `Motion` throws `NotSupportedException` from inside the `SelectionChanged` handler rather than when `Motion` is set; untested.
-- The design hides the indicator when the container is not wholly inside a clipping ancestor; the code checks only the far corner, with a 0.5 DIP tolerance (BRIDGE-SELECTION-017).
 - Re-templating the indicator (BRIDGE-SELECTION-002), presenter re-insertion (005), detach (007) and nested-list event filtering (021) have no tests.

@@ -30,37 +30,57 @@ public sealed class TweenKeyframesBuilder
     /// <summary>
     /// Adds a color tween from <paramref name="from"/> to <paramref name="to"/> that follows the <see cref="PrestoColor.Mix"/>
     /// path in <paramref name="space"/>, as <paramref name="segments"/> frames whose eases are slices of the one ease, so the
-    /// timing is exactly that ease's. Unset, segments are halved until the rendered color stays within deltaEOK 0.02 of the
+    /// timing is exactly that ease's. Unset, segments are halved until the rendered color stays within about deltaEOK 0.02 of the
     /// path, up to 16; with per-target ends, duration or ease they are 4, or one per 30° of hue arc (4-24) in <see cref="ColorSpace.Oklch"/>.
     /// </summary>
     /// <remarks>
-    /// The frames carry their own ease and duration, so the animation's are not used: unset, they are the
-    /// <see cref="Engine.Current"/> engine's defaults when this is called. A spring ease sets the duration to its settling time.
+    /// The frames carry their own ease and duration, so the animation's are not used: unset, they are the defaults the
+    /// animation is added under (its engine's, its scope's, or its timeline's <see cref="TimelineParams.Defaults"/>), so the
+    /// expansion waits until the animation is built. A spring ease sets the duration to its settling time.
     /// Ends may be per-target <see cref="FunctionValue"/>s, which are resolved once per target and then mixed.
     /// </remarks>
     public TweenKeyframesBuilder Color(TweenValue from, TweenValue to, ColorSpace space = ColorSpace.Oklab, HueInterpolation hue = HueInterpolation.Shorter,
                                       TweenValue? duration = null, TweenValue? delay = null, EaseValue? ease = null, int? segments = null)
     {
         if (segments < 1) throw new ArgumentOutOfRangeException(nameof(segments), segments, "A color tween needs at least one segment.");
-        var defaults = Engine.Current.Defaults;
-        var easeValue = ease ?? defaults.Ease;
-        var durationValue = duration ?? defaults.Duration;
-        if (durationValue.Raw is Stagger) throw new ArgumentException("A Stagger duration cannot be split into color segments; pass a FunctionValue.", nameof(duration));
-        PrestoColor? fromColor = from.Raw is FunctionValue ? null : ParseColor(from, nameof(from));
-        PrestoColor? toColor = to.Raw is FunctionValue ? null : ParseColor(to, nameof(to));
+        if (duration?.Raw is Stagger) throw new ArgumentException("A Stagger duration cannot be split into color segments; pass a FunctionValue.", nameof(duration));
+        var color = new ColorTween(from, to, from.Raw is FunctionValue ? null : ParseColor(from, nameof(from)), to.Raw is FunctionValue ? null : ParseColor(to, nameof(to)),
+                                   space, hue, duration, delay, ease, segments);
+        _frames.Add(TweenValue.Of(color));
+        return this;
+    }
+
+    internal TweenValue[] ToArray() => _frames.ToArray();
+
+    /// <summary>Expands each <see cref="Color"/> call, taking an unset ease or duration from <paramref name="defaults"/>; returns <paramref name="frames"/> itself when there is none.</summary>
+    internal static TweenValue[] Expand(TweenValue[] frames, PrestoDefaults defaults)
+    {
+        if (!Array.Exists(frames, static f => f.Raw is ColorTween)) return frames;
+        var expanded = new List<TweenValue>();
+        foreach (var frame in frames)
+        {
+            if (frame.Raw is ColorTween color) Expand(color, expanded, color.Ease ?? defaults.Ease, color.Duration ?? defaults.Duration);
+            else expanded.Add(frame);
+        }
+        return expanded.ToArray();
+    }
+
+    private static void Expand(ColorTween color, List<TweenValue> frames, EaseValue easeValue, TweenValue durationValue)
+    {
+        var (from, to, fromColor, toColor, space, hue, _, delay, _, segments) = color;
         void Add(int i, TweenValue? frameFrom, TweenValue frameTo, TweenValue frameDuration, EaseValue frameEase) =>
-            _frames.Add(new TweenParams { From = i == 0 ? frameFrom : null, To = frameTo, Duration = frameDuration, Delay = i == 0 ? delay : null, Ease = frameEase });
+            frames.Add(new TweenParams { From = i == 0 ? frameFrom : null, To = frameTo, Duration = frameDuration, Delay = i == 0 ? delay : null, Ease = frameEase });
 
         if (fromColor is { } a && toColor is { } b && easeValue.Raw is not FunctionValue && durationValue.Raw is not FunctionValue)
         {
-            var e = ResolveTiming(easeValue, durationValue, this, 0, 1, out var total);
+            var e = ResolveTiming(easeValue, durationValue, color, 0, 1, out var total);
             var times = segments is { } count ? UniformTimes(count) : FitSegments(a, b, e, space, hue);
             for (var i = 0; i < times.Length - 1; i++)
             {
                 var (t0, t1) = (times[i], times[i + 1]);
                 Add(i, from, i == times.Length - 2 ? to : PrestoColor.Mix(a, b, e(t1), space, hue), total * t1 - total * t0, Slice(e, t0, t1));
             }
-            return this;
+            return;
         }
 
         var n = segments ?? (space != ColorSpace.Oklch ? 4
@@ -93,10 +113,7 @@ public sealed class TweenKeyframesBuilder
                 (FunctionValue)((target, index, count) => { Resolve(target, index, count); return rTotal / n; }),
                 (FunctionValue)((target, index, count) => { Resolve(target, index, count); return Slice(re, (double)segment / n, (segment + 1.0) / n); }));
         }
-        return this;
     }
-
-    internal TweenValue[] ToArray() => _frames.ToArray();
 
     private static PrestoColor ParseColor(TweenValue value, string name) => value.Raw switch
     {
@@ -177,4 +194,7 @@ public sealed class TweenKeyframesBuilder
         var (p, q) = (x.ToOklab(), y.ToOklab());
         return ColorConversions.DeltaEok(p.L, p.A, p.B, q.L, q.A, q.B);
     }
+
+    private sealed record ColorTween(TweenValue From, TweenValue To, PrestoColor? FromColor, PrestoColor? ToColor, ColorSpace Space, HueInterpolation Hue,
+                                     TweenValue? Duration, TweenValue? Delay, EaseValue? Ease, int? Segments);
 }

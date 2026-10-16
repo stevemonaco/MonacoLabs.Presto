@@ -8,7 +8,7 @@ using Avalonia.VisualTree;
 namespace MonacoLabs.Presto.Compositor;
 
 /// <summary>
-/// Upstream's <c>createLayout</c> as FLIP played on the compositor (COMPOSITOR-PLAN §4.4): where the control was and where
+/// A layout transition played as FLIP on the compositor (COMPOSITOR-PLAN §4.4): where the control was and where
 /// layout has just put it are measured on the UI thread, the move is inverted onto the composition <c>Translation</c>, and
 /// the render thread eases that back to identity, so the transition keeps running while the UI thread is busy.
 /// </summary>
@@ -34,8 +34,11 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private readonly CompositorScratch _scratch = new() { Scale = 1, ScaleX = 1, ScaleY = 1 };
 
     private Rect? _first;
+    private Control? _carrier;
+    private Rect? _firstWithin;
     private bool _firstOnScreen;
     private bool _armed = true;
+    private TaskCompletionSource? _firstPass;
     private Animation? _mirror;
     private bool _translating;
     private bool _scaling;
@@ -52,7 +55,8 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         _mode = mode;
         Once = once;
         // Measuring now rather than on the first layout pass is what lets the very next move ease instead of only recording.
-        _first = first ?? (recordFirst ? null : Measure(control));
+        if (first is null) Record(recordFirst ? null : Measure(control));
+        else _first = first;
         _firstOnScreen = first != null && firstOnScreen;
 
         s_live.TryGetValue(control, out var replaced);
@@ -88,13 +92,19 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     public LayoutTransition Revert()
     {
         Cancel();
-        _armed = false;
+        Disarm();
         _control.LayoutUpdated -= OnLayoutUpdated;
         if (s_live.TryGetValue(_control, out var live) && live == this) s_live.Remove(_control);
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    private void Disarm()
+    {
+        _armed = false;
+        _firstPass?.TrySetResult();
+    }
 
     /// <summary>Called with the transition that has just reverted this one by arming on the same control.</summary>
     internal Action<LayoutTransition>? Replaced { get; set; }
@@ -106,8 +116,11 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     internal ItemChanges? List { get; init; }
 
     /// <inheritdoc cref="Animation.Then"/>
+    /// <remarks>A one-shot awaited before its first layout pass waits for that pass, and then for the move it starts.</remarks>
     public async Task<LayoutTransition> Then(Action<LayoutTransition>? callback = null)
     {
+        // Continuations run after the pass's handler returns, by when its move is under way.
+        if (Once && _armed) await (_firstPass ??= new(TaskCreationOptions.RunContinuationsAsynchronously)).Task;
         if (_mirror is { } mirror) await mirror.Then(callback == null ? null : _ => callback(this));
         else callback?.Invoke(this);
         return this;
@@ -169,16 +182,33 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         return TimeProvider.GetElapsedTime(prepared.At) <= s_preparedLifetime ? prepared.OnScreen : null;
     }
 
-    private static Rect? Measure(Control control, bool onScreen)
+    private static Rect? Measure(Control control, bool onScreen, Visual? within = null)
     {
         if (TopLevel.GetTopLevel(control) is null) return null;
         var position = default(Point);
-        for (Visual? visual = control; visual is not null and not TopLevel; visual = visual.GetVisualParent())
+        for (Visual? visual = control; visual is not null and not TopLevel && visual != within; visual = visual.GetVisualParent())
         {
             position += visual.Bounds.Position;
             if (!onScreen && visual.GetVisualParent() is ScrollContentPresenter scroller) position += scroller.Offset;
         }
         return new Rect(position, control.Bounds.Size);
+    }
+
+    /// <summary>The nearest ancestor whose live transition eases its moves, and so carries <paramref name="control"/> along with it.</summary>
+    private static Control? Carrier(Control control)
+    {
+        for (var visual = control.GetVisualParent(); visual is not null and not TopLevel; visual = visual.GetVisualParent())
+        {
+            if (visual is Control ancestor && Live(ancestor) is { } live && (!live.Once || live.InFlight)) return ancestor;
+        }
+        return null;
+    }
+
+    private void Record(Rect? window)
+    {
+        _first = window;
+        _carrier = window is null ? null : Carrier(_control);
+        _firstWithin = _carrier is null ? null : Measure(_control, onScreen: false, _carrier);
     }
 
     /// <summary>
@@ -213,12 +243,19 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
         // A transition reverted by an earlier handler of this pass still runs from the event's snapshot.
-        if (Live(_control) != this || Measure(_control) is not { } last) return;
+        if (Live(_control) != this || Measure(_control) is not { } window) return;
         var first = _first;
+        var last = window;
         // Adding this control's own scroll offsets moves an on-screen source into its layout frame.
-        if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(last.Position - screenSlot.Position);
+        if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(window.Position - screenSlot.Position);
+        // An ancestor easing its own move draws this control along with it, so only the move within that ancestor is left to ease.
+        else if (_carrier is { } carrier && carrier == Carrier(_control) && Measure(_control, onScreen: false, carrier) is { } within)
+        {
+            first = _firstWithin;
+            last = within;
+        }
         _firstOnScreen = false;
-        _first = last;
+        Record(window);
         // A virtualizing panel also repositions realized rows as it corrects estimated sizes during a scroll,
         // and a content size resize beside the control already eases its move, which a flight would trail behind.
         if (List is { Scrolled: true, Pending: false } or { Anchoring: true } || ContentSizeTransition.ResizingBeside(_control))
@@ -227,7 +264,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
             return;
         }
         if (first is not { } from || ElementComposition.GetElementVisual(_control) is not { } element) return;
-        _armed = false;
+        Disarm();
 
         var sizable = _mode != LayoutAnimateMode.Position && !ContentSizeTransition.Eases(_control) && last.Width > 0 && last.Height > 0;
         var scaled = sizable && (from.Size != last.Size || _scratch.ScaleX != 1 || _scratch.ScaleY != 1);

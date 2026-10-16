@@ -85,10 +85,10 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
   - Tests: `TimelinesTests.PreviousOperatorWithRelativeValues`, `TimelinesTests.PreviousAnimationEndPositionWithRelativeValue`, `TimelinesTests.PreviousAnimationStartPositionWithRelativeValues`
 - **CORE-TIMELINE-015** — A label name shall resolve to the label's time, and a relative operator after a label name to that time plus the operation.
   - Tests: `TimelineCallbacksTests.TimelineLabelsPositions`, `StaggerTests.StaggersTimelinePositionsStartingAtALabel`
-- **CORE-TIMELINE-016** — An unknown label, string or `TimelineLabel`, with or without a relative operator or offset, shall resolve against the timeline's current end (see Typed positions resolve exactly as their string twins).
-  - Tests: `TimelinePositionTests.UnknownLabelsResolveToTheTimelineEnd`, `TimelinePositionTests.TypedPositionsResolveAsTheirStringTwins`
-- **CORE-TIMELINE-017** — When a child's `Duration` parameter is 0 or `Constants.MinValue`, it shall be placed `Constants.MinValue` before its position, so its end value lands on the position.
-  - Tests: `TimelinesTests.AddZeroDurationAnimation`, `TimelineCallbacksTests.TimelineSet`
+- **CORE-TIMELINE-016** — When a position names a label the timeline does not have, string or `TimelineLabel`, with or without a relative operator or offset, adding the child shall throw `ArgumentException` naming the label; a bare operator (`"+=100"`) resolves against the timeline's current end.
+  - Tests: `TimelinePositionTests.UnknownLabelsThrow`, `TimelinePositionTests.TypedPositionsResolveAsTheirStringTwins`
+- **CORE-TIMELINE-017** — When a child's resolved duration (explicit, defaults or function) is 0 or `Constants.MinValue`, it shall be placed `Constants.MinValue` before its position, so its end value lands on the position.
+  - Tests: `TimelinesTests.AddZeroDurationAnimation`, `TimelinesTests.AZeroDurationFromTheDefaultsOrAFunctionLandsOnThePosition`, `TimelineCallbacksTests.TimelineSet`
 - **CORE-TIMELINE-044** — A `TimelineLabel` position shall resolve as its name does, and `label + n` / `label - n` as `"name+=n"` / `"name-=n"`.
   - Tests: `TimelinePositionTests.TypedPositionsResolveAsTheirStringTwins`
 - **CORE-TIMELINE-045** — `TimelinePosition.End`, `PreviousEnd` and `PreviousStart` shall resolve as the default position, `"<"` and `"<<"`, and `+ n` / `- n` on them as that relative operator after the anchor.
@@ -159,11 +159,11 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 
 ### Defaults
 
-- **CORE-TIMELINE-041** — When `Composition` is not set, the timeline shall compose children against its state (true), as anime.js does.
+- **CORE-TIMELINE-041** — When `Composition` is not set, the timeline shall compose children against its state (true).
   - Tests: `TimelinesTests.TimelineValues`
-- **CORE-TIMELINE-042** — When `PlaybackEase` is not set, the timeline shall use the engine defaults' `PlaybackEase`, as anime.js does.
+- **CORE-TIMELINE-042** — When `PlaybackEase` is not set, the timeline shall use the engine defaults' `PlaybackEase`.
   - Tests: untested
-- **CORE-TIMELINE-043** — When `OnRender` is not set, the timeline shall use the engine defaults' `OnRender`, as anime.js does.
+- **CORE-TIMELINE-043** — When `OnRender` is not set, the timeline shall use the engine defaults' `OnRender`.
   - Tests: untested
 
 ## Invariants
@@ -186,18 +186,20 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 
 ## Reduced motion
 
-- A timeline has no reduced form of its own: each child picks its own `WhenReduced`, and `ReduceAll` collapses each animation child (`ReducedMotionTests.ATimelineChildPicksItsOwnReducedForm`, `ReducedMotionTests.ReduceAllCollapsesTimelineChildren`). Positions, plain timers and `Call`s are not collapsed.
+- A timeline has no reduced form of its own: each child picks its own `WhenReduced`, and `ReduceAll` collapses each animation child and places every child, `Call` and label at 0 (`ReducedMotionTests.ATimelineChildPicksItsOwnReducedForm`, `ReducedMotionTests.ReduceAllCollapsesTimelineChildren`, `ReducedMotionTests.ReduceAllCollapsesTimelinePositions`). Plain timers keep their durations.
 
 ## Allocation
 
 - Adding children allocates. Ticking a timeline allocates nothing beyond its children's rendering; `Children` enumerates without allocating.
 
-## Deviations from anime.js
+## Provenance
 
-- An unknown label before a relative operator resolves against the timeline's end instead of NaN, matching upstream's own fallback for a bare unknown label.
+- An unknown label throws, where upstream places a bare one at the timeline's end and one before an operator at NaN (see "Unknown labels throw").
+- `Set` copies its params, where upstream writes `duration` and `composition` into the caller's object (see "`Set` never mutates its params").
 - `Set` copies its parameters instead of mutating them, because parameters are immutable init-only records.
 - `Revert` reverts its children; upstream passes the method without calling it, so its children keep their animated values.
 - `Sync` accepts Presto timers only, not WAAPI animations, which the core has no counterpart for.
+- The zero-duration shift reads the resolved duration, where upstream reads only a numeric `duration` parameter, so a zero through the defaults or a function also lands on its position (see "A zero-duration animation is shifted once built").
 - Child lists survive a callback unlinking a sibling: upstream's loop can drop every remaining child when a callback unlinks the cached next one (see CORE-ENGINE).
 
 ## Decisions
@@ -206,9 +208,15 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 - **Params are init-only records with a key indexer.** See CORE-ANIMATION.
 - **Labels are handles, positions stay one type.** `TimelineLabel` is its own type with a `Name` and an implicit conversion to `TimelinePosition`; arithmetic yields a `TimelinePosition`. Reason: a handle reads as a label at call sites, can be stored and seeked to and passed as a stagger start (`Start = label.Name`), while `Add` keeps one position parameter type. Rejected: making a label a bare `TimelinePosition` (loses the name); a `CallerArgumentExpression`-named label (unreliable on `out var`).
 - **The `out` overload places and names a label in one call.** `Label(name, out label, position)` keeps the fluent chain unbroken; the declared-first `Label(TimelineLabel, position)` serves labels stored as fields. There is no implicit `string` → `TimelineLabel` conversion. Reason: it would make `Label("x", 0)` ambiguous between the two overloads.
-- **Typed positions resolve exactly as their string twins.** `label + n` is `"label+=n"`, `PreviousEnd - n` is `"<-=n"`, `End + n` is `"+=n"`, and a typed label not on the timeline falls back to the timeline's end like an unknown string label (CORE-TIMELINE-016). Successive `+`/`-` fold into one offset. Reason: one resolution rule; the `out` overload makes an unplaced label rare. Rejected: throwing for an unplaced typed label (a second rule for the same lookup).
+- **Typed positions resolve exactly as their string twins.** `label + n` is `"label+=n"`, `PreviousEnd - n` is `"<-=n"`, `End + n` is `"+=n"`, and a typed label not on the timeline throws like an unknown string label (CORE-TIMELINE-016). Successive `+`/`-` fold into one offset. Reason: one resolution rule; the `out` overload makes an unplaced label rare.
 - **`+`/`-` on a string position add to its resolved time.** `(TimelinePosition)"L" + 10` resolves the string as before, then adds the folded offset, so it equals `"L+=10"`. Reason: one rule for every anchor (resolve, then add the offset), and the string parse path stays untouched. Rejected: rewriting the string (allocates, and has no meaning for `"*=2"`).
+- **Unknown labels throw.** A position naming a label the timeline does not have throws `ArgumentException` when the child is added, in every form. Reason: a mistyped label otherwise placed the child at the end silently (or at NaN upstream, before an operator), a mistake that showed only as a mistimed sequence. Rejected: upstream's end fallback, kept earlier for the operator form too.
+- **`Set` never mutates its params.** `Timeline.Set` adds a copy with the setter's duration and `Replace` composition. Reason: upstream's `.set()` writes both into the caller's object, so reusing it for a later `.add()` quietly made that a setter too. Rejected: upstream's mutation.
 - **`Seek(TimelineLabel)` seeks to the label's raw time and throws for an unknown label.** It is `Seek(Labels[label.Name], muteCallbacks)` returning the timeline, and a label not on the timeline throws `KeyNotFoundException`, as the `Labels` lookup it replaces does. Reason: seeking to a section is what labels are kept for, and a seek has no upstream end-fallback to stay consistent with; silently seeking to the end would hide the mistake. Rejected: `TimeOf(TimelinePosition)` (resolving relative anchors like `PreviousEnd` at seek time has no clear meaning once children are added); seeking to the end for an unknown label.
+- **Unset timeline parameters compose and inherit.** Without `Composition` a timeline composes its children, and without `PlaybackEase` or `OnRender` it takes the engine defaults' (CORE-TIMELINE-041 to 043). Reason: overlapping children that animate one property then hand it over in order, as separate animations would; the ease and render callback fall back to the defaults like every other timer parameter.
+- **`Timeline.Remove` keeps `Duration`.** `Remove` shrinks `IterationDuration` to the surviving children but leaves `Duration` as it was, so the timeline still runs to its old end (CORE-TIMELINE-034). Reason: kept from upstream and pinned by the ported `TimelineCallbacksTests.RemoveNestedAnimations`; changing it rewrites a ported timing test, which belongs in a timing change of its own. Rejected: shrinking `Duration` too.
+- **A zero-duration animation is shifted once built.** An animation whose resolved duration is zero (explicit, from the defaults, a function, or collapsed by `ReduceAll`) is shifted by `Constants.MinValue` once built; a plain timer is shifted before. Reason: a function's value is per target and only the built child knows it, and calling it early would run user code twice.
+- **`ReduceAll` collapses timeline positions.** See CORE-REDUCED.
 - **No typed `*=`.** Multiplication stays string-only. Reason: rarely used, and it composes poorly with folded offsets (`(label + 100) * 2` has no string twin).
 
 ## Non-goals
@@ -218,7 +226,4 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 
 ## Open items
 
-- `Remove` shrinks `IterationDuration` but keeps `Duration`, so the timeline still runs to its old end (pinned by `TimelineCallbacksTests.RemoveNestedAnimations`); upstream shares it, but no decision records it.
 - `TimelineParams.Composition = false` and children never autoplaying have no test.
-- The zero-duration shift (CORE-TIMELINE-017) reads only an explicit numeric `Duration` parameter, so a child whose duration is 0 through `Defaults` or a function is not shifted.
-- Under `ReduceAll`, children keep their positions, so a timeline with spaced positions still takes its full length; the decision that `ReduceAll` collapses everything without an alternative (CORE-REDUCED) says timeline children collapse but not whether positions do.

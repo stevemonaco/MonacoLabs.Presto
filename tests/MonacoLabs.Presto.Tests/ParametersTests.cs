@@ -62,6 +62,29 @@ public sealed class ParametersTests : EngineTestBase
         Assert.True(timer.Completed);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void EngineSpeedBelowMinValueClampsAndKeepsTimersFinite(double speed)
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(40);
+        var before = timer.CurrentTime;
+
+        Presto.Engine.Speed = speed;
+        Assert.Equal(Constants.MinValue, Presto.Engine.Speed);
+        Frames.Advance(16);
+        Frames.Advance(16);
+
+        Assert.True(double.IsFinite(timer.CurrentTime));
+        Assert.InRange(timer.CurrentTime, before, before + 1);
+
+        Presto.Engine.Speed = 1;
+        var paused = timer.CurrentTime;
+        Frames.Advance(16);
+        Assert.Equal(paused + 16, timer.CurrentTime, 6);
+    }
+
     [Fact]
     public void EngineFpsThrottlesUpdates()
     {
@@ -303,6 +326,27 @@ public sealed class ParametersTests : EngineTestBase
         Presto.Animate(target, new() { ["X"] = 100, Duration = 0 });
 
         Assert.Equal(100, target.X);
+    }
+
+    [Theory]
+    [InlineData(50)]
+    [InlineData(100)]
+    public void ZeroDurationAnimationWaitsOutItsDelay(double delay)
+    {
+        var target = new StyleTarget();
+        var completions = 0;
+        Timer animation = Presto.Animate(target, new() { ["X"] = 100, Duration = 0, Delay = delay, OnComplete = _ => completions++ });
+        var then = animation.Then();
+
+        Assert.Equal(0, target.X);
+        Frames.Advance(delay / 2 - 12, 5);
+        Assert.Equal(0, target.X);
+        Assert.False(then.IsCompleted);
+
+        Frames.Advance(delay, 5);
+        Assert.Equal(100, target.X);
+        Assert.Equal(1, completions);
+        Assert.True(then.IsCompleted);
     }
 
     [Fact]

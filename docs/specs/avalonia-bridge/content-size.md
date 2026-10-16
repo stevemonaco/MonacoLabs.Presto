@@ -73,8 +73,8 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 
 - **BRIDGE-CONTENTSIZE-015** — A layout transition on a host with a content size transition shall ease only its position, whatever its `LayoutAnimateMode`.
   - Tests: `ContentSizePresenceTests.ALayoutTransitionOnAContentSizeHostEasesOnlyItsPosition`
-- **BRIDGE-CONTENTSIZE-016** — While a host resizes, and through the layout pass that lays out its last frame, a layout transition on another control under the same parent (not the host's ancestor) shall cancel its move and land in one frame, since the resize already eases it.
-  - Tests: `ContentSizePresenceTests.TheRowsBelowAnExpandingRowFollowItAndEndInTheirSlots`
+- **BRIDGE-CONTENTSIZE-016** — While a host resizes, and through the layout pass that lays out its last frame, a layout transition on any control in the host's top level that is neither the host, inside it, nor its ancestor shall cancel its move and land in one frame, since the resize already eases it.
+  - Tests: `ContentSizePresenceTests.TheRowsBelowAnExpandingRowFollowItAndEndInTheirSlots`, `ContentSizePresenceTests.ARowInAListBelowAnExpandingRowFollowsItInItsSlot`
 
 ### Ending
 
@@ -144,17 +144,17 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 
 - Each frame of a resize pushes a new `Thickness` and a new clip geometry and triggers a layout pass; it is not allocation-free. Passes with no size change allocate nothing.
 
-## Deviations from anime.js
+## Provenance
 
 - Upstream's `layout` module animates real width and height with a 1 px tolerance and overrides min/max; Presto keeps the 1 px tolerance but eases a margin on the child instead of the host's size, does not override min/max, and reacts to every layout pass automatically, because a held host size hid content that grew mid-flight and the margin already works inside the host's own constraint.
 
 ## Decisions
 
 - **A content size transition eases the host's real layout size, holding the child with a margin.** On the UI thread, the host's sole child gets an extra right and bottom `Margin` at `Animation` priority (drawn size minus natural size) eased to zero by a mirror animation, so the child keeps its natural constraint and text never reflows; min/max are not overridden. Upstream's real width/height layout animation maps here, and position moves to BRIDGE-LAYOUT. Reason: a scaling FLIP stretches children, radius and shadow, while Compose, Flutter, SwiftUI and upstream's `layout` module animate real size; the margin lets every pass measure the content, so a mid-flight change retargets from the drawn size. Rejected: holding the host's `Width`/`Height` (the spike showed it hides content that grows mid-flight); scaling; overriding min/max as upstream does.
-- **Only an axis that follows the content eases, within 1 px.** An axis eases only when the host grew by as much as its content. Reason: 1 px is upstream's tolerance, and a stretched axis then moves in one frame.
+- **Only an axis that follows the content eases, within 1 px.** An axis eases only when the host grew by as much as its content. Reason: a change of a pixel or less is not worth easing, and layout rounding can leave the host's growth a fraction off its content's; a stretched axis then moves in one frame.
 - **The margin is written in the `LayoutUpdated` that sees the change.** Reason: the re-layout it triggers then runs before the next render, so that frame still shows the old size.
 - **The content is clipped, not the host.** While a resize is in flight the child's `Clip` is held at `Animation` priority to the host's inner box and released with the margin. Reason: the host's shadow and rounded corners still draw outside it.
-- **A content size host owns its size.** A layout transition on the host eases only position; while it resizes, layout moves of its siblings under the same parent land in one frame; a content swap resizes from the drawn size while `Presence` ghosts the old content clipped to the box at the swap. Reason: the resize already eases the siblings and a compositor flight would trail behind it; before this, `ItemLayout` neighbors of an expanding row lagged.
+- **A content size host owns its size.** A layout transition on the host eases only position; while it resizes, layout moves anywhere else in its top level (outside it and not above it) land in one frame; a content swap resizes from the drawn size while `Presence` ghosts the old content clipped to the box at the swap. Reason: the resize already eases whatever it moves and a compositor flight would trail behind it; before this, `ItemLayout` neighbors of an expanding row lagged, and limiting it to the host's parent let a list nested under a sibling (the gallery nav's pages in a section below one that unfolds) fly after the move. Accepted: an unrelated layout move elsewhere in the window during a resize also lands in one frame.
 - **Duration overloads land at once under the flag.** See BRIDGE-LAYOUT.
 - **The flag has no change notification.** See CORE-REDUCED.
 
@@ -164,5 +164,4 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 
 ## Open items
 
-- The recorded margin decision said `ClipToBounds` is held while a resize is in flight; the code holds the child's `Clip` geometry and never touches `ClipToBounds`, and Decisions follow the code.
 - Untested: recording at creation (002), the stretched-axis rule (006), a host without a sole child (008), one live transition per host (019), scope registration (020), the attached form's scope and design mode (026).

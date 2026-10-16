@@ -50,6 +50,8 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
   - Tests: `MotionValueTests.MapClampsToTheOutputRange`
 - **CORE-MOTIONVALUE-002** — When `Set` is called on a derived value or a value only Presto assigns (`Map`, `Snap`, `Resist`, `Combine`, `Spring`, `Lag`, `Trail`, `VelocityOf`, `ProgressValue`, `ValueOf`), it shall throw `InvalidOperationException`.
   - Tests: `MotionValueTests.SettingADerivedValueThrows`, `MotionValueDynamicsTests.SettingALagThrows`
+- **CORE-MOTIONVALUE-074** — In a Debug build, once the value's engine is pinned, `Set` shall fail the engine's debug thread assertion when called from another thread.
+  - Tests: untested
 - **CORE-MOTIONVALUE-003** — `Map(transform)`, `Snap(increment)`, `Snap(points)` and both `Combine` forms shall compute their value from their sources' current values.
   - Tests: `MotionValueTests.MapFuncCombineAndSnapDerive`
 - **CORE-MOTIONVALUE-004** — The array form of `Combine` shall copy the source array and pass `combine` one reused buffer of the sources' values.
@@ -243,7 +245,7 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 
 ## Threading and lifetime
 
-- Engine thread only, with no thread check: a value belongs to the engine current when it was created, and `Set` from another thread is undefined.
+- Engine thread only: a value belongs to the engine current when it was created, and `Set` from another thread fails the engine's Debug thread pin and is undefined in Release.
 - Unobserved derived values hold no reference from their sources and are collectable. An observed value is referenced by its sources' dependent lists until its last handler is removed; a spring follower, a lag and a value whose `Velocity` was read stay linked for the source's lifetime.
 - `Engine` retirement drops queued sinks and moving values.
 
@@ -260,7 +262,7 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 - Building a graph, subscribing and the first `Velocity` read allocate.
 - Starting a settle allocates the spring follower, its target source and the task; stepping it allocates nothing per frame.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart; the API follows Motion.
 
@@ -305,4 +307,3 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 ## Open items
 
 - No core test for `MotionObjectValue`'s lazy encode or its subscribe-only-while-observed rule, `FollowSpring`/`SpringTarget`, velocity rebasing after sleep, `Set` throwing on `ProgressValue`/`ValueOf`, or a second `Scrub` replacing the first.
-- No thread-affinity check on `Set`, unlike the engine's control members.

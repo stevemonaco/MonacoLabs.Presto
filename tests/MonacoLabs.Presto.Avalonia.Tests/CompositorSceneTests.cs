@@ -91,6 +91,55 @@ public sealed class CompositorSceneTests : CompositorTestBase
         Assert.Same(scene.BrushFor(Colors.Red, 0.5), scene.BrushFor(Colors.Red, 0.5));
     }
 
+    [AvaloniaFact]
+    public void ASceneAttachedToOneCanvasCannotBeAttachedToAnother()
+    {
+        var scene = new ProbeScene();
+        var (panel, _) = ShowScene(scene);
+        var empty = new CompositorCanvas();
+        panel.Children.Add(empty);
+
+        Assert.Throws<InvalidOperationException>(() => empty.Scene = scene);
+        Assert.Throws<InvalidOperationException>(() => panel.Children.Add(new CompositorCanvas { Scene = scene }));
+        Tick();
+        Assert.Equal(1, scene.Attachments);
+    }
+
+    [AvaloniaFact]
+    public void TheHandlerMembersThrowBeforeAttachAndAfterDetach()
+    {
+        var scene = new HandlerScene();
+        AssertDetached(scene);
+
+        var (panel, canvas) = ShowScene(scene);
+        panel.Children.Remove(canvas);
+        Tick();
+
+        AssertDetached(scene);
+    }
+
+    private static void AssertDetached(HandlerScene scene)
+    {
+        // Read while attached, they throw Avalonia's compositor lock error instead.
+        const string detached = "The scene is not attached to a CompositorCanvas.";
+        Assert.Equal(detached, Assert.Throws<InvalidOperationException>(() => scene.ReadNow()).Message);
+        Assert.Equal(detached, Assert.Throws<InvalidOperationException>(() => scene.ReadSize()).Message);
+        Assert.Equal(detached, Assert.Throws<InvalidOperationException>(scene.Redraw).Message);
+    }
+
+    private sealed class HandlerScene : CompositorScene
+    {
+        public double ReadNow() => Now;
+
+        public Size ReadSize() => Size;
+
+        public void Redraw() => Invalidate();
+
+        protected override void OnRender(ImmediateDrawingContext context, Size size)
+        {
+        }
+    }
+
     private sealed class BrushScene : CompositorScene
     {
         public IImmutableBrush BrushFor(Color color, double opacity = 1) => Brush(color, opacity);

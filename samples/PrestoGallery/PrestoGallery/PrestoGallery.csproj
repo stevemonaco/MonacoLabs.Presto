@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!--
+    Hot reload is licensed and dev-only, so it is pulled in only when a key is available (see CLAUDE.md).
+    It must be referenced from this project, not the heads: its generator only registers XAML files of the
+    project that references it, and its build targets flow down to the executable heads transitively.
+    AvaloniaHotReloadEnableFileWatcher lives in Directory.Build.props because the heads compile an auto-initializer too.
+  -->
+  <PropertyGroup>
+    <PrestoHotReload Condition="'$(Configuration)' == 'Debug' and '$(AvaloniaUILicenseKey)' != ''">true</PrestoHotReload>
+    <DefineConstants Condition="'$(PrestoHotReload)' == 'true'">$(DefineConstants);PRESTO_HOTRELOAD</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport.HotReload" Condition="'$(PrestoHotReload)' == 'true'" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PrestoGallery.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\MonacoLabs.Presto.Avalonia\MonacoLabs.Presto.Avalonia.csproj" />
+    <ProjectReference Include="..\..\..\MonacoLabs.Presto.Avalonia.DevTools\MonacoLabs.Presto.Avalonia.DevTools.csproj" />
+    <ProjectReference Include="..\..\..\MonacoLabs.Presto.Avalonia.Lottie\MonacoLabs.Presto.Avalonia.Lottie.csproj" />
+    <ProjectReference Include="..\PrestoGallery.SnippetGenerator\PrestoGallery.SnippetGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- The Avalonia SDK already passes every .axaml as AdditionalFiles, so only the C# sources are added here. -->
+  <ItemGroup>
+    <AdditionalFiles Include="@(Compile)" />
+  </ItemGroup>
+</Project>

@@ -163,4 +163,23 @@ public sealed class EngineDiagnosticsTests : EngineTestBase
         Assert.Empty(Diagnostics.RecentlyEnded);
         Assert.Equal(default, Diagnostics.LastFrame);
     }
+
+    [Fact]
+    public void ACollectedEnabledEngineStopsCountingAsActive()
+    {
+        EnableDiagnosticsOnADroppedEngine();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(PrestoDiagnostics.Active);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void EnableDiagnosticsOnADroppedEngine()
+    {
+        var engine = new Engine(new ManualFrameSource());
+        engine.Diagnostics.Enabled = true;
+        Assert.True(PrestoDiagnostics.Active);
+    }
 }

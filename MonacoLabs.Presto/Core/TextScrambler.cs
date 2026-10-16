@@ -4,13 +4,13 @@ using System.Text;
 namespace MonacoLabs.Presto.Core;
 
 /// <summary>
-/// Port of anime.js <c>scrambleText</c>: the property value that fills a target's text with random characters and settles
+/// The property value that fills a target's text with random characters and settles
 /// them, one at a time along a reveal wave, on the text the scramble ends with.
 /// </summary>
 /// <remarks>
 /// The text the scramble starts from is read from the target's <c>Text</c> property whichever property the animation
-/// writes, as upstream reads <c>textContent</c>. Upstream's function-based <c>chars</c>, <c>text</c>, <c>duration</c> and
-/// <c>delay</c> and its <c>onChange</c> callback are not ported.
+/// writes. anime.js's function-based <c>chars</c>, <c>text</c>, <c>duration</c> and
+/// <c>delay</c> and its <c>onChange</c> callback have no equivalent.
 /// </remarks>
 internal static class TextScrambler
 {
@@ -25,7 +25,7 @@ internal static class TextScrambler
         ["shades"] = "░-▓",
     };
 
-    private static readonly ConditionalWeakTable<object, string> s_originalTexts = new();
+    private static readonly ConditionalWeakTable<object, TextState> s_texts = new();
 
     internal static ChainedFunctionValue Create(ScrambleTextParams parameters)
     {
@@ -49,9 +49,11 @@ internal static class TextScrambler
             var rng = Utils.CreateSeededRandom(parameters.Seed);
 
             var currentText = Presto.Get(target, "Text") as string ?? "";
-            if (!s_originalTexts.TryGetValue(target, out var originalText)) s_originalTexts.Add(target, originalText = currentText);
+            var state = s_texts.GetOrCreateValue(target);
+            // The scrambler's own last write means a scramble is running or just settled, so the cached text is still the real one.
+            if (previous == null && currentText != state.LastWrite) state.Original = currentText;
             var startingText = previous?._value as string ?? currentText;
-            var settledText = parameters.Text ?? (previous != null ? startingText : originalText);
+            var settledText = parameters.Text ?? (previous != null ? startingText : state.Original!);
             var startLength = startingText.Length;
             var endLength = settledText.Length;
 
@@ -85,7 +87,7 @@ internal static class TextScrambler
                 };
                 var indices = new int[animLength];
                 for (var i = 0; i < animLength; i++) indices[i] = i;
-                // The index breaks ties the way upstream's stable sort leaves them.
+                // The index breaks ties, since Array.Sort is not stable.
                 Array.Sort(indices, (a, b) =>
                 {
                     var distance = Math.Abs(a - reference).CompareTo(Math.Abs(b - reference));
@@ -225,9 +227,15 @@ internal static class TextScrambler
                 Duration = duration,
                 Delay = delay,
                 Ease = Eases.None,
-                TextModifier = Scramble,
+                TextModifier = v => state.LastWrite = Scramble(v),
             };
         };
+    }
+
+    private sealed class TextState
+    {
+        public string? Original;
+        public string? LastWrite;
     }
 
     private static string Expand(string chars)

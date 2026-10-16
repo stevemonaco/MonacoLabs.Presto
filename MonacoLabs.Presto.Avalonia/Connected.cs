@@ -24,6 +24,10 @@ public static class Connected
     /// How an element arrives: a keyed one's flight, under the rules of <see cref="PrestoAvalonia.AnimateSharedElement(Control, Control, AnimationBuilder, LayoutAnimateMode, bool)"/>,
     /// or an anchored one's entrance, played with <see cref="PrestoAvalonia.AnimateOnCompositor(object?, AnimationBuilder)"/>.
     /// </summary>
+    /// <remarks>
+    /// A builder the element's role cannot carry throws <see cref="NotSupportedException"/> when it is set, or when the
+    /// element is given its <see cref="KeyProperty"/> or <see cref="AnchorProperty"/>.
+    /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> MotionProperty =
         AvaloniaProperty.RegisterAttached<Control, AnimationBuilder?>("Motion", typeof(Connected));
 
@@ -48,6 +52,7 @@ public static class Connected
     static Connected()
     {
         KeyProperty.Changed.AddClassHandler<Control>(HandleKeyChanged);
+        MotionProperty.Changed.AddClassHandler<Control>((control, _) => Validate(control));
         AnchorProperty.Changed.AddClassHandler<Control>(HandleAnchorChanged);
     }
 
@@ -83,9 +88,18 @@ public static class Connected
     /// <summary>Sets the key whose flight <paramref name="control"/> enters alongside.</summary>
     public static void SetAnchor(Control control, string? value) => control.SetValue(AnchorProperty, value);
 
+    private static void Validate(Control control)
+    {
+        if (Design.IsDesignMode || GetMotion(control) is not { } motion) return;
+        if (GetKey(control) is not null) LayoutMotion.From(motion);
+        if (GetAnchor(control) is not null && !PrestoAvalonia.CanAnimateOnCompositor(motion, out var unsupported))
+            throw new NotSupportedException($"{unsupported} has no counterpart on the compositor, so an anchored entrance cannot carry it.");
+    }
+
     private static void HandleKeyChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
         if (Design.IsDesignMode) return;
+        Validate(control);
         var attached = control.IsAttachedToVisualTree();
         if (attached && e.OldValue is string old) Unregister(old, control);
         var tracker = control.GetValue(TrackerProperty);
@@ -102,6 +116,7 @@ public static class Connected
     private static void HandleAnchorChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
         if (Design.IsDesignMode) return;
+        Validate(control);
         var attached = control.IsAttachedToVisualTree();
         if (attached && e.OldValue is string old) Unregister(old, control, anchor: true);
         var entrance = control.GetValue(EntranceProperty);
@@ -148,7 +163,7 @@ public static class Connected
             ? PrestoAvalonia.AnimateSharedElement(source, control, motion)
             : PrestoAvalonia.AnimateSharedElement(key, control, motion);
         if (flight is null) return;
-        registration.Flight = flight;
+        registration.Flight = new(flight);
         foreach (var anchor in registration.Anchors)
         {
             if (anchor.TryGetTarget(out var anchored)) anchored.GetValue(EntranceProperty)?.Play();
@@ -161,7 +176,8 @@ public static class Connected
 
         public List<WeakReference<Control>> Anchors { get; } = [];
 
-        public LayoutTransition? Flight { get; set; }
+        // Weak, so an anchor left under the key does not keep the flight's control alive; a live flight is kept by its control.
+        public WeakReference<LayoutTransition>? Flight { get; set; }
     }
 
     private sealed class Tracker
@@ -232,7 +248,7 @@ public static class Connected
 
         private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e)
         {
-            if (Register(GetAnchor(_control)!, _control, anchor: true).Flight is { InFlight: true }) Play();
+            if (Register(GetAnchor(_control)!, _control, anchor: true).Flight?.TryGetTarget(out var flight) == true && flight.InFlight) Play();
         }
 
         private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e)

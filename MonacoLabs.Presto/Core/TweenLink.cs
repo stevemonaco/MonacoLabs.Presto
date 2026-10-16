@@ -9,6 +9,6 @@ internal enum TweenLink
     /// <summary><c>_prevRep</c>/<c>_nextRep</c>: the tweens replacing each other on one target property.</summary>
     Replace,
 
-    /// <summary><c>_prevAdd</c>/<c>_nextAdd</c>: the tweens blending into one target property.</summary>
+    /// <summary><c>_prevAdd</c>/<c>_nextAdd</c>: the additive tweens summing into one target property.</summary>
     Additive,
 }

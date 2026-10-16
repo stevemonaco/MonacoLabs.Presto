@@ -27,7 +27,7 @@ public static class Interactions
     public static AnimationBuilder Grow(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Start(duration, delay, ease, null).Scale(1 + (0.04 * intensity));
 
-    /// <summary>Shrinks to 0.96 times its size. Reduced: dims Opacity to 0.8.</summary>
+    /// <summary>Shrinks to 0.96 times its size and dims Opacity to 0.8. Reduced: only dims.</summary>
     public static AnimationBuilder PressIn(double intensity = 1, double? duration = null, double? delay = null, EaseValue? ease = null) =>
         Start(duration, delay, ease, b => b.Opacity(1 - (0.2 * intensity))).Scale(1 - (0.04 * intensity));
 

@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Logging;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Draggables;
+using MonacoLabs.Presto.Gestures;
 using MonacoLabs.Presto.Transforms;
 using MonacoLabs.Presto.Diagnostics;
 
@@ -19,7 +20,7 @@ namespace MonacoLabs.Presto;
 /// The drag <see cref="Reorder.EnabledProperty"/> keeps on a list. It owns the pointer through a capture on the list, since a
 /// move takes the capture from the moved container, and tracks the dragged item from container to container.
 /// </summary>
-internal sealed class ReorderList
+internal sealed class ReorderList : IGestureMember
 {
     private static readonly Dictionary<Type, Action<object, int, int>?> s_movers = [];
 
@@ -27,8 +28,6 @@ internal sealed class ReorderList
     private IPointer? _pointer;
     private TopLevel? _root;
     private Point _pointerAt;
-    private Point _pressedAt;
-    private Timer? _hold;
     private bool _held;
     private Control? _pressed;
     private Orientation _axis;
@@ -41,6 +40,7 @@ internal sealed class ReorderList
     private Control? _container;
     private double _slotAtGrab;
     private double _offset;
+    private int _refused = -1;
     private Animation? _lift;
     private IDisposable? _raised;
     private Animation? _settle;
@@ -55,6 +55,10 @@ internal sealed class ReorderList
         list.PointerCaptureLost += HandleCaptureLost;
         list.DetachedFromVisualTree += HandleDetached;
     }
+
+    public Visual Element => _pressed ?? _list;
+
+    public IInputElement CaptureTarget => _list;
 
     private TransformShorthand Shorthand => _axis == Orientation.Vertical ? TransformShorthand.Y : TransformShorthand.X;
 
@@ -120,40 +124,23 @@ internal sealed class ReorderList
         _pointer = e.Pointer;
         _root = TopLevel.GetTopLevel(_list);
         _pointerAt = e.GetPosition(_root);
-        _pressedAt = _pointerAt;
         _pressed = container;
         _axis = Reorder.GetAxis(_list);
         _grabAt = Along(e.GetPosition(_list.ItemsPanelRoot));
-        var hold = Reorder.GetTouchHold(_list);
-        if (e.Pointer.Type == PointerType.Mouse || !(hold > 0)) return;
-        using var origin = PrestoDiagnostics.Origin("Reorder");
-        _hold = Presto.CreateTimer(new TimerParams { Duration = hold, OnComplete = _ => Lift() });
+        var hold = e.Pointer.Type == PointerType.Mouse ? 0 : Reorder.GetTouchHold(_list);
+        _held = hold > 0;
+        var gate = GestureGate.SameAxis(_axis);
+        // A held touch never claims by moving: past the hold's slop it drops out and leaves the press to a scroll or a swipe.
+        GestureArena.Join(e, this, _held ? gate with { Touch = (GestureGate.TouchSlop, 1), Accepts = static _ => false, Hold = hold } : gate);
     }
 
     private void HandleMoved(object? sender, PointerEventArgs e)
     {
         if (e.Pointer != _pointer) return;
         _pointerAt = e.GetPosition(_root);
-        if (_hold is not null)
-        {
-            // Moving before the hold is up leaves the touch or pen to the scroller or a swipe.
-            if (Point.Distance(_pointerAt, _pressedAt) > Draggable.TouchSlop) Drop(settle: false);
-            return;
-        }
-        if (!_dragging)
-        {
-            var moved = _pointerAt - _pressedAt;
-            var (along, across) = _axis == Orientation.Vertical ? (Math.Abs(moved.Y), Math.Abs(moved.X)) : (Math.Abs(moved.X), Math.Abs(moved.Y));
-            if (along <= Draggable.DefaultDragThreshold && across <= Draggable.DefaultDragThreshold) return;
-            // Across first: the press belongs to a crosswise gesture, such as a swipe, for the rest of it.
-            if (across >= along)
-            {
-                Drop(settle: false);
-                return;
-            }
-            if (!Grab()) return;
-        }
+        if (!_dragging) return;
         e.Handled = true;
+        e.PreventGestureRecognition();
         Drag();
     }
 
@@ -184,7 +171,7 @@ internal sealed class ReorderList
     {
         if (e.Pointer != _pointer) return;
         e.Handled = _dragging;
-        var inPlace = _held && _container is { } container && _list.IndexFromContainer(container) == _start && Math.Abs(_offset) <= Draggable.TouchSlop;
+        var inPlace = _held && _container is { } container && _list.IndexFromContainer(container) == _start && Math.Abs(_offset) <= GestureGate.TouchSlop;
         var item = _item;
         Drop(settle: true);
         if (inPlace && Reorder.GetHoldCommand(_list) is { } command && command.CanExecute(item)) command.Execute(item);
@@ -199,12 +186,20 @@ internal sealed class ReorderList
 
     private void HandleLayoutUpdated(object? sender, EventArgs e) => Follow();
 
-    private void Lift()
+    // Won by moving, the move that claimed drags next in HandleMoved; won by a hold, nothing moves, so it drags here.
+    public void Won()
     {
-        _hold = null;
-        if (_pointer is null || _dragging || !Grab()) return;
-        _held = true;
-        Drag();
+        if (_pointer is null || !Grab()) return;
+        if (_held) Drag();
+    }
+
+    public void Lost() => Forget();
+
+    private void Forget()
+    {
+        _pointer = null;
+        _pressed = null;
+        _held = false;
     }
 
     private bool Grab()
@@ -212,10 +207,10 @@ internal sealed class ReorderList
         Finish();
         if (_list.ItemFromContainer(_pressed!) is not { } item) return false;
         _dragging = true;
+        _refused = -1;
         _item = item;
         _start = _list.IndexFromContainer(_pressed!);
         _slotAtGrab = Slot(_pressed!);
-        _pointer!.Capture(_list);
         Raise(_pressed!);
         _scroller = _list.ItemsPanelRoot?.FindAncestorOfType<ScrollViewer>();
         using var origin = PrestoDiagnostics.Origin("Reorder");
@@ -294,7 +289,10 @@ internal sealed class ReorderList
             var index = _list.IndexFromContainer(container);
             var center = _slotAtGrab + _offset + (Size(container) / 2);
             var to = Crosses(index + 1, center) ? index + 1 : index > 0 && Crosses(index - 1, center) ? index - 1 : -1;
+            if (to == _refused) return;
+            _refused = to;
             if (to < 0 || !Step(index, to)) return;
+            _refused = -1;
         }
     }
 
@@ -345,7 +343,7 @@ internal sealed class ReorderList
     {
         _container = container;
         Animate.ItemArmOf(container)?.Suspend();
-        _raised =container.SetValue(Panel.ZIndexProperty, int.MaxValue, BindingPriority.Animation);
+        _raised = container.SetValue(Panel.ZIndexProperty, int.MaxValue, BindingPriority.Animation);
         container.Focus();
         PrestoAvalonia.EnsureInitialized();
         using var origin = PrestoDiagnostics.Origin("Reorder");
@@ -368,8 +366,6 @@ internal sealed class ReorderList
 
     private void Drop(bool settle)
     {
-        _hold?.Cancel();
-        _hold = null;
         _held = false;
         if (_pointer is { } pointer)
         {

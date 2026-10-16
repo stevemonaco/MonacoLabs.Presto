@@ -6,12 +6,12 @@ using MonacoLabs.Presto.Targets;
 namespace MonacoLabs.Presto.Compositor;
 
 /// <summary>
-/// Upstream's <c>WAAPIAnimation</c>: a <see cref="CompositorAnimationParams"/> compiled into composition key frame
+/// A <see cref="CompositorAnimationParams"/> compiled into composition key frame
 /// animations and started on each target's own composition visual, so it keeps running while the UI thread is busy.
 /// </summary>
 /// <remarks>
 /// The paused Presto <see cref="Animation"/> the key frames were sampled from runs alongside as the playback model, so the
-/// timing and the callbacks are anime.js's own. It is a model rather than the animation itself: while the UI thread is
+/// timing and the callbacks match the same animation played on the UI thread. It is a model rather than the animation itself: while the UI thread is
 /// blocked it falls behind what the render thread draws, and catches up once the thread is free again.
 /// </remarks>
 public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
@@ -28,6 +28,10 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     {
         _onComplete = parameters.OnComplete;
         var parsed = TargetParser.Parse(targets);
+        foreach (var target in parsed)
+        {
+            if (target is not Visual) throw new NotSupportedException($"{target.GetType().Name} is not a Visual. The compositor animates Visuals only.");
+        }
         _targets = new TargetAnimation[parsed.Count];
         var compiled = CompositorCompiler.Compile(parsed, parameters);
         for (var i = 0; i < parsed.Count; i++)
@@ -134,7 +138,10 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     /// <summary>Seeks every target to its end, firing <see cref="CompositorAnimationParams.OnComplete"/> and resolving <see cref="Then"/> (upstream <c>waapi.complete</c>).</summary>
     public CompositorAnimation Complete() => Move(static model => model.Seek(model.Duration));
 
-    /// <summary>Detaches the animation from the render thread, leaving every property it animated where it stands.</summary>
+    /// <summary>
+    /// Detaches the animation from the render thread, leaving every property it animated where it stands, and releases its
+    /// hold on <see cref="Visual.Opacity"/>, so the control's own opacity applies again.
+    /// </summary>
     public CompositorAnimation Cancel()
     {
         foreach (var target in _targets) target.Cancel();
@@ -301,7 +308,6 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         public void Revert()
         {
             Stop();
-            _opacity?.Dispose();
             if (_element is { } element) Restore(element);
             // Timer.Revert would leave the playhead at minus the delay; the scratch it restores is never read again.
             mirror.Seek(0, muteCallbacks: true).Cancel();
@@ -317,7 +323,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
         /// <summary>Lets go of <paramref name="kind"/> on <paramref name="target"/>, which another animation is taking over.</summary>
         public void Release(Visual target, CompositorTrackKind kind)
         {
-            if (ReferenceEquals(target, visual)) Release(kind, handOver: true);
+            if (ReferenceEquals(target, visual)) Release(kind);
         }
 
         /// <summary>
@@ -387,17 +393,16 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
             visual.AttachedToVisualTree -= OnAttachedToVisualTree;
             visual.PropertyChanged -= OnPropertyChanged;
             if (_element is not { } element) return;
-            foreach (var track in tracks) Release(track.Kind, handOver: false);
+            foreach (var track in tracks) Release(track.Kind);
             if (_centered) element.StopAnimation("CenterPoint");
         }
 
-        private void Release(CompositorTrackKind kind, bool handOver)
+        private void Release(CompositorTrackKind kind)
         {
             if ((_running & (1 << (int)kind)) == 0) return;
             _running &= ~(1 << (int)kind);
             _element!.StopAnimation(kind.ToString());
-            // A cancel keeps Visual.Opacity held so nothing writes over the frozen pixels; a hand over lets the next owner have it.
-            if (handOver && kind == CompositorTrackKind.Opacity) _opacity?.Dispose();
+            if (kind == CompositorTrackKind.Opacity) _opacity?.Dispose();
             CompositorRegistry.Drop(visual, kind, owner);
         }
 

@@ -187,6 +187,18 @@ public sealed class MotionValueDynamicsTests : EngineTestBase
     }
 
     [Fact]
+    public void AnimatableValueOfReturnsOneValuePerPropertySubscribedOnce()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 200, Ease = "linear" });
+        var x = animatable.ValueOf("X");
+        var subscribers = animatable.Animations["X"]._onRender!.GetInvocationList().Length;
+
+        for (var i = 0; i < 10; i++) Assert.Same(x, animatable.ValueOf("X"));
+
+        Assert.Equal(subscribers, animatable.Animations["X"]._onRender!.GetInvocationList().Length);
+    }
+
+    [Fact]
     public void ALagReplaysItsSourceDelayLateAtAnyFrameRate()
     {
         double[] expected = [150, 1000 / 3d - 100, 300];

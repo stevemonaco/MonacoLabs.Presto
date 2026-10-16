@@ -103,6 +103,8 @@ internal static class Renderer
                 var forcedRender = forcedTick || (isRunningBackwards ? -deltaTime : deltaTime) >= Globals.TickThreshold;
                 // Rounded to the precision of Tween._absoluteStartTime so equal-time boundary checks compare cleanly.
                 var absoluteTime = Helpers.Round(tickable._offset + (parent?._offset ?? 0) + tickableDelay + iterationTime, 12);
+                // A timeline child past its end clamps absoluteTime there; a later sibling created earlier has already written this frame, so must not be overwritten.
+                var playheadTime = parent != null && isCurrentTimeEqualOrAboveDuration ? Helpers.Round(tickable._offset + parent._offset + time, 12) : absoluteTime;
 
                 var tween = tickable._headTween;
                 while (tween != null)
@@ -113,7 +115,7 @@ internal static class Renderer
                     var tweenAbsEndTime = tween._absoluteStartTime + tweenChangeDuration;
                     var tweenNextRep = tween._nextRep;
                     var tweenPrevRep = tween._prevRep;
-                    var tweenHasComposition = tweenComposition != Composition.None;
+                    var tweenHasComposition = tweenComposition != Composition.Overlap;
                     // The previous sibling stops writing at its truncated end, so this tween takes over the hold from that point.
                     var tweenPrevRepEndTime = tweenPrevRep != null ? tweenPrevRep._absoluteStartTime + tweenPrevRep._changeDuration : 0;
                     var tweenPrevRepIsCrossParent = tweenPrevRep != null && tweenPrevRep.Parent != tween.Parent;
@@ -139,7 +141,7 @@ internal static class Renderer
                             !tween._isOverridden &&
                             (!tween._isOverlapped || absoluteTime <= tweenAbsEndTime) &&
                             // The next sibling owns the value past its takeover point, the previous one up to its truncated end; explicit from values wait for their own start.
-                            (tweenNextRep == null || tweenNextRep._isOverridden || absoluteTime <= tweenNextRepTakeover) &&
+                            (tweenNextRep == null || tweenNextRep._isOverridden || (tweenNextRep.Parent != tween.Parent && tweenNextRep.Id < tween.Id ? playheadTime : absoluteTime) <= tweenNextRepTakeover) &&
                             (tweenPrevRep == null || tweenPrevRep._isOverridden || (!tweenPrevRepIsCrossParent
                                 ? absoluteTime >= tweenPrevRepEndTime + tween._delay
                                 : absoluteTime >= tween._absoluteStartTime || (!tween._hasFromValue && absoluteTime >= tweenPrevRepEndTime)))
@@ -240,8 +242,8 @@ internal static class Renderer
             var tn = tween._toNumbers;
             var channelEases = tween._channelEases;
             // RGB channels lerp in pseudo-linear space (square inputs, square-root result) to approximate gamma correct blending.
-            // Blended deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
-            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Blend;
+            // Additive deltas have no meaningful alpha to premultiply by, so they stay on straight alpha.
+            var premultiplied = fn[3] != tn[3] && tweenComposition != Composition.Additive;
             ns[0] = tweenModifier(ColorLerp(fn[0], tn[0], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[0](tweenTime)));
             ns[1] = tweenModifier(ColorLerp(fn[1], tn[1], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[1](tweenTime)));
             ns[2] = tweenModifier(ColorLerp(fn[2], tn[2], fn[3], tn[3], premultiplied, channelEases == null ? tweenProgress : channelEases[2](tweenTime)));
@@ -254,9 +256,9 @@ internal static class Renderer
             number = double.NaN;
         }
 
-        if (tweenComposition != Composition.None) tween._number = number;
+        tween._number = number;
 
-        if (!internalRender && tweenComposition != Composition.Blend)
+        if (!internalRender && tweenComposition != Composition.Additive)
         {
             tween.Accessor.SetValue(tween.Target, number, tween);
             return true;

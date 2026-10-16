@@ -21,7 +21,7 @@ depends:
 
 ## Purpose
 
-`MotionPath` is a spline through a list of points (a uniform Catmull-Rom curve with GSAP MotionPath's `curviness`), sampled at constant speed along its arc length. Its `Tweens` give the `"X"`, `"Y"` and `"Rotate"` tween parameters that make an animation ride the path, as anime.js `svg.createMotionPath` does for an SVG path. It builds on CORE-ANIMATION's tween modifiers; the bridge's shape-based motion path and its point overload build on it (see BRIDGE-SHAPES).
+`MotionPath` is a spline through a list of points (a uniform Catmull-Rom curve with GSAP MotionPath's `curviness`), sampled at constant speed along its arc length. Its `Tweens` give the `"X"`, `"Y"` and `"Rotate"` tween parameters that make an animation ride the path; anime.js `svg.createMotionPath` is the SVG-path counterpart. It builds on CORE-ANIMATION's tween modifiers; the bridge's shape-based motion path and its point overload build on it (see BRIDGE-SHAPES).
 
 ## Requirements
 
@@ -106,7 +106,7 @@ depends:
 
 - `Sample` and the modifiers `Tweens` returns allocate nothing per call. `Through` and `Tweens` allocate once.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js 4.5.0 motion paths follow an SVG path, not a list of points. The spline follows GSAP MotionPath's `curviness`, and `rotateOffset` is a number of degrees (GSAP `autoRotate: 90`), not a switch, to match GSAP (see Decisions).
 

@@ -62,6 +62,30 @@ public sealed class ReducedMotionTests : EngineTestBase
     }
 
     [Fact]
+    public void ReduceAllCollapsesTimelinePositions()
+    {
+        var target = new StyleTarget();
+        var calls = new List<string>();
+        Presto.Defaults.ReduceAll = true;
+
+        var timeline = Presto.CreateTimeline()
+            .Add(target, new() { ["X"] = 100, Duration = 300 }, 0)
+            .Call(_ => calls.Add("call"), 400)
+            .Add(target, new() { ["Y"] = 50, Duration = 300 }, 500)
+            .Label("end", 1900)
+            .Add(target, new() { ["X"] = 20, Duration = 300 }, 2000)
+            .Add(target, new() { ["Opacity"] = 0.5, Duration = 300 }, "end");
+        Frames.Advance(16);
+
+        Assert.True(timeline.Completed);
+        Assert.Equal(0, timeline.Labels["end"]);
+        Assert.Equal(20, target.X);
+        Assert.Equal(50, target.Y);
+        Assert.Equal(0.5, target.Opacity);
+        Assert.Equal(["call"], calls);
+    }
+
+    [Fact]
     public void ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone()
     {
         Presto.Defaults.ReduceAll = true;
@@ -85,13 +109,13 @@ public sealed class ReducedMotionTests : EngineTestBase
         var builder = Presto.Build().Property("X", 100).WhenReduced(b => b.Property("Opacity", 1));
 
         var inside = scope.Execute(_ => Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 1000 }));
-        var insideParams = scope.Execute(_ => builder.ToParams());
+        var insideParams = scope.Execute(_ => builder.Resolve());
         var outside = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 1000 });
 
         Assert.Equal(Constants.MinValue, inside.Duration);
         Assert.Equal(["Opacity"], insideParams.Properties.Keys);
         Assert.Equal(1000, outside.Duration);
-        Assert.Equal(["X"], builder.ToParams().Properties.Keys);
+        Assert.Equal(["X"], builder.Resolve().Properties.Keys);
     }
 
     // GAPS-2-PLAN §1.3: WhenReduced on dictionary params.

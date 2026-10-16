@@ -45,8 +45,8 @@ depends:
   - Tests: `ModalTests.OpeningShowsTheScrimBlursTheBackdropAndRevealsFromTheOriginsCenter`
 - **BRIDGE-MODAL-005** — When `Open(point)` is called on a closed modal, it shall use `point` as the origin and set `IsOpen` true.
   - Tests: untested
-- **BRIDGE-MODAL-006** (inherited) — When `Open` is called on an open modal, it shall do nothing, keeping the origin it opened from.
-  - Tests: untested
+- **BRIDGE-MODAL-006** — When `Open` is called on an open modal, it shall only replace the origin with the one it was given (none for a null `from` or one that shares no visual root), so the close shrinks into it.
+  - Tests: `ModalTests.OpeningAgainWhileOpenTakesTheNewOriginForTheClose`
 - **BRIDGE-MODAL-007** — When `IsOpen` becomes true, the modal shall make the scrim and panel visible and hit-testable, with the scrim entering through `Recipes.Fade()`.
   - Tests: `ModalTests.OpeningShowsTheScrimBlursTheBackdropAndRevealsFromTheOriginsCenter`
 - **BRIDGE-MODAL-008** — When it opens with an origin, the content's panel shall enter through `Recipes.CircularReveal` centered on the origin (a `ClipCircle` growing over `Tokens.Long`).
@@ -70,14 +70,16 @@ depends:
   - Tests: `ModalTests.ReopeningMidCloseGrowsBackFromWhereTheCircleStands`
 - **BRIDGE-MODAL-016** — When it closes with `Backdrop` set, the backdrop shall animate its `Blur` back to 0 over `Tokens.Medium`.
   - Tests: `ModalTests.EscapeOrBackClosesIt`
+- **BRIDGE-MODAL-027** — When `Backdrop` is replaced while the modal is open, the old backdrop shall animate its `Blur` back to 0 and the new one to 6, both over `Tokens.Medium` with `Tokens.Ease`.
+  - Tests: `ModalTests.ABackdropReplacedWhileOpenUnblursAndTheNewOneBlurs`
 - **BRIDGE-MODAL-017** — When it closes, the modal shall return focus to the element recorded at opening, then raise `Closed`, however it was closed.
   - Tests: `ModalTests.FocusMovesIntoItAndReturnsToTheOpener`, `ModalTests.AnOutsideClickClosesItAndAnInsideClickDoesNot`
 - **BRIDGE-MODAL-018** — When the modal reopens before its exits end, the scrim and content shall play back from where they stand rather than restart.
   - Tests: `ModalTests.ReopeningMidCloseGrowsBackFromWhereTheCircleStands`
 - **BRIDGE-MODAL-019** — A tap on the scrim shall close the modal; a tap on the content shall not.
   - Tests: `ModalTests.AnOutsideClickClosesItAndAnInsideClickDoesNot`
-- **BRIDGE-MODAL-020** — While the modal is in a visual tree and open, an Escape key reaching its top level unhandled, or the top level's `BackRequested`, shall close it and mark the event handled.
-  - Tests: `ModalTests.EscapeOrBackClosesIt`
+- **BRIDGE-MODAL-020** — While the modal is in a visual tree, open and the most recently opened overlay on its top level, an Escape key reaching that top level unhandled, or the top level's `BackRequested`, shall close it and mark the event handled before the top level's own handlers run.
+  - Tests: `ModalTests.EscapeOrBackClosesIt`, `SheetTests.EscapeClosesTheMostRecentlyOpenedOverlayFirst`
 - **BRIDGE-MODAL-021** — When `Scrim` is null, the scrim shall draw nothing and leave a tap there to the host.
   - Tests: untested
 
@@ -105,13 +107,12 @@ depends:
 ## Edge cases
 
 - `IsOpen = true` from a binding opens without an origin.
-- Changing `Backdrop` while open leaves the old backdrop blurred.
 - With no focused element at opening, closing returns focus nowhere.
 - The modal itself is not focusable; the content's panel is.
 
 ## Threading and lifetime
 
-- UI thread only. Escape and back listeners live on the top level while the modal is in a visual tree. The recorded opener is held only while open.
+- UI thread only. An open modal is tracked on its top level while in a visual tree. The recorded opener is held only while open.
 
 ## Reduced motion
 
@@ -121,14 +122,16 @@ depends:
 
 - Each open and close builds its `Presence` builders and one backdrop animation. Not on the tick path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
 ## Decisions
 
+- **The newest open overlay wins Escape and back.** See BRIDGE-SHEET.
 - **Modal is a control with `Open` methods.** `Modal` exposes `Open(element)`, `Open(point)` and `Close()` over a two-way `IsOpen`. Reason: every page hosts it over a particular view under its own chrome, which a static builder would have to locate and draw above, and the scrim is a sibling of the content, which an attached property could add only by reaching into a parent's children. Rejected: a static `Modal.Open(content, from:)` building an overlay in the window's `OverlayLayer`; an attached `IsOpen` on an overlay control.
 - **The origin is an argument to `Open`.** The reveal origin is passed to each `Open`, not held in a property. Reason: it belongs to one opening.
+- **A reopened modal follows its latest input.** `Open` while open replaces the origin the close shrinks into, and a `Backdrop` replaced while open unblurs as the new one blurs. Reason: the latest call or setting is what the caller means now; keeping the first origin shrank the content into an element the caller had moved on from, and a replaced backdrop stayed blurred for good. Rejected: ignoring `Open` while open.
 - **The motion is fixed by `Recipes.Tokens`.** The reveal, shrink and fades use the token durations and ease, with no builders exposed. Reason: all three pages that hosted a modal wanted the same circle or none.
 - **It measures as its content even while closed.** Reason: opening then never changes an auto-sized host's layout.
 - **Closing goes through `Presence`'s held hide.** The modal sets the scrim's and content's `Presence.Enter`/`Exit` at each open and close, then flips their `IsVisible`. Reason: neither takes input once closing starts, and reopening mid-close plays the exits back from where they stand.
@@ -141,6 +144,4 @@ depends:
 
 ## Open items
 
-- `Open` while already open ignores its new origin, so the close shrinks into the first origin.
-- A `Backdrop` replaced while open stays blurred.
 - Untested: `Open(Point)`, opening without an origin, the entrance replay through `EnterOnShow`, `Scrim = null`, and the measure-as-content rule.

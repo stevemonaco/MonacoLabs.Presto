@@ -47,18 +47,20 @@ depends:
   - Tests: `InertiaTests.ThenCompletesAtTheResolvedDuration`, `InertiaTests.AFunctionValueReturningPerTargetInertiasStaggers`
 - **CORE-INERTIA-003** — When a function value returns an `Inertia` per target, each target's tween shall be resolved from its own inertia.
   - Tests: `InertiaTests.AFunctionValueReturningPerTargetInertiasStaggers`
+- **CORE-INERTIA-047** — `new Inertia()` shall have `Velocity` 0, for settings whose velocity comes from elsewhere (`Animatable.Fling`, a release template).
+  - Tests: `AnimatablesTests.AFlingWithoutAVelocityIgnoresTheSettingsVelocity`
 - **CORE-INERTIA-004** — The ideal target shall be `from + Power · Velocity · TimeConstant`, and the motion shall start at `Power · Velocity` when nothing snaps it.
   - Tests: `InertiaMathTests.StartsAtPowerTimesVelocity`, `InertiaMathTests.DoublingTheTimeConstantDoublesTheTravel`, `AnimatablesTests.AFlingTravelsPowerTimesVelocityTimesTimeConstant`
 - **CORE-INERTIA-005** — When `ModifyTarget` is set, the landed target shall be `ModifyTarget(ideal)`, and the start velocity shall follow from the modified travel.
   - Tests: `InertiaMathTests.SnapIncrementLandsOnTheNearestMultiple`, `InertiaMathTests.SnapPointsLandOnTheNearestPoint`
 - **CORE-INERTIA-006** — The value shall follow `x(t) = target − (target − from) · e^(−t/TimeConstant)`, normalized so the tween lands exactly on the target.
   - Tests: `InertiaMathTests.DecaysWithinRestDeltaByTheDurationAndLandsExactly`, `InertiaMathTests.TrajectoryMatchesNumericalIntegration`
-- **CORE-INERTIA-007** — The duration shall be `TimeConstant · ln(|travel| / RestDelta)`, clamped to [0, 60000].
-  - Tests: `InertiaMathTests.DecaysWithinRestDeltaByTheDurationAndLandsExactly`
+- **CORE-INERTIA-007** — The duration shall be `TimeConstant · ln(|travel| / RestDelta)`, clamped to between 0 and 60000 ms, the cap scaled with the time unit (60 in seconds mode).
+  - Tests: `InertiaMathTests.DecaysWithinRestDeltaByTheDurationAndLandsExactly`, `InertiaMathTests.SecondsModeCapsTheDecayAtSixtySeconds`
 - **CORE-INERTIA-008** — A negative velocity shall travel backward, monotonically.
   - Tests: `InertiaMathTests.NegativeVelocityTravelsBackward`
-- **CORE-INERTIA-009** — When the modified travel is at most `RestDelta`, the tween shall stay at its from-value and last `Constants.MinValue`.
-  - Tests: `InertiaMathTests.VelocityBelowRestSetsTheValue`
+- **CORE-INERTIA-009** — When the modified travel is at most `RestDelta`, the tween shall last `Constants.MinValue` and end on its from-value when `ModifyTarget` is not set, or on the modified target clamped to the bounds when it is.
+  - Tests: `InertiaMathTests.VelocityBelowRestSetsTheValue`, `InertiaTests.AModifyTargetWithinRestDeltaOfTheStartLandsOnTheModifiedTarget`
 
 ### Bounds
 
@@ -111,6 +113,10 @@ depends:
   - Tests: `InertiaTests.AnInertiaInAKeyframeArrayThrows`, `ProjectileTests.AKeyframeOrFromToPairThrows`
 - **CORE-INERTIA-029** — When an `Inertia` or `Projectile` targets a color or complex property, creating the animation shall throw `ArgumentException`.
   - Tests: `InertiaTests.AColorPropertyThrows`, `ProjectileTests.AColorPropertyThrows`
+- **CORE-INERTIA-048** — When an inertia with `Min` greater than `Max` is resolved, by an animation or a fling, resolution shall throw `ArgumentOutOfRangeException`.
+  - Tests: `InertiaTests.MinAboveMaxThrows`
+- **CORE-INERTIA-049** — When `Projectile.Friction` is set to a negative value or to 1 or more, the setter shall throw `ArgumentOutOfRangeException`; 0 is valid.
+  - Tests: `ProjectileTests.FrictionOutsideZeroUpToOneThrows`, `ProjectileTests.ConstantVelocityWithoutGravityMovesLinearly`
 
 ### Reduced motion
 
@@ -132,11 +138,13 @@ depends:
 - **CORE-INERTIA-036** — `Reset` shall clear the samples, the baseline and `Velocity`, and keep the time of the last sample.
   - Tests: `VelocityTrackerTests.ResetZeroesAndStartsANewBaseline`
 - **CORE-INERTIA-037** (inherited) — When `samples` is less than 1, the constructor shall throw `ArgumentOutOfRangeException`.
-  - Tests: untested
+  - Tests: `VelocityTrackerTests.FewerThanOneSampleThrows`
+- **CORE-INERTIA-050** — When `interval` is not positive, the constructor shall throw `ArgumentOutOfRangeException`.
+  - Tests: `VelocityTrackerTests.ANonPositiveIntervalThrows`
 - **CORE-INERTIA-038** — `Add` shall not allocate.
   - Tests: `VelocityTrackerTests.AddDoesNotAllocate`
-- **CORE-INERTIA-039** — The tracker's internal displacement sampler (the one the draggable uses) shall reproduce upstream's `computeVelocity` exactly: each accepted sample scaled, clamped and rounded to 5 digits, and the velocity the plain maximum of the window.
-  - Tests: `VelocityTrackerTests.ReproducesTheDraggableSampler`
+- **CORE-INERTIA-039** — The tracker's internal displacement sampler (the one the draggable uses) shall scale, clamp and round each accepted sample to 5 digits and take the signed sample of largest magnitude as the velocity, as `Velocity` does.
+  - Tests: `VelocityTrackerTests.ReproducesTheDraggableSampler`, `VelocityTrackerTests.TheDraggableSamplerTakesTheStrongestSampleWhenTheyAreNegative`
 
 ### Defaults
 
@@ -152,7 +160,7 @@ depends:
   - Tests: untested
 - **CORE-INERTIA-045** (inherited) — When `Acceleration` or `Friction` is not set, a projectile shall use 0 for it, and `Projectile.Launch` without `friction` shall use 0.
   - Tests: `ProjectileTests.ConstantVelocityWithoutGravityMovesLinearly`
-- **CORE-INERTIA-046** — When `VelocityTracker` is constructed without arguments, it shall use an interval of 17 and a window of 3 samples, as anime.js draggable's sampler does.
+- **CORE-INERTIA-046** — When `VelocityTracker` is constructed without arguments, it shall use an interval of 17 and a window of 3 samples.
   - Tests: `VelocityTrackerTests.SamplesCloserThanTheIntervalAreIgnored`
 
 ## Invariants
@@ -163,10 +171,10 @@ depends:
 
 ## Edge cases
 
-- Velocity 0, or a travel within `RestDelta`: the value stays where it is.
-- `ModifyTarget` mapping the ideal target back within `RestDelta` of the start: the value stays at the start, not on the modified target.
+- Velocity 0, or a travel within `RestDelta`, with no `ModifyTarget`: the value stays where it is.
+- `ModifyTarget` mapping the ideal target within `RestDelta` of the start: the value lands on the modified target, clamped to the bounds, in one frame.
 - A bound equal to the from-value with the velocity pointing inside: an ordinary decay; pointing outward: the two-tween rebound.
-- `Min` greater than `Max`, `Friction` of 1 or more (infinite `k`) and a non-positive `VelocityTracker` interval (every sample accepted) are not validated.
+- `Min` greater than `Max` throws when the inertia is resolved, not when it is built; `Friction` outside [0, 1) and a non-positive `VelocityTracker` interval throw on set.
 - A `Projectile` whose apex falls exactly at 0 or at the flight time stays one tween.
 
 ## Threading and lifetime
@@ -183,14 +191,14 @@ depends:
 - `VelocityTracker.Add` and the internal displacement sampler are allocation-free.
 - The solvers allocate the plan and ease closures once per tween at construction; the resolved eases allocate nothing per frame.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. `Inertia` follows Framer Motion's `inertia`, with `Power` 1 and `TimeConstant` 350 ms instead of Framer's 0.8 and 700, so the motion starts at exactly the release velocity (see Exponential decay with Power 1 and TimeConstant 350); `Projectile` follows GSAP Physics2D, solved in closed form so it stays an ordinary tween (see Projectile is a closed-form to-value with a declared flight time). `VelocityTracker` is extracted from anime.js draggable's `computeVelocity`, but its public form takes values and keeps the sign, so apps can feed it positions and `Animatable.Fling` gets a direction (see VelocityTracker is a public core type).
 
 ## Decisions
 
 - **Inertia is a to-value, shaped like Spring is an ease.** A sealed core `Inertia` converts implicitly to `TweenValue` and is resolved by the `Animation` constructor once the from-number is known, setting the tween's to-number, ease and duration; a `Duration` beside it is ignored, `Delay` applies, non-number properties throw. Reason: its end depends on the start value, and resolving into an ordinary tween keeps callbacks, `Then()`, timelines, composition, `Revert`, `Stretch`, playback rate and determinism unchanged. Rejected: inertia as an ease; a factory reading the target up front.
-- **Exponential decay with Power 1 and TimeConstant 350.** The motion is `target − A'·e^(−t/τ)` with `A = P·v·τ`, defaults `Power` 1, `TimeConstant` 350 engine-time units, `RestDelta` 0.5; the duration is `τ·ln(|A'|/RestDelta)` clamped to [0, 60000], and the ease is normalized to land exactly on the target. Reason: with P = 1 the motion starts at exactly the release velocity and a 1 unit/ms fling lands 350 units away; normalizing avoids stopping `RestDelta` short; the defaults were tuned by feel on the sample and kept. Rejected: Framer's 700 and 0.8, which start slightly faster than the pointer.
+- **Exponential decay with Power 1 and TimeConstant 350.** The motion is `target − A'·e^(−t/τ)` with `A = P·v·τ`, defaults `Power` 1, `TimeConstant` 350 engine-time units, `RestDelta` 0.5; the duration is `τ·ln(|A'|/RestDelta)` clamped to between 0 and 60000 ms, scaled with the time unit, and the ease is normalized to land exactly on the target. Reason: with P = 1 the motion starts at exactly the release velocity and a 1 unit/ms fling lands 350 units away; normalizing avoids stopping `RestDelta` short; the defaults were tuned by feel on the sample and kept. Rejected: Framer's 700 and 0.8, which start slightly faster than the pointer.
 - **Bounds hand over to a spring at the crossing.** When the decay crosses `Min` or `Max`, a spring (`BounceStiffness` 500, `BounceDamping` 10) takes over at the bound with the crossing velocity and settles on it; a start outside the bounds springs straight to the nearest bound. Reason: as Framer Motion does, defaults included.
 - **One tween even with a bounce.** The post-crossing spring is folded into the same tween's ease as `1 + (S_v(s) − S_0(s))` via `Spring.Solve` with and without the crossing velocity, and the to-value is the bound it settles on. Reason: the spring is linear in its initial conditions, so no new solver is needed, and readers of `To` (`Animatable.Get`, composition, `Complete`) see the true rest. Rejected: a second keyframe for the bounce.
 - **A degenerate bounce goes out and back.** A release on a bound moving outward, or any crossing whose velocity normalized by the distance to the bound exceeds `10 · Constants.K`, becomes two tweens: out to the spring's first peak and back to the bound. Reason: there is no distance (or almost none) to normalize by, and Framer bounces in this case. Rejected: just stopping at the bound.
@@ -200,7 +208,9 @@ depends:
 - **Projectile is a closed-form to-value with a declared flight time.** A `Projectile` rides `Inertia`'s slot and is solved in closed form at build into an ordinary tween with the physical end and a normalized displacement ease; its flight time is `Projectile.Duration` or the tween's duration; a throw that turns back is split at its apex with `Plan.Then`; `Friction` is per millisecond in either time unit; `Launch` gives the angle form with +Y down and per-axis velocity, gravity on Y only. Reason: as an ordinary tween it composes, seeks, reverses and hands over like any tween, splitting keeps each tween monotonic, and per-tween normalized eases make a seek match the ballistic formula. Rejected: deriving the duration from the physics as `Inertia` does; a projectile counterpart to `Animatable.Fling`.
 - **Reduced motion lands on the resolved end at once.** Under `ReduceAll` an inertia or projectile is resolved first and then collapses like any other tween, landing on the snapped, clamped rest or the physical end. Reason: the target is resolved before the duration is read, so the existing collapse lands on the right value with no special case.
 - **Time fields are in the engine's unit.** Time fields are in engine-time units and velocity per engine-time unit; the spring handover multiplies by `Globals.TimeScale`. Reason: switching units converts `TimeConstant` and velocity together, as `Spring.Duration` does.
-- **VelocityTracker is a public core type.** Draggable's sampler is extracted as a public, allocation-free `VelocityTracker` (interval 17, 3 samples; the first `Add` after `Reset` is a baseline; `Velocity` is the signed sample of largest magnitude), and the draggable uses it through an internal displacement sampler that keeps upstream's clamp, rounding and plain maximum. Reason: apps with their own gestures can feed it and pass the velocity to an `Inertia`; it needs only numbers and time, so it belongs in the core; strongest-by-magnitude is right for `Animatable.Fling` while the draggable keeps upstream parity.
+- **VelocityTracker is a public core type.** Draggable's sampler is extracted as a public, allocation-free `VelocityTracker` (interval 17, 3 samples; the first `Add` after `Reset` is a baseline; `Velocity` is the signed sample of largest magnitude), and the draggable uses it through an internal displacement sampler that keeps upstream's clamp and rounding but picks the strongest sample like `Velocity`. Reason: apps with their own gestures can feed it and pass the velocity to an `Inertia`; it needs only numbers and time, so it belongs in the core; strongest-by-magnitude is right for `Animatable.Fling`; 17 is one 60 Hz frame, so the 3-sample window spans the last few frames and survives one slow final frame.
+- **Physics settings are validated where they are known.** `Projectile.Friction` must lie in [0, 1) and `VelocityTracker`'s `interval` must be positive, checked on set; `Min <= Max` is checked when the inertia is resolved; each throws `ArgumentOutOfRangeException`. Reason: a friction of 1 or more gives an infinite `k`, a non-positive interval accepts every sample, and inverted bounds bounce off whichever bound is nearer; `Min` and `Max` are independent init properties that `with` expressions set one at a time, so only resolution sees both. Friction 0 is the documented default and what `Launch` passes, so it stays valid.
+- **A snapped target near the start is still landed on.** When `ModifyTarget` maps the ideal target within `RestDelta` of the start, the tween lands on the modified target (clamped to the bounds) in one frame instead of staying at the start. Reason: a snap must leave the value on a snap point; staying put leaves it off-grid.
 - **Each axis decays on its own.** There is no two-dimensional inertia with a shared direction, and no scroll-viewer flinging. Reason: Framer Motion decays axes independently; the platform scroll gesture has its own inertia, and replacing it is a control-level change.
 
 ## Non-goals
@@ -212,8 +222,5 @@ depends:
 
 ## Open items
 
-- The decay's 60000 cap is in engine-time units and is not scaled in seconds mode, where it allows 60000 s.
-- `ModifyTarget` mapping the ideal target within `RestDelta` of the start leaves the value at the start rather than on the modified target; untested.
 - A single `TweenParams { To = new Inertia(…) }` (object form, not an array) is accepted but untested.
-- The `samples < 1` guard is untested; `interval`, `Projectile.Friction` (documented as below 1) and `Min <= Max` are not validated.
 - A non-moving projectile's `Eases.None` tween is untested.

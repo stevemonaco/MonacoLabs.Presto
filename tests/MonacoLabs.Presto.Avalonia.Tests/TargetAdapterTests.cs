@@ -89,6 +89,33 @@ public sealed class TargetAdapterTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ACodecRegisteredAfterAResolutionAppliesToLaterAnimations()
+    {
+        var border = new Border { HorizontalAlignment = HorizontalAlignment.Left };
+        border.Animate(new() { ["HorizontalAlignment"] = TweenValue.Of(HorizontalAlignment.Left), Duration = 100, Autoplay = false }).Seek(100);
+        Presto.Codecs[typeof(HorizontalAlignment)] = new StructCodec<HorizontalAlignment>(a => [(double)a], c => (HorizontalAlignment)(int)Math.Round(c[0]));
+        try
+        {
+            var animation = border.Animate(new()
+            {
+                ["HorizontalAlignment"] = TweenValue.Of(HorizontalAlignment.Right),
+                Duration = 100,
+                Ease = "linear",
+                Autoplay = false,
+            });
+            animation.Seek(30);
+
+            Assert.Equal(HorizontalAlignment.Center, border.HorizontalAlignment);
+            animation.Revert();
+            Assert.Equal(HorizontalAlignment.Left, border.HorizontalAlignment);
+        }
+        finally
+        {
+            Presto.Codecs.Remove(typeof(HorizontalAlignment));
+        }
+    }
+
+    [AvaloniaFact]
     public void AnimatedValuesLandAtAnimationPriorityAndRevertUncoversTheLocalValue()
     {
         var border = new Border { Opacity = .25 };
@@ -144,6 +171,21 @@ public sealed class TargetAdapterTests : BridgeTestBase
         animation.Revert();
 
         Assert.Equal(25, target.Value);
+    }
+
+    [AvaloniaFact]
+    public void RevertClearsAPropertyThatWasNullBeforeTheAnimation()
+    {
+        var border = new Border();
+        var animation = border.Animate(new() { ["Background"] = "#f00", Duration = 100, Autoplay = false });
+        animation.Seek(animation.Duration);
+
+        Assert.NotNull(border.Background);
+
+        animation.Revert();
+
+        Assert.Null(border.Background);
+        Assert.False(border.IsAnimating(Border.BackgroundProperty));
     }
 
     [AvaloniaFact]

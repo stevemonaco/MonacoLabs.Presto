@@ -128,6 +128,24 @@ public sealed class PageBloomTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ReducedFinishesAnInterruptedBloomAtOnce()
+    {
+        var (_, host) = ShowBloomHost();
+        var interrupted = Page(Brushes.Green);
+        Swap(host, interrupted);
+        Frames.Advance(Bloom / 4, 16);
+        Assert.IsType<EllipseGeometry>(Presenter(host, interrupted).Clip);
+
+        Presto.Defaults.ReducedMotion = true;
+        Swap(host, Page(Brushes.Red));
+        Frames.Advance(16, 16);
+
+        Assert.Null(Presenter(host, interrupted).Clip);
+        Frames.Advance(Recipes.Tokens.Short * 2, 16);
+        Settle(() => Presenters(host).Count(p => p.IsVisible) == 1);
+    }
+
+    [AvaloniaFact]
     public void ACircularRevealFromAnElementGrowsFromItsCenter()
     {
         var opener = new Border { Width = 40, Height = 40, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };

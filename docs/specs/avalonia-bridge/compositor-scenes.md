@@ -50,6 +50,8 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
   - Tests: `CompositorSceneTests.DetachRevertsTheSceneScopeAndEmptiesItsEngine`, `CompositorPageTests.ThePageRunsAndRevertsEverythingOnDetach`
 - **BRIDGE-SCENES-005** — When a canvas attaches again, its scene shall get a new engine and scope and `OnAttached` shall run again.
   - Tests: untested
+- **BRIDGE-SCENES-032** — When a canvas attaches with, or is given while attached, a scene another attached canvas holds, it shall throw `InvalidOperationException` and leave the scene with the first canvas.
+  - Tests: `CompositorSceneTests.ASceneAttachedToOneCanvasCannotBeAttachedToAnother`
 - **BRIDGE-SCENES-006** — `Post` on an attached canvas shall deliver the message to `OnMessage` on the render thread, in posting order, on the compositor frame after it was posted.
   - Tests: `CompositorMessagingTests.MessagesArriveInOrderIncludingTheOnesPostedBeforeAttach`
 - **BRIDGE-SCENES-007** (inherited) — `Post` on a canvas outside the visual tree shall queue the message and send the queue, in order, right behind the attach message.
@@ -88,8 +90,8 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
   - Tests: `CompositorRenderTests.ASceneThatNeverInvalidatesLeavesThePixelsAlone`
 - **BRIDGE-SCENES-021** — `Invalidate` shall redraw an idle scene once.
   - Tests: `CompositorRenderTests.InvalidateRedrawsAnIdleSceneAndNothingElseDoes`
-- **BRIDGE-SCENES-022** — `Now`, `Size` and `Invalidate` before the scene first attaches shall throw `InvalidOperationException`, and in Debug fail an assertion when called off the scene engine's thread.
-  - Tests: untested
+- **BRIDGE-SCENES-022** — `Now`, `Size` and `Invalidate` before the scene first attaches, or once its canvas has detached it, shall throw `InvalidOperationException`, and in Debug fail an assertion when called off the scene engine's thread.
+  - Tests: `CompositorSceneTests.TheHandlerMembersThrowBeforeAttachAndAfterDetach`
 - **BRIDGE-SCENES-023** (inherited) — `Brush` shall return the same instance for the same color and opacity, with opacity clamped to 0..1 and rounded to 256 steps.
   - Tests: `CompositorRenderTests.TheBrushCacheReusesInstancesAndQuantizesOpacity`
 - **BRIDGE-SCENES-024** — When the brush cache holds 1 024 brushes, the next new brush shall clear it first.
@@ -123,6 +125,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - After attach the scene belongs to the render thread: `OnAttached`, `OnMessage`, `OnRender` and every callback of what they create run there, and none touches an `AvaloniaObject` except through `PostToUI`.
 - The UI thread reaches an attached scene only through `Post` and `Invoke`.
 - One engine and one scope per attachment; detaching leaves the engine with no children.
+- A scene is attached to at most one canvas at a time.
 
 ## Edge cases
 
@@ -145,19 +148,20 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 
 - A frame is the core tick plus `OnRender`; with brushes from `Brush` and text from `SceneText` it allocates nothing beyond the budget of BRIDGE-SCENES-025. `Post` allocates per message; `Invoke` allocates a wrapper delegate.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart: anime.js has one engine on the page's main thread. A scene owns a second engine because that is the only way Presto's full model survives a stalled UI thread.
 
 ## Decisions
 
-- **Render-thread work is a separate API named "Compositor", and a scene owns its engine.** `CompositorCanvas` and `CompositorScene` are explicit types; the UI thread never ticks a scene, the render thread never writes an `AvaloniaProperty`, and the scene engine is ambient while its code runs. Reason: "compositor" is Avalonia's own term; a scene engine is the only path where the full Presto model survives a stalled UI thread, and an ambient engine keeps the anime.js call shape. Rejected: `RenderThread*` names; `Composition*` names, since the core already uses `Composition` for replace/none/blend.
+- **Render-thread work is a separate API named "Compositor", and a scene owns its engine.** `CompositorCanvas` and `CompositorScene` are explicit types; the UI thread never ticks a scene, the render thread never writes an `AvaloniaProperty`, and the scene engine is ambient while its code runs. Reason: "compositor" is Avalonia's own term; a scene engine is the only path where the full Presto model survives a stalled UI thread, and an ambient engine lets scene code call `Presto.Animate` exactly as UI-thread code does. Rejected: `RenderThread*` names; `Composition*` names, since the core already uses `Composition` for replace/overlap/additive.
 - **An idle scene stops requesting frames.** The handler renews its render-loop registration only while the engine has children, and invalidates once after a frame in which the engine ticked. Reason: an idle scene costs nothing and lets the render loop sleep, as the UI-thread frame source does.
 - **The scene tick is wrapped in a try/catch that logs.** Reason: Avalonia does not catch exceptions from the animation-frame callback, so one would take the render thread down; message and render exceptions Avalonia already catches.
 - **The bridge stays Skia-free; scenes draw with `ImmediateDrawingContext`.** Scenes cache immutable brushes and pens, and path drawing is the scene's own business through the Skia lease feature. Reason: `ImmediateDrawingContext` has no geometry drawing, and keeping Skia out of the bridge keeps it backend-neutral.
 - **After attach a scene belongs to the render thread.** The UI thread reaches it only through `Post` and `Invoke`, the scene reaches back with `PostToUI`, callbacks must not touch controls, and `Then()` on a scene timer completes on the thread pool; a scene built on the UI thread (in XAML) is handed over untouched at attach. Reason: the render thread has no synchronization context, and handing over at attach is safe because the composition batch queue publishes the object.
 - **Browser's blocked-UI-thread limitation is documented, not worked around.** See BRIDGE-THREAD.
-- **Hidden pauses the engine, as upstream's `pauseOnDocumentHidden` does.** See CORE-ENGINE.
+- **Hidden pauses the engine.** See CORE-ENGINE.
+- **A scene has one canvas at a time.** A canvas claims its scene on the UI thread when it attaches it and gives it up on detach, and a second attached canvas taking the scene throws; on detach the handler lets go of the scene, so `Now`, `Size` and `Invalidate` throw as they do before the first attach. Reason: the scene holds a single handler, so a second attach overwrote the one the first canvas's callbacks read, and a stray callback after detach read a dead handler instead of failing. Rejected: rendering one scene on two canvases, which would need one engine per canvas and so per-canvas scene state.
 
 ## Non-goals
 
@@ -167,6 +171,4 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 
 ## Open items
 
-- Untested: replacing `Scene` while attached (003), re-attaching (005), the off-thread `Post` assertion (008), the defaults snapshot (012), tick exception logging (016), pre-attach `InvalidOperationException` (022), `Then()` completing on the thread pool (027).
-- A scene instance shared by two attached canvases is not guarded: the second attach overwrites the handler the first one's callbacks read.
-- After detach the scene keeps its handler, so `Now`, `Size` and `Invalidate` called from a stray callback read a detached handler instead of throwing.
+- Untested: replacing `Scene` while attached (003), re-attaching (005), the off-thread `Post` assertion (008), the defaults snapshot (012), tick exception logging (016), `Then()` completing on the thread pool (027).

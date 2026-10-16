@@ -35,6 +35,10 @@ public sealed class Distort : Decorator
     private static readonly PropertyInfo? DrawListProperty = typeof(CompositionVisual).Assembly
         .GetType("Avalonia.Rendering.Composition.CompositionDrawListVisual")?.GetProperty("DrawList");
 
+    // Raised on the UI thread after each commit, which every redraw ends in; unlike a frame request it costs nothing while nothing changes.
+    private static readonly EventInfo? AfterCommitEvent = typeof(Avalonia.Rendering.Composition.Compositor)
+        .GetEvent("AfterCommit", BindingFlags.Instance | BindingFlags.NonPublic);
+
     static Distort() => AffectsRender<Distort>(TurbulenceProperty, TurbulenceScaleProperty, TurbulencePhaseProperty, GooProperty, GlitchProperty);
 
     /// <summary>How far seeded noise displaces the child's pixels, in DIPs: 0 leaves them in place.</summary>
@@ -79,11 +83,14 @@ public sealed class Distort : Decorator
     private CompositionVisual? _hidden;
     private Vector3D _hiddenScale;
     private readonly List<object?> _drawLists = [];
-    private Action<TimeSpan>? _poll;
-    private bool _polling;
+    private object? _watched;
+    private Action? _check;
 
     /// <summary>How many snapshots of the child have been taken.</summary>
     internal int Snapshots { get; private set; }
+
+    /// <summary>How many times the child's subtree has been checked for a redraw.</summary>
+    internal int Checks { get; private set; }
 
     internal PixelSize? SnapshotSize => _snapshot?.Bitmap.PixelSize;
 
@@ -110,15 +117,15 @@ public sealed class Distort : Decorator
         _snapshot?.Dispose();
         _snapshot = new Snapshot(VisualSnapshot.Render(child, scaling), scaling);
         Snapshots++;
-        Redrew(child);
+        _drawLists.Clear();
         Watch();
     }
 
     private void Watch()
     {
-        if (_polling) return;
-        _polling = true;
-        TopLevel.GetTopLevel(this)?.RequestAnimationFrame(_poll ??= Poll);
+        if (_watched is not null || ElementComposition.GetElementVisual(this)?.Compositor is not { } compositor) return;
+        _watched = compositor;
+        AfterCommitEvent?.AddMethod?.Invoke(compositor, [_check ??= Check]);
     }
 
     // The child stays in layout and keeps its own properties; only its composition visual is scaled to nothing, which Avalonia never resets.
@@ -130,18 +137,15 @@ public sealed class Distort : Decorator
         visual.Scale = default;
     }
 
-    private void Poll(TimeSpan _)
+    private void Check()
     {
-        _polling = false;
-        if (_snapshot is null || Child is not { } child) return;
-        if (Redrew(child))
-        {
-            _snapshot.Dispose();
-            _snapshot = null;
-            InvalidateVisual();
-            return;
-        }
-        Watch();
+        Checks++;
+        // The first check after a snapshot only records the draw lists, since the child may have drawn in the same pass.
+        var first = _drawLists.Count == 0;
+        if (_snapshot is null || Child is not { } child || !Redrew(child) || first) return;
+        _snapshot.Dispose();
+        _snapshot = null;
+        InvalidateVisual();
     }
 
     // Records the draw lists of the child's subtree, returning whether any differs from the last record.
@@ -170,6 +174,8 @@ public sealed class Distort : Decorator
         _snapshot?.Dispose();
         _snapshot = null;
         _drawLists.Clear();
+        if (_watched is not null) AfterCommitEvent?.RemoveMethod?.Invoke(_watched, [_check]);
+        _watched = null;
         if (_hidden is null) return;
         _hidden.Scale = _hiddenScale;
         _hidden = null;

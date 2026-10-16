@@ -20,6 +20,7 @@ tests:
   - StaggerTests
   - DiscreteValuesTests
   - TimelinesTests
+  - PrestoDelayTests
 upstream:
   - src/index.js
   - src/utils/target.js
@@ -45,7 +46,7 @@ depends:
 
 ## Purpose
 
-`Presto` is the static entry point that mirrors the anime.js module exports: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`, `ScrambleText`), the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) and the adapter and codec registries. Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics (each naming its property by `PropertyKey`, CORE-TARGETS), and adapter resolution order.
+`Presto` is the static entry point: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`, `ScrambleText`), the engine-time wait `Delay`, the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) and the adapter and codec registries. Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, `Delay`, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics (each naming its property by `PropertyKey`, CORE-TARGETS), and adapter resolution order.
 
 ## Requirements
 
@@ -89,12 +90,12 @@ depends:
   - Tests: `UtilsTargetsTests.SetObjectPropertiesToSpecificUnit`
 - **CORE-PRESTO-016** — `Set` shall give its tweens a duration of `Constants.MinValue` regardless of the params' `Duration` and the defaults; a per-property `TweenParams.Duration` still applies.
   - Tests: untested
-- **CORE-PRESTO-017** — `Set` shall compose with `Composition.None` unless the params name a composition, so it neither replaces nor cancels tweens already running on those properties.
+- **CORE-PRESTO-017** — `Set` shall compose with `Composition.Overlap` unless the params name a composition, so it neither replaces nor cancels tweens already running on those properties.
   - Tests: untested
 - **CORE-PRESTO-018** — `Set` shall skip `Init()` and resume the animation instead, which renders it at once and leaves nothing registered with the engine.
   - Tests: `LeaksTests.EngineShouldNotContainAnyActiveTickable`
-- **CORE-PRESTO-019** (inherited) — `Set` shall not raise the timer-created hook.
-  - Tests: untested
+- **CORE-PRESTO-019** — `Set` shall raise the timer-created hook once, after it has written the values, so the hook receives an already completed animation.
+  - Tests: `HostHookTests.TimerCreatedFiresForSet`
 - **CORE-PRESTO-020** — `Set` shall register its animation with the current scope like any timer, so the scope's `Revert` restores the values it overwrote.
   - Tests: untested
 
@@ -114,6 +115,8 @@ depends:
   - Tests: untested
 - **CORE-PRESTO-027** (inherited) — When the built-in object adapter resolves a property that the target type has no public readable and writable instance property or field for, `Get` shall throw `ArgumentException`; a dictionary target with no such key yields null.
   - Tests: `ObjectTargetAdapterTests.UnknownMemberThrows`, `ObjectTargetAdapterTests.ReadsMembersAndTreatsMissingDictionaryKeysAsNull`
+- **CORE-PRESTO-056** — Every `Get` overload shall canonicalize the property name against the first parsed target (CORE-PRESTO-043) before resolving it, as `Remove` and `GetAnimations` do, so an alias reads the canonical property.
+  - Tests: `UtilsTargetsTests.GetReadsTheCanonicalPropertyOfAnAlias`
 
 ### Remove
 
@@ -162,27 +165,42 @@ depends:
 
 - **CORE-PRESTO-045** — The facade shall accept null `targets` everywhere it takes them, treating them as no targets.
   - Tests: `TargetsTests.AnimatingNullHasNoTargets`, `UtilsTargetsTests.UndefinedTargetsHaveNothingToGetOrRemove`
-- **CORE-PRESTO-046** (inherited) — The facade shall not validate its non-nullable arguments: a null `AnimationParams`, `AnimatableParams` or builder action surfaces as a `NullReferenceException` from the constructor or delegate call.
-  - Tests: untested
+- ~~**CORE-PRESTO-046**~~ — Removed: null non-nullable arguments are now rejected where they enter (CORE-PRESTO-055).
+- **CORE-PRESTO-055** — When a non-nullable reference argument of a `Presto` method is null, the method shall throw `ArgumentNullException` naming it; nullable parameters keep accepting null.
+  - Tests: `TargetsTests.AnimateRejectsNullParamsAndBuilder`, `TargetsTests.SetRejectsNullParamsAndBuilder`, `TargetsTests.CreateAnimatableRejectsNullParams`, `TargetsTests.GetRejectsANullUnit`, `TargetsTests.GetAnimationsRejectsANullTarget`
 
 ### Defaults
 
-- **CORE-PRESTO-047** — When no defaults have been changed, `Presto.Defaults` shall hold a fresh `PrestoDefaults` (see CORE-SCOPE), as anime.js's engine starts from its global defaults.
+- **CORE-PRESTO-047** — When no defaults have been changed, `Presto.Defaults` shall hold a fresh `PrestoDefaults` (see CORE-SCOPE).
   - Tests: untested
-- **CORE-PRESTO-048** — When `property` is not given, `Remove` shall remove the tweens of every property, as anime.js's `utils.remove` does.
+- **CORE-PRESTO-048** — When `property` is not given, `Remove` shall remove the tweens of every property.
   - Tests: `UtilsTargetsTests.RemoveTarget`
+
+### Delay
+
+- **CORE-PRESTO-049** — `Delay(duration, cancellationToken)` shall return a task that completes once `duration` of `Engine.Current`'s time has passed, counted as a playing timer counts it (including the 12 ms head start of CORE-TIMER-037).
+  - Tests: `PrestoDelayTests.CompletesOnceTheDurationOfEngineTimeHasPassed`
+- **CORE-PRESTO-050** — The wait shall scale with `Engine.Speed`, so halving the speed doubles the frames it takes; `TimeDilation` slows it the same way.
+  - Tests: `PrestoDelayTests.TakesTwiceTheFramesAtHalfSpeed`
+- **CORE-PRESTO-051** — When `duration <= 0`, `Delay` shall return an already completed task and create no timer.
+  - Tests: `PrestoDelayTests.ANonPositiveDurationIsCompleteOnReturn`
+- **CORE-PRESTO-052** — When the token is already canceled, `Delay` shall return a canceled task and create no timer, whatever the duration.
+  - Tests: `PrestoDelayTests.AnAlreadyCanceledTokenReturnsACanceledTaskWithoutATimer`
+- **CORE-PRESTO-053** — Canceling the token mid-wait shall `Cancel()` the underlying timer, so the engine releases it on its next frame, and complete the task as canceled, so awaiting it throws `OperationCanceledException`.
+  - Tests: `PrestoDelayTests.CancelingMidWaitCancelsTheTaskAndReleasesTheTimer`
+- **CORE-PRESTO-054** — `Delay` shall dispose its token registration when the timer completes, and its continuations shall never run inline in the engine tick.
+  - Tests: untested
 
 ## Invariants
 
 - `Presto.Engine` is the same instance for the life of the process; `Defaults` always reads through it.
 - Every timer the factories create belongs to `Engine.Current` at creation and registers with that engine's current scope.
-- `Animate`, `CreateTimer` and `CreateTimeline` announce a timer only after `Init()`; `Set` never announces.
+- `Animate`, `CreateTimer` and `CreateTimeline` announce a timer only after `Init()`; `Set` announces after it has written.
 
 ## Edge cases
 
 - `Set` forces only the duration; a `Delay` in the params or the defaults still reaches its tweens, and what that does to the immediate write is unpinned.
 - `Get` reads only the first target; the rest are ignored.
-- `Get` passes the property name to the adapter as given, while `Remove` and `GetAnimations` canonicalize it first.
 - `Remove` on targets with no tweens anywhere is a no-op apart from notifying the adapters.
 - `GetAnimations` takes one target, not a targets parameter; a collection passed as `target` matches nothing.
 
@@ -191,28 +209,32 @@ depends:
 - Every member acts on `Engine.Current` (or the main engine for `Engine`/`Defaults`) and must be called on the thread that ticks that engine (see CORE-THREADING).
 - `Adapters` and `Codecs` are plain, unsynchronized collections read from every engine's thread; populate them before any animation starts.
 - The `Get` scratch value is thread-static.
+- `Delay`'s token must be canceled on the engine's thread, as with every other control: its registration cancels the timer inline.
 
 ## Reduced motion
 
-- `Animate`, `CreateTimeline` children and `Animatable` animations follow CORE-REDUCED. `Set` is exempt from `ReduceAll` (it is instant already) but resolves a `WhenReduced` form while `ReducedMotion` is set. `CreateTimer` is unaffected.
+- `Animate` and `CreateTimeline` children follow CORE-REDUCED; an `Animatable` applies `ReduceAll` on each retarget instead (CORE-ANIMATABLE-055). `Set` is exempt from `ReduceAll` (it is instant already) but resolves a `WhenReduced` form while `ReducedMotion` is set. `CreateTimer` is unaffected.
 
 ## Allocation
 
-- Not on the tick path. `Get`, `Remove` and `GetAnimations` allocate a parsed target list and, for `GetAnimations`, the result list.
+- Not on the tick path. `Get`, `Remove` and `GetAnimations` allocate a parsed target list and, for `GetAnimations`, the result list. `Delay` allocates its timer, a task completion source, the token registration and their closures.
 
-## Deviations from anime.js
+## Provenance
 
 - `utils.get`/`set`/`remove` live on `Presto` rather than a `utils` namespace; `$` (selectors) and `cleanInlineStyles` have no equivalent. Reason: there are no selectors, and animated writes leave no inline styles to clean.
 - `Get` with a unit converts only angle units; other units are adopted (no DOM to measure against).
 - `Remove` also tells registered adapters so they can stop work they drive outside the engine; upstream has the WAAPI-specific equivalent.
-- `GetAnimations` has no upstream counterpart; it omits paused animations once released. Reason: anime.js 4.5.0's engine drops a paused tickable from its children and keeps no other list.
-- `Set` with null parameters is not a no-op as upstream's `set(targets)` is; the parameters are required.
+- `GetAnimations` has no upstream counterpart; it omits paused animations once released (see "`GetAnimations` omits paused animations").
+- `Set` with null parameters throws `ArgumentNullException` rather than being a no-op like upstream's `set(targets)`; the parameters are required.
 
 ## Decisions
 
-- **`Set` is upstream's fast-set path.** `Presto.Set(targets, parameters)` is `utils.set()` and goes through the animation constructor's fast-set path. Reason: upstream implements `set` that way.
+- **`Set` is a fast-set animation.** `Presto.Set(targets, parameters)` (upstream `utils.set()`) builds an animation through the constructor's fast-set path: a minimal duration and, unless set, `Overlap` composition, resumed at once. Reason: a set value then goes through the same parsing, codecs, relative values and function values as an animated one, with no second write path.
+- **`Set` announces like the factories.** `Set` raises the timer-created hook after it has written. Reason: a host hook that sees every other root missed `Set` animations, so whatever it tracks or lists skipped them. Rejected: keeping `Set` silent because it completes before returning.
 - **The params overloads win over their lambda twins.** The `AnimationParams` overloads of `Animate` and `Set` carry `[OverloadResolutionPriority(1)]`. Reason: a target-typed `new() { … }` argument then keeps binding to the params overload beside the `Action<AnimationBuilder>` one.
-- **`GetAnimations` omits paused animations.** Reason: parity with anime.js 4.5.0, whose engine drops paused tickables from its children; listing them would need a per-target registry maintained by every state change, and code that pauses already holds the handle. Rejected: a per-target registry of paused animations.
+- **`GetAnimations` omits paused animations.** Reason: the engine drops paused tickables from its children, so listing them would need a per-target registry maintained by every state change, and code that pauses already holds the handle. Rejected: a per-target registry of paused animations.
+- **`Delay` waits on a plain timer.** `Presto.Delay` is backed by a `CreateTimer` whose `OnComplete` completes the task; why an engine-time wait exists is in CORE-TIMER's Decisions. Rejected: a dedicated engine-side delay list, which would duplicate timer scheduling.
+- **`Remove` without a property removes them all.** Reason: removing a target is the cleanup before discarding it, which must stop everything animating it; the property argument narrows that.
 - **`$` and `cleanInlineStyles` are not ported.** Reason: there are no selectors, and animated writes leave no inline styles to clean.
 
 ## Non-goals
@@ -222,7 +244,4 @@ depends:
 
 ## Open items
 
-- `Presto.Set` raises no timer-created hook, so diagnostics never list a `Set` animation; unpinned either way.
-- `Get` does not canonicalize the property name while `Remove` and `GetAnimations` do; harmless for adapters whose `Resolve` accepts every spelling, unpinned otherwise.
-- Null non-nullable arguments throw `NullReferenceException` rather than `ArgumentNullException`.
-- `CreateMotionValue`, `CreateAnimatable`'s missing hook, `Set`'s forced duration and `Composition.None` default, and `Get(…, withUnit: true)` have no direct test.
+- `CreateMotionValue`, `CreateAnimatable`'s missing hook, `Set`'s forced duration and `Composition.Overlap` default, and `Get(…, withUnit: true)` have no direct test; nor do `Delay`'s registration disposal and asynchronous continuations.

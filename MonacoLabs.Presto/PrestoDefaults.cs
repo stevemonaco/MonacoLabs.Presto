@@ -66,8 +66,9 @@ public sealed record PrestoDefaults
     public Action<Timer>? OnRender { get; set; }
 
     /// <summary>
-    /// Makes <see cref="AnimationBuilder.ToParams"/> build the <see cref="AnimationBuilder.WhenReduced"/> alternative where one
-    /// exists. Like every default it belongs to one engine or <see cref="Scope"/>, which copy it when created.
+    /// Makes animations built on this engine or scope play their <c>WhenReduced</c> alternative (from a builder or
+    /// <see cref="AnimationParams.WhenReduced"/>) where one exists, chosen when the animation is constructed. Like every
+    /// default it belongs to one engine or <see cref="Scope"/>, which copy it when created.
     /// </summary>
     public bool ReducedMotion { get; set; }
 

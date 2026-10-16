@@ -1,0 +1,71 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       xmlns:local="using:PrestoGallery.Builder"
+                       mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1400"
+                       x:Class="PrestoGallery.Builder.XamlPage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="TextBlock.row">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="Padding" Value="14,10" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="Use Presence (Arrive, Initial, Enter, Exit) for entrances and exits, and Animate.OnAttached for loops and timers tied to being on screen, such as the looping star below." />
+            <StackPanel x:Name="Demos" Spacing="32">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" Text="{}{x:Static}: a fixed, named builder any view can reuse, written out in full" />
+                    <Border Classes="stage" MinHeight="140">
+                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <!-- snippet: XamlStatic -->
+                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                            <!-- /snippet -->
+                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                        </StackPanel>
+                    </Border>
+                    <showcase:CodeTabs x:Name="StaticCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlStatic}" CSharp="{x:Static showcase:Snippets.XamlFadeUp}" />
+                </StackPanel>
+
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" Text="Recipe markup extension: {presto:Fade} provides a fresh Recipes.FadeUp builder per element, parameterized in the markup" />
+                    <Border Classes="stage" MinHeight="0">
+                        <StackPanel Spacing="8">
+                            <!-- snippet: XamlExtension -->
+                            <TextBlock Classes="row" Text="Inbox" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=0}" />
+                            <TextBlock Classes="row" Text="Drafts" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=100}" />
+                            <TextBlock Classes="row" Text="Sent" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=200}" />
+                            <TextBlock Classes="row" Text="Archive" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=300}" />
+                            <!-- /snippet -->
+                        </StackPanel>
+                    </Border>
+                    <showcase:CodePanel x:Name="ExtensionCode" Language="Xaml" Code="{x:Static showcase:Snippets.XamlExtension}" />
+                </StackPanel>
+
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" Text="Binding: view state picks the animation, and the element re-animates when it changes" />
+                    <Border Classes="stage" MinHeight="160">
+                        <StackPanel Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center" x:DataType="local:EmphasisViewModel">
+                            <StackPanel.DataContext>
+                                <local:EmphasisViewModel />
+                            </StackPanel.DataContext>
+                            <!-- snippet: XamlBinding -->
+                            <ToggleSwitch IsChecked="{Binding IsAlert}" OffContent="Idle" OnContent="Alert" />
+                            <PathIcon Data="{StaticResource StarIcon}" Width="48" Height="48" Foreground="{x:Static showcase:Palette.Amber}" presto:Animate.OnAttached="{Binding Emphasis}" />
+                            <!-- /snippet -->
+                        </StackPanel>
+                    </Border>
+                    <showcase:CodeTabs x:Name="BindingCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlBinding}" CSharp="{x:Static showcase:Snippets.XamlEmphasis}" />
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</showcase:ShowcasePage>

@@ -9,6 +9,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using MonacoLabs.Presto.Gestures;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -145,6 +146,29 @@ public sealed class ReorderTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ACanceledStepRaisesMovingOncePerCrossingNotOnEveryMoveOrFrame()
+    {
+        var (list, _, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        var raised = 0;
+        Reorder.AddMovingHandler(list, (_, e) =>
+        {
+            raised++;
+            e.Cancel = true;
+        });
+
+        window.MouseDown(OnRed, MouseButton.Left);
+        foreach (var dy in new[] { 25, 30, 35 }) window.MouseMove(OnRed + new Point(0, dy));
+        for (var i = 0; i < 5; i++) Frames.Advance(16);
+        Assert.Equal(1, raised);
+
+        window.MouseMove(OnRed + new Point(0, 5));
+        window.MouseMove(OnRed + new Point(0, 30));
+        Assert.Equal(2, raised);
+        Assert.Empty(moves);
+    }
+
+    [AvaloniaFact]
     public void ACommandReceivesEachStepAndOwnsTheMove()
     {
         var (list, items, moves) = Show(virtualized: false);
@@ -238,6 +262,27 @@ public sealed class ReorderTests : CompositorTestBase
         touch.Move(1, OnRed + new Point(0, 50));
 
         Assert.Equal([(1, 2), (2, 3)], moves);
+    }
+
+    [AvaloniaFact]
+    public void ATouchHoldIsCancelledWhenASwipeOnTheRowWinsFirst()
+    {
+        var (list, _, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        Reorder.SetTouchHold(list, 400);
+        var container = list.ContainerFromItem("red")!;
+        Swipe.SetLeading(container, new Button { Width = 60 });
+        var touch = new Touch(window);
+
+        Press(touch, OnRed);
+        Frames.Advance(100);
+        touch.Move(1, OnRed + new Point(20, 1));
+        Frames.Advance(450);
+
+        Assert.NotEqual(int.MaxValue, container.ZIndex);
+        touch.Move(1, OnRed + new Point(20, 50));
+        touch.Up(1, OnRed + new Point(20, 50));
+        Assert.Empty(moves);
     }
 
     [AvaloniaTheory]

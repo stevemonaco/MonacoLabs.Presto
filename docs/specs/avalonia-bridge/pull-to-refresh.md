@@ -20,6 +20,7 @@ depends:
   - BRIDGE-FOLLOW
   - BRIDGE-SHAPES
   - BRIDGE-TOKENS
+  - BRIDGE-GESTURES
 ---
 
 # Pull to refresh
@@ -45,11 +46,11 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 ### Starting a pull
 
-- **BRIDGE-PULL-006** (inherited) — A press on the control shall arm a pull unless a pull is already armed or a refresh is running; a mouse press shall arm it only with the left button.
+- **BRIDGE-PULL-006** (inherited) — A press on the control shall arm a pull, joining the pointer's gesture arena (BRIDGE-GESTURES), unless a pull is already armed or a refresh is running; a mouse press shall arm it only with the left button.
   - Tests: `PullToRefreshTests.AShortPullSpringsBackWithoutRefreshing`
-- **BRIDGE-PULL-007** — When the pointer first moves more than `Draggable`'s 3-DIP threshold on either axis, the pull shall start only if the downward travel exceeds the horizontal travel and the nearest `ScrollViewer` between the pressed element and the control is not scrolled away from its top; otherwise the press shall be dropped without capturing anything.
+- **BRIDGE-PULL-007** — The pull shall join with a vertical gate (3 DIPs at 1:1 for every pointer) whose `Accepts` takes only downward travel while the nearest `ScrollViewer` between the pressed element and the control is not scrolled away from its top; when the gate drops out, the press shall be forgotten without capturing anything.
   - Tests: `PullToRefreshTests.APullIsLeftToAListScrolledAwayFromItsTop`
-- **BRIDGE-PULL-008** (inherited) — When a pull starts, the control shall capture the pointer and from then on mark each move handled and prevent gesture recognition.
+- **BRIDGE-PULL-008** (inherited) — When the pull wins the arena (which captures the pointer for it), the control shall from then on mark each move handled and prevent gesture recognition.
   - Tests: untested
 - **BRIDGE-PULL-009** (inherited) — When a pull starts while the content is still springing back, it shall pick the content up where it is drawn.
   - Tests: untested
@@ -88,8 +89,8 @@ A control that wraps its `Content` and lets a downward drag from the content's t
   - Tests: untested
 - **BRIDGE-PULL-022** (inherited) — While a refresh runs, presses shall not arm a new pull.
   - Tests: untested
-- **BRIDGE-PULL-023** (inherited) — When the refresh task faults or is canceled, the control shall still stop the spinner and spring back, and the exception shall propagate from the control's `async void` continuation.
-  - Tests: untested
+- **BRIDGE-PULL-023** — When the refresh task faults or is canceled, or `Refresh` throws, the control shall log it through Avalonia's `Logger` in the `Control` area (a cancellation as a warning, any other exception as an error), not rethrow it, and still stop the spinner and spring back.
+  - Tests: `PullToRefreshTests.AFaultedOrCanceledRefreshIsLoggedAndTheContentStillSpringsBack`
 
 ### Reduced motion
 
@@ -132,7 +133,7 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 - Per pointer move: one `Animatable.Set`; the indicator writes go through `Follow`'s mapped `MotionValue`s. A refresh allocates its animations and is off the steady path.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 
@@ -141,6 +142,7 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 - **`PullToRefresh` is its own control, not a restyled `RefreshContainer`.** Reason: `RefreshContainer`'s pull comes from a `PullGestureRecognizer` that takes touch and pen only, and its visualizer turns a fixed icon through its own composition animation, so neither the mouse pull, the rubber band nor the arrow and ring could be Presto's without replacing both. Rejected: restyling `RefreshContainer`.
 - **The control handles the pointer itself and damps the travel, not the drawn value.** As `Sheet` does, rather than through a `Draggable`; the pull is `r(1 − e^(−d / r))` of the pointer's travel with `r = 2.2 × Threshold`. Reason: a release then springs from where the content is drawn and lands exactly on the threshold, sidestepping the `Draggable` axis modifier that is re-applied to its own output on release (it stays documented as having to be idempotent). Rejected: a `Draggable`; fixing the modifier re-application.
 - **The work is an awaited `Func<Task> Refresh`.** The content is held at the threshold until the task ends. Reason: the control needs to know when the work is done. Rejected: an `ICommand`, which cannot be awaited.
+- **A faulted `Refresh` is logged, not rethrown.** A faulted or canceled task is logged through Avalonia's `Logger` and the control settles as on success. Reason: the refresh runs in an `async void` continuation with no caller to catch it, so a rethrow would crash the app from the synchronization context. Rejected: rethrowing.
 
 ## Non-goals
 
@@ -149,5 +151,4 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 ## Open items
 
-- A faulted or canceled `Refresh` task rethrows through `async void RunRefresh` onto the UI thread's synchronization context after the control settles (BRIDGE-PULL-023); untested and undocumented in the XML docs.
 - Clip default (002), indicator placement (003, 004), capture loss (016), the null `Refresh` path (021) and presses ignored during a refresh (022) have no tests.

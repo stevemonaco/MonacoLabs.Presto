@@ -15,7 +15,8 @@ namespace MonacoLabs.Presto.Compositor;
 /// run there, and none of them may touch an <see cref="AvaloniaObject"/> except through <see cref="PostToUI"/>. The UI
 /// thread reaches an attached scene only through <see cref="CompositorCanvas.Post"/> and
 /// <see cref="CompositorCanvas.Invoke{TScene}"/>. <see cref="Now"/>, <see cref="Size"/> and <see cref="Invalidate()"/>
-/// hold the compositor lock and are only valid from those callbacks.
+/// hold the compositor lock and are only valid from those callbacks; while no canvas holds the scene they throw
+/// <see cref="InvalidOperationException"/>. A scene is attached to one canvas at a time.
 /// </remarks>
 public abstract class CompositorScene
 {
@@ -41,7 +42,7 @@ public abstract class CompositorScene
     {
         get
         {
-            var handler = _handler ?? throw new InvalidOperationException("Object is not yet attached to the compositor");
+            var handler = _handler ?? throw new InvalidOperationException("The scene is not attached to a CompositorCanvas.");
             Engine.AssertThreadAffinity();
             return handler;
         }
@@ -90,11 +91,20 @@ public abstract class CompositorScene
     // Scenes tween opacity every frame, so it is rounded to the 256 steps the framebuffer has anyway; unrounded, the cache would grow without bound.
     private static byte Quantize(double opacity) => (byte)Math.Clamp(Math.Round(opacity * 255), 0, 255);
 
+    /// <summary>The canvas the scene is attached to, kept on the UI thread so a second canvas cannot take it over.</summary>
+    internal CompositorCanvas? Canvas { get; set; }
+
     internal void Attach(CompositorSceneHandler handler, Engine engine, Scope scope)
     {
         _handler = handler;
         Engine = engine;
         Scope = scope;
+    }
+
+    // Another canvas may already have attached the scene to its own handler.
+    internal void Detach(CompositorSceneHandler handler)
+    {
+        if (_handler == handler) _handler = null;
     }
 
     internal void RaiseAttached() => OnAttached();

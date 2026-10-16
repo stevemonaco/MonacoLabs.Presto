@@ -13,6 +13,9 @@ public sealed class PlayFramesExtension : RecipeExtension
     public bool Reverse { get; set; }
 
     /// <inheritdoc/>
+    protected override bool HasExitForm => false;
+
+    /// <inheritdoc/>
     protected override AnimationBuilder Build(bool exit, EaseValue? ease)
     {
         var builder = Recipes.PlayFrames(Fps, Loop, Reverse, Delay);

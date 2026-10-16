@@ -332,6 +332,55 @@ public sealed class KeyframesTests : EngineTestBase
         }
     }
 
+    [Theory]
+    [InlineData(nameof(Keyframe.Duration))]
+    [InlineData(nameof(Keyframe.Delay))]
+    [InlineData(nameof(Keyframe.Modifier))]
+    [InlineData(nameof(Keyframe.Composition))]
+    public void PercentageKeyframesRejectPerFrameSettings(string setting)
+    {
+        var frame = setting switch
+        {
+            nameof(Keyframe.Duration) => new Keyframe { ["X"] = 100, Duration = 200 },
+            nameof(Keyframe.Delay) => new Keyframe { ["X"] = 100, Delay = 200 },
+            nameof(Keyframe.Modifier) => new Keyframe { ["X"] = 100, Modifier = v => v },
+            _ => new Keyframe { ["X"] = 100, Composition = Composition.Additive },
+        };
+
+        var error = Assert.Throws<ArgumentException>(() => { Keyframes _ = new Dictionary<string, Keyframe> { ["50%"] = frame }; });
+        Assert.Contains("\"50%\"", error.Message);
+        Assert.Contains(setting, error.Message);
+
+        var builderError = Assert.Throws<ArgumentException>(() => Presto.Build().Keyframes(k => k.At(50, f =>
+        {
+            f.Property("X", 100);
+            _ = setting switch
+            {
+                nameof(Keyframe.Duration) => f.Duration(200),
+                nameof(Keyframe.Delay) => f.Delay(200),
+                nameof(Keyframe.Modifier) => f.Modifier(v => v),
+                _ => f.Composition(Composition.Additive),
+            };
+        })));
+        Assert.Contains(setting, builderError.Message);
+    }
+
+    [Fact]
+    public void PercentageKeyframesKeepAFramesEase()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            Keyframes = new Dictionary<string, Keyframe> { ["0%"] = new() { ["X"] = 0, Ease = "inQuad" }, ["100%"] = new() { ["X"] = 100 } },
+            Duration = 1000,
+            Ease = "linear",
+            Autoplay = false,
+        });
+
+        animation.Seek(500);
+        Assert.Equal(25, target.X, 6);
+    }
+
     [Fact]
     public void PercentageBasedKeyframesWithFloatPercentageValues()
     {

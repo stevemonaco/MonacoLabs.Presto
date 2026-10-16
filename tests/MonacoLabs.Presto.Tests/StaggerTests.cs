@@ -654,6 +654,31 @@ public sealed class StaggerTests : EngineTestBase
         Assert.Equal(0, TweenTo(TestHelpers.GetChildAtIndex(tl, 3)!, 0));
     }
 
+    [Fact]
+    public void AStaggerReusedAsAPositionOnAnotherTimelineUsesThatTimelinesEnd()
+    {
+        var stagger = Presto.Stagger(100);
+        var first = Presto.CreateTimeline(new() { Defaults = new() { Duration = 10 }, Autoplay = false })
+            .Add(StyleTargets(4), new() { Id = "staggered", ["TranslateX"] = 50 }, stagger);
+        var second = Presto.CreateTimeline(new() { Defaults = new() { Duration = 10 }, Autoplay = false })
+            .Add(new StyleTarget(), new() { ["TranslateX"] = 50, Duration = 500 })
+            .Add(StyleTargets(4), new() { ["TranslateX"] = 50 }, stagger);
+
+        AssertStaggeredChildren(first, 0);
+        for (var i = 0; i < 4; i++) Assert.Equal(500 + (i * 100), TestHelpers.OffsetOf(second, i + 1));
+    }
+
+    [Fact]
+    public void AStaggerReusedAfterItsTimelineGrowsUsesTheNewEnd()
+    {
+        var stagger = Presto.Stagger(100);
+        var tl = Presto.CreateTimeline(new() { Defaults = new() { Duration = 10 }, Autoplay = false })
+            .Add(StyleTargets(4), new() { ["TranslateX"] = 50 }, stagger)
+            .Add(StyleTargets(4), new() { ["TranslateX"] = 50 }, stagger);
+
+        for (var i = 0; i < 4; i++) Assert.Equal(310 + (i * 100), TestHelpers.OffsetOf(tl, i + 4));
+    }
+
     private static void AssertAxisReverseMirrors(StaggerFrom from)
     {
         var forward = Presto.Animate(StyleTargets(5), new()

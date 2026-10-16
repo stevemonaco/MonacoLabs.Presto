@@ -12,8 +12,8 @@ namespace MonacoLabs.Presto;
 /// <param name="Scale">The scale a scaling entrance starts at and a scaling exit ends at.</param>
 /// <param name="BlurRadius">The blur radius a blur entrance starts at and a blur exit ends at.</param>
 /// <param name="StaggerStep">Milliseconds between the elements of a staggered batch.</param>
-/// <param name="ColorSpace">The space color states interpolate in, through <see cref="TweenKeyframesBuilder.Color"/>.</param>
-/// <param name="Hue">The hue arc color states take when <paramref name="ColorSpace"/> is <see cref="ColorSpace.Oklch"/>.</param>
+/// <param name="ColorSpace">The space <see cref="Recipes.Recolor"/> mixes in, through <see cref="TweenKeyframesBuilder.Color"/>.</param>
+/// <param name="Hue">The hue arc <see cref="Recipes.Recolor"/> takes when <paramref name="ColorSpace"/> is <see cref="ColorSpace.Oklch"/>.</param>
 public sealed record MotionTokens(
     double Short,
     double Medium,

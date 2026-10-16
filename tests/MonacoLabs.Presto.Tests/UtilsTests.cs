@@ -14,6 +14,15 @@ public sealed class UtilsTests : EngineTestBase
     }
 
     [Fact]
+    public void DampEndsAtZeroAndOneAndPropagatesANaNFactor()
+    {
+        Assert.Equal(10, Utils.Damp(10, 20, 16, 0));
+        Assert.Equal(20, Utils.Damp(10, 20, 16, 1));
+        Assert.Equal(10 + 10 * (1 - Math.Exp(-.5 * 16 * .1)), Utils.Damp(10, 20, 16, .5), 12);
+        Assert.True(double.IsNaN(Utils.Damp(10, 20, 16, double.NaN)));
+    }
+
+    [Fact]
     public void SnapToTheClosestPoint()
     {
         double[] points = [25, 100, 400];
@@ -69,6 +78,16 @@ public sealed class UtilsTests : EngineTestBase
 
         Func<double, double> modifier = chain;
         Assert.Equal(10, modifier(1));
+    }
+
+    [Fact]
+    public void ADefaultChainPassesValuesThrough()
+    {
+        var chain = default(ChainedUtil);
+
+        Assert.Equal(7.5, chain.Invoke(7.5));
+        Assert.Equal(5, chain.Clamp(0, 5).Invoke(7.5));
+        Assert.Equal("7.50", chain.RoundPad(2)(7.5));
     }
 
     [Fact]

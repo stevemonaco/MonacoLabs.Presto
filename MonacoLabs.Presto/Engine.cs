@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
 
@@ -15,6 +16,7 @@ public sealed class Engine : Clock
     private List<MotionValue> _sinks = [];
     private List<MotionValue> _flushingSinks = [];
     internal readonly List<MotionValue> _activeValues = [];
+    internal ConditionalWeakTable<object, Dictionary<string, TweenSiblings>> ReplaceLookups { get; } = new();
     // Engine time is the frame source's time times _rate plus _timeOffset; _rate is TimeDilation, or 0 while frozen.
     internal double _timeOffset;
     private double _rate = 1;
@@ -92,7 +94,7 @@ public sealed class Engine : Clock
     /// <summary>When false, the engine never starts its frame source and must be driven through <see cref="Update()"/>.</summary>
     public bool UseDefaultMainLoop { get; set; } = true;
 
-    /// <summary>Whether setting <see cref="Hidden"/> pauses and resumes the engine (upstream <c>engine.pauseOnDocumentHidden</c>); turning it off while hidden resumes.</summary>
+    /// <summary>Whether setting <see cref="Hidden"/> pauses and resumes the engine; turning it off while hidden resumes.</summary>
     public bool PauseOnHidden
     {
         get => _pauseOnHidden;
@@ -108,7 +110,7 @@ public sealed class Engine : Clock
     /// <summary>Set by the host when nothing it shows can be seen (minimized, backgrounded, page hidden); with <see cref="PauseOnHidden"/> it pauses the engine and showing resumes it.</summary>
     /// <remarks>
     /// While hidden, <see cref="Wake"/> does not start the frame source, so a timer created or resumed then waits for the show instead of
-    /// ticking on frames a minimized host may still deliver. Like upstream's <c>visibilitychange</c> handler, showing calls <see cref="Resume"/>
+    /// ticking on frames a minimized host may still deliver. Showing calls <see cref="Resume"/>
     /// even when the engine was paused by hand before hiding. Showing while <see cref="Frozen"/> leaves the restart to <see cref="Thaw"/>.
     /// </remarks>
     public bool Hidden
@@ -123,7 +125,7 @@ public sealed class Engine : Clock
         }
     }
 
-    /// <summary>Whether <see cref="Pause"/> has stopped the engine; like upstream <c>engine.paused</c> it also reads true before the first <see cref="Resume"/>.</summary>
+    /// <summary>Whether <see cref="Pause"/> has stopped the engine; it also reads true before the first <see cref="Resume"/>.</summary>
     public bool Paused { get; internal set; } = true;
 
     /// <summary>True while the frame source is pumping frames.</summary>
@@ -228,7 +230,7 @@ public sealed class Engine : Clock
         return flushed;
     }
 
-    /// <summary>Starts the frame source unless it is already pumping, the engine is <see cref="Frozen"/> or paused by <see cref="Hidden"/>, or <see cref="UseDefaultMainLoop"/> is off; resuming a timer calls it (upstream <c>engine.wake()</c>).</summary>
+    /// <summary>Starts the frame source unless it is already pumping, the engine is <see cref="Frozen"/> or paused by <see cref="Hidden"/>, or <see cref="UseDefaultMainLoop"/> is off; resuming a timer calls it.</summary>
     public Engine Wake()
     {
         if (UseDefaultMainLoop && !IsRunning && !Frozen && !(_hidden && _pauseOnHidden))
@@ -256,7 +258,8 @@ public sealed class Engine : Clock
         }
     }
 
-    /// <summary>Stops the frame source, freezing every timer where it stands (upstream <c>engine.pause()</c>).</summary>
+    /// <summary>Stops the frame source, freezing every timer where it stands.</summary>
+    /// <remarks>A soft pause: a timer played afterwards, or showing a <see cref="Hidden"/> engine, resumes pumping; <see cref="Freeze"/> holds through both.</remarks>
     public Engine Pause()
     {
         AssertThreadAffinity();
@@ -333,7 +336,7 @@ public sealed class Engine : Clock
         _activeValues.Clear();
     }
 
-    /// <summary>Restarts the frame source and rebases every timer's start time and moving value, so the paused interval does not count as elapsed (upstream <c>engine.resume()</c>).</summary>
+    /// <summary>Restarts the frame source and rebases every timer's start time and moving value, so the paused interval does not count as elapsed.</summary>
     public Engine Resume()
     {
         AssertThreadAffinity();
@@ -349,14 +352,14 @@ public sealed class Engine : Clock
         return Wake();
     }
 
-    /// <summary>Global playback rate multiplied into every timer's own (upstream <c>engine.speed</c>); setting it rebases the running timers so they do not jump.</summary>
+    /// <summary>Global playback rate multiplied into every timer's own; clamped to a tiny positive value, and setting it rebases the running timers so they do not jump.</summary>
     public override double Speed
     {
         get => _speed * (Globals.TimeScale == 1 ? 1 : Constants.K);
         set
         {
             AssertThreadAffinity();
-            var speed = value * Globals.TimeScale;
+            var speed = (value < Constants.MinValue ? Constants.MinValue : value) * Globals.TimeScale;
             if (_speed == speed) return;
             _speed = speed;
             Helpers.ForEachChildren(this, static child => child.Speed = child._speed);
@@ -364,14 +367,16 @@ public sealed class Engine : Clock
     }
 
     /// <summary>
-    /// Unit every duration, delay and time value in the API is expressed in (upstream <c>engine.timeUnit</c>): milliseconds unless this is
+    /// Unit every duration, delay and time value in the API is expressed in: milliseconds unless this is
     /// <see cref="TimeUnit.Seconds"/>. Switching rescales the default duration and the engine speed, so set it before creating timers.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Set on an engine other than <see cref="Presto.Engine"/>; the unit is process-wide.</exception>
     public TimeUnit TimeUnit
     {
         get => Globals.TimeScale == 1 ? TimeUnit.Milliseconds : TimeUnit.Seconds;
         set
         {
+            if (this != Presto.Engine) throw new InvalidOperationException("TimeUnit is process-wide and can only be set on Presto.Engine.");
             AssertThreadAffinity();
             const double secondsScale = 0.001;
             var isSecond = value == TimeUnit.Seconds;
@@ -389,7 +394,11 @@ public sealed class Engine : Clock
     public int Precision
     {
         get => Globals.Precision;
-        set => Globals.Precision = value;
+        set
+        {
+            AssertThreadAffinity();
+            Globals.Precision = value;
+        }
     }
 
     [Conditional("DEBUG")]

@@ -321,6 +321,23 @@ public sealed class TimelineCompositionTests : EngineTestBase
         Assert.Equal(0, target.Opacity);
     }
 
+    [Theory]
+    [InlineData(new double[] { 0 })]
+    [InlineData(new double[] { })]
+    [InlineData(new double[] { 0, 1500 })]
+    public void AForwardJumpPastALaterAddedSetAtZeroEndsOnTheLaterFade(double[] before)
+    {
+        var target = new StyleTarget { Opacity = 1 };
+        var tl = Presto.CreateTimeline(new() { Autoplay = false })
+            .Add(target, new() { ["Opacity"] = new TweenParams { From = 0 }, Duration = 900 }, 1000)
+            .Set(target, new() { ["Opacity"] = 0 }, 0);
+
+        foreach (var time in before) tl.Seek(time);
+        tl.Seek(tl.Duration);
+
+        Assert.Equal(1, target.Opacity);
+    }
+
     [Fact]
     public void BackwardSeekBeforeANegativeDelaySiblingStartRestoresThePreviousChildEndValue()
     {

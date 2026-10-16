@@ -1,9 +1,10 @@
-﻿using static MonacoLabs.Presto.Tests.TestHelpers;
+﻿using MonacoLabs.Presto.Core;
+using static MonacoLabs.Presto.Tests.TestHelpers;
 
 namespace MonacoLabs.Presto.Tests;
 
 /// <summary>
-/// The acceptance suite for COMPOSITOR-PLAN §4.1: a second engine owns its own timers, defaults, scopes and blend state,
+/// The acceptance suite for COMPOSITOR-PLAN §4.1: a second engine owns its own timers, defaults, scopes and additive state,
 /// even when it is ticked from another thread. Upstream has no equivalent, since anime.js only ever has one engine.
 /// </summary>
 public sealed class EnginesTests : EngineTestBase
@@ -177,7 +178,19 @@ public sealed class EnginesTests : EngineTestBase
     }
 
     [Fact]
-    public void BlendedTweensAreInvisibleToAnotherEngine()
+    public void SettingTheTimeUnitOnAnotherEngineThrowsAndLeavesTheTimeScale()
+    {
+        var scene = new IsolatedEngine();
+
+        Assert.Throws<InvalidOperationException>(() => scene.Engine.TimeUnit = TimeUnit.Seconds);
+        Assert.Throws<InvalidOperationException>(() => scene.Engine.TimeUnit = TimeUnit.Milliseconds);
+
+        Assert.Equal(1, Globals.TimeScale);
+        Assert.Equal(1, scene.Engine.Speed);
+    }
+
+    [Fact]
+    public void AdditiveTweensAreInvisibleToAnotherEngine()
     {
         var first = new IsolatedEngine();
         var second = new IsolatedEngine();
@@ -185,7 +198,7 @@ public sealed class EnginesTests : EngineTestBase
 
         using (first.Engine.MakeCurrent())
         {
-            Presto.Animate(target, new() { ["X"] = 100, Duration = 100, Composition = Composition.Blend });
+            Presto.Animate(target, new() { ["X"] = 100, Duration = 100, Composition = Composition.Additive });
         }
 
         Assert.Single(first.Engine.Additive.Lookups);
@@ -198,6 +211,29 @@ public sealed class EnginesTests : EngineTestBase
 
         first.Frames.Advance(100, 16);
         Assert.Equal(100, target.X);
+    }
+
+    [Fact]
+    public void ReplaceTweensDoNotComposeAcrossEngines()
+    {
+        var first = new IsolatedEngine();
+        var second = new IsolatedEngine();
+        var target = new StyleTarget();
+
+        Animation firstAnimation, secondAnimation;
+        using (first.Engine.MakeCurrent()) firstAnimation = Presto.Animate(target, new() { ["X"] = new TweenParams { From = 0, To = 100 }, Duration = 100 });
+        using (second.Engine.MakeCurrent()) secondAnimation = Presto.Animate(target, new() { ["X"] = new TweenParams { From = 200, To = 300 }, Duration = 100 });
+
+        first.Frames.Advance(50, 10);
+        Assert.InRange(target.X, 1, 99);
+
+        second.Frames.Advance(50, 10);
+        Assert.InRange(target.X, 201, 299);
+
+        Assert.False(firstAnimation.Canceled);
+        Assert.False(secondAnimation.Canceled);
+        Assert.False(firstAnimation._headTween!._isOverridden);
+        Assert.False(secondAnimation._headTween!._isOverridden);
     }
 
     [Fact]

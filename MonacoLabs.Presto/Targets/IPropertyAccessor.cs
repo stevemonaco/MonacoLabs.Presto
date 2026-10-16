@@ -1,6 +1,6 @@
 namespace MonacoLabs.Presto.Targets;
 
-/// <summary>Reads and writes one property of a target, as upstream's adapter <c>get</c>/<c>set</c> entry does.</summary>
+/// <summary>Reads and writes one property of a target.</summary>
 public interface IPropertyAccessor
 {
     /// <summary>The codec decoding the property's type into channels, or null when the property holds a value the core parses itself.</summary>

@@ -37,7 +37,7 @@ public class ImageSequence : PrestoImageBase
         AffectsMeasure<ImageSequence>(FramesProperty);
     }
 
-    /// <summary>The frames, in playing order.</summary>
+    /// <summary>The frames, in playing order. Changes to the list in place are not observed; assign a new list.</summary>
     public IReadOnlyList<IImage>? Frames
     {
         get => GetValue(FramesProperty);

@@ -205,6 +205,51 @@ public sealed class AnimateAttachedTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ChangingOnTappedPlaysTheNewBuilderOnTheNextTapAndRestartsARunningOneWithIt()
+    {
+        var border = AddHitBorder(ShowPanel());
+        Animate.SetOnTapped(border, SlideX(100));
+        Animate.SetOnTapped(border, SlideX(-100));
+        Assert.Empty(Presto.GetAnimations(border));
+
+        Tap(border);
+        Frames.Advance(50, 10);
+        var first = Assert.Single(Presto.GetAnimations(border));
+        Assert.InRange((double)PrestoAvalonia.Get(border, "X")!, -99, -1);
+
+        Animate.SetOnTapped(border, SlideX(100));
+
+        Assert.True(first.Canceled);
+        Frames.Advance(20, 10);
+        Assert.InRange((double)PrestoAvalonia.Get(border, "X")!, 1, 49);
+    }
+
+    [AvaloniaFact]
+    public void ChangingOnChangedMidPlayRevertsItAndPlaysTheNewBuilder()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnChanged(border, SlideX(100));
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+        Frames.Advance(50, 10);
+        var first = Assert.Single(Presto.GetAnimations(border));
+
+        Animate.SetOnChanged(border, SlideX(-100));
+
+        Assert.True(first.Canceled);
+        Frames.Advance(50, 10);
+        Assert.InRange((double)PrestoAvalonia.Get(border, "X")!, -99, -1);
+    }
+
+    [AvaloniaFact]
+    public void OnTappedOnAVisualThatIsNotAnInputElementThrows()
+    {
+        var visual = new Visual();
+
+        Assert.Throws<InvalidOperationException>(() => visual.SetValue(Animate.OnTappedProperty, SlideX(100)));
+    }
+
+    [AvaloniaFact]
     public void OnChangedSkipsTheInitialBindingAndPlaysOnEachLaterChange()
     {
         var panel = ShowPanel();

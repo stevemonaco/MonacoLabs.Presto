@@ -116,6 +116,20 @@ public sealed class LottieSegmentTests : BridgeTestBase
         Assert.Equal(60, view.Frame);
     }
 
+    [AvaloniaTheory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(double.NaN)]
+    public void ANonPositiveSpeedThrowsFromEveryPlayMethod(double speed)
+    {
+        var view = View();
+
+        Assert.Equal("speed", Assert.Throws<ArgumentOutOfRangeException>(() => view.Play(speed: speed)).ParamName);
+        Assert.Throws<ArgumentOutOfRangeException>(() => view.Play("missing", speed: speed));
+        Assert.Throws<ArgumentOutOfRangeException>(() => view.PlaySegment(0, 10, speed: speed));
+        Assert.Throws<ArgumentOutOfRangeException>(() => view.PlayOnRenderThread(speed: speed));
+    }
+
     [AvaloniaFact]
     public void AnUnknownMarkerThrowsNamingTheMarkers()
     {

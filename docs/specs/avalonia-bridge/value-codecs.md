@@ -49,14 +49,14 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 ### Brushes
 
-- **BRIDGE-CODECS-005** — An `ISolidColorBrush` shall decode as its color alone, so a tween between two solid brushes is a color tween.
-  - Tests: `CodecTests.SolidColorBrushTweenWritesANewBrushAndLeavesTheOriginalUntouched`
+- **BRIDGE-CODECS-005** — An `ISolidColorBrush` shall decode as its color with the alpha multiplied by its `Opacity`, so a tween between two solid brushes is a color tween and an end brush's opacity interpolates.
+  - Tests: `CodecTests.SolidColorBrushTweenWritesANewBrushAndLeavesTheOriginalUntouched`, `CodecTests.ASolidBrushesOpacityFoldsIntoItsAlpha`
 - **BRIDGE-CODECS-006** — A string end value for a brush property shall be parsed by the core as a color and written as a solid brush.
   - Tests: `TargetAdapterTests.PropertiesWithACodecAnimateThroughIt`
 - **BRIDGE-CODECS-007** — A solid brush tween shall create one `SolidColorBrush` on its first frame, write that same brush on every later frame with its color changed, and never modify the brush it started from.
   - Tests: `CodecTests.SolidColorBrushTweenWritesANewBrushAndLeavesTheOriginalUntouched`
-- **BRIDGE-CODECS-008** (inherited) — The solid brush a color tween writes shall have `Opacity` 1, whatever the opacity of the brush it started from.
-  - Tests: untested
+- **BRIDGE-CODECS-008** — Every solid brush a brush tween writes shall have `Opacity` 1, its opacity carried in the color's alpha, so a solid brush with `Opacity` below 1 draws the same on the first frame and a plain color end value ends opaque.
+  - Tests: `CodecTests.ASolidBrushesOpacityFoldsIntoItsAlpha`, `CodecTests.ASolidBrushesOpacityCarriesIntoAndOutOfAGradient`
 - **BRIDGE-CODECS-009** — A linear, radial or conic gradient shall decode into its kind, spread method, point units, opacity, geometry (linear start and end points; radial center, origin and both radii; conic center and angle) and its stops sorted by offset as `(offset, r, g, b, a)`.
   - Tests: `CodecTests.LinearGradientInterpolatesItsStopsAndPoints`, `CodecTests.RadialAndConicGradientsInterpolateTheirGeometry`
 - **BRIDGE-CODECS-010** — A gradient tween shall interpolate the opacity, geometry, stop offsets and stop colors, and take the kind, spread method and units from the end value.
@@ -65,12 +65,12 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
   - Tests: `CodecTests.AGradientTweenedToAnotherKindTakesTheEndGeometryAndInterpolatesItsStops`
 - **BRIDGE-CODECS-012** — When the two gradients' stop offsets differ, both shall be resampled onto the union of their offsets, each new stop colored as its gradient is at that offset: interpolated between its neighbors with premultiplied alpha, or the nearest end stop's color beyond the ends.
   - Tests: `CodecTests.GradientsWithDifferentStopCountsInterpolateOnTheUnionOfTheirOffsets`, `CodecTests.AResampledStopBetweenTransparentAndOpaqueTakesTheOpaqueStopsColor`
-- **BRIDGE-CODECS-013** — When a solid brush tweens to a gradient, the solid end shall take the gradient's shape with every stop in its own color.
-  - Tests: `CodecTests.ASolidBrushTweensIntoAGradient`
+- **BRIDGE-CODECS-013** — When a solid brush tweens to a gradient, the solid end shall take the gradient's shape at opacity 1 with every stop in its own color and folded alpha, so it draws as the solid brush did.
+  - Tests: `CodecTests.ASolidBrushTweensIntoAGradient`, `CodecTests.ASolidBrushesOpacityCarriesIntoAndOutOfAGradient`
 - **BRIDGE-CODECS-014** — When a missing (`null`) brush tweens to a gradient, it shall start as that gradient with every stop at alpha 0.
   - Tests: `CodecTests.AMissingBrushFadesIntoAGradientInItsOwnColors`
-- **BRIDGE-CODECS-015** — When a gradient tweens to a color or solid brush, every stop shall ease toward that color in the gradient's shape, and the tween's final frame shall write a `SolidColorBrush` of that color.
-  - Tests: `CodecTests.AGradientTweenedToAColorEndsOnASolidBrush`
+- **BRIDGE-CODECS-015** — When a gradient tweens to a color or solid brush, every stop shall ease toward that color (with its folded alpha) and the gradient's opacity toward 1, in the gradient's shape, and the tween's final frame shall write a `SolidColorBrush` of that color.
+  - Tests: `CodecTests.AGradientTweenedToAColorEndsOnASolidBrush`, `CodecTests.ASolidBrushesOpacityCarriesIntoAndOutOfAGradient`
 - **BRIDGE-CODECS-016** — A gradient tween shall create one brush of the kind it draws and reuse it on later frames, growing or shrinking its `GradientStops` in place, and never modify the brush it started from.
   - Tests: `CodecTests.AGradientTweenReusesOneBrushAndLeavesTheOriginalUntouched`
 - **BRIDGE-CODECS-017** — Every brush a codec creates shall have its opacity clamped to 0–1 and be recorded as owned by the tween's target (BRIDGE-TARGETS-024).
@@ -142,7 +142,7 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 - `Color`, the structs and the font enums box one value per frame. A brush tween mutates its reused brush; pinned by `BridgeAllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame.
 
-## Deviations from anime.js
+## Provenance
 
 - Upstream interpolates CSS strings and pads mismatched numbers by position; here gradients, box-shadow lists and paths are reconciled by codec (`IReconcilingValueCodec`, CORE-TARGETS), because padding by position is wrong for colors and offsets when the two ends differ in shape.
 - Color interpolation uses premultiplied alpha, because upstream's straight alpha shows a transparent color's RGB mid-fade (CORE-COLORS); gradient stop resampling does too, while gradient and shadow color slots lerp as plain channels.
@@ -150,6 +150,7 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 ## Decisions
 
 - **A brush tween writes a brush of its own.** A solid or gradient tween creates one brush per tween, reuses it on every frame (a gradient's stops rewritten in place) and never modifies the brush it started from; earlier the solid codec was to animate the brush's own color and copy it only when frozen or shared, replaced because the code always copies. Reason: the brush animated from is often immutable or shared.
+- **Solid brush opacity folds into alpha.** A solid brush decodes as its color with alpha × `Opacity` and is written with `Opacity` 1; a solid end shaped as a gradient takes opacity 1 with the folded alpha in its stops, so both ends of solid↔gradient draw as their brushes do. Reason: it stays inside the `Color` kind, so premultiplied and color-space interpolation keep working, an end brush's opacity interpolates without a side channel, and it is pixel-identical for a solid brush (as `Prebuilt/Tints` already does). Rejected: keeping the source `Opacity` WPF-style or lerping it beside the channels, both needing a side channel the codec's `Encode` does not have; keeping the gradient's opacity on the shaped solid end and dividing the alpha by it, which cannot reach a solid alpha above the gradient's opacity.
 - **Gradients are reconciled, not padded.** A solid end takes the gradient's shape in its own color; a missing brush starts as the gradient with every stop at alpha 0; a gradient tweened to a color ends by writing a `SolidColorBrush`; stops are resampled onto the union of both offsets; a kind mismatch snaps the geometry to the end's; a unit mismatch lerps raw numbers in the end's units. Reason: alpha-0 stops fade a missing brush in without a dark fringe, resampling colors each offset as its gradient draws it, geometry does not convert between kinds, ending on a solid brush keeps the property on the brush type it was aimed at, and units follow the `RelativePoint` codec. Rejected: zero-padding stops.
 - **No gradient strings and no brush `Transform`.** Strings are not parsed as gradients, so a gradient end value is a brush instance, and a brush's `Transform` is not carried. Reason: Avalonia's `Brush.Parse` reads colors only; the reason for dropping `Transform` is not recorded.
 - **Shadows are padded with transparent counterparts.** The shorter `BoxShadows` list gains zero shadows (as CSS pads) in the other end's color at alpha 0; inset is discrete and taken from the end value; strings are claimed through `BoxShadows.Parse`. Reason: a shadow added or dropped fades instead of flashing black.
@@ -171,5 +172,4 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 ## Open items
 
-- BRIDGE-CODECS-008: a solid brush with `Opacity` below 1 loses that opacity when tweened to another solid color. Untested; likely a bug.
 - BRIDGE-CODECS-018, -020, -026 and -028 are untested: the geometry tests all go through `MorphTo`, which hands the codec path-data strings rather than `Geometry` objects.

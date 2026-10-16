@@ -56,6 +56,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Transformable (pan, pinch-zoom, rotate)](transformable.md) | BRIDGE-TRANSFORMABLE | `Transformable`, `TransformableParams`, `PanBounds`, `WheelZoom` |
 | [Drag-to-reorder lists](reorder.md) | BRIDGE-REORDER | `Reorder`, `ReorderExtension`, `ReorderMovingEventArgs` |
 | [Magnetic pull](magnetic.md) | BRIDGE-MAGNETIC | `Magnetic` |
+| [Gesture arbitration](gesture-arbitration.md) | BRIDGE-GESTURES | — |
 
 ## Scrolling
 

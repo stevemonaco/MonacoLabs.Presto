@@ -1,28 +1,23 @@
-﻿using System.Runtime.CompilerServices;
-
 namespace MonacoLabs.Presto.Core;
 
 /// <summary>
-/// Port of anime.js <c>composition.js</c>: the per-(target, property) sibling registries and the composition of a new tween
+/// The per-(target, property) sibling registries and the composition of a new tween
 /// against the tweens already animating the same property.
 /// </summary>
 internal static class Composer
 {
-    // Keyed by target and never iterated, so unlike the additive lookups it can stay process-wide (COMPOSITOR-PLAN §4.1).
-    private static readonly ConditionalWeakTable<object, Dictionary<string, TweenSiblings>> s_replaceLookups = new();
+    public static TweenSiblings GetTweenSiblings(object target, string property, Engine engine) =>
+        GetPropertySiblings(engine.ReplaceLookups.GetValue(target, static _ => []), property);
 
-    public static TweenSiblings GetTweenSiblings(object target, string property, Additive? additive = null)
+    public static TweenSiblings GetTweenSiblings(object target, string property, Additive additive)
     {
-        Dictionary<string, TweenSiblings>? targetLookup;
-        if (additive != null)
-        {
-            var lookups = additive.Lookups;
-            if (!lookups.TryGetValue(target, out targetLookup)) lookups[target] = targetLookup = [];
-        }
-        else
-        {
-            targetLookup = s_replaceLookups.GetValue(target, static _ => []);
-        }
+        var lookups = additive.Lookups;
+        if (!lookups.TryGetValue(target, out var targetLookup)) lookups[target] = targetLookup = [];
+        return GetPropertySiblings(targetLookup, property);
+    }
+
+    private static TweenSiblings GetPropertySiblings(Dictionary<string, TweenSiblings> targetLookup, string property)
+    {
         if (!targetLookup.TryGetValue(property, out var siblings)) targetLookup[property] = siblings = new();
         return siblings;
     }
@@ -38,27 +33,35 @@ internal static class Composer
     public static void ComposeTween(Tween tween, TweenSiblings siblings)
     {
         if (tween._composition == Composition.Replace) ComposeReplacedTween(tween, siblings);
-        else if (tween._composition == Composition.Blend) ComposeBlendedTween(tween);
+        else if (tween._composition == Composition.Additive) ComposeAdditiveTween(tween);
     }
 
     public static void RemoveTweenSiblings(Tween tween)
     {
         var composition = tween._composition;
-        if (composition == Composition.None) return;
+        if (composition == Composition.Overlap) return;
 
-        if (s_replaceLookups.TryGetValue(tween.Target, out var replaceProperties) &&
+        var engine = tween.Parent.OwnerEngine;
+        if (engine.ReplaceLookups.TryGetValue(tween.Target, out var replaceProperties) &&
             replaceProperties.TryGetValue(tween.Property, out var replaceSiblings))
         {
             TweenList.RemoveChild(replaceSiblings, tween, TweenLink.Replace);
         }
 
-        if (composition != Composition.Blend) return;
+        if (composition != Composition.Additive) return;
 
-        var additive = tween.Parent.OwnerEngine.Additive;
+        var additive = engine.Additive;
         if (!additive.Lookups.TryGetValue(tween.Target, out var additiveProperties) ||
             !additiveProperties.TryGetValue(tween.Property, out var additiveSiblings)) return;
 
         TweenList.RemoveChild(additiveSiblings, tween, TweenLink.Additive);
+        if (tween._ownFromNumbers is { } ownFromNumbers)
+        {
+            tween._fromNumber = tween._ownFromNumber;
+            tween._toNumber = tween._ownToNumber;
+            tween._fromNumbers = ownFromNumbers;
+            tween._toNumbers = tween._ownToNumbers!;
+        }
 
         // A single remaining tween in an additive list is the lookup tween itself, so the whole entry goes with it.
         var lookupTween = additiveSiblings._head;
@@ -200,7 +203,7 @@ internal static class Composer
         prevParentTimeline.Cancel();
     }
 
-    private static void ComposeBlendedTween(Tween tween)
+    private static void ComposeAdditiveTween(Tween tween)
     {
         var additive = tween.Parent.OwnerEngine.Additive;
         var additiveSiblings = GetTweenSiblings(tween.Target, tween.Property, additive);
@@ -221,12 +224,17 @@ internal static class Composer
             TweenList.AddChild(additiveAnimation, lookupTween);
         }
 
-        // The lookup tween holds the composed value the blended tweens add their deltas to.
+        tween._ownFromNumber = tween._fromNumber;
+        tween._ownToNumber = tween._toNumber;
+        tween._ownFromNumbers = Helpers.CloneNumbers(tween._fromNumbers);
+        tween._ownToNumbers = Helpers.CloneNumbers(tween._toNumbers);
+
+        // The lookup tween holds the composed value the additive tweens add their deltas to.
         var toNumber = tween._toNumber;
         tween._fromNumber = lookupTween._fromNumber - toNumber;
         tween._toNumber = 0;
-        tween._numbers = Helpers.CloneNumbers(tween._fromNumbers);
-        tween._number = 0;
+        // Upstream starts at 0, so a keyframe that has not rendered since its timer was revived would drop its delta from the sum.
+        tween._number = tween._fromNumber;
         lookupTween._fromNumber = toNumber;
 
         if (tween._toNumbers.Length > 0)
@@ -239,6 +247,7 @@ internal static class Composer
             }
             lookupTween._fromNumbers = toNumbers;
         }
+        tween._numbers = Helpers.CloneNumbers(tween._fromNumbers);
 
         TweenList.AddChild(additiveSiblings, tween, TweenLink.Additive);
     }

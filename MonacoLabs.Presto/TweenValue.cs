@@ -4,7 +4,7 @@ using MonacoLabs.Presto.Values;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// A raw property value in the anime.js syntax: a number, a string (<c>"+=50"</c>, <c>"#ff0000"</c>, <c>"1turn"</c>),
+/// A raw property value: a number, a string (<c>"+=50"</c>, <c>"#ff0000"</c>, <c>"1turn"</c>),
 /// a <see cref="TweenParams"/>, an array (<c>[from, to]</c> or keyframes), a <see cref="FunctionValue"/>, a
 /// <see cref="Stagger"/>, an ease, or any typed value wrapped with <see cref="Of"/>. Adapters decode it against the
 /// property's current value.
@@ -28,15 +28,15 @@ public readonly struct TweenValue
     public static implicit operator TweenValue(long value) => new((double)value);
 
     /// <summary>
-    /// A value in the anime.js string syntax: relative to the previous value (<c>"+=50"</c>, <c>"-=50"</c>, <c>"*=2"</c>),
+    /// A string value: relative to the previous value (<c>"+=50"</c>, <c>"-=50"</c>, <c>"*=2"</c>),
     /// a number with a unit (<c>"50%"</c>, <c>"1turn"</c>, <c>"0.5rad"</c>, <c>"10px"</c>), a color (<c>"#ff0000"</c>,
     /// <c>"rgba(255,0,0,.5)"</c>, <c>"hsl(0,100%,50%)"</c>), or a complex string whose every embedded number is interpolated
     /// (<c>"0 0 5px black"</c>). A string that is entirely numeric is taken as the number.
     /// </summary>
     public static implicit operator TweenValue(string value) => new(value);
 
-    /// <summary>A color as its <c>rgba()</c> string, so a <see cref="PrestoColor.Mix"/> or OKLCH-derived color can be a tween value.</summary>
-    public static implicit operator TweenValue(PrestoColor value) => new(value.ToString());
+    /// <summary>A color with its channels kept exact, so a <see cref="PrestoColor.Mix"/> or OKLCH-derived color can be a tween value.</summary>
+    public static implicit operator TweenValue(PrestoColor value) => new(value);
 
     /// <summary>Per-property settings in place of a bare value, so this one property can carry its own from, duration, delay, ease or composition.</summary>
     public static implicit operator TweenValue(TweenParams value) => new(value);

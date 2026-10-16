@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Microsoft.Extensions.Time.Testing;
+using MonacoLabs.Presto.Platform;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -30,6 +31,118 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
         time.Advance(TimeSpan.FromMilliseconds(250));
 
         Assert.Equal(250, source.Now);
+    }
+
+    private static async Task<List<(double Wall, double Now)>> RunJitteredFrames(AvaloniaFrameSource source, FakeTimeProvider time, int frameCount, Action<List<(double Wall, double Now)>>? afterFrame = null, bool stop = true)
+    {
+        var border = new Border();
+        new Window { Content = border, Width = 100, Height = 100 }.Show();
+        _ = border.Animate(new() { ["Opacity"] = 0, Duration = 100, Autoplay = false }); // seeds the source with a visual inside the window
+
+        var frames = new List<(double Wall, double Now)>();
+        source.Start(() => frames.Add(((time.GetUtcNow() - time.Start).TotalMilliseconds, source.Now)));
+        double[] cycle = [4.3, 5.6, 6.8];
+        for (var i = 0; i < frameCount; i++)
+        {
+            time.Advance(TimeSpan.FromMilliseconds(cycle[i % cycle.Length]));
+            await DeliverFrame(frames);
+            afterFrame?.Invoke(frames);
+        }
+        if (stop) source.Stop();
+        return frames;
+    }
+
+    private static async Task DeliverFrame<T>(List<T> frames)
+    {
+        var delivered = frames.Count;
+        for (var tries = 0; tries < 10 && frames.Count == delivered; tries++)
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            // A frame requested from inside a frame callback is only delivered once real time has passed.
+            await Task.Delay(1);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task NowInsideATopLevelFrameIsThePacedFrameTime()
+    {
+        var time = new FakeTimeProvider();
+        var source = new AvaloniaFrameSource(time);
+        var frames = await RunJitteredFrames(source, time, 60, delivered =>
+        {
+            if (delivered.Count > 0)
+                Assert.True(source.Now >= delivered[^1].Now, $"Now {source.Now} fell below the last frame time {delivered[^1].Now}");
+        });
+
+        var pacer = new FramePacer();
+        Assert.All(frames, frame => Assert.Equal(pacer.Frame(frame.Wall), frame.Now));
+        Assert.True(pacer.IsSettled, $"only {frames.Count} frames arrived");
+        Assert.Contains(frames, frame => frame.Now != frame.Wall);
+    }
+
+    [AvaloniaFact]
+    public async Task StartingAfterAStopRestartsTheGridAtTheWallClock()
+    {
+        var time = new FakeTimeProvider();
+        var source = new AvaloniaFrameSource(time);
+        var last = (await RunJitteredFrames(source, time, 30))[^1];
+
+        // 2.75 intervals after the last frame time: a continued grid would round up and land after the wall clock.
+        time.Advance(TimeSpan.FromMilliseconds(2.75 * 5.567 - 4.3 + (last.Now - last.Wall)));
+        var (wall, now) = Assert.Single(await RunJitteredFrames(source, time, 1));
+
+        Assert.Equal(wall, now);
+    }
+
+    [AvaloniaFact]
+    public async Task SettingPacedAgainRestartsTheGridAtTheWallClock()
+    {
+        var time = new FakeTimeProvider();
+        var source = new AvaloniaFrameSource(time);
+        var frames = await RunJitteredFrames(source, time, 30, stop: false);
+        var (count, last) = (frames.Count, frames[^1]);
+
+        source.Paced = false;
+        source.Paced = true;
+        // 2.75 intervals after the last frame time: a continued grid would round up and land after the wall clock.
+        time.Advance(TimeSpan.FromMilliseconds(2.75 * 5.567 + (last.Now - last.Wall)));
+        await DeliverFrame(frames);
+        source.Stop();
+
+        Assert.True(frames.Count > count, "no frame arrived after the toggle");
+        Assert.Equal(frames[count].Wall, frames[count].Now);
+    }
+
+    [AvaloniaFact]
+    public async Task UnpacedFramesReportTheWallClock()
+    {
+        var time = new FakeTimeProvider();
+        var frames = await RunJitteredFrames(new AvaloniaFrameSource(time) { Paced = false }, time, 30);
+
+        Assert.NotEmpty(frames);
+        Assert.All(frames, frame => Assert.Equal(frame.Wall, frame.Now));
+    }
+
+    [AvaloniaFact]
+    public async Task TheFallbackTimerReportsTheWallClock()
+    {
+        AvaloniaFrameSource.Forget(); // so no earlier test's window is found
+
+        var time = new FakeTimeProvider();
+        var source = new AvaloniaFrameSource(time);
+        var frames = new List<(double Wall, double Now)>();
+        source.Start(() => frames.Add(((time.GetUtcNow() - time.Start).TotalMilliseconds, source.Now)));
+        Assert.True(source.IsUsingFallbackTimer);
+
+        Assert.True(await Pump(() =>
+        {
+            time.Advance(TimeSpan.FromMilliseconds(5.6));
+            return frames.Count >= 3;
+        }), "the fallback timer delivered too few frames");
+        source.Stop();
+
+        Assert.All(frames, frame => Assert.Equal(frame.Wall, frame.Now));
     }
 
     [AvaloniaFact]

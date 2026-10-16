@@ -58,9 +58,11 @@ public sealed class TimelinePositionTests : EngineTestBase
         Assert.Equal(ProbeOffset(twin), ProbeOffset(Typed(typed)));
 
     [Fact]
-    public void UnknownLabelsResolveToTheTimelineEnd()
+    public void UnknownLabelsThrow()
     {
-        Assert.Equal(150, ProbeOffset(Missing));
-        Assert.Equal(160, ProbeOffset(Missing + 10));
+        Assert.Throws<ArgumentException>(() => ProbeOffset(Missing));
+        Assert.Throws<ArgumentException>(() => ProbeOffset(Missing + 10));
+        Assert.Throws<ArgumentException>(() => ProbeOffset("typo"));
+        Assert.Throws<ArgumentException>(() => ProbeOffset("typo+=10"));
     }
 }

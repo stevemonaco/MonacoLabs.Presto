@@ -83,8 +83,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionStateTests.TheReturnUsesLeaveTiming`, `MotionStateTests.PressLayersOverHoverOnASharedScale`
 - **BRIDGE-MOTION-064** — When a property returns to rest and its rest value is a `Geometry`, the return shall morph to it as `PrestoAvalonia.MorphTo` does, figure by figure.
   - Tests: `MotionStateTests.AGeometryMorphedByAStateMorphsBackToRest`
-- **BRIDGE-MOTION-013** — When a property returns to a lower state that is still active, its target shall be that state's final value (the last keyframe holding a `To`), played on the leaving state's timing rather than the lower state's builder.
-  - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`
+- **BRIDGE-MOTION-013** — When a property returns to a lower state that is still active, its target shall be that state's final value (the last keyframe holding a `To`), played on the leaving state's timing rather than the lower state's builder; when that state loops or gives the property keyframes, its builder shall instead play again for the property from where it stands, resuming the loop or keyframes.
+  - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `MotionStateTests.ReturningToALowerLoopingStateResumesItsLoop`, `MotionStateTests.ReturningToALowerKeyframedStateReplaysItsKeyframes`
 - **BRIDGE-MOTION-014** — Each transition shall play one animation per entering state and one per leaving state, covering only the properties whose winner changed.
   - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `BridgeAllocationTests.AHoverAllocatesOnlyAtItsTransitions`
 - **BRIDGE-MOTION-015** — State animations shall compose by `Composition.Replace`, so a property is taken over from where it stands with no jump.
@@ -98,10 +98,10 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionStateTests.RestFollowsALocalValueChangedMidHover`
 - **BRIDGE-MOTION-018** — For a transform, effect, clip, mask or warp shorthand, rest shall be the shorthand's identity.
   - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`
-- **BRIDGE-MOTION-019** — When a return to rest completes while it still drives a property, the tracker shall revert that property's animation-priority value, leaving no animation, no residual render transform and no residual effect.
-  - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `MotionStateTests.RestFollowsALocalValueChangedMidHover`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`
-- **BRIDGE-MOTION-020** — When a property returning to rest has no resolvable `AvaloniaProperty` and is not a shorthand, the return shall throw `NotSupportedException`.
-  - Tests: untested
+- **BRIDGE-MOTION-019** — When a return to rest completes while it still drives a property, the tracker shall revert that property's animation-priority value, leaving no animation, no residual render transform and no residual effect, a zero-duration return included.
+  - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `MotionStateTests.RestFollowsALocalValueChangedMidHover`, `MotionStateTests.AZeroDurationReturnToRestSettles`, `MotionStateTests.AGeometryMorphedByAStateReturnsToRestAtOnceWithAZeroDurationLeave`, `EffectTests.AHoverBlurReturnsToRestAndRemovesTheEffect`
+- **BRIDGE-MOTION-020** — When a state's `Motion` names a property that has no resolvable `AvaloniaProperty` and is not a shorthand, so it has no rest, setting the state (the attached property, a `MotionStates` change or a code-added state) shall throw `NotSupportedException`.
+  - Tests: `MotionStateTests.AStatePropertyWithNoRestThrowsWhenTheStateIsSet`
 
 ### Validation
 
@@ -111,8 +111,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionStateValidationTests.AFromWithoutAToThrows`
 - **BRIDGE-MOTION-023** — Absolute values, from-to tweens, value arrays and keyframes shall be accepted in a state's `Motion`.
   - Tests: `MotionStateValidationTests.AbsoluteAndKeyframedValuesAreAccepted`
-- **BRIDGE-MOTION-024** — When a `Leave` has keyframes, or gives a property anything but a per-property ease or duration (a value, `To`, `From`, `Delay`, `Composition`, `Modifier` or `TextModifier`), validation shall throw `NotSupportedException`; animation-level duration, delay and ease are accepted.
-  - Tests: `MotionStateValidationTests.ALeaveThatGivesAPropertyAValueThrows`, `MotionStateValidationTests.ALeaveWithOnlyTimingIsAccepted`
+- **BRIDGE-MOTION-024** — When a `Leave` has keyframes, or gives a property anything but a per-property ease, duration or delay (a value, `To`, `From`, `Composition`, `Modifier` or `TextModifier`), validation shall throw `NotSupportedException`; animation-level duration, delay and ease are accepted, and a per-property delay holds that property's return.
+  - Tests: `MotionStateValidationTests.ALeaveThatGivesAPropertyAValueThrows`, `MotionStateValidationTests.ALeaveWithOnlyTimingIsAccepted`, `MotionStateTests.ALeavePerPropertyDelayHoldsThatPropertyBeforeItReturns`
 - **BRIDGE-MOTION-025** (inherited) — Conditions shall be parsed and states validated when the attached property is set or the `MotionStates` list changes (or the code state is added), so an invalid state throws from the setter, attached or not.
   - Tests: `MotionStateTests.SettingTheAttachedPropertyValidatesTheState`
 
@@ -144,7 +144,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-033** (inherited) — While the element is detached, condition changes shall play nothing.
   - Tests: untested
 - **BRIDGE-MOTION-034** — When the element attaches, the states that hold shall be applied instantly with `Presto.Set` at their final values, with no animation left running.
-  - Tests: `MotionStateTests.AReattachedElementSnapsToItsActiveStates`, `MotionPropagationTests.AChildAddedUnderAnOpenParentArrivesSnapped`
+  - Tests: `MotionStateTests.AReattachedElementSnapsToItsActiveStates`, `MotionStateTests.AMorphingStateActiveAtAttachSnapsToItsShape`, `MotionPropagationTests.AChildAddedUnderAnOpenParentArrivesSnapped`
 - **BRIDGE-MOTION-035** (inherited) — When a state that holds at attach loops, it shall also be played from the snapped value, so it keeps looping.
   - Tests: `MotionStateTests.ALoopingStateActiveAtAttachKeepsLooping`
 - **BRIDGE-MOTION-036** — When the element detaches, every state animation shall be canceled and its properties reverted; the definitions stay.
@@ -155,8 +155,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: untested
 - **BRIDGE-MOTION-039** (inherited) — When one of those properties changes while others remain, or the `MotionStates` list raises a collection change, the tracker shall rebuild its state list and animate properties to their new winners or to rest.
   - Tests: untested
-- **BRIDGE-MOTION-040** — In design mode, setting `Hover`, `Press`, `Focus` or `States` shall create no tracker.
-  - Tests: untested
+- **BRIDGE-MOTION-040** — In design mode, setting `Hover`, `Press`, `Focus` or `States`, or adding a code state (`While*`), shall create no tracker; the code state's handle does nothing when disposed.
+  - Tests: `MotionStateTests.NothingIsTrackedInDesignMode`
 - **BRIDGE-MOTION-041** — One `MotionStates` list shared by a style across controls shall keep separate runtime state per control.
   - Tests: `MotionStateTests.AStyleSharedStatesListKeepsSeparateStatePerControl`
 
@@ -186,8 +186,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionOrchestrationTests.TheStaggerFollowsWhereChildrenAreLaidOutRatherThanTreeOrder`, `MotionOrchestrationTests.AChildWithItsOwnStateIsLeftOutOfTheStagger`
 - **BRIDGE-MOTION-050** — When `StaggerChildren` is non-zero, each follower's state animations shall be delayed by the core `Stagger(StaggerChildren, From = StaggerFrom, Total = followers)` value for its index.
   - Tests: `MotionOrchestrationTests.StaggerChildrenBeginsEachChildItsAmountAfterThePrevious`, `MotionOrchestrationTests.StaggerFromLastReversesTheOrder`
-- **BRIDGE-MOTION-051** — `DelayChildren` shall be added to every follower's delay, on top of the state's own delay and the stagger offset.
-  - Tests: `MotionOrchestrationTests.DelayChildrenShiftsEveryChild`
+- **BRIDGE-MOTION-051** — `DelayChildren` shall be added to every follower's delay, on top of the state's own delay (a function value evaluated for the follower) and the stagger offset, a zero-duration animation or return included (CORE-ANIMATION-066).
+  - Tests: `MotionOrchestrationTests.DelayChildrenShiftsEveryChild`, `MotionOrchestrationTests.AZeroDurationReturnWaitsOutDelayChildren`, `MotionOrchestrationTests.AFunctionDelayAddsToTheStaggerAndDelayChildren`
 - **BRIDGE-MOTION-052** — With `Order = Together`, the source's own state animations shall start with no added delay, alongside its followers.
   - Tests: untested
 - **BRIDGE-MOTION-053** — With `Order = BeforeChildren`, the end of the source's own state animations (delay plus duration) shall be added to every follower's delay.
@@ -212,7 +212,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionConditionTests.SelectorPartsAreRejectedWithTheStateSetterEscapeHatch`
 - **BRIDGE-MOTION-060** (inherited) — When `StaggerChildren` is not set, followers shall not be staggered.
   - Tests: untested
-- **BRIDGE-MOTION-061** — When `StaggerFrom` is not set, the stagger shall run from the first follower, as anime.js's `stagger` does.
+- **BRIDGE-MOTION-061** — When `StaggerFrom` is not set, the stagger shall run from the first follower, as the core `Stagger` does (CORE-STAGGER).
   - Tests: `MotionOrchestrationTests.StaggerChildrenBeginsEachChildItsAmountAfterThePrevious`
 - **BRIDGE-MOTION-062** (inherited) — When `DelayChildren` is not set, followers shall get no added delay.
   - Tests: untested
@@ -229,10 +229,9 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 ## Edge cases
 
 - Rebuilding the state list recreates every entry, so properties of states still holding replay their enter animation from where they stand to the same target (no visible change).
-- A property uncovered by a leaving state goes to the lower state's final value; a looping or keyframed lower state does not resume its loop (see Open items).
+- A property uncovered by a leaving state goes to the lower state's final value, unless the lower state loops or keyframes it, which then plays again from where the property stands.
 - A follower whose state does not change is not counted in the stagger, so stagger indices skip unaffected children.
 - With no followers, `AfterChildren` plays the source at once; `BeforeChildren` with no own states adds nothing.
-- A state delay given as a function value is read as 0 when an orchestration delay is added to it.
 - Clearing a source's `Motion.State` releases followers through the same orchestration walk, so they return on its stagger.
 - Press stays on while the pointer is dragged off the element, until release or capture loss.
 
@@ -250,7 +249,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 - No per-frame work of its own. Transitions allocate their animations and small grouping dictionaries; the settled and idle states allocate nothing per tick (`BridgeAllocationTests.AHoverAllocatesOnlyAtItsTransitions`).
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart. The model follows Framer Motion's `whileHover`/`whileTap`/`whileFocus` and variants.
 
@@ -261,17 +260,21 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **Selector reach goes through style setters on `Motion.State`.** "Hover the card, animate the arrow" is a style setter on the arrow's `Motion.State`; when the selector stops matching, the setter's value goes and the state leaves. Reason: Avalonia styles already give full selector power.
 - **Sugar has a fixed order and focus means `:focus-visible`.** `Hover`, `Focus` and `Press` map to `:pointerover`, `:focus-visible` and a synthesized `:pressed`, ordered Hover < Focus < Press before the `States` entries, so press wins over hover; `When=":focus"` covers focus from any input, and focus is read from `Classes` like every pseudo-class. Reason: a mouse click should not play the focus motion.
 - **Press is synthesized for every element.** The tracker keeps its own pressed flag from a left-button (or touch or pen) `PointerPressed`, seen with handled events, until a left release or capture loss, and `:pressed` reads only that flag. Reason: only `Button` and its subclasses set `:pressed`, and a Button that handles its own press must still count; a touch that becomes a scroll ends the press.
-- **Entering uses the state's timing; leaving uses `Leave`, which only times.** A property leaving a state goes to the next winner or rest on the leaving state's `Leave` builder, else its own timing, and a value in `Leave` throws. Reason: not recorded; it mirrors `LayoutMotion`'s timing-only rule.
+- **Entering uses the state's timing; leaving uses `Leave`, which only times.** A property leaving a state goes to the next winner or rest on the leaving state's `Leave` builder, else its own timing, and a value in `Leave` throws; per-property eases, durations and delays are timing, so they are accepted. Reason: not recorded; it mirrors `LayoutMotion`'s timing-only rule. The per-property delay had been rejected though the tracker applied it and the doc promised it.
+- **A return to a looping or keyframed lower state resumes it.** A property handed back to a lower state that loops or keyframes it plays that state's builder again from where it stands, instead of landing on its final value on the leaving timing. Reason: a busy wobble under a hover lift should keep wobbling once the hover ends, as it does when the element arrives in that state (BRIDGE-MOTION-035). Rejected: landing on the final value, which froze the loop.
+- **Hover is synthesized, not read from `:pointerover`.** The tracker keeps its own hover flag from `PointerEntered`/`PointerExited`, held while the pointer stays in the element's layout slot, and ignores `:pointerover` in `Classes`. Reason: a hover that lifts the element would otherwise flicker at its edge as the pointer falls out of the moved bounds. Rejected: `IsPointerOverProperty`, the original design's source.
 - **A geometry returns to rest through `MorphTo`.** Reason: `Leave` cannot give a value, and a geometry tweened plainly is resampled as one open polyline, which drew a two-figure icon (Tempo's skip glyph) as one blob until the settle uncovered the real shape, so a hover morph went out as a morph and came back as a pop.
 - **Rest is the base value, read as the property returns.** For an `AvaloniaProperty` rest is its value below `Animation` priority (its default when unset), and the tracker reverts its animation-priority value once the return completes; a shorthand's rest is its identity. Reason: a binding, style or local value changed mid-state is honored, and the revert does not snap because the values are already equal. Rejected: capturing rest before the first activation.
 - **Values in a state are absolute.** Relative values and from-only tweens throw in a state. Reason: a relative value would accumulate on every re-entry, and a from-only tween is meaningless as a target.
+- **A property with no rest throws when the state is set.** The tracker checks each property's rest as it reads a state. Reason: the return used to find the gap only when it started, throwing from an input or class-change handler with no caller to catch it.
 - **Arrival snaps; detach reverts.** On attach the holding states are applied with `Presto.Set`; detach cancels and reverts every state animation while the definitions stay. Reason: a recycled container or a view shown again arrives in its state instead of replaying it. Rejected: an opt-in to animate initial states.
 - **State animations compose by replace.** Each transition plays one animation per entering and per leaving state, covering only the properties whose winner changed, from where they stand. Reason: a hover during an entrance goes straight to the lift while the entrance keeps its other properties, the look the recipes are designed around.
 - **Interrupted state springs restart at rest velocity.** States do not reuse `Animatable`'s velocity preservation. Reason: not recorded; only `Animatable` measures velocity. Rejected: a `MotionState.PreserveVelocity` option, or running states on an `Animatable`.
 - **Every state plays on the UI thread.** States never play through the compositor, even transform- and opacity-only ones. Reason: input arrives on the UI thread anyway, so the gain would be smoothness under load, not responsiveness; left out unless a sample shows the need.
 - **The tracker re-reads a state when the reduced flag has flipped.** A state whose values were read under the other setting is re-read at its next transition; a state already held keeps its values until left. Reason: not recorded.
-- **`Motion.State` propagates by explicit resolution.** A tracker without its own `Motion.State` reads the nearest visual ancestor's, re-resolved on attach and whenever an element sets or clears it; a source's change walks its descendants; classes still come from the follower, and a follower attached under an open source arrives snapped. Reason: parity with Framer Motion variants and Compose `updateTransition`, where `Motion.States` was per element. Rejected: Avalonia property inheritance.
-- **Orchestration times only followers whose winners change, by layout position.** Followers are ordered by layout-slot origin with render transforms ignored and delayed by `DelayChildren` plus the core `Stagger(StaggerChildren, From = StaggerFrom)`; `BeforeChildren` and `AfterChildren` sequence the source; `StaggerFrom` is a property of its own; under `ReduceAll` all land at once. A state animation still in its delay when retargeted is removed, not trimmed. Reason: replace composition trims only begun tweens, so returning mid-stagger must never start a waiting child.
+- **`Motion.State` propagates by explicit resolution.** A tracker without its own `Motion.State` reads the nearest visual ancestor's, re-resolved on attach and whenever an element sets or clears it; a source's change walks its descendants; classes still come from the follower, and a follower attached under an open source arrives snapped. Reason: one state on a parent then drives its subtree, as Framer Motion variants and Compose `updateTransition` do, where `Motion.States` was per element. Rejected: Avalonia property inheritance.
+- **Orchestration times only followers whose winners change, by layout position.** Followers are ordered by layout-slot origin with render transforms ignored and delayed by `DelayChildren` plus the core `Stagger(StaggerChildren, From = StaggerFrom)`; `BeforeChildren` and `AfterChildren` sequence the source; `StaggerFrom` is a property of its own; under `ReduceAll` all land at once. A state animation still in its delay when retargeted is removed, not trimmed. A function-valued state delay is evaluated for the element before the orchestration delay is added. Reason: replace composition trims only begun tweens, so returning mid-stagger must never start a waiting child.
+- **Design mode tracks nothing.** The attached properties and `While*` both skip the tracker in design mode, and `While*` returns a handle that does nothing. Reason: the previewer should show controls at rest, not run their state machinery.
 - **Features that manage their own lifetimes pass `WhenDetached.Continue`.** See BRIDGE-HELPERS.
 - **Reduced motion is an app-set flag with a per-builder alternative.** See CORE-REDUCED.
 
@@ -284,10 +287,4 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 ## Open items
 
-- `MotionState.Leave` validation rejects a per-property `Delay`, while the tracker reads a per-property `Delay` from `Leave` timing (dead path) and `MotionState.Leave`'s doc says "duration, delay and eases"; only an animation-level delay is usable.
-- A property returning from a leaving state to a lower, still-active looping or keyframed state lands on that state's final value and does not resume its loop or keyframes.
-- The original design named `IsPointerOverProperty` as hover's source; the code synthesizes hover from `PointerEntered`/`PointerExited` with a layout-slot hold, and `:pointerover` in `Classes` is ignored.
-- A function-valued state `Delay` is dropped (read as 0) when orchestration adds a stagger or `DelayChildren` delay.
-- A rest-less property (neither resolvable nor a shorthand) throws `NotSupportedException` only when its return starts, from inside an input or class-change handler, not when the state is set.
-- `Motion.Add` (the `While*` path) creates a tracker even in design mode, unlike the attached properties.
-- Untested: canonicalization of property spellings (010), rest-less property error (020), hover listen gating (026), no play while detached (033), tracker release on clearing the last state (038), rebuild on property or list change (039), design-mode guard (040), `Order = Together` timing (052), diagnostics origin (058).
+- Untested: canonicalization of property spellings (010), hover listen gating (026), no play while detached (033), tracker release on clearing the last state (038), rebuild on property or list change (039), `Order = Together` timing (052), diagnostics origin (058).

@@ -101,6 +101,60 @@ public sealed class TextRevealTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ABoundTextChangedMidRevealResplitsKeepingTheTimeAndEndsOnTheNewTextStillBound()
+    {
+        var source = new TextBlock { Text = Sentence };
+        var block = Block(TextPieces.Words);
+        block[!TextBlock.TextProperty] = source[!TextBlock.TextProperty];
+        Presence.SetInitial(block, Long);
+        Show(block);
+        Frames.Advance(500, 50);
+        var elapsed = Assert.Single(Presto.GetAnimations(Words(block)[0])).CurrentTime;
+
+        source.Text = "Hello there";
+
+        Assert.Equal(["Hello", "there"], Words(block).Select(word => word.Text));
+        Assert.InRange(Assert.Single(Presto.GetAnimations(Words(block)[0])).CurrentTime, elapsed - 50, elapsed + 50);
+        Frames.Advance(2000, 50);
+        Assert.Null(block.Inlines);
+        Assert.Equal("Hello there", block.Text);
+        source.Text = "Later";
+        Assert.Equal("Later", block.Text);
+    }
+
+    [AvaloniaFact]
+    public void ABindingSurvivesARevealWithNoTextChange()
+    {
+        var source = new TextBlock { Text = Sentence };
+        var block = Block(TextPieces.Words);
+        block[!TextBlock.TextProperty] = source[!TextBlock.TextProperty];
+        Presence.SetInitial(block, Recipes.WordFade());
+        Show(block);
+        Assert.NotNull(block.Inlines);
+
+        Frames.Advance(5000, 50);
+        Assert.Null(block.Inlines);
+        source.Text = "Later";
+
+        Assert.Equal("Later", block.Text);
+    }
+
+    [AvaloniaFact]
+    public void MorphTextKeepsTheBlocksBinding()
+    {
+        var source = new TextBlock { Text = "banana" };
+        var block = new TextBlock { FontSize = 20 };
+        block[!TextBlock.TextProperty] = source[!TextBlock.TextProperty];
+        Show(block);
+
+        Recipes.MorphText(block, "nab").Complete();
+        Assert.Equal("nab", block.Text);
+        source.Text = "Later";
+
+        Assert.Equal("Later", block.Text);
+    }
+
+    [AvaloniaFact]
     public void ALoopingRevealStaysSplit()
     {
         var block = Block(TextPieces.Words);

@@ -22,8 +22,8 @@ namespace MonacoLabs.Presto;
 /// outlasts their virtualization. It is placed on the selected container (a <see cref="TreeViewItem"/>'s
 /// <c>PART_LayoutRoot</c> row), measured from the container's parent so a pressed item's render transform does not move
 /// it. Only a selection change glides it; a resize, a scroll into view or a <see cref="TreeView"/> section expanding
-/// places it at once. It hides while the selected container is not realized, not effectively visible, or not wholly
-/// inside a clipping ancestor below the presenter, such as a folding section. Under
+/// places it at once. It hides while the selected container is not realized, not effectively visible, or has its far
+/// corner outside a clipping ancestor below the presenter, such as a folding section. Under
 /// <see cref="PrestoDefaults.ReducedMotion"/>, read at each selection change, it moves at once.
 /// </remarks>
 public static class Selection
@@ -44,16 +44,25 @@ public static class Selection
         AvaloniaProperty.RegisterAttached<ItemsControl, bool>("Stretch", typeof(Selection));
 
     /// <summary>
-    /// The glide's timing and ease, the builder's only; null (the default) glides over <see cref="MotionTokens.Medium"/>
-    /// with <see cref="MotionTokens.Ease"/>. A spring sets the duration.
+    /// The glide's timing and ease, the builder's only; null (the default) glides over the current
+    /// <see cref="Recipes.Tokens"/>' <see cref="MotionTokens.Medium"/> with its <see cref="MotionTokens.Ease"/>. A spring sets the duration.
     /// </summary>
+    /// <remarks>Setting a builder that animates a property or sets anything else throws <see cref="NotSupportedException"/>.</remarks>
     public static readonly AttachedProperty<AnimationBuilder?> MotionProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, AnimationBuilder?>("Motion", typeof(Selection));
 
     private static readonly AttachedProperty<Tracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, Tracker?>("Tracker", typeof(Selection));
 
-    static Selection() => IndicatorProperty.Changed.AddClassHandler<ItemsControl>(HandleIndicatorChanged);
+    static Selection()
+    {
+        IndicatorProperty.Changed.AddClassHandler<ItemsControl>(HandleIndicatorChanged);
+        MotionProperty.Changed.AddClassHandler<ItemsControl>((_, e) =>
+        {
+            if (!Design.IsDesignMode && e.NewValue is AnimationBuilder motion)
+                LayoutMotion.Timing(motion, "The indicator glides onto the selected item, so Selection.Motion takes only timing and an ease.");
+        });
+    }
 
     /// <summary>Gets the template that builds the selection indicator of <paramref name="list"/>.</summary>
     public static ITemplate<Control?>? GetIndicator(ItemsControl list) => list.GetValue(IndicatorProperty);

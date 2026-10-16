@@ -101,7 +101,7 @@ A row of character cells that flip like a departures board: when `Text` changes,
 
 - Every per-cell visual, transform and text is built when cells are added or a change arrives; a tick reads a precomputed charset index and writes flap angles, visibility and, at a step's end, cached one-character strings.
 
-## Deviations from anime.js
+## Provenance
 
 - No upstream counterpart.
 

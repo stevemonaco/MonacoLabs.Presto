@@ -31,7 +31,7 @@ public sealed class CompositionTests : EngineTestBase
             _absoluteEndTime = start + duration,
         };
         TweenList.AddChild(parent, tween);
-        if (composition != Composition.None) Composer.ComposeTween(tween, Composer.GetTweenSiblings(target, property));
+        if (composition != Composition.Overlap) Composer.ComposeTween(tween, Composer.GetTweenSiblings(target, property, Presto.Engine));
         return tween;
     }
 
@@ -43,7 +43,7 @@ public sealed class CompositionTests : EngineTestBase
         var last = AddTween(CreateAnimation(), target, "x", 40, 10);
         var middle = AddTween(CreateAnimation(), target, "x", 20, 10);
 
-        var siblings = Composer.GetTweenSiblings(target, "x");
+        var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine);
         Assert.Same(first, siblings._head);
         Assert.Same(middle, first._nextRep);
         Assert.Same(last, middle._nextRep);
@@ -59,7 +59,7 @@ public sealed class CompositionTests : EngineTestBase
 
         var added = AddTween(CreateAnimation(), target, "x", 40, 10);
 
-        var siblings = Composer.GetTweenSiblings(target, "x");
+        var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine);
         Assert.Same(added, siblings._head);
         Assert.Same(overridden, added._nextRep);
         Assert.Null(added._prevRep);
@@ -141,10 +141,10 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
-    public void BlendedTweensShareOneLookupTweenPerProperty()
+    public void AdditiveTweensShareOneLookupTweenPerProperty()
     {
         var target = CreateTarget();
-        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
+        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 100);
 
         var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive);
         var lookupTween = siblings._head;
@@ -155,7 +155,7 @@ public sealed class CompositionTests : EngineTestBase
         Assert.Equal(0, first._toNumber);
         Assert.Same(first, siblings._tail);
 
-        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 50);
+        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 50);
 
         Assert.Same(lookupTween, siblings._head);
         Assert.Equal(50, lookupTween._fromNumber);
@@ -165,11 +165,11 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
-    public void AdditiveUpdateSumsTheBlendedTweensIntoTheLookupTween()
+    public void AdditiveUpdateSumsTheAdditiveTweensIntoTheLookupTween()
     {
         var target = CreateTarget();
-        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
-        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 50);
+        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 100);
+        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 50);
         first._number = 10;
         second._number = 5;
 
@@ -180,11 +180,73 @@ public sealed class CompositionTests : EngineTestBase
     }
 
     [Fact]
-    public void RemoveTweenSiblingsDropsTheLookupTweenWithTheLastBlendedTween()
+    public void SeekingAPausedAdditiveAnimationWritesTheSumWithoutAnEngineUpdate()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["X"] = 100,
+            Duration = 100,
+            Ease = "linear",
+            Composition = Composition.Additive,
+            Autoplay = false,
+        });
+
+        animation.Seek(50);
+        Assert.Equal(50, target.X, 6);
+
+        animation.Seek(20);
+        Assert.Equal(20, target.X, 6);
+    }
+
+    [Fact]
+    public void SeekingACanceledAdditiveAnimationRecomposesItFromItsOwnValues()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["X"] = new TweenParams[] { new() { To = 200 }, new() { To = 0 } },
+            Duration = 200,
+            Ease = "linear",
+            Composition = Composition.Additive,
+            Autoplay = false,
+        });
+        animation.Seek(50);
+
+        animation.Cancel();
+        animation.Seek(50);
+        Assert.Equal(100, target.X, 6);
+
+        animation.Seek(150);
+        Assert.Equal(100, target.X, 6);
+    }
+
+    [Fact]
+    public void SeekingACanceledAdditiveColorAnimationSumsTheKeyframeThatHasNotRenderedAtItsFrom()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new()
+        {
+            ["BackgroundColor"] = new TweenParams[] { new() { To = "rgb(155,255,255)" }, new() { To = "rgb(55,255,255)" } },
+            Duration = 200,
+            Ease = "linear",
+            Composition = Composition.Additive,
+            Autoplay = false,
+        });
+        animation.Seek(50);
+        var firstPlay = target.BackgroundColor;
+
+        animation.Cancel();
+        animation.Seek(50);
+        Assert.Equal(firstPlay, target.BackgroundColor);
+    }
+
+    [Fact]
+    public void RemoveTweenSiblingsDropsTheLookupTweenWithTheLastAdditiveTween()
     {
         var target = CreateTarget();
-        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 100);
-        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Blend, toNumber: 50);
+        var first = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 100);
+        var second = AddTween(CreateAnimation(), target, "x", 0, 100, Composition.Additive, toNumber: 50);
         var siblings = Composer.GetTweenSiblings(target, "x", Presto.Engine.Additive);
         var lookupTween = siblings._head!;
 
@@ -223,12 +285,12 @@ public sealed class CompositionTests : EngineTestBase
         Assert.True(animation.Paused);
         Assert.Null(tween._nextRep);
         Assert.Null(later._prevRep);
-        Assert.Same(later, Composer.GetTweenSiblings(target, "x")._head);
+        Assert.Same(later, Composer.GetTweenSiblings(target, "x", Presto.Engine)._head);
 
         animation.Seek(0);
 
         Assert.False(animation._canceled);
         Assert.Same(later, tween._nextRep);
-        Assert.Same(tween, Composer.GetTweenSiblings(target, "x")._head);
+        Assert.Same(tween, Composer.GetTweenSiblings(target, "x", Presto.Engine)._head);
     }
 }

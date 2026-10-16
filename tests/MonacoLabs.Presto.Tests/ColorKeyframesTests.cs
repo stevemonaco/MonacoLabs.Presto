@@ -46,14 +46,14 @@ public sealed class ColorKeyframesTests : EngineTestBase
     [Fact]
     public void FittedSegmentsStayFewOnEasyPathsAndCappedOnHardOnes()
     {
-        Assert.InRange(new TweenKeyframesBuilder().Color("#2563eb", "#f59e0b", ease: Eases.None).ToArray().Length, 1, 2);
-        Assert.Equal(16, new TweenKeyframesBuilder().Color(Blue, Yellow, ColorSpace.Oklch, ease: new Spring(bounce: .4, duration: 500)).ToArray().Length);
+        Assert.InRange(Frames(new TweenKeyframesBuilder().Color("#2563eb", "#f59e0b", ease: Eases.None)).Length, 1, 2);
+        Assert.Equal(16, Frames(new TweenKeyframesBuilder().Color(Blue, Yellow, ColorSpace.Oklch, ease: new Spring(bounce: .4, duration: 500))).Length);
     }
 
     [Fact]
     public void FittedSegmentsSplitTheDurationExactly()
     {
-        var frames = new TweenKeyframesBuilder().Color(Blue, Yellow, ColorSpace.Oklch, duration: 1000, ease: Eases.InOutBack()).ToArray();
+        var frames = Frames(new TweenKeyframesBuilder().Color(Blue, Yellow, ColorSpace.Oklch, duration: 1000, ease: Eases.InOutBack()));
         Assert.True(frames.Length > 2);
         Assert.Equal(1000, frames.Sum(f => JsNumber.ToNumber(((TweenParams)f.Raw!).Duration!.Value.Raw, 0)));
     }
@@ -125,12 +125,12 @@ public sealed class ColorKeyframesTests : EngineTestBase
     public void PerTargetSegmentCountsFollowTheHueArc(ColorSpace space, HueInterpolation hue, string from, string to, int? segments, int expected)
     {
         var perTarget = (FunctionValue)((_, _, _) => 1000);
-        Assert.Equal(expected, new TweenKeyframesBuilder().Color(from, to, space, hue, duration: perTarget, segments: segments).ToArray().Length);
+        Assert.Equal(expected, Frames(new TweenKeyframesBuilder().Color(from, to, space, hue, duration: perTarget, segments: segments)).Length);
     }
 
     [Fact]
     public void AnExplicitSegmentCountIsKept() =>
-        Assert.Equal(7, new TweenKeyframesBuilder().Color(Blue, Yellow, segments: 7).ToArray().Length);
+        Assert.Equal(7, Frames(new TweenKeyframesBuilder().Color(Blue, Yellow, segments: 7)).Length);
 
     [Fact]
     public void FunctionValuedEndsResolvePerTargetUnderAStagger()
@@ -156,6 +156,22 @@ public sealed class ColorKeyframesTests : EngineTestBase
     [Fact]
     public void AnEndThatIsNotAColorThrows() =>
         Assert.Throws<ArgumentException>(() => new TweenKeyframesBuilder().Color("10px", Yellow));
+
+    [Fact]
+    public void UnsetTimingComesFromTheDefaultsTheAnimationIsAddedUnder()
+    {
+        var builder = Presto.Build().Property("BackgroundColor", k => k.Color(Blue, Yellow)).Duration(900);
+        var timeline = Presto.CreateTimeline(new() { Defaults = new() { Duration = 400 } });
+
+        timeline.Add(new StyleTarget(), builder);
+        Presto.Defaults.Duration = 700;
+        var animation = builder.Animate(new StyleTarget());
+
+        Assert.Equal(400, timeline.Duration);
+        Assert.Equal(700, animation.Duration);
+    }
+
+    private static TweenValue[] Frames(TweenKeyframesBuilder builder) => TweenKeyframesBuilder.Expand(builder.ToArray(), Presto.Defaults);
 
     private static double DeltaEok(PrestoColor x, PrestoColor y)
     {

@@ -8,15 +8,15 @@ namespace MonacoLabs.Presto.Values;
 
 /// <summary>
 /// Decomposes raw tween values (numbers, unit strings, relative <c>+=</c>/<c>-=</c>/<c>*=</c> values, colors and complex
-/// strings) into a <see cref="DecomposedValue"/>, porting upstream <c>decomposeRawValue</c>.
+/// strings) into a <see cref="DecomposedValue"/>.
 /// </summary>
 public static partial class ValueParser
 {
     [GeneratedRegex(@"^([-+]?\d*\.?\d+(?:e[-+]?\d+)?)([a-z]+|%)$", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
     private static partial Regex UnitsExec();
 
-    // Upstream matches a single exponent digit; "1e10" splits into "1e1" and "0".
-    [GeneratedRegex(@"[-+]?\d*\.?\d+(?:e[-+]?\d)?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
+    // Only a single exponent digit is matched, so "1e10" splits into "1e1" and "0".
+    [GeneratedRegex(@"[-+]?\d*\.?\d+(?:e[-+]?\d+)?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase)]
     private static partial Regex DigitWithExponent();
 
     [GeneratedRegex(@"\)\s*[-.\d]", RegexOptions.ECMAScript)]
@@ -25,7 +25,7 @@ public static partial class ValueParser
     /// <summary>
     /// Resets <paramref name="into"/> and fills it from <paramref name="raw"/>: null, empty, 0 and false are the number 0;
     /// numeric primitives are numbers; a <see cref="PrestoColor"/> is a color; a <c>double[]</c> is a space-separated complex
-    /// value; strings are parsed as upstream does. Any other type falls back to <paramref name="codec"/>, and throws
+    /// value; strings are parsed as units, relative values, colors or complex values. Any other type falls back to <paramref name="codec"/>, and throws
     /// <see cref="NotSupportedException"/> when there is none. A <see cref="DiscreteCodec"/> takes every non-null value.
     /// </summary>
     public static void Decompose(object? raw, DecomposedValue into, IValueCodec? codec = null)
@@ -64,7 +64,7 @@ public static partial class ValueParser
         }
     }
 
-    /// <summary>Copies a tween's end value into <paramref name="into"/>, porting upstream <c>decomposeTweenValue</c>.</summary>
+    /// <summary>Copies a tween's end value into <paramref name="into"/>.</summary>
     public static void DecomposeTween(Tween tween, DecomposedValue into)
     {
         into.Kind = tween._valueType;
@@ -115,7 +115,7 @@ public static partial class ValueParser
         }
     }
 
-    /// <summary>Matches upstream <c>unitsExecRgx</c>: a number immediately followed by letters or <c>%</c>.</summary>
+    /// <summary>Parses a number immediately followed by letters or <c>%</c>.</summary>
     public static bool TryParseUnit(string s, out double number, [NotNullWhen(true)] out string? unit)
     {
         var m = UnitsExec().Match(s);
@@ -130,7 +130,7 @@ public static partial class ValueParser
         return true;
     }
 
-    /// <summary>Upstream <c>relativeValuesExecRgx</c>: the index of the first <c>*=</c>, <c>+=</c> or <c>-=</c>, or -1.</summary>
+    /// <summary>The index of the first <c>*=</c>, <c>+=</c> or <c>-=</c>, or -1.</summary>
     public static int IndexOfRelativeOperator(string text)
     {
         for (var i = 0; i < text.Length - 1; i++)
@@ -146,7 +146,7 @@ public static partial class ValueParser
         op == '+' ? x + y :
         x * y;
 
-    /// <summary>Upstream <c>isCol</c>: a hex color, or an <c>rgb</c>/<c>hsl</c> string that is not followed by more values.</summary>
+    /// <summary>Whether <paramref name="s"/> is a hex color, or an <c>rgb</c>/<c>hsl</c> string that is not followed by more values.</summary>
     public static bool IsColor(string s) =>
         PrestoColor.IsHex(s) ||
         ((s.StartsWith("rgb", StringComparison.Ordinal) || s.StartsWith("hsl", StringComparison.Ordinal)) &&

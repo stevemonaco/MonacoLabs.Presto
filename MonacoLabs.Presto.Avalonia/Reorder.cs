@@ -58,7 +58,7 @@ public static class Reorder
     public static readonly AttachedProperty<ICommand?> CommandProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, ICommand?>("Command", typeof(Reorder));
 
-    /// <summary>Raised on the list before each one-step move; setting <see cref="ReorderMovingEventArgs.Cancel"/> stops it.</summary>
+    /// <summary>Raised on the list before each one-step move; setting <see cref="ReorderMovingEventArgs.Cancel"/> stops it, and a stopped step is not raised again until the drag crosses back.</summary>
     public static readonly RoutedEvent<ReorderMovingEventArgs> MovingEvent =
         RoutedEvent.Register<ReorderMovingEventArgs>("Moving", RoutingStrategies.Bubble, typeof(Reorder));
 

@@ -47,13 +47,15 @@ public static class Pages
     /// Material shared axis: along <see cref="PageAxis.X"/> or <see cref="PageAxis.Y"/> the pages fade while the incoming one
     /// arrives from <paramref name="distance"/> DIPs (default <see cref="MotionTokens.Distance"/>) ahead and the outgoing one
     /// leaves as far behind; along <see cref="PageAxis.Z"/> the incoming page grows from <see cref="MotionTokens.Scale"/> and
-    /// the outgoing one grows as much past full size, and <paramref name="distance"/> is unused.
+    /// the outgoing one grows as much past full size, and <paramref name="distance"/> is unused. The incoming page takes
+    /// <paramref name="duration"/> and the outgoing one <see cref="MotionTokens.Short"/>/<see cref="MotionTokens.Medium"/> of it.
     /// </summary>
-    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null)
+    public static PrestoPageTransition PageSharedAxis(PageAxis axis, double? distance = null, double? duration = null)
     {
         var tokens = Recipes.Tokens;
-        var enter = Side(tokens, tokens.Medium, enter: true).Opacity(from: 0);
-        var exit = Side(tokens, tokens.Short, enter: false).Opacity(0);
+        var exitMs = duration is { } ms && tokens.Medium > 0 ? ms * tokens.Short / tokens.Medium : tokens.Short;
+        var enter = Side(tokens, duration ?? tokens.Medium, enter: true).Opacity(from: 0);
+        var exit = Side(tokens, exitMs, enter: false).Opacity(0);
         var d = distance ?? tokens.Distance;
         switch (axis)
         {
@@ -96,7 +98,7 @@ public static class Pages
     /// <remarks>
     /// An outgoing page still partly revealed, because its bloom was interrupted, finishes its circle over
     /// <see cref="MotionTokens.Short"/> under the new one, so blooms never stack. Reduced, the incoming page fades in
-    /// over <see cref="MotionTokens.Short"/> and its children do not move.
+    /// over <see cref="MotionTokens.Short"/>, its children do not move and the outgoing circle finishes at once.
     /// </remarks>
     public static PrestoPageTransition PageBloom()
     {
@@ -104,7 +106,7 @@ public static class Pages
         var tokens = Recipes.Tokens;
         var bloom = Reveals.Circle((FunctionValue)((target, _, _) => TweenValue.Of(BloomOrigin((Visual)target))), null, null, Eases.InOutQuart)
             .OnBegin(timer => Bloomed((Visual)((Animation)timer).Targets[0], tokens));
-        var finish = Presto.Build().ClipCircle(1).Duration(tokens.Short).Ease(tokens.Ease);
+        var finish = Presto.Build().ClipCircle(1).Duration(tokens.Short).Ease(tokens.Ease).WhenReduced(reduced => reduced.ClipCircle(1).Duration(0));
         return new() { Enter = bloom, Exit = finish, BackEnter = bloom, BackExit = finish, Stacking = PageStacking.IncomingAbove };
     }
 

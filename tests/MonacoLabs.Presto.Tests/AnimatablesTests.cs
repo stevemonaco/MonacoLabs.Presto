@@ -193,6 +193,29 @@ public sealed class AnimatablesTests : EngineTestBase
         Assert.InRange(updates, 2, 5);
     }
 
+    [Theory]
+    [InlineData(300)]
+    [InlineData(3000)]
+    public void TheCallbacksLastAsLongAsTheSet(double duration)
+    {
+        var (updates, completes) = (0, 0);
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new()
+        {
+            ["X"] = 100,
+            OnUpdate = _ => updates++,
+            OnComplete = _ => completes++,
+        });
+
+        animatable.Set("X", 100, duration);
+        Frames.Advance(duration - 50, 16);
+        var updatesBeforeTheEnd = updates;
+
+        Assert.Equal(0, completes);
+        Frames.Advance(100, 16);
+        Assert.Equal(1, completes);
+        Assert.True(updates > updatesBeforeTheEnd);
+    }
+
     [Fact]
     public void StaggersAnimatableDurationsPerTarget()
     {
@@ -490,12 +513,24 @@ public sealed class AnimatablesTests : EngineTestBase
     }
 
     [Fact]
+    public void AFlingWithoutAVelocityIgnoresTheSettingsVelocity()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+
+        animatable.Fling("X", new Inertia(3));
+        RunUntil(() => animatable.Animations["X"].Paused);
+
+        Assert.Equal(0, target.X);
+    }
+
+    [Fact]
     public void AFlingPastABoundSettlesOnIt()
     {
         var target = new StyleTarget();
         var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
 
-        animatable.Fling("X", 2, new Inertia(0) { Min = -50, Max = 300 });
+        animatable.Fling("X", 2, new Inertia() { Min = -50, Max = 300 });
         var peak = 0d;
         while (!animatable.Animations["X"].Paused)
         {
@@ -513,7 +548,7 @@ public sealed class AnimatablesTests : EngineTestBase
         var target = new StyleTarget();
         var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
 
-        animatable.Fling("X", 1, new Inertia(0) { Max = 0 });
+        animatable.Fling("X", 1, new Inertia() { Max = 0 });
         var peak = 0d;
         while (!animatable.Animations["X"].Paused)
         {
@@ -539,6 +574,28 @@ public sealed class AnimatablesTests : EngineTestBase
     }
 
     [Fact]
+    public void AChannelSetAfterAFlingUsesTheDeclaredEaseAndDurationAgain()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100, Ease = "linear" });
+
+        animatable.Fling("X", 1);
+        Frames.Advance(48, 16);
+        animatable.Set("X", [0]);
+
+        Assert.Equal(100, animatable.Animations["X"].Duration);
+        Assert.Equal(.25, animatable.Animations["X"]._headTween!._ease(.25));
+    }
+
+    [Fact]
+    public void FlingRejectsAColorProperty()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["BackgroundColor"] = 100 });
+
+        Assert.Throws<NotSupportedException>(() => animatable.Fling("BackgroundColor", 1));
+        Assert.Throws<NotSupportedException>(() => animatable.Fling("BackgroundColor"));
+    }
+
+    [Fact]
     public void RevertAFlungAnimatable()
     {
         var target = new StyleTarget { X = 10 };
@@ -551,6 +608,132 @@ public sealed class AnimatablesTests : EngineTestBase
         Frames.Advance(48, 16);
 
         Assert.Equal(10, target.X);
+    }
+
+    [Fact]
+    public void ReduceAllLandsASetWithADurationOnTheNextFrame()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100, ["BackgroundColor"] = 100 });
+        Presto.Defaults.ReduceAll = true;
+
+        animatable.Set("X", 100, 500).Set("BackgroundColor", [55, 155, 255, 1], 500);
+        Frames.Advance(16);
+
+        Assert.Equal(100, target.X);
+        Assert.Equal<double[]>([55, 155, 255, 1], animatable.GetChannels("BackgroundColor"));
+        Assert.False(Presto.Engine._hasChildren);
+    }
+
+    [Fact]
+    public void ReduceAllLandsAMomentumSetOnTheNextFrame()
+    {
+        var target = new StyleTarget();
+        var scalar = MomentumFollower(target, preserveVelocity: true);
+        var channels = ChannelFollower(target, "BackgroundColor", preserveVelocity: true);
+
+        scalar.Set("X", 100);
+        channels.Set("BackgroundColor", [55, 155, 255, 1]);
+        Frames.Advance(80, 16);
+        Presto.Defaults.ReduceAll = true;
+        scalar.Set("X", -50);
+        channels.Set("BackgroundColor", [200, 0, 30, .5]);
+        Frames.Advance(16);
+
+        Assert.Equal(-50, target.X);
+        Assert.Equal<double[]>([200, 0, 30, .5], channels.GetChannels("BackgroundColor"));
+        Assert.False(Presto.Engine._hasChildren);
+    }
+
+    [Fact]
+    public void ReduceAllLandsAFlingOnItsProjectedRestOnTheNextFrame()
+    {
+        var (thrown, bounded, continued, reference) = (new StyleTarget(), new StyleTarget(), new StyleTarget(), new StyleTarget());
+        var unreduced = Presto.CreateAnimatable(reference, new() { ["X"] = 1000, Ease = "outQuad" });
+        unreduced.Set("X", 500);
+        Frames.Advance(160, 16);
+        unreduced.Fling("X");
+        RunUntil(() => unreduced.Animations["X"].Paused);
+        var running = Presto.CreateAnimatable(continued, new() { ["X"] = 1000, Ease = "outQuad" });
+        running.Set("X", 500);
+        Frames.Advance(160, 16);
+        Presto.Defaults.ReduceAll = true;
+
+        Presto.CreateAnimatable(thrown, new() { ["X"] = 100 }).Fling("X", .5, new Inertia(3) { Power = 2, TimeConstant = 200 });
+        Presto.CreateAnimatable(bounded, new() { ["X"] = 100 }).Fling("X", 2, new Inertia() { Min = -50, Max = 300 });
+        running.Fling("X");
+        Frames.Advance(16);
+
+        Assert.Equal(200, thrown.X, 1e-9);
+        Assert.Equal(300, bounded.X, 1e-9);
+        Assert.Equal(reference.X, continued.X, 1e-9);
+        Assert.False(Presto.Engine._hasChildren);
+    }
+
+    [Fact]
+    public void ReduceAllRaisesOneUpdateAndOneCompletePerRetarget()
+    {
+        var calls = new List<string>();
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new()
+        {
+            ["X"] = 100,
+            ["Y"] = 100,
+            OnBegin = _ => calls.Add("begin"),
+            OnUpdate = _ => calls.Add("update"),
+            OnComplete = _ => calls.Add("complete"),
+        });
+        Presto.Defaults.ReduceAll = true;
+
+        animatable.Set("X", 100, 500);
+        Frames.Advance(48, 16);
+        animatable.Fling("Y", 1);
+        Frames.Advance(48, 16);
+
+        Assert.Equal(["begin", "update", "complete", "begin", "update", "complete"], calls);
+    }
+
+    [Fact]
+    public void ClearingReduceAllRestoresTheDurationsASetWouldHaveLeft()
+    {
+        var target = new StyleTarget();
+        Presto.Defaults.ReduceAll = true;
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100, ["Y"] = 100, Ease = "linear" });
+
+        animatable.Set("X", 100).Set("Y", 100, 400);
+        Frames.Advance(16);
+        Presto.Defaults.ReduceAll = false;
+        animatable.Set("X", 0).Set("Y", 0);
+
+        Assert.Equal(100, animatable.Animations["X"].Duration);
+        Assert.Equal(400, animatable.Animations["Y"].Duration);
+        Frames.Advance(16);
+        Assert.InRange(target.X, 1, 99);
+    }
+
+    [Fact]
+    public void AnAnimatableCreatedInAReduceAllScopeLandsItsRetargetsOutsideIt()
+    {
+        var target = new StyleTarget();
+        var scope = Presto.CreateScope(new() { Defaults = d => d.ReduceAll = true });
+        var animatable = scope.Execute(_ => Presto.CreateAnimatable(target, new() { ["X"] = 100 }));
+
+        animatable.Set("X", 100, 500);
+        Frames.Advance(16);
+
+        Assert.Equal(100, target.X);
+    }
+
+    [Fact]
+    public void ReducedMotionAloneLeavesASetWithADurationEasing()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+        Presto.Defaults.ReducedMotion = true;
+
+        animatable.Set("X", 100, 400);
+        Frames.Advance(16);
+
+        Assert.InRange(target.X, 0.001, 99);
     }
 
     private static Animatable MomentumFollower(StyleTarget target, bool preserveVelocity) =>

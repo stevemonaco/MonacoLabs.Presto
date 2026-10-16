@@ -4,7 +4,7 @@ namespace MonacoLabs.Presto;
 
 /// <summary>
 /// A point of a piecewise <see cref="Eases.Linear"/> ease: the eased value and, optionally, the progress in [0, 1] at
-/// which it is reached. Converts from a bare number or from anime.js's <c>"value percent"</c> string, e.g. <c>"0.25 75%"</c>.
+/// which it is reached. Converts from a bare number or from a <c>"value percent"</c> string, e.g. <c>"0.25 75%"</c>.
 /// </summary>
 public readonly record struct LinearStop(double Value, double? Position = null)
 {
