@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -319,18 +320,34 @@ public static class Animate
         private void HandleClearing(object? sender, ContainerClearingEventArgs e) => Disarm(e.Container);
     }
 
+    // Avalonia raises IsEffectivelyVisibleChanged from the visibility walk it already does, but keeps the event internal.
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "add_IsEffectivelyVisibleChanged")]
+    private static extern void AddVisibilityHandler(Visual visual, EventHandler handler);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "remove_IsEffectivelyVisibleChanged")]
+    private static extern void RemoveVisibilityHandler(Visual visual, EventHandler handler);
+
     private sealed class Trigger
     {
         private readonly Visual _visual;
         private readonly AttachedProperty<AnimationBuilder?> _builder;
+        private readonly Action _follow;
         private IRevertible? _animation;
+        private bool _pausedHidden;
+        private Engine? _engine;
+        private ReducedMotionFollowers.Form _form;
 
         public Trigger(Visual visual, AttachedProperty<AnimationBuilder?> builder)
         {
             _visual = visual;
             _builder = builder;
+            _follow = Follow;
             visual.DetachedFromVisualTree += HandleDetached;
-            if (builder == OnAttachedProperty) visual.AttachedToVisualTree += HandleAttached;
+            if (builder == OnAttachedProperty)
+            {
+                visual.AttachedToVisualTree += HandleAttached;
+                AddVisibilityHandler(visual, HandleVisibilityChanged);
+            }
             else if (builder == OnTappedProperty && visual is InputElement element) element.Tapped += HandleTapped;
         }
 
@@ -344,6 +361,7 @@ public static class Animate
             if (!_visual.IsAttachedToVisualTree() || _visual.GetValue(_builder) is not { } builder) return;
             PrestoAvalonia.EnsureInitialized();
             var parameters = builder.Resolve();
+            _form = ReducedMotionFollowers.Form.Of(parameters);
             if (_builder != OnAttachedProperty)
             {
                 var completed = parameters.OnComplete;
@@ -360,11 +378,14 @@ public static class Animate
             _animation = _builder != OnChangedProperty && PieceTargets.Play(_visual, parameters) is { } reveal
                 ? reveal
                 : Presto.Animate(_visual, parameters);
+            _engine = ReducedMotionFollowers.Add(_follow);
+            if (_builder == OnAttachedProperty) FollowVisibility();
         }
 
         public void Release()
         {
             _visual.AttachedToVisualTree -= HandleAttached;
+            RemoveVisibilityHandler(_visual, HandleVisibilityChanged);
             _visual.DetachedFromVisualTree -= HandleDetached;
             if (_visual is InputElement element) element.Tapped -= HandleTapped;
             Stop();
@@ -374,11 +395,43 @@ public static class Animate
         {
             _animation?.Revert();
             _animation = null;
+            _pausedHidden = false;
+            if (_engine == null) return;
+            ReducedMotionFollowers.Remove(_engine, _follow);
+            _engine = null;
+        }
+
+        private void Follow()
+        {
+            if (_engine != null && _visual.GetValue(_builder) is { } builder && _form.Replays(ReducedMotionFollowers.Form.Of(builder.Resolve()))) Play();
+        }
+
+        // Resumes only a pause made here, so a pause from elsewhere survives a show.
+        private void FollowVisibility()
+        {
+            if (_visual.IsEffectivelyVisible)
+            {
+                if (!_pausedHidden) return;
+                _pausedHidden = false;
+                if (_animation is PieceTargets pieces) pieces.Paused = false;
+                else (_animation as Timer)?.Resume();
+            }
+            else if (_animation is PieceTargets { Paused: false, Animation: not { Paused: true } } pieces)
+            {
+                pieces.Paused = _pausedHidden = true;
+            }
+            else if (_animation is Timer { Paused: false } timer)
+            {
+                timer.Pause();
+                _pausedHidden = true;
+            }
         }
 
         private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e) => Play();
 
         private void HandleTapped(object? sender, TappedEventArgs e) => Play();
+
+        private void HandleVisibilityChanged(object? sender, EventArgs e) => FollowVisibility();
 
         private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e) => Stop();
     }

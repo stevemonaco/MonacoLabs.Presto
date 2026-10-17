@@ -17,7 +17,7 @@ namespace MonacoLabs.Presto.Draggables;
 /// bounds and container friction, and a release that throws the target on with the pointer's velocity.
 /// </summary>
 /// <remarks>One pointer drags at a time, mouse and touch alike, through a pointer capture on the trigger.</remarks>
-public sealed class Draggable : IRevertible
+public sealed class Draggable : IRevertible, IReleasable
 {
     internal const double DefaultScrollSpeed = 1.5;
     internal const double DefaultScrollThreshold = 20;
@@ -99,6 +99,7 @@ public sealed class Draggable : IRevertible
     private bool _dragged;
     private bool _updated;
     private bool _released;
+    private bool _reverted;
     private bool _scrollLocked;
     private bool _hovering;
     private MotionValue? _xValue;
@@ -263,7 +264,11 @@ public sealed class Draggable : IRevertible
     {
         if (_target.Parent is not Panel parent) throw new InvalidOperationException("Reparent needs the target's parent to be a Panel.");
         // Taken before the flight replaces it; a XAML Animate.Layout (Replaced set) re-arms itself.
-        if (LayoutTransition.Live(_target) is { Once: false, Replaced: null } layout) _displacedLayout = layout;
+        if (LayoutTransition.Live(_target) is { Once: false, Replaced: null } layout)
+        {
+            layout.Displaced = true;
+            _displacedLayout = layout;
+        }
         _releaseSpringX.Velocity = 0;
         var flight = _flight = PrestoAvalonia.AnimateSharedElement(
             _target, _target, SettlingDuration(_releaseSpringX), _hasReleaseSpring ? _releaseSpringX.Ease : _releaseEase, LayoutAnimateMode.Position);
@@ -349,6 +354,7 @@ public sealed class Draggable : IRevertible
     {
         if (_enabled) return this;
         _enabled = true;
+        _reverted = false;
         _trigger.PointerEntered += HandleEntered;
         _trigger.PointerExited += HandleExited;
         _trigger.PointerPressed += HandlePressed;
@@ -388,10 +394,13 @@ public sealed class Draggable : IRevertible
         _target.SizeChanged -= HandleSizeChanged;
         if (_parameters.Container is { } container && container != _target) container.SizeChanged -= HandleSizeChanged;
         GestureOwners.Release(_target, this);
+        _reverted = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _reverted;
 
     private void Halt()
     {

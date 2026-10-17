@@ -101,7 +101,7 @@ public sealed class CompactLayoutTests : TempoTestBase
 
     private static double CenterX(Visual visual, Visual to) => visual.TranslatePoint(new Point(visual.Bounds.Width / 2, 0), to)!.Value.X;
 
-    // Within its card, or the page outside one; a horizontally scrolling list, an edge scroller's chrome and a card-wide scroll shadow run past by design, and untrimmed text must fit its block (a digit's glyph overhangs its 36 DIP slot by a pixel).
+    // Within its card, or the page outside one; a horizontally scrolling list, an edge scroller's chrome and a card-wide scroll shadow run past by design, and untrimmed text must fit its block.
     private static IEnumerable<string> Overflowing(Control page) =>
         from c in page.GetVisualDescendants().OfType<Control>()
         where c.IsEffectivelyVisible && !c.GetVisualAncestors().OfType<ScrollContentPresenter>().Any(p => p.CanHorizontallyScroll) && !IsEdgeScrollChrome(c) && !c.Classes.Contains("scroll-shadow")

@@ -33,6 +33,7 @@ tests:
   - AnimationBuilderBridgeTests
   - DiscretePropertyTests
   - CompositorPageTests
+  - ScopePruningTests
 upstream:
   - src/waapi/waapi.js
   - src/waapi/composition.js
@@ -171,6 +172,8 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
   - Tests: `CompositorAnimationTests.RevertPutsTheControlBackAsItWas`, `CompositorAnimationTests.RevertLeavesEveryMirrorAtZeroRatherThanBeforeItsDelay`
 - **BRIDGE-THREAD-045** — The compositor animation shall register with `Engine.Current.CurrentScope` when there is one, so reverting the scope reverts it.
   - Tests: `CompositorPageTests.ThePageRunsAndRevertsEverythingOnDetach`
+- **BRIDGE-THREAD-060** — Once reverted, a `CompositorAnimation` and its mirror animations shall count as released to the scope they registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-THREAD-057** — When a compositor animation with `Reversed` completes, the visual shall rest on the animation's start values until it is reverted.
   - Tests: `CompositorPlaybackTests.AReversedRunRestsOnItsStartValuesUntilReverted`, `PageTransitionTests.GoingBackWithTheForwardPairNeverBlinksTheIncomingPage`
 
@@ -191,6 +194,8 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
   - Tests: `CompositorAnimationTests.ReduceAllLandsACompositorAnimationOnItsEndValuesAtOnce`
 - **BRIDGE-THREAD-051** — While `ReducedMotion` is set, params or a builder with `WhenReduced` shall run their reduced form on the compositor, which `ReduceAll` leaves alone.
   - Tests: `CompositorAnimationTests.ReduceAllLeavesAReducedAlternativeOnTheCompositorAlone`, `CompositorAnimationTests.DictionaryParamsOnTheCompositorPlayTheirReducedForm`
+- **BRIDGE-THREAD-061** — A compositor animation shall keep the form it was compiled with when the flags change.
+  - Tests: `CompositorAnimationTests.ACompositorLoopKeepsItsFormWhenTheFlagFlips`
 
 ### Defaults
 

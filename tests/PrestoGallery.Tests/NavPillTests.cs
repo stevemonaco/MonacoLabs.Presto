@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using PrestoGallery.ViewModels;
@@ -20,13 +21,15 @@ public sealed class NavPillTests
     [AvaloniaFact]
     public void ThePillGlidesToAPageInAnotherSectionAndSettlesOnIt() => WithPill((gallery, nav, pill) =>
     {
-        var from = SceneHarness.Slot(pill, nav).Y;
+        // The target is below the fold, so selecting it scrolls the nav; the scrolled content's frame holds both ends still.
+        var content = (Visual)nav.GetVisualDescendants().OfType<ScrollContentPresenter>().First().Child!;
+        var from = SceneHarness.Slot(pill, content).Y;
         var target = gallery.Sections[^1].Pages[0];
         nav.SelectedItem = target;
         TestFrames.Tick(4);
 
-        var to = SceneHarness.Slot(Root(nav, target), nav).Y;
-        var mid = SceneHarness.Slot(pill, nav).Y;
+        var to = SceneHarness.Slot(Root(nav, target), content).Y;
+        var mid = SceneHarness.Slot(pill, content).Y;
         Assert.InRange(mid, Math.Min(from, to) + 1, Math.Max(from, to) - 1);
 
         TestFrames.Tick(60);

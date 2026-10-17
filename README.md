@@ -673,6 +673,33 @@ pauses its timer once every cell rests, and reduced motion fades the changed cel
                   CellBackground="#222" CornerRadius="4" CellSpacing="3" />
 ```
 
+### Marquee
+
+`Marquee` scrolls its content continuously: the content is laid out once and repeated end to end, `Gap` (24) apart,
+at `Speed` (60 DIPs per second) in `Direction` (`Left`, `Right`, `Up`, `Down`). Copies of data content are built from
+the same `ContentTemplate`, so buttons in them click; copies of a control are mirrors. Screen readers and Tab see the
+content once. `FadeEdges` fades both ends over that many DIPs.
+
+```xml
+<presto:Marquee Speed="60" Gap="48" FadeEdges="32" Content="{Binding Logos}">
+  <presto:Marquee.ContentTemplate>
+    <DataTemplate>
+      <ItemsControl ItemsSource="{Binding}" ItemTemplate="{StaticResource Logo}">
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="48"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+      </ItemsControl>
+    </DataTemplate>
+  </presto:Marquee.ContentTemplate>
+</presto:Marquee>
+
+<presto:Marquee Mode="WhenOverflowing" Content="{Binding TrackTitle}"/>
+```
+
+Every change of speed or direction eases rather than snaps. `IsPaused` (two-way by default, for a pause button) eases
+the strip to a stop, and so does the pointer over it or keyboard focus brought in by Tab while `PauseOnHover` is on.
+`Mode="WhenOverflowing"` scrolls only while the content is longer than the marquee, and otherwise shows it once, placed
+by the content alignment. Under reduced motion it does not move at all: the content shows once, start-aligned and
+clipped.
+
 ### Render thread
 
 Everything above runs on the UI thread, which means everything above stops when the UI thread does. A `CompositorScene`
@@ -1579,8 +1606,8 @@ var intro = Presto.Build().Y(from: 80).Scale(from: .8).Opacity(from: 0).Duration
 While `PrestoDefaults.ReducedMotion` is set, `ToParams()` builds the `WhenReduced` alternative instead: a new builder
 with this one's settings (duration, delay, ease, loop, callbacks), including those chained after `WhenReduced`, but none
 of its properties or keyframes. So `Recipes.FadeUp().Delay(Presto.Stagger(60))` keeps its stagger when reduced. The
-flag is read when the builder becomes params, so a running animation is left alone; a `Motion` state picks up a change at
-its next transition. Every recipe supplies an alternative (the table above).
+flag is read when the builder becomes params, so an animation you started keeps its form. Every recipe supplies an
+alternative (the table above).
 
 `PrestoDefaults.ReduceAll` handles everything without one: each other animation, from a builder or from params, becomes
 an instant, one-iteration set of its end values, keyframes and springs included, and so do timeline children. Plain
@@ -1588,7 +1615,30 @@ timers keep their durations, and animations built from a `WhenReduced` alternati
 the whole app.
 
 Both flags are ordinary defaults, so each engine has its own and a `Scope` copies them. Presto never sets them on its
-own. To follow the OS "reduce motion" setting (Motion's `reducedMotion="user"`), opt in:
+own. A settings screen offering "OS preference", "full" and "reduced" sets one property, or binds it from XAML:
+
+```csharp
+PrestoAvalonia.MotionPreference = MotionPreference.System;   // or Full, Reduced; null (the default) leaves the flag alone
+```
+
+```xml
+<Window presto:Motion.Preference="{Binding Motion}" />
+```
+
+`Full` and `Reduced` write `ReducedMotion` on `Presto.Engine`; `System` follows the OS setting (Motion's
+`reducedMotion="user"`) as `FollowSystemReducedMotion` below does. `ReduceAll` is never written. The view model holds the
+core `MotionPreference` enum, so it needs no Avalonia reference.
+
+When either flag of an engine's own defaults changes, the engine raises `ReducedMotionChanged`. The bridge's own triggers
+(`Animate.OnAttached`, a running `OnTapped`/`OnChanged`) and `Motion` states replay in their new form when it differs and
+either form loops forever, so an endless loop on screen switches at once; `PullToRefresh` and `Distort` follow it too. Animations you start yourself, timelines and
+compositor scenes keep their form; subscribe to the event to restart them:
+
+```csharp
+Presto.Engine.ReducedMotionChanged += _ => StartDrift();
+```
+
+To follow the OS setting yourself, on any engine:
 
 ```csharp
 var following = PrestoAvalonia.FollowSystemReducedMotion(changed: reduced => Log($"reduce motion: {reduced}"));
@@ -1651,7 +1701,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
 | *CSS, not anime.js:* `clip-path: inset()` / `circle()` | `ClipInset`, `ClipCircle` with `ClipCircleCenter` |
 | *CSS, not anime.js:* a `mask-image` linear-gradient sweep | `MaskSweep` with `MaskSweepAngle` and `MaskSweepFeather` |
-| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, `PrestoAvalonia.FollowSystemReducedMotion()`. See [Reduced motion](#reduced-motion) |
+| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, `Motion.Preference="System"` (or `PrestoAvalonia.MotionPreference`). See [Reduced motion](#reduced-motion) |
 
 The XAML surface is the `Presence` lifecycle properties for entrances, scroll reveals and exits ([Lifecycle animations](#lifecycle-animations)), `Animate.OnAttached` for loops and timers while a visual is attached ([From XAML](#from-xaml)), `Connected`'s keys,
 the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)), and the recipe markup extensions and `Tilt` ([Recipes](#recipes)); other triggers belong in code-behind or a view model.

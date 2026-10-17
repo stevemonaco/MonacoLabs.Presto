@@ -245,7 +245,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 ## Reduced motion
 
-- Not affected: the engine plays whatever timers it is given; reduced forms are chosen when animations are built (CORE-REDUCED).
+- Not affected: the engine plays whatever timers it is given; reduced forms are chosen when animations are built (CORE-REDUCED). The engine reports a change of its flags through `ReducedMotionChanged` (CORE-REDUCED).
 
 ## Allocation
 

@@ -28,6 +28,7 @@ tests:
   - PointerProximityValueTests
   - MotionValueCodecTests
   - BridgeAllocationTests
+  - ScopePruningTests
 upstream: []
 depends:
   - CORE-MOTIONVALUE
@@ -183,6 +184,8 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: untested
 - **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` or `ValueOf` shall stop at its last value and not revive on reattach; a `PointerProximityValue` or `PointerOffsetValue` shall also stop when its tracking surface leaves the visual tree, and when given `over` shall stop with that surface instead of its control; a non-`Visual` `ValueOf` target stops only with its scope.
   - Tests: `MotionValueSourceTests.ScrollAndPropertyValuesStopWhenTheirControlDetaches`, `MotionValueSourceTests.PointerValueStopsWhenItsScopeReverts`, `PointerProximityValueTests.DetachAndScopeRevertStopTheValueForGood`, `PointerProximityValueTests.RemovingTheSurfaceStopsItsValues`, `PointerProximityValueTests.OverASurfaceTheValueOutlivesItsControlBeingReHosted`
+- **BRIDGE-FOLLOW-074** — Once such a value has stopped, its registration shall count as released to the scope that was current at creation (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-FOLLOW-054** — `ScrollObserver.ProgressValue` shall equal the observer's `Progress` after every scroll and freeze when the observer reverts.
   - Tests: `MotionValueSourceTests.ProgressValueMatchesTheObserverAcrossItsThresholds`, `MotionValueSourceTests.ObserverAndDraggableValuesFreezeOnRevert`
 - **BRIDGE-FOLLOW-055** — `Draggable.XValue`/`YValue` shall mirror `X`/`Y` rounded to the engine's precision through drag and release, and freeze when the draggable reverts.

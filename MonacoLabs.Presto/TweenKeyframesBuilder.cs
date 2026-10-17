@@ -13,8 +13,9 @@ public sealed class TweenKeyframesBuilder
     private static readonly Ease Hold = static s => s < 1 ? 0 : 1;
 
     private readonly List<TweenValue> _frames = [];
+    private readonly string _property;
 
-    internal TweenKeyframesBuilder() { }
+    internal TweenKeyframesBuilder(string property) => _property = property;
 
     /// <summary>Adds a frame ending on <paramref name="to"/>; the first frame starts from the property's current value.</summary>
     /// <remarks>
@@ -50,9 +51,18 @@ public sealed class TweenKeyframesBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds a color tween to <paramref name="to"/> as <see cref="Color(TweenValue, TweenValue, ColorSpace, HueInterpolation, TweenValue?, TweenValue?, EaseValue?, int?)"/>
+    /// does, starting each target from its property's current color, read when the animation is built; a value its codec does
+    /// not read as a color starts from transparent.
+    /// </summary>
+    public TweenKeyframesBuilder Color(TweenValue to, ColorSpace space = ColorSpace.Oklab, HueInterpolation hue = HueInterpolation.Shorter,
+                                      TweenValue? duration = null, TweenValue? delay = null, EaseValue? ease = null, int? segments = null) =>
+        Color((FunctionValue)((target, _, _) => TweenValue.Of(CurrentColor(target, _property))), to, space, hue, duration, delay, ease, segments);
+
     internal TweenValue[] ToArray() => _frames.ToArray();
 
-    /// <summary>Expands each <see cref="Color"/> call, taking an unset ease or duration from <paramref name="defaults"/>; returns <paramref name="frames"/> itself when there is none.</summary>
+    /// <summary>Expands each <see cref="Color(TweenValue, TweenValue, ColorSpace, HueInterpolation, TweenValue?, TweenValue?, EaseValue?, int?)"/> call, taking an unset ease or duration from <paramref name="defaults"/>; returns <paramref name="frames"/> itself when there is none.</summary>
     internal static TweenValue[] Expand(TweenValue[] frames, PrestoDefaults defaults)
     {
         if (!Array.Exists(frames, static f => f.Raw is ColorTween)) return frames;
@@ -121,6 +131,18 @@ public sealed class TweenKeyframesBuilder
         string text when PrestoColor.TryParse(text, out var color) => color,
         _ => throw new ArgumentException($"'{value.Raw}' is not a color.", name),
     };
+
+    private static PrestoColor CurrentColor(object target, string property)
+    {
+        try
+        {
+            return Presto.Decompose(target, property) is { Kind: ValueKind.Color } value ? PrestoColor.FromChannels(value.Numbers) : new PrestoColor(0, 0, 0, 0);
+        }
+        catch (NotSupportedException)
+        {
+            return new PrestoColor(0, 0, 0, 0);
+        }
+    }
 
     private static Ease ResolveTiming(EaseValue ease, TweenValue duration, object target, int index, int count, out double total)
     {

@@ -128,6 +128,84 @@ public sealed class SwipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void EachSideRunsItsOwnCommandWithTheParameter()
+    {
+        var (leading, trailing, fallback) = (new Recorder(), new Recorder(), new Recorder());
+        var (window, rows) = Stage(row =>
+        {
+            Swipe.SetLeadingCommand(row, leading);
+            Swipe.SetTrailingCommand(row, trailing);
+            Swipe.SetCommand(row, fallback);
+            Swipe.SetCommandParameter(row, "item");
+        });
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(130, 0));
+        Frames.Advance(3000, 20);
+        new Touch(window).Drag(Frames, Center(rows[1], window), new Vector(-130, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(new object?[] { "item" }, leading.Runs);
+        Assert.Equal(new object?[] { "item" }, trailing.Runs);
+        Assert.Empty(fallback.Runs);
+    }
+
+    [AvaloniaFact]
+    public void ASideWithoutItsOwnCommandFallsBackToCommandWithTheEdge()
+    {
+        var (leading, fallback) = (new Recorder(), new Recorder());
+        var (window, rows) = Stage(row =>
+        {
+            Swipe.SetLeadingCommand(row, leading);
+            Swipe.SetCommand(row, fallback);
+            Swipe.SetCommandParameter(row, "item");
+        });
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-130, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(new object?[] { Edge.Left }, fallback.Runs);
+        Assert.Empty(leading.Runs);
+    }
+
+    [AvaloniaFact]
+    public void ASideWhoseCommandCannotExecuteSpringsBackInsteadOfCommitting()
+    {
+        var trailing = new Recorder();
+        var (window, rows) = Stage(row => Swipe.SetTrailingCommand(row, trailing));
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+
+        touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, from + new Vector(-12, 0));
+        touch.Move(1, from + new Vector(-130, 0));
+        Assert.Equal(-130, X(rows[0]), 3);
+        trailing.CanRun = false;
+        touch.Up(1, from + new Vector(-130, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Empty(trailing.Runs);
+        Assert.Equal(-Open, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void ASideWithNoCommandStopsAtItsActionsWidth()
+    {
+        var (window, rows) = Stage(row => Swipe.SetLeadingCommand(row, new Recorder()));
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+
+        touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, from + new Vector(-12, 0));
+        touch.Move(1, from + new Vector(-130, 0));
+        Assert.Equal(-Open - 70 * .35, X(rows[0]), 3);
+        touch.Move(1, from + new Vector(130, 0));
+        Assert.Equal(130, X(rows[0]), 3);
+        touch.Up(1, from + new Vector(130, 0));
+    }
+
+    [AvaloniaFact]
     public void ADismissPlaysTheExitAndRemovesTheRowWhileItemLayoutClosesTheGap()
     {
         var items = new ObservableCollection<string> { "a", "red", "c" };
@@ -382,7 +460,9 @@ public sealed class SwipeTests : CompositorTestBase
             remove { }
         }
 
-        public bool CanExecute(object? parameter) => true;
+        public bool CanRun { get; set; } = true;
+
+        public bool CanExecute(object? parameter) => CanRun;
 
         public void Execute(object? parameter)
         {

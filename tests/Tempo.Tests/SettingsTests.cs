@@ -17,21 +17,6 @@ namespace Tempo.Tests;
 
 public sealed class SettingsTests : TempoTestBase
 {
-    [AvaloniaFact]
-    public async Task TheMotionSettingSetsAndClearsTheReducedFlag()
-    {
-        var vm = await LoadAsync();
-        App.ApplyMotionSetting(vm);
-
-        vm.Motion = MotionPreference.Reduced;
-        Assert.True(Presto.Defaults.ReducedMotion);
-        vm.Motion = MotionPreference.Full;
-        Assert.False(Presto.Defaults.ReducedMotion);
-        await vm.FlushAsync();
-
-        Assert.Equal(MotionPreference.Full, (await new TempoStore(Root).LoadAsync()).Settings.Motion);
-    }
-
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -150,8 +135,6 @@ public sealed class SettingsTests : TempoTestBase
     public async Task TheMotionPreviewFadesOnceTheChoiceIsReduced()
     {
         var (window, vm) = await ShowAsync(reduced: false);
-        App.ApplyMotionSetting(vm);
-        vm.Motion = MotionPreference.Full;
         vm.OpenSettingsCommand.Execute(null);
         TestFrames.Tick(20);
         var dot = Find<Ellipse>(window, "MotionPreview");
@@ -163,6 +146,29 @@ public sealed class SettingsTests : TempoTestBase
         TestFrames.Tick(40);
         Assert.Equal(1, dot.Opacity);
         Assert.Empty(Presto.GetAnimations(dot));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task TheMotionPreviewLoopsAgainOnceTheChoiceIsFull()
+    {
+        var (window, vm) = await ShowAsync(reduced: true);
+        vm.OpenSettingsCommand.Execute(null);
+        TestFrames.Tick(60);
+        var dot = Find<Ellipse>(window, "MotionPreview");
+        Assert.Empty(Presto.GetAnimations(dot));
+
+        vm.Motion = MotionPreference.Full;
+        var lowest = 0.0;
+        for (var i = 0; i < 30; i++)
+        {
+            TestFrames.Tick();
+            lowest = Math.Min(lowest, dot.RenderTransform?.Value.M32 ?? 0);
+        }
+        Assert.Equal(-7, lowest, 0.5);
+        Assert.Equal(1, dot.Opacity);
+        Assert.NotEmpty(Presto.GetAnimations(dot));
         window.Close();
         await vm.FlushAsync();
     }

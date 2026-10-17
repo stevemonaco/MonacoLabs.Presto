@@ -43,6 +43,9 @@ public static class SubmitButton
     private static readonly AttachedProperty<Parts?> PartsProperty =
         AvaloniaProperty.RegisterAttached<Button, Parts?>("Parts", typeof(SubmitButton));
 
+    private static readonly AttachedProperty<object?> RunProperty =
+        AvaloniaProperty.RegisterAttached<Button, object?>("Run", typeof(SubmitButton));
+
     static SubmitButton() => StateProperty.Changed.AddClassHandler<Button>((button, e) =>
     {
         var parts = button.GetValue(PartsProperty);
@@ -72,19 +75,27 @@ public static class SubmitButton
     /// Shows <paramref name="button"/> busy until <paramref name="work"/> ends, then its outcome for
     /// <see cref="MotionTokens.Medium"/> plus <see cref="MotionTokens.Long"/>, then idle again.
     /// </summary>
+    /// <remarks>A later <c>Run</c> on the same button takes it over: this one stops writing the state but still returns its outcome.</remarks>
     /// <returns>
     /// Whether the work succeeded: it ran to completion and, as a <see cref="Task{Boolean}"/>, returned true. A fault stays on
     /// <paramref name="work"/> rather than being thrown here.
     /// </returns>
     public static async Task<bool> Run(Button button, Task work)
     {
+        var run = new object();
+        button.SetValue(RunProperty, run);
         button.SetCurrentValue(StateProperty, SubmitState.Busy);
         await Task.WhenAny(work);
         var succeeded = work.IsCompletedSuccessfully && work is not Task<bool> { Result: false };
-        button.SetCurrentValue(StateProperty, succeeded ? SubmitState.Succeeded : SubmitState.Failed);
+        Show(succeeded ? SubmitState.Succeeded : SubmitState.Failed);
         await Presto.Delay(Recipes.Tokens.Medium + Recipes.Tokens.Long);
-        button.SetCurrentValue(StateProperty, SubmitState.Idle);
+        Show(SubmitState.Idle);
         return succeeded;
+
+        void Show(SubmitState state)
+        {
+            if (button.GetValue(RunProperty) == run) button.SetCurrentValue(StateProperty, state);
+        }
     }
 
     private sealed class Parts

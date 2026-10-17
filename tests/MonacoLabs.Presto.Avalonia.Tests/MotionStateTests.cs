@@ -395,6 +395,77 @@ public sealed class MotionStateTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AHeldLoopingStateReplaysInItsNewFormWhenTheFlagFlips()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".busy", Linear().Loop().Alternate().X(20).WhenReduced(reduced => reduced.Opacity(0.5).Loop(false).Alternate(false))));
+        box.Classes.Add("busy");
+        Frames.Advance(50, 10);
+        Assert.InRange(Get(box, "X"), 1, 19);
+
+        Presto.Defaults.ReducedMotion = true;
+        Frames.Advance(200, 10);
+
+        Assert.Equal(0, Get(box, "X"), 6);
+        Assert.Equal(0.5, box.Opacity, 6);
+
+        Presto.Defaults.ReducedMotion = false;
+        Frames.Advance(150, 10);
+        var x = Get(box, "X");
+        Frames.Advance(30, 10);
+
+        Assert.Equal(1, box.Opacity, 6);
+        Assert.NotEqual(x, Get(box, "X"), 3);
+    }
+
+    [AvaloniaFact]
+    public void AHeldFiniteStateKeepsItsValuesUntilLeft()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".on", Linear().X(20).WhenReduced(reduced => reduced.Opacity(0.5))));
+        box.Classes.Add("on");
+        Frames.Advance(150, 10);
+
+        Presto.Defaults.ReducedMotion = true;
+        Frames.Advance(150, 10);
+
+        Assert.Equal(20, Get(box, "X"), 6);
+        Assert.Equal(1, box.Opacity, 6);
+
+        box.Classes.Remove("on");
+        Frames.Advance(150, 10);
+        box.Classes.Add("on");
+        Frames.Advance(150, 10);
+
+        Assert.Equal(0, Get(box, "X"), 6);
+        Assert.Equal(0.5, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void AReplayLeavesAHeldFiniteStateOnTheSameElementInItsForm()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box,
+        [
+            new MotionState { When = ".busy", Motion = Linear().Loop().Alternate().X(20).WhenReduced(reduced => reduced.X(10).Loop(false).Alternate(false)) },
+            new MotionState { When = ".on", Motion = Linear().Y(30).WhenReduced(reduced => reduced.Opacity(0.5)) },
+        ]);
+        box.Classes.Add("busy");
+        box.Classes.Add("on");
+        Frames.Advance(150, 10);
+
+        Presto.Defaults.ReducedMotion = true;
+        Frames.Advance(200, 10);
+
+        Assert.Equal(10, Get(box, "X"), 6);
+        Assert.Equal(30, Get(box, "Y"), 6);
+        Assert.Equal(1, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
     public void ReturningToALowerKeyframedStateReplaysItsKeyframes()
     {
         var box = Box();

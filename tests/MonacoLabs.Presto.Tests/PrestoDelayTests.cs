@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace MonacoLabs.Presto.Tests;
 
 public sealed class PrestoDelayTests : EngineTestBase
@@ -61,6 +63,35 @@ public sealed class PrestoDelayTests : EngineTestBase
 
         Assert.True(delay.IsCanceled);
         Assert.Null(Presto.Engine._head);
+    }
+
+    [Fact]
+    public async Task TheRegistrationIsDisposedWhenTheTimerIsInterrupted()
+    {
+        using var source = new CancellationTokenSource();
+        var scope = Presto.CreateScope();
+        var (delay, timer) = StartDelayInScope(scope, source.Token);
+        Frames.Advance(16);
+
+        scope.Revert();
+        Frames.Advance(16);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delay);
+
+        // The token's registration is the last thing that could hold the timer.
+        for (var i = 0; i < 100 && timer.IsAlive; i++)
+        {
+            await Task.Delay(10, TestToken);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+        Assert.False(timer.IsAlive);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private (Task Delay, WeakReference Timer) StartDelayInScope(Scope scope, CancellationToken token)
+    {
+        var delay = scope.Execute(_ => Presto.Delay(100, token));
+        return (delay, new WeakReference(Presto.Engine._head));
     }
 
     // Starts the delay mid-flight, past the engine's first-frame catch-up.

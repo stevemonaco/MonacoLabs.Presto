@@ -33,28 +33,22 @@ public static class Presto
     /// Waits <paramref name="duration"/> of the current engine's time, so unlike <see cref="Task.Delay(int)"/> the wait
     /// follows <see cref="Engine.Speed"/> and a manually advanced frame source.
     /// </summary>
-    /// <remarks>Cancel <paramref name="cancellationToken"/> on the engine's thread, as with every other control.</remarks>
+    /// <remarks>
+    /// Cancel <paramref name="cancellationToken"/> on the engine's thread, as with every other control. The task is also canceled when
+    /// its timer is, as when the scope it was created in reverts.
+    /// </remarks>
     public static Task Delay(double duration, CancellationToken cancellationToken = default)
     {
         if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
         if (duration <= 0) return Task.CompletedTask;
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        CancellationTokenRegistration registration = default;
-        var timer = CreateTimer(new()
+        var timer = CreateTimer(new() { Duration = duration });
+        var wait = timer.ThenOrCancel();
+        if (cancellationToken.CanBeCanceled)
         {
-            Duration = duration,
-            OnComplete = _ =>
-            {
-                registration.Dispose();
-                completion.TrySetResult();
-            },
-        });
-        registration = cancellationToken.Register(() =>
-        {
-            timer.Cancel();
-            completion.TrySetCanceled(cancellationToken);
-        });
-        return completion.Task;
+            var registration = cancellationToken.Register(static timer => ((Timer)timer!).Cancel(), timer);
+            wait.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
+        }
+        return wait;
     }
 
     /// <summary>Creates a source <see cref="MotionValue"/> that derived values follow (Motion's <c>motionValue()</c>).</summary>
@@ -209,7 +203,7 @@ public static class Presto
         return false;
     }
 
-    private static DecomposedValue? Decompose(object? targets, string property)
+    internal static DecomposedValue? Decompose(object? targets, string property)
     {
         var parsed = TargetParser.Parse(targets);
         if (parsed.Count == 0) return null;

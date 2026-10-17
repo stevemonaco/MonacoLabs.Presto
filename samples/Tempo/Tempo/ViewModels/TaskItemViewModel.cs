@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MonacoLabs.Presto;
 using Tempo.Model;
 
 namespace Tempo.ViewModels;
@@ -21,9 +20,6 @@ public sealed partial class TaskItemViewModel : ObservableObject
         IsDone = item.IsDone;
         Tag = item.Tag;
     }
-
-    /// <summary>Raised when a swipe asks to delete the task; <see cref="MainViewModel"/> deletes it.</summary>
-    public event EventHandler? DeleteRequested;
 
     public Guid Id { get; }
 
@@ -65,15 +61,8 @@ public sealed partial class TaskItemViewModel : ObservableObject
     /// </summary>
     public ObservableCollection<SessionDot> Dots { get; } = [];
 
-    /// <summary>A swipe from the leading edge (<see cref="Edge.Right"/>) completes the task; one from the trailing edge deletes it.</summary>
     [RelayCommand]
-    private void Swipe(Edge edge)
-    {
-        if (edge == Edge.Right)
-            IsDone = true;
-        else
-            DeleteRequested?.Invoke(this, EventArgs.Empty);
-    }
+    private void Complete() => IsDone = true;
 
     partial void OnEstimateChanged(int value) => SyncDots();
 

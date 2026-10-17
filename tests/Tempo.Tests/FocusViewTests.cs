@@ -82,7 +82,40 @@ public sealed class FocusViewTests : TempoTestBase
         var tasks = window.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("break-dim"));
         Assert.Equal(.45, tasks.Opacity, 2);
         Assert.True(guide.IsVisible);
-        Assert.NotNull(Animate.GetOnAttached(guide));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheBreatheGuideIsPausedOutsideABreakAndPlaysDuringOne(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced);
+        var guide = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("breathe"));
+        TestFrames.Tick(2);
+        Assert.Empty(Presto.GetAnimations(guide));
+
+        vm.Focus.SkipCommand.Execute(null);
+        TestFrames.Tick(40);
+
+        Assert.True(guide.IsVisible);
+        if (reduced)
+        {
+            Assert.Equal(1, guide.Opacity);
+        }
+        else
+        {
+            var scale = Presto.Get(guide, "Scale");
+            TestFrames.Tick(5);
+            Assert.False(Assert.Single(Presto.GetAnimations(guide)).Paused);
+            Assert.NotEqual(scale, Presto.Get(guide, "Scale"));
+        }
+
+        vm.Focus.SkipCommand.Execute(null);
+        TestFrames.Tick(2);
+        Assert.Equal(FocusMode.Focus, vm.Focus.Mode);
+        Assert.Empty(Presto.GetAnimations(guide));
         window.Close();
         await vm.FlushAsync();
     }
@@ -100,12 +133,12 @@ public sealed class FocusViewTests : TempoTestBase
         TestFrames.Tick(60);
         Assert.Equal("00:12", ClockText(window));
         Assert.DoesNotContain("final", ring.Classes);
-        var blocks = ClockBlocks(window);
-        var bounds = blocks.Select(b => b.Bounds).ToList();
+        var block = ClockBlock(window);
+        var bounds = block.Bounds;
 
         for (var second = 11; second >= -1; second--)
         {
-            var before = ClockText(window);
+            var before = ClockText(window)!;
             Time.Advance(TimeSpan.FromSeconds(1));
             Ticks.Raise();
             TestFrames.Tick(8);
@@ -113,23 +146,19 @@ public sealed class FocusViewTests : TempoTestBase
             Assert.Equal(final, ring.Classes.Contains("final"));
             Assert.Equal(final, reduced ? ring.Opacity < .9 : ring.Effect is DropShadowEffect { BlurRadius: > 0 });
             var after = vm.Focus.RemainingText;
-            for (var i = 0; i < blocks.Count; i++)
-            {
-                var changed = before[i] != after[i];
-                Assert.Equal(changed && !reduced, blocks[i].Inlines is { Count: > 0 });
-                if (changed && !reduced)
-                    continue;
-                Assert.Equal(after[i].ToString(), blocks[i].Text);
-                Assert.Equal(bounds[i], blocks[i].Bounds);
-                Assert.Equal(1, blocks[i].Opacity);
-            }
+            var changed = Enumerable.Range(0, after.Length).Count(i => before[i] != after[i]);
+            Assert.Equal(reduced ? 0 : changed, Pieces(block).Count());
+            Assert.Equal(changed > 0 && !reduced, block.Inlines is { Count: > 0 });
+            Assert.Equal(bounds, block.Bounds);
+            Assert.Equal(1, block.Opacity);
             TestFrames.Tick(52);
-            Assert.Equal(after, ClockText(window));
-            Assert.Equal(bounds, blocks.Select(b => b.Bounds));
+            Assert.Empty(Pieces(block));
+            Assert.True(block.Inlines is null or { Count: 0 });
+            Assert.Equal(after, block.Text);
+            Assert.Equal(bounds, block.Bounds);
         }
 
         Assert.Equal(FocusMode.ShortBreak, vm.Focus.Mode);
-        Assert.All(blocks, b => Assert.True(b.Inlines is null or { Count: 0 }));
         window.Close();
         await vm.FlushAsync();
     }
@@ -137,16 +166,14 @@ public sealed class FocusViewTests : TempoTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task TheDigitRowRebuildsWhenTheMinutesLoseADigitMidMorph(bool reduced)
+    public async Task TheCountdownMorphsFromThreeMinuteDigitsToTwoMidMorph(bool reduced)
     {
         var (window, vm) = await ShowAsync(reduced);
-        var overlay = OverlayLayer.GetOverlayLayer(window)!;
-        var before = overlay.Children.Count;
+        var block = ClockBlock(window);
         vm.WorkMinutes = 120;
         vm.Focus.StartPauseCommand.Execute(null);
         vm.Focus.AbandonCommand.Execute(null);
         TestFrames.Tick(60);
-        Assert.Equal(6, ClockBlocks(window).Count);
         Assert.Equal("120:00", ClockText(window));
 
         vm.Focus.StartPauseCommand.Execute(null);
@@ -156,12 +183,14 @@ public sealed class FocusViewTests : TempoTestBase
         Assert.Equal("100:00", vm.Focus.RemainingText);
         Time.Advance(TimeSpan.FromSeconds(1));
         Ticks.Raise();
-        TestFrames.Tick(60);
+        TestFrames.Tick(5);
+        Assert.Equal(reduced ? 0 : 6, Pieces(block).Count());
+        TestFrames.Tick(55);
 
-        Assert.Equal(5, ClockBlocks(window).Count);
+        Assert.Same(block, ClockBlock(window));
         Assert.Equal("99:59", ClockText(window));
-        Assert.All(ClockBlocks(window), b => Assert.True(b.Inlines is null or { Count: 0 }));
-        Assert.Equal(before, overlay.Children.Count);
+        Assert.True(block.Inlines is null or { Count: 0 });
+        Assert.Empty(Pieces(block));
         window.Close();
         await vm.FlushAsync();
     }
@@ -169,20 +198,21 @@ public sealed class FocusViewTests : TempoTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task SwitchingToStatsMidMorphLeavesNothingInTheOverlay(bool reduced)
+    public async Task SwitchingToStatsMidMorphLeavesNothingInTheAdornerLayer(bool reduced)
     {
         var (window, vm) = await ShowAsync(reduced);
-        var overlay = OverlayLayer.GetOverlayLayer(window)!;
-        var before = overlay.Children.Count;
+        var layer = AdornerLayer.GetAdornerLayer(ClockBlock(window))!;
+        var before = layer.Children.Count;
         vm.Focus.StartPauseCommand.Execute(null);
         Time.Advance(TimeSpan.FromSeconds(1));
         Ticks.Raise();
         TestFrames.Tick(5);
+        Assert.Equal(reduced ? before : before + 1, layer.Children.Count);
 
         vm.CurrentView = AppView.Stats;
         TestFrames.Tick(60);
 
-        Assert.Equal(before, overlay.Children.Count);
+        Assert.Equal(before, layer.Children.Count);
         window.Close();
         await vm.FlushAsync();
     }
@@ -285,7 +315,7 @@ public sealed class FocusViewTests : TempoTestBase
             vm.SelectedTask = vm.Tasks[0];
         TestFrames.Tick(30);
         var dial = window.GetVisualDescendants().OfType<Panel>().Single(p => p.Name == "Dial");
-        var digits = window.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "Digits");
+        var digits = ClockBlock(window);
         Assert.Equal(withTask, vm.Focus.ActiveTask is not null);
         Assert.Equal(dial.Bounds.Height / 2, digits.TranslatePoint(new Point(0, digits.Bounds.Height / 2), dial)!.Value.Y, tolerance: 1);
 
@@ -323,6 +353,9 @@ public sealed class FocusViewTests : TempoTestBase
         window.KeyReleaseQwerty(PhysicalKey.Space, RawInputModifiers.None);
         TestFrames.Tick(2);
     }
+
+    private static IEnumerable<Control> Pieces(TextBlock block) =>
+        AdornerLayer.GetAdornerLayer(block)!.Children.Where(c => AdornerLayer.GetAdornedElement(c) == block).SelectMany(c => ((Canvas)c).Children);
 
     private static ProgressRing Ring(Window window) => window.GetVisualDescendants().OfType<ProgressRing>().Single(r => r.Name == "Ring");
 }

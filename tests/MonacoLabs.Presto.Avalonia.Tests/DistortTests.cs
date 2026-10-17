@@ -189,6 +189,21 @@ public sealed class DistortTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AFlagChangeRedrawsAtOnce()
+    {
+        var (distort, _) = ShowDistort(d => d.Glitch = 6);
+        Assert.NotNull(distort.SnapshotSize);
+
+        Presto.Defaults.ReducedMotion = true;
+        Tick();
+        Assert.Null(distort.SnapshotSize);
+
+        Presto.Defaults.ReducedMotion = false;
+        Tick();
+        Assert.NotNull(distort.SnapshotSize);
+    }
+
+    [AvaloniaFact]
     public void TheDefaultsAreIdentityWithA32DipTurbulenceScale()
     {
         var distort = new Distort();

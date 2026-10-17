@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -335,7 +337,7 @@ public sealed class ScrollObserverTests : BridgeTestBase
 
         ScrollTo(scroller, 450);
         Assert.True(observer.Reverted);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
     }
 
     [AvaloniaFact]
@@ -464,12 +466,39 @@ public sealed class ScrollObserverTests : BridgeTestBase
         var animation = target.Animate(new() { ["Rotate"] = 360, Autoplay = false });
         var observer = Observe(new ScrollObserverParams { Target = target }).Link(animation);
 
-        Assert.True(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.True(ScrollContainer.Containers.TryGetValue(scroller, out _));
 
         animation.Revert();
 
         Assert.True(observer.Reverted);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
+    }
+
+    [AvaloniaFact]
+    public void AScrollerDroppedWithAnUnrevertedObserverIsCollectable()
+    {
+        var (window, scroller) = ObserveAndRemove();
+        Frames.Advance(WakeWindow * 2, 16);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(scroller.IsAlive, "the scroll registry kept the scroller alive");
+        GC.KeepAlive(window);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private (Window Window, WeakReference Scroller) ObserveAndRemove()
+    {
+        var (window, scroller, target) = Show();
+        Observe(new ScrollObserverParams { Target = target });
+        ScrollTo(scroller, 250);
+        window.Content = null;
+        Dispatcher.UIThread.RunJobs();
+        // The window's composition tree lets go of the scroller's visual only on its next render.
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        return (window, new WeakReference(scroller));
     }
 
     /// <summary>The data timer pauses with the wake window, unlike upstream's, which is what lets the engine idle.</summary>
@@ -486,7 +515,7 @@ public sealed class ScrollObserverTests : BridgeTestBase
 
         Assert.False(Presto.Engine.IsRunning);
         Assert.False(observer.Reverted);
-        Assert.True(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.True(ScrollContainer.Containers.TryGetValue(scroller, out _));
         Assert.Equal(0d, observer.Velocity);
 
         ScrollTo(scroller, 300);

@@ -97,6 +97,33 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AKeyThatNeverReturnsDoesNotAccumulate()
+    {
+        const string gone = nameof(AKeyThatNeverReturnsDoesNotAccumulate) + "-gone";
+        const string fresh = nameof(AKeyThatNeverReturnsDoesNotAccumulate) + "-fresh";
+        const string next = nameof(AKeyThatNeverReturnsDoesNotAccumulate) + "-next";
+        var drawn = new Rect(10, 20, 30, 40);
+        var time = new FakeTimeProvider();
+        LayoutTransition.TimeProvider = time;
+        try
+        {
+            LayoutTransition.Prepare(gone, drawn);
+            time.Advance(TimeSpan.FromMilliseconds(2000));
+            LayoutTransition.Prepare(fresh, drawn);
+            time.Advance(TimeSpan.FromMilliseconds(1001));
+            LayoutTransition.Prepare(next, drawn);
+
+            Assert.False(LayoutTransition.IsPrepared(gone));
+            Assert.Equal(drawn, LayoutTransition.TakePrepared(fresh));
+            Assert.Equal(drawn, LayoutTransition.TakePrepared(next));
+        }
+        finally
+        {
+            LayoutTransition.TimeProvider = TimeProvider.System;
+        }
+    }
+
+    [AvaloniaFact]
     public void AFirstLoadWithNothingPreparedAnimatesNothing()
     {
         var arriving = Keyed(nameof(AFirstLoadWithNothingPreparedAnimatesNothing), Brushes.Red, ConnectedRecipes.Held);

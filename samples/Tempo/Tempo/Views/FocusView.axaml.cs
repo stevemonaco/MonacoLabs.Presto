@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using MonacoLabs.Presto;
 using Tempo.Model;
@@ -13,9 +12,7 @@ namespace Tempo.Views;
 public partial class FocusView : UserControl
 {
     private FocusViewModel? _viewModel;
-    private readonly Dictionary<TextBlock, Timeline> _digitMorphs = new();
     private Timeline? _labelMorph;
-    private bool _abandoned;
 
     public FocusView()
     {
@@ -62,8 +59,7 @@ public partial class FocusView : UserControl
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
-        if (_viewModel is not null)
-            ShowRemaining(_viewModel.RemainingText, morph: false);
+        Remaining.Text = _viewModel?.RemainingText;
         StartLabel.Text = _viewModel?.StartPauseLabel;
     }
 
@@ -73,57 +69,17 @@ public partial class FocusView : UserControl
         if (!IsLoaded)
             return;
         if (e.PropertyName == nameof(FocusViewModel.RemainingText))
-            ShowRemaining(_viewModel!.RemainingText, morph: true);
+            Recipes.MorphGlyphs(Remaining, _viewModel!.RemainingText, reduced: ReducedMorph.Instant);
         else if (e.PropertyName == nameof(FocusViewModel.StartPauseLabel))
             MorphLabel(_viewModel!.StartPauseLabel);
     }
 
-    // One block per character, so only the digits that change morph; reduced, a ticking crossfade would only flicker.
-    private void ShowRemaining(string text, bool morph)
-    {
-        if (Digits.Children.Count != text.Length)
-        {
-            CompleteDigitMorphs();
-            Digits.Children.Clear();
-            foreach (var c in text)
-            {
-                var block = new TextBlock { Text = c.ToString() };
-                if (c != ':')
-                    block.Classes.Add("digit");
-                Digits.Children.Add(block);
-            }
-            return;
-        }
-        for (var i = 0; i < text.Length; i++)
-        {
-            var block = (TextBlock)Digits.Children[i];
-            var c = text[i].ToString();
-            if (block.Text == c)
-                continue;
-            if (morph && !Presto.Defaults.ReducedMotion)
-            {
-                _digitMorphs[block] = Recipes.MorphGlyphs(block, c);
-                continue;
-            }
-            if (_digitMorphs.Remove(block, out var running))
-                running.Complete();
-            block.Text = c;
-        }
-    }
-
-    private void CompleteDigitMorphs()
-    {
-        foreach (var morph in _digitMorphs.Values)
-            morph.Complete();
-        _digitMorphs.Clear();
-    }
-
-    // The label hides while running, so only a word replacing a word morphs, and never under reduced motion.
+    // The label hides while running, so only a word replacing a word morphs.
     private void MorphLabel(string label)
     {
-        if (label.Length > 0 && StartLabel.Text is { Length: > 0 } && !Presto.Defaults.ReducedMotion)
+        if (label.Length > 0 && StartLabel.Text is { Length: > 0 })
         {
-            _labelMorph = Recipes.MorphGlyphs(StartLabel, label);
+            _labelMorph = Recipes.MorphGlyphs(StartLabel, label, reduced: ReducedMorph.Instant);
             return;
         }
         _labelMorph?.Complete();
@@ -154,19 +110,9 @@ public partial class FocusView : UserControl
 
     private void AbandonConfirmed(object? sender, EventArgs e)
     {
-        _abandoned = true;
         StopGlyph.Animate(TempoMotion.AbandonCross);
         AbandonRing.Animate(TempoMotion.AbandonCollapse);
-        _viewModel?.AbandonCommand.Execute(null);
     }
 
-    // Code-only: the ring raises nothing when a hold ends short of confirming (BACKLOG, BRIDGE-SUBMIT).
-    private void AbandonReleased(object? sender, RoutedEventArgs e)
-    {
-        if (e is KeyEventArgs { Key: not (Key.Space or Key.Enter) })
-            return;
-        if (!_abandoned)
-            AbandonHold.Animate(TempoMotion.AbandonShake);
-        _abandoned = false;
-    }
+    private void AbandonLetGo(object? sender, EventArgs e) => AbandonHold.Animate(TempoMotion.AbandonShake);
 }

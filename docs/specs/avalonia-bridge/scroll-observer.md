@@ -29,6 +29,7 @@ tests:
   - ScrollSpikeTests
   - MotionValueSourceTests
   - ScrollStoryPageTests
+  - ScopePruningTests
 upstream:
   - src/events/scroll.js
   - tests/suites/scroll.test.js
@@ -188,8 +189,12 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
   - Tests: `ScrollPinTests.RevertRestoresTheUsersTransformAndMargin`, `ScrollSnapTests.RevertMidSnapStopsIt`
 - **BRIDGE-SCROLLOBSERVER-055** — `Revert` shall leave the linked object as it is.
   - Tests: untested
+- **BRIDGE-SCROLLOBSERVER-060** — Once reverted, the observer shall count as released to the scope it registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-SCROLLOBSERVER-056** — When its last observer, scroll value and parallax element have left, a container shall detach from its scroller, cancel its timers and leave the registry, so the next user creates a fresh one.
   - Tests: `ScrollObserverTests.RepeatFalseRevertsTheObserverAfterCompletion`, `ScrollObserverTests.RevertingTheLinkedAnimationRevertsTheObserver`
+- **BRIDGE-SCROLLOBSERVER-061** — The scroller-to-container registry shall not keep a scroller alive: a scroller that leaves the tree with unreverted observers shall be collectable with its container and observers.
+  - Tests: `ScrollObserverTests.AScrollerDroppedWithAnUnrevertedObserverIsCollectable`
 
 ### Defaults
 
@@ -218,7 +223,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 ## Threading and lifetime
 
 - UI thread only. Resolution, evaluation and snapping run on the engine tick; pin updates run in the scroller's `Offset` property-changed notification.
-- The container keeps its observers alive through the scroller's event handlers until they revert. A linked object's revert reverts the observer; the observer never reverts the linked object.
+- The container keeps its observers alive through the scroller's event handlers until they revert, but only while something else holds the scroller: the registry holds it weakly (061). A linked object's revert reverts the observer; the observer never reverts the linked object.
 
 ## Reduced motion
 
@@ -251,6 +256,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **Scroll velocity needs no API of its own.** It is `PrestoAvalonia.ScrollValue(scroller).VelocityOf()`. Reason: the motion value graph already provides it.
 - **One `ScrollWriter` tells own writes, clamps and foreign writes apart.** See BRIDGE-SCROLL.
 - **The core owns the cell, the bridge owns the sources.** See CORE-MOTIONVALUE.
+- **The container registry is weak.** Scroller to container is a `ConditionalWeakTable`, like the bridge's other per-visual tables. Reason: an observer has no detach handling and leaves only on `Revert`, so one unreverted observer created outside a scope rooted its scroller and the tree under it for the life of the process. Rejected: reverting observers on detach, which needs a behavior decision of its own.
 
 ## Non-goals
 

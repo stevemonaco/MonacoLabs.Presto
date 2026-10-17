@@ -960,15 +960,15 @@ public static class Presence
         animation.OnComplete = timer =>
         {
             completed?.Invoke(timer);
-            Dismiss(overlay, host, ghosts, dismissed);
+            Dismiss(animation, overlay, host, ghosts, dismissed);
         };
         animation.OnPause = timer =>
         {
             paused?.Invoke(timer);
-            if (timer.Canceled) Dismiss(overlay, host, ghosts, dismissed);
+            if (timer.Canceled) Dismiss(animation, overlay, host, ghosts, dismissed);
         };
         // An instant exit, as PrestoDefaults.ReduceAll makes every one, completes inside Animate.
-        if (animation.Completed) Dismiss(overlay, host, ghosts, dismissed);
+        if (animation.Completed) Dismiss(animation, overlay, host, ghosts, dismissed);
         return animation;
     }
 
@@ -1049,8 +1049,9 @@ public static class Presence
         return clip;
     }
 
-    private static void Dismiss(OverlayLayer overlay, Control host, Image[] ghosts, Action? dismissed)
+    private static void Dismiss(Animation animation, OverlayLayer overlay, Control host, Image[] ghosts, Action? dismissed)
     {
+        animation._released = true;
         if (!overlay.Children.Remove(host)) return;
         foreach (var ghost in ghosts) ((Bitmap)ghost.Source!).Dispose();
         dismissed?.Invoke();

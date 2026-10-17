@@ -282,7 +282,7 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="ClipToBounds" Value="False" />
     </Style>
-    <Style Selector="StackPanel.digits > TextBlock">
+    <Style Selector="TextBlock.remaining">
         <Setter Property="FontSize" Value="56" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
@@ -293,11 +293,6 @@
     <!-- Tight enough for the "Start focus" pill on one line at 320. -->
     <Style Selector="v|ShellView.compact StackPanel.controls">
         <Setter Property="Spacing" Value="8" />
-    </Style>
-    <!-- Inter's figures are proportional: a fixed slot keeps a changing digit from shifting its neighbors. -->
-    <Style Selector="StackPanel.digits > TextBlock.digit">
-        <Setter Property="Width" Value="36" />
-        <Setter Property="TextAlignment" Value="Center" />
     </Style>
     <!-- From a class, so only the last ten seconds' changes pulse. -->
     <Style Selector="presto|ProgressRing.final">
@@ -390,9 +385,6 @@
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
-    </Style>
-    <!-- From a class rather than on the element, so the loop runs only during a break. -->
-    <Style Selector="TextBlock.breathe.breathing">
         <Setter Property="presto:Animate.OnAttached" Value="{x:Static m:TempoMotion.Breathe}" />
     </Style>
 
@@ -400,26 +392,29 @@
         <Setter Property="Padding" Value="10,8" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="presto:Swipe.Command" Value="{Binding SwipeCommand}" />
+        <Setter Property="presto:Swipe.LeadingCommand" Value="{Binding CompleteCommand}" />
+        <Setter Property="presto:Swipe.TrailingCommand" Value="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).DeleteTaskCommand}" />
+        <Setter Property="presto:Swipe.CommandParameter" Value="{Binding}" />
         <Setter Property="presto:Swipe.Dismiss" Value="True" />
         <!-- A short swipe springs back rather than pinning the actions open; a full one completes or deletes. -->
         <Setter Property="presto:Swipe.Reveal" Value="False" />
         <Setter Property="presto:Swipe.Leading">
             <DataTemplate x:DataType="vm:TaskItemViewModel">
-                <Button Classes="swipe-action complete" Command="{Binding SwipeCommand}" CommandParameter="{x:Static presto:Edge.Right}">
+                <Button Classes="swipe-action complete" Command="{Binding CompleteCommand}">
                     <PathIcon Data="{x:Static m:TempoMotion.CheckIcon}" />
                 </Button>
             </DataTemplate>
         </Setter>
         <Setter Property="presto:Swipe.Trailing">
             <DataTemplate x:DataType="vm:TaskItemViewModel">
-                <Button Classes="swipe-action delete" Content="Delete" Command="{Binding SwipeCommand}" CommandParameter="{x:Static presto:Edge.Left}" />
+                <Button Classes="swipe-action delete" Content="Delete" Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).DeleteTaskCommand}" CommandParameter="{Binding}" />
             </DataTemplate>
         </Setter>
     </Style>
     <!-- A done task can only be deleted, and its list does not reorder. -->
     <Style Selector="Expander.done Border.task-row">
         <Setter Property="presto:Swipe.Leading" Value="{x:Null}" />
+        <Setter Property="presto:Swipe.LeadingCommand" Value="{x:Null}" />
     </Style>
     <Style Selector="ListBoxItem:pointerover Border.task-row">
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground2}" />
@@ -463,9 +458,6 @@
     <Style Selector="Border.selection-pill">
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
-    </Style>
-    <Style Selector="Expander.done /template/ PathIcon#PART_PathIcon">
-        <Setter Property="presto:Accordion.Chevron" Value="180" />
     </Style>
 
     <Style Selector="ListBox.segmented">
@@ -853,12 +845,6 @@
     <Style Selector="Ellipse.dot.filled">
         <Setter Property="Fill" Value="{DynamicResource FocusAccentBrush}" />
         <Setter Property="StrokeThickness" Value="0" />
-    </Style>
-
-    <!-- Semi audit (12.1.0.1): Button, ListBoxItem, ToggleButton, CheckBox, FlyoutPresenter and TextBox set no Transitions;
-         Expander's chevron sets one on RenderTransform in its template, which only a selector with an activator outranks. -->
-    <Style Selector="Expander /template/ PathIcon#PART_PathIcon:not(.semi-transitions)">
-        <Setter Property="Transitions" Value="{x:Null}" />
     </Style>
 
     <!-- The mode accents: descendants follow the root's Motion.State (FocusMode), staggered by its StaggerChildren. -->

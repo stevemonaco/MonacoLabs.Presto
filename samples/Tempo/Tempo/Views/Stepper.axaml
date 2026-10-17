@@ -3,7 +3,7 @@
              x:Class="Tempo.Views.Stepper">
     <StackPanel Orientation="Horizontal" Spacing="4">
         <RepeatButton x:Name="Decrease" Classes="step" Content="−" Click="Step" />
-        <TextBlock x:Name="Number" Classes="step-value" />
+        <TextBlock x:Name="Number" Classes="step-value" FontFeatures="+tnum" />
         <RepeatButton x:Name="Increase" Classes="step" Content="+" Click="Step" />
     </StackPanel>
 </UserControl>

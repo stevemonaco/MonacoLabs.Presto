@@ -1,8 +1,9 @@
+using MonacoLabs.Presto.Targets;
 using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto.Tests;
 
-/// <summary><see cref="TweenKeyframesBuilder.Color"/>: a color tween expanded into sliced-ease segments.</summary>
+/// <summary><see cref="TweenKeyframesBuilder.Color(TweenValue, TweenValue, ColorSpace, HueInterpolation, TweenValue?, TweenValue?, EaseValue?, int?)"/>: a color tween expanded into sliced-ease segments.</summary>
 public sealed class ColorKeyframesTests : EngineTestBase
 {
     private const string Blue = "#0000ff";
@@ -46,14 +47,14 @@ public sealed class ColorKeyframesTests : EngineTestBase
     [Fact]
     public void FittedSegmentsStayFewOnEasyPathsAndCappedOnHardOnes()
     {
-        Assert.InRange(Frames(new TweenKeyframesBuilder().Color("#2563eb", "#f59e0b", ease: Eases.None)).Length, 1, 2);
-        Assert.Equal(16, Frames(new TweenKeyframesBuilder().Color(Blue, Yellow, ColorSpace.Oklch, ease: new Spring(bounce: .4, duration: 500))).Length);
+        Assert.InRange(Frames(new TweenKeyframesBuilder("BackgroundColor").Color("#2563eb", "#f59e0b", ease: Eases.None)).Length, 1, 2);
+        Assert.Equal(16, Frames(new TweenKeyframesBuilder("BackgroundColor").Color(Blue, Yellow, ColorSpace.Oklch, ease: new Spring(bounce: .4, duration: 500))).Length);
     }
 
     [Fact]
     public void FittedSegmentsSplitTheDurationExactly()
     {
-        var frames = Frames(new TweenKeyframesBuilder().Color(Blue, Yellow, ColorSpace.Oklch, duration: 1000, ease: Eases.InOutBack()));
+        var frames = Frames(new TweenKeyframesBuilder("BackgroundColor").Color(Blue, Yellow, ColorSpace.Oklch, duration: 1000, ease: Eases.InOutBack()));
         Assert.True(frames.Length > 2);
         Assert.Equal(1000, frames.Sum(f => JsNumber.ToNumber(((TweenParams)f.Raw!).Duration!.Value.Raw, 0)));
     }
@@ -125,12 +126,12 @@ public sealed class ColorKeyframesTests : EngineTestBase
     public void PerTargetSegmentCountsFollowTheHueArc(ColorSpace space, HueInterpolation hue, string from, string to, int? segments, int expected)
     {
         var perTarget = (FunctionValue)((_, _, _) => 1000);
-        Assert.Equal(expected, Frames(new TweenKeyframesBuilder().Color(from, to, space, hue, duration: perTarget, segments: segments)).Length);
+        Assert.Equal(expected, Frames(new TweenKeyframesBuilder("BackgroundColor").Color(from, to, space, hue, duration: perTarget, segments: segments)).Length);
     }
 
     [Fact]
     public void AnExplicitSegmentCountIsKept() =>
-        Assert.Equal(7, Frames(new TweenKeyframesBuilder().Color(Blue, Yellow, segments: 7)).Length);
+        Assert.Equal(7, Frames(new TweenKeyframesBuilder("BackgroundColor").Color(Blue, Yellow, segments: 7)).Length);
 
     [Fact]
     public void FunctionValuedEndsResolvePerTargetUnderAStagger()
@@ -155,7 +156,7 @@ public sealed class ColorKeyframesTests : EngineTestBase
 
     [Fact]
     public void AnEndThatIsNotAColorThrows() =>
-        Assert.Throws<ArgumentException>(() => new TweenKeyframesBuilder().Color("10px", Yellow));
+        Assert.Throws<ArgumentException>(() => new TweenKeyframesBuilder("BackgroundColor").Color("10px", Yellow));
 
     [Fact]
     public void UnsetTimingComesFromTheDefaultsTheAnimationIsAddedUnder()
@@ -171,6 +172,60 @@ public sealed class ColorKeyframesTests : EngineTestBase
         Assert.Equal(700, animation.Duration);
     }
 
+    [Fact]
+    public void WithoutFromEachTargetStartsFromItsCurrentColor() => WithPaintCodec(() =>
+    {
+        PrestoColor[] starts = [new(255, 0, 0), new(0, 128, 0), new(0, 0, 255, .5)];
+        var targets = starts.Select(c => new PaintTarget { Fill = new Paint(c) }).ToArray();
+        var animation = Presto.Build().Property("Fill", k => k.Color(Yellow, duration: 1000, ease: Eases.None)).Animate(targets);
+
+        animation.Seek(500);
+        for (var i = 0; i < targets.Length; i++)
+        {
+            var expected = PrestoColor.Mix(starts[i], PrestoColor.Parse(Yellow), .5);
+            Assert.True(DeltaEok(expected, targets[i].Fill!.Solid!.Value) < .02, $"target {i}: {targets[i].Fill} vs {expected}");
+        }
+    });
+
+    [Fact]
+    public void WithoutFromANonColorValueStartsFromTransparent() => WithPaintCodec(() =>
+    {
+        var targets = new[] { new PaintTarget(), new PaintTarget { Fill = new Paint(null) } };
+        var animation = Presto.Build().Property("Fill", k => k.Color(Yellow, duration: 1000, ease: Eases.None)).Animate(targets);
+
+        animation.Seek(0);
+        Assert.All(targets, t => Assert.Equal(0, t.Fill!.Solid!.Value.A));
+        animation.Seek(animation.Duration);
+        Assert.All(targets, t => Assert.Equal(PrestoColor.Parse(Yellow), t.Fill!.Solid));
+    });
+
+    [Fact]
+    public void WithoutFromAMidFlightRetargetStartsFromTheDrawnColor() => WithPaintCodec(() =>
+    {
+        var target = new PaintTarget { Fill = new Paint(new PrestoColor(255, 0, 0)) };
+        Presto.Build().Property("Fill", k => k.Color(Blue, duration: 1000, ease: Eases.None)).Animate(target).Seek(500);
+        var drawn = target.Fill!.Solid!.Value;
+
+        var retarget = Presto.Build().Property("Fill", k => k.Color(Yellow, duration: 1000, ease: Eases.None)).Animate(target);
+
+        retarget.Seek(500);
+        var expected = PrestoColor.Mix(drawn, PrestoColor.Parse(Yellow), .5);
+        Assert.True(DeltaEok(expected, target.Fill!.Solid!.Value) < .02, $"{target.Fill} vs {expected}");
+    });
+
+    private static void WithPaintCodec(Action test)
+    {
+        Presto.Codecs[typeof(Paint)] = new PaintCodec();
+        try
+        {
+            test();
+        }
+        finally
+        {
+            Presto.Codecs.Remove(typeof(Paint));
+        }
+    }
+
     private static TweenValue[] Frames(TweenKeyframesBuilder builder) => TweenKeyframesBuilder.Expand(builder.ToArray(), Presto.Defaults);
 
     private static double DeltaEok(PrestoColor x, PrestoColor y)
@@ -178,5 +233,35 @@ public sealed class ColorKeyframesTests : EngineTestBase
         var p = x.ToOklab();
         var q = y.ToOklab();
         return ColorConversions.DeltaEok(p.L, p.A, p.B, q.L, q.A, q.B);
+    }
+
+    private sealed class PaintTarget
+    {
+        public Paint? Fill { get; set; }
+    }
+
+    /// <summary>A solid color, or a gradient when <see cref="Solid"/> is null.</summary>
+    private sealed record Paint(PrestoColor? Solid);
+
+    private sealed class PaintCodec : IValueCodec
+    {
+        public bool TryDecode(object value, DecomposedValue into)
+        {
+            if (value is not Paint paint) return false;
+            if (paint.Solid is { } solid)
+            {
+                into.Kind = ValueKind.Color;
+                into.Numbers = solid.ToChannels();
+            }
+            else
+            {
+                into.Kind = ValueKind.Complex;
+                into.Numbers = [0];
+                into.Strings = ["linear(", ")"];
+            }
+            return true;
+        }
+
+        public object Encode(double number, Tween tween) => new Paint(PrestoColor.FromChannels(tween._numbers));
     }
 }

@@ -10,7 +10,7 @@ using PrestoGallery.Showcase;
 namespace PrestoGallery.Builder;
 
 /// <summary>
-/// Color tweens expanded along CSS Color 4 paths by <see cref="TweenKeyframesBuilder.Color"/>: an OKLCH hue cycle beside
+/// Color tweens expanded along CSS Color 4 paths by <see cref="TweenKeyframesBuilder.Color(TweenValue, TweenValue, ColorSpace, HueInterpolation, TweenValue?, TweenValue?, EaseValue?, int?)"/>: an OKLCH hue cycle beside
 /// RGB keyframes, each drawn as its whole path and lightness curve under a shared playhead, and one status flip played in
 /// every space, one row each.
 /// </summary>

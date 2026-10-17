@@ -57,9 +57,9 @@ public partial class Stepper : UserControl
     private void ShowValue()
     {
         var text = Value.ToString(CultureInfo.InvariantCulture);
-        if (_stepping && IsLoaded && !Presto.Defaults.ReducedMotion)
+        if (_stepping && IsLoaded)
         {
-            _morph = Recipes.MorphGlyphs(Number, text);
+            _morph = Recipes.MorphGlyphs(Number, text, reduced: ReducedMorph.Instant);
             return;
         }
         _morph?.Complete();

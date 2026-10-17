@@ -173,7 +173,7 @@ public sealed class MotionValueSourceTests : BridgeTestBase
 
         Assert.Equal(100d, scroll.Value);
         Assert.Equal(200d, height.Value);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
     }
 
     [AvaloniaFact]

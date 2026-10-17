@@ -64,6 +64,13 @@ public static class Motion
     public static readonly AttachedProperty<MotionOrder> OrderProperty =
         AvaloniaProperty.RegisterAttached<Control, MotionOrder>("Order", typeof(Motion));
 
+    /// <summary>
+    /// App-wide, not per element: a non-null value set here, or bound from a view model, writes through to
+    /// <see cref="PrestoAvalonia.MotionPreference"/>. Clearing it or detaching the element leaves the preference as it is.
+    /// </summary>
+    public static readonly AttachedProperty<MotionPreference?> PreferenceProperty =
+        AvaloniaProperty.RegisterAttached<AvaloniaObject, MotionPreference?>("Preference", typeof(Motion));
+
     private static readonly AttachedProperty<MotionTracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, MotionTracker?>("Tracker", typeof(Motion));
 
@@ -74,6 +81,10 @@ public static class Motion
         FocusProperty.Changed.AddClassHandler<Control>(HandleChanged);
         StatesProperty.Changed.AddClassHandler<Control>(HandleChanged);
         StateProperty.Changed.AddClassHandler<Control>(HandleStateChanged);
+        PreferenceProperty.Changed.AddClassHandler<AvaloniaObject>(static (_, e) =>
+        {
+            if (!Design.IsDesignMode && e.NewValue is MotionPreference preference) PrestoAvalonia.MotionPreference = preference;
+        });
     }
 
     /// <summary>Gets the builder played while the pointer is over <paramref name="control"/>.</summary>
@@ -129,6 +140,12 @@ public static class Motion
 
     /// <summary>Sets when <paramref name="control"/>'s own state animations play relative to its descendants'.</summary>
     public static void SetOrder(Control control, MotionOrder value) => control.SetValue(OrderProperty, value);
+
+    /// <summary>Gets the motion preference <paramref name="element"/> writes through to <see cref="PrestoAvalonia.MotionPreference"/>.</summary>
+    public static MotionPreference? GetPreference(AvaloniaObject element) => element.GetValue(PreferenceProperty);
+
+    /// <summary>Sets the app-wide <see cref="PrestoAvalonia.MotionPreference"/> through <paramref name="element"/>; <c>null</c> leaves it as it is.</summary>
+    public static void SetPreference(AvaloniaObject element, MotionPreference? value) => element.SetValue(PreferenceProperty, value);
 
     /// <summary>Adds <paramref name="state"/> after every other state of <paramref name="control"/>, until the returned handle is disposed.</summary>
     internal static IDisposable Add(Control control, MotionState state)

@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using System.Windows.Input;
 using MonacoLabs.Presto.Controls;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -100,5 +101,122 @@ public sealed class ProgressRingTests : BridgeTestBase
         window.KeyReleaseQwerty(PhysicalKey.Space, RawInputModifiers.None);
 
         Assert.True(confirmed);
+    }
+
+    [AvaloniaFact]
+    public void AConfirmedHoldExecutesTheCommandAfterConfirmed()
+    {
+        var ring = Ring();
+        ring.HoldDuration = 200;
+        var order = new List<object?>();
+        ring.Confirmed += (_, _) => order.Add("confirmed");
+        ring.Command = new Command(order.Add);
+        ring.CommandParameter = "abandon";
+        var window = Show(ring);
+        var center = Center(ring, window);
+
+        window.MouseDown(center, MouseButton.Left);
+        Frames.Advance(240, 16);
+        window.MouseUp(center, MouseButton.Left);
+
+        Assert.Equal(["confirmed", "abandon"], order);
+    }
+
+    [AvaloniaFact]
+    public void ACommandThatCannotExecuteDisablesTheRingAndFollowsCanExecuteChanged()
+    {
+        var ring = Ring();
+        ring.HoldDuration = 200;
+        var command = new Command(_ => { }) { Enabled = false };
+        ring.Command = command;
+        var window = Show(ring);
+        var center = Center(ring, window);
+
+        Assert.False(ring.IsEffectivelyEnabled);
+        window.MouseDown(center, MouseButton.Left);
+        Frames.Advance(100, 16);
+        window.MouseUp(center, MouseButton.Left);
+        Assert.Equal(0, ring.Value);
+
+        command.Enabled = true;
+        Assert.True(ring.IsEffectivelyEnabled);
+        window.MouseDown(center, MouseButton.Left);
+        Frames.Advance(100, 16);
+        Assert.InRange(ring.Value, .3, .7);
+        window.MouseUp(center, MouseButton.Left);
+
+        ring.Command = new Command(_ => { }) { Enabled = false };
+        Assert.False(ring.IsEffectivelyEnabled);
+        ring.Command = null;
+        Assert.True(ring.IsEffectivelyEnabled);
+    }
+
+    [AvaloniaFact]
+    public void AHoldRaisesHoldStartedOnceByPointerAndByKey()
+    {
+        var ring = Ring();
+        ring.HoldDuration = 200;
+        var started = new List<double>();
+        ring.HoldStarted += (_, _) => started.Add(ring.Value);
+        var window = Show(ring);
+        var center = Center(ring, window);
+
+        window.MouseDown(center, MouseButton.Left);
+        Frames.Advance(100, 16);
+        window.MouseUp(center, MouseButton.Left);
+        Frames.Advance(Recipes.Tokens.Short + 32, 16);
+        Assert.Equal([0d], started);
+
+        ring.Focus();
+        window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        Frames.Advance(48, 16);
+        window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        Frames.Advance(48, 16);
+        window.KeyReleaseQwerty(PhysicalKey.Space, RawInputModifiers.None);
+
+        Assert.Equal([0d, 0d], started);
+    }
+
+    [AvaloniaFact]
+    public void ReleasingShortRaisesHoldCanceledOnceAndAConfirmedReleaseRaisesNone()
+    {
+        var ring = Ring();
+        ring.HoldDuration = 200;
+        var canceled = new List<double>();
+        ring.HoldCanceled += (_, _) => canceled.Add(ring.Value);
+        var window = Show(ring);
+        var center = Center(ring, window);
+
+        window.MouseDown(center, MouseButton.Left);
+        Frames.Advance(100, 16);
+        var held = ring.Value;
+        window.MouseUp(center, MouseButton.Left);
+        Frames.Advance(Recipes.Tokens.Short + 32, 16);
+        Assert.Equal([held], canceled);
+
+        window.MouseDown(center, MouseButton.Left);
+        Frames.Advance(240, 16);
+        window.MouseUp(center, MouseButton.Left);
+        Frames.Advance(Recipes.Tokens.Short + 32, 16);
+        Assert.Single(canceled);
+    }
+
+    private sealed class Command(Action<object?> execute) : ICommand
+    {
+        public bool Enabled
+        {
+            get;
+            set
+            {
+                field = value;
+                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
+        } = true;
+
+        public event EventHandler? CanExecuteChanged;
+
+        public bool CanExecute(object? parameter) => Enabled;
+
+        public void Execute(object? parameter) => execute(parameter);
     }
 }

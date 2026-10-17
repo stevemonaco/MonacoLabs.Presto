@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -24,7 +25,7 @@ public sealed class ScrollContainer
     private const double WakeDuration = 500;
     private const RoutingStrategies PointerRoutes = RoutingStrategies.Tunnel | RoutingStrategies.Bubble;
 
-    internal static readonly Dictionary<ScrollViewer, ScrollContainer> Containers = [];
+    internal static readonly ConditionalWeakTable<ScrollViewer, ScrollContainer> Containers = new();
 
     private readonly List<ScrollObserver> _observers = [];
     private readonly List<(MotionValue Value, bool Horizontal, bool Progress)> _values = [];
@@ -155,11 +156,7 @@ public sealed class ScrollContainer
         RevertIfUnused();
     }
 
-    private static ScrollContainer Get(ScrollViewer scroller)
-    {
-        if (!Containers.TryGetValue(scroller, out var container)) Containers[scroller] = container = new ScrollContainer(scroller);
-        return container;
-    }
+    private static ScrollContainer Get(ScrollViewer scroller) => Containers.GetValue(scroller, static scroller => new ScrollContainer(scroller));
 
     private void RevertIfUnused()
     {

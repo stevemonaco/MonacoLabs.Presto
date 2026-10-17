@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -47,7 +46,6 @@ public partial class ShellView : UserControl
             _viewModel.TaskDeleted -= ShowUndo;
             _viewModel.SettingsRequested -= ShowSettings;
             _viewModel.ConfirmRequested -= ShowConfirm;
-            _viewModel.PropertyChanged -= RedriftOnMotionChange;
             _viewModel.PlayClear = null;
         }
         _viewModel = DataContext as MainViewModel;
@@ -56,7 +54,6 @@ public partial class ShellView : UserControl
             _viewModel.TaskDeleted += ShowUndo;
             _viewModel.SettingsRequested += ShowSettings;
             _viewModel.ConfirmRequested += ShowConfirm;
-            _viewModel.PropertyChanged += RedriftOnMotionChange;
             _viewModel.PlayClear = PlayClear;
         }
         _compact = null;
@@ -84,11 +81,13 @@ public partial class ShellView : UserControl
         base.OnLoaded(e);
         Drift();
         Swell();
+        Presto.Engine.ReducedMotionChanged += Redrift;
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
         base.OnUnloaded(e);
+        Presto.Engine.ReducedMotionChanged -= Redrift;
         _drift?.Revert();
         _drift = null;
     }
@@ -165,14 +164,10 @@ public partial class ShellView : UserControl
         });
     }
 
-    // The reduced form is resolved when the drift starts, and nothing signals a change of the flag.
-    private void RedriftOnMotionChange(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(MainViewModel.Motion) && IsLoaded)
-            Drift();
-    }
+    // A caller-owned compositor loop keeps the form it started with (BRIDGE-REDUCED).
+    private void Redrift(Engine engine) => Drift();
 
-    // Code-only: a flyout has no IsOpen to bind (BACKLOG, BRIDGE-POPOVER), so Ctrl+, and the button share OpenSettingsCommand.
+    // Code-only: Avalonia's FlyoutBase.IsOpen is read-only, so Ctrl+, and the button share OpenSettingsCommand.
     private void ShowSettings(object? sender, EventArgs e)
     {
         if (_compact == true)
@@ -181,7 +176,7 @@ public partial class ShellView : UserControl
             FlyoutBase.ShowAttachedFlyout(SettingsButton);
     }
 
-    // Code-only: no IsOpen to bind (BACKLOG, BRIDGE-POPOVER), so the button's open class, which holds its quarter turn, follows the flyout's events.
+    // Code-only: the button also opens a sheet, so no Button.Flyout :flyout-open; its open class (the quarter turn) follows the flyout.
     private void SettingsToggled(object? sender, EventArgs e) => SettingsButton.Classes.Set("open", ((FlyoutBase)sender!).IsOpen);
 
     // Code-only: a modal opens from an element only through Open (BACKLOG, BRIDGE-MODAL). The settings close first, since the popup

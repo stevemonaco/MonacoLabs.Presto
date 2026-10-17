@@ -142,7 +142,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 
 ## Reduced motion
 
-- Not affected by the bridge: the scene engine copies `PrestoDefaults`, `ReducedMotion` included, at attach, and the scene's animations follow the core rules (CORE-REDUCED) on that copy. A later change of the main engine's flag does not reach an attached scene.
+- Not affected by the bridge: the scene engine copies `PrestoDefaults`, `ReducedMotion` included, at attach, and the scene's animations follow the core rules (CORE-REDUCED) on that copy. A later change of the main engine's flag does not reach an attached scene, whose engine ticks off the UI thread (see Compositor scenes keep their snapshot, BRIDGE-REDUCED).
 
 ## Allocation
 

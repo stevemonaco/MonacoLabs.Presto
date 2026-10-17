@@ -417,14 +417,6 @@ public static class TempoMotion
     }
 
     /// <summary>Recolors <paramref name="property"/> from its current color to <paramref name="accent"/> through OKLCH, so coral to aqua never passes through gray.</summary>
-    private static AnimationBuilder Accent(PropertyKey property, Color accent)
-    {
-        void Recolor(AnimationBuilder builder) => builder.Property(property, k => k.Color(
-            (FunctionValue)((target, _, _) => Presto.Get(target, property) is ISolidColorBrush brush ? brush.Color.ToPresto() : accent.ToPresto()),
-            accent.ToPresto(), ColorSpace.Oklch, duration: 700, ease: Eases.InOutSine));
-
-        var builder = Presto.Build();
-        Recolor(builder);
-        return builder.WhenReduced(Recolor);
-    }
+    private static AnimationBuilder Accent(PropertyKey property, Color accent) =>
+        Recipes.Recolor(accent, property, ColorSpace.Oklch, duration: 700, ease: Eases.InOutSine);
 }

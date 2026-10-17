@@ -100,6 +100,8 @@ A control that wraps its `Content` and lets a downward drag from the content's t
   - Tests: `PullToRefreshTests.UnderReducedMotionTheContentLandsAtOnceAndTheRingHoldsStill`
 - **BRIDGE-PULL-026** — When the refresh ends, the spring back shall read `ReducedMotion` again, landing at once while it is set.
   - Tests: `PullToRefreshTests.UnderReducedMotionTheContentLandsAtOnceAndTheRingHoldsStill`
+- **BRIDGE-PULL-029** — When `ReducedMotion` becomes set during a refresh, the ring shall stop spinning at once; when it clears during a refresh, the ring shall start spinning.
+  - Tests: `PullToRefreshTests.SettingReducedMotionMidRefreshStopsTheSpin`, `PullToRefreshTests.ClearingItMidRefreshStartsTheSpin`
 
 ### Defaults
 
@@ -123,11 +125,11 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 ## Threading and lifetime
 
-- UI thread only. The Y animatable is created lazily on the track at the first pull. `Refresh` is awaited on the UI thread's synchronization context; the content is held until it completes.
+- UI thread only. The Y animatable is created lazily on the track at the first pull. `Refresh` is awaited on the UI thread's synchronization context; the content is held until it completes. While it runs, the control is registered for the engine's `ReducedMotionChanged` signal (BRIDGE-REDUCED).
 
 ## Reduced motion
 
-- Read at each release: the content lands at once, the arrow fades at once and the ring holds still while the refresh runs; the return reads the flag again when the refresh ends. The pull itself is unchanged.
+- Read at each release: the content lands at once, the arrow fades at once and the ring holds still while the refresh runs; a change of the flag during the refresh stops or starts the spin at once (BRIDGE-PULL-029), and the return reads the flag again when the refresh ends. The pull itself is unchanged.
 
 ## Allocation
 

@@ -84,53 +84,128 @@ public static partial class Recipes
     }
 
     /// <summary>
-    /// Turns <paramref name="textBlock"/>'s text into <paramref name="text"/> by morphing each character's outline into the
-    /// character at the same position of <paramref name="text"/>, counted from the end when both texts are numbers so a
-    /// counter's units column stays put, over <see cref="MotionTokens.Long"/> with <see cref="MotionTokens.Ease"/>.
-    /// Characters with no partner grow from or collapse into the center of their slot, and a pair where either character has no
-    /// outline crossfades. Reduced, the block crossfades as <see cref="MorphText"/> does.
+    /// Turns <paramref name="textBlock"/>'s text into <paramref name="text"/> by morphing each character that changes into the
+    /// character at the same position of <paramref name="text"/>, counted from the end when both texts are numbers or numerals
+    /// such as <c>12:30</c> so a counter's units column stays put, over <see cref="MotionTokens.Long"/> with <see cref="MotionTokens.Ease"/>. A character
+    /// that is the same in the same place stays the block's own text, one that is the same elsewhere slides, characters with
+    /// no partner grow from or collapse into the center of their slot, and a pair where either character has no outline
+    /// crossfades. Reduced, the block crossfades as <see cref="MorphText"/> does, or with <see cref="ReducedMorph.Instant"/>
+    /// takes <paramref name="text"/> at once.
     /// </summary>
-    /// <remarks>The block has to be laid out. It is split into outline pieces while it morphs and ends as the plain new text.</remarks>
-    public static Timeline MorphGlyphs(TextBlock textBlock, string text)
+    /// <remarks>
+    /// The block has to be laid out. It shows <paramref name="text"/> from the start with its moving characters hidden in place,
+    /// which play in its adorner layer and so follow its transforms. A morph in which nothing moves completes at once.
+    /// </remarks>
+    public static Timeline MorphGlyphs(TextBlock textBlock, string text, ReducedMorph reduced = ReducedMorph.Crossfade)
     {
         if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
         var tokens = Tokens;
         using var origin = PrestoDiagnostics.Origin("Recipe");
-        if (Engine.Current.Defaults.ReducedMotion || IsDetached(textBlock)) return CompleteIfDetached(textBlock, Crossfade(textBlock, text, tokens));
-
-        var oldOrigin = OriginInWindow(textBlock);
-        var numeric = IsNumber(textBlock.Text) && IsNumber(text);
-        var before = PieceGhosts.Split(textBlock, TextPieces.Chars);
-        var slots = before.Chars.Select(before.SlotOf).ToArray();
-        var oldOutlines = before.Chars.Select(c => OutlineOf(textBlock, TextSplitter.GraphemeOf(c))).ToArray();
-        var newOutlines = TextSplitter.CharsOf(text).Select(g => OutlineOf(textBlock, g)).ToArray();
-        // The old character at index j + skip is the new one at j's partner.
-        var skip = numeric ? slots.Length - newOutlines.Length : 0;
-        bool Collapses(int i) => i - skip < 0 || i - skip >= newOutlines.Length;
-        bool Pairs(int i) => !Collapses(i) && oldOutlines[i] != null && newOutlines[i - skip] != null;
-        var (host, ghosts) = Ghosts(textBlock, before, Enumerable.Range(0, slots.Length).Where(i => !Pairs(i)));
-        before.Revert();
-
-        var (morph, after, shift) = Retext(textBlock, text, oldOrigin, outlines: true, host, ghosts);
-        var morphing = new List<(Path, Geometry, Vector)>();
-        var growing = new List<Control>();
-        var fading = new List<Control>();
-        for (var j = 0; j < after.Chars.Count; j++)
+        if (Engine.Current.Defaults.ReducedMotion && reduced == ReducedMorph.Instant)
         {
-            var piece = after.Chars[j];
-            var i = j + skip;
-            if (i < 0 || i >= slots.Length) growing.Add(piece);
-            else if (Pairs(i)) morphing.Add(((Path)piece, oldOutlines[i]!, slots[i].Position + shift - after.SlotOf(piece).Position));
-            else fading.Add(piece);
+            textBlock.SetCurrentValue(TextBlock.TextProperty, text);
+            return Done();
+        }
+        var layer = IsDetached(textBlock) ? null : AdornerLayer.GetAdornerLayer(textBlock);
+        if (Engine.Current.Defaults.ReducedMotion || layer is null)
+        {
+            var fade = Crossfade(textBlock, text, tokens);
+            if (layer is null) fade.Complete();
+            return fade;
         }
 
+        var top = TopLevel.GetTopLevel(textBlock)!;
+        var numeric = (IsNumber(textBlock.Text) && IsNumber(text)) || (IsNumeral(textBlock.Text) && IsNumeral(text));
+        var before = LaidOut(textBlock, textBlock.Text ?? "", top);
+        textBlock.SetCurrentValue(TextBlock.TextProperty, text);
+        textBlock.UpdateLayout();
+        var after = LaidOut(textBlock, text, top);
+        // The old character at index j + skip is the new one at j's partner.
+        var skip = numeric ? before.Length - after.Length : 0;
+        bool Paired(int i) => i >= 0 && i < before.Length;
+        bool Stays(int j) => Paired(j + skip) && before[j + skip].Grapheme == after[j].Grapheme
+            && Math.Abs(before[j + skip].InWindow.X - after[j].InWindow.X) <= 0.1 && Math.Abs(before[j + skip].InWindow.Y - after[j].InWindow.Y) <= 0.1;
+        var moving = Enumerable.Range(0, after.Length).Where(j => !Stays(j)).ToHashSet();
+        if (moving.Count == 0 && before.Length == after.Length) return Done();
+
+        var hold = textBlock.SetValue(Layoutable.WidthProperty, textBlock.Bounds.Width, BindingPriority.Animation);
+        BlockGlyphs.Hide(textBlock, text, moving);
+        var host = new Canvas { IsHitTestVisible = false };
+        AdornerLayer.SetAdornedElement(host, textBlock);
+        layer.Children.Add(host);
+        var end = text;
+        EventHandler<AvaloniaPropertyChangedEventArgs>? retexted = null;
+        var morph = Presto.CreateTimeline(new()
+        {
+            OnComplete = _ =>
+            {
+                textBlock.PropertyChanged -= retexted;
+                Morphs.Remove(textBlock);
+                BlockGlyphs.Restore(textBlock, end);
+                hold?.Dispose();
+                layer.Children.Remove(host);
+            },
+        });
+        retexted = (_, e) =>
+        {
+            if (e.Property != TextBlock.TextProperty) return;
+            end = (string?)e.NewValue ?? "";
+            morph.Complete();
+        };
+        textBlock.PropertyChanged += retexted;
+        TrackMorph(textBlock, morph);
+
+        Control Piece(LaidOutChar c, Point at)
+        {
+            Control piece = c.Outline is null
+                ? new TextBlock
+                {
+                    Text = c.Grapheme, FontFamily = textBlock.FontFamily, FontSize = textBlock.FontSize, FontWeight = textBlock.FontWeight,
+                    FontStyle = textBlock.FontStyle, FontStretch = textBlock.FontStretch, FontFeatures = textBlock.FontFeatures, Foreground = textBlock.Foreground,
+                }
+                : new Path { Data = c.Outline, Fill = textBlock.Foreground };
+            piece.RenderTransformOrigin = new RelativePoint(c.Slot.Width / 2, c.Slot.Height / 2, RelativeUnit.Absolute);
+            // A rounded slot is off by up to half a pixel, which a scaled block magnifies.
+            piece.UseLayoutRounding = false;
+            Canvas.SetLeft(piece, at.X);
+            Canvas.SetTop(piece, at.Y);
+            host.Children.Add(piece);
+            return piece;
+        }
+        Point OldAt(int i) => top.TranslatePoint(before[i].InWindow, textBlock)!.Value;
+
+        var morphing = new List<(Path, Geometry, Vector)>();
+        var sliding = new List<(Control Piece, Vector Offset)>();
+        var growing = new List<Control>();
+        var fadingIn = new List<Control>();
+        var fadingOut = new List<Control>();
+        foreach (var j in moving)
+        {
+            var (i, to) = (j + skip, after[j]);
+            var piece = Piece(to, to.Slot.Position);
+            if (!Paired(i)) growing.Add(piece);
+            else if (before[i].Outline is not { } from || to.Outline is null)
+            {
+                fadingIn.Add(piece);
+                fadingOut.Add(Piece(before[i], OldAt(i)));
+            }
+            else if (before[i].Grapheme == to.Grapheme) sliding.Add((piece, OldAt(i) - to.Slot.Position));
+            else morphing.Add(((Path)piece, from, OldAt(i) - to.Slot.Position));
+        }
+        var collapsing = Enumerable.Range(0, before.Length).Where(i => i - skip < 0 || i - skip >= after.Length).Select(i => Piece(before[i], OldAt(i))).ToList();
+
         MorphOutlines(morph, morphing, tokens);
-        var collapsing = ghosts.Where(g => Collapses(g.Key)).Select(g => g.Value).ToList();
-        var leaving = ghosts.Where(g => !Collapses(g.Key)).Select(g => g.Value).ToList();
+        if (sliding.Count > 0)
+        {
+            morph.Add(sliding.ConvertAll(s => s.Piece), b => b
+                .X(from: (FunctionValue)((_, k, _) => sliding[k].Offset.X), to: 0)
+                .Y(from: (FunctionValue)((_, k, _) => sliding[k].Offset.Y), to: 0)
+                .Duration(tokens.Long).Ease(tokens.Ease), 0);
+        }
         if (growing.Count > 0) morph.Add(growing, b => b.Scale(from: 0).Duration(tokens.Long).Ease(tokens.EmphasizedEase), 0);
         if (collapsing.Count > 0) morph.Add(collapsing, b => b.Scale(0).Duration(tokens.Long).Ease(tokens.EmphasizedEase), 0);
-        if (fading.Count > 0) morph.Add(fading, b => b.Opacity(from: 0).Duration(tokens.Long).Ease(tokens.Ease), 0);
-        if (leaving.Count > 0) morph.Add(leaving, b => b.Opacity(0).Duration(tokens.Long).Ease(tokens.Ease), 0);
+        if (fadingIn.Count > 0) morph.Add(fadingIn, b => b.Opacity(from: 0).Duration(tokens.Long).Ease(tokens.Ease), 0);
+        if (fadingOut.Count > 0) morph.Add(fadingOut, b => b.Opacity(0).Duration(tokens.Long).Ease(tokens.Ease), 0);
         return morph;
     }
 
@@ -244,8 +319,28 @@ public static partial class Recipes
 
     private static bool IsNumber(string? text) => double.TryParse(text, NumberStyles.Any, CultureInfo.CurrentCulture, out _);
 
+    private static bool IsNumeral(string? text) =>
+        text is not null && text.Any(char.IsDigit) && text.All(c => char.IsDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c));
+
+    private static Timeline Done()
+    {
+        // A timeline with no child cannot complete.
+        var done = Presto.CreateTimeline().Call(_ => { });
+        done.Complete();
+        return done;
+    }
+
     private static Point OriginInWindow(TextBlock block) =>
         TopLevel.GetTopLevel(block) is { } top ? block.TranslatePoint(default, top) ?? default : default;
+
+    private readonly record struct LaidOutChar(string Grapheme, Rect Slot, Point InWindow, Geometry? Outline);
+
+    private static LaidOutChar[] LaidOut(TextBlock block, string text, TopLevel top) =>
+        TextSplitter.CharRangesOf(text).Select(c =>
+        {
+            var slot = BlockGlyphs.SlotOf(block, c);
+            return new LaidOutChar(text.Substring(c.Start, c.Length), slot, block.TranslatePoint(slot.Position, top)!.Value, BlockGlyphs.OutlineOf(block, c, slot));
+        }).ToArray();
 
     private static Geometry? OutlineOf(TextBlock block, string grapheme)
     {

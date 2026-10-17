@@ -239,6 +239,21 @@ public sealed class CompositorAnimationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ACompositorLoopKeepsItsFormWhenTheFlagFlips()
+    {
+        var bar = ShowBar();
+        var animation = bar.AnimateOnCompositor(Presto.Build().X(20).Duration(300).Ease("linear").Loop(true).WhenReduced(r => r.Opacity(0.5)));
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Left > 32), "the loop never started");
+
+        Presto.Defaults.ReducedMotion = true;
+        var moved = Extent(bar, Colors.Red);
+
+        // Only the full form keeps the bar pure red while it moves.
+        Assert.True(Pump(() => Extent(bar, Colors.Red) is { } now && now != moved), "the loop left its full form when the flag flipped");
+        Assert.False(animation.Completed);
+    }
+
+    [AvaloniaFact]
     public void DictionaryParamsOnTheCompositorPlayTheirReducedForm()
     {
         var bar = ShowBar();

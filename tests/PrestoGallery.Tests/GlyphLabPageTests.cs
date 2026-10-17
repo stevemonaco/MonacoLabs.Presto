@@ -39,7 +39,7 @@ public sealed class GlyphLabPageTests
         Assert.Equal(2, page.GetControl<Canvas>("ContourLayer").Children.Count);
 
         TestFrames.Tick((1400 / 16) + 2);
-        Assert.NotEmpty(glyph.GetVisualDescendants().OfType<Path>());
+        Assert.NotEmpty(AdornerLayer.GetAdornerLayer(glyph)!.GetVisualDescendants().OfType<Path>());
         // B's outer and two counters, plus the ring the second counter grows from.
         Assert.Equal(4, page.GetControl<Canvas>("ContourLayer").Children.Count);
         TestFrames.Tick(60);
@@ -99,7 +99,7 @@ public sealed class GlyphLabPageTests
         for (var frame = 0; frame < (1400 / 16) + 30; frame++)
         {
             TestFrames.Tick();
-            sawOutlines |= glyph.GetVisualDescendants().OfType<Path>().Any() || overlay.GetVisualDescendants().OfType<Path>().Any();
+            sawOutlines |= AdornerLayer.GetAdornerLayer(glyph)!.GetVisualDescendants().OfType<Path>().Any() || overlay.GetVisualDescendants().OfType<Path>().Any();
         }
 
         Assert.False(sawOutlines);

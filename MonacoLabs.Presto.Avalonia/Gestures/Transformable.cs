@@ -14,7 +14,7 @@ namespace MonacoLabs.Presto.Gestures;
 /// Pointers are read in the target's parent space, which the transform does not move, and a third one is ignored. A mouse
 /// is one pointer, pressed with the left button; a pen counts as a finger.
 /// </remarks>
-public sealed class Transformable : IRevertible
+public sealed class Transformable : IRevertible, IReleasable
 {
     private static readonly Inertia s_defaultInertia = new();
 
@@ -39,6 +39,7 @@ public sealed class Transformable : IRevertible
     private Vector _rest;
     private double _restScale;
     private double _restRotation;
+    private bool _reverted;
 
     internal Transformable(Control target, TransformableParams parameters)
     {
@@ -150,6 +151,7 @@ public sealed class Transformable : IRevertible
     {
         if (_enabled) return this;
         _enabled = true;
+        _reverted = false;
         _trigger.PointerPressed += HandlePressed;
         _trigger.PointerMoved += HandleMoved;
         _trigger.PointerReleased += HandleReleased;
@@ -183,10 +185,13 @@ public sealed class Transformable : IRevertible
         Disable();
         Animate.Revert();
         GestureOwners.Release(_target, this);
+        _reverted = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _reverted;
 
     private static double Angle(Vector v) => Math.Atan2(v.Y, v.X) * 180 / Math.PI;
 

@@ -54,7 +54,7 @@ public partial class TypographyPage : ShowcasePage
         ShowFirstWord();
         _cycle = Presto.Defaults.ReducedMotion
             ? null
-            : Presto.CreateTimer(new TimerParams { Duration = CycleDuration, Loop = LoopCount.Infinite, OnLoop = _ => Rotate() });
+            : Presto.CreateTimer(new TimerParams { Duration = CycleDuration, Loop = LoopCount.Infinite, OnLoop = _ => Scope.Execute(_ => Rotate()) });
 
         Scope.Add(_ => () => _wordmark?.Revert());
         ShowWordmark();

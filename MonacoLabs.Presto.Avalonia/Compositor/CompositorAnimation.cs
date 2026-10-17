@@ -14,7 +14,7 @@ namespace MonacoLabs.Presto.Compositor;
 /// timing and the callbacks match the same animation played on the UI thread. It is a model rather than the animation itself: while the UI thread is
 /// blocked it falls behind what the render thread draws, and catches up once the thread is free again.
 /// </remarks>
-public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
+public sealed class CompositorAnimation : IRevertible, IReleasable, ICompositorTrackOwner
 {
     private readonly TargetAnimation[] _targets;
     private readonly Animation? _control;
@@ -23,6 +23,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     private Action<CompositorAnimation>? _onResolve;
     private bool _moving;
     private Timer? _finishedWhileMoving;
+    private bool _reverted;
 
     internal CompositorAnimation(object? targets, CompositorAnimationParams parameters)
     {
@@ -152,10 +153,13 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
     public CompositorAnimation Revert()
     {
         foreach (var target in _targets) target.Revert();
+        _reverted = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _reverted;
 
     /// <summary>Completes when the target that finishes last in the current direction finishes; an already completed animation resolves immediately.</summary>
     /// <inheritdoc cref="Timer.Then" path="/param"/>
@@ -259,6 +263,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
             }
 
             _element = element;
+            owner._reverted = false;
             // Sampling left the mirror sitting completed at the end of its last iteration, unless playback has since moved it.
             if (!_moved) mirror.Reset();
             foreach (var track in _moved ? CompositorCompiler.CompileFrom(mirror, tracks) : tracks)
@@ -311,6 +316,7 @@ public sealed class CompositorAnimation : IRevertible, ICompositorTrackOwner
             if (_element is { } element) Restore(element);
             // Timer.Revert would leave the playhead at minus the delay; the scratch it restores is never read again.
             mirror.Seek(0, muteCallbacks: true).Cancel();
+            mirror._released = true;
         }
 
         public void OnComplete(Timer finished)

@@ -57,7 +57,7 @@ public sealed class ScrollRevealTests : BridgeTestBase
         ScrollTo(scroller, 150);
 
         Assert.Equal(1, target.Opacity);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
     }
 
     [AvaloniaFact]
@@ -116,7 +116,7 @@ public sealed class ScrollRevealTests : BridgeTestBase
         Frames.Advance(200, 20);
 
         Assert.All(list.GetVisualDescendants().OfType<Border>().Where(row => Presence.GetReveal(row) is not null), row => Assert.Equal(1, row.Opacity));
-        Assert.False(ScrollContainer.Containers.ContainsKey((ScrollViewer)list.Scroll!));
+        Assert.False(ScrollContainer.Containers.TryGetValue((ScrollViewer)list.Scroll!, out _));
     }
 
     [AvaloniaFact]

@@ -25,6 +25,7 @@ tests:
   - ActivityFeedPageTests
   - BuilderRecipePagesTests
   - PresenceVisibilityTests
+  - ScopePruningTests
 upstream: []
 depends:
   - BRIDGE-PRESENCE
@@ -36,6 +37,7 @@ depends:
   - CORE-ANIMATION
   - CORE-REDUCED
   - CORE-DIAGNOSTICS
+  - CORE-SCOPE
 ---
 
 # Presence exits and ghosts
@@ -93,6 +95,8 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
   - Tests: `PresenceTests.ARemovedPanelChildLeavesAGhostInItsSlotUntilItsExitEnds`, `PresenceTests.CancelingTheExitRemovesTheGhost`, `PresenceTextExitTests.TheHostIsDismissedWhenTheLastGhostEnds`, `PresenceTextExitTests.ReduceAllLeavesNoGhost`
 - **BRIDGE-PRESENCE-EXIT-021** — A ghost's exit shall use `WhenDetached.Continue`, so it runs to completion even when its window closes.
   - Tests: `WhenDetachedTests.AnExitGhostRunsToCompletionWhenItsWindowCloses`
+- **BRIDGE-PRESENCE-EXIT-037** — Once an exit's ghosts are dismissed, its ghost animation shall count as released to the scope it registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.TextSwapsWithPresenceInsideAScopeStayBounded`, `ScopePruningTests.SwappedOutBlocksAreCollectableWhileTheScopeLives`
 - **BRIDGE-PRESENCE-EXIT-022** (inherited) — When the element has a zero width or height, or its top level has no overlay layer, no ghost shall be created and nothing shall play.
   - Tests: untested
 - **BRIDGE-PRESENCE-EXIT-023** — The exit animation shall carry the diagnostics origin `"Presence"`.
@@ -172,6 +176,7 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **Exit builders animate only what an `Image` has.** An exit animates transform shorthands, `Opacity`, effects and other `Image` properties; a property only the original control has (such as `Background`) throws as on any other target, as the docs on `Exit` say. Reason: a consequence of the ghost being an `Image`.
 - **A ghost's clip is not inflated for blur.** Effect shorthands apply to the ghost directly. Reason: the clip box is the set of ancestor clips that would have cut the live element's blur too.
 - **`AnimateExit` ghosts only what is drawn.** A control hidden or at opacity 0, itself or through an ancestor, gets no ghost and `null`, by the same on-screen test a departure uses. Reason: a snapshot of an undrawn control would pop into view as it exits; before, `AnimateExit` ghosted it anyway, unlike a departure.
+- **Exit ghost animations stay registered and become released once dismissed.** A ghost's exit registers with the scope current at the departure, and counts as released (CORE-SCOPE) once its ghosts are dismissed. Reason: a scope's revert mid-exit still cancels the exit and dismisses the ghosts, and once dismissed nothing the exit changed is on screen, so a long-lived scope that swaps content does not grow by one exit per swap. Rejected: creating them outside the current scope, as `PieceGhosts` does for its split, which would let ghosts keep playing over the next page after a navigation.
 - **A leaving block exits as one ghost per piece.** See BRIDGE-TEXTREVEAL.
 - **One overlay host per text exit.** See BRIDGE-TEXTREVEAL.
 - **Hiding split text follows `HideMode`.** See BRIDGE-TEXTREVEAL.

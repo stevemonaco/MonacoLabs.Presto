@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Controls;
+using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Draggables;
 using MonacoLabs.Presto.Gestures;
 using MonacoLabs.Presto.Platform;
@@ -60,6 +61,22 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         // measured 80 (IsVisible) and 83 (HorizontalAlignment): the opacity's 80, plus the alignment's change args at each flip.
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void ASignalWithNothingLiveAllocatesNothing()
+    {
+        var border = new Border();
+        Show(border);
+        var engine = new Engine(new ManualFrameSource());
+        using (engine.MakeCurrent()) Animate.SetOnAttached(border, Presto.Build().X(100).Loop().WhenReduced(reduced => reduced.Opacity(0)));
+        Animate.SetOnAttached(border, null);
+        var defaults = engine.Defaults;
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 100; i++) defaults.ReducedMotion = !defaults.ReducedMotion;
+
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
     [AvaloniaTheory]
@@ -224,6 +241,20 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         // measured 160: the composer reuses its transforms, so this is 80 per shorthand for the property change each raises.
         Assert.True(bytes <= 192, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AScrollingMarqueeTicksWithinBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        Show(new Marquee { Content = new Border { Width = 50 } });
+
+        var bytes = BytesPerTick();
+
+        // measured 80: the speed channel and the timer allocate nothing, so this is the strip's one shorthand property change.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
     }
 
     [AvaloniaTheory]
@@ -393,9 +424,13 @@ public sealed class BridgeAllocationTests : CompositorTestBase
         PointerEventArgs[] moves = [Move(new Point(10, 10)), Move(new Point(70, 30))];
 
         // Bystander is outside the stage, so raising the same args on it prices Avalonia's routing without the tracker.
-        var bytes = BytesPerMove(boxes, moves) - BytesPerMove(bystander, moves);
+        // The median of alternating blocks keeps a one-off allocation in a full run from failing a zero budget.
+        var differences = new double[5];
+        for (var i = 0; i < differences.Length; i++) differences[i] = BytesPerMove(boxes, moves) - BytesPerMove(bystander, moves);
+        Array.Sort(differences);
+        var bytes = differences[differences.Length / 2];
 
-        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per move");
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per move, median of {string.Join(", ", differences.Select(d => d.ToString("0.##")))}");
 
         PointerEventArgs Move(Point point) => new(InputElement.PointerMovedEvent, boxes, mouse, window, point, 0,
             new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None);

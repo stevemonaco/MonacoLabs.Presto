@@ -111,4 +111,5 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Flip card](flip-card.md) | BRIDGE-FLIP | `Flip` |
 | [Split-flap display](split-flap.md) | BRIDGE-SPLITFLAP | `SplitFlap` |
 | [Progress ring and submit button](progress-and-submit.md) | BRIDGE-SUBMIT | `ProgressRing`, `SubmitButton`, `SubmitState` |
+| [Marquee](marquee.md) | BRIDGE-MARQUEE | `Marquee`, `MarqueeDirection`, `MarqueeMode` |
 

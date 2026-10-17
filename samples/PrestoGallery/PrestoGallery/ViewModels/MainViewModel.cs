@@ -101,7 +101,7 @@ public partial class MainViewModel : ObservableObject
                 () => new TypeLabPage()),
             new GalleryPage("Glyph lab", "Letters as vector outlines, in Inter, Archivo and the bundled Playfair Display and Dancing Script. Recipes.WriteIn traces a script word's strokes and then fills them: replay it at another speed, letter by letter or all at once. One large glyph cycles A to Z and 0 to 9 through Recipes.MorphGlyphs in the font you pick; show its contours to see each one in its own color, holes dashed, and a dotted ring where an unpaired contour collapses or grows. O, 8, B and 0 morph side by side, with their counters kept on the left and garbled on the right, where each outline is one figure. Click the shatter word to break it into vector shards with Recipes.Shatter, as many per letter as the slider says, and press Reverse mid-flight to reassemble it. Under reduced motion the word fades in, the glyphs crossfade through one pass of the alphabet and stop, the single figures swap at once, and the shatter word fades out and back in as the next one.",
                 () => new GlyphLabPage()),
-            new GalleryPage("Morph clock", "Numbers that change shape instead of being swapped. A clock in Archivo ticks every second through Recipes.MorphGlyphs, which pairs numbers from the end, so only the digits that change morph while the colons pulse. A countdown from 0:10 runs down with Start and Stop and morphs 0:00 into DONE. Three button labels morph into a glyph and back: Submit becomes Sending and then a check as it steps through the submit states, Play turns into Pause, and the menu's three bars cross into an X. Press Refresh and three stats change three ways at once: morphing outlines, RollDigits' odometer and a SplitFlap board. Under reduced motion every morph crossfades, the colons hold still, RollDigits sets its number at once and the board's changed cells fade in.",
+            new GalleryPage("Morph clock", "Numbers that change shape instead of being swapped. A clock in Archivo with tabular figures is one HH:mm:ss block that ticks every second through Recipes.MorphGlyphs, which pairs numerals from the end, so only the digits that change morph and the rest stay the block's own text. A countdown from 0:10 runs down with Start and Stop and morphs 0:00 into DONE. Three button labels morph into a glyph and back: Submit becomes Sending and then a check as it steps through the submit states, Play turns into Pause, and the menu's three bars cross into an X. Press Refresh and three stats change three ways at once: morphing outlines, RollDigits' odometer and a SplitFlap board. Under reduced motion the clock and countdown change at once, the labels and morphing stats crossfade, RollDigits sets its number at once and the board's changed cells fade in.",
                 () => new MorphClockPage()),
             new GalleryPage("Particle type", "A word drawn by thousands of particles. GlyphPoints.Sample reads points along or inside the outline PrestoAvalonia.TextOutline gives for it, and ParticleScene.AddFormation sets one particle on each, every one on a spring to its own point, stepped and drawn on the render thread. Move the pointer through the word and Repel pushes the particles aside until you leave and they spring back. Click the stage and Retarget flies the particles to the next word, fading the spares out and spawning the shortfall: Nearest pairs each point with the nearest particle, Sweep sets them off left to right, Burst throws them outward first and Swarm sends each one across the word, and the duration slider sets how long they take to settle. Switch between edge, fill or both, change the spacing and watch the live count, or pick another color. The freeze button retargets and then blocks the UI thread for two seconds, and the particles still fly into the next word. Beneath the stage, Recipes.Disintegrate blows a caption away as particles and Recipes.Assemble gathers them back into it. Under reduced motion each new word, spacing or sampling fades in on its points instead of flying there, the pointer pushes nothing, and the caption only fades out and in.",
                 () => new ParticleTypePage()),
@@ -113,6 +113,8 @@ public partial class MainViewModel : ObservableObject
                 () => new LoadersPage()),
             new GalleryPage("Carousel", "Five slides on an x-only draggable that coasts on inertia and lands on a slide: a soft swipe moves one, a hard flick skips several and bounces off the last. Drag one halfway and watch its background, art and title slide at different rates; the arrows and the Left/Right keys spring to a slide too. The ring around the active dot draws the four-second autoplay, which holds while the pointer is over the strip and stays off under reduced motion, where slides jump instead of springing.",
                 () => new Showcase.Pages.CarouselPage()),
+            new GalleryPage("Marquee", "Three Marquees that lay their content out once and repeat it end to end. The logo wall's copies are real Buttons built from its ContentTemplate, so click a name in any copy and the readout shows it; its edges fade, the speed slider eases it to a new Speed, and Pause, the pointer over it or Tab focus inside it eases it to a stop. Beside it a ticker scrolls up, and a now-playing title in a narrow label rests while it fits and scrolls once Long title makes it overflow. Under reduced motion all three hold still, start-aligned and clipped.",
+                () => new Showcase.Pages.MarqueePage()),
             new GalleryPage("Connected", "Twelve album cards; click one and its art and title fly into the detail view on transitions of their own, 560 and 460 ms long, so the title lands first while the other cards scatter away from it on one staggered compositor animation. Press Back or Escape at any point, or click the card again while it closes, and every piece reverses from where it is drawn.",
                 () => new ConnectedPage()),
             new GalleryPage("Connected navigation", "A connected animation between two views, as the Community Toolkit does between pages: scroll the gallery, click a destination, and it is swapped for a detail view built from scratch while the photo arcs and the city name flies into place on the render thread, the two views meeting only through prepared keys. The text, facts and buttons ride in behind them on one staggered compositor builder. Press Back or Escape, even mid-flight, to fly them home into the scrolled list as the other cards ripple back in, and turn on Block the UI thread to see the flights land while the dispatcher sleeps.",
@@ -231,22 +233,9 @@ public partial class MainViewModel : ObservableObject
 
     public bool CanGoBack => _history.Count > 0 || (IsCompact && !AtHome);
 
-    private MotionPreference _motion;
-    private IDisposable? _following;
-
-    /// <summary>Sets the app-wide <see cref="PrestoDefaults.ReducedMotion"/> flag every page reads, or follows the OS preference with it.</summary>
-    public MotionPreference Motion
-    {
-        get => _motion;
-        set
-        {
-            if (!SetProperty(ref _motion, value)) return;
-            _following?.Dispose();
-            _following = null;
-            if (value == MotionPreference.System) _following = PrestoAvalonia.FollowSystemReducedMotion();
-            else Presto.Defaults.ReducedMotion = value == MotionPreference.Reduced;
-        }
-    }
+    /// <summary>The app-wide motion preference; <c>MainView</c> binds it to <c>Motion.Preference</c>.</summary>
+    [ObservableProperty]
+    public partial MotionPreference Motion { get; set; } = MotionPreference.Full;
 
     /// <summary>The OS reduce-motion preference, shown whichever <see cref="Motion"/> is chosen.</summary>
     [ObservableProperty]

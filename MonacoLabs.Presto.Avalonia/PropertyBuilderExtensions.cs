@@ -265,6 +265,36 @@ public static class PropertyBuilderExtensions
     /// <summary>Animates <c>"Foreground"</c> through the keyframes <paramref name="keyframes"/> adds.</summary>
     public static T Foreground<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Foreground", keyframes);
 
+    /// <summary>Animates <c>"Fill"</c> to <paramref name="to"/>.</summary>
+    public static T Fill<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("Fill", to);
+
+    /// <summary>Animates <c>"Fill"</c> with its own tween settings.</summary>
+    public static T Fill<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("Fill", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates <c>"Fill"</c> to a value computed per target.</summary>
+    public static T Fill<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("Fill", to);
+
+    /// <summary>Animates <c>"Fill"</c> through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Fill<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Fill", keyframes);
+
+    /// <summary>Animates <c>"Stroke"</c> to <paramref name="to"/>.</summary>
+    public static T Stroke<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("Stroke", to);
+
+    /// <summary>Animates <c>"Stroke"</c> with its own tween settings.</summary>
+    public static T Stroke<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property("Stroke", to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates <c>"Stroke"</c> to a value computed per target.</summary>
+    public static T Stroke<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property("Stroke", to);
+
+    /// <summary>Animates <c>"Stroke"</c> through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T Stroke<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property("Stroke", keyframes);
+
     /// <summary>Animates <c>"CornerRadius"</c> to <paramref name="to"/>.</summary>
     public static T CornerRadius<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property("CornerRadius", to);
 
@@ -850,6 +880,18 @@ public static class PropertyBuilderExtensions
 
     /// <summary>Animates <c>"Foreground"</c> to the brush <paramref name="to"/>: a solid brush's color, or a gradient's stops and geometry.</summary>
     public static T Foreground<T>(this T builder, IBrush to) where T : PropertyBuilder<T> => Init(builder).Property("Foreground", TweenValue.Of(to));
+
+    /// <summary>Animates <c>"Fill"</c> to a solid brush of <paramref name="to"/>.</summary>
+    public static T Fill<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("Fill", SolidBrush(to));
+
+    /// <summary>Animates <c>"Fill"</c> to the brush <paramref name="to"/>: a solid brush's color, or a gradient's stops and geometry.</summary>
+    public static T Fill<T>(this T builder, IBrush to) where T : PropertyBuilder<T> => Init(builder).Property("Fill", TweenValue.Of(to));
+
+    /// <summary>Animates <c>"Stroke"</c> to a solid brush of <paramref name="to"/>.</summary>
+    public static T Stroke<T>(this T builder, Color to) where T : PropertyBuilder<T> => Init(builder).Property("Stroke", SolidBrush(to));
+
+    /// <summary>Animates <c>"Stroke"</c> to the brush <paramref name="to"/>: a solid brush's color, or a gradient's stops and geometry.</summary>
+    public static T Stroke<T>(this T builder, IBrush to) where T : PropertyBuilder<T> => Init(builder).Property("Stroke", TweenValue.Of(to));
     /// <summary>Animates <c>"BoxShadow"</c> to <paramref name="to"/>.</summary>
     public static T BoxShadow<T>(this T builder, BoxShadows to) where T : PropertyBuilder<T> => Init(builder).Property("BoxShadow", TweenValue.Of(to));
 

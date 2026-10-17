@@ -85,6 +85,161 @@ public sealed class ScopeTests : EngineTestBase
     }
 
     [Fact]
+    public void ReAnimatingATargetThatFinishesEachTimeStaysBounded()
+    {
+        var target = new StyleTarget { X = 10 };
+        var scope = Presto.CreateScope();
+
+        scope.Execute(_ =>
+        {
+            for (var i = 0; i < 1000; i++)
+            {
+                Presto.Animate(target, new() { ["X"] = 100 + i, Duration = 10 });
+                Frames.Advance(50, 16);
+            }
+        });
+
+        Assert.InRange(scope.RevertibleCount, 1, 32);
+        scope.Revert();
+        Assert.Equal(10, target.X);
+    }
+
+    [Fact]
+    public void ReplayedTimelinesInsideAScopeStayBounded()
+    {
+        var target = new StyleTarget { X = 10, Y = 20 };
+        var scope = Presto.CreateScope();
+
+        scope.Execute(_ =>
+        {
+            for (var i = 0; i < 300; i++)
+            {
+                Presto.CreateTimeline()
+                    .Add(target, new() { ["X"] = 100 + i, Duration = 10 })
+                    .Add(target, new() { ["Y"] = 200 + i, Duration = 10 });
+                Frames.Advance(100, 16);
+            }
+        });
+
+        Assert.InRange(scope.RevertibleCount, 1, 32);
+        scope.Revert();
+        Assert.Equal(10, target.X);
+        Assert.Equal(20, target.Y);
+    }
+
+    [Fact]
+    public void RevertedTimersArePrunedAndNotRevertedAgain()
+    {
+        var targets = Enumerable.Range(0, 20).Select(_ => new StyleTarget()).ToArray();
+        var scope = Presto.CreateScope();
+
+        scope.Execute(_ =>
+        {
+            foreach (var target in targets)
+            {
+                Presto.CreateTimer(new() { Duration = 100 }).Revert();
+                var animation = Presto.Animate(target, new() { ["X"] = 100, Duration = 100 });
+                Frames.Advance(50, 16);
+                animation.Revert();
+                target.X = 7;
+            }
+        });
+
+        // The 32nd registration, the 16th animation, drops the 31 reverted entries before it.
+        Assert.Equal(9, scope.RevertibleCount);
+        scope.Revert();
+        Assert.All(targets, target => Assert.Equal(7, target.X));
+    }
+
+    [Fact]
+    public void RevertDoesNotRewriteAValueSetAfterTheAnimationsOwnRevert()
+    {
+        var target = new StyleTarget();
+        var scope = Presto.CreateScope();
+        var animation = scope.Execute(_ => Presto.Animate(target, new() { ["X"] = 100, Duration = 100 }));
+        Frames.Advance(200, 16);
+
+        animation.Revert();
+        target.X = 42;
+        scope.Revert();
+
+        Assert.Equal(42, target.X);
+    }
+
+    [Fact]
+    public void ARevivedPrunedTimerIsRevertedByItsScope()
+    {
+        var target = new StyleTarget();
+        var scope = Presto.CreateScope();
+        var animation = scope.Execute(_ => Presto.Animate(target, new() { ["X"] = 100, Duration = 100 }));
+        Frames.Advance(200, 16);
+        animation.Revert();
+
+        scope.Execute(_ =>
+        {
+            for (var i = 0; i < 31; i++) Presto.CreateTimer(new() { Duration = 1000 });
+        });
+        Assert.Equal(31, scope.RevertibleCount);
+
+        animation.Restart();
+        Frames.Advance(200, 16);
+        Assert.Equal(100, target.X);
+        Assert.Equal(32, scope.RevertibleCount);
+
+        scope.Revert();
+        Assert.Equal(0, target.X);
+    }
+
+    [Fact]
+    public void AReusedPrunedNestedScopeIsRevertedByItsParent()
+    {
+        var target = new StyleTarget();
+        var parent = Presto.CreateScope();
+        var nested = parent.Execute(_ => Presto.CreateScope());
+        nested.Revert();
+
+        parent.Execute(_ =>
+        {
+            for (var i = 0; i < 31; i++) Presto.CreateTimer(new() { Duration = 1000 });
+        });
+        Assert.Equal(31, parent.RevertibleCount);
+
+        nested.Add(_ => Presto.Animate(target, new() { ["X"] = 100, Duration = 100 }));
+        Frames.Advance(200, 16);
+        Assert.Equal(100, target.X);
+        Assert.Equal(32, parent.RevertibleCount);
+
+        parent.Revert();
+        Assert.Equal(0, target.X);
+    }
+
+    [Fact]
+    public void ARevertibleFromOutsideTheLibraryIsNeverPruned()
+    {
+        var outside = new CountingRevertible();
+        var scope = Presto.CreateScope();
+        scope.Register(outside);
+        outside.Revert();
+
+        scope.Execute(_ =>
+        {
+            for (var i = 0; i < 31; i++) Presto.CreateTimer(new() { Duration = 100 }).Revert();
+        });
+        // The outside revertible and the last timer, whose registration ran the prune before its revert.
+        Assert.Equal(2, scope.RevertibleCount);
+
+        scope.Revert();
+        Assert.Equal(2, outside.Reverts);
+    }
+
+    private sealed class CountingRevertible : IRevertible
+    {
+        public int Reverts { get; private set; }
+
+        public void Revert() => Reverts++;
+    }
+
+    [Fact]
     public void AppliesScopedDefaultsToChildrenCreatedInside()
     {
         var scope = Presto.CreateScope(new() { Defaults = defaults => defaults.Duration = 500 });

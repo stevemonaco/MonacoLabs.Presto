@@ -188,8 +188,10 @@ depends:
   - Tests: `PrestoDelayTests.AnAlreadyCanceledTokenReturnsACanceledTaskWithoutATimer`
 - **CORE-PRESTO-053** — Canceling the token mid-wait shall `Cancel()` the underlying timer, so the engine releases it on its next frame, and complete the task as canceled, so awaiting it throws `OperationCanceledException`.
   - Tests: `PrestoDelayTests.CancelingMidWaitCancelsTheTaskAndReleasesTheTimer`
-- **CORE-PRESTO-054** — `Delay` shall dispose its token registration when the timer completes, and its continuations shall never run inline in the engine tick.
-  - Tests: untested
+- **CORE-PRESTO-054** — `Delay` shall dispose its token registration when the timer completes or is interrupted, and its continuations shall never run inline in the engine tick.
+  - Tests: `PrestoDelayTests.TheRegistrationIsDisposedWhenTheTimerIsInterrupted`
+- **CORE-PRESTO-057** — When `Delay`'s timer is canceled or reverted before it completes (as by the scope it was created in), the task shall complete as canceled.
+  - Tests: `PrestoDelayTests.TheRegistrationIsDisposedWhenTheTimerIsInterrupted`
 
 ## Invariants
 
@@ -217,7 +219,7 @@ depends:
 
 ## Allocation
 
-- Not on the tick path. `Get`, `Remove` and `GetAnimations` allocate a parsed target list and, for `GetAnimations`, the result list. `Delay` allocates its timer, a task completion source, the token registration and their closures.
+- Not on the tick path. `Get`, `Remove` and `GetAnimations` allocate a parsed target list and, for `GetAnimations`, the result list. `Delay` allocates its timer, its `ThenOrCancel` task completion source and, given a cancelable token, the token registration and the continuation that disposes it.
 
 ## Provenance
 
@@ -233,7 +235,8 @@ depends:
 - **`Set` announces like the factories.** `Set` raises the timer-created hook after it has written. Reason: a host hook that sees every other root missed `Set` animations, so whatever it tracks or lists skipped them. Rejected: keeping `Set` silent because it completes before returning.
 - **The params overloads win over their lambda twins.** The `AnimationParams` overloads of `Animate` and `Set` carry `[OverloadResolutionPriority(1)]`. Reason: a target-typed `new() { … }` argument then keeps binding to the params overload beside the `Action<AnimationBuilder>` one.
 - **`GetAnimations` omits paused animations.** Reason: the engine drops paused tickables from its children, so listing them would need a per-target registry maintained by every state change, and code that pauses already holds the handle. Rejected: a per-target registry of paused animations.
-- **`Delay` waits on a plain timer.** `Presto.Delay` is backed by a `CreateTimer` whose `OnComplete` completes the task; why an engine-time wait exists is in CORE-TIMER's Decisions. Rejected: a dedicated engine-side delay list, which would duplicate timer scheduling.
+- **`Delay` waits on a plain timer.** `Presto.Delay` is backed by a `CreateTimer` and returns its `ThenOrCancel` task; why an engine-time wait exists is in CORE-TIMER's Decisions. Rejected: a dedicated engine-side delay list, which would duplicate timer scheduling.
+- **Library code that must finish on interruption waits with `ThenOrCancel`.** This covers `Delay`, and the bridge's `ThemeReveal` and page-transition host run. Reason: each runs cleanup or completes a caller's task, and none of them could tell an interruption from a completion. A token cancel completes `Delay`'s task through the timer's cancel, so the exception carries no token.
 - **`Remove` without a property removes them all.** Reason: removing a target is the cleanup before discarding it, which must stop everything animating it; the property argument narrows that.
 - **`$` and `cleanInlineStyles` are not ported.** Reason: there are no selectors, and animated writes leave no inline styles to clean.
 
@@ -244,4 +247,4 @@ depends:
 
 ## Open items
 
-- `CreateMotionValue`, `CreateAnimatable`'s missing hook, `Set`'s forced duration and `Composition.Overlap` default, and `Get(…, withUnit: true)` have no direct test; nor do `Delay`'s registration disposal and asynchronous continuations.
+- `CreateMotionValue`, `CreateAnimatable`'s missing hook, `Set`'s forced duration and `Composition.Overlap` default, and `Get(…, withUnit: true)` have no direct test; nor do `Delay`'s asynchronous continuations.

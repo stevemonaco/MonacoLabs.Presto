@@ -1,6 +1,7 @@
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -20,14 +21,14 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         var parameters = Presto.Build()
             .X(1).Y(1).Rotate(1).Scale(1).ScaleX(1).ScaleY(1).SkewX(1).SkewY(1)
             .Opacity(1).Width(1).Height(1).Background("#fff").Foreground("#fff").CornerRadius(1)
-            .BorderThickness(1).Margin(1).Padding(1).Draw("0 1").Text("a").Data("M0,0 L1,1")
+            .BorderThickness(1).Margin(1).Padding(1).Draw("0 1").Text("a").Data("M0,0 L1,1").Fill("#fff").Stroke("#fff")
             .ToParams();
 
         PropertyKey[] expected =
         [
             PrestoKeys.X, PrestoKeys.Y, PrestoKeys.Rotate, PrestoKeys.Scale, PrestoKeys.ScaleX, PrestoKeys.ScaleY, PrestoKeys.SkewX,
             PrestoKeys.SkewY, "Opacity", "Width", "Height", "Background", "Foreground", "CornerRadius", "BorderThickness", "Margin",
-            "Padding", PrestoKeys.Draw, PrestoKeys.Text, PrestoKeys.Data,
+            "Padding", PrestoKeys.Draw, PrestoKeys.Text, PrestoKeys.Data, "Fill", "Stroke",
         ];
         Assert.Equal(expected.Select(k => k.Name), parameters.Properties.Keys);
     }
@@ -42,6 +43,9 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         Assert.Equal(["X"], Presto.Build().X(function).ToParams().Properties.Keys);
         Assert.Equal(["X"], Presto.Build().X(k => k.To(1).To(2)).ToParams().Properties.Keys);
         Assert.Equal(["Text"], Presto.Build().Text(1, textModifier: v => v.ToString()).ToParams().Properties.Keys);
+        Assert.Equal(["Fill"], Presto.Build().Fill(from: "#000", to: "#fff").ToParams().Properties.Keys);
+        Assert.Equal(["Fill"], Presto.Build().Fill(function).ToParams().Properties.Keys);
+        Assert.Equal(["Fill"], Presto.Build().Fill(k => k.To("#000").To("#fff")).ToParams().Properties.Keys);
     }
 
     [AvaloniaFact]
@@ -56,6 +60,8 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
             .Margin(new Thickness(2))
             .Draw(0, 0.5)
             .Data(geometry)
+            .Fill(brush)
+            .Stroke(Colors.Blue)
             .ToParams();
 
         Assert.Same(brush, parameters["Background"].Raw);
@@ -63,6 +69,8 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         Assert.Equal(new Thickness(2), parameters["Margin"].Raw);
         Assert.Equal("0 0.5", parameters["Draw"].Raw);
         Assert.Same(geometry, parameters["Data"].Raw);
+        Assert.Same(brush, parameters["Fill"].Raw);
+        Assert.Equal(Colors.Blue, Assert.IsType<ImmutableSolidColorBrush>(parameters["Stroke"].Raw).Color);
     }
 
     [AvaloniaFact]
@@ -196,6 +204,22 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         animation.Seek(animation.Duration);
 
         Assert.Equal(Colors.Red, Assert.IsAssignableFrom<ISolidColorBrush>(border.Background).Color);
+    }
+
+    [AvaloniaFact]
+    public void FillAndStrokeAnimateAShapeAndTheRingsFill()
+    {
+        var ellipse = new Ellipse { Fill = Brushes.Black, Stroke = Brushes.Black };
+        var ring = new ProgressRing { Fill = Brushes.Black };
+
+        var shape = ellipse.Animate(Presto.Build().Fill(Colors.Red).Stroke(Colors.Blue).Duration(100).Autoplay(false));
+        var fill = ring.Animate(Presto.Build().Fill(Colors.Red).Duration(100).Autoplay(false));
+        shape.Seek(shape.Duration);
+        fill.Seek(fill.Duration);
+
+        Assert.Equal(Colors.Red, Assert.IsAssignableFrom<ISolidColorBrush>(ellipse.Fill).Color);
+        Assert.Equal(Colors.Blue, Assert.IsAssignableFrom<ISolidColorBrush>(ellipse.Stroke).Color);
+        Assert.Equal(Colors.Red, Assert.IsAssignableFrom<ISolidColorBrush>(ring.Fill).Color);
     }
 
     [AvaloniaFact]

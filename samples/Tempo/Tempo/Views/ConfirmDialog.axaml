@@ -17,7 +17,7 @@
                 <Panel Grid.Column="3" Width="52" Height="52">
                     <presto:ProgressRing x:Name="Hold" Thickness="3" HoldDuration="600"
                                          Fill="{DynamicResource SemiColorDanger}" Track="{DynamicResource TempoLine}"
-                                         Confirmed="HoldConfirmed" />
+                                         Command="{Binding ConfirmCommand}" HoldStarted="HoldPressed" />
                     <Border Classes="danger" IsHitTestVisible="False">
                         <PathIcon Data="{x:Static m:TempoMotion.CheckIcon}" />
                     </Border>

@@ -8,7 +8,8 @@
              xmlns:local="using:PrestoGallery.Views"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
              x:Class="PrestoGallery.Views.MainView"
-             x:DataType="vm:MainViewModel">
+             x:DataType="vm:MainViewModel"
+             presto:Motion.Preference="{Binding Motion}">
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
@@ -10,6 +11,9 @@ public sealed class Engine : Clock
 {
     [ThreadStatic]
     private static Engine? s_current;
+
+    // Keyed by reference, so record equality and with copies never see the owner.
+    private static readonly ConditionalWeakTable<PrestoDefaults, Engine> s_owners = new();
 
     private IFrameSource _frameSource;
     private int _threadId;
@@ -38,7 +42,7 @@ public sealed class Engine : Clock
         // Globals.TimeScale is process-wide, so an engine created in seconds mode must start out scaled like the main one.
         _speed = Globals.TimeScale;
         _frameSource = frameSource;
-        Defaults = defaults;
+        Own(defaults);
         Additive = new(this);
         Diagnostics = new(this);
     }
@@ -133,6 +137,25 @@ public sealed class Engine : Clock
 
     /// <summary>The defaults every timer created on this engine inherits; <see cref="Scope.Execute{T}"/> swaps in the scope's own while it runs.</summary>
     public PrestoDefaults Defaults { get; internal set; }
+
+    /// <summary>Raised on the writer's thread, right after <see cref="PrestoDefaults.ReducedMotion"/> or <see cref="PrestoDefaults.ReduceAll"/> of this engine's own defaults changes value; never for a copy of them.</summary>
+    public event Action<Engine>? ReducedMotionChanged;
+
+    // The instance Defaults returns to after a scope's Execute, which swaps in the scope's copy.
+    internal PrestoDefaults OwnDefaults { get; private set; }
+
+    // Scope.Execute swaps Defaults without this, so a scope's copy never raises the signal.
+    [MemberNotNull(nameof(Defaults), nameof(OwnDefaults))]
+    internal void Own(PrestoDefaults defaults)
+    {
+        Defaults = OwnDefaults = defaults;
+        s_owners.AddOrUpdate(defaults, this);
+    }
+
+    internal static void RaiseReducedMotionChanged(PrestoDefaults defaults)
+    {
+        if (s_owners.TryGetValue(defaults, out var engine)) engine.ReducedMotionChanged?.Invoke(engine);
+    }
 
     internal Scope? CurrentScope { get; set; }
 

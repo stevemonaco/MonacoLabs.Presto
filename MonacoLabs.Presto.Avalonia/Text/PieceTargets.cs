@@ -49,6 +49,7 @@ internal sealed class PieceTargets : IRevertible
                 if (Animation == animation) Animation = null;
             };
             Animation = animation;
+            if (Paused) animation.Pause();
             _hold?.Dispose();
             _hold = null;
             return animation;
@@ -57,6 +58,18 @@ internal sealed class PieceTargets : IRevertible
 
     /// <summary>The animation over the current pieces, rebuilt on every re-split; null once reverted.</summary>
     public Animation? Animation { get; private set; }
+
+    /// <summary>Holds the animation paused while true, including the one a re-split builds.</summary>
+    public bool Paused
+    {
+        get;
+        set
+        {
+            field = value;
+            if (value) Animation?.Pause();
+            else Animation?.Resume();
+        }
+    }
 
     /// <summary>
     /// Plays <paramref name="parameters"/> on <paramref name="target"/>'s pieces; null when it is not a <see cref="TextBlock"/> asking

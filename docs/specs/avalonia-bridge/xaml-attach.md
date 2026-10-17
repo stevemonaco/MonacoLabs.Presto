@@ -42,8 +42,8 @@ depends:
   - Tests: `AnimateAttachedTests.SettingOnAnAttachedControlPlaysOneAnimationToItsEnd`
 - **BRIDGE-ATTACH-002** — When `OnAttached` is set on a visual that is not attached, `Animate` shall play nothing until the visual attaches, and then play the builder.
   - Tests: `AnimateAttachedTests.SettingBeforeAttachmentWaitsForTheAttach`
-- **BRIDGE-ATTACH-003** — When the visual detaches, `Animate` shall revert its `OnAttached` animation, restoring the values the animation changed.
-  - Tests: `AnimateAttachedTests.DetachingRevertsAndReattachingPlaysFromTheStart`
+- **BRIDGE-ATTACH-003** — When the visual detaches, `Animate` shall revert its `OnAttached` animation, restoring the values the animation changed, whether it is playing or paused.
+  - Tests: `AnimateAttachedTests.DetachingRevertsAndReattachingPlaysFromTheStart`, `AnimateAttachedTests.DetachingWhileHiddenRevertsAsBefore`
 - **BRIDGE-ATTACH-004** — When the visual attaches again, `Animate` shall play a new animation of the current builder from its start.
   - Tests: `AnimateAttachedTests.DetachingRevertsAndReattachingPlaysFromTheStart`
 - **BRIDGE-ATTACH-005** — The `OnAttached` trigger shall play on every attach, unclassified, including a virtualizing panel re-attaching a recycled row's content as it scrolls.
@@ -53,9 +53,21 @@ depends:
 - **BRIDGE-ATTACH-007** — When `OnAttached` changes from one builder to another on an attached visual, `Animate` shall revert (cancel) the previous animation and play the new builder.
   - Tests: `AnimateAttachedTests.ChangingTheValueRevertsTheFirstAnimationAndPlaysTheSecond`
 - **BRIDGE-ATTACH-008** — When `OnAttached` is set to `null`, `Animate` shall revert the running animation and stop listening, so later attaches play nothing.
-  - Tests: `AnimateAttachedTests.SettingNullRevertsAndStopsListening`
+  - Tests: `AnimateAttachedTests.SettingNullRevertsAndStopsListening`, `AnimateAttachedTests.ClearingOnAttachedRemovesTheVisibilityHandler`
 - **BRIDGE-ATTACH-009** — When one builder instance is set on several visuals, each visual shall get its own independent animation built from fresh params (`ToParams()` per play).
   - Tests: `AnimateAttachedTests.OneBuilderOnTwoControlsGivesIndependentAnimations`
+- **BRIDGE-ATTACH-032** — While the visual is attached but not effectively visible, `Animate` shall keep its `OnAttached` animation paused.
+  - Tests: `AnimateAttachedTests.AHiddenVisualsLoopIsPausedAndResumesWhereItWasWhenShown`, `AnimateAttachedTests.HidingAnAncestorPausesTheLoop`, `AnimateAttachedTests.ATextRevealOnAHiddenBlockWaitsUntilShown`, `AnimateAttachedTests.AReducedLoopPausesWhenHidden`
+- **BRIDGE-ATTACH-033** — When the visual becomes effectively visible again, `Animate` shall resume the animation if, and only if, it paused it.
+  - Tests: `AnimateAttachedTests.AHiddenVisualsLoopIsPausedAndResumesWhereItWasWhenShown`, `AnimateAttachedTests.ShowingDoesNotResumeAPauseTheTriggerDidNotMake`
+- **BRIDGE-ATTACH-034** — When `OnAttached` plays on a visual that is not effectively visible, the animation shall start paused.
+  - Tests: `AnimateAttachedTests.AttachingHiddenStartsPausedAndPlaysWhenFirstShown`, `AnimateAttachedTests.ATextRevealOnAHiddenBlockWaitsUntilShown`
+- **BRIDGE-ATTACH-035** — A completed `OnAttached` animation shall be left as it is by visibility changes.
+  - Tests: `AnimateAttachedTests.ACompletedAnimationIsLeftAloneWhenHidden`
+- **BRIDGE-ATTACH-036** — Visibility shall not affect `OnTapped` or `OnChanged`.
+  - Tests: `AnimateAttachedTests.VisibilityDoesNotAffectOnTappedOrOnChanged`
+- **BRIDGE-ATTACH-037** — When the flags change while the visual is attached, `OnAttached` shall revert its animation, whether running or holding its end values, and play the current builder from its start, when Following a change (BRIDGE-REDUCED) asks for a replay.
+  - Tests: `AnimateAttachedTests.ALoopingOnAttachedReplaysItsReducedFormWhenTheFlagIsSet`, `AnimateAttachedTests.ASettledReducedFormLoopsAgainWhenTheFlagClears`, `AnimateAttachedTests.AReduceAllFlipReplaysALoopCollapsed`
 
 ### OnTapped
 
@@ -93,6 +105,8 @@ depends:
   - Tests: `AnimateAttachedTests.DetachingRevertsTheTriggers`
 - **BRIDGE-ATTACH-023** — When `OnTapped` or `OnChanged` changes from one non-null builder to another, `Animate` shall play the new builder on the next tap or `Watch` change, and, while an animation of the old builder is running, revert it and play the new builder from the start.
   - Tests: `AnimateAttachedTests.ChangingOnTappedPlaysTheNewBuilderOnTheNextTapAndRestartsARunningOneWithIt`, `AnimateAttachedTests.ChangingOnChangedMidPlayRevertsItAndPlaysTheNewBuilder`
+- **BRIDGE-ATTACH-038** — When the flags change while an `OnTapped` or `OnChanged` animation is running, `Animate` shall revert it and play the builder from its start, when Following a change (BRIDGE-REDUCED) asks for a replay.
+  - Tests: `AnimateAttachedTests.ARunningLoopingTapAnimationFollowsTheFlag`
 - **BRIDGE-ATTACH-024** — When the target is a `TextBlock` whose `TextReveal.Pieces` is not `None` and the builder is not a reduced form, `OnAttached` and `OnTapped` shall play the builder on the block's split pieces as a text reveal (BRIDGE-TEXTREVEAL) instead of on the block, and a tap mid-reveal shall restart it.
   - Tests: `TextRevealTests.OnTappedRevealsThePiecesAndATapMidRevealRestartsIt`, `TextRevealTests.DetachingRevertsTheSplit`, `TextRevealTests.DetachingBeforeTheSplitReleasesTheHold`
 - **BRIDGE-ATTACH-025** — `OnChanged` shall always animate the visual itself, never its text pieces.
@@ -133,10 +147,13 @@ depends:
 
 - UI thread only, like the rest of the bridge. Animations run on the current engine (CORE-SCOPE).
 - The trigger object lives in a private attached property on the visual and holds the visual's events; it is released when the property becomes `null`. A visual that is collected takes its trigger with it.
+- Each `OnAttached` trigger adds one `IsEffectivelyVisibleChanged` handler to its visual, removed with the trigger; following visibility costs nothing per frame.
 
 ## Reduced motion
 
 - Triggers play `builder.ToParams()`, which resolves the builder's `WhenReduced` form and `ReduceAll` (CORE-REDUCED); a reduced form on a text block plays on the block unsplit (BRIDGE-TEXTREVEAL).
+- When the flags change, a live trigger replays from its start if its form changed and either form loops forever (BRIDGE-ATTACH-037, -038); a finite one finishes in its form.
+- A reduced `OnAttached` form pauses while hidden like any other, and one that has already completed has nothing to pause.
 
 ## Allocation
 
@@ -157,7 +174,13 @@ depends:
 - **A one-shot trigger's builder swap replays only a running animation.** Changing `OnTapped` or `OnChanged` reverts a running animation and plays the new builder, as an `OnAttached` change does; with nothing running it plays nothing until the next tap or change. Reason: a running animation stands for a trigger that already fired, so it follows the latest builder; playing with nothing running would fire a trigger nobody raised. Rejected: leaving the running animation alone until the next trigger, which kept showing the replaced builder.
 - **`OnTapped` on a visual that is not an `InputElement` throws `InvalidOperationException`.** Reason: such a visual raises no `Tapped`, so the trigger was silently inert; the builder is valid and the host is not, as with two layout arms on one container.
 - **No timelines or keyframes in XAML.** Reason: builders and recipes already reach XAML as values, multi-step sequences usually need code-side targets and state, and XAML elements would add verbosity without capability.
+- **Visibility pauses only `OnAttached`.** Reason: `OnAttached` is the "while attached" trigger for loops and timers, so "while shown" is its meaning, and its trigger already owns the animation it would pause; `OnTapped` and `OnChanged` are one-shots that end and revert. Rejected: pausing every animation on a hidden visual from the detach tracker, since code-driven animations on hidden visuals are often deliberate (pre-positioning before a show, a Presence hide hold) and every tracked visual would watch visibility.
+- **Hidden pauses, it does not revert.** Reason: a hide is usually brief and reversible (a tab, an expander, a carousel page), a resumed loop keeps its phase, and a paused animation leaves the engine list, so a page of hidden loops lets the engine idle. Rejected: revert on hide and replay on show, which would replay a finished `OnAttached` animation on every expand and break BRIDGE-ATTACH-006.
+- **Effective visibility only.** The trigger reads `IsEffectivelyVisible`, which follows `IsVisible` up the tree, and ignores opacity, clipping and being scrolled out of view. Avalonia keeps `IsEffectivelyVisibleChanged` internal, so the trigger subscribes through `UnsafeAccessor`, pinned by `AnimateAttachedTests.ClearingOnAttachedRemovesTheVisibilityHandler` on every `AvaloniaVersion` bump. Reason: Avalonia raises the event during the visibility walk it already does, so watching costs one handler per trigger and nothing per frame, where viewport intersection would need layout-pass work per element. Rejected: polling; viewport-based pausing; watching `IsVisible` on every ancestor.
+- **Resume only what the trigger paused.** Reason: a pause from elsewhere (DevTools freeze, a detach-paused root) must survive a show.
+- **Pause-while-hidden is always on, with no opt-out property.** Reason: no case for a loop running unseen has come up, and an `Animate.PauseWhenHidden` property can be added later without a break.
 - **The piece trigger handle is an `IRevertible`, not an `Animation`.** See BRIDGE-TEXTREVEAL.
+- **Persistent motion follows a flag change; finite motion finishes in its form.** See BRIDGE-REDUCED.
 - **The thread is an argument on bridge entry points.** See BRIDGE-THREAD.
 
 ## Non-goals

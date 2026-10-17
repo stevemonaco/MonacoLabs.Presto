@@ -195,6 +195,19 @@ public sealed class AllocationTests : EngineTestBase
     }
 
     [Fact]
+    public void CancelWithoutAPendingThenOrCancelAllocatesNothing()
+    {
+        Presto.CreateTimer(new() { Duration = 100 }).Cancel();
+        var timer = Presto.CreateTimer(new() { Duration = 100 });
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        timer.Cancel();
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, bytes);
+    }
+
+    [Fact]
     public void CreatingATimerWithDiagnosticsOffNeverTouchesTheRegistry()
     {
         TimerParams parameters = new() { Autoplay = false };

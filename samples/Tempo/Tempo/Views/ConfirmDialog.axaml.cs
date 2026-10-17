@@ -1,9 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using MonacoLabs.Presto;
-using MonacoLabs.Presto.Controls;
 using Tempo.Motion;
-using Tempo.ViewModels;
 
 namespace Tempo.Views;
 
@@ -14,7 +12,6 @@ public partial class ConfirmDialog : UserControl
     public ConfirmDialog()
     {
         InitializeComponent();
-        Hold.PropertyChanged += (_, e) => _pressed |= e.Property == ProgressRing.ValueProperty && Hold.Value > 0;
     }
 
     /// <summary>Forgets the last opening's press, so Escape cancels until the hold is pressed again.</summary>
@@ -30,5 +27,5 @@ public partial class ConfirmDialog : UserControl
         Card.Animate(TempoMotion.DialogShake);
     }
 
-    private void HoldConfirmed(object? sender, EventArgs e) => (DataContext as MainViewModel)?.ConfirmCommand.Execute(null);
+    private void HoldPressed(object? sender, EventArgs e) => _pressed = true;
 }

@@ -110,4 +110,29 @@ public sealed class SubmitButtonTests : BridgeTestBase
         Assert.Equal(Brushes.Blue, button.Background);
         Assert.Equal(1, button.Presenter!.Child!.Opacity);
     }
+
+    [AvaloniaFact]
+    public void ASecondRunTakesTheButtonOverAndTheFirstStillReturnsItsOutcome()
+    {
+        var button = Submit();
+        var hold = Recipes.Tokens.Medium + Recipes.Tokens.Long;
+        var work = new TaskCompletionSource<bool>();
+
+        var first = SubmitButton.Run(button, Task.FromResult(false));
+        Advance(32);
+        Assert.Equal(SubmitState.Failed, SubmitButton.GetState(button));
+        var second = SubmitButton.Run(button, work.Task);
+        Advance(hold);
+
+        Assert.True(first.IsCompleted);
+        Assert.False(first.Result);
+        Assert.Equal(SubmitState.Busy, SubmitButton.GetState(button));
+        work.SetResult(true);
+        Advance(32);
+        Assert.Equal(SubmitState.Succeeded, SubmitButton.GetState(button));
+        Advance(hold + 32);
+        Assert.True(second.IsCompleted);
+        Assert.True(second.Result);
+        Assert.Equal(SubmitState.Idle, SubmitButton.GetState(button));
+    }
 }

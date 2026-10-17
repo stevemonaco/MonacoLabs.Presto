@@ -25,6 +25,7 @@ tests:
   - ReorderContainerTests
   - TransformableTests
   - TweenListIntegrityTests
+  - ScopePruningTests
 upstream:
   - src/draggable/draggable.js
   - tests/suites/draggables.test.js
@@ -199,6 +200,8 @@ depends:
   - Tests: untested
 - **BRIDGE-DRAGGABLE-059** — When `Revert` is called, the draggable shall reset, disable, revert its timers and animatable (restoring the axis properties and the cursor), detach its size handlers and release target ownership, after which pointer input and resizes have no effect.
   - Tests: `DraggableTests.RevertingDetachesTheResizeAndPointerHandlers`, `DraggableTests.TheCursorFollowsTheDragAndRevertPutsItBack`, `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`
+- **BRIDGE-DRAGGABLE-092** — Once reverted, the draggable shall count as released to the scope it registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 
 ### Defaults
 

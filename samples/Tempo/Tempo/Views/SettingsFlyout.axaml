@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:core="using:MonacoLabs.Presto"
              xmlns:m="using:Tempo.Motion"
-             xmlns:model="using:Tempo.Model"
              xmlns:v="using:Tempo.Views"
              xmlns:vm="using:Tempo.ViewModels"
              x:Class="Tempo.Views.SettingsFlyout"
@@ -42,9 +42,9 @@
         <TextBlock Classes="section" Text="Motion" />
         <StackPanel Orientation="Horizontal" Spacing="12">
             <ListBox Classes="segmented" SelectedItem="{Binding Motion}">
-                <x:Static Member="model:MotionPreference.System" />
-                <x:Static Member="model:MotionPreference.Full" />
-                <x:Static Member="model:MotionPreference.Reduced" />
+                <x:Static Member="core:MotionPreference.System" />
+                <x:Static Member="core:MotionPreference.Full" />
+                <x:Static Member="core:MotionPreference.Reduced" />
             </ListBox>
             <Ellipse x:Name="MotionPreview" Classes="motion-preview"
                      presto:Animate.OnAttached="{x:Static m:TempoMotion.MotionPreview}" />

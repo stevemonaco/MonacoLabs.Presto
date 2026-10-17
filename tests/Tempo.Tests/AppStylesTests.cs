@@ -15,7 +15,7 @@ public sealed class AppStylesTests
         Control[] controls =
         [
             new Button(), new ListBox { ItemsSource = new[] { "a" } }, new ToggleButton(), new CheckBox(),
-            new Expander { Header = "h", Content = "c" }, new FlyoutPresenter(), new TextBox(),
+            new Expander { Header = "h", Content = "c", [MonacoLabs.Presto.Accordion.EnabledProperty] = true }, new FlyoutPresenter(), new TextBox(),
         ];
         var panel = new StackPanel();
         panel.Children.AddRange(controls);

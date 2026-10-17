@@ -7,6 +7,7 @@ namespaces:
   - MonacoLabs.Presto.Text
 sources:
   - MonacoLabs.Presto.Avalonia/Text/GlyphOutlines.cs
+  - MonacoLabs.Presto.Avalonia/Text/BlockGlyphs.cs
   - MonacoLabs.Presto.Avalonia/Text/GlyphContours.cs
   - MonacoLabs.Presto.Avalonia/Text/GlyphShards.cs
   - MonacoLabs.Presto.Avalonia/Text/GlyphPoints.cs
@@ -31,22 +32,26 @@ depends:
 
 ## Purpose
 
-Reads the outlines of text as geometry, so letters can change shape: `PrestoAvalonia.GlyphOutline` gives the outline of one character of a `TextBlock` as its character piece (BRIDGE-TEXT) lays it out, and `PrestoAvalonia.TextOutline` the outline of shaped text, for a `Path` in XAML or for sampling. `GlyphShards` cuts an outline into shards that tile it, for `Recipes.Shatter` (BRIDGE-RECIPES), and `GlyphPoints` samples points along or inside it, for particle text (BRIDGE-PARTICLES). Behind them, an internal contour model flattens an outline into closed figures classified as outer contours or holes, which the outline pieces, multi-contour morphs (BRIDGE-SHAPES) and warps build on. `PrestoAvalonia` is owned by BRIDGE-HELPERS; this spec specifies its `GlyphOutline` and `TextOutline`.
+Reads the outlines of text as geometry, so letters can change shape: `PrestoAvalonia.GlyphOutline` gives the outline of one character of a `TextBlock` as its character piece (BRIDGE-TEXT) lays it out, and `PrestoAvalonia.TextOutline` the outline of shaped text, for a `Path` in XAML or for sampling. `GlyphShards` cuts an outline into shards that tile it, for `Recipes.Shatter` (BRIDGE-RECIPES), and `GlyphPoints` samples points along or inside it, for particle text (BRIDGE-PARTICLES). Behind them, an internal contour model flattens an outline into closed figures classified as outer contours or holes, which the outline pieces, multi-contour morphs (BRIDGE-SHAPES) and warps build on. `PrestoAvalonia` is owned by BRIDGE-HELPERS; this spec specifies its `GlyphOutline` and `TextOutline`. Internally, the outlines and slots of a laid-out block's own characters are read from its text layout, in context, and characters can be hidden in place, for `Recipes.MorphGlyphs`.
 
 ## Requirements
 
 ### Outlines
 
-- **BRIDGE-GLYPHS-001** — `GlyphOutline(block, index)` shall return the outline of the block's character at `index`, counted as `TextSplitter.CharsOf` counts the graphemes a character split makes pieces of, in the coordinates of that character's piece, with the nonzero fill rule; while the block is split, it shall read the text from before the split.
-  - Tests: `GlyphOutlineTests.EachCharOutlineLandsOnItsPieceInsideItsSlot`, `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`
+- **BRIDGE-GLYPHS-001** — `GlyphOutline(block, index)` shall return the outline of the block's character at `index`, counted as `TextSplitter.CharsOf` counts the graphemes a character split makes pieces of, shaped with the block's font family, style, weight, stretch, size, letter spacing and font features, in the coordinates of that character's piece, with the nonzero fill rule; while the block is split, it shall read the text from before the split.
+  - Tests: `GlyphOutlineTests.EachCharOutlineLandsOnItsPieceInsideItsSlot`, `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`, `GlyphOutlineTests.OutlinesShapeWithTheBlocksFontFeatures`
 - **BRIDGE-GLYPHS-002** — When `index` is not the index of one of the block's characters, `GlyphOutline` shall throw `ArgumentOutOfRangeException`.
   - Tests: `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`
-- **BRIDGE-GLYPHS-003** — `TextOutline(text, typeface, fontSize)` shall return the outline of `text` shaped and broken into lines as a `TextLayout` does, with its origin at the top left of the first line box and the nonzero fill rule.
-  - Tests: `GlyphOutlineTests.TextOutlineOriginIsTheTopLeftOfTheFirstLineBox`, `GlyphOutlineTests.TextOutlineStacksLinesDownward`
+- **BRIDGE-GLYPHS-003** — `TextOutline(text, typeface, fontSize, fontFeatures)` shall return the outline of `text` shaped with `fontFeatures` (none when null) and broken into lines as a `TextLayout` does, with its origin at the top left of the first line box and the nonzero fill rule.
+  - Tests: `GlyphOutlineTests.TextOutlineOriginIsTheTopLeftOfTheFirstLineBox`, `GlyphOutlineTests.TextOutlineStacksLinesDownward`, `GlyphOutlineTests.TextOutlineTakesFontFeatures`
 - **BRIDGE-GLYPHS-004** — A character with no outline (whitespace, a missing glyph, or a glyph of a font carrying color or bitmap tables: `COLR`, `CBDT`, `sbix` or `SVG `) shall add nothing to an outline, so a character made only of such glyphs has an empty outline.
   - Tests: `GlyphOutlineTests.WhitespaceHasAnEmptyOutline`, `GlyphOutlineTests.EmojiHasAnEmptyOutline`
 - **BRIDGE-GLYPHS-005** — When the font simulates bold or oblique, the outline shall be emboldened or skewed by -0.3 as Avalonia.Skia draws it.
   - Tests: untested
+- **BRIDGE-GLYPHS-016** — Read from a laid-out block's text layout, each grapheme's outline shall be the glyphs that layout shaped for it, in context, relative to the grapheme's slot: the union of the layout's hit-test rectangles for it, in block coordinates.
+  - Tests: `GlyphOutlineTests.AGraphemesOutlineInContextIsTheGlyphTheBlockDraws`, `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout`
+- **BRIDGE-GLYPHS-017** — Hiding some of a block's graphemes shall leave its glyphs, their positions and the in-context outlines those of the plain text, and restoring them shall leave the block as plain `Text` with a binding on `Text` still updating it.
+  - Tests: `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout`, `GlyphRecipeTests.HideThenRestoreKeepsABoundTextUpdating`
 
 ### Contour model
 

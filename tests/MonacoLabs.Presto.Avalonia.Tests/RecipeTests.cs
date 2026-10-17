@@ -742,6 +742,21 @@ public sealed class RecipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void RecolorIsLeftAloneByReduceAll()
+    {
+        var border = new Border { Background = Brushes.Red };
+        Presto.Defaults.ReducedMotion = true;
+        Presto.Defaults.ReduceAll = true;
+
+        var animation = Recipes.Recolor(Colors.Blue, duration: 400, ease: "linear").Autoplay(false).Animate(border);
+        animation.Seek(200);
+
+        Assert.Equal(400, animation.Duration);
+        Assert.NotEqual(Colors.Red, Background(border));
+        Assert.NotEqual(Colors.Blue, Background(border));
+    }
+
+    [AvaloniaFact]
     public void RecolorAnimatesBackgroundWithoutAPropertyAndAnExplicitKeyOtherwise()
     {
         var border = new Border { Background = Brushes.Red, BorderBrush = Brushes.Red };

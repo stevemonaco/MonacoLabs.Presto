@@ -160,6 +160,38 @@ public sealed class PullToRefreshTests : BridgeTestBase
         Assert.Equal(0, pull.Pull.Value);
     }
 
+    [AvaloniaFact]
+    public void SettingReducedMotionMidRefreshStopsTheSpin()
+    {
+        var (window, pull) = Stage();
+        pull.Refresh = () => new TaskCompletionSource().Task;
+        new Touch(window).Drag(Frames, Start, new Vector(0, 150));
+        Frames.Advance(400, 20);
+        Assert.NotEqual(0, Angle(Ring(pull)));
+
+        Presto.Defaults.ReducedMotion = true;
+        Assert.Equal(0, Angle(Ring(pull)));
+        Frames.Advance(400, 20);
+
+        Assert.Equal(0, Angle(Ring(pull)));
+    }
+
+    [AvaloniaFact]
+    public void ClearingItMidRefreshStartsTheSpin()
+    {
+        var (window, pull) = Stage();
+        pull.Refresh = () => new TaskCompletionSource().Task;
+        Presto.Defaults.ReducedMotion = true;
+        new Touch(window).Drag(Frames, Start, new Vector(0, 150));
+        Frames.Advance(400, 20);
+        Assert.Equal(0, Angle(Ring(pull)));
+
+        Presto.Defaults.ReducedMotion = false;
+        Frames.Advance(400, 20);
+
+        Assert.NotEqual(0, Angle(Ring(pull)));
+    }
+
     private static (Window Window, PullToRefresh Pull) Stage(Control? content = null)
     {
         var pull = new PullToRefresh { Content = content ?? new Border { Background = Brushes.Red } };

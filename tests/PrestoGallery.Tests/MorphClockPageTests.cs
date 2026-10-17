@@ -1,7 +1,6 @@
-using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
-using Avalonia.VisualTree;
 using PrestoGallery.Showcase.Pages;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -18,22 +17,17 @@ public sealed class MorphClockPageTests
     {
         var page = new MorphClockPage(Start);
         var window = SceneHarness.Show(page, 1280, 1800, frames: 2);
-        var seconds = page.GetControl<TextBlock>("Seconds");
+        var clock = page.GetControl<TextBlock>("Clock");
 
         TestFrames.Tick(Second);
-        Assert.Empty(page.GetControl<TextBlock>("Hours").GetVisualDescendants().OfType<Path>());
-        Assert.Empty(page.GetControl<TextBlock>("Minutes").GetVisualDescendants().OfType<Path>());
-        var pieces = seconds.GetVisualDescendants().OfType<Path>().ToArray();
-        Assert.Equal(2, pieces.Length);
-        var (tens, ones) = (pieces[0], pieces[1]);
-        var (tensShape, onesShape) = (tens.Data!.Bounds, ones.Data!.Bounds);
+        var piece = Assert.IsType<Path>(Assert.Single(Pieces(clock)));
+        var shape = piece.Data!.Bounds;
         TestFrames.Tick(10);
-        Assert.Equal(tensShape, tens.Data!.Bounds);
-        Assert.NotEqual(onesShape, ones.Data!.Bounds);
+        Assert.NotEqual(shape, piece.Data!.Bounds);
         TestFrames.Tick(40);
 
-        SceneHarness.AssertPlain(seconds, "57");
-        SceneHarness.AssertPlain(page.GetControl<TextBlock>("Minutes"), "34");
+        Assert.Empty(Pieces(clock));
+        SceneHarness.AssertPlain(clock, "12:34:57");
         SceneHarness.Close(window);
     }
 
@@ -69,27 +63,32 @@ public sealed class MorphClockPageTests
     }
 
     [AvaloniaFact]
-    public void UnderReducedMotionTheDigitsCrossfadeAndTheColonsHoldStill()
+    public void UnderReducedMotionTheClockAndCountdownChangeAtOnceAndTheLabelsCrossfade()
     {
         using var reduced = ReducedMotion.On();
         var page = new MorphClockPage(Start);
         var window = SceneHarness.Show(page, 1280, 1800, frames: 2);
-        var seconds = page.GetControl<TextBlock>("Seconds");
-        var (sawOutlines, dimmest, colon) = (false, 1.0, 1.0);
+        var (clock, countdown, label) = (page.GetControl<TextBlock>("Clock"), page.GetControl<TextBlock>("Countdown"), page.GetControl<TextBlock>("SubmitLabel"));
+        SceneHarness.Click(window, page.GetControl<Button>("StartButton"));
+        var (sawPieces, dimmestTick, dimmestLabel) = (false, 1.0, 1.0);
 
-        for (var frame = 0; frame < Second + 40; frame++)
+        for (var frame = 0; frame < Second + 3; frame++)
         {
+            if (frame == 1) SceneHarness.Click(window, page.GetControl<Button>("SubmitButton"));
             TestFrames.Tick();
-            sawOutlines |= seconds.GetVisualDescendants().OfType<Path>().Any();
-            dimmest = Math.Min(dimmest, seconds.Opacity);
-            colon = Math.Min(colon, page.GetControl<TextBlock>("FirstColon").Opacity);
+            sawPieces |= Pieces(clock).Length + Pieces(countdown).Length > 0;
+            dimmestTick = Math.Min(dimmestTick, Math.Min(clock.Opacity, countdown.Opacity));
+            dimmestLabel = Math.Min(dimmestLabel, label.Opacity);
         }
 
-        Assert.False(sawOutlines);
-        Assert.True(dimmest < 0.5);
-        Assert.Equal(1, colon);
-        SceneHarness.AssertPlain(seconds, "57");
-        Assert.Equal(1, seconds.Opacity, 3);
+        Assert.False(sawPieces);
+        Assert.Equal(1, dimmestTick);
+        Assert.True(dimmestLabel < 0.5);
+        SceneHarness.AssertPlain(clock, "12:34:57");
+        SceneHarness.AssertPlain(countdown, "0:09");
         SceneHarness.Close(window);
     }
+
+    private static Control[] Pieces(TextBlock block) =>
+        AdornerLayer.GetAdornerLayer(block)!.Children.Where(c => AdornerLayer.GetAdornedElement(c) == block).SelectMany(c => ((Canvas)c).Children).ToArray();
 }

@@ -27,7 +27,8 @@
                 <Panel Width="300" Height="300">
                     <!-- The digits hold the ring's center, with or without a task. Centered under a top margin, the title sits half that margin lower: 10 below the 68 DIP digits. -->
                     <Panel Classes="handoff">
-                        <StackPanel x:Name="Digits" Classes="digits" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <!-- TextAlignment, not HorizontalAlignment: a rounded block width would shift the text a pixel. -->
+                        <TextBlock x:Name="Remaining" Classes="remaining" FontFeatures="+tnum" TextAlignment="Center" VerticalAlignment="Center" />
                         <TextBlock Classes="caption" Text="{Binding ActiveTask.Title, FallbackValue=''}" MaxWidth="200"
                                    TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,103,0,0" />
                     </Panel>
@@ -75,7 +76,7 @@
                 <Ellipse Classes="disc" />
                 <presto:ProgressRing x:Name="AbandonRing" Thickness="3" HoldDuration="900"
                                      Fill="{DynamicResource SemiColorDanger}" Track="{DynamicResource TempoLine}"
-                                     Confirmed="AbandonConfirmed" PointerCaptureLost="AbandonReleased" KeyUp="AbandonReleased" />
+                                     Command="{Binding AbandonCommand}" Confirmed="AbandonConfirmed" HoldCanceled="AbandonLetGo" />
                 <PathIcon x:Name="StopGlyph" Classes="stop" Data="{x:Static m:TempoMotion.StopIcon}" IsHitTestVisible="False" />
             </Panel>
         </StackPanel>
@@ -88,7 +89,7 @@
                     </DataTemplate>
                 </ContentControl.ContentTemplate>
             </ContentControl>
-            <TextBlock Classes="breathe" Classes.breathing="{Binding IsBreak}" Text="In… Out…" IsVisible="{Binding IsBreak}" />
+            <TextBlock Classes="breathe" Text="In… Out…" IsVisible="{Binding IsBreak}" />
         </StackPanel>
     </Grid>
 </UserControl>

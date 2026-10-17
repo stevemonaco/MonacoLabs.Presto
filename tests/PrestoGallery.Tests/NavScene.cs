@@ -18,10 +18,9 @@ internal static class NavScene
     public static void With(Action<Window, MainViewModel, TreeView> test, bool reduced = false, double width = 1400, double height = 1000)
     {
         var was = Presto.Defaults.ReducedMotion;
-        Presto.Defaults.ReducedMotion = reduced;
         try
         {
-            var gallery = new MainViewModel();
+            var gallery = new MainViewModel { Motion = reduced ? MotionPreference.Reduced : MotionPreference.Full };
             var window = SceneHarness.Show(new MainView { DataContext = gallery }, width, height);
             try
             {
@@ -34,6 +33,7 @@ internal static class NavScene
         }
         finally
         {
+            PrestoAvalonia.MotionPreference = null;
             Presto.Defaults.ReducedMotion = was;
         }
     }

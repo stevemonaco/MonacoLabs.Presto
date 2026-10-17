@@ -22,6 +22,7 @@ tests:
   - TransformableTests
   - TransformMathTests
   - BridgeAllocationTests
+  - ScopePruningTests
 upstream: []
 depends:
   - CORE-ANIMATABLE
@@ -167,6 +168,8 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
   - Tests: untested
 - **BRIDGE-TRANSFORMABLE-051** — `Revert` shall disable, revert the animatable so the transform returns to what it was before, and release the target's gesture ownership.
   - Tests: `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`
+- **BRIDGE-TRANSFORMABLE-067** — Once reverted, the transformable shall count as released to the scope it registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 
 ### Reduced motion
 

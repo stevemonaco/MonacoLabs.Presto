@@ -13,7 +13,7 @@ namespace MonacoLabs.Presto.Controls;
 /// nearby shapes, and a <see cref="Glitch"/>. At identity the child draws live; otherwise a snapshot of it is drawn through the
 /// filters within the control's bounds, retaken whenever the child draws something new.
 /// </summary>
-/// <remarks>Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each draw, every effect draws as identity.</remarks>
+/// <remarks>Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each draw, every effect draws as identity; a change of the flag redraws at once.</remarks>
 public sealed class Distort : Decorator
 {
     /// <summary>Defines the <see cref="Turbulence"/> property.</summary>
@@ -85,6 +85,8 @@ public sealed class Distort : Decorator
     private readonly List<object?> _drawLists = [];
     private object? _watched;
     private Action? _check;
+    private Action? _redraw;
+    private Engine? _engine;
 
     /// <summary>How many snapshots of the child have been taken.</summary>
     internal int Snapshots { get; private set; }
@@ -189,10 +191,20 @@ public sealed class Distort : Decorator
     }
 
     /// <inheritdoc/>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _engine = ReducedMotionFollowers.Add(_redraw ??= InvalidateVisual);
+    }
+
+    /// <inheritdoc/>
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
         Release();
+        if (_engine is null) return;
+        ReducedMotionFollowers.Remove(_engine, _redraw!);
+        _engine = null;
     }
 
     // Disposed once the control and every draw operation still holding it let go; draw operations are released on the render thread.

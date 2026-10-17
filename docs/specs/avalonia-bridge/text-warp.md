@@ -125,7 +125,7 @@ With `a` the `Warp` amount, `R` the `WarpRadius`, `o` the `WarpOrigin`, `W` × `
 
 - **No extruded warp kind in v1.** Reason: extrusion needs depth sorting and is closer to 3D than to a warp; `Perspective` covers the flat case.
 - Warping text pieces, which have no outline.
-- Typed builder methods for the warp shorthands.
+- Typed builder methods for the warp shorthands; `PrestoKeysTests.EveryKeyButTheWarpShorthandsHasATypedBuilderMethod` lists them as its exemptions.
 
 ## Open items
 

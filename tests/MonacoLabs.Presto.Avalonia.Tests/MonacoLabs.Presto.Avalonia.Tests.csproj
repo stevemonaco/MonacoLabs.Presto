@@ -15,6 +15,8 @@
     <PackageReference Include="Avalonia.Skia" />
     <!-- ScrollViewer needs a real template for its Extent and Viewport to be measured. -->
     <PackageReference Include="Avalonia.Themes.Fluent" />
+    <!-- Inter's figures are proportional, unlike the platform default's, so +tnum changes its shaping. -->
+    <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="xunit.v3" />

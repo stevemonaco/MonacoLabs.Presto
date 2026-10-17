@@ -247,6 +247,26 @@ public sealed class PageTransitionTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public async Task AnAnimationReplacingTheHostsFinishesTheTransition()
+    {
+        var (a, b) = ShowPair();
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
+        var task = transition.Start(a, b, true, CancellationToken.None);
+        Frames.Advance(30);
+
+        Presto.Animate(a, new() { ["Opacity"] = 1, Duration = 1000 });
+        Presto.Animate(b, new() { ["Opacity"] = 1, Duration = 1000 });
+        Tick();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(task.IsCompleted, "the transition waited on a host animation that was replaced");
+        await task;
+        Assert.False(a.IsVisible);
+        Assert.False(a.IsAnimating(Visual.ZIndexProperty));
+        Assert.False(b.IsAnimating(Visual.ZIndexProperty));
+    }
+
+    [AvaloniaFact]
     public void AnUnclaimedHostRevertsAfterOneFrame()
     {
         var (a, b) = ShowPair();

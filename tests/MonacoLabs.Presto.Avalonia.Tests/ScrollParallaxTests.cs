@@ -82,7 +82,7 @@ public sealed class ScrollParallaxTests : BridgeTestBase
         scroller.Offset = new Vector(0, 300);
 
         Assert.Null(target.RenderTransform);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
     }
 
     [AvaloniaFact]
@@ -136,7 +136,7 @@ public sealed class ScrollParallaxTests : BridgeTestBase
 
         Assert.Same(translate, target.RenderTransform);
         Assert.Equal(7, translate.Y);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
     }
 
     [AvaloniaFact]
@@ -162,7 +162,7 @@ public sealed class ScrollParallaxTests : BridgeTestBase
         target.ClearValue(Scroll.SpeedProperty);
 
         Assert.Null(target.RenderTransform);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
     }
 
     [AvaloniaFact]

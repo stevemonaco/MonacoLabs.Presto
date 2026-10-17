@@ -24,7 +24,7 @@ namespace MonacoLabs.Presto.Events;
 /// <see cref="Link"/>, which still ties the two lifetimes together. anime.js has no pin or snap;
 /// <see cref="ScrollObserverParams.Pin"/> and <see cref="ScrollObserverParams.Snap"/> are GSAP ScrollTrigger's.
 /// </remarks>
-public sealed class ScrollObserver : IRevertible
+public sealed class ScrollObserver : IRevertible, IReleasable
 {
     private const string DefaultSync = "play pause";
     private const double DefaultSnapDelay = 150;
@@ -250,6 +250,8 @@ public sealed class ScrollObserver : IRevertible
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => Reverted;
 
     internal void RaiseResize() => _parameters.OnResize?.Invoke(this);
 

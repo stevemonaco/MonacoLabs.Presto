@@ -82,8 +82,8 @@ public partial class TitleSequencePage : ShowcasePage
                 Duration = 800,
                 Ease = Eases.InOutQuad,
             }, "mark")
-            .Add(Monogram, b => b.Property("Fill", k => k.Color("#FF6B7A00", "#4C8DFF88", ColorSpace.Oklch, HueInterpolation.Longer,
-                                                                 duration: 1000, ease: Eases.InOutQuad)), "mark")
+            .Add(Monogram, b => b.Fill(k => k.Color("#FF6B7A00", "#4C8DFF88", ColorSpace.Oklch, HueInterpolation.Longer,
+                                                    duration: 1000, ease: Eases.InOutQuad)), "mark")
             // Additive, so the pulse and the push sum with the drift's X and Y instead of replacing them; each returns to where it began.
             .Add(DotField.Children, new()
             {

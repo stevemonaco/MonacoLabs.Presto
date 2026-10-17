@@ -123,7 +123,7 @@ depends:
 
 - A host whose child-visual slot is used by something else (such as a `CompositorCanvas`) cannot carry a ripple: the ripple takes the slot.
 - A theme switch applies to the next press; a running ripple keeps its color.
-- `ReducedMotion` is read at each press (and at each tint change), never subscribed to (CORE-REDUCED: the flag has no change notification).
+- `ReducedMotion` is read at each press (and at each tint change), never subscribed to (CORE-REDUCED).
 
 ## Threading and lifetime
 
@@ -149,7 +149,7 @@ depends:
 - **Ink and state layer draw over the content.** Both draw translucent (24 % ink, 8–10 % state) above the host's content. Reason: as Compose's indication does; the child visual composes after the host's children, drawing between background and content would need a template change, and translucent ink keeps text readable.
 - **Switches, color, geometry and timing.** An explicit `Ripple.Enabled` (default false) turns ripples on and `Ripple.Color` overrides a theme-accent default (`SystemAccentColor`, `SystemAccentColorLight2` on dark, looked up per press; ink at 24 % alpha, state layer at Material 3's 8/10/10 %). Bounded ink grows from the fixed press point to the farthest corner, unbounded ink from the center to half the diagonal with only ancestor clips; growth takes `Medium` and `Ease`, the release fade `Short`, linear. Reason: `Enabled` lets a style turn ripples on without picking a color, the lighter shade reads on dark surfaces, and the per-press lookup applies a theme switch on the next press.
 - **Input sees handled events; touch in a scroller waits for the tap timeout; the reduced form only tints.** Pointer and key events are handled with `handledEventsToo`, Enter and Space ripple from the center, leaving the host or losing capture cancels, and a touch press inside a `ScrollViewer` waits 100 ms before showing ink (mouse and pen never wait). Under reduced motion there is no ink, the pressed tint shows at once and the state layer changes without fading. Reason: `Button` marks its presses handled; 100 ms is Android's (and Compose's) tap timeout, so a fling does not ripple, and a touch scroll takes the capture from the pressed child.
-- **The flag has no change notification.** See CORE-REDUCED.
+- **The signal is an event on `Engine`, not on `PrestoDefaults`.** See CORE-REDUCED.
 
 ## Non-goals
 

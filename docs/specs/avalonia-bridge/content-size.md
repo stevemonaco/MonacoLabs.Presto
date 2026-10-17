@@ -16,6 +16,7 @@ tests:
   - ContentSizeTests
   - ContentSizePresenceTests
   - ReferencePagesTests
+  - ScopePruningTests
 upstream:
   - src/layout/layout.js
 depends:
@@ -82,6 +83,8 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
   - Tests: `ContentSizeTests.CancelOrRevertRestoresTheUsersOwnValues`
 - **BRIDGE-CONTENTSIZE-018** — `Revert` shall cancel and stop easing later size changes.
   - Tests: `ContentSizeTests.CancelOrRevertRestoresTheUsersOwnValues`
+- **BRIDGE-CONTENTSIZE-031** — Once reverted, the transition shall count as released to the scope it registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-CONTENTSIZE-019** (inherited) — Creating a content size transition on a host that already has a live one shall revert the earlier one.
   - Tests: untested
 - **BRIDGE-CONTENTSIZE-020** — `AnimateContentSize` shall register the transition with `Engine.Current.CurrentScope` when there is one.
@@ -138,7 +141,7 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 
 ## Reduced motion
 
-- BRIDGE-CONTENTSIZE-027 and -028; `ReducedMotion` raises no change notification, so each trigger reads it (CORE-REDUCED). `ReduceAll` collapses the mirror's duration, which lands the resize at once (BRIDGE-CONTENTSIZE-010).
+- BRIDGE-CONTENTSIZE-027 and -028; each trigger reads the flag when it fires; a content-size move is finite, so the change signal does not replay it (BRIDGE-REDUCED Following a change). `ReduceAll` collapses the mirror's duration, which lands the resize at once (BRIDGE-CONTENTSIZE-010).
 
 ## Allocation
 
@@ -156,7 +159,7 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 - **The content is clipped, not the host.** While a resize is in flight the child's `Clip` is held at `Animation` priority to the host's inner box and released with the margin. Reason: the host's shadow and rounded corners still draw outside it.
 - **A content size host owns its size.** A layout transition on the host eases only position; while it resizes, layout moves anywhere else in its top level (outside it and not above it) land in one frame; a content swap resizes from the drawn size while `Presence` ghosts the old content clipped to the box at the swap. Reason: the resize already eases whatever it moves and a compositor flight would trail behind it; before this, `ItemLayout` neighbors of an expanding row lagged, and limiting it to the host's parent let a list nested under a sibling (the gallery nav's pages in a section below one that unfolds) fly after the move. Accepted: an unrelated layout move elsewhere in the window during a resize also lands in one frame.
 - **Duration overloads land at once under the flag.** See BRIDGE-LAYOUT.
-- **The flag has no change notification.** See CORE-REDUCED.
+- **The signal is an event on `Engine`, not on `PrestoDefaults`.** See CORE-REDUCED.
 
 ## Non-goals
 

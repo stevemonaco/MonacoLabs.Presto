@@ -10,8 +10,6 @@ public partial class MorphClockPage : ShowcasePage
 {
     private const int CountFrom = 10;
 
-    private static readonly AnimationBuilder ColonPulse = Presto.Build().Opacity(from: .25, to: 1).Duration(800).Ease(Eases.OutQuad);
-
     private readonly DateTime _start;
     private readonly (TextBlock Morph, TextBlock Roll, SplitFlap Flap)[] _stats;
     private readonly Random _random = new(7);
@@ -31,9 +29,7 @@ public partial class MorphClockPage : ShowcasePage
     {
         _start = start;
         InitializeComponent();
-        Hours.Text = start.ToString("HH");
-        Minutes.Text = start.ToString("mm");
-        Seconds.Text = start.ToString("ss");
+        Clock.Text = start.ToString("HH:mm:ss");
         _stats = [(MorphVisitors, RollVisitors, FlapVisitors), (MorphOrders, RollOrders, FlapOrders), (MorphReturns, RollReturns, FlapReturns)];
         HowCode.Code = string.Join("\n\n", Snippets.MorphClockTick, Snippets.MorphClockCountdown, Snippets.MorphClockButtons, Snippets.MorphClockStats);
     }
@@ -42,19 +38,9 @@ public partial class MorphClockPage : ShowcasePage
         Presto.CreateTimer(new TimerParams { Duration = 1000, Loop = true, OnLoop = _ => Tick(_start.AddSeconds(++_elapsed)) });
 
     #region snippet MorphClockTick
-    private void Tick(DateTime now)
-    {
-        MorphIfChanged(Hours, now.ToString("HH"));
-        MorphIfChanged(Minutes, now.ToString("mm"));
-        MorphIfChanged(Seconds, now.ToString("ss"));
-        if (!Presto.Defaults.ReducedMotion) ColonPulse.Animate(new[] { FirstColon, SecondColon });
-    }
-
-    // Two-digit numbers pair from the end, so 59 to 00 morphs both digits and 56 to 57 morphs the 6 alone.
-    private static void MorphIfChanged(TextBlock block, string text)
-    {
-        if (block.Text != text) Recipes.MorphGlyphs(block, text);
-    }
+    // Numerals pair from the end, so a tick morphs only the digits that change; the colons and the rest stay the block's own text.
+    // Under reduced motion a ticking clock changes at once rather than crossfading every second.
+    private void Tick(DateTime now) => Recipes.MorphGlyphs(Clock, now.ToString("HH:mm:ss"), reduced: ReducedMorph.Instant);
     #endregion
 
     #region snippet MorphClockCountdown
@@ -83,7 +69,7 @@ public partial class MorphClockPage : ShowcasePage
             return;
         }
         _left--;
-        Recipes.MorphGlyphs(Countdown, $"0:{_left:00}");
+        Recipes.MorphGlyphs(Countdown, $"0:{_left:00}", reduced: ReducedMorph.Instant);
     }
 
     private void StopCountdown()

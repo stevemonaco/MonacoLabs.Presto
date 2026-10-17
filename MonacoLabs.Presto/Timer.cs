@@ -6,12 +6,13 @@ using MonacoLabs.Presto.Diagnostics;
 namespace MonacoLabs.Presto;
 
 /// <summary>Base class of timers, animations and timelines: delay/duration/loop state machine, callbacks and playback controls.</summary>
-public class Timer : Clock, IRevertible
+public class Timer : Clock, IRevertible, IReleasable
 {
     private static int s_timerId;
 
     private TaskCompletionSource<Timer>? _completion;
     private Action<Timer>? _onResolve;
+    private TaskCompletionSource<Timer>? _orCancel;
 
     internal double _offset;
     internal double _delay;
@@ -32,6 +33,8 @@ public class Timer : Clock, IRevertible
     internal Action<Timer>? _onRender;
     // Upstream reverts the ScrollObserver passed as `autoplay` from revert(); Presto's observer hooks itself here instead.
     internal Action<Timer>? _onRevert;
+    internal bool _released;
+    internal PruneMark _pruned;
     internal MotionValue? _progressValue;
     private MotionValue? _scrub;
     private Action<MotionValue>? _onScrub;
@@ -312,6 +315,13 @@ public class Timer : Clock, IRevertible
             });
         }
         timer._canceled = false;
+        timer.Revived();
+    }
+
+    private void Revived()
+    {
+        _released = false;
+        _pruned.Rejoin(this);
     }
 
     internal void UpdateDuration()
@@ -382,6 +392,7 @@ public class Timer : Clock, IRevertible
         EndSettle();
         if (!Paused) return this;
         Paused = false;
+        Revived();
         if (Duration <= Constants.MinValue && _delay <= Constants.MinValue && !_hasChildren)
         {
             Renderer.Tick(this, Constants.MinValue, false, false, TickMode.Force);
@@ -487,6 +498,11 @@ public class Timer : Clock, IRevertible
     /// <summary>The engine's cancel of a completed timer, which leaves a <see cref="Scrub"/> running so it can seek back.</summary>
     internal Timer DetachTweens()
     {
+        if (_orCancel is { } orCancel)
+        {
+            _orCancel = null;
+            orCancel.SetCanceled();
+        }
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
         // Unlike upstream, a repeat cancel leaves composition alone: the tweens already left their sibling lists.
         else if (!_canceled) TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
@@ -592,10 +608,17 @@ public class Timer : Clock, IRevertible
         EndSettle();
         Renderer.Tick(this, 0, true, false, TickMode.Auto);
         _onRevert?.Invoke(this);
-        return Cancel();
+        Cancel();
+        _released = true;
+        return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _released || (IsDetached && Paused && _headTween == null && !_hasChildren);
+
+    /// <summary>Canceled, with no bridge revert hook and no scrub or settle left running, so reverting it would only write values back.</summary>
+    internal bool IsDetached => _canceled && _onRevert == null && _scrub == null && _settle == null;
 
     /// <summary>Seeks to the end, firing <see cref="OnComplete"/> unless muted, then cancels without firing <see cref="OnPause"/>.</summary>
     public Timer Complete(bool muteCallbacks = false)
@@ -620,11 +643,29 @@ public class Timer : Clock, IRevertible
         return _completion.Task;
     }
 
+    /// <summary>
+    /// Completes when <see cref="Then"/> would resolve, but is canceled when the timer is canceled first (<see cref="Cancel"/>, <see cref="Revert"/>,
+    /// a muted <see cref="Complete"/>, composition or its parent's cancel), so code that must not hang can wait on it.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the wait only; the timer keeps playing.</param>
+    public Task<Timer> ThenOrCancel(CancellationToken cancellationToken = default)
+    {
+        if (Completed) return Task.FromResult(this);
+        if (_canceled) return Task.FromCanceled<Timer>(new CancellationToken(canceled: true));
+        _orCancel ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
+        return cancellationToken.CanBeCanceled ? _orCancel.Task.WaitAsync(cancellationToken) : _orCancel.Task;
+    }
+
     /// <summary>Makes the timer directly awaitable: <c>await timer</c> resumes once it completes, as <see cref="Then"/> does.</summary>
     public TaskAwaiter<Timer> GetAwaiter() => Then().GetAwaiter();
 
     internal void Resolve()
     {
+        if (_orCancel is { } orCancel)
+        {
+            _orCancel = null;
+            orCancel.SetResult(this);
+        }
         var completion = _completion;
         if (completion == null) return;
         var onResolve = _onResolve;

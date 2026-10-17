@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MonacoLabs.Presto;
 using Tempo.Model;
 
 namespace Tempo.ViewModels;
@@ -216,6 +217,7 @@ public sealed partial class MainViewModel : ObservableObject
         TaskAdded?.Invoke(this, task);
     }
 
+    [RelayCommand]
     private void DeleteTask(TaskItemViewModel task)
     {
         var list = Tasks.Contains(task) ? Tasks : DoneTasks;
@@ -354,7 +356,6 @@ public sealed partial class MainViewModel : ObservableObject
             }
             Persist();
         };
-        task.DeleteRequested += (_, _) => DeleteTask(task);
         return task;
     }
 

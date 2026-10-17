@@ -77,6 +77,8 @@ depends:
 
 - **BRIDGE-DISTORT-018** — While `ReducedMotion` is set, read at each draw, the control shall draw as at identity: the child live, with no snapshot.
   - Tests: `DistortTests.UnderReducedMotionEveryEffectDrawsAsIdentity`
+- **BRIDGE-DISTORT-020** — When the flags change, the control shall redraw.
+  - Tests: `DistortTests.AFlagChangeRedrawsAtOnce`
 
 ## Invariants
 
@@ -89,17 +91,17 @@ depends:
 - A negative `Turbulence` displaces the other way and is not identity; a negative `Glitch` mirrors the shifts and is not identity; a negative `Goo` is identity.
 - The snapshot covers the child's bounds, so anything the child draws outside them (a render transform or overflow) is cut off while an effect is active.
 - A new snapshot is taken from the frame after the child redraws, so for that frame the previous snapshot shows.
-- Toggling `ReducedMotion` takes effect at the control's next draw; it does not redraw by itself.
 - A compositor animation of the child's scale (`AnimateOnCompositor`) conflicts with the hiding while an effect is active.
 
 ## Threading and lifetime
 
 - UI thread only: properties, snapshots and `Render` run on the UI thread; the draw operation runs on the render thread and owns its native filters and paint, disposed with the operation.
 - While a snapshot is held, the control checks the child's subtree for redraws after each commit of its window's compositor, on the UI thread, and stops when the snapshot is released.
+- While attached, the control is registered for its engine's `ReducedMotionChanged` signal (BRIDGE-REDUCED).
 
 ## Reduced motion
 
-- Every effect draws as identity (BRIDGE-DISTORT-018); the property values themselves are untouched, so they apply again once `ReducedMotion` is cleared and the control redraws.
+- Every effect draws as identity (BRIDGE-DISTORT-018); the property values themselves are untouched, so they apply again once `ReducedMotion` is cleared, which redraws the control (BRIDGE-DISTORT-020).
 
 ## Allocation
 

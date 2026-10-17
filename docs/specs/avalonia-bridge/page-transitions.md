@@ -31,6 +31,7 @@ depends:
   - CORE-ANIMATION
   - CORE-REDUCED
   - CORE-DIAGNOSTICS
+  - CORE-CALLBACKS
 ---
 
 # Page transitions (PrestoPageTransition)
@@ -90,6 +91,8 @@ depends:
   - Tests: `PageTransitionTests.ANavigationPagePushAndPopRunTheTransitionAndKeepItsOwnValues`
 - **BRIDGE-PAGES-019** — A `Carousel` selection change shall run the transition end to end, leaving the old container hidden and both at rest.
   - Tests: `PageTransitionTests.ACarouselSelectionChangeRunsTheTransitionEndToEnd`
+- **BRIDGE-PAGES-035** — When a host's animation is canceled by anything other than the transition itself, that host's run shall complete, so the transition finishes and releases its hosts.
+  - Tests: `PageTransitionTests.AnAnimationReplacingTheHostsFinishesTheTransition`
 
 ### Cancellation and take-over
 
@@ -179,6 +182,7 @@ depends:
 - **`Connected` flights compose with the host's motion.** A claimed element flies on its composition `Translation` inside the incoming host, so a moving host adds to the flight's path while it still lands right; `PageFade` and `PageFadeThrough` are the documented pairing for connected navigation. Reason: counter-moving keyed elements needs a shared clock or start frame, and was left open.
 - **Reduced motion needs nothing new.** Page transitions rely on the builders' `WhenReduced` forms and `ReduceAll`, and every page recipe supplies a short crossfade. Reason: the existing reduced-motion model already covers builders.
 - **`PageBloom` is a page recipe, not a transition type.** `Recipes.PageBloom()` returns a `PrestoPageTransition` revealing on `ClipCircle` from the last press. Reason: it inherits the page recipes' take-over and revert, and a transition is handed only the two hosts. Rejected: a transition type of its own; a colored disk over the old page.
+- **A UI-thread host run waits with `ThenOrCancel`.** The run completes when its animation's `ThenOrCancel` task completes or is canceled. Reason: `Then` never resolves for an animation canceled from outside (composition replacing it, a scope revert), so `Start`'s task hung and the hosts were never released; library code that must finish on interruption waits with `ThenOrCancel` (CORE-CALLBACKS). A compositor run keeps `Then`, since bridge handles have no `ThenOrCancel`.
 - **The thread is an argument on bridge entry points.** See BRIDGE-THREAD.
 - **The pivot follows `RenderTransformOrigin`.** See BRIDGE-THREAD.
 - **Features that manage their own lifetimes pass `WhenDetached.Continue`.** See BRIDGE-HELPERS.

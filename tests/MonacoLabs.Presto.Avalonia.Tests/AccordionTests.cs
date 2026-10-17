@@ -1,11 +1,14 @@
 using System.Globalization;
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Transformation;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 
 namespace MonacoLabs.Presto.Tests;
@@ -125,6 +128,54 @@ public sealed class AccordionTests : CompositorTestBase
         Assert.Equal(0, Rotation(Chevron(first)), 0.5);
     }
 
+    [AvaloniaFact]
+    public void TheChevronIsFoundOnASemiShapedTemplate()
+    {
+        var expander = SemiStage();
+        var icon = Part(expander, "PART_PathIcon");
+        Assert.Equal(180, Accordion.GetChevron(icon));
+
+        expander.IsExpanded = true;
+        Run(3);
+        Assert.InRange(Rotation(icon), 1, 179);
+        Run(40);
+        Assert.Equal(180, Rotation(icon), 0.5);
+    }
+
+    [AvaloniaFact]
+    public void ALinkedChevronLiftsItsRenderTransformTransitionsAndUnlinkRestoresThem()
+    {
+        var expander = SemiStage();
+        var icon = Part(expander, "PART_PathIcon");
+        Assert.IsType<DoubleTransition>(Assert.Single(icon.Transitions!));
+
+        expander.IsExpanded = true;
+        Run(40);
+        Assert.IsType<DoubleTransition>(Assert.Single(icon.Transitions!));
+
+        Accordion.SetEnabled(expander, false);
+        Assert.Null(Accordion.GetChevron(icon));
+        Assert.Equal(2, icon.Transitions!.Count);
+    }
+
+    [AvaloniaFact]
+    public void AnAppSetChevronIsKept()
+    {
+        var marked = new Style(x => x.OfType<Expander>().Template().OfType<PathIcon>().Name("PART_PathIcon"))
+        {
+            Setters = { new Setter(Accordion.ChevronProperty, 90d) },
+        };
+        var expander = SemiStage(marked);
+        var icon = Part(expander, "PART_PathIcon");
+
+        expander.IsExpanded = true;
+        Run(40);
+        Assert.Equal(90, Rotation(icon), 0.5);
+
+        Accordion.SetEnabled(expander, false);
+        Assert.Equal(90, Accordion.GetChevron(icon));
+    }
+
     private static (Expander First, Expander Second) Stage()
     {
         var group = new StackPanel { Children = { Section(), Section() } };
@@ -139,6 +190,43 @@ public sealed class AccordionTests : CompositorTestBase
         Presence.SetEnter(content, Recipes.Fade());
         var expander = new Expander { Header = "h", Content = content, HorizontalAlignment = HorizontalAlignment.Stretch };
         Accordion.SetEnabled(expander, true);
+        return expander;
+    }
+
+    // Like Semi's: the chevron is PART_PathIcon in the expander's template, given as its header toggle's content, with a
+    // RenderTransform transition set there.
+    private static Expander SemiStage(params IStyle[] styles)
+    {
+        var theme = new ControlTheme(typeof(Expander))
+        {
+            Setters =
+            {
+                new Setter(TemplatedControl.TemplateProperty, new FuncControlTemplate<Expander>((_, _) => new ToggleButton
+                {
+                    Name = "ExpanderHeader",
+                    Content = new Grid
+                    {
+                        Children =
+                        {
+                            new PathIcon
+                            {
+                                Name = "PART_PathIcon",
+                                Transitions =
+                                [
+                                    new TransformOperationsTransition { Property = Visual.RenderTransformProperty, Duration = TimeSpan.FromMilliseconds(250) },
+                                    new DoubleTransition { Property = Visual.OpacityProperty, Duration = TimeSpan.FromMilliseconds(250) },
+                                ],
+                            },
+                        },
+                    },
+                })),
+            },
+        };
+        var expander = new Expander { Theme = theme };
+        Accordion.SetEnabled(expander, true);
+        var root = new StackPanel { Children = { expander } };
+        root.Styles.AddRange(styles);
+        ShowWhite(root);
         return expander;
     }
 

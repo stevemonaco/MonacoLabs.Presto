@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
@@ -58,12 +57,7 @@ internal sealed class PopoverRun
             _stopPolling = StartPolling(Poll);
         }
         if (presenter is ToolTip || _hold is not null) presenter.LayoutUpdated += RecordPosition;
-        if (presenter.Transitions is { } transitions && transitions.Any(IsOpacity))
-        {
-            var kept = new Transitions();
-            kept.AddRange(transitions.Where(transition => !IsOpacity(transition)));
-            _transitions = presenter.SetValue(Avalonia.Animation.Animatable.TransitionsProperty, kept, BindingPriority.Animation);
-        }
+        _transitions = ThemeTransitions.Lift(presenter, presenter.Transitions, Visual.OpacityProperty);
     }
 
     public void Open()
@@ -200,6 +194,4 @@ internal sealed class PopoverRun
         using var origin = PrestoDiagnostics.Origin("Popover");
         return Presto.Animate(_presenter, parameters with { HostLifetime = WhenDetached.Continue });
     }
-
-    private static bool IsOpacity(ITransition transition) => transition is TransitionBase { Property: var property } && property == Visual.OpacityProperty;
 }

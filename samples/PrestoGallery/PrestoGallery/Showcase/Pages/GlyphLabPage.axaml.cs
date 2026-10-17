@@ -71,7 +71,7 @@ public partial class GlyphLabPage : ShowcasePage
         }
         return Presto.CreateTimeline(new() { OnComplete = _ => split.Revert() })
             .Add(outlines, b => b.Draw(from: "0 0", to: "0 1").Duration(duration).Ease(Recipes.Tokens.Ease))
-            .Add(outlines, b => b.Property("Fill", TweenValue.Of(Handwriting.Foreground)).Property("StrokeThickness", 0).Duration(Recipes.Tokens.Medium));
+            .Add(outlines, b => b.Fill(Handwriting.Foreground!).Property("StrokeThickness", 0).Duration(Recipes.Tokens.Medium));
     }
     #endregion
 

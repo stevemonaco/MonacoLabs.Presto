@@ -9,7 +9,10 @@ sources:
   - MonacoLabs.Presto/AnimationBuilder.cs
   - MonacoLabs.Presto/AnimationParams.cs
   - MonacoLabs.Presto/Animation.cs
-types: []
+  - MonacoLabs.Presto/MotionPreference.cs
+  - MonacoLabs.Presto/Engine.cs
+types:
+  - MotionPreference
 tests:
   - ReducedMotionTests
   - AnimationBuilderTests
@@ -33,7 +36,7 @@ depends:
 
 ## Purpose
 
-Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMotion` makes an animation play its authored reduced form: `AnimationBuilder.WhenReduced` for builders, `AnimationParams.WhenReduced` for dictionary-form params. `ReduceAll` turns every other animation into an instant landing on its end values. Presto never sets either flag itself; following the operating system's setting, and the reduced forms of bridge features, are specified by BRIDGE-REDUCED. Also specifies `PrestoDefaults.ReducedMotion`, `PrestoDefaults.ReduceAll`, `AnimationBuilder.WhenReduced` and `AnimationParams.WhenReduced`.
+Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMotion` makes an animation play its authored reduced form: `AnimationBuilder.WhenReduced` for builders, `AnimationParams.WhenReduced` for dictionary-form params. `ReduceAll` turns every other animation into an instant landing on its end values. Presto never sets either flag itself; following the operating system's setting, and the reduced forms of bridge features, are specified by BRIDGE-REDUCED. Also specifies `PrestoDefaults.ReducedMotion`, `PrestoDefaults.ReduceAll`, `Engine.ReducedMotionChanged`, `AnimationBuilder.WhenReduced` and `AnimationParams.WhenReduced`.
 
 ## Requirements
 
@@ -43,7 +46,23 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
   - Tests: `AnimationBuilderTests.WhenReducedIsPickedOnlyWhileReducedMotionIsSet`
 - **CORE-REDUCED-002** — The flags shall belong to one `PrestoDefaults`, so each engine, and each scope given its own defaults, has its own pair, in force while that scope executes.
   - Tests: `ReducedMotionTests.AScopeKeepsItsOwnFlags`
-- **CORE-REDUCED-003** — The flags shall be read when an animation is constructed; changing them shall not alter an animation that already exists.
+- **CORE-REDUCED-003** — The flags shall be read when an animation is constructed; changing them, raising `ReducedMotionChanged` included, shall not alter an animation that already exists.
+  - Tests: `ReducedMotionTests.TheSignalLeavesARunningAnimationInItsForm`
+
+### Change signal
+
+- **CORE-REDUCED-034** — When `ReducedMotion` or `ReduceAll` of an engine's own defaults changes value, the engine shall raise `ReducedMotionChanged` once, with itself, synchronously after the write.
+  - Tests: `ReducedMotionTests.ChangingEitherFlagRaisesTheSignalOnceWithTheEngine`
+- **CORE-REDUCED-035** — Writing a flag its current value shall raise nothing.
+  - Tests: `ReducedMotionTests.WritingTheCurrentValueRaisesNothing`
+- **CORE-REDUCED-036** — Writing a flag of a copy of the defaults (`with`, the copy a new engine starts from, a scope's configured defaults) shall raise nothing on the engine it was copied from; a new engine's starting copy is that engine's own instance.
+  - Tests: `ReducedMotionTests.AWithCopyAndAScopesDefaultsRaiseNothing`, `ReducedMotionTests.ANewEnginesCopyRaisesOnTheNewEngineOnly`
+- **CORE-REDUCED-037** — A `PrestoDefaults` copy shall compare equal to its source until a value differs, whether or not the source belongs to an engine.
+  - Tests: `ReducedMotionTests.ACopyOfAnEnginesDefaultsStillEqualsIt`
+
+### Preference
+
+- **CORE-REDUCED-039** — `MotionPreference` shall have the values `System`, `Full` and `Reduced`, in that order, `System` being the default; the core shall not act on it.
   - Tests: untested
 
 ### Builder reduced form
@@ -126,7 +145,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 
 ## Threading and lifetime
 
-- The flags live on per-engine (or per-scope) defaults and are read on that engine's thread; there is no change notification (see Decisions: the flag has no change notification).
+- The flags live on per-engine (or per-scope) defaults and are read on that engine's thread; a change of an engine's own flags raises `ReducedMotionChanged` synchronously on the writer's thread, which is that engine's thread (see Decisions: the signal is raised synchronously, on the writer's thread, after the write).
 
 ## Reduced motion
 
@@ -146,7 +165,10 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 - **Reduced motion is an app-set flag with a per-builder alternative.** `PrestoDefaults.ReducedMotion` is a `bool` the app sets; `AnimationBuilder.WhenReduced` stores an alternative built on a fresh builder that carries this one's settings and callbacks (those chained after it too) but none of its properties or keyframes, picked when the builder becomes params; every recipe supplies one. Reason: the app decides whether to follow the operating system's setting, and carrying the settings lets a stagger or callback survive while the reduced form states its own values. Earlier Presto shipped no way to follow the system setting; following it is now an opt-in in the bridge (BRIDGE-REDUCED), and the core still never sets the flag.
 - **`ReduceAll` collapses everything without an alternative.** It makes the `Animation` constructor give every tween a minimal duration and no delay, keyframes and springs included, and force one iteration; params built from a reduced form, `Presto.Set` and plain timers are left alone, and timeline children collapse like any animation. Reason: not recorded.
 - **`ReduceAll` collapses timeline positions.** While the flag is set, a timeline resolves the position of every child, `Call` and label added to 0, after parsing it so an unknown label still throws; plain timers keep their durations, and a reduced alternative plays from 0. Labels and `Call`s follow so callbacks keep their add order against the collapsed children. Reason: a fully reduced timeline lands every child's end state at once, as `ReduceAll` promises. Rejected: keeping positions, which still takes the full length.
-- **The flag has no change notification.** Each consumer reads the flag when its own trigger fires, and an animation keeps the form it was built with. Reason: `PrestoDefaults` is a record copied with `with` into every scope and engine, so an event on it would be compared by record equality and carried into each copy, and a subscriber would not know which copy to watch; an app that must react at once has the bridge's system-following callback. Rejected: an event on `PrestoDefaults`.
+- **The signal is an event on `Engine`, not on `PrestoDefaults`.** The engine raises `ReducedMotionChanged` when a flag of its own defaults instance changes value. It finds its instance through a reference-keyed weak link that neither `with` copies nor record equality sees. Reason: an event on the record would be compared by record equality and carried into every `with` copy, and a subscriber would not know which copy to watch. Subscribers already know the engine (`Presto.Engine`, or `Engine.Current` when a trigger plays), and the engine has exactly one instance that is its own. Rejected: an event or `INotifyPropertyChanged` on `PrestoDefaults` (the reasons above, and INPC would also report every other default); polling the flag each frame (an idle engine has no frames, and it costs the tick path); a static process-wide event (it cannot say which engine changed, and scene engines run off the main thread).
+- **The signal is raised synchronously, on the writer's thread, after the write.** Reason: the core is single-threaded and the flag is written on its engine's thread, so a handler can read the new value and replay in the same call, and a test can assert straight after setting the flag. A consumer never depends on another subscriber having run first, since the source of the change raises the signal itself. Rejected: deferring the signal to the next frame (a change while the engine is idle would wait for an unrelated frame).
+- **Only a change of value raises, and only on the engine's own instance.** Writing the current value raises nothing. A scope with configured defaults, a `with` copy, or a write that reaches a scope's copy while that scope executes raises nothing either; the link is fixed when the engine is created, not when `Scope.Execute` swaps `Engine.Defaults`. Reason: a scope's defaults are in force only during `Execute`, and nothing persistent resolves against them afterwards, while hosts read `Engine.Current.Defaults` when their triggers fire. Rejected: signalling scope copies, which would need a subscription per scope for no consumer.
+- **`MotionPreference` is a core enum with `System` first.** It names where an app's flag comes from; the core never acts on it. Reason: a view model, which must stay free of host UI references, holds and persists the setting. `System` is the default value because following the OS is the right default for an app setting. Rejected: a host-side enum (it would pull the UI framework into view models); `Full` first.
 - **Dictionary params take `WhenReduced` with builder semantics.** `AnimationParams.WhenReduced` replaces the properties and keyframes and overrides only the settings it sets; `ReduceAll` leaves the result alone, a nested `WhenReduced` is ignored, `ToParams` puts a builder's reduced form in it, and `TimerParams` and `TimelineParams` have none. Reason: a timer animates nothing, and each timeline child picks its own form.
 - **Reduced motion lands on the resolved end at once.** See CORE-INERTIA.
 - **Projectile is a closed-form to-value with a declared flight time.** See CORE-INERTIA.
@@ -156,7 +178,8 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 
 - Detecting the operating system's setting (BRIDGE-REDUCED).
 - Reduced forms for timers and timelines, and re-forming running animations when a flag changes.
+- A signal for scope copies.
 
 ## Open items
 
-- Spring collapse, nested `WhenReduced`, `Priority` override, `Set` under either flag, and flag changes not touching live animations have no test.
+- Spring collapse, nested `WhenReduced`, `Priority` override, and `Set` under either flag have no test.

@@ -163,12 +163,14 @@ depends:
 - **Reduced popups close at once.** Read at close, with no `Close` and no ghost; `Open` plays the builder's reduced form, and a `Close` that completes on its first frame closes at once. Reason: not recorded beyond the reduced-motion rule (BRIDGE-REDUCED).
 - **Shown again mid-exit plays the exit back.** See BRIDGE-PRESENCE.
 - **`PopoverIn` predicts the facing edge from the placement.** See BRIDGE-RECIPES.
+- **A bindable flyout `IsOpen` is not Presto's job.** Opening and closing a flyout from a view model is an MVVM gap in Avalonia (`FlyoutBase.IsOpen` is read-only and `ShowAttachedFlyout` is a method), not a motion one, and Presto ships no MVVM helpers. Reason: Popover's motion already plays for any opener, since `ShowAt` or `ShowAttachedFlyout` plays `Open` and any `Hide()` plays `Close` (BRIDGE-POPOVER-010), so an app or community `IsOpen` behavior gets the motion unchanged; for a state held while open, `Button.Flyout` sets `:flyout-open`, which `Motion` already takes as a condition. Rejected: a `Popover.IsOpen` attached property, which would own anchor and placement policy that Avalonia leaves to the app.
 
 ## Non-goals
 
 - Reopening a flyout mid-close with `Close` played back.
 - Holding a `ToolTip` open: Avalonia's tooltip service cannot be held, so it ghosts.
 - Predicting `Pointer` placements in the recipes (BRIDGE-RECIPES).
+- A bindable `IsOpen` for flyouts (see A bindable flyout `IsOpen` is not Presto's job).
 
 ## Open items
 

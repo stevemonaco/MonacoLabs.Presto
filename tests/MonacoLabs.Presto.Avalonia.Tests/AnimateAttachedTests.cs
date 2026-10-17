@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -7,6 +8,9 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using MonacoLabs.Presto.Core;
+using MonacoLabs.Presto.Text;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -322,6 +326,311 @@ public sealed class AnimateAttachedTests : BridgeTestBase
         Assert.Empty(Presto.GetAnimations(changed));
         Assert.Equal(0d, PrestoAvalonia.Get(tapped, "X"));
         Assert.Equal(0d, PrestoAvalonia.Get(changed, "X"));
+    }
+
+    private static AnimationBuilder LoopX() => SlideX(100).Loop();
+
+    private static double X(Visual visual) => (double)PrestoAvalonia.Get(visual, "X")!;
+
+    [AvaloniaFact]
+    public void AHiddenVisualsLoopIsPausedAndResumesWhereItWasWhenShown()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+        var hiddenAt = X(border);
+
+        border.IsVisible = false;
+        Frames.Advance(500, 10);
+
+        Assert.True(animation.Paused);
+        Assert.Equal(hiddenAt, X(border));
+
+        border.IsVisible = true;
+        Frames.Advance(20, 10);
+
+        Assert.False(animation.Paused);
+        Assert.InRange(X(border), hiddenAt + 1, hiddenAt + 40);
+    }
+
+    [AvaloniaFact]
+    public void HidingAnAncestorPausesTheLoop()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+
+        panel.IsVisible = false;
+        Assert.True(animation.Paused);
+
+        panel.IsVisible = true;
+        Assert.False(animation.Paused);
+    }
+
+    [AvaloniaFact]
+    public void AttachingHiddenStartsPausedAndPlaysWhenFirstShown()
+    {
+        var panel = ShowPanel();
+        var border = new Border { IsVisible = false };
+        Animate.SetOnAttached(border, SlideX(100));
+
+        panel.Children.Add(border);
+        Assert.True(Assert.Single(Presto.GetAnimations(border)).Paused);
+        Frames.Advance(200, 16);
+        Assert.Equal(0d, X(border));
+
+        border.IsVisible = true;
+        Frames.Advance(50, 10);
+        Assert.InRange(X(border), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void ACompletedAnimationIsLeftAloneWhenHidden()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, SlideX(100));
+        var animation = Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(200, 16);
+
+        border.IsVisible = false;
+        border.IsVisible = true;
+        Frames.Advance(50, 10);
+
+        Assert.True(animation.Completed);
+        Assert.True(animation.Paused);
+        Assert.Equal(100d, X(border));
+    }
+
+    [AvaloniaFact]
+    public void ShowingDoesNotResumeAPauseTheTriggerDidNotMake()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+        animation.Pause();
+        var pausedAt = X(border);
+
+        border.IsVisible = false;
+        border.IsVisible = true;
+        Frames.Advance(50, 10);
+
+        Assert.True(animation.Paused);
+        Assert.Equal(pausedAt, X(border));
+    }
+
+    [AvaloniaFact]
+    public void DetachingWhileHiddenRevertsAsBefore()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        border.IsVisible = false;
+
+        panel.Children.Remove(border);
+
+        Assert.Equal(0d, X(border));
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void VisibilityDoesNotAffectOnTappedOrOnChanged()
+    {
+        var panel = ShowPanel();
+        var tapped = AddHitBorder(panel);
+        var changed = AddBorder(panel);
+        Animate.SetOnTapped(tapped, SlideX(100));
+        Animate.SetOnChanged(changed, SlideX(100));
+        Animate.SetWatch(changed, 1);
+        Tap(tapped);
+        Animate.SetWatch(changed, 2);
+
+        panel.IsVisible = false;
+        Frames.Advance(50, 10);
+
+        Assert.False(Assert.Single(Presto.GetAnimations(tapped)).Paused);
+        Assert.False(Assert.Single(Presto.GetAnimations(changed)).Paused);
+        Assert.InRange(X(tapped), 1, 99);
+        Assert.InRange(X(changed), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void ClearingOnAttachedRemovesTheVisibilityHandler()
+    {
+        var border = AddBorder(ShowPanel());
+        var handlers = typeof(Visual).GetField("IsEffectivelyVisibleChanged", BindingFlags.Instance | BindingFlags.NonPublic)!; // The event is internal.
+        Animate.SetOnAttached(border, LoopX());
+        Assert.NotNull(handlers.GetValue(border));
+
+        Animate.SetOnAttached(border, null);
+
+        Assert.Null(handlers.GetValue(border));
+    }
+
+    [AvaloniaFact]
+    public void ATextRevealOnAHiddenBlockWaitsUntilShown()
+    {
+        var block = TextRevealTests.Block(TextPieces.Words);
+        block.IsVisible = false;
+        Animate.SetOnAttached(block, Presto.Build().Opacity(from: 0).Duration(2000).Ease("linear"));
+        TextRevealTests.Show(block);
+        Frames.Advance(500, 50);
+
+        Assert.Equal(0, block.Opacity);
+
+        block.IsVisible = true;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(500, 50);
+        var word = block.GetVisualDescendants().OfType<TextBlock>().First(piece => !string.IsNullOrWhiteSpace(piece.Text));
+        var animation = Assert.Single(Presto.GetAnimations(word));
+        Assert.InRange(word.Opacity, 0.1, 0.4);
+
+        block.IsVisible = false;
+        Frames.Advance(500, 50);
+        Assert.True(animation.Paused);
+
+        block.IsVisible = true;
+        Assert.False(animation.Paused);
+    }
+
+    [AvaloniaFact]
+    public void AReducedLoopPausesWhenHidden()
+    {
+        Presto.Defaults.ReducedMotion = true;
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX().WhenReduced(reduced => reduced.Opacity(0).Duration(100).Loop()));
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border, "Opacity"));
+
+        border.IsVisible = false;
+        Assert.True(animation.Paused);
+
+        border.IsVisible = true;
+        Assert.False(animation.Paused);
+    }
+
+    private static AnimationBuilder BounceOrFade() => LoopX().WhenReduced(reduced => reduced.Opacity(0).Loop(false));
+
+    [AvaloniaFact]
+    public void ALoopingOnAttachedReplaysItsReducedFormWhenTheFlagIsSet()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, BounceOrFade());
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.True(loop.Canceled);
+        Assert.Equal(0d, X(border));
+        Frames.Advance(200, 16);
+        Assert.Equal(0, border.Opacity);
+        Assert.Equal(0d, X(border));
+    }
+
+    [AvaloniaFact]
+    public void ASettledReducedFormLoopsAgainWhenTheFlagClears()
+    {
+        Presto.Defaults.ReducedMotion = true;
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, BounceOrFade());
+        Frames.Advance(200, 16);
+        Assert.Equal(0, border.Opacity);
+
+        Presto.Defaults.ReducedMotion = false;
+
+        Assert.Equal(1, border.Opacity);
+        Frames.Advance(250, 10);
+        Assert.False(Assert.Single(Presto.GetAnimations(border)).Completed);
+        Assert.InRange(X(border), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void AFiniteOnAttachedFinishesInItsFormWhenTheFlagFlips()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, SlideX(100).WhenReduced(reduced => reduced.Opacity(0)));
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.Same(animation, Assert.Single(Presto.GetAnimations(border)));
+        Frames.Advance(200, 16);
+        Assert.Equal(100d, X(border));
+        Assert.Equal(1, border.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void ABuilderWithoutAReducedFormDoesNotRestartOnAReducedMotionFlip()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.False(loop.Canceled);
+        Assert.Same(loop, Assert.Single(Presto.GetAnimations(border)));
+    }
+
+    [AvaloniaFact]
+    public void AReduceAllFlipReplaysALoopCollapsed()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReduceAll = true;
+        Frames.Advance(16);
+
+        Assert.True(loop.Canceled);
+        Assert.Equal(100d, X(border));
+
+        Presto.Defaults.ReduceAll = false;
+        Frames.Advance(50, 10);
+
+        Assert.InRange(X(border), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void ADetachedTriggerIsNotRegistered()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var engine = new Engine(new ManualFrameSource());
+        using (engine.MakeCurrent()) Animate.SetOnAttached(border, BounceOrFade());
+        Assert.Single(Followers(engine));
+
+        panel.Children.Remove(border);
+
+        Assert.Empty(Followers(engine));
+    }
+
+    [AvaloniaFact]
+    public void ARunningLoopingTapAnimationFollowsTheFlag()
+    {
+        var border = AddHitBorder(ShowPanel());
+        Animate.SetOnTapped(border, BounceOrFade());
+        Tap(border);
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.True(loop.Canceled);
+        Assert.Equal(0d, X(border));
+        Frames.Advance(50, 10);
+        Assert.InRange(border.Opacity, 0.01, 0.99);
+        Frames.Advance(100, 10);
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Equal(1, border.Opacity);
     }
 
     [AvaloniaFact]

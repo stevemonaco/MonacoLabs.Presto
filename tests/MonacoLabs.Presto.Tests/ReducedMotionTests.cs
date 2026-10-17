@@ -211,4 +211,109 @@ public sealed class ReducedMotionTests : EngineTestBase
         Assert.Equal(0.5, target.Opacity);
         Assert.Equal(50, target.Y);
     }
+
+    [Fact]
+    public void ChangingEitherFlagRaisesTheSignalOnceWithTheEngine()
+    {
+        var raised = new List<Engine>();
+        Presto.Engine.ReducedMotionChanged += raised.Add;
+        try
+        {
+            Presto.Defaults.ReducedMotion = true;
+            Presto.Defaults.ReduceAll = true;
+        }
+        finally
+        {
+            Presto.Engine.ReducedMotionChanged -= raised.Add;
+        }
+
+        Assert.Equal([Presto.Engine, Presto.Engine], raised);
+    }
+
+    [Fact]
+    public void WritingTheCurrentValueRaisesNothing()
+    {
+        var raised = 0;
+        void OnChanged(Engine _) => raised++;
+        Presto.Engine.ReducedMotionChanged += OnChanged;
+        try
+        {
+            Presto.Defaults.ReducedMotion = false;
+            Presto.Defaults.ReduceAll = false;
+        }
+        finally
+        {
+            Presto.Engine.ReducedMotionChanged -= OnChanged;
+        }
+
+        Assert.Equal(0, raised);
+    }
+
+    [Fact]
+    public void AWithCopyAndAScopesDefaultsRaiseNothing()
+    {
+        var raised = 0;
+        void OnChanged(Engine _) => raised++;
+        var scope = Presto.CreateScope(new() { Defaults = _ => { } });
+        Presto.Engine.ReducedMotionChanged += OnChanged;
+        try
+        {
+            (Presto.Defaults with { }).ReducedMotion = true;
+            scope.Execute(_ => { Presto.Defaults.ReducedMotion = true; });
+            scope.Defaults.ReduceAll = true;
+        }
+        finally
+        {
+            Presto.Engine.ReducedMotionChanged -= OnChanged;
+        }
+
+        Assert.Equal(0, raised);
+        Assert.False(Presto.Defaults.ReducedMotion);
+    }
+
+    [Fact]
+    public void ANewEnginesCopyRaisesOnTheNewEngineOnly()
+    {
+        var engine = new Engine(new ManualFrameSource());
+        var raised = new List<Engine>();
+        Presto.Engine.ReducedMotionChanged += raised.Add;
+        engine.ReducedMotionChanged += raised.Add;
+        try
+        {
+            engine.Defaults.ReducedMotion = true;
+        }
+        finally
+        {
+            Presto.Engine.ReducedMotionChanged -= raised.Add;
+        }
+
+        Assert.Equal([engine], raised);
+    }
+
+    [Fact]
+    public void ACopyOfAnEnginesDefaultsStillEqualsIt()
+    {
+        var copy = Presto.Defaults with { };
+
+        Assert.Equal(Presto.Defaults, copy);
+        Assert.Equal(Presto.Defaults.GetHashCode(), copy.GetHashCode());
+        copy.ReducedMotion = true;
+        Assert.NotEqual(Presto.Defaults, copy);
+    }
+
+    [Fact]
+    public void TheSignalLeavesARunningAnimationInItsForm()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new() { ["X"] = 100, Duration = 400, WhenReduced = new() { ["Opacity"] = 0.5, Duration = 200 } });
+        Frames.Advance(100);
+
+        Presto.Defaults.ReducedMotion = true;
+        Presto.Defaults.ReduceAll = true;
+        Frames.Advance(100);
+
+        Assert.Equal(400, animation.Duration);
+        Assert.InRange(target.X, 1, 99);
+        Assert.Equal(0, target.Opacity);
+    }
 }

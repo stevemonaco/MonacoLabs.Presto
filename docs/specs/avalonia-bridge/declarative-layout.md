@@ -132,7 +132,7 @@ depends:
 
 ## Reduced motion
 
-- BRIDGE-DECLLAYOUT-025 and -026: the flag has no change notification, so arms read it at arm time and on each layout pass.
+- BRIDGE-DECLLAYOUT-025 and -026: arms read the flag at arm time and on each layout pass.
 
 ## Allocation
 
@@ -155,7 +155,7 @@ depends:
 - **One arm per container.** `Animate.Layout` on an item container whose list sets `Animate.ItemLayout` throws `InvalidOperationException` on whichever arms second. Reason: two arms on one control replace each other's transition (BRIDGE-LAYOUT-004), so the one armed last silently owned the moves and the other never re-armed; one owner at a time, as a `CompositorScene` has one canvas.
 - **Layout goes on the container, `Presence` on the content.** When layout and a transform entrance or exit share an element, the later owner takes the compositor `Translation`/`Scale` track and the other freezes, with a Debug warning; opacity-only or blur entrances may share. Reason: entrance and exit recipes run on the same tracks a layout transition inverts onto. Rejected: detecting the conflict and throwing, because sequential use (an enter that finishes before the first reflow) is legitimate.
 - **Style setters can share one builder.** All three properties are plain attached properties, and one shared builder is safe because it is snapshotted per arm. Reason: not recorded beyond the snapshot guarantee.
-- **Reduced motion is read at arm time.** `WhenReduced` applies when the builder is read at arm; an arm re-arms at its next layout pass when the flag differs from the value it armed with, and reduced motion makes a layout move instant. Reason: `ReducedMotion` has no change notification, so consumers read it when their own trigger fires.
+- **Reduced motion is read at arm time.** `WhenReduced` applies when the builder is read at arm; an arm re-arms at its next layout pass when the flag differs from the value it armed with, and reduced motion makes a layout move instant. Reason: arms read the flag at the next layout pass, since a layout move is finite and Following a change in BRIDGE-REDUCED does not replay it.
 - **Layout-transition builders carry timing and eases only; per-axis eases make arcs.** See BRIDGE-LAYOUT.
 - **The dragged container is excluded from FLIP.** See BRIDGE-REORDER.
 
