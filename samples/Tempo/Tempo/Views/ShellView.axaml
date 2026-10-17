@@ -27,7 +27,7 @@
             </Panel>
         </Panel>
         <!-- Above the panels, so the wordmark's flight in from the intro is not drawn under them. -->
-        <Border Classes="titlebar" ZIndex="1" WindowDecorationProperties.ElementRole="TitleBar">
+        <Border Classes="titlebar" ZIndex="1">
             <!-- The last column keeps clear of the system caption buttons. -->
             <Grid ColumnDefinitions="*,Auto,*,Auto,138" Margin="16,0,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">

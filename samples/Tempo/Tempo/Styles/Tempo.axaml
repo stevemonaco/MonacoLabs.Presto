@@ -166,6 +166,11 @@
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="WindowDecorationProperties.ElementRole" Value="TitleBar" />
+    </Style>
+    <!-- A caption hit-tests as non-client, so its moves never reach the fullscreen popover's top-edge trigger. -->
+    <Style Selector="Window[WindowState=FullScreen] Border.titlebar">
+        <Setter Property="WindowDecorationProperties.ElementRole" Value="User" />
     </Style>
     <!-- The drawn decorations' own title would sit under the wordmark. -->
     <Style Selector="WindowDrawnDecorations:not(:fullscreen) /template/ Panel#PART_TitleTextPanel">
