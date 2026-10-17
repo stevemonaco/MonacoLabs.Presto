@@ -55,7 +55,7 @@ sealed class Ship
 
 Properties are found by reflection and cached as delegates. Frames come from the built-in `StopwatchFrameSource`, which
 posts to the `SynchronizationContext` of the thread that started it; tests swap in `ManualFrameSource` and call
-`Advance(16)`.
+`Advance(16)`. A trimmed or NativeAOT app registers the type first; see [Trimming and NativeAOT](#trimming-and-nativeaot).
 
 ### An Avalonia control
 
@@ -1754,6 +1754,32 @@ A handful of places where the JS shape does not survive the type system:
 - **`.then()` is `Then()` or `await`.** `await animation` works directly and yields the animation itself; `Then(callback)`
   returns a `Task` for callback-style chaining.
 
+## Trimming and NativeAOT
+
+The four packages are marked `IsTrimmable` and `IsAotCompatible` and build with no trim or AOT warnings. Avalonia
+controls, `AvaloniaProperty` keys, dictionaries and the library's own objects (timers, draggables, the compositor
+mirror) never go through reflection, so they need nothing.
+
+A plain object animated by member name does: its members are found by reflection, and in a trimmed or NativeAOT app
+they may have been removed even when the app uses them. Register the type once, before its first animation:
+
+```csharp
+Presto.RegisterTarget<Ship>();   // keeps Ship's public properties and fields
+Presto.Animate(ship, new AnimationParams { ["X"] = 320 });
+```
+
+The call does nothing at run time; its generic parameter's annotation tells the trimmer and the AOT compiler what to
+keep. An unregistered type that lost its members throws `ArgumentException` naming `RegisterTarget<T>()`. The usual
+case is a `CompositorScene`, whose dots and particles are plain objects (the `Dot` in the [render-thread](#render-thread)
+example needs `Presto.RegisterTarget<Dot>()`); the gallery's scenes show the pattern.
+
+Under NativeAOT a registered type's accessors run as interpreted expression trees: correct, but slower, and they may
+allocate per frame. A type that needs allocation-free frames there registers an `ITargetAdapter` in `Presto.Adapters`
+instead, which involves no reflection.
+
+NativeAOT buys startup time and no JIT, not size: the gallery's Windows x64 NativeAOT publish is 52.0 MB, against
+53.3 MB for a trimmed self-contained publish (MiB, symbols and XML docs excluded).
+
 ## Platforms and status
 
 Version 0.1.0, pre-release: the API is settled enough to build against but not frozen, and a pass over it is planned
@@ -1765,8 +1791,8 @@ build; what has actually been *run* differs, and the table says so rather than i
 
 | Head | Verified |
 |------|----------|
-| **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here. |
-| **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish, with no trim warnings. The Lottie page has not been driven there. |
+| **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here. The AOT probe (`tests/MonacoLabs.Presto.AotProbe`) passes locally as a Windows x64 NativeAOT publish and is wired into the CI `aot` job, which has not yet run on GitHub, and a NativeAOT gallery passed the smoke run: all 81 pages opened with no exception or binding error. |
+| **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish (full trim mode, trimmable packages), which reports no trim warnings and has not yet been stepped through in a browser. The Lottie page has not been driven there. |
 | **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. On an emulator (Pixel 7, Android 15) the gallery opens in its compact layout: Home fits the screen, tapping a row or a search result opens the page, the system back button returns Home, on Gestures an open sheet closes on the first back, and back at Home leaves the app. Other pages' rendering and touch gestures beyond those are unverified. |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
 

@@ -37,6 +37,9 @@ When an item is closed, its line is deleted.
 - [BRIDGE-PARTICLES] Measure the default `ParticleScene.MaxLive` of 1 000, and the Particle type and Liquid type frame rates, on Browser, Android and iOS (only desktop's 4 000 was measured).
 - [PLATFORM] Run iOS on a simulator (needs a macOS build host; only compiles for `iossimulator-x64`).
 - [PLATFORM] Check the Browser and Android heads against the showcase pages and update the README Platforms table with what is true.
+- [PLATFORM] In Chrome, on the trimmed Release Browser publish, step through the Animatable, Carousel, Compositor, Follow, Typography, Distort (child redraws update, not stale) and text-morph pages and confirm they behave as on Desktop.
+- [PLATFORM] In a Windows x64 NativeAOT publish of Tempo, double-click a task and confirm the details drawer opens (startup with and without `--skip-intro` is verified; the drawer needs a real double-click).
+- [PLATFORM] Push and confirm the CI `aot` job goes green, and red on a branch without `CallbacksTarget`'s member table, then restore the README Desktop row's "in CI on every push" wording.
 - [SAMPLE] By hand on Desktop: the Board drag and insertion gap (since its move to drop zones: the `:dragover` lane highlight, a fling landing from where it was let go, the bin spin, and Escape springing the card home with no lane left highlighted), the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`), Warp studio's Magnifier, Jelly and Follow pointer, and the Liquid type heading's hover glitch.
 - [SAMPLE] By hand on Desktop: the Carousel pointer drag.
 - [BRIDGE-RECIPES] `Recipes.ThemeReveal` has no gallery demo, so a reveal interrupted by a second reveal or by navigating away (full and reduced motion) rests on `PageBloomTests` alone; add a demo and check it by hand on Desktop.

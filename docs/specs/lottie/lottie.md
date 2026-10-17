@@ -100,6 +100,8 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
   - Tests: `DotLottieTests.ADataUriImageInPlainJsonIsDrawn`
 - **LOTTIE-PLAYBACK-020** — `FromDotLottie` shall ignore the archive's themes and state machines.
   - Tests: untested
+- **LOTTIE-PLAYBACK-071** — `FromDotLottie` shall read an archive with reflection-based JSON serialization disabled.
+  - Tests: untested
 
 ### View: Frame and Progress
 
@@ -241,7 +243,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 ## Threading and lifetime
 
 - Compositions are shareable across views and threads. Seek and render of one player are serialized under a lock, because an offscreen snapshot may render on the UI thread while the render thread draws.
-- `Play`, `PlaySegment` and the recipe tween on the current engine (normally `Presto.Engine` on the UI thread), so they follow DevTools' freeze and time dilation. Render-thread playback runs on an engine owned by the visual, driven by the compositor's animation frames, and ignores the main engine's freeze and dilation.
+- `Play`, `PlaySegment` and the recipe tween on the current engine (normally `Presto.Engine` on the UI thread), so they follow DevTools' freeze and time dilation. Render-thread playback tweens the visual handler's `Frame` through its member table rather than reflection (CORE-TARGETS), on an engine owned by the visual, driven by the compositor's animation frames, and ignores the main engine's freeze and dilation.
 - The UI-thread player is released on detach and on a composition change; the render-thread player on detach, on `RenderThread` turning off and on a composition change.
 
 ## Reduced motion
@@ -283,3 +285,4 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - Manual: the Lottie page has not been driven in the Browser head (Phase 44).
 - Reduced motion is pinned only through the recipe; nothing tests it for `Play`/`PlaySegment` or for render-thread playback, which Render-thread playback is opt-in says matches.
 - Render-thread playback ignores DevTools freeze and dilation; not tested either way.
+- LOTTIE-PLAYBACK-071 is covered only by the AOT probe's `dot-lottie` case (`tests/MonacoLabs.Presto.AotProbe`): the reflection switch is process-wide and read once, so an in-suite test cannot turn it off reliably.

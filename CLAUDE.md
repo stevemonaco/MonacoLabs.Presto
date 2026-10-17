@@ -14,6 +14,7 @@ The architecture and the anime.js → Presto provenance map live in [docs/ARCHIT
 | `samples/PrestoGallery/PrestoGallery.SnippetGenerator/` | Sample-only source generator: `<!-- snippet: Name -->` (XAML) and `#region snippet Name` (C#) regions become `PrestoGallery.Showcase.Snippets` consts. |
 | `samples/Tempo/Tempo/` | Standalone focus-timer app (Desktop, Semi.Avalonia Dark) that dogfoods Presto as an outside consumer would; all its motion is in `Motion/TempoMotion.cs`. Headless tests in `tests/Tempo.Tests/`; decisions in ARCHITECTURE §5. |
 | `tests/MonacoLabs.Presto.Tests/` | xunit v3 tests for the core. Bridge tests (Avalonia.Headless) live in `tests/MonacoLabs.Presto.Avalonia.Tests/`. |
+| `tests/MonacoLabs.Presto.AotProbe/` | NativeAOT console app on Avalonia.Headless: one `PASS`/`FAIL` line per trim/AOT hazard, exit code = failures. Run by the CI `aot` job. |
 | `docs/` | `ARCHITECTURE.md` (goals, architecture, testing strategy, project-wide decisions, samples, provenance appendix), `BACKLOG.md` (open work), `changes/` (change proposals for work in progress). |
 | `docs/specs/` | Feature specs, the source of truth for behavior: one folder per package (`core/`, `avalonia-bridge/`, `lottie/`, `devtools/`), each with an `index.md`. Format in `docs/specs/README.md`. |
 
@@ -29,7 +30,13 @@ tests/PrestoGallery.Tests/bin/Debug/net10.0/PrestoGallery.Tests.exe --report-xun
 dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop
 dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop      # hot reload (see below)
 dotnet run --project samples/Tempo/Tempo                       # the Tempo app; -- --skip-intro starts on the main view
+dotnet publish tests/MonacoLabs.Presto.AotProbe -c Release -r win-x64 -o artifacts/aot-probe -p:TrimmerSingleWarn=false
+artifacts/aot-probe/MonacoLabs.Presto.AotProbe.exe            # exit code = failing cases
+dotnet publish samples/PrestoGallery/PrestoGallery.Desktop -c Release -r win-x64 -p:PublishAot=true -o artifacts/gallery
+samples/PrestoGallery/aot-smoke.ps1 artifacts/gallery/PrestoGallery.Desktop.exe   # every page for 6 s
 ```
+
+A head (gallery Desktop, Tempo) publishes with NativeAOT through `-p:PublishAot=true`; the probe sets it in its csproj. When ILC finds no platform linker, point `PATH` and `LIB` at an installed MSVC toolset and Windows SDK and pass `-p:IlcUseEnvironmentalTools=true`.
 
 The Desktop head takes launch options after `--`, e.g. `dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --page carousel --motion reduced --size 1400x1000`: `--page` takes a slug or title, `--motion` is `full|reduced|system`, `--frame-pacing on|off` sets `AvaloniaFrameSource.Paced` for A/B checks, and `--list-pages` prints the slugs. Its output shows under `dotnet run`, though it is a WinExe, so launched directly its output appears only when redirected; bad arguments exit with code 2. Use these to start DevTools checks on a page instead of navigating the sidebar.
 
@@ -84,5 +91,6 @@ The DevTools MCP server separately reads `AVALONIA_TOOLS_LICENSE_KEY`. Never com
 - File-scoped namespaces; folder structure equals namespace; one public type per file.
 - Types are `sealed` unless designed for inheritance. Internal plumbing is `internal` and exposed to tests via `InternalsVisibleTo`.
 - Hot-path code (tick, tween render) avoids allocations and LINQ; keep the upstream linked-list approach.
+- Libraries stay trim- and AOT-clean: no new reflection. A library type animated by name implements `IMemberTarget`. Reach Avalonia internals with `[UnsafeAccessor]`.
 - Test names describe behavior and, when porting, cite the upstream suite in the class name (e.g. `TimingsTests` ↔ `timings.test.js`).
 - After changes to the core, the tests are the verification step. After changes to the bridge or sample, verify visually via the Desktop sample (DevTools screenshots are fine).

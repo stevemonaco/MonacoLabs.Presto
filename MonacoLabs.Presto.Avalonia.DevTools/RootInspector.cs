@@ -169,15 +169,15 @@ internal sealed class RootInspector : DockPanel
     {
         foreach (var frame in trace.GetFrames())
         {
-            if (frame.GetMethod() is not { DeclaringType: { } type } method || IsPresto(type.Namespace)) continue;
+            if (DiagnosticMethodInfo.Create(frame) is not { DeclaringTypeName: { } type } method || IsPresto(type)) continue;
             var line = frame.GetFileLineNumber();
             var file = Path.GetFileName(frame.GetFileName());
-            return $"created at {type.Name}.{method.Name}" + (file is null ? "" : $" ({file}:{line})");
+            return $"created at {type[(type.LastIndexOfAny(['.', '+']) + 1)..]}.{method.Name}" + (file is null ? "" : $" ({file}:{line})");
         }
         return null;
     }
 
-    private static bool IsPresto(string? ns) => ns is not null && (ns == "MonacoLabs.Presto" || ns.StartsWith("MonacoLabs.Presto.", StringComparison.Ordinal));
+    private static bool IsPresto(string name) => name == "MonacoLabs.Presto" || name.StartsWith("MonacoLabs.Presto.", StringComparison.Ordinal);
 
     private static bool TryParse(TextBox box, out double value) =>
         double.TryParse(box.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);

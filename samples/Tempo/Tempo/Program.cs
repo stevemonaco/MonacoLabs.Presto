@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Logging;
 using MonacoLabs.Presto;
 
 namespace Tempo;
@@ -24,5 +25,9 @@ sealed class Program
             .UsePlatformDetect()
             .UsePresto()
             .WithInterFont()
+#if DEBUG
             .LogToTrace();
+#else
+            .LogToTextWriter(Console.Error, LogEventLevel.Warning);
+#endif
 }

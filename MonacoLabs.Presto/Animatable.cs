@@ -364,8 +364,15 @@ public sealed class Animatable : IRevertible, IReleasable
         _callbacks.Complete();
     }
 
-    private sealed class CallbacksTarget
+    private sealed class CallbacksTarget : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(V)] = ObjectTargetAdapter.MemberAccessor.Of<CallbacksTarget, double>(target => target.V, (target, value) => target.V = value),
+        };
+
         public double V { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

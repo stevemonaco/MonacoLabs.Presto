@@ -50,7 +50,7 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
   - Tests: `PrestoAvaloniaTests.EnsureInitializedInstallsOneAvaloniaFrameSource`
 - **BRIDGE-INIT-002** — When `EnsureInitialized` has already run, a later call shall do nothing, leaving the installed frame source, adapters, codecs and hooks as they are.
   - Tests: `PrestoAvaloniaTests.EnsureInitializedInstallsOneAvaloniaFrameSource`
-- **BRIDGE-INIT-003** — The first call shall append the `AvaloniaObjectTargetAdapter` and the compositor scratch adapter (BRIDGE-THREAD) to `Presto.Adapters`.
+- **BRIDGE-INIT-003** — The first call shall append the `AvaloniaObjectTargetAdapter` to `Presto.Adapters`.
   - Tests: `AnimationBuilderBridgeTests.AnimatingAControlWithACoreOnlyBuilderInstallsTheBridge`
 - **BRIDGE-INIT-004** — The first call shall register codecs in `Presto.Codecs` for `Color`, `IBrush`, `BoxShadows`, `Geometry`, `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect`, `Vector`, `RelativePoint` and `GridLength`, overwriting any codec registered earlier for those types.
   - Tests: `CodecTests.GeometryStructsInterpolateEveryChannel`, `CodecTests.ColorTweensFromAHexStringAndFromATypedColor`

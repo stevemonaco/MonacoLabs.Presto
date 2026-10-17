@@ -1,5 +1,6 @@
 using System;
 using Avalonia;
+using Avalonia.Logging;
 using MonacoLabs.Presto;
 
 namespace PrestoGallery.Desktop;
@@ -34,5 +35,9 @@ sealed class Program
             .UsePlatformDetect()
             .UsePresto()
             .WithInterFont()
+#if DEBUG
             .LogToTrace();
+#else
+            .LogToTextWriter(Console.Error, LogEventLevel.Warning);
+#endif
 }

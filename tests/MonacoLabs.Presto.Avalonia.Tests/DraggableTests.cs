@@ -203,6 +203,25 @@ public sealed class DraggableTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void PositionAnimatesByNameThroughItsTable()
+    {
+        var (_, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { Container = container });
+
+        Presto.Animate(draggable, new AnimationParams { ["X"] = 30, ["Y"] = 40, Duration = 100 });
+        Frames.Advance(120);
+
+        Assert.Equal(30d, draggable.X);
+        Assert.Equal(40d, draggable.Y);
+
+        Presto.Set(draggable, new AnimationParams { ["ProgressX"] = 0.5, ["ProgressY"] = 1 });
+
+        Assert.Equal((ContainerSize - TargetSize) / 2, draggable.X);
+        Assert.Equal(ContainerSize - TargetSize, draggable.Y);
+        Assert.Throws<ArgumentException>(() => Presto.Set(draggable, new AnimationParams { ["Velocity"] = 1 }));
+    }
+
+    [AvaloniaFact]
     public void ADisabledAxisStaysPut()
     {
         var (window, _, target) = Show();

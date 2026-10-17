@@ -118,7 +118,7 @@ public partial class ShellView : UserControl
             DetailSlot.Child = Detail;
         else
             DetailDrawer.Content = Detail;
-        _detailOpen = (compact ? DetailSheet : DetailDrawer).Bind(Sheet.IsOpenProperty, new ReflectionBinding(nameof(MainViewModel.IsDetailOpen)));
+        _detailOpen = (compact ? DetailSheet : DetailDrawer).Bind(Sheet.IsOpenProperty, CompiledBinding.Create((MainViewModel vm) => vm.IsDetailOpen));
 
         var flyout = (Flyout)FlyoutBase.GetAttachedFlyout(SettingsButton)!;
         flyout.Hide();

@@ -102,7 +102,7 @@ depends:
   - Tests: `ReorderTests.ACommandReceivesEachStepAndOwnsTheMove`
 - **BRIDGE-REORDER-020** (inherited) — When the command does not change the item's index, the step shall end the current run of crossings, and the drag shall continue.
   - Tests: `ReorderTests.ACommandReceivesEachStepAndOwnsTheMove`
-- **BRIDGE-REORDER-021** — When no command is set and `ItemsSource` is (or derives from) an `ObservableCollection<T>`, each uncanceled step shall call its `Move(old, new)` through a delegate cached per runtime type; any other items source refuses the step.
+- **BRIDGE-REORDER-021** — When no command is set and `ItemsSource` is (or derives from) an `ObservableCollection<T>`, each uncanceled step shall call that collection's `Move(old, new)`, found once per runtime type; any other items source refuses the step.
   - Tests: `ReorderTests.DraggingAcrossSeveralRowsMovesOneStepPerRowInOrderDownAndUp`
 - **BRIDGE-REORDER-022** (inherited) — When the list is a `SelectingItemsControl` whose `SelectedItem` is the moved item, the list shall restore `SelectedItem` after the move.
   - Tests: `ReorderTests.AMovedItemStaysSelected`
@@ -186,7 +186,7 @@ depends:
 
 ## Allocation
 
-- Not on the tick path in the engine sense. Each auto-scroll frame does a `TranslatePoint`, possibly a scroll and layout pass, and a shorthand write; each step allocates one `ReorderMovingEventArgs`. The mover delegate is created once per items-source type by reflection.
+- Not on the tick path in the engine sense. Each auto-scroll frame does a `TranslatePoint`, possibly a scroll and layout pass, and a shorthand write; each step allocates one `ReorderMovingEventArgs`. Each step's `Move` call allocates its argument array.
 
 ## Provenance
 
@@ -195,7 +195,7 @@ depends:
 
 ## Decisions
 
-- **Reorder moves one step at a time, through `Command` or `ObservableCollection.Move`.** Each midpoint crossing is a one-step move (`NewIndex − OldIndex` = ±1): it raises the cancellable, bubbling `Reorder.Moving`, then runs `Reorder.Command` when set (the view model owns the change), else calls `Move(old, new)` on an `ObservableCollection<T>` `ItemsSource` through a delegate cached per type; any other `IList` needs the command, and without one the drag only lifts and springs back with a logged warning. Reason: Presence and scroll anchoring would read a remove-and-insert as a removal and an insert; routing the event lets XAML attach it. Rejected: `RemoveAt` plus `Insert`.
+- **Reorder moves one step at a time, through `Command` or `ObservableCollection.Move`.** Each midpoint crossing is a one-step move (`NewIndex − OldIndex` = ±1): it raises the cancellable, bubbling `Reorder.Moving`, then runs `Reorder.Command` when set (the view model owns the change), else calls `Move(old, new)` on an `ObservableCollection<T>` `ItemsSource`, invoking the closed `ObservableCollection<T>`'s own `Move`, found once per type and kept by `[DynamicDependency]` (NativeAOT cannot `MakeGenericMethod` for an uncompiled `T`; rejected: a private generic mover); any other `IList` needs the command, and without one the drag only lifts and springs back with a logged warning. Reason: Presence and scroll anchoring would read a remove-and-insert as a removal and an insert; routing the event lets XAML attach it. Rejected: `RemoveAt` plus `Insert`.
 - **Reorder owns the pointer.** It handles `PointerPressed` on the list in the tunnel phase, joins the gesture arena, which captures the list when it wins, and tracks the dragged item, re-finding its container with `ContainerFromItem` after every move; it shares only the arena's gate and `Draggable`'s edge-scroll formula. Reason: a `Draggable` releases when its capture is lost, and a `Move` takes capture from the moved container (or replaces the container outright in an `ItemsControl`); tunnel handling stops a `ListBoxItem` swallowing the press. Rejected: a `Draggable` per container, as first sketched.
 - **A touch hold is opt-in, and for touch and pen.** `Reorder.TouchHold` makes a touch or pen press hold still before it lifts, the mobile convention, so a whole-row drag target leaves vertical touch scrolling and horizontal swipe actions to the list; a touch that moves first is dropped rather than handled. Reason: without a handle, a 3 DIP threshold along the axis took every vertical touch scroll as a drag (Tempo's task rows); a mouse has no scroll gesture to protect, so it keeps dragging at once, while a pen pans scrollers as touch does and, at first limited to touch, never reached `HoldCommand` on a drawing tablet. Rejected: a hold for every pointer, which slows mouse reordering for nothing, and a handle, which on a phone sits beside the checkbox and invites misses.
 - **A crosswise start gives the press away.** The same-axis gate decides on the first travel past its slop, and a crosswise start drops Reorder out of the arena; the numbers and the arbitration are BRIDGE-GESTURES's. Reason: with movement across the axis ignored, a swipe on a whole-row reorder target (Tempo's task rows) turned into a reorder at the first few DIPs of vertical drift and lost its pointer.

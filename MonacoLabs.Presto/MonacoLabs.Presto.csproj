@@ -6,11 +6,15 @@
     <PackageTags>animation;tween;easing;timeline;animejs</PackageTags>
     <Description>Framework-agnostic animation engine: timers, tweens, timelines, easings and staggering.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="MonacoLabs.Presto.Tests" />
     <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia" />
+    <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia.Lottie" />
     <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia.Tests" />
   </ItemGroup>
 

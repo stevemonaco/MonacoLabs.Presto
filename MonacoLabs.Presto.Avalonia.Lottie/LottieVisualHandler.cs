@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Avalonia.Rendering.Composition;
 using MonacoLabs.Presto.Controls;
 using MonacoLabs.Presto.Lottie.Prebuilt;
+using MonacoLabs.Presto.Targets;
 using SkiaSharp;
 
 namespace MonacoLabs.Presto.Lottie;
@@ -11,8 +12,13 @@ namespace MonacoLabs.Presto.Lottie;
 /// Owns a <see cref="LottieView"/>'s Skottie animation on the render thread while <see cref="LottieView.RenderThread"/> is set,
 /// and plays it there on an engine of its own, so it keeps moving while the UI thread is blocked.
 /// </summary>
-internal sealed class LottieVisualHandler : CompositionCustomVisualHandler, IFrameSource
+internal sealed class LottieVisualHandler : CompositionCustomVisualHandler, IFrameSource, IMemberTarget
 {
+    private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+    {
+        [nameof(Frame)] = ObjectTargetAdapter.MemberAccessor.Of<LottieVisualHandler, double>(handler => handler.Frame, (handler, frame) => handler.Frame = frame),
+    };
+
     internal static readonly object StopMessage = new(), DetachMessage = new();
 
     private Engine? _engine;
@@ -27,6 +33,8 @@ internal sealed class LottieVisualHandler : CompositionCustomVisualHandler, IFra
 
     /// <inheritdoc/>
     public double Now => CompositionNow.TotalMilliseconds;
+
+    IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
 
     /// <inheritdoc/>
     public void Start(Action onFrame)

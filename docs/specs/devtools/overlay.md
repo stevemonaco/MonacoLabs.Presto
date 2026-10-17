@@ -205,6 +205,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - Compositor-played transitions appear as rows that go from pending to canceled and ignore freeze and dilation; render-thread Lottie playback and compositor scenes are not listed (see Non-Presto motion is out of scope).
 - A root with an `Origin` that the app also wants to inspect needs "Hide bridge-internal" unchecked.
 - Reviving lasts for the root last revived: selecting another root and back keeps it revived, but resets the conflict warning.
+- In a trimmed or AOT app a frame without method metadata is skipped, so the created at line may be missing (DEVTOOLS-OVERLAY-039).
 
 ## Threading and lifetime
 
@@ -235,6 +236,7 @@ An in-app inspector for what `Presto.Engine` runs, in its own package so a relea
 - **Non-Presto motion is out of scope.** Avalonia `Transitions` and `Animation`s are not made to obey freeze or dilation; `FramePlayer` and `LottieView.Play`/`PlaySegment` tween on the main engine and obey both, while `LottieView.PlayOnRenderThread` does not. Reason: not recorded.
 - **Closing restores the settings the overlay changed, not the edits made with it.** The last close sets `CaptureCreationTrace` back to its value at the first open, and each close sets the root speeds its inspector changed back to their first values; pauses, seeks and reverts stay. Reason: a trace or speed setting left behind is invisible once the overlay is gone and keeps the app slower or costlier than before, while a seek or revert is a visible, deliberate edit of app state.
 - **The tween table snapshots only the rows in view.** Reason: `GetFrom`, `GetCurrent` and `GetTo` allocate and a timeline can have hundreds of tweens; the list snapshots only the tween rows of expanded timers, and the table, which has no expansion, limits itself to what can be seen.
+- **The tickable list's cells are compiled bindings, not reflection bindings.** Each cell binds a `TickableRow` property through `CompiledBinding.Create`, and the creation frame is read through `DiagnosticMethodInfo`. Reason: the package is trimmable and AOT-compatible, and a reflection `Binding` by name loses its property under trimming. Rejected: writing the cells from `TickableRow.PropertyChanged`, which needs a handler per cell.
 - **Each engine owns its time base, and dilation is separate from `Speed`.** See CORE-ENGINE.
 - **Animations pause when their controls leave the tree.** See BRIDGE-HELPERS.
 

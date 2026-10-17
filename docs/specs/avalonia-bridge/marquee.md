@@ -147,7 +147,7 @@ depends:
 ## Threading and lifetime
 
 - UI thread only. The copy hosts live as long as the marquee and are reused across layouts.
-- The speed channel (an `Animatable` over a private one-property target) is created at the first attach, and the endless engine timer at the first start; both live as long as the marquee. The timer runs only while attached, scrolling and not settled at speed 0; detaching pauses it and keeps the phase.
+- The speed channel (an `Animatable` over a private one-property target, resolved through its member table rather than reflection, CORE-TARGETS) is created at the first attach, and the endless engine timer at the first start; both live as long as the marquee. The timer runs only while attached, scrolling and not settled at speed 0; detaching pauses it and keeps the phase.
 - Engine time stops while `Engine.Hidden` or `Frozen`, so the phase holds and resumes from where it was; `Engine.Resume` rebases the timer, and the marquee ignores the frame its own resume skips ahead (BRIDGE-MARQUEE-029).
 
 ## Reduced motion

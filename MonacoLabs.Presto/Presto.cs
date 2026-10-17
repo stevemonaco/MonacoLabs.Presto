@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Targets;
@@ -25,6 +26,12 @@ public static class Presto
     /// <summary>Codecs for property types the built-in adapter cannot tween natively, keyed by the property type.</summary>
     /// <remarks>Read from every engine's thread, so populate it before any animation starts — the Avalonia bridge registers its codecs from <c>PrestoAvalonia.EnsureInitialized</c>.</remarks>
     public static IDictionary<Type, IValueCodec> Codecs { get; } = new Dictionary<Type, IValueCodec>();
+
+    /// <summary>Keeps <typeparamref name="T"/>'s public properties and fields in a trimmed or NativeAOT app, so the built-in adapter can animate them by name.</summary>
+    /// <remarks>The <see cref="DynamicallyAccessedMembersAttribute"/> on <typeparamref name="T"/> is the whole contract: the call records nothing at run time and may be made from any thread.</remarks>
+    public static void RegisterTarget<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>()
+    {
+    }
 
     /// <summary>Creates a timer that fires callbacks over time without animating anything.</summary>
     public static Timer CreateTimer(TimerParams? parameters = null) => Created(new Timer(parameters ?? new(), null, 0).Init());

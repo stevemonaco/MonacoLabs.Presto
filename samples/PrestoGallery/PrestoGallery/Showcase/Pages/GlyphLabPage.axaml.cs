@@ -1,4 +1,4 @@
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
+using Avalonia.Platform;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Text;
 using static MonacoLabs.Presto.PrestoKeys;
@@ -169,8 +170,7 @@ public partial class GlyphLabPage : ShowcasePage
     // A Geometry hides its figures, so this reads the SKPath Avalonia.Skia fills it with. A hole winds against the largest contour.
     private static List<(Point[] Points, bool IsHole)> Contours(Geometry outline)
     {
-        var impl = typeof(Geometry).GetProperty("PlatformImpl", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.GetValue(outline)!;
-        using var measure = new SKPathMeasure((SKPath)impl.GetType().GetProperty("FillPath")!.GetValue(impl)!, forceClosed: true);
+        using var measure = new SKPathMeasure(FillPath(PlatformImpl(outline)!)!, forceClosed: true);
         var rings = new List<Point[]>();
         do
         {
@@ -181,6 +181,12 @@ public partial class GlyphLabPage : ShowcasePage
         var winding = Math.Sign(rings.Select(Area).MaxBy(Math.Abs));
         return [.. rings.Select(ring => (ring, Math.Sign(Area(ring)) != winding))];
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_PlatformImpl")]
+    private static extern IGeometryImpl? PlatformImpl(Geometry geometry);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_FillPath")]
+    private static extern SKPath? FillPath([UnsafeAccessorType("Avalonia.Skia.GeometryImpl, Avalonia.Skia")] object geometry);
 
     private static double Area(Point[] ring) =>
         ring.Select((p, i) => (p.X * ring[(i + 1) % ring.Length].Y) - (ring[(i + 1) % ring.Length].X * p.Y)).Sum() / 2;

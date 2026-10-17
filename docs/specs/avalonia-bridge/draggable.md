@@ -184,9 +184,11 @@ depends:
 - **BRIDGE-DRAGGABLE-052** — `X` and `Y` shall read the animatable's current value rounded to the engine's precision; setting them shall write that axis at once (rounded to 5 decimals), unclamped, and raise `OnUpdate` if it moves.
   - Tests: `DraggableTests.EscapeMidDragSpringsTheTargetBackToWhereItWasGrabbed`, `ReorderContainerTests.ADraggablesTranslationAddsToTheFlipThatIsEasingTheSameContainer`
 - **BRIDGE-DRAGGABLE-053** — `ProgressX`/`ProgressY` shall map the axis between its start and end bound to 0..1, and setting them shall map back.
-  - Tests: untested
+  - Tests: `DraggableTests.PositionAnimatesByNameThroughItsTable`
 - **BRIDGE-DRAGGABLE-054** — `XValue`/`YValue` shall mirror `X`/`Y` on every render of the drag and the release, and shall freeze once the draggable reverts.
   - Tests: `MotionValueSourceTests.DraggableValuesFollowADragAndTheReleaseSpring`, `MotionValueSourceTests.ObserverAndDraggableValuesFreezeOnRevert`
+- **BRIDGE-DRAGGABLE-093** — A `Draggable`'s `X`, `Y`, `ProgressX` and `ProgressY` shall be animatable by name without reflection, and any other name shall throw `ArgumentException`.
+  - Tests: `DraggableTests.PositionAnimatesByNameThroughItsTable`
 
 ### Stop, reset, enable, revert
 
@@ -327,6 +329,7 @@ depends:
 - **Escape cancels a drag by default.** `CancelOnEscape` defaults to true, springing the target back to its grab value (BRIDGE-DRAGGABLE-050, 066). Reason: `Reorder` always cancels on Escape, as Windows drag and drop does, and a drag that cannot be backed out of strands the user mid-gesture. Rejected: keeping it opt-in, which left most draggables without it.
 - **One pointer, and only an unhandled press, grabs.** Other pointers are ignored mid-drag and a press already handled never grabs (BRIDGE-DRAGGABLE-008, 009). Reason: a second pointer is multi-touch, which is a `Transformable`'s job, and a control that handled the press (a `ListBoxItem` selecting) owns it, as Avalonia's routing intends.
 - **Teardown mid-drag is quiet.** A container leaving the tree keeps its last bounds without throwing, and a `Reset` inside `OnSettle` starts the next drag clean (BRIDGE-DRAGGABLE-023, 039). Reason: both happen while a view tears down or recycles a card, where an exception or a stale tail would break the code doing it.
+- **A draggable is animated by name through its own member table.** `X`, `Y`, `ProgressX` and `ProgressY` resolve through the core's member table (CORE-TARGETS), as do the internal overshoot and auto-scroll coordinates, so `Presto.Animate(draggable, …)` (anime.js's idiom, and how `Pager` travels) works in trimmed and NativeAOT apps. Reason: the reflected path loses these members under NativeAOT.
 - **VelocityTracker is a public core type.** See CORE-INERTIA.
 - **Sibling removal is idempotent.** See CORE-COMPOSITION.
 - **Spring momentum on retarget is opt-in.** See CORE-ANIMATABLE.
@@ -362,4 +365,4 @@ depends:
 - The manual Desktop check of flinging and re-grabbing cards on the Draggable page, is still open.
 - The hand-driven Desktop check of drop zones on the Board page (highlight, fling landing, bin, Escape) is still open; DevTools cannot drag, so only the resting states and the `:dragover` style were checked.
 - Whether touch should get its own, larger `DragThreshold` (upstream 7 against 3 for a mouse) is undecided.
-- No tests for `ContainerBounds`, `ProgressX`/`ProgressY`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.
+- No tests for `ContainerBounds`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.

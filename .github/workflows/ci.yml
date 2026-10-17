@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  aot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Publish the AOT probe
+        run: dotnet publish tests/MonacoLabs.Presto.AotProbe -c Release -r win-x64 -o artifacts/aot-probe -p:TrimmerSingleWarn=false
+      - name: Run the AOT probe
+        run: artifacts/aot-probe/MonacoLabs.Presto.AotProbe.exe

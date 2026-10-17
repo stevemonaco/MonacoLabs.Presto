@@ -6,6 +6,9 @@
     <PackageTags>animation;tween;easing;timeline;avalonia;animejs</PackageTags>
     <Description>Avalonia bindings for MonacoLabs.Presto: frame pump, AvaloniaProperty targets, transforms, colors and control helpers.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 

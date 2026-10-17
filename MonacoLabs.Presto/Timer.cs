@@ -2,12 +2,22 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
+using MonacoLabs.Presto.Targets;
 
 namespace MonacoLabs.Presto;
 
 /// <summary>Base class of timers, animations and timelines: delay/duration/loop state machine, callbacks and playback controls.</summary>
-public class Timer : Clock, IRevertible, IReleasable
+public class Timer : Clock, IRevertible, IReleasable, IMemberTarget
 {
+    private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+    {
+        [nameof(CurrentTime)] = ObjectTargetAdapter.MemberAccessor.Of<Timer, double>(timer => timer.CurrentTime, (timer, value) => timer.CurrentTime = value),
+        [nameof(IterationCurrentTime)] = ObjectTargetAdapter.MemberAccessor.Of<Timer, double>(timer => timer.IterationCurrentTime, (timer, value) => timer.IterationCurrentTime = value),
+        [nameof(Progress)] = ObjectTargetAdapter.MemberAccessor.Of<Timer, double>(timer => timer.Progress, (timer, value) => timer.Progress = value),
+        [nameof(IterationProgress)] = ObjectTargetAdapter.MemberAccessor.Of<Timer, double>(timer => timer.IterationProgress, (timer, value) => timer.IterationProgress = value),
+        [nameof(CurrentIteration)] = ObjectTargetAdapter.MemberAccessor.Of<Timer, int>(timer => timer.CurrentIteration, (timer, value) => timer.CurrentIteration = value),
+    };
+
     private static int s_timerId;
 
     private TaskCompletionSource<Timer>? _completion;
@@ -272,6 +282,8 @@ public class Timer : Clock, IRevertible, IReleasable
     }
 
     private double IterationPeriod => IterationDuration + _loopDelay;
+
+    IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
 
     /// <summary>Whether the playhead runs towards 0; setting it calls <see cref="Reverse"/> or <see cref="Play"/>, so it also resumes the timer.</summary>
     public bool Reversed

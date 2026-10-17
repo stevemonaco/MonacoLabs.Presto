@@ -71,7 +71,7 @@ public partial class LifecyclePage : UserControl
         // Bound rather than set once, because a virtualized list recycles a row's controls for another item.
         var template = new FuncDataTemplate<string>((_, _) =>
         {
-            var row = new Border { Classes = { "row" }, Background = InitialTint, Child = new TextBlock { [!TextBlock.TextProperty] = new Binding() } };
+            var row = new Border { Classes = { "row" }, Background = InitialTint, Child = new TextBlock { [!TextBlock.TextProperty] = new CompiledBinding() } };
             Presence.SetInitial(row, initial);
             Presence.SetEnter(row, enter);
             Presence.SetExit(row, exit);

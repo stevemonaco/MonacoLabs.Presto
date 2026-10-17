@@ -73,6 +73,7 @@ public sealed class FollowerTests : BridgeTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData("Float")]
     [InlineData("Gradient")]
     [InlineData("Point")]
     [InlineData("Size")]
@@ -84,6 +85,7 @@ public sealed class FollowerTests : BridgeTestBase
     {
         (Type type, object from, object to) = kind switch
         {
+            "Float" => (typeof(float), 0f, 10f),
             "Gradient" => (typeof(IBrush), (object)Gradient(Colors.Red, Colors.Blue), (object)Gradient(Colors.Green, Colors.Yellow)),
             "Point" => (typeof(Point), new Point(0, 0), new Point(10, 20)),
             "Size" => (typeof(Size), new Size(0, 0), new Size(10, 20)),

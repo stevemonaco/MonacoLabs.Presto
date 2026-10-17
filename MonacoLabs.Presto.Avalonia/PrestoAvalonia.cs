@@ -50,7 +50,6 @@ public static class PrestoAvalonia
         Initialized = true;
         Presto.Engine.FrameSource = new AvaloniaFrameSource();
         Presto.Adapters.Add(new AvaloniaObjectTargetAdapter());
-        Presto.Adapters.Add(new CompositorScratch.Adapter());
 
         Presto.Codecs[typeof(Color)] = new ColorCodec();
 

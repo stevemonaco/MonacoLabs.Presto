@@ -228,7 +228,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         PrestoAvalonia.Initialized = false;
         for (var i = Presto.Adapters.Count - 1; i >= 0; i--)
         {
-            if (Presto.Adapters[i] is AvaloniaObjectTargetAdapter or CompositorScratch.Adapter) Presto.Adapters.RemoveAt(i);
+            if (Presto.Adapters[i] is AvaloniaObjectTargetAdapter) Presto.Adapters.RemoveAt(i);
         }
         var border = new Border { Opacity = 1 };
 

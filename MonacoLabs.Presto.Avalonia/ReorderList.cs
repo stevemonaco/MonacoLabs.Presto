@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
@@ -73,8 +74,8 @@ internal sealed class ReorderList : IGestureMember
         Drop(settle: false);
     }
 
-    private static void MoveIn<T>(object items, int from, int to) => ((ObservableCollection<T>)items).Move(from, to);
-
+    [DynamicDependency(nameof(ObservableCollection<object>.Move), typeof(ObservableCollection<>))]
+    [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The DynamicDependency keeps Move on every ObservableCollection<T>.")]
     private static Action<object, int, int>? MoverOf(object? items)
     {
         if (items is null) return null;
@@ -83,8 +84,8 @@ internal sealed class ReorderList : IGestureMember
         for (var t = type; t is not null && move is null; t = t.BaseType)
         {
             if (!t.IsGenericType || t.GetGenericTypeDefinition() != typeof(ObservableCollection<>)) continue;
-            move = typeof(ReorderList).GetMethod(nameof(MoveIn), BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(t.GenericTypeArguments[0]).CreateDelegate<Action<object, int, int>>();
+            var method = t.GetMethod(nameof(ObservableCollection<object>.Move), [typeof(int), typeof(int)])!;
+            move = (list, from, to) => method.Invoke(list, BindingFlags.DoNotWrapExceptions, null, [from, to], null);
         }
         return s_movers[type] = move;
     }

@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Data;
@@ -95,10 +97,29 @@ internal sealed class Follower : INotifyPropertyChanged, IDisposable
 
     public void Dispose() => Halt();
 
-    private object? Convert(object? value) =>
-        value is BindingNotification || value == AvaloniaProperty.UnsetValue ? value
-        : TypeUtilities.TryConvert(_type, value, CultureInfo.InvariantCulture, out var converted) ? converted
-        : AvaloniaProperty.UnsetValue;
+    private object? Convert(object? value)
+    {
+        if (value is BindingNotification || value == AvaloniaProperty.UnsetValue || _type.IsInstanceOfType(value)) return value;
+        var to = Nullable.GetUnderlyingType(_type) ?? _type;
+        if (value is not null && IsNumber(value.GetType()) && IsNumber(to))
+        {
+            try
+            {
+                return System.Convert.ChangeType(value, to, CultureInfo.InvariantCulture);
+            }
+            catch (OverflowException)
+            {
+                return AvaloniaProperty.UnsetValue;
+            }
+        }
+        return TryConvert(value);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Values of the property's type and numbers never get here, and a conversion the trimmer removed fails like any other: the value shows as unset.")]
+    private object? TryConvert(object? value) =>
+        TypeUtilities.TryConvert(_type, value, CultureInfo.InvariantCulture, out var converted) ? converted : AvaloniaProperty.UnsetValue;
+
+    private static bool IsNumber(Type type) => !type.IsEnum && Type.GetTypeCode(type) is >= TypeCode.SByte and <= TypeCode.Decimal;
 
     private void Land(object? value)
     {
@@ -123,7 +144,23 @@ internal sealed class Follower : INotifyPropertyChanged, IDisposable
     private void Rebuild(object start)
     {
         Halt();
-        _holder = Activator.CreateInstance(typeof(FollowerHolder<>).MakeGenericType(ChannelType(start)!), start, _rendered)!;
+        _holder = start switch
+        {
+            double value => new FollowerHolder<double>(value, _rendered),
+            float value => new FollowerHolder<float>(value, _rendered),
+            int value => new FollowerHolder<int>(value, _rendered),
+            IBrush value => new FollowerHolder<IBrush>(value, _rendered),
+            Color value => new FollowerHolder<Color>(value, _rendered),
+            Thickness value => new FollowerHolder<Thickness>(value, _rendered),
+            CornerRadius value => new FollowerHolder<CornerRadius>(value, _rendered),
+            Point value => new FollowerHolder<Point>(value, _rendered),
+            Size value => new FollowerHolder<Size>(value, _rendered),
+            Rect value => new FollowerHolder<Rect>(value, _rendered),
+            Vector value => new FollowerHolder<Vector>(value, _rendered),
+            RelativePoint value => new FollowerHolder<RelativePoint>(value, _rendered),
+            BoxShadows value => new FollowerHolder<BoxShadows>(value, _rendered),
+            _ => throw new UnreachableException(),
+        };
         using var origin = PrestoDiagnostics.Origin("Follow");
         _animatable = Presto.CreateAnimatable(_holder, new AvaloniaAnimatableParams { [HolderProperty] = _timing });
     }

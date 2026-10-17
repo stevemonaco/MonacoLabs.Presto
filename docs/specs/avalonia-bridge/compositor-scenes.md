@@ -132,6 +132,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - A canvas attached with `Scene` null drops messages it receives; messages are queued only while the canvas itself is outside the visual tree.
 - A canvas without a composition visual on attach (no compositor) does nothing and queues posts.
 - After detach, `Scene.Engine` and `Scope` still name the reverted engine and scope until the next attach.
+- A plain object a scene animates by name is reached by reflection; in a trimmed or NativeAOT app its type is passed to `Presto.RegisterTarget<T>()` (CORE-TARGETS).
 
 ## Threading and lifetime
 

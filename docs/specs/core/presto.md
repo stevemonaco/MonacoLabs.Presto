@@ -46,7 +46,7 @@ depends:
 
 ## Purpose
 
-`Presto` is the static entry point: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`, `ScrambleText`), the engine-time wait `Delay`, the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) and the adapter and codec registries. Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, `Delay`, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics (each naming its property by `PropertyKey`, CORE-TARGETS), and adapter resolution order.
+`Presto` is the static entry point: the main engine and its defaults, the factories (`Animate`, `CreateTimer`, `CreateTimeline`, `CreateAnimatable`, `CreateScope`, `Stagger`, `Build`, `ScrambleText`), the engine-time wait `Delay`, the target utilities (`Set`, `Get`, `Remove`, `GetAnimations`) the adapter and codec registries, and `RegisterTarget` (CORE-TARGETS). Each factory's product is specified by its own spec; this spec covers what the facade itself does: how it constructs and announces timers, `Delay`, the `Set` fast path, `Get`/`Remove`/`GetAnimations` semantics (each naming its property by `PropertyKey`, CORE-TARGETS), and adapter resolution order.
 
 ## Requirements
 

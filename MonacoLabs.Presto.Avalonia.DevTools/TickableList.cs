@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -172,47 +173,47 @@ internal sealed class TickableList : DockPanel
         {
             Width = 16, Height = 16, Padding = new Thickness(0), MinHeight = 0, FontSize = 10,
             Background = Brushes.Transparent, BorderThickness = new Thickness(0),
-            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(TickableRow.IsExpanded)) { Mode = BindingMode.TwoWay },
-            [!IsVisibleProperty] = new Binding(nameof(TickableRow.IsExpandable)),
+            [!ToggleButton.IsCheckedProperty] = CompiledBinding.Create((TickableRow r) => r.IsExpanded, mode: BindingMode.TwoWay),
+            [!IsVisibleProperty] = CompiledBinding.Create((TickableRow r) => r.IsExpandable),
         };
-        expand.Content = new TextBlock { Text = "▸", [!TextBlock.RenderTransformProperty] = new Binding(nameof(TickableRow.IsExpanded)) { Converter = s_quarterTurn } };
+        expand.Content = new TextBlock { Text = "▸", [!TextBlock.RenderTransformProperty] = CompiledBinding.Create((TickableRow r) => r.IsExpanded, converter: s_quarterTurn) };
         var head = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 4,
-            [!MarginProperty] = new Binding(nameof(TickableRow.Indent)),
+            [!MarginProperty] = CompiledBinding.Create((TickableRow r) => r.Indent),
             Children =
             {
                 new Panel { Width = 16, Children = { expand } },
-                Text(nameof(TickableRow.Glyph), 0.7),
-                Text(nameof(TickableRow.Label), 1),
-                Chip(nameof(TickableRow.Origin), Colors.SteelBlue),
-                Chip(nameof(TickableRow.ScopeName), Colors.SeaGreen),
+                Text(r => r.Glyph, 0.7),
+                Text(r => r.Label, 1),
+                Chip(r => r.Origin, Colors.SteelBlue),
+                Chip(r => r.ScopeName, Colors.SeaGreen),
             },
         };
-        var progress = new ProgressBar { Minimum = 0, Maximum = 1, MinWidth = 0, Height = 4, MinHeight = 0, VerticalAlignment = VerticalAlignment.Center, [!RangeBase.ValueProperty] = new Binding(nameof(TickableRow.Progress)) };
+        var progress = new ProgressBar { Minimum = 0, Maximum = 1, MinWidth = 0, Height = 4, MinHeight = 0, VerticalAlignment = VerticalAlignment.Center, [!RangeBase.ValueProperty] = CompiledBinding.Create((TickableRow r) => r.Progress) };
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("220,160,*,80,100,50"),
-            [!OpacityProperty] = new Binding(nameof(TickableRow.IsEnded)) { Converter = s_dimmed },
-            Children = { head, Text(nameof(TickableRow.Target), 1), Text(nameof(TickableRow.Detail), 0.8), Text(nameof(TickableRow.StateText), 0.8), progress, Text(nameof(TickableRow.Iteration), 0.7) },
+            [!OpacityProperty] = CompiledBinding.Create((TickableRow r) => r.IsEnded, converter: s_dimmed),
+            Children = { head, Text(r => r.Target, 1), Text(r => r.Detail, 0.8), Text(r => r.StateText, 0.8), progress, Text(r => r.Iteration, 0.7) },
         };
         for (var i = 0; i < grid.Children.Count; i++) Grid.SetColumn(grid.Children[i], i);
         progress.Margin = new Thickness(0, 0, 8, 0);
         return grid;
     }
 
-    private static Border Chip(string path, Color color) => new()
+    private static Border Chip(Expression<Func<TickableRow, string?>> path, Color color) => new()
     {
         CornerRadius = new CornerRadius(3), Padding = new Thickness(4, 0), Background = new SolidColorBrush(color, 0.35),
-        [!IsVisibleProperty] = new Binding(path) { Converter = ObjectConverters.IsNotNull },
+        [!IsVisibleProperty] = CompiledBinding.Create(path, converter: ObjectConverters.IsNotNull),
         Child = Text(path, 1),
     };
 
-    private static TextBlock Text(string path, double opacity)
+    private static TextBlock Text(Expression<Func<TickableRow, string?>> path, double opacity)
     {
         var text = DevToolsOverlay.Cell(opacity);
-        text.Bind(TextBlock.TextProperty, new Binding(path));
+        text.Bind(TextBlock.TextProperty, CompiledBinding.Create(path));
         return text;
     }
 }

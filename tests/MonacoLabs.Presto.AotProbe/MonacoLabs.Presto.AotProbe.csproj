@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <PublishAot>true</PublishAot>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Headless" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MonacoLabs.Presto\MonacoLabs.Presto.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia\MonacoLabs.Presto.Avalonia.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia.Lottie\MonacoLabs.Presto.Avalonia.Lottie.csproj" />
+    <ProjectReference Include="..\..\MonacoLabs.Presto.Avalonia.DevTools\MonacoLabs.Presto.Avalonia.DevTools.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="badge.lottie" LogicalName="badge.lottie" />
+  </ItemGroup>
+
+</Project>

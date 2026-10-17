@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using MonacoLabs.Presto.Core;
+using MonacoLabs.Presto.Targets;
 using MonacoLabs.Presto.Transforms;
 
 namespace MonacoLabs.Presto.Controls;
@@ -395,8 +396,15 @@ public sealed class Marquee : ContentControl
                 : new Rect(0, at, finalSize.Width, length));
     }
 
-    private sealed class Velocity
+    private sealed class Velocity : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(Value)] = ObjectTargetAdapter.MemberAccessor.Of<Velocity, double>(velocity => velocity.Value, (velocity, value) => velocity.Value = value),
+        };
+
         public double Value { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

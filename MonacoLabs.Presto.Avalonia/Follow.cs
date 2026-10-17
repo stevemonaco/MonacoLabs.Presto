@@ -197,7 +197,7 @@ public static class Follow
         BindCell(target, property, source, options);
 
     private static IDisposable BindCell(AvaloniaObject target, AvaloniaProperty property, object source, FollowParams? options) =>
-        target.Bind(property, new FollowBinding(target, property, new Binding { Source = source }, options ?? Immediate, followsItems: false), BindingPriority.LocalValue);
+        target.Bind(property, new FollowBinding(target, property, new CompiledBinding { Source = source }, options ?? Immediate, followsItems: false), BindingPriority.LocalValue);
 
     private static void Retime(Visual visual, AvaloniaPropertyChangedEventArgs e) => visual.GetValue(FollowedProperty)?.Retime();
 

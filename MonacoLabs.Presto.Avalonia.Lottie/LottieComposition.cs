@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.ComponentModel;
 using System.IO.Compression;
 using System.Text;
@@ -129,7 +130,9 @@ public sealed class LottieComposition : IImage
                 ?? throw new FormatException($"dotLottie archive has no JSON for animation '{animationId}'."));
             if (animation["assets"] is JsonArray assets)
                 foreach (var asset in assets) EmbedImage(zip, asset!);
-            return new(JsonSerializer.SerializeToUtf8Bytes(animation), ids);
+            var json = new ArrayBufferWriter<byte>();
+            using (var writer = new Utf8JsonWriter(json)) animation.WriteTo(writer);
+            return new(json.WrittenSpan.ToArray(), ids);
         }
         catch (Exception e) when (e is JsonException or InvalidOperationException or InvalidDataException)
         {

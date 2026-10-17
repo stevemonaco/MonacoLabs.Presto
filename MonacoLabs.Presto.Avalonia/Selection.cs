@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Compositor;
+using MonacoLabs.Presto.Targets;
 
 namespace MonacoLabs.Presto;
 
@@ -291,8 +292,16 @@ public static class Selection
         }
     }
 
-    private sealed class Edges
+    private sealed class Edges : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(Left)] = ObjectTargetAdapter.MemberAccessor.Of<Edges, double>(edges => edges.Left, (edges, value) => edges.Left = value),
+            [nameof(Top)] = ObjectTargetAdapter.MemberAccessor.Of<Edges, double>(edges => edges.Top, (edges, value) => edges.Top = value),
+            [nameof(Right)] = ObjectTargetAdapter.MemberAccessor.Of<Edges, double>(edges => edges.Right, (edges, value) => edges.Right = value),
+            [nameof(Bottom)] = ObjectTargetAdapter.MemberAccessor.Of<Edges, double>(edges => edges.Bottom, (edges, value) => edges.Bottom = value),
+        };
+
         public double Left { get; set; }
 
         public double Top { get; set; }
@@ -300,5 +309,7 @@ public static class Selection
         public double Right { get; set; }
 
         public double Bottom { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

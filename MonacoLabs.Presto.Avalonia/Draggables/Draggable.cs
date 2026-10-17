@@ -8,6 +8,7 @@ using MonacoLabs.Presto.Gestures;
 using MonacoLabs.Presto.Transforms;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
+using MonacoLabs.Presto.Targets;
 
 namespace MonacoLabs.Presto.Draggables;
 
@@ -17,8 +18,16 @@ namespace MonacoLabs.Presto.Draggables;
 /// bounds and container friction, and a release that throws the target on with the pointer's velocity.
 /// </summary>
 /// <remarks>One pointer drags at a time, mouse and touch alike, through a pointer capture on the trigger.</remarks>
-public sealed class Draggable : IRevertible, IReleasable
+public sealed class Draggable : IRevertible, IReleasable, IMemberTarget
 {
+    private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+    {
+        [nameof(X)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.X, (draggable, value) => draggable.X = value),
+        [nameof(Y)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.Y, (draggable, value) => draggable.Y = value),
+        [nameof(ProgressX)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.ProgressX, (draggable, value) => draggable.ProgressX = value),
+        [nameof(ProgressY)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.ProgressY, (draggable, value) => draggable.ProgressY = value),
+    };
+
     internal const double DefaultScrollSpeed = 1.5;
     internal const double DefaultScrollThreshold = 20;
     private const double ResizeDebounce = 150;
@@ -216,6 +225,8 @@ public sealed class Draggable : IRevertible, IReleasable
         get => Utils.MapRange(Y, _boundsTop, _boundsBottom, 0, 1);
         set => SetY(Utils.MapRange(value, 0, 1, _boundsTop, _boundsBottom), false);
     }
+
+    IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
 
     /// <summary>Pointer speed over the last three sampled frames, in units per millisecond; the release throw is scaled by it.</summary>
     public double Velocity { get; private set; }
@@ -983,9 +994,17 @@ public sealed class Draggable : IRevertible, IReleasable
         _escapeRoot = null;
     }
 
-    private sealed class Coords
+    private sealed class Coords : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(X)] = ObjectTargetAdapter.MemberAccessor.Of<Coords, double>(coords => coords.X, (coords, value) => coords.X = value),
+            [nameof(Y)] = ObjectTargetAdapter.MemberAccessor.Of<Coords, double>(coords => coords.Y, (coords, value) => coords.Y = value),
+        };
+
         public double X { get; set; }
         public double Y { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

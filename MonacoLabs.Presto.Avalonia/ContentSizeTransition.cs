@@ -248,10 +248,18 @@ public sealed class ContentSizeTransition : IRevertible, IReleasable
         else s_resizing.Remove(_host);
     }
 
-    private sealed class Inset
+    private sealed class Inset : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(Right)] = ObjectTargetAdapter.MemberAccessor.Of<Inset, double>(inset => inset.Right, (inset, value) => inset.Right = value),
+            [nameof(Bottom)] = ObjectTargetAdapter.MemberAccessor.Of<Inset, double>(inset => inset.Bottom, (inset, value) => inset.Bottom = value),
+        };
+
         public double Right { get; set; }
 
         public double Bottom { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

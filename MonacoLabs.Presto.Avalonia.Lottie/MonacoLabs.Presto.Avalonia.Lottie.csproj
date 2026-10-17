@@ -6,6 +6,9 @@
     <PackageTags>animation;lottie;skottie;avalonia;animejs</PackageTags>
     <Description>Lottie playback for MonacoLabs.Presto on Avalonia, drawn through SkiaSharp.Skottie.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
