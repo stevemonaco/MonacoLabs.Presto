@@ -50,7 +50,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 - **CORE-DIAGNOSTICS-004** — `PrestoDiagnostics.Active` shall be true while any engine has diagnostics enabled; an engine dropped while enabled keeps it on until its `EngineDiagnostics` is finalized.
   - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`, `EngineDiagnosticsTests.ACollectedEnabledEngineStopsCountingAsActive`
 - **CORE-DIAGNOSTICS-005** (inherited) — Setting `Enabled` to its current value shall do nothing.
-  - Tests: untested
+  - Tests: `EngineDiagnosticsTests.SettingEnabledToItsCurrentValueDoesNothing`
 
 ### Registry
 
@@ -63,7 +63,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 - **CORE-DIAGNOSTICS-009** — While enabled, every animatable created on the engine shall be listed in `Animatables` (see CORE-ANIMATABLE).
   - Tests: `EngineDiagnosticsTests.DisablingClearsEverything`
 - **CORE-DIAGNOSTICS-010** — `ActiveValues` shall be the engine's list of moving motion values (stepping springs and velocity samples), enabled or not.
-  - Tests: untested
+  - Tests: `EngineDiagnosticsTests.ActiveValuesListsTheMovingMotionValuesEnabledOrNot`
 - **CORE-DIAGNOSTICS-011** — `TimerCreated` shall be raised once per registered root, after the factory has initialized it (so an autoplaying animation is already playing), and not for roots registered by enabling.
   - Tests: `EngineDiagnosticsTests.TimerCreatedFiresOncePerRootAfterInit`
 
@@ -76,7 +76,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 - **CORE-DIAGNOSTICS-014** — When a root that is already listed ends again, it shall move to the end rather than appear twice.
   - Tests: `EngineDiagnosticsTests.ARootThatEndsAgainIsListedOnceAsTheLatest`
 - **CORE-DIAGNOSTICS-015** (inherited) — A repeated `Cancel` of an already canceled root shall not end it again.
-  - Tests: untested
+  - Tests: `EngineDiagnosticsTests.ARepeatedCancelDoesNotEndARootAgain`
 
 ### Frame statistics
 
@@ -117,7 +117,7 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 ### Defaults
 
 - **CORE-DIAGNOSTICS-027** — When `CaptureCreationTrace` is not set, it shall be off so no root records a creation trace.
-  - Tests: untested
+  - Tests: `EngineDiagnosticsTests.CaptureCreationTraceIsOffUnlessSet`
 
 ## Invariants
 
@@ -169,4 +169,4 @@ Opt-in, pay-for-play observability of what an engine runs, for inspectors such a
 
 ## Open items
 
-- No test for `ActiveValues`, idempotent `Enabled` sets, or a repeated `Cancel` not re-ending a root.
+- None.

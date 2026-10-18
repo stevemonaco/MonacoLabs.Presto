@@ -54,7 +54,7 @@ depends:
 ### Creation and ownership
 
 - **BRIDGE-DRAGGABLE-001** — When `CreateDraggable` is called, the draggable shall capture the current engine and register itself with that engine's current `Scope`, so a scope revert reverts it.
-  - Tests: untested
+  - Tests: `DraggableTests.ADraggableCreatedInAScopeIsRevertedWithIt`
 - **BRIDGE-DRAGGABLE-002** — When `CreateDraggable` is called on a target a live `Draggable`, `Transformable` or swipe tracker drives, it shall throw `InvalidOperationException` naming both types; once the other owner is reverted, creation shall succeed.
   - Tests: `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`, `TransformableTests.ASecondGestureOfTheSameTypeCannotShareATargetUntilTheFirstIsReverted`
 - **BRIDGE-DRAGGABLE-003** — The draggable shall write its axes to the `"X"` and `"Y"` transform shorthands unless an axis `MapTo` names another property, and those writes shall compose with other transform writers on the target (BRIDGE-TRANSFORMS).
@@ -71,7 +71,7 @@ depends:
 - **BRIDGE-DRAGGABLE-007** — When a pointer is pressed on the trigger and no drag is in progress, the draggable shall mark the press handled, capture the pointer on the trigger, stop any running release, re-measure the bounds, reset `Velocity` and `Angle` to 0 and raise `OnGrab` before any movement.
   - Tests: `DraggableTests.OnUpdateOnlyFiresWhenTheTargetMoves`
 - **BRIDGE-DRAGGABLE-008** — While a drag is in progress, the draggable shall ignore further presses and moves from any pointer other than the one that grabbed.
-  - Tests: untested
+  - Tests: `DraggableTests.ASecondPointerIsIgnoredMidDrag`
 - **BRIDGE-DRAGGABLE-009** — When the trigger's press is already handled by the time it reaches the trigger (for example a `ListBoxItem`), the draggable shall never grab.
   - Tests: `ReorderContainerTests.ADraggableOnAListBoxItemNeverGrabsBecauseTheItemHandlesThePress`
 - **BRIDGE-DRAGGABLE-010** — While the pointer has moved no more than `DragThreshold` from the grab point on every enabled axis, the draggable shall not move the target or raise `OnDrag`.
@@ -87,22 +87,22 @@ depends:
 - **BRIDGE-DRAGGABLE-015** — While the trigger is not grabbed, the draggable shall show the hover cursor while the pointer is over the trigger and restore the trigger's own cursor when it leaves; while grabbed it shall show the grab cursor.
   - Tests: `DraggableTests.TheCursorFollowsTheDragAndRevertPutsItBack`
 - **BRIDGE-DRAGGABLE-016** — When `Cursor.Enabled` is false, the draggable shall leave the trigger's cursor untouched.
-  - Tests: untested
+  - Tests: `DraggableTests.DisabledCursorsLeaveTheTriggersCursorAlone`
 - **BRIDGE-DRAGGABLE-017** — When the grab happens, the draggable shall scroll the nearest `ScrollViewer` so the target is in view, over 100 ms with `Eases.Out(3)`.
-  - Tests: untested
+  - Tests: `DraggableTests.AGrabScrollsTheTargetIntoViewOverAHundredMilliseconds`
 
 ### Bounds and friction
 
 - **BRIDGE-DRAGGABLE-018** — When `Container` is set, the bounds shall be the positions at which the target's box stays inside the container's box inset by `ContainerPadding`, measured from the target's layout offset within the container.
   - Tests: `DraggableTests.AContainerClampsToItsBoundsMinusPadding`
 - **BRIDGE-DRAGGABLE-019** — When `ContainerBounds` is set, the bounds shall be the returned rect inset by `ContainerPadding`, re-read on every measurement, taking precedence over `Container`.
-  - Tests: untested
+  - Tests: `DraggableTests.ContainerBoundsAreInsetByThePaddingReReadOnRefreshAndOutrankTheContainer`
 - **BRIDGE-DRAGGABLE-020** — When neither `Container` nor `ContainerBounds` is set, the axes shall be unbounded.
   - Tests: `DraggableTests.ReleasingWithVelocityThrowsTheTargetOnAndSettles`
 - **BRIDGE-DRAGGABLE-021** — While dragging past a bound, the draggable shall move the target by the excess scaled by `1 − ContainerFriction`, so friction 1 pins it to the bound and 0 drags straight through.
   - Tests: `DraggableTests.AContainerClampsToItsBoundsMinusPadding`, `DraggableTests.AnOutOfBoundsReleaseEasesBackIntoTheContainer`
 - **BRIDGE-DRAGGABLE-022** — When a drag is grabbed while the target sits past a bound, the draggable shall continue from the raw coordinate the cushioned position came from, so the target does not jump.
-  - Tests: untested
+  - Tests: `DraggableTests.AGrabPastABoundPicksUpFromTheCushionedPosition`
 - **BRIDGE-DRAGGABLE-023** — When the container leaves the visual tree mid-drag, the draggable shall keep its last measured bounds and not throw, including on a later `Refresh` and `Revert`.
   - Tests: `DraggableTests.RemovingTheParentMidDragDoesNotThrow`
 - **BRIDGE-DRAGGABLE-024** — When the target or the container changes size, the draggable shall wait 150 ms × `Globals.TimeScale` of quiet (restarting on each change), then raise `OnResize`, call `Refresh`, then raise `OnAfterResize`.
@@ -117,7 +117,7 @@ depends:
 - **BRIDGE-DRAGGABLE-027** — When released, the draggable shall snap and clamp the destination, rounded to 5 decimals, and raise `OnSnap` before `OnRelease` only if that destination differs from the last snapped value of a snapping axis.
   - Tests: `DraggableTests.SnapQuantizesTheReleaseAndReportsEveryStep`
 - **BRIDGE-DRAGGABLE-028** — The draggable shall apply an axis `Modifier` to that axis in place of `DraggableParams.Modifier`, through the animatable's modifier; a modifier must be idempotent because it is re-applied to its own output from the release on.
-  - Tests: untested
+  - Tests: `DraggableTests.AnAxisModifierReplacesTheSharedOne`
 
 ### Release (projection, the upstream default)
 
@@ -166,9 +166,9 @@ depends:
 - **BRIDGE-DRAGGABLE-046** — While dragging with the pointer inside the `ScrollThreshold` band at an edge of the nearest `ScrollViewer`'s viewport, the draggable shall scroll it each frame by up to `ScrollSpeed × 10`, ramping across the band, clamped to the extent, and move the target with the content; it shall stop on release.
   - Tests: `DraggableTests.AutoScrollAdvancesTheScrollViewerWhileThePointerSitsInTheEdgeBand`
 - **BRIDGE-DRAGGABLE-047** — When `ScrollSpeed` or `ScrollThreshold` is 0, or a `ScrollInView` animation is running, the draggable shall not auto-scroll.
-  - Tests: untested
+  - Tests: `DraggableTests.AZeroScrollSpeedOrThresholdTurnsAutoScrollOff`, `DraggableTests.AutoScrollWaitsForTheGrabsScrollIntoView`
 - **BRIDGE-DRAGGABLE-048** — When `ScrollInView` is called and the target's destination is less than `gap` inside the viewport, the draggable shall animate the scroller's offset to bring it in, clamped to the extent; otherwise it shall do nothing.
-  - Tests: untested
+  - Tests: `DraggableTests.ScrollInViewScrollsOnlyWhenTheTargetIsLessThanTheGapInside`
 - **BRIDGE-DRAGGABLE-049** — When `AnimateInView` is called, the draggable shall stop, re-measure and move the target itself until it is `gap` inside the scroller's viewport, snapped and clamped like a release.
   - Tests: `DraggableTests.AnimateInViewMovesTheTargetBackIntoTheScrollViewersViewport`
 
@@ -184,7 +184,7 @@ depends:
 - **BRIDGE-DRAGGABLE-052** — `X` and `Y` shall read the animatable's current value rounded to the engine's precision; setting them shall write that axis at once (rounded to 5 decimals), unclamped, and raise `OnUpdate` if it moves.
   - Tests: `DraggableTests.EscapeMidDragSpringsTheTargetBackToWhereItWasGrabbed`, `ReorderContainerTests.ADraggablesTranslationAddsToTheFlipThatIsEasingTheSameContainer`
 - **BRIDGE-DRAGGABLE-053** — `ProgressX`/`ProgressY` shall map the axis between its start and end bound to 0..1, and setting them shall map back.
-  - Tests: `DraggableTests.PositionAnimatesByNameThroughItsTable`
+  - Tests: `DraggableTests.PositionAnimatesByNameThroughItsTable`, `DraggableTests.ProgressMapsEachAxisAcrossItsBounds`
 - **BRIDGE-DRAGGABLE-054** — `XValue`/`YValue` shall mirror `X`/`Y` on every render of the drag and the release, and shall freeze once the draggable reverts.
   - Tests: `MotionValueSourceTests.DraggableValuesFollowADragAndTheReleaseSpring`, `MotionValueSourceTests.ObserverAndDraggableValuesFreezeOnRevert`
 - **BRIDGE-DRAGGABLE-093** — A `Draggable`'s `X`, `Y`, `ProgressX` and `ProgressY` shall be animatable by name without reflection, and any other name shall throw `ArgumentException`.
@@ -199,7 +199,7 @@ depends:
 - **BRIDGE-DRAGGABLE-057** — When `Reset` is called, the draggable shall stop, cancel a pending resize, end any drag state and Escape listener, write both axes to 0 without raising `OnUpdate`, and clear the velocity.
   - Tests: `DraggableTests.ResetMidOvershootLeavesAnAnimationOnAnotherControlRunning`, `DraggableTests.ResettingInsideOnSettleLeavesBothAxesAtZero`
 - **BRIDGE-DRAGGABLE-058** — When `Disable` is called, the draggable shall drop the drag in progress and the pointer capture, restore the cursor and stop listening for pointers, leaving the target where it is; `Enable` shall attach the listeners again and is a no-op while enabled.
-  - Tests: untested
+  - Tests: `DraggableTests.DisablingDropsTheDragUntilEnabledAgain`
 - **BRIDGE-DRAGGABLE-059** — When `Revert` is called, the draggable shall reset, disable, revert its timers and animatable (restoring the axis properties and the cursor), detach its size handlers and release target ownership, after which pointer input and resizes have no effect.
   - Tests: `DraggableTests.RevertingDetachesTheResizeAndPointerHandlers`, `DraggableTests.TheCursorFollowsTheDragAndRevertPutsItBack`, `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`
 - **BRIDGE-DRAGGABLE-092** — Once reverted, the draggable shall count as released to the scope it registered with (CORE-SCOPE).
@@ -212,29 +212,29 @@ depends:
 - **BRIDGE-DRAGGABLE-061** — When an axis's `Enabled` is not set, or the axis has no `DraggableAxisParams`, that axis shall be enabled.
   - Tests: `DraggableTests.DraggingMovesTheTargetByThePointerDelta`
 - **BRIDGE-DRAGGABLE-062** — When an axis's `Composition` is not set, the axis shall write with `Composition.Replace`.
-  - Tests: untested
+  - Tests: `DraggableTests.AnAxisComposesByReplaceByDefault`
 - **BRIDGE-DRAGGABLE-063** — When `ContainerPadding` is not set, the bounds shall have no padding.
-  - Tests: untested
+  - Tests: `DraggableTests.NoPaddingBoundsTheTargetByTheContainersBox`
 - **BRIDGE-DRAGGABLE-064** — When `ContainerFriction` is not set, the drag friction past a bound shall be 0.8.
   - Tests: `DraggableTests.AnOutOfBoundsReleaseEasesBackIntoTheContainer`
 - **BRIDGE-DRAGGABLE-065** — When `ReleaseContainerFriction` is not set, the release friction shall equal the drag friction.
-  - Tests: untested
+  - Tests: `DraggableTests.TheReleaseCushionsPastABoundWithTheDragFrictionByDefault`
 - **BRIDGE-DRAGGABLE-066** — When `CancelOnEscape` is not set, Escape shall cancel a drag as BRIDGE-DRAGGABLE-050 describes.
   - Tests: `DraggableTests.EscapeMidDragSpringsTheTargetBackToWhereItWasGrabbed`
 - **BRIDGE-DRAGGABLE-067** — When `DragThreshold` is not set, the drag threshold shall be 3.
   - Tests: `DraggableTests.MovementBelowTheDragThresholdIsSuppressed`
 - **BRIDGE-DRAGGABLE-068** — When `ReleaseEase` is not set, the release shall ease with `Eases.OutQuint`.
-  - Tests: untested
+  - Tests: `DraggableTests.TheDefaultReleaseEasesOutQuintOverAMassOneStiffnessEightyDampingTwentySpring`
 - **BRIDGE-DRAGGABLE-069** — When `ReleaseMass`, `ReleaseStiffness` or `ReleaseDamping` is not set, the release spring shall use mass 1, stiffness 80 and damping 20 respectively.
-  - Tests: untested
+  - Tests: `DraggableTests.TheDefaultReleaseEasesOutQuintOverAMassOneStiffnessEightyDampingTwentySpring`
 - **BRIDGE-DRAGGABLE-070** — When `MinVelocity`, `MaxVelocity` or `VelocityMultiplier` is not set, the velocity shall be clamped to at least 0 and at most 50 and scaled by 1 respectively.
-  - Tests: untested
+  - Tests: `DraggableTests.VelocityDefaultsToUnscaledAndAtMostFifty`
 - **BRIDGE-DRAGGABLE-071** — When `ScrollSpeed` is not set, the edge auto-scroll speed shall be 1.5, and when `ScrollThreshold` is not set, the edge band shall be 20 wide.
-  - Tests: untested
+  - Tests: `DraggableTests.AutoScrollDefaultsToSpeedOnePointFiveInATwentyWideBand`
 - **BRIDGE-DRAGGABLE-072** — When `Cursor` is not set, cursors shall be enabled, and when `OnHover` or `OnGrab` is not set, the draggable shall show `StandardCursorType.Hand` on hover and `StandardCursorType.SizeAll` while grabbed.
-  - Tests: untested
+  - Tests: `DraggableTests.TheDefaultCursorsAreHandOnHoverAndSizeAllWhileGrabbed`
 - **BRIDGE-DRAGGABLE-073** — When `ScrollInView` or `AnimateInView` is called without a duration, gap or ease, it shall animate over 350 ms × `Globals.TimeScale` with a gap of 0 and `Eases.InOutQuad`.
-  - Tests: untested
+  - Tests: `DraggableTests.BringingIntoViewDefaultsToThreeHundredFiftyMillisecondsOfInOutQuadWithNoGap`
 
 ### Drop zones
 
@@ -365,4 +365,4 @@ depends:
 - The manual Desktop check of flinging and re-grabbing cards on the Draggable page, is still open.
 - The hand-driven Desktop check of drop zones on the Board page (highlight, fling landing, bin, Escape) is still open; DevTools cannot drag, so only the resting states and the `:dragover` style were checked.
 - Whether touch should get its own, larger `DragThreshold` (upstream 7 against 3 for a mouse) is undecided.
-- No tests for `ContainerBounds`, `Disable`/`Enable`, `ScrollInView`, `Cursor.Enabled = false`, axis `Modifier`/`Composition`, `ReleaseContainerFriction`, scope registration, the grab-time scroll-into-view, or reduced-motion behavior of the release.
+- No tests for reduced-motion behavior of the release.

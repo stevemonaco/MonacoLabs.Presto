@@ -116,4 +116,50 @@ public sealed class MotionPathTests : EngineTestBase
         Assert.Equal(Zigzag[^1].X, rider.X, 1e-3);
         Assert.Equal(Zigzag[^1].Y, rider.Y, 1e-3);
     }
+
+    [Fact]
+    public void AnOpenPathUsesItsEndPointsAsTheirOwnNeighbors()
+    {
+        var path = MotionPath.Through(Zigzag, 1);
+
+        Assert.Equal(100 / 6d, path.BezierPoints[1].X, 1e-9);
+        Assert.Equal(50 / 6d, path.BezierPoints[1].Y, 1e-9);
+        Assert.Equal(400 - 100 / 6d, path.BezierPoints[^2].X, 1e-9);
+        Assert.Equal(20 + 60 / 6d, path.BezierPoints[^2].Y, 1e-9);
+    }
+
+    [Fact]
+    public void FewerThanTwoPointsThrow()
+    {
+        Assert.Throws<ArgumentException>(() => MotionPath.Through([]));
+        Assert.Throws<ArgumentException>(() => MotionPath.Through([(5, 5)]));
+    }
+
+    [Fact]
+    public void AVanishingDerivativeTakesTheAngleFromTheChord()
+    {
+        var path = MotionPath.Through([(0, 0), (100, 100)], 0);
+
+        path.Sample(0, out _, out _, out var start);
+        path.Sample(path.Length, out _, out _, out var end);
+
+        Assert.Equal(45, start, 1e-9);
+        Assert.Equal(45, end, 1e-9);
+    }
+
+    [Fact]
+    public void CurvinessDefaultsToOne() => Assert.Equal(MotionPath.Through(Zigzag, 1).BezierPoints, MotionPath.Through(Zigzag).BezierPoints);
+
+    [Fact]
+    public void WithoutARotateOffsetTheRotateTweenIsTheTangentAngle()
+    {
+        var path = MotionPath.Through(Zigzag);
+        var rotate = path.Tweens().Rotate.Modifier!;
+
+        foreach (var distance in new[] { 0, 60, path.Length / 2, path.Length })
+        {
+            path.Sample(distance, out _, out _, out var angle);
+            Assert.Equal(angle, rotate(distance));
+        }
+    }
 }

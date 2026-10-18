@@ -1,8 +1,11 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Shapes;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Logging;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -191,6 +194,201 @@ public sealed class PullToRefreshTests : BridgeTestBase
 
         Assert.NotEqual(0, Angle(Ring(pull)));
     }
+
+    [AvaloniaFact]
+    public void ItClipsToItsBoundsAndHasASixtyFourDipThresholdByDefault()
+    {
+        var pull = new PullToRefresh();
+
+        Assert.True(pull.ClipToBounds);
+        Assert.Equal(64, pull.Threshold);
+    }
+
+    [AvaloniaFact]
+    public void TheIndicatorSitsInAThresholdTallStripAboveTheContentAndFollowsAThresholdChange()
+    {
+        var (window, pull) = Stage();
+        var ring = Ring(pull);
+        var arrow = Arrow(pull);
+        var strip = (Panel)ring.GetVisualParent()!;
+        var touch = new Touch(window);
+        touch.Press(1, Start);
+        Frames.Advance(20);
+        touch.Move(1, Start + new Vector(0, 30));
+        Frames.Advance(20);
+
+        Assert.Equal((28d, 28d, 3d, PenLineCap.Round), (ring.Bounds.Width, ring.Bounds.Height, ring.StrokeThickness, ring.StrokeLineCap));
+        Assert.Equal(2, arrow.StrokeThickness);
+        touch.Up(1, Start + new Vector(0, 30));
+        Frames.Advance(2000, 20);
+        Assert.Same(strip, arrow.GetVisualParent());
+        Assert.False(strip.IsHitTestVisible);
+        AssertStripAboveContent(pull, strip);
+
+        pull.Threshold = 100;
+        Dispatcher.UIThread.RunJobs();
+
+        AssertStripAboveContent(pull, strip);
+    }
+
+    [AvaloniaFact]
+    public void TheArrowAndTheRingAreStrokedWithTheForegroundAndFollowItsChanges()
+    {
+        var (_, pull) = Stage();
+        pull.Foreground = Brushes.Green;
+
+        Assert.Same(Brushes.Green, Ring(pull).Stroke);
+        Assert.Same(Brushes.Green, Arrow(pull).Stroke);
+
+        pull.Foreground = Brushes.Orange;
+
+        Assert.Same(Brushes.Orange, Ring(pull).Stroke);
+        Assert.Same(Brushes.Orange, Arrow(pull).Stroke);
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetForegroundIsInheritedFromTheAncestorsTextForeground()
+    {
+        var pull = new PullToRefresh { Content = new Border() };
+        var host = new Border { Child = pull };
+        TextElement.SetForeground(host, Brushes.Purple);
+        Show(host);
+
+        Assert.Same(Brushes.Purple, pull.Foreground);
+        Assert.Same(Brushes.Purple, Ring(pull).Stroke);
+    }
+
+    [AvaloniaFact]
+    public void AWonPullHandlesEachMoveAndPreventsGestureRecognition()
+    {
+        var (window, pull) = Stage();
+        var touch = new Touch(window);
+        touch.Press(1, Start);
+        Frames.Advance(20);
+        touch.Move(1, Start + new Vector(0, 10));
+
+        var moved = touch.Move(1, Start + new Vector(0, 20));
+
+        Assert.True(moved.Handled);
+        Assert.True(GestureRecognitionSkipped(moved));
+        touch.Up(1, Start + new Vector(0, 20));
+    }
+
+    [AvaloniaFact]
+    public void APullStartedWhileTheContentSpringsBackPicksItUpWhereItIsDrawn()
+    {
+        var (window, pull) = Stage();
+        new Touch(window).Drag(Frames, Start, new Vector(0, 50));
+        Frames.Advance(60, 20);
+        var drawn = pull.Pull.Value;
+        Assert.InRange(drawn, 10, pull.Threshold);
+
+        var onContent = new Point(100, 100);
+        var touch = new Touch(window);
+        touch.Press(1, onContent);
+        touch.Move(1, onContent + new Vector(0, 4));
+        touch.Move(1, onContent + new Vector(0, 5));
+        Frames.Advance(20);
+
+        Assert.True(pull.Pull.Value > drawn);
+        touch.Up(1, onContent + new Vector(0, 5));
+    }
+
+    [AvaloniaFact]
+    public void LosingTheCaptureMidPullSettlesAsOnARelease()
+    {
+        var (window, pull) = Stage();
+        var touch = new Touch(window);
+        var pointer = touch.Press(1, Start);
+        for (var by = 10; by <= 40; by += 10)
+        {
+            Frames.Advance(20);
+            touch.Move(1, Start + new Vector(0, by));
+        }
+        Assert.True(pull.Pull.Value > 10);
+
+        pointer.Capture(null);
+        Frames.Advance(2000, 20);
+
+        Assert.Equal(0, pull.Pull.Value, 3);
+    }
+
+    [AvaloniaFact]
+    public void TheReleaseIsHandledOnlyWhenAPullTookPlace()
+    {
+        var (window, pull) = Stage();
+        var touch = new Touch(window);
+        touch.Press(1, Start);
+        Assert.False(touch.Up(1, Start).Handled);
+
+        touch.Press(1, Start);
+        Frames.Advance(20);
+        touch.Move(1, Start + new Vector(0, 20));
+        Assert.True(touch.Up(1, Start + new Vector(0, 20)).Handled);
+    }
+
+    [AvaloniaFact]
+    public void WithoutARefreshAPullPastTheThresholdHoldsAndReturnsAndTheNextPullStillWorks()
+    {
+        var (window, pull) = Stage();
+
+        new Touch(window).Drag(Frames, Start, new Vector(0, 150));
+        Frames.Advance(2000, 20);
+
+        Assert.Equal(0, pull.Pull.Value, 3);
+        Assert.Equal(0, Angle(Ring(pull)));
+        Assert.Equal(1, Arrow(pull).Opacity, 3);
+
+        var touch = new Touch(window);
+        touch.Press(1, Start);
+        Frames.Advance(20);
+        touch.Move(1, Start + new Vector(0, 30));
+        Frames.Advance(20);
+        Assert.True(pull.Pull.Value > 5);
+        touch.Up(1, Start + new Vector(0, 30));
+    }
+
+    [AvaloniaFact]
+    public void APressWhileTheRefreshRunsDoesNotArmANewPull()
+    {
+        var (window, pull) = Stage();
+        var work = new TaskCompletionSource();
+        var calls = 0;
+        pull.Refresh = () =>
+        {
+            calls++;
+            return work.Task;
+        };
+        new Touch(window).Drag(Frames, Start, new Vector(0, 150));
+        Frames.Advance(2000, 20);
+
+        var onContent = new Point(100, 100);
+        var touch = new Touch(window);
+        touch.Press(1, onContent);
+        Frames.Advance(20);
+        touch.Move(1, onContent + new Vector(0, 80));
+        Frames.Advance(20);
+        Assert.Equal(pull.Threshold, pull.Pull.Value);
+        Assert.False(touch.Up(1, onContent + new Vector(0, 80)).Handled);
+        Frames.Advance(2000, 20);
+
+        Assert.Equal(1, calls);
+        Assert.Equal(pull.Threshold, pull.Pull.Value);
+        work.SetResult();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void AssertStripAboveContent(PullToRefresh pull, Panel strip)
+    {
+        var content = pull.Content!;
+        var top = strip.TranslatePoint(default, content)!.Value.Y;
+
+        Assert.Equal(pull.Threshold, strip.Bounds.Height);
+        Assert.Equal(-pull.Threshold, top, 3);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_IsGestureRecognitionSkipped")]
+    private static extern bool GestureRecognitionSkipped(PointerEventArgs args);
 
     private static (Window Window, PullToRefresh Pull) Stage(Control? content = null)
     {

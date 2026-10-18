@@ -158,6 +158,20 @@ public sealed class MagneticTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ANeverEnabledElementIsNotPulled()
+    {
+        var box = Box();
+        var window = Show(box);
+
+        window.MouseMove(new Point(50, 25));
+        Frames.Advance(1000, 16);
+
+        Assert.False(Magnetic.GetEnabled(box));
+        Assert.Null(Follow.GetX(box));
+        Assert.Null(box.RenderTransform);
+    }
+
+    [AvaloniaFact]
     public void DoesNothingInDesignMode()
     {
         var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.

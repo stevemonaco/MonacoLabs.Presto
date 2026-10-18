@@ -492,6 +492,129 @@ public sealed class ShapesTests : BridgeTestBase
         Assert.Equal(0, travel, 3);
     }
 
+    [AvaloniaTheory]
+    [InlineData("M 0,0 L 100,0 L 100,100", 0)]
+    [InlineData("M 10,10", 2)]
+    public void ASliceOnAZeroLengthOrThicknessIsRecordedWithoutWritingTheDashes(string data, double thickness)
+    {
+        var path = new Path { Data = Geometry.Parse(data), Stretch = Stretch.None, Stroke = Brushes.Black, StrokeThickness = thickness };
+
+        PrestoAvalonia.CreateDrawable(path, .25, .5);
+
+        Assert.Null(path.StrokeDashArray);
+        Assert.Equal(0, path.StrokeDashOffset);
+        if (thickness > 0) return;
+        path.StrokeThickness = 2;
+        Assert.Equal(-.25 * path.RenderedGeometry!.ContourLength / 2, path.StrokeDashOffset, 3);
+        Assert.Equal(.25 * path.RenderedGeometry.ContourLength / 2, path.StrokeDashArray![0], 3);
+    }
+
+    [AvaloniaFact]
+    public void CreateDrawableDefaultsToTheEmptySlice()
+    {
+        var path = CreatePath();
+
+        PrestoAvalonia.CreateDrawable(path);
+
+        Assert.Equal(0, path.StrokeDashArray![0]);
+        Assert.Equal(0, path.StrokeDashOffset);
+    }
+
+    [AvaloniaFact]
+    public void TheDrawBuilderFormatsItsSliceInTheInvariantCulture()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+
+            var parameters = Presto.Build().Draw(.25, .5).ToParams();
+
+            Assert.Equal("0.25 0.5", parameters.Properties["Draw"].Raw);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [AvaloniaFact]
+    public void AMotionPathAlongAShapeWithoutGeometryThrows() =>
+        Assert.Throws<ArgumentException>(() => PrestoAvalonia.CreateMotionPath(new Path()));
+
+    [AvaloniaFact]
+    public void AMotionPathFollowsTheGeometryCapturedAtTheCallInTheShapesOwnCoordinates()
+    {
+        var path = CreatePath();
+        path.Margin = new Thickness(50);
+        var geometry = path.RenderedGeometry!;
+        var motion = PrestoAvalonia.CreateMotionPath(path);
+        path.Data = Geometry.Parse("M 0,0 L 0,300");
+
+        var rider = new Border();
+        var animation = rider.Animate(new() { ["X"] = motion.X, ["Y"] = motion.Y, Duration = 100, Ease = Eases.None, Autoplay = false });
+        animation.Seek(75);
+
+        AssertPoint(PointAt(geometry, .75), new Point(Transform<TranslateTransform>(rider).X, Transform<TranslateTransform>(rider).Y));
+    }
+
+    [AvaloniaFact]
+    public void AMotionPathYieldsZeroWhereTheGeometryHasNoPoint()
+    {
+        var path = new Path { Data = new StreamGeometry(), Stretch = Stretch.None };
+        var motion = PrestoAvalonia.CreateMotionPath(path);
+
+        Assert.Equal(0, motion.X.Modifier!(0));
+        Assert.Equal(0, motion.Y.Modifier!(0));
+        Assert.Equal(0, motion.Rotate.Modifier!(0));
+    }
+
+    [AvaloniaFact]
+    public void MorphingATargetWithoutGeometryDataThrows()
+    {
+        var path = new Path();
+
+        var error = Assert.Throws<ArgumentException>(() => path.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(Geometry.Parse("M 0,0 L 100,0")), Duration = 100 }));
+
+        Assert.Contains("Can't morph", error.Message);
+    }
+
+    [AvaloniaFact]
+    public void PointMotionPathsDefaultToCurvinessOneAndAnOpenPath()
+    {
+        Point[] points = [new(0, 0), new(100, 60), new(200, 0), new(120, -80)];
+
+        Assert.Equal(Ride(PrestoAvalonia.CreateMotionPath(points, 1, false), .3), Ride(PrestoAvalonia.CreateMotionPath(points), .3));
+        Assert.NotEqual(Ride(PrestoAvalonia.CreateMotionPath(points, .5), .3), Ride(PrestoAvalonia.CreateMotionPath(points), .3));
+        Assert.NotEqual(Ride(PrestoAvalonia.CreateMotionPath(points, closed: true), 1), Ride(PrestoAvalonia.CreateMotionPath(points), 1));
+        AssertPoint(points[^1], Ride(PrestoAvalonia.CreateMotionPath(points), 1));
+
+        var track = PrestoAvalonia.MotionPathGeometry(points);
+        Assert.Equal(PrestoAvalonia.MotionPathGeometry(points, 1, false).ContourLength, track.ContourLength, 6);
+        Assert.NotEqual(PrestoAvalonia.MotionPathGeometry(points, .5).ContourLength, track.ContourLength, 3);
+        Assert.NotEqual(PrestoAvalonia.MotionPathGeometry(points, closed: true).ContourLength, track.ContourLength, 3);
+    }
+
+    [AvaloniaFact]
+    public void MorphDefaultsToAPrecisionOfAThird()
+    {
+        var path = CreatePath();
+        var destination = Geometry.Parse("M 0,0 L 300,0");
+        var count = PrestoAvalonia.MorphPointCount(path.Data!, destination);
+
+        Assert.Equal((int)Math.Ceiling(300 * .33), count);
+        Assert.Equal(PrestoAvalonia.MorphPointCount(path.Data!, destination, .33), count);
+        var animation = path.Animate(new() { ["Data"] = PrestoAvalonia.MorphTo(destination), Duration = 100, Autoplay = false });
+        Assert.Equal(count, animation._headTween!._toNumbers.Length / 2);
+    }
+
+    private static Point Ride((TweenParams X, TweenParams Y, TweenParams Rotate) motion, double progress)
+    {
+        var rider = new Border();
+        rider.Animate(new() { ["X"] = motion.X, ["Y"] = motion.Y, Duration = 100, Ease = Eases.None, Autoplay = false }).Seek(100 * progress);
+        return new Point(Math.Round(Transform<TranslateTransform>(rider).X, 6), Math.Round(Transform<TranslateTransform>(rider).Y, 6));
+    }
+
     private static Point[][] FiguresOf(string data) =>
         data.Split('M', StringSplitOptions.RemoveEmptyEntries)
             .Select(figure => figure.TrimEnd('Z').Split('L').Select(Point.Parse).ToArray())

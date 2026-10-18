@@ -83,6 +83,43 @@ public sealed class LottieRenderThreadTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void TheKeptRequestStartsWhenRenderThreadTurnsOnAndAgainOnReattach()
+    {
+        var view = new LottieView { Composition = LottieViewTests.Bar() };
+        view.PlayOnRenderThread();
+        LottieViewTests.Place(view);
+        Assert.Equal(0, Holds(view));
+
+        view.RenderThread = true;
+        Moved(view);
+
+        var window = WindowOf(view);
+        window.Content = null;
+        Tick();
+        window.Content = view;
+        Tick();
+        var first = Left(view);
+        Assert.True(Pump(() => Left(view) != first), "render-thread playback did not restart on reattach");
+    }
+
+    [AvaloniaTheory]
+    [InlineData("Frame", 40)]
+    [InlineData("Progress", 40)]
+    [InlineData("Composition", 0)]
+    public void WritingFrameProgressOrCompositionDropsARequestNotYetStarted(string property, double left)
+    {
+        var view = new LottieView { Composition = LottieViewTests.Bar(), RenderThread = true };
+        view.PlayOnRenderThread();
+
+        if (property == "Frame") view.Frame = 5;
+        else if (property == "Progress") view.Progress = 0.5;
+        else view.Composition = LottieViewTests.Bar();
+        LottieViewTests.Place(view);
+
+        Assert.Equal(left, Holds(view));
+    }
+
+    [AvaloniaFact]
     public void DetachingReleasesTheRenderThreadPlayer()
     {
         var before = LottiePlayerHandle.Live;

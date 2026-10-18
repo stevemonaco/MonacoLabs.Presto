@@ -81,7 +81,7 @@ depends:
 - **CORE-COLORS-016** — When a color tween carries per-channel eases, the renderer shall ease each of the four channels by its own ease.
   - Tests: `PremultipliedColorTests.RetargetingAChannelFadeBetweenAlphasCarriesOnWithoutAJump`
 - **CORE-COLORS-017** — The renderer shall apply the tween's `Modifier` to each of the four interpolated channels.
-  - Tests: untested
+  - Tests: `ColorsTests.TheModifierAppliesToEveryChannelAlphaIncluded`
 - **CORE-COLORS-018** — The renderer shall not round color channels; a `PrestoColor` member receives the unrounded channels and a string target the `FormatRgba` string.
   - Tests: `ObjectTargetAdapterTests.WritesColorChannelsToColorAndStringMembers`, `ColorsTests.AnimatesATypedColorMemberToTheParsedChannels`
 
@@ -107,7 +107,7 @@ depends:
 - **CORE-COLORS-026** — `Mix` shall interpolate the space's color channels with premultiplied alpha and alpha linearly, clamping the result's alpha to 0–1.
   - Tests: `ColorConversionTests.TransparentToRedIsRedAtHalfAlphaHalfway`, `ColorConversionTests.ExtrapolationStaysInGamut`
 - **CORE-COLORS-027** (inherited) — When the interpolated alpha is exactly 0, `Mix` shall take the channels of the nearer end (`from` below `t` = 0.5) instead of dividing.
-  - Tests: untested
+  - Tests: `ColorConversionTests.AFullyTransparentMixTakesTheNearerEndsChannels`
 - **CORE-COLORS-028** — In `Srgb` and `LinearSrgb`, `Mix` shall interpolate gamma-encoded or linear-light channels, and shall gamut map a result outside sRGB through OKLab.
   - Tests: `ColorConversionTests.MixMatchesCulori`
 - **CORE-COLORS-029** — In `Oklab`, `Mix` shall interpolate L, a and b along a straight line and gamut map the result.
@@ -139,11 +139,11 @@ depends:
 ### Defaults
 
 - **CORE-COLORS-039** — When `alpha` is not given, `FromOklab` and `FromOklch` shall return an opaque color (alpha 1).
-  - Tests: untested
+  - Tests: `ColorConversionTests.FromOklabAndFromOklchDefaultToOpaque`
 - **CORE-COLORS-040** — When an amount is not given, `ShiftOklch` shall leave that channel unshifted.
-  - Tests: untested
+  - Tests: `ColorConversionTests.ShiftOklchLeavesTheChannelsItIsNotGiven`
 - **CORE-COLORS-041** — When an `OklabColor` or `OklchColor` is constructed without an alpha, its alpha shall be 1.
-  - Tests: untested
+  - Tests: `ColorConversionTests.OklabAndOklchColorsDefaultToOpaque`
 
 ## Invariants
 
@@ -202,4 +202,4 @@ depends:
 
 ## Open items
 
-- CORE-COLORS-017 (modifier applied to channels, alpha included) and CORE-COLORS-027 (transparent mix picks the nearer end) have no test.
+- CORE-COLORS-027 holds for `Srgb`, `LinearSrgb` and `Oklab` only: in `Oklch` a fully transparent `Mix` takes L and C from the nearer end but still interpolates the hue (hue is never premultiplied), so the result is not the nearer end's color. Either the requirement names the exception or `Mix` takes the nearer hue too.

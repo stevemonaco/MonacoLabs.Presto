@@ -41,7 +41,7 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 - **BRIDGE-CONTENTSIZE-001** — When the content of a host with a content size transition changes size, the host's layout size shall ease from the old size to the new one and land on it exactly.
   - Tests: `ContentSizeTests.TheHostEasesToItsNewSizeAndLandsOnItExactly`, `ReferencePagesTests.TheFaqCardEasesOpenToItsNaturalHeightWithoutRewrappingTheAnswer`
 - **BRIDGE-CONTENTSIZE-002** (inherited) — `AnimateContentSize` shall record the host's size at creation when the host is arranged, and otherwise let the host's first layout pass only record.
-  - Tests: untested
+  - Tests: `ContentSizeTests.TheFrameAfterTheContentChangesStillShowsTheOldSize`, `ContentSizeTests.AHostNotYetArrangedOnlyRecordsOnItsFirstPass`
 - **BRIDGE-CONTENTSIZE-003** — During a resize the host's sole visual child shall be laid out at its final size, held there by an extra right and bottom `Margin` at `Animation` priority that eases to zero on top of the child's own margin, so its text never reflows.
   - Tests: `ContentSizeTests.WrappingTextKeepsItsFinalLayoutAndIsClippedToTheHost`
 - **BRIDGE-CONTENTSIZE-004** — The frame rendered right after the content changes size shall still show the old size.
@@ -49,11 +49,11 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 - **BRIDGE-CONTENTSIZE-005** — During a resize the child's `Clip` shall be held at `Animation` priority to the host's inner box (its border and padding deflated, its corner radii reduced by them), and the host itself shall not be clipped, so its shadow and rounded corners still draw.
   - Tests: `ContentSizeTests.TheHostKeepsItsShadowAndRoundedCornersWhileItsContentIsClipped`, `ContentSizeTests.WrappingTextKeepsItsFinalLayoutAndIsClippedToTheHost`
 - **BRIDGE-CONTENTSIZE-006** — An axis shall ease only when the content changed by more than 1 px along it and the host changed by the same amount within 1 px, so a stretched axis moves in one frame.
-  - Tests: untested
+  - Tests: `ContentSizeTests.AStretchedAxisMovesInOneFrameWhileAFollowingAxisEases`
 - **BRIDGE-CONTENTSIZE-007** — When the content changes size again mid-resize, the new resize shall start from the size drawn now.
   - Tests: `ContentSizeTests.AChangeMidFlightRetargetsFromTheCurrentSize`
 - **BRIDGE-CONTENTSIZE-008** (inherited) — When the host does not have exactly one layoutable visual child, the transition shall ease nothing and cancel any resize in flight.
-  - Tests: untested
+  - Tests: `ContentSizeTests.AHostWithSeveralChildrenNeverEases`, `ContentSizeTests.LosingItsSoleChildCancelsTheResizeInFlight`
 - **BRIDGE-CONTENTSIZE-009** — When the resize completes, the margin and clip holds shall be released.
   - Tests: `ContentSizeTests.TheHostEasesToItsNewSizeAndLandsOnItExactly`
 - **BRIDGE-CONTENTSIZE-010** — When the resize's duration collapses to the core's minimum or less, the host shall land at its new size in one frame.
@@ -86,9 +86,9 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 - **BRIDGE-CONTENTSIZE-031** — Once reverted, the transition shall count as released to the scope it registered with (CORE-SCOPE).
   - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-CONTENTSIZE-019** (inherited) — Creating a content size transition on a host that already has a live one shall revert the earlier one.
-  - Tests: untested
+  - Tests: `ContentSizeTests.ANewTransitionOnTheHostRevertsTheLiveOne`
 - **BRIDGE-CONTENTSIZE-020** — `AnimateContentSize` shall register the transition with `Engine.Current.CurrentScope` when there is one.
-  - Tests: untested
+  - Tests: `ContentSizeTests.AnimateContentSizeRegistersWithTheAmbientScope`
 
 ### Motion
 
@@ -106,7 +106,7 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 - **BRIDGE-CONTENTSIZE-025** — An `Animate.ContentSize` builder that the transition cannot honor shall throw `NotSupportedException` when it is set, whether or not the control is attached.
   - Tests: `ContentSizeTests.ABuilderAContentSizeTransitionCannotHonorThrowsWhenApplied`
 - **BRIDGE-CONTENTSIZE-026** (inherited) — The attached form shall not register with an ambient scope, and in design mode shall do nothing.
-  - Tests: untested
+  - Tests: `ContentSizeTests.TheAttachedFormStaysOutOfTheAmbientScope`, `ContentSizeTests.TheAttachedFormDoesNothingInDesignMode`
 
 ### Reduced motion
 
@@ -118,9 +118,9 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 ### Defaults
 
 - **BRIDGE-CONTENTSIZE-029** (inherited) — When no resize has started, the transition's `Progress` shall be 0.
-  - Tests: untested
+  - Tests: `ContentSizeTests.BeforeAnyResizeProgressIsZeroAndItIsCompleted`
 - **BRIDGE-CONTENTSIZE-030** (inherited) — When no resize has started, the transition's `Completed` shall be true.
-  - Tests: untested
+  - Tests: `ContentSizeTests.BeforeAnyResizeProgressIsZeroAndItIsCompleted`
 
 ## Invariants
 
@@ -167,4 +167,4 @@ Eases a host's real layout size whenever its content changes size (Compose's `an
 
 ## Open items
 
-- Untested: recording at creation (002), the stretched-axis rule (006), a host without a sole child (008), one live transition per host (019), scope registration (020), the attached form's scope and design mode (026).
+- When a stretched-axis change (the window width) and a content-height change arrive in the same layout pass, the height lands at once instead of easing; in separate frames both follow BRIDGE-CONTENTSIZE-006. Seen while writing `ContentSizeTests`, not investigated.

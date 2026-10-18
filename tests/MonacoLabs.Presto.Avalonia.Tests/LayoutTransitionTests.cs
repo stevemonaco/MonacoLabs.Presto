@@ -578,6 +578,136 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         Assert.Equal(reduced ? SlotOf(target) : drawn, Box(target));
     }
 
+    [AvaloniaTheory]
+    [InlineData("duration")]
+    [InlineData("builder")]
+    [InlineData("lambda")]
+    [InlineData("extension duration")]
+    [InlineData("extension builder")]
+    [InlineData("extension lambda")]
+    [InlineData("shared duration")]
+    [InlineData("shared builder")]
+    [InlineData("shared lambda")]
+    [InlineData("keyed duration")]
+    [InlineData("keyed builder")]
+    [InlineData("keyed lambda")]
+    public void EveryFactoryRegistersWithTheCurrentScope(string factory)
+    {
+        var (spacer, bar) = ShowStack();
+        var scope = Presto.CreateScope();
+        PrestoAvalonia.PrepareSharedElement("key", bar);
+
+        var transition = scope.Execute(_ => Create(factory, bar));
+        Assert.Same(transition, LayoutTransition.Live(bar));
+        scope.Revert();
+
+        Assert.Null(LayoutTransition.Live(bar));
+        var start = Top(bar);
+        spacer.Height += Shift;
+        Tick();
+        Assert.Equal(start + Shift, Top(bar));
+    }
+
+    private static LayoutTransition Create(string factory, Border bar) => factory switch
+    {
+        "duration" => PrestoAvalonia.AnimateLayout(bar, Held, Eases.None),
+        "builder" => PrestoAvalonia.AnimateLayout(bar, HeldMove),
+        "lambda" => PrestoAvalonia.AnimateLayout(bar, b => b.Duration(Held)),
+        "extension duration" => bar.AnimateLayout(Held, Eases.None),
+        "extension builder" => bar.AnimateLayout(HeldMove),
+        "extension lambda" => bar.AnimateLayout(b => b.Duration(Held)),
+        "shared duration" => PrestoAvalonia.AnimateSharedElement(bar, bar, Held, Eases.None),
+        "shared builder" => PrestoAvalonia.AnimateSharedElement(bar, bar, HeldMove),
+        "shared lambda" => PrestoAvalonia.AnimateSharedElement(bar, bar, b => b.Duration(Held)),
+        "keyed duration" => PrestoAvalonia.AnimateSharedElement("key", bar, Held, Eases.None)!,
+        "keyed builder" => PrestoAvalonia.AnimateSharedElement("key", bar, HeldMove)!,
+        _ => PrestoAvalonia.AnimateSharedElement("key", bar, b => b.Duration(Held))!,
+    };
+
+    [AvaloniaFact]
+    public void APassThatNeitherMovesNorScalesTheControlStartsNothing()
+    {
+        var (spacer, bar) = ShowStack();
+        var transition = bar.AnimateLayout(Held, Eases.None);
+        var start = Top(bar);
+
+        spacer.Width += Growth;
+        bar.Height += Growth;
+        Tick();
+
+        Assert.Equal(20 + Growth, bar.Bounds.Height);
+        Assert.True(transition.Completed, "a pass that left the slot in place started a move");
+        Assert.Equal(start, Top(bar));
+    }
+
+    [AvaloniaFact]
+    public void BeforeItsFirstMoveATransitionHasNoProgress()
+    {
+        var (spacer, bar) = ShowStack();
+        var transition = bar.AnimateLayout(400, Eases.None);
+        Assert.Equal(0, transition.Progress);
+
+        spacer.Height += Shift;
+        Tick();
+        Frames.Advance(200);
+
+        Assert.InRange(transition.Progress, .3, .7);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AOneShotStopsEasingOnceItsMoveStartsAndAPersistentOneKeepsEasing(bool once)
+    {
+        var (spacer, bar) = ShowStack();
+        var transition = PrestoAvalonia.AnimateSharedElement(bar, bar, 100, Eases.None, once: once);
+        spacer.Height += Shift;
+        Tick();
+        Assert.False(transition.Completed);
+        Frames.Advance(200);
+        TickFor(200);
+        var landed = Top(bar);
+
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.Equal(once ? landed + Shift : landed, Top(bar));
+        Assert.Equal(once, transition.Completed);
+    }
+
+    [AvaloniaFact]
+    public void AnOffScreenSourceLeavesTheTargetToEaseItsNextMoveAsAOneShot()
+    {
+        var (spacer, bar) = ShowStack();
+        var start = Top(bar);
+
+        var transition = PrestoAvalonia.AnimateSharedElement(new Border { Width = 10, Height = 10 }, bar, Held, Eases.None);
+        Tick();
+        Assert.Equal(start, Top(bar));
+
+        spacer.Height += Shift;
+        Tick();
+
+        Assert.Equal(start, Top(bar));
+        Assert.False(transition.Completed);
+        Assert.True(transition.Once);
+    }
+
+    [AvaloniaFact]
+    public void ASharedElementWithNoModeScalesItsResize()
+    {
+        var (spacer, bar) = ShowStack();
+        var start = Box(bar);
+
+        _ = PrestoAvalonia.AnimateSharedElement(bar, bar, Held, Eases.None);
+        spacer.Height += Shift;
+        bar.Width += Growth;
+        bar.Height += Growth;
+        Tick();
+
+        Assert.Equal(start, Box(bar));
+    }
+
     /// <summary>A red 40x20 bar under a spacer whose height is what moves it, in a 100x100 window ticked once so it has a composition visual.</summary>
     private static (Border Spacer, Border Bar) ShowStack()
     {

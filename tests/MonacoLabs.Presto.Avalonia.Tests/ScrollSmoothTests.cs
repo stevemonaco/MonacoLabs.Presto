@@ -1,6 +1,10 @@
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Threading;
 using MonacoLabs.Presto.Events;
 
@@ -169,5 +173,41 @@ public sealed class ScrollSmoothTests : BridgeTestBase
         window.MouseWheel(Inside, new Vector(0, -1));
 
         Assert.Equal(50, scroller.Offset.Y);
+    }
+
+    [AvaloniaFact]
+    public void AShiftedVerticalNotchEasesTheHorizontalTarget()
+    {
+        var scroller = new ScrollViewer
+        {
+            Width = 200,
+            Height = 200,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = new Border { Width = 1000, Height = 1000 },
+        };
+        var window = new Window { Content = scroller, Width = 300, Height = 300 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Scroll.SetSmooth(scroller, true);
+
+        window.MouseWheel(Inside, new Vector(0, -1), RawInputModifiers.Shift);
+        Assert.Equal(default, scroller.Offset);
+
+        Frames.Advance(Ease + 100, 16);
+        Assert.Equal(new Vector(50, 0), scroller.Offset);
+    }
+
+    [AvaloniaFact]
+    public void WithoutSmoothANotchTakesItsNativeStepAtOnce()
+    {
+        var (window, scroller, _, _) = ScrollStage.Show(trail: 600);
+
+        window.MouseWheel(Inside, new Vector(0, -1));
+
+        Assert.False(Scroll.GetSmooth(scroller));
+        Assert.Equal(50, scroller.Offset.Y);
+        Assert.False(Presto.Engine.IsRunning);
     }
 }

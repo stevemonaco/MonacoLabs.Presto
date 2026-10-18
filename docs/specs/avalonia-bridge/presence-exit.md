@@ -92,7 +92,7 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **BRIDGE-PRESENCE-EXIT-017** — The ghost shall be clipped to the intersection of the top level's bounds and the boxes of the clipping ancestors (`ClipToBounds`, or a `ContentSize` host) from the attachment point up, starting above the item container when the attachment point is one.
   - Tests: `PresenceTests.AGhostLeavingAScrolledListIsClippedToTheViewport`, `ContentSizePresenceTests.ASwapMidResizeRetargetsFromTheCurrentSizeAndClipsItsGhostThere`, `ContentSizePresenceTests.ASwapGhostsTheOldContentEntersTheNewAndResizesBetween`
 - **BRIDGE-PRESENCE-EXIT-018** (inherited) — Each clipping box shall keep the size it had when the exit started, so a list or host shrinking as the element leaves does not cut off its ghost.
-  - Tests: untested
+  - Tests: `PresenceTests.AClippingAncestorShrinkingAsTheElementLeavesKeepsItsExitStartSizeForTheGhost`
 - **BRIDGE-PRESENCE-EXIT-019** — When the attachment point and its clipping ancestors move during the exit (a scroll), `Presence` shall re-place the ghost and recompute its clip on each layout pass of the ghost's host, so the ghost follows its anchor and never draws outside the clip.
   - Tests: `PresenceGhostScrollTests.ScrollingMidExitMovesTheGhostWithItsAnchorAndReclipsIt`
 - **BRIDGE-PRESENCE-EXIT-020** — When the exit completes or is canceled, `Presence` shall remove the ghost's host from the overlay and dispose every ghost bitmap exactly once; an exit that completes inside its creation (as under `ReduceAll`) shall do so in the same call.
@@ -102,9 +102,9 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **BRIDGE-PRESENCE-EXIT-037** — Once an exit's ghosts are dismissed, its ghost animation shall count as released to the scope it registered with (CORE-SCOPE).
   - Tests: `ScopePruningTests.TextSwapsWithPresenceInsideAScopeStayBounded`, `ScopePruningTests.SwappedOutBlocksAreCollectableWhileTheScopeLives`
 - **BRIDGE-PRESENCE-EXIT-022** (inherited) — When the element has a zero width or height, or its top level has no overlay layer, no ghost shall be created and nothing shall play.
-  - Tests: untested
+  - Tests: `PresenceTests.AZeroSizedElementLeavesNoGhost`
 - **BRIDGE-PRESENCE-EXIT-023** — The exit animation shall carry the diagnostics origin `"Presence"`.
-  - Tests: untested
+  - Tests: `PresenceTests.TheExitCarriesThePresenceOrigin`
 
 ### Batches
 
@@ -153,12 +153,12 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **BRIDGE-PRESENCE-EXIT-034** — When the control is not effectively visible (it or an ancestor is hidden), or it or any ancestor has opacity 0, `AnimateExit` shall return `null` and draw no ghost, as a departure does (BRIDGE-PRESENCE-EXIT-005/006).
   - Tests: `PresenceTests.AnimateExitGhostsNothingHiddenOrAtOpacityZeroItselfOrThroughAnAncestor`
 - **BRIDGE-PRESENCE-EXIT-036** (inherited) — `AnimateExit` shall apply none of the other departure rules (loaded parent, page hosts, lists, single-child branch) and start no `Wait`.
-  - Tests: untested
+  - Tests: `PresenceTests.AnimateExitGhostsAPageAPrestoTransitionHosts`, `PresenceModeTests.AHeldHideAndAnImperativeExitStartNoWait`
 
 ### Defaults
 
 - **BRIDGE-PRESENCE-EXIT-035** (inherited) — When `Exit` is not set, and no style setter withdrew one in the same departure (BRIDGE-PRESENCE-031), a departure shall create no ghost and play nothing.
-  - Tests: untested
+  - Tests: `PresenceTests.WithoutAnExitADepartureLeavesNoGhost`
 
 ## Invariants
 
@@ -232,4 +232,4 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 
 ## Open items
 
-- BRIDGE-PRESENCE-EXIT-018 (clip boxes keep their exit-start size), -022, -023 and -036 have no test.
+- BRIDGE-PRESENCE-EXIT-022: only the zero-size half is pinned; a top level without an overlay layer is not built headlessly.

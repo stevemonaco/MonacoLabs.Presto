@@ -33,7 +33,7 @@ depends:
 - **BRIDGE-TOKENS-001** — `MotionTokens` shall be an immutable record, so `with` derives a variant without changing the original and two tokens with equal members compare equal.
   - Tests: `RecipeTests.SwappingTheTokensRestylesLaterCallsButNotBuildersAlreadyMade`, `BuilderRecipePagesTests.MotionTokensReplaysTheRecipesWithTheSelectedPresetAndFlagAndRestoresThePresetOnDetach`
 - **BRIDGE-TOKENS-002** — When `ColorSpace` and `Hue` are not given, they shall default to `ColorSpace.Oklab` and `HueInterpolation.Shorter`.
-  - Tests: untested
+  - Tests: `RecipeTests.TokensWithoutAColorSpaceOrHueMixInOklabTheShorterWay`
 
 ### Presets
 
@@ -42,7 +42,7 @@ depends:
 - **BRIDGE-TOKENS-004** — `Expressive` shall be `Short` 450, `Medium` 900, `Long` 1200, `Ease` `Eases.OutBack(2.2)`, `EmphasizedEase` `Eases.OutElastic(1, .5)`, `Distance` 64, `Scale` 0.6, `BlurRadius` 24, `StaggerStep` 90.
   - Tests: `FollowerTests.EachTimingSourceResolves`, `BuilderRecipePagesTests.MotionTokensReplaysTheRecipesWithTheSelectedPresetAndFlagAndRestoresThePresetOnDetach`
 - **BRIDGE-TOKENS-005** — `Reduced` shall be `Short` 120, `Medium` 150, `Long` 200, both eases `Eases.None`, `Distance` 0, `Scale` 1, `BlurRadius` 0, `StaggerStep` 0, giving short linear moves with no travel.
-  - Tests: untested
+  - Tests: `RecipeTests.TheReducedPresetIsShortAndLinearWithNoTravel`
 - **BRIDGE-TOKENS-006** (inherited) — Each preset property shall return the same instance on every read.
   - Tests: `BuilderRecipePagesTests.RecipeGalleryPlaysTilesInTheirReducedFormsAndRestoresThePresetOnDetach`
 - **BRIDGE-TOKENS-007** (inherited) — Choosing the `Reduced` preset shall not set `PrestoDefaults.ReducedMotion`, and setting the flag shall not change `Recipes.Tokens`.
@@ -102,4 +102,4 @@ depends:
 
 ## Open items
 
-- The `Reduced` preset and the `ColorSpace`/`Hue` defaults have no direct test.
+None.

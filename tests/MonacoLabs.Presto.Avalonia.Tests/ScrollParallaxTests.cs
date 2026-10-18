@@ -208,4 +208,24 @@ public sealed class ScrollParallaxTests : BridgeTestBase
 
         Assert.Equal(.5 * (300 - Entry), Translate(view.FindControl<Border>("Target")!), 6);
     }
+
+    [AvaloniaFact]
+    public void AnElementAttachedOutsideAScrollViewerStaysPutUntilItAttachesInsideOne()
+    {
+        var target = Target(.5);
+        target.Height = 100;
+        var outside = new StackPanel { Children = { target } };
+        new Window { Content = outside, Width = 300, Height = 300 }.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Null(target.RenderTransform);
+
+        outside.Children.Remove(target);
+        var (scroller, panel) = Show(new Border());
+        panel.Children.Insert(2, target);
+        Dispatcher.UIThread.RunJobs();
+        scroller.Offset = new Vector(0, 300);
+
+        Assert.Equal(.5 * (300 - (Lead + ScrollStage.TargetSize - ViewportSize)), Translate(target), 6);
+    }
 }

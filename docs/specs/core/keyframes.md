@@ -87,11 +87,11 @@ Keyframes animate a property through a sequence of values instead of straight to
 - **CORE-KEYFRAMES-018** — When a property's first frame is at 0%, its value shall become the from value of the next segment rather than a segment of its own.
   - Tests: `KeyframesTests.PercentageBasedKeyframesValues`, `KeyframeExpanderTests.PercentageKeyframesSortByOffsetAndShiftEasesToTheFollowingSegment`
 - **CORE-KEYFRAMES-019** — When a property's first frame is after 0%, its first segment shall run from the target's current value from 0 to that offset.
-  - Tests: untested
+  - Tests: `KeyframesTests.APercentageFrameAfterZeroStartsFromTheCurrentValue`
 - **CORE-KEYFRAMES-020** — When a percentage frame sets `Duration`, `Delay`, `Modifier` or `Composition`, the conversion of the dictionary to `Keyframes` and `KeyframesBuilder.At` shall throw `ArgumentException` naming the key and the setting, while a frame's `Ease` stays allowed (see "Percentage keyframes reject per-frame settings").
   - Tests: `KeyframesTests.PercentageKeyframesRejectPerFrameSettings`, `KeyframesTests.PercentageKeyframesKeepAFramesEase`
 - **CORE-KEYFRAMES-021** (inherited) — When a key does not parse as a number followed by an optional `%`, the animation constructor shall throw `FormatException`.
-  - Tests: untested
+  - Tests: `KeyframesTests.AMalformedPercentageKeyThrows`
 
 ### Builders
 
@@ -133,9 +133,9 @@ Keyframes animate a property through a sequence of values instead of straight to
 - **CORE-KEYFRAMES-038** (inherited) — When a fixed end is neither a `PrestoColor` nor a parsable color string, `Color` shall throw `ArgumentException`.
   - Tests: `ColorKeyframesTests.AnEndThatIsNotAColorThrows`
 - **CORE-KEYFRAMES-039** (inherited) — When `segments` is below 1, `Color` shall throw `ArgumentOutOfRangeException`.
-  - Tests: untested
+  - Tests: `ColorKeyframesTests.FewerThanOneSegmentThrows`
 - **CORE-KEYFRAMES-040** — When the duration is a `Stagger`, `Color` shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `ColorKeyframesTests.AStaggerDurationThrows`
 - **CORE-KEYFRAMES-043** — When `Color` is given no `from`, each target shall start from its property's current value read when the animation is built: a value its codec or the parser reads as a color starts from that color, and any other value from transparent.
   - Tests: `ColorKeyframesTests.WithoutFromEachTargetStartsFromItsCurrentColor`, `ColorKeyframesTests.WithoutFromANonColorValueStartsFromTransparent`, `ColorKeyframesTests.WithoutFromAMidFlightRetargetStartsFromTheDrawnColor`
 - **CORE-KEYFRAMES-044** — The start read for a target shall be shared by all of that target's segments, as a function-valued end is (CORE-KEYFRAMES-035).
@@ -144,9 +144,9 @@ Keyframes animate a property through a sequence of values instead of straight to
 ### Defaults
 
 - **CORE-KEYFRAMES-041** — When `Color` is given no `space`, it shall follow the path in `Oklab`, the CSS Color 4 default.
-  - Tests: untested
+  - Tests: `ColorKeyframesTests.WithoutASpaceTheColorFollowsTheOklabPath`
 - **CORE-KEYFRAMES-042** — When `Color` is given no `hue`, it shall take the `Shorter` hue arc, the CSS Color 4 default.
-  - Tests: untested
+  - Tests: `ColorKeyframesTests.WithoutAHueTheColorTakesTheShorterArc`
 
 ## Invariants
 
@@ -197,4 +197,4 @@ Keyframes animate a property through a sequence of values instead of straight to
 
 ## Open items
 
-- A percentage-based property whose first frame is after 0%, a malformed percentage key, `segments < 1` and a `Stagger` duration in `Color` have no test.
+None.

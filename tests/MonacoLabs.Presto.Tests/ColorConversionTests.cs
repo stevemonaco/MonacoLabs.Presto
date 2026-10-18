@@ -174,6 +174,60 @@ public sealed class ColorConversionTests
         }
     }
 
+    [Theory]
+    [InlineData(ColorSpace.Srgb)]
+    [InlineData(ColorSpace.LinearSrgb)]
+    [InlineData(ColorSpace.Oklab)]
+    public void AFullyTransparentMixTakesTheNearerEndsChannels(ColorSpace space)
+    {
+        var clearRed = new PrestoColor(255, 0, 0, 0);
+        var clearBlue = new PrestoColor(0, 0, 255, 0);
+
+        AssertChannels(clearRed, PrestoColor.Mix(clearRed, clearBlue, .3, space));
+        AssertChannels(clearBlue, PrestoColor.Mix(clearRed, clearBlue, .7, space));
+        AssertChannels(clearRed, PrestoColor.Mix(clearRed with { A = .5 }, new(0, 0, 255), -1, space));
+    }
+
+    [Fact]
+    public void FromOklabAndFromOklchDefaultToOpaque()
+    {
+        var translucent = new PrestoColor(10, 20, 30, .4);
+        var lab = translucent.ToOklab();
+        var lch = translucent.ToOklch();
+
+        Assert.Equal(1, PrestoColor.FromOklab(lab.L, lab.A, lab.B).A);
+        Assert.Equal(1, PrestoColor.FromOklch(lch.L, lch.C, lch.H).A);
+    }
+
+    [Fact]
+    public void OklabAndOklchColorsDefaultToOpaque()
+    {
+        Assert.Equal(1, new OklabColor(.5, .1, -.1).Alpha);
+        Assert.Equal(1, new OklchColor(.5, .1, 120).A);
+    }
+
+    [Fact]
+    public void ShiftOklchLeavesTheChannelsItIsNotGiven()
+    {
+        var slate = new PrestoColor(120, 130, 140, .7);
+        var o = slate.ToOklch();
+
+        var darker = slate.ShiftOklch(dl: -.1).ToOklch();
+        var richer = slate.ShiftOklch(dc: .01).ToOklch();
+        var turned = slate.ShiftOklch(dh: 30).ToOklch();
+
+        Assert.Equal(o.L - .1, darker.L, 1e-6);
+        Assert.Equal(o.C, darker.C, 1e-6);
+        Assert.Equal(o.H, darker.H, 1e-6);
+        Assert.Equal(o.L, richer.L, 1e-6);
+        Assert.Equal(o.C + .01, richer.C, 1e-6);
+        Assert.Equal(o.H, richer.H, 1e-6);
+        Assert.Equal(o.L, turned.L, 1e-6);
+        Assert.Equal(o.C, turned.C, 1e-6);
+        Assert.Equal(o.H + 30, turned.H, 1e-6);
+        Assert.Equal(.7, slate.ShiftOklch(dl: -.1).A);
+    }
+
     private static PrestoColor ColorOf(double[] rgba) => new(rgba[0], rgba[1], rgba[2], rgba[3]);
 
     private static void AssertHue(double expected, PrestoColor color)

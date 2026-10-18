@@ -58,7 +58,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 - **BRIDGE-RECIPES-MEDIA-006** — `Confetti` shall launch two systems from the anchor's center: three quarters of `count` as spinning, fluttering rectangles and one quarter as streaks, in `colors` (default a six-color accent palette), aimed upward with a 35° spread, falling under gravity over 1.8–2.6 s.
   - Tests: `ParticleRecipeTests.ConfettiLaunchesFromTheAnchorsCenterInTopLevelCoordinates`
 - **BRIDGE-RECIPES-MEDIA-007** — When `from` is given, `Confetti` shall launch from the middle of that window edge, spread along its whole length, aimed into the window, with a 20° spread.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.ConfettiFromAnEdgeLaunchesAlongItAndIntoTheWindow`
 - **BRIDGE-RECIPES-MEDIA-008** — `Sparkles` shall emit `rate` small circles a second in `color` (default gold) over the anchor's bounds, each living `Medium` to `Long` and fading, until the effect is stopped.
   - Tests: `ParticleRecipeTests.SparklesRunUntilStopped`
 - **BRIDGE-RECIPES-MEDIA-009** — `Burst` shall emit `count` circles in `color` (default the first accent) out of the anchor's center in a full ring that slows and fades over `Medium` to `Long`.
@@ -66,7 +66,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 - **BRIDGE-RECIPES-MEDIA-010** — While `ReducedMotion` is set, a particle recipe shall emit nothing, play `reduced` (default `Recipes.Pulse()`, itself reduced to a blink) on the anchor, and return an effect that is already complete; this check runs before the window check, so it holds for an anchor outside a window too.
   - Tests: `ParticleRecipeTests.UnderReducedMotionNothingSpawnsAndTheReducedFormPlays`, `BuilderRecipePagesTests.SubmitFlowThrowsConfettiOnSuccessUnlessMotionIsReduced`
 - **BRIDGE-RECIPES-MEDIA-011** — When `ReducedMotion` is clear and the anchor is not in a window, a particle recipe shall emit nothing, play nothing on the anchor, and return an effect that is already complete.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.AnAnchorOutsideAWindowEmitsAndPlaysNothing`
 - **BRIDGE-RECIPES-MEDIA-012** — Canceling a particle effect shall clear its particles and complete it at once.
   - Tests: `ParticleRecipeTests.CancelClearsAndCompletesAtOnce`
 
@@ -91,13 +91,13 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 ### Defaults
 
 - **BRIDGE-RECIPES-MEDIA-019** — When `count` is not given, `Confetti` shall launch 120 pieces.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-RECIPES-MEDIA-020** — When `rate` is not given, `Sparkles` shall emit 30 circles a second.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-RECIPES-MEDIA-021** — When `count` is not given, `Burst` shall emit 24 circles.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-RECIPES-MEDIA-022** — When `fps` is not given, `PlayFrames` shall play 24 frames a second.
-  - Tests: untested
+  - Tests: `RecipeTests.PlayFramesDelaysOnlyWhenGivenADelayAndDefaultsToTwentyFourFramesASecond`
 
 ## Invariants
 
@@ -141,4 +141,4 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 
 ## Open items
 
-- `Confetti` from an edge, and an anchor outside a window, have no tests.
+None.

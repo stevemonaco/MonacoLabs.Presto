@@ -42,7 +42,7 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 - **CORE-THREADING-003** — `MakeCurrent` on one thread shall not change `Engine.Current` on any other thread.
   - Tests: `EnginesTests.ATimerTickedOnAWorkerThreadStaysOnItsOwnEngine`
 - **CORE-THREADING-004** (inherited) — When a default `EngineScope` is disposed, `Engine.Current` on that thread shall fall back to `Presto.Engine`.
-  - Tests: untested
+  - Tests: `EnginesTests.DisposingADefaultScopeFallsBackToTheMainEngine`
 - **CORE-THREADING-005** — While `Scope.Execute` runs its callback, the scope's engine shall be current on the calling thread, and the previous engine shall be restored when the callback returns or throws.
   - Tests: `EnginesTests.ScopeExecuteMakesItsOwnEngineAmbientOutsideAMakeCurrentBlock`
 
@@ -51,7 +51,7 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 - **CORE-THREADING-006** — When a root timer, animation or timeline is constructed, it shall bind to `Engine.Current` and register with that engine when it plays.
   - Tests: `EnginesTests.TimersCreatedUnderAnEngineRegisterWithItAndNotTheMainEngine`
 - **CORE-THREADING-007** — When a timeline child is constructed, it shall bind to its parent's engine, whatever engine is current.
-  - Tests: untested
+  - Tests: `EnginesTests.ATimelineChildBindsToItsTimelinesEngineWhateverEngineIsCurrent`
 - **CORE-THREADING-008** — A timer shall resolve every later operation (resume, rebase, tick time, defaults for its children) through the engine it bound to, not through the engine current at the call.
   - Tests: `EnginesTests.ResumingAfterTheBlockEndsReRegistersWithTheEngineTheTimerWasCreatedUnder`
 - **CORE-THREADING-009** — `Timer.Engine` shall return the engine the timer bound to at construction.
@@ -66,7 +66,7 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 - **CORE-THREADING-012** — Each engine shall own its `Defaults`; changing one engine's defaults shall not change another's.
   - Tests: `EnginesTests.DefaultsStartAsACopyOfTheMainEnginesAndThenDiverge`
 - **CORE-THREADING-013** — When an engine is constructed, its defaults shall be copied from `Presto.Defaults`, even inside another engine's `MakeCurrent` block.
-  - Tests: untested
+  - Tests: `EnginesTests.AnEngineCreatedInsideAnotherEnginesBlockCopiesTheMainEnginesDefaults`
 - **CORE-THREADING-014** — Each engine shall own its current scope, so `Scope.Execute` swaps only its own engine's scope and defaults.
   - Tests: `EnginesTests.ScopeExecuteSwapsOnlyItsOwnEnginesDefaults`
 - **CORE-THREADING-015** — Each engine shall own its additive lookups and additive animation, so additive tweens on one engine are invisible to another.
@@ -77,30 +77,30 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 ### Process-wide state
 
 - **CORE-THREADING-017** — Setting `TimeUnit` on the main engine shall change the time scale and forced-render threshold for every engine in the process.
-  - Tests: untested
+  - Tests: `EnginesTests.TheMainEnginesTimeUnitSetsTheTimeScaleAndTickThresholdOfEveryEngine`
 - **CORE-THREADING-018** — Setting `Precision` on any engine shall change the reported precision for every engine in the process.
-  - Tests: untested
+  - Tests: `EnginesTests.PrecisionSetOnAnyEngineAppliesToEveryEngine`
 - **CORE-THREADING-029** — When `TimeUnit` is set on an engine other than `Presto.Engine`, the engine shall throw `InvalidOperationException` and change nothing, even when the unit is already in force.
   - Tests: `EnginesTests.SettingTheTimeUnitOnAnotherEngineThrowsAndLeavesTheTimeScale`
 - **CORE-THREADING-019** — Each engine shall keep its own replace-composition sibling lists, so animations of one target property on two engines never replace each other.
   - Tests: `EnginesTests.ReplaceTweensDoNotComposeAcrossEngines`
 - **CORE-THREADING-020** — `Presto.Adapters` and `Presto.Codecs` shall be shared by every engine and read without locks, so they must be filled before any engine animates.
-  - Tests: untested
+  - Tests: `EnginesTests.ACodecRegisteredOnceServesAnimationsOnEveryEngine`
 - **CORE-THREADING-021** — Timer, animation and tween id counters and the `Utils` random seed counter shall be incremented atomically, so ids stay unique across threads.
-  - Tests: untested
+  - Tests: `EnginesTests.IdsAndRandomSeedsStayUniqueAcrossThreads`
 - **CORE-THREADING-022** — The scratch decomposition buffers used while building animations and reading values shall be per thread.
-  - Tests: untested
+  - Tests: `EnginesTests.AnimationsBuiltOnSeveralThreadsAtOnceResolveTheirOwnValues`
 - **CORE-THREADING-023** — The ease parser cache and the reflection accessor cache shall be safe for concurrent use.
-  - Tests: untested
+  - Tests: `EnginesTests.TheEaseAndAccessorCachesFillFromSeveralThreadsAtOnce`
 
 ### Thread pin
 
 - **CORE-THREADING-024** — In a Debug build of the library, an engine shall pin itself to the thread of its first `Update`.
-  - Tests: untested
+  - Tests: `EnginesTests.APinnedEngineAndItsTimersFailFromAnotherThread`
 - **CORE-THREADING-025** — In a Debug build, once pinned, the engine's `Pause`, `Resume`, `Freeze`, `Thaw`, `Speed`, `TimeUnit`, `Precision`, `Hidden` and `PauseOnHidden` setters and its timers' `Pause`, `Resume`, `Seek` and `Reset` shall fail a debug assertion when called from another thread.
-  - Tests: untested
+  - Tests: `EnginesTests.APinnedEngineAndItsTimersFailFromAnotherThread`, `EnginesTests.ThePinnedMainEngineRejectsATimeUnitChangeFromAnotherThread`
 - **CORE-THREADING-026** (inherited) — When `FrameSource` is replaced, the engine shall drop its thread pin and re-pin on its next `Update`.
-  - Tests: untested
+  - Tests: `EnginesTests.ReplacingTheFrameSourceDropsThePinUntilTheNextUpdate`
 - **CORE-THREADING-027** — In a Release build of the library, no thread affinity shall be checked.
   - Tests: untested
 
@@ -157,4 +157,4 @@ The core is single-threaded per engine, like anime.js, but a process may run sev
 
 ## Open items
 
-- The thread pin, the process-wide statics and timeline-child engine capture have no tests.
+- CORE-THREADING-027 (no thread check in a Release build) has no test: the test suite builds the library in Debug, where the pin is compiled in.

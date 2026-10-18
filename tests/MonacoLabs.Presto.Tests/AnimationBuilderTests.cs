@@ -583,6 +583,40 @@ public sealed class AnimationBuilderTests : EngineTestBase
         Assert.Equal(["Opacity"], source.Resolve().Properties.Keys);
     }
 
+    [Fact]
+    public void TheReducedActionRunsOnAFreshBuilderOnEveryToParams()
+    {
+        var calls = 0;
+        var builder = Presto.Build().Property("X", 100).WhenReduced(b => b.Property($"P{++calls}", 1));
+
+        var first = builder.ToParams();
+        var second = builder.ToParams();
+
+        Assert.Equal(2, calls);
+        Assert.Equal(["P1"], first.WhenReduced?.Properties.Keys);
+        Assert.Equal(["P2"], second.WhenReduced?.Properties.Keys);
+    }
+
+    [Fact]
+    public void AWhenReducedInsideTheReducedActionIsIgnored()
+    {
+        var target = new StyleTarget();
+        Presto.Defaults.ReducedMotion = true;
+
+        var parameters = Presto.Build()
+            .Property("X", 100)
+            .Duration(100)
+            .WhenReduced(b => b.Property("Opacity", 1).WhenReduced(n => n.Property("Y", 50)))
+            .ToParams();
+        var animation = Presto.Animate(target, parameters);
+        animation.Seek(animation.Duration);
+
+        Assert.Null(parameters.WhenReduced?.WhenReduced);
+        Assert.Equal(0, target.X);
+        Assert.Equal(1, target.Opacity);
+        Assert.Equal(0, target.Y);
+    }
+
     private static void AssertEquivalent(AnimationParams expected, AnimationParams actual)
     {
         Assert.Equal(expected.Properties.Keys, actual.Properties.Keys);

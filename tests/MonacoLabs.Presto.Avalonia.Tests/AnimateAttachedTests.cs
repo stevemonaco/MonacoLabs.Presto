@@ -308,6 +308,130 @@ public sealed class AnimateAttachedTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AWatchChangeWhileDetachedPlaysNothingButCountsAsSeen()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        Animate.SetOnChanged(border, SlideX(100));
+        Animate.SetWatch(border, 1);
+        panel.Children.Remove(border);
+
+        Animate.SetWatch(border, 2);
+        Assert.Empty(Presto.GetAnimations(border));
+        panel.Children.Add(border);
+        Assert.Empty(Presto.GetAnimations(border));
+
+        Animate.SetWatch(border, 3);
+        Assert.Single(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void WatchAlonePlaysNothing()
+    {
+        var border = AddBorder(ShowPanel());
+
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void OnChangedAndOnCueAnimateATextBlockItselfNotItsPieces()
+    {
+        var panel = ShowPanel();
+        var block = new TextBlock { Text = "Hello there", [TextReveal.PiecesProperty] = TextPieces.Words };
+        panel.Children.Add(block);
+        var cue = new Cue();
+        Animate.SetCue(block, cue);
+        Animate.SetOnCue(block, SlideX(100));
+        Animate.SetOnChanged(block, Presto.Build().Opacity(.5).Duration(100).Ease(Eases.None));
+        Animate.SetWatch(block, 1);
+
+        Animate.SetWatch(block, 2);
+        cue.Raise();
+
+        Assert.Null(TextSplitter.Of(block));
+        Assert.Single(Presto.GetAnimations(block, "Opacity"));
+        Assert.Single(Presto.GetAnimations(block, "X"));
+    }
+
+    [AvaloniaFact]
+    public void ATriggerInitializesTheBridgeBeforePlaying()
+    {
+        var border = AddBorder(ShowPanel());
+        PrestoAvalonia.Initialized = false;
+        for (var i = Presto.Adapters.Count - 1; i >= 0; i--)
+        {
+            if (Presto.Adapters[i] is Targets.AvaloniaObjectTargetAdapter) Presto.Adapters.RemoveAt(i);
+        }
+
+        Animate.SetOnAttached(border, SlideX(100));
+
+        Assert.True(PrestoAvalonia.Initialized);
+        Assert.Single(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void EveryTriggerAnimationCarriesTheAnimateOriginAndRunsOnTheUIThread()
+    {
+        var created = new List<Timer>();
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        var completedOnUIThread = new List<bool>();
+        AnimationBuilder Slide() => SlideX(100).OnComplete(_ => completedOnUIThread.Add(Dispatcher.UIThread.CheckAccess()));
+        try
+        {
+            var panel = ShowPanel();
+            var attached = AddBorder(panel);
+            var tapped = AddHitBorder(panel);
+            var changed = AddBorder(panel);
+            var cued = AddBorder(panel);
+            var cue = new Cue();
+            Animate.SetOnAttached(attached, Slide());
+            Animate.SetOnTapped(tapped, Slide());
+            Animate.SetOnChanged(changed, Slide());
+            Animate.SetCue(cued, cue);
+            Animate.SetOnCue(cued, Slide());
+
+            Tap(tapped);
+            Animate.SetWatch(changed, 1);
+            Animate.SetWatch(changed, 2);
+            cue.Raise();
+            var animations = new[] { attached, tapped, changed, cued }.Select(b => Assert.Single(Presto.GetAnimations(b))).ToArray();
+            Frames.Advance(200, 16);
+
+            Assert.All(animations, animation => Assert.Contains(animation, created));
+            Assert.All(animations, animation => Assert.Equal("Animate", animation.Origin));
+            Assert.Equal([true, true, true, true], completedOnUIThread);
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
+    }
+
+    [AvaloniaFact]
+    public void NoTriggerIsSetByDefaultSoNothingPlays()
+    {
+        var panel = ShowPanel();
+        var border = AddHitBorder(panel);
+
+        Assert.Null(Animate.GetOnAttached(border));
+        Assert.Null(Animate.GetOnTapped(border));
+        Assert.Null(Animate.GetOnChanged(border));
+        Assert.Null(Animate.GetWatch(border));
+        Assert.Null(Animate.GetCue(border));
+        Assert.Null(Animate.GetOnCue(border));
+        Assert.Null(Animate.GetDoOnCue(border));
+        Assert.Null(Animate.GetDoOnChanged(border));
+        Tap(border);
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
     public void DetachingRevertsTheTriggers()
     {
         var panel = ShowPanel();

@@ -136,6 +136,78 @@ public sealed class ScrollRevealTests : BridgeTestBase
         Assert.Equal(1, target.Opacity);
     }
 
+    [AvaloniaFact]
+    public void ALaterFramesCrossingsStaggerFromIndexZero()
+    {
+        var rows = Enumerable.Range(0, 6).Select(_ => new Border { Height = 60, Background = Brushes.Red }).ToArray();
+        foreach (var row in rows) Presence.SetReveal(row, FadeIn.Clone().Delay(Presto.Stagger(50)));
+        var scroller = new ScrollViewer { Content = new StackPanel { Children = { rows[0], rows[1], rows[2], rows[3], rows[4], rows[5] } }, Height = 200 };
+        Show(scroller);
+        Frames.Advance(400, 20);
+        Assert.Equal(0, rows[4].Opacity);
+
+        ScrollTo(scroller, 60);
+        Frames.Advance(80);
+
+        Assert.InRange(rows[4].Opacity, .1, .9);
+    }
+
+    [AvaloniaFact]
+    public void OutsideAnyScrollViewerRevealDoesNothing()
+    {
+        var target = new Border { Height = 50, Background = Brushes.Red };
+        Presence.SetReveal(target, FadeIn);
+        Show(new StackPanel { Children = { target } });
+        Frames.Advance(200, 20);
+
+        Assert.Equal(1, target.Opacity);
+        Assert.Empty(Presto.GetAnimations(target));
+        Assert.False(target.IsAnimating(Avalonia.Visual.OpacityProperty));
+    }
+
+    [AvaloniaFact]
+    public void DetachingAHeldElementReleasesItsObserverAndItsHold()
+    {
+        var (_, scroller, target, _) = Stage();
+        Assert.Equal(0, target.Opacity);
+
+        ((Panel)target.Parent!).Children.Remove(target);
+
+        Assert.Equal(1, target.Opacity);
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
+    }
+
+    [AvaloniaFact]
+    public void DetachingMidRevealRevertsTheReveal()
+    {
+        var (_, scroller, target, _) = Stage();
+        ScrollTo(scroller, 150);
+        Frames.Advance(50);
+        Assert.InRange(target.Opacity, .01, .99);
+
+        ((Panel)target.Parent!).Children.Remove(target);
+
+        Assert.Equal(1, target.Opacity);
+        Assert.Empty(Presto.GetAnimations(target));
+    }
+
+    [AvaloniaFact]
+    public void WithoutRevealNothingHoldsTheElementHidden()
+    {
+        var target = new Border { Background = Brushes.Red };
+        Presence.SetEnter(target, FadeIn);
+        var stage = ScrollStage.Show(target: target);
+        Frames.Advance(40, 20);
+
+        Assert.Equal(1, target.Opacity);
+        Assert.False(ScrollContainer.Containers.TryGetValue(stage.Scroller, out _));
+
+        ScrollTo(stage.Scroller, 150);
+        Frames.Advance(50);
+        Assert.Equal(1, target.Opacity);
+        Assert.Empty(Presto.GetAnimations(target));
+    }
+
     private ScrollStage Stage(AnimationBuilder? reveal = null, string? threshold = null, bool once = true)
     {
         var target = new Border { Background = Brushes.Red };

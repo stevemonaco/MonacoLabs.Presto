@@ -175,6 +175,62 @@ public sealed class EngineDiagnosticsTests : EngineTestBase
         Assert.False(PrestoDiagnostics.Active);
     }
 
+    [Fact]
+    public void SettingEnabledToItsCurrentValueDoesNothing()
+    {
+        var running = Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(16);
+
+        Diagnostics.Enabled = true;
+        Diagnostics.Enabled = true;
+
+        Assert.Equal(new[] { running }, Diagnostics.Roots);
+        Diagnostics.Enabled = false;
+        Assert.False(PrestoDiagnostics.Active);
+        Diagnostics.Enabled = false;
+        Assert.False(PrestoDiagnostics.Active);
+    }
+
+    [Fact]
+    public void ActiveValuesListsTheMovingMotionValuesEnabledOrNot()
+    {
+        var source = Presto.CreateMotionValue();
+        var follower = source.Spring(new Spring(stiffness: 120, damping: 12));
+
+        source.Set(100);
+        Frames.Advance(16);
+
+        Assert.Contains(follower, Diagnostics.ActiveValues);
+        Diagnostics.Enabled = true;
+        Assert.Contains(follower, Diagnostics.ActiveValues);
+        RunUntil(() => !follower.IsAnimating);
+        Frames.Advance(16);
+        Assert.DoesNotContain(follower, Diagnostics.ActiveValues);
+    }
+
+    [Fact]
+    public void ARepeatedCancelDoesNotEndARootAgain()
+    {
+        Diagnostics.Enabled = true;
+        var first = Presto.CreateTimer(new() { Autoplay = false }).Cancel();
+        var second = Presto.CreateTimer(new() { Autoplay = false }).Cancel();
+
+        first.Cancel();
+
+        Assert.Equal(new[] { first, second }, Diagnostics.RecentlyEnded);
+    }
+
+    [Fact]
+    public void CaptureCreationTraceIsOffUnlessSet()
+    {
+        Diagnostics.Enabled = true;
+
+        var timer = Presto.CreateTimer(new() { Autoplay = false });
+
+        Assert.False(PrestoDiagnostics.CaptureCreationTrace);
+        Assert.Null(timer.CreationTrace);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void EnableDiagnosticsOnADroppedEngine()
     {

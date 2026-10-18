@@ -154,4 +154,24 @@ public sealed class IntrospectionTests : EngineTestBase
         Assert.True(Eases.TryGetName(parsedEarlier, out var parsedName));
         Assert.Equal("inOut(1.375)", parsedName);
     }
+
+    [Fact]
+    public void UnsetTimerParametersAreThePlainChoices()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 100, Autoplay = false });
+
+        Assert.Equal(0, timer.Delay);
+        Assert.Equal(0, timer.LoopDelay);
+        Assert.Equal(0, timer.Loop.Value);
+        Assert.Equal(1, timer.IterationCount);
+        Assert.False(timer.Reversed);
+        Assert.False(timer.IsAlternating);
+        Assert.Equal(1, timer.Priority);
+
+        timer.Play();
+        Frames.Advance(16);
+        Assert.True(timer.Began);
+        Assert.False(timer.Backwards);
+        Assert.True(timer.CurrentTime > 0);
+    }
 }

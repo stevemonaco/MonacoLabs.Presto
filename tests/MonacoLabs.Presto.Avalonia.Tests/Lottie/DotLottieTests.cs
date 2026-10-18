@@ -29,7 +29,7 @@ public sealed class DotLottieTests : CompositorTestBase
         return data.ToArray();
     }
 
-    private static MemoryStream Archive(string? manifest = Manifest)
+    private static MemoryStream Archive(string? manifest = Manifest, params (string Name, string Content)[] extra)
     {
         var stream = new MemoryStream();
         using (var zip = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
@@ -44,6 +44,7 @@ public sealed class DotLottieTests : CompositorTestBase
             Add("animations/badge.json", Encoding.UTF8.GetBytes(Badge("""{"id":"img","w":40,"h":40,"u":"/images/","p":"red.png","e":0}""")));
             Add("animations/blank.json", Encoding.UTF8.GetBytes(Blank));
             Add("images/red.png", RedPng());
+            foreach (var (name, content) in extra) Add(name, Encoding.UTF8.GetBytes(content));
         }
         stream.Position = 0;
         return stream;
@@ -93,6 +94,21 @@ public sealed class DotLottieTests : CompositorTestBase
         var uri = "data:image/png;base64," + Convert.ToBase64String(RedPng());
         var composition = LottieComposition.FromJson(Badge($$"""{"id":"img","w":40,"h":40,"u":"","p":"{{uri}}","e":1}"""));
         var view = LottieViewTests.Place(new LottieView { Composition = composition });
+
+        Assert.Equal(Colors.Red, Row(view, 30)[30]);
+        Assert.Equal(Colors.Black, Row(view, 60)[30]);
+    }
+
+    [AvaloniaFact]
+    public void ThemesAndStateMachinesAreIgnored()
+    {
+        var manifest = """
+            {"animations":[{"id":"badge"}],"themes":[{"id":"dark"}],"stateMachines":[{"id":"toggle"}],
+            "initial":{"animation":"badge","themeId":"dark","stateMachine":"toggle"}}
+            """;
+        var archive = Archive(manifest, ("themes/dark.json", "not json"), ("s/toggle.json", "not json"), ("states/toggle.json", "not json"));
+
+        var view = LottieViewTests.Place(new LottieView { Composition = LottieComposition.FromDotLottie(archive) });
 
         Assert.Equal(Colors.Red, Row(view, 30)[30]);
         Assert.Equal(Colors.Black, Row(view, 60)[30]);

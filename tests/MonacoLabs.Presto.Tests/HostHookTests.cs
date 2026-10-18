@@ -90,4 +90,17 @@ public sealed class HostHookTests : EngineTestBase
 
         Assert.Equal([animation], created);
     }
+
+    [Fact]
+    public void CreateAnimatableAnnouncesOnlyTheAnimationsItBuilds()
+    {
+        var created = new List<Timer>();
+        Presto.Engine.TimerCreated = created.Add;
+
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100, ["Y"] = 100 });
+
+        Assert.Equal(3, created.Count);
+        Assert.Contains(animatable.Animations["X"], created);
+        Assert.Contains(animatable.Animations["Y"], created);
+    }
 }

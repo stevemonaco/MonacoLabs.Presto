@@ -44,7 +44,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 ### Assignment
 
 - **CORE-CALLBACKS-001** — When a timer is constructed, each callback shall come from its parameters, or else from the defaults it inherits (its parent timeline's child defaults, otherwise its engine's `Defaults`) as they are at that moment.
-  - Tests: untested
+  - Tests: `CallbacksTests.CallbacksComeFromTheParametersOrTheInheritedDefaultsAsTheyAreAtConstruction`
 - **CORE-CALLBACKS-002** — When a callback property is assigned after creation, the timer shall use the new delegate from the next tick on.
   - Tests: `CallbacksTests.OnUpdateAssignedAfterCreationFiresOnTheNextTick`, `CallbacksTests.OnCompleteReplacedAfterCreationFiresTheNewCallback`
 - **CORE-CALLBACKS-003** — Every callback shall receive the timer, animation or timeline it belongs to.
@@ -62,7 +62,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-006** — On every tick that renders the timer with its playhead past the delay, the timer shall fire `OnBeforeUpdate` before writing its tweens and `OnUpdate` after.
   - Tests: `CallbacksTests.OnBeforeUpdateOnAnimation`, `CallbacksTests.OnUpdateOnAnimation`, `CallbacksTests.OnBeforeUpdateOnTimeline`, `CallbacksTests.OnUpdateOnTimeline`
 - **CORE-CALLBACKS-007** — A timeline shall fire its own `OnBeforeUpdate` and `OnUpdate` before its children render on that tick.
-  - Tests: untested
+  - Tests: `CallbacksTests.ATimelineFiresItsOwnUpdateCallbacksBeforeItsChildrenRender`
 - **CORE-CALLBACKS-008** — An animation shall fire `OnRender` once on a tick on which, with its playhead past 0, at least one tween wrote a value to its target, after the writes and before `OnUpdate`.
   - Tests: `CallbacksTests.OnRenderOnAnimation`, `CallbacksTests.CallbacksOrderExecutionOnAnimation`
 - **CORE-CALLBACKS-009** — A timeline shall fire `OnRender` after its children have rendered, on a tick on which any child rendered.
@@ -70,7 +70,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-010** — When an animation is created with autoplay off and a tween with an explicit from value, it shall fire `OnRender` once during construction.
   - Tests: `CallbacksTests.OnRenderWithAutoplayFalse`
 - **CORE-CALLBACKS-011** (inherited) — `OnRender` shall be fixed at construction; it has no public setter.
-  - Tests: untested
+  - Tests: `CallbacksTests.OnRenderIsFixedAtConstruction`
 
 ### OnLoop
 
@@ -108,11 +108,11 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-023** — When a zero-duration timer, animation or timeline plays, it shall fire `OnBegin`, `OnBeforeUpdate`, `OnRender` (when it wrote), `OnUpdate` and `OnComplete` once each, synchronously, in the order of CORE-CALLBACKS-022 for a timer or animation; a timeline fires `OnUpdate` before its `OnRender` (CORE-CALLBACKS-007, -009).
   - Tests: `CallbacksTests.AllCallbacksButOnLoopTriggerOnZeroDurationAnimation`, `CallbacksTests.AllCallbacksButOnLoopTriggerOnZeroDurationTimeline`
 - **CORE-CALLBACKS-024** — While a render is muted (`Seek` with `muteCallbacks`, `Complete(true)`, `Reset`, `Revert`, and the initial render of `Init`), no tick callback shall fire, but `Began` and `Completed` shall still update.
-  - Tests: untested
+  - Tests: `CallbacksTests.MutedRendersFireNoCallbacksButStillUpdateBeganAndCompleted`
 - **CORE-CALLBACKS-025** — A callback shall be able to pause, seek, reverse or alternate its own timer, and create other timers, from inside the tick.
   - Tests: `TimingsTests.DelayShouldDelayTheStart`, `ControlsTests.AlternateTheDirectionOfAnAnimation`, `EngineTests.InitialOffsetPositionShouldBeProperlyCalculatedOnColdStart`
 - **CORE-CALLBACKS-026** — Callbacks shall run synchronously on the thread that ticks the timer's engine.
-  - Tests: untested
+  - Tests: `CallbacksTests.CallbacksRunSynchronouslyOnTheThreadThatTicksTheEngine`
 
 ### Then and await
 
@@ -121,13 +121,13 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-028** — When `Then(callback)` is called on a completed timer, it shall invoke `callback` synchronously and return an already completed task.
   - Tests: `PromisesTests.ThenOnAnAlreadyCompletedTimerResolvesImmediately`
 - **CORE-CALLBACKS-029** — The `Then` callbacks shall run after `OnComplete`.
-  - Tests: untested
+  - Tests: `PromisesTests.ThenCallbacksRunAfterOnComplete`
 - **CORE-CALLBACKS-030** (inherited) — When `Then` is called several times before completion, every call shall return the same task and every callback shall run, in registration order.
-  - Tests: untested
+  - Tests: `PromisesTests.SeveralThenCallsShareOneTaskAndRunEveryCallbackInOrder`
 - **CORE-CALLBACKS-031** — Once a timer has resolved, a `Then` after `Restart` shall return a new task that completes at the next completion.
   - Tests: `PromisesTests.ARestartedTimerResolvesANewThen`
 - **CORE-CALLBACKS-032** — The task shall run its continuations asynchronously, so an `await` never resumes inside the tick.
-  - Tests: untested
+  - Tests: `PromisesTests.ThenContinuationsNeverRunInsideTheTick`
 - **CORE-CALLBACKS-033** — Awaiting a timer, animation or timeline directly shall behave as awaiting `Then()`.
   - Tests: `PromisesTests.AwaitATimer`, `PromisesTests.AwaitAnAnimation`
 - **CORE-CALLBACKS-034** — A completion reached with callbacks muted, a `Cancel` (including one by composition replacing every tween) and a `Revert` shall leave a pending `Then` task incomplete.
@@ -157,7 +157,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 ### Defaults
 
 - **CORE-CALLBACKS-036** — When a callback is set neither in the parameters nor in the inherited defaults, the timer shall fire nothing for it.
-  - Tests: untested
+  - Tests: `CallbacksTests.UnsetCallbacksFireNothing`
 - **CORE-CALLBACKS-037** — When `Then` is called without a callback, it shall only return the task.
   - Tests: `PromisesTests.AwaitATimer`
 
@@ -217,4 +217,4 @@ Timers, animations and timelines report their progress through seven callbacks, 
 
 ## Open items
 
-- Untested: callbacks from inherited defaults, timeline `OnUpdate` before children, muted renders still updating `Began`/`Completed`, multiple `Then` callbacks, asynchronous continuations.
+None.

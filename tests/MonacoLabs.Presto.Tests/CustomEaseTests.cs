@@ -96,4 +96,21 @@ public sealed class CustomEaseTests
         Assert.True(sum > 0);
         Assert.Equal(0, bytes);
     }
+
+    [Fact]
+    public void FlatPathIsOffsetWithoutScaling()
+    {
+        var flat = Eases.FromPath("M0,0 C0.3,1 0.7,1 1,0");
+        var raised = Eases.FromPath("M0,2 C0.3,3 0.7,3 1,2");
+
+        Assert.Equal(.75, flat(.5), 3);
+        Assert.Equal(0, flat(1));
+        AssertClose(flat, raised, 1e-9);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("M0,0")]
+    [InlineData("M0,0 L0,1")]
+    public void PathWithoutWidthThrows(string path) => Assert.Throws<ArgumentException>(() => Eases.FromPath(path));
 }

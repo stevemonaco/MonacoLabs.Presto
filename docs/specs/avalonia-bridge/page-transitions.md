@@ -45,7 +45,7 @@ depends:
 ### Start
 
 - **BRIDGE-PAGES-001** (inherited) — When `Start` is called with a token already canceled, it shall return a completed task and touch neither host.
-  - Tests: untested
+  - Tests: `PageTransitionTests.StartWithAnAlreadyCanceledTokenTouchesNeitherHost`
 - **BRIDGE-PAGES-002** — Going forward, `Start` shall play `Enter` on `to` and `Exit` on `from`.
   - Tests: `PageTransitionTests.ASwapPlaysEnterOnTheNewPresenterAndExitOnTheOld`
 - **BRIDGE-PAGES-003** — Going back, `Start` shall play `BackEnter` on `to` and `BackExit` on `from`, and for each that is null the opposite forward builder reversed (`Exit` reversed on `to`, `Enter` reversed on `from`).
@@ -64,7 +64,7 @@ depends:
 - **BRIDGE-PAGES-008** — With `IncomingAboveForward` (the default) `Start` shall write `ZIndex` 1 on the incoming host and 0 on the outgoing one going forward, and the reverse going back, at `Animation` priority for the transition's life.
   - Tests: `PageTransitionTests.IncomingAboveForwardStacksByDirection`
 - **BRIDGE-PAGES-009** — `IncomingAbove` shall put the incoming host above in both directions and `OutgoingAbove` the outgoing host.
-  - Tests: untested
+  - Tests: `PageTransitionTests.FixedStackingIgnoresTheDirection`
 - **BRIDGE-PAGES-010** — `Host` shall write no `ZIndex`, leaving the order to the host.
   - Tests: `PageTransitionTests.HostStackingWritesNothing`
 
@@ -114,13 +114,13 @@ depends:
 - **BRIDGE-PAGES-025** — `Update` shall create paused UI-thread animations on first use for a (from, to, forward) triple, whatever `Thread` says, and seek both to `progress × Duration`.
   - Tests: `PageTransitionTests.UpdateSeeksBothSidesOnTheUIThread`
 - **BRIDGE-PAGES-026** — When `Update` is called with another triple, or after a host of its run was taken over or `Reset`, it shall revert the previous run before building a new one; a host a running `Start` holds is reverted rather than taken over.
-  - Tests: untested
+  - Tests: `PageTransitionTests.UpdateWithAnotherPairRevertsThePreviousRun`, `PageTransitionTests.UpdateAfterAStartTookAHostOverStopsThatStartAndSeeksAfresh`, `PageTransitionTests.UpdateSeeksAHostARunningStartHoldsFromItsBaseValues`
 - **BRIDGE-PAGES-027** — When `visibleItems` is non-empty, `Update` shall do nothing.
   - Tests: `PageTransitionTests.UpdateWithVisibleItemsChangesNothing`
 - **BRIDGE-PAGES-028** — `Reset(visual)` shall revert whatever this transition applied to that visual (animations and `ZIndex`).
   - Tests: `PageTransitionTests.ResetRevertsWhatUpdateApplied`
 - **BRIDGE-PAGES-029** — `Update` shall ignore `pageLength`.
-  - Tests: untested
+  - Tests: `PageTransitionTests.UpdateIgnoresThePageLength`
 - **BRIDGE-PAGES-034** — `Reset` of either host of the progress run shall revert both hosts of that run and forget the run.
   - Tests: `PageTransitionTests.ResettingEitherHostOfTheProgressRunReleasesBoth`
 
@@ -197,4 +197,4 @@ depends:
 
 ## Open items
 
-- BRIDGE-PAGES-001, -009, -026 and -029 have no test.
+None.

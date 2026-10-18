@@ -1,9 +1,14 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Rendering.Composition;
 using MonacoLabs.Presto.Controls;
 
 namespace MonacoLabs.Presto.Tests;
@@ -186,6 +191,157 @@ public sealed class DistortTests : CompositorTestBase
 
         Assert.Null(distort.SnapshotSize);
         Assert.Equal(identity, Capture(distort));
+    }
+
+    [AvaloniaFact]
+    public void TheHiddenChildKeepsItsLayoutAndItsOwnValues()
+    {
+        var (distort, bar) = ShowDistort();
+        var slot = bar.Bounds;
+        var visual = ElementComposition.GetElementVisual(bar)!;
+        var scale = visual.Scale;
+
+        distort.Glitch = 6;
+        Tick();
+
+        Assert.Equal(default(Vector3D), visual.Scale);
+        Assert.Equal(slot, bar.Bounds);
+        Assert.True(bar.IsEffectivelyVisible);
+        Assert.Equal((1d, (Transform?)null, (Geometry?)null, (IBrush?)null), (bar.Opacity, bar.RenderTransform, bar.Clip, bar.OpacityMask));
+
+        distort.Glitch = 0;
+        Tick();
+        Assert.Equal(scale, visual.Scale);
+    }
+
+    [AvaloniaFact]
+    public void TheEffectsDrawInThePaddingButNeverOutsideTheBounds()
+    {
+        var (distort, _) = ShowDistort(d => (d.Turbulence, d.TurbulenceScale, d.Glitch) = (20, 6, 30));
+
+        Assert.True(CountPixels(distort, new Rect(0, 0, 80, 60), Colors.White) - CountPixels(distort, Bar, Colors.White) > 0, "nothing reached the padding");
+        Assert.Equal(0, CountPixels(distort, new Rect(80, 0, 20, 100), Colors.White));
+        Assert.Equal(0, CountPixels(distort, new Rect(0, 60, 100, 40), Colors.White));
+    }
+
+    [AvaloniaFact]
+    public void ANewChildDropsTheSnapshotAndShowsThePreviousChildAgain()
+    {
+        var (distort, bar) = ShowDistort(d => d.Glitch = 6);
+        var visual = ElementComposition.GetElementVisual(bar)!;
+        Assert.Equal(default(Vector3D), visual.Scale);
+
+        distort.Child = new Border { Width = 40, Height = 20, Background = Brushes.Blue };
+
+        Assert.Null(distort.SnapshotSize);
+        Assert.Equal(new Vector3D(1, 1, 1), visual.Scale);
+        Tick();
+        Assert.Equal(2, distort.Snapshots);
+    }
+
+    [AvaloniaFact]
+    public void WithoutASkiaLeaseTheSnapshotDrawsUnfiltered()
+    {
+        var drawn = new List<string>();
+        var context = NewContext(NoLease.Create(drawn), ownsImpl: false);
+        using var bitmap = new WriteableBitmap(new PixelSize(10, 10), new Vector(96, 96));
+        var owner = new Owner();
+
+        using (var operation = new DistortDrawOperation(bitmap, new Rect(0, 0, 10, 10), new Rect(0, 0, 30, 30), (8, 32, 0, 16, 6), owner))
+            operation.Render(context);
+
+        Assert.Equal(["GetFeature", "DrawBitmap"], drawn.Where(name => name is "GetFeature" or "DrawBitmap"));
+        Assert.True(owner.Disposed);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Constructor)]
+    private static extern ImmediateDrawingContext NewContext(IDrawingContextImpl impl, bool ownsImpl);
+
+    private sealed class Owner : IDisposable
+    {
+        public bool Disposed { get; private set; }
+
+        public void Dispose() => Disposed = true;
+    }
+
+    /// <summary>A drawing context with no features, so no Skia lease, that records the calls it gets.</summary>
+    public class NoLease : DispatchProxy
+    {
+        private List<string> _calls = [];
+
+        public static IDrawingContextImpl Create(List<string> calls)
+        {
+            var proxy = Create<IDrawingContextImpl, NoLease>();
+            ((NoLease)(object)proxy)._calls = calls;
+            return proxy;
+        }
+
+        protected override object? Invoke(MethodInfo? method, object?[]? args)
+        {
+            _calls.Add(method!.Name);
+            return method.ReturnType.IsValueType && method.ReturnType != typeof(void) ? Activator.CreateInstance(method.ReturnType) : null;
+        }
+    }
+
+    [AvaloniaFact]
+    public void TheEffectsApplyAsTurbulenceThenGooThenGlitch()
+    {
+        // Goo after Turbulence smooths its ragged edge, and Glitch after Goo keeps the steps its bands shift.
+        Assert.True(MostEdgesInARow(ShowDistort(d => (d.Turbulence, d.TurbulenceScale) = (8, 6)).Distort) > 2);
+        Assert.Equal(2, MostEdgesInARow(ShowDistort(d => (d.Turbulence, d.TurbulenceScale, d.Goo) = (8, 6, 16)).Distort));
+        Assert.InRange(LargestStep(ShowDistort(d => d.Goo = 16).Distort), 0, 3);
+        Assert.InRange(LargestStep(ShowDistort(d => (d.Goo, d.Glitch) = (16, 6)).Distort), 6, 12);
+    }
+
+    [AvaloniaFact]
+    public void EachEffectAtItsIdentityIsSkipped()
+    {
+        var glitched = Capture(ShowDistort(d => d.Glitch = 6).Distort);
+
+        Assert.Equal(glitched, Capture(ShowDistort(d => (d.Goo, d.Glitch, d.TurbulenceScale) = (-4, 6, 3)).Distort));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(0)]
+    [InlineData(1e-6)]
+    [InlineData(-5)]
+    public void ATurbulenceScaleBelowAThousandthIsAThousandth(double scale)
+    {
+        var floor = Capture(ShowDistort(d => (d.Turbulence, d.TurbulenceScale) = (8, 1e-3)).Distort);
+
+        Assert.Equal(floor, Capture(ShowDistort(d => (d.Turbulence, d.TurbulenceScale) = (8, scale)).Distort));
+        Assert.NotEqual(floor, Capture(ShowDistort(d => (d.Turbulence, d.TurbulenceScale) = (8, 6)).Distort));
+    }
+
+    private static bool IsRed(Color pixel) => pixel.R > 128 && pixel.G < 128;
+
+    private static int MostEdgesInARow(Visual visual)
+    {
+        var most = 0;
+        for (var y = 0; y < 60; y++)
+        {
+            var row = Row(visual, y);
+            var edges = 0;
+            for (var x = 1; x < 80; x++)
+                if (IsRed(row[x]) != IsRed(row[x - 1])) edges++;
+            most = Math.Max(most, edges);
+        }
+        return most;
+    }
+
+    // The largest change of the red shape's left edge from one row to the next.
+    private static int LargestStep(Visual visual)
+    {
+        int? last = null;
+        var largest = 0;
+        for (var y = 0; y < 60; y++)
+        {
+            var left = Array.FindIndex(Row(visual, y)[..80], IsRed);
+            if (left < 0) continue;
+            if (last is { } previous) largest = Math.Max(largest, Math.Abs(left - previous));
+            last = left;
+        }
+        return largest;
     }
 
     [AvaloniaFact]

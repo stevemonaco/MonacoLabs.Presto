@@ -58,7 +58,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-004** — Arming a transition on a control that already has a live one shall revert the earlier one.
   - Tests: `LayoutTransitionTests.ASecondTransitionReplacesTheFirst`
 - **BRIDGE-LAYOUT-005** — Every public factory shall register the transition with `Engine.Current.CurrentScope` when there is one.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.EveryFactoryRegistersWithTheCurrentScope`
 
 ### Measuring
 
@@ -67,7 +67,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-007** — The render transform shall not count toward the slot, so a transform shorthand's translation is not inverted.
   - Tests: `LayoutTransitionTests.ALayoutPassDoesNotInvertAShorthandTranslation`
 - **BRIDGE-LAYOUT-008** — When a pass leaves the slot's position unchanged and nothing scales, the transition shall do nothing.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.APassThatNeitherMovesNorScalesTheControlStartsNothing`
 - **BRIDGE-LAYOUT-047** — While the nearest ancestor with a live transition still eases its moves (any `AnimateLayout`, or a one-shot until its move lands) at both passes, the transition shall measure the control's slot within that ancestor rather than its window, so a move the ancestor eases is not eased twice; otherwise it measures the window slot.
   - Tests: `LayoutTransitionTests.ANestedTransitionRidesItsAncestorsMoveInsteadOfAddingToIt`, `LayoutTransitionTests.ANestedTransitionFliesItsWholeMoveOnceItsAncestorStopsEasing`
 
@@ -135,9 +135,9 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-033** — The on-screen start shall be moved into `target`'s layout frame at `target`'s first layout pass by adding `target`'s own scroll offsets, so scrolled sources and targets land right.
   - Tests: `LayoutTransitionTests.ASharedElementOutOfAScrolledListStartsWhereItIsDrawn`, `LayoutTransitionTests.ASharedElementIntoAScrolledListStartsWhereTheSourceIsDrawn`
 - **BRIDGE-LAYOUT-034** — With `once` true (the default) the transition shall stop listening to layout once its move has started; with `once` false it shall keep easing later moves as `AnimateLayout` does.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.AOneShotStopsEasingOnceItsMoveStartsAndAPersistentOneKeepsEasing`, `LayoutTransitionTests.ReArmingAMoveMidFlightAsASharedElementCarriesOnFromWhereItIsDrawn`
 - **BRIDGE-LAYOUT-035** — When `source` is not in a window, the transition shall measure `target` itself as First, so nothing flies from the source and `target`'s next layout move eases as a one-shot `AnimateLayout` would.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.AnOffScreenSourceLeavesTheTargetToEaseItsNextMoveAsAOneShot`
 - **BRIDGE-LAYOUT-036** — `PrepareSharedElement` shall record only where `source` is drawn under the key, replacing any earlier entry, and return true; when `source` is not on screen it shall remove the key's entry and return false.
   - Tests: `LayoutTransitionTests.AKeyedSharedElementFliesFromWhereItsSourceWasPreparedAfterTheSourceIsGone`
 - **BRIDGE-LAYOUT-037** — A keyed `AnimateSharedElement` shall take the key's entry and fly `target` from it, even after the source has left the tree.
@@ -166,9 +166,9 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-043** — When `AnimateLayout` is given no mode, the transition shall use `Position`.
   - Tests: `LayoutTransitionTests.AResizeUnderPositionAloneLandsAtItsNewSizeInOneFrame`
 - **BRIDGE-LAYOUT-044** — When `AnimateSharedElement` is given no mode, the flight shall use `PositionAndSize`.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.ASharedElementWithNoModeScalesItsResize`
 - **BRIDGE-LAYOUT-045** (inherited) — Before its first move, a transition's `Progress` shall be 0.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.BeforeItsFirstMoveATransitionHasNoProgress`
 - **BRIDGE-LAYOUT-046** (inherited) — Before its first move, a transition's `Completed` shall be true.
   - Tests: `LayoutTransitionTests.ScrollingAnArmedControlIsNotALayoutMove`
 
@@ -238,4 +238,4 @@ Eases a control into the place layout gives it instead of letting it jump: where
 
 ## Open items
 
-- Untested: scope registration (005), the no-op pass (008), `once: false` (034), an off-screen source (035).
+None.

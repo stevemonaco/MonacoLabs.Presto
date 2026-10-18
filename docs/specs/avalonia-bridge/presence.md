@@ -61,11 +61,11 @@ depends:
 - **BRIDGE-PRESENCE-002** — When every lifecycle builder is cleared and `EnterOnShow` is false, `Presence` shall stop tracking and revert the running arrival and any held hide.
   - Tests: `PresenceLifecycleTests.ClearingEveryLifecycleBuilderRevertsTheArrival`, `PresenceVisibilityTests.ClearingTheBuildersMidHoldReleasesTheHold`
 - **BRIDGE-PRESENCE-003** (inherited) — Setting a builder on a control that is already attached, with no arrival running, shall play nothing until the control's next arrival or show.
-  - Tests: untested
+  - Tests: `PresenceLifecycleTests.ABuilderSetOnAnAttachedElementPlaysNothingUntilItsNextArrival`
 - **BRIDGE-PRESENCE-057** — When `Initial`, `Enter`, `Arrive` or `Reveal` is changed or cleared while another lifecycle builder stays set and an arrival is running, `Presence` shall revert the arrival and play its moment's builder from the builders now set (BRIDGE-PRESENCE-014), or nothing when that moment has none left.
   - Tests: `PresenceLifecycleTests.ChangingOrClearingOneBuilderWhileOthersStaySetRestartsTheArrivalWithTheNewSet`
 - **BRIDGE-PRESENCE-004** (inherited) — While `Design.IsDesignMode` is true, setting a lifecycle property shall start no tracking.
-  - Tests: untested
+  - Tests: `PresenceLifecycleTests.NothingIsTrackedInDesignMode`
 
 ### Classifying an arrival
 
@@ -90,7 +90,7 @@ depends:
 - **BRIDGE-PRESENCE-060** — When that transfer is declined at the arriving container's first layout pass (BRIDGE-DECLLAYOUT), `Presence` shall then play the arrival the row would have played without the group, laid out.
   - Tests: `ItemTransferTests.ACollapsedDestinationLetsTheLeavingContainerExitAndTheArrivingOneEnter`
 - **BRIDGE-PRESENCE-013** (inherited) — When the list has just reset, a row it realizes shall classify as `Initial`.
-  - Tests: untested
+  - Tests: `PresenceLifecycleTests.ARowRealizedAfterAResetIsInitial`
 
 ### Playing an arrival
 
@@ -105,14 +105,14 @@ depends:
 - **BRIDGE-PRESENCE-018** — When the control is a `TextBlock` whose `TextReveal.Pieces` is not `None` and the builder is not a reduced form, the arrival shall play on the block's split pieces (BRIDGE-TEXTREVEAL).
   - Tests: `TextRevealTests.InitialWordsAnimateEveryWordAndNotTheBlockWhichWaitsHiddenForTheSplit`
 - **BRIDGE-PRESENCE-019** — Every animation `Presence` creates shall carry the diagnostics origin `"Presence"` and initialize the bridge first.
-  - Tests: untested
+  - Tests: `PresenceLifecycleTests.EveryPresenceAnimationCarriesThePresenceOrigin`
 
 ### Batches and order staggers
 
 - **BRIDGE-PRESENCE-020** — Arrivals under the same nearest ancestor `Panel` (else the top level) in one layout pass shall form a batch, and each arrival's animation shall resolve function values and `Presto.Stagger` with its arrival index and the arrivals so far as its targets.
   - Tests: `PresenceLifecycleTests.ItemsAddedInOnePassStaggerByArrivalOrder`, `PresenceLifecycleTests.AListStaggersInWithTheViewItLoadsWith`
 - **BRIDGE-PRESENCE-021** — A batch shall close once the layout pass that formed it has finished, so arrivals in a later pass start a new batch at index 0.
-  - Tests: untested
+  - Tests: `PresenceLifecycleTests.ArrivalsInALaterLayoutPassStartANewBatch`
 - **BRIDGE-PRESENCE-022** — Because a batch's total is not known while it is still arriving, a stagger shall see the arrivals so far as the total, so staggers run in arrival order.
   - Tests: `PresenceLifecycleTests.ItemsAddedInOnePassStaggerByArrivalOrder`
 
@@ -137,7 +137,7 @@ depends:
 - **BRIDGE-PRESENCE-031** — An `Exit` set by a style setter, which leaving the logical tree withdraws before the visual detach, shall still play on that detach and start the wait.
   - Tests: `PresenceModeTests.AnExitFromAStyleSetterGhostsTheSwappedContentAndStartsTheWait`
 - **BRIDGE-PRESENCE-032** — A held hide (`HideMode = Hold`) and `PrestoAvalonia.AnimateExit` shall start no wait.
-  - Tests: `PresenceModeTests.AHeldHideUnderAWaitHostStartsNoWait`
+  - Tests: `PresenceModeTests.AHeldHideUnderAWaitHostStartsNoWait`, `PresenceModeTests.AHeldHideAndAnImperativeExitStartNoWait`
 - **BRIDGE-PRESENCE-055** — When an exit under a `Wait` host completes inside its creation (as under `ReduceAll`), the content that replaces it shall not be held: it shows at full opacity and no ghost is left.
   - Tests: `PresenceModeTests.UnderReduceAllTheWaitEndsWithTheInstantExit`
 - **BRIDGE-PRESENCE-058** — When an element under a host in `Wait` with no exit in flight is shown, its entrance shall play from the end of the dispatcher turn (the exit batch job), held when an exit under the host started by then.
@@ -170,7 +170,7 @@ depends:
 - **BRIDGE-PRESENCE-044** — When an exit completes inside its creation, as under `ReduceAll`, the hide shall end in the same call, and a show shall land at once.
   - Tests: `PresenceVisibilityTests.UnderReduceAllAHideAndAShowAreInstant`, `PresenceTextExitTests.UnderReduceAllAHideIsInstantAndLeavesNoSplit`, `PresenceModeTests.UnderReduceAllAShowUnderAWaitHostLandsInTheSameCall`
 - **BRIDGE-PRESENCE-056** (inherited) — When the element's base `IsVisible` changes while it is detached, `Presence` shall record the new value and play nothing.
-  - Tests: untested
+  - Tests: `PresenceVisibilityTests.AVisibilityFlipWhileDetachedPlaysNothing`
 
 ### EnterOnShow
 
@@ -183,9 +183,9 @@ depends:
 - **BRIDGE-PRESENCE-048** — The replay shall skip a descendant whose own `IsVisible` is false, with its subtree, and a descendant under a nested `EnterOnShow` host shown in the same pass shall play once, in the outer batch.
   - Tests: `PresenceEnterOnShowTests.AHiddenChildIsSkippedAndOneUnderANestedHostShownWithItEntersOnce`
 - **BRIDGE-PRESENCE-049** — The host's own entrance shall play apart from the batch, in the same frame.
-  - Tests: untested
+  - Tests: `PresenceEnterOnShowTests.TheHostsOwnEntrancePlaysApartFromTheBatchInTheSameFrame`
 - **BRIDGE-PRESENCE-050** (inherited) — When the host is no longer effectively visible by the pass that would replay, or a descendant is mid held hide, that replay shall be skipped.
-  - Tests: untested
+  - Tests: `PresenceEnterOnShowTests.AHostHiddenAgainBeforeTheReplayingPassReplaysNothing`, `PresenceEnterOnShowTests.ADescendantMidHeldHideIsLeftOutOfTheReplay`
 - **BRIDGE-PRESENCE-051** — Hiding an `EnterOnShow` host shall play only the host's own `Exit`, nothing on its descendants.
   - Tests: `PresenceEnterOnShowTests.HidingTheHostPlaysOnlyItsOwnExit`
 - **BRIDGE-PRESENCE-052** — Under `ReduceAll` the replayed descendants shall land at once.
@@ -199,7 +199,7 @@ depends:
 ### Defaults
 
 - **BRIDGE-PRESENCE-054** (inherited) — When no ancestor sets `Mode`, the element shall behave as under `Sync`; `Mode`'s default value is `Sync`.
-  - Tests: untested
+  - Tests: `PresenceModeTests.WithoutAModeHostTheEnterPlaysWhileTheGhostExits`
 
 ## Invariants
 
@@ -269,4 +269,4 @@ depends:
 
 ## Open items
 
-- BRIDGE-PRESENCE-003, -004, -013, -019, -021, -049, -050, -054 and -056 have no test.
+- BRIDGE-PRESENCE-019: only the origin is pinned; that `Presence` initializes the bridge before animating is not observable once a test has initialized it.

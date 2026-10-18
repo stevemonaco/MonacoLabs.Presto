@@ -430,4 +430,37 @@ public sealed class MotionValueDynamicsTests : EngineTestBase
         Assert.Throws<ArgumentOutOfRangeException>(() => Presto.CreateMotionValue().Trail(0, new Spring()));
         Assert.Throws<ArgumentOutOfRangeException>(() => Presto.CreateMotionValue().Trail(0, 100));
     }
+
+    [Fact]
+    public void VelocityRebasesToNowWhenAMeasuredValueStartsMovingAgain()
+    {
+        var source = Presto.CreateMotionValue();
+        Assert.Equal(0, source.Velocity);
+        Frames.Advance(5000);
+
+        source.Set(16);
+        Frames.Advance(20);
+
+        Assert.Equal(.8, source.Velocity, 9);
+    }
+
+    [Fact]
+    public void ANewScrubReplacesThePreviousOne()
+    {
+        var animation = Presto.Animate(new TestObject(), new() { ["PlainValue"] = 110, Duration = 1000, Ease = "linear" });
+        var first = Presto.CreateMotionValue(.2);
+        var second = Presto.CreateMotionValue(.4);
+
+        animation.Scrub(first);
+        animation.Scrub(second);
+        Assert.Equal(400, animation.CurrentTime);
+
+        first.Set(.9);
+        Frames.Advance(16);
+        Assert.Equal(400, animation.CurrentTime);
+
+        second.Set(.6);
+        Frames.Advance(16);
+        Assert.Equal(600, animation.CurrentTime);
+    }
 }

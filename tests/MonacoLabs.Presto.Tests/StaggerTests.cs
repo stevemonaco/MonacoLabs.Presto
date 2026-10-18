@@ -711,4 +711,23 @@ public sealed class StaggerTests : EngineTestBase
         double[] expected = [22.4, 14.1, 10, 14.1, 22.4, 20, 10, 0, 10, 20, 22.4, 14.1, 10, 14.1, 22.4];
         for (var i = 0; i < expected.Length; i++) Assert.Equal(expected[i], TweenDelay(animation, i), 2);
     }
+
+    [Fact]
+    public void RandomFromShufflesTheValuesWithTheStaggersGenerator()
+    {
+        var animation = Presto.Animate(StyleTargets(6), new()
+        {
+            ["TranslateX"] = 100,
+            Duration = 10,
+            Delay = Presto.Stagger(10, new() { From = StaggerFrom.Random, Seed = 7 }),
+            Autoplay = false,
+        });
+        var expected = Utils.Shuffle(new double[] { 0, 10, 20, 30, 40, 50 }, Utils.CreateSeededRandom(7));
+
+        var delays = new double[6];
+        for (var i = 0; i < 6; i++) delays[i] = TweenDelay(animation, i);
+
+        Assert.Equal(expected, delays);
+        Assert.NotEqual([0, 10, 20, 30, 40, 50], delays);
+    }
 }

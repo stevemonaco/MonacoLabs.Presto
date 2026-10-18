@@ -33,7 +33,7 @@ depends:
 ### Layout
 
 - **BRIDGE-MODAL-001** — The modal shall measure as its content's desired size, measuring the content even while closed, so opening and closing never change the host's layout.
-  - Tests: untested
+  - Tests: `ModalTests.ItMeasuresAsItsContentWhetherOpenOrClosed`
 - **BRIDGE-MODAL-002** — The modal shall arrange its scrim and its content's panel over its whole bounds, the content placing itself by its own alignment.
   - Tests: `ModalTests.OpeningShowsTheScrimBlursTheBackdropAndRevealsFromTheOriginsCenter`
 - **BRIDGE-MODAL-003** — While closed, the scrim and the content's panel shall be invisible and take no hits.
@@ -44,7 +44,7 @@ depends:
 - **BRIDGE-MODAL-004** — When `Open(from)` is called on a closed modal, it shall record the center of `from` in the modal's coordinates as the origin, through screen coordinates when `from` is under another visual root, and none when `from` is null or its root or the modal's has no top level, and set `IsOpen` true.
   - Tests: `ModalTests.OpeningShowsTheScrimBlursTheBackdropAndRevealsFromTheOriginsCenter`, `ModalTests.OpeningFromAnElementUnderAnotherVisualRootMapsThroughTheScreen`
 - **BRIDGE-MODAL-005** — When `Open(point)` is called on a closed modal, it shall use `point` as the origin and set `IsOpen` true.
-  - Tests: untested
+  - Tests: `ModalTests.OpeningFromAPointRevealsAroundThatPoint`
 - **BRIDGE-MODAL-006** — When `Open` is called on an open modal, it shall only replace the origin with the one it was given (found as -004 does, none for a null `from` or one whose root has no top level), so the close shrinks into it.
   - Tests: `ModalTests.OpeningAgainWhileOpenTakesTheNewOriginForTheClose`
 - **BRIDGE-MODAL-007** — When `IsOpen` becomes true, the modal shall make the scrim and panel visible and hit-testable, with the scrim entering through `Recipes.Fade()`.
@@ -58,7 +58,7 @@ depends:
 - **BRIDGE-MODAL-009** — When it opens without an origin and none is pending (`Open()` or `IsOpen` set directly), the content shall show at once, with no entrance of its own.
   - Tests: `ModalTests.AnOriginLessOpenInALaterJobShowsAtOnce`
 - **BRIDGE-MODAL-010** — Each time the panel shows, the entrances inside the content shall replay through `Presence.EnterOnShow` on the panel.
-  - Tests: untested
+  - Tests: `ModalTests.EachShowReplaysTheEntrancesInsideTheContent`
 - **BRIDGE-MODAL-011** — When it opens, the modal shall record the top level's focused element and move focus to the content's panel.
   - Tests: `ModalTests.FocusMovesIntoItAndReturnsToTheOpener`
 - **BRIDGE-MODAL-012** — When it opens with `Backdrop` set, the backdrop shall animate its `Blur` to 6 over `Tokens.Medium` with `Tokens.Ease`.
@@ -85,7 +85,7 @@ depends:
 - **BRIDGE-MODAL-020** — While the modal is in a visual tree, open and the most recently opened overlay on its top level, an Escape key reaching that top level unhandled, or the top level's `BackRequested`, shall close it and mark the event handled before the top level's own handlers run.
   - Tests: `ModalTests.EscapeOrBackClosesIt`, `SheetTests.EscapeClosesTheMostRecentlyOpenedOverlayFirst`
 - **BRIDGE-MODAL-021** — When `Scrim` is null, the scrim shall draw nothing and leave a tap there to the host.
-  - Tests: untested
+  - Tests: `ModalTests.ANullScrimDrawsNothingAndLeavesATapToTheHost`
 
 ### Reduced motion
 
@@ -97,11 +97,11 @@ depends:
 ### Defaults
 
 - **BRIDGE-MODAL-024** (inherited) — When `IsOpen` is not set, the modal shall be closed.
-  - Tests: untested
+  - Tests: `ModalTests.ByDefaultItIsClosedWithA32PercentBlackScrim`
 - **BRIDGE-MODAL-025** — When a binding to `IsOpen` sets no mode, it shall bind two-way.
-  - Tests: untested
+  - Tests: `ModalTests.ABindingToIsOpenWithNoModeWritesBackToItsSource`
 - **BRIDGE-MODAL-026** — When `Scrim` is not set, the scrim shall be a 32 % black solid brush (`#52000000`).
-  - Tests: untested
+  - Tests: `ModalTests.ByDefaultItIsClosedWithA32PercentBlackScrim`
 
 ## Invariants
 
@@ -149,4 +149,4 @@ depends:
 
 ## Open items
 
-- Untested: `Open(Point)`, the entrance replay through `EnterOnShow`, `Scrim = null`, and the measure-as-content rule.
+None.

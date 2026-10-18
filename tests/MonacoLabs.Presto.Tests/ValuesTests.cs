@@ -679,4 +679,67 @@ public sealed class ValuesTests : EngineTestBase
 
         Assert.Equal("8turn", target["Rotate"]);
     }
+
+    [Fact]
+    public void APlainNumberFromTakesThePreviousSiblingsUnitElseTheTargets()
+    {
+        var fresh = new StyleTarget { TranslateX = "0em" };
+        var chained = new StyleTarget { TranslateX = "0em" };
+
+        var fromTarget = Presto.Animate(fresh, new() { ["TranslateX"] = TweenValue.FromTo(10, 20), Autoplay = false });
+        Presto.Animate(chained, new() { ["TranslateX"] = "100px", Autoplay = false });
+        var fromSibling = Presto.Animate(chained, new() { ["TranslateX"] = TweenValue.FromTo(10, 20), Autoplay = false });
+
+        Assert.Equal("em", TestHelpers.GetTweenAtIndex(fromTarget, 0)!._unit);
+        Assert.Equal("10em", fresh.TranslateX);
+        Assert.Equal("px", TestHelpers.GetTweenAtIndex(fromSibling, 0)!._unit);
+        Assert.Equal("10px", chained.TranslateX);
+    }
+
+    [Fact]
+    public void ANumberEndAgainstAColorEndBecomesTransparentBlack()
+    {
+        var target = new Dictionary<string, object?>();
+
+        var fromNumber = TestHelpers.GetTweenAtIndex(Presto.Animate(target, new() { ["A"] = TweenValue.FromTo(5, "rgb(255, 0, 0)"), Autoplay = false }), 0)!;
+        var toNumber = TestHelpers.GetTweenAtIndex(Presto.Animate(target, new() { ["B"] = TweenValue.FromTo("#f00", 5), Autoplay = false }), 0)!;
+
+        Assert.Equal(ValueKind.Color, fromNumber._valueType);
+        Assert.Equal([0, 0, 0, 0], fromNumber._fromNumbers);
+        Assert.Equal(ValueKind.Color, toNumber._valueType);
+        Assert.Equal([0, 0, 0, 0], toNumber._toNumbers);
+    }
+
+    [Fact]
+    public void TheShorterComplexEndIsPaddedWithZerosAndTakesTheLongerEndsStrings()
+    {
+        var target = new Dictionary<string, object?>();
+
+        var growing = Presto.Animate(target, new() { ["A"] = TweenValue.FromTo("1 2", "10px 20px 30px"), Autoplay = false });
+        var shrinking = Presto.Animate(target, new() { ["B"] = TweenValue.FromTo("10px 20px 30px", "1 2"), Autoplay = false });
+        shrinking.Seek(shrinking.Duration);
+
+        Assert.Equal([1, 2, 0], TestHelpers.GetTweenAtIndex(growing, 0)!._fromNumbers);
+        Assert.Equal("1px 2px 0px", target["A"]);
+        Assert.Equal([1, 2, 0], TestHelpers.GetTweenAtIndex(shrinking, 0)!._toNumbers);
+        Assert.Equal("1px 2px 0px", target["B"]);
+    }
+
+    [Fact]
+    public void InBetweenUnitAndComplexFramesRoundToFourDecimalsButNumbersAndEndsDoNot()
+    {
+        var target = new StyleTarget();
+        var filters = new Dictionary<string, object?>();
+        var animation = Presto.Animate(target, new() { ["X"] = 1, ["TranslateX"] = TweenValue.FromTo("0.123456px", "1px"), Duration = 300, Ease = "linear", Autoplay = false });
+        var filter = Presto.Animate(filters, new() { ["Filter"] = TweenValue.FromTo("blur(0px)", "blur(1px)"), Duration = 300, Ease = "linear", Autoplay = false });
+
+        Assert.Equal("0.123456px", target.TranslateX);
+
+        animation.Seek(100);
+        filter.Seek(100);
+
+        Assert.Equal(1 / 3d, target.X, 15);
+        Assert.Equal("0.4156px", target.TranslateX);
+        Assert.Equal("blur(0.3333px)", filters["Filter"]);
+    }
 }

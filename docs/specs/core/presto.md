@@ -21,6 +21,7 @@ tests:
   - DiscreteValuesTests
   - TimelinesTests
   - PrestoDelayTests
+  - MotionValueTests
 upstream:
   - src/index.js
   - src/utils/target.js
@@ -57,7 +58,7 @@ depends:
 - **CORE-PRESTO-002** — `Presto.Defaults` shall return the main engine's `Defaults` as they stand at the read, never another engine's, even while that engine is current.
   - Tests: `EnginesTests.ScopeExecuteSwapsOnlyItsOwnEnginesDefaults`
 - **CORE-PRESTO-003** — While a scope created on the main engine executes, `Presto.Defaults` shall return that scope's defaults, since `Scope.Execute` swaps the engine's `Defaults` (see CORE-SCOPE).
-  - Tests: untested
+  - Tests: `ScopeTests.PrestoDefaultsReadsTheExecutingScopesDefaults`
 
 ### Factories
 
@@ -74,13 +75,13 @@ depends:
 - **CORE-PRESTO-009** — `Build()` shall return a new, empty `AnimationBuilder` on every call.
   - Tests: `AnimationBuilderTests.AnEmptyBuilderMatchesEmptyParams`
 - **CORE-PRESTO-010** (inherited) — `CreateAnimatable` shall construct the animatable directly, without raising the timer-created hook for it.
-  - Tests: untested
+  - Tests: `HostHookTests.CreateAnimatableAnnouncesOnlyTheAnimationsItBuilds`
 - **CORE-PRESTO-011** — `CreateScope` shall return a new scope on `Engine.Current` built from `parameters`, or with no root and the engine's defaults when null.
   - Tests: `ScopeTests.KeepsTheRootItIsGiven`
 - **CORE-PRESTO-012** — `Stagger(value, parameters)` shall return a new `Stagger` over `value`, with a default `StaggerParams` when `parameters` is null.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`
 - **CORE-PRESTO-013** — `CreateMotionValue(initial)` shall return a new source motion value holding `initial` (0 by default).
-  - Tests: untested
+  - Tests: `MotionValueTests.CreateMotionValueReturnsANewSourceHoldingTheInitialValue`
 
 ### Set
 
@@ -91,13 +92,13 @@ depends:
 - **CORE-PRESTO-016** — `Set` shall give its tweens a duration of `Constants.MinValue` regardless of the params' `Duration` and the defaults; a per-property `TweenParams.Duration` still applies.
   - Tests: untested
 - **CORE-PRESTO-017** — `Set` shall compose with `Composition.Overlap` unless the params name a composition, so it neither replaces nor cancels tweens already running on those properties.
-  - Tests: untested
+  - Tests: `UtilsTargetsTests.SetOverlapsRunningTweensUnlessACompositionIsNamed`
 - **CORE-PRESTO-018** — `Set` shall skip `Init()` and resume the animation instead, which renders it at once and leaves nothing registered with the engine.
   - Tests: `LeaksTests.EngineShouldNotContainAnyActiveTickable`
 - **CORE-PRESTO-019** — `Set` shall raise the timer-created hook once, after it has written the values, so the hook receives an already completed animation.
   - Tests: `HostHookTests.TimerCreatedFiresForSet`
 - **CORE-PRESTO-020** — `Set` shall register its animation with the current scope like any timer, so the scope's `Revert` restores the values it overwrote.
-  - Tests: untested
+  - Tests: `UtilsTargetsTests.RevertingTheScopeRestoresWhatSetOverwrote`
 
 ### Get
 
@@ -108,11 +109,11 @@ depends:
 - **CORE-PRESTO-023** — `Get(targets, property, withUnit: false)` shall return the value's number as a `double` when it decomposes to a number or a number with a unit, and null otherwise.
   - Tests: `UtilsTargetsTests.GetObjectPropertiesAndConvertUnit`
 - **CORE-PRESTO-024** — `Get(targets, property, withUnit: true)` shall return what `Get(targets, property)` returns.
-  - Tests: untested
+  - Tests: `UtilsTargetsTests.GetWithUnitReturnsTheRawValue`
 - **CORE-PRESTO-025** — `Get(targets, property, unit)` shall convert a number or unit value to `unit` (angle units are scaled; any other unit is adopted as is, see CORE-VALUES) and return it as the number rounded to 4 decimals in invariant JavaScript formatting followed by the unit.
   - Tests: `UtilsTargetsTests.GetObjectPropertiesAndConvertUnit`
 - **CORE-PRESTO-026** — When the value does not decompose to a single number, `Get(targets, property, unit)` shall return null.
-  - Tests: untested
+  - Tests: `UtilsTargetsTests.GetInAUnitIsNullForAValueWithoutASingleNumber`
 - **CORE-PRESTO-027** (inherited) — When the built-in object adapter resolves a property that the target type has no public readable and writable instance property or field for, `Get` shall throw `ArgumentException`; a dictionary target with no such key yields null.
   - Tests: `ObjectTargetAdapterTests.UnknownMemberThrows`, `ObjectTargetAdapterTests.ReadsMembersAndTreatsMissingDictionaryKeysAsNull`
 - **CORE-PRESTO-056** — Every `Get` overload shall canonicalize the property name against the first parsed target (CORE-PRESTO-043) before resolving it, as `Remove` and `GetAnimations` do, so an alias reads the canonical property.
@@ -157,7 +158,7 @@ depends:
 - **CORE-PRESTO-042** — The facade shall resolve a property by asking `Adapters` in list order and using the first non-null accessor, falling back to the built-in object adapter.
   - Tests: `ObjectTargetAdapterTests.RegisteredAdaptersResolveBeforeTheObjectFallback`
 - **CORE-PRESTO-043** — The facade shall canonicalize a property name with the first adapter that returns a non-null name, and otherwise keep the name as given.
-  - Tests: untested
+  - Tests: `UtilsTargetsTests.TheFirstAdapterThatNamesAPropertyCanonicalizesIt`
 - **CORE-PRESTO-044** — When a plain object member's type is not numeric, `string`, `object` or `PrestoColor`, the built-in adapter shall use the codec registered in `Codecs` for that type, or treat the member as discrete when none is registered.
   - Tests: `ObjectTargetAdapterTests.RegisteredCodecDecodesAndEncodesItsType`, `ObjectTargetAdapterTests.MemberTypeWithoutCodecIsDiscrete`
 
@@ -189,7 +190,7 @@ depends:
 - **CORE-PRESTO-053** — Canceling the token mid-wait shall `Cancel()` the underlying timer, so the engine releases it on its next frame, and complete the task as canceled, so awaiting it throws `OperationCanceledException`.
   - Tests: `PrestoDelayTests.CancelingMidWaitCancelsTheTaskAndReleasesTheTimer`
 - **CORE-PRESTO-054** — `Delay` shall dispose its token registration when the timer completes or is interrupted, and its continuations shall never run inline in the engine tick.
-  - Tests: `PrestoDelayTests.TheRegistrationIsDisposedWhenTheTimerIsInterrupted`
+  - Tests: `PrestoDelayTests.TheRegistrationIsDisposedWhenTheTimerIsInterrupted`, `PrestoDelayTests.CompletingReleasesTheTokenRegistration`, `PrestoDelayTests.ContinuationsNeverRunInsideTheEngineTick`
 - **CORE-PRESTO-057** — When `Delay`'s timer is canceled or reverted before it completes (as by the scope it was created in), the task shall complete as canceled.
   - Tests: `PrestoDelayTests.TheRegistrationIsDisposedWhenTheTimerIsInterrupted`
 
@@ -247,4 +248,5 @@ depends:
 
 ## Open items
 
-- `CreateMotionValue`, `CreateAnimatable`'s missing hook, `Set`'s forced duration and `Composition.Overlap` default, and `Get(…, withUnit: true)` have no direct test; nor do `Delay`'s asynchronous continuations.
+- `Set`'s forced duration (CORE-PRESTO-016) has no test, because its second half disagrees with the code: a bare `TweenParams` property value given to `Set` (`["Y"] = new TweenParams { To = 20, Duration = 200 }`) throws `NotSupportedException` ("Cannot decompose a value of type TweenParams"), since the fast-set path wraps it as a from/to pair of itself; only a `TweenParams` keyframe array reaches its tweens with its own `Duration`.
+- CORE-PRESTO-047 has no test: `EngineTestBase` replaces the main engine's defaults before every test, so the instance it starts with cannot be observed in-process.

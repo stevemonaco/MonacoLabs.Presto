@@ -183,6 +183,49 @@ public sealed class FollowTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void DetachingLandsEachShorthandAndPausesMotionValuesUntilReattach()
+    {
+        var (eased, tracked) = (Box(), Box());
+        Follow.SetTiming(eased, Presto.Build().Duration(100).Ease("linear"));
+        var panel = new StackPanel { Children = { eased, tracked } };
+        var window = Show(panel);
+        var source = Presto.CreateMotionValue(10);
+        Follow.SetX(tracked, source);
+        Follow.SetX(eased, 0);
+        Follow.SetX(eased, 100);
+        Frames.Advance(32, 16);
+
+        window.Content = null;
+        Assert.Equal(100, Part<TranslateTransform>(eased).X);
+        source.Set(50);
+        Frames.Advance(100, 16);
+        Assert.Equal(10, Part<TranslateTransform>(tracked).X);
+
+        window.Content = panel;
+        Assert.Equal(50, Part<TranslateTransform>(tracked).X);
+    }
+
+    [AvaloniaFact]
+    public void WithoutATimingTheShorthandsMoveWithTheGentleSpring()
+    {
+        var (unset, gentle) = (Box(), Box());
+        Follow.SetTiming(gentle, Presto.Build().Ease(Springs.Gentle));
+        Show(new StackPanel { Children = { unset, gentle } });
+        Follow.SetX(unset, 0);
+        Follow.SetX(gentle, 0);
+
+        Follow.SetX(unset, 100);
+        Follow.SetX(gentle, 100);
+        for (var i = 0; i < 6; i++)
+        {
+            Frames.Advance(16);
+            Assert.Equal(Part<TranslateTransform>(gentle).X, Part<TranslateTransform>(unset).X);
+        }
+
+        Assert.InRange(Part<TranslateTransform>(unset).X, 1, 99);
+    }
+
+    [AvaloniaFact]
     public void ReducedMotionSnaps()
     {
         Presto.Engine.Defaults.ReducedMotion = true;

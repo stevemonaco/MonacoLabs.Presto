@@ -56,7 +56,7 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 - **BRIDGE-SHAPES-004** — Applying a slice shall set `StrokeDashOffset` to `−start × L / T` and `StrokeDashArray` to `[(end − start) × L / T, gap / T]`, where `L` is the rendered geometry's contour length, `T` the stroke thickness and `gap` is `L + 10 − dash`, without the spare 10 when the slice is `0 1` or `1 0`.
   - Tests: `ShapesTests.DrawWalksTheDashArrayFromHiddenToFullyDrawn`, `ShapesTests.DrawWalksTheDashOffsetAsTheStartMoves`
 - **BRIDGE-SHAPES-005** — When the contour length or the stroke thickness is not positive, applying a slice shall record it without writing the dash properties.
-  - Tests: untested
+  - Tests: `ShapesTests.ASliceOnAZeroLengthOrThicknessIsRecordedWithoutWritingTheDashes`
 - **BRIDGE-SHAPES-006** — While start equals end, a shape whose line cap is not `Flat` shall draw with a `Flat` cap, and otherwise with the cap it had when it entered the draw state.
   - Tests: `ShapesTests.LineCapIsFlattenedWhileTheStartAndEndMatch`
 - **BRIDGE-SHAPES-007** — Reverting a `"Draw"` tween shall restore the `StrokeDashArray`, `StrokeDashOffset` and `StrokeLineCap` the shape had when it first entered the draw state, and forget that state.
@@ -68,7 +68,7 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 - **BRIDGE-SHAPES-031** — On a character outline piece (BRIDGE-TEXT-055), `L` shall be the perimeter of the piece's longest flattened figure, so a `0 1` slice traces every contour of the outline.
   - Tests: `ShapesTests.DrawOnAnOutlinePieceWalksTheDashOverItsLongestFigure`
 - **BRIDGE-SHAPES-009** — The builder's `Draw(start, end)` shall animate `"Draw"` to `"start end"` formatted with the invariant culture.
-  - Tests: untested
+  - Tests: `ShapesTests.TheDrawBuilderFormatsItsSliceInTheInvariantCulture`
 
 ### Motion path along a shape
 
@@ -77,9 +77,9 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 - **BRIDGE-SHAPES-011** — With `offset` 0 the distance shall clamp to the contour; with any other `offset` it shall be shifted by `offset × length` and wrap around.
   - Tests: `ShapesTests.MotionPathOffsetWrapsAroundInsteadOfClamping`
 - **BRIDGE-SHAPES-012** — When the shape has no rendered geometry, `CreateMotionPath` shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `ShapesTests.AMotionPathAlongAShapeWithoutGeometryThrows`
 - **BRIDGE-SHAPES-013** — The tweens shall follow the geometry captured at the call, in the shape's own coordinates with no conversion, and yield 0 where the geometry has no point.
-  - Tests: untested
+  - Tests: `ShapesTests.AMotionPathFollowsTheGeometryCapturedAtTheCallInTheShapesOwnCoordinates`, `ShapesTests.AMotionPathYieldsZeroWhereTheGeometryHasNoPoint`
 
 ### Motion path through points
 
@@ -109,7 +109,7 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 - **BRIDGE-SHAPES-020** — `MorphTo` shall morph the `Geometry` `Data` property of any target that has one, such as `Path` and `PathIcon`.
   - Tests: `ShapesTests.MorphReadsTheDataOfAnyGeometryProperty`
 - **BRIDGE-SHAPES-021** — When the target has no `Geometry` `"Data"`, resolving the morph shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `ShapesTests.MorphingATargetWithoutGeometryDataThrows`
 - **BRIDGE-SHAPES-022** — When both geometries have one figure, each frame shall write a new open polyline geometry through the interpolated points, so the morph ends on a polyline through the destination's contour, sharing its endpoints; otherwise, one closed figure per contour pair with the nonzero fill rule.
   - Tests: `ShapesTests.MorphWalksThePointsOntoTheDestinationGeometry`, `ShapesTests.SingleContourMorphKeepsItsOpenPolylineSamples`, `ShapesTests.MorphKeepsAHoleThroughoutAGlyphMorph`
 - **BRIDGE-SHAPES-023** — Reverting a morph shall put back the `Data` instance the target had before it.
@@ -120,17 +120,17 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 ### Defaults
 
 - **BRIDGE-SHAPES-025** — When `start` and `end` are not given, `CreateDrawable` shall put the shape into the `0 0` slice, drawing none of its stroke.
-  - Tests: untested
+  - Tests: `ShapesTests.CreateDrawableDefaultsToTheEmptySlice`
 - **BRIDGE-SHAPES-026** — When `offset` is not given, both `CreateMotionPath` overloads shall start at the path's start and clamp to its ends.
   - Tests: `ShapesTests.MotionPathTranslatesAndRotatesAlongTheContour`
 - **BRIDGE-SHAPES-027** — When `autoRotate` is not given, the `Rotate` tween shall be the tangent angle unchanged.
   - Tests: `ShapesTests.MotionPathTranslatesAndRotatesAlongTheContour`
 - **BRIDGE-SHAPES-028** — When `curviness` is not given, the points overload of `CreateMotionPath` and `MotionPathGeometry` shall use 1, as GSAP MotionPath does.
-  - Tests: untested
+  - Tests: `ShapesTests.PointMotionPathsDefaultToCurvinessOneAndAnOpenPath`
 - **BRIDGE-SHAPES-029** — When `closed` is not given, the points overload of `CreateMotionPath` and `MotionPathGeometry` shall build an open path.
-  - Tests: untested
+  - Tests: `ShapesTests.PointMotionPathsDefaultToCurvinessOneAndAnOpenPath`
 - **BRIDGE-SHAPES-030** — When `precision` is not given, `MorphTo` and `MorphPointCount` shall use .33.
-  - Tests: untested
+  - Tests: `ShapesTests.MorphDefaultsToAPrecisionOfAThird`
 
 ## Invariants
 
@@ -194,4 +194,4 @@ Ports of anime.js's `svg` helpers onto Avalonia shapes and geometries: `CreateDr
 
 ## Open items
 
-- Untested: zero length or thickness (005), `Draw(start, end)` formatting (009), `CreateMotionPath` with no geometry (012), geometry capture and missing points (013), morph of a target without `Data` (021).
+None.

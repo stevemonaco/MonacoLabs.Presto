@@ -136,4 +136,67 @@ public sealed class EaseParserTests
             CultureInfo.CurrentCulture = culture;
         }
     }
+
+    [Fact]
+    public void ConcurrentCallersAllGetTheParsedEase()
+    {
+        var strings = new string[64];
+        for (var i = 0; i < strings.Length; i++) strings[i] = string.Create(CultureInfo.InvariantCulture, $"inOut({7 + i / 1000d})");
+        var results = new Ease[16, strings.Length];
+
+        Parallel.For(0, 16, worker =>
+        {
+            for (var i = 0; i < strings.Length; i++) results[worker, i] = EaseParser.Parse(strings[i]);
+        });
+
+        for (var i = 0; i < strings.Length; i++)
+        {
+            var cached = EaseParser.Parse(strings[i]);
+            AssertSameSamples(Eases.InOut(7 + i / 1000d), cached);
+            for (var worker = 0; worker < 16; worker++) AssertSameSamples(cached, results[worker, i]);
+        }
+    }
+
+    [Theory]
+    [InlineData("in(abc)")]
+    [InlineData("wiggle(0)")]
+    public void AFailedParseCachesNothing(string ease)
+    {
+        var count = EaseParser.CachedCount;
+
+        Assert.ThrowsAny<Exception>(() => EaseParser.Parse(ease));
+        Assert.ThrowsAny<Exception>(() => EaseParser.Parse(ease));
+        Assert.Equal(count, EaseParser.CachedCount);
+    }
+
+    [Fact]
+    public void EmptyParenthesesOnAFixedEaseReturnIt()
+    {
+        Assert.Same(Eases.OutQuad, EaseParser.Parse("outQuad()"));
+        Assert.Same(Eases.InOutBounce, EaseParser.Parse("InOutBounce( )"));
+    }
+
+    [Fact]
+    public void ArgumentsPastTheOnesReadAreIgnored()
+    {
+        AssertSameSamples(Eases.In(2), EaseParser.Parse("in(2, abc)"));
+        AssertSameSamples(Eases.OutElastic(2, .5), EaseParser.Parse("outElastic(2, .5, junk, ?)"));
+    }
+
+    [Fact]
+    public void FromPathErrorsPropagate()
+    {
+        Assert.Throws<ArgumentException>(() => EaseParser.Parse("fromPath(M0,0 L0,1)"));
+        Assert.Throws<FormatException>(() => EaseParser.Parse("fromPath(M0,0 Q1,1 1,1)"));
+    }
+
+    [Theory]
+    [InlineData("wiggle(0)")]
+    [InlineData("rough(0)")]
+    [InlineData("expoScale(1, 1)")]
+    public void FactoryRangeErrorsPropagate(string ease)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => EaseParser.Parse(ease));
+        Assert.Throws<ArgumentOutOfRangeException>(() => EaseParser.TryParse(ease, out _));
+    }
 }

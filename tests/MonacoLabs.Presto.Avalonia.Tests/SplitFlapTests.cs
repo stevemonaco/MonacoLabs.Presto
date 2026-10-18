@@ -135,6 +135,23 @@ public sealed class SplitFlapTests : BridgeTestBase
         Assert.Null(Presto.Engine._head);
     }
 
+    [AvaloniaFact]
+    public void WhileTheEngineIsHiddenTheCellsHoldStill()
+    {
+        var board = Board("AAAA");
+        board.Text = "ZZZZ";
+        Frames.Advance(100, 10);
+        var shown = Shown(board);
+
+        Presto.Engine.Hidden = true;
+        Frames.Advance(2000, 10);
+        Assert.Equal(shown, Shown(board));
+
+        Presto.Engine.Hidden = false;
+        Frames.Advance(5000, 10);
+        Assert.Equal("ZZZZ", Shown(board));
+    }
+
     private static SplitFlap Board(string text, string? charset = null, int cells = 0)
     {
         var board = new SplitFlap { Text = text, Cells = cells, FontSize = 20, Foreground = Brushes.White, CellBackground = Brushes.Black };

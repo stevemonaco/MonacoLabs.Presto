@@ -237,12 +237,95 @@ public sealed class ToastHostTests : CompositorTestBase
         Assert.Empty(host.Items);
     }
 
-    private static (Window Window, ToastHost Host) Stage()
+    [AvaloniaFact]
+    public void ItKeepsTheItemsControlTheme()
+    {
+        var (_, host) = Stage();
+
+        Assert.NotNull(host.Template);
+        Assert.Single(host.GetVisualDescendants().OfType<ItemsPresenter>());
+    }
+
+    [AvaloniaFact]
+    public void WithoutAMarkedElementAPlainTimerDismissesTheToast()
+    {
+        var (window, host) = Stage(countdown: false);
+
+        host.Show("a", 500);
+        Run(20);
+        Assert.Single(host.Items);
+
+        Run(20);
+        Assert.Empty(host.Items);
+        Assert.Single(Ghosts(window));
+    }
+
+    [AvaloniaFact]
+    public void ACountdownStartingWithFocusWithinStartsPaused()
+    {
+        var (window, host) = Stage();
+
+        host.Show("a", 500);
+        window.UpdateLayout();
+        Assert.True(Root(host, "a").GetVisualDescendants().OfType<Button>().Single().Focus());
+        Run(60);
+        Assert.Single(host.Items);
+        Assert.Equal(1, ScaleX(Bar(host, "a")), 6);
+
+        ((StackPanel)window.Content!).Children[1].Focus();
+        Run(40);
+        Assert.Empty(host.Items);
+    }
+
+    [AvaloniaFact]
+    public void ASecondDismissDoesNothing()
+    {
+        var (window, host) = Stage();
+        var toast = host.Show("a");
+        host.Show("b");
+        Run(12);
+        toast.Dismiss();
+
+        toast.Dismiss();
+
+        Assert.Equal(["b"], host.Items.Cast<string>());
+        Assert.Single(Ghosts(window));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(null, new[] { "b", "c", "d" })]
+    [InlineData(0, new[] { "d" })]
+    [InlineData(-2, new[] { "d" })]
+    public void MaxCountDefaultsToThreeAndAtMostZeroKeepsOne(int? maxCount, string[] kept)
+    {
+        var (_, host) = Stage();
+        if (maxCount is { } max) host.MaxCount = max;
+
+        foreach (var item in new[] { "a", "b", "c", "d" }) host.Show(item);
+        Run(2);
+
+        Assert.Equal(kept, host.Items.Cast<string>());
+    }
+
+    [AvaloniaFact]
+    public void TheCountdownDefaultsToFourSeconds()
+    {
+        var (_, host) = Stage(countdown: false);
+
+        host.Show("a");
+        Run(240);
+        Assert.Single(host.Items);
+
+        Run(20);
+        Assert.Empty(host.Items);
+    }
+
+    private static (Window Window, ToastHost Host) Stage(bool countdown = true)
     {
         var host = new ToastHost
         {
             VerticalAlignment = VerticalAlignment.Top,
-            ItemTemplate = Template(),
+            ItemTemplate = Template(countdown),
         };
         var window = new Window { Content = new StackPanel { Children = { host, new Button() } }, Background = Brushes.White, Width = 200, Height = 200 };
         window.Show();
@@ -250,10 +333,10 @@ public sealed class ToastHostTests : CompositorTestBase
         return (window, host);
     }
 
-    private static FuncDataTemplate<string> Template() => new((_, _) =>
+    private static FuncDataTemplate<string> Template(bool countdown = true) => new((_, _) =>
     {
         var bar = new Border { Height = 4, Background = Brushes.Blue };
-        ToastHost.SetCountdown(bar, "ScaleX");
+        if (countdown) ToastHost.SetCountdown(bar, "ScaleX");
         var root = new Border
         {
             Background = Brushes.Red,

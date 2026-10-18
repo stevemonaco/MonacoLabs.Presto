@@ -1,7 +1,23 @@
+using System.Diagnostics;
+
 namespace MonacoLabs.Presto.Tests;
 
 public sealed class MotionValueTests : EngineTestBase
 {
+    [Fact]
+    public void CreateMotionValueReturnsANewSourceHoldingTheInitialValue()
+    {
+        var zero = Presto.CreateMotionValue();
+        var five = Presto.CreateMotionValue(5);
+
+        Assert.Equal(0, zero.Value);
+        Assert.Equal(5, five.Value);
+        Assert.NotSame(zero, Presto.CreateMotionValue());
+        five.Set(7);
+        Assert.Equal(7, five.Value);
+        Assert.Equal(0, zero.Value);
+    }
+
     [Theory]
     [InlineData(-50, 0)]
     [InlineData(25, 50)]
@@ -290,4 +306,89 @@ public sealed class MotionValueTests : EngineTestBase
         Assert.Throws<ArgumentException>(() => source.Map([0, 1], ["#ff0000", "10px"]));
         Assert.Throws<ArgumentException>(() => source.Map([0, 1], ["10px", "50%"]));
     }
+
+    [Fact]
+    public void SettingFromAnotherThreadFailsTheDebugAssertionOnceTheEngineIsPinned()
+    {
+#if !DEBUG
+        Assert.Skip("The thread assertion exists only in Debug builds.");
+#endif
+        var source = Presto.CreateMotionValue();
+        var listener = new FailureListener();
+        var listeners = Trace.Listeners.Cast<TraceListener>().ToArray();
+        Trace.Listeners.Clear();
+        Trace.Listeners.Add(listener);
+        try
+        {
+            OnAnotherThread(() => source.Set(1));
+            Assert.Equal(0, listener.Failures);
+
+            Presto.Engine.Update();
+            OnAnotherThread(() => source.Set(2));
+            Assert.Equal(1, listener.Failures);
+        }
+        finally
+        {
+            Trace.Listeners.Clear();
+            Trace.Listeners.AddRange(listeners);
+        }
+    }
+
+    private static void OnAnotherThread(Action action)
+    {
+        var thread = new Thread(() => action());
+        thread.Start();
+        thread.Join();
+    }
+
+    private sealed class FailureListener : TraceListener
+    {
+        public int Failures { get; private set; }
+
+        public override void Fail(string? message, string? detailMessage) => Failures++;
+
+        public override void Write(string? message) { }
+
+        public override void WriteLine(string? message) { }
+    }
+
+    [Fact]
+    public void AnObjectMapEncodesAgainOnlyWhenItsOutputMoves()
+    {
+        var source = Presto.CreateMotionValue(150);
+        var mapped = source.Map([0, 100], ["0px", "100px"]);
+
+        var first = mapped.Value;
+        Assert.Same(first, mapped.Value);
+        source.Set(200);
+        Assert.Same(first, mapped.Value);
+
+        source.Set(50);
+        var moved = mapped.Value;
+        Assert.Equal("50px", moved);
+        Assert.NotSame(first, moved);
+    }
+
+    [Fact]
+    public void AnObjectMapSubscribesToItsSourceOnlyWhileItHasAHandler()
+    {
+        var source = Presto.CreateMotionValue();
+        var mapped = source.Map([0, 100], ["0px", "100px"]);
+        Action<MotionObjectValue> handler = _ => { };
+
+        source.Set(10);
+        Assert.False(source._queued);
+
+        mapped.Changed += handler;
+        source.Set(20);
+        Assert.True(source._queued);
+        Frames.Advance(16);
+
+        mapped.Changed -= handler;
+        source.Set(30);
+        Assert.False(source._queued);
+    }
+
+    [Fact]
+    public void CreateMotionValueDefaultsToZero() => Assert.Equal(0, Presto.CreateMotionValue().Value);
 }

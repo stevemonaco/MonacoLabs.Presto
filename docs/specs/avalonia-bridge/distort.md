@@ -34,9 +34,9 @@ depends:
 - **BRIDGE-DISTORT-003** — When an effect leaves identity, the control shall snapshot its child at the render scaling and draw the snapshot where the child is, through the effects, instead of the child.
   - Tests: `DistortTests.EachEffectDrawsASnapshotThatChangesPixelsInsteadOfTheChild`, `DistortTests.TheSnapshotIsTakenAtTheRenderScaling`
 - **BRIDGE-DISTORT-004** — While the snapshot is drawn, the child shall keep its layout and its own property values.
-  - Tests: untested
+  - Tests: `DistortTests.TheHiddenChildKeepsItsLayoutAndItsOwnValues`
 - **BRIDGE-DISTORT-005** — The effects shall draw within the control's bounds, so its `Padding` is the room they have around the child.
-  - Tests: untested
+  - Tests: `DistortTests.TheEffectsDrawInThePaddingButNeverOutsideTheBounds`
 - **BRIDGE-DISTORT-006** — When the child or any of its visual descendants redraws while an effect is active, including through a transform changed in place, the control shall take a new snapshot within a frame, and it shall not take one while nothing in the child redraws.
   - Tests: `DistortTests.AChildThatRedrawsWhileActiveIsSnapshottedAgain`
 - **BRIDGE-DISTORT-019** — The control shall never request an animation frame itself: it shall check the child's subtree for a redraw only after its window commits a composition batch, so a held effect costs no frames once nothing changes, and an animated effect is checked on each frame its animation draws.
@@ -46,14 +46,14 @@ depends:
 - **BRIDGE-DISTORT-008** — When the control detaches from the visual tree, it shall dispose the snapshot.
   - Tests: `DistortTests.DetachingDropsTheSnapshot`
 - **BRIDGE-DISTORT-009** (inherited) — When `Child` changes, the control shall dispose the snapshot and draw the previous child live again.
-  - Tests: untested
+  - Tests: `DistortTests.ANewChildDropsTheSnapshotAndShowsThePreviousChildAgain`
 - **BRIDGE-DISTORT-010** (inherited) — When the drawing context offers no Skia API lease, the control shall draw the snapshot unfiltered and not throw.
-  - Tests: untested
+  - Tests: `DistortTests.WithoutASkiaLeaseTheSnapshotDrawsUnfiltered`
 
 ### Effects
 
 - **BRIDGE-DISTORT-011** — The effects shall apply in the order Turbulence → Goo → Glitch, each stage skipped at its identity value.
-  - Tests: untested
+  - Tests: `DistortTests.TheEffectsApplyAsTurbulenceThenGooThenGlitch`, `DistortTests.EachEffectAtItsIdentityIsSkipped`
 - **BRIDGE-DISTORT-012** — `Turbulence` shall displace pixels by up to `Turbulence` DIPs through fractal noise of feature size `TurbulenceScale`, seeded with 0 and moved `TurbulencePhase × TurbulenceScale` DIPs along x, with the edges extended as BRIDGE-IMAGE's `Ripple` extends them.
   - Tests: `DistortTests.EachEffectDrawsASnapshotThatChangesPixelsInsteadOfTheChild`
 - **BRIDGE-DISTORT-013** — `Goo` shall blur by a radius of `Goo` DIPs, converted to a sigma as `BlurEffect` converts its radius, and then map alpha to `19·a − 9`, so shapes closer than about the radius fuse with hard edges.
@@ -61,7 +61,7 @@ depends:
 - **BRIDGE-DISTORT-014** — `Glitch` shall cut the bounds into 8 horizontal bands of heights seeded by its value, shift each band by a seeded offset within ±`Glitch` DIPs, then draw red shifted `Glitch` DIPs left and blue `Glitch` DIPs right of green, added together.
   - Tests: `DistortTests.EachEffectDrawsASnapshotThatChangesPixelsInsteadOfTheChild`
 - **BRIDGE-DISTORT-015** (inherited) — A `TurbulenceScale` below 1e-3 shall be treated as 1e-3.
-  - Tests: untested
+  - Tests: `DistortTests.ATurbulenceScaleBelowAThousandthIsAThousandth`
 
 ### Animating the properties
 
@@ -135,6 +135,5 @@ depends:
 ## Open items
 
 - A brush changed in place in the child (a `SolidColorBrush.Color` write) updates the compositor's brush without redrawing the child, so no draw list changes and the snapshot keeps the old color while an effect is active. The per-frame check missed it too: `AChildThatRedrawsWhileActiveIsSnapshottedAgain` passed only because that check's first run saw the child's first draw, and now replaces the brush instead.
-- Untested: the child keeping its layout and values (004), drawing within the bounds (005), a `Child` change (009), no Skia lease (010), the effect order (011) and the `TurbulenceScale` floor (015).
 - On the Desktop Liquid type page, `Turbulence` frays the edges of display text into hard one-pixel serrations rather than a smooth ripple: the displacement samples the snapshot unfiltered and the second noise octave adds fine roughness. Filtered sampling or a single octave would read more like liquid.
 - manual — the Liquid type heading's 300 ms hover glitch needs a real pointer (a held `Glitch` was checked by eye), and the page's frame rate on the Browser head is unmeasured.

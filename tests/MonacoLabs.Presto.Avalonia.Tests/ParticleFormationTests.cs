@@ -275,6 +275,45 @@ public sealed class ParticleFormationTests : CompositorTestBase
         Assert.Equal(disintegrate ? 0 : 1, block.Opacity);
     }
 
+    [AvaloniaFact]
+    public void PauseAndResumeFreezeAndContinueAFormationAndStopLeavesItRunning()
+    {
+        var block = ShowText();
+        var effect = Recipes.Disintegrate(block);
+        TickFor(Recipes.Tokens.Long / 2);
+
+        effect.Pause();
+        Tick();
+        var frozen = effect.Formation!.Dots.ToArray();
+        TickFor(200);
+        Assert.Equal(frozen, effect.Formation.Dots.ToArray());
+
+        effect.Resume();
+        effect.Stop();
+        TickFor(50);
+        Assert.NotEqual(frozen, effect.Formation.Dots.ToArray());
+        Assert.False(effect.Then().IsCompleted);
+        Assert.True(Pump(() => effect.Then().IsCompleted, 200), "the stopped formation never finished");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CancelAndRevertRemoveAFormationsParticles(bool revert)
+    {
+        var block = ShowText();
+        var effect = Recipes.Assemble(block);
+        Tick();
+        Assert.True(effect.Formation!.Count > 20);
+
+        if (revert) effect.Revert();
+        else effect.Cancel();
+        Tick();
+
+        Assert.True(effect.Then().IsCompleted);
+        Assert.Equal(0, effect.Formation.Count);
+    }
+
     private static (ParticleScene Scene, CompositorCanvas Canvas) ShowScene(ParticleScene? scene = null)
     {
         scene ??= new ParticleScene();

@@ -113,6 +113,26 @@ public sealed class TargetsTests : EngineTestBase
         Assert.Equal("target", Assert.Throws<ArgumentNullException>(() => Presto.GetAnimations(null!)).ParamName);
 
     [Fact]
+    public void TheAccessorIsResolvedByCanonicalNameOncePerTargetAndProperty()
+    {
+        var first = new StyleTarget();
+        var second = new StyleTarget();
+        var adapter = new ResolveCountingAdapter();
+        Presto.Adapters.Add(adapter);
+        try
+        {
+            var animation = Presto.Animate(new[] { first, second }, new() { ["Alias"] = new double[] { 10, 20, 30 }, Autoplay = false });
+
+            Assert.Equal([(first, "X"), (second, "X")], adapter.Resolved);
+            foreach (var tween in animation.Tweens) Assert.Equal("X", tween.Property);
+        }
+        finally
+        {
+            Presto.Adapters.Remove(adapter);
+        }
+    }
+
+    [Fact]
     public void RemovingEverythingTellsTheAdapters()
     {
         var target = new TestObject();
@@ -161,5 +181,18 @@ public sealed class TargetsTests : EngineTestBase
         public IPropertyAccessor? Resolve(object target, string property) => null;
 
         public void Removed(IReadOnlyList<object> targets, string? property) => Calls.Add((targets, property));
+    }
+
+    private sealed class ResolveCountingAdapter : ITargetAdapter
+    {
+        public List<(object Target, string Property)> Resolved { get; } = [];
+
+        public IPropertyAccessor? Resolve(object target, string property)
+        {
+            Resolved.Add((target, property));
+            return null;
+        }
+
+        public string? Canonicalize(object target, string property) => property == "Alias" ? "X" : null;
     }
 }

@@ -122,6 +122,25 @@ public sealed class ColorsTests : EngineTestBase
         Assert.Equal("rgba(255,0,100,0.5)", PrestoColor.FormatRgba([254.6, 0.4, 100, .5]));
 
     [Fact]
+    public void TheModifierAppliesToEveryChannelAlphaIncluded()
+    {
+        var plain = new ColorTarget();
+        var modified = new ColorTarget();
+        var fade = TweenValue.FromTo("rgba(10, 20, 30, .2)", "rgba(110, 120, 130, .6)");
+        var plainAnimation = Presto.Animate(plain, new() { ["Background"] = fade, Duration = 100, Ease = "linear", Autoplay = false });
+        var modifiedAnimation = Presto.Animate(modified, new() { ["Background"] = fade, Duration = 100, Ease = "linear", Modifier = v => -v, Autoplay = false });
+
+        plainAnimation.Seek(50);
+        modifiedAnimation.Seek(50);
+
+        Assert.Equal(-plain.Background.R, modified.Background.R, 9);
+        Assert.Equal(-plain.Background.G, modified.Background.G, 9);
+        Assert.Equal(-plain.Background.B, modified.Background.B, 9);
+        Assert.Equal(-plain.Background.A, modified.Background.A, 9);
+        Assert.Equal(.4, plain.Background.A, 9);
+    }
+
+    [Fact]
     public void ChannelsRoundTrip()
     {
         var color = new PrestoColor(1, 2, 3, .5);

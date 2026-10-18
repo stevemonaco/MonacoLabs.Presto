@@ -76,14 +76,14 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 - **BRIDGE-CODECS-017** — Every brush a codec creates shall have its opacity clamped to 0–1 and be recorded as owned by the tween's target (BRIDGE-TARGETS-024).
   - Tests: `TargetOwnerTests.ACodecCreatedBrushResolvesToItsVisual`
 - **BRIDGE-CODECS-018** — A brush's `Transform` shall not be decoded or carried to the written brush.
-  - Tests: untested
+  - Tests: `CodecTests.ABrushesTransformIsNotCarriedToTheWrittenBrush`
 
 ### Box shadows
 
 - **BRIDGE-CODECS-019** — `BoxShadows` shall decode into `(inset, offsetX, offsetY, blur, spread, r, g, b, a)` per shadow, and strings shall parse through `BoxShadows.Parse`, with `"none"` an empty list.
   - Tests: `CodecTests.BoxShadowStringsParseAndInterpolate`
 - **BRIDGE-CODECS-020** (inherited) — When `BoxShadows.Parse` rejects a string, the codec shall decline it and leave the string to the core's parsing.
-  - Tests: untested
+  - Tests: `CodecTests.AShadowStringBoxShadowsCannotParseIsLeftToTheCore`
 - **BRIDGE-CODECS-021** — When the two ends have different numbers of shadows, the shorter list shall be padded with zero shadows in the other end's color at alpha 0, so a shadow grows or fades in its own color.
   - Tests: `CodecTests.AnAddedShadowGrowsInItsOwnColorFromNothing`, `CodecTests.ABorderWithoutAShadowTweensOneIn`
 - **BRIDGE-CODECS-022** — Each shadow's `IsInset` shall come from the end value, and its blur shall be written no lower than 0.
@@ -103,11 +103,11 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 ### Geometry
 
 - **BRIDGE-CODECS-026** — A `Geometry` shall decode into `max(⌈contour length × 0.33⌉, 2)` points spread evenly along its contour, rounded to 3 decimals; a path-data string end value is parsed by the core as its numbers.
-  - Tests: untested
+  - Tests: `CodecTests.AGeometrySamplesEvenlySpacedPointsAlongItsContourAndAStringEndIsReadAsItsNumbers`
 - **BRIDGE-CODECS-027** — Each frame of a `Geometry` tween shall be written as a new `StreamGeometry` through the interpolated points: one open polyline, unless the end value's template ends in `Z`, when a new figure starts at each coordinate pair whose preceding template holds `M` and every figure is closed with the nonzero fill rule (BRIDGE-SHAPES-022).
   - Tests: `ShapesTests.MorphWalksThePointsOntoTheDestinationGeometry`, `ShapesTests.MorphKeepsAHoleThroughoutAGlyphMorph`
 - **BRIDGE-CODECS-028** (inherited) — When two geometries decode into different point counts outside `MorphTo` (BRIDGE-SHAPES), the core's padding of the shorter value shall apply.
-  - Tests: untested
+  - Tests: `CodecTests.GeometriesOfDifferentPointCountsPadTheShorterWithZeros`
 
 ### Fonts
 
@@ -172,4 +172,4 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 ## Open items
 
-- BRIDGE-CODECS-018, -020, -026 and -028 are untested: the geometry tests all go through `MorphTo`, which hands the codec path-data strings rather than `Geometry` objects.
+None.

@@ -121,6 +121,15 @@ public sealed class DiscreteValuesTests : EngineTestBase
     public void RelativeValuesThrow(string value) =>
         Assert.Throws<ArgumentException>(() => Animate(new Toggle(), "Side", value));
 
+    [Theory]
+    [InlineData("On")]
+    [InlineData("Side")]
+    public void AValueNeitherOfTheTypeNorANumberThrows(string property)
+    {
+        Assert.Throws<ArgumentException>(() => Animate(new Toggle(), property, "abc"));
+        Assert.Throws<ArgumentException>(() => Animate(new Toggle(), property, TweenValue.Of(new object())));
+    }
+
     [Fact]
     public void AdditiveThrows() =>
         Assert.Throws<ArgumentException>(() => Presto.Animate(new Toggle(), new() { ["On"] = TweenValue.Of(true), Composition = Composition.Additive }));

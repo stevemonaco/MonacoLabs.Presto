@@ -41,13 +41,13 @@ depends:
 - **BRIDGE-PAGER-001** — The pager shall lay each slide out at the pager's full width and height, slide `i` in column `i` of the strip.
   - Tests: `PagerTests.TheBoundsFollowAResize`
 - **BRIDGE-PAGER-002** (inherited) — When measured with an infinite width or height, the pager shall take that dimension from the largest slide's desired size; otherwise it shall take the available size.
-  - Tests: untested
+  - Tests: `PagerTests.AnInfiniteMeasureTakesTheLargestSlideAndAFiniteOneTheAvailableSize`
 - **BRIDGE-PAGER-003** — When the pager is attached to a visual tree, or arranged at a width different from the last one, it shall refresh the drag bounds and place the strip on `SelectedIndex` at once, without animation.
   - Tests: `PagerTests.TheBoundsFollowAResize`
 - **BRIDGE-PAGER-004** — While `Loop` is true, the pager shall arrange each slide at the copy of its column nearest the page shown, re-arranging on every move, so a drag past the last slide reveals the first.
   - Tests: `PagerTests.LoopingWrapsOnToTheFirstSlideAndBackToTheLast`
 - **BRIDGE-PAGER-005** (inherited) — When `Loop` changes, the pager shall refresh the drag bounds and re-arrange the strip.
-  - Tests: untested
+  - Tests: `PagerTests.TurningLoopOnAndOffAtRuntimeReArrangesTheStripAndItsBounds`
 
 ### Drag
 
@@ -56,7 +56,7 @@ depends:
 - **BRIDGE-PAGER-007** — While `Loop` is false, the drag shall be bounded to the span from the first slide to the last; while it is true, it shall be unbounded horizontally.
   - Tests: `PagerTests.TheBoundsFollowAResize`, `PagerTests.LoopingWrapsOnToTheFirstSlideAndBackToTheLast`
 - **BRIDGE-PAGER-008** (inherited) — When the strip is grabbed, the pager shall pause any running travel animation.
-  - Tests: untested
+  - Tests: `PagerTests.GrabbingTheStripPausesTheTravel`
 - **BRIDGE-PAGER-009** — When a drag settles, the pager shall set `SelectedIndex` to the rounded `Position`, wrapped when looping and clamped otherwise, without starting a new travel.
   - Tests: `PagerTests.ADragReleasedPastHalfASlidePages`, `PagerTests.AFlingPages`
 - **BRIDGE-PAGER-010** — The pager shall set `Position` to `-stripX / width` from the strip's render, in the same frame the strip moves, and to 0 while the width is 0.
@@ -69,7 +69,7 @@ depends:
 - **BRIDGE-PAGER-012** — When `GoTo(index)` is called on a pager with slides, it shall set `SelectedIndex` to `index` wrapped (when looping) or clamped to the slides, spring the strip there with `Eases.Spring(bounce: .2, duration: 700)` and restart autoplay.
   - Tests: `PagerTests.GoToSpringsAndSettlesOnTheIndex`
 - **BRIDGE-PAGER-013** (inherited) — When `GoTo` is called on a pager with no slides, it shall do nothing.
-  - Tests: untested
+  - Tests: `PagerTests.GoToWithNoSlidesDoesNothing`
 - **BRIDGE-PAGER-014** — When `SelectedIndex` is set on a pager with slides, the pager shall coerce it as BRIDGE-PAGER-012 and BRIDGE-PAGER-050 coerce `GoTo` (wrapped when looping, clamped otherwise), a two-way binding's source receiving the coerced value; when it is set other than by a settling drag or `GoTo`, the pager shall spring the strip to the coerced slide and restart autoplay.
   - Tests: `PagerTests.ASelectedIndexPastTheSlidesIsClampedAndTheStripRestsOnTheLast`, `PagerTests.ALoopingSelectedIndexWrapsAndIsReCoercedWhenLoopChanges`, `PagerTests.ATwoWayBindingSourceGetsTheCoercedIndex`
 - **BRIDGE-PAGER-052** — When `Slides` or `Loop` changes, the pager shall coerce `SelectedIndex` again from the value last set, springing to the slide it now names when that changes.
@@ -79,7 +79,7 @@ depends:
 - **BRIDGE-PAGER-015** — While looping, a travel shall take the slide's column nearest the page shown, so paging takes the shorter way round.
   - Tests: `PagerTests.LoopingWrapsOnToTheFirstSlideAndBackToTheLast`
 - **BRIDGE-PAGER-016** (inherited) — While the pager is detached or 0 wide, a change of `SelectedIndex` shall not move the strip; the next attach or arrange shall place it.
-  - Tests: untested
+  - Tests: `PagerTests.ASelectionWhileDetachedOrZeroWideWaitsForTheNextPlacement`
 - **BRIDGE-PAGER-017** — When the pager receives an unhandled Left, Right, Home or End key, it shall `GoTo` the previous, next, first or last slide and mark the key handled; other keys shall pass.
   - Tests: `PagerTests.KeysPage`
 - **BRIDGE-PAGER-018** — `OffsetOf(slide)` shall return a `MotionValue` mapped from `Position` that reads the slide's column (the nearest copy when looping) minus `Position`: negative to the left, positive to the right.
@@ -98,11 +98,11 @@ depends:
 - **BRIDGE-PAGER-021** — While autoplay runs, `AutoplayProgress` shall read the timer's iteration progress, 0 to 1.
   - Tests: `PagerTests.AutoplayAdvancesAndHolds`
 - **BRIDGE-PAGER-022** — When the user pages by `GoTo`, a key, an indicator tap, a set `SelectedIndex` or a drag release, the pager shall restart the autoplay interval and reset `AutoplayProgress` to 0.
-  - Tests: untested
+  - Tests: `PagerTests.PagingByHandRestartsTheAutoplayInterval`
 - **BRIDGE-PAGER-023** — While the pointer is over the pager, while the strip is dragged, or while focus inside it arrived by Tab or directional navigation, autoplay shall pause; it shall resume when none of these holds.
   - Tests: `PagerTests.AutoplayAdvancesAndHolds`, `CarouselPageTests.AutoplayHoldsWhileThePointerIsOverTheStrip`
 - **BRIDGE-PAGER-024** — Focus that arrives by pointer or programmatically shall not hold autoplay.
-  - Tests: untested
+  - Tests: `PagerTests.FocusByPointerOrCodeDoesNotHoldAutoplay`
 
 ### Indicator
 
@@ -115,9 +115,9 @@ depends:
 - **BRIDGE-PAGER-028** — In `Progress` mode the indicator shall show a full-width track in `Track` and a bar in `Fill` whose width is `min(1, (page + 1) / count)` of the indicator's, `page` being `Position` wrapped when the pager loops and clamped otherwise, re-arranged as `Position` moves.
   - Tests: `PagerTests.TheProgressBarFillsWithThePosition`
 - **BRIDGE-PAGER-029** (inherited) — In `Progress` mode the indicator shall measure 4 DIPs high and as wide as available, or 24 per slide when the available width is infinite.
-  - Tests: untested
+  - Tests: `PagerTests.AProgressBarIsFourHighAndAsWideAsOfferedOrTwentyFourPerSlide`
 - **BRIDGE-PAGER-030** (inherited) — When `Mode`, `Fill`, `Track` or the pager's slide collection changes, the indicator shall rebuild its dots or bar in their resting state.
-  - Tests: untested
+  - Tests: `PagerTests.ChangingTheLookOrTheSlidesRebuildsTheIndicatorAtRest`
 - **BRIDGE-PAGER-031** (inherited) — The indicator shall take hits over its whole width in a band at least 24 DIPs high centered on it, its dots taking none, so the hand cursor and the tap are the indicator's.
   - Tests: `PagerTests.ThePointerOverADotIsOverTheIndicatorSoItGetsTheHandCursor`, `PagerTests.ATapJustAboveADotStillSelectsIt`
 - **BRIDGE-PAGER-032** — When tapped in `Dots` mode, the indicator shall `GoTo` the dot whose span, extended by half the gap on either side, holds the tap (the last dot beyond them), and mark the tap handled.
@@ -125,7 +125,7 @@ depends:
 - **BRIDGE-PAGER-033** (inherited) — When tapped in `Progress` mode, the indicator shall `GoTo` slide `min(count - 1, floor(x / width · count))` and mark the tap handled.
   - Tests: `PagerTests.TappingTheIndicatorSlidesToThatSlide`
 - **BRIDGE-PAGER-034** (inherited) — When tapped with no pager or a pager with no slides, the indicator shall do nothing.
-  - Tests: untested
+  - Tests: `PagerTests.TappingAnIndicatorWithNoPagerOrNoSlidesDoesNothing`
 
 ### Reduced motion
 
@@ -141,30 +141,30 @@ depends:
 ### Lifetime
 
 - **BRIDGE-PAGER-039** (inherited) — When the pager is detached, it shall pause its travel, cancel autoplay and revert its draggable.
-  - Tests: untested
+  - Tests: `PagerTests.DetachingPausesTheTravelCancelsAutoplayAndRevertsTheDraggable`
 
 ### Defaults
 
 - **BRIDGE-PAGER-040** (inherited) — When `SelectedIndex` is not set, the pager shall rest on slide 0.
   - Tests: `PagerTests.TheDotsWidenTheSelectedOne`
 - **BRIDGE-PAGER-041** — When a binding to `SelectedIndex` names no mode, the pager shall bind it two-way.
-  - Tests: untested
+  - Tests: `PagerTests.ABindingWithNoModeWritesPagingBackToTheSource`, `PagerTests.ATwoWayBindingSourceGetsTheCoercedIndex`
 - **BRIDGE-PAGER-042** (inherited) — When `Loop` is not set, the pager shall not loop.
   - Tests: `PagerTests.TheBoundsFollowAResize`
 - **BRIDGE-PAGER-043** (inherited) — When `AutoplayInterval` is not set, it shall be 0 and the pager shall not autoplay.
-  - Tests: untested
+  - Tests: `PagerTests.APagerDefaultsToFocusableClippedAndNotAutoplaying`
 - **BRIDGE-PAGER-044** — When `Focusable` and `ClipToBounds` are not set, the pager shall be focusable and clip to its bounds.
-  - Tests: untested
+  - Tests: `PagerTests.APagerDefaultsToFocusableClippedAndNotAutoplaying`
 - **BRIDGE-PAGER-045** (inherited) — When the indicator's `Pager` is not set, the indicator shall follow no pager.
-  - Tests: untested
+  - Tests: `PagerTests.AnIndicatorDefaultsToWhiteDotsWithAHandCursorAndNoPager`
 - **BRIDGE-PAGER-046** (inherited) — When `Mode` is not set, the indicator shall show dots.
-  - Tests: untested
+  - Tests: `PagerTests.AnIndicatorDefaultsToWhiteDotsWithAHandCursorAndNoPager`
 - **BRIDGE-PAGER-047** (inherited) — When `Fill` is not set, the indicator shall fill with opaque white.
-  - Tests: untested
+  - Tests: `PagerTests.AnIndicatorDefaultsToWhiteDotsWithAHandCursorAndNoPager`
 - **BRIDGE-PAGER-048** (inherited) — When `Track` is not set, the indicator shall draw its track in white at 40 % opacity (`#66FFFFFF`).
-  - Tests: untested
+  - Tests: `PagerTests.AnIndicatorDefaultsToWhiteDotsWithAHandCursorAndNoPager`
 - **BRIDGE-PAGER-049** (inherited) — When `Cursor` is not set, the indicator shall show the hand cursor.
-  - Tests: untested
+  - Tests: `PagerTests.AnIndicatorDefaultsToWhiteDotsWithAHandCursorAndNoPager`
 
 ## Invariants
 
@@ -215,4 +215,4 @@ depends:
 
 ## Open items
 
-- Untested: `Loop` changed at runtime, autoplay holding during a drag, pointer-originated focus not holding autoplay, the restart on every manual page, and the detach cleanup (BRIDGE-PAGER-039).
+None.

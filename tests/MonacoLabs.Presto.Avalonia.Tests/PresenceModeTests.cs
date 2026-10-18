@@ -296,6 +296,44 @@ public sealed class PresenceModeTests : CompositorTestBase
         return host;
     }
 
+    [AvaloniaFact]
+    public void WithoutAModeHostTheEnterPlaysWhileTheGhostExits()
+    {
+        var host = new ContentControl { Content = Content() };
+        ShowWhite(host);
+        var incoming = Content();
+
+        host.Content = incoming;
+        Tick();
+        Frames.Advance(100, 16);
+
+        Assert.Equal(PresenceMode.Sync, Presence.GetMode(host));
+        Assert.InRange(incoming.Opacity, .1, .9);
+        Assert.Single(Ghosts(host));
+    }
+
+    [AvaloniaFact]
+    public void AHeldHideAndAnImperativeExitStartNoWait()
+    {
+        var hidden = Content();
+        var removed = new Border { Width = 40, Height = 20, Background = Brushes.Blue };
+        var panel = new StackPanel { Children = { hidden, removed } };
+        Presence.SetMode(panel, PresenceMode.Wait);
+        ShowWhite(panel);
+
+        hidden.IsVisible = false;
+        Assert.NotNull(PrestoAvalonia.AnimateExit(removed, FadeOut));
+        panel.Children.Remove(removed);
+        var incoming = Content();
+        panel.Children.Add(incoming);
+        Tick();
+        Frames.Advance(100, 16);
+
+        Assert.True(hidden.IsVisible);
+        Assert.Single(Ghosts(panel));
+        Assert.InRange(incoming.Opacity, .1, .9);
+    }
+
     private static Border Content(Action? began = null)
     {
         var content = new Border { Width = 40, Height = 20, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left };

@@ -185,6 +185,19 @@ public sealed class CompositorPlaybackTests : CompositorTestBase
         Assert.Equal(1, completions);
     }
 
+    [AvaloniaTheory]
+    [InlineData(null, 1)]
+    [InlineData(true, 0)]
+    public void SeekFiresCallbacksUnlessMuted(bool? muteCallbacks, int expected)
+    {
+        var completions = 0;
+        var animation = ShowBar().AnimateOnCompositor(new() { ["X"] = 60, Duration = 400, Ease = "linear", OnComplete = _ => completions++ }).Pause();
+
+        _ = muteCallbacks is { } mute ? animation.Seek(400, mute) : animation.Seek(400);
+
+        Assert.Equal(expected, completions);
+    }
+
     private static double Left(Visual visual) => Extent(visual, Colors.Red)!.Value.Left;
 
     private void Run() => Run(24);

@@ -63,7 +63,7 @@ depends:
 - **BRIDGE-REVEAL-013** — A layout pass whose anchor correction scrolled shall reveal nothing; the pass that lays the corrected rows out shall reveal them as a scroll would.
   - Tests: `ScrollAnchorTests.ARowTheCorrectionBringsIntoViewRevealsAsAScrollWould`
 - **BRIDGE-REVEAL-014** — A container's template built for no item (no `DataContext`), as during recycling, shall not be held or revealed.
-  - Tests: untested
+  - Tests: `PresenceLifecycleTests.ATemplateBuiltForNoItemIsNeitherHeldNorRevealed`
 - **BRIDGE-REVEAL-015** — A row of a virtualizing list shall not get a scroll observer, even inside a `ScrollViewer`.
   - Tests: `ScrollRevealTests.AVirtualizingListStillRevealsThroughItsRows`
 
@@ -78,13 +78,13 @@ depends:
 - **BRIDGE-REVEAL-019** — Elements that cross in the same frame shall reveal on the next engine tick as one batch per window, ordered by window position (top, then left), not attach order.
   - Tests: `ScrollRevealTests.ElementsInViewOnAttachRevealAsOneBatchInReadingOrder`
 - **BRIDGE-REVEAL-020** — Each frame's crossings shall form their own batch, so the next crossing's stagger starts again at index 0.
-  - Tests: untested
+  - Tests: `ScrollRevealTests.ALaterFramesCrossingsStaggerFromIndexZero`
 - **BRIDGE-REVEAL-021** — With `RevealOnce` true, the observer shall be reverted after the reveal, and the element shall stay revealed however it is scrolled.
   - Tests: `ScrollRevealTests.ItRevealsOnceAndStopsWatching`
 - **BRIDGE-REVEAL-022** — With `RevealOnce` false, leaving the view shall revert the reveal and hold the element hidden again, and the next crossing shall reveal it again.
   - Tests: `ScrollRevealTests.WithoutRevealOnceItHidesOnLeavingAndRevealsAgain`
 - **BRIDGE-REVEAL-023** — Outside any `ScrollViewer` and outside a list's realization, `Reveal` shall do nothing and hold nothing; on detach the observer and the hold shall be released and the reveal reverted.
-  - Tests: untested
+  - Tests: `ScrollRevealTests.OutsideAnyScrollViewerRevealDoesNothing`, `ScrollRevealTests.DetachingAHeldElementReleasesItsObserverAndItsHold`, `ScrollRevealTests.DetachingMidRevealRevertsTheReveal`
 
 ### ScrollAnchor
 
@@ -101,7 +101,7 @@ depends:
 - **BRIDGE-REVEAL-029** — When a layout pass ends at an offset other than the one the change or its last correction left, the anchor shall end and keep the reader's scroll.
   - Tests: `ScrollAnchorTests.AWheelNotchBeforeTheAnchorClearsIsNotUndone`, `ScrollAnchorTests.AScrollToTheTopBeforeTheAnchorClearsStaysThereWithTheAddedRowShown`
 - **BRIDGE-REVEAL-030** — Otherwise the anchor shall end once the layout pass that realizes the change has finished.
-  - Tests: untested
+  - Tests: `ScrollAnchorTests.TheAnchorEndsOnceThePassThatRealizesTheChangeHasFinished`
 - **BRIDGE-REVEAL-031** — Rows already revealed shall not reveal again because of a correction, and an inserted row that lands out of view shall play no `Enter`.
   - Tests: `ScrollAnchorTests.RowsAlreadyRevealedDoNotRevealAgain`, `ScrollAnchorTests.AnInsertThatLandsOutOfViewEntersNothing`
 - **BRIDGE-REVEAL-032** — With `Animate.ItemLayout` on the list, no container shall ease on the compensating pass (BRIDGE-DECLLAYOUT).
@@ -117,7 +117,7 @@ depends:
 ### Defaults
 
 - **BRIDGE-REVEAL-035** (inherited) — When `Reveal` is not set, the element shall reveal nothing and no reveal shall hold it hidden.
-  - Tests: untested
+  - Tests: `ScrollRevealTests.WithoutRevealNothingHoldsTheElementHidden`
 
 ## Invariants
 
@@ -171,4 +171,3 @@ depends:
 ## Open items
 
 - The manual wheel, touchpad and thumb-drag check of the Activity feed on Desktop is still pending.
-- BRIDGE-REVEAL-014, -020, -023 and -030 have no test.

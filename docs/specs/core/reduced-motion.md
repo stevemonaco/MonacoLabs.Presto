@@ -47,7 +47,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 - **CORE-REDUCED-002** — The flags shall belong to one `PrestoDefaults`, so each engine, and each scope given its own defaults, has its own pair, in force while that scope executes.
   - Tests: `ReducedMotionTests.AScopeKeepsItsOwnFlags`
 - **CORE-REDUCED-003** — The flags shall be read when an animation is constructed; changing them, raising `ReducedMotionChanged` included, shall not alter an animation that already exists.
-  - Tests: `ReducedMotionTests.TheSignalLeavesARunningAnimationInItsForm`
+  - Tests: `ReducedMotionTests.TheSignalLeavesARunningAnimationInItsForm`, `ReducedMotionTests.FlagsChangedAfterConstructionLeaveTheAnimationAsBuilt`
 
 ### Change signal
 
@@ -63,7 +63,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 ### Preference
 
 - **CORE-REDUCED-039** — `MotionPreference` shall have the values `System`, `Full` and `Reduced`, in that order, `System` being the default; the core shall not act on it.
-  - Tests: untested
+  - Tests: `ReducedMotionTests.MotionPreferenceListsSystemFullAndReducedWithSystemTheDefault`
 
 ### Builder reduced form
 
@@ -76,11 +76,11 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 - **CORE-REDUCED-007** — The reduced form shall inherit the builder's host lifetime unless the action sets its own.
   - Tests: `HostHookTests.ReducedFormInheritsHostLifetimeUnlessItSetsItsOwn`
 - **CORE-REDUCED-008** — The action shall run on every `ToParams` call, on a fresh builder each time.
-  - Tests: untested
+  - Tests: `AnimationBuilderTests.TheReducedActionRunsOnAFreshBuilderOnEveryToParams`
 - **CORE-REDUCED-009** — A second `WhenReduced` call shall replace the first action.
   - Tests: `AnimationBuilderTests.CloneAndWithCarryTheReducedFormAndWithLeavesTheSourceAlone`
 - **CORE-REDUCED-010** — A `WhenReduced` called inside the reduced action shall be ignored.
-  - Tests: untested
+  - Tests: `AnimationBuilderTests.AWhenReducedInsideTheReducedActionIsIgnored`
 - **CORE-REDUCED-011** — `Clone` and `With` shall carry the reduced action, and `With` replacing it shall leave the source's action unchanged.
   - Tests: `AnimationBuilderTests.CloneAndWithCarryTheReducedFormAndWithLeavesTheSourceAlone`
 - **CORE-REDUCED-012** — When the builder has no `WhenReduced` action, `ToParams` shall leave `AnimationParams.WhenReduced` null.
@@ -93,17 +93,17 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 - **CORE-REDUCED-014** — Each setting or callback the reduced params set shall override the main one, and each they leave null (callbacks, a stagger delay, `Loop`, `Ease`…) shall survive from the main params.
   - Tests: `ReducedMotionTests.WhenReducedKeepsTheStaggerAndTheSettingsItDoesNotSet`, `ReducedMotionTests.WhenReducedReplacesThePropertiesAndKeepsTheCallbacks`, `ReducedMotionTests.WhenReducedOverridesTheEaseItSets`
 - **CORE-REDUCED-015** (inherited) — The reduced params' `Priority` shall override only when it differs from the default priority.
-  - Tests: untested
+  - Tests: `ReducedMotionTests.TheReducedPriorityOverridesOnlyWhenItIsNotTheDefault`
 - **CORE-REDUCED-016** — The reduced params' host lifetime shall override the main one only when set.
   - Tests: `HostHookTests.ReducedFormInheritsHostLifetimeUnlessItSetsItsOwn`
 - **CORE-REDUCED-017** — While the flag is clear, `WhenReduced` shall be ignored.
   - Tests: `ReducedMotionTests.WhenReducedIsIgnoredWhileTheFlagIsClear`
 - **CORE-REDUCED-018** — A `WhenReduced` inside the reduced params shall be ignored.
-  - Tests: untested
+  - Tests: `ReducedMotionTests.AWhenReducedNestedInTheReducedParamsIsIgnored`
 - **CORE-REDUCED-019** — Each timeline child shall pick its own form from its own params, against the timeline's engine; the timeline lays out the forms it gets.
   - Tests: `ReducedMotionTests.ATimelineChildPicksItsOwnReducedForm`
 - **CORE-REDUCED-020** — `Presto.Set` shall resolve a dictionary reduced form the same way before writing.
-  - Tests: untested
+  - Tests: `ReducedMotionTests.SetWritesTheDictionaryReducedForm`
 - **CORE-REDUCED-021** — `TimerParams` and `TimelineParams` shall have no reduced form: a timer or timeline plays as authored under `ReducedMotion`.
   - Tests: `ReducedMotionTests.ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone`
 
@@ -116,7 +116,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 - **CORE-REDUCED-024** — A keyframed property, per-property or animation-level, shall land on its last keyframe.
   - Tests: `ReducedMotionTests.ReduceAllEndsAKeyframedPropertyOnItsLastKeyframe`, `ColorKeyframesTests.TheTweenCompletesExactlyOnTo`
 - **CORE-REDUCED-025** — A spring ease shall not lengthen a collapsed tween.
-  - Tests: untested
+  - Tests: `ReducedMotionTests.ReduceAllCollapsesASpringEasedTween`
 - **CORE-REDUCED-026** — An `Inertia` to-value shall resolve first and land on its snapped, clamped end.
   - Tests: `InertiaTests.ReduceAllLandsOnTheSnappedClampedTargetInOneFrame`
 - **CORE-REDUCED-027** — A `Projectile` to-value shall resolve its trajectory with its declared flight time before collapsing, landing on its physical end.
@@ -127,7 +127,7 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
   - Tests: `ReducedMotionTests.ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone`, `ReducedMotionTests.ReduceAllLeavesADictionaryReducedFormAlone`
 - ~~**CORE-REDUCED-030**~~ — Removed: `ReduceAll` now collapses timeline positions and gaps (see "`ReduceAll` collapses timeline positions"); the rest moved to CORE-REDUCED-032.
 - **CORE-REDUCED-031** — `ReduceAll` shall not change `Presto.Set`, which is instant already.
-  - Tests: untested
+  - Tests: `ReducedMotionTests.ReduceAllLeavesSetAsItIs`
 - **CORE-REDUCED-032** — `ReduceAll` shall leave a plain timer's duration and the timeline's loop alone.
   - Tests: `ReducedMotionTests.ReduceAllLeavesAReducedAlternativeAndAPlainTimerAlone`
 - **CORE-REDUCED-033** — While `ReduceAll` is set, a timeline shall place every child, `Call` and label added at 0, a zero-duration or collapsed child `Constants.MinValue` before it (CORE-TIMELINE-017), so it lands every collapsed child's end state and fires its `Call`s on its first frame, in add order.
@@ -182,4 +182,4 @@ Reduced motion in the core is two app-set flags on `PrestoDefaults`. `ReducedMot
 
 ## Open items
 
-- Spring collapse, nested `WhenReduced`, `Priority` override, and `Set` under either flag have no test.
+- None.

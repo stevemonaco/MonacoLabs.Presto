@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -241,17 +242,109 @@ public sealed class ModalTests : CompositorTestBase
         Assert.Equal(new Point(45, 80), Assert.IsType<EllipseGeometry>(Panel(modal).Clip).Rect.Center);
     }
 
+    [AvaloniaFact]
+    public void OpeningFromAPointRevealsAroundThatPoint()
+    {
+        var (_, modal, _) = Stage();
+
+        modal.Open(new Point(150, 160));
+        Tick();
+        Frames.Advance(100, 20);
+
+        Assert.True(modal.IsOpen);
+        Assert.Equal(new Point(150, 160), Assert.IsType<EllipseGeometry>(Panel(modal).Clip).Rect.Center);
+    }
+
+    [AvaloniaFact]
+    public void EachShowReplaysTheEntrancesInsideTheContent()
+    {
+        var row = new Border { Width = 40, Height = 20, Background = Brushes.Red };
+        Presence.SetEnter(row, Presto.Build().Opacity(from: 0).Duration(100).Ease("linear"));
+        var (_, modal, _) = Stage(new StackPanel { Children = { row } });
+
+        for (var i = 0; i < 2; i++)
+        {
+            modal.Open();
+            Tick();
+            Frames.Advance(50, 10);
+            Assert.InRange(row.Opacity, .3, .7);
+
+            Frames.Advance(3000, 20);
+            Assert.Equal(1, row.Opacity);
+            modal.Close();
+            Frames.Advance(3000, 20);
+        }
+    }
+
+    [AvaloniaFact]
+    public void ANullScrimDrawsNothingAndLeavesATapToTheHost()
+    {
+        var (window, modal, opener) = Stage();
+        modal.Scrim = null;
+        modal.Open(opener);
+        Frames.Advance(3000, 20);
+        Tick();
+
+        Assert.Equal(Colors.White, Row(window, 190)[190]);
+        Assert.Same(modal.Backdrop, window.InputHitTest(new Point(190, 190)));
+        Press(window, new Point(190, 190));
+        Assert.True(modal.IsOpen);
+    }
+
+    [AvaloniaFact]
+    public void ItMeasuresAsItsContentWhetherOpenOrClosed()
+    {
+        var modal = new Modal { Content = new Border { Width = 100, Height = 80 } };
+        var host = new StackPanel { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Children = { modal } };
+        new Window { Content = host, Width = 200, Height = 200 }.Show();
+        Tick();
+
+        Assert.Equal(new Size(100, 80), modal.Content.DesiredSize);
+        Assert.Equal(new Size(100, 80), host.Bounds.Size);
+
+        modal.Open();
+        Tick();
+        Assert.Equal(new Size(100, 80), host.Bounds.Size);
+
+        modal.Close();
+        Frames.Advance(3000, 20);
+        Tick();
+        Assert.Equal(new Size(100, 80), host.Bounds.Size);
+    }
+
+    [AvaloniaFact]
+    public void ByDefaultItIsClosedWithA32PercentBlackScrim()
+    {
+        var (_, modal, _) = Stage();
+
+        Assert.False(modal.IsOpen);
+        Assert.False(Panel(modal).IsVisible);
+        Assert.Equal(Color.Parse("#52000000"), Assert.IsAssignableFrom<ISolidColorBrush>(modal.Scrim).Color);
+    }
+
+    [AvaloniaFact]
+    public void ABindingToIsOpenWithNoModeWritesBackToItsSource()
+    {
+        var (_, modal, _) = Stage();
+        var source = new CheckBox { IsChecked = false };
+        modal.Bind(Modal.IsOpenProperty, new Binding(nameof(CheckBox.IsChecked)) { Source = source });
+
+        modal.Open();
+
+        Assert.True(source.IsChecked);
+    }
+
     private static Border Scrim(Modal modal) => modal.GetVisualChildren().OfType<Border>().First();
 
     private static double Radius(Modal modal) => ((EllipseGeometry)Panel(modal).Clip!).Rect.Width / 2;
 
     private static Decorator Panel(Modal modal) => (Decorator)modal.Content!.GetVisualParent()!;
 
-    private static (Window Window, Modal Modal, Button Opener) Stage()
+    private static (Window Window, Modal Modal, Button Opener) Stage(Control? content = null)
     {
         var opener = new Button { Width = 40, Height = 40, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
         var backdrop = new Border { Background = Brushes.White, Child = opener };
-        var modal = new Modal { Backdrop = backdrop, Content = new Border { Width = 100, Height = 100, Background = Brushes.Red } };
+        var modal = new Modal { Backdrop = backdrop, Content = content ?? new Border { Width = 100, Height = 100, Background = Brushes.Red } };
         var window = new Window { Content = new Panel { Children = { backdrop, modal } }, Width = 200, Height = 200 };
         window.Show();
         Tick();

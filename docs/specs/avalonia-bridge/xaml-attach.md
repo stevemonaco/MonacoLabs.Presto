@@ -96,11 +96,11 @@ depends:
 - **BRIDGE-ATTACH-018** — When an `OnChanged` animation completes, `Animate` shall revert it, after the builder's own `OnComplete` has run.
   - Tests: `AnimateAttachedTests.OnChangedSkipsTheInitialBindingAndPlaysOnEachLaterChange`
 - **BRIDGE-ATTACH-019** (inherited) — When `Watch` changes while the visual is detached, `Animate` shall play nothing for that change, though the change still counts as seen.
-  - Tests: untested
+  - Tests: `AnimateAttachedTests.AWatchChangeWhileDetachedPlaysNothingButCountsAsSeen`
 - **BRIDGE-ATTACH-020** — When `OnChanged` is set to `null`, `Animate` shall revert the running animation and stop playing on `Watch` changes.
   - Tests: `AnimateAttachedTests.ClearingOnChangedStopsListening`
 - **BRIDGE-ATTACH-021** (inherited) — `Watch` alone, without `OnChanged`, shall play nothing.
-  - Tests: untested
+  - Tests: `AnimateAttachedTests.WatchAlonePlaysNothing`
 - **BRIDGE-ATTACH-043** — `DoOnChanged` shall be invoked with each `Watch` value while the visual is attached, with `first` true for the first value it is invoked with.
   - Tests: `AnimateAttachedTests.DoOnChangedSeesTheFirstValueAsFirstAndLaterValuesAsNot`
 - **BRIDGE-ATTACH-044** — When `DoOnChanged` is set on an attached visual, or the visual attaches, with a `Watch` value that `DoOnChanged` has not been invoked with, `DoOnChanged` shall be invoked with that value, with `first` true if it was never invoked.
@@ -130,15 +130,15 @@ depends:
 - **BRIDGE-ATTACH-024** — When the target is a `TextBlock` whose `TextReveal.Pieces` is not `None` and the builder is not a reduced form, `OnAttached` and `OnTapped` shall play the builder on the block's split pieces as a text reveal (BRIDGE-TEXTREVEAL) instead of on the block, and a tap mid-reveal shall restart it.
   - Tests: `TextRevealTests.OnTappedRevealsThePiecesAndATapMidRevealRestartsIt`, `TextRevealTests.DetachingRevertsTheSplit`, `TextRevealTests.DetachingBeforeTheSplitReleasesTheHold`
 - **BRIDGE-ATTACH-025** — `OnChanged` and `OnCue` shall always animate the visual itself, never its text pieces.
-  - Tests: untested
+  - Tests: `AnimateAttachedTests.OnChangedAndOnCueAnimateATextBlockItselfNotItsPieces`
 - **BRIDGE-ATTACH-026** — While `Design.IsDesignMode` is true, setting any trigger property (`OnAttached`, `OnTapped`, `OnChanged`, `OnCue`, `Cue`, `DoOnChanged`, `DoOnCue`) shall create no trigger or subscription, play nothing and invoke nothing.
   - Tests: `AnimateAttachedTests.DoesNothingInDesignMode`
 - **BRIDGE-ATTACH-027** — Before playing, a trigger shall initialize the bridge (`PrestoAvalonia.EnsureInitialized`), so XAML use needs no explicit setup.
-  - Tests: untested
+  - Tests: `AnimateAttachedTests.ATriggerInitializesTheBridgeBeforePlaying`
 - **BRIDGE-ATTACH-028** — Every animation a trigger creates shall carry the diagnostics origin `"Animate"` (CORE-DIAGNOSTICS).
-  - Tests: untested
+  - Tests: `AnimateAttachedTests.EveryTriggerAnimationCarriesTheAnimateOriginAndRunsOnTheUIThread`
 - **BRIDGE-ATTACH-029** — Trigger animations shall run on the UI thread through `Presto.Animate`; the triggers take no `AnimationThread` (see The thread is an argument on bridge entry points).
-  - Tests: untested
+  - Tests: `AnimateAttachedTests.EveryTriggerAnimationCarriesTheAnimateOriginAndRunsOnTheUIThread`
 
 ### Builder sources
 
@@ -148,7 +148,7 @@ depends:
 ### Defaults
 
 - **BRIDGE-ATTACH-031** (inherited) — When `OnAttached`, `OnTapped`, `OnChanged`, `Watch`, `Cue`, `OnCue`, `DoOnCue` or `DoOnChanged` is not set, it shall be null, so the visual has no trigger and nothing plays or is invoked.
-  - Tests: untested
+  - Tests: `AnimateAttachedTests.NoTriggerIsSetByDefaultSoNothingPlays`
 
 ## Invariants
 
@@ -221,4 +221,4 @@ depends:
 
 ## Open items
 
-- BRIDGE-ATTACH-019, -021, -025, -027, -028 and -029 have no test.
+None.

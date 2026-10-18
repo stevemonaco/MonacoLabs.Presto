@@ -356,6 +356,19 @@ public sealed class WhenDetachedTests : BridgeTestBase
         Assert.True(transition.Completed);
     }
 
+    [AvaloniaFact]
+    public void ASetIsNotTracked()
+    {
+        var trackers = AvaloniaPropertyRegistry.Instance.GetRegisteredAttached(typeof(Border)).Single(p => p.Name == "Trackers");
+        var box = Attached();
+
+        Presto.Set(box, new AnimationParams { ["Opacity"] = .3 });
+        Assert.Null(box.GetValue(trackers));
+
+        Loop(box);
+        Assert.NotNull(box.GetValue(trackers));
+    }
+
     private Timeline LoopOver(Border first, Border second) =>
         Presto.CreateTimeline(new TimelineParams { Loop = true })
             .Add(first, new AnimationParams { ["Opacity"] = 0, Duration = 1000, Ease = "linear" })

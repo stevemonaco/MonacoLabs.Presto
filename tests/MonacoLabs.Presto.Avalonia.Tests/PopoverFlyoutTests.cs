@@ -295,6 +295,54 @@ public sealed class PopoverFlyoutTests : CompositorTestBase
         Assert.Equal([fade, width], presenter.Transitions!);
     }
 
+    [AvaloniaFact]
+    public void PopoverAnimationsContinueWhenDetachedAndCarryThePopoverOrigin()
+    {
+        List<Timer> created = [];
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        try
+        {
+            var stage = Stage("flyout");
+            Popover.SetOpen(stage.Owner, ScaleIn);
+            Popover.SetClose(stage.Owner, FadeOut);
+            stage.Open();
+            Tick();
+            stage.Close();
+            Frames.Advance(16);
+
+            Assert.Equal(2, created.Count);
+            Assert.All(created, timer =>
+            {
+                Assert.Equal("Popover", timer.Origin);
+                Assert.Equal(WhenDetached.Continue, timer._hostLifetime);
+            });
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
+    }
+
+    [AvaloniaFact]
+    public void AClosingAnotherHandlerCanceledIsLeftAlone()
+    {
+        var stage = Stage("flyout");
+        Popover.SetClose(stage.Owner, FadeOut);
+        var flyout = (PopupFlyoutBase)stage.Owner;
+        flyout.Closing += (_, e) => e.Cancel = true;
+        stage.Open();
+        Tick();
+        var presenter = stage.Presenter();
+
+        stage.Close();
+        Frames.Advance(100, 16);
+
+        Assert.True(stage.IsOpen());
+        Assert.Equal(1, presenter.Opacity);
+        Assert.Empty(Presto.GetAnimations(presenter));
+    }
+
     private sealed record Staged(Window Window, Button Anchor, AvaloniaObject Owner, Action Open, Action Close, Func<bool> IsOpen, Func<Control> Presenter);
 
     private static double Scale(Visual visual) => Convert.ToDouble(PrestoAvalonia.Get(visual, "Scale"));

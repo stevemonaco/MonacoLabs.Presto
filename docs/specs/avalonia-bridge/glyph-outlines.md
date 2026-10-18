@@ -47,7 +47,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 - **BRIDGE-GLYPHS-004** — A character with no outline (whitespace, a missing glyph, or a glyph of a font carrying color or bitmap tables: `COLR`, `CBDT`, `sbix` or `SVG `) shall add nothing to an outline, so a character made only of such glyphs has an empty outline.
   - Tests: `GlyphOutlineTests.WhitespaceHasAnEmptyOutline`, `GlyphOutlineTests.EmojiHasAnEmptyOutline`
 - **BRIDGE-GLYPHS-005** — When the font simulates bold or oblique, the outline shall be emboldened or skewed by -0.3 as Avalonia.Skia draws it.
-  - Tests: untested
+  - Tests: `GlyphOutlineTests.ASimulatedBoldOrObliqueOutlineCoversTheInkAvaloniaDraws`
 - **BRIDGE-GLYPHS-016** — Read from a laid-out block's text layout, each grapheme's outline shall be the glyphs that layout shaped for it, in context, relative to the grapheme's slot: the union of the layout's hit-test rectangles for it, in block coordinates.
   - Tests: `GlyphOutlineTests.AGraphemesOutlineInContextIsTheGlyphTheBlockDraws`, `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout`
 - **BRIDGE-GLYPHS-017** — Hiding some of a block's graphemes shall leave its glyphs, their positions and the in-context outlines those of the plain text, and restoring them shall leave the block as plain `Text` with a binding on `Text` still updating it.
@@ -129,4 +129,4 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 
 ## Open items
 
-- Bold and oblique simulation (BRIDGE-GLYPHS-005) and the missing-glyph case of BRIDGE-GLYPHS-004 have no test. The emoji test does reach the color-font path: on the Windows headless font set the emoji shapes to a real glyph of Segoe UI Emoji, which the test checks is not glyph 0.
+- The missing-glyph case of BRIDGE-GLYPHS-004 has no test. The emoji test does reach the color-font path: on the Windows headless font set the emoji shapes to a real glyph of Segoe UI Emoji, which the test checks is not glyph 0.

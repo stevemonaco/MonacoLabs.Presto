@@ -31,6 +31,28 @@ public sealed class TransformsTests : BridgeTestBase
         Assert.Equal(200, translate.Y);
     }
 
+    [AvaloniaTheory]
+    [InlineData(.5, .5)]
+    [InlineData(0, 0)]
+    public void TransformsPivotAboutTheVisualsOwnOriginWhichTheBridgeLeavesAlone(double x, double y)
+    {
+        var box = Box();
+        box.Margin = new Thickness(20);
+        var origin = new RelativePoint(x, y, RelativeUnit.Relative);
+        if (x == 0) box.RenderTransformOrigin = origin;
+        var window = Show(box);
+        var pivot = new Point(50 * x, 50 * y);
+        var before = box.TranslatePoint(pivot, window)!.Value;
+
+        Seeked(box, new() { ["Rotate"] = 90, ["Scale"] = 1.5, ["SkewX"] = 10 });
+        window.UpdateLayout();
+
+        Assert.Equal(origin, box.RenderTransformOrigin);
+        var after = box.TranslatePoint(pivot, window)!.Value;
+        Assert.Equal(before.X, after.X, 6);
+        Assert.Equal(before.Y, after.Y, 6);
+    }
+
     [AvaloniaFact]
     public void SeparateAnimationsOnTheSameVisualAggregate()
     {

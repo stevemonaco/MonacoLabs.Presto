@@ -158,4 +158,39 @@ public sealed class InertiaMathTests : EngineTestBase
         var k4 = f((s.X + k3.X * h, s.V + k3.V * h));
         return (s.X + (k1.X + 2 * k2.X + 2 * k3.X + k4.X) * h / 6, s.V + (k1.V + 2 * k2.V + 2 * k3.V + k4.V) * h / 6);
     }
+
+    [Fact]
+    public void PowerDefaultsToOne() => Assert.Equal(200, InertiaSolver.Resolve(0, 2, new Inertia(2) { TimeConstant = 100 }).To, 1e-9);
+
+    [Fact]
+    public void TimeConstantDefaultsTo350() => Assert.Equal(1400, InertiaSolver.Resolve(0, 2, new Inertia(2) { Power = 2 }).To, 1e-9);
+
+    [Fact]
+    public void RestDeltaDefaultsToHalfAUnit()
+    {
+        var plan = InertiaSolver.Resolve(0, 2, new Inertia(2));
+        Assert.Equal(350 * Math.Log(700 / .5), plan.Duration, 1e-9);
+    }
+
+    [Fact]
+    public void BounceSpringDefaultsToStiffness500AndDamping10()
+    {
+        var byDefault = InertiaSolver.Resolve(0, 2, new Inertia(2) { Max = 300 });
+        var explicitly = InertiaSolver.Resolve(0, 2, new Inertia(2) { Max = 300, BounceStiffness = 500, BounceDamping = 10 });
+
+        Assert.Equal(explicitly.Duration, byDefault.Duration);
+        for (var u = 0.0; u <= 1; u += .01) Assert.Equal(explicitly.Ease(u), byDefault.Ease(u));
+    }
+
+    [Theory]
+    [InlineData(100)]
+    [InlineData(-100)]
+    public void WithoutModifyTargetOrBoundsAnInertiaLandsOnItsIdealTarget(double velocity)
+    {
+        var plan = InertiaSolver.Resolve(5, velocity, new Inertia(velocity));
+
+        Assert.Equal(5 + velocity * 350, plan.To, 1e-9);
+        Assert.Null(plan.Then);
+        Assert.Equal(1, plan.Ease(1), 12);
+    }
 }

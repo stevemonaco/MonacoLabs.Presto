@@ -149,7 +149,7 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 - **BRIDGE-HELPERS-032** — Presence, Motion, page transitions and layout transitions shall manage their own lifetime and not be paused by the tracker (see Features that manage their own lifetimes pass `WhenDetached.Continue`).
   - Tests: `WhenDetachedTests.AnExitGhostRunsToCompletionWhenItsWindowCloses`, `WhenDetachedTests.APresenceEnterOnADetachingControlIsRevertedByPresenceNotHeldPaused`, `WhenDetachedTests.AMotionStateAnimationIsLeftToMotion`, `WhenDetachedTests.APageTransitionFinishesWhenItsPagesDetach`, `WhenDetachedTests.ALayoutTransitionFinishesWhenItsControlDetaches`
 - **BRIDGE-HELPERS-033** (inherited) — An animation already completed when created (a `Set`) shall not be tracked.
-  - Tests: untested
+  - Tests: `WhenDetachedTests.ASetIsNotTracked`
 
 ## Invariants
 
@@ -209,4 +209,4 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 
 ## Open items
 
-- BRIDGE-HELPERS-033 is untested.
+None.

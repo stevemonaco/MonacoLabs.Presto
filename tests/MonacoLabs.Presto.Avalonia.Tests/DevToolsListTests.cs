@@ -159,6 +159,46 @@ public sealed class DevToolsListTests : BridgeTestBase, IDisposable
         Assert.Equal(TickableState.Paused, RowOf(paused).State);
     }
 
+    [AvaloniaFact]
+    public void ATimelineChildRowShowsItsParentsStateWhileTheParentIsNotRunning()
+    {
+        var timeline = Presto.CreateTimeline(new TimelineParams())
+            .Add(_box, new AvaloniaAnimationParams { ["Opacity"] = 0, Duration = 100 })
+            .Add(_box, new AvaloniaAnimationParams { ["Width"] = 100, Duration = 100 });
+        Frames.Advance(50, 16);
+        _list.Refresh();
+        RowOf(timeline).IsExpanded = true;
+        _list.Refresh();
+        var second = _list.Items[2];
+        Assert.NotEqual(TickableState.Paused, second.State);
+
+        timeline.Pause();
+        _list.Refresh();
+
+        Assert.Equal(TickableState.Paused, _list.Items[1].State);
+        Assert.Equal(TickableState.Paused, second.State);
+    }
+
+    [AvaloniaFact]
+    public void TheStateFilterShowsOnlyRootsInTheChosenState()
+    {
+        var running = Animate(new() { ["Opacity"] = 0, Duration = 1000 });
+        var paused = Animate(new() { ["Width"] = 100, Duration = 1000 }).Pause();
+        Frames.Advance(100);
+
+        _list.StateFilter.SelectedIndex = 1 + (int)TickableState.Paused;
+        _list.Refresh();
+        Assert.Same(paused, Assert.Single(_list.Items).Timer);
+
+        _list.StateFilter.SelectedIndex = 1 + (int)TickableState.Running;
+        _list.Refresh();
+        Assert.Same(running, Assert.Single(_list.Items).Timer);
+
+        _list.StateFilter.SelectedIndex = 0;
+        _list.Refresh();
+        Assert.Equal(2, _list.Items.Count);
+    }
+
     private Animation Animate(AvaloniaAnimationParams parameters) => Presto.Animate(_box, parameters);
 
     private TickableRow RowOf(Timer timer) => Assert.Single(_list.Items, r => r.Timer == timer);

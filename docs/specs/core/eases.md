@@ -71,18 +71,18 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - **CORE-EASES-007** — The `Back` ease-in shall be `(o + 1)t³ − o·t²` with overshoot o defaulting to 1.7 and not clamped.
   - Tests: `EaseFixtureTests.EaseMatchesUpstream`
 - **CORE-EASES-008** — The `Elastic` eases shall clamp amplitude to [1, 10] and period to [1e-11, 2], defaulting to 1 and 0.3.
-  - Tests: untested
+  - Tests: `EasesTests.ElasticClampsAmplitudeAndPeriod`
 - **CORE-EASES-009** — The `Elastic` ease-in shall return exactly t at t = 0 and t = 1.
   - Tests: `EaseFixtureTests.EaseMatchesUpstream`
 - **CORE-EASES-010** — The fixed eases shall be singletons: each property read returns the same delegate instance.
-  - Tests: untested
+  - Tests: `EasesTests.FixedEasesAreSingletons`
 - **CORE-EASES-011** — Each call of a parameterized factory shall return a new delegate, except where a requirement below says it returns `None`.
-  - Tests: untested
+  - Tests: `EasesTests.EachFactoryCallReturnsANewDelegate`
 
 ### Composition
 
 - **CORE-EASES-012** — `In(Ease)` shall return a delegate that evaluates the given ease unchanged.
-  - Tests: untested
+  - Tests: `EasesTests.InOfACustomEaseEvaluatesItUnchanged`
 - **CORE-EASES-013** — `Out(Ease f)` shall return `1 − f(1 − t)`.
   - Tests: `EasesTests.CompositionMirrorsAndHalvesACustomEase`
 - **CORE-EASES-014** — `InOut(Ease f)` shall return `f(2t)/2` for t < 0.5 and `1 − f(2 − 2t)/2` otherwise.
@@ -110,13 +110,13 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - **CORE-EASES-022** — When an interior stop has a `Position`, `Linear` shall place it at that progress instead of its even position.
   - Tests: `EasesTests.CustomUnevenLinear`
 - **CORE-EASES-023** — `Linear` shall place the first stop at 0 and the last at 1, ignoring their `Position`.
-  - Tests: untested
+  - Tests: `EasesTests.LinearIgnoresThePositionsOfItsFirstAndLastStops`
 - **CORE-EASES-024** — When t is past the last stop, a `Linear` ease shall return the last stop's value.
   - Tests: `EasesTests.LinearReturnsLastValuePastTheEnd`
 - **CORE-EASES-025** — When t < 0, a `Linear` ease shall extrapolate along its first segment.
-  - Tests: untested
+  - Tests: `EasesTests.LinearExtrapolatesItsFirstSegmentBeforeZero`
 - **CORE-EASES-026** — `Linear` shall copy the stops when it is created, so later changes to the array do not change the ease.
-  - Tests: untested
+  - Tests: `EasesTests.LinearCopiesItsStops`
 - **CORE-EASES-027** — A `LinearStop` converted from a number shall have that value and no `Position`.
   - Tests: `EasesTests.CustomLinear`
 - **CORE-EASES-028** — A `LinearStop` converted from a string shall read `"value"` or `"value percent"` (whitespace-separated, trailing `%` optional), the percent divided by 100 as its `Position`.
@@ -158,11 +158,11 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - **CORE-EASES-042** — `FromPath` shall flatten each cubic into 64 chords, sample the polyline at 513 equal x steps, and interpolate that table linearly, matching the equivalent `CubicBezier` within 1e-3.
   - Tests: `CustomEaseTests.SingleCubicMatchesCubicBezier`
 - **CORE-EASES-043** — When the start and end y are equal, `FromPath` shall offset y without scaling it.
-  - Tests: untested
+  - Tests: `CustomEaseTests.FlatPathIsOffsetWithoutScaling`
 - **CORE-EASES-044** — When x decreases by more than 1e-9 along the path, `FromPath` shall throw `ArgumentException`; a smaller decrease is clamped.
   - Tests: `CustomEaseTests.BackwardsXThrows`
 - **CORE-EASES-045** — When the path has fewer than two points or no positive x width, `FromPath` shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `CustomEaseTests.PathWithoutWidthThrows`
 - **CORE-EASES-046** — When the path uses another command, does not start with a command, or has a missing or malformed number, `FromPath` shall throw `FormatException`.
   - Tests: `CustomEaseTests.MalformedPathThrows`
 
@@ -175,23 +175,23 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - **CORE-EASES-049** — For `WiggleType.Random`, `Wiggle` shall draw one amplitude per half swing (2·wiggles) from the given `Random`, or `Random.Shared`, while it is created, each multiplied by `1 − t`.
   - Tests: `EasePackTests.WiggleRestsAtBothEndsAndCrossesZeroTwicePerWiggle`
 - **CORE-EASES-050** — When `wiggles` < 1 or `type` is not a defined `WiggleType`, `Wiggle` shall throw `ArgumentOutOfRangeException`.
-  - Tests: untested
+  - Tests: `EasePackTests.WiggleRejectsInvalidArguments`
 - **CORE-EASES-051** — `Rough` shall be a `Linear` ease through `points` points jittered around `template` (default `None`), exactly 0 at t = 0 and 1 at t = 1.
   - Tests: `EasePackTests.RoughIsExactAtTheEnds`, `EasePackTests.RoughIsJagged`
 - **CORE-EASES-052** — `Rough` shall jitter each point by up to half of 0.4·`strength`: randomly in x and y when `randomize` is true, else at x = i/points with alternating signs.
   - Tests: `EasePackTests.RoughFollowsItsTemplateWithZeroStrength`, `EasePackTests.RoughIsJagged`
 - **CORE-EASES-053** — `RoughTaper` shall scale the jitter by x² (`In`), (1 − x)² (`Out`) or half of (2·min(x, 1 − x))² (`Both`).
-  - Tests: untested
+  - Tests: `EasePackTests.RoughTaperScalesTheJitter`
 - **CORE-EASES-054** — When `clamp` is true, `Rough` shall clamp each jittered point to [0, 1].
   - Tests: `EasePackTests.ClampedRoughStaysInTheUnitRange`
 - **CORE-EASES-055** — `Rough` shall draw from the given `Random`, or `Random.Shared`, only while it is created, so one seed gives one curve.
   - Tests: `EasePackTests.RoughWithTheSameSeedIsIdentical`
 - **CORE-EASES-056** — When `points` < 1, `Rough` shall throw `ArgumentOutOfRangeException`.
-  - Tests: untested
+  - Tests: `EasePackTests.RoughRejectsFewerThanOnePoint`
 - **CORE-EASES-057** — `SlowMo(linearRatio, power)` shall run a linear middle over `linearRatio` of the time with slope `1 − power`, eased in and out at the ends, from 0 at t = 0 to 1 at t = 1.
   - Tests: `EasePackTests.SlowMoHasConstantSlopeOverItsLinearSection`
 - **CORE-EASES-058** — `SlowMo` shall clamp `linearRatio` to at most 1 and ignore `power` at 1.
-  - Tests: untested
+  - Tests: `EasePackTests.SlowMoClampsItsRatioAndIgnoresPowerAtOne`
 - **CORE-EASES-059** — When `yoyoMode` is true, `SlowMo` shall rise to 1, hold it through the linear section, and fall back to exactly 0 at t ≥ 1.
   - Tests: `EasePackTests.YoyoSlowMoReturnsToZero`
 - **CORE-EASES-060** — `ExpoScale(start, end, ease)` shall return `(start·(end/start)^e − start)/(end − start)` where e is `ease(t)` (default `None`), so the scale is interpolated geometrically.
@@ -230,15 +230,15 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 - **CORE-EASES-071** — When `power` is not set, `Out`, `InOut` and `OutIn` shall use power 1.68.
   - Tests: `EasesTests.BuiltInEaseTypesAtMidpoint`
 - **CORE-EASES-072** — When `steps` is not set, `Steps` shall use 10 steps.
-  - Tests: untested
+  - Tests: `EasesTests.StepsDefaultsToTenSteps`
 - **CORE-EASES-073** — When `length` and `randomness` are not set, `Irregular` shall use 10 stops and randomness 1.
-  - Tests: untested
+  - Tests: `EasesTests.IrregularDefaultsToTenStopsAndFullRandomness`
 - **CORE-EASES-074** — When `wiggles` and `type` are not set, `Wiggle` shall swing 10 times with the `EaseOut` envelope, GSAP's defaults.
   - Tests: `EasePackTests.EaseOutWigglePeaksDecay`
 - **CORE-EASES-075** — When its options are not set, `Rough` shall use 20 points, strength 1, no clamping, `RoughTaper.None` and randomized points, GSAP's defaults.
-  - Tests: untested
+  - Tests: `EasePackTests.RoughDefaultsToGsapOptions`
 - **CORE-EASES-076** — When its options are not set, `SlowMo` shall use a linear ratio of 0.7, power 0.7 and no yoyo, GSAP's defaults.
-  - Tests: untested
+  - Tests: `EasePackTests.SlowMoDefaultsToGsapOptions`
 
 ## Invariants
 
@@ -300,4 +300,4 @@ The `Ease` delegate and the `Eases` catalog: the anime.js 4.5.0 built-in eases w
 
 ## Open items
 
-- Untested: `Elastic` argument clamping (008), `Linear` endpoint positions, negative t and stop copying (023, 025, 026), `FromPath` flat and too-short paths (043, 045), `Wiggle`/`Rough` argument errors (050, 056), `RoughTaper` scaling (053), and `SlowMo` ratio clamping (058).
+None.

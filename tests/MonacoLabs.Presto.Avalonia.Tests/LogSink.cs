@@ -16,14 +16,14 @@ internal sealed class LogSink : ILogSink, IDisposable
         Logger.Sink = this;
     }
 
-    public List<(LogEventLevel Level, string Message)> Entries { get; } = [];
+    public List<(LogEventLevel Level, string Message, object?[] Values)> Entries { get; } = [];
 
     public bool IsEnabled(LogEventLevel level, string area) => level >= _minimum && area == _area;
 
-    public void Log(LogEventLevel level, string area, object? source, string messageTemplate) => Entries.Add((level, messageTemplate));
+    public void Log(LogEventLevel level, string area, object? source, string messageTemplate) => Entries.Add((level, messageTemplate, []));
 
     public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues) =>
-        Entries.Add((level, messageTemplate));
+        Entries.Add((level, messageTemplate, propertyValues));
 
     public void Dispose() => Logger.Sink = _previous;
 }

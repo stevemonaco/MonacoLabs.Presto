@@ -105,7 +105,7 @@ depends:
 - **BRIDGE-SHEET-022** — When a coast's projected target lies past the first or last detent, the sheet shall let it cross the bound and bounce back onto it.
   - Tests: `GesturesPageTests.AFlickUpCoastsTheSheetOpenPastItsStopAndBouncesBackOntoIt`
 - **BRIDGE-SHEET-023** (inherited) — When a release follows an actual drag, the sheet shall mark the release handled; a press that never became a drag shall leave the release unhandled.
-  - Tests: untested
+  - Tests: `SheetTests.AReleaseIsHandledOnlyAfterADrag`
 
 ### Edge swipe and drawer
 
@@ -143,17 +143,17 @@ depends:
 ### Defaults
 
 - **BRIDGE-SHEET-030** — When `Detents` is not set, the sheet shall rest on `"0,Auto"`: closed, and open at its content's own extent.
-  - Tests: untested
+  - Tests: `SheetTests.WithoutDetentsItOpensToItsContentsOwnExtent`
 - **BRIDGE-SHEET-031** — When `Edge` is not set on a `Sheet`, it shall slide out from the bottom edge.
   - Tests: `SheetTests.ADragReleasedBetweenDetentsSettlesOnTheNearest`
 - **BRIDGE-SHEET-032** (inherited) — When `DetentIndex` and `IsOpen` are not set, the sheet shall rest closed on its first detent.
-  - Tests: untested
+  - Tests: `SheetTests.ItDefaultsClosedOnTheFirstDetentWithTwoWayStateAClippedBoundsAndATranslucentBlackScrim`
 - **BRIDGE-SHEET-033** — `DetentIndex` and `IsOpen` shall bind two-way by default.
-  - Tests: untested
+  - Tests: `SheetTests.ItDefaultsClosedOnTheFirstDetentWithTwoWayStateAClippedBoundsAndATranslucentBlackScrim`
 - **BRIDGE-SHEET-034** — When `Scrim` is not set, the scrim shall be black at 32 % alpha (`#52000000`).
-  - Tests: untested
+  - Tests: `SheetTests.ItDefaultsClosedOnTheFirstDetentWithTwoWayStateAClippedBoundsAndATranslucentBlackScrim`
 - **BRIDGE-SHEET-035** — When `ClipToBounds` is not set, the sheet shall clip to its bounds.
-  - Tests: untested
+  - Tests: `SheetTests.ItDefaultsClosedOnTheFirstDetentWithTwoWayStateAClippedBoundsAndATranslucentBlackScrim`
 - **BRIDGE-SHEET-037** (inherited) — When `TimeConstant` is not set, it shall be 350.
   - Tests: `SheetTests.TheDefaultTimeConstantIs350`
 - **BRIDGE-SHEET-047** — When `Presentation` is not set, it shall be `Edge`.
@@ -219,4 +219,4 @@ depends:
 
 ## Open items
 
-- Untested: the handled release and `Scrim = null` letting taps through.
+None.

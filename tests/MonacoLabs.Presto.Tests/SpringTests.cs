@@ -254,4 +254,64 @@ public sealed class SpringTests : EngineTestBase
         Assert.Equal(.5, gentle.Duration, 1e-12);
         Assert.Equal(milliseconds / 1000, gentle.SettlingDuration, 3);
     }
+
+    [Fact]
+    public void SamplingThePureEaseLeavesCompletionAlone()
+    {
+        var calls = 0;
+        var spring = Eases.Spring(onComplete: _ => calls++);
+
+        for (var t = 0.0; t <= 1; t += .05) spring.PureEase(t);
+        Assert.False(spring.Completed);
+
+        spring.Ease(1);
+        spring.PureEase(.01);
+        Assert.True(spring.Completed);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public void OnlyAnAnimationsOwnSpringIsParentedToIt()
+    {
+        var own = Eases.Spring();
+        var perTween = Eases.Spring();
+        var perTarget = Eases.Spring();
+
+        var animation = Presto.Animate(new StyleTarget(), EasingParams(own));
+        Presto.Animate(new StyleTarget(), new()
+        {
+            ["Opacity"] = new TweenParams { To = 1, Ease = perTween },
+            ["TranslateX"] = new TweenParams { To = 100, Ease = new FunctionValue((_, _, _) => perTarget) },
+            Autoplay = false,
+        });
+
+        Assert.Same(animation, own.Parent);
+        Assert.Null(perTween.Parent);
+        Assert.Null(perTarget.Parent);
+    }
+
+    [Fact]
+    public void SwitchingTheTimeUnitDoesNotRescaleAnExistingSpring()
+    {
+        var spring = new Spring();
+        Presto.Engine.TimeUnit = TimeUnit.Seconds;
+
+        Assert.Equal(1760, spring.SettlingDuration);
+        Assert.Equal(628.319, spring.Duration);
+
+        spring.Velocity = 0;
+        Assert.Equal(1.76, spring.SettlingDuration, 1e-9);
+        Assert.Equal(.628, spring.Duration, 12);
+    }
+
+    [Fact]
+    public void ASpringWithoutOnCompleteCompletesSilently()
+    {
+        var spring = new Spring();
+
+        spring.Ease(1);
+
+        Assert.Null(spring.OnComplete);
+        Assert.True(spring.Completed);
+    }
 }

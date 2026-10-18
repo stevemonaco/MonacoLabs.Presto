@@ -235,6 +235,86 @@ public sealed class PresenceTests : CompositorTestBase
         Assert.Equal(drawn, Box(window));
     }
 
+    [AvaloniaFact]
+    public void AClippingAncestorShrinkingAsTheElementLeavesKeepsItsExitStartSizeForTheGhost()
+    {
+        var item = Leaving();
+        var clip = new Border { ClipToBounds = true, VerticalAlignment = VerticalAlignment.Top, Child = new StackPanel { Children = { new Border { Height = 30 }, item } } };
+        var (window, _) = Show(clip);
+        var slot = SlotOf(item);
+
+        ((Panel)item.Parent!).Children.Remove(item);
+        Tick();
+
+        Assert.Equal(30, clip.Bounds.Height);
+        Assert.Equal(slot, Box(window));
+    }
+
+    [AvaloniaFact]
+    public void AZeroSizedElementLeavesNoGhost()
+    {
+        var item = Leaving();
+        item.Width = 0;
+        var (window, panel) = Show(item, new Border { Height = 20 });
+
+        Assert.Null(PrestoAvalonia.AnimateExit(item, Fade));
+        panel.Children.Remove(item);
+        Tick();
+
+        Assert.Empty(Ghosts(window));
+    }
+
+    [AvaloniaFact]
+    public void TheExitCarriesThePresenceOrigin()
+    {
+        List<Timer> created = [];
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        try
+        {
+            var item = Leaving();
+            var (_, panel) = Show(item, new Border { Height = 20 });
+
+            panel.Children.Remove(item);
+            Tick();
+
+            Assert.Equal("Presence", Assert.Single(created).Origin);
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
+    }
+
+    [AvaloniaFact]
+    public void AnimateExitGhostsAPageAPrestoTransitionHosts()
+    {
+        var page = new Border { Width = 40, Height = 20, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left };
+        var host = new TransitioningContentControl { PageTransition = new PrestoPageTransition(), Content = page };
+        var (window, _) = Show(host);
+        var slot = SlotOf(page);
+
+        Assert.NotNull(PrestoAvalonia.AnimateExit(page, Fade));
+        Tick();
+
+        Assert.Single(Ghosts(window));
+        Assert.Equal(slot, Box(window));
+    }
+
+    [AvaloniaFact]
+    public void WithoutAnExitADepartureLeavesNoGhost()
+    {
+        var item = new Border { Width = 40, Height = 20, Background = Brushes.Red };
+        Presence.SetEnter(item, Presto.Build().Opacity(from: 0).Duration(100));
+        var (window, panel) = Show(new Border { Height = 20 }, item);
+        Frames.Advance(200, 16);
+
+        panel.Children.Remove(item);
+        Tick();
+
+        Assert.Empty(Ghosts(window));
+    }
+
     private static Border Leaving()
     {
         var item = new Border { Width = 40, Height = 20, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left };

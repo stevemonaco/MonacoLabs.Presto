@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using Avalonia;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
 using Avalonia.Threading;
 using MonacoLabs.Presto.Compositor;
 
@@ -65,6 +68,39 @@ public sealed class CompositorMessagingTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void PostingOffTheUIThreadFailsAnAssertion()
+    {
+        var (_, canvas) = ShowScene(new ProbeScene(4000));
+        var listeners = Trace.Listeners.Cast<TraceListener>().ToArray();
+        Trace.Listeners.Clear();
+        Trace.Listeners.Add(new ThrowingListener());
+        try
+        {
+            Exception? failed = null;
+            var thread = new Thread(() => failed = Record.Exception(() => canvas.Post("off")));
+            thread.Start();
+            thread.Join();
+            Assert.IsType<DebugAssertException>(failed);
+        }
+        finally
+        {
+            Trace.Listeners.Clear();
+            Trace.Listeners.AddRange(listeners);
+        }
+    }
+
+    [AvaloniaFact]
+    public void ASceneTimersThenCompletesOnTheThreadPool()
+    {
+        var scene = new ThenScene();
+        ShowScene(scene);
+
+        Assert.True(Pump(() => scene.Timer?.Completed == true), "the scene timer never completed");
+        Assert.True(scene.Resumed.Wait(5000));
+        Assert.True(scene.OnThreadPool);
+    }
+
+    [AvaloniaFact]
     public void PostToUIRunsItsActionOnTheUIThread()
     {
         var (_, canvas) = ShowScene(new ProbeScene(4000));
@@ -78,5 +114,43 @@ public sealed class CompositorMessagingTests : CompositorTestBase
         Dispatcher.UIThread.RunJobs();
 
         Assert.True(onUIThread);
+    }
+
+    private sealed class DebugAssertException(string? message) : Exception(message);
+
+    private sealed class ThrowingListener : TraceListener
+    {
+        public override void Fail(string? message, string? detailMessage) => throw new DebugAssertException(message);
+
+        public override void Write(string? message)
+        {
+        }
+
+        public override void WriteLine(string? message)
+        {
+        }
+    }
+
+    private sealed class ThenScene : CompositorScene
+    {
+        public ManualResetEventSlim Resumed { get; } = new();
+
+        public bool OnThreadPool { get; private set; }
+
+        public Timer? Timer { get; private set; }
+
+        protected override void OnAttached()
+        {
+            Timer = Presto.Animate(new SceneTarget(), new() { ["Opacity"] = 0, Duration = 50 });
+            Timer.Then().ConfigureAwait(false).GetAwaiter().OnCompleted(() =>
+            {
+                OnThreadPool = Thread.CurrentThread.IsThreadPoolThread;
+                Resumed.Set();
+            });
+        }
+
+        protected override void OnRender(ImmediateDrawingContext context, Size size)
+        {
+        }
     }
 }

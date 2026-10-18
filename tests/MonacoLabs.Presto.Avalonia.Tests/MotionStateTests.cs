@@ -862,4 +862,78 @@ public sealed class MotionStateTests : BridgeTestBase
         Assert.Throws<NotSupportedException>(() => Motion.SetStates(box, States(".busy", Presto.Build().Property("NoSuchProperty", 1))));
         Assert.Throws<NotSupportedException>(() => Box().While(".busy", Presto.Build().Property("NoSuchProperty", 1)));
     }
+
+    [AvaloniaFact]
+    public void TwoSpellingsOfOnePropertyShareAWinner()
+    {
+        var box = Box();
+        var window = Show(box);
+        Motion.SetHover(box, Linear().Opacity(0.5));
+        Motion.SetStates(box, States(".selected", Linear().Property("Visual.Opacity", 0.3)));
+        window.MouseMove(Inside);
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.3, box.Opacity, 6);
+
+        box.Classes.Remove("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.5, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void AHoverStateSetWhileThePointerIsAlreadyOverStartsHovered()
+    {
+        var box = Box();
+        var window = Show(box);
+        window.MouseMove(Inside);
+        Assert.True(box.IsPointerOver);
+
+        Motion.SetHover(box, Linear().Scale(1.2));
+        Frames.Advance(200, 10);
+
+        Assert.Equal(1.2, Get(box, "Scale"), 6);
+    }
+
+    [AvaloniaFact]
+    public void AConditionChangeWhileDetachedPlaysNothing()
+    {
+        var panel = new StackPanel();
+        Show(panel);
+        var box = Box();
+        panel.Children.Add(box);
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        panel.Children.Remove(box);
+
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+
+        Assert.Empty(Presto.GetAnimations(box));
+        Assert.Equal(1, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void StateAnimationsCarryTheMotionOrigin()
+    {
+        List<Timer> created = [];
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        try
+        {
+            var box = Box();
+            var window = Show(box);
+            Motion.SetHover(box, Linear().Opacity(0.5));
+
+            window.MouseMove(Inside);
+            Frames.Advance(200, 10);
+            window.MouseMove(Outside);
+            Frames.Advance(16);
+
+            Assert.Equal(2, created.Count);
+            Assert.All(created, timer => Assert.Equal("Motion", timer.Origin));
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
+    }
 }

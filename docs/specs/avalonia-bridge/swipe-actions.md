@@ -39,20 +39,20 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 - **BRIDGE-SWIPE-001** (inherited) — When `Leading`, `Trailing` or `Dismiss` is first set to a non-default value on an element, the element shall become swipeable; `Command`, `LeadingCommand`, `TrailingCommand` or `CommandParameter` alone shall not.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`
 - **BRIDGE-SWIPE-002** (inherited) — When `Leading`, `Trailing` and `Dismiss` are all cleared, the element shall stop handling input, drop its action layers and revert its X animation.
-  - Tests: untested
+  - Tests: `SwipeTests.ClearingEveryActionStopsTheSwipeDropsTheLayersAndRevertsX`
 - **BRIDGE-SWIPE-003** (inherited) — When `Leading`, `Trailing` or `Dismiss` changes on a swipeable element, the element shall snap closed and drop its action layers, rebuilding them on the next reveal.
   - Tests: untested
 - **BRIDGE-SWIPE-004** (inherited) — While in design mode, setting the properties shall do nothing.
-  - Tests: untested
+  - Tests: `SwipeTests.SettingTheActionsInDesignModeDoesNothing`
 - **BRIDGE-SWIPE-005** — When the element is already driven by a `Draggable` or `Transformable`, making it swipeable shall throw `InvalidOperationException`.
-  - Tests: untested
+  - Tests: `SwipeTests.MakingAGestureDrivenElementSwipeableThrows`
 - **BRIDGE-SWIPE-006** — A side's actions shall be its `Control`, or its `IDataTemplate` built with the element's `DataContext`; any other value shall give that side no actions.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`, `SwipeTests.ADismissPlaysTheExitAndRemovesTheRowWhileItemLayoutClosesTheGap`
 
 ### Action layers
 
 - **BRIDGE-SWIPE-007** — The actions shall be hosted lazily on the first grab or context request, each side in a clipping layer appended as a visual and logical child of the element itself, and re-appended if a re-template drops it.
-  - Tests: untested
+  - Tests: `SwipeTests.TheActionsAreHostedInsideTheRowOnFirstUseAndAfterAReTemplate`
 - **BRIDGE-SWIPE-008** — Each side's layer shall be arranged at the strip the element uncovers, outside the element's box (left of it for leading, right of it for trailing), as tall as the element and as wide as the offset, unrounded and in step with the offset on every drag move, so the actions hold still on screen while the element slides.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`, `SwipeTests.ActionsStayPutWhileARowIsDraggedByFractionalOffsets`
 - **BRIDGE-SWIPE-009** — Within its strip, a side's actions shall be laid out at least as wide as they measure, aligned to the element's edge they sit against, and clipped to the strip.
@@ -74,7 +74,7 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 - **BRIDGE-SWIPE-015** — While dragging, X shall follow the pointer's horizontal travel from where the grab picked the element up, including a grab of an element still coasting.
   - Tests: `SwipeTests.APartialRevealSnapsOpen`
 - **BRIDGE-SWIPE-016** — While dragging, X past its range shall rubber-band with friction 0.35; the range on each side shall be its actions' width, or the whole element's width when that side commits (BRIDGE-SWIPE-024); a side with no actions shall be limited to 0, unless the element has no actions at all and a side commits, when that side ranges over its width.
-  - Tests: `SwipeTests.ASideWithNoCommandStopsAtItsActionsWidth`
+  - Tests: `SwipeTests.ASideWithNoCommandStopsAtItsActionsWidth`, `SwipeTests.ADragRubberBandsPastItsRange`
 - **BRIDGE-SWIPE-017** — When a grab starts, the element shall become its list's open element, closing any other open element in the same list (its nearest `ItemsControl` ancestor, or its visual parent outside one).
   - Tests: `SwipeTests.ASecondRowOpeningClosesTheFirst`
 
@@ -86,17 +86,17 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 - **BRIDGE-SWIPE-019** — When a short drag is released with a fling whose projected rest passes half the open width, the side shall open.
   - Tests: `SwipeTests.AFlingOpens`
 - **BRIDGE-SWIPE-020** (inherited) — When a drag is released beyond its side's open width without committing, the element shall land on the open width.
-  - Tests: untested
+  - Tests: `SwipeTests.AReleasePastTheOpenWidthLandsOnIt`
 - **BRIDGE-SWIPE-021** — When a press ends without a claim (a tap) while the element is open, the element shall close.
   - Tests: `SwipeTests.EscapeOrATapClosesTheOpenRow`
 - **BRIDGE-SWIPE-041** — While `Reveal` is false, a drag released short of committing shall coast to 0 whatever its position or velocity, while a commit and a context request behave as when it is true.
   - Tests: `SwipeTests.WithoutRevealAPartialDragOrAFlingSpringsClosedAndAFullSwipeStillCommits`
 - **BRIDGE-SWIPE-022** (inherited) — When the pointer's capture is lost mid-drag, the element shall settle as on a release.
-  - Tests: untested
+  - Tests: `SwipeTests.LosingTheCaptureMidDragSettlesAsAReleaseDoes`
 - **BRIDGE-SWIPE-045** — When the element loses the arena (its gate drops out, or another gesture captures the pointer), it shall forget the press without capturing, handling or closing anything, so its next press arms a drag again.
   - Tests: `SwipeTests.APressAnotherGestureCapturesIsLostAndTheNextSwipeOpens`, `SwipeTests.AVerticalDragScrollsTheParentAndNeverOpens`
 - **BRIDGE-SWIPE-023** (inherited) — The release shall mark the pointer-released event handled only when a drag took place.
-  - Tests: untested
+  - Tests: `SwipeTests.TheReleaseIsHandledOnlyAfterADrag`
 
 ### Committing
 
@@ -131,16 +131,16 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 - **BRIDGE-SWIPE-034** — When a context request without a pointer position opens a side, the first focusable element in that side's actions shall take focus.
   - Tests: `SwipeTests.AContextRequestOpensTheTrailingThenTheLeadingActionsAndTheyRun`
 - **BRIDGE-SWIPE-035** — An element with its own `ContextMenu` or `ContextFlyout`, or with no actions, shall leave the context request alone.
-  - Tests: untested
+  - Tests: `SwipeTests.AContextRequestIsLeftAloneWithItsOwnMenuOrNoActions`
 - **BRIDGE-SWIPE-044** — A context request that arrives while a touch or pen press is armed on the element, or within 500 ms after one ends, shall be left alone, unhandled.
   - Tests: `SwipeTests.ALongPressContextRequestDuringOrJustAfterATouchLeavesTheRowClosed`
 
 ### Resetting
 
 - **BRIDGE-SWIPE-036** — When the element is attached to a visual tree, its `DataContext` changes, or it is shown again (`IsVisible` true at any priority but `Animation`), it shall snap closed at once.
-  - Tests: untested
+  - Tests: `SwipeTests.AttachingRecyclingOrReShowingSnapsClosedAtOnce`
 - **BRIDGE-SWIPE-037** (inherited) — When the element's size changes, its action layers shall be re-placed.
-  - Tests: untested
+  - Tests: `SwipeTests.AResizedRowRePlacesItsActions`
 
 ### Reduced motion
 
@@ -215,4 +215,4 @@ Swipe actions on a row, as SwiftUI's `swipeActions` and Flutter's `Dismissible`:
 
 ## Open items
 
-- Landing on the open width from beyond it (BRIDGE-SWIPE-020), capture loss (022), reset on attach/recycle/re-show (036) and the `GestureOwners` throw (005) have no tests.
+- BRIDGE-SWIPE-003 disagrees with the code when a side is a `Control`: changing another side (say `Trailing` on an element whose `Leading` is a `Button`) unhosts both layers but leaves each `Control` the child of its dropped layer, so the next reveal throws `InvalidOperationException` ("already has a visual parent") hosting it in a new layer. Sides given as `IDataTemplate` rebuild. Untested until fixed.

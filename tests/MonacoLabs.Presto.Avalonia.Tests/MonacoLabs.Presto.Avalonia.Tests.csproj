@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="..\..\samples\PrestoGallery\PrestoGallery\Assets\Lottie\toggle.json" Link="Lottie\toggle.json" />
+    <AvaloniaResource Include="..\..\samples\PrestoGallery\PrestoGallery\Assets\Sprites\female_*.png" Link="Sprites\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

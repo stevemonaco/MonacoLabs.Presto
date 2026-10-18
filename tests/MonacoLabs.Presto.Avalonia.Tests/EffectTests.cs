@@ -139,6 +139,21 @@ public sealed class EffectTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AReadClaimLapsesAtTheEndOfTheDispatcherJob()
+    {
+        var border = new Border();
+        Presto.Get(border, "Blur");
+        Assert.Throws<InvalidOperationException>(() => border.Animate(new() { ["ShadowBlur"] = 2, Duration = 100 }));
+
+        var other = new Border();
+        Presto.Get(other, "Blur");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Seeked(other, new() { ["ShadowBlur"] = 2 }, 0.5);
+
+        Assert.IsType<DropShadowEffect>(other.Effect);
+    }
+
+    [AvaloniaFact]
     public void BlurThenShadowSwitchesKind()
     {
         var border = new Border();

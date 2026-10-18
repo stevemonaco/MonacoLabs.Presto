@@ -138,6 +138,26 @@ public sealed class MotionValueSinkTests : BridgeTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
+    public void AZeroDurationSinkEasesWithWhenReducedUnderReducedMotion(bool whenReduced)
+    {
+        Presto.Engine.Defaults.ReducedMotion = true;
+        var model = new LevelViewModel();
+        var border = Unsized();
+        border.DataContext = model;
+        Show(border);
+        Follow.Bind(border, Layoutable.WidthProperty, new Binding(nameof(LevelViewModel.Motion)),
+            new() { Duration = 0, WhenReduced = whenReduced ? Presto.Build().Duration(100).Ease("linear") : null });
+
+        model.Motion.Set(120);
+        Frames.Advance(48, 16);
+
+        if (whenReduced) Assert.InRange(border.Width, 30, 110);
+        else Assert.Equal(120, border.Width);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void BindStopsListeningWhileDetachedAndSnapsOnReattach(bool timed)
     {
         var border = Unsized();

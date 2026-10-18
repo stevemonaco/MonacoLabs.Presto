@@ -59,7 +59,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **BRIDGE-SCROLLOBSERVER-001** — When `OnScroll` is called with no parameters, the observer shall use the default of every parameter.
   - Tests: `ScrollObserverTests.AnObserverWithoutATargetTakesTheLinkedAnimationsControl`
 - **BRIDGE-SCROLLOBSERVER-002** — When an observer is created inside an ambient scope, the scope shall register it, so reverting the scope reverts it.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.AnObserverCreatedInsideAScopeRevertsWithIt`
 - **BRIDGE-SCROLLOBSERVER-003** — The observer's `Id` shall be `ScrollObserverParams.Id` when set, and otherwise the number of observers created in the process so far, counting this one.
   - Tests: `ScrollObserverTests.TheObserverKeepsTheSuppliedId`
 - **BRIDGE-SCROLLOBSERVER-004** — When `Container` is set, or the target already has a `ScrollViewer` ancestor, the observer shall join that scroller's shared `ScrollContainer` inside `OnScroll`, before it is `Ready`.
@@ -73,7 +73,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **BRIDGE-SCROLLOBSERVER-008** — The observer shall throw `InvalidOperationException` for a missing target or `ScrollViewer` from `OnScroll` when a loaded `Target` has no `ScrollViewer` ancestor and no `Container` is set, and from `Link` when an unresolved observer is left with no target or with such a target; otherwise from its resolution, at the target's `Loaded` or, for an observer never linked and without a target, on its first engine tick.
   - Tests: `ScrollObserverTests.ALoadedTargetOutsideAScrollViewerThrowsFromOnScrollAndLink`, `ScrollObserverTests.LinkingAnObjectWithNoControlThrowsFromLink`
 - **BRIDGE-SCROLLOBSERVER-009** — When `Link` is called on an observer whose parameters name no target, resolved or not, the observer shall switch to the linked object's first control and refresh.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.LinkingAgainAfterResolutionSwitchesToTheNewLinkedControlAndRemeasures`
 
 ### Thresholds and bounds
 
@@ -92,7 +92,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **BRIDGE-SCROLLOBSERVER-016** — The observer shall set `Offset` to the target's layout position in the scrolled content, `OffsetStart` to enter-target + `Offset` − enter-container, `OffsetEnd` to leave-target + `Offset` − leave-container, and `Distance` to `max(OffsetEnd − OffsetStart, 0)`, each threshold half rounded to a whole pixel.
   - Tests: `ScrollObserverTests.RefreshUpdatesTheBounds`
 - **BRIDGE-SCROLLOBSERVER-017** — While measuring, the observer shall hold the linked object at time 0 without callbacks and restore its time afterwards, so the animation it drives cannot move its own thresholds.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.MeasuringHoldsTheLinkedAnimationAtItsStartWithoutCallbacksAndRestoresItsTime`
 - **BRIDGE-SCROLLOBSERVER-018** — `Refresh` shall re-read `Axis`, `Repeat`, `Enter`, `Leave` and `Pin`, measure again and re-evaluate the scroll position.
   - Tests: `ScrollObserverTests.RefreshUpdatesTheBounds`
 - **BRIDGE-SCROLLOBSERVER-019** — When the scroller's viewport or extent changes, its container shall refresh every `Ready` observer 250 ms (× `Globals.TimeScale`) after the last such change, invoking each one's `OnResize` after its refresh.
@@ -111,7 +111,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **BRIDGE-SCROLLOBSERVER-024** — The container shall evaluate its observers every frame for 500 ms (× `Globals.TimeScale`) after the last offset change, then pause both the evaluation ticker and the 30 fps data timer so the engine can idle.
   - Tests: `ScrollObserverTests.TheEngineIdlesAfterTheWakeWindowAndWakesOnTheNextScroll`
 - **BRIDGE-SCROLLOBSERVER-025** — While either axis is moving backward, the container shall evaluate its observers in reverse registration order.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.ObserversAreEvaluatedInReverseOrderWhileScrollingBackward`
 - **BRIDGE-SCROLLOBSERVER-026** — `IsInView` shall be true only while `OffsetStart < Scroll < OffsetEnd`.
   - Tests: `ScrollObserverTests.TheEnterAndLeaveCallbacksFireInBothDirections`
 - **BRIDGE-SCROLLOBSERVER-027** — `ProgressValue` shall be a `MotionValue` assigned `Progress` on every evaluation and left at its last value once the observer reverts.
@@ -124,11 +124,11 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **BRIDGE-SCROLLOBSERVER-029** — When the target goes out of view, the observer shall invoke `OnLeave` and then `OnLeaveForward` or, while moving backward, `OnLeaveBackward`.
   - Tests: `ScrollObserverTests.TheEnterAndLeaveCallbacksFireInBothDirections`
 - **BRIDGE-SCROLLOBSERVER-030** — When the scroll position lands exactly on a threshold before the target has ever entered, the observer shall run the enter callbacks once without setting `IsInView`.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.LandingExactlyOnAThresholdBeforeEverEnteringRunsTheEnterCallbacksOnceWithoutBeingInView`
 - **BRIDGE-SCROLLOBSERVER-031** — The observer shall invoke `OnUpdate` on every evaluation while in view, on the evaluation that leaves the view, and on any evaluation that changes a seeking sync's progress.
   - Tests: `ScrollObserverTests.TheEnterAndLeaveCallbacksFireInBothDirections`
 - **BRIDGE-SCROLLOBSERVER-032** — Within one evaluation, the observer shall run the enter callbacks, then the seek and `OnUpdate`, then the leave callbacks, then the completion check.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.AnEvaluationRunsTheEnterCallbacksThenUpdateThenTheLeaveCallbacksThenTheCompletion`, `ScrollObserverTests.ASeekingSyncSeeksTheLinkedAnimationBeforeOnUpdate`
 - **BRIDGE-SCROLLOBSERVER-033** — When progress reaches 1 after rising above 0 since the scroll was last before `OffsetStart`, and the sync has completed (the linked progress was 1 for a seeking sync, the target left the view for a method or eased sync, at once with no sync), the observer shall complete once, invoking `OnSyncComplete` when a sync mode is in force, and complete again only after progress drops below 1.
   - Tests: `ScrollObserverTests.RepeatFalseRevertsTheObserverAfterCompletion`
 - **BRIDGE-SCROLLOBSERVER-034** — When `Repeat` is false and the observer completes with no linked object or a completed one, the observer shall revert itself.
@@ -151,7 +151,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **BRIDGE-SCROLLOBSERVER-041** — When `Sync` is an `Ease` or a string `EaseParser.TryParse` accepts as an ease other than `Eases.None`, the observer shall set `SyncEase`, leave `SyncSmooth` null and seek the linked object to the eased progress.
   - Tests: `ScrollObserverTests.SyncAnEaseNameIsAnEasedSync`
 - **BRIDGE-SCROLLOBSERVER-042** — When `Sync` is `false`, the observer shall report `Sync` false and never drive the linked object.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.SyncFalseNeverDrivesTheLinkedObject`
 
 ### Pin
 
@@ -188,7 +188,7 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **BRIDGE-SCROLLOBSERVER-054** — `Revert` shall release the pin and its spacer, cancel the snap, leave its container, set `Reverted` and clear `Ready`; a second call shall do nothing.
   - Tests: `ScrollPinTests.RevertRestoresTheUsersTransformAndMargin`, `ScrollSnapTests.RevertMidSnapStopsIt`
 - **BRIDGE-SCROLLOBSERVER-055** — `Revert` shall leave the linked object as it is.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.RevertLeavesTheLinkedAnimationAsItIs`
 - **BRIDGE-SCROLLOBSERVER-060** — Once reverted, the observer shall count as released to the scope it registered with (CORE-SCOPE).
   - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-SCROLLOBSERVER-056** — When its last observer, scroll value and parallax element have left, a container shall detach from its scroller, cancel its timers and leave the registry, so the next user creates a fresh one.
@@ -199,9 +199,9 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 ### Defaults
 
 - **BRIDGE-SCROLLOBSERVER-057** (inherited) — When `Pin` is not set, the observer shall not pin its target.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.WithoutPinOrSnapTheObserverLeavesTheTargetAndTheOffsetAlone`
 - **BRIDGE-SCROLLOBSERVER-058** (inherited) — When `Snap` is not set, the observer shall never move the scroller's offset.
-  - Tests: untested
+  - Tests: `ScrollObserverTests.WithoutPinOrSnapTheObserverLeavesTheTargetAndTheOffsetAlone`
 
 ## Invariants
 
@@ -265,4 +265,4 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 
 ## Open items
 
-- Untested: scope registration (002), retargeting on `Link` after resolution (009), measuring with the linked object at 0 (017), reverse evaluation order (025), the edge force-enter (030), callback order (032), `Sync = false` (042), and `Revert` leaving the linked object alone (055).
+None.

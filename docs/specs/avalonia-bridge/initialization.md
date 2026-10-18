@@ -61,7 +61,7 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 - **BRIDGE-INIT-007** — The bridge shall call `EnsureInitialized` itself from the `AvaloniaAnimationParams` and `AvaloniaAnimatableParams` constructors, every `AnimateExtensions` entry point, every `PropertyBuilderExtensions` method and the `PrestoAvalonia` factories, so no explicit setup is needed.
   - Tests: `AnimationBuilderBridgeTests.AnimatingAControlWithACoreOnlyBuilderInstallsTheBridge`
 - **BRIDGE-INIT-008** (inherited) — `EnsureInitialized` shall configure only `Presto.Engine`; an `Engine` constructed by the application keeps the frame source it was given.
-  - Tests: untested
+  - Tests: `PrestoAvaloniaTests.EnsureInitializedLeavesAnApplicationsOwnEngineOnItsFrameSource`
 - **BRIDGE-INIT-009** — `UsePresto` shall register an `AfterSetup` callback that calls `EnsureInitialized`, and return the same `AppBuilder` for chaining.
   - Tests: manual — the Desktop, Browser and Android sample heads call it; check that a page animates on first show.
 
@@ -70,7 +70,7 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 - **BRIDGE-INIT-010** — `Now` shall return the later of the milliseconds elapsed since the source was constructed, read from its `TimeProvider` (the system clock by default), and the last frame time, so it is valid outside a frame callback; while a frame callback runs, it shall return that frame's time.
   - Tests: `AvaloniaFrameSourceTests.NowFollowsTheTimeProvider`, `AvaloniaFrameSourceTests.NowInsideATopLevelFrameIsThePacedFrameTime`
 - **BRIDGE-INIT-011** (inherited) — When `Start` is called while already started, the source shall ignore the call and keep the first callback.
-  - Tests: untested
+  - Tests: `AvaloniaFrameSourceTests.StartingWhileStartedKeepsTheFirstCallback`
 - **BRIDGE-INIT-012** — When the source needs a frame, it shall take the `TopLevel` from the application lifetime: a classic desktop lifetime's `MainWindow`, else its first window; a single-view lifetime's `MainView` top level.
   - Tests: manual — headless tests have no application lifetime (`LifetimeSpikeTests.TheHeadlessPlatformOffersNoActivatableLifetimeAndNoApplicationLifetime`); check on the Desktop sample.
 - **BRIDGE-INIT-013** — When the lifetime yields no `TopLevel` (no lifetime, an activity lifetime, no window yet), the source shall use the `TopLevel` of the last `Visual` the target adapter resolved a property on, and when that visual has none (detached), the last `TopLevel` it found that way; it holds both weakly.
@@ -107,7 +107,7 @@ Installs the bridge into the core's statics: points `Presto.Engine` at an `Avalo
 - **BRIDGE-INIT-021** — The bridge shall re-evaluate the minimized state on every `Window.WindowState` change and, in a dispatcher post, on every window opened or closed.
   - Tests: `LifetimeHiddenTests.MinimizingTheOnlyWindowPausesAndRestoringResumesAtTheSameProgress`
 - **BRIDGE-INIT-022** (inherited) — With no desktop lifetime, or one with no windows, the bridge shall treat the app as not minimized.
-  - Tests: untested
+  - Tests: `LifetimeHiddenTests.NoLifetimeOrOneWithNoWindowsIsNotMinimized`
 - **BRIDGE-INIT-023** — When the application's `IActivatableLifetime` raises a `Background` deactivation, the bridge shall treat the app as backgrounded until a `Background` activation.
   - Tests: `LifetimeHiddenTests.BackgroundingPausesAndForegroundingResumesAtTheSameProgress`
 - **BRIDGE-INIT-024** — The bridge shall ignore activations and deactivations of any kind other than `Background` (`File`, `OpenUri`).

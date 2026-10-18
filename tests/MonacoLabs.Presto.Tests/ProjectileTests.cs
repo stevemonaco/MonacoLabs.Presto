@@ -147,4 +147,15 @@ public sealed class ProjectileTests : EngineTestBase
         Assert.Equal(200, target.X, 1e-6);
         Assert.True(animation.Completed);
     }
+
+    [Fact]
+    public void AProjectileThatNeverMovesStaysOnItsStartWithNoEase()
+    {
+        var plan = ProjectileSolver.Resolve(5, new Projectile(0), 1000);
+
+        Assert.Equal(5, plan.To);
+        Assert.Equal(1000, plan.Duration);
+        Assert.Same(Eases.None, plan.Ease);
+        Assert.Null(plan.Then);
+    }
 }

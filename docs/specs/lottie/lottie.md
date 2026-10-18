@@ -67,7 +67,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-006** — The type converter shall convert a string to a composition through `Load(new Uri(value, UriKind.RelativeOrAbsolute))`, so XAML can set `Composition` from a URI string.
   - Tests: `LottieCompositionTests.TheTypeConverterLoadsAUriString`, `LottieRecipeTests.TheMarkupExtensionPlaysItsSegmentOnAttach`
 - **LOTTIE-PLAYBACK-007** (inherited) — As an `IImage`, the composition shall report `Size` for layout and draw nothing; only a `LottieView` draws it.
-  - Tests: untested
+  - Tests: `LottieViewTests.AsAnImageTheCompositionReportsItsSizeAndDrawsNothing`
 - **LOTTIE-PLAYBACK-008** (inherited) — A composition read from plain JSON shall have empty `AnimationIds`.
   - Tests: `DotLottieTests.TheFirstAnimationIsReadByDefaultAndTheManifestIdsAreListed`
 
@@ -99,7 +99,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-019** — An image asset given as a `data:` URI in plain JSON shall be drawn.
   - Tests: `DotLottieTests.ADataUriImageInPlainJsonIsDrawn`
 - **LOTTIE-PLAYBACK-020** — `FromDotLottie` shall ignore the archive's themes and state machines.
-  - Tests: untested
+  - Tests: `DotLottieTests.ThemesAndStateMachinesAreIgnored`
 - **LOTTIE-PLAYBACK-071** — `FromDotLottie` shall read an archive with reflection-based JSON serialization disabled.
   - Tests: untested
 
@@ -123,7 +123,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-027** — The view shall draw through the base's color filters (`Grayscale`, `Tint` and the rest; see BRIDGE-IMAGE) when they are not identity.
   - Tests: `LottieViewTests.GrayscaleAppliesToTheLottieOutput`, `LottieViewTests.TintAppliesToTheLottieOutput`
 - **LOTTIE-PLAYBACK-028** (inherited) — When `Composition` is null or the placed rect does not intersect the view's bounds, the view shall draw nothing.
-  - Tests: untested
+  - Tests: `LottieViewTests.NothingIsDrawnWithoutACompositionOrWhenThePlacedRectMissesTheBounds`
 - **LOTTIE-PLAYBACK-029** — The view shall hold at most one Skottie player at a time, built on first draw, and release it on detach and on a `Composition` change once no pending draw still holds it.
   - Tests: `LottieViewTests.DetachingReleasesTheOnlyPlayerTheViewEverHeld`
 - **LOTTIE-PLAYBACK-030** — When an immediate context (a snapshot or a Presence exit ghost) renders the view, it shall draw the current frame and release its hold on the player at once.
@@ -146,7 +146,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-037** (inherited) — When the composition has no marker of the given name (or there is no composition), `Play(marker)` and `PlayOnRenderThread(segment)` shall throw `ArgumentException` listing the composition's marker names.
   - Tests: `LottieSegmentTests.AnUnknownMarkerThrowsNamingTheMarkers`
 - **LOTTIE-PLAYBACK-038** (inherited) — When `Composition` is null, a play's duration shall be 0.
-  - Tests: untested
+  - Tests: `LottieSegmentTests.WithoutACompositionAPlayLastsZero`
 - **LOTTIE-PLAYBACK-070** — When `speed` is not above 0 (NaN included), `Play`, `Play(marker)`, `PlaySegment`, `PlayOnRenderThread` and both `PlayLottie` recipes shall throw `ArgumentOutOfRangeException` before looking up a segment; the recipes throw when built, not per target.
   - Tests: `LottieSegmentTests.ANonPositiveSpeedThrowsFromEveryPlayMethod`, `LottieRecipeTests.ANonPositiveSpeedThrowsWhenTheRecipeIsBuilt`
 
@@ -161,13 +161,13 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-042** (inherited) — For a target that is not a `LottieView`, the recipe shall resolve a zero-length segment at frame 0 with duration 0.
   - Tests: `LottieRecipeTests.AnyOtherTargetIsAZeroLengthSegment`
 - **LOTTIE-PLAYBACK-043** (inherited) — When a named segment is missing from a target's composition, the recipe shall throw `ArgumentException` when it is animated on that target, not when it is built.
-  - Tests: untested
+  - Tests: `LottieRecipeTests.AMissingSegmentThrowsWhenAnimatedNotWhenBuilt`
 - **LOTTIE-PLAYBACK-044** — `{presto:PlayLottie}` shall build `LottieRecipes.PlayLottie(Segment, Loop, Reverse, Speed, Delay)`, with `Loop` defaulting to true, and play it where it is set (for example `Animate.OnAttached`).
   - Tests: `LottieRecipeTests.TheMarkupExtensionPlaysItsSegmentOnAttach`
 - **LOTTIE-PLAYBACK-045** — When the extension's `Duration` or `Ease` is set, it shall override the recipe's frame-rate duration or linear ease.
   - Tests: `LottieRecipeTests.TheMarkupExtensionTakesAnExplicitDurationAndEase`
 - **LOTTIE-PLAYBACK-046** (inherited) — The extension shall have no exit form: on `Presence.Exit` or with `Out` set it shall build the same forward recipe.
-  - Tests: untested
+  - Tests: `LottieRecipeTests.TheMarkupExtensionHasNoExitFormSoOutPlaysForward`
 
 ### Reduced motion
 
@@ -183,7 +183,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-050** — Render-thread playback shall not write `Frame` back to the view.
   - Tests: `LottieRenderThreadTests.FramesAdvanceWithoutTheUIThreadEngine`
 - **LOTTIE-PLAYBACK-051** — The view shall keep a play request and start it each time the visual is (re)created, that is, on attach with `RenderThread` set and when `RenderThread` turns on.
-  - Tests: untested
+  - Tests: `LottieRenderThreadTests.TheKeptRequestStartsWhenRenderThreadTurnsOnAndAgainOnReattach`
 - **LOTTIE-PLAYBACK-052** (inherited) — `StopRenderThread` shall drop the kept request and hold the frame playback reached.
   - Tests: `LottieRenderThreadTests.StopHoldsTheFrame`
 - **LOTTIE-PLAYBACK-053** — When `Frame`, `Progress` or `Composition` is written while render-thread playback runs, the view shall seek the drawing to the new frame, stop playback and drop the kept request.
@@ -195,7 +195,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-056** (inherited) — When the visual's engine runs out of children, it shall stop requesting render-thread animation frames.
   - Tests: untested
 - **LOTTIE-PLAYBACK-068** (inherited) — Any change of `Frame`, `Progress` or `Composition` shall drop the kept play request, even one made while detached or with `RenderThread` off that has not started; detaching shall not drop it.
-  - Tests: untested
+  - Tests: `LottieRenderThreadTests.WritingFrameProgressOrCompositionDropsARequestNotYetStarted`, `LottieRenderThreadTests.TheKeptRequestStartsWhenRenderThreadTurnsOnAndAgainOnReattach`
 
 ### Platforms
 
@@ -207,9 +207,9 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 ### Defaults
 
 - **LOTTIE-PLAYBACK-059** (inherited) — When `Frame` is not set and no composition is set, the view shall hold frame 0.
-  - Tests: untested
+  - Tests: `LottieViewTests.WithoutACompositionFrameAndProgressHoldZero`
 - **LOTTIE-PLAYBACK-060** (inherited) — When `Progress` is not set and no composition is set, the view shall hold progress 0.
-  - Tests: untested
+  - Tests: `LottieViewTests.WithoutACompositionFrameAndProgressHoldZero`
 - **LOTTIE-PLAYBACK-061** — When `RenderThread` is not set, the view shall draw its own `Frame` on the UI-thread path, since render-thread playback is opt-in.
   - Tests: `LottieViewTests.FractionalFramesAreDrawnAsGivenNotFloored`
 - **LOTTIE-PLAYBACK-062** (inherited) — When `Play` or `PlaySegment` is not given `loop`, the animation shall play the segment once and complete.
@@ -223,7 +223,7 @@ Plays Lottie animations through SkiaSharp.Skottie, in a separate package so the 
 - **LOTTIE-PLAYBACK-066** (inherited) — When the `PlayLottie` recipe is not given `reverse` or `speed`, or the extension's `Reverse` or `Speed` is not set, it shall play forwards at a speed of 1.
   - Tests: `LottieRecipeTests.TheRecipeReadsEachViewsComposition`
 - **LOTTIE-PLAYBACK-067** (inherited) — When the `PlayLottie` recipe is not given `delay`, it shall leave the builder's `Delay` unset, so the usual delay defaults apply.
-  - Tests: untested
+  - Tests: `LottieRecipeTests.WithoutADelayTheRecipeLeavesDelayUnset`
 
 ## Invariants
 

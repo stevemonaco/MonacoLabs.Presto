@@ -321,6 +321,81 @@ public sealed class UtilsTargetsTests : EngineTestBase
         Assert.True(animation.Paused);
     }
 
+    [Fact]
+    public void SetOverlapsRunningTweensUnlessACompositionIsNamed()
+    {
+        var target = new StyleTarget();
+        var running = Presto.Animate(target, new() { ["X"] = 100, Duration = 1000 });
+        Frames.Advance(100, 16);
+
+        var overlapping = Presto.Set(target, new() { ["X"] = 50 });
+
+        Assert.Equal(Composition.Overlap, TestHelpers.GetTweenAtIndex(overlapping, 0)!.Composition);
+        Assert.False(running.Canceled);
+        Assert.False(TestHelpers.GetTweenAtIndex(running, 0)!.IsOverridden);
+
+        var replacing = Presto.Set(target, new() { ["X"] = 50, Composition = Composition.Replace });
+
+        Assert.Equal(Composition.Replace, TestHelpers.GetTweenAtIndex(replacing, 0)!.Composition);
+    }
+
+    [Fact]
+    public void RevertingTheScopeRestoresWhatSetOverwrote()
+    {
+        var target = new StyleTarget { X = 10 };
+        var scope = Presto.CreateScope();
+
+        scope.Execute(_ => Presto.Set(target, new() { ["X"] = 50 }));
+        Assert.Equal(50, target.X);
+        scope.Revert();
+
+        Assert.Equal(10, target.X);
+    }
+
+    [Fact]
+    public void GetWithUnitReturnsTheRawValue()
+    {
+        var target = new TestObject();
+
+        Assert.Equal("10px", Presto.Get(target, "ValueWithUnit", withUnit: true));
+        Assert.Equal(10d, Presto.Get(target, "PlainValue", withUnit: true));
+        Assert.Equal("16 32 64 128", Presto.Get(target, "MultiplePlainValues", withUnit: true));
+    }
+
+    [Fact]
+    public void GetInAUnitIsNullForAValueWithoutASingleNumber()
+    {
+        var target = new TestObject();
+
+        Assert.Null(Presto.Get(target, "MultiplePlainValues", "px"));
+        Assert.Null(Presto.Get(target, "MultipleValuesWithUnits", "px"));
+    }
+
+    [Fact]
+    public void TheFirstAdapterThatNamesAPropertyCanonicalizesIt()
+    {
+        ITargetAdapter[] adapters = [new RenamingAdapter(null), new RenamingAdapter("PlainValue"), new RenamingAdapter("ValueWithUnit")];
+        foreach (var adapter in adapters) Presto.Adapters.Add(adapter);
+        try
+        {
+            var target = new TestObject();
+
+            Assert.Equal(10d, Presto.Get(target, "Alias"));
+            Assert.Equal("10px", Presto.Get(target, "ValueWithUnit"));
+        }
+        finally
+        {
+            foreach (var adapter in adapters) Presto.Adapters.Remove(adapter);
+        }
+    }
+
+    private sealed class RenamingAdapter(string? canonical) : ITargetAdapter
+    {
+        public IPropertyAccessor? Resolve(object target, string property) => null;
+
+        public string? Canonicalize(object target, string property) => property == "Alias" ? canonical : null;
+    }
+
     private sealed class AliasAdapter : ITargetAdapter
     {
         public IPropertyAccessor? Resolve(object target, string property) => null;

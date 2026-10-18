@@ -182,6 +182,26 @@ public sealed class RecipeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void TheReducedPresetIsShortAndLinearWithNoTravel()
+    {
+        var reduced = MotionTokens.Reduced;
+
+        Assert.Equal((120d, 150d, 200d), (reduced.Short, reduced.Medium, reduced.Long));
+        Assert.Same(Eases.None, reduced.Ease.Raw);
+        Assert.Same(Eases.None, reduced.EmphasizedEase.Raw);
+        Assert.Equal((0d, 1d, 0d, 0d), (reduced.Distance, reduced.Scale, reduced.BlurRadius, reduced.StaggerStep));
+    }
+
+    [AvaloniaFact]
+    public void TokensWithoutAColorSpaceOrHueMixInOklabTheShorterWay()
+    {
+        var tokens = new MotionTokens(1, 2, 3, Eases.None, Eases.None, 0, 1, 0, 0);
+
+        Assert.Equal(ColorSpace.Oklab, tokens.ColorSpace);
+        Assert.Equal(HueInterpolation.Shorter, tokens.Hue);
+    }
+
+    [AvaloniaFact]
     public void SwappingTheTokensRestylesLaterCallsButNotBuildersAlreadyMade()
     {
         var before = Recipes.FadeUp();
@@ -248,6 +268,105 @@ public sealed class RecipeTests : CompositorTestBase
         Assert.Equal((2 * MotionTokens.Standard.StaggerStep) + MotionTokens.Standard.Medium, animation.Duration);
         Frames.Advance(200, 16);
         Assert.True(cards[0].Opacity > cards[1].Opacity && cards[1].Opacity > cards[2].Opacity);
+    }
+
+    [AvaloniaFact]
+    public void ADelayWithoutStaggerDelaysTheWholeBatchAndNoDelaySetsNone()
+    {
+        Border[] cards = [new(), new(), new()];
+
+        Assert.Null(Recipes.Fade().ToParams().Delay);
+        Assert.Equal((TweenValue)100, Recipes.Fade(delay: 100).ToParams().Delay);
+        Recipes.Fade(delay: 100, ease: "linear").Animate(cards);
+
+        Frames.Advance(70, 10);
+        Assert.All(cards, card => Assert.Equal(0, card.Opacity));
+        Frames.Advance(100, 10);
+        Assert.InRange(cards[0].Opacity, .01, .99);
+        Assert.All(cards, card => Assert.Equal(cards[0].Opacity, card.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void FlipInStartsAtNinetyDegreesByDefault()
+    {
+        var card = new Border();
+
+        Recipes.FlipIn().Autoplay(false).Animate(card).Seek(0);
+
+        Assert.Equal(90, Value(card, "RotateX"), 6);
+    }
+
+    [AvaloniaFact]
+    public void ThemeRevealWithoutAnOverlayLayerThrowsBeforeRunningTheChange()
+    {
+        var changed = false;
+
+        Assert.Throws<InvalidOperationException>(() => Recipes.ThemeReveal(new Border(), () => changed = true));
+        Assert.False(changed);
+    }
+
+    [AvaloniaFact]
+    public void ThemeRevealDefaultsToTheSurfacesCenterTheLongDurationAndTheTokenEase()
+    {
+        Ease ease = t => t;
+        Recipes.Tokens = MotionTokens.Standard with { Ease = ease, Long = 777 };
+        try
+        {
+            var content = new Border { Background = Brushes.Red };
+            var window = new Window { Content = content, Width = 200, Height = 200 };
+            window.Show();
+            Tick();
+
+            var reveal = Recipes.ThemeReveal(window, () => content.Background = Brushes.Blue);
+
+            Assert.Equal(777, reveal.Duration);
+            Assert.All(Tweens(reveal), tween => Assert.Same(ease, tween.Ease));
+            Assert.Equal(RelativePoint.Center, Presto.Get(reveal.Targets[0], "ClipCircleCenter"));
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+    }
+
+    [AvaloniaFact]
+    public void WithoutAnEaseTheseRecipesUseTheTokenEase()
+    {
+        Ease ease = t => t;
+        Recipes.Tokens = MotionTokens.Standard with { Ease = ease };
+        try
+        {
+            AnimationBuilder[] builders =
+            [
+                Recipes.PopoverIn(), Recipes.PopoverOut(), Recipes.CircularReveal(),
+                Recipes.LineRise(), Recipes.LineMask(), Recipes.LineWipe(), Recipes.WordFade(), Recipes.WordBlur(),
+                Recipes.LineRiseOut(), Recipes.LineMaskOut(), Recipes.LineWipeOut(), Recipes.WordFadeOut(), Recipes.WordBlurOut(),
+            ];
+            var animations = builders.Select(builder => builder.Autoplay(false).Animate(new TextBlock())).ToList();
+            var typed = new TextBlock { Text = "Hi there" };
+            var counted = new TextBlock { Text = "1" };
+            var rolled = new TextBlock { Text = "1" };
+            new Window { Content = new StackPanel { Children = { typed, counted, rolled } }, Width = 200, Height = 200 }.Show();
+            Tick();
+            animations.Add(Recipes.Typewriter(typed));
+            animations.Add(Recipes.CountUp(counted, 10));
+            animations.Add(Recipes.RollDigits(rolled, 2));
+
+            Assert.All(animations, animation => Assert.All(Tweens(animation), tween => Assert.Same(ease, tween.Ease)));
+            Assert.All(animations, animation => Assert.NotEmpty(Tweens(animation)));
+            Assert.NotSame(ease, Tweens(Recipes.CharCascade().Autoplay(false).Animate(new TextBlock()))[0].Ease);
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+    }
+
+    private static List<Tween> Tweens(Animation animation)
+    {
+        var tweens = new List<Tween>();
+        for (var tween = animation._headTween; tween is not null; tween = tween._next) tweens.Add(tween);
+        return tweens;
     }
 
     [AvaloniaFact]
@@ -587,6 +706,25 @@ public sealed class RecipeTests : CompositorTestBase
 
         Assert.Equal(300, animation.Duration, 6);
         Assert.Equal(2, sequence.CurrentFrame);
+    }
+
+    [AvaloniaFact]
+    public void PlayFramesDelaysOnlyWhenGivenADelayAndDefaultsToTwentyFourFramesASecond()
+    {
+        var sheet = new SpriteSheet { Columns = 4, Rows = 2 };
+
+        var plain = Recipes.PlayFrames().Animate(sheet);
+        Assert.Equal(0, plain.Delay);
+        Assert.Equal(8 * 1000 / 24d, plain.IterationDuration, 6);
+        plain.Cancel();
+
+        var delayed = Recipes.PlayFrames(fps: 10, delay: 200).Animate(sheet);
+        Frames.Advance(0);
+        Frames.Advance(150);
+        Assert.Equal(200, delayed.Delay);
+        Assert.Equal(0, sheet.CurrentFrame);
+        Frames.Advance(200);
+        Assert.Equal(1, sheet.CurrentFrame);
     }
 
     [AvaloniaFact]

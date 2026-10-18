@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -159,6 +160,79 @@ public sealed class RippleTests : CompositorTestBase
 
         Assert.Null(Extent(host, Colors.Red));
         Assert.Equal(0, Ripple.HandlerOf(host)?.Live ?? 0);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithoutAnAccentColorTheForegroundOrElseBlackStandsIn(bool solidForeground)
+    {
+        var host = ShowHost(new Size(60, 40));
+        Ripple.SetColor(host, null);
+        host.Resources["SystemAccentColor"] = "not a color";
+        TextElement.SetForeground(host, solidForeground ? Brushes.Blue : new LinearGradientBrush());
+
+        WindowOf(host).MouseDown(new Point(30, 20), MouseButton.Left);
+        TickFor(640);
+
+        var ink = solidForeground ? Colors.Blue : Colors.Black;
+        const double alpha = 61 / 255d;
+        byte Over(byte channel) => (byte)Math.Round((channel * alpha) + (255 * (1 - alpha)));
+        AssertNear(Color.FromRgb(Over(ink.R), Over(ink.G), Over(ink.B)), Row(host, 20)[30], 3);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(MouseButton.Right)]
+    [InlineData(MouseButton.Middle)]
+    public void OtherMouseButtonsDoNotRipple(MouseButton button)
+    {
+        var host = ShowHost(new Size(60, 40));
+
+        WindowOf(host).MouseDown(new Point(30, 20), button);
+        TickFor(64);
+
+        Assert.Null(Extent(host, Colors.Red));
+        Assert.Equal(0, Ripple.HandlerOf(host)!.Live);
+    }
+
+    [AvaloniaFact]
+    public void WithoutEnabledAPressDoesNotRipple()
+    {
+        var host = new Border { Width = 60, Height = 40, Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left };
+        Ripple.SetColor(host, Colors.Red);
+        ShowWhite(host);
+
+        WindowOf(host).MouseDown(new Point(30, 20), MouseButton.Left);
+        TickFor(64);
+
+        Assert.False(Ripple.GetEnabled(host));
+        Assert.Null(Ripple.HandlerOf(host));
+        Assert.Null(Extent(host, Colors.Red));
+    }
+
+    [AvaloniaFact]
+    public void EnabledHasNoEffectInDesignMode()
+    {
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
+        var host = new Border { Width = 60, Height = 40, Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left };
+        Ripple.SetColor(host, Colors.Red);
+        ShowWhite(host);
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Ripple.SetEnabled(host, true);
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        WindowOf(host).MouseDown(new Point(30, 20), MouseButton.Left);
+        TickFor(64);
+
+        Assert.Null(Ripple.HandlerOf(host));
+        Assert.Null(ElementComposition.GetElementChildVisual(host));
+        Assert.Null(Extent(host, Colors.Red));
     }
 
     /// <summary>Shows a white host with red ink at the top left of a white window, ticked once.</summary>

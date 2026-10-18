@@ -36,11 +36,11 @@ depends:
 - **CORE-MOTIONPATH-004** — When `curviness` is 0, the path shall be the straight polyline through the points.
   - Tests: `MotionPathTests.CurvinessZeroIsThePolyline`
 - **CORE-MOTIONPATH-005** — An open path shall use its first and last points as their own missing neighbors.
-  - Tests: untested
+  - Tests: `MotionPathTests.AnOpenPathUsesItsEndPointsAsTheirOwnNeighbors`
 - **CORE-MOTIONPATH-006** — A closed path shall wrap its neighbors, so its end meets its start with the same tangent.
   - Tests: `MotionPathTests.AClosedPathsEndTangentMeetsItsStart`
 - **CORE-MOTIONPATH-007** (inherited) — When fewer than two points are given, `Through` shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `MotionPathTests.FewerThanTwoPointsThrow`
 - **CORE-MOTIONPATH-008** — `BezierPoints` shall list the start point, then each segment's two control points and end point.
   - Tests: `MotionPathTests.TheCurvePassesThroughEveryPoint`
 
@@ -55,7 +55,7 @@ depends:
 - **CORE-MOTIONPATH-012** — `Sample` shall return the tangent's angle in degrees, clockwise from the positive X axis when Y points down, taken from the curve's derivative.
   - Tests: `MotionPathTests.AHorizontalSegmentsTangentIsZeroAndAutoRotateAddsToIt`
 - **CORE-MOTIONPATH-013** — Where the derivative vanishes (a zero-length control arm at a segment end, as with `curviness` 0), `Sample` shall take the angle from the segment's chord.
-  - Tests: untested
+  - Tests: `MotionPathTests.AVanishingDerivativeTakesTheAngleFromTheChord`
 
 ### Tweens
 
@@ -73,13 +73,13 @@ depends:
 ### Defaults
 
 - **CORE-MOTIONPATH-019** — When `curviness` is not given, `Through` shall use 1, the standard Catmull-Rom curve, as GSAP MotionPath does.
-  - Tests: untested
+  - Tests: `MotionPathTests.CurvinessDefaultsToOne`
 - **CORE-MOTIONPATH-020** (inherited) — When `closed` is not given, `Through` shall build an open path.
   - Tests: `MotionPathTests.ZeroOffsetClampsAndAnyOtherWraps`
 - **CORE-MOTIONPATH-021** (inherited) — When `offset` is not given, the tweens shall start at the path's first point and clamp at its ends.
   - Tests: `MotionPathTests.ZeroOffsetClampsAndAnyOtherWraps`
 - **CORE-MOTIONPATH-022** (inherited) — When `rotateOffset` is not given, the `"Rotate"` tween shall be the tangent angle unchanged.
-  - Tests: untested
+  - Tests: `MotionPathTests.WithoutARotateOffsetTheRotateTweenIsTheTangentAngle`
 
 ## Invariants
 
@@ -123,4 +123,4 @@ depends:
 
 ## Open items
 
-- The `ArgumentException` for fewer than two points, open-path end neighbors and the chord fallback for the angle are untested.
+None.

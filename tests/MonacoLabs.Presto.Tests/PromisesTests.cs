@@ -306,4 +306,50 @@ public sealed class PromisesTests : EngineTestBase
         Assert.Equal(30, timer.CurrentTime);
         Assert.True(timer.Completed);
     }
+
+    [Fact]
+    public void ThenCallbacksRunAfterOnComplete()
+    {
+        var log = new List<string>();
+        var timer = Presto.CreateTimer(new() { Duration = 30, OnComplete = _ => log.Add("complete") });
+        timer.Then(_ => log.Add("then"));
+
+        RunUntil(() => timer.Completed);
+
+        Assert.Equal(["complete", "then"], log);
+    }
+
+    [Fact]
+    public void SeveralThenCallsShareOneTaskAndRunEveryCallbackInOrder()
+    {
+        var log = new List<string>();
+        var timer = Presto.CreateTimer(new() { Duration = 30 });
+
+        var first = timer.Then(_ => log.Add("first"));
+        var second = timer.Then(_ => log.Add("second"));
+        RunUntil(() => timer.Completed);
+
+        Assert.Same(first, second);
+        Assert.True(first.IsCompleted);
+        Assert.Equal(["first", "second"], log);
+    }
+
+    [Fact]
+    public void ThenContinuationsNeverRunInsideTheTick()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 30 });
+        var testThread = Environment.CurrentManagedThreadId;
+        int? continuationThread = null;
+        using var ran = new ManualResetEventSlim();
+        _ = timer.Then().ContinueWith(_ =>
+        {
+            continuationThread = Environment.CurrentManagedThreadId;
+            ran.Set();
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+        RunUntil(() => timer.Completed);
+
+        Assert.True(ran.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        Assert.NotEqual(testThread, continuationThread);
+    }
 }

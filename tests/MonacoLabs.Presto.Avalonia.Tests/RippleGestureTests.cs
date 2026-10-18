@@ -156,6 +156,24 @@ public sealed class RippleGestureTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void WithoutStateLayerAHoveredOrFocusedHostIsNotTinted()
+    {
+        var host = RippleTests.ShowHost(new Size(160, 100));
+        host.Focusable = true;
+        var window = WindowOf(host);
+
+        window.MouseMove(new Point(150, 90));
+        TickFor(208);
+        AssertNear(Colors.White, Row(host, 94)[154]);
+
+        host.Focus(NavigationMethod.Tab);
+        TickFor(208);
+
+        Assert.False(Ripple.GetStateLayer(host));
+        AssertNear(Colors.White, Row(host, 94)[154]);
+    }
+
+    [AvaloniaFact]
     public void UnderReducedMotionAPressShowsOnlyThePressedTintAtOnce()
     {
         Presto.Defaults.ReducedMotion = true;

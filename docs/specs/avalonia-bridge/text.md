@@ -47,7 +47,7 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 - **BRIDGE-TEXT-001** — `SplitText` shall initialize the bridge and, with no parameters, split into word pieces only, without spaces in them.
   - Tests: `TextSplitTests.DefaultsToWordsOnly`
 - **BRIDGE-TEXT-002** — When created inside an ambient scope, the splitter shall register with it.
-  - Tests: untested
+  - Tests: `TextSplitTests.ASplitInsideAScopeIsRevertedWithIt`
 - **BRIDGE-TEXT-003** — The splitter shall split at once when the block has a positive width, and otherwise at its first size change.
   - Tests: `TextSplitTests.EffectRunsOnceAfterTheSplit`
 - **BRIDGE-TEXT-004** — The splitter shall break the text into lines by measuring a copy of the block with its font family, size, style, weight, stretch, letter spacing, font features, wrapping and padding at the block's width, trimming trailing whitespace from each line.
@@ -139,9 +139,9 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 - **BRIDGE-TEXT-042** — When `IncludeSpaces` is not set, it shall be false.
   - Tests: `TextSplitTests.SplitsWordsAndChars`
 - **BRIDGE-TEXT-043** — When a kind's `Class` is not set, its pieces shall get no added style class.
-  - Tests: untested
+  - Tests: `TextSplitTests.WithoutAClassOrWrapThePiecesGetNoStyleClassAndNoClippingContainer`
 - **BRIDGE-TEXT-044** — When a kind's `Wrap` is not set, its pieces shall not be wrapped in a clipping `Border`.
-  - Tests: untested
+  - Tests: `TextSplitTests.WithoutAClassOrWrapThePiecesGetNoStyleClassAndNoClippingContainer`
 - **BRIDGE-TEXT-058** — When `Outlines` is not set, it shall be false, so character pieces are text pieces.
   - Tests: `TextSplitTests.SplitsCharsOnly`
 - ~~**BRIDGE-TEXT-045**~~ — Moved to CORE-SCRAMBLE.
@@ -207,5 +207,6 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 
 ## Open items
 
-- Untested: scope registration (002), automation (014), plain-text only (016).
+- BRIDGE-TEXT-014 disagrees with the code: only the text pieces (`TextBlock`s, and outline `Path`s) are set to `AccessibilityView.Raw`; a word or line piece that holds character pieces is a panel left at `AccessibilityView.Default`, so with `Chars` not every piece is `Raw`. Untested until decided.
+- BRIDGE-TEXT-016 needs an owner decision: the splitter reads only `TextBlock.Text`, so a block whose content is formatted `Inlines` (no `Text`) splits into no pieces at all, rather than into its text unformatted as the requirement suggests. Untested until decided.
 - A character piece is shaped alone, so contextual alternates and kerning across pieces are lost (Inter's `calt` raises a colon between figures, which a lone `:` never gets).

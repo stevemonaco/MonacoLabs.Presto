@@ -304,6 +304,44 @@ public sealed class CompositorCompileTests : BridgeTestBase
         Assert.Contains("X, Y, Rotate, Scale, ScaleX, ScaleY and Opacity", exception.Message);
     }
 
+    [AvaloniaFact]
+    public void EachTargetStartsFromItsControlsShorthandsAndOpacity()
+    {
+        var border = new Border { Opacity = .4 };
+        PrestoAvalonia.Set(border, new() { ["X"] = 30, ["Rotate"] = 90 });
+
+        var tracks = Compile(border, new() { ["X"] = 100, ["Rotate"] = 0, ["Opacity"] = 1, Duration = 400, Ease = "linear" });
+
+        Assert.Equal(30, tracks.Single(t => t.Kind == CompositorTrackKind.Translation).Values[0][0], 1e-6);
+        Assert.Equal(Math.PI / 2, tracks.Single(t => t.Kind == CompositorTrackKind.RotationAngle).Values[0][0], 1e-6);
+        Assert.Equal(.4, tracks.Single(t => t.Kind == CompositorTrackKind.Opacity).Values[0][0], 1e-6);
+    }
+
+    [AvaloniaFact]
+    public void TrackTimesAreWallClockScaledByThePlaybackRateAndTheEngineSpeed()
+    {
+        Presto.Engine.Speed = 2;
+
+        var track = Assert.Single(Compile(new Border(), new() { ["X"] = 100, Duration = 800, Delay = 400, PlaybackRate = 2, Ease = "linear" }));
+
+        Assert.Equal(TimeSpan.FromMilliseconds(200), track.Duration);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), track.Delay);
+    }
+
+    [AvaloniaFact]
+    public void UnsetDurationDelayAndEaseComeFromTheEngineDefaults()
+    {
+        Presto.Defaults.Duration = 250;
+        Presto.Defaults.Delay = 50;
+        Presto.Defaults.Ease = Eases.InQuad;
+
+        var track = Assert.Single(Compile(new Border(), new() { ["X"] = 100 }));
+
+        Assert.Equal(TimeSpan.FromMilliseconds(250), track.Duration);
+        Assert.Equal(TimeSpan.FromMilliseconds(50), track.Delay);
+        Assert.Equal(Eases.InQuad(.3), Assert.IsType<PrestoEasing>(track.Easings[1]).Ease(.3), 1e-9);
+    }
+
     private static CompiledTrack[] Compile(Visual visual, CompositorAnimationParams parameters) =>
         CompositorCompiler.Compile(0, [visual], parameters).Tracks;
 }

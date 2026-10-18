@@ -93,7 +93,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **BRIDGE-RECIPES-003** — When a `duration`, `ease`, `distance`, `scale`, `radius` or `intensity` argument is given, the recipe shall use it in place of its token default for that call only.
   - Tests: `RecipeTests.NamedArgumentsOverrideTheTokens`, `RecipeTests.IntensityScalesTheTravel`
 - **BRIDGE-RECIPES-004** — When `delay` is given and `stagger` is false, the recipe shall set it as the builder's delay; when both are unset, it shall set no delay.
-  - Tests: untested
+  - Tests: `RecipeTests.ADelayWithoutStaggerDelaysTheWholeBatchAndNoDelaySetsNone`
 - **BRIDGE-RECIPES-005** — When `stagger` is true, the recipe shall delay each element of a batch by `Tokens.StaggerStep` more than the one before, starting at `delay` (`Presto.Stagger(step, new() { Start = delay })`).
   - Tests: `RecipeTests.StaggerDelaysEachElementOfABatchByTheTokenStep`
 - **BRIDGE-RECIPES-006** — The intensity-taking recipes shall multiply their change from rest by `intensity` (default 1).
@@ -202,7 +202,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **BRIDGE-RECIPES-099** — When a `ThemeReveal` animation is canceled or reverted before it completes, the reveal shall remove its pictures from the overlay layer.
   - Tests: `PageBloomTests.CancelingOrRevertingAThemeRevealRemovesItsPictures`
 - **BRIDGE-RECIPES-043** (inherited) — When `surface` has no overlay layer, `ThemeReveal` shall throw `InvalidOperationException` before running `change`.
-  - Tests: untested
+  - Tests: `RecipeTests.ThemeRevealWithoutAnOverlayLayerThrowsBeforeRunningTheChange`
 
 ### Pages
 
@@ -320,11 +320,11 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 ### Defaults
 
 - **BRIDGE-RECIPES-066** (inherited) — When `angle` is not given, `FlipIn` shall start `RotateX` at 90 degrees.
-  - Tests: untested
+  - Tests: `RecipeTests.FlipInStartsAtNinetyDegreesByDefault`
 - **BRIDGE-RECIPES-067** — When `ease` is not given, the popover recipes, `CircularReveal`, `ThemeReveal`, the text reveals other than `CharCascade` and `CharCascadeOut`, `Typewriter`, `CountUp` and `RollDigits` shall use `Tokens.Ease`, and `ThemeReveal` shall last `Tokens.Long` when `duration` is not given.
-  - Tests: untested
+  - Tests: `RecipeTests.WithoutAnEaseTheseRecipesUseTheTokenEase`, `RecipeTests.ThemeRevealDefaultsToTheSurfacesCenterTheLongDurationAndTheTokenEase`
 - **BRIDGE-RECIPES-068** (inherited) — When `from` is not given, `ThemeReveal` shall reveal from the surface's center.
-  - Tests: untested
+  - Tests: `RecipeTests.ThemeRevealDefaultsToTheSurfacesCenterTheLongDurationAndTheTokenEase`
 - **BRIDGE-RECIPES-069** — When `format` is not given, `RollDigits` shall format with `"N0"` in the current culture.
   - Tests: `RollDigitsTests.AddingADigitAddsAColumnThatRollsIn`
 - **BRIDGE-RECIPES-104** — When `reduced` is not given, `MorphGlyphs` shall use `ReducedMorph.Crossfade`.
@@ -432,5 +432,5 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - `MorphText(explode, shape)` has no shard-count parameter (fixed at 8, BRIDGE-RECIPES-095; a `shards` parameter was rejected), so a shard-count control cannot drive a shatter-then-re-form morph: Glyph lab's Shatter panel runs `Shatter` at the slider's count and pops the next word in with `PopIn` rather than forming it from the shards.
 - `WriteIn` always staggers its characters, so an all-at-once trace has to be built by hand (Glyph lab does).
 - `WriteIn` and `Shatter` clean up when they complete (the block unsplit, the shards removed), so synced into a timeline they cannot be sought back: Kinetic poem hand-rolls both the trace and the shards.
-- `ThemeReveal` throwing without an overlay layer, delay-only (no stagger) timing, and the `PageSharedAxis` `Y`/`X` exit travel lack direct tests.
+- The `PageSharedAxis` `Y`/`X` exit travel lacks a direct test.
 - `MorphGlyphs`' pieces live in the block's adorner layer, so they draw over in-tree overlays that cover the block (Tempo's compact Settings `Sheet` over a running countdown flashes the changed digits every second), and while an ancestor's entrance motion is not yet reflected in adorner coordinates they sit off the block (a `Stepper` morph during the `Sheet` slide-in, about 87 DIP).

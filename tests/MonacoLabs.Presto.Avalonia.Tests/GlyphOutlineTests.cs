@@ -170,6 +170,56 @@ public sealed class GlyphOutlineTests : BridgeTestBase
         Assert.Equal(default, PrestoAvalonia.TextOutline("😀", Font, 40).Bounds);
     }
 
+    // Impact has no bold or italic face, so Avalonia simulates either, though not on the first lookup of the family.
+    [AvaloniaTheory]
+    [InlineData(FontSimulations.Bold)]
+    [InlineData(FontSimulations.Oblique)]
+    public void ASimulatedBoldOrObliqueOutlineCoversTheInkAvaloniaDraws(FontSimulations simulation)
+    {
+        var plain = new Typeface("Impact");
+        Assert.Equal(FontSimulations.None, plain.GlyphTypeface.FontSimulations);
+        var simulated = simulation == FontSimulations.Bold ? new Typeface("Impact", weight: FontWeight.Bold) : new Typeface("Impact", FontStyle.Italic);
+        Assert.Equal(simulation, simulated.GlyphTypeface.FontSimulations);
+
+        var outline = PrestoAvalonia.TextOutline("I", simulated, 100).Bounds;
+        var ink = InkDrawn(new TextBlock { Text = "I", FontFamily = simulated.FontFamily, FontWeight = simulated.Weight, FontStyle = simulated.Style, FontSize = 100 });
+
+        AssertNear(ink, outline, 1.5);
+        Assert.True(outline.Width > PrestoAvalonia.TextOutline("I", plain, 100).Bounds.Width + 3, $"{simulation} left the outline at {outline}");
+    }
+
+    private static Rect InkDrawn(TextBlock block)
+    {
+        block.Measure(Size.Infinity);
+        // Stretched wider than its text, since an oblique glyph leans past its advance and a block clips to its bounds.
+        var stage = new Border { Width = block.DesiredSize.Width * 3, Height = block.DesiredSize.Height, Child = block };
+        stage.Measure(Size.Infinity);
+        stage.Arrange(new Rect(stage.DesiredSize));
+        var size = new PixelSize((int)Math.Ceiling(stage.Bounds.Width), (int)Math.Ceiling(stage.Bounds.Height));
+        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(size);
+        bitmap.Render(stage);
+        var pixels = new byte[size.Width * size.Height * 4];
+        var pinned = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            bitmap.CopyPixels(new PixelRect(size), pinned.AddrOfPinnedObject(), pixels.Length, size.Width * 4);
+        }
+        finally
+        {
+            pinned.Free();
+        }
+        int left = int.MaxValue, top = int.MaxValue, right = -1, bottom = -1;
+        for (var y = 0; y < size.Height; y++)
+        {
+            for (var x = 0; x < size.Width; x++)
+            {
+                if (pixels[((y * size.Width) + x) * 4 + 3] < 128) continue;
+                (left, top, right, bottom) = (Math.Min(left, x), Math.Min(top, y), Math.Max(right, x + 1), Math.Max(bottom, y + 1));
+            }
+        }
+        return new Rect(left, top, right - left, bottom - top);
+    }
+
     [AvaloniaFact]
     public void FlatteningCapsEverySegmentStraightEdgesIncluded()
     {

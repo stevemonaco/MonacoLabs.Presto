@@ -199,6 +199,20 @@ public sealed class MotionValueSourceTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ValueOfAPropertyThatDoesNotConvertToADoubleThrows()
+    {
+        var box = Box();
+        Show(box);
+        box.Tag = "wide";
+        Assert.Throws<FormatException>(() => PrestoAvalonia.ValueOf(box, Control.TagProperty));
+
+        box.Tag = 3;
+        var tag = PrestoAvalonia.ValueOf(box, Control.TagProperty);
+        Assert.Equal(3d, tag.Value);
+        Assert.Throws<InvalidCastException>(() => box.Tag = new object());
+    }
+
+    [AvaloniaFact]
     public void ScrollAndPropertyValuesStopWhenTheirControlDetaches()
     {
         var (window, scroller, _) = ShowScroller();

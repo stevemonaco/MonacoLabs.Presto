@@ -203,6 +203,21 @@ public sealed class FilteredViewTests
     }
 
     [Fact]
+    public void MoveToTheSameIndexDoesNothing()
+    {
+        var source = new ObservableCollection<int>([1, 2, 3, 4, 6]);
+        var (view, log) = Watch(source, Even);
+        var sourceChanges = 0;
+        source.CollectionChanged += (_, _) => sourceChanges++;
+
+        view.Move(1, 1);
+
+        Assert.Empty(log);
+        Assert.Equal(0, sourceChanges);
+        Assert.Equal([1, 2, 3, 4, 6], source);
+    }
+
+    [Fact]
     public void MoveOutOfRangeThrows()
     {
         var view = new FilteredView<int>(new ObservableCollection<int>([1, 2, 4]), Even);

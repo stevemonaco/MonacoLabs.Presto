@@ -119,7 +119,7 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 - **BRIDGE-MARKUP-014** — `{presto:Shake}`, `{presto:Lift}`, `{presto:PressIn}` and `{presto:Glow}` shall provide their recipe with `Intensity` (default 1); `Lift` keeps its default distance and `Glow` its default color.
   - Tests: `RecipeMarkupTests.LiftPlaysOnHoverAndShakePlaysOnAttach`
 - **BRIDGE-MARKUP-015** — `{presto:Shimmer}` shall provide `Shimmer`.
-  - Tests: untested
+  - Tests: `RecipeMarkupTests.ShimmerProvidesALoopingMaskSweep`
 - **BRIDGE-MARKUP-016** — `{presto:Recolor To=… Property=… Space=… Hue=…}` shall provide `Recolor` with those members (defaults `DodgerBlue`, `"Background"`, the token space and hue).
   - Tests: `RecipeTests.RecolorIsTheSameUnderReducedMotionAndFromXaml`
 - **BRIDGE-MARKUP-017** — `{presto:Reflow}` shall provide `Reflow`, and `{presto:Reflow 320}` shall set `Duration` positionally.
@@ -142,16 +142,16 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 - **BRIDGE-MARKUP-021** — `{presto:PageFade Duration=…}`, `{presto:PageFadeThrough Duration=…}`, `{presto:PageSharedAxis Axis=… Distance=… Duration=…}`, `{presto:PageSlide Edge=…}`, `{presto:PagePush Edge=…}` and `{presto:PageBloom}` shall each provide a new `PrestoPageTransition` from the same-named recipe with those settings.
   - Tests: `RecipeMarkupTests.PageMarkupExtensionsProduceTransitionsWithTheirSettings`
 - **BRIDGE-MARKUP-022** (inherited) — The page extensions shall not derive from `RecipeExtension`: they take no `Delay`, `Ease`, `Stagger` or `Out`.
-  - Tests: untested
+  - Tests: `RecipeMarkupTests.PageExtensionsTakeNoneOfTheRecipeSettings`
 
 ### Defaults
 
 - **BRIDGE-MARKUP-023** — When `Fps`, `Loop` or `Reverse` is not set, `{presto:PlayFrames}` shall play at 24 fps, looping, forwards, as `Recipes.PlayFrames` does.
-  - Tests: untested
+  - Tests: `RecipeMarkupTests.PlayFramesDefaultsTo24FpsLoopingForwards`
 - **BRIDGE-MARKUP-024** (inherited) — When `Edge` is not set, `{presto:Slide}`, `{presto:PageSlide}` and `{presto:PagePush}` shall use `Edge.Left`.
-  - Tests: untested
+  - Tests: `RecipeMarkupTests.SlideAndThePageSlidesDefaultToTheLeftEdge`
 - **BRIDGE-MARKUP-025** (inherited) — When `Axis` is not set, `{presto:PageSharedAxis}` shall use `PageAxis.X`.
-  - Tests: untested
+  - Tests: `RecipeMarkupTests.PageSharedAxisDefaultsToTheXAxis`
 
 ## Invariants
 
@@ -202,4 +202,3 @@ The XAML forms of the recipes, `{presto:Fade Direction=Up}` and friends: each ex
 ## Open items
 
 - No extension exposes `Lift`'s distance or `Glow`'s color, so XAML cannot set them.
-- `{presto:Shimmer}` and the page extensions' lack of the shared settings have no tests.

@@ -63,9 +63,9 @@ depends:
 - **BRIDGE-DECLLAYOUT-009** — The builder shall be snapshotted at each arm, so one value shared by a style setter gives each element its own transition.
   - Tests: `AnimateLayoutAttachedTests.AStyleSetterSharesOneReflowAndEachElementGetsItsOwnTransition`
 - **BRIDGE-DECLLAYOUT-010** — Arming shall never register with an ambient scope.
-  - Tests: untested
+  - Tests: `AnimateLayoutAttachedTests.ArmingNeverRegistersWithTheAmbientScope`
 - **BRIDGE-DECLLAYOUT-011** — In design mode, setting `Animate.Layout`, `Animate.LayoutMode`, `Animate.ItemLayout` or `Animate.ItemGroup` shall do nothing.
-  - Tests: untested
+  - Tests: `AnimateLayoutAttachedTests.DoesNothingInDesignMode`
 
 ### Animate.ItemLayout
 
@@ -74,13 +74,13 @@ depends:
 - **BRIDGE-DECLLAYOUT-013** — When the list prepares a container, it shall be armed as if attaching, so a recycled container lands at its new index in one frame.
   - Tests: `ItemLayoutTests.ARecycledContainerLandsAtItsNewIndexInOneFrame`
 - **BRIDGE-DECLLAYOUT-014** — When the list clears a container, its transition shall be reverted and its arm released.
-  - Tests: untested
+  - Tests: `ItemLayoutTests.AClearedContainerIsRevertedAndReleased`
 - **BRIDGE-DECLLAYOUT-015** — Setting `Animate.ItemLayout` to null shall revert every realized container and stop listening to the list.
   - Tests: `ItemLayoutTests.ClearingItRevertsEveryArmedContainer`
 - **BRIDGE-DECLLAYOUT-016** — An `Animate.ItemLayout` builder shall be validated when it is set, before any container is realized.
-  - Tests: untested
+  - Tests: `ItemLayoutTests.ABuilderALayoutTransitionCannotHonorThrowsWhenSetOnAnEmptyList`
 - **BRIDGE-DECLLAYOUT-017** — Changing `Animate.LayoutMode` on the list shall re-arm every realized container with the new mode.
-  - Tests: untested
+  - Tests: `ItemLayoutTests.ChangingTheListsLayoutModeRearmsEveryContainer`
 
 ### Lists and scrolling
 
@@ -96,9 +96,9 @@ depends:
 - **BRIDGE-DECLLAYOUT-021** — When a one-shot flight (a `Connected` flight or a once `AnimateSharedElement`) takes the control over, the flight shall win its move, and once its `Then` completes the property shall arm again, unless it was disarmed or re-armed meanwhile.
   - Tests: `AnimateLayoutAttachedTests.AConnectedFlightWinsItsMoveAndTheLayoutPropertyResumesAfterIt`
 - **BRIDGE-DECLLAYOUT-022** — When the property arms while a one-shot flight on the control is still in flight, it shall wait for that flight instead of replacing it.
-  - Tests: untested
+  - Tests: `AnimateLayoutAttachedTests.SettingItWhileAFlightIsInTheAirWaitsForTheFlight`
 - **BRIDGE-DECLLAYOUT-023** — When code arms a persistent `AnimateLayout` on the control, the code transition shall win, and the property shall not arm again until the next attach or value change.
-  - Tests: untested
+  - Tests: `AnimateLayoutAttachedTests.APersistentCodeTransitionWinsUntilTheValueChanges`
 - **BRIDGE-DECLLAYOUT-024** — While `Reorder` drags a container, its `ItemLayout` arm shall stay disarmed whatever attaches or changes, and on release it shall arm again as if attaching, while the neighbors keep easing.
   - Tests: `ReorderContainerTests.ADraggablesTranslationAddsToTheFlipThatIsEasingTheSameContainer`, `ReorderTests.NeighborsEaseWithItemLayoutAndSnapWithout`
 - **BRIDGE-DECLLAYOUT-028** — When an item container would be armed both by its own `Animate.Layout` and by its list's `Animate.ItemLayout`, the second to arm shall throw `InvalidOperationException`.
@@ -189,4 +189,4 @@ depends:
 
 ## Open items
 
-- Untested: scope (010), design mode (011), container clearing (014), early validation of `ItemLayout` (016), a list's `LayoutMode` change (017), waiting for a flight already in the air (022), a persistent code transition winning (023), and in 031 a list without `ItemLayout`, different top levels and an `ObservableCollection.Move`.
+- Untested: in 031, a list without `ItemLayout`, different top levels and an `ObservableCollection.Move`.

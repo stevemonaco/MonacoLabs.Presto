@@ -1,3 +1,5 @@
+using MonacoLabs.Presto.Values;
+
 namespace MonacoLabs.Presto.Tests;
 
 public sealed class ParticleSystemTests
@@ -241,6 +243,206 @@ public sealed class ParticleSystemTests
         Assert.Throws<ArgumentOutOfRangeException>("dt", () => system.Step(-1));
         system.Step(0);
         Assert.Equal(0, system.Particles[0].Age);
+    }
+
+    [Fact]
+    public void ANewSystemIsStoppedAndFinished()
+    {
+        var system = new ParticleSystem(new() { Rate = 1000, Burst = 5, Seed = 1 });
+
+        Assert.Equal(0, system.Live);
+        Assert.True(system.IsFinished);
+
+        system.Step(100);
+
+        Assert.Equal(0, system.Live);
+        Assert.True(system.IsFinished);
+    }
+
+    [Fact]
+    public void ParticlesSpawnUniformlyWithinTheAreaCenteredOnTheOrigin()
+    {
+        var system = new ParticleSystem(Straight with { Burst = 500, MaxParticles = 500, Area = (100, 40) }, 10, 20);
+        system.Start();
+
+        var xs = new List<double>();
+        var ys = new List<double>();
+        foreach (var p in system.Particles)
+        {
+            xs.Add(p.X);
+            ys.Add(p.Y);
+        }
+
+        Assert.All(xs, x => Assert.InRange(x, -40, 60));
+        Assert.All(ys, y => Assert.InRange(y, 0, 40));
+        Assert.True(xs.Min() < -35 && xs.Max() > 55);
+        Assert.True(ys.Min() < 2 && ys.Max() > 38);
+        Assert.InRange(xs.Average(), 5, 15);
+        Assert.InRange(ys.Average(), 18, 22);
+    }
+
+    [Fact]
+    public void SpinningParticlesStartAtARandomRotationAndEveryParticleAtARandomFlutterPhase()
+    {
+        var spinning = new ParticleSystem(Straight with { Burst = 50, Spin = (1, 1) });
+        var still = new ParticleSystem(Straight with { Burst = 50 });
+        spinning.Start();
+        still.Start();
+
+        var rotations = new HashSet<double>();
+        var phases = new HashSet<double>();
+        foreach (var p in spinning.Particles)
+        {
+            Assert.InRange(p.Rotation, 0, 360);
+            rotations.Add(p.Rotation);
+        }
+        foreach (var p in still.Particles)
+        {
+            Assert.Equal(0, p.Rotation);
+            Assert.InRange(p.FlutterPhase, 0, 2 * Math.PI);
+            phases.Add(p.FlutterPhase);
+        }
+
+        Assert.Equal(50, rotations.Count);
+        Assert.Equal(50, phases.Count);
+    }
+
+    [Fact]
+    public void RotationAdvancesBySpinAndFlutterPhaseByFlutterTurnsPerSecond()
+    {
+        var system = new ParticleSystem(Straight with { Spin = (.5, .5), Flutter = 2 });
+        system.Start();
+        var start = system.Particles[0];
+
+        system.Step(100);
+        system.Step(150);
+
+        var p = system.Particles[0];
+        Assert.Equal(.5, p.Spin);
+        Assert.Equal(start.Rotation + 125, p.Rotation, 1e-9);
+        Assert.Equal(start.FlutterPhase + Math.PI, p.FlutterPhase, 1e-9);
+    }
+
+    [Fact]
+    public void ANullSeedTakesTheNextSeedFromTheCounter()
+    {
+        var parameters = Straight with { Burst = 10, Spread = 45, Speed = (.1, .9), Seed = null };
+        var unseeded = new ParticleSystem(parameters);
+        var probe = Utils.CreateSeededRandom();
+        double[] draws = [probe(0, 1, 9), probe(0, 1, 9), probe(0, 1, 9)];
+        var probeSeed = Enumerable.Range(0, 1_000_000).First(s =>
+        {
+            var candidate = Utils.CreateSeededRandom(s);
+            return candidate(0, 1, 9) == draws[0] && candidate(0, 1, 9) == draws[1] && candidate(0, 1, 9) == draws[2];
+        });
+        var seeded = new ParticleSystem(parameters with { Seed = probeSeed - 1 });
+
+        unseeded.Start();
+        seeded.Start();
+        unseeded.Step(16);
+        seeded.Step(16);
+
+        Assert.Equal(seeded.Particles.ToArray(), unseeded.Particles.ToArray());
+    }
+
+    [Fact]
+    public void WithoutABurstStartSpawnsNothingAtOnce()
+    {
+        var system = new ParticleSystem(new() { Rate = 1000, Seed = 1 });
+
+        system.Start();
+
+        Assert.Equal(0, system.Live);
+        system.Step(10);
+        Assert.Equal(10, system.Live);
+    }
+
+    [Fact]
+    public void DefaultLifetimeSpeedAndSpreadDrawFromTheirRanges()
+    {
+        var system = new ParticleSystem(new() { Burst = 500, Angle = 0, Seed = 3 });
+        system.Start();
+
+        var lifetimes = new List<double>();
+        var speeds = new List<double>();
+        var angles = new List<double>();
+        foreach (var p in system.Particles)
+        {
+            lifetimes.Add(p.Lifetime);
+            speeds.Add(Math.Sqrt(p.VelocityX * p.VelocityX + p.VelocityY * p.VelocityY));
+            angles.Add(Utils.RadToDeg(Math.Atan2(p.VelocityY, p.VelocityX)));
+        }
+
+        Assert.All(lifetimes, l => Assert.InRange(l, 800, 1400));
+        Assert.True(lifetimes.Min() < 820 && lifetimes.Max() > 1380);
+        Assert.All(speeds, s => Assert.InRange(s, .2 - 1e-12, .6 + 1e-12));
+        Assert.True(speeds.Min() < .21 && speeds.Max() > .59);
+        Assert.All(angles, a => Assert.InRange(a, -60 - 1e-9, 60 + 1e-9));
+        Assert.True(angles.Min() < -58 && angles.Max() > 58);
+    }
+
+    [Fact]
+    public void DefaultAngleLaunchesUp()
+    {
+        var system = new ParticleSystem(new() { Burst = 20, Spread = 0, Seed = 3 });
+        system.Start();
+
+        foreach (var p in system.Particles)
+        {
+            Assert.Equal(0, p.VelocityX, 1e-12);
+            Assert.True(p.VelocityY < 0);
+        }
+    }
+
+    [Fact]
+    public void WithoutSpinOrFlutterParticlesNeitherRotateNorFlutter()
+    {
+        var system = new ParticleSystem(new() { Burst = 20, Seed = 3 });
+        system.Start();
+        var phases = system.Particles.ToArray().Select(p => p.FlutterPhase).ToArray();
+
+        system.Step(100);
+
+        for (var i = 0; i < system.Live; i++)
+        {
+            Assert.Equal(0, system.Particles[i].Spin);
+            Assert.Equal(0, system.Particles[i].Rotation);
+            Assert.Equal(phases[i], system.Particles[i].FlutterPhase);
+        }
+    }
+
+    [Fact]
+    public void DefaultSizeOpacityAndColorAreSixUnitsLinearFadeAndOpaqueWhite()
+    {
+        var system = new ParticleSystem(Straight with { Lifetime = (1000, 1000), Burst = 5 });
+        system.Start();
+
+        AssertSampled(1);
+        system.Step(250);
+        AssertSampled(.75);
+        system.Step(250);
+        AssertSampled(.5);
+
+        void AssertSampled(double opacity)
+        {
+            foreach (var p in system.Particles)
+            {
+                Assert.Equal(6, p.Size);
+                Assert.Equal(opacity, p.Opacity, 1e-12);
+                Assert.Equal(new PrestoColor(255, 255, 255, 1), p.BaseColor);
+                Assert.Equal(p.BaseColor, p.Color);
+            }
+        }
+    }
+
+    [Fact]
+    public void DefaultMaxParticlesIsFiveHundred()
+    {
+        var system = new ParticleSystem(new() { Burst = 600, Seed = 1 });
+
+        system.Start();
+
+        Assert.Equal(500, system.Live);
     }
 
     [Fact]

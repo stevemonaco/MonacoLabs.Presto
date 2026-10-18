@@ -58,7 +58,7 @@ A row of character cells that flip like a departures board: when `Text` changes,
 - **BRIDGE-SPLITFLAP-010** — When the control leaves the visual tree, it shall stop and show the targets; a `Text` change while it has no visual root shall show them at once.
   - Tests: `SplitFlapTests.LeavingTheTreeShowsTheTargets`, `SplitFlapTests.AnUppercaseCharsetShowsTheTextUpperCased`
 - **BRIDGE-SPLITFLAP-011** — While the engine is hidden, the cells shall not advance (the engine's own pause).
-  - Tests: untested
+  - Tests: `SplitFlapTests.WhileTheEngineIsHiddenTheCellsHoldStill`
 
 ### Reduced motion
 
@@ -120,4 +120,4 @@ A row of character cells that flip like a departures board: when `Text` changes,
 
 ## Open items
 
-- The drawn halves (003) are checked only by eye; the engine-hidden pause (011) has no test of its own.
+- The drawn halves (003) are checked only by eye.

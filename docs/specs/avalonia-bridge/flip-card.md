@@ -33,7 +33,7 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 - **BRIDGE-FLIP-001** — The control shall stack `Front` and `Back`, each in its own holder, in one card panel that is its only visual and logical child.
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-002** (inherited) — When `Front` or `Back` changes, the new control shall replace the old one in its face's holder.
-  - Tests: untested
+  - Tests: `FlipTests.ANewFaceReplacesTheOldOneInItsHolder`
 - **BRIDGE-FLIP-003** — A new card shall show its front, with its back hidden.
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-004** — The back face shall be mirrored by `ScaleTransform(-1, 1)` while `Orientation` is horizontal and `ScaleTransform(1, -1)` while vertical, so it reads the right way round once turned.
@@ -46,7 +46,7 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 - **BRIDGE-FLIP-006** — On every rendered frame of a turn, the front shall be visible while the card's angle is at most 90° in magnitude and the back while it is above.
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-007** — While `Motion` is null, the turn shall last `Recipes.Tokens.Long` and ease with `Recipes.Tokens.Ease`, read at the toggle.
-  - Tests: untested
+  - Tests: `FlipTests.WithoutAMotionTheTurnTakesTheTokensReadAtTheToggle`
 - **BRIDGE-FLIP-008** — When `Motion` is set, the turn shall be a clone of it, so its timing and ease (a spring setting the duration) apply, and the builder itself is not changed.
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-017** — Setting `Motion` to a builder that animates a property or sets anything a layout transition cannot honor (BRIDGE-LAYOUT-040) shall throw `NotSupportedException`.
@@ -75,7 +75,7 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 - **BRIDGE-FLIP-015** (inherited) — When `IsFlipped` is not set, the card shall show its front.
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-016** (inherited) — When `Orientation` is not set, the card shall turn horizontally, about its vertical axis.
-  - Tests: untested
+  - Tests: `FlipTests.ByDefaultTheCardTurnsAboutItsVerticalAxis`
 
 ## Invariants
 
@@ -117,4 +117,4 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 
 ## Open items
 
-- The default timing (007) and face replacement (002) have no tests.
+None.

@@ -57,7 +57,7 @@ depends: []
 - **CORE-FILTERVIEW-011** — When `Move` is given an index outside the view, it shall throw `ArgumentOutOfRangeException`.
   - Tests: `FilteredViewTests.MoveOutOfRangeThrows`
 - **CORE-FILTERVIEW-012** (inherited) — When `Move` is given equal indices, it shall do nothing.
-  - Tests: untested
+  - Tests: `FilteredViewTests.MoveToTheSameIndexDoesNothing`
 
 ### Notifications and list surface
 

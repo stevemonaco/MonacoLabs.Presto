@@ -204,6 +204,48 @@ public sealed class RevealTests : BridgeTestBase
     public void TheCompositorRejectsTheShorthandsOnlyTheBridgeRenders(string shorthand) =>
         Assert.Throws<NotSupportedException>(() => new Border().AnimateOnCompositor(new() { [shorthand] = 1, Duration = 100 }));
 
+    [AvaloniaFact]
+    public void TheMaskShorthandsAnimateAlongsideEachOtherAndTheEffectAndClipShorthands()
+    {
+        var box = ShownBox();
+
+        Seeked(box, new()
+        {
+            ["MaskSweep"] = TweenValue.FromTo(0, 0.5), ["MaskSweepAngle"] = 90, ["MaskSweepFeather"] = 0.5,
+            ["Blur"] = 4, ["ClipInset"] = 4,
+        }, 0.5);
+        Seeked(box, new() { ["MaskSweep"] = TweenValue.FromTo(0, 0.5), ["ShadowBlur"] = 4, ["ClipCircle"] = 0.5 }, 0.5);
+
+        Assert.IsType<LinearGradientBrush>(box.OpacityMask);
+        Assert.IsType<DropShadowEffect>(box.Effect);
+        Assert.IsType<EllipseGeometry>(box.Clip);
+    }
+
+    [AvaloniaFact]
+    public void AnUnanimatedClipCircleReadsAndStartsFromOne()
+    {
+        var box = ShownBox();
+        Assert.Equal(1d, Convert.ToDouble(Presto.Get(box, "ClipCircle", withUnit: false)));
+
+        Seeked(box, new() { ["ClipCircle"] = 0 }, 0.5);
+
+        var farthest = Math.Sqrt(25 * 25 * 2);
+        Assert.Equal(farthest / 2, Assert.IsType<EllipseGeometry>(box.Clip).Rect.Width / 2, 9);
+    }
+
+    [AvaloniaFact]
+    public void AnUnanimatedMaskSweepReadsAndStartsFromOneAndSweepsLeftToRight()
+    {
+        var box = ShownBox();
+        Assert.Equal(1d, Convert.ToDouble(Presto.Get(box, "MaskSweep", withUnit: false)));
+
+        Seeked(box, new() { ["MaskSweep"] = 0 }, 0.5);
+
+        var mask = Assert.IsType<LinearGradientBrush>(box.OpacityMask);
+        AssertPoint(0.4, 0.5, mask.StartPoint);
+        AssertPoint(0.6, 0.5, mask.EndPoint);
+    }
+
     private static void AssertPoint(double x, double y, RelativePoint actual)
     {
         Assert.Equal(RelativeUnit.Relative, actual.Unit);

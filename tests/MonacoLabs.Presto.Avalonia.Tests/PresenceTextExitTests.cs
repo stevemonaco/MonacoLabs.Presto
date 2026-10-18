@@ -420,6 +420,28 @@ public sealed class PresenceTextExitTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AHeldHideMidArrivalRevertsTheArrivalsSplitAndExitsOnAFreshOne()
+    {
+        var block = TextRevealTests.Block(TextPieces.Chars);
+        Presence.SetInitial(block, Presto.Build().Opacity(from: 0).Duration(2000).Ease("linear"));
+        Presence.SetExit(block, Long);
+        Presence.SetHideMode(block, PresenceHideMode.Hold);
+        TextRevealTests.Show(block);
+        Frames.Advance(500, 50);
+        var arrivalPieces = TextSplitter.Of(block)!.Chars.ToArray();
+        var arrival = Assert.Single(Presto.GetAnimations(arrivalPieces[0]));
+
+        block.IsVisible = false;
+        Frames.Advance(1000, 50);
+
+        Assert.True(arrival.Canceled);
+        var chars = TextSplitter.Of(block)!.Chars;
+        Assert.Equal(arrivalPieces.Length, chars.Count);
+        Assert.All(chars, piece => Assert.DoesNotContain(piece, arrivalPieces));
+        Assert.All(chars, piece => Assert.InRange(piece.Opacity, .4, .6));
+    }
+
+    [AvaloniaFact]
     public void ShownAgainMidHeldHideThePieceExitPlaysBack()
     {
         var block = TextRevealTests.Block(TextPieces.Chars);

@@ -358,4 +358,241 @@ public sealed class ScopeTests : EngineTestBase
         Assert.Equal(0, target.X);
         Assert.True(timer!.Canceled);
     }
+
+    [Fact]
+    public void APlainTimerTakesNoDurationAndNoFunctionBasedDelayFromTheDefaults()
+    {
+        Presto.Defaults.Duration = 500;
+        Presto.Defaults.Delay = 200;
+        var numeric = Presto.CreateTimer();
+        Presto.Defaults.Delay = Presto.Stagger(100);
+        var functionBased = Presto.CreateTimer();
+
+        Assert.Equal(double.PositiveInfinity, numeric.IterationDuration);
+        Assert.Equal(200, numeric.Delay);
+        Assert.Equal(0, functionBased.Delay);
+    }
+
+    [Fact]
+    public void ChangingADefaultAffectsOnlyTimersCreatedAfterwards()
+    {
+        var before = Presto.CreateTimer(new() { Duration = 100 });
+        Presto.Defaults.Loop = 2;
+        Presto.Defaults.PlaybackRate = 3;
+        var after = Presto.CreateTimer(new() { Duration = 100 });
+
+        Assert.Equal(1, before.IterationCount);
+        Assert.Equal(1, before.Speed);
+        Assert.Equal(3, after.IterationCount);
+        Assert.Equal(3, after.Speed);
+    }
+
+    [Fact]
+    public void ATimelineWithoutDefaultsReadsTheEngineDefaultsAsEachChildIsAdded()
+    {
+        var timeline = Presto.CreateTimeline(new() { Autoplay = false });
+        timeline.Add(new StyleTarget(), new AnimationParams { ["X"] = 100 });
+        Presto.Defaults.Duration = 300;
+        timeline.Add(new StyleTarget(), new AnimationParams { ["X"] = 100 });
+
+        Assert.Same(Presto.Defaults, timeline.ChildDefaults);
+        Assert.Equal(Constants.K, TestHelpers.GetChildAtIndex(timeline, 0)!.Duration);
+        Assert.Equal(300, TestHelpers.GetChildAtIndex(timeline, 1)!.Duration);
+    }
+
+    [Fact]
+    public void TimelineDefaultsCarryNoReducedMotionFlagsAndKeepTheEngines()
+    {
+        Presto.Defaults.ReducedMotion = true;
+        Presto.Defaults.ReduceAll = true;
+
+        var timeline = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { Duration = 50 } });
+
+        Assert.Null(typeof(DefaultsParams).GetProperty(nameof(PrestoDefaults.ReducedMotion)));
+        Assert.Null(typeof(DefaultsParams).GetProperty(nameof(PrestoDefaults.ReduceAll)));
+        Assert.NotSame(Presto.Defaults, timeline.ChildDefaults);
+        Assert.True(timeline.ChildDefaults.ReducedMotion);
+        Assert.True(timeline.ChildDefaults.ReduceAll);
+    }
+
+    [Fact]
+    public void AScopeWithoutDefaultsSharesTheEngineInstance()
+    {
+        var scope = Presto.CreateScope();
+        scope.Defaults.Duration = 400;
+
+        Assert.Same(Presto.Engine.Defaults, scope.Defaults);
+        Assert.Equal(400, Presto.Defaults.Duration.AsDouble);
+    }
+
+    [Fact]
+    public void PrestoDefaultsReadsTheExecutingScopesDefaults()
+    {
+        var scope = Presto.CreateScope(new() { Defaults = defaults => defaults.Duration = 500 });
+
+        var inside = scope.Execute(_ => Presto.Defaults);
+
+        Assert.Same(scope.Defaults, inside);
+        Assert.NotSame(scope.Defaults, Presto.Defaults);
+    }
+
+    [Fact]
+    public void ANestedExecuteRestoresTheOuterScope()
+    {
+        var outer = Presto.CreateScope(new() { Defaults = defaults => defaults.Duration = 500 });
+        var inner = Presto.CreateScope(new() { Defaults = defaults => defaults.Duration = 700 });
+        Scope? current = null;
+        PrestoDefaults? defaults = null;
+
+        outer.Execute(_ =>
+        {
+            inner.Execute(_ => { });
+            current = Presto.Engine.CurrentScope;
+            defaults = Presto.Engine.Defaults;
+        });
+
+        Assert.Same(outer, current);
+        Assert.Same(outer.Defaults, defaults);
+    }
+
+    [Fact]
+    public void RegistrationsAfterAddOnceSurviveRefreshUntilTheNextAdd()
+    {
+        var scope = Presto.CreateScope();
+        scope.AddOnce(_ => { });
+        var once = scope.Execute(_ => Presto.CreateTimer(new() { Duration = 100 }));
+        scope.Add(_ => { });
+        var refreshed = scope.Execute(_ => Presto.CreateTimer(new() { Duration = 100 }));
+
+        scope.Refresh();
+
+        Assert.False(once.Canceled);
+        Assert.True(refreshed.Canceled);
+        scope.Revert();
+        Assert.True(once.Canceled);
+    }
+
+    [Fact]
+    public void RegistrationsAfterKeepTimeSurviveRefresh()
+    {
+        var scope = Presto.CreateScope();
+        scope.KeepTime(_ => Presto.CreateTimer(new() { Duration = 100 }));
+        var once = scope.Execute(_ => Presto.CreateTimer(new() { Duration = 100 }));
+
+        scope.Refresh();
+
+        Assert.False(once.Canceled);
+    }
+
+    [Fact]
+    public void AddOnceCleanupsAndTimersAreLeftByRefreshAndUndoneByRevert()
+    {
+        var cleanups = 0;
+        Timer? timer = null;
+        var scope = Presto.CreateScope();
+        scope.AddOnce(_ =>
+        {
+            timer = Presto.CreateTimer(new() { Duration = 100 });
+            return (Action)(() => cleanups++);
+        });
+
+        scope.Refresh();
+
+        Assert.Equal(0, cleanups);
+        Assert.False(timer!.Canceled);
+        scope.Revert();
+        Assert.Equal(1, cleanups);
+        Assert.True(timer.Canceled);
+    }
+
+    [Fact]
+    public void RevertClearsTheConstructorsMethodsAndData()
+    {
+        var runs = 0;
+        var onceRuns = 0;
+        var scope = Presto.CreateScope();
+        scope.Add(_ => { runs++; });
+        scope.AddOnce(_ => { onceRuns++; });
+        scope.Add("method", () => { });
+        scope.Data["key"] = 1;
+
+        scope.Revert();
+        scope.Refresh();
+        scope.AddOnce(_ => { onceRuns++; });
+
+        Assert.Equal(1, runs);
+        Assert.Equal(2, onceRuns);
+        Assert.Empty(scope.Methods);
+        Assert.Empty(scope.Data);
+    }
+
+    [Fact]
+    public void AScopeStaysUsableAfterRevert()
+    {
+        var scope = Presto.CreateScope();
+        scope.Add(_ => { Presto.CreateTimer(new() { Duration = 100 }); });
+        scope.Revert();
+        var runs = 0;
+        Timer? timer = null;
+
+        scope.Add(_ =>
+        {
+            runs++;
+            timer = Presto.CreateTimer(new() { Duration = 100 });
+        });
+
+        Assert.Equal(1, runs);
+        Assert.Equal(1, scope.RevertibleCount);
+        scope.Revert();
+        Assert.True(timer!.Canceled);
+    }
+
+    [Fact]
+    public void RevertsAnyRegisteredRevertible()
+    {
+        var scope = Presto.CreateScope();
+        var revertible = new CountingRevertible();
+        scope.Register(revertible);
+
+        scope.Revert();
+
+        Assert.Equal(1, revertible.Reverts);
+    }
+
+    [Fact]
+    public void ANewPrestoDefaultsHoldsThePlainTimerChoices()
+    {
+        var defaults = new PrestoDefaults();
+
+        Assert.Equal(1, defaults.PlaybackRate);
+        Assert.Equal(0, defaults.Loop.Value);
+        Assert.False(defaults.Reversed);
+        Assert.False(defaults.Alternate);
+        Assert.True(defaults.Autoplay);
+        Assert.Equal(0, defaults.Delay.AsDouble);
+        Assert.Equal(0, defaults.LoopDelay);
+        Assert.Null(defaults.PlaybackEase);
+        Assert.Equal(12.345, defaults.Modifier(12.345));
+        Assert.Equal(-3, defaults.Modifier(-3));
+        Assert.Null(defaults.OnBegin);
+        Assert.Null(defaults.OnBeforeUpdate);
+        Assert.Null(defaults.OnUpdate);
+        Assert.Null(defaults.OnLoop);
+        Assert.Null(defaults.OnPause);
+        Assert.Null(defaults.OnComplete);
+        Assert.Null(defaults.OnRender);
+    }
+
+    [Fact]
+    public void AScopeWithoutParametersBehavesAsWithEmptyParams()
+    {
+        var parent = Presto.CreateScope();
+
+        var (bare, empty) = parent.Execute(_ => (new Scope(), new Scope(new ScopeParams())));
+
+        Assert.Null(bare.Root);
+        Assert.Same(Presto.Defaults, bare.Defaults);
+        Assert.Same(empty.Defaults, bare.Defaults);
+        Assert.Equal(2, parent.RevertibleCount);
+    }
 }

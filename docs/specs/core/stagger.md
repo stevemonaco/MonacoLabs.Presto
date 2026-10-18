@@ -59,7 +59,7 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 - **CORE-STAGGER-008** — The distances shall be measured from the first target by default, from index `(total − 1) / 2` for `Center`, from the last for `Last`, and from the given index for an `int`.
   - Tests: `StaggerTests.StaggersDelaysByAFixedStepPerTarget`, `StaggerTests.StaggersFromTheCenter`, `StaggerTests.StaggersFromTheLastElement`, `StaggerTests.StaggersFromASpecificIndex`
 - **CORE-STAGGER-009** — When `From` is `Random`, the computed values shall be shuffled across the targets with the stagger's random generator.
-  - Tests: untested
+  - Tests: `StaggerTests.RandomFromShufflesTheValuesWithTheStaggersGenerator`
 - **CORE-STAGGER-010** — When `Reversed` is true and no `Axis` is set, each value shall become the largest value minus itself.
   - Tests: `StaggerTests.ReversesTheStaggerOrder`
 - **CORE-STAGGER-011** — When `Ease` is set, each distance shall be mapped through it as `ease(d / max) × max`, before any reversal; a `Spring` contributes its ease curve.
@@ -184,4 +184,4 @@ A `Stagger` gives each target its own value from the target's distance to an ori
 
 ## Open items
 
-- `From = Random` and a fractional `Use` index have no test.
+- A fractional `Use` index has no test.

@@ -131,6 +131,15 @@ public sealed class LottieSegmentTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void WithoutACompositionAPlayLastsZero()
+    {
+        var view = new LottieView();
+
+        Assert.Equal(0, view.Play().Duration, 6);
+        Assert.Equal(0, view.PlaySegment(0, 10).Duration, 6);
+    }
+
+    [AvaloniaFact]
     public void AnUnknownMarkerThrowsNamingTheMarkers()
     {
         var error = Assert.Throws<ArgumentException>(() => View().Play("missing"));

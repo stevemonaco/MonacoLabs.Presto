@@ -179,6 +179,40 @@ public sealed class PageTransitionTests : CompositorTestBase
         Assert.True(to.IsAnimating(Visual.ZIndexProperty));
     }
 
+    [AvaloniaTheory]
+    [InlineData(PageStacking.IncomingAbove, true, 1, 0)]
+    [InlineData(PageStacking.IncomingAbove, false, 1, 0)]
+    [InlineData(PageStacking.OutgoingAbove, true, 0, 1)]
+    [InlineData(PageStacking.OutgoingAbove, false, 0, 1)]
+    public void FixedStackingIgnoresTheDirection(PageStacking stacking, bool forward, int incoming, int outgoing)
+    {
+        var (from, to) = ShowPair();
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Stacking = stacking, Thread = AnimationThread.UIThread };
+
+        _ = transition.Start(from, to, forward, CancellationToken.None);
+
+        Assert.Equal(incoming, to.ZIndex);
+        Assert.Equal(outgoing, from.ZIndex);
+        Assert.True(from.IsAnimating(Visual.ZIndexProperty));
+    }
+
+    [AvaloniaFact]
+    public void StartWithAnAlreadyCanceledTokenTouchesNeitherHost()
+    {
+        var (from, to) = ShowPair();
+        to.IsVisible = false;
+        var transition = new PrestoPageTransition { Enter = FadeIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
+
+        var task = transition.Start(from, to, true, new CancellationToken(canceled: true));
+
+        Assert.True(task.IsCompletedSuccessfully);
+        Assert.False(to.IsVisible);
+        Assert.Empty(Presto.GetAnimations(from));
+        Assert.Empty(Presto.GetAnimations(to));
+        Assert.False(from.IsAnimating(Visual.ZIndexProperty));
+        Assert.False(to.IsAnimating(Visual.ZIndexProperty));
+    }
+
     [AvaloniaFact]
     public void HostStackingWritesNothing()
     {
@@ -482,6 +516,68 @@ public sealed class PageTransitionTests : CompositorTestBase
         Assert.False(to.IsAnimating(Visual.ZIndexProperty));
         Assert.False(to.IsAnimating(Visual.RenderTransformProperty));
         Assert.Equal(1, from.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void UpdateIgnoresThePageLength()
+    {
+        var (from, to) = ShowPair();
+        var transition = new PrestoPageTransition { Enter = SlideIn, Exit = FadeOut };
+
+        transition.Update(0.5, from, to, true, 640, []);
+
+        Assert.Equal(50, X(to), 3);
+        Assert.Equal(0.5, from.Opacity, 3);
+    }
+
+    [AvaloniaFact]
+    public void UpdateWithAnotherPairRevertsThePreviousRun()
+    {
+        var (a, b, c, d) = (new Border(), new Border(), new Border(), new Border());
+        Show(new Grid { Children = { a, b, c, d } });
+        var transition = new PrestoPageTransition { Enter = SlideIn, Exit = FadeOut };
+        transition.Update(0.5, a, b, true, 0, []);
+
+        transition.Update(0.5, c, d, true, 0, []);
+
+        Assert.Equal(1, a.Opacity);
+        Assert.Equal(0, X(b));
+        Assert.False(b.IsAnimating(Visual.ZIndexProperty));
+        Assert.Equal(0.5, c.Opacity, 3);
+        Assert.Equal(50, X(d), 3);
+    }
+
+    [AvaloniaFact]
+    public void UpdateAfterAStartTookAHostOverStopsThatStartAndSeeksAfresh()
+    {
+        var (a, b, c) = (new Border(), new Border(), new Border());
+        Show(new Grid { Children = { a, b, c } });
+        var transition = new PrestoPageTransition { Enter = SlideIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
+        transition.Update(0.5, a, b, true, 0, []);
+        _ = transition.Start(b, c, true, CancellationToken.None);
+        Frames.Advance(30);
+
+        transition.Update(0.25, a, b, true, 0, []);
+        Frames.Advance(50);
+
+        Assert.Equal(75, X(b), 3);
+        Assert.Equal(1, b.Opacity, 3);
+        Assert.Equal(0.75, a.Opacity, 3);
+    }
+
+    [AvaloniaFact]
+    public void UpdateSeeksAHostARunningStartHoldsFromItsBaseValues()
+    {
+        var (a, b, c) = (new Border(), new Border(), new Border());
+        Show(new Grid { Children = { a, b, c } });
+        var transition = new PrestoPageTransition { Enter = SlideIn, Exit = FadeOut, Thread = AnimationThread.UIThread };
+        _ = transition.Start(a, b, true, CancellationToken.None);
+        Frames.Advance(50);
+        Assert.InRange(a.Opacity, 0.3, 0.7);
+
+        transition.Update(0.25, a, c, true, 0, []);
+
+        Assert.Equal(0.75, a.Opacity, 3);
     }
 
     [AvaloniaFact]

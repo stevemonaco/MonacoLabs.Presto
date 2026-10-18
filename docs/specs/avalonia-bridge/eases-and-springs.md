@@ -35,7 +35,7 @@ depends:
 - **BRIDGE-EASES-003** — When the compiled ease is a `Spring`, the `PrestoEasing` shall wrap its pure solver, so sampling it never marks the spring completed or raises its `OnComplete`.
   - Tests: `CompositorCompileTests.ASpringEaseCompilesWithoutTheSamplingCompletingIt`
 - **BRIDGE-EASES-004** — The other direction shall need no adapter: an Avalonia `Easing`'s `Ease` method group converts to a Presto `Ease` delegate.
-  - Tests: untested
+  - Tests: `CodecTests.AnAvaloniaEasingsEaseMethodGroupIsAPrestoEase`
 
 ### Springs
 
@@ -86,4 +86,4 @@ depends:
 
 ## Open items
 
-- `PrestoEasing`'s reverse direction (an Avalonia `Easing` used as a Presto `Ease`) has no test.
+None.

@@ -53,7 +53,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 - **BRIDGE-EFFECTS-007** — When an `Animate` or `Set` call would animate a blur and a shadow shorthand on one visual at once (in one animation, or while the other kind has a live animation on it), the call shall throw `InvalidOperationException` naming both shorthands.
   - Tests: `EffectTests.BlurAndShadowInOneAnimationThrow`, `EffectTests.AShadowWhileABlurRunsThrows`
 - **BRIDGE-EFFECTS-008** — A pending claim from a resolution no frame rendered (a `Presto.Get`) shall lapse at the end of the current dispatcher job.
-  - Tests: untested
+  - Tests: `EffectTests.AReadClaimLapsesAtTheEndOfTheDispatcherJob`
 - **BRIDGE-EFFECTS-009** — When the other kind starts after the first has no live animation, the bridge shall switch `Visual.Effect` to the new kind, starting it afresh.
   - Tests: `EffectTests.BlurThenShadowSwitchesKind`
 - **BRIDGE-EFFECTS-010** — When one effect shorthand is reverted while others of its kind still animate, its channel shall return to the user's value; when the last is reverted, the bridge shall dispose its `Animation`-priority value, uncovering the user's own effect, or a followed blur (BRIDGE-FOLLOW) if there is one.
@@ -89,7 +89,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 - **BRIDGE-EFFECTS-022** — Each mask shorthand shall animate, revert to its identity and read its identity when not animated on its own; reverting the last shall uncover the user's `OpacityMask`.
   - Tests: `RevealTests.RevertRestoresTheUsersMask`
 - **BRIDGE-EFFECTS-023** — The mask shorthands shall never conflict with each other or with the effect or clip shorthands.
-  - Tests: untested
+  - Tests: `RevealTests.TheMaskShorthandsAnimateAlongsideEachOtherAndTheEffectAndClipShorthands`
 
 ### 3D shorthands
 
@@ -116,7 +116,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 - **BRIDGE-EFFECTS-031** — While `PrestoDefaults.ReducedMotion` is set on `Engine.Current`, pointer moves shall be ignored, so nothing tilts.
   - Tests: `TiltTests.ReducedMotionLeavesTheElementFlat`
 - **BRIDGE-EFFECTS-032** (inherited) — In design mode, setting `Tilt.Enabled` shall do nothing.
-  - Tests: untested
+  - Tests: `TiltTests.DoesNothingInDesignMode`
 
 ### Defaults
 
@@ -125,15 +125,15 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 - **BRIDGE-EFFECTS-034** — When `ClipInset` is not animated, it shall start from and read as `"0"` (no inset).
   - Tests: `RevealTests.ADipInsetAnimatesTheRectangle`
 - **BRIDGE-EFFECTS-035** — When `ClipCircle` is not animated, it shall start from and read as 1 (the farthest corner).
-  - Tests: untested
+  - Tests: `RevealTests.AnUnanimatedClipCircleReadsAndStartsFromOne`
 - **BRIDGE-EFFECTS-036** — When `MaskSweep` is not animated, it shall start from and read as 1 (fully shown).
-  - Tests: untested
+  - Tests: `RevealTests.AnUnanimatedMaskSweepReadsAndStartsFromOneAndSweepsLeftToRight`
 - **BRIDGE-EFFECTS-037** — When `MaskSweepAngle` is not set, the sweep shall run left to right (0 degrees).
-  - Tests: untested
+  - Tests: `RevealTests.AnUnanimatedMaskSweepReadsAndStartsFromOneAndSweepsLeftToRight`
 - **BRIDGE-EFFECTS-038** — When `MaskSweepFeather` is not set, the edge shall be 0.2 of the sweep wide.
   - Tests: `RevealTests.TheSweepEdgeSitsAtProgressAlongTheAngle`
 - **BRIDGE-EFFECTS-039** (inherited) — When `Tilt.Enabled` is not set, the control shall not tilt.
-  - Tests: untested
+  - Tests: `TiltTests.ANeverEnabledElementDoesNotTilt`
 - **BRIDGE-EFFECTS-040** (inherited) — When `Tilt.Strength` is not set, the control shall tilt at most 10 degrees on each axis.
   - Tests: `TiltTests.PointerMovesTurnTheElementTowardsThePointerWithinTheStrength`
 
@@ -186,4 +186,4 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 
 ## Open items
 
-- BRIDGE-EFFECTS-008, -023 and -032 are untested.
+None.

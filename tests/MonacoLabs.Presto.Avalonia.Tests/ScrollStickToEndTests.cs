@@ -253,4 +253,20 @@ public sealed class ScrollStickToEndTests : BridgeTestBase
             Dispatcher.UIThread.RunJobs();
         }
     }
+
+    [AvaloniaFact]
+    public void WithoutStickToEndGrowthAtTheEndLeavesTheOffsetAlone()
+    {
+        var (_, scroller, _, trail) = ScrollStage.Show();
+        ToEnd(scroller);
+        var end = scroller.Offset.Y;
+
+        trail.Height += 200;
+        Dispatcher.UIThread.RunJobs();
+        Run(1000);
+
+        Assert.False(Scroll.GetStickToEnd(scroller));
+        Assert.Equal(end + 200, scroller.ScrollBarMaximum.Y);
+        Assert.Equal(end, scroller.Offset.Y);
+    }
 }

@@ -51,9 +51,9 @@ depends:
 - **BRIDGE-REORDER-002** (inherited) — When `Reorder.Enabled` becomes false mid-drag, the list shall drop the drag without the settle spring: the lift is reverted, the `ZIndex` raise and the axis shorthand are removed at once, and later pointer moves move nothing.
   - Tests: `ReorderTests.DisablingMidDragRevertsTheDragAndStopsListening`
 - **BRIDGE-REORDER-003** (inherited) — While in design mode, setting `Reorder.Enabled` shall do nothing.
-  - Tests: untested
+  - Tests: `ReorderTests.EnablingInDesignModeDoesNothing`
 - **BRIDGE-REORDER-004** (inherited) — When the list is detached from the visual tree, an active drag shall be dropped without the settle spring.
-  - Tests: untested
+  - Tests: `ReorderTests.DetachingTheListMidDragDropsTheDragWithoutTheSettleSpring`
 
 ### Grabbing
 
@@ -74,9 +74,9 @@ depends:
 - **BRIDGE-REORDER-009** — When the drag starts, the list shall play `Reorder.Lift` on the container, or `Recipes.ReorderLift()` when `Lift` is null; the builder is read at each grab.
   - Tests: `ReorderTests.ALiftSetOnTheListPlaysInPlaceOfTheDefaultAndIsRevertedOnRelease`, `ReorderTests.ReleaseSpringsTheItemIntoItsSlotAndLeavesNothingBehind`
 - **BRIDGE-REORDER-010** (inherited) — When a drag starts while the previous release is still settling, the previous drag shall be finished at once (settle canceled, lift reverted, transform cleared) before the new one begins.
-  - Tests: untested
+  - Tests: `ReorderTests.AGrabDuringTheSettleFinishesThePreviousDragAtOnce`
 - **BRIDGE-REORDER-011** — When a drag starts with no `Reorder.Command` and an `ItemsSource` that is neither an `ObservableCollection<T>` nor a `FilteredView<T>`, the list shall log an Avalonia warning (area `Control`) naming the list type, and the drag shall still lift, follow and spring back.
-  - Tests: untested
+  - Tests: `ReorderTests.ADragOverASourceItCannotMoveLogsAWarningNamingTheListAndStillLiftsAndSpringsBack`
 
 ### Following the pointer
 
@@ -85,7 +85,7 @@ depends:
 - **BRIDGE-REORDER-013** — The list shall track the dragged item, not its container: after each move and each layout pass it re-finds the container with `ContainerFromItem`, reverts the old container's lift, shorthand, `ZIndex` and arm suspension, and moves them onto the new container with the lift seeked to its end.
   - Tests: `ReorderTests.TheDraggedItemIsDrawnUnderThePointerAcrossEveryMove`, `ReorderContainerTests.AMoveClearsAndPreparesTheMovedItemsContainerAndOnlyAVirtualizingListKeepsItsInstance`
 - **BRIDGE-REORDER-014** (inherited) — When the dragged item no longer has a container, the list shall drop the drag without the settle spring.
-  - Tests: untested
+  - Tests: `ReorderTests.AnItemThatLosesItsContainerMidDragDropsTheDragWithoutTheSettleSpring`
 - **BRIDGE-REORDER-015** — While dragging, the list shall refocus the dragged container after every move, so a focusable container stays realized in a virtualizing panel however far the list scrolls.
   - Tests: `ReorderTests.AVirtualizedDragFarPastTheViewportKeepsTheSameContainerAndLandsCleanly`, `ReorderContainerTests.AFocusedContainerStaysRealizedWhileItsListScrollsItFarAway`, `ReorderContainerTests.AMoveTakesFocusFromTheMovedContainer`
 - **BRIDGE-REORDER-016** — While dragging, the dragged container's `LayoutArm` shall stay suspended so its translation is not composed with a FLIP, while the neighbors' arms keep easing.
@@ -119,7 +119,7 @@ depends:
 - **BRIDGE-REORDER-026** — While dragging inside a `ScrollViewer` ancestor of the items panel, the list shall run a timer that every frame scrolls along the axis by `Draggable`'s edge-scroll formula (speed 1.5, edge band 20 DIPs), clamped to the extent, and re-runs follow and swap from the pointer's last position, so the item keeps moving in order under a still pointer.
   - Tests: `ReorderTests.HoldingThePointerInTheBottomEdgeBandScrollsTheListAndKeepsMovingTheItemDownInOrder`, `ReorderTests.AVirtualizedDragFarPastTheViewportKeepsTheSameContainerAndLandsCleanly`
 - **BRIDGE-REORDER-027** — The auto-scroll timer and the release animations shall be created under the diagnostics origin `"Reorder"`.
-  - Tests: untested
+  - Tests: `ReorderTests.TheAutoScrollTimerAndTheReleaseAnimationsCarryTheReorderOrigin`
 
 ### Release
 
@@ -130,20 +130,20 @@ depends:
 - **BRIDGE-REORDER-030** (inherited) — When the pointer is released before the list won the press, the list shall forget the press without handling the release or moving anything.
   - Tests: `ReorderTests.AContainerWithAHandleIsGrabbedOnlyByIt`
 - **BRIDGE-REORDER-031** (inherited) — When the list loses the pointer capture during a drag, the list shall release as on pointer up (with the settle spring).
-  - Tests: untested
+  - Tests: `ReorderTests.LosingTheCaptureMidDragReleasesWithTheSettleSpring`
 
 ### Keyboard
 
 - **BRIDGE-REORDER-032** — While dragging, Escape pressed anywhere in the top level shall be handled and walk the item back toward its start index one step at a time through the same `Moving`/`Command`/`Move` path, then release with the settle spring; a canceled or refused step stops it where it is.
   - Tests: `ReorderTests.EscapeMidDragMovesTheItemBackStepByStepAndLandsItInItsOriginalSlot`
 - **BRIDGE-REORDER-033** (inherited) — While dragging, keys other than Escape shall be left unhandled and move nothing.
-  - Tests: untested
+  - Tests: `ReorderTests.KeysOtherThanEscapeMidDragAreLeftUnhandledAndMoveNothing`
 - **BRIDGE-REORDER-034** — While not dragging, Alt+Down/Alt+Up (Alt+Right/Alt+Left on a horizontal axis), with Alt as the only modifier, on a focused element inside a container shall be handled and move that container's item one step through the same path, without lift or settle, and focus the item's container afterwards.
   - Tests: `ReorderTests.AltArrowsMoveTheFocusedItemOneStepKeepItFocusedAndStopAtTheEnds`
 - **BRIDGE-REORDER-035** (inherited) — When an Alt+arrow step would leave the range `0..ItemCount−1`, the key shall be handled and nothing raised or moved.
   - Tests: `ReorderTests.AltArrowsMoveTheFocusedItemOneStepKeepItFocusedAndStopAtTheEnds`
 - **BRIDGE-REORDER-036** (inherited) — Alt+arrow moves shall ignore `Reorder.Handle`: any element inside a container qualifies.
-  - Tests: untested
+  - Tests: `ReorderTests.AltArrowsMoveAnItemWhoseContainerHasAHandleFromOutsideIt`
 
 ### Lift recipe and markup
 
@@ -155,11 +155,11 @@ depends:
 ### Defaults
 
 - **BRIDGE-REORDER-039** (inherited) — When `Reorder.Enabled` is not set, the list shall not handle reorder drags or keys.
-  - Tests: untested
+  - Tests: `ReorderTests.WithoutEnabledTheListHandlesNoDragsOrKeys`
 - **BRIDGE-REORDER-040** — When `Reorder.Axis` is not set, the list shall reorder vertically along `Y`.
   - Tests: `ReorderTests.DraggingAcrossSeveralRowsMovesOneStepPerRowInOrderDownAndUp`
 - **BRIDGE-REORDER-042** — When `Reorder.TouchHold` is not set, it shall be 0, and a touch or pen shall drag as a mouse does.
-  - Tests: untested
+  - Tests: `ReorderTests.WithoutATouchHoldATouchOrPenDragsAsAMouseDoes`
 
 ## Invariants
 
@@ -219,4 +219,4 @@ depends:
 
 ## Open items
 
-- Untested: design-mode no-op, detach mid-drag, capture loss mid-drag, container loss mid-drag, re-grab during the settle, non-Escape keys during a drag, Alt+arrow ignoring handles, the `"Reorder"` diagnostics origin, and the non-movable items source warning (011).
+None.

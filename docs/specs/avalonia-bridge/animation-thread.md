@@ -80,7 +80,7 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 - **BRIDGE-THREAD-007** — The builder overloads shall run a `ToParams()` snapshot of the builder, and the lambda overloads a builder built by the lambda, exactly as the equivalent params do.
   - Tests: `AnimationBuilderBridgeTests.ABuilderRunsOnTheCompositorAsTheEquivalentParamsDo`, `AnimationBuilderBridgeTests.ALambdaRunsOnTheCompositorAsItsBuilderDoes`
 - **BRIDGE-THREAD-008** — `ThreadedAnimation.Play`, `Pause`, `Resume`, `Cancel` and `Revert` shall delegate to the live animation and return the handle.
-  - Tests: untested
+  - Tests: `AnimationThreadTests.TheHandleDelegatesPlaybackToTheLiveAnimation`
 - **BRIDGE-THREAD-009** — `ThreadedAnimation.Then()` and `await` shall complete with the handle itself once the live animation completes.
   - Tests: `AnimationThreadTests.ACompositorHandleResolvesWithItsAnimation`, `AnimationThreadTests.AFallbackEndsWhereAnimateEnds`
 
@@ -97,7 +97,7 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 - **BRIDGE-THREAD-014** — Function-based values and staggers, in the top-level settings and in property values, shall be resolved per target on the UI thread when the animation is created.
   - Tests: `CompositorCompileTests.AStaggeredDelayResolvesPerTarget`, `CompositorCompileTests.PerTargetValuesCompileEachTargetOnItsOwn`
 - **BRIDGE-THREAD-015** — Each target shall start from its control's current transform shorthands and opacity, or, for a property another compositor animation drives, from where that animation's mirror stands.
-  - Tests: untested
+  - Tests: `CompositorCompileTests.EachTargetStartsFromItsControlsShorthandsAndOpacity`, `CompositorRegistryTests.ATakeoverStartsFromWhereTheRunningAnimationsMirrorStands`
 
 ### Compiling
 
@@ -124,7 +124,7 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 - **BRIDGE-THREAD-025** — When nothing but the top-level delay varies per target, targets with the same starting transform and opacity shall share one set of sampled key frames, each with its own delay and mirror; a differently seeded target or per-target values compile on their own.
   - Tests: `CompositorCompileTests.UniformTargetsSeededAlikeShareTheirSampledTracks`, `CompositorCompileTests.ATargetSeededDifferentlyGetsItsOwnTracks`, `CompositorCompileTests.ASharedTrackLeavesItsMirrorWhereSamplingWould`, `CompositorAnimationTests.UniformStaggeredTargetsEachLandOnTheirEndValue`
 - **BRIDGE-THREAD-026** (inherited) — Track durations and delays shall be wall-clock times, scaled by the mirror's speed and the engine's speed, and a cycle shorter than 1 ms shall play over 1 ms.
-  - Tests: untested
+  - Tests: `CompositorCompileTests.TrackTimesAreWallClockScaledByThePlaybackRateAndTheEngineSpeed`, `CompositorAnimationTests.ACycleShorterThanAMillisecondPlaysOverOne`
 
 ### Running on a control
 
@@ -135,7 +135,7 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 - **BRIDGE-THREAD-029** — When a target's mirror completes, its end opacity, clamped to 0..1, shall be pushed through that hold so the control reports what is drawn.
   - Tests: `CompositorAnimationTests.EveryCompletionHandsTheDrawnOpacityBackToTheControl`
 - **BRIDGE-THREAD-030** — When a target has no composition visual yet (outside the visual tree), its tracks and mirror shall start when it attaches.
-  - Tests: untested
+  - Tests: `CompositorAnimationTests.ATargetOutsideTheTreeStartsWhenItAttaches`
 - **BRIDGE-THREAD-031** — When `Autoplay` resolves to false, nothing shall start until `Play` or `Resume`.
   - Tests: `CompositorPlaybackTests.SeekingBeforeTheFirstResumeCarriesOnFromThere`
 
@@ -156,14 +156,14 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 - **BRIDGE-THREAD-038** — `Restart` shall seek to 0 with callbacks muted and resume; `Complete` shall seek every target to its end.
   - Tests: `CompositorPlaybackTests.RestartAndCompleteLandOnTheStartAndEndValues`
 - **BRIDGE-THREAD-039** (inherited) — `CurrentTime`, `Progress`, `Began` and `Speed` shall read the mirror of the target whose delay plus duration is longest.
-  - Tests: untested
+  - Tests: `CompositorAnimationTests.TimingReadsTheTargetThatFinishesLast`
 
 ### Completion and ending
 
 - **BRIDGE-THREAD-040** — `Completed` shall be true once every target's mirror has completed in the current direction.
   - Tests: `CompositorPlaybackTests.AStaggerReversedMidFlightCompletesWhenTheLastVisualIsHome`
 - **BRIDGE-THREAD-041** (inherited) — When the last target completes, `OnComplete` shall fire once with that target's mirror, and only the longest target's mirror shall fire `OnBegin`.
-  - Tests: untested
+  - Tests: `CompositorAnimationTests.OnlyTheLongestTargetBeginsAndTheLastToFinishCompletesOnce`
 - **BRIDGE-THREAD-042** — `Then` shall resolve, after invoking its callback, when the animation completes; on an animation already completed it shall invoke the callback and return a completed task at once.
   - Tests: `CompositorAnimationTests.ThenResolvesWhenTheMirrorCompletes`
 - **BRIDGE-THREAD-043** — `Cancel` shall detach every track, leaving the pixels where they stand, release the opacity hold, so `Visual.Opacity` reads the control's own value and a later local write is drawn, and leave `Then` unresolved.
@@ -200,15 +200,15 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 ### Defaults
 
 - **BRIDGE-THREAD-052** — When `Duration`, `Delay` or `Ease` is not set on `CompositorAnimationParams`, the compositor animation shall use `Engine.Current.Defaults`' value.
-  - Tests: untested
+  - Tests: `CompositorCompileTests.UnsetDurationDelayAndEaseComeFromTheEngineDefaults`
 - **BRIDGE-THREAD-053** — When `Autoplay` is not set on `CompositorAnimationParams`, the compositor animation shall start according to `Engine.Current.Defaults.Autoplay`.
-  - Tests: untested
+  - Tests: `CompositorAnimationTests.AnUnsetAutoplayFollowsTheEngineDefault`
 - **BRIDGE-THREAD-054** — When `PlaybackRate` is not set, `Speed` shall start at the engine's default playback rate (1).
-  - Tests: untested
+  - Tests: `CompositorAnimationTests.AnUnsetPlaybackRateStartsAtTheDefaultSpeed`
 - **BRIDGE-THREAD-055** (inherited) — When the animation has no target, `Speed` shall read 1, `CurrentTime` 0 and `Began` false.
-  - Tests: untested
+  - Tests: `CompositorAnimationTests.WithoutATargetTheTimingReadsItsRestValues`
 - **BRIDGE-THREAD-056** — When `muteCallbacks` is not passed, `Seek` shall fire callbacks.
-  - Tests: untested
+  - Tests: `CompositorPlaybackTests.SeekFiresCallbacksUnlessMuted`
 
 ## Invariants
 
@@ -275,4 +275,4 @@ Runs an animation's transform and opacity on Avalonia's render thread, so it kee
 
 ## Open items
 
-- Untested: `ThreadedAnimation` delegation (008), seeding from another animation's mirror (015), wall-clock scaling and the 1 ms floor (026), start on attach (030), the control mirror's timing reads (039), `OnBegin`/`OnComplete` firing rules (041).
+- Before its first start (`Autoplay` false, or a target not yet in the visual tree), a compositor animation reads as finished: sampling leaves each mirror at its end until `Start` resets it, so `Completed` and `Began` are true, `Progress` is 1, `CurrentTime` is the duration, and `Then` resolves at once, though nothing has played (BRIDGE-THREAD-030, 031, 040, 042, 053).

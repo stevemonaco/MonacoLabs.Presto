@@ -90,5 +90,40 @@ public sealed class TiltTests : BridgeTestBase
         Assert.Equal(0, Value(box, "RotateY"));
     }
 
+    [AvaloniaFact]
+    public void ANeverEnabledElementDoesNotTilt()
+    {
+        var box = Box();
+        var window = Show(box);
+
+        window.MouseMove(new Point(45, 10));
+        Frames.Advance(2000, 16);
+
+        Assert.False(Tilt.GetEnabled(box));
+        Assert.Null(box.RenderTransform);
+    }
+
+    [AvaloniaFact]
+    public void DoesNothingInDesignMode()
+    {
+        var isDesignMode = typeof(Avalonia.Controls.Design).GetProperty(nameof(Avalonia.Controls.Design.IsDesignMode))!; // The setter is internal.
+        var box = Box();
+        var window = Show(box);
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Tilt.SetEnabled(box, true);
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        window.MouseMove(new Point(45, 10));
+        Frames.Advance(2000, 16);
+
+        Assert.Null(box.RenderTransform);
+    }
+
     private static double Value(Visual visual, string property) => Convert.ToDouble(Presto.Get(visual, property, withUnit: false));
 }

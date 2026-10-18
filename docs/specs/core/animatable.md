@@ -59,9 +59,9 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **CORE-ANIMATABLE-006** — When a property's `Duration` is a function value such as a stagger, each target's tween shall take its own resolved duration and the animation the longest.
   - Tests: `AnimatablesTests.StaggersAnimatableDurationsPerTarget`
 - **CORE-ANIMATABLE-007** — The property animations shall compose by `Composition.Replace` unless the property sets its own `Composition`.
-  - Tests: untested
+  - Tests: `AnimatablesTests.PropertyAnimationsReplaceUnlessThePropertySetsAComposition`
 - **CORE-ANIMATABLE-008** — `PlaybackRate` and `FrameRate` shall be passed to every property animation.
-  - Tests: untested
+  - Tests: `AnimatablesTests.PlaybackRateAndFrameRateReachEveryPropertyAnimation`
 - **CORE-ANIMATABLE-009** — When the animatable is created inside a scope, it shall register with the current scope, so reverting the scope reverts it.
   - Tests: `ScopeTests.RevertsEverythingCreatedInside`
 - **CORE-ANIMATABLE-010** — While engine diagnostics are enabled, a created animatable shall be listed in `EngineDiagnostics.Animatables` (see CORE-DIAGNOSTICS).
@@ -78,7 +78,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **CORE-ANIMATABLE-014** — `Get`, `GetChannels`, `Set`, `Fling` and `ValueOf` shall resolve the property key's name to its canonical spelling on the first target, so a property declared by one spelling is read and set by any.
   - Tests: `PropertyNamingTests.AnAnimatableDeclaredByNameIsReadAndSetByHandle`
 - **CORE-ANIMATABLE-015** (inherited) — When the property is not declared, `Get` shall return 0, `GetChannels` an empty array, and `Set` and `Fling` shall do nothing and return the animatable.
-  - Tests: untested
+  - Tests: `AnimatablesTests.AnUndeclaredPropertyReadsAsNothingAndIgnoresSetAndFling`
 - **CORE-ANIMATABLE-016** — `ValueOf` shall return the same `MotionValue` for a property on every call, subscribed once to the property's animation: it starts at `Get(property)` and is assigned `Get(property)` every time that animation renders.
   - Tests: `MotionValueDynamicsTests.AnimatableValueOfFollowsSet`, `MotionValueDynamicsTests.AnimatableValueOfReturnsOneValuePerPropertySubscribedOnce`
 
@@ -116,7 +116,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **CORE-ANIMATABLE-060** — The callbacks animation shall have no end of its own: only CORE-ANIMATABLE-028 completes it, so a burst of any length raises `OnUpdate` until its last property animation stops and `OnComplete` only then (see "The callbacks animation ends with its properties").
   - Tests: `AnimatablesTests.TheCallbacksLastAsLongAsTheSet`
 - **CORE-ANIMATABLE-029** — Each callback shall receive the animatable.
-  - Tests: untested
+  - Tests: `AnimatablesTests.EachCallbackReceivesTheAnimatable`
 
 ### PreserveVelocity
 
@@ -160,7 +160,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **CORE-ANIMATABLE-047** — A fling released on a bound moving outward shall go out to a peak and back to the bound within one tween.
   - Tests: `AnimatablesTests.AFlingOutwardFromABoundGoesOutAndBack`
 - **CORE-ANIMATABLE-048** — When a property's targets resolve to fling plans of different lengths, the animation shall last the longest and every tween shall be sampled over it, ending on its own plan's end.
-  - Tests: untested
+  - Tests: `AnimatablesTests.FlingPlansOfDifferentLengthsEachEndOnTheirOwnRest`
 - **CORE-ANIMATABLE-049** — The first fling after a `Set` shall save the property's eases and animation duration; the next `Set`, scalar or channel, shall clear and restore them, using the `Set` arguments where given. A flung property is scalar (CORE-ANIMATABLE-061), so a channel `Set` after a fling moves no channel and only restores.
   - Tests: `AnimatablesTests.ASetAfterAFlingUsesTheDeclaredEaseAndDurationAgain`, `AnimatablesTests.AChannelSetAfterAFlingUsesTheDeclaredEaseAndDurationAgain`
 - **CORE-ANIMATABLE-061** — When the property is a color or complex one, `Fling` of either overload shall throw `NotSupportedException` before changing anything.
@@ -173,7 +173,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 - **CORE-ANIMATABLE-051** — After `Revert`, `Set` and `Fling` shall do nothing.
   - Tests: `AnimatablesTests.RevertAFlungAnimatable`
 - **CORE-ANIMATABLE-052** (inherited) — After `Revert`, or for a property that was never declared, `Get` shall return 0 and `GetChannels` an empty array.
-  - Tests: untested
+  - Tests: `AnimatablesTests.AfterRevertGetIsZeroAndGetChannelsEmpty`, `AnimatablesTests.AnUndeclaredPropertyReadsAsNothingAndIgnoresSetAndFling`
 
 ### ReduceAll
 
@@ -191,7 +191,7 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 ### Defaults
 
 - **CORE-ANIMATABLE-053** — When `PreserveVelocity` is set on neither the property nor the params, a retargeted spring shall start from rest (see "Spring momentum on retarget is opt-in").
-  - Tests: untested
+  - Tests: `AnimatablesTests.ARetargetedSpringStartsFromRestWhenPreserveVelocityIsNeverSet`
 
 ## Invariants
 
@@ -256,4 +256,4 @@ An `Animatable` holds one paused `Animation` per declared property and retargets
 
 ## Open items
 
-- No core test for canonical-name lookup (only a bridge test pins it), unknown properties, `PlaybackRate`/`FrameRate` passthrough, or per-property `Composition`.
+- No core test for canonical-name lookup (only a bridge test pins it).

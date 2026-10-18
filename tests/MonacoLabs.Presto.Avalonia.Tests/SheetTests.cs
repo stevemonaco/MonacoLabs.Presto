@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -407,6 +408,67 @@ public sealed class SheetTests : CompositorTestBase
 
         new Touch(window).Drag(Frames, new Point(100, 150), new Vector(0, -70));
         Assert.Equal(200, sheet.Position.Value, 1);
+    }
+
+    [AvaloniaFact]
+    public void AReleaseIsHandledOnlyAfterADrag()
+    {
+        var (window, _) = Opened();
+        var touch = new Touch(window);
+
+        touch.Press(1, new Point(100, 150));
+        Assert.False(touch.Up(1, new Point(100, 150)).Handled);
+
+        touch.Press(1, new Point(100, 150));
+        for (var i = 1; i <= 3; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, new Point(100, 150 - (10 * i)));
+        }
+        Assert.True(touch.Up(1, new Point(100, 120)).Handled);
+    }
+
+    [AvaloniaFact]
+    public void WithoutDetentsItOpensToItsContentsOwnExtent()
+    {
+        var sheet = new Sheet { Content = new Border { Height = 60, Background = Brushes.Red } };
+        var window = new Window { Content = sheet, Width = 200, Height = 200 };
+        window.Show();
+        Tick();
+
+        sheet.DetentIndex = 5;
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(1, sheet.DetentIndex);
+        Assert.Equal(60, sheet.Position.Value, 1);
+        Assert.Equal(140, sheet.Content!.TranslatePoint(default, window)!.Value.Y, 1);
+    }
+
+    [AvaloniaFact]
+    public void ItDefaultsClosedOnTheFirstDetentWithTwoWayStateAClippedBoundsAndATranslucentBlackScrim()
+    {
+        var sheet = new Sheet();
+
+        Assert.Equal(0, sheet.DetentIndex);
+        Assert.False(sheet.IsOpen);
+        Assert.Equal(BindingMode.TwoWay, Sheet.DetentIndexProperty.GetMetadata(typeof(Sheet)).DefaultBindingMode);
+        Assert.Equal(BindingMode.TwoWay, Sheet.IsOpenProperty.GetMetadata(typeof(Sheet)).DefaultBindingMode);
+        Assert.True(sheet.ClipToBounds);
+        Assert.Equal(Color.Parse("#52000000"), Assert.IsAssignableFrom<ISolidColorBrush>(sheet.Scrim).Color);
+    }
+
+    [AvaloniaFact]
+    public void WithoutAScrimATapOverTheHostReachesTheHost()
+    {
+        var (window, sheet) = Opened();
+        sheet.Scrim = null;
+        Tick();
+
+        Press(window, new Point(100, 40));
+        Frames.Advance(3000, 20);
+
+        Assert.True(sheet.IsOpen);
+        Assert.NotSame(Scrim(sheet), window.InputHitTest(new Point(100, 40)));
     }
 
     private static Border Scrim(Sheet sheet) => sheet.GetVisualChildren().OfType<Border>().First();

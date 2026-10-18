@@ -95,6 +95,28 @@ public sealed class ColorMatrixTests
         AssertColor(highlight, Apply(duotone, 1, 1, 1));
     }
 
+    [Fact]
+    public void TheMixingAmountsClampToZeroThroughOneAndTheMultipliersDoNot()
+    {
+        AssertMatrix(ColorMatrix.Grayscale(1), ColorMatrix.Grayscale(3));
+        AssertMatrix(ColorMatrix.Sepia(1), ColorMatrix.Sepia(3));
+        AssertMatrix(ColorMatrix.Tint(1, Colors.Blue), ColorMatrix.Tint(3, Colors.Blue));
+        AssertMatrix(ColorMatrix.Duotone(1, Colors.Navy, Colors.Gold), ColorMatrix.Duotone(3, Colors.Navy, Colors.Gold));
+        AssertMatrix(ColorMatrix.Invert(1), ColorMatrix.Invert(3));
+        Assert.True(ColorMatrix.Grayscale(-1).IsIdentity);
+        Assert.True(ColorMatrix.Sepia(-1).IsIdentity);
+        Assert.True(ColorMatrix.Tint(-1, Colors.Blue).IsIdentity);
+        Assert.True(ColorMatrix.Duotone(-1, Colors.Navy, Colors.Gold).IsIdentity);
+        Assert.True(ColorMatrix.Invert(-1).IsIdentity);
+
+        Assert.Equal(3f, ColorMatrix.Brightness(3)[0], 5);
+        Assert.Equal(-0.5f, ColorMatrix.Brightness(-0.5)[0], 5);
+        Assert.Equal(3f, ColorMatrix.Contrast(3)[0], 5);
+        Assert.Equal(-1f, ColorMatrix.Contrast(3)[4], 5);
+        Assert.Equal(0.2126f + 0.7874f * 3, ColorMatrix.Saturate(3)[0], 5);
+        Assert.Equal(0.2126f + 0.7874f * -1, ColorMatrix.Saturate(-1)[0], 5);
+    }
+
     private static void AssertColor(Color expected, (float R, float G, float B, float A) actual)
     {
         Assert.Equal(expected.R / 255f, actual.R, 5);

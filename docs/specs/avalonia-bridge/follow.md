@@ -62,7 +62,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-003** (inherited) — When `Spring` names no preset and is not `"bounce,duration"` (including a single number, more than two parts, or a preset followed by a duration), the follower shall throw `FormatException` at construction naming the presets and the `"bounce,duration"` form.
   - Tests: `FollowerTests.ConflictingTimingSourcesThrow`, `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
 - **BRIDGE-FOLLOW-004** (inherited) — When a `Builder` or `WhenReduced` builder has a non-numeric `Duration`, the follower shall throw `NotSupportedException`.
-  - Tests: untested
+  - Tests: `FollowerTests.ABuilderWithANonNumericDurationThrows`
 - **BRIDGE-FOLLOW-059** — When `FollowParams.Spring`, trimmed, names a preset ignoring case (`gentle`, `snappy`, `bouncy`, `stiff`), the follower shall use a new spring of that `Springs` preset (CORE-SPRING).
   - Tests: `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
 - **BRIDGE-FOLLOW-060** — When `FollowParams.Spring` is two comma-separated numbers in the invariant culture, surrounding spaces allowed, the follower shall use `new Spring(bounce: first, duration: second)`.
@@ -87,7 +87,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-012** — While `PrestoDefaults.ReducedMotion` is set, each value shall snap, unless `WhenReduced` is given, in which case it shall ease with that builder's duration and ease.
   - Tests: `FollowerTests.ReducedMotionSnapsUnlessWhenReducedGivesATiming`, `FollowBindingTests.ReducedMotionSnaps`
 - **BRIDGE-FOLLOW-013** (inherited) — When `ReducedMotion` changes between two values, the follower shall rebuild its animation with the timing for the new state from the displayed value.
-  - Tests: untested
+  - Tests: `FollowerTests.TogglingReducedMotionBetweenValuesSwitchesTheTimingFromTheShownValue`
 - **BRIDGE-FOLLOW-014** — The follower shall drive its own core `Animatable` over an internal holder and never register the control's property with Presto, so an animation of the same property at `Animation` priority layers over the followed value and reverting it shows the latest followed value.
   - Tests: `FollowBindingTests.AnAnimationOfTheSamePropertyLayersOverTheFollowAndRevertsToIt`, `FollowBindingPlumbingTests.AnAnimationLayersOverTheReturnedBindingAndRevertsToItsLatestValue`
 - **BRIDGE-FOLLOW-058** — When `null` arrives for a value-typed property (a recycled row's value on a `double`), the follower shall show `UnsetValue` at once, so the property falls back to its lower-priority value.
@@ -108,7 +108,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-020** — When the target's `DataContext` changes (`{presto:Follow}` and `Follow.Bind` over a `BindingBase`), the next value shall snap; a `Background` dispatcher post shall clear the flag if the new item left the value unchanged, so a later change eases.
   - Tests: `FollowBindingTests.ADataContextSwapSnapsAndAnUnchangedValueStillLetsTheNextChangeAnimate`, `FollowBindingTests.ARecycledContainerInAVirtualizedListSnapsToItsNewItem`, `FollowMarkupTests.InAnItemTemplateEachRowSnapsToItsItemAnimatesItsChangesAndSnapsToANewItem`
 - **BRIDGE-FOLLOW-021** (inherited) — `Follow.Bind<T>` over an `IObservable<T>` shall not watch `DataContext`, so it never snaps for a new item.
-  - Tests: untested
+  - Tests: `FollowBindingTests.AnObservableFollowDoesNotSnapForANewDataContext`
 - **BRIDGE-FOLLOW-022** — When the target detaches from the visual tree, the follower shall land on the latest target and stop ticking; a value after the first that arrives while the target is detached, or before it has first attached, shall snap.
   - Tests: `FollowBindingTests.DetachLandsOnTheLatestTargetAndReattachSnaps`, `FollowBindingTests.BeforeTheFirstAttachALaterValueSnaps`, `FollowerTests.StopLandsOnTheLatestTargetAndStopsTicking`
 - **BRIDGE-FOLLOW-023** — When the returned `IDisposable` (or the binding expression) is disposed, the follow shall stop ticking, remove the companion binding and stop following the source, so the property falls back to its lower-priority value; a `ClearValue` or local write shall not end it.
@@ -127,7 +127,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-028** — When a new motion value arrives on the companion (a `DataContext` swap), the sink shall stop listening to the old one and snap to the new one.
   - Tests: `MotionValueSinkTests.ADataContextSwapRebindsToTheNewItemsValueAndSnaps`
 - **BRIDGE-FOLLOW-029** — While a zero-duration motion value sink runs under `ReducedMotion` with a `WhenReduced` timing, it shall ease with that timing rather than pass values through.
-  - Tests: untested
+  - Tests: `MotionValueSinkTests.AZeroDurationSinkEasesWithWhenReducedUnderReducedMotion`
 - **BRIDGE-FOLLOW-030** — While its target is detached or not yet attached, every motion value sink shall stop listening; on attach it shall subscribe and show the latest value at once.
   - Tests: `MotionValueSinkTests.BindStopsListeningWhileDetachedAndSnapsOnReattach`, `MotionValueSinkTests.BindWaitsForTheFirstAttachAndThenShowsTheLatestValue`
 - **BRIDGE-FOLLOW-031** — A motion value sink shall layer under an animation of the same property and show the latest value when that animation reverts.
@@ -162,7 +162,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-043** — When a shorthand holding a `MotionValue` is set to a number, another value or `null`, it shall unsubscribe from the old value; a number then snaps as a first value.
   - Tests: `MotionValueSinkTests.AnotherValueOrNullReleasesTheSubscription`
 - **BRIDGE-FOLLOW-044** — When the visual detaches, every shorthand follower shall land on its latest value and motion value subscriptions shall stop; on reattach each motion value shall resubscribe and write its latest value.
-  - Tests: untested
+  - Tests: `FollowTests.DetachingLandsEachShorthandAndPausesMotionValuesUntilReattach`
 - **BRIDGE-FOLLOW-045** — `Follow.Draw` on a `Shape` shall follow the share of the stroke drawn from its start as the `"Draw"` value `"0 p"`, clamped to 0–1, eased with `Follow.Timing` or written from a `MotionValue`.
   - Tests: `FollowTests.DrawEasesToANumber`, `FollowTests.DrawTracksAMotionValueAndReleasingRestoresTheDashes`
 - **BRIDGE-FOLLOW-046** — `Follow.Draw` shall have no base layer: it writes the dashes as a `"Draw"` tween does, so the later write wins, and releasing it shall restore the dashes the shape had.
@@ -183,7 +183,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-051** — `PrestoAvalonia.ValueOf` shall hold the property's value converted with `Convert.ToDouble`, updated on every change of that property.
   - Tests: `MotionValueSourceTests.ValueOfFollowsSetValue`
 - **BRIDGE-FOLLOW-052** (inherited) — When a `ValueOf` property value does not convert to `double`, `ValueOf` shall throw the `Convert.ToDouble` exception (at creation, or from the change that carries it).
-  - Tests: untested
+  - Tests: `MotionValueSourceTests.ValueOfAPropertyThatDoesNotConvertToADoubleThrows`
 - **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `ScrollRemainingValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` or `ValueOf` shall stop at its last value and not revive on reattach; a `PointerProximityValue` or `PointerOffsetValue` shall also stop when its tracking surface leaves the visual tree, and when given `over` shall stop with that surface instead of its control; a non-`Visual` `ValueOf` target stops only with its scope.
   - Tests: `MotionValueSourceTests.ScrollAndPropertyValuesStopWhenTheirControlDetaches`, `MotionValueSourceTests.PointerValueStopsWhenItsScopeReverts`, `PointerProximityValueTests.DetachAndScopeRevertStopTheValueForGood`, `PointerProximityValueTests.RemovingTheSurfaceStopsItsValues`, `PointerProximityValueTests.OverASurfaceTheValueOutlivesItsControlBeingReHosted`
 - **BRIDGE-FOLLOW-074** — Once such a value has stopped, its registration shall count as released to the scope that was current at creation (CORE-SCOPE).
@@ -218,7 +218,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 ### Defaults
 
 - **BRIDGE-FOLLOW-056** — When `Follow.Timing` is not set, the `Follow.*` shorthands shall move with `Springs.Gentle`, the follower default (Timing options default to `Springs.Gentle`).
-  - Tests: untested
+  - Tests: `FollowTests.WithoutATimingTheShorthandsMoveWithTheGentleSpring`
 - **BRIDGE-FOLLOW-057** — When `ScrollValue`'s axis is not given, the value shall follow the vertical offset.
   - Tests: `MotionValueSourceTests.ScrollValuesFollowTheOffsetOnBothAxes`
 - **BRIDGE-FOLLOW-077** — When `ScrollRemainingValue`'s axis is not given, the value shall measure the vertical axis.
@@ -309,4 +309,4 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 ## Open items
 
-- Untested: `NotSupportedException` for a non-numeric builder duration (BRIDGE-FOLLOW-004), reduced-motion toggles between values (013), `Follow.Bind<T>` ignoring `DataContext` (021), zero-duration motion sinks under `WhenReduced` (029), shorthand detach/reattach (044), `ValueOf` conversion failure (052).
+None.

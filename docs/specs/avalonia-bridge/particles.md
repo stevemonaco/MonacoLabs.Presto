@@ -68,7 +68,7 @@ depends:
 - **BRIDGE-PARTICLES-007** — When a system added with a completion callback finishes, the scene shall run the callback on the UI thread.
   - Tests: `ParticleSceneTests.EachSystemReportsItsFinishOnTheUIThreadAndIsDropped`
 - **BRIDGE-PARTICLES-008** — While a system is paused, the scene shall neither step nor drop it, and shall keep drawing its particles where they are.
-  - Tests: untested
+  - Tests: `ParticleSceneTests.APausedSystemIsNeitherSteppedNorDroppedAndKeepsDrawingWhereItIs`
 
 ### Drawing
 
@@ -77,15 +77,15 @@ depends:
 - **BRIDGE-PARTICLES-010** (inherited) — A particle's size shall be the width of a `Rect`, `RoundedRect`, `Bitmap` or `FromGeometry` shape, the diameter of a `Circle`, the thickness of a `Streak` and the font size of a `Glyph`, centered on the particle.
   - Tests: `ParticleSceneTests.EveryShapeDraws`
 - **BRIDGE-PARTICLES-011** — Every shape except `Streak` shall rotate by the particle's `Rotation` in degrees; while the emitter's `Flutter` is not zero, it shall also scale horizontally by `cos(FlutterPhase)`.
-  - Tests: untested
+  - Tests: `ParticleSceneTests.ShapesTurnByTheParticlesRotationAndFlutterNarrowsThemByTheCosineOfItsPhase`
 - **BRIDGE-PARTICLES-012** (inherited) — A `Streak` shall point along the particle's velocity and trail behind it by its travel over 24 ms, never shorter than its size, with rounded ends.
   - Tests: `ParticleSceneTests.EveryShapeDraws`
 - **BRIDGE-PARTICLES-013** — A particle shall draw in its color at its opacity; when the emitter has both `ColorMix` and `EndColor`, its color shall be quantized to 4 bits per channel.
-  - Tests: untested
+  - Tests: `ParticleSceneTests.AColorMixedTowardsAnEndColorIsQuantizedToFourBitsPerChannel`
 - **BRIDGE-PARTICLES-014** — A `Bitmap` shape shall draw the image at the particle's size, keeping its aspect ratio, at the particle's opacity and ignoring its color.
   - Tests: `ParticleSceneTests.EveryShapeDraws`
 - **BRIDGE-PARTICLES-015** — `ParticleShape.Glyph` shall throw `ArgumentOutOfRangeException` for a character outside printable ASCII (`'!'` to `'~'`).
-  - Tests: untested
+  - Tests: `ParticleSceneTests.AGlyphOutsidePrintableAsciiIsRejected`
 - **BRIDGE-PARTICLES-016** — `ParticleShape.FromGeometry(geometry, size)` shall rasterize the geometry once, filled white in a box of `size`, and draw it as a `Bitmap` shape.
   - Tests: `ParticleSceneTests.EveryShapeDraws`
 
@@ -98,14 +98,14 @@ depends:
 - **BRIDGE-PARTICLES-019** — When the overlay's last running system finishes, the overlay shall be removed one second later, unless another effect starts in that window first.
   - Tests: `ParticleRecipeTests.OneOverlayIsSharedPerWindowAndRemovedOnceIdle`
 - **BRIDGE-PARTICLES-020** — When `ReducedMotion` is clear (the reduced check runs first, BRIDGE-RECIPES-MEDIA-010) and the anchor is not in a top level with an overlay layer, `Confetti`, `Sparkles` and `Burst` shall emit nothing, play nothing on the anchor, and return an effect that is already complete.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.AnAnchorOutsideAWindowEmitsAndPlaysNothing`
 
 ### Recipes
 
 - **BRIDGE-PARTICLES-021** — `Confetti` shall launch from the anchor's center, in top-level coordinates, two systems: `count − count / 4` fluttering, spinning rects and `count / 4` streaks, in `colors` or a six-color accent palette, aimed up with gravity.
   - Tests: `ParticleRecipeTests.ConfettiLaunchesFromTheAnchorsCenterInTopLevelCoordinates`
 - **BRIDGE-PARTICLES-022** — When `from` is given, `Confetti` shall launch along the middle of that window edge, spread over its length and aimed into the window.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.ConfettiFromAnEdgeLaunchesAlongItAndIntoTheWindow`
 - **BRIDGE-PARTICLES-023** — `Sparkles` shall emit `rate` small fading circles a second (default gold) over the anchor's bounds until the effect is stopped.
   - Tests: `ParticleRecipeTests.SparklesRunUntilStopped`
 - **BRIDGE-PARTICLES-024** — `Burst` shall emit `count` circles at once from the anchor's center in a ring that slows and fades, in `color` or the first accent.
@@ -124,22 +124,22 @@ depends:
 - **BRIDGE-PARTICLES-028** — `Cancel()` shall remove every particle of the effect and complete `Then()` at once.
   - Tests: `ParticleRecipeTests.CancelClearsAndCompletesAtOnce`
 - **BRIDGE-PARTICLES-029** — `Revert()` shall do what `Cancel()` does.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.RevertClearsAndCompletesAtOnceAsCancelDoes`
 - **BRIDGE-PARTICLES-030** — `Pause()` shall freeze the effect's particles and emission where they are, leaving other effects in the same overlay running, and `Resume()` shall continue them.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.PauseFreezesOnlyItsOwnEffectAndResumeContinuesIt`
 - **BRIDGE-PARTICLES-031** (inherited) — Once the effect is complete, `Stop`, `Cancel`, `Pause` and `Resume` shall do nothing.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.ACompleteEffectIgnoresStopCancelPauseAndResume`
 - **BRIDGE-PARTICLES-032** — The effect shall be awaitable, completing as `Then()` does.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.AwaitingTheEffectCompletesAsThenDoes`
 
 ### Defaults
 
 - **BRIDGE-PARTICLES-033** — When `count` is not given, `Confetti` shall launch 120 particles.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-PARTICLES-034** — When `rate` is not given, `Sparkles` shall emit 30 particles a second.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-PARTICLES-035** — When `count` is not given, `Burst` shall emit 24 particles.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 
 ### Formations
 
@@ -175,7 +175,7 @@ depends:
 - **BRIDGE-PARTICLES-045** — When `ReducedMotion` is set as `Disintegrate` or `Assemble` is called, or the block has no overlay layer, it shall spawn nothing, create no overlay and return an effect that is already complete, and `Disintegrate` shall fade the block's `Opacity` to 0, `Assemble` from 0 to 1, over `Tokens.Short` with `Tokens.Ease`.
   - Tests: `ParticleFormationTests.ReducedTheBlockFadesAndNothingSpawns`
 - **BRIDGE-PARTICLES-046** — On an effect holding a formation, `Cancel()` and `Revert()` shall remove its particles, `Pause()` and `Resume()` shall freeze and continue it, and `Stop()` shall do nothing.
-  - Tests: untested
+  - Tests: `ParticleFormationTests.PauseAndResumeFreezeAndContinueAFormationAndStopLeavesItRunning`, `ParticleFormationTests.CancelAndRevertRemoveAFormationsParticles`
 - **BRIDGE-PARTICLES-047** — When `Disintegrate` or `Assemble` is called on a block whose previous `Disintegrate` or `Assemble` effect is still running, it shall cancel that effect first, so its particles are removed, its `Then()` completes and it no longer changes the block's `Opacity`.
   - Tests: `ParticleFormationTests.StartingAgainMidEffectCancelsTheFirst`
 
@@ -243,6 +243,5 @@ depends:
 
 ## Open items
 
-- Paused systems (BRIDGE-PARTICLES-008, -030), rotation and flutter (-011), color quantization (-013), `Glyph` validation (-015), an anchor outside a window (-020), edge confetti (-022), `Revert` (-029), calls after completion (-031), awaiting (-032) and the handle's calls on a formation (-046) have no test.
 - manual — the 1 000 particle cap for Browser, Android and iOS is unmeasured; only desktop's 4 000 was measured on the Particles page. The Particle type page's frame rate on the Browser head is unmeasured too.
 - `ParticleScene.AddFormation` takes one color (no per-point color or gradient), and a formation's color cannot change after it is created, so the Particle type page uses a single color rather than a gradient by x and rebuilds the scene on a color change.

@@ -40,14 +40,14 @@ depends:
 - **BRIDGE-RIPPLE-003** — When the control detaches, its ripple shall end any press, clear the state layer and remove its visual; attaching again shall recreate it.
   - Tests: `RippleTests.DisablingOrDetachingRemovesTheInk`
 - **BRIDGE-RIPPLE-004** (inherited) — In design mode, `Ripple.Enabled` shall have no effect.
-  - Tests: untested
+  - Tests: `RippleTests.EnabledHasNoEffectInDesignMode`
 
 ### Pressing
 
 - **BRIDGE-RIPPLE-005** — A left-button or touch press shall start a ripple, seen even when the control marks the press handled.
   - Tests: `RippleTests.TheInkGrowsFromThePressPoint`
 - **BRIDGE-RIPPLE-006** (inherited) — Other mouse buttons shall not ripple.
-  - Tests: untested
+  - Tests: `RippleTests.OtherMouseButtonsDoNotRipple`
 - **BRIDGE-RIPPLE-007** — When `Bounded` is true, the ink shall grow from the press point, which stays put, from radius 0 to the distance to the control's farthest corner, clipped to the control's rounded rectangle.
   - Tests: `RippleTests.TheInkGrowsFromThePressPoint`, `RippleTests.AGrownRippleCoversTheHostButNotItsRoundedCorners`
 - **BRIDGE-RIPPLE-008** — The rounded rectangle shall take its corners from `Border.CornerRadius` or `TemplatedControl.CornerRadius`, and be square for any other control.
@@ -87,7 +87,7 @@ depends:
 - **BRIDGE-RIPPLE-022** — When `Ripple.Color` is null, the ink shall use the control's `SystemAccentColor` resource (`SystemAccentColorLight2` on the dark theme variant), looked up at each press, at 24 % alpha.
   - Tests: `RippleTests.TheDefaultColorIsTheThemeAccentAtLowAlpha`
 - **BRIDGE-RIPPLE-023** — When the accent resource is missing, the control's `TextElement.Foreground` solid color, else black, shall stand in, at 24 % alpha.
-  - Tests: untested
+  - Tests: `RippleTests.WithoutAnAccentColorTheForegroundOrElseBlackStandsIn`
 
 ### State layer
 
@@ -96,7 +96,7 @@ depends:
 - **BRIDGE-RIPPLE-025** — The tint shall fade between levels over `Recipes.Tokens.Short`, under the control's rounded corners.
   - Tests: `RippleGestureTests.TheStateLayerTintsTheHostWhileHoveredFocusedOrPressedAndClearsAfterwards`
 - **BRIDGE-RIPPLE-026** — While `StateLayer` is false and motion is not reduced, the control shall show no tint.
-  - Tests: untested
+  - Tests: `RippleGestureTests.WithoutStateLayerAHoveredOrFocusedHostIsNotTinted`
 
 ### Reduced motion
 
@@ -108,11 +108,11 @@ depends:
 ### Defaults
 
 - **BRIDGE-RIPPLE-029** — When `Ripple.Enabled` is not set, the control shall not ripple.
-  - Tests: untested
+  - Tests: `RippleTests.WithoutEnabledAPressDoesNotRipple`
 - **BRIDGE-RIPPLE-030** — When `Ripple.Bounded` is not set, the ripple shall be bounded.
   - Tests: `RippleTests.TheInkGrowsFromThePressPoint`
 - **BRIDGE-RIPPLE-031** (inherited) — When `Ripple.StateLayer` is not set, the control shall have no state layer.
-  - Tests: untested
+  - Tests: `RippleGestureTests.WithoutStateLayerAHoveredOrFocusedHostIsNotTinted`
 
 ## Invariants
 
@@ -159,5 +159,5 @@ depends:
 
 ## Open items
 
-- Design mode (BRIDGE-RIPPLE-004), other mouse buttons (-006), the foreground fallback color (-023) and no tint without `StateLayer` (-026) have no test.
+- BRIDGE-RIPPLE-023 is pinned with an accent resource overridden by a non-color value, since the test app's Fluent theme always provides one; a truly missing resource is not exercised.
 - manual — Browser and Android were never measured; the per-host render-thread visual assumes a separate render thread, which a single-threaded Browser build may not have.

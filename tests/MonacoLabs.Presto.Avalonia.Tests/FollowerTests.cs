@@ -195,6 +195,43 @@ public sealed class FollowerTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void TogglingReducedMotionBetweenValuesSwitchesTheTimingFromTheShownValue()
+    {
+        var follower = new Follower(typeof(double), Linear100, null);
+        follower.Target(0d);
+        follower.Target(100d);
+        Frames.Advance(48, 16);
+        Assert.InRange((double)follower.Value!, 30, 70);
+
+        Presto.Engine.Defaults.ReducedMotion = true;
+        follower.Target(200d);
+        Frames.Advance(16);
+        Assert.Equal(200d, follower.Value);
+
+        Presto.Engine.Defaults.ReducedMotion = false;
+        follower.Target(300d);
+        Frames.Advance(48, 16);
+        Assert.InRange((double)follower.Value!, 230, 270);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ABuilderWithANonNumericDurationThrows(bool whenReduced)
+    {
+        var builder = Presto.Build().Duration((FunctionValue)((_, _, _) => 100));
+        FollowParams parameters = whenReduced ? new() { WhenReduced = builder } : new() { Builder = builder };
+
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            Presto.Engine.Defaults.ReducedMotion = whenReduced;
+            var follower = new Follower(typeof(double), parameters, null);
+            follower.Target(0d);
+            follower.Target(100d);
+        });
+    }
+
+    [AvaloniaFact]
     public void ReducedMotionSnapsUnlessWhenReducedGivesATiming()
     {
         Presto.Engine.Defaults.ReducedMotion = true;

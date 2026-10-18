@@ -160,86 +160,45 @@ Friction found while building the Tempo sample (`samples/Tempo/Tempo/`): first t
 
 Each spec's Open items section lists its untested requirements and other loose ends; these specs have some.
 
-- [BRIDGE-ACCORDION](specs/avalonia-bridge/accordion-and-pane.md): 10 untested requirements.
-- [BRIDGE-THREAD](specs/avalonia-bridge/animation-thread.md): 11 untested requirements.
-- [BRIDGE-SCENES](specs/avalonia-bridge/compositor-scenes.md): 7 untested requirements.
-- [BRIDGE-CONNECTED](specs/avalonia-bridge/connected.md): 4 untested requirements.
-- [BRIDGE-CONTENTSIZE](specs/avalonia-bridge/content-size.md): 8 untested requirements.
-- [BRIDGE-HELPERS](specs/avalonia-bridge/control-helpers.md): 1 untested requirement.
-- [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 7 untested requirements.
-- [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 6 untested requirements, plus a brush changed in place in the child not reaching an active effect's snapshot, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
-- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus the manual Desktop fling-and-re-grab check and whether touch gets its own `DragThreshold`.
-- [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement.
+- [BRIDGE-THREAD](specs/avalonia-bridge/animation-thread.md): 0 untested requirements, plus a compositor animation reading as finished before its first start.
+- [BRIDGE-CONNECTED](specs/avalonia-bridge/connected.md): 1 untested requirement (022, a flight's mirror animation carrying no `"Connected"` origin).
+- [BRIDGE-CONTENTSIZE](specs/avalonia-bridge/content-size.md): 0 untested requirements, plus a height change landing at once when it shares a layout pass with a stretched-axis change.
+- [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 0 untested requirements, plus three cases of 031 without a test.
+- [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 0 untested requirements, plus a brush changed in place in the child not reaching an active effect's snapshot, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
+- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 0 untested requirements, plus the release's reduced-motion behavior, the manual Desktop fling-and-re-grab check and whether touch gets its own `DragThreshold`.
 - [BRIDGE-GESTURES](specs/avalonia-bridge/gesture-arbitration.md): the by-hand touch and pen checks on Tempo and the Gestures page.
-- [BRIDGE-EFFECTS](specs/avalonia-bridge/effects.md): 7 untested requirements.
-- [BRIDGE-FLIP](specs/avalonia-bridge/flip-card.md): 3 untested requirements.
-- [BRIDGE-FOLLOW](specs/avalonia-bridge/follow.md): 7 untested requirements.
-- [BRIDGE-GLYPHS](specs/avalonia-bridge/glyph-outlines.md): 1 untested requirement, plus the missing-glyph case of BRIDGE-GLYPHS-004.
-- [BRIDGE-IMAGE](specs/avalonia-bridge/image-effects.md): 18 untested requirements, plus the resize-at-start question and Browser/Android smoke runs.
-- [BRIDGE-INIT](specs/avalonia-bridge/initialization.md): 3 untested requirements.
-- [BRIDGE-LAYOUT](specs/avalonia-bridge/layout-transitions.md): 6 untested requirements.
-- [BRIDGE-MAGNETIC](specs/avalonia-bridge/magnetic.md): 1 untested requirement.
-- [BRIDGE-MARKUP](specs/avalonia-bridge/markup-extensions.md): 5 untested requirements, plus no XAML way to set `Lift`'s distance or `Glow`'s color.
-- [BRIDGE-MODAL](specs/avalonia-bridge/modal.md): 8 untested requirements.
-- [BRIDGE-MOTION](specs/avalonia-bridge/motion-states.md): 10 untested requirements.
-- [BRIDGE-TOKENS](specs/avalonia-bridge/motion-tokens.md): 2 untested requirements.
-- [BRIDGE-PAGES](specs/avalonia-bridge/page-transitions.md): 4 untested requirements.
-- [BRIDGE-PAGER](specs/avalonia-bridge/pager.md): 19 untested requirements.
-- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 14 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, single-color formations, and the manual Particle type Browser frame-rate check.
-- [BRIDGE-POPOVER](specs/avalonia-bridge/popovers.md): 5 untested requirements.
-- [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 5 untested requirements.
-- [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 5 untested requirements, plus the manual Activity feed check.
-- [BRIDGE-PRESENCE](specs/avalonia-bridge/presence.md): 9 untested requirements.
-- [BRIDGE-RIPPLE](specs/avalonia-bridge/press-ripple.md): 6 untested requirements, plus the Browser/Android measurement.
-- [BRIDGE-SUBMIT](specs/avalonia-bridge/progress-and-submit.md): 16 untested requirements.
-- [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 3 untested requirements.
-- [BRIDGE-PULL](specs/avalonia-bridge/pull-to-refresh.md): 12 untested requirements.
-- [BRIDGE-RECIPES-MEDIA](specs/avalonia-bridge/recipes-media.md): 6 untested requirements.
-- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, and `WriteIn`/`Shatter` not re-seekable in a timeline.
+- [BRIDGE-GLYPHS](specs/avalonia-bridge/glyph-outlines.md): 0 untested requirements, plus the missing-glyph case of BRIDGE-GLYPHS-004.
+- [BRIDGE-IMAGE](specs/avalonia-bridge/image-effects.md): 0 untested requirements, plus `Seed` 0 and 1 drawing the same dissolve (BRIDGE-IMAGE-027), the resize-at-start question and Browser/Android smoke runs.
+- [BRIDGE-INIT](specs/avalonia-bridge/initialization.md): 0 untested requirements, plus `UsePresto` (009) and the lifetime-based `TopLevel` choice (012), which the headless platform cannot reach.
+- [BRIDGE-MARKUP](specs/avalonia-bridge/markup-extensions.md): 0 untested requirements, plus no XAML way to set `Lift`'s distance or `Glow`'s color.
+- [BRIDGE-MOTION](specs/avalonia-bridge/motion-states.md): 0 untested requirements, plus half of 026 (hover listened for only while a `When` names `:pointerover`).
+- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 0 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, single-color formations, and the manual Particle type Browser frame-rate check.
+- [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 0 untested requirements, plus the no-overlay-layer half of 022.
+- [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 0 untested requirements, plus the manual Activity feed check.
+- [BRIDGE-PRESENCE](specs/avalonia-bridge/presence.md): 0 untested requirements, plus the initialize-first half of 019.
+- [BRIDGE-RIPPLE](specs/avalonia-bridge/press-ripple.md): 0 untested requirements, plus a truly missing accent resource (023) and the Browser/Android measurement.
+- [BRIDGE-SUBMIT](specs/avalonia-bridge/progress-and-submit.md): 1 untested requirement (027, which no public path reaches).
+- [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 1 untested requirement (027, the params constructors initializing the bridge), plus 014's masked write under a completed animation.
+- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 0 untested requirements, plus `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, `WriteIn`/`Shatter` not re-seekable in a timeline, and `PageSharedAxis`'s exit travel without a direct test.
 - [BRIDGE-REDUCED](specs/avalonia-bridge/reduced-motion.md): 0 untested requirements, plus the window-activation and browser-change refreshes, checked only by hand.
-- [BRIDGE-REORDER](specs/avalonia-bridge/reorder.md): 11 untested requirements.
-- [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 10 untested requirements.
-- [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 10 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
-- [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 16 untested requirements.
-- [BRIDGE-SHAPES](specs/avalonia-bridge/shapes.md): 9 untested requirements.
-- [BRIDGE-SHEET](specs/avalonia-bridge/sheet.md): 6 untested requirements.
-- [BRIDGE-SPLITFLAP](specs/avalonia-bridge/split-flap.md): 1 untested requirement, plus the drawn halves checked only by eye.
-- [BRIDGE-FRAMES](specs/avalonia-bridge/sprite-frames.md): 8 untested requirements.
-- [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 11 untested requirements.
-- [BRIDGE-TEXTREVEAL](specs/avalonia-bridge/text-reveal.md): 7 untested requirements.
-- [BRIDGE-WARP](specs/avalonia-bridge/text-warp.md): 1 untested requirement, plus the per-block field, no per-letter stagger, and the manual pointer warps.
-- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 5 untested requirements.
-- [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 6 untested requirements.
-- [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 17 untested requirements, plus the macOS, Android and Browser hardware checks.
-- [BRIDGE-TRANSFORMS](specs/avalonia-bridge/transforms.md): 1 untested requirement.
-- [BRIDGE-CODECS](specs/avalonia-bridge/value-codecs.md): 4 untested requirements.
-- [BRIDGE-ATTACH](specs/avalonia-bridge/xaml-attach.md): 7 untested requirements.
-- [CORE-ANIMATABLE](specs/core/animatable.md): 7 untested requirements.
-- [CORE-BUILDER](specs/core/animation-builder.md): 0 untested requirements.
-- [CORE-ANIMATION](specs/core/animation.md): 8 untested requirements.
-- [CORE-CALLBACKS](specs/core/callbacks.md): 9 untested requirements.
-- [CORE-COLORS](specs/core/colors.md): 5 untested requirements.
-- [CORE-COMPOSITION](specs/core/composition.md): 3 untested requirements.
-- [CORE-DIAGNOSTICS](specs/core/diagnostics.md): 4 untested requirements.
-- [CORE-EASEPARSER](specs/core/ease-parser.md): 6 untested requirements.
-- [CORE-EASES](specs/core/eases.md): 17 untested requirements.
-- [CORE-ENGINE](specs/core/engine.md): 21 untested requirements.
-- [CORE-INERTIA](specs/core/inertia.md): 6 untested requirements.
-- [CORE-KEYFRAMES](specs/core/keyframes.md): 6 untested requirements.
-- [CORE-MOTIONPATH](specs/core/motion-path.md): 5 untested requirements.
-- [CORE-MOTIONVALUE](specs/core/motion-values.md): 6 untested requirements.
-- [CORE-PARTICLES](specs/core/particles.md): 15 untested requirements.
-- [CORE-PRESTO](specs/core/presto.md): 10 untested requirements.
-- [CORE-REDUCED](specs/core/reduced-motion.md): 8 untested requirements.
-- [CORE-SCOPE](specs/core/scope-and-defaults.md): 20 untested requirements.
-- [CORE-SCRAMBLE](specs/core/scramble.md): 18 untested requirements.
-- [CORE-SPRING](specs/core/spring.md): 5 untested requirements.
-- [CORE-STAGGER](specs/core/stagger.md): 1 untested requirement.
-- [CORE-TARGETS](specs/core/targets.md): 2 untested requirements.
-- [CORE-THREADING](specs/core/threading.md): 13 untested requirements.
-- [CORE-TIMELINE](specs/core/timeline.md): 4 untested requirements.
-- [CORE-TIMER](specs/core/timer.md): 17 untested requirements.
-- [CORE-UTILS](specs/core/utils.md): 16 untested requirements.
-- [CORE-VALUES](specs/core/values.md): 5 untested requirements.
-- [DEVTOOLS-OVERLAY](specs/devtools/overlay.md): 20 untested requirements, plus the manual Desktop checks.
-- [LOTTIE-PLAYBACK](specs/lottie/lottie.md): 12 untested requirements, plus reduced-motion and DevTools coverage of render-thread playback, and a Browser run.
+- [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 0 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
+- [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 0 untested requirements, plus 004's wording on where the indicator sits.
+- [BRIDGE-SPLITFLAP](specs/avalonia-bridge/split-flap.md): 0 untested requirements, plus the drawn halves checked only by eye.
+- [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 1 untested requirement (003: rebuilding a side throws when the other side is a `Control`).
+- [BRIDGE-WARP](specs/avalonia-bridge/text-warp.md): 0 untested requirements, plus the per-block field, no per-letter stagger, and the manual pointer warps.
+- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 2 untested requirements (014, word and line panels not `Raw`; 016, `Inlines` content splitting into nothing).
+- [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 0 untested requirements, plus 010 tested only through focus, since a still pointer is not hovered until a re-hit-test.
+- [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 1 untested requirement (005, the settle timing reading `Engine.Current`), plus `Trigger`, `Container`, `ModifyTarget`, `PanBounds.Inside`, capture loss and half of 049 without tests, and the macOS, Android and Browser hardware checks.
+- [CORE-ANIMATABLE](specs/core/animatable.md): 0 untested requirements, plus no core test for canonical-name lookup.
+- [CORE-COLORS](specs/core/colors.md): 0 untested requirements, plus 027 not holding in `Oklch`.
+- [CORE-COMPOSITION](specs/core/composition.md): 0 untested requirements, plus a delayed `Replace` animation truncating its sibling when created rather than when its delay ends.
+- [CORE-INERTIA](specs/core/inertia.md): 0 untested requirements, plus the object form `TweenParams { To = new Inertia(…) }`.
+- [CORE-MOTIONVALUE](specs/core/motion-values.md): 0 untested requirements, plus no core test for `FollowSpring`/`SpringTarget` or `Set` throwing on `ProgressValue`/`ValueOf`.
+- [CORE-PRESTO](specs/core/presto.md): 2 untested requirements (016, `Set` throwing on a bare `TweenParams` value; 047, unobservable in-process).
+- [CORE-SCRAMBLE](specs/core/scramble.md): 1 untested requirement (015: an unseeded scramble takes the seed counter, not the shared generator).
+- [CORE-SPRING](specs/core/spring.md): 1 untested requirement (014, a clamp the parameter clamps keep out of reach).
+- [CORE-STAGGER](specs/core/stagger.md): 0 untested requirements, plus a fractional `Use` index.
+- [CORE-TARGETS](specs/core/targets.md): 0 untested requirements, plus no core test for `IReconcilingValueCodec`.
+- [CORE-THREADING](specs/core/threading.md): 1 untested requirement (027, Release-only).
+- [DEVTOOLS-OVERLAY](specs/devtools/overlay.md): 1 untested requirement (008, `UsePrestoDevTools`), plus the manual Desktop checks.
+- [LOTTIE-PLAYBACK](specs/lottie/lottie.md): 2 untested requirements (056, private state; 071, AOT probe only), plus reduced-motion and DevTools coverage of render-thread playback, and a Browser run.

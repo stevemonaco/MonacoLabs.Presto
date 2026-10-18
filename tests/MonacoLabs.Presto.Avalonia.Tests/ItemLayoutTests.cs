@@ -137,6 +137,43 @@ public sealed class ItemLayoutTests : CompositorTestBase
         }
     }
 
+    [AvaloniaFact]
+    public void AClearedContainerIsRevertedAndReleased()
+    {
+        var items = new ObservableCollection<string> { "a", "red", "c" };
+        var list = Show(new ItemsControl { ItemsSource = items, ItemTemplate = Rows(), VerticalAlignment = VerticalAlignment.Top });
+        var container = list.ContainerFromItem("red")!;
+        Assert.NotNull(Animate.ItemArmOf(container));
+
+        items.Remove("red");
+        Tick();
+
+        Assert.Null(Animate.ItemArmOf(container));
+        Assert.Null(LayoutTransition.Live(container));
+    }
+
+    [AvaloniaFact]
+    public void ABuilderALayoutTransitionCannotHonorThrowsWhenSetOnAnEmptyList() =>
+        Assert.Throws<NotSupportedException>(() => Animate.SetItemLayout(new ItemsControl(), Presto.Build().X(10)));
+
+    [AvaloniaFact]
+    public void ChangingTheListsLayoutModeRearmsEveryContainer()
+    {
+        var items = new ObservableCollection<string> { "a", "red" };
+        var list = Show(new ItemsControl { ItemsSource = items, ItemTemplate = Rows(), VerticalAlignment = VerticalAlignment.Top });
+        var red = Row(list, Brushes.Red);
+        red.Height = 30;
+        Tick();
+        Assert.Equal(30, Box(list).Height);
+
+        Animate.SetLayoutMode(list, LayoutAnimateMode.PositionAndSize);
+        red.Height = 40;
+        Tick();
+
+        Assert.Equal(40, red.Bounds.Height);
+        Assert.Equal(30, Box(list).Height);
+    }
+
     private static T Show<T>(T list) where T : ItemsControl
     {
         Animate.SetItemLayout(list, HeldMove);

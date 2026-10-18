@@ -246,6 +246,161 @@ public sealed class ContentSizeTests : CompositorTestBase
         Assert.True(transition.Completed);
     }
 
+    [AvaloniaFact]
+    public void AHostNotYetArrangedOnlyRecordsOnItsFirstPass()
+    {
+        var inner = new Border { Height = Small };
+        var host = new Border { Background = Brushes.Red, Child = new StackPanel { Children = { inner } }, VerticalAlignment = VerticalAlignment.Top };
+        var transition = host.AnimateContentSize(Duration, "linear");
+        inner.Height = Large;
+
+        ShowWhite(host);
+        Assert.Equal(Large, Box(host).Height);
+        Assert.True(transition.Completed);
+
+        inner.Height = Small;
+        Tick();
+        Assert.Equal(Large, Box(host).Height);
+        Assert.False(transition.Completed);
+    }
+
+    [AvaloniaFact]
+    public void AStretchedAxisMovesInOneFrameWhileAFollowingAxisEases()
+    {
+        var (host, inner) = ShowHost(Small);
+        var transition = host.AnimateContentSize(Duration, "linear");
+
+        WindowOf(host).Width = 150;
+        Tick();
+        Assert.Equal(150, host.Bounds.Width);
+        Assert.True(transition.Completed);
+
+        inner.Height = Large;
+        Tick();
+        Frames.Advance(Duration / 2);
+        Tick();
+        Assert.False(transition.Completed);
+        Assert.InRange(host.Bounds.Height, Small + 5, Large - 5);
+    }
+
+    [AvaloniaFact]
+    public void AHostWithSeveralChildrenNeverEases()
+    {
+        var inner = new Border { Height = Small };
+        var host = new Panel { Children = { inner, new Border { Height = 5 } }, VerticalAlignment = VerticalAlignment.Top };
+        ShowWhite(host);
+        var transition = host.AnimateContentSize(Duration, "linear");
+
+        inner.Height = Large;
+        Tick();
+
+        Assert.Equal(Large, host.Bounds.Height);
+        Assert.True(transition.Completed);
+    }
+
+    [AvaloniaFact]
+    public void LosingItsSoleChildCancelsTheResizeInFlight()
+    {
+        var (host, inner) = ShowHost(Small);
+        var content = (Layoutable)inner.Parent!;
+        var transition = host.AnimateContentSize(Duration, "linear");
+        inner.Height = Large;
+        Tick();
+        Frames.Advance(Duration / 2);
+        Tick();
+        Assert.False(transition.Completed);
+
+        host.Child = null;
+        Tick();
+
+        Assert.True(transition.Completed);
+        Assert.False(content.IsSet(Layoutable.MarginProperty));
+        Assert.False(content.IsSet(Visual.ClipProperty));
+    }
+
+    [AvaloniaFact]
+    public void ANewTransitionOnTheHostRevertsTheLiveOne()
+    {
+        var (host, inner) = ShowHost(Small);
+        var first = host.AnimateContentSize(Held, "linear");
+
+        var second = host.AnimateContentSize(Duration, "linear");
+        inner.Height = Large;
+        Tick();
+        Frames.Advance(Duration / 2);
+        Tick();
+
+        Assert.True(((IReleasable)first).IsReleased);
+        Assert.True(first.Completed);
+        Assert.InRange(second.Progress, .3, .7);
+    }
+
+    [AvaloniaFact]
+    public void AnimateContentSizeRegistersWithTheAmbientScope()
+    {
+        var (host, inner) = ShowHost(Small);
+        var scope = new Scope();
+        ContentSizeTransition? transition = null;
+        scope.Execute(_ => transition = host.AnimateContentSize(Duration, "linear"));
+        inner.Height = Large;
+        Tick();
+
+        scope.Revert();
+        Tick();
+
+        Assert.True(((IReleasable)transition!).IsReleased);
+        Assert.Equal(Large, host.Bounds.Height);
+        inner.Height = Small;
+        Tick();
+        Assert.Equal(Small, host.Bounds.Height);
+    }
+
+    [AvaloniaFact]
+    public void TheAttachedFormStaysOutOfTheAmbientScope()
+    {
+        var (host, inner) = ShowHost(Small);
+        var scope = new Scope();
+        scope.Execute(_ => Animate.SetContentSize(host, Presto.Build().Duration(Duration).Ease("linear")));
+
+        scope.Revert();
+        inner.Height = Large;
+        Tick();
+
+        Assert.Equal(Small, Box(host).Height);
+    }
+
+    [AvaloniaFact]
+    public void TheAttachedFormDoesNothingInDesignMode()
+    {
+        var (host, inner) = ShowHost(Small);
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Animate.SetContentSize(host, Presto.Build().Duration(Duration).Ease("linear"));
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        inner.Height = Large;
+        Tick();
+
+        Assert.Equal(Large, Box(host).Height);
+    }
+
+    [AvaloniaFact]
+    public void BeforeAnyResizeProgressIsZeroAndItIsCompleted()
+    {
+        var (host, _) = ShowHost(Small);
+
+        var transition = host.AnimateContentSize(Duration, "linear");
+
+        Assert.Equal(0, transition.Progress);
+        Assert.True(transition.Completed);
+    }
+
     /// <summary>A red host whose content is a bar <paramref name="height"/> tall, at the top of a white window.</summary>
     private static (Border Host, Border Inner) ShowHost(double height)
     {

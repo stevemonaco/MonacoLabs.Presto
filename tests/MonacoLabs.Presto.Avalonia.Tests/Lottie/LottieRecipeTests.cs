@@ -74,6 +74,29 @@ public sealed class LottieRecipeTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AMissingSegmentThrowsWhenAnimatedNotWhenBuilt()
+    {
+        var builder = Recipes.PlayLottie("missing");
+
+        Assert.Throws<ArgumentException>(() => builder.Animate(new LottieView { Composition = LottieSegmentTests.Composition() }));
+    }
+
+    [AvaloniaFact]
+    public void WithoutADelayTheRecipeLeavesDelayUnset() => Assert.Null(Recipes.PlayLottie().ToParams().Delay);
+
+    [AvaloniaFact]
+    public void TheMarkupExtensionHasNoExitFormSoOutPlaysForward()
+    {
+        var view = new LottieView { Composition = LottieSegmentTests.Composition() };
+        var builder = (AnimationBuilder)new PlayLottieExtension { Segment = "intro", Loop = false, Out = true }.ProvideValue(null!);
+
+        builder.Animate(view);
+        Frames.Advance(500, 10);
+
+        Assert.Equal(5, view.Frame, tolerance: 0.5);
+    }
+
+    [AvaloniaFact]
     public void ANonPositiveSpeedThrowsWhenTheRecipeIsBuilt()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Recipes.PlayLottie(speed: 0));

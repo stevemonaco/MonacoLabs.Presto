@@ -189,4 +189,40 @@ public sealed class EngineHiddenTests : EngineTestBase
 
         Assert.Equal(before + .016, timer.CurrentTime, 1e-9);
     }
+
+    [Fact]
+    public void TurningPauseOnHiddenOnWhileHiddenPauses()
+    {
+        Presto.Engine.PauseOnHidden = false;
+        var timer = Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(100, 16);
+        Presto.Engine.Hidden = true;
+        Frames.Advance(16);
+        var before = timer.CurrentTime;
+
+        Presto.Engine.PauseOnHidden = true;
+        Frames.Advance(500, 16);
+
+        Assert.True(Presto.Engine.Paused);
+        Assert.False(Frames.IsRunning);
+        Assert.Equal(before, timer.CurrentTime);
+    }
+
+    [Fact]
+    public void SettingHiddenOrPauseOnHiddenToItsCurrentValueChangesNothing()
+    {
+        Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(100, 16);
+        Presto.Engine.Pause();
+
+        Presto.Engine.Hidden = false;
+        Assert.True(Presto.Engine.Paused);
+        Assert.False(Frames.IsRunning);
+
+        Presto.Engine.PauseOnHidden = false;
+        Presto.Engine.Hidden = true;
+        Presto.Engine.PauseOnHidden = false;
+        Assert.True(Presto.Engine.Paused);
+        Assert.False(Frames.IsRunning);
+    }
 }

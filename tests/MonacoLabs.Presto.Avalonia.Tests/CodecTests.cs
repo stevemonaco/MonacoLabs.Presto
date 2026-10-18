@@ -278,6 +278,64 @@ public sealed class CodecTests : BridgeTestBase
         Assert.Equal(128, border.BoxShadow[0].Color.A);
     }
 
+    [AvaloniaFact]
+    public void ABrushesTransformIsNotCarriedToTheWrittenBrush()
+    {
+        var solid = Tweened<IBrush>(new SolidColorBrush(Colors.Red) { Transform = new RotateTransform(45) },
+            TweenValue.Of(new SolidColorBrush(Colors.Blue) { Transform = new ScaleTransform(2, 2) }), .5);
+        var from = Linear(new(0, 0), new(1, 0), (0, Colors.Black), (1, Colors.White));
+        from.Transform = new RotateTransform(45);
+        var to = Linear(new(0, 0), new(0, 1), (0, Colors.White), (1, Colors.Black));
+        to.Transform = new ScaleTransform(2, 2);
+        var gradient = Tweened<IBrush>(from, TweenValue.Of(to), .5);
+
+        Assert.Null(Assert.IsAssignableFrom<Brush>(solid).Transform);
+        Assert.Null(Assert.IsAssignableFrom<GradientBrush>(gradient).Transform);
+    }
+
+    [AvaloniaFact]
+    public void AShadowStringBoxShadowsCannotParseIsLeftToTheCore()
+    {
+        Assert.ThrowsAny<FormatException>(() => BoxShadows.Parse("5"));
+
+        var shadows = Tweened(BoxShadows.Parse("0 4 8 0 #FF000000"), "5", .5);
+
+        Assert.Equal(1, shadows.Count);
+        Assert.Equal(2, shadows[0].OffsetY);
+        Assert.Equal(128, shadows[0].Color.A);
+    }
+
+    [AvaloniaFact]
+    public void AGeometrySamplesEvenlySpacedPointsAlongItsContourAndAStringEndIsReadAsItsNumbers()
+    {
+        var line = new LineGeometry(new Point(0, 0), new Point(30, 0));
+
+        var lerped = Points(Tweened<Geometry>(line, TweenValue.Of(new LineGeometry(new Point(0, 10), new Point(30, 10))), .5));
+        Assert.Equal(10, lerped.Length);
+        for (var i = 0; i < 10; i++)
+        {
+            Assert.Equal(Math.Round(30d * i / 9, 3), lerped[i].X, 3);
+            Assert.Equal(5, lerped[i].Y, 3);
+        }
+
+        var path = "M" + string.Join(" L", Enumerable.Range(0, 10).Select(i => $"{i * 2},20"));
+        var parsed = Points(Tweened<Geometry>(line, path));
+        Assert.Equal(Enumerable.Range(0, 10).Select(i => new Point(i * 2, 20)), parsed);
+    }
+
+    [AvaloniaFact]
+    public void GeometriesOfDifferentPointCountsPadTheShorterWithZeros()
+    {
+        var points = Points(Tweened<Geometry>(new LineGeometry(new Point(0, 0), new Point(30, 0)), TweenValue.Of(new LineGeometry(new Point(0, 0), new Point(60, 0))), .5));
+
+        Assert.Equal(20, points.Length);
+        Assert.Equal(new Point(30, 0), points[19]);
+        Assert.Equal(60 * 10d / 19 / 2, points[10].X, 2);
+    }
+
+    private static Point[] Points(Geometry geometry) =>
+        [.. MonacoLabs.Presto.Text.GlyphContours.PathOf(geometry)!.Points.Select(p => new Point(p.X, p.Y))];
+
     private static LinearGradientBrush Linear(Point start, Point end, params (double Offset, Color Color)[] stops)
     {
         var brush = new LinearGradientBrush
@@ -354,6 +412,18 @@ public sealed class CodecTests : BridgeTestBase
         var easing = new PrestoEasing(ease);
 
         foreach (var t in new[] { 0, .25, .5, .75, 1d }) Assert.Equal(ease(t), easing.Ease(t));
+    }
+
+    [AvaloniaFact]
+    public void AnAvaloniaEasingsEaseMethodGroupIsAPrestoEase()
+    {
+        var easing = new Avalonia.Animation.Easings.CubicEaseOut();
+        Ease ease = easing.Ease;
+        var box = new Border();
+
+        Presto.Animate(box, new() { ["Opacity"] = 0, Duration = 100, Ease = ease, Autoplay = false }).Seek(25);
+
+        Assert.Equal(1 - easing.Ease(.25), box.Opacity, 9);
     }
 }
 

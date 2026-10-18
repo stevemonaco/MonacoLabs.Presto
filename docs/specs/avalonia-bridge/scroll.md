@@ -75,7 +75,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **BRIDGE-SCROLL-008** — When `Speed` returns to 1 or the control detaches, the bridge shall revert the parallax shorthand to the user's transform and release the scroller's container.
   - Tests: `ScrollParallaxTests.SettingTheSpeedBackToOneReverts`, `ScrollParallaxTests.DetachingRevertsTheUsersTransformAndReleasesTheContainer`
 - **BRIDGE-SCROLL-009** (inherited) — When the control has no `ScrollViewer` ancestor as it attaches, the parallax shall do nothing until it attaches again.
-  - Tests: untested
+  - Tests: `ScrollParallaxTests.AnElementAttachedOutsideAScrollViewerStaysPutUntilItAttachesInsideOne`
 - **BRIDGE-SCROLL-010** — While `PrestoDefaults.ReducedMotion` is set, the parallax shall write a speed of 1 (the layout position) at each offset notification, reading the flag there, so a change shows at the next scroll.
   - Tests: `ScrollParallaxTests.UnderReducedMotionTheElementKeepsItsLayoutPositionAndResumesAtTheScrollAfterItClears`, `ScrollStoryPageTests.UnderReducedMotionTheHeroLayersScrollTogether`
 - **BRIDGE-SCROLL-011** — `Speed` shall be settable from XAML.
@@ -90,7 +90,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **BRIDGE-SCROLL-014** — A wheel delta with a fractional part, touch, scrollbar and keyboard input shall pass through unsmoothed.
   - Tests: `ScrollSmoothTests.APreciseDeltaScrollsAtOnceUnsmoothed`
 - **BRIDGE-SCROLL-015** — With Shift held and no horizontal delta, a vertical notch shall move the horizontal target.
-  - Tests: untested
+  - Tests: `ScrollSmoothTests.AShiftedVerticalNotchEasesTheHorizontalTarget`
 - **BRIDGE-SCROLL-016** — When a notch would not move the target (the range's end), the event shall be handled while an ease is running, and otherwise left unhandled so the presenter and outer scrollers get it.
   - Tests: `ScrollSmoothTests.ANotchPastTheEndWhileEasingIsSwallowedInsteadOfJumping`
 - **BRIDGE-SCROLL-017** — Any offset change the smooth scroll did not write, including an extent shrink clamping its own write, shall stop it where it is.
@@ -140,7 +140,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **BRIDGE-SCROLL-035** — A second `ScrollTo` on the same scroller shall replace the first.
   - Tests: `ScrollToTests.ASecondScrollToReplacesTheFirst`
 - **BRIDGE-SCROLL-036** (inherited) — When no axis moves, `ScrollTo` shall return an animation with no scroll tween, which completes on its first tick.
-  - Tests: untested
+  - Tests: `ScrollToTests.WhenNoAxisMovesTheAnimationHasNoScrollTweenAndCompletesOnItsFirstTick`
 - **BRIDGE-SCROLL-037** — When `ReducedMotion` is set at the call and the builder has no `WhenReduced` form, the scroll shall land on the first frame with no delay and let the engine idle; a `WhenReduced` form shall play instead, with the default motion filling its unset duration and ease.
   - Tests: `ScrollToTests.ReducedMotionJumpsOnTheFirstFrameAndTheEngineIdles`, `ScrollToTests.ReducedMotionPlaysTheBuildersReducedForm`
 
@@ -149,7 +149,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **BRIDGE-SCROLL-038** — `ScrollIntoView` shall scroll every ancestor `ScrollViewer` of the element that has to move, all at once, each outer one aiming at the part of the element its inner one will show.
   - Tests: `ScrollIntoViewTests.NestedScrollersMoveTogetherAndShowTheTargetInBoth`
 - **BRIDGE-SCROLL-039** — The element's rect shall come from summed layout slots, so render transforms do not count.
-  - Tests: untested
+  - Tests: `ScrollIntoViewTests.TheTargetsRectIgnoresItsRenderTransform`
 - **BRIDGE-SCROLL-040** — `Start`, `Center` and `End` shall align the margin-inflated rect's leading edge, center or trailing edge with the viewport's.
   - Tests: `ScrollIntoViewTests.EachAlignmentLandsTheTargetWhereItSays`, `ScrollIntoViewTests.TheMarginKeepsTheTargetClearOfTheEdge`
 - **BRIDGE-SCROLL-041** — `Nearest`, the default, shall leave an axis alone when the rect is fully in view, and otherwise scroll the least distance, aligning the start when the rect is larger than the viewport.
@@ -168,9 +168,9 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **BRIDGE-SCROLL-046** — When `index` is negative or not below `ItemCount`, `ScrollToIndex` shall throw `ArgumentOutOfRangeException`.
   - Tests: `ScrollToIndexTests.AnIndexOutOfRangeThrows`
 - **BRIDGE-SCROLL-047** — When the list's panel is not a `VirtualizingStackPanel`, `ScrollToIndex` shall `ScrollIntoView` the index's container with the given alignment, and throw `InvalidOperationException` when that container does not exist.
-  - Tests: untested
+  - Tests: `ScrollToIndexTests.AListOnAnotherPanelScrollsTheIndexsContainerIntoView`, `ScrollToIndexTests.AListOnAnotherPanelWithoutTheIndexsContainerThrows`
 - **BRIDGE-SCROLL-048** (inherited) — When the `VirtualizingStackPanel` has no `ScrollViewer` ancestor, `ScrollToIndex` shall throw `InvalidOperationException`.
-  - Tests: untested
+  - Tests: `ScrollToIndexTests.AVirtualizingPanelWithoutAScrollViewerThrows`
 - **BRIDGE-SCROLL-049** — When the item's aligned offset is more than 2 viewports away, the scroll shall first jump, in up to 3 laid-out passes, to 1 viewport short of `index × mean realized size` aligned, then animate the rest.
   - Tests: `ScrollToIndexTests.AFarIndexJumpsFirstThenAnimatesAboutAViewport`, `ScrollToIndexTests.AFarIndexLandsWithTheItemAligned`
 - **BRIDGE-SCROLL-050** — Within 2 viewports, the scroll shall animate the whole way without a jump.
@@ -180,7 +180,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **BRIDGE-SCROLL-052** — The scroll shall track the item rather than the index, following inserts and removals before it.
   - Tests: `ScrollToIndexTests.ItemsInsertedBeforeTheTargetMidFlightStillLandOnTheTargetItem`
 - **BRIDGE-SCROLL-053** — With `Nearest`, the alignment shall be fixed at the call to `Start` or `End` by the side the item comes from.
-  - Tests: untested
+  - Tests: `ScrollToIndexTests.NearestAlignsTheEndOfAnItemFromBelowAndTheStartOfOneFromAbove`
 - **BRIDGE-SCROLL-054** — The first item shall land at offset 0 with `Start` and the last at `ScrollBarMaximum` with `End`.
   - Tests: `ScrollToIndexTests.TheLastIndexAtTheEndAndIndexZeroAtTheStartLandAtTheExtremes`
 - **BRIDGE-SCROLL-055** — Input mid-flight shall stop the scroll.
@@ -188,7 +188,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **BRIDGE-SCROLL-056** — Under `ReducedMotion` the scroll shall land on the first frame, settle aligned and let the engine idle.
   - Tests: `ScrollToIndexTests.ReducedMotionLandsAlignedAndTheEngineIdles`
 - **BRIDGE-SCROLL-057** (inherited) — When the item is already aligned, `ScrollToIndex` shall return an animation that has already completed.
-  - Tests: untested
+  - Tests: `ScrollToIndexTests.AnAlreadyAlignedItemReturnsACompletedAnimation`
 - **BRIDGE-SCROLL-084** — `{presto:ScrollToItem}` shall provide a `CueAction` that, for a value that is not first, calls `ScrollToIndex` on its `ItemsControl` target with the value's index in `Items` and `Alignment` (default `Nearest`). It shall do nothing for a first value, a value not in `Items` or a list whose `ItemsPanelRoot` is null, and throw `InvalidOperationException` for a target that is not an `ItemsControl`.
   - Tests: `ScrollToIndexTests.ScrollToItemOnACueBringsAnAddedLastItemIntoViewIgnoresAValueThatIsNotAnItemAndThrowsOffAList`
 
@@ -239,9 +239,9 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 ### Defaults
 
 - **BRIDGE-SCROLL-066** — When `Smooth` is not set, wheel input shall pass through unsmoothed.
-  - Tests: untested
+  - Tests: `ScrollSmoothTests.WithoutSmoothANotchTakesItsNativeStepAtOnce`
 - **BRIDGE-SCROLL-067** (inherited) — When `StickToEnd` is not set, the scroller shall follow no growth.
-  - Tests: untested
+  - Tests: `ScrollStickToEndTests.WithoutStickToEndGrowthAtTheEndLeavesTheOffsetAlone`
 - **BRIDGE-SCROLL-068** (inherited) — When `axis` is not given, the single-axis `ScrollTo` shall scroll vertically.
   - Tests: `ScrollToTests.TheDefaultDurationGrowsWithTheViewportsTraveledAndCaps`
 - **BRIDGE-SCROLL-069** (inherited) — When `margin` is not given, `ScrollIntoView` shall align the element's own rect, with no margin.
@@ -321,5 +321,4 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 
 ## Open items
 
-- Untested: missing `ScrollViewer` ancestor for parallax (009), Shift-wheel (015), `ScrollTo` with no moving axis (036), layout-slot rects ignoring render transforms (039), the non-virtualizing and no-scroller `ScrollToIndex` paths (047, 048), `Nearest` fixing (053), already-aligned `ScrollToIndex` (057).
 - 020 and 065 need manual checks (non-Windows head; XAML previewer).

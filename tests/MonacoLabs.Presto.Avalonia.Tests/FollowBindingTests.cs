@@ -311,6 +311,22 @@ public sealed class FollowBindingTests : BridgeTestBase
         Assert.Equal(7, border.Width);
     }
 
+    [AvaloniaFact]
+    public void AnObservableFollowDoesNotSnapForANewDataContext()
+    {
+        var border = Unsized();
+        Show(new StackPanel { Children = { border } });
+        var source = new Pushed<double>(10);
+        Follow.Bind(border, Layoutable.WidthProperty, source, Linear100);
+
+        border.DataContext = new LevelViewModel();
+        source.Push(90);
+
+        Assert.Equal(10, border.Width);
+        Frames.Advance(48, 16);
+        Assert.InRange(border.Width, 20, 80);
+    }
+
     private sealed class Pushed<T>(T value) : IObservable<T>, IDisposable
     {
         private IObserver<T>? _observer;

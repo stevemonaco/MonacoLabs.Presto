@@ -51,7 +51,7 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 - **CORE-MOTIONVALUE-002** — When `Set` is called on a derived value or a value only Presto assigns (`Map`, `Snap`, `Resist`, `Combine`, `Spring`, `Lag`, `Trail`, `VelocityOf`, `ProgressValue`, `ValueOf`), it shall throw `InvalidOperationException`.
   - Tests: `MotionValueTests.SettingADerivedValueThrows`, `MotionValueDynamicsTests.SettingALagThrows`
 - **CORE-MOTIONVALUE-074** — In a Debug build, once the value's engine is pinned, `Set` shall fail the engine's debug thread assertion when called from another thread.
-  - Tests: untested
+  - Tests: `MotionValueTests.SettingFromAnotherThreadFailsTheDebugAssertionOnceTheEngineIsPinned`
 - **CORE-MOTIONVALUE-003** — `Map(transform)`, `Snap(increment)`, `Snap(points)` and both `Combine` forms shall compute their value from their sources' current values.
   - Tests: `MotionValueTests.MapFuncCombineAndSnapDerive`
 - **CORE-MOTIONVALUE-004** — The array form of `Combine` shall copy the source array and pass `combine` one reused buffer of the sources' values.
@@ -87,11 +87,11 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 - **CORE-MOTIONVALUE-014** — When the outputs resolve to different codecs, or neighboring outputs differ in kind, unit, channel count or string parts after reconciliation, the object map shall throw `ArgumentException`.
   - Tests: `MotionValueTests.ObjectMapOutputsOfDifferentKindsThrow`
 - **CORE-MOTIONVALUE-015** (inherited) — `MotionObjectValue.Value` shall encode again only when the segment or eased progress moved since the last read.
-  - Tests: untested
+  - Tests: `MotionValueTests.AnObjectMapEncodesAgainOnlyWhenItsOutputMoves`
 - **CORE-MOTIONVALUE-016** — `MotionObjectValue.Changed` shall be raised from the source's flush, and only when the segment or eased progress moved since the last raise.
   - Tests: `MotionValueTests.ObjectMapRaisesOnlyWhenTheOutputMoves`
 - **CORE-MOTIONVALUE-017** (inherited) — The object map shall subscribe to its source only while it has a `Changed` handler.
-  - Tests: untested
+  - Tests: `MotionValueTests.AnObjectMapSubscribesToItsSourceOnlyWhileItHasAHandler`
 
 ### Changed and the frame
 
@@ -157,7 +157,7 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 - **CORE-MOTIONVALUE-033** (inherited) — When the value stops moving, sampling shall continue until the velocity reaches 0, and then stop.
   - Tests: `MotionValueDynamicsTests.VelocityAndVelocityOfMatchAVelocityTrackerFedTheSameSamples`
 - **CORE-MOTIONVALUE-034** — When a measured value starts moving again, sampling shall rebase to now, so time spent asleep does not count.
-  - Tests: untested
+  - Tests: `MotionValueDynamicsTests.VelocityRebasesToNowWhenAMeasuredValueStartsMovingAgain`
 
 ### Engine time
 
@@ -177,7 +177,7 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 - **CORE-MOTIONVALUE-040** — `Scrub(null)`, `Cancel`, `Revert` and `Settle` shall end the scrub; the engine's cancel of a completed timer shall not.
   - Tests: `MotionValueDynamicsTests.ScrubNullAndRevertEndTheScrub`, `SettleTests.UsesTheScrubSourceVelocityWhenNoneIsGiven`
 - **CORE-MOTIONVALUE-041** (inherited) — A new `Scrub` shall replace the previous one.
-  - Tests: untested
+  - Tests: `MotionValueDynamicsTests.ANewScrubReplacesThePreviousOne`
 - **CORE-MOTIONVALUE-044** — `Timer.Scrub(progress, relative: true)` shall pause the timer without seeking, then on every flushed change move its progress by the value's change since the previous flush (or the call), clamped to [0, 1], and seek to that progress × `Duration`.
   - Tests: `SettleTests.RelativeScrubKeepsTheCurrentProgressAndAppliesDeltas`, `SettleTests.RelativeScrubClampsToTheUnitRange`
 - **CORE-MOTIONVALUE-045** — When `Scrub` is called with a non-null value or `Settle` is called on a timer with a `Parent`, it shall throw `InvalidOperationException` whose message says to scrub or settle the parent timeline.
@@ -217,7 +217,7 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 ### Defaults
 
 - **CORE-MOTIONVALUE-042** — When `initial` is not given, `Presto.CreateMotionValue` shall create a value holding 0.
-  - Tests: untested
+  - Tests: `MotionValueTests.CreateMotionValueDefaultsToZero`
 - **CORE-MOTIONVALUE-043** — When `ease` is not given, a range map or object map shall interpolate linearly within each segment, as Motion's `useTransform` does.
   - Tests: `MotionValueTests.MapInterpolatesAcrossSegments`, `MotionValueTests.MapInterpolatesColorStringsAcrossStopsAndClamps`
 - **CORE-MOTIONVALUE-050** — When not given, a settle's `Points` shall be 0 and 1, `Projection` 350 in the engine time unit, `FlickVelocity` off, and `Spring` a new `Springs.Gentle`.
@@ -307,4 +307,4 @@ A `MotionValue` is a `double` cell that derived values follow through `Map`, `Sn
 
 ## Open items
 
-- No core test for `MotionObjectValue`'s lazy encode or its subscribe-only-while-observed rule, `FollowSpring`/`SpringTarget`, velocity rebasing after sleep, `Set` throwing on `ProgressValue`/`ValueOf`, or a second `Scrub` replacing the first.
+- No core test for `FollowSpring`/`SpringTarget` or `Set` throwing on `ProgressValue`/`ValueOf`.

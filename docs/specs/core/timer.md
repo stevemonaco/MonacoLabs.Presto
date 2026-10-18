@@ -26,6 +26,7 @@ tests:
   - EngineTimeTests
   - MotionValueDynamicsTests
   - SettleTests
+  - TimelinesTests
 upstream:
   - src/timer/timer.js
   - src/core/render.js
@@ -59,11 +60,11 @@ depends:
 - **CORE-TIMER-002** — A timer's `Delay`, `LoopDelay`, `IsAlternating`, `Priority` and `Engine` shall reflect the parameters it was created with.
   - Tests: `IntrospectionTests.TimerGettersMatchTheParameters`
 - **CORE-TIMER-003** — When a `TimerParams` value is null, the timer shall take it, once at construction, from its parent timeline's child defaults, or else from its engine's `Defaults`.
-  - Tests: untested
+  - Tests: `TimingsTests.NullParametersComeFromTheEngineDefaultsOnceAtConstruction`, `TimingsTests.ATimelineChildTakesNullParametersFromTheTimelinesChildDefaults`
 - **CORE-TIMER-004** — When `Duration` is null, the timer shall have an infinite `IterationDuration` and a `Duration` clamped to 1e12; `Defaults.Duration` shall not apply.
-  - Tests: untested
+  - Tests: `TimingsTests.ANullDurationIsInfiniteIgnoresTheDefaultAndNeverCompletes`
 - **CORE-TIMER-005** (inherited) — When `Delay` is null and the default delay is function-based, the timer shall use a delay of 0.
-  - Tests: untested
+  - Tests: `TimingsTests.AFunctionBasedDefaultDelayGivesAPlainTimerNoDelay`
 - **CORE-TIMER-006** — The timer's `Duration` shall be `(IterationDuration + LoopDelay) × IterationCount − LoopDelay`, clamped to ±1e12, and 1e-11 when that is 0 or NaN.
   - Tests: `TimingsTests.RaisingLoopMidPlayExtendsDurationAndPlaysTheExtraIterations`, `ControlsTests.StretchALoopedTimer`, `ParametersTests.ZeroDurationTimerWithInfiniteLoop`
 - **CORE-TIMER-007** — `IterationCount` shall be `Loop + 1`, and +Infinity when `Loop` is infinite.
@@ -71,13 +72,13 @@ depends:
 - **CORE-TIMER-008** — `LoopCount` shall be infinite for `LoopCount.Infinite`, `true` and any negative count, and finite for `false` (0) and non-negative counts.
   - Tests: `LoopCountTests.IsInfiniteFollowsTheImplicitConversion`
 - **CORE-TIMER-009** — When `Id` is null, the timer's `Id` shall be the next value of a process-wide counter, as a string.
-  - Tests: untested
+  - Tests: `TimingsTests.TimersWithoutAnIdGetConsecutiveCounterIds`
 - **CORE-TIMER-010** — A root timer's `Offset` shall be the engine's last tick time at creation, measured from the engine's start and expressed in the current time unit.
   - Tests: `EngineTests.InitialOffsetPositionShouldBeProperlyCalculatedOnColdStart`, `SecondsTests.TimersOffsetTimeShouldBeProperlyScaledWhenNotControlledByATimeline`
 - **CORE-TIMER-011** — A timer added to a timeline shall never autoplay, whatever `Autoplay` says.
-  - Tests: untested
+  - Tests: `TimelinesTests.AChildNeverAutoplaysWhateverItsAutoplaySays`
 - **CORE-TIMER-068** — When `Duration` is null, the timer shall reach its end only after 1e12 time units, so in practice it never completes or fires `OnComplete`.
-  - Tests: untested
+  - Tests: `TimingsTests.ANullDurationIsInfiniteIgnoresTheDefaultAndNeverCompletes`
 
 ### Playhead
 
@@ -98,7 +99,7 @@ depends:
 - **CORE-TIMER-019** — When the playhead reaches the end of the last iteration, the timer shall set `Completed` and `Paused`; when it is moved back below `Duration`, `Completed` shall become false.
   - Tests: `ControlsTests.SeekATimer`, `CallbacksTests.OnCompleteOnAnimation`
 - **CORE-TIMER-020** — `Backwards` shall be true while the playhead moves towards 0, combining `Reversed`, the alternating iteration and, for a child, its parent's direction.
-  - Tests: untested
+  - Tests: `DirectionsTests.BackwardsCombinesReversedAlternationAndTheParentsDirection`
 - **CORE-TIMER-021** — `ProgressValue` shall be a `MotionValue` on the timer's engine, created on first read and assigned `Progress` on every render.
   - Tests: `MotionValueDynamicsTests.ProgressValueTracksAPlayingTimer`
 
@@ -123,7 +124,7 @@ depends:
 - **CORE-TIMER-030** (inherited) — When `Loop` is lowered on a paused timer whose playhead is past the new `Duration`, the timer shall seek just short of the end with callbacks muted, so playing it renders the end state.
   - Tests: `TimingsTests.LoweringLoopOnAPausedTimerRendersTheEndStateOnceItPlays`
 - **CORE-TIMER-031** (inherited) — When `Loop` is set on a timeline child, the parent timeline shall grow to fit a child that now runs past its end, and keep its duration when the child gets shorter.
-  - Tests: untested
+  - Tests: `TimingsTests.SettingLoopOnATimelineChildGrowsTheTimelineButNeverShrinksIt`
 - **CORE-TIMER-069** — When `Loop` is lowered, the timer shall recompute `IterationCount` and `Duration` in place, as it does when `Loop` is raised.
   - Tests: `TimingsTests.LoweringLoopBelowTheCurrentIterationCompletesOnTheNextTick`
 
@@ -153,7 +154,7 @@ depends:
 - **CORE-TIMER-039** — `Seek(time)` shall revive a canceled timer, clear `Completed`, render at `time + Delay` and leave the timer playing or paused as it was.
   - Tests: `ControlsTests.SeekATimer`, `ControlsTests.ResetAPlayingTimer`
 - **CORE-TIMER-040** — When `Seek` is called with `muteCallbacks`, it shall fire no callback, including those of iterations skipped over; with `internalRender`, it shall update timing state without writing to targets.
-  - Tests: untested
+  - Tests: `TimingsTests.SeekWithMutedCallbacksFiresNothingForTheIterationsItSkips`, `TimingsTests.SeekWithInternalRenderMovesThePlayheadWithoutWritingTargets`
 - **CORE-TIMER-041** — `Alternate()` shall flip the playback direction in place: a finite timer seeks to the mirrored position, an infinite one mirrors its iteration progress, and both rebase their start time; it shall not resume a paused timer.
   - Tests: `ControlsTests.AlternateTheDirectionOfAnAnimation`, `ControlsTests.AlternateTheDirectionOfAReversedAnimation`, `ControlsTests.AlternateTheDirectionOfALoopedAnimation`, `ControlsTests.AlternateTheDirectionOfALoopedAlternateAnimation`, `ControlsTests.AlternateTheDirectionOfALoopedAlternateReversedAnimationWithOddIterationCount`, `DirectionsTests.ManuallyReversedInfiniteAnimationShouldUpdate`
 - **CORE-TIMER-042** — When `Alternate()` is called on an alternating timer with an even iteration count, its `Reversed` flag shall stay as it was and only the mirrored seek shall turn it round.
@@ -163,7 +164,7 @@ depends:
 - **CORE-TIMER-044** — `Reverse` shall flip a forward timer with `Alternate()` and then `Resume`.
   - Tests: `CallbacksTests.OnCompleteAfterCallingAnimationReverse`
 - **CORE-TIMER-045** — Setting `Reversed` shall call `Reverse` for true and `Play` for false, so it also resumes the timer.
-  - Tests: untested
+  - Tests: `ControlsTests.SettingReversedReversesOrPlaysAndResumesTheTimer`
 - **CORE-TIMER-046** — `Reset(softReset)` shall revive a canceled timer, restore its initial direction, render it at 0 with callbacks muted (without writing targets when soft), and leave it and its children paused, not began and not completed.
   - Tests: `ControlsTests.ResetAPlayingTimer`, `ControlsTests.ResetACanceledTimer`
 - **CORE-TIMER-047** — `Restart` shall `Reset` and then `Resume`.
@@ -191,7 +192,7 @@ depends:
 - **CORE-TIMER-058** — `IsScheduled` shall be true while the timer is linked into its engine's child list and false otherwise.
   - Tests: `IntrospectionTests.TimerGettersMatchTheParameters`
 - **CORE-TIMER-072** — After `Complete`, the timer shall report `Completed`, `Paused` and `Canceled`, with `CurrentTime` at `Duration`.
-  - Tests: untested
+  - Tests: `ControlsTests.CompleteLeavesAPlayingTimerCompletedPausedAndCanceledAtItsEnd`
 - **CORE-TIMER-073** — `Seek`, `Play`, `Resume`, `Reverse`, `Restart`, `Pause`, `Cancel`, `Revert` and `Complete` shall end a running `Settle` (CORE-MOTIONVALUE).
   - Tests: `SettleTests.APlayheadControlEndsTheSettleWithTheCurrentProgress`
 - **CORE-TIMER-074** — When `Complete` is called, the timer shall fire `OnComplete` unless callbacks are muted, and shall not fire `OnPause`, whether it was playing or paused.
@@ -200,15 +201,15 @@ depends:
 ### Defaults
 
 - **CORE-TIMER-059** — When `Delay` is not set and the engine defaults are unchanged, the timer shall have a delay of 0.
-  - Tests: untested
+  - Tests: `IntrospectionTests.UnsetTimerParametersAreThePlainChoices`
 - **CORE-TIMER-060** — When `LoopDelay` is not set and the engine defaults are unchanged, the timer shall have a loop delay of 0.
-  - Tests: untested
+  - Tests: `IntrospectionTests.UnsetTimerParametersAreThePlainChoices`
 - **CORE-TIMER-061** — When `Loop` is not set and the engine defaults are unchanged, the timer shall play one iteration (`Loop` 0).
-  - Tests: untested
+  - Tests: `IntrospectionTests.UnsetTimerParametersAreThePlainChoices`
 - **CORE-TIMER-062** — When `Reversed` is not set and the engine defaults are unchanged, the timer shall play forwards.
-  - Tests: untested
+  - Tests: `IntrospectionTests.UnsetTimerParametersAreThePlainChoices`
 - **CORE-TIMER-063** — When `Alternate` is not set and the engine defaults are unchanged, the timer shall not alternate.
-  - Tests: untested
+  - Tests: `IntrospectionTests.UnsetTimerParametersAreThePlainChoices`
 - **CORE-TIMER-064** — When `Autoplay` is not set and the engine defaults are unchanged, a root timer shall start playing on creation.
   - Tests: `ParametersTests.PlaybackRateOnTimer`
 - **CORE-TIMER-065** — When `FrameRate` is not set and the engine defaults are unchanged, the timer shall render at up to 240 fps.
@@ -216,7 +217,7 @@ depends:
 - **CORE-TIMER-066** — When `PlaybackRate` is not set and the engine defaults are unchanged, the timer shall advance at a rate of 1.
   - Tests: `ParametersTests.PlaybackRateOnTimer`
 - **CORE-TIMER-067** — When `Priority` is not set, the timer shall have priority 1.
-  - Tests: untested
+  - Tests: `IntrospectionTests.UnsetTimerParametersAreThePlainChoices`
 
 ## Invariants
 
@@ -281,4 +282,4 @@ depends:
 
 ## Open items
 
-- Untested: the defaults fallback at construction, a null `Duration`, function-based default delay, generated ids, `Backwards`, child-never-autoplays, the `Reversed` setter, `Seek` with `muteCallbacks`/`internalRender`, and `Loop` set on a timeline child.
+None.

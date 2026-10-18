@@ -122,6 +122,40 @@ public sealed class AnimationThreadTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData(AnimationThread.UIThread)]
+    [InlineData(AnimationThread.Compositor)]
+    public void TheHandleDelegatesPlaybackToTheLiveAnimation(AnimationThread thread)
+    {
+        var bar = ShowBar();
+        var animation = bar.Animate(Presto.Build().X(20).Duration(1000).Ease("linear"), thread);
+        double Time() => animation.Compositor?.CurrentTime ?? animation.UIThread!.CurrentTime;
+        Frames.Advance(100);
+
+        Assert.Same(animation, animation.Pause());
+        var paused = Time();
+        Frames.Advance(100);
+        Assert.Equal(paused, Time());
+
+        Assert.Same(animation, animation.Resume());
+        Frames.Advance(100);
+        Assert.True(Time() > paused);
+
+        animation.Pause();
+        Assert.Same(animation, animation.Play());
+        var playing = Time();
+        Frames.Advance(100);
+        Assert.True(Time() > playing);
+
+        Assert.Same(animation, animation.Cancel());
+        var canceled = Time();
+        Frames.Advance(100);
+        Assert.Equal(canceled, Time());
+
+        Assert.Same(animation, animation.Revert());
+        Assert.Equal(0, thread == AnimationThread.Compositor ? Time() : X(bar));
+    }
+
+    [AvaloniaTheory]
     [InlineData("fits", null)]
     [InlineData("property", "Width")]
     [InlineData("setting", "OnUpdate")]

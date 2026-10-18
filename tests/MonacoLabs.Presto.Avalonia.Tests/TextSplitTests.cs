@@ -146,6 +146,34 @@ public sealed class TextSplitTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void WithoutAClassOrWrapThePiecesGetNoStyleClassAndNoClippingContainer()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(), new() { Lines = new(), Words = new(), Chars = new() });
+
+        foreach (var piece in split.Lines.Concat(split.Words).Concat(split.Chars))
+        {
+            Assert.Empty(piece.Classes);
+            Assert.False(piece.Parent is Border { ClipToBounds: true });
+        }
+    }
+
+    [AvaloniaFact]
+    public void ASplitInsideAScopeIsRevertedWithIt()
+    {
+        var block = ShowText();
+        var scope = Presto.CreateScope();
+        TextSplitter? split = null;
+
+        scope.Add(_ => { split = PrestoAvalonia.SplitText(block); });
+        Assert.Same(split, TextSplitter.Of(block));
+        scope.Revert();
+
+        Assert.Null(TextSplitter.Of(block));
+        Assert.Null(block.Inlines);
+        Assert.Equal(Sentence, block.Text);
+    }
+
+    [AvaloniaFact]
     public void WrapsEachPieceInAClippingContainer()
     {
         var split = PrestoAvalonia.SplitText(ShowText(), new()
@@ -231,6 +259,15 @@ public sealed class TextSplitTests : BridgeTestBase
 
         Assert.Equal(200, DelayOf(delay, thirdLine[0]));
         Assert.Equal(220, DelayOf(delay, thirdLine[1]));
+    }
+
+    [AvaloniaFact]
+    public void StaggerByLineWithoutAPieceStepGivesEveryPieceOfALineTheSameDelay()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(160));
+        var delay = TextSplitter.StaggerByLine(100);
+
+        Assert.All(split.Words, word => Assert.Equal(TextSplitter.GetLineIndex(word) * 100, DelayOf(delay, word)));
     }
 
     [AvaloniaFact]

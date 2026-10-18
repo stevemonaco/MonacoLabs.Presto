@@ -261,6 +261,21 @@ public sealed class LifetimeHiddenTests : CompositorTestBase
         return new WeakReference(canvas);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NoLifetimeOrOneWithNoWindowsIsNotMinimized(bool noLifetime)
+    {
+        var (window, _) = Looping();
+        window.WindowState = WindowState.Minimized;
+        Assert.True(Presto.Engine.Hidden);
+
+        HiddenSignal.Windows = noLifetime ? () => null : () => [];
+        HiddenSignal.Update();
+
+        Assert.False(Presto.Engine.Hidden);
+    }
+
     private (Window Window, Animation Animation) Looping()
     {
         var box = Box();

@@ -52,7 +52,7 @@ depends:
 ### Resolution
 
 - **BRIDGE-TARGETS-001** — When the target is not an `AvaloniaObject`, the adapter shall return `null` from `Resolve` and `Canonicalize`, leaving it to the next adapter.
-  - Tests: untested
+  - Tests: `TargetAdapterTests.ATargetThatIsNotAnAvaloniaObjectIsLeftToTheNextAdapter`
 - **BRIDGE-TARGETS-002** — When the target is a `Visual`, the adapter shall resolve the transform shorthands (BRIDGE-TRANSFORMS), then the effect, clip and mask shorthands (BRIDGE-EFFECTS), then the warp shorthands on a `TextBlock` (BRIDGE-WARP), then `"Draw"` on a `Shape` and `"ScrollX"`/`"ScrollY"` on a `ScrollViewer`, before looking in the property registry, so a shorthand wins over a registered property of the same name.
   - Tests: `PropertyNamingTests.TransformShorthandsKeepTheirOwnName`, `TransformsTests.XAndYComposeIntoASingleTranslateTransform`
 - **BRIDGE-TARGETS-003** — When a shorthand name is used on a target that does not take it (a non-`Visual`, `"Warp"` on a non-`TextBlock`, `"Draw"` on a non-`Shape`, `"ScrollX"` on a non-`ScrollViewer`), the adapter shall look the name up as a registered property like any other.
@@ -121,7 +121,7 @@ depends:
 - **BRIDGE-TARGETS-027** — Constructing an `AvaloniaAnimationParams` or `AvaloniaAnimatableParams` shall call `PrestoAvalonia.EnsureInitialized`.
   - Tests: untested
 - **BRIDGE-TARGETS-028** (inherited) — The `AvaloniaProperty` indexer getter shall read the encoded key and throw `KeyNotFoundException` when it is absent.
-  - Tests: untested
+  - Tests: `TargetAdapterTests.TheTypedIndexersReadTheEncodedKeyAndThrowWhenItIsAbsent`
 - **BRIDGE-TARGETS-029** — `AvaloniaAnimationParams.WhenReduced` shall be the core `WhenReduced` typed for the indexer, and `WhenDetached` the core host-lifetime slot (BRIDGE-HELPERS).
   - Tests: `AnimationBuilderBridgeTests.ATypedWhenReducedReplacesTheProperties`, `WhenDetachedTests.TheParamsOverrideWinsOverTheDefault`
 - **BRIDGE-TARGETS-030** — A property declared through the `AvaloniaAnimatableParams` indexer or by name shall be read and set by either spelling.
@@ -188,5 +188,5 @@ depends:
 
 ## Open items
 
-- BRIDGE-TARGETS-001, -027 and -028 are untested; `int`, `float` and `string` writes (BRIDGE-TARGETS-017) have no dedicated bridge test.
+- BRIDGE-TARGETS-027 is untested: the bridge is initialized once per process, and resetting it to observe the constructor's call would re-run process-wide installs (adapter, hidden signal, inertia wake); `int`, `float` and `string` writes (BRIDGE-TARGETS-017) have no dedicated bridge test.
 - BRIDGE-TARGETS-014: nothing pins that a value written underneath a completed, unreverted animation stays masked.

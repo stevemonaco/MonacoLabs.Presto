@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -520,6 +521,39 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ATemplateBuiltForNoItemIsNeitherHeldNorRevealed()
+    {
+        var items = new ObservableCollection<string>(Enumerable.Range(0, 50).Select(i => $"row{i}"));
+        ListBox? list = null;
+        var blankAttaches = 0;
+        var violations = 0;
+        list = new ListBox
+        {
+            Height = 100,
+            ItemsSource = items,
+            ItemTemplate = new FuncDataTemplate<string>((_, _) =>
+            {
+                var row = Arriving(reveal: FadeIn);
+                row.Background = Brushes.Red;
+                row.AttachedToVisualTree += (_, _) =>
+                {
+                    if (row.DataContext is not null) return;
+                    blankAttaches++;
+                    if (ItemChanges.For(list!).Held.Contains(row) || Presto.GetAnimations(row).Count > 0) violations++;
+                };
+                return row;
+            }),
+        };
+        Show(list);
+
+        ScrollTo(list, [], 600);
+        ScrollTo(list, [], 0);
+
+        Assert.True(blankAttaches > 0, "no template was built for no item");
+        Assert.Equal(0, violations);
+    }
+
+    [AvaloniaFact]
     public void ARowRealizedOutOfViewRevealsOnceWhenScrolledIntoView()
     {
         var rows = new Dictionary<string, Border>();
@@ -761,6 +795,127 @@ public sealed class PresenceLifecycleTests : CompositorTestBase
 
         Assert.DoesNotContain(OverlayLayer.GetOverlayLayer(panel)!.Children, child => child is Canvas);
         Assert.Equal(0, row.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void ABuilderSetOnAnAttachedElementPlaysNothingUntilItsNextArrival()
+    {
+        var row = new Border { Width = 40, Height = 20 };
+        var panel = Show(row);
+
+        Presence.SetEnter(row, FadeIn);
+
+        Assert.Equal(1, row.Opacity);
+        Assert.Empty(Presto.GetAnimations(row));
+
+        panel.Children.Remove(row);
+        panel.Children.Add(row);
+
+        Assert.Equal(0, row.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void NothingIsTrackedInDesignMode()
+    {
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
+        var panel = Show();
+        var row = new Border { Width = 40, Height = 20 };
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Presence.SetEnter(row, FadeIn);
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        panel.Children.Add(row);
+
+        Assert.Equal(1, row.Opacity);
+        Assert.Empty(Presto.GetAnimations(row));
+    }
+
+    [AvaloniaFact]
+    public void ARowRealizedAfterAResetIsInitial()
+    {
+        var moments = new Dictionary<string, PresenceMoment>();
+        var rows = new Dictionary<string, Border>();
+        var items = new ResettableItems { "a", "b" };
+        var list = new ItemsControl
+        {
+            ItemsSource = items,
+            ItemTemplate = new FuncDataTemplate<string>((item, _) =>
+            {
+                var row = rows[item] = Arriving(enter: FadeIn);
+                row.AttachedToVisualTree += (_, _) => moments[item] = Presence.ClassifyArrival(row);
+                return row;
+            }),
+        };
+        Show(list);
+        Tick();
+
+        items.Replace("c", "d");
+        Tick();
+
+        Assert.Equal(PresenceMoment.Initial, moments["c"]);
+        Assert.Equal(PresenceMoment.Initial, moments["d"]);
+        Assert.Equal(1, rows["c"].Opacity);
+    }
+
+    [AvaloniaFact]
+    public void ArrivalsInALaterLayoutPassStartANewBatch()
+    {
+        var staggered = Presto.Build().Opacity(from: 0, to: 1).Duration(100).Delay(Presto.Stagger(100)).Ease("linear");
+        var panel = Show();
+        var (first, second) = (Arriving(enter: staggered), Arriving(enter: staggered));
+
+        panel.Children.Add(first);
+        Tick();
+        panel.Children.Add(second);
+        Tick();
+        Frames.Advance(50, 10);
+
+        Assert.InRange(second.Opacity, .2, .8);
+    }
+
+    [AvaloniaFact]
+    public void EveryPresenceAnimationCarriesThePresenceOrigin()
+    {
+        List<Timer> created = [];
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        try
+        {
+            var panel = Show();
+            var row = Arriving(enter: FadeIn, exit: FadeOut);
+            var gone = Arriving(exit: FadeOut);
+            panel.Children.Add(row);
+            panel.Children.Add(gone);
+            Tick();
+            Frames.Advance(300, 16);
+
+            row.IsVisible = false;
+            panel.Children.Remove(gone);
+            Tick();
+
+            Assert.Equal(3, created.Count);
+            Assert.All(created, timer => Assert.Equal("Presence", timer.Origin));
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
+    }
+
+    private sealed class ResettableItems : ObservableCollection<string>
+    {
+        public void Replace(params string[] items)
+        {
+            Items.Clear();
+            foreach (var item in items) Items.Add(item);
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        }
     }
 
     [AvaloniaFact]

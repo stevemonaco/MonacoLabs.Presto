@@ -70,7 +70,7 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **CORE-TARGETS-008** — The core shall key a tween by the first non-null `Canonicalize` result among the adapters, or by the name as given when none returns one, so every spelling of one property composes against the others.
   - Tests: `PropertyNamingTests.TheQualifiedSpellingSharesTheSameKey`, `PropertyNamingTests.ATypedPropertyOverridesATweenDeclaredByName`, `PropertyNamingTests.ANamedPropertyOverridesATweenDeclaredByHandle`
 - **CORE-TARGETS-009** — The animation shall resolve the accessor with the canonical name, once per target and property when it builds its tweens.
-  - Tests: untested
+  - Tests: `TargetsTests.TheAccessorIsResolvedByCanonicalNameOncePerTargetAndProperty`
 - **CORE-TARGETS-010** — `Presto.Remove` and `Presto.GetAnimations` shall match a named property by its canonical name.
   - Tests: `PropertyNamingTests.RemoveByNameCancelsATweenDeclaredByHandle`, `PropertyNamingTests.RemoveByHandleCancelsATweenDeclaredByName`
 - **CORE-TARGETS-011** (inherited) — When `Presto.Remove` is called without a renderable, it shall call every adapter's `Removed` with the parsed targets and the property (null for all), after the tweens are removed.
@@ -169,7 +169,7 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **CORE-TARGETS-043** — When a discrete value is relative (`"+=1"`), `DiscreteCodec` shall throw `ArgumentException`.
   - Tests: `DiscreteValuesTests.RelativeValuesThrow`
 - **CORE-TARGETS-044** (inherited) — When a discrete value is neither of the type nor a convertible number, `DiscreteCodec` shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `DiscreteValuesTests.AValueNeitherOfTheTypeNorANumberThrows`
 - **CORE-TARGETS-045** — When a discrete property's composition is `Additive`, the animation shall throw `ArgumentException`.
   - Tests: `DiscreteValuesTests.AdditiveThrows`
 - **CORE-TARGETS-046** — `Presto.Set` shall write a discrete value at once, and `Revert` shall restore the original value.
@@ -270,4 +270,3 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 
 - `IReconcilingValueCodec` has no core test; it is pinned only through the bridge's codecs (`CodecTests`).
 - CORE-TARGETS-061 is pinned at run time only; that trimmed and NativeAOT apps keep a registered type's members is covered by the AOT probe's `registered-target` case (`tests/MonacoLabs.Presto.AotProbe`).
-- CORE-TARGETS-009 (one resolution per target and property, by canonical name) and CORE-TARGETS-044 (non-convertible discrete value throws) have no test.

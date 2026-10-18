@@ -49,9 +49,9 @@ depends:
 - **BRIDGE-POPOVER-004** — When a popup opens and neither builder is found on its owner or presenter, `Popover` shall not handle it: it opens and closes as Avalonia does and its presenter's transitions are left alone.
   - Tests: `PopoverFlyoutTests.OnlyAnOwnerWithPopoverIsHandledAndHasItsPresentersOpacityTransitionLifted`, `PopoverPopupTests.WithoutPopoverAPopupClosesAtOnce`
 - **BRIDGE-POPOVER-005** (inherited) — A `Popup` whose child is not in the visual tree when `IsOpen` turns true shall get no run.
-  - Tests: untested
+  - Tests: `PopoverPopupTests.APopupWhoseChildIsNotInTheTreeGetsNoRun`
 - **BRIDGE-POPOVER-006** (inherited) — While `Design.IsDesignMode` is true, no run shall start.
-  - Tests: untested
+  - Tests: `PopoverPopupTests.NoRunStartsInDesignMode`
 
 ### Open
 
@@ -60,7 +60,7 @@ depends:
 - **BRIDGE-POPOVER-008** — While a handled popup is open, its presenter's `Opacity` transitions shall be lifted (`Transitions` set at `Animation` priority to the list without them), and the lift shall be disposed when the popup closes.
   - Tests: `PopoverFlyoutTests.OnlyAnOwnerWithPopoverIsHandledAndHasItsPresentersOpacityTransitionLifted`, `PopoverPopupTests.AToolTipOpensFromItsStartValuesAndClosesAtOnceWhileCloseFadesItsGhost`
 - **BRIDGE-POPOVER-009** (inherited) — Popover animations shall use `WhenDetached.Continue` and carry the diagnostics origin `"Popover"`.
-  - Tests: untested
+  - Tests: `PopoverFlyoutTests.PopoverAnimationsContinueWhenDetachedAndCarryThePopoverOrigin`
 
 ### Flyouts and context menus
 
@@ -69,7 +69,7 @@ depends:
 - **BRIDGE-POPOVER-011** — When a close is asked for again while `Close` plays, `Popover` shall cancel it again and let `Close` keep playing.
   - Tests: `PopoverFlyoutTests.ClosePlaysOnTheLivePresenterAndThenCloses`
 - **BRIDGE-POPOVER-012** (inherited) — A `Closing` another handler has already canceled shall be left alone.
-  - Tests: untested
+  - Tests: `PopoverFlyoutTests.AClosingAnotherHandlerCanceledIsLeftAlone`
 - **BRIDGE-POPOVER-013** — When the placement target is no longer under a top level, the popup shall close at once whatever `Closing` says, and the presenter's values shall revert.
   - Tests: `PopoverFlyoutTests.AnAnchorDetachingClosesAtOnceAndRevertsTheClose`, `PopupSpikeTests.AnOwnerDetachingClosesWhateverClosingSays`
 - **BRIDGE-POPOVER-014** — When a context menu is requested again (`Opening`) while `Close` plays, `Popover` shall play `Close` back from where it stands (`Reverse`) and write `Popup.IsOpen` true again under the canceled close, so a later close plays again.
@@ -120,7 +120,7 @@ depends:
 ### Defaults
 
 - **BRIDGE-POPOVER-030** (inherited) — When `Open` is not set on a handled popup's owner or presenter, the popup shall open with no Popover motion.
-  - Tests: untested
+  - Tests: `PopoverPopupTests.WithoutOpenAHandledPopupOpensWithNoMotion`
 - **BRIDGE-POPOVER-031** (inherited) — When `Close` is not set on a handled popup's owner or presenter, the popup shall close at once, as Avalonia closes it.
   - Tests: `PopoverFlyoutTests.OnlyAnOwnerWithPopoverIsHandledAndHasItsPresentersOpacityTransitionLifted`
 
@@ -175,4 +175,4 @@ depends:
 
 ## Open items
 
-- BRIDGE-POPOVER-005, -006, -009 and -012 have no test.
+None.

@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -5,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using MonacoLabs.Presto.Controls;
 
 namespace MonacoLabs.Presto.Tests;
@@ -341,6 +344,149 @@ public sealed class FilteredImageTests : CompositorTestBase
         Tick();
 
         Assert.Equal(rasterizations, image.Rasterizations);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(0, 50, false)]
+    [InlineData(50, 0, false)]
+    [InlineData(0, 50, true)]
+    [InlineData(50, 0, true)]
+    public void AZeroWidthOrHeightDrawsNothing(double width, double height, bool filtered)
+    {
+        var image = new FilteredImage { Source = Solid(Colors.Red), Stretch = Stretch.None, Width = width, Height = height, Margin = new Thickness(20) };
+        if (filtered) image.Invert = 1;
+        var placed = Place(image);
+
+        Assert.Equal(0, CountPixels(placed, new Rect(0, 0, 100, 100), Colors.Black));
+    }
+
+    [AvaloniaFact]
+    public void DetachingReleasesTheRastersSoAReattachedDrawingIsRasterizedAgain()
+    {
+        var drawing = new DrawingImage(new GeometryDrawing { Brush = Brushes.Red, Geometry = new RectangleGeometry(new Rect(0, 0, 20, 20)) });
+        var image = Place(new FilteredImage { Source = drawing, Stretch = Stretch.Fill, Width = 40, Height = 40, Invert = 1 });
+        var window = (Window)image.Parent!;
+        image.InvalidateVisual();
+        Tick();
+        Assert.Equal(1, image.Rasterizations);
+
+        window.Content = null;
+        Tick();
+        window.Content = image;
+        Tick();
+
+        Assert.Equal(2, image.Rasterizations);
+        AssertNear(Colors.Cyan, Row(image, 20)[20]);
+    }
+
+    [AvaloniaFact]
+    public void WithoutASkiaLeaseAFilteredDrawDrawsTheBitmapUnfilteredAndDoesNotThrow()
+    {
+        var bitmap = Solid(Colors.Red);
+        var effect = new ImageEffect(ColorMatrix.Invert(1), 4, 32, 8, 0.5, 24, 0.1, 0);
+        var (impl, recorder) = LeaselessContext.Create();
+        using var operation = new ImageEffectDrawOperation(bitmap, new Rect(0, 0, 10, 10), new Rect(5, 5, 20, 20), effect);
+
+        operation.Render(CreateImmediateContext(impl, false));
+
+        Assert.Equal([(new Rect(0, 0, 10, 10), new Rect(5, 5, 20, 20))], recorder.Bitmaps);
+        Assert.Equal(0, recorder.Layers);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("RippleScale")]
+    [InlineData("DissolveScale")]
+    [InlineData("DissolveSoftness")]
+    public void NoiseTuningBelowAThousandthDrawsAsAThousandth(string property)
+    {
+        var floor = Pixels(Noisy(property, 1e-3));
+
+        Assert.Equal(floor, Pixels(Noisy(property, 0)));
+        Assert.Equal(floor, Pixels(Noisy(property, -5)));
+        Assert.NotEqual(floor, Pixels(Noisy(property, 8)));
+    }
+
+    [AvaloniaTheory]
+    [InlineData("RippleScale", 32, 16)]
+    [InlineData("DissolveScale", 24, 12)]
+    [InlineData("DissolveSoftness", 0.1, 0.4)]
+    [InlineData("Seed", 0, 2)]
+    public void UnsetNoiseTuningDrawsAsItsDocumentedDefault(string property, double value, double other)
+    {
+        var unset = Pixels(Noisy(property, null));
+
+        Assert.Equal(unset, Pixels(Noisy(property, value)));
+        Assert.NotEqual(unset, Pixels(Noisy(property, other)));
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetTintColorIsWhiteAndAnUnsetDuotoneRunsFromBlackToWhite()
+    {
+        var image = new FilteredImage();
+        Assert.Equal((Colors.White, Colors.Black, Colors.White), (image.TintColor, image.DuotoneShadow, image.DuotoneHighlight));
+
+        AssertNear(Color.FromRgb(54, 54, 54), Filtered(Colors.Red, image => image.Tint = 1));
+        AssertNear(Color.FromRgb(54, 54, 54), Filtered(Colors.Red, image => image.Duotone = 1));
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetStretchIsUniformInBothDirectionsAsImagesIs()
+    {
+        var image = new FilteredImage();
+
+        Assert.Equal((Stretch.Uniform, StretchDirection.Both), (image.Stretch, image.StretchDirection));
+        Assert.Equal((new Image().Stretch, new Image().StretchDirection), (image.Stretch, image.StretchDirection));
+    }
+
+    private static FilteredImage Noisy(string property, double? value)
+    {
+        var image = new FilteredImage { Source = Gradient(), Stretch = Stretch.Fill, Width = 60, Height = 60 };
+        if (property == "RippleScale") image.Ripple = 8;
+        else image.Dissolve = 0.5;
+        if (value is { } set)
+        {
+            if (property == "Seed") image.Seed = (int)set;
+            else image.SetValue(property switch
+            {
+                "RippleScale" => PrestoImageBase.RippleScaleProperty,
+                "DissolveScale" => PrestoImageBase.DissolveScaleProperty,
+                _ => PrestoImageBase.DissolveSoftnessProperty,
+            }, set);
+        }
+        return Place(image);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Constructor)]
+    private static extern ImmediateDrawingContext CreateImmediateContext(IDrawingContextImpl impl, bool ownsImpl);
+
+    // IDrawingContextImpl is not implementable in C#; a proxy stands in for a backend that offers no features.
+    public class LeaselessContext : DispatchProxy
+    {
+        public List<(Rect Source, Rect Destination)> Bitmaps { get; } = [];
+
+        public int Layers { get; private set; }
+
+        public static (IDrawingContextImpl Impl, LeaselessContext Recorder) Create()
+        {
+            var impl = Create<IDrawingContextImpl, LeaselessContext>();
+            return (impl, (LeaselessContext)(object)impl);
+        }
+
+        protected override object? Invoke(MethodInfo? method, object?[]? args)
+        {
+            switch (method!.Name)
+            {
+                case "DrawBitmap":
+                    Bitmaps.Add(((Rect)args![2]!, (Rect)args[3]!));
+                    break;
+                case "PushLayer":
+                    Layers++;
+                    break;
+                case "get_Transform":
+                    return Matrix.Identity;
+            }
+            return null;
+        }
     }
 
     private static FilteredImage Rippled(int seed) =>

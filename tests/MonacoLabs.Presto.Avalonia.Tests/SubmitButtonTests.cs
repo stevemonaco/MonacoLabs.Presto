@@ -1,5 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -134,5 +137,92 @@ public sealed class SubmitButtonTests : BridgeTestBase
         Assert.True(second.IsCompleted);
         Assert.True(second.Result);
         Assert.Equal(SubmitState.Idle, SubmitButton.GetState(button));
+    }
+
+    [AvaloniaFact]
+    public void TheLayerIsAChildOfTheButtonArrangedAtItsBoundsAndReHostedAfterARetemplate()
+    {
+        var button = Submit();
+
+        SubmitButton.SetState(button, SubmitState.Busy);
+        Advance(Recipes.Tokens.Medium + 100);
+        var layer = button.GetVisualChildren().OfType<Panel>().Single();
+        Assert.Same(button, layer.GetLogicalParent());
+        Assert.Equal(new Size(40, 40), layer.Bounds.Size);
+
+        SubmitButton.SetState(button, SubmitState.Idle);
+        Advance(1500);
+        Assert.Equal(new Size(160, 40), layer.Bounds.Size);
+
+        var template = button.Template;
+        button.Template = null;
+        button.UpdateLayout();
+        button.Template = template;
+        button.UpdateLayout();
+        Assert.DoesNotContain(layer, button.GetVisualChildren());
+
+        SubmitButton.SetState(button, SubmitState.Busy);
+        Advance(16);
+        Assert.Same(layer, button.GetVisualChildren().OfType<Panel>().Single());
+        Assert.Same(button, layer.GetLogicalParent());
+        Assert.Equal(button.Bounds.Size, layer.Bounds.Size);
+    }
+
+    [AvaloniaFact]
+    public void MovingBetweenOutcomesAndBackToBusyStaysCollapsedAndSwapsTheMark()
+    {
+        var button = Submit();
+        SubmitButton.SetState(button, SubmitState.Busy);
+        Advance(Recipes.Tokens.Medium + 100);
+        var (spinner, mark) = (Marks(button)[0], Marks(button)[1]);
+
+        SubmitButton.SetState(button, SubmitState.Succeeded);
+        Advance(600);
+        SubmitButton.SetState(button, SubmitState.Failed);
+        Advance(600);
+        Assert.Equal(40, button.Width, 1);
+        Assert.Equal(Draws.Cross.Bounds, mark.Data!.Bounds);
+        Assert.Equal([0, 1], (double[])PrestoAvalonia.Get(mark, "Draw")!);
+
+        SubmitButton.SetState(button, SubmitState.Busy);
+        Advance(Recipes.Tokens.Short + 50);
+        Assert.Equal(40, button.Width, 1);
+        Assert.Equal(1, spinner.Opacity, 3);
+        Assert.Equal([0, 0], (double[])PrestoAvalonia.Get(mark, "Draw")!);
+
+        SubmitButton.SetState(button, SubmitState.Idle);
+        Advance(250);
+        Assert.True(button.Width > 80, $"width {button.Width}");
+        Advance(1500);
+        Assert.Equal(160, button.Width);
+        Assert.Equal(Brushes.Blue, button.Background);
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetStateIsIdleAndLeavesTheButtonAlone()
+    {
+        var button = Submit();
+        Advance(100);
+
+        Assert.Equal(SubmitState.Idle, SubmitButton.GetState(button));
+        Assert.Empty(button.GetVisualChildren().OfType<Panel>());
+        Assert.Equal(160, button.Bounds.Width);
+    }
+
+    [AvaloniaFact]
+    public void ABindingWithNoModeWritesTheStateBack()
+    {
+        var button = Submit();
+        var form = new Form();
+        button.Bind(SubmitButton.StateProperty, new Binding(nameof(Form.State)) { Source = form });
+
+        button.SetCurrentValue(SubmitButton.StateProperty, SubmitState.Busy);
+
+        Assert.Equal(SubmitState.Busy, form.State);
+    }
+
+    private sealed class Form
+    {
+        public SubmitState State { get; set; }
     }
 }

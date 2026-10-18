@@ -68,7 +68,7 @@ The transform shorthands `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `SkewX
 - **BRIDGE-TRANSFORMS-014** — Relative values (`"+=…"`, `"*=…"`) shall apply to the shorthand's current value, starting from the identity.
   - Tests: `TransformsTests.ShorthandsReadTheirIdentityValueBeforeBeingAnimated`
 - **BRIDGE-TRANSFORMS-015** — The bridge shall not set `RenderTransformOrigin`: rotation, scale and skew pivot about the visual's own origin, which is its center unless the app sets another.
-  - Tests: untested
+  - Tests: `TransformsTests.TransformsPivotAboutTheVisualsOwnOriginWhichTheBridgeLeavesAlone`
 
 ### Revert
 
@@ -132,4 +132,4 @@ The transform shorthands `X`, `Y`, `Rotate`, `Scale`, `ScaleX`, `ScaleY`, `SkewX
 
 ## Open items
 
-- BRIDGE-TRANSFORMS-015 (origin) is untested.
+None.

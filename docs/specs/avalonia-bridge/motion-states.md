@@ -89,7 +89,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-009** — For each property, the last active state in that order that names it shall be its winner; properties a state does not name are left to other states.
   - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `MotionStateTests.ACodeStateWinsOverADeclaredStateForASharedProperty`
 - **BRIDGE-MOTION-010** (inherited) — Property names shall be canonicalized per element before layering, so two spellings of one property share a winner.
-  - Tests: untested
+  - Tests: `MotionStateTests.TwoSpellingsOfOnePropertyShareAWinner`
 - **BRIDGE-MOTION-011** — When a property's winner changes to a state that has just become active, the tracker shall play that state's builder for the properties it takes, with its duration, delay, ease, per-property tween params, keyframes and loop.
   - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `MotionStateTests.AKeyframedLoopingStateLoopsWhileActiveAndReturnsToRest`
 - **BRIDGE-MOTION-012** — When a state stops holding, the properties it won shall return to the next winner's value, or to rest when no active state names them, timed by the leaving state's `Leave` if given, otherwise by its own `Motion` timing.
@@ -132,7 +132,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 ### Hover
 
 - **BRIDGE-MOTION-026** (inherited) — The tracker shall listen for hover only while some state's `When` contains `:pointerover`, and shall start hovered when the pointer is already over the element.
-  - Tests: untested
+  - Tests: `MotionStateTests.AHoverStateSetWhileThePointerIsAlreadyOverStartsHovered`
 - **BRIDGE-MOTION-027** (inherited) — When the pointer exits an element while it is still inside the element's layout slot (its `Bounds` in the parent, ignoring render transforms), hover shall hold until the pointer leaves that slot or the top level.
   - Tests: `MotionStateTests.AHoverLiftingTheElementFromUnderThePointerHoldsUntilThePointerLeavesItsSlot`
 
@@ -155,7 +155,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 ### Attach, detach and lifetime
 
 - **BRIDGE-MOTION-033** (inherited) — While the element is detached, condition changes shall play nothing.
-  - Tests: untested
+  - Tests: `MotionStateTests.AConditionChangeWhileDetachedPlaysNothing`
 - **BRIDGE-MOTION-034** — When the element attaches, the states that hold shall be applied instantly with `Presto.Set` at their final values, with no animation left running.
   - Tests: `MotionStateTests.AReattachedElementSnapsToItsActiveStates`, `MotionStateTests.AMorphingStateActiveAtAttachSnapsToItsShape`, `MotionPropagationTests.AChildAddedUnderAnOpenParentArrivesSnapped`
 - **BRIDGE-MOTION-035** (inherited) — When a state that holds at attach loops, it shall also be played from the snapped value, so it keeps looping.
@@ -202,7 +202,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-051** — `DelayChildren` shall be added to every follower's delay, on top of the state's own delay (a function value evaluated for the follower) and the stagger offset, a zero-duration animation or return included (CORE-ANIMATION-066).
   - Tests: `MotionOrchestrationTests.DelayChildrenShiftsEveryChild`, `MotionOrchestrationTests.AZeroDurationReturnWaitsOutDelayChildren`, `MotionOrchestrationTests.AFunctionDelayAddsToTheStaggerAndDelayChildren`
 - **BRIDGE-MOTION-052** — With `Order = Together`, the source's own state animations shall start with no added delay, alongside its followers.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.TogetherStartsTheParentAtOnceAlongsideItsDelayedChildren`
 - **BRIDGE-MOTION-053** — With `Order = BeforeChildren`, the end of the source's own state animations (delay plus duration) shall be added to every follower's delay.
   - Tests: `MotionOrchestrationTests.BeforeChildrenStartsTheChildrenWhenTheParentsOwnAnimationEnds`, `ReferencePagesTests.TheStatesMenuStaggersItsItemsInAfterThePanelAndClosesToRest`
 - **BRIDGE-MOTION-054** — With `Order = AfterChildren`, the source's own state animations shall be delayed until the last follower's animation ends.
@@ -217,20 +217,20 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-057** — Under `ReduceAll`, every state animation, follower delays and staggers included, shall land at once.
   - Tests: `MotionOrchestrationTests.UnderReduceAllEveryChildLandsAtOnce`
 - **BRIDGE-MOTION-058** — State animations shall be created under the diagnostics origin `"Motion"`.
-  - Tests: untested
+  - Tests: `MotionStateTests.StateAnimationsCarryTheMotionOrigin`
 
 ### Defaults
 
 - **BRIDGE-MOTION-059** (inherited) — When a `MotionState`'s `When` is not set, it shall be empty, so validating the state throws `ArgumentException`.
   - Tests: `MotionConditionTests.SelectorPartsAreRejectedWithTheStateSetterEscapeHatch`
 - **BRIDGE-MOTION-060** (inherited) — When `StaggerChildren` is not set, followers shall not be staggered.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.ByDefaultTheParentPlaysTogetherAndChildrenGetNoDelayOrStagger`
 - **BRIDGE-MOTION-061** — When `StaggerFrom` is not set, the stagger shall run from the first follower, as the core `Stagger` does (CORE-STAGGER).
   - Tests: `MotionOrchestrationTests.StaggerChildrenBeginsEachChildItsAmountAfterThePrevious`
 - **BRIDGE-MOTION-062** (inherited) — When `DelayChildren` is not set, followers shall get no added delay.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.ByDefaultTheParentPlaysTogetherAndChildrenGetNoDelayOrStagger`
 - **BRIDGE-MOTION-063** (inherited) — When `Order` is not set, it shall be `Together`.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.ByDefaultTheParentPlaysTogetherAndChildrenGetNoDelayOrStagger`
 
 ## Invariants
 
@@ -308,4 +308,4 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 ## Open items
 
-- Untested: canonicalization of property spellings (010), hover listen gating (026), no play while detached (033), `Order = Together` timing (052), diagnostics origin (058).
+- BRIDGE-MOTION-026: only the start-hovered half is pinned; that hover is listened for only while some `When` contains `:pointerover` is not observable without reaching into the tracker.

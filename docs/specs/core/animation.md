@@ -73,11 +73,11 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **CORE-ANIMATION-004** — When the same property is assigned twice through the indexer, the parameters shall keep its first position with the last value.
   - Tests: `AnimationBuilderTests.DuplicatePropertyKeepsItsFirstPositionWithTheLastValue`
 - **CORE-ANIMATION-005** (inherited) — When the indexer getter reads a property that was never assigned, it shall throw `KeyNotFoundException`.
-  - Tests: untested
+  - Tests: `AnimationsTests.ReadingAPropertyThatWasNeverAssignedThrows`
 - **CORE-ANIMATION-006** — The animation shall key each tween by the canonical property name the first claiming adapter returns, so every spelling of one property composes against the others.
   - Tests: `PropertyNamingTests.ATypedPropertyOverridesATweenDeclaredByName`, `PropertyNamingTests.ANamedPropertyOverridesATweenDeclaredByHandle`
 - **CORE-ANIMATION-007** — The animation's `Id` shall be the `Id` parameter, or else a process-wide sequence number as a string.
-  - Tests: untested
+  - Tests: `AnimationsTests.TheIdIsTheParameterOrElseTheNextAnimationNumber`
 - **CORE-ANIMATION-008** — When no tween is built, the animation shall have a `Constants.MinValue` duration and zero iterations, and complete on its first frame.
   - Tests: `AnimationsTests.CompletesInstantlyIfNoAnimatablePropsProvided`
 
@@ -88,7 +88,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **CORE-ANIMATION-010** — When a property's value is a `TweenParams`, its non-null settings shall override the animation's for that property.
   - Tests: `ParametersTests.SpecificPropertyParameters`, `TweensTests.ProperlyAssignSpecificTweenProperties`
 - **CORE-ANIMATION-011** — When `Composition` is unset and the animation has 1000 targets or more, its tweens shall use `Composition.Overlap`.
-  - Tests: untested
+  - Tests: `AnimationsTests.AThousandTargetsOverlapUnlessACompositionIsSet`
 - **CORE-ANIMATION-012** — When a value, duration, delay or ease is a `FunctionValue`, the animation shall evaluate it per target with the target, its index and the target count, reading numeric strings as numbers.
   - Tests: `FunctionBasedValuesTests.BasicFunctionBasedValues`, `FunctionBasedValuesTests.FunctionBasedStringValuesAreConvertedToNumbers`
 - **CORE-ANIMATION-013** — When a function-based value returns a from/to pair, the tween shall use it as its from and to values.
@@ -98,7 +98,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **CORE-ANIMATION-015** — When a value is a `ChainedFunctionValue`, the animation shall pass it the previous keyframe's tween, or in a timeline the latest sibling tween of the same timeline on that property.
   - Tests: `FunctionBasedValuesTests.ChainedFunctionValuesInKeyframesReadThePreviousKeyframeEndValue`, `FunctionBasedValuesTests.ChainedFunctionValuesOnTimelineChildrenReadThePreviousChildEndValue`
 - **CORE-ANIMATION-016** — When a duration or delay resolves to something that is not a number, the animation shall read it as 0.
-  - Tests: untested
+  - Tests: `AnimationsTests.ANonNumericDurationOrDelayReadsAsZero`
 - **CORE-ANIMATION-017** — When the animation's `Ease` is a `Spring`, every tween's duration shall be the spring's settling duration whatever `Duration` says, and the spring shall report its completion to this animation.
   - Tests: `SpringTests.SpringEaseOverridesTheAnimationDurationParameter`, `SpringTests.SpringEaseParametersAffectTheAnimationDuration`
 - **CORE-ANIMATION-018** — When a tween's own ease is a `Spring`, that tween's duration shall be the spring's settling duration.
@@ -121,9 +121,9 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **CORE-ANIMATION-025** — When a from value has no unit, it shall take the unit of the previous sibling, or else of the target's original value; when the two ends' units still differ, the from value shall be converted to the to value's unit (CORE-VALUES).
   - Tests: `UnitsTests.ShouldMatchAnyUnitsFromOriginalValues`, `UnitsTests.ConvertsAngleUnitsAgainstTheOriginalValue`, `KeyframesTests.ArrayKeyframesInheritUnitsFromTheKeyframeBeforeThem`
 - **CORE-ANIMATION-026** — When the two ends are of different kinds, the animation shall promote the simpler end: a number to every channel of a complex value, a number to a unit value, and a non-color to a color with zeroed channels.
-  - Tests: untested
+  - Tests: `AnimationsTests.TheSimplerEndIsPromotedToTheOthersKind`
 - **CORE-ANIMATION-027** — When two complex ends have different numbers of channels, the shorter one shall be padded with zeros and take the longer one's strings.
-  - Tests: untested
+  - Tests: `AnimationsTests.TheShorterComplexEndIsPaddedWithZerosAndTakesTheLongersStrings`
 - **CORE-ANIMATION-028** — While the animation is a timeline child, a tween without a from value whose previous sibling belongs to the same timeline shall start from that sibling's end value.
   - Tests: `TimelinesTests.TimelineValues`, `TimelineCallbacksTests.TimelineMixSetAndAdd`
 - **CORE-ANIMATION-029** — When the property is discrete, its tween shall run one channel from 0 to 1 and write the from or to object whole, switching by the `TweenParams.Discrete` rule or else the property's own rule.
@@ -157,7 +157,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **CORE-ANIMATION-039** — The modifier shall apply to every interpolated number before it is written: plain numbers, unit values, each channel of a complex value and each channel of a color.
   - Tests: `ParametersTests.Modifier`
 - **CORE-ANIMATION-040** — The animation shall write a number value unrounded, and round unit and complex values to `Globals.Precision` (4) decimals on frames strictly between progress 0 and 1.
-  - Tests: untested
+  - Tests: `AnimationsTests.NumbersAreWrittenUnroundedAndUnitAndComplexValuesToFourDecimals`
 - **CORE-ANIMATION-041** — When a frame wrote at least one tween at a current time above 0, the animation shall invoke `OnRender` once after the tweens, unless callbacks are muted.
   - Tests: `CallbacksTests.OnRenderOnAnimation`
 - **CORE-ANIMATION-042** — When `Autoplay` is false and a tween has an explicit from value, construction shall write the from values and invoke `OnRender` once.
@@ -182,7 +182,7 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 - **CORE-ANIMATION-049** — `Refresh` shall leave tweens without function-based values, all timings and the playhead untouched.
   - Tests: `ControlsTests.RefreshAnAnimationWithRelativeValues`, `CallbacksTests.RefreshInsideAnOnLoopOnAnimation`
 - **CORE-ANIMATION-050** — When `Refresh` is called on an animation whose duration is `Constants.MinValue`, it shall restart the animation so the refreshed values are written once.
-  - Tests: untested
+  - Tests: `AnimationsTests.RefreshingAZeroDurationAnimationWritesTheRefreshedValues`
 
 ### Revert
 
@@ -289,4 +289,4 @@ An `Animation` is a timer (CORE-TIMER) that resolves its parameters into one `Tw
 
 ## Open items
 
-- `Id` defaults, kind homogenization, complex padding, the 1000-target composition switch, string rounding precision, a function value returning `TweenParams`, and the setter restart in `Refresh` have no test.
+- None.

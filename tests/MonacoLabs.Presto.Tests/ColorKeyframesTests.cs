@@ -235,6 +235,39 @@ public sealed class ColorKeyframesTests : EngineTestBase
         return ColorConversions.DeltaEok(p.L, p.A, p.B, q.L, q.A, q.B);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-2)]
+    public void FewerThanOneSegmentThrows(int segments) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => new TweenKeyframesBuilder("BackgroundColor").Color(Blue, Yellow, segments: segments));
+
+    [Fact]
+    public void AStaggerDurationThrows() =>
+        Assert.Throws<ArgumentException>(() => new TweenKeyframesBuilder("BackgroundColor").Color(Blue, Yellow, duration: Presto.Stagger(100)));
+
+    [Fact]
+    public void WithoutASpaceTheColorFollowsTheOklabPath() =>
+        AssertMidpoint(k => k.Color(Blue, Yellow, duration: 1000, ease: Eases.None), Blue, Yellow, ColorSpace.Oklab, HueInterpolation.Shorter, ColorSpace.Srgb, HueInterpolation.Shorter);
+
+    [Fact]
+    public void WithoutAHueTheColorTakesTheShorterArc() =>
+        AssertMidpoint(k => k.Color("#ff0000", "#00ff00", ColorSpace.Oklch, duration: 1000, ease: Eases.None), "#ff0000", "#00ff00",
+            ColorSpace.Oklch, HueInterpolation.Shorter, ColorSpace.Oklch, HueInterpolation.Longer);
+
+    private static void AssertMidpoint(Action<TweenKeyframesBuilder> color, string from, string to,
+        ColorSpace space, HueInterpolation hue, ColorSpace otherSpace, HueInterpolation otherHue)
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Build().Property("BackgroundColor", color).Animate(target);
+
+        animation.Seek(500);
+
+        var rendered = PrestoColor.Parse(target.BackgroundColor);
+        var (a, b) = (PrestoColor.Parse(from), PrestoColor.Parse(to));
+        Assert.True(DeltaEok(PrestoColor.Mix(a, b, .5, space, hue), rendered) < .02, target.BackgroundColor);
+        Assert.True(DeltaEok(PrestoColor.Mix(a, b, .5, otherSpace, otherHue), rendered) > .05, target.BackgroundColor);
+    }
+
     private sealed class PaintTarget
     {
         public Paint? Fill { get; set; }

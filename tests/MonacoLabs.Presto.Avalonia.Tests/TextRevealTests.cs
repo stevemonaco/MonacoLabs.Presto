@@ -325,6 +325,44 @@ public sealed class TextRevealTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void FunctionValuesSeeEachPiecesIndexAndThePieceCountNotThePanelsBatch()
+    {
+        var seen = new List<(object Target, int Index, int Total)>();
+        FunctionValue delay = (target, index, total) =>
+        {
+            seen.Add((target, index, total));
+            return 0;
+        };
+        var builder = Presto.Build().Opacity(from: 0).Duration(100).Delay(delay);
+        var sibling = new Border { Height = 10 };
+        var block = Block(TextPieces.Words);
+        Presence.SetInitial(sibling, builder);
+        Presence.SetInitial(block, builder);
+        new Window { Content = new StackPanel { Children = { sibling, block } }, Width = 260, Height = 400 }.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var words = Words(block);
+        var pieces = seen.Where(call => call.Target is TextBlock).ToArray();
+        Assert.Equal(words.Length, pieces.Length);
+        Assert.Equal(Enumerable.Range(0, words.Length), pieces.Select(call => call.Index));
+        Assert.All(pieces, call => Assert.Equal(words.Length, call.Total));
+    }
+
+    [AvaloniaFact]
+    public void TheDefaultsAnimateTheBlockUnsplitAndUnmasked()
+    {
+        var block = new TextBlock { Text = Sentence };
+        Assert.Equal(TextPieces.None, TextReveal.GetPieces(block));
+        Assert.False(TextReveal.GetMask(block));
+
+        Presence.SetInitial(block, Long);
+        Show(block);
+
+        Assert.Null(TextSplitter.Of(block));
+        Assert.NotEmpty(Presto.GetAnimations(block));
+    }
+
+    [AvaloniaFact]
     public void DetachingRevertsTheSplit()
     {
         var block = Block(TextPieces.Words);

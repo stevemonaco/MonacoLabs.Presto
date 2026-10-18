@@ -123,6 +123,56 @@ public sealed class FlipTests : CompositorTestBase
         Assert.True(Shows(flip.Back!));
     }
 
+    [AvaloniaFact]
+    public void ANewFaceReplacesTheOldOneInItsHolder()
+    {
+        var flip = Card();
+        var (oldFront, oldBack) = (flip.Front!, flip.Back!);
+        var (frontHolder, backHolder) = (oldFront.Parent, oldBack.Parent);
+
+        flip.Front = new Border();
+        flip.Back = new Border();
+
+        Assert.Same(frontHolder, flip.Front.Parent);
+        Assert.Same(backHolder, flip.Back.Parent);
+        Assert.Null(oldFront.Parent);
+        Assert.Null(oldBack.Parent);
+    }
+
+    [AvaloniaFact]
+    public void WithoutAMotionTheTurnTakesTheTokensReadAtTheToggle()
+    {
+        var flip = Card();
+        flip.Motion = null;
+        Recipes.Tokens = MotionTokens.Standard with { Long = 400, Ease = Eases.None };
+        try
+        {
+            flip.IsFlipped = true;
+        }
+        finally
+        {
+            Recipes.Tokens = MotionTokens.Standard;
+        }
+
+        Frames.Advance(200, 20);
+        Assert.InRange(Angle(flip), 80, 100);
+        Frames.Advance(200, 20);
+        Assert.Equal(180, Angle(flip));
+    }
+
+    [AvaloniaFact]
+    public void ByDefaultTheCardTurnsAboutItsVerticalAxis()
+    {
+        var flip = new Flip { Front = new Border(), Back = new Border() };
+
+        flip.IsFlipped = true;
+
+        var card = flip.Front.Parent!.Parent!;
+        Assert.Equal(Orientation.Horizontal, flip.Orientation);
+        Assert.Equal(180, Convert.ToDouble(Presto.Get(card, "RotateY", withUnit: false)));
+        Assert.Equal(0, Convert.ToDouble(Presto.Get(card, "RotateX", withUnit: false)));
+    }
+
     private static Flip Card(Orientation orientation = Orientation.Horizontal, bool show = true)
     {
         // The back's first half is red and its second blue, along the axis the card turns across.

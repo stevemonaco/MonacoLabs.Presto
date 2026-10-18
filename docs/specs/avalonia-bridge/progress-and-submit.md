@@ -49,11 +49,11 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - **BRIDGE-SUBMIT-005** — When `Value` changes, the ring shall redraw at once with no easing of its own.
   - Tests: `ProgressRingTests.AHoldFillsTheRingAndConfirmsAtOneThenRewindsOnRelease`
 - **BRIDGE-SUBMIT-006** (inherited) — When `Segments`, `Fill` or `Track` changes, the ring shall rebuild its arcs; when `Gap` or `Thickness` changes, it shall reshape them on the next arrange.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ChangingSegmentsOrBrushesRebuildsTheArcsAndGapOrThicknessReshapesThemOnTheNextArrange`
 - **BRIDGE-SUBMIT-007** (inherited) — When `Segments` is set to 0 or less, the setter shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ANonPositiveSegmentCountThrows`
 - **BRIDGE-SUBMIT-008** (inherited) — The ring shall measure to zero and take the size it is arranged at.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ItMeasuresToZeroAndTakesTheSizeItIsArrangedAt`
 - **BRIDGE-SUBMIT-009** (inherited) — The ring shall be hit anywhere in its bounds, its hole included.
   - Tests: `ProgressRingTests.AHoldFillsTheRingAndConfirmsAtOneThenRewindsOnRelease`
 
@@ -89,7 +89,7 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - **BRIDGE-SUBMIT-018** — When `State` first changes on a button, the button shall get a layer holding a spinner (a three-quarter arc) and a mark, both 20 × 20, stroked 2.5 DIPs with round caps and joins in the button's `Foreground`, centered and not hit-testable.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
 - **BRIDGE-SUBMIT-019** — The layer shall be appended as a visual and logical child of the button, re-appended at each collapse if a re-template dropped it, and arranged at the button's bounds whenever they change.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.TheLayerIsAChildOfTheButtonArrangedAtItsBoundsAndReHostedAfterARetemplate`
 - **BRIDGE-SUBMIT-020** — When the state becomes `Busy`, `Succeeded` or `Failed` while the button is not collapsed, the button shall record its width, corner radius and background, animate `Width` from its width to its height and `CornerRadius` to half its height over `Tokens.Medium` on `Tokens.Ease`, and fade its presenter's content to 0 over the shorter of that and `Tokens.Short`.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
 - **BRIDGE-SUBMIT-021** — When the state becomes `Busy`, the mark shall be erased, the spinner shall fade in over `Tokens.Short` and spin with `Recipes.Spinner()` unless it already spins.
@@ -107,7 +107,7 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - **BRIDGE-SUBMIT-027** (inherited) — When the state becomes `Idle` while not collapsed, the button shall not change size.
   - Tests: untested
 - **BRIDGE-SUBMIT-028** (inherited) — When the state moves between `Succeeded` and `Failed`, or from either back to `Busy`, the button shall stay collapsed and swap the mark or spinner without re-collapsing.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.MovingBetweenOutcomesAndBackToBusyStaysCollapsedAndSwapsTheMark`
 
 ### Submit button: Run
 
@@ -130,25 +130,25 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 ### Defaults
 
 - **BRIDGE-SUBMIT-034** (inherited) — When `Value` is not set, the ring shall draw no fill.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-035** (inherited) — When `Segments` is not set, the ring shall draw one whole arc.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-036** (inherited) — When `Gap` is not set, the gap between segments shall be 6°.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-037** (inherited) — When `Thickness` is not set, the arcs shall be stroked 4 DIPs wide.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-038** (inherited) — When `Fill` is not set, the fill arcs shall be opaque white.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-039** (inherited) — When `Track` is not set, the track arcs shall be white at 40 % opacity (`#66FFFFFF`).
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-040** (inherited) — When `HoldDuration` is not set, it shall be 0 and the ring shall take no holds.
-  - Tests: untested
+  - Tests: `ProgressRingTests.WithoutAHoldDurationItTakesNoHolds`
 - **BRIDGE-SUBMIT-048** — When `Command` and `CommandParameter` are not set, they shall be null and the ring shall take holds as it did without them.
-  - Tests: untested
+  - Tests: `ProgressRingTests.WithoutACommandTheRingIsEnabledAndAHoldConfirms`
 - **BRIDGE-SUBMIT-041** (inherited) — When `SubmitButton.State` is not set, the button shall be `Idle`.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.AnUnsetStateIsIdleAndLeavesTheButtonAlone`
 - **BRIDGE-SUBMIT-042** (inherited) — When a binding to `SubmitButton.State` names no mode, it shall bind two-way.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.ABindingWithNoModeWritesTheStateBack`
 
 ## Invariants
 
@@ -205,4 +205,4 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 
 ## Open items
 
-- Rebuild and reshape on `Segments`/`Fill`/`Track`/`Gap`/`Thickness` changes (006), the `Segments` validation throw (007), zero measure (008), layer re-hosting (019), idle while not collapsed (027) and state moves without re-collapse (028) have no tests.
+- Idle while not collapsed (027) has no test, and no public path reaches it: `State` starts `Idle`, every other state collapses, and setting `Idle` on an `Idle` button raises no change.

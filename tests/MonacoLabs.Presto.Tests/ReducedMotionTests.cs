@@ -196,6 +196,104 @@ public sealed class ReducedMotionTests : EngineTestBase
     }
 
     [Fact]
+    public void FlagsChangedAfterConstructionLeaveTheAnimationAsBuilt()
+    {
+        var plain = new StyleTarget();
+        var alternative = new StyleTarget();
+        var collapsed = new StyleTarget();
+        var plainAnimation = Presto.Animate(plain, new() { ["X"] = 100, Duration = 1000, Ease = "linear" });
+        var alternativeAnimation = Presto.Animate(alternative, new() { ["X"] = 100, Duration = 1000, Ease = "linear", WhenReduced = new() { ["Opacity"] = 0.5, Duration = 200 } });
+        Presto.Defaults.ReduceAll = true;
+        Presto.Defaults.ReducedMotion = true;
+        var collapsedAnimation = Presto.Animate(collapsed, new() { ["X"] = 100, Duration = 1000 });
+        Presto.Defaults.ReduceAll = false;
+        Presto.Defaults.ReducedMotion = false;
+
+        Frames.Advance(160, 16);
+
+        Assert.Equal(1000, plainAnimation.Duration);
+        Assert.InRange(plain.X, 1, 99);
+        Assert.Equal(1000, alternativeAnimation.Duration);
+        Assert.InRange(alternative.X, 1, 99);
+        Assert.Equal(0, alternative.Opacity);
+        Assert.Equal(Constants.MinValue, collapsedAnimation.Duration);
+        Assert.Equal(100, collapsed.X);
+    }
+
+    [Fact]
+    public void TheReducedPriorityOverridesOnlyWhenItIsNotTheDefault()
+    {
+        Presto.Defaults.ReducedMotion = true;
+
+        var kept = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Priority = 5, WhenReduced = new() { ["Opacity"] = 1 } });
+        var overridden = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Priority = 5, WhenReduced = new() { ["Opacity"] = 1, Priority = 3 } });
+
+        Assert.Equal(5, kept._priority);
+        Assert.Equal(3, overridden._priority);
+    }
+
+    [Fact]
+    public void AWhenReducedNestedInTheReducedParamsIsIgnored()
+    {
+        var target = new StyleTarget();
+        Presto.Defaults.ReducedMotion = true;
+
+        Presto.Animate(target, new() { ["X"] = 100, Duration = 100, WhenReduced = new() { ["Opacity"] = 0.5, WhenReduced = new() { ["Y"] = 50 } } });
+        Frames.Advance(200);
+
+        Assert.Equal(0, target.X);
+        Assert.Equal(0.5, target.Opacity);
+        Assert.Equal(0, target.Y);
+    }
+
+    [Fact]
+    public void SetWritesTheDictionaryReducedForm()
+    {
+        var target = new StyleTarget();
+        Presto.Defaults.ReducedMotion = true;
+
+        Presto.Set(target, new() { ["X"] = 100, WhenReduced = new() { ["Y"] = 50 } });
+
+        Assert.Equal(0, target.X);
+        Assert.Equal(50, target.Y);
+    }
+
+    [Fact]
+    public void ReduceAllLeavesSetAsItIs()
+    {
+        var plain = Presto.Set(new StyleTarget(), new() { ["X"] = 100, Loop = 2 });
+        Presto.Defaults.ReduceAll = true;
+        var target = new StyleTarget();
+
+        var reduced = Presto.Set(target, new() { ["X"] = 100, Loop = 2 });
+
+        Assert.Equal(100, target.X);
+        Assert.Equal(plain.IterationCount, reduced.IterationCount);
+        Assert.Equal(plain.Duration, reduced.Duration);
+    }
+
+    [Fact]
+    public void ReduceAllCollapsesASpringEasedTween()
+    {
+        var target = new StyleTarget();
+        Presto.Defaults.ReduceAll = true;
+
+        var animation = Presto.Animate(target, new() { ["X"] = 100, Ease = Eases.Spring(stiffness: 50, damping: 5) });
+        Frames.Advance(16);
+
+        Assert.Equal(Constants.MinValue, animation.Duration);
+        Assert.Equal(100, target.X);
+        Assert.True(animation.Completed);
+    }
+
+    [Fact]
+    public void MotionPreferenceListsSystemFullAndReducedWithSystemTheDefault()
+    {
+        Assert.Equal([MotionPreference.System, MotionPreference.Full, MotionPreference.Reduced], Enum.GetValues<MotionPreference>());
+        Assert.Equal(MotionPreference.System, default(MotionPreference));
+    }
+
+    [Fact]
     public void ATimelineChildPicksItsOwnReducedForm()
     {
         var target = new StyleTarget();

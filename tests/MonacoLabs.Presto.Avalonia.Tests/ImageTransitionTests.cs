@@ -339,6 +339,91 @@ public sealed class ImageTransitionTests : CompositorTestBase
         Assert.Equal(new ImageTransition { Kind = ImageTransitionKind.Ripple, PeakRipple = 8 }, view.Element.SourceTransition);
     }
 
+    [AvaloniaFact]
+    public void WithoutABuilderATransitionPlaysSixHundredMillisecondsEasedInOutQuad()
+    {
+        var image = Place(new FilteredImage { Source = Solid(Colors.Red), Stretch = Stretch.Fill, Width = 60, Height = 60 });
+
+        var animation = image.TransitionTo(Solid(Colors.Blue), new ImageTransition());
+        Assert.Equal(600, animation.Duration, 6);
+        Seek(animation, 150);
+        Assert.Equal(Eases.InOutQuad(0.25), image.TransitionProgress, 6);
+
+        var timed = image.TransitionTo(Solid(Colors.Lime), new ImageTransition { Builder = Linear });
+        Assert.Equal(100, timed.Duration, 6);
+        Seek(timed, 25);
+        Assert.Equal(0.25, image.TransitionProgress, 6);
+    }
+
+    [AvaloniaFact]
+    public void TransitionToDoesNotAlsoPlayTheSourceTransitionForItsOwnSourceWrite()
+    {
+        var red = Solid(Colors.Red);
+        var image = Place(new FilteredImage
+        {
+            Source = red, SourceTransition = new() { Kind = ImageTransitionKind.Wipe, Builder = Linear }, Stretch = Stretch.Fill, Width = 60, Height = 60,
+        });
+
+        var animation = image.TransitionTo(Solid(Colors.Blue), ImageTransitionKind.Crossfade, Linear);
+        Seek(animation, 50);
+
+        Assert.Same(red, image.Outgoing);
+        Assert.False(animation.Canceled);
+        Assert.All(Pixels(image), pixel => AssertNear(Color.FromRgb(128, 0, 128), pixel, 3));
+    }
+
+    [AvaloniaFact]
+    public void ASourceChangeMidTransitionWithoutSourceTransitionRetargetsTheRunningTransition()
+    {
+        var red = Solid(Colors.Red);
+        var image = Place(new FilteredImage { Source = red, Stretch = Stretch.Fill, Width = 60, Height = 60 });
+        var animation = image.TransitionTo(Solid(Colors.Blue), ImageTransitionKind.Crossfade, Linear);
+        Seek(animation, 50);
+
+        image.Source = Solid(Colors.Lime);
+        Tick();
+
+        Assert.Same(red, image.Outgoing);
+        Assert.False(animation.Canceled);
+        Assert.All(Pixels(image), pixel => AssertNear(Color.FromRgb(128, 128, 0), pixel, 3));
+        Seek(animation, 100);
+        Assert.All(Pixels(image), pixel => AssertNear(Colors.Lime, pixel, 3));
+    }
+
+    [AvaloniaTheory]
+    [InlineData("Kind")]
+    [InlineData("Angle")]
+    [InlineData("Feather")]
+    [InlineData("PeakPixelate")]
+    [InlineData("PeakRipple")]
+    public void AnUnsetTransitionTuningPlaysAsItsDocumentedDefault(string tuning)
+    {
+        var (unset, documented, other) = tuning switch
+        {
+            "Kind" => (new ImageTransition(), new ImageTransition { Kind = ImageTransitionKind.Crossfade }, new ImageTransition { Kind = ImageTransitionKind.Ripple }),
+            "Angle" => (new ImageTransition { Kind = ImageTransitionKind.Wipe }, new ImageTransition { Kind = ImageTransitionKind.Wipe, Angle = 0 },
+                new ImageTransition { Kind = ImageTransitionKind.Wipe, Angle = 90 }),
+            "Feather" => (new ImageTransition { Kind = ImageTransitionKind.Wipe }, new ImageTransition { Kind = ImageTransitionKind.Wipe, Feather = 0.2 },
+                new ImageTransition { Kind = ImageTransitionKind.Wipe, Feather = 0.6 }),
+            "PeakPixelate" => (new ImageTransition { Kind = ImageTransitionKind.Pixelate }, new ImageTransition { Kind = ImageTransitionKind.Pixelate, PeakPixelate = 24 },
+                new ImageTransition { Kind = ImageTransitionKind.Pixelate, PeakPixelate = 8 }),
+            _ => (new ImageTransition { Kind = ImageTransitionKind.Ripple }, new ImageTransition { Kind = ImageTransitionKind.Ripple, PeakRipple = 20 },
+                new ImageTransition { Kind = ImageTransitionKind.Ripple, PeakRipple = 5 }),
+        };
+        var midway = Midway((image, red) => image.TransitionTo(red, unset with { Builder = Linear }));
+
+        Assert.Equal(midway, Midway((image, red) => image.TransitionTo(red, documented with { Builder = Linear })));
+        Assert.NotEqual(midway, Midway((image, red) => image.TransitionTo(red, other with { Builder = Linear })));
+        if (tuning == "Kind") Assert.Equal(midway, Midway((image, red) => image.TransitionTo(red, builder: Linear)));
+    }
+
+    private static byte[] Midway(Func<FilteredImage, IImage, Animation> transition)
+    {
+        var image = Place(new FilteredImage { Source = Halves(), Stretch = Stretch.Fill, Width = 60, Height = 60 });
+        Seek(transition(image, Solid(Colors.Red)), 40);
+        return Capture(image);
+    }
+
     private static AnimationBuilder Linear => Presto.Build().Duration(100).Ease(Eases.None);
 
     private static ImageTransition Crossfade => new() { Builder = Linear };

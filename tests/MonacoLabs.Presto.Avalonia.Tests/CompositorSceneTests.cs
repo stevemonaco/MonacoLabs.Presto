@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
+using Avalonia.Logging;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
 using MonacoLabs.Presto.Compositor;
@@ -116,6 +117,99 @@ public sealed class CompositorSceneTests : CompositorTestBase
         Tick();
 
         AssertDetached(scene);
+    }
+
+    [AvaloniaFact]
+    public void ReplacingTheSceneWhileAttachedDetachesTheOldOneAndAttachesTheNew()
+    {
+        var first = new ProbeScene();
+        var (_, canvas) = ShowScene(first);
+        Assert.True(Pump(() => first.Target.Opacity < 1), "the first scene never advanced");
+        var second = new ProbeScene();
+
+        canvas.Scene = second;
+        Tick();
+
+        Assert.Equal(1, first.Target.Opacity);
+        Assert.Null(first.Engine._head);
+        Assert.Equal(1, second.Attachments);
+        Assert.True(Pump(() => second.Target.Opacity < 1), "the second scene never advanced");
+
+        canvas.Scene = null;
+        Tick();
+        Assert.Equal(1, second.Target.Opacity);
+        Assert.Null(second.Engine._head);
+    }
+
+    [AvaloniaFact]
+    public void AttachingAgainGivesTheSceneANewEngineAndScope()
+    {
+        var scene = new ProbeScene();
+        var (panel, canvas) = ShowScene(scene);
+        var (engine, scope) = (scene.Engine, scene.Scope);
+        panel.Children.Remove(canvas);
+        Tick();
+
+        panel.Children.Add(canvas);
+        Tick();
+
+        Assert.Equal(2, scene.Attachments);
+        Assert.NotSame(engine, scene.Engine);
+        Assert.NotSame(scope, scene.Scope);
+        Assert.Same(scene.Engine, scene.AmbientEngine);
+        Assert.True(Pump(() => scene.Target.Opacity < 1), "the reattached scene never advanced");
+    }
+
+    [AvaloniaFact]
+    public void TheSceneEngineStartsFromACopyOfTheDefaultsTakenAtAttach()
+    {
+        var scene = new ProbeScene();
+        var canvas = new CompositorCanvas { Scene = scene, Width = 64, Height = 64 };
+        Presto.Defaults.Duration = 123;
+
+        Show(canvas);
+        Presto.Defaults.Duration = 456;
+
+        Assert.NotSame(Presto.Defaults, scene.Engine.Defaults);
+        Assert.Equal((TweenValue)123, scene.Engine.Defaults.Duration);
+    }
+
+    [AvaloniaFact]
+    public void AThrowingTickIsLoggedAndLaterFramesStillRun()
+    {
+        using var errors = new LogSink(LogArea.Animations, LogEventLevel.Error);
+        var scene = new ThrowingTickScene();
+
+        ShowScene(scene);
+
+        Assert.True(Pump(() => errors.Entries.Count > 0), "the faulted tick was not logged");
+        Assert.All(errors.Entries, entry => Assert.Equal(LogEventLevel.Error, entry.Level));
+        var after = scene.Target.Opacity;
+        Assert.True(Pump(() => scene.Target.Opacity < after), "the scene stopped ticking after the fault");
+    }
+
+    private sealed class ThrowingTickScene : CompositorScene
+    {
+        private bool _thrown;
+
+        public SceneTarget Target { get; } = new();
+
+        protected override void OnAttached() => Presto.Animate(Target, new()
+        {
+            ["Opacity"] = 0,
+            Duration = 4000,
+            Ease = "linear",
+            OnUpdate = _ =>
+            {
+                if (_thrown) return;
+                _thrown = true;
+                throw new InvalidOperationException(ProbeScene.Boom);
+            },
+        });
+
+        protected override void OnRender(ImmediateDrawingContext context, Size size)
+        {
+        }
     }
 
     private static void AssertDetached(HandlerScene scene)

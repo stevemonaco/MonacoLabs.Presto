@@ -94,6 +94,59 @@ public sealed class PrestoDelayTests : EngineTestBase
         return (delay, new WeakReference(Presto.Engine._head));
     }
 
+    [Fact]
+    public async Task CompletingReleasesTheTokenRegistration()
+    {
+        using var source = new CancellationTokenSource();
+        var status = new StrongBox<TaskStatus>();
+        var timer = StartTrackedDelay(source.Token, status);
+
+        Frames.Advance(300, 16);
+        for (var i = 0; i < 100 && (timer.IsAlive || status.Value == default); i++)
+        {
+            await Task.Delay(10, TestToken);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        Assert.Equal(TaskStatus.RanToCompletion, status.Value);
+        Assert.False(timer.IsAlive);
+    }
+
+    [Fact]
+    public async Task ContinuationsNeverRunInsideTheEngineTick()
+    {
+        WakeEngine();
+        var ticking = false;
+        bool? ranInTick = null;
+        using var context = new PumpingSynchronizationContext();
+        var awaiting = AwaitDelay();
+
+        ticking = true;
+        Frames.Advance(200, 16);
+        ticking = false;
+        context.RunUntil(() => ranInTick != null, TimeSpan.FromSeconds(5));
+
+        Assert.False(ranInTick);
+        await awaiting;
+
+        async Task AwaitDelay()
+        {
+            await Presto.Delay(100, TestToken);
+            ranInTick = ticking;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference StartTrackedDelay(CancellationToken token, StrongBox<TaskStatus> status)
+    {
+        WeakReference? timer = null;
+        Presto.Engine.TimerCreated = created => timer = new WeakReference(created);
+        Presto.Delay(100, token).ContinueWith(task => status.Value = task.Status, TaskScheduler.Default);
+        Presto.Engine.TimerCreated = null;
+        return timer!;
+    }
+
     // Starts the delay mid-flight, past the engine's first-frame catch-up.
     private void WakeEngine()
     {

@@ -235,6 +235,98 @@ public sealed class AnimateLayoutAttachedTests : CompositorTestBase
         Assert.Equal(start + (2 * Shift), Top(bar));
     }
 
+    [AvaloniaFact]
+    public void ArmingNeverRegistersWithTheAmbientScope()
+    {
+        var (_, bar) = ShowBarInPanel();
+        var scope = new Scope();
+        scope.Execute(_ => Animate.SetLayout(bar, HeldMove));
+        var start = Top(bar);
+
+        scope.Revert();
+        MoveDown(bar);
+
+        Assert.Equal(start, Top(bar));
+    }
+
+    [AvaloniaFact]
+    public void DoesNothingInDesignMode()
+    {
+        var (_, bar) = ShowBarInPanel();
+        var list = new ItemsControl { ItemsSource = new[] { "a", "red" }, ItemTemplate = Rows(), VerticalAlignment = VerticalAlignment.Top };
+        ((Panel)bar.Parent!).Children.Add(list);
+        Tick();
+        var start = Top(bar);
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Animate.SetLayout(bar, HeldMove);
+            Animate.SetLayoutMode(bar, LayoutAnimateMode.PositionAndSize);
+            Animate.SetItemLayout(list, HeldMove);
+            Animate.SetLayoutMode(list, LayoutAnimateMode.PositionAndSize);
+            Animate.SetItemGroup(list, "group");
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        MoveDown(bar);
+
+        Assert.Equal(start + Shift, Top(bar));
+        Assert.Null(LayoutTransition.Live(bar));
+        Assert.All(list.GetRealizedContainers(), container => Assert.Null(Animate.ItemArmOf(container)));
+    }
+
+    [AvaloniaFact]
+    public void SettingItWhileAFlightIsInTheAirWaitsForTheFlight()
+    {
+        const string key = nameof(SettingItWhileAFlightIsInTheAirWaitsForTheFlight);
+        var root = new Panel();
+        new Window { Content = root, Background = Brushes.White, Width = 160, Height = 220 }.Show();
+        var leaving = Placed(new Border { Background = Brushes.Blue, Width = 40, Height = 20 }, 0, 50);
+        Connected.SetKey(leaving, key);
+        root.Children.Add(leaving);
+        Tick();
+        var drawn = Extent(root, Colors.Blue)!.Value;
+        root.Children.Remove(leaving);
+        var arriving = Placed(new Border { Background = Brushes.Red, Width = 40, Height = 20 }, 80, 130);
+        Connected.SetKey(arriving, key);
+        Connected.SetMotion(arriving, HeldMove);
+        root.Children.Add(arriving);
+        Tick();
+        var flight = LayoutTransition.Live(arriving);
+        Assert.True(flight is { Once: true });
+
+        Animate.SetLayout(arriving, HeldMove);
+        Tick();
+
+        Assert.Same(flight, LayoutTransition.Live(arriving));
+        Assert.Equal(drawn, Box(arriving));
+        Frames.Advance(Held + 1);
+        Assert.True(Pump(() => LayoutTransition.Live(arriving) is { Once: false }, rounds: 8), "the property did not arm after the flight");
+    }
+
+    [AvaloniaFact]
+    public void APersistentCodeTransitionWinsUntilTheValueChanges()
+    {
+        var (_, bar) = ShowBarInPanel(HeldMove);
+
+        var code = bar.AnimateLayout(Presto.Build().Duration(Held).Ease(Eases.None));
+        Assert.Same(code, LayoutTransition.Live(bar));
+        code.Revert();
+        var start = Top(bar);
+        MoveDown(bar);
+        Assert.Equal(start + Shift, Top(bar));
+        Assert.Null(LayoutTransition.Live(bar));
+
+        Animate.SetLayout(bar, Presto.Build().Duration(Held).Ease(Eases.None));
+        Assert.True(LayoutTransition.Live(bar) is { Once: false });
+        MoveDown(bar);
+        Assert.Equal(start + Shift, Top(bar));
+    }
+
     public static TheoryData<AnimationBuilder> Unsupported => new() { Presto.Build().X(10), Presto.Build().Loop(2) };
 
     [AvaloniaTheory]

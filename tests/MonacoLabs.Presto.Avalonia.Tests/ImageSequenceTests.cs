@@ -1,9 +1,11 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using MonacoLabs.Presto.Controls;
 
 namespace MonacoLabs.Presto.Tests;
@@ -66,6 +68,60 @@ public sealed class ImageSequenceTests : CompositorTestBase
 
         Assert.Equal(0, sequence.CurrentFrame);
         Assert.Equal(Colors.Black, Row(sequence, 5)[5]);
+    }
+
+    [AvaloniaFact]
+    public void FromAssetsDecodesEachFormattedIndexFromStart()
+    {
+        var frames = ImageSequence.FromAssets("avares://MonacoLabs.Presto.Avalonia.Tests/Sprites/female_{0:000}.png", 3, 5);
+
+        Assert.Equal(3, frames.Count);
+        Assert.All(frames, frame => Assert.IsType<Bitmap>(frame));
+        Assert.Equal(Decode("female_005.png"), Pixels(frames[0]));
+        Assert.Equal(Decode("female_007.png"), Pixels(frames[2]));
+        Assert.NotEqual(Pixels(frames[0]), Pixels(frames[2]));
+        Assert.Throws<FileNotFoundException>(() => ImageSequence.FromAssets("avares://MonacoLabs.Presto.Avalonia.Tests/Sprites/female_{0:000}.png", 4, 5));
+    }
+
+    [AvaloniaFact]
+    public void FromAssetsStartsAtZeroWhenNoStartIsGiven()
+    {
+        var frames = ImageSequence.FromAssets("avares://MonacoLabs.Presto.Avalonia.Tests/Sprites/female_{0:000}.png", 2);
+
+        Assert.Equal(Decode("female_000.png"), Pixels(frames[0]));
+        Assert.Equal(Decode("female_001.png"), Pixels(frames[1]));
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetFrameShowsTheFirstImage()
+    {
+        var sequence = ShowSequence(Solid());
+
+        Assert.Equal(0, sequence.CurrentFrame);
+        Assert.Equal(Fills[0], Row(sequence, 5)[5]);
+    }
+
+    private static byte[] Decode(string name)
+    {
+        using var stream = AssetLoader.Open(new Uri($"avares://MonacoLabs.Presto.Avalonia.Tests/Sprites/{name}"));
+        return Pixels(new Bitmap(stream));
+    }
+
+    private static byte[] Pixels(IImage image)
+    {
+        var bitmap = (Bitmap)image;
+        var stride = bitmap.PixelSize.Width * 4;
+        var pixels = new byte[stride * bitmap.PixelSize.Height];
+        var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+        try
+        {
+            bitmap.CopyPixels(new PixelRect(bitmap.PixelSize), handle.AddrOfPinnedObject(), pixels.Length, stride);
+        }
+        finally
+        {
+            handle.Free();
+        }
+        return pixels;
     }
 
     private static ImageSequence ShowSequence(IReadOnlyList<IImage>? frames, Stretch stretch = Stretch.None, double size = double.NaN)
