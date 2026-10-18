@@ -73,6 +73,42 @@ public sealed class LottieViewTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AsAnImageTheCompositionReportsItsSizeAndDrawsNothing()
+    {
+        var composition = Bar();
+        var image = new Image { Source = composition, Stretch = Stretch.None, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        new Window { Content = image, Background = Brushes.Black, Width = 100, Height = 100 }.Show();
+        Tick();
+
+        Assert.Equal(new Size(100, 100), ((IImage)composition).Size);
+        Assert.Equal(new Size(100, 100), image.Bounds.Size);
+        Assert.Equal(0, CountPixels(image, new Rect(0, 0, 100, 100), Colors.Black));
+    }
+
+    [AvaloniaFact]
+    public void NothingIsDrawnWithoutACompositionOrWhenThePlacedRectMissesTheBounds()
+    {
+        var before = LottiePlayerHandle.Live;
+
+        var empty = Place(new LottieView());
+        Assert.Equal(0, CountPixels(empty, new Rect(0, 0, 100, 100), Colors.Black));
+
+        Assert.Equal(before, LottiePlayerHandle.Live);
+
+        Place(new LottieView { Composition = Bar() }, height: 0);
+        Tick();
+        Assert.Equal(before, LottiePlayerHandle.Live);
+    }
+
+    [AvaloniaFact]
+    public void WithoutACompositionFrameAndProgressHoldZero()
+    {
+        var view = new LottieView();
+
+        Assert.Equal((0d, 0d), (view.Frame, view.Progress));
+    }
+
+    [AvaloniaFact]
     public void FrameAndProgressFollowEachOther()
     {
         var view = new LottieView { Composition = Bar() };

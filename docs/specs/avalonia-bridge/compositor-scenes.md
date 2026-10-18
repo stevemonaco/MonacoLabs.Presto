@@ -45,11 +45,11 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - **BRIDGE-SCENES-002** — When the canvas's bounds change while attached, the scene's `Size` shall follow them.
   - Tests: `CompositorSceneTests.TheSceneRendersAtTheCanvasSizeAndFollowsItWhenItChanges`
 - **BRIDGE-SCENES-003** (inherited) — When `Scene` changes while the canvas is attached, the old scene shall be detached as on detach and the new one, if not null, attached.
-  - Tests: untested
+  - Tests: `CompositorSceneTests.ReplacingTheSceneWhileAttachedDetachesTheOldOneAndAttachesTheNew`
 - **BRIDGE-SCENES-004** — When the canvas detaches, the render thread shall revert the scene's `Scope`, pause its engine and drop its children, and the canvas shall remove its child visual.
   - Tests: `CompositorSceneTests.DetachRevertsTheSceneScopeAndEmptiesItsEngine`, `CompositorPageTests.ThePageRunsAndRevertsEverythingOnDetach`
 - **BRIDGE-SCENES-005** — When a canvas attaches again, its scene shall get a new engine and scope and `OnAttached` shall run again.
-  - Tests: untested
+  - Tests: `CompositorSceneTests.AttachingAgainGivesTheSceneANewEngineAndScope`
 - **BRIDGE-SCENES-032** — When a canvas attaches with, or is given while attached, a scene another attached canvas holds, it shall throw `InvalidOperationException` and leave the scene with the first canvas.
   - Tests: `CompositorSceneTests.ASceneAttachedToOneCanvasCannotBeAttachedToAnother`
 - **BRIDGE-SCENES-006** — `Post` on an attached canvas shall deliver the message to `OnMessage` on the render thread, in posting order, on the compositor frame after it was posted.
@@ -57,7 +57,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - **BRIDGE-SCENES-007** (inherited) — `Post` on a canvas outside the visual tree shall queue the message and send the queue, in order, right behind the attach message.
   - Tests: `CompositorMessagingTests.MessagesArriveInOrderIncludingTheOnesPostedBeforeAttach`
 - **BRIDGE-SCENES-008** — `Post` called off the UI thread shall fail a `Debug.Assert`.
-  - Tests: untested
+  - Tests: `CompositorMessagingTests.PostingOffTheUIThreadFailsAnAssertion`
 - **BRIDGE-SCENES-009** — `Invoke<TScene>` shall run the action against the live scene on the render thread when the scene is a `TScene`, do nothing otherwise, and never reach `OnMessage`.
   - Tests: `CompositorMessagingTests.InvokeReachesTheTypedSceneOnItsOwnEngine`
 - **BRIDGE-SCENES-010** — While the app is hidden, the canvas shall set its scene engine's `Hidden`, so the engine pauses and later resumes where it was.
@@ -68,7 +68,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - **BRIDGE-SCENES-011** — `OnAttached` shall run on the render thread with the scene's engine as `Engine.Current` and its `Scope` current, so animations it creates register with both.
   - Tests: `CompositorSceneTests.AttachCreatesTheChildVisualAndRunsOnAttachedOnTheSceneEngine`
 - **BRIDGE-SCENES-012** — The scene engine shall start with a copy of `Presto.Defaults` taken when the scene attaches.
-  - Tests: untested
+  - Tests: `CompositorSceneTests.TheSceneEngineStartsFromACopyOfTheDefaultsTakenAtAttach`
 - **BRIDGE-SCENES-013** — The scene engine's time shall be the compositor clock in milliseconds, advanced by the render loop whether or not the main engine ticks.
   - Tests: `CompositorSceneTests.TheSceneAdvancesWhileTheMainEngineNeverTicks`
 - **BRIDGE-SCENES-014** — `OnMessage` and `Invoke` actions shall run under the scene's engine and scope, as `OnAttached` does.
@@ -76,7 +76,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - **BRIDGE-SCENES-015** — When the scene engine runs out of children, the canvas shall stop requesting render-loop frames until the engine starts its frame source again.
   - Tests: `CompositorSceneTests.TheFrameSourceStopsRenewingOnceTheEngineIsIdle`
 - **BRIDGE-SCENES-016** — When a scene tick throws, the exception shall be logged at `Error` in Avalonia's `Animations` area and later frames shall still run.
-  - Tests: untested
+  - Tests: `CompositorSceneTests.AThrowingTickIsLoggedAndLaterFramesStillRun`
 - **BRIDGE-SCENES-017** — When `OnAttached` throws, the animations it created before the throw shall keep running and the UI thread's `Engine.Current` shall be unchanged.
   - Tests: `CompositorMessagingTests.AThrowingOnAttachedLeavesTheAnimationItCreatedRunning`
 - **BRIDGE-SCENES-018** — When `OnMessage` throws, later messages and later frames shall still be processed.
@@ -104,7 +104,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - **BRIDGE-SCENES-026** — `PostToUI` shall run its action on the UI thread through the dispatcher, never inline on the render thread.
   - Tests: `CompositorMessagingTests.PostToUIRunsItsActionOnTheUIThread`
 - **BRIDGE-SCENES-027** — `Then()` on a timer the scene created shall complete its continuations on the thread pool.
-  - Tests: untested
+  - Tests: `CompositorMessagingTests.ASceneTimersThenCompletesOnTheThreadPool`
 
 ### Scene text
 
@@ -118,7 +118,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 ### Defaults
 
 - **BRIDGE-SCENES-031** (inherited) — When `Brush` is called without an opacity, the brush shall be fully opaque (opacity 1).
-  - Tests: untested
+  - Tests: `CompositorRenderTests.ABrushWithoutAnOpacityIsFullyOpaque`
 
 ## Invariants
 
@@ -132,6 +132,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 - A canvas attached with `Scene` null drops messages it receives; messages are queued only while the canvas itself is outside the visual tree.
 - A canvas without a composition visual on attach (no compositor) does nothing and queues posts.
 - After detach, `Scene.Engine` and `Scope` still name the reverted engine and scope until the next attach.
+- A plain object a scene animates by name is reached by reflection; in a trimmed or NativeAOT app its type is passed to `Presto.RegisterTarget<T>()` (CORE-TARGETS).
 
 ## Threading and lifetime
 
@@ -142,7 +143,7 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 
 ## Reduced motion
 
-- Not affected by the bridge: the scene engine copies `PrestoDefaults`, `ReducedMotion` included, at attach, and the scene's animations follow the core rules (CORE-REDUCED) on that copy. A later change of the main engine's flag does not reach an attached scene.
+- Not affected by the bridge: the scene engine copies `PrestoDefaults`, `ReducedMotion` included, at attach, and the scene's animations follow the core rules (CORE-REDUCED) on that copy. A later change of the main engine's flag does not reach an attached scene, whose engine ticks off the UI thread (see Compositor scenes keep their snapshot, BRIDGE-REDUCED).
 
 ## Allocation
 
@@ -171,4 +172,4 @@ A `CompositorCanvas` hosts a `CompositorScene` whose own Presto `Engine` is tick
 
 ## Open items
 
-- Untested: replacing `Scene` while attached (003), re-attaching (005), the off-thread `Post` assertion (008), the defaults snapshot (012), tick exception logging (016), `Then()` completing on the thread pool (027).
+None.

@@ -1,6 +1,9 @@
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
 using Avalonia.Threading;
 
 namespace MonacoLabs.Presto.Tests;
@@ -136,6 +139,26 @@ public sealed class ScrollToIndexTests : BridgeTestBase
         Assert.Throws<ArgumentOutOfRangeException>(() => PrestoAvalonia.ScrollToIndex(stage.List, VirtualListStage.Count));
     }
 
+    [AvaloniaFact]
+    public void ScrollToItemOnACueBringsAnAddedLastItemIntoViewIgnoresAValueThatIsNotAnItemAndThrowsOffAList()
+    {
+        var stage = VirtualListStage.Show(Varied);
+        var cue = new Cue<int>();
+        var action = (CueAction)new ScrollToItemExtension().ProvideValue(null!);
+        Animate.SetCue(stage.List, cue);
+        Animate.SetDoOnCue(stage.List, action);
+        Assert.Throws<InvalidOperationException>(() => action.Invoke(new Border(), 0, first: false));
+
+        cue.Raise(-1);
+        Run();
+        Assert.Equal(0, stage.Scroller.Offset.Y);
+
+        stage.Items.Add(VirtualListStage.Count);
+        cue.Raise(VirtualListStage.Count);
+        Run();
+        Assert.Equal(Viewport - Varied(VirtualListStage.Count), stage.Top(VirtualListStage.Count));
+    }
+
     private static double Varied(int index) => 20 + (index % 5 * 10);
 
     private static double Aligned(ScrollAlignment alignment, double height) => alignment switch
@@ -154,5 +177,74 @@ public sealed class ScrollToIndexTests : BridgeTestBase
     private void Run()
     {
         for (var i = 0; i < 60; i++) Step();
+    }
+
+    [AvaloniaFact]
+    public void AListOnAnotherPanelScrollsTheIndexsContainerIntoView()
+    {
+        var list = new ItemsControl
+        {
+            ItemsSource = Enumerable.Range(0, 20).ToList(),
+            ItemTemplate = new FuncDataTemplate<int>((_, _) => new Border { Height = 40 }),
+        };
+        var scroller = new ScrollViewer { Height = Viewport, VerticalAlignment = VerticalAlignment.Top, Content = list };
+        new Window { Content = scroller, Width = 300, Height = 300 }.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var animation = PrestoAvalonia.ScrollToIndex(list, 10, ScrollAlignment.End);
+        Run();
+
+        Assert.True(animation.Completed);
+        Assert.Equal((11 * 40) - Viewport, scroller.Offset.Y);
+    }
+
+    [AvaloniaFact]
+    public void AListOnAnotherPanelWithoutTheIndexsContainerThrows()
+    {
+        var list = new ItemsControl { ItemsSource = Enumerable.Range(0, 20).ToList() };
+
+        Assert.Throws<InvalidOperationException>(() => PrestoAvalonia.ScrollToIndex(list, 10));
+    }
+
+    [AvaloniaFact]
+    public void AVirtualizingPanelWithoutAScrollViewerThrows()
+    {
+        var list = new ItemsControl
+        {
+            ItemsSource = Enumerable.Range(0, 20).ToList(),
+            ItemsPanel = new FuncTemplate<Panel?>(() => new VirtualizingStackPanel()),
+            ItemTemplate = new FuncDataTemplate<int>((_, _) => new Border { Height = 40 }),
+        };
+        new Window { Content = list, Width = 300, Height = 300 }.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.IsType<VirtualizingStackPanel>(list.ItemsPanelRoot);
+        Assert.Throws<InvalidOperationException>(() => PrestoAvalonia.ScrollToIndex(list, 10));
+    }
+
+    [AvaloniaFact]
+    public void NearestAlignsTheEndOfAnItemFromBelowAndTheStartOfOneFromAbove()
+    {
+        var stage = VirtualListStage.Show(Varied);
+
+        PrestoAvalonia.ScrollToIndex(stage.List, 3001, ScrollAlignment.Nearest);
+        Run();
+        Assert.Equal(Viewport - Varied(3001), stage.Top(3001));
+
+        PrestoAvalonia.ScrollToIndex(stage.List, 2990, ScrollAlignment.Nearest);
+        Run();
+        Assert.Equal(0, stage.Top(2990));
+    }
+
+    [AvaloniaFact]
+    public void AnAlreadyAlignedItemReturnsACompletedAnimation()
+    {
+        var stage = VirtualListStage.Show(Varied);
+
+        var animation = PrestoAvalonia.ScrollToIndex(stage.List, 0);
+
+        Assert.True(animation.Completed);
+        Assert.Empty(Presto.GetAnimations(stage.Scroller, "ScrollY"));
+        Assert.Equal(0, stage.Scroller.Offset.Y);
     }
 }

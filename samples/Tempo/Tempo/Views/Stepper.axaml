@@ -1,9 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:v="using:Tempo.Views"
              x:Class="Tempo.Views.Stepper">
     <StackPanel Orientation="Horizontal" Spacing="4">
         <RepeatButton x:Name="Decrease" Classes="step" Content="−" Click="Step" />
-        <TextBlock x:Name="Number" Classes="step-value" />
+        <!-- A surface move drops and restores the DataContext, which DoOnChanged sets at once instead of morphing to 0 and back. -->
+        <TextBlock x:Name="Number" Classes="step-value" FontFeatures="+tnum"
+                   presto:Animate.Watch="{Binding Value, RelativeSource={RelativeSource AncestorType=v:Stepper}}"
+                   presto:Animate.DoOnChanged="{presto:MorphGlyphs Reduced=Instant}" />
         <RepeatButton x:Name="Increase" Classes="step" Content="+" Click="Step" />
     </StackPanel>
 </UserControl>

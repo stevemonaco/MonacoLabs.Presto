@@ -242,4 +242,19 @@ public sealed class ScrollToTests : BridgeTestBase
         Assert.Equal(100, animation.Duration);
         Assert.Equal(500, scroller.Offset.Y);
     }
+
+    [AvaloniaFact]
+    public void WhenNoAxisMovesTheAnimationHasNoScrollTweenAndCompletesOnItsFirstTick()
+    {
+        var (_, scroller, _, _) = ScrollStage.Show(trail: 600);
+        ScrollStage.ScrollTo(scroller, 250);
+
+        var animation = PrestoAvalonia.ScrollTo(scroller, 250);
+
+        Assert.Empty(Presto.GetAnimations(scroller, "ScrollX"));
+        Assert.Empty(Presto.GetAnimations(scroller, "ScrollY"));
+        Frames.Advance(16);
+        Assert.True(animation.Completed);
+        Assert.Equal(250, scroller.Offset.Y);
+    }
 }

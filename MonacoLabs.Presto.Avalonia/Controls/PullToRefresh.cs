@@ -27,7 +27,8 @@ namespace MonacoLabs.Presto.Controls;
 /// </para>
 /// <para>
 /// Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each release, the content lands at once, the arrow hides and
-/// shows at once, and the ring holds still while the refresh runs.
+/// shows at once, and the ring holds still while the refresh runs. A change of the flag during the refresh stops or starts
+/// the spin at once.
 /// </para>
 /// </remarks>
 public sealed class PullToRefresh : Control, IGestureMember
@@ -62,7 +63,9 @@ public sealed class PullToRefresh : Control, IGestureMember
     };
     private readonly MotionValue _pull = new(Engine.Current, [], 0);
     private readonly GestureGate _gate;
+    private readonly Action _followReducedMotion;
     private Animatable? _animate;
+    private Animation? _spin;
     private IPointer? _pointer;
     private Point _pressedAt;
     private ScrollViewer? _scroller;
@@ -91,6 +94,7 @@ public sealed class PullToRefresh : Control, IGestureMember
         AddHandler(PointerMovedEvent, HandleMoved, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, HandleReleased, handledEventsToo: true);
         PointerCaptureLost += HandleCaptureLost;
+        _followReducedMotion = FollowReducedMotion;
     }
 
     /// <inheritdoc cref="ContentProperty"/>
@@ -215,7 +219,8 @@ public sealed class PullToRefresh : Control, IGestureMember
         var fade = reduced ? 0 : Recipes.Tokens.Short;
         Settle(Threshold);
         _ = _arrow.Animate(new AvaloniaAnimationParams { ["Opacity"] = 0, Duration = fade });
-        var spin = reduced ? null : _ring.Animate(new AvaloniaAnimationParams { ["Rotate"] = 360, Duration = 800, Ease = Eases.None, Loop = true });
+        if (!reduced) _spin = Spin();
+        var engine = ReducedMotionFollowers.Add(_followReducedMotion);
         try
         {
             if (Refresh is { } work) await work();
@@ -227,11 +232,26 @@ public sealed class PullToRefresh : Control, IGestureMember
         }
         finally
         {
-            spin?.Revert();
+            ReducedMotionFollowers.Remove(engine, _followReducedMotion);
+            StopSpin();
             _ = _arrow.Animate(new AvaloniaAnimationParams { ["Opacity"] = 1, Duration = fade });
             _refreshing = false;
             Settle(0);
         }
+    }
+
+    private Animation Spin() => _ring.Animate(new AvaloniaAnimationParams { ["Rotate"] = 360, Duration = 800, Ease = Eases.None, Loop = true });
+
+    private void StopSpin()
+    {
+        _spin?.Revert();
+        _spin = null;
+    }
+
+    private void FollowReducedMotion()
+    {
+        if (Engine.Current.Defaults.ReducedMotion) StopSpin();
+        else _spin ??= Spin();
     }
 
     private void Settle(double to)

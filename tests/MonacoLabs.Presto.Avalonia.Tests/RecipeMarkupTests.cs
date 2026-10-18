@@ -171,6 +171,19 @@ public sealed class RecipeMarkupTests : BridgeTestBase
         Assert.Equal(TextPieces.Chars, TextReveal.GetPieces(view.Explicit));
     }
 
+    [AvaloniaFact]
+    public void ATextRevealExtensionConfiguresNothingFromAStyleSetterOrForAMaskItDoesNotUse()
+    {
+        var view = new RecipeXamlView();
+        Show(view);
+
+        Assert.NotNull(Presence.GetExit(view.StyledReveal));
+        Assert.Equal(TextPieces.None, TextReveal.GetPieces(view.StyledReveal));
+        Assert.False(view.StyledReveal.IsSet(TextReveal.MaskProperty));
+        Assert.Equal(TextPieces.Chars, TextReveal.GetPieces(view.Cascaded));
+        Assert.False(view.Cascaded.IsSet(TextReveal.MaskProperty));
+    }
+
     [AvaloniaTheory]
     [InlineData(nameof(Recipes.LineRise), false)]
     [InlineData(nameof(Recipes.LineMask), false)]
@@ -240,6 +253,74 @@ public sealed class RecipeMarkupTests : BridgeTestBase
         Assert.All(exitless, extension => Assert.Throws<NotSupportedException>(() => { extension.Out = true; extension.ProvideValue(null!); }));
         Assert.IsType<AnimationBuilder>(new ShakeExtension().ProvideValue(new ProvidedTarget(card, Presence.EnterProperty)));
     }
+
+    [AvaloniaFact]
+    public void ShimmerProvidesALoopingMaskSweep()
+    {
+        var parameters = ((AnimationBuilder)new ShimmerExtension().ProvideValue(null!)).ToParams();
+
+        Assert.Equal(["MaskSweep"], parameters.Properties.Keys);
+        Assert.Equal(0d, From(parameters, "MaskSweep"));
+        Assert.Equal(Recipes.Shimmer().ToParams().Loop, parameters.Loop);
+        Assert.Throws<NotSupportedException>(() => new ShimmerExtension { Out = true }.ProvideValue(null!));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(typeof(PageFadeExtension))]
+    [InlineData(typeof(PageFadeThroughExtension))]
+    [InlineData(typeof(PageSharedAxisExtension))]
+    [InlineData(typeof(PageSlideExtension))]
+    [InlineData(typeof(PagePushExtension))]
+    [InlineData(typeof(PageBloomExtension))]
+    public void PageExtensionsTakeNoneOfTheRecipeSettings(Type extension)
+    {
+        Assert.False(extension.IsSubclassOf(typeof(RecipeExtension)));
+        foreach (var setting in new[] { nameof(RecipeExtension.Delay), nameof(RecipeExtension.Ease), nameof(RecipeExtension.Stagger), nameof(RecipeExtension.Out) })
+            Assert.Null(extension.GetProperty(setting));
+    }
+
+    [AvaloniaFact]
+    public void PlayFramesDefaultsTo24FpsLoopingForwards()
+    {
+        var parameters = ((AnimationBuilder)new PlayFramesExtension().ProvideValue(null!)).ToParams();
+        var recipe = Recipes.PlayFrames().ToParams();
+
+        var duration = Assert.IsType<FunctionValue>(parameters.Duration!.Value.Raw);
+        Assert.Equal(1000 / 24d, Convert.ToDouble(duration(new object(), 0, 1).Raw), 6);
+        Assert.Equal(recipe.Loop, parameters.Loop);
+        Assert.NotEqual(Recipes.PlayFrames(loop: false).ToParams().Loop, parameters.Loop);
+        Assert.Equal(recipe.Reversed, parameters.Reversed);
+        Assert.NotEqual(true, parameters.Reversed);
+    }
+
+    [AvaloniaFact]
+    public void SlideAndThePageSlidesDefaultToTheLeftEdge()
+    {
+        var slide = ((AnimationBuilder)new SlideExtension().ProvideValue(null!)).ToParams();
+        var pageSlide = (PrestoPageTransition)new PageSlideExtension().ProvideValue(null!);
+        var pagePush = (PrestoPageTransition)new PagePushExtension().ProvideValue(null!);
+
+        Assert.Equal(Describe(Recipes.SlideIn(Edge.Left).ToParams()), Describe(slide));
+        Assert.NotEqual(Describe(Recipes.SlideIn(Edge.Right).ToParams()), Describe(slide));
+        Assert.Equal(Describe(Recipes.PageSlide(Edge.Left).Enter!.ToParams()), Describe(pageSlide.Enter!.ToParams()));
+        Assert.Equal(Describe(Recipes.PagePush(Edge.Left).Enter!.ToParams()), Describe(pagePush.Enter!.ToParams()));
+        Assert.NotEqual(Describe(Recipes.PagePush(Edge.Right).Enter!.ToParams()), Describe(pagePush.Enter!.ToParams()));
+    }
+
+    [AvaloniaFact]
+    public void PageSharedAxisDefaultsToTheXAxis()
+    {
+        var transition = (PrestoPageTransition)new PageSharedAxisExtension().ProvideValue(null!);
+
+        Assert.Contains("X", transition.Enter!.ToParams().Properties.Keys);
+        Assert.DoesNotContain("Y", transition.Enter.ToParams().Properties.Keys);
+    }
+
+    private static string Describe(AnimationParams parameters) => string.Join(";", parameters.Properties.Select(property =>
+        property.Value.Raw is TweenParams tween ? $"{property.Key}:{Value(tween.From)}>{Value(tween.To)}" : $"{property.Key}:{Value(property.Value)}"));
+
+    private static object? Value(TweenValue? value) =>
+        value?.Raw is FunctionValue function ? function(new Avalonia.Controls.Border(), 0, 1).Raw : value?.Raw;
 
     [AvaloniaFact]
     public void PlayFramesTakesAnExplicitDurationAndEaseOverTheFrameTiming()

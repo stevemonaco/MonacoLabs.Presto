@@ -100,7 +100,7 @@ Composition decides what happens when a new tween animates a target property tha
 - **CORE-COMPOSITION-018** — A `Overlap` tween shall not be registered, override nothing, never be overridden, and never cancel another animation, so tweens on the same property each write in turn.
   - Tests: `TweensTests.DoNotOverrideTweensWithCompositionOverlap`
 - **CORE-COMPOSITION-019** — `Presto.Set` and animations of 1000 targets or more shall default to `Overlap` when `Composition` is unset.
-  - Tests: untested
+  - Tests: `CompositionTests.SetAndAnimationsOfAThousandTargetsDefaultToOverlap`
 
 ### Additive
 
@@ -117,7 +117,7 @@ Composition decides what happens when a new tween animates a target property tha
 - **CORE-COMPOSITION-041** — When an `Additive` tween leaves its sibling list, it shall take back its own from and to values, so composing it again (CORE-COMPOSITION-016) applies CORE-COMPOSITION-021 to them rather than to its delta; and each composition shall start its current delta at its from value, so a keyframe that has not rendered since is summed where it starts.
   - Tests: `CompositionTests.SeekingACanceledAdditiveAnimationRecomposesItFromItsOwnValues`, `CompositionTests.SeekingACanceledAdditiveColorAnimationSumsTheKeyframeThatHasNotRenderedAtItsFrom`
 - **CORE-COMPOSITION-024** — While a additive tween on a property is live, the additive pass shall overwrite a `Replace` tween's write to that property in the same frame.
-  - Tests: untested
+  - Tests: `CompositionTests.TheAdditivePassOverwritesAReplaceTweenWritingTheSameFrame`
 - **CORE-COMPOSITION-025** — A additive color tween shall interpolate with straight alpha.
   - Tests: `PremultipliedColorTests.AdditiveColorTweensKeepTheStraightBlend`
 - **CORE-COMPOSITION-026** — When the last additive tween of a property leaves, its lookup tween shall leave the sibling list and the additive animation, and the target's entry shall go once none of its properties has additive tweens.
@@ -125,7 +125,7 @@ Composition decides what happens when a new tween animates a target property tha
 - **CORE-COMPOSITION-027** — Additive state shall be per engine, so additive tweens on one engine are neither summed nor written by another.
   - Tests: `EnginesTests.AdditiveTweensAreInvisibleToAnotherEngine`
 - **CORE-COMPOSITION-028** — A `Additive` tween shall still override the replace siblings registered at or after its start, as CORE-COMPOSITION-003 describes.
-  - Tests: untested
+  - Tests: `CompositionTests.AnAdditiveTweenOverridesTheReplaceSiblingsAtOrAfterItsStart`
 - **CORE-COMPOSITION-029** — When a discrete property is given `Additive`, the animation constructor shall throw `ArgumentException`.
   - Tests: `DiscreteValuesTests.AdditiveThrows`
 
@@ -213,5 +213,4 @@ Composition decides what happens when a new tween animates a target property tha
 
 ## Open items
 
-- CORE-COMPOSITION-024 (the additive pass overwriting a `Replace` write) is documented on `Composition.Additive` but has no core test.
-- `Additive` tweens overriding later replace siblings (CORE-COMPOSITION-028) and the 1000-target `Overlap` default have no test.
+- A `Replace` animation with an animation-level `Delay` truncates an earlier sibling on the same property when it is created, not when its delay ends: its tweens' update start is 0 while their start is the delay, so CORE-COMPOSITION-005 reads the earlier time. Not decided whether that is intended; `CompositionTests` pins 005 with hand-built tweens instead.

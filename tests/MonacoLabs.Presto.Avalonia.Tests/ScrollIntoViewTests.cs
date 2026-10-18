@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Threading;
+using MonacoLabs.Presto.Transforms;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -177,5 +178,17 @@ public sealed class ScrollIntoViewTests : BridgeTestBase
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return (window, outer, inner, target);
+    }
+
+    [AvaloniaFact]
+    public void TheTargetsRectIgnoresItsRenderTransform()
+    {
+        var (_, scroller, target, _) = ScrollStage.Show(trail: 600);
+        RenderTransformComposer.Set(target, TransformShorthand.Y, 300);
+
+        PrestoAvalonia.ScrollIntoView(target, ScrollAlignment.Start);
+        Frames.Advance(1000, 16);
+
+        Assert.Equal(ScrollStage.Lead, scroller.Offset.Y);
     }
 }

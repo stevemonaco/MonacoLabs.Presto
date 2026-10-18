@@ -1,10 +1,12 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Controls;
 
@@ -272,6 +274,126 @@ public sealed class SheetTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void TheEdgePseudoClassFollowsTheEdge()
+    {
+        var (window, sheet) = Stage(new Border());
+        string[] edges = [":left", ":top", ":right", ":bottom"];
+        Assert.Equal([":bottom"], edges.Where(sheet.Classes.Contains));
+
+        sheet.Edge = Edge.Right;
+        Assert.Equal([":right"], edges.Where(sheet.Classes.Contains));
+
+        window.Styles.Add(new Style(x => x.OfType<Sheet>().Class("side")) { Setters = { new Setter(Sheet.EdgeProperty, Edge.Top) } });
+        sheet.ClearValue(Sheet.EdgeProperty);
+        sheet.Classes.Add("side");
+        Tick();
+        Assert.Equal([":top"], edges.Where(sheet.Classes.Contains));
+    }
+
+    [AvaloniaFact]
+    public void AStyleOnTheBottomEdgeReachesTheContent()
+    {
+        var grab = new Border { Classes = { "grab" } };
+        var (window, sheet) = Stage(new StackPanel { Children = { grab } });
+        window.Styles.Add(new Style(x => x.OfType<Sheet>().Class(":bottom").Descendant().OfType<Border>().Class("grab"))
+        {
+            Setters = { new Setter(Border.BackgroundProperty, Brushes.Green) },
+        });
+        Tick();
+        Assert.Same(Brushes.Green, grab.Background);
+
+        sheet.Edge = Edge.Right;
+        Assert.Null(grab.Background);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnOpenSheetFlippedToTheBottomByAStyleStaysOpenOnItsNewEdgeWithoutReplayingEntrances(bool reduced)
+    {
+        Presto.Defaults.ReducedMotion = reduced;
+        var entered = 0;
+        var row = new Border { Height = 20, Background = Brushes.Blue };
+        Presence.SetEnter(row, Presto.Build().Opacity(from: 0).Duration(100).OnBegin(_ => entered++).WhenReduced(r => r.Opacity(from: 0)));
+        var sheet = new Sheet { Detents = SheetDetents.Parse("0,0.5"), Content = new StackPanel { Children = { row } } };
+        var host = new Panel { Children = { sheet } };
+        host.Styles.Add(new Style(x => x.OfType<Sheet>()) { Setters = { new Setter(Sheet.EdgeProperty, Edge.Right) } });
+        host.Styles.Add(new Style(x => x.OfType<Panel>().Class("compact").Child().OfType<Sheet>()) { Setters = { new Setter(Sheet.EdgeProperty, Edge.Bottom) } });
+        var window = new Window { Content = host, Width = 300, Height = 200 };
+        window.Show();
+        Tick();
+        sheet.IsOpen = true;
+        Tick();
+        Frames.Advance(3000, 20);
+        Assert.Equal((150d, 1), (Math.Round(sheet.Position.Value, 1), entered));
+
+        host.Classes.Add("compact");
+        window.UpdateLayout();
+
+        Assert.Equal(Edge.Bottom, sheet.Edge);
+        Assert.True(sheet.IsOpen);
+        Assert.Equal(100, sheet.Position.Value, 1);
+        Assert.True(row.IsEffectivelyVisible);
+        Tick();
+        Frames.Advance(3000, 20);
+        Assert.Equal(1, entered);
+        Assert.Equal(100, sheet.Position.Value, 1);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnOpenSheetWhoseDetentsShrinkLandsOpenOnTheCoercedDetentAtOnce(bool reduced)
+    {
+        Presto.Defaults.ReducedMotion = reduced;
+        var (window, sheet) = Stage(new Border { Background = Brushes.Red });
+        sheet.DetentIndex = 2;
+        Frames.Advance(3000, 20);
+
+        sheet.Detents = SheetDetents.Parse("0,0.5");
+        window.UpdateLayout();
+
+        Assert.Equal((1, true), (sheet.DetentIndex, sheet.IsOpen));
+        Assert.Equal(100, sheet.Position.Value, 1);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ChangingTheEdgeOrDetentsMidDragDropsTheDragAndALaterDragWorks(bool reduced, bool detents)
+    {
+        Presto.Defaults.ReducedMotion = reduced;
+        var (window, sheet) = Opened();
+        var touch = new Touch(window);
+        var pointer = touch.Press(1, new Point(100, 150));
+        for (var i = 1; i <= 3; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, new Point(100, 150 - (10 * i)));
+        }
+        Assert.Same(sheet, pointer.Captured);
+
+        if (detents) sheet.Detents = SheetDetents.Parse("0,0.5");
+        else sheet.Edge = Edge.Right;
+        window.UpdateLayout();
+
+        Assert.Null(pointer.Captured);
+        Assert.Equal(100, sheet.Position.Value, 1);
+        touch.Move(1, new Point(100, 100));
+        touch.Up(1, new Point(100, 100));
+        Assert.Equal((1, 100d), (sheet.DetentIndex, Math.Round(sheet.Position.Value, 1)));
+
+        if (detents) touch.Drag(Frames, new Point(100, 150), new Vector(0, 80));
+        else touch.Drag(Frames, new Point(150, 100), new Vector(-70, 0));
+        Frames.Advance(3000, 20);
+        var landed = detents ? 0 : 2;
+        Assert.Equal(landed, sheet.DetentIndex);
+        Assert.Equal(100 * landed, sheet.Position.Value, 1);
+    }
+
+    [AvaloniaFact]
     public void UnderReducedMotionItLandsAtOnceAndTheScrimFades()
     {
         var (window, sheet) = Stage(new Border { Background = Brushes.Red });
@@ -286,6 +408,67 @@ public sealed class SheetTests : CompositorTestBase
 
         new Touch(window).Drag(Frames, new Point(100, 150), new Vector(0, -70));
         Assert.Equal(200, sheet.Position.Value, 1);
+    }
+
+    [AvaloniaFact]
+    public void AReleaseIsHandledOnlyAfterADrag()
+    {
+        var (window, _) = Opened();
+        var touch = new Touch(window);
+
+        touch.Press(1, new Point(100, 150));
+        Assert.False(touch.Up(1, new Point(100, 150)).Handled);
+
+        touch.Press(1, new Point(100, 150));
+        for (var i = 1; i <= 3; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, new Point(100, 150 - (10 * i)));
+        }
+        Assert.True(touch.Up(1, new Point(100, 120)).Handled);
+    }
+
+    [AvaloniaFact]
+    public void WithoutDetentsItOpensToItsContentsOwnExtent()
+    {
+        var sheet = new Sheet { Content = new Border { Height = 60, Background = Brushes.Red } };
+        var window = new Window { Content = sheet, Width = 200, Height = 200 };
+        window.Show();
+        Tick();
+
+        sheet.DetentIndex = 5;
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(1, sheet.DetentIndex);
+        Assert.Equal(60, sheet.Position.Value, 1);
+        Assert.Equal(140, sheet.Content!.TranslatePoint(default, window)!.Value.Y, 1);
+    }
+
+    [AvaloniaFact]
+    public void ItDefaultsClosedOnTheFirstDetentWithTwoWayStateAClippedBoundsAndATranslucentBlackScrim()
+    {
+        var sheet = new Sheet();
+
+        Assert.Equal(0, sheet.DetentIndex);
+        Assert.False(sheet.IsOpen);
+        Assert.Equal(BindingMode.TwoWay, Sheet.DetentIndexProperty.GetMetadata(typeof(Sheet)).DefaultBindingMode);
+        Assert.Equal(BindingMode.TwoWay, Sheet.IsOpenProperty.GetMetadata(typeof(Sheet)).DefaultBindingMode);
+        Assert.True(sheet.ClipToBounds);
+        Assert.Equal(Color.Parse("#52000000"), Assert.IsAssignableFrom<ISolidColorBrush>(sheet.Scrim).Color);
+    }
+
+    [AvaloniaFact]
+    public void WithoutAScrimATapOverTheHostReachesTheHost()
+    {
+        var (window, sheet) = Opened();
+        sheet.Scrim = null;
+        Tick();
+
+        Press(window, new Point(100, 40));
+        Frames.Advance(3000, 20);
+
+        Assert.True(sheet.IsOpen);
+        Assert.NotSame(Scrim(sheet), window.InputHitTest(new Point(100, 40)));
     }
 
     private static Border Scrim(Sheet sheet) => sheet.GetVisualChildren().OfType<Border>().First();

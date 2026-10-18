@@ -49,9 +49,9 @@ depends:
 - **BRIDGE-POPOVER-004** — When a popup opens and neither builder is found on its owner or presenter, `Popover` shall not handle it: it opens and closes as Avalonia does and its presenter's transitions are left alone.
   - Tests: `PopoverFlyoutTests.OnlyAnOwnerWithPopoverIsHandledAndHasItsPresentersOpacityTransitionLifted`, `PopoverPopupTests.WithoutPopoverAPopupClosesAtOnce`
 - **BRIDGE-POPOVER-005** (inherited) — A `Popup` whose child is not in the visual tree when `IsOpen` turns true shall get no run.
-  - Tests: untested
+  - Tests: `PopoverPopupTests.APopupWhoseChildIsNotInTheTreeGetsNoRun`
 - **BRIDGE-POPOVER-006** (inherited) — While `Design.IsDesignMode` is true, no run shall start.
-  - Tests: untested
+  - Tests: `PopoverPopupTests.NoRunStartsInDesignMode`
 
 ### Open
 
@@ -60,7 +60,7 @@ depends:
 - **BRIDGE-POPOVER-008** — While a handled popup is open, its presenter's `Opacity` transitions shall be lifted (`Transitions` set at `Animation` priority to the list without them), and the lift shall be disposed when the popup closes.
   - Tests: `PopoverFlyoutTests.OnlyAnOwnerWithPopoverIsHandledAndHasItsPresentersOpacityTransitionLifted`, `PopoverPopupTests.AToolTipOpensFromItsStartValuesAndClosesAtOnceWhileCloseFadesItsGhost`
 - **BRIDGE-POPOVER-009** (inherited) — Popover animations shall use `WhenDetached.Continue` and carry the diagnostics origin `"Popover"`.
-  - Tests: untested
+  - Tests: `PopoverFlyoutTests.PopoverAnimationsContinueWhenDetachedAndCarryThePopoverOrigin`
 
 ### Flyouts and context menus
 
@@ -69,7 +69,7 @@ depends:
 - **BRIDGE-POPOVER-011** — When a close is asked for again while `Close` plays, `Popover` shall cancel it again and let `Close` keep playing.
   - Tests: `PopoverFlyoutTests.ClosePlaysOnTheLivePresenterAndThenCloses`
 - **BRIDGE-POPOVER-012** (inherited) — A `Closing` another handler has already canceled shall be left alone.
-  - Tests: untested
+  - Tests: `PopoverFlyoutTests.AClosingAnotherHandlerCanceledIsLeftAlone`
 - **BRIDGE-POPOVER-013** — When the placement target is no longer under a top level, the popup shall close at once whatever `Closing` says, and the presenter's values shall revert.
   - Tests: `PopoverFlyoutTests.AnAnchorDetachingClosesAtOnceAndRevertsTheClose`, `PopupSpikeTests.AnOwnerDetachingClosesWhateverClosingSays`
 - **BRIDGE-POPOVER-014** — When a context menu is requested again (`Opening`) while `Close` plays, `Popover` shall play `Close` back from where it stands (`Reverse`) and write `Popup.IsOpen` true again under the canceled close, so a later close plays again.
@@ -120,7 +120,7 @@ depends:
 ### Defaults
 
 - **BRIDGE-POPOVER-030** (inherited) — When `Open` is not set on a handled popup's owner or presenter, the popup shall open with no Popover motion.
-  - Tests: untested
+  - Tests: `PopoverPopupTests.WithoutOpenAHandledPopupOpensWithNoMotion`
 - **BRIDGE-POPOVER-031** (inherited) — When `Close` is not set on a handled popup's owner or presenter, the popup shall close at once, as Avalonia closes it.
   - Tests: `PopoverFlyoutTests.OnlyAnOwnerWithPopoverIsHandledAndHasItsPresentersOpacityTransitionLifted`
 
@@ -132,6 +132,7 @@ depends:
 ## Edge cases
 
 - A flyout cannot be reopened mid-close on the same target: Avalonia's `ShowAt` returns early while open and `Hide()` raises a `Closing`, so both read as a repeated close.
+- A flyout owned by a `Sheet`'s anchored presentation is handled like any flyout; the sheet moves its content out, or shows the flyout again, only after `Closed` (BRIDGE-SHEET-042, BRIDGE-SHEET-043).
 - Only the Fluent `ToolTip` animates its own open with an `Opacity` transition; its fade comes back once the tooltip has closed (`PopupSpikeTests.OnlyTheFluentToolTipAnimatesItsOwnOpenWithAnOpacityTransition`).
 - The polling timer is internal and replaceable for tests (`PopoverRun.StartPolling`).
 
@@ -163,13 +164,15 @@ depends:
 - **Reduced popups close at once.** Read at close, with no `Close` and no ghost; `Open` plays the builder's reduced form, and a `Close` that completes on its first frame closes at once. Reason: not recorded beyond the reduced-motion rule (BRIDGE-REDUCED).
 - **Shown again mid-exit plays the exit back.** See BRIDGE-PRESENCE.
 - **`PopoverIn` predicts the facing edge from the placement.** See BRIDGE-RECIPES.
+- **A bindable flyout `IsOpen` is not Presto's job.** Opening and closing a flyout from a view model is an MVVM gap in Avalonia (`FlyoutBase.IsOpen` is read-only and `ShowAttachedFlyout` is a method), not a motion one, and Presto ships no MVVM helpers. Reason: Popover's motion already plays for any opener, since `ShowAt` or `ShowAttachedFlyout` plays `Open` and any `Hide()` plays `Close` (BRIDGE-POPOVER-010), so an app or community `IsOpen` behavior gets the motion unchanged; for a state held while open, `Button.Flyout` sets `:flyout-open`, which `Motion` already takes as a condition. Rejected: a `Popover.IsOpen` attached property, which would own anchor and placement policy that Avalonia leaves to the app.
 
 ## Non-goals
 
 - Reopening a flyout mid-close with `Close` played back.
 - Holding a `ToolTip` open: Avalonia's tooltip service cannot be held, so it ghosts.
 - Predicting `Pointer` placements in the recipes (BRIDGE-RECIPES).
+- A bindable `IsOpen` for flyouts (see A bindable flyout `IsOpen` is not Presto's job).
 
 ## Open items
 
-- BRIDGE-POPOVER-005, -006, -009 and -012 have no test.
+None.

@@ -6,6 +6,9 @@
     <Style Selector="Border.leaving">
       <Setter Property="presto:Presence.Exit" Value="{presto:Fade Out=True}" />
     </Style>
+    <Style Selector="TextBlock.revealing">
+      <Setter Property="presto:Presence.Exit" Value="{presto:LineMask}" />
+    </Style>
   </UserControl.Styles>
   <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
     <Border x:Name="Hovered" Width="50" Height="20" Background="Red" presto:Motion.Hover="{presto:Lift}" />
@@ -31,6 +34,7 @@
                presto:Presence.Enter="{presto:CharCascade}" presto:Presence.Exit="{presto:CharCascade}" />
     <TextBlock x:Name="Risen" Text="Hello"
                presto:Presence.Enter="{presto:LineRise}" presto:Presence.Exit="{presto:LineRise}" />
+    <TextBlock x:Name="StyledReveal" Classes="revealing" Text="Hello" />
     <TextBlock x:Name="Explicit" Text="Hello" presto:TextReveal.Pieces="Chars" presto:Presence.Initial="{presto:WordFade}" />
     <Button x:Name="Popped" Content="Menu">
       <Button.Flyout>

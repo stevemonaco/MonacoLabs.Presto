@@ -1,0 +1,8 @@
+#nullable enable
+MonacoLabs.Presto.DevTools.PrestoDevTools
+static MonacoLabs.Presto.DevTools.PrestoDevTools.Attach(Avalonia.Controls.TopLevel! top, Avalonia.Input.KeyGesture? gesture = null) -> void
+static MonacoLabs.Presto.DevTools.PrestoDevTools.Close(Avalonia.Controls.TopLevel! top) -> void
+static MonacoLabs.Presto.DevTools.PrestoDevTools.Detach(Avalonia.Controls.TopLevel! top) -> void
+static MonacoLabs.Presto.DevTools.PrestoDevTools.Open(Avalonia.Controls.TopLevel! top) -> void
+static MonacoLabs.Presto.DevTools.PrestoDevTools.Toggle(Avalonia.Controls.TopLevel! top) -> void
+static MonacoLabs.Presto.DevTools.PrestoDevTools.UsePrestoDevTools(this Avalonia.AppBuilder! builder, Avalonia.Input.KeyGesture? gesture = null) -> Avalonia.AppBuilder!

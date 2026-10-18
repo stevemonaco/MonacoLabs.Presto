@@ -22,6 +22,7 @@ tests:
   - TransformableTests
   - TransformMathTests
   - BridgeAllocationTests
+  - ScopePruningTests
 upstream: []
 depends:
   - CORE-ANIMATABLE
@@ -51,7 +52,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **BRIDGE-TRANSFORMABLE-003** — When a transformable is reverted, the target shall be released so that a `Draggable` can then be created on it.
   - Tests: `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`
 - **BRIDGE-TRANSFORMABLE-004** — When created inside a `Scope`, the transformable shall register with that scope so reverting the scope reverts it.
-  - Tests: untested
+  - Tests: `TransformableTests.RevertingTheScopeItWasCreatedInRevertsIt`
 - **BRIDGE-TRANSFORMABLE-005** — The transformable shall capture `Engine.Current` at creation and use that engine for time, precision, defaults and reduced motion in every later pointer event.
   - Tests: untested
 
@@ -79,7 +80,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **BRIDGE-TRANSFORMABLE-014** — While two pointers are manipulating, each move shall pan by half the moving pointer's displacement (when `Pan` is on), zoom by the ratio of the pointers' distance after to before (when `Zoom` is on) and turn by the change of their angle (when `Rotate` is on), all about the pointers' current midpoint, keeping the content point under that midpoint fixed.
   - Tests: `TransformableTests.SpreadingTwoFingersDoublesTheScaleAndKeepsTheirMidpointFixed`, `TransformableTests.MovingBothFingersTogetherPans`, `TransformableTests.TurningTwoFingersRotatesOnlyWhenRotateIsOn`, `TransformMathTests.FocalUpdateKeepsTheContentPointUnderTheFocalPointFixed`
 - **BRIDGE-TRANSFORMABLE-015** — When `Pan` is false, the pointers' own movement shall not pan, but a zoom or turn shall still move the translation to keep its focal point fixed.
-  - Tests: untested
+  - Tests: `TransformableTests.WithPanOffTheFingersDoNotPanButAZoomStillKeepsItsFocalPointFixed`
 - **BRIDGE-TRANSFORMABLE-016** — When one of two pointers lifts, the remaining pointer shall continue as a one-finger pan from its current position with no jump and reset velocity; when a second pointer lands mid-pan, a pinch shall start from the current state without a second `OnGrab`.
   - Tests: `TransformableTests.LiftingAFingerHandsOverToAPanAndASecondFingerPinchesFromThere`
 - **BRIDGE-TRANSFORMABLE-017** — While manipulating past `MinScale`/`MaxScale`, the shown scale shall be rubber-banded in log space as `limit·(s/limit)^ScaleFriction`.
@@ -87,11 +88,11 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **BRIDGE-TRANSFORMABLE-018** — While manipulating past the pan bounds, the shown translation shall keep `ScaleFriction` of its linear excess beyond the bounds.
   - Tests: `TransformableTests.UnderContainThePanClampsAndAFlickCoastsIntoTheEdgeAndSettlesOnIt`
 - **BRIDGE-TRANSFORMABLE-019** — When a grab begins on a rubber-banded state, the transformable shall invert the band (friction `1/ScaleFriction`, or 1 when friction is 0) so the target does not jump.
-  - Tests: untested
+  - Tests: `TransformableTests.AGrabOnARubberBandedStatePicksUpWithoutAJump`
 - **BRIDGE-TRANSFORMABLE-020** — Every write of the transform (manipulation moves, unanimated moves, `Refresh`) shall apply all four channels at once, sample the velocity trackers and invoke `OnUpdate`; while settling, `OnUpdate` shall also run on every animation update.
   - Tests: `TransformableTests.SpreadingTwoFingersDoublesTheScaleAndKeepsTheirMidpointFixed`, `TransformableTests.UnanimatedMovesApplyAtOnceAndResetRestoresIdentity`
 - **BRIDGE-TRANSFORMABLE-021** — `X`, `Y`, `Scale` and `Rotation` shall report the animatable's values rounded to the engine's precision; `Velocity` shall report the translation speed over recent samples in parent units per millisecond.
-  - Tests: untested
+  - Tests: `TransformableTests.ItsReadingsAreRoundedToTheEnginePrecisionAndVelocityIsInUnitsPerMillisecond`
 
 ### Pan bounds
 
@@ -115,13 +116,13 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **BRIDGE-TRANSFORMABLE-029** — When the released scale is inside its limits, the pan shall coast with the release inertia from its tracked velocity (zero velocity when `Pan` is off), with `Min`/`Max` taken from the pan bounds at the landed scale and angle, so a coast into an edge bounces and settles on it.
   - Tests: `TransformableTests.UnderContainThePanClampsAndAFlickCoastsIntoTheEdgeAndSettlesOnIt`
 - **BRIDGE-TRANSFORMABLE-030** — Scale shall never coast on release.
-  - Tests: untested
+  - Tests: `TransformableTests.AReleasedPinchKeepsItsScale`
 - **BRIDGE-TRANSFORMABLE-031** — When the release, or an animated programmatic move, comes to rest, the transformable shall invoke `OnSettle` exactly once; `OnRelease` and `OnSettle` shall fire once per gesture, in that order.
   - Tests: `TransformableTests.OnReleaseAndOnSettleFireOncePerGesture`
 - **BRIDGE-TRANSFORMABLE-032** (inherited) — When nothing is left running after the release starts (e.g. everything landed at once), `OnSettle` shall fire synchronously after `OnRelease`; when `OnRelease` calls `Stop`, no `OnSettle` shall follow.
-  - Tests: untested
+  - Tests: `TransformableTests.WhenTheReleaseLandsAtOnceOnSettleFollowsOnReleaseSynchronouslyUnlessOnReleaseStops`
 - **BRIDGE-TRANSFORMABLE-033** — When `ReleaseInertia` is null, the release shall use `new Inertia()` as its template.
-  - Tests: untested
+  - Tests: `TransformableTests.WithoutAReleaseInertiaTheReleaseCoastsAsADefaultInertia`
 
 ### Double-tap, wheel and trackpad
 
@@ -141,7 +142,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 ### Programmatic moves
 
 - **BRIDGE-TRANSFORMABLE-040** — `ZoomTo`, `PanTo`, `RotateTo` and `Reset` shall first drop any gesture in progress without a release (no `OnRelease`) and stop running animations.
-  - Tests: untested
+  - Tests: `TransformableTests.AProgrammaticMoveStopsTheCoastAndDropsTheGestureWithoutARelease`
 - **BRIDGE-TRANSFORMABLE-041** — `ZoomTo` shall clamp `scale` to the limits, `PanTo` shall clamp the translation into the pan bounds at the current scale and angle, and `ZoomTo`/`RotateTo` shall keep the content under `focal` (parent space; the container's center when null) fixed with the resulting translation clamped into the pan bounds.
   - Tests: `TransformableTests.ZoomPanAndRotateToClampAndPlayThroughSettle`, `TransformableTests.UnanimatedMovesApplyAtOnceAndResetRestoresIdentity`
 - **BRIDGE-TRANSFORMABLE-042** — `RotateTo` shall not clamp or snap the angle.
@@ -151,22 +152,24 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **BRIDGE-TRANSFORMABLE-044** — `Reset` shall return to translation (0, 0), scale 1 and rotation 0.
   - Tests: `TransformableTests.UnanimatedMovesApplyAtOnceAndResetRestoresIdentity`
 - **BRIDGE-TRANSFORMABLE-045** (inherited) — `ZoomTo`, `PanTo`, `RotateTo` and `Refresh` shall do nothing when the target has no visual parent.
-  - Tests: untested
+  - Tests: `TransformableTests.WithoutAVisualParentProgrammaticMovesAndRefreshDoNothing`
 - **BRIDGE-TRANSFORMABLE-046** — When `Settle` is null, the settle timing shall be `Recipes.Tokens.Medium` with `Recipes.Tokens.Ease`, duration 0 under reduced motion; when set, only its resolved `Duration` and `Ease` (after `WhenReduced`) shall be used, falling back to the engine defaults.
   - Tests: `TransformableTests.ACustomSettleDurationIsHonored`
 
 ### Playback verbs
 
 - **BRIDGE-TRANSFORMABLE-047** — `Stop` shall pause every animation on the transform, leaving the target where it is, and cancel the pending `OnSettle`; it does not drop pointers.
-  - Tests: untested
+  - Tests: `TransformableTests.StopFreezesTheTransformAndItsSettleButKeepsThePointers`
 - **BRIDGE-TRANSFORMABLE-048** — When not settling, `Refresh` shall clamp scale into its limits and the translation into freshly measured pan bounds at once (one write, `OnUpdate`).
-  - Tests: untested
+  - Tests: `TransformableTests.RefreshClampsTheScaleAndTheTranslationAtOnceWhenNotSettling`
 - **BRIDGE-TRANSFORMABLE-049** — While settling, `Refresh` shall re-aim the pan's coast at the new bounds from its current value and velocity only when the planned rest point falls outside them.
-  - Tests: untested
+  - Tests: `TransformableTests.RefreshDuringACoastReAimsItAtTheNewBounds`
 - **BRIDGE-TRANSFORMABLE-050** — `Disable` shall detach every handler from the trigger and drop the gesture in progress without a release, leaving the target where it is; `Enable` shall reattach them and be a no-op while enabled.
-  - Tests: untested
+  - Tests: `TransformableTests.DisableDropsTheGestureAndStopsListeningUntilEnabled`
 - **BRIDGE-TRANSFORMABLE-051** — `Revert` shall disable, revert the animatable so the transform returns to what it was before, and release the target's gesture ownership.
   - Tests: `TransformableTests.ADraggableAndATransformableCannotShareATargetUntilOneIsReverted`
+- **BRIDGE-TRANSFORMABLE-067** — Once reverted, the transformable shall count as released to the scope it registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 
 ### Reduced motion
 
@@ -187,7 +190,7 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **BRIDGE-TRANSFORMABLE-056** — When `Pan` or `Zoom` is not set, it shall be on.
   - Tests: `TransformableTests.SpreadingTwoFingersDoublesTheScaleAndKeepsTheirMidpointFixed`, `TransformableTests.AMouseDragPansOnceZoomedIn`
 - **BRIDGE-TRANSFORMABLE-057** — When `Rotate` is not set, it shall be off.
-  - Tests: untested
+  - Tests: `TransformableTests.WithoutRotateSetTurningTwoFingersDoesNotRotate`
 - **BRIDGE-TRANSFORMABLE-058** — When `PanAtRest` is not set, it shall be false.
   - Tests: `TransformableTests.AtRestAOneFingerDragIsLeftToAncestors`
 - **BRIDGE-TRANSFORMABLE-059** — When `PanBounds` is not set, it shall be `Contain`.
@@ -195,11 +198,11 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - **BRIDGE-TRANSFORMABLE-060** — When `MinScale` is not set, it shall be 1.
   - Tests: `TransformableTests.AtRestAOneFingerDragIsLeftToAncestors`
 - **BRIDGE-TRANSFORMABLE-061** — When `MaxScale` is not set, it shall be 4.
-  - Tests: untested
+  - Tests: `TransformableTests.ZoomPanAndRotateToClampAndPlayThroughSettle`
 - **BRIDGE-TRANSFORMABLE-062** — When `ScaleFriction` is not set, it shall be 0.35.
   - Tests: `TransformableTests.BeyondMaxScaleTheReleaseSpringsBackAboutTheLastFocalPoint`, `TransformableTests.UnderContainThePanClampsAndAFlickCoastsIntoTheEdgeAndSettlesOnIt`
 - **BRIDGE-TRANSFORMABLE-063** — When `RotationSnap` is not set, it shall be 0, so a released rotation is not snapped.
-  - Tests: untested
+  - Tests: `TransformableTests.WithoutRotationSnapAReleasedTurnIsNotSnapped`
 - **BRIDGE-TRANSFORMABLE-064** — When `DoubleTapScale` is not set, a double-tap shall zoom to 2.5.
   - Tests: `TransformableTests.ADoubleTapZoomsToDoubleTapScaleAboutTheTapAndTogglesBack`
 - **BRIDGE-TRANSFORMABLE-065** — When `WheelZoom` is not set, it shall be `WithControl`.
@@ -282,4 +285,5 @@ Direct manipulation of one control: one pointer pans it, two pan, pinch-zoom and
 - Under reduced motion a custom `Settle` without `WhenReduced` still animates the scale spring-back; consistent with the reduced-motion decision but untested.
 - The macOS trackpad rotate sign (`-Delta.X`) is unverified on hardware.
 - Android and Browser real-touch smoke runs are still to do, including a check that an ancestor `ScrollViewer`'s recognizer does not capture the first touch before the second lands.
-- Untested behaviors that should have tests: `Stop`, `Refresh` (both paths), `Disable`/`Enable`, `Trigger`, `Container`, `Pan = false`, `ReleaseInertia` template and `ModifyTarget` precedence, scope registration, `Velocity`, end-to-end `PanBounds.Inside`.
+- Untested behaviors that should have tests: `Trigger`, `Container`, `ModifyTarget` precedence, end-to-end `PanBounds.Inside`, and `Refresh` leaving a coast alone when its rest point stays inside the new bounds (049).
+- BRIDGE-TRANSFORMABLE-005 disagrees with the code: the settle timing resolves `Settle` (the default's `WhenReduced` included) against `Engine.Current` at the pointer event, not the captured engine, so a transformable created on an engine with `ReducedMotion` on still animates an out-of-limits scale spring-back while `Presto.Engine`'s flag is off. Time, precision and the pan's reduced release do follow the captured engine (`TransformableTests.ItKeepsTheEngineThatWasCurrentAtCreation`).

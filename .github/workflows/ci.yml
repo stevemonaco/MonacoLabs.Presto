@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-pack:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet --info
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+      # Projects by name, never the .slnx: restoring the mobile and browser heads without their workloads fails (NETSDK1147).
+      - name: Build
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet build samples/PrestoGallery/PrestoGallery.Desktop
+          dotnet build tests/MonacoLabs.Presto.Tests
+          dotnet build tests/MonacoLabs.Presto.Avalonia.Tests
+          dotnet build tests/PrestoGallery.Tests
+          dotnet build tests/Tempo.Tests
+      - name: Test
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test --project tests/MonacoLabs.Presto.Tests --no-build --report-xunit --results-directory TestResults
+          dotnet test --project tests/MonacoLabs.Presto.Avalonia.Tests --no-build --report-xunit --results-directory TestResults
+          dotnet test --project tests/PrestoGallery.Tests --no-build --report-xunit --results-directory TestResults
+          dotnet test --project tests/Tempo.Tests --no-build --report-xunit --results-directory TestResults
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: TestResults
+      - name: Pack
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet pack MonacoLabs.Presto -c Release -p:PrestoCiBuild=${{ github.run_number }} -o artifacts/packages
+          dotnet pack MonacoLabs.Presto.Avalonia -c Release -p:PrestoCiBuild=${{ github.run_number }} -o artifacts/packages
+          dotnet pack MonacoLabs.Presto.Avalonia.Lottie -c Release -p:PrestoCiBuild=${{ github.run_number }} -o artifacts/packages
+          dotnet pack MonacoLabs.Presto.Avalonia.DevTools -c Release -p:PrestoCiBuild=${{ github.run_number }} -o artifacts/packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+
+  aot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Publish the AOT probe
+        run: dotnet publish tests/MonacoLabs.Presto.AotProbe -c Release -r win-x64 -o artifacts/aot-probe -p:TrimmerSingleWarn=false
+      - name: Run the AOT probe
+        run: artifacts/aot-probe/MonacoLabs.Presto.AotProbe.exe

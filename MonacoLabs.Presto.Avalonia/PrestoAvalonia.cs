@@ -27,6 +27,9 @@ public static class PrestoAvalonia
     internal static bool Initialized;
     private static readonly List<SystemMotionReader> s_systemMotionReaders = [];
     private static bool s_reducedMotionHooked;
+    private static MotionPreference? s_motionPreference;
+    private static Func<bool?>? s_systemReducedMotionProbe;
+    private static IDisposable? s_preferenceFollower;
 
     /// <summary>
     /// What an animation on <see cref="Presto.Engine"/> does once every visual it animates has left the visual tree, unless
@@ -47,7 +50,6 @@ public static class PrestoAvalonia
         Initialized = true;
         Presto.Engine.FrameSource = new AvaloniaFrameSource();
         Presto.Adapters.Add(new AvaloniaObjectTargetAdapter());
-        Presto.Adapters.Add(new CompositorScratch.Adapter());
 
         Presto.Codecs[typeof(Color)] = new ColorCodec();
 
@@ -426,6 +428,7 @@ public static class PrestoAvalonia
     /// <summary>
     /// Plays <paramref name="exit"/> on a ghost of <paramref name="control"/> drawn where the control is now, so code that
     /// removes the control itself can do so in the same frame: <see cref="Presence.ExitProperty"/> for imperative removal.
+    /// The exit starts at once and joins no batch.
     /// </summary>
     /// <returns>The ghost's animation, whose completion or cancellation removes the ghost; <c>null</c> when <paramref name="control"/> is not on screen, as when it or an ancestor is hidden or at opacity 0.</returns>
     public static Animation? AnimateExit(Control control, AnimationBuilder exit)
@@ -607,13 +610,13 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
-    /// The outline of <paramref name="text"/> shaped with <paramref name="typeface"/> at <paramref name="fontSize"/>, with its
+    /// The outline of <paramref name="text"/> shaped with <paramref name="typeface"/> at <paramref name="fontSize"/> and with <paramref name="fontFeatures"/>, with its
     /// origin at the top left of the first line box and the font's nonzero fill rule; empty where a character has no outline.
     /// </summary>
-    public static Geometry TextOutline(string text, Typeface typeface, double fontSize)
+    public static Geometry TextOutline(string text, Typeface typeface, double fontSize, FontFeatureCollection? fontFeatures = null)
     {
         EnsureInitialized();
-        return GlyphOutlines.Geometry(text, typeface, fontSize);
+        return GlyphOutlines.Geometry(text, typeface, fontSize, fontFeatures: fontFeatures);
     }
 
     /// <summary>
@@ -769,11 +772,25 @@ public static class PrestoAvalonia
     /// when its extent or viewport changes. It stops at its last value once the scroller leaves the visual tree or the ambient
     /// scope reverts, and reattaching does not revive it, so make another.
     /// </remarks>
-    public static MotionValue ScrollValue(ScrollViewer scroller, ScrollAxis axis = ScrollAxis.Vertical, bool progress = false)
+    public static MotionValue ScrollValue(ScrollViewer scroller, ScrollAxis axis = ScrollAxis.Vertical, bool progress = false) =>
+        ScrollMeasureValue(scroller, axis, progress ? ScrollContainer.ScrollMeasure.Progress : ScrollContainer.ScrollMeasure.Offset);
+
+    /// <summary>
+    /// A <see cref="MotionValue"/> holding how far <paramref name="scroller"/> can still scroll towards the end of
+    /// <paramref name="axis"/> (extent − viewport − offset, never below 0), rounded to whole pixels.
+    /// </summary>
+    /// <remarks>Refreshed when the offset, extent or viewport changes; it stops and is not revived as <see cref="ScrollValue"/> describes.</remarks>
+    public static MotionValue ScrollRemainingValue(ScrollViewer scroller, ScrollAxis axis = ScrollAxis.Vertical) =>
+        ScrollMeasureValue(scroller, axis, ScrollContainer.ScrollMeasure.Remaining);
+
+    private static MotionValue ScrollMeasureValue(ScrollViewer scroller, ScrollAxis axis, ScrollContainer.ScrollMeasure measure)
     {
         EnsureInitialized();
-        var value = ScrollContainer.AddValue(scroller, axis, progress);
-        return MotionValueSource.Listen(scroller, value, () => ScrollContainer.Containers[scroller].RemoveValue(value));
+        var value = ScrollContainer.AddValue(scroller, axis, measure);
+        return MotionValueSource.Listen(scroller, value, () =>
+        {
+            if (ScrollContainer.Containers.TryGetValue(scroller, out var container)) container.RemoveValue(value);
+        });
     }
 
     /// <summary>
@@ -853,6 +870,48 @@ public static class PrestoAvalonia
     }
 
     /// <summary>
+    /// Where <see cref="PrestoDefaults.ReducedMotion"/> of <see cref="Presto.Engine"/> comes from: the OS setting, followed
+    /// through <see cref="SystemReducedMotionProbe"/>, or fixed off or on. <c>null</c>, the default, stops following and leaves
+    /// the flag to the app. <see cref="PrestoDefaults.ReduceAll"/> is never written; <c>Motion.Preference</c> sets this from XAML.
+    /// </summary>
+    public static MotionPreference? MotionPreference
+    {
+        get => s_motionPreference;
+        set
+        {
+            if (value == s_motionPreference) return;
+            s_motionPreference = value;
+            ApplyMotionPreference();
+        }
+    }
+
+    /// <summary>Reads the OS reduce-motion setting for <see cref="MotionPreference"/> in place of the built-in probe; <c>null</c> uses the built-in one.</summary>
+    public static Func<bool?>? SystemReducedMotionProbe
+    {
+        get => s_systemReducedMotionProbe;
+        set
+        {
+            if (value == s_systemReducedMotionProbe) return;
+            s_systemReducedMotionProbe = value;
+            if (s_motionPreference == MonacoLabs.Presto.MotionPreference.System) ApplyMotionPreference();
+        }
+    }
+
+    private static void ApplyMotionPreference()
+    {
+        s_preferenceFollower?.Dispose();
+        s_preferenceFollower = null;
+        if (s_motionPreference == MonacoLabs.Presto.MotionPreference.System)
+        {
+            using (Presto.Engine.MakeCurrent()) s_preferenceFollower = FollowSystemReducedMotion(s_systemReducedMotionProbe);
+        }
+        else if (s_motionPreference is { } preference)
+        {
+            Presto.Engine.OwnDefaults.ReducedMotion = preference == MonacoLabs.Presto.MotionPreference.Reduced;
+        }
+    }
+
+    /// <summary>
     /// Keeps <see cref="PrestoDefaults.ReducedMotion"/> on the <see cref="Engine.Current"/> engine in step with the OS
     /// reduce-motion setting until the returned handle is disposed, which stops following and leaves the flag as it is.
     /// </summary>
@@ -869,8 +928,8 @@ public static class PrestoAvalonia
         probe ??= ReducedMotionProbe.Read;
         return ReadSystemReducedMotion(() =>
         {
-            if (probe() is not { } reduced || reduced == engine.Defaults.ReducedMotion) return;
-            engine.Defaults.ReducedMotion = reduced;
+            if (probe() is not { } reduced || reduced == engine.OwnDefaults.ReducedMotion) return;
+            engine.OwnDefaults.ReducedMotion = reduced;
             changed?.Invoke(reduced);
         });
     }

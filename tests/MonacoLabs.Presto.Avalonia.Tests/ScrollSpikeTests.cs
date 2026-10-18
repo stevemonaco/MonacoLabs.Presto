@@ -338,5 +338,6 @@ public sealed class ScrollSpikeTests : BridgeTestBase
         return changes;
     }
 
-    private static bool InArrange() => Environment.StackTrace.Contains(".ArrangeOverride(", StringComparison.Ordinal);
+    // Tiered PGO can inline a hot ArrangeOverride out of the trace; the layout manager's Arrange is recursive, so never inlined.
+    private static bool InArrange() => Environment.StackTrace.Contains("Avalonia.Layout.LayoutManager.Arrange(", StringComparison.Ordinal);
 }

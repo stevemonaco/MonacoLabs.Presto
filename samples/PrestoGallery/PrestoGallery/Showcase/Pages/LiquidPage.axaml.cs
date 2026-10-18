@@ -37,6 +37,12 @@ public partial class LiquidPage : ShowcasePage
     private int _selected;
     private bool _open;
 
+    static LiquidPage()
+    {
+        Presto.RegisterTarget<Edges>();
+        Presto.RegisterTarget<Blob>();
+    }
+
     public LiquidPage()
     {
         InitializeComponent();

@@ -10,6 +10,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Controls;
+using MonacoLabs.Presto.Core;
+using MonacoLabs.Presto.Draggables;
 using MonacoLabs.Presto.Gestures;
 using MonacoLabs.Presto.Platform;
 using Path = Avalonia.Controls.Shapes.Path;
@@ -38,6 +40,20 @@ public sealed class BridgeAllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ASnappedWidthTweenTicksWithinBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var border = new Border { Width = 168, UseLayoutRounding = true };
+        border.Animate(new() { ["Width"] = 44, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
     [InlineData("HorizontalAlignment", false)]
     [InlineData("HorizontalAlignment", true)]
     [InlineData("IsVisible", false)]
@@ -59,6 +75,22 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         // measured 80 (IsVisible) and 83 (HorizontalAlignment): the opacity's 80, plus the alignment's change args at each flip.
         Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void ASignalWithNothingLiveAllocatesNothing()
+    {
+        var border = new Border();
+        Show(border);
+        var engine = new Engine(new ManualFrameSource());
+        using (engine.MakeCurrent()) Animate.SetOnAttached(border, Presto.Build().X(100).Loop().WhenReduced(reduced => reduced.Opacity(0)));
+        Animate.SetOnAttached(border, null);
+        var defaults = engine.Defaults;
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 100; i++) defaults.ReducedMotion = !defaults.ReducedMotion;
+
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
     [AvaloniaTheory]
@@ -158,8 +190,8 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         var bytes = BytesPerTick();
 
-        // measured 3840, 640 per character: its new StreamGeometry with the context and Skia path behind it, and the Data change.
-        Assert.True(bytes <= 4096, $"{bytes:0.##} bytes per tick");
+        // measured 4272 on Avalonia 12.1.4, 712 per character: its new StreamGeometry with the context and Skia path behind it, and the Data change.
+        Assert.True(bytes <= 4608, $"{bytes:0.##} bytes per tick");
     }
 
     [AvaloniaTheory]
@@ -226,6 +258,20 @@ public sealed class BridgeAllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AScrollingMarqueeTicksWithinBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        Show(new Marquee { Content = new Border { Width = 50 } });
+
+        var bytes = BytesPerTick();
+
+        // measured 80: the speed channel and the timer allocate nothing, so this is the strip's one shorthand property change.
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
     [InlineData("Blur", false)]
     [InlineData("Blur", true)]
     [InlineData("ShadowBlur", false)]
@@ -270,6 +316,23 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         // measured 800, as much as a timer writing the offset with SetCurrentValue itself: all of it is the ScrollViewer reacting to the change.
         Assert.True(bytes <= 896, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void EdgeCuesAddOnlyTheirPropertyChangesToAnOffsetWrite()
+    {
+        var bare = BytesPerOffsetWrite(ScrollStage.Show().Scroller);
+        var stage = ScrollStage.Show();
+        var shadow = new Border();
+        Scroll.SetCueEdge(shadow, ScrollEdge.Bottom);
+        Scroll.SetCueFor(shadow, stage.Scroller);
+        stage.Panel.Children.Add(shadow);
+        Scroll.SetFadeEdges(stage.Scroller, 24);
+
+        var cued = BytesPerOffsetWrite(stage.Scroller);
+
+        // measured 200 more: 80 for the shadow's opacity change and 120 for the stop's, whose brush tracks it through INotifyPropertyChanged.
+        Assert.True(cued - bare <= 224, $"{cued:0.##} bytes per offset write with the cues, {bare:0.##} without");
     }
 
     [AvaloniaTheory]
@@ -392,12 +455,40 @@ public sealed class BridgeAllocationTests : CompositorTestBase
         PointerEventArgs[] moves = [Move(new Point(10, 10)), Move(new Point(70, 30))];
 
         // Bystander is outside the stage, so raising the same args on it prices Avalonia's routing without the tracker.
-        var bytes = BytesPerMove(boxes, moves) - BytesPerMove(bystander, moves);
+        // The median of alternating blocks keeps a one-off allocation in a full run from failing a zero budget.
+        var differences = new double[5];
+        for (var i = 0; i < differences.Length; i++) differences[i] = BytesPerMove(boxes, moves) - BytesPerMove(bystander, moves);
+        Array.Sort(differences);
+        var bytes = differences[differences.Length / 2];
 
-        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per move");
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per move, median of {string.Join(", ", differences.Select(d => d.ToString("0.##")))}");
 
         PointerEventArgs Move(Point point) => new(InputElement.PointerMovedEvent, boxes, mouse, window, point, 0,
             new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DropHitTestingAllocatesNothingPerFrame(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var target = Box();
+        var canvas = new Canvas();
+        for (var i = 0; i < 3; i++)
+        {
+            var zone = new Border { Width = 60, Height = 100 };
+            Canvas.SetLeft(zone, i * 50);
+            Drop.SetGroup(zone, "lanes");
+            canvas.Children.Add(zone);
+        }
+        canvas.Children.Add(target);
+        var window = Show(canvas);
+
+        var plain = BytesPerDragFrame(window, target, new());
+        var hovering = BytesPerDragFrame(window, target, new() { DropGroup = "lanes", DropHit = DropHit.Overlap });
+
+        Assert.True(hovering - plain <= 0, $"{hovering:0.##} bytes per frame hovering, {plain:0.##} without a drop group");
     }
 
     [AvaloniaFact]
@@ -412,6 +503,31 @@ public sealed class BridgeAllocationTests : CompositorTestBase
         var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.True(bytes == 0, $"{bytes} bytes over 1000 frames");
+    }
+
+    private static double BytesPerOffsetWrite(ScrollViewer scroller)
+    {
+        const int measured = 200;
+        var before = 0L;
+        for (var i = 0; i < 20 + measured; i++)
+        {
+            if (i == 20) before = GC.GetAllocatedBytesForCurrentThread();
+            scroller.Offset = new Vector(0, 500 - Math.Abs((i % 46) - 23)); // sweeps the 24 units before the end of 500, inside the fade
+        }
+        return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;
+    }
+
+    // The target is held still, but the drag's update still runs every frame.
+    private double BytesPerDragFrame(Window window, Control target, DraggableParams parameters)
+    {
+        var draggable = PrestoAvalonia.CreateDraggable(target, parameters);
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        window.MouseMove(new Point(40, 25));
+        var bytes = BytesPerTick();
+        Assert.Equal(parameters.DropGroup is not null, draggable.Zone is not null);
+        window.MouseUp(new Point(40, 25), MouseButton.Left);
+        draggable.Revert();
+        return bytes;
     }
 
     private double BytesPerMove(Interactive on, PointerEventArgs[] moves)

@@ -13,7 +13,7 @@ namespace MonacoLabs.Presto;
 
 /// <summary>
 /// GSAP ScrollSmoother-style scrolling: <see cref="SpeedProperty"/> parallax on an element inside a <see cref="ScrollViewer"/>,
-/// and <see cref="SmoothProperty"/> wheel easing on the scroller itself.
+/// <see cref="SmoothProperty"/> wheel easing on the scroller itself, and <see cref="CueForProperty"/> and <see cref="FadeEdgesProperty"/> edge cues.
 /// </summary>
 /// <remarks>
 /// The parallax offset, <c>(1 − speed) × max(0, scroll − entry)</c>, drives the <c>"Y"</c> shorthand, or <c>"X"</c> when the scroller
@@ -61,11 +61,47 @@ public static class Scroll
     private static readonly AttachedProperty<EndFollower?> EndFollowerProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, EndFollower?>("EndFollower", typeof(Scroll));
 
+    /// <summary>The scroller, or the control templating one, whose <see cref="CueEdgeProperty"/> this element cues by its opacity.</summary>
+    /// <remarks>
+    /// The opacity is written with <c>SetCurrentValue</c> in the scroller's own notifications as the distance past the edge
+    /// over <see cref="CueRampProperty"/>, clamped to 0..1, and cleared when this is cleared or the element detaches.
+    /// </remarks>
+    public static readonly AttachedProperty<Control?> CueForProperty =
+        AvaloniaProperty.RegisterAttached<Visual, Control?>("CueFor", typeof(Scroll));
+
+    /// <summary>The edge of the <see cref="CueForProperty"/> scroller that this element cues.</summary>
+    public static readonly AttachedProperty<ScrollEdge> CueEdgeProperty =
+        AvaloniaProperty.RegisterAttached<Visual, ScrollEdge>("CueEdge", typeof(Scroll), ScrollEdge.Top);
+
+    /// <summary>How far, in DIPs, content must go past an edge before its cue is at full strength; set on the scroller or the control templating it.</summary>
+    public static readonly AttachedProperty<double> CueRampProperty =
+        AvaloniaProperty.RegisterAttached<Control, double>("CueRamp", typeof(Scroll), 24);
+
+    private static readonly AttachedProperty<ScrollCue?> CueProperty =
+        AvaloniaProperty.RegisterAttached<Visual, ScrollCue?>("Cue", typeof(Scroll));
+
+    /// <summary>
+    /// How far, in DIPs, each end of the scroller, or of the control templating one, fades out while content lies past it; 0 turns the fade off.
+    /// </summary>
+    /// <remarks>
+    /// The fade is an <see cref="Visual.OpacityMask"/> along the axis <see cref="StickToEndProperty"/> follows, replacing any mask on the
+    /// control. Each fade is capped at half the control's length, and its strength follows <see cref="CueRampProperty"/> as a cue's does.
+    /// </remarks>
+    public static readonly AttachedProperty<double> FadeEdgesProperty =
+        AvaloniaProperty.RegisterAttached<Control, double>("FadeEdges", typeof(Scroll));
+
+    private static readonly AttachedProperty<ScrollCue?> FadeProperty =
+        AvaloniaProperty.RegisterAttached<Control, ScrollCue?>("Fade", typeof(Scroll));
+
     static Scroll()
     {
         SpeedProperty.Changed.AddClassHandler<Control>(HandleSpeedChanged);
         SmoothProperty.Changed.AddClassHandler<ScrollViewer>(HandleSmoothChanged);
         StickToEndProperty.Changed.AddClassHandler<ScrollViewer>(HandleStickToEndChanged);
+        CueForProperty.Changed.AddClassHandler<Visual>(HandleCueForChanged);
+        CueEdgeProperty.Changed.AddClassHandler<Visual>(static (element, _) => element.GetValue(CueProperty)?.Update());
+        CueRampProperty.Changed.AddClassHandler<Control>(HandleCueRampChanged);
+        FadeEdgesProperty.Changed.AddClassHandler<Control>(HandleFadeEdgesChanged);
     }
 
     /// <summary>Gets how fast <paramref name="control"/> moves relative to the scrolled content.</summary>
@@ -107,6 +143,59 @@ public static class Scroll
         {
             scroller.GetValue(EndFollowerProperty)?.Release();
             scroller.ClearValue(EndFollowerProperty);
+        }
+    }
+
+    /// <summary>Gets the scroller, or the control templating one, that <paramref name="element"/> cues.</summary>
+    public static Control? GetCueFor(Visual element) => element.GetValue(CueForProperty);
+
+    /// <summary>Sets the scroller, or the control templating one, that <paramref name="element"/> cues.</summary>
+    public static void SetCueFor(Visual element, Control? value) => element.SetValue(CueForProperty, value);
+
+    /// <summary>Gets the edge <paramref name="element"/> cues.</summary>
+    public static ScrollEdge GetCueEdge(Visual element) => element.GetValue(CueEdgeProperty);
+
+    /// <summary>Sets the edge <paramref name="element"/> cues.</summary>
+    public static void SetCueEdge(Visual element, ScrollEdge value) => element.SetValue(CueEdgeProperty, value);
+
+    /// <summary>Gets how far content must go past an edge of <paramref name="control"/>'s scroller before its cue is at full strength.</summary>
+    public static double GetCueRamp(Control control) => control.GetValue(CueRampProperty);
+
+    /// <summary>Sets how far content must go past an edge of <paramref name="control"/>'s scroller before its cue is at full strength.</summary>
+    public static void SetCueRamp(Control control, double value) => control.SetValue(CueRampProperty, value);
+
+    private static void HandleCueForChanged(Visual element, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (Design.IsDesignMode) return;
+        element.GetValue(CueProperty)?.Release();
+        if (e.NewValue is Control target) element.SetValue(CueProperty, new ScrollCue(element, target));
+        else element.ClearValue(CueProperty);
+    }
+
+    private static void HandleCueRampChanged(Control control, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (ScrollCue.ScrollerOf(control) is { } scroller && ScrollContainer.Containers.TryGetValue(scroller, out var container)) container.UpdateCues();
+    }
+
+    /// <summary>Gets how far each end of <paramref name="control"/>'s scroller fades out while content lies past it.</summary>
+    public static double GetFadeEdges(Control control) => control.GetValue(FadeEdgesProperty);
+
+    /// <summary>Sets how far each end of <paramref name="control"/>'s scroller fades out while content lies past it.</summary>
+    public static void SetFadeEdges(Control control, double value) => control.SetValue(FadeEdgesProperty, value);
+
+    private static void HandleFadeEdgesChanged(Control control, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (Design.IsDesignMode) return;
+        var fade = control.GetValue(FadeProperty);
+        if (e.NewValue is > 0d)
+        {
+            if (fade != null) fade.Update();
+            else control.SetValue(FadeProperty, new ScrollCue(control, control, fade: true));
+        }
+        else
+        {
+            fade?.Release();
+            control.ClearValue(FadeProperty);
         }
     }
 

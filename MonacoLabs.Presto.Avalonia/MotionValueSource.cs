@@ -3,7 +3,7 @@ using Avalonia;
 namespace MonacoLabs.Presto;
 
 /// <summary>Stops a bridge <see cref="MotionValue"/> source listening when its visual leaves the tree or its scope reverts.</summary>
-internal sealed class MotionValueSource : IRevertible
+internal sealed class MotionValueSource : IRevertible, IReleasable
 {
     private readonly Visual? _visual;
     private Action? _stop;
@@ -29,6 +29,8 @@ internal sealed class MotionValueSource : IRevertible
         if (_visual != null) _visual.DetachedFromVisualTree -= HandleDetached;
         stop();
     }
+
+    bool IReleasable.IsReleased => _stop == null;
 
     private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e) => Revert();
 }

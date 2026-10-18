@@ -12,6 +12,7 @@
     <Project Path="samples/Tempo/Tempo/Tempo.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/MonacoLabs.Presto.AotProbe/MonacoLabs.Presto.AotProbe.csproj" />
     <Project Path="tests/MonacoLabs.Presto.Avalonia.Tests/MonacoLabs.Presto.Avalonia.Tests.csproj" />
     <Project Path="tests/MonacoLabs.Presto.Tests/MonacoLabs.Presto.Tests.csproj" />
     <Project Path="tests/PrestoGallery.Tests/PrestoGallery.Tests.csproj" />

@@ -3,10 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Gestures;
 using MonacoLabs.Presto.Transforms;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Diagnostics;
+using MonacoLabs.Presto.Targets;
 
 namespace MonacoLabs.Presto.Draggables;
 
@@ -16,8 +18,16 @@ namespace MonacoLabs.Presto.Draggables;
 /// bounds and container friction, and a release that throws the target on with the pointer's velocity.
 /// </summary>
 /// <remarks>One pointer drags at a time, mouse and touch alike, through a pointer capture on the trigger.</remarks>
-public sealed class Draggable : IRevertible
+public sealed class Draggable : IRevertible, IReleasable, IMemberTarget
 {
+    private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+    {
+        [nameof(X)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.X, (draggable, value) => draggable.X = value),
+        [nameof(Y)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.Y, (draggable, value) => draggable.Y = value),
+        [nameof(ProgressX)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.ProgressX, (draggable, value) => draggable.ProgressX = value),
+        [nameof(ProgressY)] = ObjectTargetAdapter.MemberAccessor.Of<Draggable, double>(draggable => draggable.ProgressY, (draggable, value) => draggable.ProgressY = value),
+    };
+
     internal const double DefaultScrollSpeed = 1.5;
     internal const double DefaultScrollThreshold = 20;
     private const double ResizeDebounce = 150;
@@ -98,9 +108,13 @@ public sealed class Draggable : IRevertible
     private bool _dragged;
     private bool _updated;
     private bool _released;
+    private bool _reverted;
     private bool _scrollLocked;
+    private bool _hovering;
     private MotionValue? _xValue;
     private MotionValue? _yValue;
+    private LayoutTransition? _flight;
+    private LayoutTransition? _displacedLayout;
 
     internal Draggable(Control target, DraggableParams parameters)
     {
@@ -212,25 +226,27 @@ public sealed class Draggable : IRevertible
         set => SetY(Utils.MapRange(value, 0, 1, _boundsTop, _boundsBottom), false);
     }
 
+    IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
+
     /// <summary>Pointer speed over the last three sampled frames, in units per millisecond; the release throw is scaled by it.</summary>
     public double Velocity { get; private set; }
 
     /// <summary>Direction of the last pointer move, in radians.</summary>
     public double Angle { get; private set; }
 
+    /// <summary>The <see cref="DraggableParams.DropGroup"/> zone the target is over, tracked through the drag and the release throw.</summary>
+    public Control? Zone { get; private set; }
+
     /// <summary>Stops the drag and every animation running on the target's axes, leaving it where it is.</summary>
-    /// <remarks>Only the draggable's own release, overshoot and scroll animations are canceled; animations on other targets keep running.</remarks>
+    /// <remarks>
+    /// Only the draggable's own release, overshoot and scroll animations are canceled; animations on other targets keep running.
+    /// <see cref="Zone"/> is cleared without a drop or a miss.
+    /// </remarks>
     public Draggable Stop()
     {
-        _updateTicker.Pause();
-        _overshootTicker.Pause();
-        foreach (var animation in Animate.Animations.Values) animation.Pause();
-        Presto.Remove(this);
-        // Canceled rather than removed: unlinking the engine's next child mid-frame drops every child after it.
-        _overshootOut?.Cancel();
-        _overshootBack?.Cancel();
-        _scrolling?.Cancel();
-        _overshootOut = _overshootBack = _scrolling = null;
+        Halt();
+        _hovering = false;
+        MoveZone(null);
         return this;
     }
 
@@ -246,6 +262,31 @@ public sealed class Draggable : IRevertible
         _coordX = _coordY = 0;
         _pointerX = _pointerY = _pointerPrevX = _pointerPrevY = _appliedX = _appliedY = _grabX = _grabY = 0;
         ClearVelocity();
+        return this;
+    }
+
+    /// <summary>
+    /// Moves the target into <paramref name="panel"/> at <paramref name="index"/> (appended when null), resets its axes to 0 and
+    /// flies it into its new slot from where it is drawn now, position only, over the release's settling duration and ease.
+    /// </summary>
+    /// <remarks>Meant for <see cref="DraggableParams.OnDrop"/>. An <c>AnimateLayout</c> on the target is armed again once the flight lands.</remarks>
+    /// <exception cref="InvalidOperationException">The target's parent is not a <see cref="Panel"/>.</exception>
+    public Draggable Reparent(Panel panel, int? index = null)
+    {
+        if (_target.Parent is not Panel parent) throw new InvalidOperationException("Reparent needs the target's parent to be a Panel.");
+        // Taken before the flight replaces it; a XAML Animate.Layout (Replaced set) re-arms itself.
+        if (LayoutTransition.Live(_target) is { Once: false, Replaced: null } layout)
+        {
+            layout.Displaced = true;
+            _displacedLayout = layout;
+        }
+        _releaseSpringX.Velocity = 0;
+        var flight = _flight = PrestoAvalonia.AnimateSharedElement(
+            _target, _target, SettlingDuration(_releaseSpringX), _hasReleaseSpring ? _releaseSpringX.Ease : _releaseEase, LayoutAnimateMode.Position);
+        parent.Children.Remove(_target);
+        panel.Children.Insert(index ?? panel.Children.Count, _target);
+        Reset();
+        if (_displacedLayout is not null) RearmLayoutAfter(flight);
         return this;
     }
 
@@ -324,6 +365,7 @@ public sealed class Draggable : IRevertible
     {
         if (_enabled) return this;
         _enabled = true;
+        _reverted = false;
         _trigger.PointerEntered += HandleEntered;
         _trigger.PointerExited += HandleExited;
         _trigger.PointerPressed += HandlePressed;
@@ -337,7 +379,8 @@ public sealed class Draggable : IRevertible
     public Draggable Disable()
     {
         _enabled = false;
-        _grabbed = _dragged = _updated = _released = false;
+        _grabbed = _dragged = _updated = _released = _hovering = false;
+        MoveZone(null);
         ReleasePointer();
         RestoreCursor();
         _trigger.PointerEntered -= HandleEntered;
@@ -358,13 +401,30 @@ public sealed class Draggable : IRevertible
         _overshootTicker.Revert();
         _resizeTicker.Revert();
         Animate.Revert();
+        _flight?.Revert();
         _target.SizeChanged -= HandleSizeChanged;
         if (_parameters.Container is { } container && container != _target) container.SizeChanged -= HandleSizeChanged;
         GestureOwners.Release(_target, this);
+        _reverted = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _reverted;
+
+    private void Halt()
+    {
+        _updateTicker.Pause();
+        _overshootTicker.Pause();
+        foreach (var animation in Animate.Animations.Values) animation.Pause();
+        Presto.Remove(this);
+        // Canceled rather than removed: unlinking the engine's next child mid-frame drops every child after it.
+        _overshootOut?.Cancel();
+        _overshootBack?.Cancel();
+        _scrolling?.Cancel();
+        _overshootOut = _overshootBack = _scrolling = null;
+    }
 
     private static Spring NewReleaseSpring(DraggableParams parameters) =>
         new(parameters.ReleaseMass ?? 1, parameters.ReleaseStiffness ?? 80, parameters.ReleaseDamping ?? 20);
@@ -500,7 +560,73 @@ public sealed class Draggable : IRevertible
         ComputeVelocity(movedX, movedY);
         Angle = Math.Atan2(_pointerY - _pointerPrevY, _pointerX - _pointerPrevX);
         if ((_snapX != null && _snappedX != snappedX) || (_snapY != null && _snappedY != snappedY)) _parameters.OnSnap?.Invoke(this);
+        HoverZones();
     }
+
+    private void HoverZones()
+    {
+        if (!_hovering || _parameters.DropGroup is not { } group || TopLevel.GetTopLevel(_target) is not { } root) return;
+        var zone = FindZone(group, root);
+        if (zone == Zone) return;
+        MoveZone(zone);
+        _parameters.OnZoneChange?.Invoke(this);
+    }
+
+    // Subscribed only while a zone is held, so the static event never keeps an idle draggable alive.
+    private void MoveZone(Control? zone)
+    {
+        if (Zone is { } left)
+        {
+            ((IPseudoClasses)left.Classes).Set(":dragover", false);
+            DropZones.Left -= HandleZoneLeft;
+        }
+        if (zone is not null)
+        {
+            ((IPseudoClasses)zone.Classes).Set(":dragover", true);
+            DropZones.Left += HandleZoneLeft;
+        }
+        Zone = zone;
+    }
+
+    private void HandleZoneLeft(Control zone)
+    {
+        if (zone != Zone) return;
+        MoveZone(null);
+        _parameters.OnZoneChange?.Invoke(this);
+    }
+
+    // Zones are walked in registration order, so on a tie the one registered last wins.
+    private Control? FindZone(string group, TopLevel root)
+    {
+        if (DropZones.Of(root) is not { } zones || _target.TransformToVisual(root) is not { } targetToRoot) return null;
+        var drawn = new Rect(_target.Bounds.Size).TransformToAABB(targetToRoot);
+        var hit = _parameters.DropHit;
+        var point = hit == DropHit.Pointer ? new Point(_pointerX, _pointerY) : drawn.Center;
+        Control? found = null;
+        var largest = 0d;
+        for (var i = 0; i < zones.Count; i++)
+        {
+            var zone = zones[i];
+            if (!DropZones.IsUsable(zone, group) || zone == _target || _target.IsVisualAncestorOf(zone)) continue;
+            if (zone.TransformToVisual(root) is not { } zoneToRoot) continue;
+            var bounds = new Rect(zone.Bounds.Size).TransformToAABB(zoneToRoot);
+            if (hit == DropHit.Overlap)
+            {
+                var overlap = bounds.Intersect(drawn);
+                var area = overlap.Width * overlap.Height;
+                if (area <= 0 || area < largest || !Accepts(zone)) continue;
+                largest = area;
+                found = zone;
+            }
+            else if (bounds.Contains(point) && Accepts(zone))
+            {
+                found = zone;
+            }
+        }
+        return found;
+    }
+
+    private bool Accepts(Control zone) => _parameters.CanDrop?.Invoke(this, zone) ?? true;
 
     private void HandleRender(Animatable _)
     {
@@ -521,6 +647,7 @@ public sealed class Draggable : IRevertible
             ComputeVelocity(dx, dy);
             Angle = Math.Atan2(dy, dx);
         }
+        if (!_grabbed && _parameters.DropHit != DropHit.Pointer) HoverZones();
     }
 
     private void HandleSettle(Animatable _)
@@ -528,8 +655,23 @@ public sealed class Draggable : IRevertible
         // Cleared before the callback so a drag started from inside it is not taken for the tail of this one.
         if (!_grabbed && _released) _released = false;
         if (_manual) return;
+        // A grab pauses the release into a settle here; its drop waits for the next release.
+        var dropping = _hovering && !_grabbed;
+        // Taken before OnSettle, so a Reset there does not swallow the drop.
+        var zone = Zone;
+        if (dropping) _hovering = false;
         ClearVelocity();
         _parameters.OnSettle?.Invoke(this);
+        if (!dropping) return;
+        if (zone is null)
+        {
+            if (_parameters.DropMiss == DropMiss.ReturnHome && (X != _grabValueX || Y != _grabValueY)) ReturnToGrab();
+            _parameters.OnDropMiss?.Invoke(this);
+            return;
+        }
+        Zone = zone;
+        _parameters.OnDrop?.Invoke(this);
+        MoveZone(null);
     }
 
     private void HandleSizeChanged(object? sender, SizeChangedEventArgs e) => _resizeTicker.Restart();
@@ -552,7 +694,8 @@ public sealed class Draggable : IRevertible
         e.Pointer.Capture(_trigger);
         _grabbed = true;
         _released = false;
-        Stop();
+        // Not Stop: a throw grabbed again keeps its zone, and the drop resolves when the new release settles.
+        Halt();
         UpdateBoundingValues();
         var position = e.GetPosition(null);
         var friction = 1 - _containerFriction;
@@ -588,6 +731,7 @@ public sealed class Draggable : IRevertible
         _pointerX = position.X;
         _pointerY = position.Y;
         _dragged = true;
+        _hovering = true;
         _released = false;
         _parameters.OnDrag?.Invoke(this);
     }
@@ -615,10 +759,13 @@ public sealed class Draggable : IRevertible
 
         if (cancel)
         {
+            var missed = _hovering;
+            // Cleared before the return, which settles at once when the target is already home.
+            _hovering = false;
+            MoveZone(null);
             ReturnToGrab();
-            _updated = true;
-            _released = true;
             _parameters.OnRelease?.Invoke(this);
+            if (missed) _parameters.OnDropMiss?.Invoke(this);
             return;
         }
 
@@ -704,6 +851,8 @@ public sealed class Draggable : IRevertible
 
     private void ReturnToGrab()
     {
+        _updated = true;
+        _released = true;
         _destX = _snappedX = _grabValueX;
         _destY = _snappedY = _grabValueY;
         SetAxes(
@@ -727,8 +876,19 @@ public sealed class Draggable : IRevertible
     private double ReturnDuration(Spring spring, double from, double to)
     {
         spring.Velocity = 0;
-        if (from == to) return 0;
-        return _hasReleaseSpring ? spring.SettlingDuration : spring.SettlingDuration - Spring.RestDuration * Globals.TimeScale;
+        return from == to ? 0 : SettlingDuration(spring);
+    }
+
+    private double SettlingDuration(Spring spring) =>
+        _hasReleaseSpring ? spring.SettlingDuration : spring.SettlingDuration - Spring.RestDuration * Globals.TimeScale;
+
+    // Skipped once a later Reparent or a revert has replaced the flight.
+    private async void RearmLayoutAfter(LayoutTransition flight)
+    {
+        await flight.Then();
+        if (LayoutTransition.Live(_target) != flight || _displacedLayout is not { } layout) return;
+        _displacedLayout = null;
+        layout.Rearm();
     }
 
     // A null velocity carries on at the axis's current speed. Returns the longest axis duration.
@@ -799,8 +959,7 @@ public sealed class Draggable : IRevertible
         spring.Velocity = otherAxisDisabled && _hasReleaseSpring
             ? distance != 0 ? thrown * direction / Math.Abs(distance) : 0
             : velocity;
-        if (from == to) return 0;
-        return _hasReleaseSpring ? spring.SettlingDuration : spring.SettlingDuration - Spring.RestDuration * Globals.TimeScale;
+        return from == to ? 0 : SettlingDuration(spring);
     }
 
     private void TakeCursor(Cursor? cursor)
@@ -835,9 +994,17 @@ public sealed class Draggable : IRevertible
         _escapeRoot = null;
     }
 
-    private sealed class Coords
+    private sealed class Coords : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(X)] = ObjectTargetAdapter.MemberAccessor.Of<Coords, double>(coords => coords.X, (coords, value) => coords.X = value),
+            [nameof(Y)] = ObjectTargetAdapter.MemberAccessor.Of<Coords, double>(coords => coords.Y, (coords, value) => coords.Y = value),
+        };
+
         public double X { get; set; }
         public double Y { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

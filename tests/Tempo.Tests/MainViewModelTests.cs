@@ -10,6 +10,8 @@ public sealed class MainViewModelTests : TempoTestBase
     public async Task AddingATaskAppendsItAndClearsTheBox()
     {
         var vm = await LoadAsync();
+        var added = new Raises<TaskItemViewModel>();
+        using var subscription = vm.TaskAdded.Subscribe(added);
         vm.NewTaskTitle = "  Write proposal ";
         vm.AddTaskCommand.Execute(null);
 
@@ -18,6 +20,7 @@ public sealed class MainViewModelTests : TempoTestBase
         vm.AddTaskCommand.Execute(null);
 
         var task = Assert.Single(vm.Tasks);
+        Assert.Equal([task], added.Values);
         Assert.Equal("Write proposal", task.Title);
         Assert.Equal([false], task.Dots.Select(d => d.IsFilled));
     }
@@ -44,12 +47,12 @@ public sealed class MainViewModelTests : TempoTestBase
         var vm = await LoadWithTasksAsync("A", "B", "C");
         var b = vm.Tasks[1];
         vm.SelectedTask = b;
-        TaskItemViewModel? deleted = null;
-        vm.TaskDeleted += (_, task) => deleted = task;
+        var deleted = new Raises<TaskItemViewModel>();
+        using var subscription = vm.TaskDeleted.Subscribe(deleted);
 
         vm.DeleteSelectedCommand.Execute(null);
 
-        Assert.Same(b, deleted);
+        Assert.Equal([b], deleted.Values);
         Assert.Null(vm.SelectedTask);
         Assert.Equal(["A", "C"], vm.Tasks.Select(t => t.Title));
 
@@ -137,8 +140,8 @@ public sealed class MainViewModelTests : TempoTestBase
         var vm = await LoadWithTasksAsync("Write proposal", "Other");
         var task = vm.Tasks[0];
         vm.SelectedTask = task;
-        SessionCompletedEventArgs? completed = null;
-        vm.Focus.SessionCompleted += (_, e) => completed = e;
+        var completed = new Raises<object?>();
+        using var subscription = vm.Focus.FocusCompleted.Subscribe(completed);
 
         Assert.Equal("25:00", vm.Focus.RemainingText);
         vm.Focus.StartPauseCommand.Execute(null);
@@ -156,9 +159,9 @@ public sealed class MainViewModelTests : TempoTestBase
 
         Assert.Equal(1, task.CompletedSessions);
         Assert.Equal([true], task.Dots.Select(d => d.IsFilled));
-        Assert.Equal("Write proposal", completed?.TaskTitle);
-        Assert.Equal(TimeSpan.FromMinutes(25), completed!.Record.Focused);
-        Assert.Equal([completed.Record], vm.Sessions);
+        Assert.Single(completed.Values);
+        Assert.Equal("25 minutes on Write proposal", vm.Focus.Summary);
+        Assert.Equal(TimeSpan.FromMinutes(25), Assert.Single(vm.Sessions).Focused);
         Assert.Equal(FocusMode.ShortBreak, vm.Focus.Mode);
         Assert.True(vm.Focus.IsBreak);
         Assert.Same(vm.Tasks[1], vm.Focus.ActiveTask);
@@ -167,6 +170,13 @@ public sealed class MainViewModelTests : TempoTestBase
         var reloaded = await LoadAsync();
         Assert.Equal(1, reloaded.Tasks[0].CompletedSessions);
         Assert.Single(reloaded.Sessions);
+
+        vm.Focus.StartPauseCommand.Execute(null);
+        Time.Advance(TimeSpan.FromMinutes(5));
+        Ticks.Raise();
+        Assert.Single(completed.Values);
+        Assert.Null(vm.Focus.Summary);
+        await vm.FlushAsync();
     }
 
     [Fact]
@@ -384,11 +394,38 @@ public sealed class MainViewModelTests : TempoTestBase
         Assert.Same(vm.Focus, vm.CurrentPage);
     }
 
+    [Theory]
+    [InlineData(DataAction.Clear)]
+    [InlineData(DataAction.Restore)]
+    public async Task ARestoreOrClearRequestClosesSettingsAndOpensTheConfirmAfterAskingTheViewToMakeWay(DataAction action)
+    {
+        var vm = await LoadAsync();
+        vm.OpenSettingsCommand.Execute(null);
+        Assert.True(vm.IsSettingsOpen);
+        bool? openWhenRequested = null;
+        vm.ConfirmRequested += (_, _) => openWhenRequested = vm.IsConfirmOpen;
+
+        (action == DataAction.Clear ? vm.RequestClearCommand : vm.RequestRestoreCommand).Execute(null);
+
+        Assert.Equal((action, false, true, false), (vm.ConfirmAction, openWhenRequested, vm.IsConfirmOpen, vm.IsSettingsOpen));
+    }
+
     /// <summary>A and C are Code, B has no tag, D is Admin.</summary>
     private async Task<MainViewModel> LoadTaggedAsync()
     {
         var vm = await LoadWithTasksAsync("A", "B", "C", "D");
         (vm.Tasks[0].Tag, vm.Tasks[2].Tag, vm.Tasks[3].Tag) = (TaskTag.Code, TaskTag.Code, TaskTag.Admin);
         return vm;
+    }
+
+    private sealed class Raises<T> : IObserver<T>
+    {
+        public List<T> Values { get; } = [];
+
+        public void OnNext(T value) => Values.Add(value);
+
+        public void OnCompleted() { }
+
+        public void OnError(Exception error) { }
     }
 }

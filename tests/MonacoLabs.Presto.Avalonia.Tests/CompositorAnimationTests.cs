@@ -2,7 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
+using MonacoLabs.Presto.Compositor;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -200,6 +202,125 @@ public sealed class CompositorAnimationTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ACycleShorterThanAMillisecondPlaysOverOne()
+    {
+        var bar = ShowBar();
+        var track = Assert.Single(CompositorCompiler.Compile(0, [bar], new() { ["X"] = 40, Duration = 0 }).Tracks);
+
+        var animation = CompositorTracks.Build(ElementComposition.GetElementVisual(bar)!, track);
+
+        Assert.Equal(TimeSpan.Zero, track.Duration);
+        Assert.Equal(TimeSpan.FromMilliseconds(1), animation.Duration);
+    }
+
+    [AvaloniaFact]
+    public async Task ATargetOutsideTheTreeStartsWhenItAttaches()
+    {
+        var bar = new Border { Background = Brushes.Red, Width = 40, Height = 20 };
+        var animation = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 200, Ease = "linear" });
+        Frames.Advance(500);
+
+        new Window { Content = new Canvas { Children = { bar } }, Background = Brushes.White, Width = 100, Height = 100 }.Show();
+        Tick();
+        Assert.Equal(0, Extent(bar, Colors.Red)!.Value.Left);
+        Frames.Advance(100);
+        Assert.InRange(animation.Progress, .3, .7);
+        Assert.False(animation.Completed);
+
+        Frames.Advance(200);
+        Assert.Same(animation, await animation.Then());
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Left == 40), "the attached target never moved");
+    }
+
+    [AvaloniaFact]
+    public void TimingReadsTheTargetThatFinishesLast()
+    {
+        var bars = ShowBars();
+        var animation = PrestoAvalonia.AnimateOnCompositor(bars, new()
+        {
+            ["X"] = 40, Duration = 400, Delay = (FunctionValue)((_, i, _) => i == 1 ? 200 : 0), PlaybackRate = 2, Ease = "linear",
+        });
+
+        Frames.Advance(50);
+        Assert.False(animation.Began);
+
+        Frames.Advance(100);
+        Assert.True(animation.Began);
+        Assert.InRange(animation.CurrentTime, 50, 150);
+        Assert.InRange(animation.Progress, .1, .4);
+        Assert.Equal(2, animation.Speed);
+    }
+
+    [AvaloniaFact]
+    public void OnlyTheLongestTargetBeginsAndTheLastToFinishCompletesOnce()
+    {
+        var bars = ShowBars();
+        var begun = new List<Timer>();
+        var completed = new List<Timer>();
+        _ = PrestoAvalonia.AnimateOnCompositor(bars, new()
+        {
+            ["X"] = 40,
+            Duration = 200,
+            Delay = (FunctionValue)((_, i, _) => i == 1 ? 200 : 0),
+            Ease = "linear",
+            OnBegin = begun.Add,
+            OnComplete = completed.Add,
+        });
+
+        Frames.Advance(100);
+        Assert.Empty(begun);
+        Frames.Advance(250);
+        Assert.Empty(completed);
+        Frames.Advance(100);
+
+        var begin = Assert.Single(begun);
+        Assert.Same(begin, Assert.Single(completed));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AnUnsetAutoplayFollowsTheEngineDefault(bool autoplay)
+    {
+        Presto.Defaults.Autoplay = autoplay;
+        var bar = ShowBar();
+        var animation = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 400, Ease = "linear" });
+
+        Assert.Equal(autoplay, Pump(() => Extent(bar, Colors.Red)!.Value.Left > 30, rounds: 8));
+
+        if (!autoplay) _ = animation.Resume();
+        Frames.Advance(100);
+        Assert.InRange(animation.Progress, .1, .5);
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetPlaybackRateStartsAtTheDefaultSpeed()
+    {
+        var animation = ShowBar().AnimateOnCompositor(new() { ["X"] = 40, Duration = 400, Ease = "linear" });
+
+        Assert.Equal(1, animation.Speed);
+    }
+
+    [AvaloniaFact]
+    public void WithoutATargetTheTimingReadsItsRestValues()
+    {
+        var animation = PrestoAvalonia.AnimateOnCompositor(Array.Empty<Visual>(), new() { ["X"] = 40, Duration = 400, PlaybackRate = 2 });
+        Frames.Advance(100);
+
+        Assert.Equal(1, animation.Speed);
+        Assert.Equal(0, animation.CurrentTime);
+        Assert.False(animation.Began);
+    }
+
+    private static Border[] ShowBars()
+    {
+        var bars = new[] { new Border(), new Border(), new Border() };
+        new Window { Content = new StackPanel { Children = { bars[0], bars[1], bars[2] } } }.Show();
+        Tick();
+        return bars;
+    }
+
+    [AvaloniaFact]
     public void RevertLeavesEveryMirrorAtZeroRatherThanBeforeItsDelay()
     {
         var bar = ShowBar();
@@ -236,6 +357,21 @@ public sealed class CompositorAnimationTests : CompositorTestBase
 
         Assert.False(animation.Completed);
         Assert.InRange(animation.Progress, 0.3, 0.7);
+    }
+
+    [AvaloniaFact]
+    public void ACompositorLoopKeepsItsFormWhenTheFlagFlips()
+    {
+        var bar = ShowBar();
+        var animation = bar.AnimateOnCompositor(Presto.Build().X(20).Duration(300).Ease("linear").Loop(true).WhenReduced(r => r.Opacity(0.5)));
+        Assert.True(Pump(() => Extent(bar, Colors.Red)?.Left > 32), "the loop never started");
+
+        Presto.Defaults.ReducedMotion = true;
+        var moved = Extent(bar, Colors.Red);
+
+        // Only the full form keeps the bar pure red while it moves.
+        Assert.True(Pump(() => Extent(bar, Colors.Red) is { } now && now != moved), "the loop left its full form when the flag flipped");
+        Assert.False(animation.Completed);
     }
 
     [AvaloniaFact]

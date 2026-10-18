@@ -228,4 +228,44 @@ public sealed class MotionOrchestrationTests : BridgeTestBase
 
         Assert.All([a, b], child => Assert.Equal(0, child.Opacity, 6));
     }
+
+    [AvaloniaFact]
+    public void TogetherStartsTheParentAtOnceAlongsideItsDelayedChildren()
+    {
+        var (a, b) = (Child(), Child());
+        var parent = ParentWithOwnState(a, b);
+        Motion.SetDelayChildren(parent, 100);
+        Motion.SetOrder(parent, MotionOrder.Together);
+        Show(parent);
+
+        Open(parent);
+
+        AssertBegins(parent, 0);
+        AssertBegins(a, 100);
+        AssertBegins(b, 100);
+    }
+
+    [AvaloniaFact]
+    public void ByDefaultTheParentPlaysTogetherAndChildrenGetNoDelayOrStagger()
+    {
+        var (a, b, c) = (Child(), Child(), Child());
+        var parent = ParentWithOwnState(a, b, c);
+        Show(parent);
+
+        Open(parent);
+
+        Assert.Equal(MotionOrder.Together, Motion.GetOrder(parent));
+        Assert.All<Control>([parent, a, b, c], control => AssertBegins(control, 0));
+    }
+
+    private StackPanel ParentWithOwnState(params Control[] children)
+    {
+        var parent = new StackPanel();
+        parent.Children.AddRange(children);
+        Motion.SetStates(parent,
+        [
+            new MotionState { When = "Open", Motion = Presto.Build().Duration(100).Ease(Eases.None).X(10).OnBegin(_ => _begins[parent] = Frames.Now - _start) },
+        ]);
+        return parent;
+    }
 }

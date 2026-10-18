@@ -50,6 +50,12 @@ public sealed class OrbitScene : CompositorScene
     private int _frozenTenths;
     private string _frozen = "";
 
+    static OrbitScene()
+    {
+        Presto.RegisterTarget<Dot>();
+        Presto.RegisterTarget<Segment>();
+    }
+
     /// <summary>The ripple both panels play over <see cref="Dots"/>.</summary>
     internal static AnimationParams RingAnimation => new()
     {

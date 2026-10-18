@@ -28,6 +28,7 @@ tests:
   - PointerProximityValueTests
   - MotionValueCodecTests
   - BridgeAllocationTests
+  - ScopePruningTests
 upstream: []
 depends:
   - CORE-MOTIONVALUE
@@ -48,7 +49,7 @@ depends:
 
 ## Purpose
 
-Makes a bound property ease to each new value instead of jumping to it (≈ Compose `animate*AsState`, Flutter `AnimatedContainer`): `{presto:Follow {Binding …}}` in XAML, `Follow.Bind` in code, and `Follow.*` attached shorthands for the render transform, blur and a shape's drawn stroke. It also carries the core `MotionValue` graph (CORE-MOTIONVALUE) to and from controls: bridge sources (scroll, pointer, pointer proximity, property, draggable, observer) feed values in, and the `Follow` sinks write them out; a core `Trail` reaches controls through those same sinks (`Follow.Bind`, `Follow.X`/`Follow.Y`), one per element. Also specifies `PrestoAvalonia.ScrollValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` and `ValueOf`, `ScrollObserver.ProgressValue` and `Draggable.XValue`/`YValue`.
+Makes a bound property ease to each new value instead of jumping to it (≈ Compose `animate*AsState`, Flutter `AnimatedContainer`): `{presto:Follow {Binding …}}` in XAML, `Follow.Bind` in code, and `Follow.*` attached shorthands for the render transform, blur and a shape's drawn stroke. It also carries the core `MotionValue` graph (CORE-MOTIONVALUE) to and from controls: bridge sources (scroll, pointer, pointer proximity, property, draggable, observer) feed values in, and the `Follow` sinks write them out; a core `Trail` reaches controls through those same sinks (`Follow.Bind`, `Follow.X`/`Follow.Y`), one per element. Also specifies `PrestoAvalonia.ScrollValue`, `ScrollRemainingValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` and `ValueOf`, `ScrollObserver.ProgressValue` and `Draggable.XValue`/`YValue`.
 
 ## Requirements
 
@@ -61,7 +62,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-003** (inherited) — When `Spring` names no preset and is not `"bounce,duration"` (including a single number, more than two parts, or a preset followed by a duration), the follower shall throw `FormatException` at construction naming the presets and the `"bounce,duration"` form.
   - Tests: `FollowerTests.ConflictingTimingSourcesThrow`, `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
 - **BRIDGE-FOLLOW-004** (inherited) — When a `Builder` or `WhenReduced` builder has a non-numeric `Duration`, the follower shall throw `NotSupportedException`.
-  - Tests: untested
+  - Tests: `FollowerTests.ABuilderWithANonNumericDurationThrows`
 - **BRIDGE-FOLLOW-059** — When `FollowParams.Spring`, trimmed, names a preset ignoring case (`gentle`, `snappy`, `bouncy`, `stiff`), the follower shall use a new spring of that `Springs` preset (CORE-SPRING).
   - Tests: `FollowerTests.SpringPresetsParseByNameOrBounceAndDuration`
 - **BRIDGE-FOLLOW-060** — When `FollowParams.Spring` is two comma-separated numbers in the invariant culture, surrounding spaces allowed, the follower shall use `new Spring(bounce: first, duration: second)`.
@@ -86,7 +87,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-012** — While `PrestoDefaults.ReducedMotion` is set, each value shall snap, unless `WhenReduced` is given, in which case it shall ease with that builder's duration and ease.
   - Tests: `FollowerTests.ReducedMotionSnapsUnlessWhenReducedGivesATiming`, `FollowBindingTests.ReducedMotionSnaps`
 - **BRIDGE-FOLLOW-013** (inherited) — When `ReducedMotion` changes between two values, the follower shall rebuild its animation with the timing for the new state from the displayed value.
-  - Tests: untested
+  - Tests: `FollowerTests.TogglingReducedMotionBetweenValuesSwitchesTheTimingFromTheShownValue`
 - **BRIDGE-FOLLOW-014** — The follower shall drive its own core `Animatable` over an internal holder and never register the control's property with Presto, so an animation of the same property at `Animation` priority layers over the followed value and reverting it shows the latest followed value.
   - Tests: `FollowBindingTests.AnAnimationOfTheSamePropertyLayersOverTheFollowAndRevertsToIt`, `FollowBindingPlumbingTests.AnAnimationLayersOverTheReturnedBindingAndRevertsToItsLatestValue`
 - **BRIDGE-FOLLOW-058** — When `null` arrives for a value-typed property (a recycled row's value on a `double`), the follower shall show `UnsetValue` at once, so the property falls back to its lower-priority value.
@@ -107,7 +108,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-020** — When the target's `DataContext` changes (`{presto:Follow}` and `Follow.Bind` over a `BindingBase`), the next value shall snap; a `Background` dispatcher post shall clear the flag if the new item left the value unchanged, so a later change eases.
   - Tests: `FollowBindingTests.ADataContextSwapSnapsAndAnUnchangedValueStillLetsTheNextChangeAnimate`, `FollowBindingTests.ARecycledContainerInAVirtualizedListSnapsToItsNewItem`, `FollowMarkupTests.InAnItemTemplateEachRowSnapsToItsItemAnimatesItsChangesAndSnapsToANewItem`
 - **BRIDGE-FOLLOW-021** (inherited) — `Follow.Bind<T>` over an `IObservable<T>` shall not watch `DataContext`, so it never snaps for a new item.
-  - Tests: untested
+  - Tests: `FollowBindingTests.AnObservableFollowDoesNotSnapForANewDataContext`
 - **BRIDGE-FOLLOW-022** — When the target detaches from the visual tree, the follower shall land on the latest target and stop ticking; a value after the first that arrives while the target is detached, or before it has first attached, shall snap.
   - Tests: `FollowBindingTests.DetachLandsOnTheLatestTargetAndReattachSnaps`, `FollowBindingTests.BeforeTheFirstAttachALaterValueSnaps`, `FollowerTests.StopLandsOnTheLatestTargetAndStopsTicking`
 - **BRIDGE-FOLLOW-023** — When the returned `IDisposable` (or the binding expression) is disposed, the follow shall stop ticking, remove the companion binding and stop following the source, so the property falls back to its lower-priority value; a `ClearValue` or local write shall not end it.
@@ -126,7 +127,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-028** — When a new motion value arrives on the companion (a `DataContext` swap), the sink shall stop listening to the old one and snap to the new one.
   - Tests: `MotionValueSinkTests.ADataContextSwapRebindsToTheNewItemsValueAndSnaps`
 - **BRIDGE-FOLLOW-029** — While a zero-duration motion value sink runs under `ReducedMotion` with a `WhenReduced` timing, it shall ease with that timing rather than pass values through.
-  - Tests: untested
+  - Tests: `MotionValueSinkTests.AZeroDurationSinkEasesWithWhenReducedUnderReducedMotion`
 - **BRIDGE-FOLLOW-030** — While its target is detached or not yet attached, every motion value sink shall stop listening; on attach it shall subscribe and show the latest value at once.
   - Tests: `MotionValueSinkTests.BindStopsListeningWhileDetachedAndSnapsOnReattach`, `MotionValueSinkTests.BindWaitsForTheFirstAttachAndThenShowsTheLatestValue`
 - **BRIDGE-FOLLOW-031** — A motion value sink shall layer under an animation of the same property and show the latest value when that animation reverts.
@@ -161,7 +162,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-043** — When a shorthand holding a `MotionValue` is set to a number, another value or `null`, it shall unsubscribe from the old value; a number then snaps as a first value.
   - Tests: `MotionValueSinkTests.AnotherValueOrNullReleasesTheSubscription`
 - **BRIDGE-FOLLOW-044** — When the visual detaches, every shorthand follower shall land on its latest value and motion value subscriptions shall stop; on reattach each motion value shall resubscribe and write its latest value.
-  - Tests: untested
+  - Tests: `FollowTests.DetachingLandsEachShorthandAndPausesMotionValuesUntilReattach`
 - **BRIDGE-FOLLOW-045** — `Follow.Draw` on a `Shape` shall follow the share of the stroke drawn from its start as the `"Draw"` value `"0 p"`, clamped to 0–1, eased with `Follow.Timing` or written from a `MotionValue`.
   - Tests: `FollowTests.DrawEasesToANumber`, `FollowTests.DrawTracksAMotionValueAndReleasingRestoresTheDashes`
 - **BRIDGE-FOLLOW-046** — `Follow.Draw` shall have no base layer: it writes the dashes as a `"Draw"` tween does, so the later write wins, and releasing it shall restore the dashes the shape had.
@@ -171,8 +172,10 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 - **BRIDGE-FOLLOW-047** — `PrestoAvalonia.ScrollValue` shall hold the scroller's offset on the axis, rounded to whole pixels, or with `progress`, offset ÷ (extent − viewport) clamped to 0–1 (0 when nothing scrolls).
   - Tests: `MotionValueSourceTests.ScrollValuesFollowTheOffsetOnBothAxes`
-- **BRIDGE-FOLLOW-048** — A `ScrollValue` shall refresh when the scroller's extent or viewport changes, and each call shall make its own value fed from the scroller's shared `ScrollContainer`, which stays alive while any value uses it.
-  - Tests: `MotionValueSourceTests.ScrollProgressIsRefreshedWhenTheExtentChanges`
+- **BRIDGE-FOLLOW-048** — A `ScrollValue` or `ScrollRemainingValue` shall refresh when the scroller's extent or viewport changes, and each call shall make its own value fed from the scroller's shared `ScrollContainer`, which stays alive while any value uses it.
+  - Tests: `MotionValueSourceTests.ScrollProgressIsRefreshedWhenTheExtentChanges`, `MotionValueSourceTests.ScrollRemainingIsRefreshedWhenTheExtentChanges`
+- **BRIDGE-FOLLOW-075** — `PrestoAvalonia.ScrollRemainingValue` shall hold max(0, extent − viewport − offset) on the axis, rounded to whole pixels (0 when the content fits the viewport), updated in the scroller's offset notification.
+  - Tests: `MotionValueSourceTests.ScrollRemainingValuesHoldTheDistanceLeftOnBothAxes`, `MotionValueSourceTests.ScrollRemainingIsZeroWhenTheContentFits`
 - **BRIDGE-FOLLOW-049** — Several scroll changes within one frame shall reach a `Changed` handler on a derived scroll value once, with the last value.
   - Tests: `MotionValueSourceTests.ASinkSeesOneChangePerFrameWhileScrollingSeveralNotches`
 - **BRIDGE-FOLLOW-050** — `PrestoAvalonia.PointerValue` shall start at 0 and hold the pointer position over the control on the axis, in DIPs from its top left, or with `relativeToBounds` as a fraction of its size (0 when the size is 0), updated on `PointerEntered` and `PointerMoved`.
@@ -180,9 +183,11 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **BRIDGE-FOLLOW-051** — `PrestoAvalonia.ValueOf` shall hold the property's value converted with `Convert.ToDouble`, updated on every change of that property.
   - Tests: `MotionValueSourceTests.ValueOfFollowsSetValue`
 - **BRIDGE-FOLLOW-052** (inherited) — When a `ValueOf` property value does not convert to `double`, `ValueOf` shall throw the `Convert.ToDouble` exception (at creation, or from the change that carries it).
-  - Tests: untested
-- **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` or `ValueOf` shall stop at its last value and not revive on reattach; a `PointerProximityValue` or `PointerOffsetValue` shall also stop when its tracking surface leaves the visual tree, and when given `over` shall stop with that surface instead of its control; a non-`Visual` `ValueOf` target stops only with its scope.
+  - Tests: `MotionValueSourceTests.ValueOfAPropertyThatDoesNotConvertToADoubleThrows`
+- **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `ScrollRemainingValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` or `ValueOf` shall stop at its last value and not revive on reattach; a `PointerProximityValue` or `PointerOffsetValue` shall also stop when its tracking surface leaves the visual tree, and when given `over` shall stop with that surface instead of its control; a non-`Visual` `ValueOf` target stops only with its scope.
   - Tests: `MotionValueSourceTests.ScrollAndPropertyValuesStopWhenTheirControlDetaches`, `MotionValueSourceTests.PointerValueStopsWhenItsScopeReverts`, `PointerProximityValueTests.DetachAndScopeRevertStopTheValueForGood`, `PointerProximityValueTests.RemovingTheSurfaceStopsItsValues`, `PointerProximityValueTests.OverASurfaceTheValueOutlivesItsControlBeingReHosted`
+- **BRIDGE-FOLLOW-074** — Once such a value has stopped, its registration shall count as released to the scope that was current at creation (CORE-SCOPE).
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-FOLLOW-054** — `ScrollObserver.ProgressValue` shall equal the observer's `Progress` after every scroll and freeze when the observer reverts.
   - Tests: `MotionValueSourceTests.ProgressValueMatchesTheObserverAcrossItsThresholds`, `MotionValueSourceTests.ObserverAndDraggableValuesFreezeOnRevert`
 - **BRIDGE-FOLLOW-055** — `Draggable.XValue`/`YValue` shall mirror `X`/`Y` rounded to the engine's precision through drag and release, and freeze when the draggable reverts.
@@ -213,9 +218,11 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 ### Defaults
 
 - **BRIDGE-FOLLOW-056** — When `Follow.Timing` is not set, the `Follow.*` shorthands shall move with `Springs.Gentle`, the follower default (Timing options default to `Springs.Gentle`).
-  - Tests: untested
+  - Tests: `FollowTests.WithoutATimingTheShorthandsMoveWithTheGentleSpring`
 - **BRIDGE-FOLLOW-057** — When `ScrollValue`'s axis is not given, the value shall follow the vertical offset.
   - Tests: `MotionValueSourceTests.ScrollValuesFollowTheOffsetOnBothAxes`
+- **BRIDGE-FOLLOW-077** — When `ScrollRemainingValue`'s axis is not given, the value shall measure the vertical axis.
+  - Tests: `MotionValueSourceTests.ScrollRemainingValuesHoldTheDistanceLeftOnBothAxes`
 
 ## Invariants
 
@@ -260,7 +267,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 ## Decisions
 
 - **Follow is a binding wrapper written as a markup extension.** `{presto:Follow {Binding X}, …}` wraps an ordinary binding whose value is the target while the property shows the animated value. Reason: it sits where the binding already is, so there is no second attached property to keep in step, and changing which binding is animated is a one-attribute change. Rejected: Avalonia `Transitions` (`TransitionBase.Apply` is internal and the only hook lets Avalonia own duration and progress, ruling out springs, velocity across interruptions and reduced motion); a custom `BindingBase` subclass (`CreateInstance` is internal).
-- **The wrapped binding resolves on a hidden companion property of the target.** One lazily registered `object`-typed attached property per target property; its change is the "value changed" event, and each value is converted to the property type, a non-convertible one becoming `UnsetValue`. Reason: `DataContext`, `ElementName`, `RelativeSource`, `TemplatedParent`, converters and `FallbackValue` resolve exactly as on the real property; conversion is needed because the `object` companion converts nothing (a XAML `FallbackValue` arrives as a string, a recycled row's as `null`).
+- **The wrapped binding resolves on a hidden companion property of the target.** One lazily registered `object`-typed attached property per target property; its change is the "value changed" event, and each value is converted to the property type (a value of that type passes through, a number converts with `Convert.ChangeType`, the rest go through `TypeUtilities.TryConvert` under a trimming suppression), a non-convertible one or an overflow becoming `UnsetValue`; a motion value reaches the companion through a path-less `CompiledBinding`, since `Binding` requires dynamic code. Reason: `DataContext`, `ElementName`, `RelativeSource`, `TemplatedParent`, converters and `FallbackValue` resolve exactly as on the real property; conversion is needed because the `object` companion converts nothing (a XAML `FallbackValue` arrives as a string, a recycled row's as `null`).
 - **The output is the follower as a binding at `LocalValue`.** The follower starts at `UnsetValue`. Reason: lower-priority styles are overridden as usual, DevTools shows a binding expression, animations at `Animation` priority layer over it and revert to it, its subscription gives the lifetime signal, and a value-typed store throws on `null`. Rejected: an INPC follower plus `Binding` (192 B per push against 160, and its conversion hid the untyped-companion problem); binding directly from `ProvideValue` (compiled XAML casts a non-binding result inside a template and throws).
 - **The follower runs its own `Animatable`, outside composition.** It never registers the control's property with Presto. Reason: a `control.Animate` of the same property then neither cancels the follow nor is canceled by it, and reverting it uncovers the latest followed value rather than the identity.
 - **Retargets keep velocity, per channel.** A spring retarget starts from the displayed value and keeps each channel's velocity; a duration-based ease restarts from the displayed value with its full duration. Reason: colors, thicknesses and points keep momentum too; the full-duration restart matches Compose.
@@ -289,6 +296,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **An absent pointer reads 0 on both values.** Reason: 0 is rest for every intended use (no pull, no swell), and returning to rest is the effect's leave behavior. Rejected: holding the last value, which would leave a magnet stuck when the pointer leaves the window.
 - **Touch counts only while the contact is down; mouse and pen count while hovering; the last-moved pointer wins.** Reason: touch has no hover, and a lifted finger would otherwise freeze a pull in place; following one pointer keeps every value over a surface consistent.
 - **Edge distance by default, `fromCenter` as an opt-in `bool`.** Reason: for a wide button, edge distance makes the whole perimeter equally sensitive, while center distance suits small dots and letters; a `bool` matches `ScrollValue`'s `progress` and `PointerValue`'s `relativeToBounds`.
+- **`ScrollRemainingValue` is a new method, not a third mode on `ScrollValue`.** Its requirements live here beside `ScrollValue`'s (BRIDGE-FOLLOW-047/048/053/057), not with the edge cues in BRIDGE-SCROLL, which consume it. Reason: `ScrollValue`'s `bool progress` cannot take a third mode without a breaking change or an awkward pair of flags, and the scroll values share their tests and lifetime. Rejected: a `ScrollMeasure` enum overload (more surface for one case); leaving remaining distance out (code cues would recompute it from extent, viewport and offset by hand).
 - **Pointer proximity keeps tracking a pointer captured elsewhere.** A `Draggable` drag elsewhere still drives the values, since its moves still tunnel through the surface; relaxing them during another element's drag is not built.
 
 ## Non-goals
@@ -301,4 +309,4 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 ## Open items
 
-- Untested: `NotSupportedException` for a non-numeric builder duration (BRIDGE-FOLLOW-004), reduced-motion toggles between values (013), `Follow.Bind<T>` ignoring `DataContext` (021), zero-duration motion sinks under `WhenReduced` (029), shorthand detach/reattach (044), `ValueOf` conversion failure (052).
+None.

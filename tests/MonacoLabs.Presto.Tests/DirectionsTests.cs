@@ -222,4 +222,24 @@ public sealed class DirectionsTests : EngineTestBase
 
         Assert.True(valueAtFourthLoop > 50);
     }
+
+    [Fact]
+    public void BackwardsCombinesReversedAlternationAndTheParentsDirection()
+    {
+        var reversed = Presto.CreateTimer(new() { Duration = 100, Reversed = true });
+        var alternating = Presto.CreateTimer(new() { Duration = 100, Loop = 1, Alternate = true });
+        var forwards = Presto.CreateTimer(new() { Duration = 100 });
+        var tl = Presto.CreateTimeline(new() { Reversed = true })
+            .Add(new TimerParams { Duration = 100 });
+        var child = TestHelpers.GetChildAtIndex(tl, 0)!;
+
+        Frames.Advance(48, 16);
+        Assert.True(reversed.Backwards);
+        Assert.False(alternating.Backwards);
+        Assert.False(forwards.Backwards);
+        Assert.True(child.Backwards);
+
+        Frames.Advance(100, 16);
+        Assert.True(alternating.Backwards);
+    }
 }

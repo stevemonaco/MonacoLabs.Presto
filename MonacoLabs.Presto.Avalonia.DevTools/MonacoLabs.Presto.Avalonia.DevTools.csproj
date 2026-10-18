@@ -6,6 +6,9 @@
     <PackageTags>animation;devtools;inspector;avalonia;animejs</PackageTags>
     <Description>An in-app inspector for MonacoLabs.Presto on Avalonia: freeze, step and slow the engine and watch what it runs.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

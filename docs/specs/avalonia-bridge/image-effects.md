@@ -54,7 +54,7 @@ depends:
 - **BRIDGE-IMAGE-003** — The base `Render` shall draw `SourceRect(CurrentImage)` of `CurrentImage`, placed by `Stretch` and centered within the bounds, through the filters and effects.
   - Tests: `FilteredImageTests.DefaultFiltersDrawExactlyAsImage`, `SpriteSheetTests.EachFrameDrawsItsCell`
 - **BRIDGE-IMAGE-004** (inherited) — When the control's width or height is zero, drawing shall draw nothing.
-  - Tests: untested
+  - Tests: `FilteredImageTests.AZeroWidthOrHeightDrawsNothing`
 - **BRIDGE-IMAGE-005** — When every filter and effect is at its identity value, the control shall draw the image plainly, pixel-identical to an `Image`, with no layer, whatever the noise tuning (`DissolveScale`, `DissolveSoftness`, `RippleScale`, `Seed`).
   - Tests: `FilteredImageTests.DefaultFiltersDrawExactlyAsImage`, `FilteredImageTests.IdentityEffectsDrawExactlyAsImageWhateverTheirNoise`
 - **BRIDGE-IMAGE-006** (inherited) — The effect path shall be at identity when the composed matrix is the identity within 1e-6 per element, `Ripple` is 0, `Pixelate` is at most 1 and `Dissolve` is at most 0.
@@ -74,11 +74,11 @@ depends:
 - **BRIDGE-IMAGE-013** — Every non-bitmap source drawn in one render shall keep its own raster, and a raster not drawn in a render shall be dropped once that render is over.
   - Tests: `ImageTransitionTests.TwoDrawingsAreEachRasterizedOnceThroughATransition`, `FilteredImageTests.ASubclassDrawsCellsThroughTheFilters`
 - **BRIDGE-IMAGE-014** (inherited) — When the control detaches from the visual tree, it shall release every raster it holds.
-  - Tests: untested
+  - Tests: `FilteredImageTests.DetachingReleasesTheRastersSoAReattachedDrawingIsRasterizedAgain`
 - **BRIDGE-IMAGE-015** — A subclass overriding `Render` shall be able to draw any image region through the protected `DrawImage(context, image, sourceRect)`, which applies the control's own `Stretch`, `StretchDirection`, filters and effects.
   - Tests: `FilteredImageTests.ASubclassDrawsCellsThroughTheFilters`
 - **BRIDGE-IMAGE-016** — When the drawing context offers no Skia API lease, a filtered draw shall draw the bitmap unfiltered and not throw.
-  - Tests: untested
+  - Tests: `FilteredImageTests.WithoutASkiaLeaseAFilteredDrawDrawsTheBitmapUnfilteredAndDoesNotThrow`
 
 ### Color filters
 
@@ -93,7 +93,7 @@ depends:
 - **BRIDGE-IMAGE-021** — `Duotone` shall map luminance onto the segment from `DuotoneShadow` (black) to `DuotoneHighlight` (white), blended with the identity by its amount.
   - Tests: `ColorMatrixTests.FullDuotoneMapsBlackToTheShadowAndWhiteToTheHighlight`
 - **BRIDGE-IMAGE-022** — The amounts of `Grayscale`, `Sepia`, `Tint`, `Duotone` and `Invert` shall be clamped to 0..1; `Brightness`, `Contrast` and `Saturate` shall not be clamped.
-  - Tests: untested
+  - Tests: `ColorMatrixTests.TheMixingAmountsClampToZeroThroughOneAndTheMultipliersDoNot`
 - **BRIDGE-IMAGE-023** — Color matrix offsets shall be applied in normalized 0..1 units.
   - Tests: `FilteredImageTests.InvertTurnsRedCyan`
 
@@ -118,7 +118,7 @@ depends:
 - **BRIDGE-IMAGE-032** — A rippled image shall keep its edges opaque, sampling the image's edge for pixels displaced from outside it, and draw nothing past its destination rect.
   - Tests: `FilteredImageTests.RippleKeepsTheEdgesOpaque`, `FilteredImageTests.RippleMovesPixelsTheSameWayForTheSameSeedWithinTheDestination`
 - **BRIDGE-IMAGE-033** (inherited) — `RippleScale`, `DissolveScale` and `DissolveSoftness` below 1e-3 shall be treated as 1e-3.
-  - Tests: untested
+  - Tests: `FilteredImageTests.NoiseTuningBelowAThousandthDrawsAsAThousandth`
 
 ### Animating the properties
 
@@ -134,7 +134,7 @@ depends:
 - **BRIDGE-IMAGE-037** — `TransitionTo(source, transition)` shall set `Source` at once and return the `Animation` that moves the transition from the previous image (progress 0) to `source` alone (progress 1).
   - Tests: `ImageTransitionTests.ProgressZeroDrawsTheOldImageAndOneTheNew`
 - **BRIDGE-IMAGE-038** — When the transition's `Builder` is null, the transition shall last 600 ms eased with `Eases.InOutQuad`; otherwise the builder's timing shall apply.
-  - Tests: untested
+  - Tests: `ImageTransitionTests.WithoutABuilderATransitionPlaysSixHundredMillisecondsEasedInOutQuad`
 - **BRIDGE-IMAGE-039** — While a transition runs, the control shall arrange to the incoming image, so the outgoing image never shows outside the incoming one's placement under any `Stretch`, including after an interruption.
   - Tests: `ImageTransitionTests.TheOldImageNeverShowsBesideANewOneOfAnotherAspect`, `ImageTransitionTests.AnInterruptedTransitionNeverShowsBesideANewImageOfAnotherAspect`
 - **BRIDGE-IMAGE-040** — `Crossfade` shall draw the outgoing image opaque and the incoming one over it at opacity `p`, so an opaque pair never darkens mid-way.
@@ -162,7 +162,7 @@ depends:
 - **BRIDGE-IMAGE-051** — When `SourceTransition` is null, the control is detached, or the previous source was null, a `Source` change shall snap as `Image` does.
   - Tests: `ImageTransitionTests.WithoutSourceTransitionSourceSnaps`, `ImageTransitionTests.SettingSourceBeforeAttachDoesNotTransition`
 - **BRIDGE-IMAGE-052** — `TransitionTo` shall not also trigger `SourceTransition` for its own `Source` write.
-  - Tests: untested
+  - Tests: `ImageTransitionTests.TransitionToDoesNotAlsoPlayTheSourceTransitionForItsOwnSourceWrite`
 - **BRIDGE-IMAGE-053** — When the control detaches mid-transition, it shall complete the animation and dispose the snapshot it held.
   - Tests: `ImageTransitionTests.DetachingMidTransitionReleasesTheOutgoingImage`
 
@@ -180,27 +180,27 @@ depends:
 - **BRIDGE-IMAGE-057** — When none of the color filters and effects is set, `Brightness`, `Contrast` and `Saturate` shall be 1, `Pixelate` 1, and `Grayscale`, `Sepia`, `HueRotate`, `Tint`, `Duotone`, `Invert`, `Ripple` and `Dissolve` 0, so the control draws as `Image` does (Identity draws plain).
   - Tests: `FilteredImageTests.DefaultFiltersDrawExactlyAsImage`
 - **BRIDGE-IMAGE-058** — When `TintColor`, `DuotoneShadow` or `DuotoneHighlight` is not set, it shall be white, black or white respectively.
-  - Tests: untested
+  - Tests: `FilteredImageTests.AnUnsetTintColorIsWhiteAndAnUnsetDuotoneRunsFromBlackToWhite`
 - **BRIDGE-IMAGE-059** — When `Stretch` or `StretchDirection` is not set, it shall be `Uniform` or `Both`, as `Image`'s own properties are.
-  - Tests: untested
+  - Tests: `FilteredImageTests.AnUnsetStretchIsUniformInBothDirectionsAsImagesIs`
 - **BRIDGE-IMAGE-060** (inherited) — When `RippleScale` is not set, the ripple noise shall have a feature size of 32 DIPs.
-  - Tests: untested
+  - Tests: `FilteredImageTests.UnsetNoiseTuningDrawsAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-061** (inherited) — When `DissolveScale` is not set, the dissolve noise shall have a feature size of 24 DIPs.
-  - Tests: untested
+  - Tests: `FilteredImageTests.UnsetNoiseTuningDrawsAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-062** (inherited) — When `DissolveSoftness` is not set, the dissolve edge shall be 0.1 wide.
-  - Tests: untested
+  - Tests: `FilteredImageTests.UnsetNoiseTuningDrawsAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-063** (inherited) — When `Seed` is not set, the noise shall be seeded with 0.
-  - Tests: untested
+  - Tests: `FilteredImageTests.UnsetNoiseTuningDrawsAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-064** (inherited) — When an `ImageTransition`'s `Kind`, or `TransitionTo`'s kind, is not given, the transition shall be a `Crossfade`.
-  - Tests: untested
+  - Tests: `ImageTransitionTests.AnUnsetTransitionTuningPlaysAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-065** (inherited) — When `Angle` is not set, a `Wipe` shall sweep at 0°, left to right.
-  - Tests: untested
+  - Tests: `ImageTransitionTests.AnUnsetTransitionTuningPlaysAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-066** (inherited) — When `Feather` is not set, a `Wipe`'s edge shall be 0.2 of the sweep wide.
-  - Tests: untested
+  - Tests: `ImageTransitionTests.AnUnsetTransitionTuningPlaysAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-067** (inherited) — When `PeakPixelate` is not set, a `Pixelate` transition's blocks shall peak at 24 DIPs.
-  - Tests: untested
+  - Tests: `ImageTransitionTests.AnUnsetTransitionTuningPlaysAsItsDocumentedDefault`
 - **BRIDGE-IMAGE-068** (inherited) — When `PeakRipple` is not set, a `Ripple` transition's displacement shall peak at 20 DIPs.
-  - Tests: untested
+  - Tests: `ImageTransitionTests.AnUnsetTransitionTuningPlaysAsItsDocumentedDefault`
 
 ## Invariants
 
@@ -275,5 +275,5 @@ depends:
 ## Open items
 
 - A source of another aspect resizes the control when a transition starts, re-placing the old image inside the new bounds; whether it should resize only when the transition ends is open.
-- The no-lease fallback (BRIDGE-IMAGE-016), the clamped filter amounts (BRIDGE-IMAGE-022), the 1e-3 floors (BRIDGE-IMAGE-033), raster release on detach (BRIDGE-IMAGE-014), the 600 ms default (BRIDGE-IMAGE-038), `TransitionTo` with `SourceTransition` also set (BRIDGE-IMAGE-052) and a `Source` change mid-transition with `SourceTransition` null have no test.
+- BRIDGE-IMAGE-027 says a different `Seed` draws a different pattern, but `Seed` 0 (the default) and `Seed` 1 draw the same dissolve, pixel for pixel (found by `FilteredImageTests.UnsetNoiseTuningDrawsAsItsDocumentedDefault`, which therefore compares against 2); Skia's perlin noise likely maps a seed at or below 0 onto a positive one, so other pairs (such as -1 and 2) may collide too. Either the seed should be remapped before it reaches Skia or the requirement should say which seeds are distinct.
 - manual — the Browser and Android heads were never smoke-run with a filtered image, so the README has no Platforms note; the Desktop checks (slideshow mid-way screenshots, pixelate card) are manual on the Image effects page.

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MonacoLabs.Presto;
 using Tempo.Model;
 
 namespace Tempo.ViewModels;
@@ -23,7 +24,12 @@ public sealed partial class FocusViewModel : ObservableObject
         Refresh();
     }
 
-    public event EventHandler<SessionCompletedEventArgs>? SessionCompleted;
+    /// <summary>Raised when a focus segment runs to its end.</summary>
+    public Cue FocusCompleted { get; } = new();
+
+    /// <summary>What the last completed focus segment held, as "25 minutes on {task}"; null after a break completes.</summary>
+    [ObservableProperty]
+    public partial string? Summary { get; private set; }
 
     /// <summary>The remaining time as <c>mm:ss</c>, rounded up so a fresh segment reads <c>25:00</c> and the last second <c>00:01</c>.</summary>
     [ObservableProperty]
@@ -37,11 +43,10 @@ public sealed partial class FocusViewModel : ObservableObject
     public partial double Progress { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsBreak), nameof(ModeLabel), nameof(SkipLabel), nameof(MotionState))]
+    [NotifyPropertyChangedFor(nameof(IsBreak), nameof(ModeLabel), nameof(SkipLabel))]
     public partial FocusMode Mode { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MotionState))]
     public partial bool IsRunning { get; private set; }
 
     public bool IsBreak => Mode != FocusMode.Focus;
@@ -66,9 +71,6 @@ public sealed partial class FocusViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     public partial string? RingKey { get; set; } = "ring";
-
-    /// <summary>The shell's <c>Motion.State</c> tokens: the mode, plus <c>Running</c> while the clock runs.</summary>
-    public string MotionState => IsRunning ? $"{Mode} Running" : Mode.ToString();
 
     /// <summary>The task a focus segment is bound to while it runs or is paused; otherwise the selected task, which the next one binds.</summary>
     [ObservableProperty]
@@ -113,7 +115,9 @@ public sealed partial class FocusViewModel : ObservableObject
             if (record.Mode == FocusMode.Focus && task is not null)
                 task.CompletedSessions++;
             _log.Add(record);
-            SessionCompleted?.Invoke(this, new SessionCompletedEventArgs(record, record.TaskId is null ? null : task?.Title));
+            Summary = record.Mode == FocusMode.Focus ? Summarize(record, record.TaskId is null ? null : task?.Title) : null;
+            if (record.Mode == FocusMode.Focus)
+                FocusCompleted.Raise();
         }
 
         var seconds = (int)Math.Ceiling(_clock.Remaining.TotalSeconds);
@@ -126,6 +130,13 @@ public sealed partial class FocusViewModel : ObservableObject
         StartPauseLabel = _clock.IsRunning ? "" : _clock.IsPaused ? "Resume" : IsBreak ? "Start break" : "Start focus";
         if (!IsFocusBound)
             ActiveTask = _selected;
+    }
+
+    private static string Summarize(SessionRecord record, string? taskTitle)
+    {
+        var minutes = (int)Math.Round(record.Focused.TotalMinutes);
+        var length = minutes == 1 ? "1 minute" : $"{minutes} minutes";
+        return taskTitle is null ? $"{length} of focus" : $"{length} on {taskTitle}";
     }
 
     private void End(SessionRecord? record)

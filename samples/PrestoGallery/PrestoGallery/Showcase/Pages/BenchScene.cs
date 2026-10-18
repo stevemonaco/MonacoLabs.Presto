@@ -55,6 +55,8 @@ public sealed class BenchScene(int count, AnimationParams motion) : CompositorSc
     /// <summary>One animated square: a plain object the core's reflection adapter drives, here and on the worker engine.</summary>
     public sealed class Cell
     {
+        static Cell() => Presto.RegisterTarget<Cell>();
+
         public double Opacity { get; set; } = 1;
 
         public double Scale { get; set; } = 1;

@@ -10,13 +10,24 @@ namespace MonacoLabs.Presto.Compositor;
 /// The transform and opacity a compiled animation's mirror writes to instead of the control (COMPOSITOR-PLAN §4.3 step 1),
 /// seeded from where the control stands so a relative or inherited value starts where the UI thread would have started it.
 /// </summary>
-internal sealed class CompositorScratch
+internal sealed class CompositorScratch : IMemberTarget
 {
+    private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+    {
+        [nameof(X)] = ObjectTargetAdapter.MemberAccessor.Of<CompositorScratch, double>(scratch => scratch.X, (scratch, value) => scratch.X = value),
+        [nameof(Y)] = ObjectTargetAdapter.MemberAccessor.Of<CompositorScratch, double>(scratch => scratch.Y, (scratch, value) => scratch.Y = value),
+        [nameof(Rotate)] = new AngleAccessor(),
+        [nameof(Scale)] = ObjectTargetAdapter.MemberAccessor.Of<CompositorScratch, double>(scratch => scratch.Scale, (scratch, value) => scratch.Scale = value),
+        [nameof(ScaleX)] = ObjectTargetAdapter.MemberAccessor.Of<CompositorScratch, double>(scratch => scratch.ScaleX, (scratch, value) => scratch.ScaleX = value),
+        [nameof(ScaleY)] = ObjectTargetAdapter.MemberAccessor.Of<CompositorScratch, double>(scratch => scratch.ScaleY, (scratch, value) => scratch.ScaleY = value),
+        [nameof(Opacity)] = ObjectTargetAdapter.MemberAccessor.Of<CompositorScratch, double>(scratch => scratch.Opacity, (scratch, value) => scratch.Opacity = value),
+    };
+
     public double X { get; set; }
 
     public double Y { get; set; }
 
-    /// <summary>Always in degrees, whatever unit the value carried, which is <see cref="Adapter"/>'s reason to exist.</summary>
+    /// <summary>Always in degrees, whatever unit the value carried, since a plain double accessor would write <c>"1turn"</c> as the number 1.</summary>
     public double Rotate { get; set; }
 
     public double Scale { get; set; }
@@ -29,6 +40,8 @@ internal sealed class CompositorScratch
 
     internal (double X, double Y, double Rotate, double Scale, double ScaleX, double ScaleY, double Opacity) Key =>
         (X, Y, Rotate, Scale, ScaleX, ScaleY, Opacity);
+
+    IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
 
     /// <remarks>A property another compositor animation drives starts from where that animation's mirror stands, as upstream reads a running WAAPI animation's computed style.</remarks>
     public static CompositorScratch Seed(Visual visual)
@@ -53,30 +66,18 @@ internal sealed class CompositorScratch
     private static CompositorScratch? Held(Visual visual, CompositorTrackKind kind) =>
         (CompositorRegistry.Holder(visual, kind) as CompositorAnimation)?.ScratchOf(visual);
 
-    /// <summary>
-    /// Resolves the scratch's angle the way the control's own would resolve: the reflection adapter sees a plain double and
-    /// would write <c>"1turn"</c> as the number 1, where the compositor has to compile the same 360 degrees the UI thread does.
-    /// </summary>
-    internal sealed class Adapter : ITargetAdapter
+    private sealed class AngleAccessor : IPropertyAccessor
     {
-        private static readonly IPropertyAccessor s_angle = new AngleAccessor();
+        public IValueCodec? Codec => null;
 
-        public IPropertyAccessor? Resolve(object target, string property) =>
-            target is CompositorScratch && property == "Rotate" ? s_angle : null;
+        // Read back with the unit so a "1turn" end value converts instead of being taken as 360 turns.
+        public object GetValue(object target) => JsNumber.Format(((CompositorScratch)target).Rotate) + "deg";
 
-        private sealed class AngleAccessor : IPropertyAccessor
-        {
-            public IValueCodec? Codec => null;
+        public void SetValue(object target, double number, Tween tween) =>
+            ((CompositorScratch)target).Rotate = TransformShorthands.ToDegrees(number, tween._unit);
 
-            // Read back with the unit so a "1turn" end value converts instead of being taken as 360 turns.
-            public object GetValue(object target) => JsNumber.Format(((CompositorScratch)target).Rotate) + "deg";
-
-            public void SetValue(object target, double number, Tween tween) =>
-                ((CompositorScratch)target).Rotate = TransformShorthands.ToDegrees(number, tween._unit);
-
-            public void Revert(object target, object? originalValue) =>
-                ((CompositorScratch)target).Rotate =
-                    originalValue is string degrees && ValueParser.TryParseUnit(degrees, out var number, out _) ? number : 0;
-        }
+        public void Revert(object target, object? originalValue) =>
+            ((CompositorScratch)target).Rotate =
+                originalValue is string degrees && ValueParser.TryParseUnit(degrees, out var number, out _) ? number : 0;
     }
 }

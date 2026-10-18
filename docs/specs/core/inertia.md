@@ -101,7 +101,7 @@ depends:
 - **CORE-INERTIA-024** — When the flight turns back strictly inside the flight time, the motion shall be split at the apex into two monotonic tweens, so a throw landing on its start arcs and ends exactly there.
   - Tests: `ProjectileTests.ATossLandingOnItsStartArcsAndEndsExactlyThere`, `ProjectileTests.ArcSeeksMatchTheBallisticFormulaOnBothSidesOfTheApex`, `ReferencePagesTests.TossArcsTheBallUpAndLandsItBackOnTheFloor`
 - **CORE-INERTIA-025** — When the projectile ends where it started without turning back inside the flight, the tween shall stay at its from-value with `Eases.None`.
-  - Tests: untested
+  - Tests: `ProjectileTests.AProjectileThatNeverMovesStaysOnItsStartWithNoEase`
 - **CORE-INERTIA-026** — While the engine runs in seconds, a projectile with velocity and acceleration converted to seconds shall give the same trajectory, scaled in time.
   - Tests: `ProjectileTests.SecondsModeGivesTheSameTrajectoryScaled`
 - **CORE-INERTIA-027** — `Projectile.Launch` shall return an X projectile with velocity `speed · cos(angle)` and a Y projectile with velocity `speed · sin(angle)` and acceleration `gravity`, both with `friction`, the angle in degrees clockwise from +X with positive Y down.
@@ -149,15 +149,15 @@ depends:
 ### Defaults
 
 - **CORE-INERTIA-040** — When `Power` is not set, an inertia shall use 1.
-  - Tests: untested
+  - Tests: `InertiaMathTests.PowerDefaultsToOne`
 - **CORE-INERTIA-041** — When `TimeConstant` is not set, an inertia shall use 350 engine-time units.
-  - Tests: untested
+  - Tests: `InertiaMathTests.TimeConstantDefaultsTo350`
 - **CORE-INERTIA-042** — When `RestDelta` is not set, an inertia shall come to rest within 0.5 units, as Framer Motion does.
-  - Tests: untested
+  - Tests: `InertiaMathTests.RestDeltaDefaultsToHalfAUnit`
 - **CORE-INERTIA-043** — When `BounceStiffness` and `BounceDamping` are not set, a bound crossing shall use a spring of stiffness 500 and damping 10, as Framer Motion does.
-  - Tests: untested
+  - Tests: `InertiaMathTests.BounceSpringDefaultsToStiffness500AndDamping10`
 - **CORE-INERTIA-044** — When `ModifyTarget`, `Min` and `Max` are not set, an inertia shall land on its ideal target, unsnapped and unbounded.
-  - Tests: untested
+  - Tests: `InertiaMathTests.WithoutModifyTargetOrBoundsAnInertiaLandsOnItsIdealTarget`
 - **CORE-INERTIA-045** (inherited) — When `Acceleration` or `Friction` is not set, a projectile shall use 0 for it, and `Projectile.Launch` without `friction` shall use 0.
   - Tests: `ProjectileTests.ConstantVelocityWithoutGravityMovesLinearly`
 - **CORE-INERTIA-046** — When `VelocityTracker` is constructed without arguments, it shall use an interval of 17 and a window of 3 samples.
@@ -223,4 +223,3 @@ depends:
 ## Open items
 
 - A single `TweenParams { To = new Inertia(…) }` (object form, not an array) is accepted but untested.
-- A non-moving projectile's `Eases.None` tween is untested.

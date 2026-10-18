@@ -53,6 +53,24 @@ public sealed class PrestoKeysTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void EveryKeyButTheWarpShorthandsHasATypedBuilderMethod()
+    {
+        // BRIDGE-WARP's non-goal: the warp shorthands have no typed methods.
+        string[] exempt = ["Warp", "WarpPhase", "WarpOrigin", "WarpRadius"];
+
+        foreach (var (name, key) in Keys().Where(k => !exempt.Contains(k.Key)))
+        {
+            var method = typeof(PropertyBuilderExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .SingleOrDefault(m => m.Name == name && m.GetParameters() is [_, { ParameterType: var type }] && type == typeof(TweenValue));
+            Assert.True(method is not null, $"No {name}(TweenValue) builder method");
+
+            var builder = (AnimationBuilder)method.MakeGenericMethod(typeof(AnimationBuilder)).Invoke(null, [Presto.Build(), (TweenValue)1])!;
+
+            Assert.Equal([key.Name], builder.ToParams().Properties.Keys);
+        }
+    }
+
+    [AvaloniaFact]
     public void OfReturnsTheEncodedName()
     {
         Assert.Equal(AvaloniaObjectTargetAdapter.Encode(Visual.OpacityProperty), PrestoKeys.Of(Visual.OpacityProperty).Name);

@@ -5,6 +5,8 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Rendering;
+using Avalonia.VisualTree;
+using System.Windows.Input;
 using MonacoLabs.Presto.Shapes;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -13,7 +15,7 @@ namespace MonacoLabs.Presto.Controls;
 /// <summary>
 /// A determinate ring that draws <see cref="Value"/> clockwise from the top, whole or split into <see cref="Segments"/>
 /// arcs. With a <see cref="HoldDuration"/> it is also a hold-to-confirm control: pressing it fills it, and
-/// <see cref="Confirmed"/> is raised when it is full.
+/// <see cref="Confirmed"/> is raised, then <see cref="Command"/> executed, when it is full.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -58,17 +60,31 @@ public sealed class ProgressRing : Control, ICustomHitTest
     public static readonly StyledProperty<double> HoldDurationProperty =
         AvaloniaProperty.Register<ProgressRing, double>(nameof(HoldDuration));
 
+    /// <summary>Executed with <see cref="CommandParameter"/> when a hold fills the ring; while it cannot execute, the ring is disabled.</summary>
+    public static readonly StyledProperty<ICommand?> CommandProperty =
+        AvaloniaProperty.Register<ProgressRing, ICommand?>(nameof(Command));
+
+    /// <summary>The parameter <see cref="Command"/> is queried and executed with.</summary>
+    public static readonly StyledProperty<object?> CommandParameterProperty =
+        AvaloniaProperty.Register<ProgressRing, object?>(nameof(CommandParameter));
+
     private Path[] _fills = [];
     private Size _built;
     private Animation? _hold;
     private double _rest;
-
+    private bool _canExecute = true;
 
     /// <summary>Creates an empty ring.</summary>
     public ProgressRing() => Build();
 
     /// <summary>Raised when a hold fills the ring.</summary>
     public event EventHandler? Confirmed;
+
+    /// <summary>Raised when a hold starts, before <see cref="Value"/> moves.</summary>
+    public event EventHandler? HoldStarted;
+
+    /// <summary>Raised when a hold is let go before the ring is full, as it rewinds.</summary>
+    public event EventHandler? HoldCanceled;
 
     /// <inheritdoc cref="ValueProperty"/>
     public double Value
@@ -119,6 +135,23 @@ public sealed class ProgressRing : Control, ICustomHitTest
         set => SetValue(HoldDurationProperty, value);
     }
 
+    /// <inheritdoc cref="CommandProperty"/>
+    public ICommand? Command
+    {
+        get => GetValue(CommandProperty);
+        set => SetValue(CommandProperty, value);
+    }
+
+    /// <inheritdoc cref="CommandParameterProperty"/>
+    public object? CommandParameter
+    {
+        get => GetValue(CommandParameterProperty);
+        set => SetValue(CommandParameterProperty, value);
+    }
+
+    /// <inheritdoc/>
+    protected override bool IsEnabledCore => base.IsEnabledCore && _canExecute;
+
     /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -127,6 +160,31 @@ public sealed class ProgressRing : Control, ICustomHitTest
         else if (change.Property == SegmentsProperty || change.Property == FillProperty || change.Property == TrackProperty) Build();
         else if (change.Property == GapProperty || change.Property == ThicknessProperty) Reshape();
         else if (change.Property == HoldDurationProperty) Focusable = HoldDuration > 0;
+        else if (change.Property == CommandProperty)
+        {
+            if (this.IsAttachedToVisualTree())
+            {
+                if (change.GetOldValue<ICommand?>() is { } old) old.CanExecuteChanged -= OnCanExecuteChanged;
+                if (change.GetNewValue<ICommand?>() is { } command) command.CanExecuteChanged += OnCanExecuteChanged;
+            }
+            QueryCanExecute();
+        }
+        else if (change.Property == CommandParameterProperty) QueryCanExecute();
+    }
+
+    /// <inheritdoc/>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (Command is { } command) command.CanExecuteChanged += OnCanExecuteChanged;
+        QueryCanExecute();
+    }
+
+    /// <inheritdoc/>
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (Command is { } command) command.CanExecuteChanged -= OnCanExecuteChanged;
     }
 
     /// <inheritdoc/>
@@ -182,6 +240,16 @@ public sealed class ProgressRing : Control, ICustomHitTest
     {
         base.OnKeyUp(e);
         if (e.Key is Key.Space or Key.Enter) LetGo();
+    }
+
+    private void OnCanExecuteChanged(object? sender, EventArgs e) => QueryCanExecute();
+
+    private void QueryCanExecute()
+    {
+        var canExecute = Command?.CanExecute(CommandParameter) ?? true;
+        if (canExecute == _canExecute) return;
+        _canExecute = canExecute;
+        UpdateIsEffectivelyEnabled();
     }
 
     private void Build()
@@ -245,19 +313,27 @@ public sealed class ProgressRing : Control, ICustomHitTest
     private void Hold()
     {
         _rest = Value;
+        HoldStarted?.Invoke(this, EventArgs.Empty);
         _hold = this.Animate(new AvaloniaAnimationParams
         {
             [nameof(Value)] = 1,
             Duration = HoldDuration * Math.Max(0, 1 - Value),
             Ease = Eases.None,
-            OnComplete = _ => Confirmed?.Invoke(this, EventArgs.Empty),
+            OnComplete = _ => Confirm(),
         });
+    }
+
+    private void Confirm()
+    {
+        Confirmed?.Invoke(this, EventArgs.Empty);
+        if (Command is { } command && command.CanExecute(CommandParameter)) command.Execute(CommandParameter);
     }
 
     private void LetGo()
     {
         if (_hold is null) return;
         _hold.Pause();
+        if (!_hold.Completed) HoldCanceled?.Invoke(this, EventArgs.Empty);
         _hold = null;
         this.Animate(new AvaloniaAnimationParams
         {

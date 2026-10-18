@@ -200,6 +200,29 @@ public sealed class PageBloomTests : CompositorTestBase
         Settle(() => layer.Children.Count == 0);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void CancelingOrRevertingAThemeRevealRemovesItsPictures(bool revert, bool reduced)
+    {
+        Presto.Defaults.ReducedMotion = reduced;
+        var content = new Border { Background = Brushes.Red };
+        var window = Show(content);
+        Tick();
+        var layer = OverlayLayer.GetOverlayLayer(window)!;
+
+        var reveal = Recipes.ThemeReveal(window, () => content.Background = Brushes.Blue, duration: 400);
+        Frames.Advance(50, 10);
+        Assert.Single(layer.Children);
+        if (revert) reveal.Revert();
+        else reveal.Cancel();
+
+        Settle(() => layer.Children.Count == 0);
+        Assert.Empty(layer.Children);
+    }
+
     private (Window Window, TransitioningContentControl Host) ShowBloomHost()
     {
         var host = new TransitioningContentControl { PageTransition = Recipes.PageBloom(), Content = Page(Brushes.Blue) };

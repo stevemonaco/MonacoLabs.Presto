@@ -41,7 +41,7 @@ Copy [`_template.md`](_template.md). `SpecTests` (core test project) and `SpecCo
 | `upstream` | Provenance: the anime.js 4.5.0 files a ported feature came from (`src/…`, `tests/suites/…`), or `[]`. |
 | `depends` | Ids of specs this one builds on. |
 
-**Sections**, as `##` headings in this order: Purpose, Requirements, Invariants, Edge cases, Threading and lifetime, Reduced motion, Allocation, Provenance, Decisions, Non-goals, Open items. A section that does not apply says why in one line ("Not on the tick path.", "No upstream counterpart."). Specs carry no API listings or code samples: signatures belong to the code, and API breaks are checked by tooling.
+**Sections**, as `##` headings in this order: Purpose, Requirements, Invariants, Edge cases, Threading and lifetime, Reduced motion, Allocation, Provenance, Decisions, Non-goals, Open items. A section that does not apply says why in one line ("Not on the tick path.", "No upstream counterpart."). Specs carry no API listings or code samples: signatures belong to the code, and API breaks are checked by tooling (PublicApiAnalyzers baselines).
 
 **Requirements** may be grouped under `###` headings. Each is one bullet, one behavior:
 

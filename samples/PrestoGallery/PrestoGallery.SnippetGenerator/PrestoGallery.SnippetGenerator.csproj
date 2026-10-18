@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="PublishAot;PublishTrimmed">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <IsRoslynComponent>true</IsRoslynComponent>
@@ -6,6 +6,9 @@
     <IsPackable>false</IsPackable>
     <!-- Release tracking is for shipped analyzers; this one never leaves the sample. -->
     <NoWarn>$(NoWarn);RS2008</NoWarn>
+    <!-- A head's -p:PublishAot=true would otherwise reach this netstandard2.0 analyzer and fail restore (NETSDK1207). -->
+    <PublishAot>false</PublishAot>
+    <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>

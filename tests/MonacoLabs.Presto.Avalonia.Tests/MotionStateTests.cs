@@ -395,6 +395,77 @@ public sealed class MotionStateTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AHeldLoopingStateReplaysInItsNewFormWhenTheFlagFlips()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".busy", Linear().Loop().Alternate().X(20).WhenReduced(reduced => reduced.Opacity(0.5).Loop(false).Alternate(false))));
+        box.Classes.Add("busy");
+        Frames.Advance(50, 10);
+        Assert.InRange(Get(box, "X"), 1, 19);
+
+        Presto.Defaults.ReducedMotion = true;
+        Frames.Advance(200, 10);
+
+        Assert.Equal(0, Get(box, "X"), 6);
+        Assert.Equal(0.5, box.Opacity, 6);
+
+        Presto.Defaults.ReducedMotion = false;
+        Frames.Advance(150, 10);
+        var x = Get(box, "X");
+        Frames.Advance(30, 10);
+
+        Assert.Equal(1, box.Opacity, 6);
+        Assert.NotEqual(x, Get(box, "X"), 3);
+    }
+
+    [AvaloniaFact]
+    public void AHeldFiniteStateKeepsItsValuesUntilLeft()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".on", Linear().X(20).WhenReduced(reduced => reduced.Opacity(0.5))));
+        box.Classes.Add("on");
+        Frames.Advance(150, 10);
+
+        Presto.Defaults.ReducedMotion = true;
+        Frames.Advance(150, 10);
+
+        Assert.Equal(20, Get(box, "X"), 6);
+        Assert.Equal(1, box.Opacity, 6);
+
+        box.Classes.Remove("on");
+        Frames.Advance(150, 10);
+        box.Classes.Add("on");
+        Frames.Advance(150, 10);
+
+        Assert.Equal(0, Get(box, "X"), 6);
+        Assert.Equal(0.5, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void AReplayLeavesAHeldFiniteStateOnTheSameElementInItsForm()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box,
+        [
+            new MotionState { When = ".busy", Motion = Linear().Loop().Alternate().X(20).WhenReduced(reduced => reduced.X(10).Loop(false).Alternate(false)) },
+            new MotionState { When = ".on", Motion = Linear().Y(30).WhenReduced(reduced => reduced.Opacity(0.5)) },
+        ]);
+        box.Classes.Add("busy");
+        box.Classes.Add("on");
+        Frames.Advance(150, 10);
+
+        Presto.Defaults.ReducedMotion = true;
+        Frames.Advance(200, 10);
+
+        Assert.Equal(10, Get(box, "X"), 6);
+        Assert.Equal(30, Get(box, "Y"), 6);
+        Assert.Equal(1, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
     public void ReturningToALowerKeyframedStateReplaysItsKeyframes()
     {
         var box = Box();
@@ -431,6 +502,7 @@ public sealed class MotionStateTests : BridgeTestBase
         try
         {
             Motion.SetHover(box, Linear().Scale(1.2));
+            Motion.SetLocalStates(box, States(":pointerover", Linear().X(10)));
             handle = box.WhileHover(Linear().Opacity(0.5));
         }
         finally
@@ -638,6 +710,114 @@ public sealed class MotionStateTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void LocalStatesAddToAStylesStatesAndWinSharedProperties()
+    {
+        var view = new MotionXamlView();
+        Show(view);
+        var tile = view.FindControl<Border>("First")!;
+        Motion.SetLocalStates(tile, [
+            new MotionState { When = ".selected", Motion = Linear().Scale(1.2) },
+            new MotionState { When = ".hot", Motion = Linear().Opacity(0.7) },
+        ]);
+        Assert.NotNull(Motion.GetStates(tile));
+
+        tile.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.4, tile.Opacity, 6);
+        Assert.Equal(1.2, Get(tile, "Scale"), 6);
+
+        tile.Classes.Add("hot");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.7, tile.Opacity, 6);
+
+        tile.Classes.Remove("hot");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.4, tile.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void ACodeStateWinsOverStatesAndLocalStates()
+    {
+        var box = Box();
+        Show(box);
+        box.While(".selected", Linear().Opacity(0.9));
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        Motion.SetLocalStates(box, States(".selected", Linear().Opacity(0.7)));
+
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.9, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void ClearingLocalStatesReturnsItsPropertiesToRestWhileStatesHold()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        Motion.SetLocalStates(box, States(".selected", Linear().Scale(1.2)));
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+
+        Motion.SetLocalStates(box, null);
+        Frames.Advance(200, 10);
+        Assert.Equal(1, Get(box, "Scale"), 6);
+        Assert.Equal(0.4, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void ClearingEveryStatePropertyReleasesTheTrackerAndRevertsAtOnce()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetHover(box, Linear().X(10));
+        Motion.SetPress(box, Linear().Y(10));
+        Motion.SetFocus(box, Linear().Rotate(10));
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        Motion.SetLocalStates(box, States(".selected", Linear().Scale(1.2)));
+        box.Classes.Add("selected");
+        Frames.Advance(50, 10);
+
+        Motion.SetHover(box, null);
+        Motion.SetPress(box, null);
+        Motion.SetFocus(box, null);
+        Motion.SetStates(box, null);
+        Motion.SetLocalStates(box, null);
+        Assert.Empty(Presto.GetAnimations(box));
+        Assert.Equal(1, box.Opacity, 6);
+        Assert.Null(box.RenderTransform);
+
+        box.Classes.Remove("selected");
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Empty(Presto.GetAnimations(box));
+    }
+
+    [AvaloniaFact]
+    public void AStatesListChangeRebuildsAndAnimatesToTheNewWinners()
+    {
+        var box = Box();
+        Show(box);
+        var states = States(".selected", Linear().Opacity(0.4));
+        var localStates = States(".selected", Linear().Scale(1.2));
+        Motion.SetStates(box, states);
+        Motion.SetLocalStates(box, localStates);
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+
+        localStates.Add(new MotionState { When = ".selected", Motion = Linear().Scale(0.8) });
+        Frames.Advance(50, 10);
+        Assert.InRange(Get(box, "Scale"), 0.9, 1.1);
+        Frames.Advance(150, 10);
+        Assert.Equal(0.8, Get(box, "Scale"), 6);
+
+        states.Clear();
+        Frames.Advance(200, 10);
+        Assert.Equal(1, box.Opacity, 6);
+        Assert.Equal(0.8, Get(box, "Scale"), 6);
+    }
+
+    [AvaloniaFact]
     public void ADescendantSelectorSettingStateDrivesTheChild()
     {
         var view = new MotionXamlView();
@@ -681,5 +861,79 @@ public sealed class MotionStateTests : BridgeTestBase
 
         Assert.Throws<NotSupportedException>(() => Motion.SetStates(box, States(".busy", Presto.Build().Property("NoSuchProperty", 1))));
         Assert.Throws<NotSupportedException>(() => Box().While(".busy", Presto.Build().Property("NoSuchProperty", 1)));
+    }
+
+    [AvaloniaFact]
+    public void TwoSpellingsOfOnePropertyShareAWinner()
+    {
+        var box = Box();
+        var window = Show(box);
+        Motion.SetHover(box, Linear().Opacity(0.5));
+        Motion.SetStates(box, States(".selected", Linear().Property("Visual.Opacity", 0.3)));
+        window.MouseMove(Inside);
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.3, box.Opacity, 6);
+
+        box.Classes.Remove("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.5, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void AHoverStateSetWhileThePointerIsAlreadyOverStartsHovered()
+    {
+        var box = Box();
+        var window = Show(box);
+        window.MouseMove(Inside);
+        Assert.True(box.IsPointerOver);
+
+        Motion.SetHover(box, Linear().Scale(1.2));
+        Frames.Advance(200, 10);
+
+        Assert.Equal(1.2, Get(box, "Scale"), 6);
+    }
+
+    [AvaloniaFact]
+    public void AConditionChangeWhileDetachedPlaysNothing()
+    {
+        var panel = new StackPanel();
+        Show(panel);
+        var box = Box();
+        panel.Children.Add(box);
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        panel.Children.Remove(box);
+
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+
+        Assert.Empty(Presto.GetAnimations(box));
+        Assert.Equal(1, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void StateAnimationsCarryTheMotionOrigin()
+    {
+        List<Timer> created = [];
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        try
+        {
+            var box = Box();
+            var window = Show(box);
+            Motion.SetHover(box, Linear().Opacity(0.5));
+
+            window.MouseMove(Inside);
+            Frames.Advance(200, 10);
+            window.MouseMove(Outside);
+            Frames.Advance(16);
+
+            Assert.Equal(2, created.Count);
+            Assert.All(created, timer => Assert.Equal("Motion", timer.Origin));
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
     }
 }

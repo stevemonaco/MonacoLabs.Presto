@@ -256,4 +256,87 @@ public sealed class EasesTests : EngineTestBase
             Assert.Equal(t, ease(t));
         }
     }
+
+    private static void AssertSameCurve(Ease expected, Ease actual)
+    {
+        for (var i = 0; i <= 100; i++)
+        {
+            Assert.Equal(expected(i / 100d), actual(i / 100d));
+        }
+    }
+
+    [Fact]
+    public void ElasticClampsAmplitudeAndPeriod()
+    {
+        AssertSameCurve(Eases.InElastic(1, .3), Eases.InElastic());
+        AssertSameCurve(Eases.InElastic(1, .3), Eases.InElastic(.5, .3));
+        AssertSameCurve(Eases.InElastic(10, .3), Eases.InElastic(20, .3));
+        AssertSameCurve(Eases.InElastic(1, 2), Eases.InElastic(1, 5));
+        AssertSameCurve(Eases.InElastic(1, 1e-11), Eases.InElastic(1, -1));
+    }
+
+    [Fact]
+    public void FixedEasesAreSingletons()
+    {
+        Assert.Same(Eases.None, Eases.None);
+        Assert.Same(Eases.OutQuad, Eases.OutQuad);
+        Assert.Same(Eases.InOutBounce, Eases.InOutBounce);
+    }
+
+    [Fact]
+    public void EachFactoryCallReturnsANewDelegate()
+    {
+        Assert.NotSame(Eases.Out(3), Eases.Out(3));
+        Assert.NotSame(Eases.InBack(), Eases.InBack());
+        Assert.NotSame(Eases.Steps(4), Eases.Steps(4));
+        Assert.NotSame(Eases.Linear(0, 1), Eases.Linear(0, 1));
+        Assert.NotSame(Eases.CubicBezier(.2, 0, .8, 1), Eases.CubicBezier(.2, 0, .8, 1));
+    }
+
+    [Fact]
+    public void InOfACustomEaseEvaluatesItUnchanged()
+    {
+        Ease f = t => t * t * 3 - 1;
+        var ease = Eases.In(f);
+
+        foreach (var t in new[] { -1, 0, .3, 1, 2 })
+        {
+            Assert.Equal(f(t), ease(t));
+        }
+    }
+
+    [Fact]
+    public void LinearIgnoresThePositionsOfItsFirstAndLastStops()
+        => AssertSameCurve(Eases.None, Eases.Linear(new LinearStop(0, .5), new LinearStop(1, .5)));
+
+    [Fact]
+    public void LinearExtrapolatesItsFirstSegmentBeforeZero()
+    {
+        var ease = Eases.Linear(.2, .6, 1);
+        Assert.Equal(-.2, ease(-.5), 12);
+    }
+
+    [Fact]
+    public void LinearCopiesItsStops()
+    {
+        LinearStop[] stops = [0, .25, 1];
+        var ease = Eases.Linear(stops);
+
+        stops[1] = .9;
+        stops[2] = 5;
+
+        Assert.Equal(.25, ease(.5));
+        Assert.Equal(1, ease(1));
+    }
+
+    [Fact]
+    public void StepsDefaultsToTenSteps()
+    {
+        AssertSameCurve(Eases.Steps(10), Eases.Steps());
+        Assert.Equal(.5, Eases.Steps()(.55));
+    }
+
+    [Fact]
+    public void IrregularDefaultsToTenStopsAndFullRandomness()
+        => AssertSameCurve(Eases.Irregular(10, 1, new Random(7)), Eases.Irregular(random: new Random(7)));
 }

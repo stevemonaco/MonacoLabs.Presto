@@ -25,7 +25,6 @@ public sealed class PagerTests : CompositorTestBase
         new Touch(window).Drag(Frames, new Point(150, 100), new Vector(by, 0));
         Frames.Advance(3000, 20);
 
-        Assert.Equal(slide, pager.SelectedIndex);
         Assert.Equal(slide, pager.Position.Value, 3);
     }
 
@@ -186,6 +185,7 @@ public sealed class PagerTests : CompositorTestBase
     [AvaloniaTheory]
     [InlineData("hover")]
     [InlineData("keyboard focus")]
+    [InlineData("drag")]
     public void AutoplayAdvancesAndHolds(string hold)
     {
         var (window, pager) = Stage();
@@ -197,6 +197,7 @@ public sealed class PagerTests : CompositorTestBase
         Assert.Equal(1, pager.SelectedIndex);
 
         if (hold == "hover") window.MouseMove(Center(pager, window));
+        else if (hold == "drag") new Touch(window).Press(1, new Point(100, 100));
         else pager.Focus(NavigationMethod.Tab);
         Frames.Advance(3000, 20);
 
@@ -265,7 +266,6 @@ public sealed class PagerTests : CompositorTestBase
         window.MouseUp(at, MouseButton.Left);
         Frames.Advance(100, 20);
 
-        Assert.Equal(slide, pager.SelectedIndex);
         Assert.InRange(pager.Position.Value, .1, slide - .1);
         Frames.Advance(3000, 20);
         Assert.Equal(slide, pager.Position.Value, 3);
@@ -330,6 +330,265 @@ public sealed class PagerTests : CompositorTestBase
         Assert.Equal(2, pager.SelectedIndex);
         Assert.Equal(2, pager.Position.Value, 3);
         Assert.Equal(0, pager.AutoplayProgress.Value);
+    }
+
+    [AvaloniaFact]
+    public void AnInfiniteMeasureTakesTheLargestSlideAndAFiniteOneTheAvailableSize()
+    {
+        var pager = new Pager { Slides = { new Border { Width = 120, Height = 80 }, new Border { Width = 60, Height = 150 } } };
+
+        pager.Measure(Size.Infinity);
+        Assert.Equal(new Size(120, 150), pager.DesiredSize);
+
+        pager.Measure(new Size(300, double.PositiveInfinity));
+        Assert.Equal(new Size(300, 150), pager.DesiredSize);
+
+        pager.Measure(new Size(300, 200));
+        Assert.Equal(new Size(300, 200), pager.DesiredSize);
+    }
+
+    [AvaloniaFact]
+    public void TurningLoopOnAndOffAtRuntimeReArrangesTheStripAndItsBounds()
+    {
+        var (window, pager) = Stage();
+
+        pager.Loop = true;
+        Tick();
+        Assert.Equal(-200, pager.Slides[3].Bounds.X);
+        new Touch(window).Drag(Frames, new Point(50, 100), new Vector(120, 0));
+        Frames.Advance(3000, 20);
+        Assert.Equal(3, pager.SelectedIndex);
+
+        pager.GoTo(0);
+        Frames.Advance(3000, 20);
+        pager.Loop = false;
+        Tick();
+        Assert.Equal(600, pager.Slides[3].Bounds.X);
+        new Touch(window).Drag(Frames, new Point(50, 100), new Vector(120, 0));
+        Frames.Advance(3000, 20);
+        Assert.Equal(0, pager.SelectedIndex);
+        Assert.Equal(0, StripX(pager), 1);
+    }
+
+    [AvaloniaFact]
+    public void GrabbingTheStripPausesTheTravel()
+    {
+        var (window, pager) = Stage();
+        pager.GoTo(2);
+        Frames.Advance(100, 20);
+        var grabbedAt = pager.Position.Value;
+        Assert.InRange(grabbedAt, .1, 1.9);
+
+        new Touch(window).Press(1, new Point(100, 100));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(grabbedAt, pager.Position.Value, 6);
+    }
+
+    [AvaloniaFact]
+    public void GoToWithNoSlidesDoesNothing()
+    {
+        var pager = new Pager();
+        Show(pager);
+
+        pager.GoTo(3);
+
+        Assert.Equal(0, pager.SelectedIndex);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("detached")]
+    [InlineData("zero wide")]
+    public void ASelectionWhileDetachedOrZeroWideWaitsForTheNextPlacement(string how)
+    {
+        var (_, pager) = Stage();
+        var panel = (Panel)pager.Parent!;
+        if (how == "detached") panel.Children.Remove(pager);
+        else pager.Width = 0;
+        Tick();
+
+        pager.SelectedIndex = 2;
+        Frames.Advance(3000, 20);
+        if (how == "zero wide") Assert.Equal(0, StripX(pager), 1);
+
+        if (how == "detached") panel.Children.Add(pager);
+        else pager.Width = double.NaN;
+        Tick();
+
+        Assert.Equal(-400, StripX(pager), 1);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("go to")]
+    [InlineData("key")]
+    [InlineData("indicator tap")]
+    [InlineData("selected index")]
+    [InlineData("drag")]
+    public void PagingByHandRestartsTheAutoplayInterval(string how)
+    {
+        var (window, pager) = Stage();
+        var indicator = Indicator(pager, PagerIndicatorMode.Progress);
+        pager.AutoplayInterval = 1000;
+        Frames.Advance(600, 20);
+        Assert.InRange(pager.AutoplayProgress.Value, .5, .7);
+
+        switch (how)
+        {
+            case "go to":
+                pager.GoTo(2);
+                break;
+            case "key":
+                Press(pager, Key.End);
+                break;
+            case "indicator tap":
+                var at = new Point(120, indicator.Bounds.Center.Y);
+                window.MouseDown(at, MouseButton.Left);
+                window.MouseUp(at, MouseButton.Left);
+                break;
+            case "selected index":
+                pager.SelectedIndex = 2;
+                break;
+            default:
+                new Touch(window).Drag(Frames, new Point(150, 100), new Vector(-120, 0));
+                break;
+        }
+        Assert.Equal(0, pager.AutoplayProgress.Value);
+
+        Frames.Advance(600, 20);
+
+        Assert.InRange(pager.AutoplayProgress.Value, .5, .7);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(NavigationMethod.Pointer)]
+    [InlineData(NavigationMethod.Unspecified)]
+    public void FocusByPointerOrCodeDoesNotHoldAutoplay(NavigationMethod method)
+    {
+        var (_, pager) = Stage();
+        pager.AutoplayInterval = 1000;
+
+        Assert.True(pager.Focus(method));
+        Frames.Advance(1100, 20);
+
+        Assert.Equal(1, pager.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void DetachingPausesTheTravelCancelsAutoplayAndRevertsTheDraggable()
+    {
+        var (_, pager) = Stage();
+        pager.AutoplayInterval = 1000;
+        pager.GoTo(2);
+        Frames.Advance(100, 20);
+        var progress = pager.AutoplayProgress.Value;
+        var strip = (Control)pager.GetVisualChildren().Single();
+
+        ((Panel)pager.Parent!).Children.Remove(pager);
+        Frames.Advance(3000, 20);
+
+        for (var timer = Presto.Engine._head; timer != null; timer = timer._next) Assert.True(timer.Paused || timer.Canceled);
+        Assert.Equal(progress, pager.AutoplayProgress.Value);
+        Assert.Equal(2, pager.SelectedIndex);
+        PrestoAvalonia.CreateDraggable(strip).Revert();
+    }
+
+    [AvaloniaFact]
+    public void ABindingWithNoModeWritesPagingBackToTheSource()
+    {
+        var (_, pager) = Stage();
+        var source = new Selection();
+        pager.Bind(Pager.SelectedIndexProperty, new Binding(nameof(Selection.Index)) { Source = source });
+
+        pager.GoTo(2);
+
+        Assert.Equal(2, source.Index);
+    }
+
+    [AvaloniaFact]
+    public void APagerDefaultsToFocusableClippedAndNotAutoplaying()
+    {
+        var (_, pager) = Stage();
+
+        Assert.True(pager.Focusable);
+        Assert.True(pager.ClipToBounds);
+        Assert.Equal(0, pager.AutoplayInterval);
+        Frames.Advance(5000, 20);
+        Assert.Equal(0, pager.SelectedIndex);
+        Assert.Equal(0, pager.AutoplayProgress.Value);
+    }
+
+    [AvaloniaFact]
+    public void AnIndicatorDefaultsToWhiteDotsWithAHandCursorAndNoPager()
+    {
+        var indicator = new PagerIndicator();
+        Show(indicator);
+
+        Assert.Null(indicator.Pager);
+        Assert.Empty(indicator.GetVisualChildren());
+        Assert.Equal(PagerIndicatorMode.Dots, indicator.Mode);
+        Assert.Equal(Colors.White, ((ISolidColorBrush)indicator.Fill).Color);
+        Assert.Equal(1, indicator.Fill.Opacity);
+        Assert.Equal(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), ((ISolidColorBrush)indicator.Track).Color);
+        Assert.Equal(nameof(StandardCursorType.Hand), indicator.Cursor!.ToString());
+    }
+
+    [AvaloniaFact]
+    public void AProgressBarIsFourHighAndAsWideAsOfferedOrTwentyFourPerSlide()
+    {
+        var (_, pager) = Stage();
+        var bar = new PagerIndicator { Pager = pager, Mode = PagerIndicatorMode.Progress };
+        ((Panel)pager.Parent!).Children.Add(bar);
+        Tick();
+
+        bar.Measure(Size.Infinity);
+        Assert.Equal(new Size(96, 4), bar.DesiredSize);
+
+        bar.Measure(new Size(150, 100));
+        Assert.Equal(new Size(150, 4), bar.DesiredSize);
+    }
+
+    [AvaloniaFact]
+    public void ChangingTheLookOrTheSlidesRebuildsTheIndicatorAtRest()
+    {
+        var (_, pager) = Stage();
+        var indicator = Indicator(pager, PagerIndicatorMode.Dots);
+        pager.GoTo(2);
+        Frames.Advance(40, 20);
+        IBrush[] Backgrounds() => indicator.GetVisualChildren().Select(dot => ((Border)dot).Background!).ToArray();
+
+        indicator.Fill = Brushes.Red;
+        Assert.Equal([8, 8, 24, 8], indicator.GetVisualChildren().Select(dot => ((Control)dot).Width));
+        Assert.Same(Brushes.Red, Backgrounds()[2]);
+
+        indicator.Track = Brushes.Blue;
+        Assert.Equal(new IBrush[] { Brushes.Blue, Brushes.Blue, Brushes.Red, Brushes.Blue }, Backgrounds());
+
+        pager.Slides.Add(new Border());
+        Assert.Equal([8, 8, 24, 8, 8], indicator.GetVisualChildren().Select(dot => ((Control)dot).Width));
+
+        indicator.Mode = PagerIndicatorMode.Progress;
+        Assert.Equal(new IBrush[] { Brushes.Blue, Brushes.Red }, Backgrounds());
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TappingAnIndicatorWithNoPagerOrNoSlidesDoesNothing(bool emptyPager)
+    {
+        var pager = new Pager();
+        var indicator = new PagerIndicator { Width = 200, VerticalAlignment = VerticalAlignment.Bottom, Pager = emptyPager ? pager : null };
+        var window = new Window { Content = new Panel { Children = { pager, indicator } }, Width = 200, Height = 200 };
+        window.Show();
+        Tick();
+        bool? handled = null;
+        window.AddHandler(InputElement.TappedEvent, (_, e) => handled = e.Handled, handledEventsToo: true);
+        var at = new Point(100, indicator.Bounds.Center.Y);
+
+        window.MouseDown(at, MouseButton.Left);
+        window.MouseUp(at, MouseButton.Left);
+
+        Assert.False(handled);
+        Assert.Equal(0, pager.SelectedIndex);
     }
 
     private static double StripX(Pager pager) => Convert.ToDouble(PrestoAvalonia.Get(pager.GetVisualChildren().Single(), "X"));

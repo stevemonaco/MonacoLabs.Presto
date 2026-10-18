@@ -5,6 +5,7 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        xmlns:local="using:PrestoGallery.Builder"
+                       xmlns:sys="using:System"
                        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1400"
                        x:Class="PrestoGallery.Builder.XamlPage">
     <showcase:ShowcasePage.Styles>
@@ -64,6 +65,44 @@
                         </StackPanel>
                     </Border>
                     <showcase:CodeTabs x:Name="BindingCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlBinding}" CSharp="{x:Static showcase:Snippets.XamlEmphasis}" />
+                </StackPanel>
+
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Cues: the view model raises a Cue and the view picks what it looks like. Save with no @ to shake the field, save a valid address for a toast, or press Cheer for a burst." />
+                    <Border Classes="stage" MinHeight="200">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" x:DataType="local:CuesViewModel">
+                            <Grid.DataContext>
+                                <local:CuesViewModel />
+                            </Grid.DataContext>
+                            <!-- snippet: XamlCues -->
+                            <StackPanel Spacing="12" VerticalAlignment="Center">
+                                <TextBox x:Name="CueEmail" Text="{Binding Email}" PlaceholderText="Email" Width="240" HorizontalAlignment="Left"
+                                         presto:Animate.Cue="{Binding ValidationFailed}" presto:Animate.OnCue="{presto:Shake}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="CueSave" Content="Save" Command="{Binding SubmitCommand}" />
+                                    <Button x:Name="CueCheer" Content="Cheer" Command="{Binding CheerCommand}" />
+                                    <PathIcon Data="{StaticResource StarIcon}" Width="32" Height="32" Margin="16,0" Foreground="{x:Static showcase:Palette.Amber}"
+                                              presto:Animate.Cue="{Binding Celebrate}" presto:Animate.DoOnCue="{presto:Burst}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <presto:ToastHost x:Name="CueToasts" Grid.Column="1" Width="260" VerticalAlignment="Top"
+                                              presto:Animate.Cue="{Binding Saved}" presto:Animate.DoOnCue="{presto:ShowToast Duration=3000}">
+                                <presto:ToastHost.ItemTemplate>
+                                    <DataTemplate x:DataType="sys:String">
+                                        <Border Background="{x:Static showcase:Palette.SurfaceHigh}" CornerRadius="8" Margin="0,0,0,8"
+                                                presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=60}">
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Content="✕" Background="Transparent" presto:ToastHost.DismissOnClick="True" />
+                                                <TextBlock Text="{Binding}" Foreground="{x:Static showcase:Palette.Ink}" VerticalAlignment="Center" Margin="12,8" />
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </presto:ToastHost.ItemTemplate>
+                            </presto:ToastHost>
+                            <!-- /snippet -->
+                        </Grid>
+                    </Border>
+                    <showcase:CodeTabs x:Name="CuesCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlCues}" CSharp="{x:Static showcase:Snippets.XamlCuesViewModel}" />
                 </StackPanel>
             </StackPanel>
         </StackPanel>

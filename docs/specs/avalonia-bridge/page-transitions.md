@@ -31,6 +31,7 @@ depends:
   - CORE-ANIMATION
   - CORE-REDUCED
   - CORE-DIAGNOSTICS
+  - CORE-CALLBACKS
 ---
 
 # Page transitions (PrestoPageTransition)
@@ -44,7 +45,7 @@ depends:
 ### Start
 
 - **BRIDGE-PAGES-001** (inherited) — When `Start` is called with a token already canceled, it shall return a completed task and touch neither host.
-  - Tests: untested
+  - Tests: `PageTransitionTests.StartWithAnAlreadyCanceledTokenTouchesNeitherHost`
 - **BRIDGE-PAGES-002** — Going forward, `Start` shall play `Enter` on `to` and `Exit` on `from`.
   - Tests: `PageTransitionTests.ASwapPlaysEnterOnTheNewPresenterAndExitOnTheOld`
 - **BRIDGE-PAGES-003** — Going back, `Start` shall play `BackEnter` on `to` and `BackExit` on `from`, and for each that is null the opposite forward builder reversed (`Exit` reversed on `to`, `Enter` reversed on `from`).
@@ -63,7 +64,7 @@ depends:
 - **BRIDGE-PAGES-008** — With `IncomingAboveForward` (the default) `Start` shall write `ZIndex` 1 on the incoming host and 0 on the outgoing one going forward, and the reverse going back, at `Animation` priority for the transition's life.
   - Tests: `PageTransitionTests.IncomingAboveForwardStacksByDirection`
 - **BRIDGE-PAGES-009** — `IncomingAbove` shall put the incoming host above in both directions and `OutgoingAbove` the outgoing host.
-  - Tests: untested
+  - Tests: `PageTransitionTests.FixedStackingIgnoresTheDirection`
 - **BRIDGE-PAGES-010** — `Host` shall write no `ZIndex`, leaving the order to the host.
   - Tests: `PageTransitionTests.HostStackingWritesNothing`
 
@@ -90,6 +91,8 @@ depends:
   - Tests: `PageTransitionTests.ANavigationPagePushAndPopRunTheTransitionAndKeepItsOwnValues`
 - **BRIDGE-PAGES-019** — A `Carousel` selection change shall run the transition end to end, leaving the old container hidden and both at rest.
   - Tests: `PageTransitionTests.ACarouselSelectionChangeRunsTheTransitionEndToEnd`
+- **BRIDGE-PAGES-035** — When a host's animation is canceled by anything other than the transition itself, that host's run shall complete, so the transition finishes and releases its hosts.
+  - Tests: `PageTransitionTests.AnAnimationReplacingTheHostsFinishesTheTransition`
 
 ### Cancellation and take-over
 
@@ -111,13 +114,13 @@ depends:
 - **BRIDGE-PAGES-025** — `Update` shall create paused UI-thread animations on first use for a (from, to, forward) triple, whatever `Thread` says, and seek both to `progress × Duration`.
   - Tests: `PageTransitionTests.UpdateSeeksBothSidesOnTheUIThread`
 - **BRIDGE-PAGES-026** — When `Update` is called with another triple, or after a host of its run was taken over or `Reset`, it shall revert the previous run before building a new one; a host a running `Start` holds is reverted rather than taken over.
-  - Tests: untested
+  - Tests: `PageTransitionTests.UpdateWithAnotherPairRevertsThePreviousRun`, `PageTransitionTests.UpdateAfterAStartTookAHostOverStopsThatStartAndSeeksAfresh`, `PageTransitionTests.UpdateSeeksAHostARunningStartHoldsFromItsBaseValues`
 - **BRIDGE-PAGES-027** — When `visibleItems` is non-empty, `Update` shall do nothing.
   - Tests: `PageTransitionTests.UpdateWithVisibleItemsChangesNothing`
 - **BRIDGE-PAGES-028** — `Reset(visual)` shall revert whatever this transition applied to that visual (animations and `ZIndex`).
   - Tests: `PageTransitionTests.ResetRevertsWhatUpdateApplied`
 - **BRIDGE-PAGES-029** — `Update` shall ignore `pageLength`.
-  - Tests: untested
+  - Tests: `PageTransitionTests.UpdateIgnoresThePageLength`
 - **BRIDGE-PAGES-034** — `Reset` of either host of the progress run shall revert both hosts of that run and forget the run.
   - Tests: `PageTransitionTests.ResettingEitherHostOfTheProgressRunReleasesBoth`
 
@@ -179,6 +182,7 @@ depends:
 - **`Connected` flights compose with the host's motion.** A claimed element flies on its composition `Translation` inside the incoming host, so a moving host adds to the flight's path while it still lands right; `PageFade` and `PageFadeThrough` are the documented pairing for connected navigation. Reason: counter-moving keyed elements needs a shared clock or start frame, and was left open.
 - **Reduced motion needs nothing new.** Page transitions rely on the builders' `WhenReduced` forms and `ReduceAll`, and every page recipe supplies a short crossfade. Reason: the existing reduced-motion model already covers builders.
 - **`PageBloom` is a page recipe, not a transition type.** `Recipes.PageBloom()` returns a `PrestoPageTransition` revealing on `ClipCircle` from the last press. Reason: it inherits the page recipes' take-over and revert, and a transition is handed only the two hosts. Rejected: a transition type of its own; a colored disk over the old page.
+- **A UI-thread host run waits with `ThenOrCancel`.** The run completes when its animation's `ThenOrCancel` task completes or is canceled. Reason: `Then` never resolves for an animation canceled from outside (composition replacing it, a scope revert), so `Start`'s task hung and the hosts were never released; library code that must finish on interruption waits with `ThenOrCancel` (CORE-CALLBACKS). A compositor run keeps `Then`, since bridge handles have no `ThenOrCancel`.
 - **The thread is an argument on bridge entry points.** See BRIDGE-THREAD.
 - **The pivot follows `RenderTransformOrigin`.** See BRIDGE-THREAD.
 - **Features that manage their own lifetimes pass `WhenDetached.Continue`.** See BRIDGE-HELPERS.
@@ -193,4 +197,4 @@ depends:
 
 ## Open items
 
-- BRIDGE-PAGES-001, -009, -026 and -029 have no test.
+None.

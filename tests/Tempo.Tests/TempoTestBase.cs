@@ -12,8 +12,8 @@ using Tempo.Views;
 namespace Tempo.Tests;
 
 /// <summary>
-/// A temporary data root, a fake clock at a fixed noon and manual ticks per test; disposing deletes the root and
-/// restores <see cref="PrestoDefaults.ReducedMotion"/>.
+/// A temporary data root, a fake clock at a fixed noon and manual ticks per test; disposing deletes the root, stops
+/// managing <see cref="PrestoAvalonia.MotionPreference"/> and restores <see cref="PrestoDefaults.ReducedMotion"/>.
 /// </summary>
 public abstract class TempoTestBase : IDisposable
 {
@@ -29,6 +29,8 @@ public abstract class TempoTestBase : IDisposable
 
     public void Dispose()
     {
+        PrestoAvalonia.MotionPreference = null;
+        TestApp.SystemReducedMotion = false;
         Presto.Defaults.ReducedMotion = _reducedWas;
         // A test that never flushes can leave a debounced save writing; the folder is temp, so a few retries then leave it.
         for (var attempt = 0; attempt < 5 && Directory.Exists(Root); attempt++)
@@ -80,9 +82,8 @@ public abstract class TempoTestBase : IDisposable
     private static async Task<(MainWindow Window, MainViewModel ViewModel)> ShowAsync(bool reduced, Func<Task<MainViewModel>> load, Size? size = null)
     {
         TestFrames.Install();
-        if (reduced)
-            Presto.Defaults.ReducedMotion = true;
         var vm = await load();
+        vm.Motion = reduced ? MotionPreference.Reduced : MotionPreference.Full;
         var window = new MainWindow { DataContext = vm };
         if (size is { } launch)
             window.UseLaunchSize(launch);
@@ -95,9 +96,8 @@ public abstract class TempoTestBase : IDisposable
     protected async Task<(MainWindow Window, MainViewModel ViewModel)> ShowIntroAsync(Task load, bool reduced = false, bool firstRun = false, Size? size = null)
     {
         TestFrames.Install();
-        if (reduced)
-            Presto.Defaults.ReducedMotion = true;
         var vm = await LoadAsync(firstRun);
+        vm.Motion = reduced ? MotionPreference.Reduced : MotionPreference.Full;
         var window = new MainWindow { DataContext = vm };
         if (size is { } launch)
             window.UseLaunchSize(launch);
@@ -139,9 +139,9 @@ public abstract class TempoTestBase : IDisposable
     protected static IEnumerable<Border> Rows(Window window) =>
         Find<ListBox>(window, "TaskList").GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("task-row"));
 
-    protected static IReadOnlyList<TextBlock> ClockBlocks(Window window) => Find<StackPanel>(window, "Digits").Children.Cast<TextBlock>().ToList();
+    protected static TextBlock ClockBlock(Window window) => Find<TextBlock>(window, "Remaining");
 
-    protected static string ClockText(Window window) => string.Concat(ClockBlocks(window).Select(b => b.Text));
+    protected static string? ClockText(Window window) => ClockBlock(window).Text;
 
     protected static T Find<T>(Window window, string name) where T : Control =>
         window.GetVisualDescendants().OfType<T>().Single(c => c.Name == name);

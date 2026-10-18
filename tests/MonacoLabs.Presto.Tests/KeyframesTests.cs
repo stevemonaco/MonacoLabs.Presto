@@ -440,4 +440,41 @@ public sealed class KeyframesTests : EngineTestBase
 
         Assert.Equal(1000, TestHelpers.GetChildAtIndex(tl, 0)!.Duration);
     }
+
+    [Fact]
+    public void APercentageFrameAfterZeroStartsFromTheCurrentValue()
+    {
+        var target = new StyleTarget { X = 50 };
+        var animation = Presto.Animate(target, new()
+        {
+            Keyframes = new Dictionary<string, Keyframe>
+            {
+                ["50%"] = new() { ["X"] = 150 },
+                ["100%"] = new() { ["X"] = 0 },
+            },
+            Duration = 1000,
+            Ease = "linear",
+            Autoplay = false,
+        });
+
+        double[] times = [0, 250, 500, 750];
+        double[] expected = [50, 100, 150, 75];
+        for (var i = 0; i < times.Length; i++)
+        {
+            animation.Seek(times[i]);
+            Assert.Equal(expected[i], target.X);
+        }
+    }
+
+    [Theory]
+    [InlineData("half")]
+    [InlineData("%50")]
+    [InlineData("50px")]
+    public void AMalformedPercentageKeyThrows(string key) =>
+        Assert.Throws<FormatException>(() => Presto.Animate(new StyleTarget(), new()
+        {
+            Keyframes = new Dictionary<string, Keyframe> { [key] = new() { ["X"] = 100 } },
+            Duration = 1000,
+            Autoplay = false,
+        }));
 }

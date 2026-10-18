@@ -47,6 +47,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Animation builder](animation-builder.md) | CORE-BUILDER | `AnimationBuilder`, `PropertyBuilder` |
 | [Utilities](utils.md) | CORE-UTILS | `Utils`, `ChainedUtil`, `ChainedFunctionValue`, `RandomGenerator` |
 | [Text scrambling](scramble.md) | CORE-SCRAMBLE | `ScrambleTextParams`, `ScrambleFrom` |
+| [Cues](cues.md) | CORE-CUE | `Cue`, `Cue<T>` |
 
 ## Physics, values over time and simulation
 
@@ -57,6 +58,12 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Motion values](motion-values.md) | CORE-MOTIONVALUE | `MotionValue`, `MotionObjectValue` |
 | [Motion path through points](motion-path.md) | CORE-MOTIONPATH | `MotionPath` |
 | [Particle simulation](particles.md) | CORE-PARTICLES | `ParticleSystem`, `EmitterParams`, `ParticleState`, `ParticleCurve` |
+
+## Collections
+
+| Spec | Id | Owns |
+|---|---|---|
+| [Filtered view](filtered-view.md) | CORE-FILTERVIEW | `FilteredView` |
 
 ## Diagnostics
 

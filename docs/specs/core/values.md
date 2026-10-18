@@ -115,17 +115,17 @@ depends:
 - **CORE-VALUES-029** — When a tween's to value is relative, the animation shall apply it to the resolved from number.
   - Tests: `ValuesTests.RelativeValuesWithOperators`, `ValuesTests.RelativeFromToValues`, `ValuesTests.NumberTypeValuesFromRelativeValuesOperators`
 - **CORE-VALUES-030** — When a from/to pair's from value is a plain number, the animation shall give it the unit of the previous sibling tween when that is a unit value, or else the unit of the target's current value.
-  - Tests: untested
+  - Tests: `ValuesTests.APlainNumberFromTakesThePreviousSiblingsUnitElseTheTargets`
 - **CORE-VALUES-031** — When the two ends differ in kind and either is `Complex`, the animation shall make the other end complex with the complex end's strings and its own number in every slot.
   - Tests: `ValuesTests.ComplexTypeValues`
 - **CORE-VALUES-032** — Otherwise, when the ends differ in kind and either is `Unit`, the animation shall give the other end that unit.
   - Tests: `UnitsTests.ShouldMatchAnyUnitsFromOriginalValues`, `UnitsTests.ShouldMatchAnyUnitsFromComplexOriginalValues`
 - **CORE-VALUES-033** — Otherwise, when the ends differ in kind and either is `Color`, the animation shall make the other end transparent black (`0, 0, 0, 0`).
-  - Tests: untested
+  - Tests: `ValuesTests.ANumberEndAgainstAColorEndBecomesTransparentBlack`
 - **CORE-VALUES-034** — When the ends carry different units, the animation shall convert the from value to the to value's unit, or give the to value the from value's unit when the to value has none; the tween's unit is the to value's.
   - Tests: `UnitsTests.ConvertsAngleUnitsAgainstTheOriginalValue`, `UnitsTests.ShouldMatchAnyUnitsSetInThePropertyValue`, `UnitsTests.SpecifiedUnitOnASimpleTween`, `UnitsTests.UnitsInheritanceOnFromToValues`
 - **CORE-VALUES-035** — When the ends' `Numbers` differ in length, the animation shall pad the shorter with zeros and give it the longer end's strings.
-  - Tests: untested
+  - Tests: `ValuesTests.TheShorterComplexEndIsPaddedWithZerosAndTakesTheLongerEndsStrings`
 - **CORE-VALUES-036** — The animation shall take a complex tween's strings from its to value, so a string with no numbers (`"left"` to `"right"`) writes the end string from its first frame.
   - Tests: `ValuesTests.NonNumericStringsStayComplexAndWriteTheEndStringFromTheFirstFrame`
 
@@ -143,7 +143,7 @@ depends:
 ### Recomposition
 
 - **CORE-VALUES-041** — While a unit or complex tween is between its ends, the renderer shall round each interpolated number to 4 decimals; a number tween's value and either end shall not be rounded.
-  - Tests: untested
+  - Tests: `ValuesTests.InBetweenUnitAndComplexFramesRoundToFourDecimalsButNumbersAndEndsDoNot`
 - **CORE-VALUES-042** — The tween shall recompose a unit value as the number in JavaScript `Number` string form followed by the unit.
   - Tests: `UnitsTests.ValuesSetWithUnitsShouldBeProperlyApplied`, `ValuesTests.RelativeValuesWithOperators`
 - **CORE-VALUES-043** — The tween shall recompose a complex value by joining its strings around its current numbers.
@@ -168,7 +168,7 @@ depends:
 - **CORE-VALUES-051** — When a keyframe's values are functions, the animation shall evaluate them per target and per keyframe.
   - Tests: `FunctionBasedValuesTests.FunctionBasedKeyframesValues`
 - **CORE-VALUES-052** — When a function returns a `TweenParams` with a `To`, the animation shall use it as that target's tween parameters.
-  - Tests: untested
+  - Tests: `FunctionBasedValuesTests.AFunctionReturningTweenParamsGivesEachTargetItsOwnTween`
 - **CORE-VALUES-053** — The animation shall keep a tween's from and to functions and re-evaluate them on `Refresh`, re-applying a relative to value against the refreshed from value; a tween with no from function re-reads the target's current value.
   - Tests: `DiscreteValuesTests.RefreshReReadsAFunctionValue`
 - **CORE-VALUES-054** — `Refresh` shall reconcile the refreshed ends as the build does (codec `Reconcile`, kind homogenizing, unit conversion and padding), except for the unitless-end rule in Decisions.
@@ -232,4 +232,4 @@ depends:
 
 ## Open items
 
-- CORE-VALUES-030 (unit inheritance of a plain-number from), CORE-VALUES-033 (number to color), CORE-VALUES-035 (padding), CORE-VALUES-041 (4-decimal rounding of in-between frames) and CORE-VALUES-052 (function returning `TweenParams`) have no test.
+- None.

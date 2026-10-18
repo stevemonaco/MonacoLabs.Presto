@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -7,6 +8,9 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using MonacoLabs.Presto.Core;
+using MonacoLabs.Presto.Text;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -304,6 +308,130 @@ public sealed class AnimateAttachedTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AWatchChangeWhileDetachedPlaysNothingButCountsAsSeen()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        Animate.SetOnChanged(border, SlideX(100));
+        Animate.SetWatch(border, 1);
+        panel.Children.Remove(border);
+
+        Animate.SetWatch(border, 2);
+        Assert.Empty(Presto.GetAnimations(border));
+        panel.Children.Add(border);
+        Assert.Empty(Presto.GetAnimations(border));
+
+        Animate.SetWatch(border, 3);
+        Assert.Single(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void WatchAlonePlaysNothing()
+    {
+        var border = AddBorder(ShowPanel());
+
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void OnChangedAndOnCueAnimateATextBlockItselfNotItsPieces()
+    {
+        var panel = ShowPanel();
+        var block = new TextBlock { Text = "Hello there", [TextReveal.PiecesProperty] = TextPieces.Words };
+        panel.Children.Add(block);
+        var cue = new Cue();
+        Animate.SetCue(block, cue);
+        Animate.SetOnCue(block, SlideX(100));
+        Animate.SetOnChanged(block, Presto.Build().Opacity(.5).Duration(100).Ease(Eases.None));
+        Animate.SetWatch(block, 1);
+
+        Animate.SetWatch(block, 2);
+        cue.Raise();
+
+        Assert.Null(TextSplitter.Of(block));
+        Assert.Single(Presto.GetAnimations(block, "Opacity"));
+        Assert.Single(Presto.GetAnimations(block, "X"));
+    }
+
+    [AvaloniaFact]
+    public void ATriggerInitializesTheBridgeBeforePlaying()
+    {
+        var border = AddBorder(ShowPanel());
+        PrestoAvalonia.Initialized = false;
+        for (var i = Presto.Adapters.Count - 1; i >= 0; i--)
+        {
+            if (Presto.Adapters[i] is Targets.AvaloniaObjectTargetAdapter) Presto.Adapters.RemoveAt(i);
+        }
+
+        Animate.SetOnAttached(border, SlideX(100));
+
+        Assert.True(PrestoAvalonia.Initialized);
+        Assert.Single(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void EveryTriggerAnimationCarriesTheAnimateOriginAndRunsOnTheUIThread()
+    {
+        var created = new List<Timer>();
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        var completedOnUIThread = new List<bool>();
+        AnimationBuilder Slide() => SlideX(100).OnComplete(_ => completedOnUIThread.Add(Dispatcher.UIThread.CheckAccess()));
+        try
+        {
+            var panel = ShowPanel();
+            var attached = AddBorder(panel);
+            var tapped = AddHitBorder(panel);
+            var changed = AddBorder(panel);
+            var cued = AddBorder(panel);
+            var cue = new Cue();
+            Animate.SetOnAttached(attached, Slide());
+            Animate.SetOnTapped(tapped, Slide());
+            Animate.SetOnChanged(changed, Slide());
+            Animate.SetCue(cued, cue);
+            Animate.SetOnCue(cued, Slide());
+
+            Tap(tapped);
+            Animate.SetWatch(changed, 1);
+            Animate.SetWatch(changed, 2);
+            cue.Raise();
+            var animations = new[] { attached, tapped, changed, cued }.Select(b => Assert.Single(Presto.GetAnimations(b))).ToArray();
+            Frames.Advance(200, 16);
+
+            Assert.All(animations, animation => Assert.Contains(animation, created));
+            Assert.All(animations, animation => Assert.Equal("Animate", animation.Origin));
+            Assert.Equal([true, true, true, true], completedOnUIThread);
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
+    }
+
+    [AvaloniaFact]
+    public void NoTriggerIsSetByDefaultSoNothingPlays()
+    {
+        var panel = ShowPanel();
+        var border = AddHitBorder(panel);
+
+        Assert.Null(Animate.GetOnAttached(border));
+        Assert.Null(Animate.GetOnTapped(border));
+        Assert.Null(Animate.GetOnChanged(border));
+        Assert.Null(Animate.GetWatch(border));
+        Assert.Null(Animate.GetCue(border));
+        Assert.Null(Animate.GetOnCue(border));
+        Assert.Null(Animate.GetDoOnCue(border));
+        Assert.Null(Animate.GetDoOnChanged(border));
+        Tap(border);
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
     public void DetachingRevertsTheTriggers()
     {
         var panel = ShowPanel();
@@ -324,22 +452,537 @@ public sealed class AnimateAttachedTests : BridgeTestBase
         Assert.Equal(0d, PrestoAvalonia.Get(changed, "X"));
     }
 
+    private static AnimationBuilder LoopX() => SlideX(100).Loop();
+
+    private static double X(Visual visual) => (double)PrestoAvalonia.Get(visual, "X")!;
+
+    [AvaloniaFact]
+    public void AHiddenVisualsLoopIsPausedAndResumesWhereItWasWhenShown()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+        var hiddenAt = X(border);
+
+        border.IsVisible = false;
+        Frames.Advance(500, 10);
+
+        Assert.True(animation.Paused);
+        Assert.Equal(hiddenAt, X(border));
+
+        border.IsVisible = true;
+        Frames.Advance(20, 10);
+
+        Assert.False(animation.Paused);
+        Assert.InRange(X(border), hiddenAt + 1, hiddenAt + 40);
+    }
+
+    [AvaloniaFact]
+    public void HidingAnAncestorPausesTheLoop()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+
+        panel.IsVisible = false;
+        Assert.True(animation.Paused);
+
+        panel.IsVisible = true;
+        Assert.False(animation.Paused);
+    }
+
+    [AvaloniaFact]
+    public void AttachingHiddenStartsPausedAndPlaysWhenFirstShown()
+    {
+        var panel = ShowPanel();
+        var border = new Border { IsVisible = false };
+        Animate.SetOnAttached(border, SlideX(100));
+
+        panel.Children.Add(border);
+        Assert.True(Assert.Single(Presto.GetAnimations(border)).Paused);
+        Frames.Advance(200, 16);
+        Assert.Equal(0d, X(border));
+
+        border.IsVisible = true;
+        Frames.Advance(50, 10);
+        Assert.InRange(X(border), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void ACompletedAnimationIsLeftAloneWhenHidden()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, SlideX(100));
+        var animation = Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(200, 16);
+
+        border.IsVisible = false;
+        border.IsVisible = true;
+        Frames.Advance(50, 10);
+
+        Assert.True(animation.Completed);
+        Assert.True(animation.Paused);
+        Assert.Equal(100d, X(border));
+    }
+
+    [AvaloniaFact]
+    public void ShowingDoesNotResumeAPauseTheTriggerDidNotMake()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+        animation.Pause();
+        var pausedAt = X(border);
+
+        border.IsVisible = false;
+        border.IsVisible = true;
+        Frames.Advance(50, 10);
+
+        Assert.True(animation.Paused);
+        Assert.Equal(pausedAt, X(border));
+    }
+
+    [AvaloniaFact]
+    public void DetachingWhileHiddenRevertsAsBefore()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        border.IsVisible = false;
+
+        panel.Children.Remove(border);
+
+        Assert.Equal(0d, X(border));
+        Assert.Empty(Presto.GetAnimations(border));
+    }
+
+    [AvaloniaFact]
+    public void VisibilityDoesNotAffectOnTappedOrOnChanged()
+    {
+        var panel = ShowPanel();
+        var tapped = AddHitBorder(panel);
+        var changed = AddBorder(panel);
+        Animate.SetOnTapped(tapped, SlideX(100));
+        Animate.SetOnChanged(changed, SlideX(100));
+        Animate.SetWatch(changed, 1);
+        Tap(tapped);
+        Animate.SetWatch(changed, 2);
+
+        panel.IsVisible = false;
+        Frames.Advance(50, 10);
+
+        Assert.False(Assert.Single(Presto.GetAnimations(tapped)).Paused);
+        Assert.False(Assert.Single(Presto.GetAnimations(changed)).Paused);
+        Assert.InRange(X(tapped), 1, 99);
+        Assert.InRange(X(changed), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void ClearingOnAttachedRemovesTheVisibilityHandler()
+    {
+        var border = AddBorder(ShowPanel());
+        var handlers = typeof(Visual).GetField("IsEffectivelyVisibleChanged", BindingFlags.Instance | BindingFlags.NonPublic)!; // The event is internal.
+        Animate.SetOnAttached(border, LoopX());
+        Assert.NotNull(handlers.GetValue(border));
+
+        Animate.SetOnAttached(border, null);
+
+        Assert.Null(handlers.GetValue(border));
+    }
+
+    [AvaloniaFact]
+    public void ATextRevealOnAHiddenBlockWaitsUntilShown()
+    {
+        var block = TextRevealTests.Block(TextPieces.Words);
+        block.IsVisible = false;
+        Animate.SetOnAttached(block, Presto.Build().Opacity(from: 0).Duration(2000).Ease("linear"));
+        TextRevealTests.Show(block);
+        Frames.Advance(500, 50);
+
+        Assert.Equal(0, block.Opacity);
+
+        block.IsVisible = true;
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(500, 50);
+        var word = block.GetVisualDescendants().OfType<TextBlock>().First(piece => !string.IsNullOrWhiteSpace(piece.Text));
+        var animation = Assert.Single(Presto.GetAnimations(word));
+        Assert.InRange(word.Opacity, 0.1, 0.4);
+
+        block.IsVisible = false;
+        Frames.Advance(500, 50);
+        Assert.True(animation.Paused);
+
+        block.IsVisible = true;
+        Assert.False(animation.Paused);
+    }
+
+    [AvaloniaFact]
+    public void AReducedLoopPausesWhenHidden()
+    {
+        Presto.Defaults.ReducedMotion = true;
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX().WhenReduced(reduced => reduced.Opacity(0).Duration(100).Loop()));
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border, "Opacity"));
+
+        border.IsVisible = false;
+        Assert.True(animation.Paused);
+
+        border.IsVisible = true;
+        Assert.False(animation.Paused);
+    }
+
+    private static AnimationBuilder BounceOrFade() => LoopX().WhenReduced(reduced => reduced.Opacity(0).Loop(false));
+
+    [AvaloniaFact]
+    public void ALoopingOnAttachedReplaysItsReducedFormWhenTheFlagIsSet()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, BounceOrFade());
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.True(loop.Canceled);
+        Assert.Equal(0d, X(border));
+        Frames.Advance(200, 16);
+        Assert.Equal(0, border.Opacity);
+        Assert.Equal(0d, X(border));
+    }
+
+    [AvaloniaFact]
+    public void ASettledReducedFormLoopsAgainWhenTheFlagClears()
+    {
+        Presto.Defaults.ReducedMotion = true;
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, BounceOrFade());
+        Frames.Advance(200, 16);
+        Assert.Equal(0, border.Opacity);
+
+        Presto.Defaults.ReducedMotion = false;
+
+        Assert.Equal(1, border.Opacity);
+        Frames.Advance(250, 10);
+        Assert.False(Assert.Single(Presto.GetAnimations(border)).Completed);
+        Assert.InRange(X(border), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void AFiniteOnAttachedFinishesInItsFormWhenTheFlagFlips()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, SlideX(100).WhenReduced(reduced => reduced.Opacity(0)));
+        Frames.Advance(50, 10);
+        var animation = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.Same(animation, Assert.Single(Presto.GetAnimations(border)));
+        Frames.Advance(200, 16);
+        Assert.Equal(100d, X(border));
+        Assert.Equal(1, border.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void ABuilderWithoutAReducedFormDoesNotRestartOnAReducedMotionFlip()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.False(loop.Canceled);
+        Assert.Same(loop, Assert.Single(Presto.GetAnimations(border)));
+    }
+
+    [AvaloniaFact]
+    public void AReduceAllFlipReplaysALoopCollapsed()
+    {
+        var border = AddBorder(ShowPanel());
+        Animate.SetOnAttached(border, LoopX());
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReduceAll = true;
+        Frames.Advance(16);
+
+        Assert.True(loop.Canceled);
+        Assert.Equal(100d, X(border));
+
+        Presto.Defaults.ReduceAll = false;
+        Frames.Advance(50, 10);
+
+        Assert.InRange(X(border), 1, 99);
+    }
+
+    [AvaloniaFact]
+    public void ADetachedTriggerIsNotRegistered()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var engine = new Engine(new ManualFrameSource());
+        using (engine.MakeCurrent()) Animate.SetOnAttached(border, BounceOrFade());
+        Assert.Single(Followers(engine));
+
+        panel.Children.Remove(border);
+
+        Assert.Empty(Followers(engine));
+    }
+
+    [AvaloniaFact]
+    public void ARunningLoopingTapAnimationFollowsTheFlag()
+    {
+        var border = AddHitBorder(ShowPanel());
+        Animate.SetOnTapped(border, BounceOrFade());
+        Tap(border);
+        Frames.Advance(50, 10);
+        var loop = Assert.Single(Presto.GetAnimations(border));
+
+        Presto.Defaults.ReducedMotion = true;
+
+        Assert.True(loop.Canceled);
+        Assert.Equal(0d, X(border));
+        Frames.Advance(50, 10);
+        Assert.InRange(border.Opacity, 0.01, 0.99);
+        Frames.Advance(100, 10);
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Equal(1, border.Opacity);
+    }
+
     [AvaloniaFact]
     public void DoesNothingInDesignMode()
     {
         var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
         var border = AddBorder(ShowPanel());
         isDesignMode.SetValue(null, true);
+        var cue = new Cue();
+        var action = new RecordingAction();
         try
         {
             Animate.SetOnAttached(border, SlideX(100));
+            Animate.SetCue(border, cue);
+            Animate.SetOnCue(border, SlideX(100));
+            Animate.SetDoOnCue(border, action);
+            Animate.SetDoOnChanged(border, action);
+            Animate.SetWatch(border, 1);
         }
         finally
         {
             isDesignMode.SetValue(null, false);
         }
+        cue.Raise();
 
         Assert.Empty(Presto.GetAnimations(border));
+        Assert.Empty(action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void OnCuePlaysOnEachRaiseRestartingAndRevertsWhenItCompletes()
+    {
+        var border = AddBorder(ShowPanel());
+        var cue = new Cue();
+        Animate.SetCue(border, cue);
+        Animate.SetOnCue(border, SlideX(100));
+        Assert.Empty(Presto.GetAnimations(border));
+
+        cue.Raise();
+        var first = Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(50, 10);
+
+        cue.Raise();
+        Assert.True(first.Canceled);
+        Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(200, 16);
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Equal(0d, X(border));
+    }
+
+    [AvaloniaFact]
+    public void ARaiseWhileDetachedPlaysAndInvokesNothing()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var cue = new Cue<int>();
+        var action = new RecordingAction();
+        Animate.SetCue(border, cue);
+        Animate.SetOnCue(border, SlideX(100));
+        Animate.SetDoOnCue(border, action);
+        panel.Children.Remove(border);
+
+        cue.Raise(1);
+
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Empty(action.Calls);
+        panel.Children.Add(border);
+        Assert.Empty(action.Calls);
+        cue.Raise(2);
+        Assert.Equal([(2, false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void DetachingUnsubscribesFromTheCueAndAttachingSubscribesAgain()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var source = new CountingObservable();
+        Animate.SetCue(border, source);
+        Assert.Equal(1, source.Count);
+
+        panel.Children.Remove(border);
+        Assert.Equal(0, source.Count);
+
+        panel.Children.Add(border);
+        Assert.Equal(1, source.Count);
+    }
+
+    [AvaloniaFact]
+    public void ChangingOrClearingTheCueUnsubscribesFromTheOldOne()
+    {
+        var border = AddBorder(ShowPanel());
+        var first = new CountingObservable();
+        var second = new CountingObservable();
+        Animate.SetCue(border, first);
+
+        Animate.SetCue(border, second);
+        Assert.Equal(0, first.Count);
+        Assert.Equal(1, second.Count);
+
+        Animate.SetCue(border, null);
+        Assert.Equal(0, second.Count);
+    }
+
+    [AvaloniaFact]
+    public void AnObservableSourceDrivesOnCueAndDoOnCue()
+    {
+        var border = AddBorder(ShowPanel());
+        var source = new CountingObservable();
+        var action = new RecordingAction();
+        Animate.SetCue(border, source);
+        Animate.SetOnCue(border, SlideX(100));
+        Animate.SetDoOnCue(border, action);
+
+        source.Raise("saved");
+
+        Assert.Single(Presto.GetAnimations(border));
+        Assert.Equal([("saved", false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void ACueThatIsNeitherACueNorAnObservableThrows()
+    {
+        var border = AddBorder(ShowPanel());
+
+        Assert.Throws<ArgumentException>(() => Animate.SetCue(border, "not a cue"));
+    }
+
+    [AvaloniaFact]
+    public void DoOnCueGetsTheRaisedValueAsNotFirst()
+    {
+        var border = AddBorder(ShowPanel());
+        var cue = new Cue<string>();
+        var action = new RecordingAction();
+        Animate.SetCue(border, cue);
+        Animate.SetDoOnCue(border, action);
+
+        cue.Raise("a");
+        cue.Raise("b");
+
+        Assert.Equal([("a", false), ("b", false)], action.Calls);
+        Assert.All(action.Targets, target => Assert.Same(border, target));
+    }
+
+    [AvaloniaFact]
+    public void DoOnChangedSeesTheFirstValueAsFirstAndLaterValuesAsNot()
+    {
+        var border = AddBorder(ShowPanel());
+        var action = new RecordingAction();
+        Animate.SetDoOnChanged(border, action);
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+
+        Assert.Equal([(null, true), (1, false), (2, false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void DoOnChangedCatchesUpOnAValueThatChangedWhileDetached()
+    {
+        var panel = ShowPanel();
+        var border = new Border();
+        var action = new RecordingAction();
+        Animate.SetWatch(border, 1);
+        Animate.SetDoOnChanged(border, action);
+        Assert.Empty(action.Calls);
+
+        panel.Children.Add(border);
+        panel.Children.Remove(border);
+        Animate.SetWatch(border, 2);
+        panel.Children.Add(border);
+        panel.Children.Remove(border);
+        panel.Children.Add(border);
+
+        Assert.Equal([(1, true), (2, false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void ADataContextDropAndRestoreInvokesDoOnChangedAsFirst()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var model = new CountModel { Count = 1 };
+        var action = new RecordingAction();
+        border.Bind(Animate.WatchProperty, new Binding(nameof(CountModel.Count)));
+        panel.DataContext = model;
+        Animate.SetDoOnChanged(border, action);
+
+        panel.DataContext = null;
+        panel.DataContext = model;
+        model.Count = 2;
+
+        Assert.Equal([(1, true), (null, true), (1, true), (2, false)], action.Calls);
+    }
+
+    private sealed class RecordingAction : CueAction
+    {
+        public List<(object? Value, bool First)> Calls { get; } = [];
+
+        public List<Visual> Targets { get; } = [];
+
+        protected internal override void Invoke(Visual target, object? value, bool first)
+        {
+            Targets.Add(target);
+            Calls.Add((value, first));
+        }
+    }
+
+    private sealed class CountingObservable : IObservable<object?>
+    {
+        private readonly List<IObserver<object?>> _observers = [];
+
+        public int Count => _observers.Count;
+
+        public void Raise(object? value)
+        {
+            foreach (var observer in _observers.ToArray()) observer.OnNext(value);
+        }
+
+        public IDisposable Subscribe(IObserver<object?> observer)
+        {
+            _observers.Add(observer);
+            return new Unsubscriber(() => _observers.Remove(observer));
+        }
+
+        private sealed class Unsubscriber(Action dispose) : IDisposable
+        {
+            public void Dispose() => dispose();
+        }
     }
 
     private sealed class CountModel : INotifyPropertyChanged

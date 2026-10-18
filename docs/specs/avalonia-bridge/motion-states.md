@@ -12,14 +12,17 @@ sources:
   - MonacoLabs.Presto.Avalonia/MotionState.cs
   - MonacoLabs.Presto.Avalonia/MotionStates.cs
   - MonacoLabs.Presto.Avalonia/MotionTracker.cs
+  - MonacoLabs.Presto.Avalonia/StateTokensExtension.cs
 types:
   - Motion
   - MotionState
   - MotionStates
   - MotionOrder
   - MotionExtensions
+  - StateTokensExtension
 tests:
   - MotionStateTests
+  - MotionStateTokensTests
   - MotionConditionTests
   - MotionStateValidationTests
   - MotionPropagationTests
@@ -48,7 +51,7 @@ depends:
 
 ## Purpose
 
-State motion for any `Control`: while a condition holds on an element (hover, press, focus, a class, a pseudo-class or a named `Motion.State` token), the properties its `AnimationBuilder` names go to its values, and when it stops holding they return to the next winning state's value or to rest. States layer by declaration order. A `Motion.State` set on an element also drives the states of descendants that set none, timed by `StaggerChildren`, `DelayChildren` and `Order`. It builds on core animations with replace composition (CORE-ANIMATION, CORE-COMPOSITION) and the bridge's property resolution and shorthands (BRIDGE-TARGETS, BRIDGE-TRANSFORMS, BRIDGE-EFFECTS).
+State motion for any `Control`: while a condition holds on an element (hover, press, focus, a class, a pseudo-class or a named `Motion.State` token), the properties its `AnimationBuilder` names go to its values, and when it stops holding they return to the next winning state's value or to rest. States layer by declaration order, an element's own `Motion.LocalStates` after the `Motion.States` a style may set. `{presto:StateTokens}` composes one `Motion.State` from the tokens of several bindings. A `Motion.State` set on an element also drives the states of descendants that set none, timed by `StaggerChildren`, `DelayChildren` and `Order`. It builds on core animations with replace composition (CORE-ANIMATION, CORE-COMPOSITION) and the bridge's property resolution and shorthands (BRIDGE-TARGETS, BRIDGE-TRANSFORMS, BRIDGE-EFFECTS). `Motion.Preference`, the app-wide motion preference on the same class, is specified by BRIDGE-REDUCED.
 
 ## Requirements
 
@@ -68,15 +71,25 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionStateTests.StateTokensMatchEnumNamesAndSeveralAtOnce`
 - **BRIDGE-MOTION-007** — When a style setter on a descendant selector sets `Motion.State` on an element, its states shall enter while the selector matches and leave when the setter's value goes.
   - Tests: `MotionStateTests.ADescendantSelectorSettingStateDrivesTheChild`
+- **BRIDGE-MOTION-066** — `StateTokens` shall provide a one-way `MultiBinding` whose value is the union of its bindings' tokens, joined by spaces, or `null` when there are none: a true `bool` contributes the last member name of its binding's path, read from a reflection binding's `Path` or a compiled binding's path text alike, a false `bool`, `null` or unset value contributes none, and any other value contributes its tokens as BRIDGE-MOTION-006 reads them.
+  - Tests: `MotionStateTokensTests.AnEnumAndATrueFlagHoldBothStatesAndTheFlagGoingFalseLeavesOnlyItsState`, `MotionPropagationTests.FollowersOfAStateTokensSourceStaggerAsFromAPlainValue`
+- **BRIDGE-MOTION-067** — When a `bool` binding of `StateTokens` has an empty path, its value shall contribute `True` or `False` as BRIDGE-MOTION-006 reads it.
+  - Tests: `MotionStateTokensTests.ABoolBoundWithAnEmptyPathContributesTrue`
+- **BRIDGE-MOTION-068** — When any one binding of `StateTokens` changes, `Motion.State` shall change once, so the tracker plays one transition.
+  - Tests: `MotionStateTokensTests.OneSourceChangePlaysOneTransition`
+- **BRIDGE-MOTION-069** — When `StateTokens` is set on any property but `Motion.State`, providing its value shall throw `InvalidOperationException` whose message names `Motion.State`.
+  - Tests: `MotionStateTokensTests.SettingItOnAnotherPropertyThrowsNamingMotionState`
 
 ### Sugar, ordering and layering
 
-- **BRIDGE-MOTION-008** — `Motion.Hover`, `Motion.Focus` and `Motion.Press` shall be states with `When` `:pointerover`, `:focus-visible` and `:pressed`, ordered Hover, Focus, Press, then `Motion.States` entries in declaration order, then code-added states in the order added.
-  - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `MotionStateTests.ACodeStateWinsOverADeclaredStateForASharedProperty`
+- **BRIDGE-MOTION-008** — `Motion.Hover`, `Motion.Focus` and `Motion.Press` shall be states with `When` `:pointerover`, `:focus-visible` and `:pressed`, ordered Hover, Focus, Press, then `Motion.States` entries in declaration order, then `Motion.LocalStates` entries in declaration order, then code-added states in the order added.
+  - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `MotionStateTests.ACodeStateWinsOverADeclaredStateForASharedProperty`, `MotionStateTests.LocalStatesAddToAStylesStatesAndWinSharedProperties`, `MotionStateTests.ACodeStateWinsOverStatesAndLocalStates`
+- **BRIDGE-MOTION-065** — Setting `Motion.LocalStates` shall add its states to those of `Motion.States`, whatever the priority of either value.
+  - Tests: `MotionStateTests.LocalStatesAddToAStylesStatesAndWinSharedProperties`, `MotionStateTests.ClearingLocalStatesReturnsItsPropertiesToRestWhileStatesHold`
 - **BRIDGE-MOTION-009** — For each property, the last active state in that order that names it shall be its winner; properties a state does not name are left to other states.
   - Tests: `MotionStateTests.PressLayersOverHoverOnASharedScale`, `MotionStateTests.ACodeStateWinsOverADeclaredStateForASharedProperty`
 - **BRIDGE-MOTION-010** (inherited) — Property names shall be canonicalized per element before layering, so two spellings of one property share a winner.
-  - Tests: untested
+  - Tests: `MotionStateTests.TwoSpellingsOfOnePropertyShareAWinner`
 - **BRIDGE-MOTION-011** — When a property's winner changes to a state that has just become active, the tracker shall play that state's builder for the properties it takes, with its duration, delay, ease, per-property tween params, keyframes and loop.
   - Tests: `MotionStateTests.HoverEasesToTheTargetAndBackToRest`, `MotionStateTests.AKeyframedLoopingStateLoopsWhileActiveAndReturnsToRest`
 - **BRIDGE-MOTION-012** — When a state stops holding, the properties it won shall return to the next winner's value, or to rest when no active state names them, timed by the leaving state's `Leave` if given, otherwise by its own `Motion` timing.
@@ -113,13 +126,13 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionStateValidationTests.AbsoluteAndKeyframedValuesAreAccepted`
 - **BRIDGE-MOTION-024** — When a `Leave` has keyframes, or gives a property anything but a per-property ease, duration or delay (a value, `To`, `From`, `Composition`, `Modifier` or `TextModifier`), validation shall throw `NotSupportedException`; animation-level duration, delay and ease are accepted, and a per-property delay holds that property's return.
   - Tests: `MotionStateValidationTests.ALeaveThatGivesAPropertyAValueThrows`, `MotionStateValidationTests.ALeaveWithOnlyTimingIsAccepted`, `MotionStateTests.ALeavePerPropertyDelayHoldsThatPropertyBeforeItReturns`
-- **BRIDGE-MOTION-025** (inherited) — Conditions shall be parsed and states validated when the attached property is set or the `MotionStates` list changes (or the code state is added), so an invalid state throws from the setter, attached or not.
+- **BRIDGE-MOTION-025** (inherited) — Conditions shall be parsed and states validated when `Hover`, `Press`, `Focus`, `States` or `LocalStates` is set or a `MotionStates` list changes (or the code state is added), so an invalid state throws from the setter, attached or not.
   - Tests: `MotionStateTests.SettingTheAttachedPropertyValidatesTheState`
 
 ### Hover
 
 - **BRIDGE-MOTION-026** (inherited) — The tracker shall listen for hover only while some state's `When` contains `:pointerover`, and shall start hovered when the pointer is already over the element.
-  - Tests: untested
+  - Tests: `MotionStateTests.AHoverStateSetWhileThePointerIsAlreadyOverStartsHovered`
 - **BRIDGE-MOTION-027** (inherited) — When the pointer exits an element while it is still inside the element's layout slot (its `Bounds` in the parent, ignoring render transforms), hover shall hold until the pointer leaves that slot or the top level.
   - Tests: `MotionStateTests.AHoverLiftingTheElementFromUnderThePointerHoldsUntilThePointerLeavesItsSlot`
 
@@ -142,7 +155,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 ### Attach, detach and lifetime
 
 - **BRIDGE-MOTION-033** (inherited) — While the element is detached, condition changes shall play nothing.
-  - Tests: untested
+  - Tests: `MotionStateTests.AConditionChangeWhileDetachedPlaysNothing`
 - **BRIDGE-MOTION-034** — When the element attaches, the states that hold shall be applied instantly with `Presto.Set` at their final values, with no animation left running.
   - Tests: `MotionStateTests.AReattachedElementSnapsToItsActiveStates`, `MotionStateTests.AMorphingStateActiveAtAttachSnapsToItsShape`, `MotionPropagationTests.AChildAddedUnderAnOpenParentArrivesSnapped`
 - **BRIDGE-MOTION-035** (inherited) — When a state that holds at attach loops, it shall also be played from the snapped value, so it keeps looping.
@@ -151,13 +164,13 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
   - Tests: `MotionStateTests.DetachRevertsEveryStateAnimation`, `MotionPropagationTests.DetachingTheParentRevertsTheChildren`
 - **BRIDGE-MOTION-037** — State animations shall run with `HostLifetime = WhenDetached.Continue`, leaving detach handling to the tracker.
   - Tests: `WhenDetachedTests.AMotionStateAnimationIsLeftToMotion`
-- **BRIDGE-MOTION-038** — When `Hover`, `Press`, `Focus` and `States` are all cleared and no code state remains, the tracker shall be released, canceling and reverting its animations at once.
-  - Tests: untested
-- **BRIDGE-MOTION-039** (inherited) — When one of those properties changes while others remain, or the `MotionStates` list raises a collection change, the tracker shall rebuild its state list and animate properties to their new winners or to rest.
-  - Tests: untested
-- **BRIDGE-MOTION-040** — In design mode, setting `Hover`, `Press`, `Focus` or `States`, or adding a code state (`While*`), shall create no tracker; the code state's handle does nothing when disposed.
+- **BRIDGE-MOTION-038** — When `Hover`, `Press`, `Focus`, `States` and `LocalStates` are all cleared and no code state remains, the tracker shall be released, canceling and reverting its animations at once.
+  - Tests: `MotionStateTests.ClearingEveryStatePropertyReleasesTheTrackerAndRevertsAtOnce`
+- **BRIDGE-MOTION-039** (inherited) — When one of those properties changes while others remain, or the `States` or `LocalStates` list raises a collection change, the tracker shall rebuild its state list and animate properties to their new winners or to rest.
+  - Tests: `MotionStateTests.ClearingLocalStatesReturnsItsPropertiesToRestWhileStatesHold`, `MotionStateTests.AStatesListChangeRebuildsAndAnimatesToTheNewWinners`
+- **BRIDGE-MOTION-040** — In design mode, setting `Hover`, `Press`, `Focus`, `States` or `LocalStates`, or adding a code state (`While*`), shall create no tracker; the code state's handle does nothing when disposed.
   - Tests: `MotionStateTests.NothingIsTrackedInDesignMode`
-- **BRIDGE-MOTION-041** — One `MotionStates` list shared by a style across controls shall keep separate runtime state per control.
+- **BRIDGE-MOTION-041** — One `MotionStates` list shared by a style across controls, through `States` or `LocalStates`, shall keep separate runtime state per control.
   - Tests: `MotionStateTests.AStyleSharedStatesListKeepsSeparateStatePerControl`
 
 ### Code API
@@ -189,7 +202,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-051** — `DelayChildren` shall be added to every follower's delay, on top of the state's own delay (a function value evaluated for the follower) and the stagger offset, a zero-duration animation or return included (CORE-ANIMATION-066).
   - Tests: `MotionOrchestrationTests.DelayChildrenShiftsEveryChild`, `MotionOrchestrationTests.AZeroDurationReturnWaitsOutDelayChildren`, `MotionOrchestrationTests.AFunctionDelayAddsToTheStaggerAndDelayChildren`
 - **BRIDGE-MOTION-052** — With `Order = Together`, the source's own state animations shall start with no added delay, alongside its followers.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.TogetherStartsTheParentAtOnceAlongsideItsDelayedChildren`
 - **BRIDGE-MOTION-053** — With `Order = BeforeChildren`, the end of the source's own state animations (delay plus duration) shall be added to every follower's delay.
   - Tests: `MotionOrchestrationTests.BeforeChildrenStartsTheChildrenWhenTheParentsOwnAnimationEnds`, `ReferencePagesTests.TheStatesMenuStaggersItsItemsInAfterThePanelAndClosesToRest`
 - **BRIDGE-MOTION-054** — With `Order = AfterChildren`, the source's own state animations shall be delayed until the last follower's animation ends.
@@ -199,25 +212,25 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 ### Reduced motion and diagnostics
 
-- **BRIDGE-MOTION-056** — A state shall play its builder's `WhenReduced` form while `PrestoDefaults.ReducedMotion` is set, re-reading a state whose values were read under the other setting at its next transition.
-  - Tests: `RecipeTests.TogglingReducedMotionTakesEffectAtTheNextTransition`, `RecipeTests.AnInteractionWorksAsAHoverStateAndReturnsToRest`, `StorefrontPageTests.WithReducedMotionOnAHoveredCardDoesNotMove`
+- **BRIDGE-MOTION-056** — A state shall play its builder's `WhenReduced` form while `PrestoDefaults.ReducedMotion` is set, re-reading a state whose values were read under the other setting at its next transition, and, when the flags change while the state is held or playing and Following a change (BRIDGE-REDUCED) asks for a replay, playing the new form for the properties it holds from where they stand.
+  - Tests: `RecipeTests.TogglingReducedMotionTakesEffectAtTheNextTransition`, `RecipeTests.AnInteractionWorksAsAHoverStateAndReturnsToRest`, `StorefrontPageTests.WithReducedMotionOnAHoveredCardDoesNotMove`, `MotionStateTests.AHeldLoopingStateReplaysInItsNewFormWhenTheFlagFlips`, `MotionStateTests.AHeldFiniteStateKeepsItsValuesUntilLeft`
 - **BRIDGE-MOTION-057** — Under `ReduceAll`, every state animation, follower delays and staggers included, shall land at once.
   - Tests: `MotionOrchestrationTests.UnderReduceAllEveryChildLandsAtOnce`
 - **BRIDGE-MOTION-058** — State animations shall be created under the diagnostics origin `"Motion"`.
-  - Tests: untested
+  - Tests: `MotionStateTests.StateAnimationsCarryTheMotionOrigin`
 
 ### Defaults
 
 - **BRIDGE-MOTION-059** (inherited) — When a `MotionState`'s `When` is not set, it shall be empty, so validating the state throws `ArgumentException`.
   - Tests: `MotionConditionTests.SelectorPartsAreRejectedWithTheStateSetterEscapeHatch`
 - **BRIDGE-MOTION-060** (inherited) — When `StaggerChildren` is not set, followers shall not be staggered.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.ByDefaultTheParentPlaysTogetherAndChildrenGetNoDelayOrStagger`
 - **BRIDGE-MOTION-061** — When `StaggerFrom` is not set, the stagger shall run from the first follower, as the core `Stagger` does (CORE-STAGGER).
   - Tests: `MotionOrchestrationTests.StaggerChildrenBeginsEachChildItsAmountAfterThePrevious`
 - **BRIDGE-MOTION-062** (inherited) — When `DelayChildren` is not set, followers shall get no added delay.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.ByDefaultTheParentPlaysTogetherAndChildrenGetNoDelayOrStagger`
 - **BRIDGE-MOTION-063** (inherited) — When `Order` is not set, it shall be `Together`.
-  - Tests: untested
+  - Tests: `MotionOrchestrationTests.ByDefaultTheParentPlaysTogetherAndChildrenGetNoDelayOrStagger`
 
 ## Invariants
 
@@ -234,6 +247,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - With no followers, `AfterChildren` plays the source at once; `BeforeChildren` with no own states adds nothing.
 - Clearing a source's `Motion.State` releases followers through the same orchestration walk, so they return on its stagger.
 - Press stays on while the pointer is dragged off the element, until release or capture loss.
+- A `StateTokens` flag and an enum value with the same name give one token.
+- `StateTokens` as a style `Setter` value throws (BRIDGE-MOTION-069), since its target is the setter, not `Motion.State`; set it on the element.
 
 ## Threading and lifetime
 
@@ -256,9 +271,15 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 ## Decisions
 
 - **One static class, `Motion`, named for its meaning.** State motion is `Motion` (like `Presence` and `Connected`) with builder sugar `Hover`/`Press`/`Focus`, a `States` list of `MotionState { When, Motion, Leave }` and a `State` object whose tokens match named conditions; prebuilts stay on `Recipes`. Reason: named after the meaning, and `Motion` collides with nothing in Avalonia. Rejected: a Framer-style `While.Hover`; `Interact`.
+- **Keep `Motion`; document the shadowing.** In C#, an enclosing namespace's members beat types brought in by `using`, so any app namespace named `Motion`, `Presence` or `Connected` shadows the Presto type and no library-side alias or `global using` can win; the README's Motion section names the rule and the fix, an alias such as `using PrestoMotion = MonacoLabs.Presto.Motion;`. Tempo keeps its `Motion/` folder and its test alias as the documented consumer case. Reason: the pitfall is the language's, not the name's. Rejected: renaming `Motion` (it breaks every XAML use, and the same rule would hit whatever name replaces it); renaming Tempo's folder (it hides the pitfall instead of documenting it).
 - **Conditions are ANDed tokens, not a selector engine.** A `When` is `:pseudo-class`, `.class` and a leading bare `Motion.State` name on the element itself; descendant, child and template parts throw. Reason: Presto parses no selectors. Rejected: a selector engine.
 - **Selector reach goes through style setters on `Motion.State`.** "Hover the card, animate the arrow" is a style setter on the arrow's `Motion.State`; when the selector stops matching, the setter's value goes and the state leaves. Reason: Avalonia styles already give full selector power.
-- **Sugar has a fixed order and focus means `:focus-visible`.** `Hover`, `Focus` and `Press` map to `:pointerover`, `:focus-visible` and a synthesized `:pressed`, ordered Hover < Focus < Press before the `States` entries, so press wins over hover; `When=":focus"` covers focus from any input, and focus is read from `Classes` like every pseudo-class. Reason: a mouse click should not play the focus motion.
+- **Sugar has a fixed order and focus means `:focus-visible`.** `Hover`, `Focus` and `Press` map to `:pointerover`, `:focus-visible` and a synthesized `:pressed`, ordered Hover < Focus < Press before the `States` and `LocalStates` entries, so press wins over hover; `When=":focus"` covers focus from any input, and focus is read from `Classes` like every pseudo-class. Reason: a mouse click should not play the focus motion.
+- **`LocalStates` is a second list, ordered after `States`.** Reason: Avalonia gives a property one effective value, so a style's list and a local one can only both apply if they are separate properties, and putting the local list later matches local-over-style precedence. Rejected: reading `States` at both style and local priority (Avalonia has no public API for a value below the winning priority); `MotionStates.BasedOn` pointing at a resource list, which handles chains but makes the app move every style's list into a named resource first.
+- **The name says intent, not a rule.** `LocalStates` may still be set from a style; then two styles setting it collide one level up, just as two styles setting `States` do. Reason: the common case is one themed list plus one local list, and that is what the name describes. Rejected: throwing when `LocalStates` comes from a style, which would block a legitimate second style layer.
+- **Compose tokens in a markup extension, not in the tracker.** `{presto:StateTokens}` takes several bindings and provides one `MultiBinding` for `Motion.State`. Reason: `Motion.State` stays one value, so the propagation model (a follower reads its nearest source's one value) and orchestration need no change, and the extension uses only standard `MultiBinding` machinery. Rejected: a second token property such as `Motion.Flags`, since every propagation and orchestration rule would need a two-source version; a collection of `MotionToken { Name, When={Binding} }` items, since items in an attached list get no `DataContext` or name scope; a union of tokens from every ancestor that sets `Motion.State`, which breaks BRIDGE-MOTION-046 (an inner state scopes its subtree).
+- **A true `bool` is named by its binding path's last member.** Reason: the flag needs a name, and the path already gives one, so `{Binding IsRunning}` reads as `When="IsRunning"` with nothing to repeat. A compiled binding's name comes from `CompiledBindingPath.ToString()`, public API with no reflection, so compiled and reflection bindings work alike and the extension stays trim- and AOT-clean. Rejected: a positional `Names="_ Running"` parameter (two lists to keep in step); asking the app for `{Binding IsRunning, Converter=…}` per flag (the converter boilerplate this removes); requiring reflection bindings, which the compiled path's text made unnecessary. A bool bound with an empty path (`{Binding}`) falls back to BRIDGE-MOTION-006 and contributes `True` or `False`.
+- **Two to four bindings.** Reason: XAML positional arguments bind to constructors, and four covers every case seen; more is a sign the view model should expose an enum. Rejected: a `params` constructor, which the XAML compiler does not bind positionally.
 - **Press is synthesized for every element.** The tracker keeps its own pressed flag from a left-button (or touch or pen) `PointerPressed`, seen with handled events, until a left release or capture loss, and `:pressed` reads only that flag. Reason: only `Button` and its subclasses set `:pressed`, and a Button that handles its own press must still count; a touch that becomes a scroll ends the press.
 - **Entering uses the state's timing; leaving uses `Leave`, which only times.** A property leaving a state goes to the next winner or rest on the leaving state's `Leave` builder, else its own timing, and a value in `Leave` throws; per-property eases, durations and delays are timing, so they are accepted. Reason: not recorded; it mirrors `LayoutMotion`'s timing-only rule. The per-property delay had been rejected though the tracker applied it and the doc promised it.
 - **A return to a looping or keyframed lower state resumes it.** A property handed back to a lower state that loops or keyframes it plays that state's builder again from where it stands, instead of landing on its final value on the leaving timing. Reason: a busy wobble under a hover lift should keep wobbling once the hover ends, as it does when the element arrives in that state (BRIDGE-MOTION-035). Rejected: landing on the final value, which froze the loop.
@@ -271,7 +292,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **State animations compose by replace.** Each transition plays one animation per entering and per leaving state, covering only the properties whose winner changed, from where they stand. Reason: a hover during an entrance goes straight to the lift while the entrance keeps its other properties, the look the recipes are designed around.
 - **Interrupted state springs restart at rest velocity.** States do not reuse `Animatable`'s velocity preservation. Reason: not recorded; only `Animatable` measures velocity. Rejected: a `MotionState.PreserveVelocity` option, or running states on an `Animatable`.
 - **Every state plays on the UI thread.** States never play through the compositor, even transform- and opacity-only ones. Reason: input arrives on the UI thread anyway, so the gain would be smoothness under load, not responsiveness; left out unless a sample shows the need.
-- **The tracker re-reads a state when the reduced flag has flipped.** A state whose values were read under the other setting is re-read at its next transition; a state already held keeps its values until left. Reason: not recorded.
+- **The tracker re-reads a state when the reduced flag has flipped.** A state whose values were read under the other setting is re-read at its next transition; a state already held keeps its values until left. Reason: a held finite state rests, so its next transition is soon enough; a looping one is replayed, see BRIDGE-REDUCED.
 - **`Motion.State` propagates by explicit resolution.** A tracker without its own `Motion.State` reads the nearest visual ancestor's, re-resolved on attach and whenever an element sets or clears it; a source's change walks its descendants; classes still come from the follower, and a follower attached under an open source arrives snapped. Reason: one state on a parent then drives its subtree, as Framer Motion variants and Compose `updateTransition` do, where `Motion.States` was per element. Rejected: Avalonia property inheritance.
 - **Orchestration times only followers whose winners change, by layout position.** Followers are ordered by layout-slot origin with render transforms ignored and delayed by `DelayChildren` plus the core `Stagger(StaggerChildren, From = StaggerFrom)`; `BeforeChildren` and `AfterChildren` sequence the source; `StaggerFrom` is a property of its own; under `ReduceAll` all land at once. A state animation still in its delay when retargeted is removed, not trimmed. A function-valued state delay is evaluated for the element before the orchestration delay is added. Reason: replace composition trims only begun tweens, so returning mid-stagger must never start a waiting child.
 - **Design mode tracks nothing.** The attached properties and `While*` both skip the tracker in design mode, and `While*` returns a handle that does nothing. Reason: the previewer should show controls at rest, not run their state machinery.
@@ -287,4 +308,4 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 ## Open items
 
-- Untested: canonicalization of property spellings (010), hover listen gating (026), no play while detached (033), tracker release on clearing the last state (038), rebuild on property or list change (039), `Order = Together` timing (052), diagnostics origin (058).
+- BRIDGE-MOTION-026: only the start-hovered half is pinned; that hover is listened for only while some `When` contains `:pointerover` is not observable without reaching into the tracker.

@@ -70,7 +70,8 @@ public sealed class GalleryPageTests
         var picker = window.GetLogicalDescendants().OfType<ComboBox>().Single(box => box.Name == "MotionPicker");
         try
         {
-            picker.SelectedIndex = 1;
+            Assert.Equal(1, picker.SelectedIndex);
+            picker.SelectedIndex = 2;
             Assert.Equal(MotionPreference.Reduced, gallery.Motion);
             Assert.True(Presto.Defaults.ReducedMotion);
 
@@ -78,11 +79,12 @@ public sealed class GalleryPageTests
             gallery.SelectedPage = Pages.First(page => page.Title == "Motion tokens");
             Assert.True(Presto.Defaults.ReducedMotion);
 
-            picker.SelectedIndex = 0;
+            picker.SelectedIndex = 1;
             Assert.False(Presto.Defaults.ReducedMotion);
         }
         finally
         {
+            PrestoAvalonia.MotionPreference = null;
             Presto.Defaults.ReducedMotion = false;
             SceneHarness.Close(window);
         }
@@ -146,7 +148,7 @@ public sealed class GalleryPageTests
         }
         finally
         {
-            gallery.Motion = MotionPreference.Full;
+            PrestoAvalonia.MotionPreference = null;
             Presto.Defaults.ReducedMotion = false;
             SceneHarness.Close(window);
         }

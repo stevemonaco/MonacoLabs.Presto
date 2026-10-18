@@ -23,7 +23,7 @@ namespace MonacoLabs.Presto;
 /// the child keeps its natural constraint, and a change mid-flight is measured as it happens. Only an axis along which the
 /// host's size follows its content eases; a stretched axis moves in one frame.
 /// </remarks>
-public sealed class ContentSizeTransition : IRevertible
+public sealed class ContentSizeTransition : IRevertible, IReleasable
 {
     private static readonly ConditionalWeakTable<Control, ContentSizeTransition> s_live = new();
     private static readonly List<Control> s_resizing = [];
@@ -41,6 +41,7 @@ public sealed class ContentSizeTransition : IRevertible
     private AnimatedValue<Thickness>? _held;
     private AnimatedValue<Geometry?>? _clip;
     private Animation? _mirror;
+    private bool _reverted;
 
     // With record false, the host's first layout pass only records its size; unscoped is for a transition whose owner reverts it.
     internal ContentSizeTransition(Control host, LayoutMotion motion, bool record, bool scoped = true)
@@ -80,10 +81,13 @@ public sealed class ContentSizeTransition : IRevertible
         Cancel();
         _host.LayoutUpdated -= OnLayoutUpdated;
         if (s_live.TryGetValue(_host, out var live) && live == this) s_live.Remove(_host);
+        _reverted = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _reverted;
 
     /// <inheritdoc cref="Animation.Then"/>
     public async Task<ContentSizeTransition> Then(Action<ContentSizeTransition>? callback = null)
@@ -244,10 +248,18 @@ public sealed class ContentSizeTransition : IRevertible
         else s_resizing.Remove(_host);
     }
 
-    private sealed class Inset
+    private sealed class Inset : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(Right)] = ObjectTargetAdapter.MemberAccessor.Of<Inset, double>(inset => inset.Right, (inset, value) => inset.Right = value),
+            [nameof(Bottom)] = ObjectTargetAdapter.MemberAccessor.Of<Inset, double>(inset => inset.Bottom, (inset, value) => inset.Bottom = value),
+        };
+
         public double Right { get; set; }
 
         public double Bottom { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

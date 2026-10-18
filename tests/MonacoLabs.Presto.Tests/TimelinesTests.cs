@@ -419,4 +419,62 @@ public sealed class TimelinesTests : EngineTestBase
 
         Assert.Throws<KeyNotFoundException>(() => tl.Seek(new TimelineLabel("missing")));
     }
+
+    [Fact]
+    public void AChildNeverAutoplaysWhateverItsAutoplaySays()
+    {
+        var target = new StyleTarget();
+        var tl = Presto.CreateTimeline(new() { Autoplay = false })
+            .Add(target, new() { ["X"] = 100, Duration = 100, Autoplay = true })
+            .Add(new TimerParams { Duration = 100, Autoplay = true });
+
+        Frames.Advance(100, 16);
+
+        Assert.False(TestHelpers.GetChildAtIndex(tl, 0)!.IsScheduled);
+        Assert.False(TestHelpers.GetChildAtIndex(tl, 1)!.IsScheduled);
+        Assert.Equal(0, TestHelpers.GetChildAtIndex(tl, 1)!.CurrentTime);
+        Assert.Equal(0, target.X);
+    }
+
+    [Fact]
+    public void WithoutCompositionAddingAChildNeitherRendersTheTimelineNorInitializesTheChild()
+    {
+        static Timeline Build(StyleTarget target, bool composition) =>
+            Presto.CreateTimeline(new() { Autoplay = false, Composition = composition, Defaults = new() { Ease = "linear" } })
+                .Add(target, new() { Duration = 200, ["TranslateX"] = 100 })
+                .Add(target, new() { Duration = 200, ["TranslateX"] = 400 }, 100);
+        var composed = new StyleTarget();
+        var loose = new StyleTarget();
+        var composedTl = Build(composed, true);
+        var looseTl = Build(loose, false);
+
+        composedTl.Seek(200);
+        looseTl.Seek(200);
+
+        Assert.Equal("225px", composed.TranslateX);
+        Assert.Equal("250px", loose.TranslateX);
+    }
+
+    [Fact]
+    public void PlaybackEaseDefaultsToTheEngineDefaults()
+    {
+        Presto.Defaults.PlaybackEase = "inQuad";
+        var tl = Presto.CreateTimeline(new() { Autoplay = false }).Add(new TimerParams { Duration = 100 });
+
+        tl.Seek(50);
+
+        Assert.Equal(25, tl.IterationTime);
+    }
+
+    [Fact]
+    public void OnRenderDefaultsToTheEngineDefaults()
+    {
+        var rendered = new List<Timer>();
+        Presto.Defaults.OnRender = rendered.Add;
+        var tl = Presto.CreateTimeline(new() { Autoplay = false }).Add(new StyleTarget(), new() { ["X"] = 100, Duration = 100 });
+
+        tl.Seek(50);
+
+        Assert.Contains(tl, rendered);
+    }
 }

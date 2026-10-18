@@ -39,7 +39,7 @@ Deforms the outline pieces of a `TextBlock` split with `SplitTextParams.Outlines
 - **BRIDGE-WARP-002** — `WarpOrigin` shall take a `Point` and its channels, so an `Animatable` set from a `MotionValue` (such as `PointerValue`) drives it.
   - Tests: `TextWarpTests.AMotionValueDrivesTheOriginThroughAnAnimatable`
 - **BRIDGE-WARP-003** (inherited) — When `TextWarp.Kind` is not set, the warp shall be `Wave`.
-  - Tests: untested
+  - Tests: `TextWarpTests.TheKindDefaultsToWave`
 
 ### Frames
 
@@ -105,7 +105,7 @@ With `a` the `Warp` amount, `R` the `WarpRadius`, `o` the `WarpOrigin`, `W` × `
 
 ## Allocation
 
-- A warp frame allocates each warped piece's new `StreamGeometry` (with its context and Skia path) and the `Data` change it raises, nothing else: about 640 bytes per character (`BridgeAllocationTests.ATextWarpFrameAllocatesOnlyItsGeometries`). Jelly's spring buffers are allocated when the composer takes up a split's pieces.
+- A warp frame allocates each warped piece's new `StreamGeometry` (with its context and Skia path) and the `Data` change it raises, nothing else: about 710 bytes per character on Avalonia 12.1.4 (`BridgeAllocationTests.ATextWarpFrameAllocatesOnlyItsGeometries`). Jelly's spring buffers are allocated when the composer takes up a split's pieces.
 
 ## Provenance
 
@@ -125,11 +125,11 @@ With `a` the `Warp` amount, `R` the `WarpRadius`, `o` the `WarpOrigin`, `W` × `
 
 - **No extruded warp kind in v1.** Reason: extrusion needs depth sorting and is closer to 3D than to a warp; `Perspective` covers the flat case.
 - Warping text pieces, which have no outline.
-- Typed builder methods for the warp shorthands.
+- Typed builder methods for the warp shorthands; `PrestoKeysTests.EveryKeyButTheWarpShorthandsHasATypedBuilderMethod` lists them as its exemptions.
 
 ## Open items
 
-- BRIDGE-WARP-003 is untested.
+None.
 - A warp's field spans one block, so a headline of several `TextBlock`s (Warp studio's three lines) gets one field per line: `Twist` reads as three small turns rather than a whirlpool, and `Perspective` as three trapezoids rather than one receding plane. Nothing yet lets blocks share an origin and bounds.
 - The Warp shorthands animate a whole block, so a warp cannot be staggered letter by letter; Warp studio's stagger slider delays the warp line by line instead.
 - manual — the pointer-driven warps (Warp studio's Magnifier, Jelly and Follow pointer, Typography's Bulge wordmark) need a real pointer on Desktop; DevTools sends no pointer moves.

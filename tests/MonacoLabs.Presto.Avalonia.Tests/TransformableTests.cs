@@ -533,4 +533,440 @@ public sealed class TransformableTests : BridgeTestBase
         transformable.Revert();
         target.CreateTransformable();
     }
+
+    // Drags pointer 1 from `from` by `step` per 20 ms frame, then lets go mid-motion so the release carries a throw.
+    private void Flick(Touch touch, Point from, Vector step, int steps = 3)
+    {
+        touch.Down(1, from);
+        for (var i = 1; i <= steps; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, from + step * i);
+        }
+        touch.Up(1, from + step * steps);
+    }
+
+    private static (double X, double Y, double Scale, double Rotation) State(Transformable transformable) =>
+        (transformable.X, transformable.Y, transformable.Scale, transformable.Rotation);
+
+    [AvaloniaFact]
+    public void RevertingTheScopeItWasCreatedInRevertsIt()
+    {
+        var (_, parent, target) = Scene();
+        var scope = Presto.CreateScope();
+        var transformable = scope.Execute(_ => target.CreateTransformable(s_free));
+        transformable.ZoomTo(2, animate: false);
+        Assert.Equal(-100, target.TranslatePoint(default, parent)!.Value.X, 3);
+
+        scope.Revert();
+
+        Assert.Equal(new Point(0, 0), target.TranslatePoint(default, parent));
+        PrestoAvalonia.CreateDraggable(target);
+    }
+
+    [AvaloniaFact]
+    public void ItKeepsTheEngineThatWasCurrentAtCreation()
+    {
+        var (window, _, target) = Scene();
+        var frames = new ManualFrameSource();
+        var engine = new Engine(frames) { Precision = 0 };
+        Transformable transformable;
+        using (engine.MakeCurrent()) transformable = target.CreateTransformable(s_free with { PanAtRest = true });
+        var touch = new Touch(window);
+
+        touch.Down(1, new Point(100, 100));
+        for (var i = 1; i <= 3; i++)
+        {
+            frames.Advance(20);
+            touch.Move(1, new Point(100 + 10.4 * i, 100));
+        }
+        Assert.Equal(31, transformable.X);
+        Assert.Equal(31.2, transformable.Animate.Get("X"), 3);
+        Assert.InRange(transformable.Velocity, .45, .6);
+        touch.Up(1, new Point(131.2, 100));
+        Frames.Advance(500, 20);
+        Assert.Equal(31.2, transformable.Animate.Get("X"), 3);
+        frames.Advance(3000, 20);
+        var coasted = transformable.Animate.Get("X");
+        Assert.True(coasted > 35, $"coasted to {coasted}");
+
+        engine.Defaults.ReducedMotion = true;
+        transformable.PanTo(0, 0, animate: false);
+        touch.Down(1, new Point(195, 100));
+        for (var i = 1; i <= 3; i++)
+        {
+            frames.Advance(20);
+            touch.Move(1, new Point(195 - 10 * i, 100));
+        }
+        touch.Up(1, new Point(165, 100));
+        frames.Advance(500, 20);
+        Assert.Equal(-30, transformable.Animate.Get("X"), 3);
+    }
+
+    [AvaloniaFact]
+    public void WithPanOffTheFingersDoNotPanButAZoomStillKeepsItsFocalPointFixed()
+    {
+        var (window, _, target) = Scene();
+        var transformable = target.CreateTransformable(s_free with { Pan = false });
+        var touch = new Touch(window);
+
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        touch.Move(1, new Point(20, 60));
+        touch.Move(2, new Point(100, 60));
+
+        Assert.Equal(2, transformable.Scale, 3);
+        Assert.Equal(140 / 3d, transformable.X, 3);
+        Assert.Equal(40, transformable.Y, 3);
+
+        var (still, _, stillTarget) = Scene();
+        var panless = stillTarget.CreateTransformable(s_free with { Pan = false, Zoom = false });
+        var fingers = new Touch(still);
+        fingers.Down(1, new Point(40, 60));
+        fingers.Down(2, new Point(80, 60));
+        fingers.Move(1, new Point(70, 80));
+        fingers.Move(2, new Point(110, 80));
+
+        Assert.True(panless.IsManipulating);
+        Assert.Equal((0, 0, 1), (panless.X, panless.Y, panless.Scale));
+    }
+
+    [AvaloniaFact]
+    public void AGrabOnARubberBandedStatePicksUpWithoutAJump()
+    {
+        var (window, _, target) = Scene();
+        var transformable = target.CreateTransformable(s_free with { MaxScale = 1.5 });
+        var touch = new Touch(window);
+        PinchPastMaxScale(touch);
+        Frames.Advance(20);
+        var (x, y, scale) = (transformable.X, transformable.Y, transformable.Scale);
+        Assert.True(scale > 1.5);
+
+        touch.Down(1, new Point(100, 100));
+        touch.Move(1, new Point(101, 100));
+
+        Assert.Equal(scale, transformable.Scale, 3);
+        Assert.Equal(x + 1, transformable.X, 3);
+        Assert.Equal(y, transformable.Y, 3);
+
+        var (contained, _, containedTarget) = Scene();
+        var edge = containedTarget.CreateTransformable();
+        var fingers = new Touch(contained);
+        ZoomToTwo(fingers);
+        Frames.Advance(100, 20);
+        fingers.Down(1, new Point(100, 100));
+        fingers.Move(1, new Point(250, 100));
+        fingers.Up(1, new Point(250, 100));
+        var banded = edge.X;
+        Assert.True(banded > 100);
+
+        fingers.Down(1, new Point(100, 100));
+        fingers.Move(1, new Point(110, 100));
+
+        Assert.Equal(banded + 10 * 0.35, edge.X, 3);
+    }
+
+    [AvaloniaFact]
+    public void ItsReadingsAreRoundedToTheEnginePrecisionAndVelocityIsInUnitsPerMillisecond()
+    {
+        Presto.Engine.Precision = 1;
+        var (window, _, target) = Scene();
+        var transformable = target.CreateTransformable(s_free with { Rotate = true, PanAtRest = true });
+
+        transformable.ZoomTo(1.23456, new Point(0, 0), animate: false).RotateTo(12.3456, new Point(0, 0), animate: false);
+
+        foreach (var (name, reported) in new[] { ("X", transformable.X), ("Y", transformable.Y), ("Scale", transformable.Scale), ("Rotate", transformable.Rotation) })
+        {
+            var raw = transformable.Animate.Get(name);
+            Assert.NotEqual(raw, reported);
+            Assert.Equal(Math.Round(raw, 1), reported);
+        }
+
+        var touch = new Touch(window);
+        touch.Down(1, new Point(100, 100));
+        for (var i = 1; i <= 4; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, new Point(100 + 10 * i, 100 + 5 * i));
+        }
+
+        Assert.Equal(new Vector(.5, .25).Length, transformable.Velocity, 2);
+    }
+
+    [AvaloniaFact]
+    public void AReleasedPinchKeepsItsScale()
+    {
+        var (window, _, target) = Scene();
+        var transformable = target.CreateTransformable(s_free);
+        var touch = new Touch(window);
+
+        touch.Down(1, new Point(80, 100));
+        touch.Down(2, new Point(120, 100));
+        for (var i = 1; i <= 4; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, new Point(80 - 5 * i, 100));
+            touch.Move(2, new Point(120 + 5 * i, 100));
+        }
+        touch.Up(1, new Point(60, 100));
+        touch.Up(2, new Point(140, 100));
+        Frames.Advance(1000, 20);
+
+        Assert.Equal(2, transformable.Scale, 3);
+    }
+
+    [AvaloniaFact]
+    public void WhenTheReleaseLandsAtOnceOnSettleFollowsOnReleaseSynchronouslyUnlessOnReleaseStops()
+    {
+        Presto.Defaults.ReducedMotion = true;
+        var (window, _, target) = Scene();
+        var log = new List<string>();
+        var stop = false;
+        target.CreateTransformable(s_free with
+        {
+            PanAtRest = true,
+            OnRelease = transformable =>
+            {
+                log.Add("release");
+                if (stop) transformable.Stop();
+            },
+            OnSettle = _ => log.Add("settle"),
+        });
+        var touch = new Touch(window);
+
+        touch.Down(1, new Point(100, 100));
+        touch.Move(1, new Point(130, 100));
+        touch.Up(1, new Point(130, 100));
+        Assert.Equal(["release", "settle"], log);
+
+        stop = true;
+        touch.Down(1, new Point(100, 100));
+        touch.Move(1, new Point(130, 100));
+        touch.Up(1, new Point(130, 100));
+        Frames.Advance(100, 20);
+
+        Assert.Equal(["release", "settle", "release"], log);
+    }
+
+    [AvaloniaFact]
+    public void WithoutAReleaseInertiaTheReleaseCoastsAsADefaultInertia()
+    {
+        double Coast(Inertia? inertia)
+        {
+            var (window, _, target) = Scene();
+            var transformable = target.CreateTransformable(s_free with { PanAtRest = true, ReleaseInertia = inertia });
+            Flick(new Touch(window), new Point(50, 100), new Vector(10, 0));
+            Frames.Advance(3000, 20);
+            return transformable.X;
+        }
+
+        var unset = Coast(null);
+
+        Assert.True(unset > 31, $"coasted to {unset}");
+        Assert.Equal(Coast(new Inertia()), unset, 3);
+    }
+
+    private static void MoveTo(Transformable transformable, string verb) => _ = verb switch
+    {
+        "ZoomTo" => transformable.ZoomTo(1.5, animate: false),
+        "PanTo" => transformable.PanTo(10, 10, animate: false),
+        "RotateTo" => transformable.RotateTo(30, animate: false),
+        _ => transformable.Reset(animate: false),
+    };
+
+    [AvaloniaTheory]
+    [InlineData("ZoomTo")]
+    [InlineData("PanTo")]
+    [InlineData("RotateTo")]
+    [InlineData("Reset")]
+    public void AProgrammaticMoveStopsTheCoastAndDropsTheGestureWithoutARelease(string verb)
+    {
+        var (window, _, target) = Scene();
+        var releases = 0;
+        var transformable = target.CreateTransformable(s_free with { PanAtRest = true, OnRelease = _ => releases++ });
+        var touch = new Touch(window);
+        Flick(touch, new Point(50, 100), new Vector(10, 0));
+        Frames.Advance(40, 20);
+
+        MoveTo(transformable, verb);
+        var moved = State(transformable);
+        Frames.Advance(1000, 20);
+        Assert.Equal(moved, State(transformable));
+
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        touch.Move(2, new Point(100, 60));
+        MoveTo(transformable, verb);
+        moved = State(transformable);
+        Assert.False(transformable.IsManipulating);
+
+        touch.Move(2, new Point(140, 60));
+        touch.Up(1, new Point(40, 60));
+        touch.Up(2, new Point(140, 60));
+        Assert.Equal(moved, State(transformable));
+        Assert.Equal(1, releases);
+    }
+
+    [AvaloniaFact]
+    public void WithoutAVisualParentProgrammaticMovesAndRefreshDoNothing()
+    {
+        var (_, parent, target) = Scene();
+        var updates = 0;
+        var transformable = target.CreateTransformable(s_free with { Rotate = true, OnUpdate = _ => updates++ });
+        parent.Children.Remove(target);
+
+        transformable.ZoomTo(2, animate: false).PanTo(10, 10, animate: false).RotateTo(30, animate: false).Refresh();
+        transformable.ZoomTo(2).PanTo(10, 10).RotateTo(30);
+        Frames.Advance(1000, 20);
+
+        Assert.Equal(0, updates);
+        Assert.Equal((0, 0, 1, 0), State(transformable));
+    }
+
+    [AvaloniaFact]
+    public void StopFreezesTheTransformAndItsSettleButKeepsThePointers()
+    {
+        var (window, _, target) = Scene();
+        var settles = 0;
+        var transformable = target.CreateTransformable(s_free with { Settle = new AnimationBuilder().Duration(300), OnSettle = _ => settles++ });
+
+        transformable.ZoomTo(3);
+        Frames.Advance(100, 20);
+        transformable.Stop();
+        var scale = transformable.Scale;
+        Frames.Advance(1000, 20);
+
+        Assert.InRange(scale, 1.01, 2.6);
+        Assert.Equal(scale, transformable.Scale);
+        Assert.Equal(0, settles);
+
+        var touch = new Touch(window);
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        transformable.Stop();
+        touch.Move(2, new Point(100, 60));
+
+        Assert.True(transformable.IsManipulating);
+        Assert.Equal(scale * 1.5, transformable.Scale, 3);
+    }
+
+    [AvaloniaFact]
+    public void RefreshClampsTheScaleAndTheTranslationAtOnceWhenNotSettling()
+    {
+        var (window, _, target) = Scene();
+        var updates = 0;
+        var transformable = target.CreateTransformable(s_free with { MaxScale = 1.5, OnUpdate = _ => updates++ });
+        var touch = new Touch(window);
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        touch.Move(1, new Point(20, 60));
+        touch.Move(2, new Point(100, 60));
+        Assert.True(transformable.Scale > 1.5);
+        updates = 0;
+
+        transformable.Refresh();
+
+        Assert.Equal(1.5, transformable.Scale);
+        Assert.Equal(1, updates);
+
+        var (_, parent, contained) = Scene();
+        var refreshed = contained.CreateTransformable().ZoomTo(2, new Point(0, 0), animate: false);
+        Assert.Equal((100, 100), (refreshed.X, refreshed.Y));
+        parent.Width = 100;
+        parent.UpdateLayout();
+
+        refreshed.Refresh();
+
+        Assert.Equal((50, 100), (refreshed.X, refreshed.Y));
+    }
+
+    [AvaloniaFact]
+    public void RefreshDuringACoastReAimsItAtTheNewBounds()
+    {
+        var (window, parent, target) = Scene();
+        var transformable = target.CreateTransformable();
+        var touch = new Touch(window);
+        ZoomToTwo(touch);
+        Frames.Advance(100, 20);
+        Flick(touch, new Point(100, 100), new Vector(25, 0));
+        Frames.Advance(40, 20);
+        var x = transformable.X;
+        parent.Width = 100;
+        parent.UpdateLayout();
+
+        transformable.Refresh();
+
+        Assert.Equal(x, transformable.X);
+        Frames.Advance(3000, 20);
+        Assert.Equal(50, transformable.X, 3);
+    }
+
+    [AvaloniaFact]
+    public void DisableDropsTheGestureAndStopsListeningUntilEnabled()
+    {
+        var (window, _, target) = Scene();
+        int grabs = 0, releases = 0;
+        var transformable = target.CreateTransformable(s_free with { OnGrab = _ => grabs++, OnRelease = _ => releases++ });
+        var touch = new Touch(window);
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        touch.Move(2, new Point(100, 60));
+        var scale = transformable.Scale;
+
+        transformable.Disable();
+
+        Assert.False(transformable.IsManipulating);
+        touch.Move(2, new Point(140, 60));
+        touch.Up(1, new Point(40, 60));
+        touch.Up(2, new Point(140, 60));
+        Assert.False(touch.Down(1, new Point(40, 60)).Handled);
+        Assert.False(touch.Down(2, new Point(80, 60)).Handled);
+        touch.Move(2, new Point(120, 60));
+        touch.Up(1, new Point(40, 60));
+        touch.Up(2, new Point(120, 60));
+        Assert.Equal(scale, transformable.Scale);
+        Assert.Equal((1, 0), (grabs, releases));
+
+        transformable.Enable().Enable();
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        touch.Move(2, new Point(120, 60));
+
+        Assert.Equal(scale * 2, transformable.Scale, 3);
+        Assert.Equal(2, grabs);
+    }
+
+    [AvaloniaFact]
+    public void WithoutRotateSetTurningTwoFingersDoesNotRotate()
+    {
+        var (window, _, target) = Scene();
+        var transformable = target.CreateTransformable(new TransformableParams { PanBounds = PanBounds.Free });
+        var touch = new Touch(window);
+        var arm = 40 / Math.Sqrt(2);
+
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        touch.Move(2, new Point(40 + arm, 60 + arm));
+
+        Assert.Equal(0, transformable.Rotation);
+    }
+
+    [AvaloniaFact]
+    public void WithoutRotationSnapAReleasedTurnIsNotSnapped()
+    {
+        Presto.Defaults.ReducedMotion = true;
+        var (window, _, target) = Scene();
+        var transformable = target.CreateTransformable(s_free with { Rotate = true });
+        var touch = new Touch(window);
+        var turned = new Point(40 + 40 * Math.Cos(Math.PI / 3), 60 + 40 * Math.Sin(Math.PI / 3));
+
+        touch.Down(1, new Point(40, 60));
+        touch.Down(2, new Point(80, 60));
+        touch.Move(2, turned);
+        touch.Up(1, new Point(40, 60));
+        touch.Up(2, turned);
+        Frames.Advance(1000, 20);
+
+        Assert.Equal(60, transformable.Rotation, 3);
+    }
 }

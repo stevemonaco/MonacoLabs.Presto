@@ -99,11 +99,11 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - **CORE-SPRING-027** — When `Ease` is sampled below that threshold while `Completed` is true, the spring shall clear `Completed` without a callback, so the next crossing fires again.
   - Tests: `SpringTests.OnCompleteFiresOnceWhenSampledPastThePerceivedDuration`
 - **CORE-SPRING-028** — Sampling `PureEase` shall neither change `Completed` nor invoke `OnComplete`.
-  - Tests: untested
+  - Tests: `SpringTests.SamplingThePureEaseLeavesCompletionAlone`
 - **CORE-SPRING-029** — `Parent` shall be null until an animation adopts the spring.
   - Tests: `SpringTests.OnCompleteFiresOnceWhenSampledPastThePerceivedDuration`
 - **CORE-SPRING-030** — When a spring is an animation's own `Ease`, the animation shall set `Parent` to itself; a spring on a tween or returned per target is not parented.
-  - Tests: untested
+  - Tests: `SpringTests.OnlyAnAnimationsOwnSpringIsParentedToIt`
 
 ### Driving durations
 
@@ -112,7 +112,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 - **CORE-SPRING-032** — When a spring is a tween's `Ease`, that tween's duration shall be its `SettlingDuration`, overriding both the tween's and the animation's `Duration`.
   - Tests: `SpringTests.SpringEaseOverridesTheTweenDurationParameter`
 - **CORE-SPRING-033** — A spring shall read the process-wide time scale (CORE-ENGINE) when it computes, so switching the time unit later does not rescale existing springs.
-  - Tests: untested
+  - Tests: `SpringTests.SwitchingTheTimeUnitDoesNotRescaleAnExistingSpring`
 - **CORE-SPRING-034** — In seconds mode, `Duration` shall be read and derived in seconds.
   - Tests: `SpringTests.TheDefaultDurationFollowsTheTimeUnit`, `SpringTests.PresetsKeepTheirPerceivedDurationInSecondsMode`
 
@@ -126,7 +126,7 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 ### Defaults
 
 - **CORE-SPRING-035** — When `onComplete` is not given, the spring shall invoke nothing when it completes.
-  - Tests: untested
+  - Tests: `SpringTests.ASpringWithoutOnCompleteCompletesSilently`
 
 ## Invariants
 
@@ -182,4 +182,4 @@ A damped-harmonic-oscillator ease whose length is computed, not supplied: the so
 
 ## Open items
 
-- Untested: the natural-frequency clamp (014), `PureEase` leaving completion alone (028), `Parent` assignment by an animation (030), and time-unit behavior beyond `SettlingDuration` (033, 034).
+- Untested: the natural-frequency clamp (014), which the parameter clamps keep out of reach: √(stiffness/mass) always lies within [√(1e-15), 100].

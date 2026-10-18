@@ -10,6 +10,8 @@ namespace MonacoLabs.Presto.Tests;
 /// <summary>Initializes the bridge, then resets the engine exactly as <see cref="Tests.EngineTestBase"/> does so tests tick deterministically.</summary>
 public abstract class BridgeTestBase : MonacoLabs.Presto.Tests.EngineTestBase
 {
+    protected static readonly FontFamily Inter = new("avares://Avalonia.Fonts.Inter/Assets#Inter");
+
     protected BridgeTestBase()
     {
         // A plain [Fact] resets the engine off the UI thread, canceling an earlier test's leftovers from the wrong thread.
@@ -19,7 +21,12 @@ public abstract class BridgeTestBase : MonacoLabs.Presto.Tests.EngineTestBase
         Presto.Engine._timeOffset = 0;
         Presto.Engine.TimerCreated = DetachTracker.Track; // the base clears the hook EnsureInitialized installed
         PrestoAvalonia.WhenDetached = WhenDetached.Pause;
+        // Earlier tests leave their windows open, and their triggers would replay on this test's flag changes.
+        Followers(Presto.Engine).Clear();
     }
+
+    /// <summary>The triggers and states registered for <paramref name="engine"/>'s reduced-motion signal.</summary>
+    protected static List<Action> Followers(Engine engine) => ReducedMotionFollowers.Of(engine);
 
     /// <summary>Shows <paramref name="content"/> in a 200x200 window and runs the queued jobs.</summary>
     protected static Window Show(Control content)

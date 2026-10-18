@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,11 +6,16 @@
     <PackageTags>animation;tween;easing;timeline;animejs</PackageTags>
     <Description>Framework-agnostic animation engine: timers, tweens, timelines, easings and staggering.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="MonacoLabs.Presto.Tests" />
     <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia" />
+    <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia.Lottie" />
     <InternalsVisibleTo Include="MonacoLabs.Presto.Avalonia.Tests" />
   </ItemGroup>
 

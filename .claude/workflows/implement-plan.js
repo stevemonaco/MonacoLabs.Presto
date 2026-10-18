@@ -1,7 +1,7 @@
 export const meta = {
   name: 'implement-plan',
   description: 'Implement a change item by item (implement → concision review → tighten, specs updated with the code), then whole-diff review, full test run with fix rounds, and close the change',
-  whenToUse: 'The implementation phase once a change is agreed. args: a change proposal path (docs/changes/<name>.md), a docs/BACKLOG.md item, or the plan text; or { plan, reviewEach: true, maxTestRounds: 3 }',
+  whenToUse: 'The implementation phase once a change is agreed. args: a change proposal path (docs/changes/<name>.md), a docs/BACKLOG.md item, or the plan text; or { plan, reviewEach: true, maxTestRounds: 3, priorWork }',
   phases: [
     { title: 'Decompose', detail: 'read the plan and split it into ordered work items' },
     { title: 'Implement', detail: 'per item, sequentially: implement → concision review → tighten' },
@@ -12,9 +12,15 @@ export const meta = {
 }
 
 const opts = typeof args === 'string' ? { plan: args } : (args ?? {})
-if (!opts.plan) throw new Error('args must be the change: a docs/changes/<name>.md path, a docs/BACKLOG.md item, or plan text — or { plan, reviewEach, maxTestRounds }')
+if (!opts.plan) throw new Error('args must be the change: a docs/changes/<name>.md path, a docs/BACKLOG.md item, or plan text — or { plan, reviewEach, maxTestRounds, priorWork }')
 const reviewEach = opts.reviewEach ?? true
 const maxTestRounds = opts.maxTestRounds ?? 3
+const priorWork = opts.priorWork
+  ? `
+
+EARLIER WORK IN THIS RUN: the working tree also holds uncommitted changes from these earlier plans. They are not part of this plan: build on them, but do not review, revert or report gaps in them unless this plan's own edits broke them.
+${opts.priorWork}`
+  : ''
 
 // ---------------------------------------------------------------- schemas
 
@@ -127,7 +133,7 @@ const TEST_SCHEMA = {
 
 const EDIT_RULES = `
 
-Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. Never send real OS mouse or keyboard input (only the avalonia_devtools tools may drive a Presto app), and never capture the screen or inspect any window that is not a MonacoLabs.Presto app's own. When touching a ported module or its ported tests, read the anime.js 4.5.0 source first as provenance (the specs, not upstream, decide behavior): a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch.`
+Rules: you are the only agent editing this working tree, so never run two builds at once. Use PowerShell. Do not commit, stash, checkout, reset or otherwise change git state — the user reviews and commits. Never send real OS mouse or keyboard input (only the avalonia_devtools tools may drive a Presto app), and never capture the screen or inspect any window that is not a MonacoLabs.Presto app's own. When touching a ported module or its ported tests, read the anime.js 4.5.0 source first as provenance (the specs, not upstream, decide behavior): a local checkout if one exists, otherwise fetch the files from github.com/juliangarnier/anime at tag v4.5.0 with WebFetch. Keep the libraries and samples trim- and NativeAOT-clean (CLAUDE.md, Code conventions; CORE-TARGETS; ARCHITECTURE §3-4): no new reflection, no string-path \`Binding\`/\`ReflectionBinding\`, no \`MakeGenericType\`, \`Type.GetType\`/\`Assembly.GetType\` or reflection-based JSON; a library type animated by name implements \`IMemberTarget\`, Avalonia internals are reached with \`[UnsafeAccessor]\`, a sample's plain-object target calls \`Presto.RegisterTarget<T>()\`, and nothing adds IL2xxx/IL3xxx warnings or suppressions.`
 
 const READ_ONLY_RULES = ` Do not edit files, build, or run tests.`
 
@@ -183,7 +189,7 @@ How to work:
 4. Port/write the tests the brief names and run the affected test project (\`dotnet test --project tests/MonacoLabs.Presto.Tests\`, or \`dotnet test --solution MonacoLabs.Presto.slnx\` when more than one is affected); they must pass. If the item has no testable behavior, say so in \`verified\`.
 5. Update the spec in the same item (docs/specs/README.md has the format): add or change requirements for the behavior you changed, cite the tests that pin them, strike requirements that no longer hold, add new public types to its \`types\`, and record each design decision the item made in the spec's Decisions section with its reason. Mark a requirement \`(inherited)\` when it records a choice nobody asked for. \`SpecTests\` and \`SpecCoverageTests\` must pass.
 6. If part of the item is impossible or conflicts with what exists, do the rest and list the gap in \`blockers\` — never silently narrow it.
-${item.visual ? HOT_RELOAD : ''}${EDIT_RULES}`
+${item.visual ? HOT_RELOAD : ''}${priorWork}${EDIT_RULES}`
 }
 
 function concisionPrompt(scope, purpose) {
@@ -200,9 +206,10 @@ Sprawl to look for:
 - comments that restate code, label sections, narrate steps or address the reviewer; XML docs on private members (the CLAUDE.md comment rules)
 - LINQ or allocations in tick/render hot paths (the tick path uses intrusive linked lists)
 - tests that duplicate each other or test the language instead of behavior
+- trim/AOT hazards: new reflection, string-path or reflection bindings, \`MakeGenericType\`, \`GetType(string)\`, reflection JSON, a library type animated by name without an \`IMemberTarget\` table, Avalonia internals reached other than through \`[UnsafeAccessor]\`, or a new IL2xxx/IL3xxx suppression (fix = the AOT-safe equivalent)
 Do NOT flag: ported structure that the regression tests ported from upstream pin, even when it looks redundant, naming or formatting taste, or missing functionality.
 
-Report only findings a maintainer would act on, each with a concrete \`fix\` that deletes or merges something. confidence: high = certain it is removable, medium = probably, low = a suggestion. Fewer, sharper findings beat a long list.`
+Report only findings a maintainer would act on, each with a concrete \`fix\` that deletes or merges something. confidence: high = certain it is removable, medium = probably, low = a suggestion. Fewer, sharper findings beat a long list.${priorWork}`
 }
 
 function coveragePrompt(plan, done) {
@@ -215,7 +222,7 @@ ${plan.summary}
 What each implementer reported:
 ${reported}
 
-Read the plan source and the change (\`git status --porcelain\`, \`git diff\`, and every untracked file in full). For every requirement in the plan confirm it is implemented and has a test where the plan or its spec calls for one; a ported upstream test counts only for behavior it already pins. Then confirm the specs in docs/specs/ match the change: every changed behavior is reflected in its spec's requirements with the tests that pin it, and nothing in a touched spec now contradicts the code; a change that diverges from its spec without updating it is a gap. Report each gap as a finding: file = where it should live, summary = what is missing, fix = the smallest change that closes it. Ignore style and concision — another reviewer covers those. confidence: high = the plan explicitly requires it and it is absent, medium = implied by the plan, low = nice to have.`
+Read the plan source and the change (\`git status --porcelain\`, \`git diff\`, and every untracked file in full). For every requirement in the plan confirm it is implemented and has a test where the plan or its spec calls for one; a ported upstream test counts only for behavior it already pins. Then confirm the specs in docs/specs/ match the change: every changed behavior is reflected in its spec's requirements with the tests that pin it, and nothing in a touched spec now contradicts the code; a change that diverges from its spec without updating it is a gap. Report each gap as a finding: file = where it should live, summary = what is missing, fix = the smallest change that closes it. Ignore style and concision — another reviewer covers those. confidence: high = the plan explicitly requires it and it is absent, medium = implied by the plan, low = nice to have.${priorWork}`
 }
 
 function tightenPrompt(findings, context) {
@@ -231,7 +238,7 @@ const TEST_PROMPT = `Run the full verification for MonacoLabs.Presto and report 
 1. \`dotnet build MonacoLabs.Presto.slnx\` — record every error and every warning.
 2. \`dotnet test --solution MonacoLabs.Presto.slnx\` — record passed/failed/skipped counts and, for each failure, the test name and its assertion message.
 3. \`git status --porcelain\` — record the changed files.
-If the build fails, skip step 2 but still do step 3.`
+If the build fails, skip step 2 but still do step 3.${priorWork}`
 
 function testFixPrompt(tests, plan) {
   const problems = tests.buildOk
@@ -242,7 +249,7 @@ function testFixPrompt(tests, plan) {
 ${tests.buildOk ? 'Failing tests' : 'Build errors'}:
 ${problems}
 
-For each failure decide whether the implementation or the test is wrong by checking the plan and the specs (upstream anime.js only for behavior a ported test pins), then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or a spec contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build MonacoLabs.Presto.slnx\` and \`dotnet test --solution MonacoLabs.Presto.slnx\` green.${EDIT_RULES}`
+For each failure decide whether the implementation or the test is wrong by checking the plan and the specs (upstream anime.js only for behavior a ported test pins), then fix that side. Never delete, skip or loosen a test to make it pass unless it asserts something the plan or a spec contradicts, and say so in \`skipped\` if you do. Finish with \`dotnet build MonacoLabs.Presto.slnx\` and \`dotnet test --solution MonacoLabs.Presto.slnx\` green.${priorWork}${EDIT_RULES}`
 }
 
 function closePrompt(plan) {

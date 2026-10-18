@@ -35,7 +35,7 @@ public static class Reveals
     /// Reveals a change to <paramref name="surface"/>, such as a theme switch, in a circle grown from the center of
     /// <paramref name="from"/> (the surface's center when null): the surface is drawn before and after
     /// <paramref name="change"/> runs, and the new picture is revealed over the old one in the surface's overlay layer,
-    /// both removed when the reveal ends.
+    /// both removed when the reveal ends, is canceled or is reverted.
     /// </summary>
     /// <remarks>
     /// A reveal started on a surface while another runs there removes the earlier one; a <see cref="TopLevel"/> surface
@@ -77,7 +77,7 @@ public static class Reveals
             if (s_running.TryGetValue(surface, out var current) && current == remove) s_running.Remove(surface);
         };
         s_running.AddOrUpdate(surface, remove);
-        _ = reveal.Then(_ => remove());
+        _ = reveal.ThenOrCancel().ContinueWith(_ => remove(), TaskScheduler.FromCurrentSynchronizationContext());
         return reveal;
     }
 

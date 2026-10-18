@@ -7,6 +7,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Controls;
@@ -221,6 +222,57 @@ public sealed class ReferencePagesTests
         Assert.False(held.IsAnimating(Visual.OpacityProperty));
         SceneHarness.Close(window);
     }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClearRowsStaggersTheGhostsTopFirstAndTheEmptyLineFadesInAfterTheLast(bool reduced)
+    {
+        using var motion = reduced ? ReducedMotion.On() : null;
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 900);
+        TestFrames.Tick(60);
+        var empty = page.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Text == "No rows" && text.IsAttachedToVisualTree());
+
+        SceneHarness.Click(window, Button(page, "Clear rows"));
+        Dispatcher.UIThread.RunJobs();
+
+        var ghosts = Ghosts(page).SelectMany(host => host.GetVisualDescendants().OfType<Image>())
+            .Where(ghost => ghost.DataContext is string).ToDictionary(ghost => (string)ghost.DataContext!, ghost => Assert.Single(Presto.GetAnimations(ghost)).Delay);
+        string[] rows = ["Reply to Grace", "Review the pull request", "Book the venue", "Pay the invoice"];
+        Assert.Equal(rows.Select((_, i) => 40.0 * i), rows.Select(row => ghosts[row]));
+        TestFrames.Tick(4);
+        Assert.True(empty.IsVisible);
+        Assert.Equal(0, empty.Opacity);
+
+        for (var frame = 0; frame < 120 && Ghosts(page).Any(); frame++) TestFrames.Tick();
+        Assert.Empty(Ghosts(page));
+        TestFrames.Tick(60);
+        Assert.Equal(1, empty.Opacity, 6);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ALifecycleRowClickedIntoDoneFliesWithNoExitGhostOrEntrance(bool reduced)
+    {
+        using var motion = reduced ? ReducedMotion.On() : null;
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 3600);
+        TestFrames.Tick(60);
+
+        SceneHarness.Click(window, ChoreRow(page.GetControl<ItemsControl>("OpenList"), "Send the report"));
+        TestFrames.Tick(2);
+
+        Assert.Empty(Ghosts(page));
+        var arrived = ChoreRow(page.GetControl<ItemsControl>("DoneList"), "Send the report");
+        Assert.Equal(1, arrived.Opacity);
+        SceneHarness.Close(window);
+    }
+
+    private static Border ChoreRow(ItemsControl list, string title) =>
+        list.GetVisualDescendants().OfType<Border>().Single(row => row.Classes.Contains("row") && row.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == title));
 
     [AvaloniaFact]
     public void TheLifecycleWizardPrintsItsMarkup() =>

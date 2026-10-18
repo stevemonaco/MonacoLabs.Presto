@@ -53,58 +53,58 @@ depends:
 - **CORE-UTILS-004** — `Snap(v, points)` shall return the point closest to `v` by absolute distance, the earliest point winning a tie, and `v` when `points` is empty.
   - Tests: `UtilsTests.SnapToTheClosestPoint`
 - **CORE-UTILS-005** — `Wrap` shall map `v` into [`min`, `max`) by cycling past either end, so values below `min` wrap from `max` downward.
-  - Tests: untested
+  - Tests: `UtilsTests.WrapCyclesPastEitherEnd`
 - **CORE-UTILS-006** — `MapRange` shall re-map `value` linearly from [`inLow`, `inHigh`] onto [`outLow`, `outHigh`], extrapolating outside the input range.
   - Tests: `UtilsTests.ChainedUtilityFunctions`
 - **CORE-UTILS-007** — `Lerp` shall return exactly `end` when `factor` is 1, exactly `start` when it is 0, and `start + (end - start) * factor` otherwise, without clamping `factor`.
-  - Tests: untested
+  - Tests: `UtilsTests.LerpIsExactAtItsEndsAndDoesNotClamp`
 - **CORE-UTILS-008** — `Damp` shall return `start` when `factor` is 0, `end` when it is 1, and otherwise `Lerp(start, end, 1 - exp(-factor * deltaTime * 0.1))`, with `deltaTime` in milliseconds; a NaN factor gives NaN.
   - Tests: `UtilsTests.DampEndsAtZeroAndOneAndPropagatesANaNFactor`
 - **CORE-UTILS-009** — `DegToRad` and `RadToDeg` shall convert by `π / 180` and `180 / π`.
-  - Tests: untested
+  - Tests: `UtilsTests.DegToRadAndRadToDegConvert`
 - **CORE-UTILS-010** — `RoundPad` shall format `v` with exactly `decimals` decimal places in the invariant culture, like JavaScript `toFixed`.
-  - Tests: untested
+  - Tests: `UtilsTests.RoundPadFormatsFixedDecimalsInTheInvariantCulture`
 
 ### Chainable
 
 - **CORE-UTILS-011** — Each value-less overload of `Clamp`, `Round`, `Snap`, `Wrap`, `MapRange`, `DegToRad` and `RadToDeg` shall return a `ChainedUtil` whose `Invoke(v)` equals the full call with `v`.
   - Tests: `UtilsTests.ChainedUtilityFunctions`
 - **CORE-UTILS-012** — `Utils.Lerp(start, end)` and `Utils.Damp(start, end, deltaTime)` shall return chains in which the chained value becomes the factor.
-  - Tests: untested
+  - Tests: `UtilsTests.ChainableLerpAndDampTakeTheChainedValueAsTheFactor`
 - **CORE-UTILS-013** — Each `ChainedUtil` method shall return a new chain that applies the existing chain first and the named transform to its result, so a chain reads left to right.
   - Tests: `UtilsTests.ChainedUtilityFunctions`
 - **CORE-UTILS-014** — Chaining shall leave the original chain unchanged, so one chain can branch into several.
-  - Tests: untested
+  - Tests: `UtilsTests.ChainingLeavesTheOriginalChainUnchanged`
 - **CORE-UTILS-015** — A `ChainedUtil` shall convert implicitly to `Func<double, double>`, so it can be passed as a `Modifier`.
   - Tests: `UtilsTests.ChainedUtilityFunctions`
 - **CORE-UTILS-016** — `ChainedUtil.RoundPad(decimals)` shall end the chain with a `Func<double, string>` that formats the chain's result as `Utils.RoundPad` does.
-  - Tests: untested
+  - Tests: `UtilsTests.ChainedRoundPadFormatsTheChainsResult`
 - **CORE-UTILS-017** — `Invoke` on a `default(ChainedUtil)` shall return its input unchanged, and a chain built on one shall start from the identity.
   - Tests: `UtilsTests.ADefaultChainPassesValuesThrough`
 
 ### Random
 
 - **CORE-UTILS-018** — `Random(min, max, decimals)` shall return `floor((u * (max - min + 10^-decimals) + min) * 10^decimals) / 10^decimals` with `u` uniform in [0, 1) from the shared thread-safe generator, so both ends are reachable at that precision.
-  - Tests: untested
+  - Tests: `UtilsTests.RandomReachesBothEndsAtItsPrecision`
 - **CORE-UTILS-019** — A generator from `CreateSeededRandom(seed)` shall reproduce anime.js's seeded sequence for the same seed and arguments bit for bit.
   - Tests: `UtilsTests.SeededRandomReproducesTheJavaScriptSequence`
 - **CORE-UTILS-020** — Two generators created with the same seed shall produce the same sequence independently of each other.
   - Tests: `UtilsTests.SeededRandomReproducesTheJavaScriptSequence`
 - **CORE-UTILS-021** — When `seed` is omitted, `CreateSeededRandom` shall take the next value of a process-wide counter starting at 0, incremented atomically per such call.
-  - Tests: untested
+  - Tests: `UtilsTests.UnseededGeneratorsTakeSuccessiveSeedsFromTheCounter`
 - **CORE-UTILS-022** — `RandomPick` shall return `items[(int)Random(0, items.Count - 1)]`, every element equally likely; an empty list fails in the list's indexer.
-  - Tests: untested
+  - Tests: `UtilsTests.RandomPickReturnsEveryElementAndFailsOnAnEmptyList`
 - **CORE-UTILS-023** — `Shuffle` shall shuffle `items` in place with Fisher-Yates, drawing indices from `rnd` (or `Utils.Random` when null), and return the same instance.
   - Tests: `UtilsTests.ShuffleReordersWithoutLosingItems`
 - **CORE-UTILS-024** — When `Shuffle` is given a seeded generator, the resulting order shall be determined by the seed.
-  - Tests: untested
+  - Tests: `UtilsTests.ShuffleWithASeededGeneratorIsDeterminedByTheSeed`
 
 ### Time
 
 - **CORE-UTILS-025** — `Sync(callback)` shall create a top-level timer on `Engine.Current` with a duration of 1 ms (scaled by the engine's time unit) and `callback` as its `OnComplete`, resume it without `Init()`, and return it, so the callback runs on the next engine tick.
   - Tests: `UtilsTests.SyncRunsTheCallbackOnTheNextTick`
 - **CORE-UTILS-026** — `Sync` shall accept a null callback and still run and complete the timer.
-  - Tests: untested
+  - Tests: `UtilsTests.SyncWithoutACallbackStillCompletes`
 - **CORE-UTILS-027** — The first call of a `KeepTime` wrapper shall return what `constructor` returns, untouched.
   - Tests: `UtilsTests.TrackInstanceLoopAlternateProgressWithATimekeeper`
 - **CORE-UTILS-028** — Each later call shall revert the timer the previous call returned before calling `constructor`.
@@ -114,7 +114,7 @@ depends:
 - **CORE-UTILS-030** — When the previous timer was reversed, or was alternating and on an odd iteration (but not both), the handed-over progress shall be mirrored to `1 - progress`.
   - Tests: `UtilsTests.TrackInstanceLoopAlternateProgressWithATimekeeper`
 - **CORE-UTILS-031** — Each `KeepTime` wrapper shall track only the timers it returned itself.
-  - Tests: untested
+  - Tests: `UtilsTests.AKeepTimeWrapperTracksOnlyItsOwnTimers`
 
 ### Chained function values
 
@@ -123,14 +123,14 @@ depends:
 - **CORE-UTILS-033** — A `ChainedFunctionValue` on a timeline child shall receive the last tween the same timeline built on that target and property, from an earlier sibling.
   - Tests: `FunctionBasedValuesTests.ChainedFunctionValuesOnTimelineChildrenReadThePreviousChildEndValue`
 - **CORE-UTILS-034** — A `ChainedFunctionValue` shall receive the target's index and the total target count exactly as a `FunctionValue` does (see CORE-VALUES).
-  - Tests: untested
+  - Tests: `FunctionBasedValuesTests.ChainedFunctionValuesReceiveTheIndexAndTotalLikeFunctionValues`
 
 ### Defaults
 
 - **CORE-UTILS-035** — When `Random` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
-  - Tests: untested
+  - Tests: `UtilsTests.RandomDefaultsToZeroToOneWithNoDecimals`
 - **CORE-UTILS-036** — When a seeded `RandomGenerator` is not given `min`, `max` or `decimals`, it shall use 0, 1 and 0 respectively.
-  - Tests: untested
+  - Tests: `UtilsTests.ASeededGeneratorDefaultsToZeroToOneWithNoDecimals`
 
 ## Invariants
 
@@ -178,4 +178,4 @@ depends:
 
 ## Open items
 
-- `Wrap`, `Lerp`, `DegToRad`/`RadToDeg`, `RoundPad`, `Random`, `RandomPick`, the unseeded seed counter and the chainable `Lerp`/`Damp` have no direct test.
+- None.

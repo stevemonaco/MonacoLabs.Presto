@@ -11,7 +11,7 @@ namespace MonacoLabs.Presto;
 /// position, a scroll offset — is followed with that property's own duration and ease.
 /// </summary>
 /// <remarks>C# has no per-property methods, so anime.js's <c>animatable.x(100)</c> is <c>Set("X", 100)</c> and <c>animatable.x()</c> is <c>Get("X")</c>.</remarks>
-public sealed class Animatable : IRevertible
+public sealed class Animatable : IRevertible, IReleasable
 {
     private readonly List<object> _targets = [];
     private const double VelocityStep = 1e-4;
@@ -26,6 +26,7 @@ public sealed class Animatable : IRevertible
     private static readonly Ease AtRest = static _ => 0;
     private readonly Animation _callbacks;
     private readonly PrestoDefaults _defaults;
+    private bool _released;
 
     internal Animatable(object? targets, AnimatableParams parameters)
     {
@@ -221,10 +222,13 @@ public sealed class Animatable : IRevertible
         _values.Clear();
         _targets.Clear();
         _callbacks.Revert();
+        _released = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _released;
 
     private Animatable Replay(Animation animation, double? duration)
     {
@@ -360,8 +364,15 @@ public sealed class Animatable : IRevertible
         _callbacks.Complete();
     }
 
-    private sealed class CallbacksTarget
+    private sealed class CallbacksTarget : IMemberTarget
     {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            [nameof(V)] = ObjectTargetAdapter.MemberAccessor.Of<CallbacksTarget, double>(target => target.V, (target, value) => target.V = value),
+        };
+
         public double V { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
     }
 }

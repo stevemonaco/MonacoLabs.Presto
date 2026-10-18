@@ -36,13 +36,13 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 - **BRIDGE-PULL-001** — The control shall host `Content` in a track that its pull translates down through the Y shorthand.
   - Tests: `PullToRefreshTests.AShortPullSpringsBackWithoutRefreshing`
 - **BRIDGE-PULL-002** (inherited) — The control shall clip to its bounds by default.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.ItClipsToItsBoundsAndHasASixtyFourDipThresholdByDefault`
 - **BRIDGE-PULL-003** (inherited) — The indicator (a 28 × 28 ring stroked 3 DIPs with round caps, and a down arrow stroked 2 DIPs) shall sit in a strip `Threshold` tall just above the content's top, uncovered by the pull, and shall not be hit-testable.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.TheIndicatorSitsInAThresholdTallStripAboveTheContentAndFollowsAThresholdChange`
 - **BRIDGE-PULL-004** (inherited) — When `Threshold` changes, the indicator strip shall be resized and re-placed to match.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.TheIndicatorSitsInAThresholdTallStripAboveTheContentAndFollowsAThresholdChange`
 - **BRIDGE-PULL-005** — The arrow and the ring shall be stroked with `Foreground`, following its changes.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.TheArrowAndTheRingAreStrokedWithTheForegroundAndFollowItsChanges`
 
 ### Starting a pull
 
@@ -51,9 +51,9 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 - **BRIDGE-PULL-007** — The pull shall join with a vertical gate (3 DIPs at 1:1 for every pointer) whose `Accepts` takes only downward travel while the nearest `ScrollViewer` between the pressed element and the control is not scrolled away from its top; when the gate drops out, the press shall be forgotten without capturing anything.
   - Tests: `PullToRefreshTests.APullIsLeftToAListScrolledAwayFromItsTop`
 - **BRIDGE-PULL-008** (inherited) — When the pull wins the arena (which captures the pointer for it), the control shall from then on mark each move handled and prevent gesture recognition.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.AWonPullHandlesEachMoveAndPreventsGestureRecognition`
 - **BRIDGE-PULL-009** (inherited) — When a pull starts while the content is still springing back, it shall pick the content up where it is drawn.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.APullStartedWhileTheContentSpringsBackPicksItUpWhereItIsDrawn`
 
 ### Pulling
 
@@ -73,9 +73,9 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 - **BRIDGE-PULL-015** — A release shall start its spring from where the content is drawn, since the damping applies to the travel and not to the drawn value.
   - Tests: `PullToRefreshTests.TheResistanceRisesSteadilyAndTheReleaseStartsWhereItWasDrawn`
 - **BRIDGE-PULL-016** (inherited) — When the pointer's capture is lost mid-pull, the control shall settle as on a release.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.LosingTheCaptureMidPullSettlesAsOnARelease`
 - **BRIDGE-PULL-017** (inherited) — The release shall mark the pointer-released event handled only when a pull took place.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.TheReleaseIsHandledOnlyWhenAPullTookPlace`
 
 ### Refreshing
 
@@ -86,9 +86,9 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 - **BRIDGE-PULL-020** — When the refresh task ends, the ring's spin shall be reverted to its unturned angle, the arrow shall fade back in over `Tokens.Short`, and the content shall spring back to 0.
   - Tests: `PullToRefreshTests.APullPastTheThresholdHoldsThereUntilTheRefreshEndsThenSpringsBack`
 - **BRIDGE-PULL-021** (inherited) — While `Refresh` is null, a release past the threshold shall run the same hold-and-return sequence with no work in between.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.WithoutARefreshAPullPastTheThresholdHoldsAndReturnsAndTheNextPullStillWorks`
 - **BRIDGE-PULL-022** (inherited) — While a refresh runs, presses shall not arm a new pull.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.APressWhileTheRefreshRunsDoesNotArmANewPull`
 - **BRIDGE-PULL-023** — When the refresh task faults or is canceled, or `Refresh` throws, the control shall log it through Avalonia's `Logger` in the `Control` area (a cancellation as a warning, any other exception as an error), not rethrow it, and still stop the spinner and spring back.
   - Tests: `PullToRefreshTests.AFaultedOrCanceledRefreshIsLoggedAndTheContentStillSpringsBack`
 
@@ -100,13 +100,15 @@ A control that wraps its `Content` and lets a downward drag from the content's t
   - Tests: `PullToRefreshTests.UnderReducedMotionTheContentLandsAtOnceAndTheRingHoldsStill`
 - **BRIDGE-PULL-026** — When the refresh ends, the spring back shall read `ReducedMotion` again, landing at once while it is set.
   - Tests: `PullToRefreshTests.UnderReducedMotionTheContentLandsAtOnceAndTheRingHoldsStill`
+- **BRIDGE-PULL-029** — When `ReducedMotion` becomes set during a refresh, the ring shall stop spinning at once; when it clears during a refresh, the ring shall start spinning.
+  - Tests: `PullToRefreshTests.SettingReducedMotionMidRefreshStopsTheSpin`, `PullToRefreshTests.ClearingItMidRefreshStartsTheSpin`
 
 ### Defaults
 
 - **BRIDGE-PULL-027** — When `Threshold` is not set, it shall be 64 DIPs.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.ItClipsToItsBoundsAndHasASixtyFourDipThresholdByDefault`
 - **BRIDGE-PULL-028** (inherited) — When `Foreground` is not set on the control, it shall inherit `TextElement.Foreground` from its ancestors.
-  - Tests: untested
+  - Tests: `PullToRefreshTests.AnUnsetForegroundIsInheritedFromTheAncestorsTextForeground`
 
 ## Invariants
 
@@ -123,11 +125,11 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 ## Threading and lifetime
 
-- UI thread only. The Y animatable is created lazily on the track at the first pull. `Refresh` is awaited on the UI thread's synchronization context; the content is held until it completes.
+- UI thread only. The Y animatable is created lazily on the track at the first pull. `Refresh` is awaited on the UI thread's synchronization context; the content is held until it completes. While it runs, the control is registered for the engine's `ReducedMotionChanged` signal (BRIDGE-REDUCED).
 
 ## Reduced motion
 
-- Read at each release: the content lands at once, the arrow fades at once and the ring holds still while the refresh runs; the return reads the flag again when the refresh ends. The pull itself is unchanged.
+- Read at each release: the content lands at once, the arrow fades at once and the ring holds still while the refresh runs; a change of the flag during the refresh stops or starts the spin at once (BRIDGE-PULL-029), and the return reads the flag again when the refresh ends. The pull itself is unchanged.
 
 ## Allocation
 
@@ -151,4 +153,4 @@ A control that wraps its `Content` and lets a downward drag from the content's t
 
 ## Open items
 
-- Clip default (002), indicator placement (003, 004), capture loss (016), the null `Refresh` path (021) and presses ignored during a refresh (022) have no tests.
+None.

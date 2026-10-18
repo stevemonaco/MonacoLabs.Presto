@@ -35,7 +35,7 @@ depends:
 ### Emission
 
 - **CORE-PARTICLES-001** — A new system shall be stopped, with no live particles and `IsFinished` true.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.ANewSystemIsStoppedAndFinished`
 - **CORE-PARTICLES-002** — `Start` shall spawn `Burst` particles at once.
   - Tests: `ParticleSystemTests.BurstSpawnsItsCount`
 - **CORE-PARTICLES-003** — When `Rate` is positive, `Start` shall begin emitting `Rate` particles per second, accumulating fractional particles across steps.
@@ -56,13 +56,13 @@ depends:
 ### Spawning
 
 - **CORE-PARTICLES-010** — Each spawned particle shall start at the origin (`X`, `Y` at spawn time) offset by a uniform draw within `Area` centered on it.
-  - Tests: `ParticleSystemTests.WithoutForcesParticleTravelsSpeedTimesTimeAlongItsAngle`
+  - Tests: `ParticleSystemTests.WithoutForcesParticleTravelsSpeedTimesTimeAlongItsAngle`, `ParticleSystemTests.ParticlesSpawnUniformlyWithinTheAreaCenteredOnTheOrigin`
 - **CORE-PARTICLES-011** — Each particle shall launch at `Angle ± Spread` degrees (0 right, positive clockwise with Y down) with a speed drawn from `Speed`.
   - Tests: `ParticleSystemTests.WithoutForcesParticleTravelsSpeedTimesTimeAlongItsAngle`
 - **CORE-PARTICLES-012** — Each particle shall draw its lifetime from `Lifetime`, its spin from `Spin`, and its base color uniformly from `Colors`.
   - Tests: `ParticleSystemTests.ColorMixesTowardEndColor`
 - **CORE-PARTICLES-013** — A spinning particle shall start at a random rotation and a non-spinning one at 0; every particle shall start at a random flutter phase.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.SpinningParticlesStartAtARandomRotationAndEveryParticleAtARandomFlutterPhase`
 - **CORE-PARTICLES-014** — A spawned particle shall be sampled at age 0, so its size, opacity and color are the curves' start values.
   - Tests: `ParticleSystemTests.CurvesSampleFromEasedMidpointAndTo`
 
@@ -88,7 +88,7 @@ depends:
 - **CORE-PARTICLES-022** — Drag shall decay velocity by `e^(−Drag · seconds)`, independent of the step size.
   - Tests: `ParticleSystemTests.DragHalvesSpeedAfterLn2OverDragSecondsAtAnyStepSize`
 - **CORE-PARTICLES-023** — Rotation shall advance by `Spin × dt`, and the flutter phase by `Flutter × 2π` radians per second.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.RotationAdvancesBySpinAndFlutterPhaseByFlutterTurnsPerSecond`
 
 ### Over-life curves
 
@@ -104,7 +104,7 @@ depends:
 - **CORE-PARTICLES-027** — Every random draw shall come from `Utils.CreateSeededRandom(Seed)`, so two systems with the same parameters, seed and step sequence produce identical states, and different seeds differ.
   - Tests: `ParticleSystemTests.SameSeedAndStepsGiveIdenticalStates`
 - **CORE-PARTICLES-028** (inherited) — When `Seed` is null, the system shall take the next seed from the process-wide seeded-random counter.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.ANullSeedTakesTheNextSeedFromTheCounter`
 
 ### Allocation
 
@@ -118,31 +118,31 @@ depends:
 - **CORE-PARTICLES-031** — When `Rate` is not set, the system shall emit only its burst.
   - Tests: `ParticleSystemTests.ParticleDiesAtItsLifetimeAndItsSlotIsReused`
 - **CORE-PARTICLES-032** — When `Burst` is not set, `Start` shall spawn no particles at once.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.WithoutABurstStartSpawnsNothingAtOnce`
 - **CORE-PARTICLES-033** — When `Duration` is not set, emission shall continue until `Stop`.
   - Tests: `ParticleSystemTests.StopEndsEmissionButLetsLiveParticlesFinish`
 - **CORE-PARTICLES-034** — When `Lifetime` is not set, each particle shall live between 800 and 1400 ms.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultLifetimeSpeedAndSpreadDrawFromTheirRanges`
 - **CORE-PARTICLES-035** — When `Speed` is not set, each particle shall launch at between 0.2 and 0.6 units per ms.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultLifetimeSpeedAndSpreadDrawFromTheirRanges`
 - **CORE-PARTICLES-036** — When `Angle` is not set, particles shall launch around −90 degrees (up).
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultAngleLaunchesUp`
 - **CORE-PARTICLES-037** — When `Spread` is not set, particles shall launch within 60 degrees either side of `Angle`.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultLifetimeSpeedAndSpreadDrawFromTheirRanges`
 - **CORE-PARTICLES-038** — When `Gravity` and `Drag` are not set, particles shall feel no force.
   - Tests: `ParticleSystemTests.WithoutForcesParticleTravelsSpeedTimesTimeAlongItsAngle`
 - **CORE-PARTICLES-039** — When `Spin` is not set, particles shall not rotate.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.WithoutSpinOrFlutterParticlesNeitherRotateNorFlutter`
 - **CORE-PARTICLES-040** — When `Flutter` is not set, the flutter phase shall not advance.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.WithoutSpinOrFlutterParticlesNeitherRotateNorFlutter`
 - **CORE-PARTICLES-041** (inherited) — When `Size` is not set, every particle shall be 6 units for its whole life.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultSizeOpacityAndColorAreSixUnitsLinearFadeAndOpaqueWhite`
 - **CORE-PARTICLES-042** (inherited) — When `Opacity` is not set, every particle shall fade linearly from 1 to 0 over its life.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultSizeOpacityAndColorAreSixUnitsLinearFadeAndOpaqueWhite`
 - **CORE-PARTICLES-043** (inherited) — When `Colors` is not set, every particle's base color shall be opaque white.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultSizeOpacityAndColorAreSixUnitsLinearFadeAndOpaqueWhite`
 - **CORE-PARTICLES-044** — When `MaxParticles` is not set, the system shall hold at most 500 live particles.
-  - Tests: untested
+  - Tests: `ParticleSystemTests.DefaultMaxParticlesIsFiveHundred`
 - **CORE-PARTICLES-045** (inherited) — When `Area` is not set, every particle shall spawn exactly at the origin.
   - Tests: `ParticleSystemTests.WithoutForcesParticleTravelsSpeedTimesTimeAlongItsAngle`
 
@@ -202,4 +202,4 @@ depends:
 
 ## Open items
 
-- No test for the initial stopped state, initial rotation and flutter phase, spin and flutter integration, `Area`, or the null-seed path.
+- None.

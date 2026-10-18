@@ -44,7 +44,7 @@ depends:
 
 ## Purpose
 
-The core animates any object through small adapter interfaces: an `ITargetAdapter` resolves a property name on a target to an `IPropertyAccessor` that reads, writes and reverts it, and an optional `IValueCodec` turns a typed property value into tweenable channels and back. Adapters registered in `Presto.Adapters` are asked first; `ObjectTargetAdapter` (dictionaries and reflection) handles the rest, with codecs from `Presto.Codecs` and `DiscreteCodec` for types nothing interpolates. `TargetParser` flattens the targets argument. Every public API that names a property takes it as a `PropertyKey`, which a string converts to and which the API unwraps to its name before resolution. CORE-VALUES parses through the codecs; CORE-ANIMATION builds tweens on the accessors; the bridge's adapter is specified in its own spec. Also specifies `Presto.Adapters` and `Presto.Codecs`.
+The core animates any object through small adapter interfaces: an `ITargetAdapter` resolves a property name on a target to an `IPropertyAccessor` that reads, writes and reverts it, and an optional `IValueCodec` turns a typed property value into tweenable channels and back. Adapters registered in `Presto.Adapters` are asked first; `ObjectTargetAdapter` (dictionaries, the library's own member tables, and reflection) handles the rest, with codecs from `Presto.Codecs` and `DiscreteCodec` for types nothing interpolates. `TargetParser` flattens the targets argument. Every public API that names a property takes it as a `PropertyKey`, which a string converts to and which the API unwraps to its name before resolution. CORE-VALUES parses through the codecs; CORE-ANIMATION builds tweens on the accessors; the bridge's adapter is specified in its own spec. Also specifies `Presto.Adapters`, `Presto.Codecs` and `Presto.RegisterTarget`.
 
 ## Requirements
 
@@ -70,7 +70,7 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **CORE-TARGETS-008** — The core shall key a tween by the first non-null `Canonicalize` result among the adapters, or by the name as given when none returns one, so every spelling of one property composes against the others.
   - Tests: `PropertyNamingTests.TheQualifiedSpellingSharesTheSameKey`, `PropertyNamingTests.ATypedPropertyOverridesATweenDeclaredByName`, `PropertyNamingTests.ANamedPropertyOverridesATweenDeclaredByHandle`
 - **CORE-TARGETS-009** — The animation shall resolve the accessor with the canonical name, once per target and property when it builds its tweens.
-  - Tests: untested
+  - Tests: `TargetsTests.TheAccessorIsResolvedByCanonicalNameOncePerTargetAndProperty`
 - **CORE-TARGETS-010** — `Presto.Remove` and `Presto.GetAnimations` shall match a named property by its canonical name.
   - Tests: `PropertyNamingTests.RemoveByNameCancelsATweenDeclaredByHandle`, `PropertyNamingTests.RemoveByHandleCancelsATweenDeclaredByName`
 - **CORE-TARGETS-011** (inherited) — When `Presto.Remove` is called without a renderable, it shall call every adapter's `Removed` with the parsed targets and the property (null for all), after the tweens are removed.
@@ -97,9 +97,11 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
   - Tests: `ObjectTargetAdapterTests.ReadsMembersAndTreatsMissingDictionaryKeysAsNull`
 - **CORE-TARGETS-019** — When the target is an `IDictionary<string, object?>`, the adapter shall write the entry, creating it if missing, as a `double` for a number tween and as the composed string otherwise, with no codec.
   - Tests: `ObjectTargetAdapterTests.DictionaryEntriesHoldNumbersAndComposedStrings`
+- **CORE-TARGETS-058** — When the target is a `Timer` (an `Animation` or `Timeline` included), the adapter shall reach `CurrentTime`, `IterationCurrentTime`, `Progress`, `IterationProgress` and `CurrentIteration` without reflection, and throw `ArgumentException` for any other name.
+  - Tests: `ObjectTargetAdapterTests.TimerMembersResolveWithoutReflection`, `ObjectTargetAdapterTests.UnknownTimerMemberThrows`
 - **CORE-TARGETS-020** — For any other target, the adapter shall reach a public instance property that is both readable and writable, or else a public instance field, of that name.
   - Tests: `ObjectTargetAdapterTests.WritesNumericMembersInTheirOwnType`, `ObjectTargetAdapterTests.ReadsMembersAndTreatsMissingDictionaryKeysAsNull`
-- **CORE-TARGETS-021** (inherited) — When no such member exists, the adapter shall throw `ArgumentException`.
+- **CORE-TARGETS-021** — When no such member exists, the adapter shall throw `ArgumentException` whose message names trimming and NativeAOT and `Presto.RegisterTarget<T>()`.
   - Tests: `ObjectTargetAdapterTests.UnknownMemberThrows`
 - **CORE-TARGETS-022** — When the member is `double`, `float`, `decimal`, `int`, `long`, `short` or `byte`, the adapter shall write the number in the member's own type.
   - Tests: `ObjectTargetAdapterTests.WritesNumericMembersInTheirOwnType`
@@ -119,6 +121,12 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
   - Tests: `ObjectTargetAdapterTests.AccessorsAreCachedPerTypeAndProperty`
 - **CORE-TARGETS-030** — When a cached accessor's codec is no longer the one `Presto.Codecs` gives for its member type (or `DiscreteCodec` when none is registered), the adapter shall rebuild that accessor on resolution, so later resolutions use the registry as it stands; tweens already built keep their accessors.
   - Tests: `ObjectTargetAdapterTests.ACodecRegisteredAfterAResolutionAppliesToLaterAnimations`
+- **CORE-TARGETS-059** — A library type the library animates by name shall be resolved through its own member table, with the same writes CORE-TARGETS-022 to -028 give a reflected member, and its codec-typed members rebuilt on resolution as CORE-TARGETS-030 does.
+  - Tests: `ObjectTargetAdapterTests.TypedMembersWriteLikeReflectedOnes`, `ObjectTargetAdapterTests.ACodecRegisteredAfterAMemberTableIsBuiltAppliesToItsEntries`
+- **CORE-TARGETS-060** — In a Debug build, when the adapter is about to reflect on a type from the core's assembly or one of the three bridge packages' assemblies, matched by exact name, it shall throw `InvalidOperationException` naming the type.
+  - Tests: `ObjectTargetAdapterTests.ReflectingOnALibraryTypeFailsInDebug`
+- **CORE-TARGETS-061** — `Presto.RegisterTarget<T>()` shall keep `T`'s public properties and fields for the adapter in trimmed and NativeAOT apps, and shall change nothing at run time.
+  - Tests: `ObjectTargetAdapterTests.RegisteringATargetChangesNoResolution`
 - **CORE-TARGETS-031** — `Revert` shall write the original value back through the member or dictionary entry.
   - Tests: `ObjectTargetAdapterTests.RevertRestoresTheValueReadBeforeTheAnimation`
 
@@ -161,7 +169,7 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **CORE-TARGETS-043** — When a discrete value is relative (`"+=1"`), `DiscreteCodec` shall throw `ArgumentException`.
   - Tests: `DiscreteValuesTests.RelativeValuesThrow`
 - **CORE-TARGETS-044** (inherited) — When a discrete value is neither of the type nor a convertible number, `DiscreteCodec` shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `DiscreteValuesTests.AValueNeitherOfTheTypeNorANumberThrows`
 - **CORE-TARGETS-045** — When a discrete property's composition is `Additive`, the animation shall throw `ArgumentException`.
   - Tests: `DiscreteValuesTests.AdditiveThrows`
 - **CORE-TARGETS-046** — `Presto.Set` shall write a discrete value at once, and `Revert` shall restore the original value.
@@ -204,10 +212,14 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - A discrete tween's `Modifier` applies to its 0–1 channel, so it moves the switch point.
 - An enum value given as a string (`"Right"`) is not parsed; it throws `ArgumentException`.
 - A codec whose `Encode` returns another type makes the member write throw `InvalidCastException`.
+- In a trimmed or NativeAOT app, a plain type not passed to `RegisterTarget<T>()` may have no reachable members, even ones the app uses, and throws CORE-TARGETS-021.
+- Under NativeAOT a reflected member's expression trees run interpreted: correct, slower, and possibly allocating per frame.
 
 ## Threading and lifetime
 
 - `Presto.Adapters` and `Presto.Codecs` are plain collections read from every engine's thread without locks: populate them before any animation starts and do not change them while animations may resolve.
+- Member tables are static and immutable, shared by every instance and engine.
+- `Presto.RegisterTarget<T>()` may be called from any thread.
 - The `ObjectTargetAdapter` accessor cache is a `ConcurrentDictionary` held for the process, whose codec-typed entries are rebuilt on resolution when their codec no longer matches `Presto.Codecs`; accessors hold compiled delegates, not targets, so they keep no target alive.
 - `Removed` runs on the thread that called `Presto.Remove`.
 
@@ -217,8 +229,8 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 
 ## Allocation
 
-- Resolution allocates (reflection and expression compilation on the first resolve of a (type, property) pair, a new accessor per dictionary resolve) and runs when tweens are built.
-- Per frame, writes to numeric members and `PrestoColor` members and discrete writes allocate nothing; string, `object` and dictionary writes allocate the string or the boxed number.
+- Resolution allocates (reflection and expression compilation on the first resolve of a (type, property) pair, a new accessor per dictionary resolve or stale codec-typed table entry) and runs when tweens are built; a member table's accessors are built once per type.
+- Per frame, writes to numeric members (reflected or from a member table) and `PrestoColor` members and discrete writes allocate nothing; string, `object` and dictionary writes allocate the string or the boxed number.
 
 ## Provenance
 
@@ -240,6 +252,12 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 - **Codecs can reconcile ends of different shapes.** An `IReconcilingValueCodec` claims non-relative string end values before the core parses them and makes both ends the same kind and channel count before the core pads them; discrete fields ride as channels. Reason: the core can only pad the shorter channel list with zeros, which is wrong for colors and offsets when shapes differ (two- against three-stop gradients, one shadow against two), and it misparses strings like `"0 4 16 0 #40000000"` as a complex value whose numbers include hex digits.
 - **`StructCodec<T>` is a public core codec.** It moved from the bridge, which registers `Thickness`, `CornerRadius`, `Point`, `Size`, `Rect` and `Vector` through it. Reason: tweening a struct of doubles needs no UI framework, and any adapter or app can register one in `Presto.Codecs`; `compose` receives the tween's reused channel array, which the constructor documents.
 - **Changing a codec invalidates cached accessors.** A cached accessor for a codec-typed member keeps the codec it captured, and resolution compares it with `Presto.Codecs` (or `DiscreteCodec` when none is registered) and rebuilds the entry when they differ; tweens already built keep their accessors. The check runs when tweens are built, not per frame, and keeps `Presto.Codecs` a plain dictionary. Reason: registration order otherwise silently decided which codec applied, since a member resolved before its codec was registered stayed discrete for the life of the process. Rejected: documenting that codecs must be registered before the first resolution.
+- **Internal targets declare typed member tables; reflection is for user types only.** Each library type the library animates by name (`Timer`, the animatable's callbacks target, and the bridge's own targets) implements the internal `IMemberTarget`, whose static table maps names to accessors built from typed get and set delegates (or to a dedicated `IPropertyAccessor` where the write differs, as the bridge's compositor `Rotate` converts units); those typed accessors share the reflected path's write rules, codec choice and stale-codec rebuild. The adapter checks for it after dictionaries and before reflection; adapters in `Presto.Adapters` still resolve first. Reason: it removes the reflection dependency instead of rooting it for trimming and NativeAOT, is checked at compile time, costs a frame what a compiled expression does (a delegate call, no boxing for numbers), and keeps the core lock-free and `Presto.Adapters` empty. The interface exposes the table rather than a lookup method so the unknown-member error can list the names it holds. Rejected: `[DynamicDependency]` on each type (a new target regresses silently and still runs interpreted expression trees under AOT); a registered adapter per type (a check on every resolution, and default registrations against CORE-TARGETS-049); a source generator (an analyzer package to ship for a handful of types); dictionary targets (a boxed number per frame).
+- **Member tables are closed.** A name a table lacks throws `ArgumentException` listing the names it holds, and never falls back to reflection. Reason: a fallback would put library types back on the reflected path, working under JIT while failing under NativeAOT. Before this, reflection also reached `Timer.Speed`, `Reversed`, `Canceled` and the callback properties (`bool` and delegates as discrete values); that was never specified and is dropped.
+- **Library types reaching reflection fail Debug runs.** The check matches the four library assembly names exactly and compiles only into Debug builds, like the engine's `[Conditional("DEBUG")]` assertions. Reason: the suites run in Debug, so a new internal target without a member table fails the first test that animates it, with no AOT build. Rejected: a name-prefix match, which catches the test assemblies; relying on the AOT probe alone, which covers only the paths it drives.
+- **Plain objects opt in through `Presto.RegisterTarget<T>()`, and nothing on the `Animate` path is `[RequiresUnreferencedCode]`.** `T` is annotated `[DynamicallyAccessedMembers(PublicProperties | PublicFields)]`, and the reflection discovery carries one `[UnconditionalSuppressMessage]` whose justification names `RegisterTarget<T>` and the Debug check. Reason: a `[DynamicallyAccessedMembers]` generic parameter is the one annotation both ILLink and ILC honor for a value whose static type is `object`; `Animate(object, …)` mostly receives UI elements resolved by a registered adapter, which never reach reflection, so `[RequiresUnreferencedCode]` there would warn on every call to protect a minority path, and it cannot sit on `ObjectTargetAdapter.Resolve` because `ITargetAdapter.Resolve` lacks it (IL2046). Rejected: a type-level `[DynamicallyAccessedMembers]`, verified ignored; generic `Animate<T>` overloads, which overload resolution would route controls and arrays through, and which `Set`, `Get`, `Remove`, `CreateAnimatable` and `Timeline.Add` would each need as twins.
+- **`RegisterTarget<T>()` is annotation only.** It records nothing and builds no accessors. Reason: the annotation is what keeps the members, and eager accessors would compile delegates for members nobody animates. The cost is a public method with an empty body, which its doc comment explains.
+- **Under NativeAOT, plain objects keep interpreted expression trees.** Reason: they were shown correct, and the library's own targets no longer use them. Rejected: a separate `PropertyInfo` get/set path when dynamic code is unsupported, which boxes too and adds a second path to test. Allocation-free AOT frames for a user type come from an `ITargetAdapter`.
 - **No scene-graph adapter ships.** The adapter interface allows one, but upstream's three.js adapter is not ported. Reason: not recorded.
 
 ## Non-goals
@@ -251,4 +269,4 @@ The core animates any object through small adapter interfaces: an `ITargetAdapte
 ## Open items
 
 - `IReconcilingValueCodec` has no core test; it is pinned only through the bridge's codecs (`CodecTests`).
-- CORE-TARGETS-009 (one resolution per target and property, by canonical name) and CORE-TARGETS-044 (non-convertible discrete value throws) have no test.
+- CORE-TARGETS-061 is pinned at run time only; that trimmed and NativeAOT apps keep a registered type's members is covered by the AOT probe's `registered-target` case (`tests/MonacoLabs.Presto.AotProbe`).

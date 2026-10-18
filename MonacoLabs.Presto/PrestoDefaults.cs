@@ -5,6 +5,9 @@ namespace MonacoLabs.Presto;
 /// <summary>Global default parameter values applied to every timer that does not override them.</summary>
 public sealed record PrestoDefaults
 {
+    private bool _reducedMotion;
+    private bool _reduceAll;
+
     /// <inheritdoc cref="TimerParams.PlaybackRate"/>
     public double PlaybackRate { get; set; } = 1;
 
@@ -70,11 +73,29 @@ public sealed record PrestoDefaults
     /// <see cref="AnimationParams.WhenReduced"/>) where one exists, chosen when the animation is constructed. Like every
     /// default it belongs to one engine or <see cref="Scope"/>, which copy it when created.
     /// </summary>
-    public bool ReducedMotion { get; set; }
+    public bool ReducedMotion
+    {
+        get => _reducedMotion;
+        set
+        {
+            if (_reducedMotion == value) return;
+            _reducedMotion = value;
+            Engine.RaiseReducedMotionChanged(this);
+        }
+    }
 
     /// <summary>
     /// Collapses every animation not built from a <see cref="AnimationBuilder.WhenReduced"/> alternative to an instant,
     /// non-looping set of its end values. Like every default it belongs to one engine or <see cref="Scope"/>, which copy it when created.
     /// </summary>
-    public bool ReduceAll { get; set; }
+    public bool ReduceAll
+    {
+        get => _reduceAll;
+        set
+        {
+            if (_reduceAll == value) return;
+            _reduceAll = value;
+            Engine.RaiseReducedMotionChanged(this);
+        }
+    }
 }

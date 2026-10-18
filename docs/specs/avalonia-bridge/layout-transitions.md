@@ -24,6 +24,7 @@ tests:
   - WhenDetachedTests
   - ConnectedTests
   - ReferencePagesTests
+  - ScopePruningTests
 upstream:
   - src/layout/layout.js
 depends:
@@ -57,7 +58,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-004** — Arming a transition on a control that already has a live one shall revert the earlier one.
   - Tests: `LayoutTransitionTests.ASecondTransitionReplacesTheFirst`
 - **BRIDGE-LAYOUT-005** — Every public factory shall register the transition with `Engine.Current.CurrentScope` when there is one.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.EveryFactoryRegistersWithTheCurrentScope`
 
 ### Measuring
 
@@ -66,7 +67,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-007** — The render transform shall not count toward the slot, so a transform shorthand's translation is not inverted.
   - Tests: `LayoutTransitionTests.ALayoutPassDoesNotInvertAShorthandTranslation`
 - **BRIDGE-LAYOUT-008** — When a pass leaves the slot's position unchanged and nothing scales, the transition shall do nothing.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.APassThatNeitherMovesNorScalesTheControlStartsNothing`
 - **BRIDGE-LAYOUT-047** — While the nearest ancestor with a live transition still eases its moves (any `AnimateLayout`, or a one-shot until its move lands) at both passes, the transition shall measure the control's slot within that ancestor rather than its window, so a move the ancestor eases is not eased twice; otherwise it measures the window slot.
   - Tests: `LayoutTransitionTests.ANestedTransitionRidesItsAncestorsMoveInsteadOfAddingToIt`, `LayoutTransitionTests.ANestedTransitionFliesItsWholeMoveOnceItsAncestorStopsEasing`
 
@@ -118,6 +119,8 @@ Eases a control into the place layout gives it instead of letting it jump: where
   - Tests: `LayoutTransitionTests.EndingATransitionLeavesTheControlInItsLayoutSlot`
 - **BRIDGE-LAYOUT-028** — `Revert` shall cancel and stop easing later moves, so the control moves in one frame again.
   - Tests: `LayoutTransitionTests.EndingATransitionLeavesTheControlInItsLayoutSlot`
+- **BRIDGE-LAYOUT-048** — Once reverted, the transition shall count as released to the scope it registered with (CORE-SCOPE), except while a draggable's `Reparent` flight that reverted it waits to re-arm it on landing.
+  - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
 - **BRIDGE-LAYOUT-029** — When a compositor animation takes the control's `Translation` or `Scale`, the transition shall release it, leaving the control frozen where it is drawn, and stop the move once it drives nothing.
   - Tests: `CompositorRegistryTests.ACompositorAnimationTakesTheTranslationFromALayoutTransition`, `CompositorRegistryTests.ALayoutTransitionTakesTheTranslationFromACompositorAnimation`
 - **BRIDGE-LAYOUT-030** — `Presto.Remove(control)` shall stop the move in flight, freezing the control where it is drawn.
@@ -132,15 +135,17 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-033** — The on-screen start shall be moved into `target`'s layout frame at `target`'s first layout pass by adding `target`'s own scroll offsets, so scrolled sources and targets land right.
   - Tests: `LayoutTransitionTests.ASharedElementOutOfAScrolledListStartsWhereItIsDrawn`, `LayoutTransitionTests.ASharedElementIntoAScrolledListStartsWhereTheSourceIsDrawn`
 - **BRIDGE-LAYOUT-034** — With `once` true (the default) the transition shall stop listening to layout once its move has started; with `once` false it shall keep easing later moves as `AnimateLayout` does.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.AOneShotStopsEasingOnceItsMoveStartsAndAPersistentOneKeepsEasing`, `LayoutTransitionTests.ReArmingAMoveMidFlightAsASharedElementCarriesOnFromWhereItIsDrawn`
 - **BRIDGE-LAYOUT-035** — When `source` is not in a window, the transition shall measure `target` itself as First, so nothing flies from the source and `target`'s next layout move eases as a one-shot `AnimateLayout` would.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.AnOffScreenSourceLeavesTheTargetToEaseItsNextMoveAsAOneShot`
 - **BRIDGE-LAYOUT-036** — `PrepareSharedElement` shall record only where `source` is drawn under the key, replacing any earlier entry, and return true; when `source` is not on screen it shall remove the key's entry and return false.
   - Tests: `LayoutTransitionTests.AKeyedSharedElementFliesFromWhereItsSourceWasPreparedAfterTheSourceIsGone`
 - **BRIDGE-LAYOUT-037** — A keyed `AnimateSharedElement` shall take the key's entry and fly `target` from it, even after the source has left the tree.
   - Tests: `LayoutTransitionTests.AKeyedSharedElementFliesFromWhereItsSourceWasPreparedAfterTheSourceIsGone`
 - **BRIDGE-LAYOUT-038** — When the key has no entry, or its entry is more than three seconds old, a keyed `AnimateSharedElement` shall return null, discard the entry and leave `target` alone.
   - Tests: `LayoutTransitionTests.AKeyedSharedElementWithNothingPreparedReturnsNullAndLeavesTheTargetAlone`, `ConnectedTests.APreparedRectIsTakenWithinThreeSecondsAndExpiresAfter`
+- **BRIDGE-LAYOUT-049** — When a key is prepared, entries older than three seconds under other keys shall be discarded, so prepared keys that are never taken do not accumulate.
+  - Tests: `ConnectedTests.AKeyThatNeverReturnsDoesNotAccumulate`
 
 ### Builder motion
 
@@ -161,9 +166,9 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-043** — When `AnimateLayout` is given no mode, the transition shall use `Position`.
   - Tests: `LayoutTransitionTests.AResizeUnderPositionAloneLandsAtItsNewSizeInOneFrame`
 - **BRIDGE-LAYOUT-044** — When `AnimateSharedElement` is given no mode, the flight shall use `PositionAndSize`.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.ASharedElementWithNoModeScalesItsResize`
 - **BRIDGE-LAYOUT-045** (inherited) — Before its first move, a transition's `Progress` shall be 0.
-  - Tests: untested
+  - Tests: `LayoutTransitionTests.BeforeItsFirstMoveATransitionHasNoProgress`
 - **BRIDGE-LAYOUT-046** (inherited) — Before its first move, a transition's `Completed` shall be true.
   - Tests: `LayoutTransitionTests.ScrollingAnArmedControlIsNotALayoutMove`
 
@@ -190,7 +195,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 
 ## Reduced motion
 
-- BRIDGE-LAYOUT-041 and -042. The `(duration, ease)` overloads read the flag per move (CORE-REDUCED: the flag has no change notification); builder overloads only at creation, through the builder's `WhenReduced`.
+- BRIDGE-LAYOUT-041 and -042. The `(duration, ease)` overloads read the flag per move (CORE-REDUCED); builder overloads only at creation, through the builder's `WhenReduced`.
 
 ## Allocation
 
@@ -217,12 +222,14 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **An off-screen source degrades to a one-shot `AnimateLayout`.** With nothing on screen to measure, the unkeyed `AnimateSharedElement` measures the target as First and still returns a transition, documented on the member. Reason: the target still eases its next layout move, which suits a caller that started the flight without checking the source, while the keyed form's null mirrors the Toolkit's `GetAnimation(key)` and has no source to fall back on.
 - **Zero-length moves are not started.** A move whose compiled track has zero duration and zero delay lands in one frame without a composition animation. Reason: a zero-length composition animation can draw its first key for a frame, which broke `ReduceAll` making layout moves instant.
 - **Duration overloads land at once under the flag.** The `(duration, ease)` overloads read `ReducedMotion` as each move starts and land in one frame, as `Recipes.Reflow`'s reduced form does. Reason: they built their motion directly and kept easing, forcing workarounds in the sample.
-- **The flag has no change notification.** See CORE-REDUCED.
+- **The signal is an event on `Engine`, not on `PrestoDefaults`.** See CORE-REDUCED.
 - **Only pure eases cross to the render thread.** See BRIDGE-THREAD.
 - **One owner per composition property.** See BRIDGE-THREAD.
 - **Arming on attach records, never eases.** See BRIDGE-DECLLAYOUT.
 - **A content size host owns its size.** See BRIDGE-CONTENTSIZE.
 - **Wall-clock reads take a `TimeProvider`.** See CORE-ENGINE.
+- **Expired prepared entries are swept when a key is prepared.** Each prepare drops every entry past the three-second lifetime. Reason: a key that leaves and never returns (a deleted row keyed by id) was otherwise kept for good, and sweeping on prepare needs no timer and costs nothing while nothing is prepared.
+- **A displaced transition is not released.** A transition that a draggable's `Reparent` flight reverts, to re-arm on landing, does not count as released until it is re-armed. Reason: a prune in between would drop it from its scope, and the re-armed transition would then escape the scope's revert.
 
 ## Non-goals
 
@@ -231,4 +238,4 @@ Eases a control into the place layout gives it instead of letting it jump: where
 
 ## Open items
 
-- Untested: scope registration (005), the no-op pass (008), `once: false` (034), an off-screen source (035).
+None.

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -61,7 +62,7 @@ internal sealed class SwipeTracker : IGestureMember
 
     private double X => _animate?.Get("X") ?? 0;
 
-    private bool Commits => Swipe.GetCommand(_row) is not null || Swipe.GetDismiss(_row);
+    private bool Commits(int side) => Swipe.GetDismiss(_row) || Command(side) is ({ } command, var parameter) && command.CanExecute(parameter);
 
     public void Rebuild()
     {
@@ -225,7 +226,7 @@ internal sealed class SwipeTracker : IGestureMember
         if (ReferenceEquals(pointer.Captured, _row)) pointer.Capture(null);
         var x = X;
         var side = Math.Sign(x);
-        if (side != 0 && Commits && Math.Abs(x) > CommitAt * _row.Bounds.Width)
+        if (side != 0 && Commits(side) && Math.Abs(x) > CommitAt * _row.Bounds.Width)
         {
             Commit(side);
             return;
@@ -235,13 +236,13 @@ internal sealed class SwipeTracker : IGestureMember
         MoveTo(_velocity.Velocity, t => open != 0 && t * side >= Math.Abs(open) / 2 ? open : 0, side < 0 ? min : 0, side > 0 ? max : 0);
     }
 
-    // How far each side can be dragged: its actions' width, or the whole row when a full swipe commits.
+    // How far each side can be dragged: its actions' width, or the whole row when a full swipe on it commits.
     private (double Min, double Max) Range(bool commit)
     {
-        var width = _row.Bounds.Width;
-        var full = commit && Commits;
-        var bare = full && _leading is null && _trailing is null;
-        return (_trailing is null && !bare ? 0 : full ? -width : -OpenWidth(_trailing), _leading is null && !bare ? 0 : full ? width : OpenWidth(_leading));
+        var bare = _leading is null && _trailing is null;
+        return (-Reach(_trailing, -1), Reach(_leading, 1));
+
+        double Reach(Layer? layer, int side) => commit && (layer is not null || bare) && Commits(side) ? _row.Bounds.Width : OpenWidth(layer);
     }
 
     // Coasts to snap(projected release), within [lo, hi]; a release outside them lands on the nearer one.
@@ -265,10 +266,9 @@ internal sealed class SwipeTracker : IGestureMember
 
     private void Commit(int side)
     {
-        var edge = side > 0 ? Edge.Right : Edge.Left;
         if (!Swipe.GetDismiss(_row))
         {
-            Run(edge);
+            Run(side);
             Close();
             return;
         }
@@ -278,24 +278,29 @@ internal sealed class SwipeTracker : IGestureMember
         if (Engine.Current.Defaults.ReducedMotion)
         {
             Animator().Set("X", to, 0);
-            Dismissed(edge);
+            Dismissed(side);
             return;
         }
         var tokens = Recipes.Tokens;
         Animator().Set("X", to, tokens.Short, tokens.Ease);
-        _then = () => Dismissed(edge);
+        _then = () => Dismissed(side);
     }
 
-    private void Dismissed(Edge edge)
+    private void Dismissed(int side)
     {
-        Run(edge);
+        Run(side);
         if (_row.IsAttachedToVisualTree() && _row.IsVisible) _row.IsVisible = false;
     }
 
-    private void Run(Edge edge)
+    private void Run(int side)
     {
-        if (Swipe.GetCommand(_row) is { } command && command.CanExecute(edge)) command.Execute(edge);
+        if (Command(side) is ({ } command, var parameter) && command.CanExecute(parameter)) command.Execute(parameter);
     }
+
+    private (ICommand? Command, object? Parameter) Command(int side) =>
+        (side > 0 ? Swipe.GetLeadingCommand(_row) : Swipe.GetTrailingCommand(_row)) is { } own
+            ? (own, Swipe.GetCommandParameter(_row))
+            : (Swipe.GetCommand(_row), side > 0 ? Edge.Right : Edge.Left);
 
     private void Reset()
     {

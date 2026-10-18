@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Logging;
 using Avalonia.Media;
+using MonacoLabs.Presto.Compositor;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -26,6 +27,19 @@ public sealed class CompositorRegistryTests : CompositorTestBase
         Assert.Same(second, await second.Then());
         Assert.False(first.Completed, "the replaced animation kept running");
         Assert.False(replaced.IsCompleted, "the replaced animation resolved its Then");
+    }
+
+    [AvaloniaFact]
+    public void ATakeoverStartsFromWhereTheRunningAnimationsMirrorStands()
+    {
+        var bar = ShowBar();
+        _ = bar.AnimateOnCompositor(new() { ["X"] = 40, Duration = 1000, Ease = "linear" });
+        Frames.Advance(500);
+
+        var (_, tracks) = CompositorCompiler.Compile(0, [bar], new() { ["X"] = 0, Duration = 400, Ease = "linear" });
+
+        Assert.Equal(20, Assert.Single(tracks).Values[0][0], 0.5);
+        Assert.Equal(0d, X(bar));
     }
 
     [AvaloniaFact]

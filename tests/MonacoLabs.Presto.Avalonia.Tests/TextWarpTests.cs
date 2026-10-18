@@ -291,6 +291,9 @@ public sealed class TextWarpTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void TheKindDefaultsToWave() => Assert.Equal(TextWarpKind.Wave, TextWarp.GetKind(new TextBlock()));
+
+    [AvaloniaFact]
     public void TheShorthandsResolveOnlyOnATextBlock()
     {
         Assert.Equal("Warp", Presto.Canonicalize(new TextBlock(), "Warp"));

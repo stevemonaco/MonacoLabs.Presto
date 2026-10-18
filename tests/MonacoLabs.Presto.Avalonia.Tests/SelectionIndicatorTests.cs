@@ -2,12 +2,15 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -112,6 +115,14 @@ public sealed class SelectionIndicatorTests : BridgeTestBase
     [AvaloniaFact]
     public void FillCoversTheItem()
     {
+        var list = ShowList(Orientation.Horizontal, mode: SelectionIndicatorMode.Fill, startAt: 1);
+
+        Assert.Equal(Slot(list, 1), Indicator(list).Bounds);
+    }
+
+    [AvaloniaFact]
+    public void WithoutAModeTheIndicatorFillsTheItem()
+    {
         var list = ShowList(Orientation.Horizontal, startAt: 1);
 
         Assert.Equal(Slot(list, 1), Indicator(list).Bounds);
@@ -196,8 +207,300 @@ public sealed class SelectionIndicatorTests : BridgeTestBase
         Assert.Equal(Slot(list, 3), Indicator(list).Bounds);
     }
 
+    [AvaloniaFact]
+    public void ReplacingTheTemplateSwapsTheIndicatorAndANullTemplateOrBuildLeavesNone()
+    {
+        var list = ShowList(Orientation.Vertical);
+        var old = Indicator(list);
+        list.SelectedIndex = 3;
+        Tick(list, 100);
+        Assert.Equal(1, Running());
+
+        Selection.SetIndicator(list, Template());
+        Layout(list);
+        var replacement = Indicator(list);
+        Assert.NotSame(old, replacement);
+        Assert.Equal(0, Running());
+        Assert.False(list.Presenter!.IsVisualAncestorOf(old));
+        Assert.True(list.Presenter.IsVisualAncestorOf(replacement));
+        Assert.Equal(Slot(list, 3), replacement.Bounds);
+
+        Selection.SetIndicator(list, null);
+        Assert.Null(Selection.IndicatorOf(list));
+        Assert.False(list.Presenter.IsVisualAncestorOf(replacement));
+
+        Selection.SetIndicator(list, new FuncTemplate<Control?>(() => null));
+        Layout(list);
+        Assert.Null(Selection.IndicatorOf(list));
+        Assert.Same(list.Presenter!.Panel, Assert.Single(list.Presenter.GetVisualChildren()));
+    }
+
+    [AvaloniaFact]
+    public void InDesignModeSettingTheIndicatorDoesNothing()
+    {
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
+        var list = ShowList(Orientation.Vertical);
+        var indicator = Indicator(list);
+        var other = new ListBox();
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Selection.SetIndicator(list, null);
+            Selection.SetIndicator(other, Template());
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        Assert.Same(indicator, Selection.IndicatorOf(list));
+        Assert.Null(Selection.IndicatorOf(other));
+    }
+
+    [AvaloniaFact]
+    public void TheIndicatorLivesInThePresenterBehindThePanelAndIsNotHitTestable()
+    {
+        var list = ShowList(Orientation.Vertical);
+        var presenter = list.Presenter!;
+        var indicator = Indicator(list);
+        var children = presenter.GetVisualChildren().ToArray();
+
+        Assert.Equal(2, children.Length);
+        Assert.True(children[0] == indicator || children[0].IsVisualAncestorOf(indicator));
+        Assert.Same(presenter.Panel, children[1]);
+        Assert.True(presenter.IsLogicalAncestorOf(indicator));
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        var center = indicator.TranslatePoint(new Point(indicator.Bounds.Width / 2, indicator.Bounds.Height / 2), presenter)!.Value;
+        Assert.DoesNotContain(indicator, presenter.GetInputElementsAt(center));
+    }
+
+    [AvaloniaFact]
+    public void ANewPresenterOrPanelTakesTheIndicatorBackOnTheNextLayout()
+    {
+        var list = ShowList(Orientation.Vertical, startAt: 2);
+        var old = list.Presenter;
+        var template = list.Template;
+
+        list.Template = null;
+        Layout(list);
+        list.Template = template;
+        Layout(list);
+        Assert.NotSame(old, list.Presenter);
+        Assert.True(list.Presenter!.IsVisualAncestorOf(Indicator(list)));
+        Assert.Equal(Slot(list, 2), Indicator(list).Bounds);
+
+        list.ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel());
+        Layout(list);
+        Assert.True(list.Presenter!.IsVisualAncestorOf(Indicator(list)));
+        Assert.Equal(Slot(list, 2), Indicator(list).Bounds);
+    }
+
+    [AvaloniaFact]
+    public void WithoutAPresenterTheIndicatorIsNotPlaced()
+    {
+        var list = new ListBox { Template = null, Items = { new Border { Height = 40 }, new Border { Height = 40 } } };
+        Selection.SetIndicator(list, Template());
+        Show(list);
+
+        list.SelectedIndex = 1;
+        Layout(list);
+
+        Assert.Null(list.Presenter);
+        Assert.Null(Indicator(list).GetVisualParent()?.GetVisualParent());
+    }
+
+    [AvaloniaFact]
+    public void LeavingTheTreeCancelsTheGlideAndTheNextPlacementSnaps()
+    {
+        var list = ShowList(Orientation.Vertical);
+        var window = (Window)TopLevel.GetTopLevel(list)!;
+        list.SelectedIndex = 3;
+        Tick(list, 100);
+        Assert.Equal(1, Running());
+
+        window.Content = null;
+        Assert.Equal(0, Running());
+        window.Content = list;
+        Layout(list);
+
+        Assert.Equal(Slot(list, 3), Indicator(list).Bounds);
+    }
+
+    [AvaloniaFact]
+    public void HidingCancelsTheRunningGlide()
+    {
+        var list = ShowList(Orientation.Vertical);
+        list.SelectedIndex = 3;
+        Tick(list, 100);
+        Assert.Equal(1, Running());
+
+        list.ContainerFromIndex(3)!.IsVisible = false;
+        Layout(list);
+
+        Assert.False(Indicator(list).IsEffectivelyVisible);
+        Assert.Equal(0, Running());
+    }
+
+    [AvaloniaFact]
+    public void AListThatIsNeitherSelectingNorATreeKeepsTheIndicatorHidden()
+    {
+        var list = new ItemsControl { Items = { new Border { Width = 100, Height = 40 } } };
+        Selection.SetIndicator(list, Template());
+        Show(list);
+        Layout(list);
+
+        Assert.NotNull(Indicator(list));
+        Assert.False(Indicator(list).IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public void ASelectionChangeBubblingFromANestedListDoesNotMoveTheIndicator()
+    {
+        var inner = new ListBox { Items = { new Border { Width = 50, Height = 10 }, new Border { Width = 50, Height = 10 } } };
+        var list = ShowList(Orientation.Vertical);
+        list.Items.Add(inner);
+        Layout(list);
+        var row = list.ContainerFromIndex(0)!;
+        row.Arrange(new Rect(0, 100, row.Bounds.Width, row.Bounds.Height));
+
+        inner.SelectedIndex = 1;
+
+        Assert.Equal(0, Running());
+    }
+
+    [AvaloniaFact]
+    public void ASelectionMadeWhileHiddenSnaps()
+    {
+        var list = ShowList(Orientation.Vertical);
+        list.SelectedIndex = -1;
+        Layout(list);
+
+        list.SelectedIndex = 3;
+        Layout(list);
+
+        Assert.Equal(0, Running());
+        Assert.Equal(Slot(list, 3), Indicator(list).Bounds);
+    }
+
+    [AvaloniaFact]
+    public void ANewGlideTakesOverFromWhereTheRunningOneHasGot()
+    {
+        var list = ShowList(Orientation.Vertical);
+        list.SelectedIndex = 4;
+        Tick(list, 100);
+        var mid = Indicator(list).Bounds;
+
+        list.SelectedIndex = 1;
+        Tick(list, 16);
+
+        Assert.Equal(1, Running());
+        Assert.InRange(Indicator(list).Bounds.Y, mid.Y - 10, mid.Y + 10);
+        Tick(list, 1000);
+        Assert.Equal(Slot(list, 1), Indicator(list).Bounds);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true, true, .5)]
+    [InlineData(false, true, .5)]
+    [InlineData(true, false, .875)]
+    public void AMotionSetsTheGlidesDurationDelayAndEase(bool duration, bool ease, double progress)
+    {
+        Presto.Defaults.Duration = 320;
+        var motion = Presto.Build().Delay(96);
+        if (duration) motion.Duration(320);
+        if (ease) motion.Ease(Eases.None);
+        var list = ShowList(Orientation.Vertical);
+        Selection.SetMotion(list, motion);
+
+        list.SelectedIndex = 3;
+        Tick(list, 80);
+        Assert.Equal(Slot(list, 0), Indicator(list).Bounds);
+        Tick(list, 176);
+
+        Assert.InRange(Indicator(list).Bounds.Y, Slot(list, 3).Y * progress - 5, Slot(list, 3).Y * progress + 5);
+    }
+
+    [AvaloniaFact]
+    public void ASpringGlideLastsTheSpringsSettlingDuration()
+    {
+        var settling = Springs.Gentle.SettlingDuration;
+        var list = ShowList(Orientation.Vertical);
+        Selection.SetMotion(list, Presto.Build().Duration(100).Ease(Springs.Gentle));
+
+        list.SelectedIndex = 3;
+        Tick(list, settling - 50);
+        Assert.Equal(1, Running());
+        Tick(list, 100);
+
+        Assert.Equal(0, Running());
+        Assert.Equal(Slot(list, 3), Indicator(list).Bounds);
+    }
+
+    [AvaloniaFact]
+    public void StretchHasNoEffectWhenTheCentersCoincideAlongTheAxis()
+    {
+        var list = new ListBox
+        {
+            ItemsPanel = new FuncTemplate<Panel?>(() => new Grid()),
+            Width = 200,
+            Height = 100,
+            Styles =
+            {
+                new Style(x => x.OfType<ListBoxItem>())
+                {
+                    Setters =
+                    {
+                        new Setter(TemplatedControl.PaddingProperty, new Thickness(0)),
+                        new Setter(Layoutable.MinHeightProperty, 0d),
+                        new Setter(Layoutable.HorizontalAlignmentProperty, HorizontalAlignment.Center),
+                        new Setter(Layoutable.VerticalAlignmentProperty, VerticalAlignment.Center),
+                    },
+                },
+            },
+            Items = { new Border { Width = 160, Height = 80 }, new Border { Width = 40, Height = 20 } },
+        };
+        Selection.SetIndicator(list, Template());
+        Selection.SetStretch(list, true);
+        list.SelectedIndex = 0;
+        Show(list);
+        Layout(list);
+        var start = Indicator(list).Bounds;
+
+        list.SelectedIndex = 1;
+        Tick(list, 150);
+
+        var (now, end) = (Indicator(list).Bounds, Slot(list, 1));
+        Assert.Equal(Progress(start.Top, now.Top, end.Top), Progress(start.Bottom, now.Bottom, end.Bottom), .05);
+        Assert.Equal(Progress(start.Left, now.Left, end.Left), Progress(start.Right, now.Right, end.Right), .05);
+    }
+
+    [AvaloniaFact]
+    public void WithoutStretchEveryEdgeGlidesOnThePlainEase()
+    {
+        var list = ShowList(Orientation.Horizontal);
+        var start = Indicator(list).Bounds;
+
+        list.SelectedIndex = 3;
+        Tick(list, 150);
+
+        var (now, end) = (Indicator(list).Bounds, Slot(list, 3));
+        Assert.InRange(Progress(start.Left, now.Left, end.Left), .1, .9);
+        Assert.Equal(Progress(start.Left, now.Left, end.Left), Progress(start.Right, now.Right, end.Right), .02);
+        Assert.Equal(start.Width, now.Width, 1);
+    }
+
+    private static int Running()
+    {
+        var running = 0;
+        for (var timer = Presto.Engine._head; timer != null; timer = timer._next)
+        {
+            if (!timer.Paused) running++;
+        }
+        return running;
+    }
+
     private static ListBox ShowList(
-        Orientation orientation, Control? indicator = null, SelectionIndicatorMode mode = SelectionIndicatorMode.Fill, int startAt = 0)
+        Orientation orientation, Control? indicator = null, SelectionIndicatorMode? mode = null, int startAt = 0)
     {
         var horizontal = orientation == Orientation.Horizontal;
         var list = new ListBox
@@ -215,7 +518,7 @@ public sealed class SelectionIndicatorTests : BridgeTestBase
         };
         for (var i = 0; i < 5; i++) list.Items.Add(new Border { Width = horizontal ? 60 : 100, Height = horizontal ? 30 : 40 });
         Selection.SetIndicator(list, Template(indicator));
-        Selection.SetIndicatorMode(list, mode);
+        if (mode is { } set) Selection.SetIndicatorMode(list, set);
         list.SelectedIndex = startAt;
         Show(list);
         Layout(list);

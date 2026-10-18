@@ -34,7 +34,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 
 | Spec | Id | Owns |
 |---|---|---|
-| [XAML attach triggers (Animate.*)](xaml-attach.md) | BRIDGE-ATTACH | `Animate` |
+| [XAML attach triggers (Animate.*)](xaml-attach.md) | BRIDGE-ATTACH | `Animate`, `CueAction` |
 | [Presence lifecycle (classification, arrivals, show and hide, modes)](presence.md) | BRIDGE-PRESENCE | `Presence`, `PresenceHideMode`, `PresenceMode` |
 | [Presence exits and ghosts](presence-exit.md) | BRIDGE-PRESENCE-EXIT | — |
 | [Scroll reveals and scroll anchoring (Presence.Reveal, RevealOnce, ScrollAnchor)](presence-reveal.md) | BRIDGE-REVEAL | — |
@@ -45,14 +45,14 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 
 | Spec | Id | Owns |
 |---|---|---|
-| [Motion states and orchestration](motion-states.md) | BRIDGE-MOTION | `Motion`, `MotionState`, `MotionStates`, `MotionOrder`, `MotionExtensions` |
+| [Motion states and orchestration](motion-states.md) | BRIDGE-MOTION | `Motion`, `MotionState`, `MotionStates`, `MotionOrder`, `MotionExtensions`, `StateTokensExtension` |
 | [Value-driven animation and motion value sources](follow.md) | BRIDGE-FOLLOW | `Follow`, `FollowExtension`, `FollowParams` |
 
 ## Gestures
 
 | Spec | Id | Owns |
 |---|---|---|
-| [Draggable](draggable.md) | BRIDGE-DRAGGABLE | `Draggable`, `DraggableParams`, `DraggableAxisParams`, `DraggableCursorParams` |
+| [Draggable](draggable.md) | BRIDGE-DRAGGABLE | `Draggable`, `DraggableParams`, `DraggableAxisParams`, `DraggableCursorParams`, `Drop`, `DropHit`, `DropMiss` |
 | [Transformable (pan, pinch-zoom, rotate)](transformable.md) | BRIDGE-TRANSFORMABLE | `Transformable`, `TransformableParams`, `PanBounds`, `WheelZoom` |
 | [Drag-to-reorder lists](reorder.md) | BRIDGE-REORDER | `Reorder`, `ReorderExtension`, `ReorderMovingEventArgs` |
 | [Magnetic pull](magnetic.md) | BRIDGE-MAGNETIC | `Magnetic` |
@@ -63,7 +63,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | Spec | Id | Owns |
 |---|---|---|
 | [Scroll observer](scroll-observer.md) | BRIDGE-SCROLLOBSERVER | `ScrollObserver`, `ScrollObserverParams`, `ScrollAxis`, `ScrollContainer`, `ScrollSnap`, `ScrollSync`, `ScrollThreshold` |
-| [Scrolling (parallax, smooth wheel, animated scrolling)](scroll.md) | BRIDGE-SCROLL | `Scroll`, `ScrollAlignment` |
+| [Scrolling (parallax, smooth wheel, animated scrolling, edge cues)](scroll.md) | BRIDGE-SCROLL | `Scroll`, `ScrollAlignment`, `ScrollEdge`, `ScrollToItemExtension` |
 
 ## Shapes and text
 
@@ -80,7 +80,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 
 | Spec | Id | Owns |
 |---|---|---|
-| [Recipes](recipes.md) | BRIDGE-RECIPES | `Recipes`, `Attention`, `Entrances`, `Exits`, `Interactions`, `Layouts`, `Loading`, `Loops`, `Pages`, `Popovers`, `Reveals`, `TextReveals`, `Edge`, `FadeDirection` |
+| [Recipes](recipes.md) | BRIDGE-RECIPES | `Recipes`, `Attention`, `Entrances`, `Exits`, `Interactions`, `Layouts`, `Loading`, `Loops`, `Pages`, `Popovers`, `Reveals`, `TextReveals`, `Edge`, `FadeDirection`, `MorphGlyphsExtension` |
 | [Media recipes (draws, particles, sprites, tints)](recipes-media.md) | BRIDGE-RECIPES-MEDIA | `Draws`, `Particles`, `Sprites`, `Tints` |
 | [Recipe markup extensions](markup-extensions.md) | BRIDGE-MARKUP | `RecipeExtension`, `BlurExtension`, `CharCascadeExtension`, `FadeExtension`, `GlowExtension`, `LiftExtension`, `LineMaskExtension`, `LineRiseExtension`, `LineWipeExtension`, `PageBloomExtension`, `PageFadeExtension`, `PageFadeThroughExtension`, `PagePushExtension`, `PageSharedAxisExtension`, `PageSlideExtension`, `PlayFramesExtension`, `PopExtension`, `PopoverExtension`, `PressInExtension`, `RecolorExtension`, `ReflowExtension`, `ScaleExtension`, `ScatterExtension`, `ShakeExtension`, `ShimmerExtension`, `SlideExtension`, `WordBlurExtension`, `WordFadeExtension` |
 | [Motion tokens](motion-tokens.md) | BRIDGE-TOKENS | `MotionTokens` |
@@ -93,7 +93,7 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Image effects and pixel transitions](image-effects.md) | BRIDGE-IMAGE | `PrestoImageBase`, `FilteredImage`, `ImageTransition`, `ImageTransitionKind` |
 | [Raster distortion](distort.md) | BRIDGE-DISTORT | `Distort` |
 | [Sprite sheets and image sequences](sprite-frames.md) | BRIDGE-FRAMES | `SpriteSheet`, `ImageSequence` |
-| [Particle drawing and particle effects](particles.md) | BRIDGE-PARTICLES | `ParticleScene`, `ParticleFormation`, `ParticleShape`, `ParticleEffect` |
+| [Particle drawing and particle effects](particles.md) | BRIDGE-PARTICLES | `ParticleScene`, `ParticleFormation`, `ParticleShape`, `ParticleEffect`, `BurstExtension` |
 | [Press ripple](press-ripple.md) | BRIDGE-RIPPLE | `Ripple` |
 
 ## Controls
@@ -101,8 +101,8 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | Spec | Id | Owns |
 |---|---|---|
 | [Pager carousel and indicator](pager.md) | BRIDGE-PAGER | `Pager`, `PagerIndicator`, `PagerIndicatorMode` |
-| [Sheet and drawer](sheet.md) | BRIDGE-SHEET | `Sheet`, `SheetDetents`, `Drawer` |
-| [Toast host](toast-host.md) | BRIDGE-TOAST | `Toast`, `ToastHost` |
+| [Sheet and drawer](sheet.md) | BRIDGE-SHEET | `Sheet`, `SheetDetents`, `SheetPresentation`, `Drawer` |
+| [Toast host](toast-host.md) | BRIDGE-TOAST | `Toast`, `ToastHost`, `ShowToastExtension` |
 | [Modal host](modal.md) | BRIDGE-MODAL | `Modal` |
 | [Accordion and collapsible pane](accordion-and-pane.md) | BRIDGE-ACCORDION | `Accordion`, `Pane` |
 | [Selection indicator](selection-indicator.md) | BRIDGE-SELECTION | `Selection`, `SelectionIndicatorMode` |
@@ -111,4 +111,5 @@ One spec per feature; format and usage in [../README.md](../README.md). Find a t
 | [Flip card](flip-card.md) | BRIDGE-FLIP | `Flip` |
 | [Split-flap display](split-flap.md) | BRIDGE-SPLITFLAP | `SplitFlap` |
 | [Progress ring and submit button](progress-and-submit.md) | BRIDGE-SUBMIT | `ProgressRing`, `SubmitButton`, `SubmitState` |
+| [Marquee](marquee.md) | BRIDGE-MARQUEE | `Marquee`, `MarqueeDirection`, `MarqueeMode` |
 

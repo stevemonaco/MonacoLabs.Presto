@@ -91,9 +91,9 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                     <ComboBox x:Name="MotionPicker" HorizontalAlignment="Stretch"
                               SelectedIndex="{Binding Motion}">
+                        <ComboBoxItem Content="OS preference" />
                         <ComboBoxItem Content="Full motion" />
                         <ComboBoxItem Content="Reduced motion" />
-                        <ComboBoxItem Content="OS preference" />
                     </ComboBox>
                     <Border x:Name="MotionHelp" Grid.Column="1" Width="20" Height="20" CornerRadius="10"
                             VerticalAlignment="Center" Background="Transparent" BorderThickness="1"
@@ -103,7 +103,7 @@
                         <ToolTip.Tip>
                             <StackPanel MaxWidth="320" Spacing="6">
                                 <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
-                                           Text="Sets Presto.Defaults.ReducedMotion for every page. OS preference keeps it in step with the system's reduce-motion preference through PrestoAvalonia.FollowSystemReducedMotion, re-read when the window is activated." />
+                                           Text="Sets PrestoAvalonia.MotionPreference, bound as presto:Motion.Preference on the main view, which writes Presto.Defaults.ReducedMotion for every page. OS preference keeps the flag in step with the system's reduce-motion preference, re-read when the window is activated." />
                                 <StackPanel Spacing="2">
                                     <TextBlock TextWrapping="Wrap" Text="• Recipes play a short fade with no travel" />
                                     <TextBlock TextWrapping="Wrap" Text="• Page transitions crossfade" />
@@ -115,7 +115,7 @@
                                     <TextBlock TextWrapping="Wrap" Text="• Showcase pages stop their autoplay, parallax and endless loops" />
                                 </StackPanel>
                                 <TextBlock TextWrapping="Wrap" FontStyle="Italic"
-                                           Text="Reference pages that link a Builder twin play in full on purpose: each shows one API's raw behavior, and its twin shows the reduced-motion-aware form. Other hand-written loops, such as Loaders, Particle field, Stress bench, DevTools, Compositor and Properties and keyframes, also play as normal. A page picks up a change when it is reopened or replayed." />
+                                           Text="Reference pages that link a Builder twin play in full on purpose: each shows one API's raw behavior, and its twin shows the reduced-motion-aware form. Other hand-written loops, such as Loaders, Particle field, Stress bench, DevTools, Compositor and Properties and keyframes, also play as normal. Animate.OnAttached loops and Motion states switch form at once; other animations pick up a change when the page is reopened or replayed." />
                             </StackPanel>
                         </ToolTip.Tip>
                     </Border>

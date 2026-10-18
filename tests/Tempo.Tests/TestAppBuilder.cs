@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Platform;
 using Avalonia.Styling;
+using MonacoLabs.Presto;
 using Semi.Avalonia;
 
 namespace Tempo.Tests;
@@ -23,8 +24,12 @@ public static class TestAppBuilder
 /// </summary>
 internal sealed class TestApp : Application
 {
+    /// <summary>The OS reduce-motion setting as the test app reads it, in place of the build machine's.</summary>
+    public static bool SystemReducedMotion { get; set; }
+
     public override void Initialize()
     {
+        PrestoAvalonia.SystemReducedMotionProbe = static () => SystemReducedMotion;
         RequestedThemeVariant = ThemeVariant.Dark;
         Styles.Add(new SemiTheme());
         // Compiled XAML is found only in loaded assemblies, and a test that has not touched a Tempo type yet has not loaded it.

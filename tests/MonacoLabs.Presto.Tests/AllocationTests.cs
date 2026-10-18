@@ -195,6 +195,19 @@ public sealed class AllocationTests : EngineTestBase
     }
 
     [Fact]
+    public void CancelWithoutAPendingThenOrCancelAllocatesNothing()
+    {
+        Presto.CreateTimer(new() { Duration = 100 }).Cancel();
+        var timer = Presto.CreateTimer(new() { Duration = 100 });
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        timer.Cancel();
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, bytes);
+    }
+
+    [Fact]
     public void CreatingATimerWithDiagnosticsOffNeverTouchesTheRegistry()
     {
         TimerParams parameters = new() { Autoplay = false };
@@ -252,6 +265,39 @@ public sealed class AllocationTests : EngineTestBase
 
         // measured .72: each loop boundary re-renders its children internally, and an internal render composes Tween._value.
         Assert.True(bytes <= 2, $"{bytes:0.##} bytes per tick");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RaisingACueWithNoneOrOneSubscriberAllocatesNothing(bool subscribed)
+    {
+        var cue = new Cue();
+        var typed = new Cue<int>();
+        if (subscribed)
+        {
+            cue.Subscribe(new NoOpObserver<object?>());
+            typed.Subscribe(new NoOpObserver<int>());
+        }
+        cue.Raise();
+        typed.Raise(0);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 1; i < 100; i++)
+        {
+            cue.Raise();
+            typed.Raise(i);
+        }
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, bytes);
+    }
+
+    private sealed class NoOpObserver<T> : IObserver<T>
+    {
+        public void OnNext(T value) { }
+        public void OnCompleted() { }
+        public void OnError(Exception error) { }
     }
 
     private sealed class ToggleTarget

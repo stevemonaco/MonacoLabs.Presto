@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using MonacoLabs.Presto;
 using static MonacoLabs.Presto.PrestoKeys;
-using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Draggables;
 
 namespace PrestoGallery.Showcase.Pages;
@@ -65,6 +64,7 @@ public partial class BoardPage : ShowcasePage
         };
         Grid.SetRow(_canvases[lane], 1);
         Grid.SetColumn(border, lane);
+        Drop.SetGroup(border, "lanes");
         Board.Children.Add(border);
         return border;
     }
@@ -87,11 +87,15 @@ public partial class BoardPage : ShowcasePage
             MaxVelocity = 1.5,
             ScrollSpeed = 2,
             ScrollThreshold = 28,
+            DropGroup = "lanes",
+            DropHit = DropHit.Overlap,
+            DropMiss = DropMiss.ReturnHome,
             OnDrag = _ => Lift(card),
             // OnUpdate rather than OnSnap: it keeps firing through the release throw, so the gap follows a flung card.
-            OnUpdate = _ => Aim(card),
+            OnUpdate = drag => Aim(card, drag),
             OnRelease = drag => VelocityText.Text = Utils.RoundPad(drag.Velocity, 2),
-            OnSettle = drag => Land(card, drag),
+            OnDrop = drag => Land(card, drag),
+            OnDropMiss = _ => Return(card),
         });
         #endregion
         return card;
@@ -113,35 +117,27 @@ public partial class BoardPage : ShowcasePage
         _lanes[lane].Remove(card);
         card.ZIndex = 1;
         _zones[lane].ZIndex = 1;
-        Aim(card);
     }
 
-    private void Aim(Border card)
+    private void Aim(Border card, Draggable drag)
     {
-        if (!_lifted.ContainsKey(card)) return;
-        var target = Zone(card);
+        var target = Array.IndexOf<Control?>(_zones, drag.Zone);
+        if (target < 0 || !_lifted.ContainsKey(card)) return;
         var slot = target == BinZone ? 0 : Slot(card, target);
         var aimed = _aims.TryGetValue(card, out var aim);
         if (aimed && aim == (target, slot)) return;
         _aims[card] = (target, slot);
         if (aimed && aim.Lane != target && aim.Lane != BinZone) Layout(aim.Lane);
         if (target != BinZone) Layout(target, slot);
-        for (var i = 0; i < _zones.Length; i++) _zones[i].Classes.Set("target", i == target);
         DropText.Text = target == BinZone ? "bin" : $"{Datasets.Lanes[target]} · slot {slot + 1}";
     }
 
     private void Land(Border card, Draggable drag)
     {
-        if (!_lifted.TryGetValue(card, out var source)) return;
-
-        Aim(card);
-        _lifted.Remove(card);
+        Aim(card, drag);
         _aims.Remove(card, out var aim);
+        var source = PutDown(card);
         var (target, slot) = aim;
-
-        card.ZIndex = 0;
-        _zones[source].ZIndex = _lifted.ContainsValue(source) ? 1 : 0;
-        foreach (var zone in _zones) zone.Classes.Remove("target");
 
         if (target == BinZone)
         {
@@ -150,16 +146,29 @@ public partial class BoardPage : ShowcasePage
         }
 
         #region snippet BoardLand
-        // Measured where the drag left the card drawn, before the reparent and Reset() move it, so it settles from the release.
-        Scope.Execute(_ => PrestoAvalonia.AnimateSharedElement(
-            card, card, ReflowDuration, Eases.OutQuint, LayoutAnimateMode.Position, once: false));
-        _canvases[source].Children.Remove(card);
-        _canvases[target].Children.Add(card);
+        drag.Reparent(_canvases[target]);
         _lanes[target].Insert(slot, card);
-        drag.Reset();
         #endregion
         Layout(source);
         Layout(target);
+    }
+
+    // Escape, or a throw that came to rest over no lane: the draggable springs the card home, so it takes back the slot it left.
+    private void Return(Border card)
+    {
+        var source = PutDown(card);
+        if (_aims.Remove(card, out var aim) && aim.Lane != source && aim.Lane != BinZone) Layout(aim.Lane);
+        var cards = _lanes[source];
+        cards.Insert(Math.Min((int)Math.Round(Canvas.GetTop(card) / RowPitch), cards.Count), card);
+        Layout(source);
+    }
+
+    private int PutDown(Border card)
+    {
+        _lifted.Remove(card, out var source);
+        card.ZIndex = 0;
+        _zones[source].ZIndex = _lifted.ContainsValue(source) ? 1 : 0;
+        return source;
     }
 
     private void Spin(Border card, Draggable drag, int source)
@@ -179,21 +188,6 @@ public partial class BoardPage : ShowcasePage
                 drag.Revert();
             },
         }));
-    }
-
-    private int Zone(Border card)
-    {
-        var center = card.TranslatePoint(new Point(card.Bounds.Width / 2, 0), Board)?.X ?? 0;
-        var nearest = 0;
-        var gap = double.MaxValue;
-        for (var i = 0; i < _zones.Length; i++)
-        {
-            var distance = Math.Abs(_zones[i].Bounds.Center.X - center);
-            if (distance >= gap) continue;
-            gap = distance;
-            nearest = i;
-        }
-        return nearest;
     }
 
     private int Slot(Border card, int lane)

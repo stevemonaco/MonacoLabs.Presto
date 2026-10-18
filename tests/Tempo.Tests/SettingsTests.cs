@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -17,21 +16,6 @@ namespace Tempo.Tests;
 
 public sealed class SettingsTests : TempoTestBase
 {
-    [AvaloniaFact]
-    public async Task TheMotionSettingSetsAndClearsTheReducedFlag()
-    {
-        var vm = await LoadAsync();
-        App.ApplyMotionSetting(vm);
-
-        vm.Motion = MotionPreference.Reduced;
-        Assert.True(Presto.Defaults.ReducedMotion);
-        vm.Motion = MotionPreference.Full;
-        Assert.False(Presto.Defaults.ReducedMotion);
-        await vm.FlushAsync();
-
-        Assert.Equal(MotionPreference.Full, (await new TempoStore(Root).LoadAsync()).Settings.Motion);
-    }
-
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -45,7 +29,7 @@ public sealed class SettingsTests : TempoTestBase
         Assert.Contains("open", button.Classes);
         Assert.Equal(reduced ? 0 : 1, button.RenderTransform?.Value.M12 ?? 0, 3);
 
-        FlyoutBase.GetAttachedFlyout(button)!.Hide();
+        Find<Sheet>(window, "SettingsSheet").Flyout!.Hide();
         TestFrames.Tick(40);
         Assert.DoesNotContain("open", button.Classes);
         Assert.Equal(0, button.RenderTransform?.Value.M12 ?? 0, 3);
@@ -65,7 +49,9 @@ public sealed class SettingsTests : TempoTestBase
         TestFrames.Tick(30);
         Assert.Equal(1, presenter.Opacity);
         Assert.Single(presenter.GetVisualDescendants().OfType<SettingsFlyout>());
-        Assert.False(Find<Sheet>(window, "SettingsSheet").IsOpen);
+        var sheet = Find<Sheet>(window, "SettingsSheet");
+        Assert.Equal((true, SheetPresentation.Anchored, 0d), (sheet.IsOpen, sheet.Presentation, sheet.Position.Value));
+        Assert.Empty(sheet.GetVisualDescendants().OfType<SettingsFlyout>());
         window.Close();
         await vm.FlushAsync();
     }
@@ -104,7 +90,7 @@ public sealed class SettingsTests : TempoTestBase
         Click(work, "Increase");
         Click(work, "Increase");
         Click(Find<Stepper>(window, "SessionsStepper"), "Decrease");
-        var number = work.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Number");
+        var number = Number(work);
         TestFrames.Tick(4);
         if (reduced)
             Assert.Equal(("120", 1d, true), (number.Text, number.Opacity, number.Inlines is null or { Count: 0 }));
@@ -137,11 +123,11 @@ public sealed class SettingsTests : TempoTestBase
         }
         Assert.Equal(reduced ? 0 : -7, lowest, 0.5);
 
-        FlyoutBase.GetAttachedFlyout(Find<Button>(window, "SettingsButton"))!.Hide();
+        vm.IsSettingsOpen = false;
         TestFrames.Tick(30);
 
-        Assert.False(dot.IsAttachedToVisualTree());
-        Assert.Empty(Presto.GetAnimations(dot));
+        Assert.False(dot.IsEffectivelyVisible);
+        Assert.All(Presto.GetAnimations(dot), animation => Assert.True(animation.Paused));
         window.Close();
         await vm.FlushAsync();
     }
@@ -150,8 +136,6 @@ public sealed class SettingsTests : TempoTestBase
     public async Task TheMotionPreviewFadesOnceTheChoiceIsReduced()
     {
         var (window, vm) = await ShowAsync(reduced: false);
-        App.ApplyMotionSetting(vm);
-        vm.Motion = MotionPreference.Full;
         vm.OpenSettingsCommand.Execute(null);
         TestFrames.Tick(20);
         var dot = Find<Ellipse>(window, "MotionPreview");
@@ -163,6 +147,29 @@ public sealed class SettingsTests : TempoTestBase
         TestFrames.Tick(40);
         Assert.Equal(1, dot.Opacity);
         Assert.Empty(Presto.GetAnimations(dot));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task TheMotionPreviewLoopsAgainOnceTheChoiceIsFull()
+    {
+        var (window, vm) = await ShowAsync(reduced: true);
+        vm.OpenSettingsCommand.Execute(null);
+        TestFrames.Tick(60);
+        var dot = Find<Ellipse>(window, "MotionPreview");
+        Assert.Empty(Presto.GetAnimations(dot));
+
+        vm.Motion = MotionPreference.Full;
+        var lowest = 0.0;
+        for (var i = 0; i < 30; i++)
+        {
+            TestFrames.Tick();
+            lowest = Math.Min(lowest, dot.RenderTransform?.Value.M32 ?? 0);
+        }
+        Assert.Equal(-7, lowest, 0.5);
+        Assert.Equal(1, dot.Opacity);
+        Assert.NotEmpty(Presto.GetAnimations(dot));
         window.Close();
         await vm.FlushAsync();
     }
@@ -260,20 +267,22 @@ public sealed class SettingsTests : TempoTestBase
         TestFrames.Tick(30);
         window.Width = 1100;
         TestFrames.Tick(30);
-        Assert.All(steppers, stepper => Assert.Null(Morph(stepper)));
+        Assert.All(steppers, stepper => Assert.False(IsMorphing(stepper)));
 
         vm.OpenSettingsCommand.Execute(null);
         TestFrames.Tick(50);
         var work = Find<Stepper>(window, "WorkStepper");
-        Assert.Equal(vm.WorkMinutes.ToString(), work.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Number").Text);
+        Assert.Equal(vm.WorkMinutes.ToString(), Number(work).Text);
         Click(work, "Increase");
-        Assert.NotNull(Morph(work));
+        Assert.True(IsMorphing(work));
         window.Close();
         await vm.FlushAsync();
     }
 
-    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_morph")]
-    private static extern ref Timeline? Morph(Stepper stepper);
+    // A running morph lays the block out as Inlines.
+    private static bool IsMorphing(Stepper stepper) => Number(stepper).Inlines is { Count: > 0 };
+
+    private static TextBlock Number(Stepper stepper) => stepper.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Number");
 
     private static void Click(Stepper stepper, string button) =>
         stepper.GetVisualDescendants().OfType<RepeatButton>().Single(b => b.Name == button).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

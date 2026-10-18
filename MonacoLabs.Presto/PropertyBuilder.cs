@@ -41,7 +41,7 @@ public abstract class PropertyBuilder<TSelf> where TSelf : PropertyBuilder<TSelf
     /// <summary>Animates <paramref name="name"/> through the keyframes <paramref name="keyframes"/> adds.</summary>
     public TSelf Property(PropertyKey name, Action<TweenKeyframesBuilder> keyframes)
     {
-        var builder = new TweenKeyframesBuilder();
+        var builder = new TweenKeyframesBuilder(name.Unwrap());
         keyframes(builder);
         return Property(name, TweenValue.Keyframes(builder.ToArray()));
     }

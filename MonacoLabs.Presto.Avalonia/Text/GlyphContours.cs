@@ -81,15 +81,15 @@ internal sealed class GlyphContours
     public static GlyphContours? From(Geometry geometry) => PathOf(geometry) is { } path ? From(path) : null;
 
     /// <summary>The path Avalonia.Skia fills <paramref name="geometry"/> with, or null when Skia does not draw it.</summary>
-    public static SKPath? PathOf(Geometry geometry)
-    {
-        var impl = PlatformImpl(geometry);
-        return impl?.GetType().GetProperty("FillPath")?.GetValue(impl) as SKPath;
-    }
+    public static SKPath? PathOf(Geometry geometry) => 
+        PlatformImpl(geometry) is { } impl && impl.GetType().Assembly == typeof(SkiaOptions).Assembly ? FillPath(impl) : null;
 
     // A Geometry hides its figures; Avalonia.Skia keeps them on its internal implementation as an SKPath.
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_PlatformImpl")]
     private static extern IGeometryImpl? PlatformImpl(Geometry geometry);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_FillPath")]
+    private static extern SKPath? FillPath([UnsafeAccessorType("Avalonia.Skia.GeometryImpl, Avalonia.Skia")] object geometry);
 
     // Containment decides the nesting and winding decides the kind, so a font of either winding convention classifies
     // alike, and a contour overlapping its container with the same winding stays the container's kind.

@@ -21,7 +21,7 @@ namespace MonacoLabs.Presto;
 /// </summary>
 internal sealed class MotionTracker
 {
-    private static readonly char[] s_separators = [' ', ',', '\t', '\r', '\n'];
+    internal static readonly char[] Separators = [' ', ',', '\t', '\r', '\n'];
 
     private readonly Control _control;
     private readonly List<Entry> _entries = [];
@@ -34,16 +34,20 @@ internal sealed class MotionTracker
     private Dictionary<Entry, List<string>>? _entering;
     private Dictionary<Entry, List<string>>? _leaving;
     private MotionStates? _states;
+    private MotionStates? _localStates;
     private bool _listening;
     private bool _pressed;
     private bool _hoverable;
     private bool _hovered;
     private TopLevel? _watched;
+    private readonly Action _follow;
+    private Engine? _engine;
 
     public MotionTracker(Control control)
     {
         PrestoAvalonia.EnsureInitialized();
         _control = control;
+        _follow = HandleReducedMotionChanged;
         control.Classes.CollectionChanged += HandleClassesChanged;
         control.AttachedToVisualTree += HandleAttached;
         control.DetachedFromVisualTree += HandleDetached;
@@ -60,13 +64,14 @@ internal sealed class MotionTracker
         _control.AttachedToVisualTree -= HandleAttached;
         _control.DetachedFromVisualTree -= HandleDetached;
         if (_states != null) _states.CollectionChanged -= HandleStatesChanged;
+        if (_localStates != null) _localStates.CollectionChanged -= HandleStatesChanged;
         Listen(false);
         ListenForHover(false);
         Stop();
         Source = null;
     }
 
-    /// <summary>Re-reads the sugar properties and <see cref="Motion.StatesProperty"/> into the ordered state list.</summary>
+    /// <summary>Re-reads the sugar properties, <see cref="Motion.StatesProperty"/> and <see cref="Motion.LocalStatesProperty"/> into the ordered state list.</summary>
     public void Rebuild()
     {
         foreach (var entry in _entries) entry.Active = false;
@@ -74,17 +79,22 @@ internal sealed class MotionTracker
         AddSugar(":pointerover", Motion.GetHover(_control));
         AddSugar(":focus-visible", Motion.GetFocus(_control));
         AddSugar(":pressed", Motion.GetPress(_control));
-        var states = Motion.GetStates(_control);
-        if (states != _states)
-        {
-            if (_states != null) _states.CollectionChanged -= HandleStatesChanged;
-            if (states != null) states.CollectionChanged += HandleStatesChanged;
-            _states = states;
-        }
-        if (states != null) foreach (var state in states) _entries.Add(Create(state));
+        AddList(ref _states, Motion.GetStates(_control));
+        AddList(ref _localStates, Motion.GetLocalStates(_control));
         _entries.AddRange(_added);
         ListenIfPressable();
         Evaluate();
+    }
+
+    private void AddList(ref MotionStates? field, MotionStates? list)
+    {
+        if (list != field)
+        {
+            if (field != null) field.CollectionChanged -= HandleStatesChanged;
+            if (list != null) list.CollectionChanged += HandleStatesChanged;
+            field = list;
+        }
+        if (list != null) foreach (var state in list) _entries.Add(Create(state));
     }
 
     /// <summary>The ancestor whose <c>Motion.State</c> this element follows, if any.</summary>
@@ -200,7 +210,7 @@ internal sealed class MotionTracker
     private void ReadTokens()
     {
         _tokens.Clear();
-        if (Motion.GetState(Source ?? _control)?.ToString() is { } text) _tokens.UnionWith(text.Split(s_separators, StringSplitOptions.RemoveEmptyEntries));
+        if (Motion.GetState(Source ?? _control)?.ToString() is { } text) _tokens.UnionWith(text.Split(Separators, StringSplitOptions.RemoveEmptyEntries));
     }
 
     public void ResolveSource()
@@ -215,13 +225,13 @@ internal sealed class MotionTracker
         }
     }
 
-    private void Resolve(Dictionary<string, Entry> winners)
+    private void Resolve(Dictionary<string, Entry> winners, List<Entry>? reread = null)
     {
         var reduced = Engine.Current.Defaults.ReducedMotion;
         foreach (var entry in _entries)
         {
-            // Re-read here so toggling reduced motion takes effect at the next transition.
-            if (entry.Reduced != reduced) (entry.Properties, entry.Reduced) = (Read(entry.State), reduced);
+            // Re-read here so toggling reduced motion takes effect at the next transition; a replay re-reads only what it replays.
+            if (entry.Reduced != reduced && (reread == null || reread.Contains(entry))) (entry.Properties, entry.Reduced) = (Read(entry.State), reduced);
             entry.WasActive = entry.Active;
             entry.Active = entry.Condition.Matches(_control.Classes, _tokens, _pressed, _hovered);
             if (!entry.Active) continue;
@@ -238,10 +248,10 @@ internal sealed class MotionTracker
     /// Groups every property whose winner changed: one animation per entering state for the properties it takes, and one per
     /// leaving state, on its own timing, for the properties it hands to the next winner or to rest.
     /// </summary>
-    private bool Plan()
+    private bool Plan(List<Entry>? reread = null)
     {
         if (!_control.IsAttachedToVisualTree()) return false;
-        Resolve(_resolved);
+        Resolve(_resolved, reread);
         foreach (var (property, winner) in _resolved)
         {
             var previous = _winners.GetValueOrDefault(property);
@@ -286,6 +296,7 @@ internal sealed class MotionTracker
             chosen[name] = value;
         }
         var parameters = entry.State.Motion!.Resolve();
+        entry.Form = ReducedMotionFollowers.Form.Of(parameters);
         return Animate(parameters with
         {
             Properties = chosen, Keyframes = null, Composition = Composition.Replace, Delay = Delayed(parameters.Delay, delay),
@@ -338,7 +349,38 @@ internal sealed class MotionTracker
         using var origin = PrestoDiagnostics.Origin("Motion");
         var animation = Presto.Animate(_control, parameters with { HostLifetime = WhenDetached.Continue });
         foreach (var property in properties) _drivers[property] = animation;
+        Follow(true);
         return animation;
+    }
+
+    // Registered only while a property is driven, so the engine never roots a resting tracker.
+    private void Follow(bool follow)
+    {
+        if (follow == (_engine != null)) return;
+        if (follow)
+        {
+            _engine = ReducedMotionFollowers.Add(_follow);
+            return;
+        }
+        ReducedMotionFollowers.Remove(_engine!, _follow);
+        _engine = null;
+    }
+
+    private void HandleReducedMotionChanged()
+    {
+        List<Entry>? replays = null;
+        foreach (var entry in _entries)
+        {
+            if (entry is { Active: true, State.Motion: { } motion } && entry.Form.Replays(ReducedMotionFollowers.Form.Of(motion.Resolve())))
+                (replays ??= []).Add(entry);
+        }
+        if (replays == null) return;
+        Plan(replays);
+        foreach (var (property, winner) in _winners)
+        {
+            if (replays.Contains(winner) && _entering?.GetValueOrDefault(winner)?.Contains(property) != true) Group(ref _entering, winner, property);
+        }
+        Play(0);
     }
 
     /// <summary>Drops the animation-priority values a finished return to rest left, uncovering the equal values beneath.</summary>
@@ -350,6 +392,7 @@ internal sealed class MotionTracker
             _drivers.Remove(property);
             Presto.ResolveAccessor(_control, property).Revert(_control, null);
         }
+        if (_drivers.Count == 0) Follow(false);
     }
 
     private void Stop()
@@ -362,6 +405,7 @@ internal sealed class MotionTracker
         }
         _drivers.Clear();
         _winners.Clear();
+        Follow(false);
     }
 
     /// <summary>Where <paramref name="entry"/> holds <paramref name="property"/>: its value, or its last keyframe's.</summary>
@@ -504,10 +548,13 @@ internal sealed class MotionTracker
         foreach (var (property, entry) in _winners)
         {
             values[property] = Target(entry, property);
-            if (entry.State.Motion!.Resolve().Loop is { Value: not 0 }) Group(ref looping, entry, property);
+            var parameters = entry.State.Motion!.Resolve();
+            entry.Form = ReducedMotionFollowers.Form.Of(parameters);
+            if (parameters.Loop is { Value: not 0 }) Group(ref looping, entry, property);
         }
         var set = Presto.Set(_control, new AnimationParams { Properties = values });
         foreach (var property in _winners.Keys) _drivers[property] = set;
+        Follow(true);
         if (looping != null) foreach (var (entry, properties) in looping) Enter(entry, properties, 0);
     }
 
@@ -530,6 +577,9 @@ internal sealed class MotionTracker
 
         /// <summary>Whether <see cref="Properties"/> were read from the <see cref="AnimationBuilder.WhenReduced"/> form.</summary>
         public bool Reduced { get; set; } = reduced;
+
+        /// <summary>The form this state last played or arrived in, which a flag change compares against.</summary>
+        public ReducedMotionFollowers.Form Form { get; set; }
 
         public bool Active { get; set; }
 

@@ -134,9 +134,9 @@ public sealed class MotionObjectValue
         {
             if (Presto.Codecs.TryGetValue(t, out var codec)) return codec;
         }
-        foreach (var t in type.GetInterfaces())
+        foreach (var (key, codec) in Presto.Codecs)
         {
-            if (Presto.Codecs.TryGetValue(t, out var codec)) return codec;
+            if (key.IsInterface && key.IsAssignableFrom(type)) return codec;
         }
         return null;
     }

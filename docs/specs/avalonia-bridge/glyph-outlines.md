@@ -7,6 +7,7 @@ namespaces:
   - MonacoLabs.Presto.Text
 sources:
   - MonacoLabs.Presto.Avalonia/Text/GlyphOutlines.cs
+  - MonacoLabs.Presto.Avalonia/Text/BlockGlyphs.cs
   - MonacoLabs.Presto.Avalonia/Text/GlyphContours.cs
   - MonacoLabs.Presto.Avalonia/Text/GlyphShards.cs
   - MonacoLabs.Presto.Avalonia/Text/GlyphPoints.cs
@@ -31,22 +32,26 @@ depends:
 
 ## Purpose
 
-Reads the outlines of text as geometry, so letters can change shape: `PrestoAvalonia.GlyphOutline` gives the outline of one character of a `TextBlock` as its character piece (BRIDGE-TEXT) lays it out, and `PrestoAvalonia.TextOutline` the outline of shaped text, for a `Path` in XAML or for sampling. `GlyphShards` cuts an outline into shards that tile it, for `Recipes.Shatter` (BRIDGE-RECIPES), and `GlyphPoints` samples points along or inside it, for particle text (BRIDGE-PARTICLES). Behind them, an internal contour model flattens an outline into closed figures classified as outer contours or holes, which the outline pieces, multi-contour morphs (BRIDGE-SHAPES) and warps build on. `PrestoAvalonia` is owned by BRIDGE-HELPERS; this spec specifies its `GlyphOutline` and `TextOutline`.
+Reads the outlines of text as geometry, so letters can change shape: `PrestoAvalonia.GlyphOutline` gives the outline of one character of a `TextBlock` as its character piece (BRIDGE-TEXT) lays it out, and `PrestoAvalonia.TextOutline` the outline of shaped text, for a `Path` in XAML or for sampling. `GlyphShards` cuts an outline into shards that tile it, for `Recipes.Shatter` (BRIDGE-RECIPES), and `GlyphPoints` samples points along or inside it, for particle text (BRIDGE-PARTICLES). Behind them, an internal contour model flattens an outline into closed figures classified as outer contours or holes, which the outline pieces, multi-contour morphs (BRIDGE-SHAPES) and warps build on. `PrestoAvalonia` is owned by BRIDGE-HELPERS; this spec specifies its `GlyphOutline` and `TextOutline`. Internally, the outlines and slots of a laid-out block's own characters are read from its text layout, in context, and characters can be hidden in place, for `Recipes.MorphGlyphs`.
 
 ## Requirements
 
 ### Outlines
 
-- **BRIDGE-GLYPHS-001** — `GlyphOutline(block, index)` shall return the outline of the block's character at `index`, counted as `TextSplitter.CharsOf` counts the graphemes a character split makes pieces of, in the coordinates of that character's piece, with the nonzero fill rule; while the block is split, it shall read the text from before the split.
-  - Tests: `GlyphOutlineTests.EachCharOutlineLandsOnItsPieceInsideItsSlot`, `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`
+- **BRIDGE-GLYPHS-001** — `GlyphOutline(block, index)` shall return the outline of the block's character at `index`, counted as `TextSplitter.CharsOf` counts the graphemes a character split makes pieces of, shaped with the block's font family, style, weight, stretch, size, letter spacing and font features, in the coordinates of that character's piece, with the nonzero fill rule; while the block is split, it shall read the text from before the split.
+  - Tests: `GlyphOutlineTests.EachCharOutlineLandsOnItsPieceInsideItsSlot`, `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`, `GlyphOutlineTests.OutlinesShapeWithTheBlocksFontFeatures`
 - **BRIDGE-GLYPHS-002** — When `index` is not the index of one of the block's characters, `GlyphOutline` shall throw `ArgumentOutOfRangeException`.
   - Tests: `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`
-- **BRIDGE-GLYPHS-003** — `TextOutline(text, typeface, fontSize)` shall return the outline of `text` shaped and broken into lines as a `TextLayout` does, with its origin at the top left of the first line box and the nonzero fill rule.
-  - Tests: `GlyphOutlineTests.TextOutlineOriginIsTheTopLeftOfTheFirstLineBox`, `GlyphOutlineTests.TextOutlineStacksLinesDownward`
+- **BRIDGE-GLYPHS-003** — `TextOutline(text, typeface, fontSize, fontFeatures)` shall return the outline of `text` shaped with `fontFeatures` (none when null) and broken into lines as a `TextLayout` does, with its origin at the top left of the first line box and the nonzero fill rule.
+  - Tests: `GlyphOutlineTests.TextOutlineOriginIsTheTopLeftOfTheFirstLineBox`, `GlyphOutlineTests.TextOutlineStacksLinesDownward`, `GlyphOutlineTests.TextOutlineTakesFontFeatures`
 - **BRIDGE-GLYPHS-004** — A character with no outline (whitespace, a missing glyph, or a glyph of a font carrying color or bitmap tables: `COLR`, `CBDT`, `sbix` or `SVG `) shall add nothing to an outline, so a character made only of such glyphs has an empty outline.
   - Tests: `GlyphOutlineTests.WhitespaceHasAnEmptyOutline`, `GlyphOutlineTests.EmojiHasAnEmptyOutline`
 - **BRIDGE-GLYPHS-005** — When the font simulates bold or oblique, the outline shall be emboldened or skewed by -0.3 as Avalonia.Skia draws it.
-  - Tests: untested
+  - Tests: `GlyphOutlineTests.ASimulatedBoldOrObliqueOutlineCoversTheInkAvaloniaDraws`
+- **BRIDGE-GLYPHS-016** — Read from a laid-out block's text layout, each grapheme's outline shall be the glyphs that layout shaped for it, in context, relative to the grapheme's slot: the union of the layout's hit-test rectangles for it, in block coordinates.
+  - Tests: `GlyphOutlineTests.AGraphemesOutlineInContextIsTheGlyphTheBlockDraws`, `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout`
+- **BRIDGE-GLYPHS-017** — Hiding some of a block's graphemes shall leave its glyphs, their positions and the in-context outlines those of the plain text, and restoring them shall leave the block as plain `Text` with a binding on `Text` still updating it.
+  - Tests: `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout`, `GlyphRecipeTests.HideThenRestoreKeepsABoundTextUpdating`
 
 ### Contour model
 
@@ -88,6 +93,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 - Glyphs of a fallback font used for characters the typeface lacks are read from that fallback font.
 - Outer figures that overlap (common in variable fonts) are cut each on its own, so their shards overlap where they do; a degenerate ring with no ear is clipped anyway, so cutting always ends.
 - A font collection's stream holds every face; the face whose family name matches the typeface is read, else the first.
+- When Avalonia.Skia no longer has `GeometryImpl.FillPath`, the first outline read throws `MissingMethodException`.
 
 ## Threading and lifetime
 
@@ -107,7 +113,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 
 ## Decisions
 
-- **Outlines are read through SkiaSharp.** The spike found no Skia-free way to enumerate a glyph's figures: `Geometry` exposes no figures, and `GlyphRun.BuildGeometry` and `FormattedText.BuildGeometry` return an opaque platform geometry. The public `IPlatformTypeface.TryGetStream` gives the font data, from which an `SKTypeface` is made; `SKFont.GetGlyphPath` gives each glyph's path, placed at the glyph positions of a `TextLayout`, and `SKPath` iteration gives the figures. Reason: contours are required and the bridge already depends on Avalonia.Skia, whose image effects lease Skia too. Rejected: matching an `SKTypeface` by family name through Skia's font manager, which misses fonts embedded as Avalonia resources.
+- **Outlines are read through SkiaSharp.** The spike found no Skia-free way to enumerate a glyph's figures: `Geometry` exposes no figures, and `GlyphRun.BuildGeometry` and `FormattedText.BuildGeometry` return an opaque platform geometry. The public `IPlatformTypeface.TryGetStream` gives the font data, from which an `SKTypeface` is made; `SKFont.GetGlyphPath` gives each glyph's path, placed at the glyph positions of a `TextLayout`, and `SKPath` iteration gives the figures. A geometry's `SKPath` is read from Avalonia.Skia's internal `GeometryImpl` through `[UnsafeAccessor]`, so the trimmer and NativeAOT keep it and a renamed member throws instead of reading nothing. Reason: contours are required and the bridge already depends on Avalonia.Skia, whose image effects lease Skia too. Rejected: matching an `SKTypeface` by family name through Skia's font manager, which misses fonts embedded as Avalonia resources.
 - **The public outline keeps its curves; the contour model flattens.** `GlyphOutline` and `TextOutline` return the font's quadratic and cubic segments with the font's nonzero fill rule, and flattened figures render nonzero too. Reason: a `Path` showing an outline should be as smooth as text, while morphs and warps need points; one fill rule at rest and in motion keeps overlapping contours (variable fonts keep them) filled, where even-odd drew their overlap as a hole mid-animation.
 - **Outlines are for display text.** Outlines are unhinted geometry, which differs slightly from a `TextBlock`'s rendering at small sizes, so features that show outlines return to plain text when they finish. Reason: the swap is invisible at display sizes and keeps text selectable and accessible at rest. Rejected: matching hinting, which Avalonia geometry cannot do.
 - **Glyphs without an outline are empty.** A color, emoji or bitmap glyph is judged by its font carrying color or bitmap tables, and a missing glyph (glyph 0) by its index, and both add nothing to an outline; features built on outlines fall back to a text piece for a character whose outline is empty. Reason: one bad character must not break an effect, and a color font's monochrome fallback outline is not what the text shows. Rejected: parsing `COLR` per glyph, which would keep a color font's plain glyphs but is not worth it for display text.
@@ -123,4 +129,4 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 
 ## Open items
 
-- Bold and oblique simulation (BRIDGE-GLYPHS-005) and the missing-glyph case of BRIDGE-GLYPHS-004 have no test. The emoji test does reach the color-font path: on the Windows headless font set the emoji shapes to a real glyph of Segoe UI Emoji, which the test checks is not glyph 0.
+- The missing-glyph case of BRIDGE-GLYPHS-004 has no test. The emoji test does reach the color-font path: on the Windows headless font set the emoji shapes to a real glyph of Segoe UI Emoji, which the test checks is not glyph 0.

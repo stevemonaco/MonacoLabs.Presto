@@ -7,7 +7,7 @@ namespace MonacoLabs.Presto;
 /// as a group by <see cref="Refresh"/>.
 /// </summary>
 /// <remarks>Upstream's media queries and their <c>handleEvent</c> refresh are DOM specific and are left to the bridge.</remarks>
-public class Scope : IRevertible
+public class Scope : IRevertible, IReleasable
 {
     private readonly List<Func<Scope, Action?>> _constructors = [];
     private readonly List<Action> _revertConstructors = [];
@@ -18,6 +18,11 @@ public class Scope : IRevertible
     private readonly Engine _engine;
     private bool _once;
     private int _onceIndex;
+    private bool _released;
+    // A prune ticket names the list and its generation (once-list negative); clearing a list bumps its generation, retiring the tickets.
+    private int _generation = 1;
+    private int _onceGeneration = 1;
+    internal PruneMark _pruned;
 
     /// <summary>
     /// Creates a scope on the current engine, sharing that engine's defaults (or a configured copy of them) and registering with
@@ -50,15 +55,36 @@ public class Scope : IRevertible
     public IDictionary<string, Action> Methods { get; } = new Dictionary<string, Action>();
 
     /// <summary>Records <paramref name="revertible"/> so <see cref="Revert"/> undoes it.</summary>
-    /// <remarks>Animations canceled by a replacing animation are dropped as the list grows, their original values handed to the animation that replaced them.</remarks>
+    /// <remarks>
+    /// As the list grows, entries that reverting again would restore nothing are dropped, and so are canceled animations whose original values
+    /// a later animation of the same targets and properties takes over. A dropped timer that is revived registers again.
+    /// </remarks>
     public void Register(IRevertible revertible)
     {
+        Reuse();
         if (revertible is Timer { _diagnostics: { } diagnostics }) diagnostics.Scope = this;
-        var revertibles = _once ? _revertiblesOnce : _revertibles;
+        Append(revertible, _once);
+    }
+
+    internal void Return(IRevertible revertible, int ticket)
+    {
+        if (ticket == _generation) Append(revertible, false);
+        else if (ticket == -_onceGeneration) Append(revertible, true);
+    }
+
+    private void Append(IRevertible revertible, bool once)
+    {
+        var revertibles = once ? _revertiblesOnce : _revertibles;
         revertibles.Add(revertible);
         var count = revertibles.Count;
         // Pruning only at powers of two keeps registration amortized constant time.
-        if (count >= 32 && (count & (count - 1)) == 0) PruneSuperseded(revertibles);
+        if (count >= 32 && (count & (count - 1)) == 0) Prune(revertibles, once ? -_onceGeneration : _generation);
+    }
+
+    private void Reuse()
+    {
+        _released = false;
+        _pruned.Rejoin(this);
     }
 
     internal int RevertibleCount => _revertibles.Count + _revertiblesOnce.Count;
@@ -92,6 +118,7 @@ public class Scope : IRevertible
     /// <param name="constructor">Returns the cleanup to run before the next refresh, or null when there is nothing to clean up.</param>
     public Scope Add(Func<Scope, Action?> constructor)
     {
+        Reuse();
         _once = false;
         _constructors.Add(constructor);
         Execute(scope =>
@@ -104,6 +131,7 @@ public class Scope : IRevertible
     /// <summary>Exposes <paramref name="method"/> through <see cref="Methods"/>, where calling it runs it inside the scope.</summary>
     public Scope Add(string name, Action method)
     {
+        Reuse();
         _once = false;
         Methods[name] = () => Execute(_ => method());
         return this;
@@ -117,6 +145,7 @@ public class Scope : IRevertible
     /// <param name="constructor">Returns the cleanup to run on <see cref="Revert"/>, or null when there is nothing to clean up.</param>
     public Scope AddOnce(Func<Scope, Action?> constructor)
     {
+        Reuse();
         _once = true;
         if (_onceIndex++ < _constructorsOnce.Count) return this;
         _constructorsOnce.Add(constructor);
@@ -147,9 +176,10 @@ public class Scope : IRevertible
         _onceIndex = 0;
         Execute(_ =>
         {
-            for (var i = _revertibles.Count - 1; i >= 0; i--) _revertibles[i].Revert();
+            RevertAll(_revertibles);
             for (var i = _revertConstructors.Count - 1; i >= 0; i--) _revertConstructors[i]();
             _revertibles.Clear();
+            _generation++;
             _revertConstructors.Clear();
             for (var i = 0; i < _constructors.Count; i++)
             {
@@ -162,9 +192,9 @@ public class Scope : IRevertible
     /// <summary>Reverts everything created inside the scope and empties it.</summary>
     public virtual Scope Revert()
     {
-        for (var i = _revertibles.Count - 1; i >= 0; i--) _revertibles[i].Revert();
+        RevertAll(_revertibles);
         for (var i = _revertConstructors.Count - 1; i >= 0; i--) _revertConstructors[i]();
-        for (var i = _revertiblesOnce.Count - 1; i >= 0; i--) _revertiblesOnce[i].Revert();
+        RevertAll(_revertiblesOnce);
         for (var i = _revertConstructorsOnce.Count - 1; i >= 0; i--) _revertConstructorsOnce[i]();
         _revertibles.Clear();
         _revertConstructors.Clear();
@@ -172,22 +202,40 @@ public class Scope : IRevertible
         _revertiblesOnce.Clear();
         _revertConstructorsOnce.Clear();
         _constructorsOnce.Clear();
+        _generation++;
+        _onceGeneration++;
         _onceIndex = 0;
         Methods.Clear();
         Data.Clear();
+        _released = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
 
-    // Completed animations are canceled too when the engine drops them, so only the uncompleted canceled ones were superseded.
-    private static void PruneSuperseded(List<IRevertible> revertibles)
+    bool IReleasable.IsReleased => _released;
+
+    private static void RevertAll(List<IRevertible> revertibles)
+    {
+        for (var i = revertibles.Count - 1; i >= 0; i--)
+        {
+            if (!IsReleased(revertibles[i])) revertibles[i].Revert();
+        }
+    }
+
+    private static bool IsReleased(IRevertible revertible) => revertible is IReleasable { IsReleased: true };
+
+    private void Prune(List<IRevertible> revertibles, int ticket)
     {
         var kept = 0;
         for (var i = 0; i < revertibles.Count; i++)
         {
             var revertible = revertibles[i];
-            if (revertible is not Animation { Canceled: true, Completed: false } animation || !HandOnOriginals(animation, revertibles, i + 1))
+            if (IsReleased(revertible) || DroppedWithParent(revertible) || HandsOver(revertible, revertibles, i + 1))
+            {
+                MarkPruned(revertible, ticket);
+            }
+            else
             {
                 revertibles[kept++] = revertible;
             }
@@ -195,13 +243,49 @@ public class Scope : IRevertible
         revertibles.RemoveRange(kept, revertibles.Count - kept);
     }
 
-    // Revert runs newest first, so the oldest original of a property is the one left written; it moves to the next animation of that property.
-    private static bool HandOnOriginals(Animation animation, List<IRevertible> revertibles, int start)
+    private void MarkPruned(IRevertible revertible, int ticket)
+    {
+        if (revertible is Timer timer) timer._pruned = new(this, ticket);
+        else if (revertible is Scope scope) scope._pruned = new(this, ticket);
+    }
+
+    private bool DroppedWithParent(IRevertible revertible) => revertible is Timer { IsDetached: true, Parent._pruned.By: { } scope } && scope == this;
+
+    // A canceled timeline is dropped with its children, which the prune drops on reaching them, so each must be released or hand over.
+    private bool HandsOver(IRevertible revertible, List<IRevertible> revertibles, int start)
+    {
+        if (revertible is Animation { IsDetached: true, Parent: null } animation)
+        {
+            if (!CanHandOver(animation, revertibles, start)) return false;
+            HandOver(animation, revertibles, start);
+            return true;
+        }
+        if (revertible is not Timeline { IsDetached: true } timeline) return false;
+        foreach (var child in timeline.Children)
+        {
+            var index = revertibles.IndexOf(child, start);
+            if (index < 0) return false;
+            if (!IsReleased(child) && (child is not Animation { IsDetached: true } childAnimation || !CanHandOver(childAnimation, revertibles, index + 1))) return false;
+        }
+        for (var i = start; i < revertibles.Count; i++)
+        {
+            if (revertibles[i] is Animation child && child.Parent == timeline && !IsReleased(child)) HandOver(child, revertibles, i + 1);
+        }
+        return true;
+    }
+
+    private bool CanHandOver(Animation animation, List<IRevertible> revertibles, int start)
     {
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             if (tween._hasInlineValue && FindSuccessor(tween, revertibles, start) == null) return false;
         }
+        return true;
+    }
+
+    // Revert runs newest first, so the oldest original of a property is the one left written; it moves to the next animation of that property.
+    private void HandOver(Animation animation, List<IRevertible> revertibles, int start)
+    {
         for (var tween = animation._headTween; tween != null; tween = tween._next)
         {
             if (!tween._hasInlineValue) continue;
@@ -209,14 +293,13 @@ public class Scope : IRevertible
             successor._inlineValue = tween._inlineValue;
             successor._hasInlineValue = true;
         }
-        return true;
     }
 
-    private static Tween? FindSuccessor(Tween tween, List<IRevertible> revertibles, int start)
+    private Tween? FindSuccessor(Tween tween, List<IRevertible> revertibles, int start)
     {
         for (var i = start; i < revertibles.Count; i++)
         {
-            if (revertibles[i] is not Animation later) continue;
+            if (revertibles[i] is not Animation later || IsReleased(later) || DroppedWithParent(later)) continue;
             for (var candidate = later._headTween; candidate != null; candidate = candidate._next)
             {
                 if (ReferenceEquals(candidate.Target, tween.Target) && candidate.Property == tween.Property) return candidate;
@@ -230,4 +313,17 @@ public class Scope : IRevertible
         constructor(scope);
         return null;
     };
+}
+
+internal struct PruneMark(Scope by, int ticket)
+{
+    public Scope? By = by;
+    public int Ticket = ticket;
+
+    public void Rejoin(IRevertible self)
+    {
+        if (By is not { } scope) return;
+        By = null;
+        scope.Return(self, Ticket);
+    }
 }

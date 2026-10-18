@@ -35,17 +35,17 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 - **BRIDGE-SELECTION-001** — When `Indicator` is set to a template, the list shall build the template once and track its selection with the built control as the indicator.
   - Tests: `SelectionIndicatorTests.FillCoversTheItem`
 - **BRIDGE-SELECTION-002** (inherited) — When `Indicator` changes, the list shall cancel the old indicator's glide, remove it from the presenter and build the new template; a null template, or one whose `Build` returns null, shall leave no indicator.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.ReplacingTheTemplateSwapsTheIndicatorAndANullTemplateOrBuildLeavesNone`
 - **BRIDGE-SELECTION-003** (inherited) — While in design mode, setting `Indicator` shall do nothing.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.InDesignModeSettingTheIndicatorDoesNothing`
 - **BRIDGE-SELECTION-004** — The indicator shall be a visual and logical child of the list's `ItemsPresenter`, inserted behind the items panel, and shall not be hit-testable.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.TheIndicatorLivesInThePresenterBehindThePanelAndIsNotHitTestable`
 - **BRIDGE-SELECTION-005** — When the list's presenter is replaced or rebuilds its panel and drops the indicator, the indicator shall be re-inserted on the next `LayoutUpdated`.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.ANewPresenterOrPanelTakesTheIndicatorBackOnTheNextLayout`
 - **BRIDGE-SELECTION-006** (inherited) — While the list has no presenter, the indicator shall not be placed.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.WithoutAPresenterTheIndicatorIsNotPlaced`
 - **BRIDGE-SELECTION-007** (inherited) — When the list leaves the visual tree, it shall cancel the running glide and forget the indicator's placement, so the next placement snaps.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.LeavingTheTreeCancelsTheGlideAndTheNextPlacementSnaps`
 
 ### Placement
 
@@ -73,28 +73,28 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 - **BRIDGE-SELECTION-017** — While the selected container is not effectively visible, or its far (right or bottom) corner lies more than 0.5 DIP outside a clipping ancestor between it and the presenter, the indicator shall be hidden.
   - Tests: `SelectionIndicatorTests.CollapsingATreeViewSectionHidesItAndExpandingPlacesItWithoutEasing`
 - **BRIDGE-SELECTION-018** — When the indicator hides, its running glide shall be canceled.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.HidingCancelsTheRunningGlide`
 - **BRIDGE-SELECTION-019** (inherited) — When a list's control is not a `SelectingItemsControl` or a `TreeView`, the indicator shall stay hidden.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.AListThatIsNeitherSelectingNorATreeKeepsTheIndicatorHidden`
 
 ### Glide and snap
 
 - **BRIDGE-SELECTION-020** — When the list raises `SelectionChanged` as its own source and the indicator is already shown, the indicator shall glide from where it stands to the new item's rect.
   - Tests: `SelectionIndicatorTests.ItGlidesToANewSelectionOverTime`
 - **BRIDGE-SELECTION-021** (inherited) — A `SelectionChanged` event bubbling from a nested selecting control shall be ignored.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.ASelectionChangeBubblingFromANestedListDoesNotMoveTheIndicator`
 - **BRIDGE-SELECTION-022** — When the selected rect changes for any reason other than a selection change (a resize, a scroll into view, a `TreeView` section expanding), the indicator shall snap to it without easing, canceling any running glide.
   - Tests: `SelectionIndicatorTests.ItSnapsWhenTheSelectedItemMovesOnAResize`, `SelectionIndicatorTests.ItSnapsOntoASelectionScrolledIntoView`, `SelectionIndicatorTests.CollapsingATreeViewSectionHidesItAndExpandingPlacesItWithoutEasing`
 - **BRIDGE-SELECTION-023** (inherited) — When the indicator is hidden at a selection change, the next placement shall snap rather than glide.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.ASelectionMadeWhileHiddenSnaps`
 - **BRIDGE-SELECTION-024** (inherited) — When a glide starts while another is running, the running glide shall be canceled and the new one shall start from the indicator's current edges.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.ANewGlideTakesOverFromWhereTheRunningOneHasGot`
 - **BRIDGE-SELECTION-025** — While `Motion` is null, the glide shall last `Recipes.Tokens.Medium` and ease with `Recipes.Tokens.Ease`, read at the selection change.
   - Tests: `SelectionIndicatorTests.ItGlidesToANewSelectionOverTime`
 - **BRIDGE-SELECTION-026** — When `Motion` is set, the glide shall take its `Duration` (or `Presto.Defaults.Duration` when it has none), its `Delay` and its `Ease` (or `Tokens.Ease` when it has none).
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.AMotionSetsTheGlidesDurationDelayAndEase`
 - **BRIDGE-SELECTION-027** — When the glide's ease is a spring, the glide shall last the spring's settling duration instead of the motion's duration.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.ASpringGlideLastsTheSpringsSettlingDuration`
 - **BRIDGE-SELECTION-028** — When `Motion` is set to a builder that animates any property, `X`, `Y` and `Scale` included, or sets anything a layout transition cannot honor (keyframes, loop, alternate, reversed, autoplay, frame rate, playback rate or ease, composition, modifier, id, priority, any callback, a per-target duration or delay), setting it shall throw `NotSupportedException`.
   - Tests: `SelectionIndicatorTests.AMotionWithMoreThanTimingAndEaseThrowsWhenSet`
 
@@ -105,7 +105,7 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 - **BRIDGE-SELECTION-030** — The leading edge shall be the edge facing the direction of travel (right or bottom when moving forward, left or top when moving back); the cross-axis edges shall use the plain ease.
   - Tests: `SelectionIndicatorTests.AStretchingIndicatorsLeadingEdgeRunsAheadOfItsTrailingEdge`
 - **BRIDGE-SELECTION-031** (inherited) — When the glide's centers coincide along the list's axis, `Stretch` shall have no effect.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.StretchHasNoEffectWhenTheCentersCoincideAlongTheAxis`
 
 ### Reduced motion
 
@@ -115,9 +115,9 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 ### Defaults
 
 - **BRIDGE-SELECTION-033** (inherited) — When `IndicatorMode` is not set, the indicator shall be placed in `Fill` mode.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.WithoutAModeTheIndicatorFillsTheItem`
 - **BRIDGE-SELECTION-034** (inherited) — When `Stretch` is not set, every edge of the glide shall use the plain ease.
-  - Tests: untested
+  - Tests: `SelectionIndicatorTests.WithoutStretchEveryEdgeGlidesOnThePlainEase`
 
 ## Invariants
 
@@ -164,4 +164,4 @@ One indicator per list, a pill behind the selected item (`Fill`) or a bar along 
 
 ## Open items
 
-- Re-templating the indicator (BRIDGE-SELECTION-002), presenter re-insertion (005), detach (007) and nested-list event filtering (021) have no tests.
+- BRIDGE-SELECTION-004 calls the indicator a child of the `ItemsPresenter`, but it is the child of a private layer that is the presenter's child (behind the panel, not hit-testable); the requirement's wording should say which.

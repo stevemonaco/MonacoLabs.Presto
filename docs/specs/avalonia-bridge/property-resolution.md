@@ -25,6 +25,7 @@ tests:
   - AnimatableBridgeTests
   - CompositorRegistryTests
   - BridgeAllocationTests
+  - LayoutSizeSnapTests
 upstream:
   - src/core/targets.js
   - src/core/values.js
@@ -51,7 +52,7 @@ depends:
 ### Resolution
 
 - **BRIDGE-TARGETS-001** — When the target is not an `AvaloniaObject`, the adapter shall return `null` from `Resolve` and `Canonicalize`, leaving it to the next adapter.
-  - Tests: untested
+  - Tests: `TargetAdapterTests.ATargetThatIsNotAnAvaloniaObjectIsLeftToTheNextAdapter`
 - **BRIDGE-TARGETS-002** — When the target is a `Visual`, the adapter shall resolve the transform shorthands (BRIDGE-TRANSFORMS), then the effect, clip and mask shorthands (BRIDGE-EFFECTS), then the warp shorthands on a `TextBlock` (BRIDGE-WARP), then `"Draw"` on a `Shape` and `"ScrollX"`/`"ScrollY"` on a `ScrollViewer`, before looking in the property registry, so a shorthand wins over a registered property of the same name.
   - Tests: `PropertyNamingTests.TransformShorthandsKeepTheirOwnName`, `TransformsTests.XAndYComposeIntoASingleTranslateTransform`
 - **BRIDGE-TARGETS-003** — When a shorthand name is used on a target that does not take it (a non-`Visual`, `"Warp"` on a non-`TextBlock`, `"Draw"` on a non-`Shape`, `"ScrollX"` on a non-`ScrollViewer`), the adapter shall look the name up as a registered property like any other.
@@ -93,6 +94,10 @@ depends:
   - Tests: `TargetAdapterTests.ACodecRegisteredAfterAResolutionAppliesToLaterAnimations`
 - **BRIDGE-TARGETS-019** — `Visual.OpacityProperty` shall be clamped to 0–1 on every frame, so an overshooting ease holds at the ends.
   - Tests: `TargetAdapterTests.AnOvershootingEaseNeverWritesOpacityOutsideZeroToOne`
+- **BRIDGE-TARGETS-033** — When `Layoutable.WidthProperty` or `Layoutable.HeightProperty` is animated on an element whose `UseLayoutRounding` is true, each frame before the last shall write `from` plus a whole number of four-device-pixel steps at the element's render scaling, rounded to the nearest step; the last frame shall write the exact `to` value.
+  - Tests: `LayoutSizeSnapTests.ACenteredControlsEdgesMoveTogetherAndItsCenteredContentHoldsStill`, `LayoutSizeSnapTests.HeightSnapsToFourDevicePixelSteps`, `BridgeAllocationTests.ASnappedWidthTweenTicksWithinBudget`
+- **BRIDGE-TARGETS-034** — An element whose `UseLayoutRounding` is false shall get the raw interpolated size.
+  - Tests: `LayoutSizeSnapTests.AnElementWithoutLayoutRoundingGetsTheRawSize`
 - **BRIDGE-TARGETS-020** — A property type with no codec shall be discrete (CORE-TARGETS `DiscreteCodec`), switching at the midpoint of eased progress.
   - Tests: `DiscretePropertyTests.APropertyWithNoCodecSwitchesHalfway`, `DiscretePropertyTests.SetWritesABoolAndAnEnumAtOnce`, `DiscretePropertyTests.ATimelineSetHidesAtItsPosition`
 - **BRIDGE-TARGETS-021** — `Visual.IsVisibleProperty` shall use the `TrueThroughout` rule, staying visible for the whole run of a tween that has one `true` end.
@@ -116,7 +121,7 @@ depends:
 - **BRIDGE-TARGETS-027** — Constructing an `AvaloniaAnimationParams` or `AvaloniaAnimatableParams` shall call `PrestoAvalonia.EnsureInitialized`.
   - Tests: untested
 - **BRIDGE-TARGETS-028** (inherited) — The `AvaloniaProperty` indexer getter shall read the encoded key and throw `KeyNotFoundException` when it is absent.
-  - Tests: untested
+  - Tests: `TargetAdapterTests.TheTypedIndexersReadTheEncodedKeyAndThrowWhenItIsAbsent`
 - **BRIDGE-TARGETS-029** — `AvaloniaAnimationParams.WhenReduced` shall be the core `WhenReduced` typed for the indexer, and `WhenDetached` the core host-lifetime slot (BRIDGE-HELPERS).
   - Tests: `AnimationBuilderBridgeTests.ATypedWhenReducedReplacesTheProperties`, `WhenDetachedTests.TheParamsOverrideWinsOverTheDefault`
 - **BRIDGE-TARGETS-030** — A property declared through the `AvaloniaAnimatableParams` indexer or by name shall be read and set by either spelling.
@@ -163,6 +168,13 @@ depends:
 - **Animated values are written at `Animation` priority.** Reason: animated values sit above local values, and `Revert()` restores the user's values precisely by clearing that priority.
 - **One binding per animated property, with residual allocations accepted.** Each (property, target) is animated through one `Animation`-priority binding that every frame pushes into, typed for `double` and untyped otherwise; Avalonia's property-changed args per write and boxing for non-`double` types are accepted. Reason: a `SetValue` per frame at that priority creates a value entry each time (`Opacity`: 288 → 104 → 80 bytes per frame), and the remainder is Avalonia's own structure. Rejected: `SetValue` per frame.
 - **Codec-less properties are discrete; there is no `AutoAlpha`.** Any property type without a codec gets a `DiscreteCodec`, `TrueThroughout` for `IsVisible` and `Midpoint` otherwise; compositor animations on one throw. Reason: `IsVisible = false` removes an element from layout (unlike CSS `visibility: hidden`), so a fade ending hidden would jump, and `Presence`'s `Hold` mode already covers fading before a hide. Rejected: a GSAP-style `AutoAlpha` shorthand.
+- **Animated sizes snap to four device pixels, relative to the tween's `from`.** With layout rounding on, Avalonia rounds a centered control's size and its centering offset separately, so a size moving one pixel at a time steps its two edges on alternate frames and the content centered inside hops. Reason: a four-pixel step moves the centering offset by two whole pixels, so a half-pixel offset (an odd width left over around the control or its content) keeps rounding the same way under Avalonia's round-half-to-even, and measuring from `from` keeps the first frame where the control already is, whatever its fractional size. Rejected: turning layout rounding off during the tween (blurred edges, content still steps, and the element's own setting has to be saved and restored across cancel, revert and overlapping tweens); snapping to one device pixel (the case that shakes); two device pixels (seen in the gallery: with an odd leftover width the half-pixel offset rounds up and down on alternate steps, so one edge moves at a time and centered content hops two pixels).
+- **Size snapping is on by default, with no new API.** Reason: the shake is never wanted, and an element that wants sub-pixel sizes already says so with `UseLayoutRounding="False"`. Rejected: a `PrestoAvalonia` switch, which nobody would know to turn on.
+- **The snapped size is what the property holds.** `Presto.Get` and anything else reading `Width`/`Height` mid-tween see the written, snapped size, while the tween's progress and eased number stay raw. Reason: the snap happens at the write, the only point that knows the element's scaling.
+- **Only `Width` and `Height` snap.** Reason: they are the sizes a centered control animates; `MinWidth`/`MaxWidth` and `Margin`/`Padding` are rarely animated on centered content, and a `Thickness` would need a per-side rule. Rejected for now: all `double` layout properties.
+- **The scaling is read when the frame is written.** Reason: it is a read from the element's layout root, and a window moved to another monitor changes it mid-tween. Rejected: caching it when the tween resolves (stale after a monitor move).
+- **A control that is not centered moves in four-pixel steps.** Accepted: at the slow ends of an ease the far edge moves four device pixels at a time, which is not visible at animation speeds; a centered control's edges move two pixels each.
+- **A tween resting mid-way holds a snapped size.** Accepted: a timeline paused, scrubbed or settled on a label inside a size tween shows a size up to two device pixels from the raw value (the gallery's gestures card rests at 156 for a raw 154); only the tween's own end is exact.
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
 - **Types without a codec animate as discrete values.** See CORE-TARGETS.
 - **Params are init-only records with a key indexer.** See CORE-ANIMATION.
@@ -176,5 +188,5 @@ depends:
 
 ## Open items
 
-- BRIDGE-TARGETS-001, -027 and -028 are untested; `int`, `float` and `string` writes (BRIDGE-TARGETS-017) have no dedicated bridge test.
+- BRIDGE-TARGETS-027 is untested: the bridge is initialized once per process, and resetting it to observe the constructor's call would re-run process-wide installs (adapter, hidden signal, inertia wake); `int`, `float` and `string` writes (BRIDGE-TARGETS-017) have no dedicated bridge test.
 - BRIDGE-TARGETS-014: nothing pins that a value written underneath a completed, unreverted animation stays masked.

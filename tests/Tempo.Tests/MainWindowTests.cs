@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -6,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto;
+using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Controls;
 using Tempo.Model;
 using Tempo.Motion;
@@ -71,7 +73,7 @@ public sealed class MainWindowTests : TempoTestBase
         Assert.Equal(FocusMode.ShortBreak, vm.Focus.Mode);
         var accent = window.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("accent-bg"));
         Assert.Equal(TempoMotion.ShortBreakAccent, Assert.IsAssignableFrom<ISolidColorBrush>(accent.Background).Color);
-        var detail = Find<Sheet>(window, vm.IsCompact ? "DetailSheet" : "DetailDrawer");
+        var detail = Find<Sheet>(window, "DetailSheet");
         Assert.False(detail.IsOpen);
         Assert.Equal(0, detail.Position.Value);
 
@@ -148,6 +150,45 @@ public sealed class MainWindowTests : TempoTestBase
         var saved = await new TempoStore(Root).LoadAsync();
         Assert.Equal((12, vm.Sessions.Count), (saved.Tasks.Count(t => !t.IsDone), saved.Sessions.Count));
     }
+
+    [AvaloniaFact]
+    public async Task TheMotionSettingReachesTheFlagThroughTheWindowBinding()
+    {
+        var (window, vm) = await ShowAsync(reduced: false);
+
+        vm.Motion = MotionPreference.Reduced;
+        Assert.True(Presto.Defaults.ReducedMotion);
+        TestApp.SystemReducedMotion = true;
+        vm.Motion = MotionPreference.System;
+        Assert.True(Presto.Defaults.ReducedMotion);
+        vm.Motion = MotionPreference.Full;
+        Assert.False(Presto.Defaults.ReducedMotion);
+        window.Close();
+        await vm.FlushAsync();
+
+        Assert.Equal(MotionPreference.Full, (await new TempoStore(Root).LoadAsync()).Settings.Motion);
+    }
+
+    [AvaloniaFact]
+    public async Task AnOsChangeUnderSystemRedriftsTheBackdrop()
+    {
+        var (window, vm) = await ShowAsync(reduced: false);
+        vm.Motion = MotionPreference.System;
+        var shell = window.GetVisualDescendants().OfType<ShellView>().Single();
+        var drift = Drift(shell);
+        Assert.NotNull(drift);
+
+        TestApp.SystemReducedMotion = true;
+        PrestoAvalonia.RefreshSystemReducedMotion();
+
+        Assert.True(Presto.Defaults.ReducedMotion);
+        Assert.NotSame(drift, Drift(shell));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_drift")]
+    private static extern ref CompositorAnimation? Drift(ShellView shell);
 
     // Wide has no Tasks page: the list sits beside every page.
     private static void Navigate(Window window, MainViewModel vm, AppView view)

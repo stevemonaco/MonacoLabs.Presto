@@ -1,8 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
+using Avalonia.Threading;
 using MonacoLabs.Presto.Text;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -68,16 +73,102 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         var block = Shown("ab");
         var old = Outline("a", block);
         var morph = Recipes.MorphGlyphs(block, "cd");
-        var pieces = TextSplitter.Of(block)!.Chars.Cast<Path>().ToArray();
+        var pieces = Pieces(block).Cast<Path>().ToArray();
         morph.Pause();
         morph.Seek(0);
 
+        Assert.Equal(2, pieces.Length);
         AssertNear(old, pieces[0].Data!.Bounds);
         morph.Seek(Recipes.Tokens.Long - 0.01);
         AssertNear(Outline("c", block), pieces[0].Data!.Bounds);
         morph.Resume();
         RunUntil(() => morph.Completed);
         AssertPlain(block, "cd");
+        Assert.Empty(Pieces(block));
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsEqualCharactersInPlaceStayAsTheBlocksText()
+    {
+        var block = Shown("ab");
+        var morph = Recipes.MorphGlyphs(block, "ac");
+
+        Assert.Single(Pieces(block));
+        var runs = block.Inlines!.Cast<Run>().ToArray();
+        Assert.Equal(["a", "c"], runs.Select(r => r.Text));
+        Assert.NotEqual(0, ((ISolidColorBrush)runs[0].Foreground!).Color.A);
+        Assert.Equal(0, ((ISolidColorBrush)runs[1].Foreground!).Color.A);
+        RunUntil(() => morph.Completed);
+        AssertPlain(block, "ac");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsAnEqualCharacterWhoseSlotMovedSlides()
+    {
+        var block = Shown("a");
+        block.TextAlignment = TextAlignment.Center;
+        block.UpdateLayout();
+        var old = Slot(block, 0).Position;
+        var morph = Recipes.MorphGlyphs(block, "aa");
+        var slide = Assert.IsType<Path>(Pieces(block)[0]);
+        var shape = slide.Data;
+        morph.Pause();
+        morph.Seek(0);
+
+        AssertAt(old, Drawn(slide, block));
+        morph.Seek(Recipes.Tokens.Long - 0.01);
+        AssertAt(Slot(block, 0).Position, Drawn(slide, block));
+        Assert.Same(shape, slide.Data);
+        morph.Resume();
+        RunUntil(() => morph.Completed);
+        AssertPlain(block, "aa");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsNoChangeAddsNoHostAndCompletesAtOnce()
+    {
+        var block = Shown("12");
+        var adorners = AdornerLayer.GetAdornerLayer(block)!.Children.Count;
+        var overlays = OverlayLayer.GetOverlayLayer(block)!.Children.Count;
+
+        var morph = Recipes.MorphGlyphs(block, "12");
+
+        Assert.True(morph.Completed);
+        Assert.Equal(adorners, AdornerLayer.GetAdornerLayer(block)!.Children.Count);
+        Assert.Equal(overlays, OverlayLayer.GetOverlayLayer(block)!.Children.Count);
+        Assert.True(double.IsNaN(block.Width));
+        AssertPlain(block, "12");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOnlyTheChangedDigitsGetPieces()
+    {
+        var block = new TextBlock { Text = "24:10", FontFamily = Inter, FontSize = 40, FontFeatures = [FontFeature.Parse("+tnum")] };
+        Show(block);
+        var morph = Recipes.MorphGlyphs(block, "24:09");
+
+        Assert.Equal(2, Pieces(block).OfType<Path>().Count());
+        var runs = block.Inlines!.Cast<Run>().ToArray();
+        Assert.Equal(["24:", "0", "9"], runs.Select(r => r.Text));
+        Assert.NotEqual(0, ((ISolidColorBrush)runs[0].Foreground!).Color.A);
+        RunUntil(() => morph.Completed);
+        AssertPlain(block, "24:09");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsPiecesFollowAScaledViewbox()
+    {
+        var block = new TextBlock { Text = "ab", FontSize = 40 };
+        var window = Show(new Viewbox { Child = block });
+        var morph = Recipes.MorphGlyphs(block, "cd");
+        var second = Pieces(block)[1];
+        morph.Pause();
+        morph.Seek(Recipes.Tokens.Long - 0.01);
+
+        Assert.True(block.TranslatePoint(new Point(10, 0), window)!.Value.X - block.TranslatePoint(default, window)!.Value.X > 20);
+        AssertAt(block.TranslatePoint(Slot(block, 1).Position, window)!.Value, second.TranslatePoint(default, window)!.Value);
+        morph.Resume();
+        RunUntil(() => morph.Completed);
     }
 
     [AvaloniaFact]
@@ -86,55 +177,146 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         var block = Shown("9");
         block.TextAlignment = TextAlignment.Right;
         block.UpdateLayout();
-        var nine = Place(block, 0);
+        var nine = Slot(block, 0).Position;
         var morph = Recipes.MorphGlyphs(block, "10");
-        var split = TextSplitter.Of(block)!;
+        var pieces = Pieces(block);
         morph.Pause();
         morph.Seek(0);
 
-        AssertAt(nine, Place(block, 1));
-        var one = split.Chars[0];
-        AssertAt(split.SlotOf(one).Center, one.TranslatePoint(default, block)!.Value);
+        AssertAt(nine, Drawn(pieces[1], block));
+        AssertAt(Slot(block, 0).Center, Drawn(pieces[0], block));
         morph.Seek(Recipes.Tokens.Long - 0.01);
-        AssertAt(nine, Place(block, 1));
+        AssertAt(nine, Drawn(pieces[1], block));
         morph.Resume();
         RunUntil(() => morph.Completed);
         AssertPlain(block, "10");
     }
 
     [AvaloniaFact]
+    public void AClockLosingAMinuteDigitPairsFromTheEnd()
+    {
+        var block = new TextBlock { Text = "100:00", FontFamily = Inter, FontSize = 40, FontFeatures = [FontFeature.Parse("+tnum")], TextAlignment = TextAlignment.Right };
+        Show(block);
+        var (one, units) = (Slot(block, 0).Position, Slot(block, 5).Position);
+        var morph = Recipes.MorphGlyphs(block, "99:59");
+        var pieces = Pieces(block);
+        morph.Pause();
+        morph.Seek(0);
+
+        Assert.Equal(5, pieces.Length);
+        AssertAt(units, Drawn(pieces[3], block));
+        AssertAt(one, Drawn(pieces[4], block));
+        morph.Seek(Recipes.Tokens.Long - 0.01);
+        Assert.Equal(0, Convert.ToDouble(PrestoAvalonia.Get(pieces[4], "Scale")), 0.05);
+        morph.Resume();
+        RunUntil(() => morph.Completed);
+        AssertPlain(block, "99:59");
+    }
+
+    [AvaloniaFact]
+    public void ALabelAndANumeralPairFromTheStart()
+    {
+        var block = Shown("10:00");
+        var last = Slot(block, 4).Position;
+        var morph = Recipes.MorphGlyphs(block, "DONE");
+        var collapsing = Pieces(block)[^1];
+        morph.Pause();
+        morph.Seek(0);
+
+        AssertAt(last, Drawn(collapsing, block));
+        morph.Resume();
+        RunUntil(() => morph.Completed);
+        AssertPlain(block, "DONE");
+    }
+
+    [AvaloniaFact]
     public void AnExtraOldDigitCollapsesIntoItsSlotCenterAndIsDismissed()
     {
         var block = Shown("10");
+        var adorners = AdornerLayer.GetAdornerLayer(block)!.Children.Count;
         var morph = Recipes.MorphGlyphs(block, "9");
-        var ghost = Assert.Single(OverlayLayer.GetOverlayLayer(block)!.Children.SelectMany(c => ((Canvas)c).Children));
+        var collapsing = Pieces(block)[1];
         morph.Pause();
         morph.Seek(Recipes.Tokens.Long - 0.01);
 
-        Assert.Equal(0, Convert.ToDouble(PrestoAvalonia.Get(ghost, "Scale")), 0.05);
+        Assert.Equal(0, Convert.ToDouble(PrestoAvalonia.Get(collapsing, "Scale")), 0.05);
         morph.Resume();
         RunUntil(() => morph.Completed);
-        Assert.Empty(OverlayLayer.GetOverlayLayer(block)!.Children);
+        Assert.Equal(adorners, AdornerLayer.GetAdornerLayer(block)!.Children.Count);
         AssertPlain(block, "9");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsALeavingCharacterIsAnOutlineInTheForeground()
+    {
+        var block = Shown("ab");
+        var overlays = OverlayLayer.GetOverlayLayer(block)!.Children.Count;
+        var morph = Recipes.MorphGlyphs(block, "a");
+
+        var leaving = Assert.IsType<Path>(Assert.Single(Pieces(block)));
+        Assert.Same(block.Foreground, leaving.Fill);
+        Assert.Equal(overlays, OverlayLayer.GetOverlayLayer(block)!.Children.Count);
+        RunUntil(() => morph.Completed);
+        AssertPlain(block, "a");
     }
 
     [AvaloniaFact]
     public void APairWithoutAnOutlineCrossfades()
     {
         var block = Shown("a😀");
-        var morph = Recipes.MorphGlyphs(block, "b😀");
-        var ghost = Assert.Single(OverlayLayer.GetOverlayLayer(block)!.Children.SelectMany(c => ((Canvas)c).Children));
-        var emoji = Assert.IsType<TextBlock>(TextSplitter.Of(block)!.Chars[1]);
+        var morph = Recipes.MorphGlyphs(block, "a😎");
+        var pieces = Pieces(block);
+        var (entering, leaving) = (Assert.IsType<TextBlock>(pieces[0]), Assert.IsType<TextBlock>(pieces[1]));
         morph.Pause();
         morph.Seek(0);
 
-        Assert.Equal(0, emoji.Opacity);
+        Assert.Equal(0, entering.Opacity);
+        Assert.Equal(1, leaving.Opacity);
         morph.Seek(Recipes.Tokens.Long);
-        Assert.Equal(1, emoji.Opacity);
-        Assert.Equal(0, ghost.Opacity);
+        Assert.Equal(1, entering.Opacity);
+        Assert.Equal(0, leaving.Opacity);
         morph.Resume();
         RunUntil(() => morph.Completed);
-        AssertPlain(block, "b😀");
+        AssertPlain(block, "a😎");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsASetTextMidMorphCompletesAndKeepsIt()
+    {
+        var source = new TextBlock { Text = "12" };
+        var block = new TextBlock { FontSize = 40, [!TextBlock.TextProperty] = source[!TextBlock.TextProperty] };
+        Show(block);
+        var morph = Recipes.MorphGlyphs(block, "34");
+        Frames.Advance(100, 10);
+
+        source.Text = "56";
+
+        Assert.True(morph.Completed);
+        AssertPlain(block, "56");
+        Assert.Empty(Pieces(block));
+        Assert.True(double.IsNaN(block.Width));
+        source.Text = "78";
+        Assert.Equal("78", block.Text);
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsABlockWithoutAnAdornerLayerCompletesAtOnce()
+    {
+        var block = new TextBlock { Text = "12", FontSize = 40 };
+        var window = new Window
+        {
+            Content = block,
+            Template = new FuncControlTemplate<Window>((w, _) => new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = w[!ContentControl.ContentProperty] }),
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Null(AdornerLayer.GetAdornerLayer(block));
+
+        var morph = Recipes.MorphGlyphs(block, "9");
+
+        Assert.True(morph.Completed);
+        Assert.Equal(1, block.Opacity);
+        AssertPlain(block, "9");
     }
 
     [AvaloniaFact]
@@ -146,7 +328,7 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         var second = Recipes.MorphGlyphs(block, "56");
 
         Assert.True(first.Completed);
-        Assert.Equal(2, TextSplitter.Of(block)!.Chars.Count);
+        Assert.Equal(2, Pieces(block).Length);
         RunUntil(() => second.Completed);
         AssertPlain(block, "56");
     }
@@ -160,12 +342,32 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         var tokens = Recipes.Tokens;
 
         Assert.Null(TextSplitter.Of(block));
+        Assert.Empty(Pieces(block));
         Assert.Equal(2 * tokens.Short, morph.Duration, 1);
         morph.Pause();
         morph.Seek(tokens.Short + 1);
         Assert.Equal("two", block.Text);
         morph.Seek(morph.Duration);
         Assert.Equal(1, block.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void ReducedInstantSetsTheTextAtOnce()
+    {
+        var source = new TextBlock { Text = "12:30" };
+        var block = new TextBlock { FontSize = 40, [!TextBlock.TextProperty] = source[!TextBlock.TextProperty] };
+        Show(block);
+        Presto.Defaults.ReducedMotion = true;
+
+        var morph = Recipes.MorphGlyphs(block, "12:29", ReducedMorph.Instant);
+
+        Assert.True(morph.Completed);
+        AssertPlain(block, "12:29");
+        Assert.Empty(Pieces(block));
+        Frames.Advance(100, 10);
+        Assert.Equal(1, block.Opacity);
+        source.Text = "12:28";
+        Assert.Equal("12:28", block.Text);
     }
 
     [AvaloniaTheory]
@@ -221,6 +423,112 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         Assert.Equal(1, block.Opacity);
     }
 
+    [AvaloniaFact]
+    public void HidingACharacterKeepsTheBlocksLayout()
+    {
+        var block = new TextBlock { Text = "12:30", FontFamily = Inter, FontSize = 40 };
+        Show(block);
+        var plain = Glyphs(block);
+
+        BlockGlyphs.Hide(block, "12:30", new HashSet<int> { 3 });
+
+        Assert.Equal(plain, Glyphs(block));
+        Assert.Contains(block.Inlines!, i => i.Foreground is ISolidColorBrush { Color.A: 0 });
+    }
+
+    [AvaloniaFact]
+    public void HideThenRestoreKeepsABoundTextUpdating()
+    {
+        var source = new TextBlock { Text = "12:30" };
+        var block = new TextBlock { FontSize = 40, [!TextBlock.TextProperty] = source[!TextBlock.TextProperty] };
+        Show(block);
+
+        BlockGlyphs.Hide(block, "12:30", new HashSet<int> { 3 });
+        BlockGlyphs.Restore(block, "12:31");
+        AssertPlain(block, "12:31");
+        source.Text = "12:32";
+
+        Assert.Equal("12:32", block.Text);
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOnAWatchSetsTheFirstValueAtOnceAndMorphsALaterOne()
+    {
+        var block = Shown("");
+        Watched(block, new MorphGlyphsExtension(), "12");
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "12");
+
+        Animate.SetWatch(block, "19");
+
+        Assert.NotEmpty(Pieces(block));
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOnAWatchSetsAValueAtOnceWhileTheBlockIsNotLoaded()
+    {
+        var parent = new Border();
+        Show(parent);
+        var block = new TextBlock { FontSize = 40 };
+        Watched(block, new MorphGlyphsExtension(), "12");
+
+        parent.Child = block;
+        Animate.SetWatch(block, "19");
+
+        Assert.False(block.IsLoaded);
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "19");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsWithoutMorphBlankSetsAChangeToOrFromEmptyAtOnceAndStillMorphsWordToWord()
+    {
+        var block = Shown("");
+        Watched(block, new MorphGlyphsExtension { MorphBlank = false }, "Start");
+
+        Animate.SetWatch(block, "");
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "");
+
+        Animate.SetWatch(block, "Pause");
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "Pause");
+
+        Animate.SetWatch(block, "Start");
+        Assert.NotEmpty(Pieces(block));
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOnAWatchCompletesWhenTheBlockDetachesMidMorph()
+    {
+        var block = Shown("");
+        var window = (Window)TopLevel.GetTopLevel(block)!;
+        var adorners = AdornerLayer.GetAdornerLayer(block)!;
+        Watched(block, new MorphGlyphsExtension(), "12");
+        Animate.SetWatch(block, "9");
+        Assert.NotEmpty(Pieces(block));
+        Frames.Advance(100, 10);
+
+        window.Content = null;
+
+        Assert.DoesNotContain(adorners.Children, c => AdornerLayer.GetAdornedElement(c) == block);
+        AssertPlain(block, "9");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOffATextBlockThrows()
+    {
+        var action = (CueAction)new MorphGlyphsExtension().ProvideValue(null!);
+
+        Assert.Throws<InvalidOperationException>(() => action.Invoke(new Border(), "a", first: true));
+    }
+
+    private static void Watched(TextBlock block, MorphGlyphsExtension extension, string value)
+    {
+        Animate.SetWatch(block, value);
+        Animate.SetDoOnChanged(block, (CueAction)extension.ProvideValue(null!));
+    }
+
     private static TextBlock Shown(string text)
     {
         var block = new TextBlock { Text = text, FontSize = 40 };
@@ -231,20 +539,40 @@ public sealed class GlyphRecipeTests : BridgeTestBase
     private static Rect Outline(string grapheme, TextBlock block) =>
         PrestoAvalonia.TextOutline(grapheme, new Typeface(block.FontFamily), block.FontSize).Bounds;
 
-    /// <summary>Where the character piece at <paramref name="index"/> is drawn in the block, its <c>X</c>/<c>Y</c> included.</summary>
-    private static Point Place(TextBlock block, int index)
+    private static Control[] Pieces(TextBlock block)
     {
-        var split = TextSplitter.Of(block) ?? PrestoAvalonia.SplitText(block, new() { Words = null, Chars = new() });
-        var piece = split.Chars[index];
-        var at = split.SlotOf(piece).Position + new Vector(Convert.ToDouble(PrestoAvalonia.Get(piece, "X")), Convert.ToDouble(PrestoAvalonia.Get(piece, "Y")));
-        if (piece is TextBlock) split.Revert();
-        return at;
+        block.UpdateLayout();
+        return AdornerLayer.GetAdornerLayer(block)!.Children.Where(c => AdornerLayer.GetAdornedElement(c) == block).SelectMany(c => ((Canvas)c).Children).ToArray();
+    }
+
+    private static Rect Slot(TextBlock block, int index) => BlockGlyphs.SlotOf(block, (index, 1));
+
+    private static Point Drawn(Control piece, TextBlock block) => piece.TranslatePoint(default, block)!.Value;
+
+    private static List<(ushort Glyph, double X, double Y)> Glyphs(TextBlock block)
+    {
+        var glyphs = new List<(ushort, double, double)>();
+        var top = 0d;
+        foreach (var line in block.TextLayout.TextLines)
+        {
+            var x = line.Start;
+            foreach (var run in line.TextRuns.OfType<ShapedTextRun>())
+            {
+                foreach (var glyph in run.GlyphRun.GlyphInfos)
+                {
+                    glyphs.Add((glyph.GlyphIndex, Math.Round(x + glyph.GlyphOffset.X, 3), Math.Round(top + line.Baseline + glyph.GlyphOffset.Y, 3)));
+                    x += glyph.GlyphAdvance;
+                }
+            }
+            top += line.Height;
+        }
+        return glyphs;
     }
 
     private static void AssertPlain(TextBlock block, string text)
     {
         Assert.Equal(text, block.Text);
-        Assert.Null(block.Inlines);
+        Assert.True(block.Inlines is null or []);
         Assert.Null(TextSplitter.Of(block));
     }
 

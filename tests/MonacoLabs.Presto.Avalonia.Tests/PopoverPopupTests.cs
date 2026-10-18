@@ -348,6 +348,58 @@ public sealed class PopoverPopupTests : CompositorTestBase
         Assert.Null(Extent(stage.Window, Colors.Lime));
     }
 
+    [AvaloniaFact]
+    public void APopupWhoseChildIsNotInTheTreeGetsNoRun()
+    {
+        var child = Lime();
+        var popup = new Popup { Child = child };
+        Popover.SetOpen(popup, ScaleIn);
+        Popover.SetClose(popup, FadeOut);
+
+        popup.IsOpen = true;
+        Assert.False(child.IsAttachedToVisualTree());
+        popup.IsOpen = false;
+
+        Assert.Equal(1, child.Opacity);
+        Assert.Empty(Presto.GetAnimations(child));
+        Assert.False(popup.IsOpen);
+    }
+
+    [AvaloniaFact]
+    public void NoRunStartsInDesignMode()
+    {
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
+        var stage = Stage(comboBox: false, open: ScaleIn, close: FadeOut);
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            stage.Open();
+            var child = stage.Popup().Child!;
+            Assert.Equal(1, child.Opacity);
+            Assert.Empty(Presto.GetAnimations(child));
+
+            stage.Close();
+            Assert.False(stage.Popup().IsOpen);
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+    }
+
+    [AvaloniaFact]
+    public void WithoutOpenAHandledPopupOpensWithNoMotion()
+    {
+        var stage = Stage(comboBox: false, close: FadeOut);
+
+        stage.Open();
+        var child = stage.Popup().Child!;
+
+        Assert.Equal(1, child.Opacity);
+        Assert.Empty(Presto.GetAnimations(child));
+        Assert.True(stage.Popup().IsAnimating(Popup.IsOpenProperty));
+    }
+
     private sealed class OpenModel : System.ComponentModel.INotifyPropertyChanged
     {
         private bool _isOpen;

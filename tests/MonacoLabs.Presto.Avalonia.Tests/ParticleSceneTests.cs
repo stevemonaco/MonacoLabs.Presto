@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using MonacoLabs.Presto.Compositor;
+using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -97,6 +98,97 @@ public sealed class ParticleSceneTests : CompositorTestBase
         Assert.True(Pump(() => finishes.Count == 2, 300), "a system never finished");
         Assert.Equal([("short", true), ("long", true)], finishes);
         Assert.Equal(0, scene.SystemCount);
+    }
+
+    [AvaloniaFact]
+    public void APausedSystemIsNeitherSteppedNorDroppedAndKeepsDrawingWhereItIs()
+    {
+        var scene = new ParticleScene();
+        var canvas = ShowParticles(scene);
+        ParticleSystem? system = null;
+        canvas.Invoke<ParticleScene>(s => system = s.Add(Still with { Burst = 1, Speed = (0.02, 0.02), Lifetime = (100, 100) }, Origin));
+        Tick();
+        canvas.Invoke<ParticleScene>(_ => system!.Paused = true);
+        Tick();
+        var before = system!.Particles[0];
+
+        TickFor(300);
+
+        var after = system.Particles[0];
+        Assert.Equal(1, scene.SystemCount);
+        Assert.Equal((before.X, before.Y, before.Age), (after.X, after.Y, after.Age));
+        Assert.True(CountPixels(canvas, new Rect(after.X - 3, after.Y - 3, 6, 6), Colors.Black) > 0, "the paused particle is not drawn");
+
+        canvas.Invoke<ParticleScene>(_ => system.Paused = false);
+        Assert.True(Pump(() => scene.SystemCount == 0, 30), "the resumed system never finished");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ShapesTurnByTheParticlesRotationAndFlutterNarrowsThemByTheCosineOfItsPhase(bool flutter)
+    {
+        var scene = new ParticleScene();
+        var canvas = ShowParticles(scene);
+        ParticleSystem? system = null;
+        var parameters = Still with { Burst = 1, Size = new(24, 24), Shape = ParticleShape.Rect, Seed = 3 };
+        parameters = flutter ? parameters with { Flutter = 1e-9 } : parameters with { Spin = (1e-9, 1e-9) };
+
+        canvas.Invoke<ParticleScene>(s => system = s.Add(parameters, Origin));
+        Tick();
+        Tick();
+
+        var particle = system!.Particles[0];
+        var turn = Utils.DegToRad(particle.Rotation);
+        var (width, height) = flutter
+            ? (24 * Math.Abs(Math.Cos(particle.FlutterPhase)), 24d)
+            : (24 * (Math.Abs(Math.Cos(turn)) + Math.Abs(Math.Sin(turn))), 24 * (Math.Abs(Math.Cos(turn)) + Math.Abs(Math.Sin(turn))));
+        Assert.True(Math.Abs(width - 24) > 3, $"seed 3 gives a width of {width}, too close to the unturned square");
+        var drawn = Drawn(canvas);
+        Assert.InRange(drawn.Width, width - 1, width + 2);
+        Assert.InRange(drawn.Height, height - 1, height + 2);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false, false, 100)]
+    [InlineData(true, false, 100)]
+    [InlineData(true, true, 102)]
+    public void AColorMixedTowardsAnEndColorIsQuantizedToFourBitsPerChannel(bool mix, bool end, byte shown)
+    {
+        var gray = new PrestoColor(100, 100, 100);
+        var scene = new ParticleScene();
+        var canvas = ShowParticles(scene);
+
+        canvas.Invoke<ParticleScene>(s => s.Add(Still with
+        {
+            Burst = 1, Size = new(16, 16), Shape = ParticleShape.Rect, Colors = [gray],
+            ColorMix = mix ? new(0, 0) : null, EndColor = end ? gray : null,
+        }, Origin));
+
+        Assert.True(Pump(() => Row(canvas, 32)[32] != Colors.Black), "the particle never drew");
+        Assert.Equal(Color.FromRgb(shown, shown, shown), Row(canvas, 32)[32]);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(' ')]
+    [InlineData('')]
+    [InlineData('é')]
+    public void AGlyphOutsidePrintableAsciiIsRejected(char glyph) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => ParticleShape.Glyph(glyph));
+
+    private static Rect Drawn(Visual visual)
+    {
+        double left = int.MaxValue, top = int.MaxValue, right = -1, bottom = -1;
+        for (var y = 0; y < (int)visual.Bounds.Height; y++)
+        {
+            var row = Row(visual, y);
+            for (var x = 0; x < (int)visual.Bounds.Width; x++)
+            {
+                if (row[x] == Colors.Black) continue;
+                (left, top, right, bottom) = (Math.Min(left, x), Math.Min(top, y), Math.Max(right, x + 1), Math.Max(bottom, y + 1));
+            }
+        }
+        return new Rect(left, top, right - left, bottom - top);
     }
 
     private static CompositorCanvas ShowParticles(ParticleScene scene)

@@ -129,22 +129,37 @@ public static class Accordion
     {
         private readonly Control _chevron;
         private readonly Control _item;
+        private IDisposable? _transitions;
 
         public ChevronLink(Control chevron, Control item)
         {
             _chevron = chevron;
             _item = item;
             item.PropertyChanged += HandleItemChanged;
+            LiftTransitions();
             PrestoAvalonia.Set(chevron, new() { ["Rotate"] = Angle() });
         }
 
-        public void Dispose() => _item.PropertyChanged -= HandleItemChanged;
+        public void Dispose()
+        {
+            _item.PropertyChanged -= HandleItemChanged;
+            _transitions?.Dispose();
+        }
 
         private double Angle() => IsExpanded(_item) ? GetChevron(_chevron) ?? 0 : 0;
+
+        // A theme transition on RenderTransform would ease each frame the spring writes.
+        private void LiftTransitions()
+        {
+            _transitions?.Dispose();
+            _transitions = ThemeTransitions.Lift(_chevron,
+                _chevron.GetBaseValue(Avalonia.Animation.Animatable.TransitionsProperty).GetValueOrDefault(), Visual.RenderTransformProperty);
+        }
 
         private void HandleItemChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
         {
             if (e.Property != Expander.IsExpandedProperty && e.Property != TreeViewItem.IsExpandedProperty) return;
+            LiftTransitions();
             var angle = Angle();
             _chevron.Animate(b => b.Rotate(angle).Ease(Springs.Snappy).WhenReduced(reduced => reduced.Rotate(angle).Duration(0).Ease(Eases.None)));
         }
@@ -188,25 +203,46 @@ public static class Accordion
                 Presence.SetEnterOnShow(_part, true);
             }
             _header = Part(_item, "ExpanderHeader") as ToggleButton;
-            if (_header is null) return;
-            _header.TemplateApplied += HandleHeaderTemplateApplied;
-            FindChevron(_header);
+            if (_header is not null) _header.TemplateApplied += HandleHeaderTemplateApplied;
+            FindChevron();
         }
 
         private void HandleHeaderTemplateApplied(object? sender, TemplateAppliedEventArgs e)
         {
             ReleaseChevron();
-            FindChevron((ToggleButton)sender!);
+            FindChevron();
         }
 
         // Fluent turns the path by animating its RotateTransform, which a TransformOperations render transform opts out of.
-        private void FindChevron(ToggleButton header)
+        private void FindChevron()
         {
-            _chevron = Part(header, "ExpandCollapseChevronBorder");
-            _chevronPath = Part(header, "ExpandCollapseChevron");
-            if (_chevron is null || _chevronPath is null) return;
-            _chevronPath.RenderTransform = TransformOperations.Identity;
-            SetChevron(_chevron, 180);
+            if (_header is not null && Part(_header, "ExpandCollapseChevronBorder") is { } border && Part(_header, "ExpandCollapseChevron") is { } path)
+            {
+                _chevronPath = path;
+                path.RenderTransform = TransformOperations.Identity;
+                Mark(border);
+            }
+            else if (SemiChevron() is { } icon)
+            {
+                Mark(icon);
+            }
+        }
+
+        private Control? SemiChevron()
+        {
+            const string name = "PART_PathIcon";
+            var icon = Part(_item, name);
+            if (icon is not null || _header is null) return icon;
+            // Semi's is the header's content, which the header presents only once it is measured.
+            return Part(_header, name) ?? (_header.Content as Visual)?.GetSelfAndVisualDescendants().OfType<Control>()
+                .FirstOrDefault(child => child.Name == name && child.TemplatedParent == _item);
+        }
+
+        private void Mark(Control chevron)
+        {
+            if (GetChevron(chevron) is not null) return;
+            _chevron = chevron;
+            SetChevron(chevron, 180);
         }
 
         private void ReleaseParts()

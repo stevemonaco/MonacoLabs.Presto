@@ -8,8 +8,8 @@ namespace MonacoLabs.Presto.Gestures;
 /// <summary>
 /// Swipe actions on a row, as SwiftUI's <c>swipeActions</c> and Flutter's <c>Dismissible</c>: a horizontal drag slides the
 /// element aside to reveal its <see cref="LeadingProperty"/> or <see cref="TrailingProperty"/> actions behind it, a partial
-/// reveal coasts open or closed, and a swipe released past half the element's width commits through
-/// <see cref="CommandProperty"/> and, with <see cref="DismissProperty"/>, slides the element away.
+/// reveal coasts open or closed, and a swipe released past half the element's width commits through its side's command
+/// (<see cref="LeadingCommandProperty"/>, <see cref="TrailingCommandProperty"/> or <see cref="CommandProperty"/>) and, with <see cref="DismissProperty"/>, slides the element away.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -41,15 +41,31 @@ public static class Swipe
         AvaloniaProperty.RegisterAttached<Control, object?>("Trailing", typeof(Swipe));
 
     /// <summary>
-    /// Runs when a swipe is released past half the element's width, with the <see cref="Edge"/> the element moved towards as
-    /// its parameter: <see cref="Edge.Right"/> for the leading side, <see cref="Edge.Left"/> for the trailing one. Setting it
-    /// does not make an element swipeable, but on one that is, a command set later widens the drag range from the next drag.
+    /// Runs when a swipe is released past half the element's width on a side with no command of its own, with the
+    /// <see cref="Edge"/> the element moved towards as its parameter: <see cref="Edge.Right"/> for the leading side,
+    /// <see cref="Edge.Left"/> for the trailing one. Setting it does not make an element swipeable.
     /// </summary>
+    /// <remarks>
+    /// A side commits only while the command it would run can execute, or <see cref="DismissProperty"/> is set; otherwise its
+    /// drag stops at its actions' width. Both are read at each drag move and release.
+    /// </remarks>
     public static readonly AttachedProperty<ICommand?> CommandProperty =
         AvaloniaProperty.RegisterAttached<Control, ICommand?>("Command", typeof(Swipe));
 
+    /// <summary>Runs with <see cref="CommandParameterProperty"/> when a swipe towards the right commits, in place of <see cref="CommandProperty"/>.</summary>
+    public static readonly AttachedProperty<ICommand?> LeadingCommandProperty =
+        AvaloniaProperty.RegisterAttached<Control, ICommand?>("LeadingCommand", typeof(Swipe));
+
+    /// <summary>Runs with <see cref="CommandParameterProperty"/> when a swipe towards the left commits, in place of <see cref="CommandProperty"/>.</summary>
+    public static readonly AttachedProperty<ICommand?> TrailingCommandProperty =
+        AvaloniaProperty.RegisterAttached<Control, ICommand?>("TrailingCommand", typeof(Swipe));
+
+    /// <summary>The parameter of <see cref="LeadingCommandProperty"/> and <see cref="TrailingCommandProperty"/>; <see cref="CommandProperty"/> gets the edge instead.</summary>
+    public static readonly AttachedProperty<object?> CommandParameterProperty =
+        AvaloniaProperty.RegisterAttached<Control, object?>("CommandParameter", typeof(Swipe));
+
     /// <summary>
-    /// Whether a committed swipe slides the element out before <see cref="CommandProperty"/> runs. A command that removes its
+    /// Whether a committed swipe slides the element out before its command runs. A command that removes its
     /// item lets <see cref="Presence.ExitProperty"/> play; an element still shown afterwards is hidden, which plays its exit
     /// as <see cref="Presence.HideModeProperty"/> says. Either way <see cref="Animate.ItemLayoutProperty"/> closes the gap.
     /// An element with no actions swipes away either way.
@@ -97,6 +113,24 @@ public static class Swipe
 
     /// <summary>Sets the command a full swipe of <paramref name="control"/> runs.</summary>
     public static void SetCommand(Control control, ICommand? value) => control.SetValue(CommandProperty, value);
+
+    /// <summary>Gets the command a full swipe of <paramref name="control"/> towards the right runs.</summary>
+    public static ICommand? GetLeadingCommand(Control control) => control.GetValue(LeadingCommandProperty);
+
+    /// <summary>Sets the command a full swipe of <paramref name="control"/> towards the right runs.</summary>
+    public static void SetLeadingCommand(Control control, ICommand? value) => control.SetValue(LeadingCommandProperty, value);
+
+    /// <summary>Gets the command a full swipe of <paramref name="control"/> towards the left runs.</summary>
+    public static ICommand? GetTrailingCommand(Control control) => control.GetValue(TrailingCommandProperty);
+
+    /// <summary>Sets the command a full swipe of <paramref name="control"/> towards the left runs.</summary>
+    public static void SetTrailingCommand(Control control, ICommand? value) => control.SetValue(TrailingCommandProperty, value);
+
+    /// <summary>Gets the parameter of the side commands of <paramref name="control"/>.</summary>
+    public static object? GetCommandParameter(Control control) => control.GetValue(CommandParameterProperty);
+
+    /// <summary>Sets the parameter of the side commands of <paramref name="control"/>.</summary>
+    public static void SetCommandParameter(Control control, object? value) => control.SetValue(CommandParameterProperty, value);
 
     /// <summary>Gets whether a full swipe slides <paramref name="control"/> out.</summary>
     public static bool GetDismiss(Control control) => control.GetValue(DismissProperty);

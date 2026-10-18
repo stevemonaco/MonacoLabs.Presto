@@ -1,4 +1,4 @@
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -13,7 +13,7 @@ namespace MonacoLabs.Presto.Controls;
 /// nearby shapes, and a <see cref="Glitch"/>. At identity the child draws live; otherwise a snapshot of it is drawn through the
 /// filters within the control's bounds, retaken whenever the child draws something new.
 /// </summary>
-/// <remarks>Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each draw, every effect draws as identity.</remarks>
+/// <remarks>Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each draw, every effect draws as identity; a change of the flag redraws at once.</remarks>
 public sealed class Distort : Decorator
 {
     /// <summary>Defines the <see cref="Turbulence"/> property.</summary>
@@ -32,12 +32,16 @@ public sealed class Distort : Decorator
     public static readonly StyledProperty<double> GlitchProperty = AvaloniaProperty.Register<Distort, double>(nameof(Glitch));
 
     // Each render of a visual replaces its composition draw list, the only trace Avalonia leaves that a descendant redrew.
-    private static readonly PropertyInfo? DrawListProperty = typeof(CompositionVisual).Assembly
-        .GetType("Avalonia.Rendering.Composition.CompositionDrawListVisual")?.GetProperty("DrawList");
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_DrawList")]
+    [return: UnsafeAccessorType("Avalonia.Rendering.Composition.Drawing.CompositionRenderData, Avalonia.Base")]
+    private static extern object? DrawList([UnsafeAccessorType("Avalonia.Rendering.Composition.CompositionDrawListVisual, Avalonia.Base")] object visual);
 
     // Raised on the UI thread after each commit, which every redraw ends in; unlike a frame request it costs nothing while nothing changes.
-    private static readonly EventInfo? AfterCommitEvent = typeof(Avalonia.Rendering.Composition.Compositor)
-        .GetEvent("AfterCommit", BindingFlags.Instance | BindingFlags.NonPublic);
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "add_AfterCommit")]
+    private static extern void AddAfterCommit(Avalonia.Rendering.Composition.Compositor compositor, Action? handler);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "remove_AfterCommit")]
+    private static extern void RemoveAfterCommit(Avalonia.Rendering.Composition.Compositor compositor, Action? handler);
 
     static Distort() => AffectsRender<Distort>(TurbulenceProperty, TurbulenceScaleProperty, TurbulencePhaseProperty, GooProperty, GlitchProperty);
 
@@ -83,8 +87,10 @@ public sealed class Distort : Decorator
     private CompositionVisual? _hidden;
     private Vector3D _hiddenScale;
     private readonly List<object?> _drawLists = [];
-    private object? _watched;
+    private Avalonia.Rendering.Composition.Compositor? _watched;
     private Action? _check;
+    private Action? _redraw;
+    private Engine? _engine;
 
     /// <summary>How many snapshots of the child have been taken.</summary>
     internal int Snapshots { get; private set; }
@@ -125,7 +131,7 @@ public sealed class Distort : Decorator
     {
         if (_watched is not null || ElementComposition.GetElementVisual(this)?.Compositor is not { } compositor) return;
         _watched = compositor;
-        AfterCommitEvent?.AddMethod?.Invoke(compositor, [_check ??= Check]);
+        AddAfterCommit(compositor, _check ??= Check);
     }
 
     // The child stays in layout and keeps its own properties; only its composition visual is scaled to nothing, which Avalonia never resets.
@@ -155,7 +161,7 @@ public sealed class Distort : Decorator
         var i = 0;
         foreach (var visual in child.GetSelfAndVisualDescendants())
         {
-            var drawList = ElementComposition.GetElementVisual(visual) is { } element ? DrawListProperty?.GetValue(element) : null;
+            var drawList = ElementComposition.GetElementVisual(visual) is { } element ? DrawList(element) : null;
             changed |= i == _drawLists.Count || !ReferenceEquals(_drawLists[i], drawList);
             if (i == _drawLists.Count) _drawLists.Add(drawList);
             else _drawLists[i] = drawList;
@@ -174,7 +180,7 @@ public sealed class Distort : Decorator
         _snapshot?.Dispose();
         _snapshot = null;
         _drawLists.Clear();
-        if (_watched is not null) AfterCommitEvent?.RemoveMethod?.Invoke(_watched, [_check]);
+        if (_watched is not null) RemoveAfterCommit(_watched, _check);
         _watched = null;
         if (_hidden is null) return;
         _hidden.Scale = _hiddenScale;
@@ -189,10 +195,20 @@ public sealed class Distort : Decorator
     }
 
     /// <inheritdoc/>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _engine = ReducedMotionFollowers.Add(_redraw ??= InvalidateVisual);
+    }
+
+    /// <inheritdoc/>
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
         Release();
+        if (_engine is null) return;
+        ReducedMotionFollowers.Remove(_engine, _redraw!);
+        _engine = null;
     }
 
     // Disposed once the control and every draw operation still holding it let go; draw operations are released on the render thread.

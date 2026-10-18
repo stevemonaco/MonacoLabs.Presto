@@ -58,7 +58,7 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 - **CORE-TIMELINE-004** — A child shall start at its position plus its own delay.
   - Tests: `TimelinesTests.ChildrenPositionShouldBeAddedToTheirDelay`
 - **CORE-TIMELINE-005** — A child shall never autoplay; the timeline's playhead drives it.
-  - Tests: untested
+  - Tests: `TimelinesTests.AChildNeverAutoplaysWhateverItsAutoplaySays`
 - **CORE-TIMELINE-006** — Each added child shall raise the engine's `TimerCreated`.
   - Tests: `HostHookTests.TimerCreatedFiresOncePerRootAndPerTimelineChild`
 
@@ -101,7 +101,7 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 - **CORE-TIMELINE-018** — While `Composition` is true, adding a child shall first render the timeline at the child's position without callbacks, so the child's implicit from values are those the earlier children leave there.
   - Tests: `TimelinesTests.TimelineValues`, `TimelineCallbacksTests.TimelineMixSetAndAdd`, `FunctionBasedValuesTests.ChainedFunctionValuesOnTimelineChildrenReadThePreviousChildEndValue`
 - **CORE-TIMELINE-019** — While `Composition` is false, adding a child shall neither render the timeline nor initialize the child.
-  - Tests: untested
+  - Tests: `TimelinesTests.WithoutCompositionAddingAChildNeitherRendersTheTimelineNorInitializesTheChild`
 - **CORE-TIMELINE-020** — `Add` with targets shall add an animation child; its targets may be timers or animations, whose properties such as `CurrentTime` it then animates.
   - Tests: `TimelinesTests.AddAnimationsAndTimersAsTargets`
 - **CORE-TIMELINE-021** — `Add(TimerParams)` shall add a plain timer child.
@@ -162,9 +162,9 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 - **CORE-TIMELINE-041** — When `Composition` is not set, the timeline shall compose children against its state (true).
   - Tests: `TimelinesTests.TimelineValues`
 - **CORE-TIMELINE-042** — When `PlaybackEase` is not set, the timeline shall use the engine defaults' `PlaybackEase`.
-  - Tests: untested
+  - Tests: `TimelinesTests.PlaybackEaseDefaultsToTheEngineDefaults`
 - **CORE-TIMELINE-043** — When `OnRender` is not set, the timeline shall use the engine defaults' `OnRender`.
-  - Tests: untested
+  - Tests: `TimelinesTests.OnRenderDefaultsToTheEngineDefaults`
 
 ## Invariants
 
@@ -226,4 +226,4 @@ A `Timeline` is a timer (CORE-TIMER) whose children are animations and plain tim
 
 ## Open items
 
-- `TimelineParams.Composition = false` and children never autoplaying have no test.
+None.

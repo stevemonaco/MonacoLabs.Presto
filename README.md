@@ -14,15 +14,18 @@ property names are only known at run time.
 | `MonacoLabs.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
 | `MonacoLabs.Presto.Avalonia` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, color/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes. |
 | `MonacoLabs.Presto.Avalonia.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
+| `MonacoLabs.Presto.Avalonia.DevTools` | An in-app inspector for MonacoLabs.Presto on Avalonia: freeze, step and slow the engine and watch what it runs. |
 
 ## Install
 
 ```powershell
 dotnet add package MonacoLabs.Presto
 dotnet add package MonacoLabs.Presto.Avalonia
+dotnet add package MonacoLabs.Presto.Avalonia.Lottie
+dotnet add package MonacoLabs.Presto.Avalonia.DevTools
 ```
 
-The bridge is built against **Avalonia 12.1.2** and every package targets **net10.0**. The core has no package
+The bridge is built against **Avalonia 12.1.4** and every package targets **net10.0**. The core has no package
 dependencies at all; take it alone if you are driving a game loop, a view model or your own renderer.
 
 ## Quick start
@@ -55,7 +58,7 @@ sealed class Ship
 
 Properties are found by reflection and cached as delegates. Frames come from the built-in `StopwatchFrameSource`, which
 posts to the `SynchronizationContext` of the thread that started it; tests swap in `ManualFrameSource` and call
-`Advance(16)`.
+`Advance(16)`. A trimmed or NativeAOT app registers the type first; see [Trimming and NativeAOT](#trimming-and-nativeaot).
 
 ### An Avalonia control
 
@@ -165,6 +168,18 @@ there. `Animate.OnAttached` plays each time the visual attaches to the visual tr
 recycling, and is reverted on detach, so it is the trigger for loops and timers tied to being on screen, such as a
 skeleton shimmer or a countdown; a new value reverts the old animation and plays the new one, and `null` reverts and
 stops listening. Nothing runs in design mode on either.
+
+For a moment rather than a state, such as a failed save or a finished session, the view model exposes a core `Cue` (or
+`Cue<T>`, which carries a value) and calls `Raise()`; it binds no event by name and needs no reflection. `Animate.Cue`
+listens while the element is attached, `Animate.OnCue` plays a builder each time it is raised, and `Animate.DoOnCue` runs a
+`CueAction`: `{presto:Burst}`, `{presto:ShowToast}`, `{presto:ScrollToItem}` or `{presto:MorphGlyphs}`, or your own
+subclass. `Animate.DoOnChanged` runs the same actions when `Animate.Watch` changes.
+
+```xml
+<TextBox presto:Animate.Cue="{Binding ValidationFailed}" presto:Animate.OnCue="{presto:Shake}" />
+<presto:ToastHost presto:Animate.Cue="{Binding Saved}" presto:Animate.DoOnCue="{presto:ShowToast Duration=3000}" />
+<TextBlock presto:Animate.Watch="{Binding Remaining}" presto:Animate.DoOnChanged="{presto:MorphGlyphs}" />
+```
 
 ## Avalonia setup
 
@@ -673,6 +688,33 @@ pauses its timer once every cell rests, and reduced motion fades the changed cel
                   CellBackground="#222" CornerRadius="4" CellSpacing="3" />
 ```
 
+### Marquee
+
+`Marquee` scrolls its content continuously: the content is laid out once and repeated end to end, `Gap` (24) apart,
+at `Speed` (60 DIPs per second) in `Direction` (`Left`, `Right`, `Up`, `Down`). Copies of data content are built from
+the same `ContentTemplate`, so buttons in them click; copies of a control are mirrors. Screen readers and Tab see the
+content once. `FadeEdges` fades both ends over that many DIPs.
+
+```xml
+<presto:Marquee Speed="60" Gap="48" FadeEdges="32" Content="{Binding Logos}">
+  <presto:Marquee.ContentTemplate>
+    <DataTemplate>
+      <ItemsControl ItemsSource="{Binding}" ItemTemplate="{StaticResource Logo}">
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="48"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+      </ItemsControl>
+    </DataTemplate>
+  </presto:Marquee.ContentTemplate>
+</presto:Marquee>
+
+<presto:Marquee Mode="WhenOverflowing" Content="{Binding TrackTitle}"/>
+```
+
+Every change of speed or direction eases rather than snaps. `IsPaused` (two-way by default, for a pause button) eases
+the strip to a stop, and so does the pointer over it or keyboard focus brought in by Tab while `PauseOnHover` is on.
+`Mode="WhenOverflowing"` scrolls only while the content is longer than the marquee, and otherwise shows it once, placed
+by the content alignment. Under reduced motion it does not move at all: the content shows once, start-aligned and
+clipped.
+
 ### Render thread
 
 Everything above runs on the UI thread, which means everything above stops when the UI thread does. A `CompositorScene`
@@ -1013,6 +1055,7 @@ public static readonly AnimationBuilder Calm = Presto.Build().Duration(900).Ease
 | `Focus` | `:focus-visible`: keyboard focus only, so a click does not play it (`When=":focus"` plays on both) |
 | `Press` | `:pressed`, which Presto synthesizes for every element, not only buttons: a left button, touch or pen press until release or capture loss, so a touch that turns into a scroll ends it |
 | `States` | each `MotionState`'s `When` |
+| `LocalStates` | each `MotionState`'s `When`, layered after `States` |
 | `State` | *(not a state)* an `object?` whose `ToString()`, split on whitespace and commas, names the bare-name conditions that hold; an enum matches by name |
 
 A `When` is ANDed tokens on the element itself: `:pseudo-class`, `.class`, and a leading bare name matched against
@@ -1034,9 +1077,37 @@ goes away and the arrow returns:
 </Style>
 ```
 
-States layer by declaration order: `Hover`, then `Focus`, then `Press`, then the `States` entries, then states added
-from code, and a later state wins the properties it shares with an earlier one. So press wins a shared `Scale` over
-hover, and letting go returns it to hover's value. A property no holding state names returns to rest: an
+`Motion.State` takes one value. To combine several, `{presto:StateTokens}` takes two to four bindings and yields the
+union of their tokens. A `true` bool contributes its binding path's last member name, so `{Binding IsRunning}` matches
+`When="IsRunning"`; `false` or `null` contributes nothing, and any other value splits as `State` does:
+
+```xml
+<Border presto:Motion.State="{presto:StateTokens {Binding Mode}, {Binding IsRunning}}">
+    <presto:Motion.States>
+        <presto:MotionStates>
+            <presto:MotionState When="Break" Motion="{x:Static local:Motions.Cool}" />
+            <presto:MotionState When="IsRunning" Motion="{x:Static local:Motions.Pulse}" />
+        </presto:MotionStates>
+    </presto:Motion.States>
+</Border>
+```
+
+A local `Motion.States` replaces a style's. To add to it instead, set `Motion.LocalStates`; where both lists name a
+property, the local one wins:
+
+```xml
+<ToggleButton Classes="tool">
+    <presto:Motion.LocalStates>
+        <presto:MotionStates>
+            <presto:MotionState When=":checked" Motion="{x:Static local:Motions.Glow}" />
+        </presto:MotionStates>
+    </presto:Motion.LocalStates>
+</ToggleButton>
+```
+
+States layer by declaration order: `Hover`, then `Focus`, then `Press`, then the `States` entries, then the
+`LocalStates` entries, then states added from code, and a later state wins the properties it shares with an earlier
+one. So press wins a shared `Scale` over hover, and letting go returns it to hover's value. A property no holding state names returns to rest: an
 `AvaloniaProperty` to its base value (the style, binding or local value beneath the animation, read as it returns, so
 one changed mid-hover is honored), a transform shorthand to its identity. When that return finishes, the animated
 value is reverted, uncovering the equal value beneath. The return uses the leaving state's `Leave` builder if it has
@@ -1058,6 +1129,10 @@ holding:
 using var hover = card.WhileHover(b => b.Y(-4).Scale(1.02).Duration(180).Ease(Eases.OutQuad));
 Motion.SetState(chip, SyncStatus.Failed);
 ```
+
+In C#, an enclosing namespace's members beat types brought in by `using`, so an app namespace named `Motion`,
+`Presence` or `Connected` (an app's `Motion/` folder, say) shadows the Presto type of that name. Alias it:
+`using PrestoMotion = MonacoLabs.Presto.Motion;`.
 
 `Motion.State` also reaches every visual descendant with states that does not set its own, so one value drives a whole
 subtree, as Motion's variants do. The parent times those children: `Motion.StaggerChildren` starts each one that many
@@ -1579,8 +1654,8 @@ var intro = Presto.Build().Y(from: 80).Scale(from: .8).Opacity(from: 0).Duration
 While `PrestoDefaults.ReducedMotion` is set, `ToParams()` builds the `WhenReduced` alternative instead: a new builder
 with this one's settings (duration, delay, ease, loop, callbacks), including those chained after `WhenReduced`, but none
 of its properties or keyframes. So `Recipes.FadeUp().Delay(Presto.Stagger(60))` keeps its stagger when reduced. The
-flag is read when the builder becomes params, so a running animation is left alone; a `Motion` state picks up a change at
-its next transition. Every recipe supplies an alternative (the table above).
+flag is read when the builder becomes params, so an animation you started keeps its form. Every recipe supplies an
+alternative (the table above).
 
 `PrestoDefaults.ReduceAll` handles everything without one: each other animation, from a builder or from params, becomes
 an instant, one-iteration set of its end values, keyframes and springs included, and so do timeline children. Plain
@@ -1588,7 +1663,30 @@ timers keep their durations, and animations built from a `WhenReduced` alternati
 the whole app.
 
 Both flags are ordinary defaults, so each engine has its own and a `Scope` copies them. Presto never sets them on its
-own. To follow the OS "reduce motion" setting (Motion's `reducedMotion="user"`), opt in:
+own. A settings screen offering "OS preference", "full" and "reduced" sets one property, or binds it from XAML:
+
+```csharp
+PrestoAvalonia.MotionPreference = MotionPreference.System;   // or Full, Reduced; null (the default) leaves the flag alone
+```
+
+```xml
+<Window presto:Motion.Preference="{Binding Motion}" />
+```
+
+`Full` and `Reduced` write `ReducedMotion` on `Presto.Engine`; `System` follows the OS setting (Motion's
+`reducedMotion="user"`) as `FollowSystemReducedMotion` below does. `ReduceAll` is never written. The view model holds the
+core `MotionPreference` enum, so it needs no Avalonia reference.
+
+When either flag of an engine's own defaults changes, the engine raises `ReducedMotionChanged`. The bridge's own triggers
+(`Animate.OnAttached`, a running `OnTapped`/`OnChanged`) and `Motion` states replay in their new form when it differs and
+either form loops forever, so an endless loop on screen switches at once; `PullToRefresh` and `Distort` follow it too. Animations you start yourself, timelines and
+compositor scenes keep their form; subscribe to the event to restart them:
+
+```csharp
+Presto.Engine.ReducedMotionChanged += _ => StartDrift();
+```
+
+To follow the OS setting yourself, on any engine:
 
 ```csharp
 var following = PrestoAvalonia.FollowSystemReducedMotion(changed: reduced => Log($"reduce motion: {reduced}"));
@@ -1651,7 +1749,7 @@ Every entry point of anime.js 4.5.0's `src/index.js`:
 | *CSS, not anime.js:* `rotateX()` / `rotateY()`, `perspective()` | `RotateX` / `RotateY`, `Perspective` |
 | *CSS, not anime.js:* `clip-path: inset()` / `circle()` | `ClipInset`, `ClipCircle` with `ClipCircleCenter` |
 | *CSS, not anime.js:* a `mask-image` linear-gradient sweep | `MaskSweep` with `MaskSweepAngle` and `MaskSweepFeather` |
-| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, `PrestoAvalonia.FollowSystemReducedMotion()`. See [Reduced motion](#reduced-motion) |
+| *Framer Motion, not anime.js:* `useReducedMotion()`, `<MotionConfig reducedMotion="always">` | `Presto.Defaults.ReducedMotion`, with `WhenReduced` for each builder's alternative and `ReduceAll` for the rest; for `reducedMotion="user"`, `Motion.Preference="System"` (or `PrestoAvalonia.MotionPreference`). See [Reduced motion](#reduced-motion) |
 
 The XAML surface is the `Presence` lifecycle properties for entrances, scroll reveals and exits ([Lifecycle animations](#lifecycle-animations)), `Animate.OnAttached` for loops and timers while a visual is attached ([From XAML](#from-xaml)), `Connected`'s keys,
 the `Motion` states and the `Animate.OnTapped` / `OnChanged` one-shots ([State motion](#state-motion)), and the recipe markup extensions and `Tilt` ([Recipes](#recipes)); other triggers belong in code-behind or a view model.
@@ -1704,29 +1802,57 @@ A handful of places where the JS shape does not survive the type system:
 - **`.then()` is `Then()` or `await`.** `await animation` works directly and yields the animation itself; `Then(callback)`
   returns a `Task` for callback-style chaining.
 
+## Trimming and NativeAOT
+
+The four packages are marked `IsTrimmable` and `IsAotCompatible` and build with no trim or AOT warnings. Avalonia
+controls, `AvaloniaProperty` keys, dictionaries and the library's own objects (timers, draggables, the compositor
+mirror) never go through reflection, so they need nothing.
+
+A plain object animated by member name does: its members are found by reflection, and in a trimmed or NativeAOT app
+they may have been removed even when the app uses them. Register the type once, before its first animation:
+
+```csharp
+Presto.RegisterTarget<Ship>();   // keeps Ship's public properties and fields
+Presto.Animate(ship, new AnimationParams { ["X"] = 320 });
+```
+
+The call does nothing at run time; its generic parameter's annotation tells the trimmer and the AOT compiler what to
+keep. An unregistered type that lost its members throws `ArgumentException` naming `RegisterTarget<T>()`. The usual
+case is a `CompositorScene`, whose dots and particles are plain objects (the `Dot` in the [render-thread](#render-thread)
+example needs `Presto.RegisterTarget<Dot>()`); the gallery's scenes show the pattern.
+
+Under NativeAOT a registered type's accessors run as interpreted expression trees: correct, but slower, and they may
+allocate per frame. A type that needs allocation-free frames there registers an `ITargetAdapter` in `Presto.Adapters`
+instead, which involves no reflection.
+
+NativeAOT buys startup time and no JIT, not size: the gallery's Windows x64 NativeAOT publish is 52.0 MB, against
+53.3 MB for a trimmed self-contained publish (MiB, symbols and XML docs excluded).
+
 ## Platforms and status
 
-Version 0.1.0, pre-release: the API is settled enough to build against but not frozen, and a pass over it is planned
+Version `0.1.0-preview.1`: the API is settled enough to build against but not frozen, and a pass over it is planned
 before 1.0. The timing model is pinned by regression suites ported from anime.js 4.5.0 into
 `tests/MonacoLabs.Presto.Tests` and `tests/MonacoLabs.Presto.Avalonia.Tests`.
 
 The core is pure .NET and runs anywhere net10.0 does, and the bridge uses no desktop-only API. All four sample heads
-build; what has actually been *run* differs, and the table says so rather than implying more.
+build; what has actually been *run* differs, and the table says so rather than implying more. Open checks are tagged
+items in [docs/BACKLOG.md](docs/BACKLOG.md).
 
 | Head | Verified |
 |------|----------|
-| **Desktop** — `net10.0`, Windows/macOS/Linux | Runs. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here. |
-| **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. The `Compositor` page has not been driven there. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish, with no trim warnings. The Lottie page has not been driven there. |
-| **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. On an emulator (Pixel 7, Android 15) the gallery opens in its compact layout: Home fits the screen, tapping a row or a search result opens the page, the system back button returns Home, on Gestures an open sheet closes on the first back, and back at Home leaves the app. Other pages' rendering and touch gestures beyond those are unverified. |
-| **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run. |
+| **Desktop** — `net10.0`, Windows | Runs on Windows, the one desktop OS driven; macOS and Linux are expected to work but have not been run. The development target: every gallery page is driven here, and it is what the bridge is written against. Lottie parse and render costs were measured here. The AOT probe (`tests/MonacoLabs.Presto.AotProbe`) passes locally as a Windows x64 NativeAOT publish and is wired into the CI `aot` job, which has not yet run on GitHub (`[PLATFORM]`), and a NativeAOT gallery passed the smoke run: all 81 pages opened with no exception or binding error. |
+| **Browser** — `net10.0-browser`, WebAssembly | Runs, with one caveat (below): the 15 gallery pages that predate the compositor one were stepped through in Chrome — the timer tracks wall-clock time, the draggable cards take pointer capture, the scroll observer follows the `ScrollViewer` offsets, the animatable grid follows the cursor, and split/scramble text, motion paths and stroke drawing all render. Lottie works with no extra flags: a startup probe loaded, parsed and rendered a composition through Skottie under `dotnet run` and a trimmed Release publish (full trim mode, trimmable packages), which reports no trim warnings. Not yet checked there: the `Compositor` page and the trimmed publish in a browser (`[PLATFORM]`), the showcase pages (`[PLATFORM]`), the Lottie page (`[LOTTIE-PLAYBACK]`), blur cost (`[BRIDGE-EFFECTS]`), filtered images and pixel transitions (`[BRIDGE-IMAGE]`), and the hidden signal pausing the engine in a hidden tab (`[BRIDGE-INIT]`). |
+| **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. On an emulator (Pixel 7, Android 15) the gallery opens in its compact layout: Home fits the screen, tapping a row or a search result opens the page, the system back button returns Home, on Gestures an open sheet closes on the first back, and back at Home leaves the app. Other pages' rendering and touch gestures beyond those are unverified: the showcase pages (`[PLATFORM]`), filtered images and pixel transitions (`[BRIDGE-IMAGE]`), `Transformable` touch (`[BRIDGE-TRANSFORMABLE]`) and the hidden signal when backgrounded (`[BRIDGE-INIT]`). |
+| **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run (`[PLATFORM]`). |
 
 Five platform notes:
 
 - **On WebAssembly the render loop is not a thread.** `BrowserRenderTimer` drives the compositor from the single WASM
   thread that also runs the UI, so a `CompositorScene` or a `LottieView` with `RenderThread` set runs and draws there
   but does **not** survive a blocked UI thread — the busy-indicator guarantee is a desktop and mobile one. The same
-  goes for any platform that opts into `ShouldRenderOnUIThread` (a Win32 and X11 option). Everywhere else the render loop has a thread of its own: Windows,
-  macOS, Linux X11, Android (`ChoreographerTimer`) and iOS (`DisplayLinkTimer`).
+  goes for any platform that opts into `ShouldRenderOnUIThread` (a Win32 and X11 option). Everywhere else the render loop has a thread of its own: on Windows, and by
+  Avalonia's design rather than from a run on macOS, Linux X11, Android (`ChoreographerTimer`) and iOS
+  (`DisplayLinkTimer`), which has never run.
 - **Hot reload does not work on WebAssembly.** The file watcher cannot start there, and the browser head logs that at
   startup; `.axaml` edits need a rebuild.
 - **On Android the frame pump starts on a dispatcher timer.** Avalonia's Android lifetime exposes only a factory for its

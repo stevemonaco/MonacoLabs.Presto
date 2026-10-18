@@ -38,7 +38,7 @@ public sealed class DraggableTests : BridgeTestBase
         return (window, container, target);
     }
 
-    private static (Window Window, ScrollViewer Scroller, Border Target, Draggable Draggable) ShowInScroller()
+    private static (Window Window, ScrollViewer Scroller, Border Target, Draggable Draggable) ShowInScroller(DraggableParams? parameters = null)
     {
         var target = new Border { Width = TargetSize, Height = TargetSize, Background = Brushes.Red };
         var scroller = new ScrollViewer
@@ -52,7 +52,7 @@ public sealed class DraggableTests : BridgeTestBase
         var window = new Window { Content = scroller, Width = 300, Height = 300 };
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        return (window, scroller, target, PrestoAvalonia.CreateDraggable(target));
+        return (window, scroller, target, PrestoAvalonia.CreateDraggable(target, parameters));
     }
 
     private void Drag(Window window, double step, int steps)
@@ -200,6 +200,25 @@ public sealed class DraggableTests : BridgeTestBase
 
         Assert.Equal(10d, draggable.X);
         Assert.Equal(10d, draggable.Y);
+    }
+
+    [AvaloniaFact]
+    public void PositionAnimatesByNameThroughItsTable()
+    {
+        var (_, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { Container = container });
+
+        Presto.Animate(draggable, new AnimationParams { ["X"] = 30, ["Y"] = 40, Duration = 100 });
+        Frames.Advance(120);
+
+        Assert.Equal(30d, draggable.X);
+        Assert.Equal(40d, draggable.Y);
+
+        Presto.Set(draggable, new AnimationParams { ["ProgressX"] = 0.5, ["ProgressY"] = 1 });
+
+        Assert.Equal((ContainerSize - TargetSize) / 2, draggable.X);
+        Assert.Equal(ContainerSize - TargetSize, draggable.Y);
+        Assert.Throws<ArgumentException>(() => Presto.Set(draggable, new AnimationParams { ["Velocity"] = 1 }));
     }
 
     [AvaloniaFact]
@@ -706,6 +725,383 @@ public sealed class DraggableTests : BridgeTestBase
 
         Assert.Equal(0d, PrestoAvalonia.Get(target, "X"));
         Assert.Equal(0d, PrestoAvalonia.Get(target, "Y"));
+    }
+
+    [AvaloniaFact]
+    public void ADraggableCreatedInAScopeIsRevertedWithIt()
+    {
+        var (window, _, target) = Show();
+        var scope = Presto.CreateScope();
+        scope.Add(_ => { PrestoAvalonia.CreateDraggable(target); });
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        window.MouseMove(new Point(55, 25));
+        Frames.Advance(16);
+        window.MouseUp(new Point(55, 25), MouseButton.Left);
+        Assert.Equal(30d, PrestoAvalonia.Get(target, "X"));
+
+        scope.Revert();
+
+        Assert.Equal(0d, PrestoAvalonia.Get(target, "X"));
+        PrestoAvalonia.CreateDraggable(target).Revert();
+    }
+
+    [AvaloniaFact]
+    public void ASecondPointerIsIgnoredMidDrag()
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target);
+        var touch = new Touch(window);
+
+        touch.Press(1, new Point(25, 25));
+        touch.Move(1, new Point(55, 25));
+        Frames.Advance(16);
+        var second = touch.Down(2, new Point(60, 30));
+        second.Pointer.Capture(target);
+        touch.Move(2, new Point(150, 150));
+        Frames.Advance(16);
+
+        Assert.False(second.Handled);
+        Assert.Equal(30d, draggable.X);
+        Assert.Equal(0d, draggable.Y);
+    }
+
+    [AvaloniaFact]
+    public void DisabledCursorsLeaveTheTriggersCursorAlone()
+    {
+        var (window, _, target) = Show();
+        var own = new Cursor(StandardCursorType.Cross);
+        target.Cursor = own;
+        PrestoAvalonia.CreateDraggable(target, new DraggableParams { Cursor = new() { Enabled = false } });
+
+        window.MouseMove(new Point(25, 25));
+        Assert.Same(own, target.Cursor);
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        Assert.Same(own, target.Cursor);
+        window.MouseUp(new Point(25, 25), MouseButton.Left);
+        Assert.Same(own, target.Cursor);
+    }
+
+    [AvaloniaFact]
+    public void TheDefaultCursorsAreHandOnHoverAndSizeAllWhileGrabbed()
+    {
+        var (window, _, target) = Show();
+        PrestoAvalonia.CreateDraggable(target);
+
+        window.MouseMove(new Point(25, 25));
+        Assert.Equal(nameof(StandardCursorType.Hand), target.Cursor!.ToString());
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        Assert.Equal(nameof(StandardCursorType.SizeAll), target.Cursor!.ToString());
+    }
+
+    [AvaloniaFact]
+    public void AGrabScrollsTheTargetIntoViewOverAHundredMilliseconds()
+    {
+        var (window, scroller, target, _) = ShowInScroller();
+        Canvas.SetTop(target, 180);
+        Dispatcher.UIThread.RunJobs();
+
+        window.MouseDown(new Point(25, 190), MouseButton.Left);
+        Frames.Advance(60, 20);
+        Assert.InRange(scroller.Offset.Y, 21, 29.9);
+        Frames.Advance(100, 20);
+
+        Assert.Equal(30, scroller.Offset.Y, 3);
+    }
+
+    [AvaloniaFact]
+    public void ContainerBoundsAreInsetByThePaddingReReadOnRefreshAndOutrankTheContainer()
+    {
+        var (_, container, target) = Show();
+        var bounds = new Rect(0, 0, 100, 40);
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            ContainerBounds = _ => bounds,
+            ContainerPadding = new Thickness(10),
+        });
+        Assert.Equal(10d, draggable.Y);
+
+        draggable.X = 500;
+        draggable.Refresh();
+        Assert.Equal(90d, draggable.X);
+
+        bounds = new Rect(-50, 0, 300, 100);
+        draggable.X = -500;
+        draggable.Refresh();
+        Assert.Equal(-40d, draggable.X);
+    }
+
+    [AvaloniaFact]
+    public void NoPaddingBoundsTheTargetByTheContainersBox()
+    {
+        var (_, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { Container = container });
+
+        draggable.X = 500;
+        draggable.Y = -500;
+        draggable.Refresh();
+
+        Assert.Equal(ContainerSize - TargetSize, draggable.X);
+        Assert.Equal(0d, draggable.Y);
+    }
+
+    [AvaloniaFact]
+    public void AGrabPastABoundPicksUpFromTheCushionedPosition()
+    {
+        var (window, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            Y = new DraggableAxisParams { Enabled = false },
+        });
+        draggable.X = 160;
+
+        window.MouseDown(new Point(185, 25), MouseButton.Left);
+        window.MouseMove(new Point(195, 25));
+        Frames.Advance(16);
+
+        Assert.Equal(162d, draggable.X);
+    }
+
+    [AvaloniaFact]
+    public void AnAxisModifierReplacesTheSharedOne()
+    {
+        var (window, _, target) = Show();
+        PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            X = new DraggableAxisParams { Modifier = v => Math.Round(v / 10) * 10 },
+            Modifier = v => Math.Floor(v / 25) * 25,
+        });
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        window.MouseMove(new Point(59, 52));
+        Frames.Advance(16);
+
+        Assert.Equal(30d, PrestoAvalonia.Get(target, "X"));
+        Assert.Equal(25d, PrestoAvalonia.Get(target, "Y"));
+    }
+
+    [AvaloniaFact]
+    public void AnAxisComposesByReplaceByDefault()
+    {
+        double WrittenOverAnotherAnimation(Composition? composition)
+        {
+            var (_, _, target) = Show();
+            var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { X = new DraggableAxisParams { Composition = composition } });
+            Presto.Animate(target, new AvaloniaAnimationParams { ["X"] = 100, Duration = 1000, Ease = "linear" });
+            Frames.Advance(100, 20);
+            draggable.X = 30;
+            Frames.Advance(500, 20);
+            var x = Convert.ToDouble(PrestoAvalonia.Get(target, "X"));
+            draggable.Revert();
+            return x;
+        }
+
+        var unset = WrittenOverAnotherAnimation(null);
+
+        Assert.Equal(WrittenOverAnotherAnimation(Composition.Replace), unset);
+        Assert.NotEqual(WrittenOverAnotherAnimation(Composition.Additive), unset);
+        Assert.NotEqual(WrittenOverAnotherAnimation(Composition.Overlap), unset);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("speed")]
+    [InlineData("threshold")]
+    public void AZeroScrollSpeedOrThresholdTurnsAutoScrollOff(string zero)
+    {
+        var (window, scroller, _, draggable) = ShowInScroller(new DraggableParams
+        {
+            ScrollSpeed = zero == "speed" ? 0 : null,
+            ScrollThreshold = zero == "threshold" ? 0 : null,
+        });
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        window.MouseMove(new Point(25, ContainerSize - 5));
+        Frames.Advance(200, 20);
+
+        Assert.Equal(0, scroller.Offset.Y);
+        Assert.Equal(ContainerSize - 30, draggable.Y);
+    }
+
+    [AvaloniaFact]
+    public void AutoScrollWaitsForTheGrabsScrollIntoView()
+    {
+        var (window, scroller, target, draggable) = ShowInScroller();
+        Canvas.SetTop(target, 180);
+        Dispatcher.UIThread.RunJobs();
+
+        window.MouseDown(new Point(25, 190), MouseButton.Left);
+        window.MouseMove(new Point(25, 195));
+        Frames.Advance(60, 20);
+
+        Assert.Equal(5d, draggable.Y);
+        Assert.True(scroller.Offset.Y <= 30, $"auto-scroll ran past the scroll into view to {scroller.Offset.Y}");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(195, 11.25)]
+    [InlineData(185, 3.75)]
+    [InlineData(175, 0)]
+    public void AutoScrollDefaultsToSpeedOnePointFiveInATwentyWideBand(double pointerY, double perFrame)
+    {
+        var (window, scroller, _, _) = ShowInScroller();
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        window.MouseMove(new Point(25, pointerY));
+        Frames.Advance(20);
+        var first = scroller.Offset.Y;
+        Frames.Advance(20);
+
+        Assert.Equal(perFrame, scroller.Offset.Y - first, 6);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(600, 0, 450)]
+    [InlineData(600, 20, 470)]
+    [InlineData(960, 0, 800)]
+    [InlineData(100, 0, 0)]
+    [InlineData(100, 60, 10)]
+    public void ScrollInViewScrollsOnlyWhenTheTargetIsLessThanTheGapInside(double top, double gap, double offset)
+    {
+        var (_, scroller, target, draggable) = ShowInScroller();
+        Canvas.SetTop(target, top);
+        Dispatcher.UIThread.RunJobs();
+
+        draggable.ScrollInView(200, gap);
+        Frames.Advance(400, 20);
+
+        Assert.Equal(offset, scroller.Offset.Y, 3);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BringingIntoViewDefaultsToThreeHundredFiftyMillisecondsOfInOutQuadWithNoGap(bool moveTarget)
+    {
+        var (_, scroller, target, draggable) = ShowInScroller();
+        Canvas.SetTop(target, 600);
+        Dispatcher.UIThread.RunJobs();
+        double Travel() => moveTarget ? -draggable.Y : scroller.Offset.Y;
+
+        if (moveTarget) draggable.AnimateInView();
+        else draggable.ScrollInView();
+        Frames.Advance(100, 20);
+        Assert.InRange(Travel(), 30, 100);
+        Frames.Advance(200, 20);
+        Assert.InRange(Travel(), 400, 449);
+        Frames.Advance(100, 20);
+
+        Assert.Equal(450, Travel(), 3);
+    }
+
+    [AvaloniaFact]
+    public void ProgressMapsEachAxisAcrossItsBounds()
+    {
+        var (_, container, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams
+        {
+            Container = container,
+            ContainerPadding = new Thickness(10, 0, 0, 0),
+        });
+
+        draggable.X = 80;
+        Assert.Equal(.5, draggable.ProgressX, 6);
+
+        draggable.ProgressY = .2;
+        Assert.Equal(30d, draggable.Y);
+    }
+
+    [AvaloniaFact]
+    public void DisablingDropsTheDragUntilEnabledAgain()
+    {
+        var (window, _, target) = Show();
+        IPointer? pointer = null;
+        target.PointerPressed += (_, e) => pointer = e.Pointer;
+        var drags = 0;
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { OnDrag = _ => drags++ });
+
+        window.MouseDown(new Point(25, 25), MouseButton.Left);
+        window.MouseMove(new Point(55, 25));
+        Frames.Advance(16);
+        draggable.Disable();
+        window.MouseMove(new Point(95, 25));
+        Frames.Advance(16);
+        window.MouseUp(new Point(95, 25), MouseButton.Left);
+
+        Assert.Equal(30d, draggable.X);
+        Assert.Null(pointer!.Captured);
+        Assert.Null(target.Cursor);
+
+        draggable.Enable().Enable();
+        drags = 0;
+        window.MouseDown(new Point(55, 25), MouseButton.Left);
+        window.MouseMove(new Point(75, 25));
+        Frames.Advance(16);
+
+        Assert.Equal(50d, draggable.X);
+        Assert.Equal(1, drags);
+    }
+
+    [AvaloniaFact]
+    public void TheReleaseCushionsPastABoundWithTheDragFrictionByDefault()
+    {
+        var (window, container, target) = Show();
+        var parameters = new DraggableParams { Container = container, ContainerFriction = .5, Y = new DraggableAxisParams { Enabled = false } };
+
+        var unset = Release(window, target, parameters);
+
+        Assert.Contains(unset, x => x > 150);
+        Assert.Equal(Release(window, target, parameters with { ReleaseContainerFriction = .5 }), unset);
+        Assert.NotEqual(Release(window, target, parameters with { ReleaseContainerFriction = .8 }), unset);
+        Assert.DoesNotContain(Release(window, target, parameters with { ContainerFriction = 1 }), x => x > 150);
+    }
+
+    [AvaloniaFact]
+    public void TheDefaultReleaseEasesOutQuintOverAMassOneStiffnessEightyDampingTwentySpring()
+    {
+        var (window, _, target) = Show();
+        var defaults = Release(window, target, new DraggableParams { Y = new DraggableAxisParams { Enabled = false } });
+        var spelled = Release(window, target, new DraggableParams
+        {
+            Y = new DraggableAxisParams { Enabled = false },
+            ReleaseEase = Eases.OutQuint,
+            ReleaseMass = 1,
+            ReleaseStiffness = 80,
+            ReleaseDamping = 20,
+        });
+        var stiffer = Release(window, target, new DraggableParams { Y = new DraggableAxisParams { Enabled = false }, ReleaseStiffness = 200 });
+
+        Assert.Equal(spelled, defaults);
+        Assert.NotEqual(spelled, stiffer);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(4, .2)]
+    [InlineData(20, 1)]
+    [InlineData(1500, 50)]
+    public void VelocityDefaultsToUnscaledAndAtMostFifty(double step, double velocity)
+    {
+        var (window, _, target) = Show();
+        var draggable = PrestoAvalonia.CreateDraggable(target, new DraggableParams { Y = new DraggableAxisParams { Enabled = false } });
+
+        Drag(window, step, 3);
+
+        Assert.Equal(velocity, draggable.Velocity, 6);
+    }
+
+    private List<double> Release(Window window, Border target, DraggableParams parameters)
+    {
+        var draggable = PrestoAvalonia.CreateDraggable(target, parameters);
+        Drag(window, 20, 4);
+        window.MouseUp(new Point(105, 25), MouseButton.Left);
+        var path = new List<double>();
+        for (var t = 0; t < 1000; t += 20)
+        {
+            Frames.Advance(20);
+            path.Add(draggable.X);
+        }
+        draggable.Revert();
+        return path;
     }
 
     // ReleaseInertia is not upstream, so these pin the opt-in release on its own.

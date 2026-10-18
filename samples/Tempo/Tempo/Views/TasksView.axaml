@@ -38,14 +38,14 @@
             <Panel>
                 <ScrollViewer x:Name="DoneScroll" MaxHeight="220">
                     <ItemsControl ItemsSource="{Binding DoneTasks}" ItemTemplate="{StaticResource TaskRowTemplate}"
-                                  presto:Animate.ItemLayout="{presto:Reflow}" DoubleTapped="OpenDetail" />
+                                  presto:Animate.ItemLayout="{presto:Reflow}" presto:Animate.ItemGroup="tasks" DoubleTapped="OpenDetail" />
                 </ScrollViewer>
-                <Border Classes="scroll-shadow top" v:ScrollEdge.ShadowTop="{Binding #DoneScroll}" />
-                <Border Classes="scroll-shadow bottom" v:ScrollEdge.ShadowBottom="{Binding #DoneScroll}" />
+                <Border Classes="scroll-shadow top" presto:Scroll.CueFor="{Binding #DoneScroll}" />
+                <Border Classes="scroll-shadow bottom" presto:Scroll.CueFor="{Binding #DoneScroll}" presto:Scroll.CueEdge="Bottom" />
             </Panel>
         </Expander>
 
-        <Panel>
+        <Panel presto:Presence.Mode="Wait">
             <TextBlock Classes="caption" Text="Nothing planned yet. Add a task to begin." TextWrapping="Wrap"
                        HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
                        IsVisible="{Binding !Tasks.Count}" presto:Presence.Arrive="{presto:WordFade}" />
@@ -61,9 +61,10 @@
             <ListBox x:Name="TaskList" Classes="tasks edge-scroll" Background="Transparent"
                      ItemsSource="{Binding VisibleTasks}" SelectedItem="{Binding SelectedTask}"
                      ItemContainerTheme="{StaticResource TaskRow}" ItemTemplate="{StaticResource TaskRowTemplate}"
-                     presto:Animate.ItemLayout="{presto:Reflow}"
+                     presto:Animate.ItemLayout="{presto:Reflow}" presto:Animate.ItemGroup="tasks"
                      presto:Reorder.Enabled="True" presto:Reorder.TouchHold="400" presto:Reorder.HoldCommand="{Binding OpenDetailCommand}" presto:Reorder.Lift="{x:Static m:TempoMotion.RowLift}"
                      presto:Selection.Motion="{x:Static m:TempoMotion.RowSelect}"
+                     presto:Animate.Cue="{Binding TaskAdded}" presto:Animate.DoOnCue="{presto:ScrollToItem}"
                      DoubleTapped="OpenDetail">
                 <presto:Selection.Indicator>
                     <Template>
@@ -71,8 +72,8 @@
                     </Template>
                 </presto:Selection.Indicator>
             </ListBox>
-            <Border Classes="scroll-shadow top" v:ScrollEdge.ShadowTop="{Binding #TaskList}" />
-            <Border Classes="scroll-shadow bottom" v:ScrollEdge.ShadowBottom="{Binding #TaskList}" />
+            <Border Classes="scroll-shadow top" presto:Scroll.CueFor="{Binding #TaskList}" />
+            <Border Classes="scroll-shadow bottom" presto:Scroll.CueFor="{Binding #TaskList}" presto:Scroll.CueEdge="Bottom" />
         </Panel>
     </DockPanel>
 </UserControl>

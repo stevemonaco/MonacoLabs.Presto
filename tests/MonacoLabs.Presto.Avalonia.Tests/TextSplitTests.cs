@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Text;
@@ -145,6 +146,34 @@ public sealed class TextSplitTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void WithoutAClassOrWrapThePiecesGetNoStyleClassAndNoClippingContainer()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(), new() { Lines = new(), Words = new(), Chars = new() });
+
+        foreach (var piece in split.Lines.Concat(split.Words).Concat(split.Chars))
+        {
+            Assert.Empty(piece.Classes);
+            Assert.False(piece.Parent is Border { ClipToBounds: true });
+        }
+    }
+
+    [AvaloniaFact]
+    public void ASplitInsideAScopeIsRevertedWithIt()
+    {
+        var block = ShowText();
+        var scope = Presto.CreateScope();
+        TextSplitter? split = null;
+
+        scope.Add(_ => { split = PrestoAvalonia.SplitText(block); });
+        Assert.Same(split, TextSplitter.Of(block));
+        scope.Revert();
+
+        Assert.Null(TextSplitter.Of(block));
+        Assert.Null(block.Inlines);
+        Assert.Equal(Sentence, block.Text);
+    }
+
+    [AvaloniaFact]
     public void WrapsEachPieceInAClippingContainer()
     {
         var split = PrestoAvalonia.SplitText(ShowText(), new()
@@ -233,6 +262,15 @@ public sealed class TextSplitTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void StaggerByLineWithoutAPieceStepGivesEveryPieceOfALineTheSameDelay()
+    {
+        var split = PrestoAvalonia.SplitText(ShowText(160));
+        var delay = TextSplitter.StaggerByLine(100);
+
+        Assert.All(split.Words, word => Assert.Equal(TextSplitter.GetLineIndex(word) * 100, DelayOf(delay, word)));
+    }
+
+    [AvaloniaFact]
     public void StaggerByLineStartOffsetsEveryDelay()
     {
         var split = PrestoAvalonia.SplitText(ShowText(160), new() { Words = null, Chars = new() });
@@ -275,6 +313,25 @@ public sealed class TextSplitTests : BridgeTestBase
         Assert.Equal(first.Right + space.Bounds.Width, split.SlotOf(split.Words[1]).X, 0.01);
         Assert.Equal(7 + split.LineHeight, split.SlotOf(split.Lines[1]).Y, 0.5);
         Assert.All(split.Words, word => Assert.Equal(word.TranslatePoint(default, block)!.Value, split.SlotOf(word).Position));
+    }
+
+    [AvaloniaFact]
+    public void ATabularBlockSplitsOnTabularSlots()
+    {
+        FontFeatureCollection tabular = [FontFeature.Parse("+tnum")];
+        var word = new TextLayout("1180", new Typeface(Inter), 40, null, fontFeatures: tabular).WidthIncludingTrailingWhitespace;
+        var oneLine = new TextLayout("1180 1180", new Typeface(Inter), 40, null, fontFeatures: tabular).WidthIncludingTrailingWhitespace;
+        // Too narrow for one tabular line, wide enough for one proportional line.
+        var block = new TextBlock { Text = "1180 1180", FontFamily = Inter, FontSize = 40, FontFeatures = tabular, TextWrapping = TextWrapping.Wrap, Width = oneLine - 1 };
+        Show(block);
+
+        var split = PrestoAvalonia.SplitText(block, new() { Lines = new(), Words = null, Chars = new() });
+        block.UpdateLayout();
+
+        Assert.Equal(["1180", "1180"], split.Lines.Select(TextOf));
+        var slots = split.Chars.Select(split.SlotOf).ToArray();
+        Assert.All(slots, slot => Assert.Equal(slots[0].Width, slot.Width, 0.01));
+        Assert.Equal(word, slots[3].Right - slots[0].Left, 0.01);
     }
 
     [AvaloniaFact]

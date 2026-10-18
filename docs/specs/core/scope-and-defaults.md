@@ -10,6 +10,7 @@ sources:
   - MonacoLabs.Presto/PrestoDefaults.cs
   - MonacoLabs.Presto/DefaultsParams.cs
   - MonacoLabs.Presto/IRevertible.cs
+  - MonacoLabs.Presto/IReleasable.cs
 types:
   - Scope
   - ScopeParams
@@ -55,11 +56,11 @@ depends:
 - **CORE-SCOPE-002** — A timer shall take each setting its params leave null (callbacks, `Loop`, `LoopDelay`, `Reversed`, `Alternate`, `Autoplay`, `FrameRate`, `PlaybackRate`, a numeric `Delay`) from its parent timeline's child defaults, or else its engine's `Defaults`, read once at construction.
   - Tests: `TimelinesTests.DefaultParametersAreInheritedByChildren`
 - **CORE-SCOPE-003** — A plain timer shall not take `Duration` from the defaults (it is infinite unless set), and shall fall back to a 0 delay when the default `Delay` is function-based.
-  - Tests: untested
+  - Tests: `ScopeTests.APlainTimerTakesNoDurationAndNoFunctionBasedDelayFromTheDefaults`
 - **CORE-SCOPE-004** — An animation shall additionally take `Duration`, `Delay`, `Ease`, `PlaybackEase`, `Composition`, `Modifier` and `OnRender` from the same defaults when its params leave them null.
   - Tests: `ScopeTests.AppliesScopedDefaultsToChildrenCreatedInside`
 - **CORE-SCOPE-005** — Changing a `PrestoDefaults` member shall affect only timers constructed afterwards.
-  - Tests: untested
+  - Tests: `ScopeTests.ChangingADefaultAffectsOnlyTimersCreatedAfterwards`
 - **CORE-SCOPE-006** — When the engine's time unit changes, the engine shall rescale a numeric default `Duration` to the new unit (see CORE-ENGINE).
   - Tests: `EngineTests.ChangingTheTimeUnitShouldAffectDurationValues`
 - **CORE-SCOPE-007** — A new engine shall start from a `with` copy of `Presto.Defaults`, after which the two change independently.
@@ -72,11 +73,11 @@ depends:
 - **CORE-SCOPE-009** — When a timeline is given `Defaults`, it shall build its children's defaults once, at construction, as a copy of its engine's defaults with every non-null `DefaultsParams` member replacing the engine's value.
   - Tests: `TimelinesTests.DefaultParametersAreInheritedByChildren`
 - **CORE-SCOPE-010** — When a timeline is given no `Defaults`, its children shall read the engine's defaults instance itself, as it stands when each child is added.
-  - Tests: untested
+  - Tests: `ScopeTests.ATimelineWithoutDefaultsReadsTheEngineDefaultsAsEachChildIsAdded`
 - **CORE-SCOPE-011** — A child's own params shall override the timeline's defaults member by member.
   - Tests: `TimelinesTests.DefaultParametersAreInheritedByChildren`
 - **CORE-SCOPE-012** (inherited) — `DefaultsParams` shall carry no reduced-motion flags; the merged copy keeps the engine's flags, and animations read `ReduceAll` from their engine's defaults in any case (CORE-REDUCED).
-  - Tests: untested
+  - Tests: `ScopeTests.TimelineDefaultsCarryNoReducedMotionFlagsAndKeepTheEngines`
 
 ### Scope creation
 
@@ -87,7 +88,7 @@ depends:
 - **CORE-SCOPE-015** — When `ScopeParams.Defaults` is set, the scope's `Defaults` shall be a `with` copy of its engine's defaults at construction, mutated by that action, leaving the engine's defaults unchanged.
   - Tests: `ScopeTests.AppliesScopedDefaultsToChildrenCreatedInside`, `ReducedMotionTests.AScopeKeepsItsOwnFlags`
 - **CORE-SCOPE-016** — When `ScopeParams.Defaults` is null, the scope's `Defaults` shall be its engine's defaults instance itself, so changes through either are seen by both.
-  - Tests: untested
+  - Tests: `ScopeTests.AScopeWithoutDefaultsSharesTheEngineInstance`
 
 ### Execute
 
@@ -98,7 +99,7 @@ depends:
 - **CORE-SCOPE-019** (inherited) — When `Execute` returns or throws, it shall restore the previous current scope, defaults and ambient engine, and let the exception propagate.
   - Tests: `ScopeTests.RestoresTheGlobalsWhenTheCallbackThrows`
 - **CORE-SCOPE-020** — A nested `Execute` of another scope shall restore the outer scope as current when it ends.
-  - Tests: untested
+  - Tests: `ScopeTests.ANestedExecuteRestoresTheOuterScope`
 
 ### Registration
 
@@ -107,11 +108,23 @@ depends:
 - **CORE-SCOPE-022** — `Register` shall record a timer's scope in its diagnostics when diagnostics are enabled (CORE-DIAGNOSTICS).
   - Tests: `OriginTests.TheScopeIsRecorded`
 - **CORE-SCOPE-023** — After an `AddOnce` or `KeepTime` call and until the next `Add`, registrations shall go to the scope's once-list, which `Refresh` does not revert.
-  - Tests: untested
-- **CORE-SCOPE-024** — When a registration brings a list to a power-of-two count of at least 32, the scope shall drop each canceled, uncompleted animation whose every captured original value it can hand to a later registered animation of the same target and property, and hand them over.
-  - Tests: `ScopeTests.ReplacedAnimationsDoNotAccumulateAndRevertStillRestoresTheOriginal`
-- **CORE-SCOPE-025** — Pruning shall keep completed animations, so their targets are still restored on revert.
+  - Tests: `ScopeTests.RegistrationsAfterAddOnceSurviveRefreshUntilTheNextAdd`, `ScopeTests.RegistrationsAfterKeepTimeSurviveRefresh`
+- **CORE-SCOPE-024** — When a registration brings a list to a power-of-two count of at least 32, the scope shall drop each canceled root animation, completed or not, with no bridge revert hook, whose every captured original value it can hand to a later registered animation of the same target and property, and hand them over.
+  - Tests: `ScopeTests.ReplacedAnimationsDoNotAccumulateAndRevertStillRestoresTheOriginal`, `ScopeTests.ReAnimatingATargetThatFinishesEachTimeStaysBounded`
+- **CORE-SCOPE-025** — Pruning shall keep a completed animation that holds an original no later animation can take, so its targets are still restored on revert.
   - Tests: `ScopeTests.CompletedAnimationsStayRegistered`
+- **CORE-SCOPE-048** — A registered entry shall be released when reverting it again would restore nothing: a timer reverted and not revived since, a canceled and paused timer with no tweens, no children, no revert hook and no scrub or settle running, an animatable after its `Revert`, a nested scope reverted with nothing registered or added since, or a library revertible after its own `Revert` and until it is used again (a compositor animation driving its visual again, `Enable`, a re-split).
+  - Tests: `ScopeTests.RevertedTimersArePrunedAndNotRevertedAgain`, `ScopeTests.AReusedPrunedNestedScopeIsRevertedByItsParent`
+- **CORE-SCOPE-049** — `Revert` and `Refresh` shall skip released entries.
+  - Tests: `ScopeTests.RevertDoesNotRewriteAValueSetAfterTheAnimationsOwnRevert`, `ScopeTests.RevertedTimersArePrunedAndNotRevertedAgain`
+- **CORE-SCOPE-050** — When a prune runs, the scope shall drop every released entry.
+  - Tests: `ScopeTests.RevertedTimersArePrunedAndNotRevertedAgain`
+- **CORE-SCOPE-051** — When a prune runs, the scope shall drop a canceled timeline together with its child animations when each child is registered after it and is released or can hand over its originals.
+  - Tests: `ScopeTests.ReplayedTimelinesInsideAScopeStayBounded`
+- **CORE-SCOPE-052** — When a timer or scope dropped by a prune is revived (`Reset`, `Seek`, `Restart`, `Resume` or `Play`) or used again (`Register`, `Add`, `AddOnce`), it shall register again with the scope that dropped it, unless that scope has since cleared the list by `Revert` or `Refresh`.
+  - Tests: `ScopeTests.ARevivedPrunedTimerIsRevertedByItsScope`, `ScopeTests.AReusedPrunedNestedScopeIsRevertedByItsParent`
+- **CORE-SCOPE-053** — An `IRevertible` from outside the library shall never be released.
+  - Tests: `ScopeTests.ARevertibleFromOutsideTheLibraryIsNeverPruned`
 
 ### Constructors and methods
 
@@ -122,7 +135,7 @@ depends:
 - **CORE-SCOPE-028** — `AddOnce` shall run its constructor inside `Execute` the first time its position is reached and skip it on every later pass, positions being counted from 0 per `Refresh`.
   - Tests: `ScopeTests.AddOnceRunsOnceAcrossRefreshes`
 - **CORE-SCOPE-029** — A cleanup returned by an `AddOnce` constructor shall run on `Revert` only.
-  - Tests: untested
+  - Tests: `ScopeTests.AddOnceCleanupsAndTimersAreLeftByRefreshAndUndoneByRevert`
 - **CORE-SCOPE-030** — `KeepTime` shall, the first time its position is reached, wrap `constructor` with `Utils.KeepTime`, run it inside `Execute` and return its timer; on later passes it shall call the stored wrapper, which reverts the previous timer and hands its iteration and progress to the new one.
   - Tests: `ScopeTests.KeepTimeKeepsThePlaybackPositionAcrossARefresh`
 
@@ -131,40 +144,40 @@ depends:
 - **CORE-SCOPE-031** — `Refresh` shall, inside `Execute`, revert the registered revertibles newest first, run the stored cleanups newest first, clear both, then re-run every `Add` constructor in order, keeping their new cleanups.
   - Tests: `ScopeTests.RefreshRevertsThenReRunsTheConstructors`
 - **CORE-SCOPE-032** — `Refresh` shall leave once-registered revertibles and once cleanups in place.
-  - Tests: untested
+  - Tests: `ScopeTests.AddOnceCleanupsAndTimersAreLeftByRefreshAndUndoneByRevert`
 - **CORE-SCOPE-033** — `Revert` shall revert the revertibles newest first, run the cleanups newest first, then do the same for the once-lists, and return the scope.
   - Tests: `ScopeTests.RevertsEverythingCreatedInside`
 - **CORE-SCOPE-034** — `Revert` shall then clear every list, the stored constructors, the once position, `Methods` and `Data`, so a later `Refresh` re-runs nothing.
-  - Tests: untested
+  - Tests: `ScopeTests.RevertClearsTheConstructorsMethodsAndData`
 - **CORE-SCOPE-035** — Reverting a scope shall revert the scopes registered with it, and through them what they created.
   - Tests: `ScopeTests.RevertsNestedScopes`
 - **CORE-SCOPE-036** — A scope shall stay usable after `Revert`: later `Add` calls register and run as on a new scope.
-  - Tests: untested
+  - Tests: `ScopeTests.AReusedPrunedNestedScopeIsRevertedByItsParent`, `ScopeTests.AScopeStaysUsableAfterRevert`
 - **CORE-SCOPE-037** — The scope shall revert any `IRevertible` passed to `Register`, not only the core types.
-  - Tests: untested
+  - Tests: `ScopeTests.RevertsAnyRegisteredRevertible`
 
 ### Defaults
 
 - **CORE-SCOPE-038** — When `PlaybackRate` is not set, a new `PrestoDefaults` shall hold 1.
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-039** — When `FrameRate` is not set, a new `PrestoDefaults` shall hold 240.
   - Tests: `ClockTests.FpsHigherThanDefaultFrameRateRaisesDefault`
 - **CORE-SCOPE-040** — When `Loop` is not set, a new `PrestoDefaults` shall hold 0 (one iteration).
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-041** — When `Reversed` and `Alternate` are not set, a new `PrestoDefaults` shall hold false for both.
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-042** — When `Autoplay` is not set, a new `PrestoDefaults` shall hold true.
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-043** — When `Delay` and `LoopDelay` are not set, a new `PrestoDefaults` shall hold 0 for both.
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-044** — When `PlaybackEase` is not set, a new `PrestoDefaults` shall hold null, so playback is not eased.
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-045** — When `Modifier` is not set, a new `PrestoDefaults` shall hold the identity function.
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-046** — When the callbacks are not set, a new `PrestoDefaults` shall hold null for each.
-  - Tests: untested
+  - Tests: `ScopeTests.ANewPrestoDefaultsHoldsThePlainTimerChoices`
 - **CORE-SCOPE-047** — When `parameters` is not given, the `Scope` constructor shall behave as with an empty `ScopeParams`.
-  - Tests: untested
+  - Tests: `ScopeTests.AScopeWithoutParametersBehavesAsWithEmptyParams`
 
 ## Invariants
 
@@ -181,8 +194,10 @@ depends:
 ## Threading and lifetime
 
 - A scope and its engine share one thread; `Execute`, `Refresh` and `Revert` must run on it (CORE-THREADING).
-- A scope holds strong references to everything registered with it until `Revert` or a prune drops them; it is not released by the engine.
-- `PrestoDefaults` has no change notification; consumers read it when their trigger fires (ReducedMotion has no change notification, CORE-REDUCED).
+- A scope holds what it must restore until `Revert`: a completed animation whose original no later animation takes over is held even when its targets are gone for good; create such animations outside the scope, or revert them when their target leaves (a host may do this on detach, BRIDGE-HELPERS). It is not released by the engine.
+- A dropped timer or scope holds a reference to the scope that dropped it until it registers again.
+- A bridge revertible dropped by a prune and then used again is not registered again; the scope's `Revert` no longer reaches it.
+- A scope's defaults raise no change signal; only an engine's own instance does (CORE-REDUCED).
 
 ## Reduced motion
 
@@ -190,13 +205,13 @@ depends:
 
 ## Allocation
 
-- Not on the tick path. Registration is amortized constant time; pruning runs only at power-of-two counts.
+- Not on the tick path. Registration is amortized constant time; pruning runs only at power-of-two counts. Re-registration adds a null check to reviving and resuming a timer.
 
 ## Provenance
 
 - `Execute` restores the scope, defaults and ambient engine in a `finally`; upstream restores them only on return. Reason: a throwing callback would otherwise leave the scope's defaults and current scope installed on the engine.
 - Media queries, `matches` and the `handleEvent` refresh are DOM-specific and not ported; the root is stored but not resolved from a selector or ref.
-- Registration prunes superseded animations; upstream lets the list grow. Reason: retargeting repeatedly inside a scope (a live feed) grew its list without bound.
+- Registration prunes released entries, and canceled animations and timelines, completed or not, whose originals later animations take over; upstream lets the list grow and reverts reverted entries again. Reason: retargeting repeatedly inside a scope (a live feed, hover in and out) grew its list without bound (Prune by released, not by finished).
 - `Methods` take no arguments; upstream's take any. Reason not recorded.
 - Cleanups receive no scope argument. Reason not recorded.
 - `Revert` returns the scope and is virtual, so a host scope can extend it.
@@ -207,10 +222,17 @@ depends:
 - **Timeline defaults: explicit ones are snapshotted, engine ones are read live.** A timeline given `Defaults` merges them over a copy of its engine's defaults at construction; one without reads the engine's defaults instance as each child is added (CORE-SCOPE-009, 010). Reason: explicit defaults are a value passed in, and engine defaults are global settings every animation reads when it is built.
 - **A new `PrestoDefaults` holds the timer's plain choices.** Its timing values are the ones CORE-TIMER's "Unset timer parameters are the plain choices" gives, the modifier is the identity and no callback is set (CORE-SCOPE-038 to 047). Reason: an unchanged engine then adds nothing to a call, so only the parameters a call sets change it.
 
+- **Prune by released, not by finished.** An entry leaves the scope when reverting it would restore nothing, not when it completes. A canceled plain timer counts only once paused and with no bridge revert hook, scrub or settle left, since reverting it would end those. Reason: a completed animation still holds the original values `Revert` must write back (CORE-SCOPE-025), so pruning finished work would break the scope's one promise. Rejected: pruning completed animations outright; capping the list and reverting the oldest.
+- **`Revert` skips released entries even when no prune has dropped them yet.** Reason: otherwise a scope's result would depend on whether its count had crossed a power of two. Reverting an already reverted animation only writes stale originals over values the app has set since. Rejected: keeping upstream's re-revert, which makes the pruned and unpruned paths differ.
+- **The handover prune extends to completed animations.** Revert runs newest first, so the oldest original of a property is the one left written, whether the completed animation reverts itself or hands its original to its successor. Only root animations hand over; a timeline's children go with their timeline, and only when every child is registered after it. An animation with a bridge revert hook is never handed over, because its revert does more than write values. Reason: repeated retargeting that lets each animation finish (hover in, hover out) grew the list exactly as superseded retargeting did before CORE-SCOPE-024.
+- **A dropped entry that comes back registers again with the scope that dropped it.** A timer or scope keeps a reference to the scope that dropped it and the list generation it was dropped from; `Revert` and `Refresh` start a new generation, so entries they cleared are not re-registered, as before. Resuming counts as reviving, since `Play` after a cancel resumes without a reset. Reason: any reverted timer can be revived (`Restart` after `Revert`), and a scope can be reused after `Revert` (CORE-SCOPE-036); without re-registration the parent's `Revert` would silently miss it.
+- **Bridge revertibles that come back are live again but not re-registered.** A compositor animation, draggable, transformable or text splitter used after its `Revert` stops reporting released, so an unpruned scope reverts it again; one a prune already dropped stays dropped. Reason: these are reused after `Revert` rarely, and each would otherwise need the timer's drop back-reference. Rejected: carrying a `PruneMark` in every bridge revertible.
+- **"Released" is internal to the library.** Core and bridge revertibles report it through an internal interface; an `IRevertible` from outside the library is never released and stays until `Revert` (CORE-SCOPE-053). Reason: no consumer has asked, and a default interface member can add it later without a break. Rejected: a public `IRevertible.IsReleased` now.
+
 ## Non-goals
 
 - Scopes do not auto-revert; tying one to a control's lifetime is the bridge's job (Explicit control scoping, BRIDGE-HELPERS).
 
 ## Open items
 
-- Clearing `Methods`/`Data` on revert, once-list routing after `AddOnce`/`KeepTime`, `Refresh` leaving the once-lists alone, `AddOnce` cleanups, nested `Execute` and reuse after `Revert` have no test.
+- None.

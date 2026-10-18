@@ -27,7 +27,7 @@ public abstract class EngineTestBase
         engine._timeOffset = 0;
         engine._currentTime = engine._lastTickTime = engine._startTime = engine._lastTime = Frames.Now;
         engine.TimeUnit = TimeUnit.Milliseconds;
-        engine.Defaults = new();
+        engine.Own(new());
         engine.Speed = 1;
         engine.Fps = 240;
         engine.Precision = 4;

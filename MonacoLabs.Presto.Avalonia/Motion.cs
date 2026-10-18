@@ -7,7 +7,7 @@ namespace MonacoLabs.Presto;
 /// <summary>
 /// State motion: while a condition holds on an element, the properties its builder names go to its values, and when it stops
 /// holding they return to the next state's values or to rest. Later states win the properties they share, in the order
-/// <see cref="HoverProperty"/>, <see cref="FocusProperty"/>, <see cref="PressProperty"/>, then <see cref="StatesProperty"/>.
+/// <see cref="HoverProperty"/>, <see cref="FocusProperty"/>, <see cref="PressProperty"/>, <see cref="StatesProperty"/>, then <see cref="LocalStatesProperty"/>.
 /// </summary>
 /// <remarks>
 /// A state that already holds when the element attaches is applied instantly rather than played, and detaching reverts
@@ -38,6 +38,13 @@ public static class Motion
         AvaloniaProperty.RegisterAttached<Control, MotionStates?>("States", typeof(Motion));
 
     /// <summary>
+    /// More conditional states, added after <see cref="StatesProperty"/>, so a style's list and an element's own list both
+    /// apply; where both name a property, the one here wins.
+    /// </summary>
+    public static readonly AttachedProperty<MotionStates?> LocalStatesProperty =
+        AvaloniaProperty.RegisterAttached<Control, MotionStates?>("LocalStates", typeof(Motion));
+
+    /// <summary>
     /// Named conditions: the whitespace- or comma-separated tokens of the value's <see cref="object.ToString"/>, so an enum
     /// matches by name. A style setter here brings any selector into a state's <see cref="MotionState.When"/>. It also
     /// names the conditions of every visual descendant with states that does not set its own, down to one that does.
@@ -64,6 +71,13 @@ public static class Motion
     public static readonly AttachedProperty<MotionOrder> OrderProperty =
         AvaloniaProperty.RegisterAttached<Control, MotionOrder>("Order", typeof(Motion));
 
+    /// <summary>
+    /// App-wide, not per element: a non-null value set here, or bound from a view model, writes through to
+    /// <see cref="PrestoAvalonia.MotionPreference"/>. Clearing it or detaching the element leaves the preference as it is.
+    /// </summary>
+    public static readonly AttachedProperty<MotionPreference?> PreferenceProperty =
+        AvaloniaProperty.RegisterAttached<AvaloniaObject, MotionPreference?>("Preference", typeof(Motion));
+
     private static readonly AttachedProperty<MotionTracker?> TrackerProperty =
         AvaloniaProperty.RegisterAttached<Control, MotionTracker?>("Tracker", typeof(Motion));
 
@@ -73,7 +87,12 @@ public static class Motion
         PressProperty.Changed.AddClassHandler<Control>(HandleChanged);
         FocusProperty.Changed.AddClassHandler<Control>(HandleChanged);
         StatesProperty.Changed.AddClassHandler<Control>(HandleChanged);
+        LocalStatesProperty.Changed.AddClassHandler<Control>(HandleChanged);
         StateProperty.Changed.AddClassHandler<Control>(HandleStateChanged);
+        PreferenceProperty.Changed.AddClassHandler<AvaloniaObject>(static (_, e) =>
+        {
+            if (!Design.IsDesignMode && e.NewValue is MotionPreference preference) PrestoAvalonia.MotionPreference = preference;
+        });
     }
 
     /// <summary>Gets the builder played while the pointer is over <paramref name="control"/>.</summary>
@@ -99,6 +118,12 @@ public static class Motion
 
     /// <summary>Sets the conditional states of <paramref name="control"/>.</summary>
     public static void SetStates(Control control, MotionStates? value) => control.SetValue(StatesProperty, value);
+
+    /// <summary>Gets the conditional states of <paramref name="control"/> added after its <see cref="StatesProperty"/>.</summary>
+    public static MotionStates? GetLocalStates(Control control) => control.GetValue(LocalStatesProperty);
+
+    /// <summary>Sets the conditional states of <paramref name="control"/> added after its <see cref="StatesProperty"/>.</summary>
+    public static void SetLocalStates(Control control, MotionStates? value) => control.SetValue(LocalStatesProperty, value);
 
     /// <summary>Gets the value whose tokens name the conditions that hold on <paramref name="control"/>.</summary>
     public static object? GetState(Control control) => control.GetValue(StateProperty);
@@ -129,6 +154,12 @@ public static class Motion
 
     /// <summary>Sets when <paramref name="control"/>'s own state animations play relative to its descendants'.</summary>
     public static void SetOrder(Control control, MotionOrder value) => control.SetValue(OrderProperty, value);
+
+    /// <summary>Gets the motion preference <paramref name="element"/> writes through to <see cref="PrestoAvalonia.MotionPreference"/>.</summary>
+    public static MotionPreference? GetPreference(AvaloniaObject element) => element.GetValue(PreferenceProperty);
+
+    /// <summary>Sets the app-wide <see cref="PrestoAvalonia.MotionPreference"/> through <paramref name="element"/>; <c>null</c> leaves it as it is.</summary>
+    public static void SetPreference(AvaloniaObject element, MotionPreference? value) => element.SetValue(PreferenceProperty, value);
 
     /// <summary>Adds <paramref name="state"/> after every other state of <paramref name="control"/>, until the returned handle is disposed.</summary>
     internal static IDisposable Add(Control control, MotionState state)
@@ -192,7 +223,7 @@ public static class Motion
         if (Design.IsDesignMode) return;
         var tracker = control.GetValue(TrackerProperty);
         if (GetHover(control) is null && GetPress(control) is null && GetFocus(control) is null && GetStates(control) is null
-            && tracker?.HasAdded != true)
+            && GetLocalStates(control) is null && tracker?.HasAdded != true)
         {
             tracker?.Release();
             control.ClearValue(TrackerProperty);

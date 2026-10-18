@@ -5,6 +5,7 @@ using Avalonia.Diagnostics;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
+using MonacoLabs.Presto.Targets;
 using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto.Tests;
@@ -199,6 +200,30 @@ public sealed class TargetAdapterTests : BridgeTestBase
 
         Assert.Equal(3, animation.Targets.Count);
         Assert.All(panel.Children, child => Assert.Equal(1, child.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void ATargetThatIsNotAnAvaloniaObjectIsLeftToTheNextAdapter()
+    {
+        var adapter = new AvaloniaObjectTargetAdapter();
+        var plain = new object();
+
+        Assert.Null(adapter.Resolve(plain, "Opacity"));
+        Assert.Null(adapter.Canonicalize(plain, "Opacity"));
+        Assert.Null(adapter.Canonicalize(plain, "X"));
+        Assert.NotNull(adapter.Resolve(new Border(), "Opacity"));
+    }
+
+    [AvaloniaFact]
+    public void TheTypedIndexersReadTheEncodedKeyAndThrowWhenItIsAbsent()
+    {
+        var animation = new AvaloniaAnimationParams { ["Visual.Opacity"] = 0.5 };
+        var animatable = new AvaloniaAnimatableParams { ["Visual.Opacity"] = new AnimatableProperty { Duration = 100 } };
+
+        Assert.Equal((TweenValue)0.5, animation[Visual.OpacityProperty]);
+        Assert.Same(animatable.Properties["Visual.Opacity"], animatable[Visual.OpacityProperty]);
+        Assert.Throws<KeyNotFoundException>(() => animation[Layoutable.WidthProperty]);
+        Assert.Throws<KeyNotFoundException>(() => animatable[Layoutable.WidthProperty]);
     }
 
     [AvaloniaFact]

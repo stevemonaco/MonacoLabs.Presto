@@ -39,6 +39,28 @@ public sealed class DrawerTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ADrawerDefaultsToTheLeftEdgeAndA20DipStrip()
+    {
+        var drawer = new Drawer();
+
+        Assert.Equal(Edge.Left, drawer.Edge);
+        Assert.Equal(20, drawer.EdgeSwipe);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(20, true)]
+    [InlineData(0, false)]
+    public void APlainSheetOpensOnAnEdgeSwipeOnlyWithAStrip(double swipe, bool opens)
+    {
+        var (window, sheet) = Stage(new Sheet { Edge = Edge.Left, EdgeSwipe = swipe });
+
+        new Touch(window).Drag(Frames, new Point(5, 100), new Vector(100, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(opens, sheet.IsOpen);
+    }
+
+    [AvaloniaFact]
     public void UnderReducedMotionAnEdgeSwipeLandsOpenAtOnce()
     {
         var (window, drawer) = Stage(Edge.Left);
@@ -50,12 +72,15 @@ public sealed class DrawerTests : CompositorTestBase
         Assert.Equal(120, drawer.Position.Value, 1);
     }
 
-    private static (Window Window, Drawer Drawer) Stage(Edge edge)
+    private static (Window Window, Drawer Drawer) Stage(Edge edge) => Stage(new Drawer { Edge = edge });
+
+    private static (Window Window, T Sheet) Stage<T>(T sheet) where T : Sheet
     {
-        var drawer = new Drawer { Edge = edge, Detents = SheetDetents.Parse("0,120"), Content = new Border { Background = Brushes.Red } };
-        var window = new Window { Content = new Panel { Children = { new Border { Background = Brushes.White }, drawer } }, Width = 200, Height = 200 };
+        sheet.Detents = SheetDetents.Parse("0,120");
+        sheet.Content = new Border { Background = Brushes.Red };
+        var window = new Window { Content = new Panel { Children = { new Border { Background = Brushes.White }, sheet } }, Width = 200, Height = 200 };
         window.Show();
         Tick();
-        return (window, drawer);
+        return (window, sheet);
     }
 }

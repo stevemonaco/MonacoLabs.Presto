@@ -1258,4 +1258,169 @@ public sealed class CallbacksTests : EngineTestBase
         Assert.Equal(0, first);
         Assert.Equal(1, second);
     }
+
+    [Fact]
+    public void CallbacksComeFromTheParametersOrTheInheritedDefaultsAsTheyAreAtConstruction()
+    {
+        var log = new List<string>();
+        Action<Timer> engineBegin = _ => log.Add("engine begin");
+        Action<Timer> engineComplete = _ => log.Add("engine complete");
+        Action<Timer> ownComplete = _ => log.Add("own complete");
+        Action<Timer> timelineBegin = _ => log.Add("timeline begin");
+        Presto.Defaults.OnBegin = engineBegin;
+        Presto.Defaults.OnComplete = engineComplete;
+
+        var timer = Presto.CreateTimer(new() { Duration = 30, Autoplay = false, OnComplete = ownComplete });
+        var tl = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { OnBegin = timelineBegin } })
+            .Add(new TimerParams { Duration = 30 });
+        var child = TestHelpers.GetChildAtIndex(tl, 0)!;
+        Presto.Defaults.OnBegin = null;
+        Presto.Defaults.OnComplete = null;
+
+        Assert.Same(engineBegin, timer.OnBegin);
+        Assert.Same(ownComplete, timer.OnComplete);
+        Assert.Same(timelineBegin, child.OnBegin);
+        Assert.Same(engineComplete, child.OnComplete);
+
+        timer.Play();
+        RunUntil(() => timer.Completed);
+        Assert.Equal(["engine begin", "own complete"], log);
+    }
+
+    [Fact]
+    public void ATimelineFiresItsOwnUpdateCallbacksBeforeItsChildrenRender()
+    {
+        var log = new List<string>();
+        var target = new StyleTarget();
+        double? xInTimelineUpdate = null;
+        Presto.CreateTimeline(new()
+        {
+            OnBeforeUpdate = _ => log.Add("timeline before"),
+            OnUpdate = _ =>
+            {
+                log.Add("timeline update");
+                xInTimelineUpdate = target.X;
+            },
+        })
+        .Add(target, new()
+        {
+            ["X"] = 100,
+            Duration = 100,
+            Ease = "linear",
+            OnBeforeUpdate = _ => log.Add("child before"),
+            OnUpdate = _ => log.Add("child update"),
+        });
+        Frames.Advance(48, 16);
+        var previousX = target.X;
+
+        log.Clear();
+        Frames.Advance(16);
+
+        Assert.Equal(["timeline before", "timeline update", "child before", "child update"], log);
+        Assert.Equal(previousX, xInTimelineUpdate);
+        Assert.True(target.X > previousX);
+    }
+
+    [Fact]
+    public void OnRenderIsFixedAtConstruction()
+    {
+        Assert.All(new[] { typeof(Timer), typeof(Animation), typeof(Timeline) }, type =>
+            Assert.DoesNotContain(type.GetProperties(), p => p.Name == "OnRender" && p.SetMethod?.IsPublic == true));
+
+        var early = 0;
+        var late = 0;
+        Presto.Defaults.OnRender = _ => early++;
+        var withDefault = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 100 });
+        Presto.Defaults.OnRender = null;
+        var withoutDefault = Presto.Animate(new StyleTarget(), new() { ["X"] = 100, Duration = 100 });
+        Presto.Defaults.OnRender = _ => late++;
+
+        Frames.Advance(48, 16);
+
+        Assert.True(early > 0);
+        Assert.Equal(0, late);
+        Assert.True(withDefault.CurrentTime > 0);
+        Assert.True(withoutDefault.CurrentTime > 0);
+    }
+
+    [Fact]
+    public void MutedRendersFireNoCallbacksButStillUpdateBeganAndCompleted()
+    {
+        var fired = new List<string>();
+        var animation = Presto.Animate(new StyleTarget(), new()
+        {
+            ["X"] = 100,
+            Duration = 100,
+            Loop = 1,
+            Autoplay = false,
+            OnBegin = _ => fired.Add("begin"),
+            OnBeforeUpdate = _ => fired.Add("before update"),
+            OnRender = _ => fired.Add("render"),
+            OnUpdate = _ => fired.Add("update"),
+            OnLoop = _ => fired.Add("loop"),
+            OnComplete = _ => fired.Add("complete"),
+        });
+
+        animation.Seek(150, muteCallbacks: true);
+        Assert.True(animation.Began);
+        Assert.False(animation.Completed);
+
+        animation.Seek(200, muteCallbacks: true);
+        Assert.True(animation.Completed);
+
+        animation.Reset();
+        Assert.False(animation.Began);
+        Assert.False(animation.Completed);
+
+        animation.Complete(muteCallbacks: true);
+        Assert.True(animation.Completed);
+
+        animation.Seek(50, muteCallbacks: true);
+        animation.Revert();
+
+        Assert.Empty(fired);
+    }
+
+    [Fact]
+    public void CallbacksRunSynchronouslyOnTheThreadThatTicksTheEngine()
+    {
+        int? workerThread = null;
+        int? callbackThread = null;
+        var firedDuringAdvance = false;
+        var worker = new Thread(() =>
+        {
+            workerThread = Environment.CurrentManagedThreadId;
+            var source = new ManualFrameSource();
+            var engine = new Engine(source);
+            using (engine.MakeCurrent())
+            {
+                Presto.CreateTimer(new() { Duration = 100, OnUpdate = _ => callbackThread = Environment.CurrentManagedThreadId });
+            }
+            source.Advance(16);
+            firedDuringAdvance = callbackThread != null;
+        });
+
+        worker.Start();
+        worker.Join();
+
+        Assert.True(firedDuringAdvance);
+        Assert.NotNull(workerThread);
+        Assert.Equal(workerThread, callbackThread);
+    }
+
+    [Fact]
+    public void UnsetCallbacksFireNothing()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 30 });
+
+        Assert.Null(timer.OnBegin);
+        Assert.Null(timer.OnBeforeUpdate);
+        Assert.Null(timer.OnUpdate);
+        Assert.Null(timer.OnLoop);
+        Assert.Null(timer.OnPause);
+        Assert.Null(timer.OnComplete);
+
+        RunUntil(() => timer.Completed);
+        Assert.True(timer.Completed);
+    }
 }

@@ -169,6 +169,59 @@ public sealed class SpriteSheetTests : CompositorTestBase
             Assert.All(Row(sheet, y)[..40], pixel => Assert.Equal(Colors.Lime, pixel));
     }
 
+    [AvaloniaTheory]
+    [InlineData(0)]
+    [InlineData(-2)]
+    public void ColumnsOrRowsOfZeroOrLessAreRejected(int count)
+    {
+        var sheet = new SpriteSheet();
+
+        Assert.Throws<ArgumentException>(() => sheet.Columns = count);
+        Assert.Throws<ArgumentException>(() => sheet.Rows = count);
+        Assert.Equal((1, 1), (sheet.Columns, sheet.Rows));
+    }
+
+    [AvaloniaFact]
+    public void WithoutColumnsAndRowsTheWholeSourceIsOneFrame()
+    {
+        var sheet = new SpriteSheet { Source = Sheet(), Stretch = Stretch.None };
+        sheet.Measure(Size.Infinity);
+
+        Assert.Equal(1, sheet.EffectiveFrameCount);
+        Assert.Equal(new Size(40, 20), sheet.DesiredSize);
+        sheet.Frame = 3;
+        Assert.Equal(0, sheet.CurrentFrame);
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetFrameShowsTheFirstFrameAndAnUnsetWrapClamps()
+    {
+        var sheet = ShowSheet(Sheet());
+
+        Assert.Equal(0, sheet.CurrentFrame);
+        Assert.Equal(Cells[0], Row(sheet, 5)[5]);
+
+        sheet.Frame = 12;
+        Assert.Equal(7, sheet.CurrentFrame);
+        sheet.Frame = -3;
+        Assert.Equal(0, sheet.CurrentFrame);
+    }
+
+    [AvaloniaFact]
+    public void PlayWithoutArgumentsLoopsForwardsAtTwentyFourFramesASecond()
+    {
+        var sheet = new SpriteSheet { Columns = 4, Rows = 2 };
+
+        var animation = sheet.Play();
+        Frames.Advance(0);
+        Frames.Advance(100);
+
+        Assert.Equal(8 * 1000 / 24d, animation.IterationDuration, 6);
+        Assert.True(double.IsPositiveInfinity(animation.IterationCount));
+        Assert.False(animation.Reversed);
+        Assert.Equal(2, sheet.CurrentFrame);
+    }
+
     private static SpriteSheet ShowSheet(IImage source, Stretch stretch = Stretch.None, double size = double.NaN,
         BitmapInterpolationMode interpolation = BitmapInterpolationMode.None)
     {

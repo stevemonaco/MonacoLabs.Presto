@@ -1043,4 +1043,38 @@ public sealed class ControlsTests : EngineTestBase
         Assert.Equal(1, tl.Progress);
         Assert.True(tl.Completed);
     }
+
+    [Fact]
+    public void SettingReversedReversesOrPlaysAndResumesTheTimer()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 1000, Autoplay = false });
+        timer.Seek(500);
+
+        timer.Reversed = true;
+        Assert.False(timer.Paused);
+        Frames.Advance(100, 16);
+        Assert.True(timer.IterationTime < 500);
+
+        timer.Pause();
+        var before = timer.IterationTime;
+        timer.Reversed = false;
+        Assert.False(timer.Paused);
+        Assert.False(timer.Reversed);
+        Frames.Advance(100, 16);
+        Assert.True(timer.IterationTime > before);
+    }
+
+    [Fact]
+    public void CompleteLeavesAPlayingTimerCompletedPausedAndCanceledAtItsEnd()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 100, Loop = 2 });
+        Frames.Advance(48, 16);
+
+        timer.Complete();
+
+        Assert.True(timer.Completed);
+        Assert.True(timer.Paused);
+        Assert.True(timer.Canceled);
+        Assert.Equal(timer.Duration, timer.CurrentTime);
+    }
 }

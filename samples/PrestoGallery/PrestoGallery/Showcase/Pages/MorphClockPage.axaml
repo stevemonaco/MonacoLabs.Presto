@@ -11,21 +11,8 @@
             <Border Classes="stage short">
                 <StackPanel Spacing="12">
                     <TextBlock Classes="eyebrow showcase" Text="CLOCK · ONLY THE CHANGED DIGITS MORPH" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <StackPanel.Styles>
-                            <Style Selector="TextBlock">
-                                <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
-                                <Setter Property="FontSize" Value="120" />
-                                <Setter Property="FontWeight" Value="Bold" />
-                                <Setter Property="Foreground" Value="{x:Static showcase:Palette.AccentPale}" />
-                            </Style>
-                        </StackPanel.Styles>
-                        <TextBlock x:Name="Hours" />
-                        <TextBlock x:Name="FirstColon" Text=":" Foreground="{x:Static showcase:Palette.Accent}" />
-                        <TextBlock x:Name="Minutes" />
-                        <TextBlock x:Name="SecondColon" Text=":" Foreground="{x:Static showcase:Palette.Accent}" />
-                        <TextBlock x:Name="Seconds" />
-                    </StackPanel>
+                    <TextBlock x:Name="Clock" FontFamily="{StaticResource DisplayFont}" FontSize="120" FontWeight="Bold" FontFeatures="+tnum"
+                               Foreground="{x:Static showcase:Palette.AccentPale}" HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
 
@@ -35,7 +22,7 @@
                         <TextBlock Classes="eyebrow showcase" Text="COUNTDOWN · 0:00 BECOMES DONE" VerticalAlignment="Center" />
                         <Button x:Name="StartButton" Grid.Column="1" Content="Start" Click="StartStop" />
                     </Grid>
-                    <TextBlock x:Name="Countdown" Text="0:10" FontFamily="{StaticResource DisplayFont}" FontSize="96" FontWeight="Bold"
+                    <TextBlock x:Name="Countdown" Text="0:10" FontFamily="{StaticResource DisplayFont}" FontSize="96" FontWeight="Bold" FontFeatures="+tnum"
                                Foreground="{x:Static showcase:Palette.Amber}" HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
@@ -98,9 +85,9 @@
                         <TextBlock Grid.Column="3" Classes="eyebrow showcase" Text="RETURNS" HorizontalAlignment="Right" />
 
                         <TextBlock Grid.Row="1" Classes="eyebrow showcase" Text="MORPHGLYPHS" VerticalAlignment="Center" />
-                        <TextBlock x:Name="MorphVisitors" Text="12480" Grid.Row="1" Grid.Column="1" Classes="stat" />
-                        <TextBlock x:Name="MorphOrders" Text="836" Grid.Row="1" Grid.Column="2" Classes="stat" />
-                        <TextBlock x:Name="MorphReturns" Text="41" Grid.Row="1" Grid.Column="3" Classes="stat" />
+                        <TextBlock x:Name="MorphVisitors" Text="12480" Grid.Row="1" Grid.Column="1" Classes="stat" FontFeatures="+tnum" />
+                        <TextBlock x:Name="MorphOrders" Text="836" Grid.Row="1" Grid.Column="2" Classes="stat" FontFeatures="+tnum" />
+                        <TextBlock x:Name="MorphReturns" Text="41" Grid.Row="1" Grid.Column="3" Classes="stat" FontFeatures="+tnum" />
 
                         <TextBlock Grid.Row="2" Classes="eyebrow showcase" Text="ROLLDIGITS" VerticalAlignment="Center" />
                         <TextBlock x:Name="RollVisitors" Text="12480" Grid.Row="2" Grid.Column="1" Classes="stat" />

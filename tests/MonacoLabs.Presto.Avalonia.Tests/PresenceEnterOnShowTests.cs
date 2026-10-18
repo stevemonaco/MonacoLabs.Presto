@@ -141,6 +141,59 @@ public sealed class PresenceEnterOnShowTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void TheHostsOwnEntrancePlaysApartFromTheBatchInTheSameFrame()
+    {
+        var (host, rows) = ShowHost(enterOnShow: true, Staggered);
+        Presence.SetEnter(host, Staggered);
+
+        host.IsVisible = true;
+        Tick();
+        Frames.Advance(50, 10);
+
+        Assert.InRange(host.Opacity, .3, .7);
+        Assert.InRange(rows[0].Opacity, .3, .7);
+        Assert.Equal(0, rows[1].Opacity);
+    }
+
+    [AvaloniaFact]
+    public void AHostHiddenAgainBeforeTheReplayingPassReplaysNothing()
+    {
+        var entered = 0;
+        var (host, rows) = ShowHost(enterOnShow: true, Staggered.OnBegin(_ => entered++));
+
+        host.IsVisible = true;
+        host.IsVisible = false;
+        Tick();
+        Frames.Advance(50, 10);
+
+        Assert.Equal(0, entered);
+        Assert.All(rows, row => Assert.Equal(1, row.Opacity));
+    }
+
+    [AvaloniaFact]
+    public void ADescendantMidHeldHideIsLeftOutOfTheReplay()
+    {
+        var (host, rows) = ShowHost(enterOnShow: true, Staggered);
+        host.IsVisible = true;
+        Tick();
+        Frames.Advance(400, 10);
+        var began = 0;
+        Presence.SetEnter(rows[1], Presto.Build().Opacity(from: 0).Duration(100).OnBegin(_ => began++));
+        Presence.SetExit(rows[1], Presto.Build().Opacity(to: 0).Duration(200).Ease("linear"));
+        rows[1].IsVisible = false;
+        Frames.Advance(50, 10);
+        Assert.True(rows[1].IsVisible);
+
+        host.IsVisible = false;
+        host.IsVisible = true;
+        Tick();
+        Frames.Advance(20, 10);
+
+        Assert.Equal(0, began);
+        Assert.InRange(rows[1].Opacity, .4, .8);
+    }
+
+    [AvaloniaFact]
     public void UnderReduceAllRevealedChildrenLandAtOnce()
     {
         Presto.Defaults.ReduceAll = true;

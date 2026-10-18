@@ -65,7 +65,7 @@ depends:
 - **BRIDGE-FRAMES-011** — A sheet's frame shall draw through the base's filters and effects.
   - Tests: `SpriteSheetTests.AFilteredFrameIsFilteredWithoutNeighboringCells`, `FilteredImageTests.ASpriteSheetFrameDissolves`
 - **BRIDGE-FRAMES-012** (inherited) — When `Columns` or `Rows` is set to 0 or less, the property system shall reject the value with an `ArgumentException`.
-  - Tests: untested
+  - Tests: `SpriteSheetTests.ColumnsOrRowsOfZeroOrLessAreRejected`
 
 ### ImageSequence
 
@@ -76,7 +76,7 @@ depends:
 - **BRIDGE-FRAMES-015** (inherited) — When `Frames` is null or empty, a sequence shall measure to zero, show frame 0 and draw nothing.
   - Tests: `ImageSequenceTests.NoFramesRendersNothing`
 - **BRIDGE-FRAMES-016** — `FromAssets(uriFormat, count, start)` shall decode `count` bitmaps up front on the calling thread, from `uriFormat` formatted with each index from `start` in the invariant culture.
-  - Tests: untested
+  - Tests: `ImageSequenceTests.FromAssetsDecodesEachFormattedIndexFromStart`
 
 ### Playing
 
@@ -89,22 +89,22 @@ depends:
 - **BRIDGE-FRAMES-020** — `Recipes.PlayFrames` shall read the frame count per target when the animation is built (`EffectiveFrameCount` of a sheet, `FrameCount` of a sequence, 1 for any other target).
   - Tests: `RecipeTests.PlayFramesPlaysAnImageSequencesFrames`, `RecipeMarkupTests.PlayFramesReadsEachSheetsFrameCount`
 - **BRIDGE-FRAMES-021** — When `delay` is given, `Recipes.PlayFrames` shall delay the start by that many ms.
-  - Tests: untested
+  - Tests: `RecipeTests.PlayFramesDelaysOnlyWhenGivenADelayAndDefaultsToTwentyFourFramesASecond`
 - **BRIDGE-FRAMES-022** — While `PrestoDefaults.ReducedMotion` is set when the animation is built, `PlayFrames` and `Play` shall set `Frame` to 0 at once, without looping or reversing.
   - Tests: `RecipeTests.ReducedPlayFramesHoldsFrameZero`
 
 ### Defaults
 
 - **BRIDGE-FRAMES-023** (inherited) — When `Columns` and `Rows` are not set, a sheet shall treat its whole `Source` as one cell.
-  - Tests: untested
+  - Tests: `SpriteSheetTests.WithoutColumnsAndRowsTheWholeSourceIsOneFrame`
 - **BRIDGE-FRAMES-024** (inherited) — When `Frame` is not set, a sheet or sequence shall show frame 0.
-  - Tests: untested
+  - Tests: `SpriteSheetTests.AnUnsetFrameShowsTheFirstFrameAndAnUnsetWrapClamps`, `ImageSequenceTests.AnUnsetFrameShowsTheFirstImage`
 - **BRIDGE-FRAMES-025** (inherited) — When `Wrap` is not set, the frame shown shall clamp to the frame range rather than wrap.
-  - Tests: untested
+  - Tests: `SpriteSheetTests.AnUnsetFrameShowsTheFirstFrameAndAnUnsetWrapClamps`
 - **BRIDGE-FRAMES-026** — When `fps`, `loop` and `reverse` are not given, `Play` shall play 24 frames a second, looping, forwards.
-  - Tests: untested
+  - Tests: `SpriteSheetTests.PlayWithoutArgumentsLoopsForwardsAtTwentyFourFramesASecond`
 - **BRIDGE-FRAMES-027** — When `start` is not given, `FromAssets` shall format indices from 0.
-  - Tests: untested
+  - Tests: `ImageSequenceTests.FromAssetsStartsAtZeroWhenNoStartIsGiven`
 
 ## Invariants
 
@@ -156,4 +156,4 @@ depends:
 
 ## Open items
 
-- Invalid `Columns`/`Rows` (BRIDGE-FRAMES-012), `FromAssets` (BRIDGE-FRAMES-016) and `PlayFrames`'s `delay` (BRIDGE-FRAMES-021) have no test.
+None.

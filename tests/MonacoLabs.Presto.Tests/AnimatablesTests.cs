@@ -1,3 +1,5 @@
+using MonacoLabs.Presto.Core;
+
 namespace MonacoLabs.Presto.Tests;
 
 /// <summary>Port of anime.js tests/suites/animatables.test.js.</summary>
@@ -734,6 +736,113 @@ public sealed class AnimatablesTests : EngineTestBase
         Frames.Advance(16);
 
         Assert.InRange(target.X, 0.001, 99);
+    }
+
+    [Fact]
+    public void PropertyAnimationsReplaceUnlessThePropertySetsAComposition()
+    {
+        Presto.Defaults.Composition = Composition.Overlap;
+
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100, ["Y"] = new() { Composition = Composition.Overlap } });
+
+        Assert.Equal(Composition.Replace, animatable.Animations["X"]._headTween!.Composition);
+        Assert.Equal(Composition.Overlap, animatable.Animations["Y"]._headTween!.Composition);
+    }
+
+    [Fact]
+    public void PlaybackRateAndFrameRateReachEveryPropertyAnimation()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 100, ["Y"] = 100, PlaybackRate = 2, FrameRate = 30 });
+
+        Assert.All(animatable.Animations.Values, animation =>
+        {
+            Assert.Equal(2, animation.Speed);
+            Assert.Equal(30, animation.Fps);
+        });
+    }
+
+    [Fact]
+    public void AnUndeclaredPropertyReadsAsNothingAndIgnoresSetAndFling()
+    {
+        var target = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(target, new() { ["X"] = 100 });
+
+        Assert.Equal(0, animatable.Get("Y"));
+        Assert.Empty(animatable.GetChannels("Y"));
+        Assert.Same(animatable, animatable.Set("Y", 50));
+        Assert.Same(animatable, animatable.Set("Y", [50d]));
+        Assert.Same(animatable, animatable.Fling("Y", 1));
+        Assert.Same(animatable, animatable.Fling("Y"));
+        Frames.Advance(200, 16);
+        Assert.Equal(0, target.Y);
+    }
+
+    [Fact]
+    public void EachCallbackReceivesTheAnimatable()
+    {
+        var received = new List<Animatable>();
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new()
+        {
+            ["X"] = 50,
+            OnBegin = received.Add,
+            OnUpdate = received.Add,
+            OnComplete = received.Add,
+        });
+
+        animatable.Set("X", 100);
+        Frames.Advance(200, 16);
+
+        Assert.True(received.Count >= 3);
+        Assert.All(received, callee => Assert.Same(animatable, callee));
+    }
+
+    [Fact]
+    public void FlingPlansOfDifferentLengthsEachEndOnTheirOwnRest()
+    {
+        var near = new StyleTarget { X = 250 };
+        var far = new StyleTarget();
+        var animatable = Presto.CreateAnimatable(new[] { near, far }, new() { ["X"] = 100 });
+        var settings = new Inertia { Power = 2, TimeConstant = 200, Max = 300 };
+        var nearLength = Length(InertiaSolver.Resolve(250, .5, settings));
+        var farLength = Length(InertiaSolver.Resolve(0, .5, settings));
+        Assert.NotEqual(nearLength, farLength);
+
+        animatable.Fling("X", .5, settings);
+        var animation = animatable.Animations["X"];
+
+        Assert.Equal(Math.Max(nearLength, farLength), animation.Duration, 6);
+        RunUntil(() => animation.Paused);
+        Assert.Equal(300, near.X, 1e-9);
+        Assert.Equal(200, far.X, 1e-9);
+
+        static double Length(InertiaSolver.Plan plan) => plan.Duration + (plan.Then?.Duration ?? 0);
+    }
+
+    [Fact]
+    public void AfterRevertGetIsZeroAndGetChannelsEmpty()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = 0, ["BackgroundColor"] = 0 });
+        animatable.Set("X", 50).Set("BackgroundColor", [0d, 0, 0, 1]);
+        Frames.Advance(16);
+
+        animatable.Revert();
+
+        Assert.Equal(0, animatable.Get("X"));
+        Assert.Empty(animatable.GetChannels("BackgroundColor"));
+    }
+
+    [Fact]
+    public void ARetargetedSpringStartsFromRestWhenPreserveVelocityIsNeverSet()
+    {
+        var animatable = Presto.CreateAnimatable(new StyleTarget(), new() { ["X"] = new(), Ease = new Spring(stiffness: 120, damping: 12) });
+
+        animatable.Set("X", 100);
+        Frames.Advance(160, 16);
+        var before = Velocity(animatable);
+        animatable.Set("X", 0);
+
+        var after = Velocity(animatable);
+        Assert.True(Math.Abs(after) < before * .02, $"{after} per ms after the retarget against {before} before it");
     }
 
     private static Animatable MomentumFollower(StyleTarget target, bool preserveVelocity) =>

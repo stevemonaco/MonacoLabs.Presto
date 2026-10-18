@@ -24,7 +24,7 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.AccentDim}" />
         </Style>
-        <Style Selector="Border.lane.target">
+        <Style Selector="Border.lane:dragover">
             <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Accent}" />
             <Setter Property="Background" Value="{x:Static showcase:Palette.AccentDeep}" />
         </Style>
@@ -126,7 +126,7 @@
         <Border Grid.Row="2" Classes="stage">
             <ScrollViewer x:Name="Scroller">
                 <Grid x:Name="Board" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" HorizontalAlignment="Left">
-                    <Border Grid.Column="3" x:Name="Bin" Classes="lane bin">
+                    <Border Grid.Column="3" x:Name="Bin" Classes="lane bin" presto:Drop.Group="lanes">
                         <TextBlock Classes="eyebrow showcase" Text="BIN" HorizontalAlignment="Center" />
                     </Border>
                 </Grid>

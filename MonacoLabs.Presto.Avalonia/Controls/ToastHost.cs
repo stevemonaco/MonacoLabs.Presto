@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Threading;
 
 namespace MonacoLabs.Presto.Controls;
 
@@ -40,8 +41,21 @@ public sealed class ToastHost : ItemsControl
     public static readonly AttachedProperty<Toast?> ToastProperty =
         AvaloniaProperty.RegisterAttached<ToastHost, Control, Toast?>("Toast", inherits: true);
 
+    /// <summary>
+    /// Makes a <see cref="Button"/> inside a toast dismiss that toast on <see cref="Button.Click"/>, in the dispatcher's
+    /// next job. The click stays unhandled, so the button's command runs first.
+    /// </summary>
+    public static readonly AttachedProperty<bool> DismissOnClickProperty =
+        AvaloniaProperty.RegisterAttached<ToastHost, Button, bool>("DismissOnClick");
+
     private readonly List<Toast> _toasts = [];
     private bool _changing;
+
+    static ToastHost() => Button.ClickEvent.AddClassHandler<Button>((button, _) =>
+    {
+        // Button reads its Command after Click; removing the container first would unbind it.
+        if (GetDismissOnClick(button) && GetToast(button) is { } toast) Dispatcher.UIThread.Post(toast.Dismiss);
+    });
 
     /// <summary>Creates an empty host.</summary>
     public ToastHost() => Items.CollectionChanged += (_, _) =>
@@ -70,6 +84,12 @@ public sealed class ToastHost : ItemsControl
 
     /// <summary>Gets the toast <paramref name="control"/> belongs to, or null outside one.</summary>
     public static Toast? GetToast(Control control) => control.GetValue(ToastProperty);
+
+    /// <summary>Gets whether <paramref name="button"/> dismisses its toast when clicked.</summary>
+    public static bool GetDismissOnClick(Button button) => button.GetValue(DismissOnClickProperty);
+
+    /// <summary>Sets whether <paramref name="button"/> dismisses its toast when clicked.</summary>
+    public static void SetDismissOnClick(Button button, bool value) => button.SetValue(DismissOnClickProperty, value);
 
     /// <summary>Adds a toast showing <paramref name="content"/> that dismisses itself <paramref name="duration"/> ms after it loads.</summary>
     public Toast Show(object content, double duration = 4000)

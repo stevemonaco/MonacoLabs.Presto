@@ -4,6 +4,7 @@ using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Metadata;
+using Avalonia.Threading;
 
 namespace MonacoLabs.Presto.Controls;
 
@@ -36,7 +37,10 @@ public sealed class Modal : Control
     public static readonly StyledProperty<Control?> ContentProperty =
         AvaloniaProperty.Register<Modal, Control?>(nameof(Content));
 
-    /// <summary>Whether the modal is open. Setting it true opens it without an origin.</summary>
+    /// <summary>
+    /// Whether the modal is open. Setting it true opens it from the pending <see cref="IsOriginProperty"/> origin, or
+    /// without one.
+    /// </summary>
     public static readonly StyledProperty<bool> IsOpenProperty =
         AvaloniaProperty.Register<Modal, bool>(nameof(IsOpen), defaultBindingMode: BindingMode.TwoWay);
 
@@ -51,12 +55,31 @@ public sealed class Modal : Control
     public static readonly StyledProperty<Control?> BackdropProperty =
         AvaloniaProperty.Register<Modal, Control?>(nameof(Backdrop));
 
+    /// <summary>
+    /// Makes the element's <see cref="Button.Click"/> (a <see cref="Button"/>) or <see cref="InputElement.Tapped"/> (any
+    /// other element) the origin of a modal that opens without one before the dispatcher's next job, such as through a
+    /// bound <see cref="IsOpen"/> the element's command sets.
+    /// </summary>
+    public static readonly AttachedProperty<bool> IsOriginProperty =
+        AvaloniaProperty.RegisterAttached<Modal, InputElement, bool>("IsOrigin");
+
     private const double BackdropRadius = 6;
+
+    private static Visual? s_pendingOrigin;
 
     private readonly Border _scrim = new() { IsVisible = false, IsHitTestVisible = false };
     private readonly Decorator _panel = new() { IsVisible = false, IsHitTestVisible = false, Focusable = true };
     private Point? _origin;
     private IInputElement? _opener;
+
+    static Modal()
+    {
+        Button.ClickEvent.AddClassHandler<Button>((button, _) => Pend(button));
+        TappedEvent.AddClassHandler<InputElement>((element, _) =>
+        {
+            if (element is not Button) Pend(element);
+        });
+    }
 
     /// <summary>Creates a closed modal.</summary>
     public Modal()
@@ -104,10 +127,11 @@ public sealed class Modal : Control
     }
 
     /// <summary>
-    /// Opens the modal, revealing its content from the center of <paramref name="from"/>, or at once without it. Called while
-    /// open, it only replaces the origin the close shrinks into.
+    /// Opens the modal, revealing its content from the center of <paramref name="from"/>, mapped through screen coordinates
+    /// when it is under another visual root; without one, from the pending <see cref="IsOriginProperty"/> origin or at once.
+    /// Called while open, it only replaces the origin the close shrinks into.
     /// </summary>
-    public void Open(Visual? from = null) => Reveal(from?.TranslatePoint(new Point(from.Bounds.Width / 2, from.Bounds.Height / 2), this));
+    public void Open(Visual? from = null) => Reveal(from is null ? null : CenterOf(from));
 
     /// <summary>
     /// Opens the modal, revealing its content from <paramref name="origin"/>, in the modal's coordinates. Called while open,
@@ -117,6 +141,12 @@ public sealed class Modal : Control
 
     /// <summary>Closes the modal, shrinking its content back into the origin it opened from.</summary>
     public void Close() => IsOpen = false;
+
+    /// <summary>Gets whether <paramref name="element"/>'s activation is the origin of a modal opening without one.</summary>
+    public static bool GetIsOrigin(InputElement element) => element.GetValue(IsOriginProperty);
+
+    /// <summary>Sets whether <paramref name="element"/>'s activation is the origin of a modal opening without one.</summary>
+    public static void SetIsOrigin(InputElement element, bool value) => element.SetValue(IsOriginProperty, value);
 
     /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -149,6 +179,23 @@ public sealed class Modal : Control
         return finalSize;
     }
 
+    private static void Pend(InputElement element)
+    {
+        if (!GetIsOrigin(element)) return;
+        s_pendingOrigin = element;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (s_pendingOrigin == element) s_pendingOrigin = null;
+        });
+    }
+
+    private Point? CenterOf(Visual from)
+    {
+        var center = new Point(from.Bounds.Width / 2, from.Bounds.Height / 2);
+        if (from.TranslatePoint(center, this) is { } at) return at;
+        return TopLevel.GetTopLevel(from) is null || TopLevel.GetTopLevel(this) is null ? null : this.PointToClient(from.PointToScreen(center));
+    }
+
     private void Reveal(Point? origin)
     {
         _origin = origin;
@@ -161,6 +208,7 @@ public sealed class Modal : Control
         if (open)
         {
             _opener = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+            if (_origin is null && s_pendingOrigin is { } pending) _origin = CenterOf(pending);
             Presence.SetEnter(_scrim, Recipes.Fade());
             Presence.SetEnter(_panel, reduced || _origin is not { } at ? null : Recipes.CircularReveal(new RelativePoint(at, RelativeUnit.Absolute)));
         }

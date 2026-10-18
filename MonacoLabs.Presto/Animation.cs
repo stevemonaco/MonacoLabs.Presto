@@ -486,6 +486,13 @@ public sealed class Animation : Timer
         return this;
     }
 
+    /// <inheritdoc cref="Timer.ThenOrCancel"/>
+    public new async Task<Animation> ThenOrCancel(CancellationToken cancellationToken = default)
+    {
+        await base.ThenOrCancel(cancellationToken);
+        return this;
+    }
+
     /// <inheritdoc cref="Timer.GetAwaiter"/>
     public new TaskAwaiter<Animation> GetAwaiter() => Then().GetAwaiter();
 

@@ -57,11 +57,11 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-001** — When an engine is constructed, it shall start with `Defaults` set to an independent copy of `Presto.Defaults` as they are at that moment.
   - Tests: `EnginesTests.DefaultsStartAsACopyOfTheMainEnginesAndThenDiverge`
 - **CORE-ENGINE-002** — The main engine, `Presto.Engine`, shall be driven by a `StopwatchFrameSource` and start from a fresh `PrestoDefaults`.
-  - Tests: untested
+  - Tests: `EngineTests.TheMainEngineStartsOnAStopwatchFrameSourceWithFreshDefaultsInMilliseconds`
 - **CORE-ENGINE-003** — The engine shall report `Now` as the frame source's `Now` times `TimeDilation` (times 0 while frozen) plus an offset that keeps `Now` continuous across every change of rate.
   - Tests: `EngineTimeTests.AFrozenEngineIgnoresTheFrameSource`, `EngineTimeTests.HalfDilationHalvesTimerAndSpringProgress`, `EngineTimeTests.ThawingDoesNotJump`
 - **CORE-ENGINE-004** — When `FrameSource` is replaced, the engine shall keep `Now` continuous and, if the pump was running, stop the old source and start the new one.
-  - Tests: untested
+  - Tests: `EngineTests.ReplacingTheFrameSourceWhileRunningMovesThePumpWithoutAJump`, `EngineTests.ReplacingTheFrameSourceWhileIdleDoesNotStartTheNewOne`
 
 ### Frame pump
 
@@ -93,7 +93,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-016** — When a callback run by `Update` unlinks another child, the children still linked shall all tick in that same frame.
   - Tests: `EngineTests.RemovingATargetFromACallbackKeepsTheOtherChildrenTicking`
 - **CORE-ENGINE-017** — After the children, `Update` shall update the engine's additive animation, then step its moving `MotionValue`s, then flush the queued sinks.
-  - Tests: untested
+  - Tests: `EngineTests.UpdateRunsTheAdditiveAnimationThenStepsValuesThenFlushesSinks`
 - **CORE-ENGINE-018** — When a sink is queued while the engine flushes sinks, it shall flush on the next frame.
   - Tests: `MotionValueTests.ASetFromAHandlerFlushesOnTheNextFrame`
 
@@ -102,15 +102,15 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-019** — When `Pause` is called while the frame source is running, the engine shall stop it, set `Paused`, and record the engine time it stopped at, leaving every timer where it stands.
   - Tests: `EngineTests.PauseAndResumeTheEngine`
 - **CORE-ENGINE-020** — When `Pause` is called while the frame source is idle, the engine shall change nothing.
-  - Tests: untested
+  - Tests: `EngineTests.PausingAnIdleEngineChangesNothing`
 - **CORE-ENGINE-021** — `Paused` shall read true from construction until the first `Resume`.
-  - Tests: untested
+  - Tests: `EngineTests.AnEngineReadsPausedUntilItsFirstResume`
 - **CORE-ENGINE-022** — When `Resume` is called while `Paused`, the engine shall clear `Paused`, rebase every child's start time so the paused interval does not count as elapsed, shift each moving `MotionValue` by the paused interval, and then `Wake`.
   - Tests: `EngineTests.PauseAndResumeTheEngine`, `EngineTimeTests.ASpringSurvivesPauseAndResumeWithoutSnappingToRest`
 - **CORE-ENGINE-023** — When `Resume` is called while not `Paused`, the engine shall do nothing.
-  - Tests: untested
+  - Tests: `EngineTests.ResumingAnEngineThatIsNotPausedDoesNothing`
 - **CORE-ENGINE-024** — When a timer resumes after `Pause`, the engine's `Wake` shall restart the frame source while `Paused` stays true and no child is rebased.
-  - Tests: untested
+  - Tests: `EngineTests.PlayingATimerAfterPauseRestartsThePumpWithoutRebasing`
 
 ### Speed, time unit and precision
 
@@ -119,9 +119,9 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-026** — When `TimeUnit` is set to `Seconds` on `Presto.Engine`, every duration, delay and time value in the API shall be read in seconds: the numeric default duration and the engine's internal speed are multiplied by 0.001 and the forced-render threshold becomes 0.2, while `Speed` still reads 1; setting `Milliseconds` reverses it.
   - Tests: `EngineTests.ChangingTheTimeUnitShouldAffectDurationValues`, `EngineTests.EngineSpeedReads1InSecondsMode`, `SecondsTests.ATimerPlaysInSeconds`
 - **CORE-ENGINE-027** — When `TimeUnit` is set on `Presto.Engine` to the unit already in force, the engine shall change nothing; on any other engine it throws (CORE-THREADING-029).
-  - Tests: untested
+  - Tests: `EngineTests.SettingTheTimeUnitInForceChangesNothing`
 - **CORE-ENGINE-028** (inherited) — When the default duration is function-based, switching `TimeUnit` shall leave it unscaled.
-  - Tests: untested
+  - Tests: `EngineTests.AFunctionBasedDefaultDurationIsNotRescaledByTheTimeUnit`
 - **CORE-ENGINE-029** — `Precision` (default 4) shall set the decimals that time getters report and that the in-between frames of string values are rounded to.
   - Tests: `EngineTests.DefaultPrecisionShouldBe4`, `EngineTests.ChangingPrecisionAffectsReportedTime`, `EngineTests.PrecisionRoundsOnlyTheInBetweenFrames`
 
@@ -138,7 +138,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-034** — When `TimeDilation` is set to zero or a negative value, the engine shall throw `ArgumentOutOfRangeException`.
   - Tests: `EngineTimeTests.TimeDilationMustBePositive`
 - **CORE-ENGINE-035** (inherited) — When `TimeDilation` is set while frozen, the new rate shall take effect at `Thaw`.
-  - Tests: untested
+  - Tests: `EngineTimeTests.DilationSetWhileFrozenTakesEffectAtThaw`
 - **CORE-ENGINE-036** — When `Step(ms)` is called, the engine shall advance engine time by `ms`, undilated, and run one `Update`, whether frozen or not.
   - Tests: `EngineTimeTests.StepMovesATimerAndASpringByExactlyOneFrame`, `EngineTimeTests.ATimerCreatedWhileFrozenStartsFromFrozenTime`
 - **CORE-ENGINE-037** — When a timer is created while the engine is frozen, it shall start from the frozen engine time.
@@ -159,13 +159,13 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-043** (inherited) — When `PauseOnHidden` is turned off while hidden, the engine shall resume.
   - Tests: `EngineHiddenTests.TurningPauseOnHiddenOffWhileHiddenResumes`
 - **CORE-ENGINE-044** (inherited) — When `PauseOnHidden` is turned on while hidden, the engine shall pause.
-  - Tests: untested
+  - Tests: `EngineHiddenTests.TurningPauseOnHiddenOnWhileHiddenPauses`
 - **CORE-ENGINE-045** — When the engine is shown while frozen, it shall stay stopped until `Thaw`.
   - Tests: `EngineHiddenTests.ThawingAfterAFrozenShowWakes`
 - **CORE-ENGINE-046** — When the engine is shown, timers and moving values shall carry on without counting the hidden interval, in either time unit.
   - Tests: `EngineHiddenTests.HidingPausesAndShowingResumesWithoutAJump`, `EngineHiddenTests.AMovingValueResumesWithoutAJump`, `EngineHiddenTests.HidingDoesNotJumpInSecondsMode`
 - **CORE-ENGINE-047** (inherited) — When `Hidden` or `PauseOnHidden` is set to its current value, the engine shall change nothing.
-  - Tests: untested
+  - Tests: `EngineHiddenTests.SettingHiddenOrPauseOnHiddenToItsCurrentValueChangesNothing`
 
 ### Clock
 
@@ -186,7 +186,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-053** (inherited) — `ManualFrameSource.Advance(ms, step)` shall advance in `step`-sized frames, the last one partial, landing exactly on `Now + ms`.
   - Tests: `FrameSourceTests.ManualSteppedAdvanceInvokesPerFrameAndLandsOnTarget`
 - **CORE-ENGINE-054** (inherited) — When `Advance(ms, step)` is given a `step` of zero or less, it shall throw `ArgumentOutOfRangeException`.
-  - Tests: untested
+  - Tests: `FrameSourceTests.ManualSteppedAdvanceRejectsANonPositiveStep`
 - **CORE-ENGINE-055** (inherited) — When `Start` is called on a started frame source, it shall keep the first callback.
   - Tests: `FrameSourceTests.ManualStartTwiceKeepsFirstCallback`
 - **CORE-ENGINE-056** (inherited) — When `Stop` is called from inside the frame callback, the frame source shall deliver no further frames, and a stepped `Advance` shall still land on its target time.
@@ -198,30 +198,30 @@ The engine is the root clock: it owns the linked list of running root timers and
 - **CORE-ENGINE-059** (inherited) — When the starting thread has a `SynchronizationContext`, the source shall post each frame through it with at most one frame in flight, and a frame posted before `Stop` shall not run after it.
   - Tests: `FrameSourceTests.StopwatchPostsFramesThroughTheStartingThreadsSynchronizationContext`
 - **CORE-ENGINE-060** (inherited) — When `Stop` and then `Start` are called from inside a `StopwatchFrameSource` callback, the old pump loop shall retire instead of running beside the new one.
-  - Tests: untested
+  - Tests: `FrameSourceTests.StopwatchStopAndStartFromInsideTheCallbackRetiresTheOldPump`
 
 ### Defaults
 
 - **CORE-ENGINE-061** — When `UseDefaultMainLoop` is not set, the engine shall run its own frame pump (true).
-  - Tests: untested
+  - Tests: `EngineTests.ANewEnginePumpsItselfWhileShownAtTheFrameSourcesRateAndUpTo240Fps`
 - **CORE-ENGINE-062** — When `PauseOnHidden` is not set, the engine shall pause while `Hidden` (true).
   - Tests: `EngineHiddenTests.HidingPausesAndShowingResumesWithoutAJump`
 - **CORE-ENGINE-063** (inherited) — When `Hidden` has not been set by the host, the engine shall treat itself as shown (false).
-  - Tests: untested
+  - Tests: `EngineTests.ANewEnginePumpsItselfWhileShownAtTheFrameSourcesRateAndUpTo240Fps`
 - **CORE-ENGINE-064** — When `TimeDilation` is not set, engine time shall advance at the frame source's rate (1).
-  - Tests: untested
+  - Tests: `EngineTests.ANewEnginePumpsItselfWhileShownAtTheFrameSourcesRateAndUpTo240Fps`
 - **CORE-ENGINE-065** — When `Step` is called without an argument, the engine shall advance by one 60 fps frame (`1000 / 60` ms).
-  - Tests: untested
+  - Tests: `EngineTimeTests.StepWithoutAnArgumentAdvancesOne60FpsFrame`
 - **CORE-ENGINE-066** — When `Speed` is not set, the engine and every `Clock` shall run at a playback rate of 1.
   - Tests: `EnginesTests.AnEngineCreatedInSecondsModeRunsAtTheSameSpeedAsTheMainOne`
 - **CORE-ENGINE-067** — When `TimeUnit` has not been set, time values shall be read in milliseconds.
-  - Tests: untested
+  - Tests: `EngineTests.TheMainEngineStartsOnAStopwatchFrameSourceWithFreshDefaultsInMilliseconds`
 - **CORE-ENGINE-068** — When `Fps` is not set, a clock shall render at up to 240 fps.
-  - Tests: untested
+  - Tests: `EngineTests.ANewEnginePumpsItselfWhileShownAtTheFrameSourcesRateAndUpTo240Fps`
 - **CORE-ENGINE-069** (inherited) — A new `ManualFrameSource` shall start with `Now` at 0.
   - Tests: `FrameSourceTests.ManualAdvanceBumpsNowWithoutRunningBeforeStart`
 - **CORE-ENGINE-070** — When `StopwatchFrameSource` is constructed without a `TimeProvider`, it shall read time from `TimeProvider.System`.
-  - Tests: untested
+  - Tests: `FrameSourceTests.StopwatchWithoutATimeProviderReadsTheSystemClock`
 
 ## Invariants
 
@@ -245,7 +245,7 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 ## Reduced motion
 
-- Not affected: the engine plays whatever timers it is given; reduced forms are chosen when animations are built (CORE-REDUCED).
+- Not affected: the engine plays whatever timers it is given; reduced forms are chosen when animations are built (CORE-REDUCED). The engine reports a change of its flags through `ReducedMotionChanged` (CORE-REDUCED).
 
 ## Allocation
 
@@ -285,4 +285,4 @@ The engine is the root clock: it owns the linked list of running root timers and
 
 ## Open items
 
-- Untested: replacing `FrameSource` while running, `Pause` on an idle engine, `Wake` after `Pause`, `PauseOnHidden` turned on while hidden, and `Advance(ms, step)` with a non-positive step.
+None.

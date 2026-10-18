@@ -201,6 +201,20 @@ public sealed class ScrollAnchorTests : CompositorTestBase
         Assert.Equal(("added", 0d), Reading(list));
     }
 
+    [AvaloniaFact]
+    public void TheAnchorEndsOnceThePassThatRealizesTheChangeHasFinished()
+    {
+        var items = Rows(200);
+        var list = Show(Feed(items));
+        Jump(list, 3100);
+
+        items.Insert(1, "added");
+        Assert.True(ItemChanges.For(list).Anchoring);
+        Tick();
+
+        Assert.False(ItemChanges.For(list).Anchoring);
+    }
+
     // Headless input extensions drain Background jobs first; a desktop lets input outrank them.
     private static void UnqueuedWheel(Window window, Point at, Vector delta) =>
         window.PlatformImpl!.GetType().GetInterface("IHeadlessWindow")!.GetMethod("MouseWheel")!.Invoke(window.PlatformImpl, [at, delta, RawInputModifiers.None]);

@@ -257,6 +257,24 @@ public sealed class PresenceVisibilityTests : CompositorTestBase
         Assert.Empty(Ghosts(box));
     }
 
+    [AvaloniaFact]
+    public void AVisibilityFlipWhileDetachedPlaysNothing()
+    {
+        var (box, _) = ShowBox();
+        Presence.SetEnter(box, Presto.Build().Opacity(from: 0).Duration(200));
+        ((Panel)box.GetVisualParent()!).Children.Remove(box);
+
+        box.IsVisible = false;
+
+        Assert.False(box.IsVisible);
+        Assert.Empty(Presto.GetAnimations(box));
+
+        box.IsVisible = true;
+
+        Assert.Empty(Presto.GetAnimations(box));
+        Assert.Equal(1, box.Opacity);
+    }
+
     private static (Border Box, Border Below) ShowBox(PresenceHideMode mode = PresenceHideMode.Hold, AnimationBuilder? exit = null)
     {
         var box = Box();

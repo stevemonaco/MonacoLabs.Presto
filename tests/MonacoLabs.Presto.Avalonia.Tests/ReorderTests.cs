@@ -7,7 +7,9 @@ using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Logging;
 using Avalonia.Media;
 using MonacoLabs.Presto.Gestures;
 
@@ -482,6 +484,293 @@ public sealed class ReorderTests : CompositorTestBase
         Assert.Equal(0, container.ZIndex);
         Assert.Null(container.Effect);
         Assert.True(container.RenderTransform is null or { Value.IsIdentity: true });
+    }
+
+    [AvaloniaFact]
+    public void DraggingOverAFilteredViewMovesTheSourceAndKeepsTheRowUnderThePointer()
+    {
+        var (list, source) = ShowFiltered();
+        var window = WindowOf(list);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 5));
+        Frames.Advance(1000);
+        Tick();
+        var start = Top(list);
+
+        for (var dy = 10; dy <= 60; dy += 5)
+        {
+            window.MouseMove(OnRed + new Point(0, dy));
+            Tick();
+            Assert.Equal(start + dy - 5, Top(list));
+        }
+
+        Assert.Equal(["a", "x1", "green", "x2", "d", "red", "e"], source);
+        Assert.Equal(["a", "green", "d", "red", "e"], (FilteredView<string>)list.ItemsSource!);
+    }
+
+    [AvaloniaFact]
+    public void EscapeOverAFilteredViewWalksTheSourceBackToItsOriginalOrder()
+    {
+        var (list, source) = ShowFiltered();
+        var window = WindowOf(list);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 50));
+        Assert.Equal(["a", "x1", "green", "x2", "d", "red", "e"], source);
+
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        window.MouseUp(OnRed + new Point(0, 50), MouseButton.Left);
+        Land();
+
+        Assert.Equal(["a", "x1", "red", "green", "x2", "d", "e"], source);
+    }
+
+    [AvaloniaFact]
+    public void AltArrowsMoveThroughAFilteredViewAndLeaveTheHiddenItemsInPlace()
+    {
+        var (list, source) = ShowFiltered();
+        var window = WindowOf(list);
+        list.ContainerFromItem("red")!.Focus();
+
+        void Press(Key key, PhysicalKey physical) => window.KeyPress(key, RawInputModifiers.Alt, physical, null);
+        Press(Key.Down, PhysicalKey.ArrowDown);
+        Assert.Equal(["a", "x1", "green", "x2", "red", "d", "e"], source);
+
+        Press(Key.Up, PhysicalKey.ArrowUp);
+        Press(Key.Up, PhysicalKey.ArrowUp);
+
+        Assert.Equal(["red", "a", "x1", "green", "x2", "d", "e"], source);
+        Assert.True(list.ContainerFromItem("red")!.IsFocused);
+    }
+
+    // The view shows "a", "red", "green", "d", "e", the rows of ReorderList, over a source with "x1" and "x2" hidden.
+    private static (ItemsControl List, ObservableCollection<string> Source) ShowFiltered()
+    {
+        ObservableCollection<string> source = ["a", "x1", "red", "green", "x2", "d", "e"];
+        var list = VirtualizedList([]);
+        list.ItemsSource = new FilteredView<string>(source, item => !item.StartsWith('x'));
+        Reorder.SetEnabled(list, true);
+        return (ShowInWindow(list), source);
+    }
+
+    [AvaloniaFact]
+    public void EnablingInDesignModeDoesNothing()
+    {
+        var (list, items) = ReorderList(virtualized: false);
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!;
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Reorder.SetEnabled(list, true);
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+        var window = WindowOf(list);
+
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 50));
+        window.MouseUp(OnRed + new Point(0, 50), MouseButton.Left);
+
+        Assert.Equal(["a", "red", "green", "d", "e"], items);
+    }
+
+    [AvaloniaFact]
+    public void DetachingTheListMidDragDropsTheDragWithoutTheSettleSpring()
+    {
+        var (list, _, _) = Show(virtualized: false);
+        var window = WindowOf(list);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 35));
+        var container = list.ContainerFromItem("red")!;
+        Assert.Equal(int.MaxValue, container.ZIndex);
+
+        window.Content = null;
+
+        Assert.Equal(0, container.ZIndex);
+        Assert.Null(container.Effect);
+        Assert.True(container.RenderTransform is null or { Value.IsIdentity: true });
+        Assert.Empty(Presto.GetAnimations(container));
+    }
+
+    [AvaloniaFact]
+    public void AGrabDuringTheSettleFinishesThePreviousDragAtOnce()
+    {
+        var (list, items, _) = Show(virtualized: false);
+        var window = WindowOf(list);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 35));
+        window.MouseUp(OnRed + new Point(0, 35), MouseButton.Left);
+        Assert.Equal(["a", "green", "red", "d", "e"], items);
+        var slot = SlotOf(Row(list, Brushes.Red));
+
+        var regrab = new Point(10, 57);
+        window.MouseDown(regrab, MouseButton.Left);
+        window.MouseMove(regrab + new Point(0, 6));
+        Frames.Advance(1000);
+        Tick();
+
+        Assert.Equal((2 * RowHeight) + 6, Top(list));
+        window.MouseUp(regrab + new Point(0, 6), MouseButton.Left);
+    }
+
+    [AvaloniaFact]
+    public void ADragOverASourceItCannotMoveLogsAWarningNamingTheListAndStillLiftsAndSpringsBack()
+    {
+        var items = new List<string> { "a", "red", "green", "d", "e" };
+        var list = ShowInWindow(new ItemsControl { ItemsSource = items, ItemTemplate = Rows(), VerticalAlignment = VerticalAlignment.Top });
+        Reorder.SetEnabled(list, true);
+        var window = WindowOf(list);
+        var slot = SlotOf(Row(list, Brushes.Red));
+        using var log = new LogSink(LogArea.Control, LogEventLevel.Warning);
+
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 35));
+        Tick();
+        Assert.NotNull(list.ContainerFromItem("red")!.Effect);
+        Assert.Equal(slot.Top + 35, Top(list));
+        window.MouseUp(OnRed + new Point(0, 35), MouseButton.Left);
+        Land();
+
+        var warning = Assert.Single(log.Entries);
+        Assert.Equal(LogEventLevel.Warning, warning.Level);
+        Assert.Contains(nameof(ItemsControl), warning.Values);
+        Assert.Equal(["a", "red", "green", "d", "e"], items);
+        Assert.Equal(slot, Box(list));
+    }
+
+    [AvaloniaFact]
+    public void AnItemThatLosesItsContainerMidDragDropsTheDragWithoutTheSettleSpring()
+    {
+        var (list, items, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 5));
+        var container = list.ContainerFromItem("red")!;
+
+        items.Remove("red");
+        Tick();
+        window.MouseMove(OnRed + new Point(0, 60));
+
+        Assert.Equal(0, container.ZIndex);
+        Assert.Empty(Presto.GetAnimations(container));
+        Assert.Empty(moves);
+    }
+
+    [AvaloniaFact]
+    public void TheAutoScrollTimerAndTheReleaseAnimationsCarryTheReorderOrigin()
+    {
+        var (list, _, _) = Show(virtualized: false);
+        var window = WindowOf(list);
+        var created = new List<Timer>();
+        Presto.Engine.Diagnostics.Enabled = true;
+        Presto.Engine.Diagnostics.TimerCreated += created.Add;
+        try
+        {
+            window.MouseDown(OnRed, MouseButton.Left);
+            window.MouseMove(OnRed + new Point(0, 35));
+            var grabbed = created.Count;
+            window.MouseUp(OnRed + new Point(0, 35), MouseButton.Left);
+
+            Assert.True(grabbed >= 2);
+            Assert.True(created.Count > grabbed);
+            Assert.All(created, timer => Assert.Equal("Reorder", timer.Origin));
+            Land();
+        }
+        finally
+        {
+            Presto.Engine.Diagnostics.TimerCreated -= created.Add;
+        }
+    }
+
+    [AvaloniaFact]
+    public void LosingTheCaptureMidDragReleasesWithTheSettleSpring()
+    {
+        var (list, items, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        IPointer? pointer = null;
+        window.AddHandler(InputElement.PointerPressedEvent, (_, e) => pointer = e.Pointer, RoutingStrategies.Tunnel);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 35));
+        var container = list.ContainerFromItem("red")!;
+
+        pointer!.Capture(null);
+
+        Assert.Equal(int.MaxValue, container.ZIndex);
+        Assert.True(Presto.Engine.IsRunning);
+        Land();
+        window.MouseMove(OnRed + new Point(0, 70));
+        Assert.Equal([(1, 2)], moves);
+        Assert.Equal(["a", "green", "red", "d", "e"], items);
+        Assert.Equal(0, container.ZIndex);
+        Assert.Equal(SlotOf(Row(list, Brushes.Red)), Box(list));
+    }
+
+    [AvaloniaFact]
+    public void KeysOtherThanEscapeMidDragAreLeftUnhandledAndMoveNothing()
+    {
+        var (list, _, moves) = Show(virtualized: false);
+        var window = WindowOf(list);
+        var handled = new List<bool>();
+        window.AddHandler(InputElement.KeyDownEvent, (_, e) => handled.Add(e.Handled), RoutingStrategies.Bubble, handledEventsToo: true);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 35));
+
+        window.KeyPress(Key.Down, RawInputModifiers.Alt, PhysicalKey.ArrowDown, null);
+        window.KeyPress(Key.A, RawInputModifiers.None, PhysicalKey.A, "a");
+
+        Assert.Equal([false, false], handled);
+        Assert.Equal([(1, 2)], moves);
+        window.MouseUp(OnRed + new Point(0, 35), MouseButton.Left);
+    }
+
+    [AvaloniaFact]
+    public void AltArrowsMoveAnItemWhoseContainerHasAHandleFromOutsideIt()
+    {
+        var (list, items, moves) = Show(virtualized: false, handle: true);
+        var container = list.ContainerFromItem("red")!;
+        container.Focusable = true;
+        container.Focus();
+
+        WindowOf(list).KeyPress(Key.Down, RawInputModifiers.Alt, PhysicalKey.ArrowDown, null);
+
+        Assert.Equal([(1, 2)], moves);
+        Assert.Equal(["a", "green", "red", "d", "e"], items);
+    }
+
+    [AvaloniaFact]
+    public void WithoutEnabledTheListHandlesNoDragsOrKeys()
+    {
+        var (list, items) = ReorderList(virtualized: false);
+        var window = WindowOf(list);
+        var container = list.ContainerFromItem("red")!;
+        container.Focusable = true;
+        container.Focus();
+
+        window.KeyPress(Key.Down, RawInputModifiers.Alt, PhysicalKey.ArrowDown, null);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 50));
+        window.MouseUp(OnRed + new Point(0, 50), MouseButton.Left);
+
+        Assert.False(Reorder.GetEnabled(list));
+        Assert.Equal(["a", "red", "green", "d", "e"], items);
+        Assert.Equal(0, container.ZIndex);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(PointerType.Touch)]
+    [InlineData(PointerType.Pen)]
+    public void WithoutATouchHoldATouchOrPenDragsAsAMouseDoes(PointerType type)
+    {
+        var (list, _, moves) = Show(virtualized: false);
+        var touch = new Touch(WindowOf(list));
+
+        Press(touch, OnRed, type);
+        touch.Move(1, OnRed + new Point(0, 50));
+        touch.Up(1, OnRed + new Point(0, 50));
+
+        Assert.Equal(0, Reorder.GetTouchHold(list));
+        Assert.Equal([(1, 2), (2, 3)], moves);
     }
 
     // A single frame after a long settle still shows where the drag left the item; the next one draws the landing.

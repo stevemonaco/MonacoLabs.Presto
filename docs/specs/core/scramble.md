@@ -39,7 +39,7 @@ Initially ported from anime.js `scrambleText`. `Presto.ScrambleText` is a chaine
 - **CORE-SCRAMBLE-001** — `Presto.ScrambleText` shall return a chained function value that resolves, per target, to a tween from 0 to 1 with a linear ease, the scramble's duration and delay, and a text modifier.
   - Tests: `ScrambleTextTests.IsAFunctionBasedValue`, `ScrambleTextTests.ReturnsATweenWithFromToEaseDurationAndModifier`
 - **CORE-SCRAMBLE-002** — The tween's duration shall be `Duration` when positive, and otherwise `(n − 1) × 1000 / RevealRate + SettleDuration` with `n` the longer of the start and end text (the end text when starting blank), plus `RevealDelay`, rounded to a whole time unit and scaled by `Globals.TimeScale`.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.DurationFollowsTheRevealRateSettleDurationAndRevealDelay`, `ScrambleTextTests.DefaultRevealRateIsSixtyAndDefaultSettleDurationIsThreeHundredScaled`
 - **CORE-SCRAMBLE-003** — `Chars` shall be a set name (`lowercase`, `uppercase`, `numbers`, `symbols`, `braille`, `blocks`, `shades`) when it equals one, and otherwise literal characters with `a-z` ranges expanded and a `-` at either end kept literal.
   - Tests: `ScrambleTextTests.ScramblesWithTheCustomCharacters`
 - **CORE-SCRAMBLE-004** — The scramble shall start from the target's `Text` property as `Presto.Get` reads it, or from the text the previous tween of the property ended on when there is one.
@@ -55,21 +55,21 @@ Initially ported from anime.js `scrambleText`. `Presto.ScrambleText` is a chaine
 - **CORE-SCRAMBLE-009** — Called twice with the same progress, the modifier shall return the same string instance.
   - Tests: `ScrambleTextTests.ModifierCachesTheValueOfTheSameInput`
 - **CORE-SCRAMBLE-010** — Scramble characters shall be redrawn only when progress crosses a `1 / SettleRate`-second step.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.ScrambleCharactersAreRedrawnOnlyOnSettleRateSteps`
 - **CORE-SCRAMBLE-011** — The reveal shall run outwards from `FromIndex` when set, else from the left, the right, the middle or in a seeded random order per `From`, with `Auto` meaning right when the text shrinks and left otherwise; `Reversed` shall invert the order.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.TheRevealRunsInTheOrderFromAndFromIndexGive`, `ScrambleTextTests.ByDefaultTheRevealRunsFromTheLeftOrFromTheRightWhenTheTextShrinks`
 - **CORE-SCRAMBLE-012** — When shrinking text reveals from the center or a `FromIndex`, its characters shall settle only after every extra character has gone.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.ShrinkingTextFromTheCenterOrAnIndexSettlesOnlyOnceTheExtraCharactersHaveGone`
 - **CORE-SCRAMBLE-013** — `Perturbation` shall offset each character's window start and end randomly by up to that fraction of the settle window.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.PerturbationOffsetsEachWindowByUpToItsFractionOfTheSettleWindow`
 - **CORE-SCRAMBLE-014** — `Cursor` characters shall run ahead of the reveal, its last character leading.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.CursorCharactersRunAheadOfTheRevealLastOneLeading`
 - **CORE-SCRAMBLE-015** — With `Seed` set, the scramble shall be reproducible; without it, it shall draw from the shared generator.
   - Tests: untested
 - **CORE-SCRAMBLE-016** — During `Delay` the target shall show its unchanged start text, and during `RevealDelay` it shall scramble without revealing any character.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.DelayShowsTheUnchangedTextAndRevealDelayScramblesWithoutRevealing`
 - **CORE-SCRAMBLE-017** — `Ease`, resolved per target, shall spread the reveal along its curve while the tween itself stays linear.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.EaseSpreadsTheRevealPerTargetWhileTheTweenStaysLinear`
 - **CORE-SCRAMBLE-018** — Reverting a scramble shall restore the text the target had before it.
   - Tests: `ScrambleTextTests.RevertRestoresTheOriginalText`
 - **CORE-SCRAMBLE-028** — When an unchained scramble starts, it shall cache the target's current text as its original unless that text is the last one a scramble wrote to the target, so a scramble interrupting a running one still settles on the real text while a text the app set since is honored.
@@ -78,23 +78,23 @@ Initially ported from anime.js `scrambleText`. `Presto.ScrambleText` is a chaine
 ### Defaults
 
 - **CORE-SCRAMBLE-019** — When `ScrambleTextParams.Chars` is not set, the scramble shall draw from `a-zA-Z0-9!%#_`.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.DefaultCharactersAreLettersDigitsAndFourSymbols`
 - **CORE-SCRAMBLE-020** — When `From` is not set, it shall be `Auto`, and when `Reversed` is not set, the order shall not be inverted.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.ByDefaultTheRevealRunsFromTheLeftOrFromTheRightWhenTheTextShrinks`
 - **CORE-SCRAMBLE-021** — When `Perturbation` is not set, it shall be 0, so no window is offset.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.PerturbationOffsetsEachWindowByUpToItsFractionOfTheSettleWindow`
 - **CORE-SCRAMBLE-022** — When `RevealRate` is not set, the reveal shall advance 60 characters per second.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.DefaultRevealRateIsSixtyAndDefaultSettleDurationIsThreeHundredScaled`
 - **CORE-SCRAMBLE-023** — When `SettleRate` is not set, scramble characters shall be redrawn 30 times per second.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.ScrambleCharactersAreRedrawnOnlyOnSettleRateSteps`
 - **CORE-SCRAMBLE-024** — When `SettleDuration` is not set, each character's settle window shall last 300 ms, scaled by `Globals.TimeScale`.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.DefaultRevealRateIsSixtyAndDefaultSettleDurationIsThreeHundredScaled`
 - **CORE-SCRAMBLE-025** — When `Delay` or `RevealDelay` is not set, it shall be 0.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.DelayAndRevealDelayDefaultToZero`
 - **CORE-SCRAMBLE-026** — When `Ease` is not set, the reveal shall be spread linearly.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.EaseSpreadsTheRevealPerTargetWhileTheTweenStaysLinear`
 - **CORE-SCRAMBLE-027** — When `Cursor` is not set, no cursor characters shall run ahead of the reveal.
-  - Tests: untested
+  - Tests: `ScrambleTextTests.CursorCharactersRunAheadOfTheRevealLastOneLeading`
 
 ## Invariants
 
@@ -133,4 +133,4 @@ Initially ported from anime.js `scrambleText`. `Presto.ScrambleText` is a chaine
 
 ## Open items
 
-- Untested: the scramble duration formula (002), redraw stepping (010), reveal order and `From` (011, 012), `Perturbation` (013), `Cursor` (014), `Seed` (015), delays (016), `Ease` (017).
+- CORE-SCRAMBLE-015 says an unseeded scramble draws from "the shared generator", but each target's scramble calls `Utils.CreateSeededRandom(null)`, so it takes the next process-wide seed-counter value (CORE-UTILS-021) and never draws from `System.Random.Shared`; the requirement (and the `ScrambleTextParams.Seed` doc) needs rewording or the code changing before it can be tested.

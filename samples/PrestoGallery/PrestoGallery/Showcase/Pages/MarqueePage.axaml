@@ -1,0 +1,92 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+                       x:Class="PrestoGallery.Showcase.Pages.MarqueePage">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="Border.lane">
+            <Setter Property="Padding" Value="0,16" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+        </Style>
+        <Style Selector="Button.logo">
+            <Setter Property="Padding" Value="18,10" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </showcase:ShowcasePage.Styles>
+
+    <StackPanel Spacing="16">
+        <Border Classes="rail showcase">
+            <WrapPanel ItemSpacing="14" LineSpacing="8">
+                <ToggleButton x:Name="Pause" Content="Pause" VerticalAlignment="Center" />
+                <TextBlock Classes="caption" VerticalAlignment="Center" Text="Speed" />
+                <Slider x:Name="SpeedSlider" Width="220" Minimum="0" Maximum="240" Value="60" VerticalAlignment="Center" />
+                <TextBlock Classes="mono" VerticalAlignment="Center" Text="{Binding #SpeedSlider.Value, StringFormat={}{0:0} DIP/s}" />
+                <TextBlock x:Name="Picked" Classes="mono" VerticalAlignment="Center" Text="Click a name in any copy" />
+            </WrapPanel>
+        </Border>
+
+        <Border Classes="lane">
+            <!-- snippet: MarqueeLogoWall -->
+            <presto:Marquee x:Name="Logos" FadeEdges="64" Gap="12"
+                            Speed="{Binding #SpeedSlider.Value}" IsPaused="{Binding #Pause.IsChecked}"
+                            Content="{x:Static showcase:Datasets.Albums}" Button.Click="LogoClicked">
+                <presto:Marquee.ContentTemplate>
+                    <DataTemplate>
+                        <ItemsControl ItemsSource="{Binding}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="12" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="showcase:Datasets+Album">
+                                    <Button Classes="logo" Content="{Binding Artist}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DataTemplate>
+                </presto:Marquee.ContentTemplate>
+            </presto:Marquee>
+            <!-- /snippet -->
+        </Border>
+
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+            <Border Classes="lane" Padding="16,0">
+                <presto:Marquee x:Name="Ticker" Direction="Up" Height="160" FadeEdges="32">
+                    <ItemsControl ItemsSource="{x:Static showcase:Datasets.Places}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="showcase:Datasets+Place">
+                                <TextBlock Margin="0,4" Foreground="{x:Static showcase:Palette.InkDim}">
+                                    <Run Text="{Binding City}" Foreground="{x:Static showcase:Palette.Ink}" FontWeight="SemiBold" />
+                                    <Run Text="{Binding Blurb}" />
+                                </TextBlock>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </presto:Marquee>
+            </Border>
+
+            <Border Grid.Column="1" Classes="lane" Padding="16">
+                <StackPanel Spacing="12" VerticalAlignment="Center">
+                    <Border Width="240" HorizontalAlignment="Left" Padding="12,8" CornerRadius="8"
+                            Background="{x:Static showcase:Palette.SurfaceHigh}">
+                        <presto:Marquee x:Name="NowPlaying" Mode="WhenOverflowing" FontSize="16" Foreground="{x:Static showcase:Palette.Ink}"
+                                        Content="Harbor Light" />
+                    </Border>
+                    <ToggleButton x:Name="LongTitle" Content="Long title" IsCheckedChanged="LongTitleChanged" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <showcase:CodePanel Header="How it's built" IsExpanded="False"
+                            Language="Xaml" Code="{x:Static showcase:Snippets.MarqueeLogoWall}" />
+    </StackPanel>
+</showcase:ShowcasePage>

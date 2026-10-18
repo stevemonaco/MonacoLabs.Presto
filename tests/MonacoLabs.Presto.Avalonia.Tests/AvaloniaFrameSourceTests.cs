@@ -167,6 +167,23 @@ public sealed class AvaloniaFrameSourceTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public async Task StartingWhileStartedKeepsTheFirstCallback()
+    {
+        var border = new Border();
+        new Window { Content = border, Width = 100, Height = 100 }.Show();
+        _ = border.Animate(new() { ["Opacity"] = 0, Duration = 100, Autoplay = false }); // seeds the source with a visual inside the window
+
+        var source = new AvaloniaFrameSource();
+        var (first, second) = (0, 0);
+        source.Start(() => first++);
+        source.Start(() => second++);
+
+        Assert.True(await Pump(() => first >= 2), "no frames arrived");
+        source.Stop();
+        Assert.Equal(0, second);
+    }
+
+    [AvaloniaFact]
     public void RestartingReusesTheFrameAlreadyRequested()
     {
         var border = new Border();

@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace MonacoLabs.Presto.Tests;
 
 public sealed class PrestoDelayTests : EngineTestBase
@@ -61,6 +63,88 @@ public sealed class PrestoDelayTests : EngineTestBase
 
         Assert.True(delay.IsCanceled);
         Assert.Null(Presto.Engine._head);
+    }
+
+    [Fact]
+    public async Task TheRegistrationIsDisposedWhenTheTimerIsInterrupted()
+    {
+        using var source = new CancellationTokenSource();
+        var scope = Presto.CreateScope();
+        var (delay, timer) = StartDelayInScope(scope, source.Token);
+        Frames.Advance(16);
+
+        scope.Revert();
+        Frames.Advance(16);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delay);
+
+        // The token's registration is the last thing that could hold the timer.
+        for (var i = 0; i < 100 && timer.IsAlive; i++)
+        {
+            await Task.Delay(10, TestToken);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+        Assert.False(timer.IsAlive);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private (Task Delay, WeakReference Timer) StartDelayInScope(Scope scope, CancellationToken token)
+    {
+        var delay = scope.Execute(_ => Presto.Delay(100, token));
+        return (delay, new WeakReference(Presto.Engine._head));
+    }
+
+    [Fact]
+    public async Task CompletingReleasesTheTokenRegistration()
+    {
+        using var source = new CancellationTokenSource();
+        var status = new StrongBox<TaskStatus>();
+        var timer = StartTrackedDelay(source.Token, status);
+
+        Frames.Advance(300, 16);
+        for (var i = 0; i < 100 && (timer.IsAlive || status.Value == default); i++)
+        {
+            await Task.Delay(10, TestToken);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        Assert.Equal(TaskStatus.RanToCompletion, status.Value);
+        Assert.False(timer.IsAlive);
+    }
+
+    [Fact]
+    public async Task ContinuationsNeverRunInsideTheEngineTick()
+    {
+        WakeEngine();
+        var ticking = false;
+        bool? ranInTick = null;
+        using var context = new PumpingSynchronizationContext();
+        var awaiting = AwaitDelay();
+
+        ticking = true;
+        Frames.Advance(200, 16);
+        ticking = false;
+        context.RunUntil(() => ranInTick != null, TimeSpan.FromSeconds(5));
+
+        Assert.False(ranInTick);
+        await awaiting;
+
+        async Task AwaitDelay()
+        {
+            await Presto.Delay(100, TestToken);
+            ranInTick = ticking;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference StartTrackedDelay(CancellationToken token, StrongBox<TaskStatus> status)
+    {
+        WeakReference? timer = null;
+        Presto.Engine.TimerCreated = created => timer = new WeakReference(created);
+        Presto.Delay(100, token).ContinueWith(task => status.Value = task.Status, TaskScheduler.Default);
+        Presto.Engine.TimerCreated = null;
+        return timer!;
     }
 
     // Starts the delay mid-flight, past the engine's first-frame catch-up.

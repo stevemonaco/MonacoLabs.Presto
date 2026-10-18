@@ -21,6 +21,6 @@ internal enum PresenceMoment
     /// <summary>Taken out of a list's container for an item the list still has, such as one scrolled out of view; nothing plays.</summary>
     Recycle,
 
-    /// <summary>Hosted again by a list for an item it has just moved; nothing plays.</summary>
+    /// <summary>Hosted again by a list for an item it has just moved or received through a transfer; nothing plays.</summary>
     Move,
 }

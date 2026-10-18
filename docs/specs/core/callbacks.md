@@ -19,6 +19,7 @@ tests:
   - CallbacksTests
   - PromisesTests
   - TimelineCallbacksTests
+  - AllocationTests
 upstream:
   - src/core/render.js
   - src/timer/timer.js
@@ -36,14 +37,14 @@ depends:
 
 ## Purpose
 
-Timers, animations and timelines report their progress through seven callbacks, `OnBegin`, `OnBeforeUpdate`, `OnRender`, `OnUpdate`, `OnLoop`, `OnPause` and `OnComplete`, and through `Then()`, the awaitable stand-in for upstream's promise. All of them fire from the tick (`Renderer`) or from a control on the timer (CORE-TIMER). This spec fixes when each fires, in what order, and when they are muted. Also specifies the callback properties of `TimerParams`, `AnimationParams`, `TimelineParams`, `PrestoDefaults`, `DefaultsParams` and `Timer`, and `Timer.Then` and `Timer.GetAwaiter`.
+Timers, animations and timelines report their progress through seven callbacks, `OnBegin`, `OnBeforeUpdate`, `OnRender`, `OnUpdate`, `OnLoop`, `OnPause` and `OnComplete`, and through `Then()`, the awaitable stand-in for upstream's promise. All of them fire from the tick (`Renderer`) or from a control on the timer (CORE-TIMER). This spec fixes when each fires, in what order, and when they are muted. Also specifies the callback properties of `TimerParams`, `AnimationParams`, `TimelineParams`, `PrestoDefaults`, `DefaultsParams` and `Timer`, and `Timer.Then`, `Timer.ThenOrCancel` and `Timer.GetAwaiter`.
 
 ## Requirements
 
 ### Assignment
 
 - **CORE-CALLBACKS-001** — When a timer is constructed, each callback shall come from its parameters, or else from the defaults it inherits (its parent timeline's child defaults, otherwise its engine's `Defaults`) as they are at that moment.
-  - Tests: untested
+  - Tests: `CallbacksTests.CallbacksComeFromTheParametersOrTheInheritedDefaultsAsTheyAreAtConstruction`
 - **CORE-CALLBACKS-002** — When a callback property is assigned after creation, the timer shall use the new delegate from the next tick on.
   - Tests: `CallbacksTests.OnUpdateAssignedAfterCreationFiresOnTheNextTick`, `CallbacksTests.OnCompleteReplacedAfterCreationFiresTheNewCallback`
 - **CORE-CALLBACKS-003** — Every callback shall receive the timer, animation or timeline it belongs to.
@@ -61,7 +62,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-006** — On every tick that renders the timer with its playhead past the delay, the timer shall fire `OnBeforeUpdate` before writing its tweens and `OnUpdate` after.
   - Tests: `CallbacksTests.OnBeforeUpdateOnAnimation`, `CallbacksTests.OnUpdateOnAnimation`, `CallbacksTests.OnBeforeUpdateOnTimeline`, `CallbacksTests.OnUpdateOnTimeline`
 - **CORE-CALLBACKS-007** — A timeline shall fire its own `OnBeforeUpdate` and `OnUpdate` before its children render on that tick.
-  - Tests: untested
+  - Tests: `CallbacksTests.ATimelineFiresItsOwnUpdateCallbacksBeforeItsChildrenRender`
 - **CORE-CALLBACKS-008** — An animation shall fire `OnRender` once on a tick on which, with its playhead past 0, at least one tween wrote a value to its target, after the writes and before `OnUpdate`.
   - Tests: `CallbacksTests.OnRenderOnAnimation`, `CallbacksTests.CallbacksOrderExecutionOnAnimation`
 - **CORE-CALLBACKS-009** — A timeline shall fire `OnRender` after its children have rendered, on a tick on which any child rendered.
@@ -69,7 +70,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-010** — When an animation is created with autoplay off and a tween with an explicit from value, it shall fire `OnRender` once during construction.
   - Tests: `CallbacksTests.OnRenderWithAutoplayFalse`
 - **CORE-CALLBACKS-011** (inherited) — `OnRender` shall be fixed at construction; it has no public setter.
-  - Tests: untested
+  - Tests: `CallbacksTests.OnRenderIsFixedAtConstruction`
 
 ### OnLoop
 
@@ -107,11 +108,11 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-023** — When a zero-duration timer, animation or timeline plays, it shall fire `OnBegin`, `OnBeforeUpdate`, `OnRender` (when it wrote), `OnUpdate` and `OnComplete` once each, synchronously, in the order of CORE-CALLBACKS-022 for a timer or animation; a timeline fires `OnUpdate` before its `OnRender` (CORE-CALLBACKS-007, -009).
   - Tests: `CallbacksTests.AllCallbacksButOnLoopTriggerOnZeroDurationAnimation`, `CallbacksTests.AllCallbacksButOnLoopTriggerOnZeroDurationTimeline`
 - **CORE-CALLBACKS-024** — While a render is muted (`Seek` with `muteCallbacks`, `Complete(true)`, `Reset`, `Revert`, and the initial render of `Init`), no tick callback shall fire, but `Began` and `Completed` shall still update.
-  - Tests: untested
+  - Tests: `CallbacksTests.MutedRendersFireNoCallbacksButStillUpdateBeganAndCompleted`
 - **CORE-CALLBACKS-025** — A callback shall be able to pause, seek, reverse or alternate its own timer, and create other timers, from inside the tick.
   - Tests: `TimingsTests.DelayShouldDelayTheStart`, `ControlsTests.AlternateTheDirectionOfAnAnimation`, `EngineTests.InitialOffsetPositionShouldBeProperlyCalculatedOnColdStart`
 - **CORE-CALLBACKS-026** — Callbacks shall run synchronously on the thread that ticks the timer's engine.
-  - Tests: untested
+  - Tests: `CallbacksTests.CallbacksRunSynchronouslyOnTheThreadThatTicksTheEngine`
 
 ### Then and await
 
@@ -120,13 +121,13 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-028** — When `Then(callback)` is called on a completed timer, it shall invoke `callback` synchronously and return an already completed task.
   - Tests: `PromisesTests.ThenOnAnAlreadyCompletedTimerResolvesImmediately`
 - **CORE-CALLBACKS-029** — The `Then` callbacks shall run after `OnComplete`.
-  - Tests: untested
+  - Tests: `PromisesTests.ThenCallbacksRunAfterOnComplete`
 - **CORE-CALLBACKS-030** (inherited) — When `Then` is called several times before completion, every call shall return the same task and every callback shall run, in registration order.
-  - Tests: untested
+  - Tests: `PromisesTests.SeveralThenCallsShareOneTaskAndRunEveryCallbackInOrder`
 - **CORE-CALLBACKS-031** — Once a timer has resolved, a `Then` after `Restart` shall return a new task that completes at the next completion.
   - Tests: `PromisesTests.ARestartedTimerResolvesANewThen`
 - **CORE-CALLBACKS-032** — The task shall run its continuations asynchronously, so an `await` never resumes inside the tick.
-  - Tests: untested
+  - Tests: `PromisesTests.ThenContinuationsNeverRunInsideTheTick`
 - **CORE-CALLBACKS-033** — Awaiting a timer, animation or timeline directly shall behave as awaiting `Then()`.
   - Tests: `PromisesTests.AwaitATimer`, `PromisesTests.AwaitAnAnimation`
 - **CORE-CALLBACKS-034** — A completion reached with callbacks muted, a `Cancel` (including one by composition replacing every tween) and a `Revert` shall leave a pending `Then` task incomplete.
@@ -136,10 +137,27 @@ Timers, animations and timelines report their progress through seven callbacks, 
 - **CORE-CALLBACKS-035** — On the default frame pump, `Then` shall resolve without any manual ticking.
   - Tests: `PromisesTests.ThenResolvesOnTheDefaultFramePump`
 
+### ThenOrCancel
+
+- **CORE-CALLBACKS-039** — When `ThenOrCancel` is called on a timer that has not completed, it shall return a task that completes with the timer when `Then` would resolve; a `Pause` leaves it pending.
+  - Tests: `PromisesTests.ThenOrCancelCompletesWhenTheTimerCompletes`
+- **CORE-CALLBACKS-040** — When the timer is canceled before that (`Cancel`, `Revert`, `Complete(true)`, replacement by composition, or its parent's cancel), the task shall complete as canceled.
+  - Tests: `PromisesTests.ThenOrCancelIsCanceledByCancelRevertAndAMutedComplete`, `PromisesTests.ThenOrCancelIsCanceledWhenCompositionReplacesTheAnimation`, `PromisesTests.ThenOrCancelIsCanceledWhenTheParentTimelineIsReverted`
+- **CORE-CALLBACKS-041** — When `ThenOrCancel` is called on a completed timer, it shall return an already completed task; on a canceled, uncompleted timer, an already canceled one.
+  - Tests: `PromisesTests.ThenOrCancelOnACompletedOrCanceledTimerReturnsAtOnce`
+- **CORE-CALLBACKS-042** — When the token is canceled first, the task shall complete as canceled and the timer shall keep playing.
+  - Tests: `PromisesTests.TheTokenCancelsTheWaitButNotTheTimer`
+- **CORE-CALLBACKS-043** — A canceled task shall stay canceled when the timer is revived; a later call shall return a new task.
+  - Tests: `PromisesTests.ARevivedTimerKeepsItsCanceledTaskAndGivesANewOne`
+- **CORE-CALLBACKS-044** — The task shall run its continuations asynchronously, and `Animation.ThenOrCancel` shall complete with the animation.
+  - Tests: `PromisesTests.ThenOrCancelResumesOutsideTheTick`, `PromisesTests.ThenOrCancelCompletesWhenTheTimerCompletes`
+- **CORE-CALLBACKS-045** — A `Cancel` with no pending `ThenOrCancel` shall allocate nothing.
+  - Tests: `AllocationTests.CancelWithoutAPendingThenOrCancelAllocatesNothing`
+
 ### Defaults
 
 - **CORE-CALLBACKS-036** — When a callback is set neither in the parameters nor in the inherited defaults, the timer shall fire nothing for it.
-  - Tests: untested
+  - Tests: `CallbacksTests.UnsetCallbacksFireNothing`
 - **CORE-CALLBACKS-037** — When `Then` is called without a callback, it shall only return the task.
   - Tests: `PromisesTests.AwaitATimer`
 
@@ -160,7 +178,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 
 ## Threading and lifetime
 
-- Callbacks run on the engine's tick thread (CORE-THREADING). `Then` continuations are queued, never inline: awaiting from a thread with a synchronization context resumes there, otherwise on the thread pool.
+- Callbacks run on the engine's tick thread (CORE-THREADING). `Then` and `ThenOrCancel` continuations are queued, never inline: awaiting from a thread with a synchronization context resumes there, otherwise on the thread pool.
 - A pending `Then` task holds the timer only through the timer's own field; a timer dropped while pending leaves its awaiters waiting forever.
 
 ## Reduced motion
@@ -171,6 +189,7 @@ Timers, animations and timelines report their progress through seven callbacks, 
 
 - Firing callbacks allocates nothing beyond what the delegates do.
 - `Then` allocates one `TaskCompletionSource` per pending completion, and `Task.FromResult` for a completed timer.
+- `ThenOrCancel` allocates one task completion source per pending wait, shared by every call until the timer completes or is canceled, plus a `WaitAsync` task and its token registration per call given a token; a `Cancel` with none pending allocates nothing.
 
 ## Provenance
 
@@ -181,15 +200,21 @@ Timers, animations and timelines report their progress through seven callbacks, 
 ## Decisions
 
 - **Every timer is awaitable.** Every `Timer` has `GetAwaiter` as well as `Then()`, and `Animation` narrows both to itself. Reason: `Then` gives a task to chain or store, `await timer` reads as waiting for it to finish, and the narrowing on `Animation` keeps the awaited result typed without a cast.
-- **An interrupted timer never resolves `Then`.** `Cancel`, `Revert` and a muted completion leave the pending task incomplete, as upstream's promise does. Reason: under `Replace` composition, interruption is routine, and the code after an `await` (hide the panel once it has faded out) is usually wrong once a newer animation owns the target; leaving it unrun keeps the screen right, as Flutter's `TickerFuture` does. Rejected: completing normally (runs that code anyway); a canceled task (every `await` in an `async void` handler would crash on a double-click).
+- **An interrupted timer never resolves `Then`.** `Cancel`, `Revert` and a muted completion leave the pending task incomplete, as upstream's promise does. Reason: under `Replace` composition, interruption is routine, and the code after an `await` (hide the panel once it has faded out) is usually wrong once a newer animation owns the target; leaving it unrun keeps the screen right, as Flutter's `TickerFuture` does. Rejected: completing normally (runs that code anyway); a canceled task (every `await` in an `async void` handler would crash on a double-click). Code that must not hang uses `ThenOrCancel`.
 - **A throwing `Then` callback still completes the task.** `Resolve` sets the result in a `finally`. Reason: every caller shares one task, so faulting it with one caller's exception would throw at everyone's `await`, and leaving it incomplete hung them all.
+- **`ThenOrCancel` is a separate, opt-in method.** Reason: `Then` keeps hanging on interruption (above), so code that must not hang asks for cancellation by name, as Flutter's `TickerFuture.orCancel` does. Rejected: `Then(CancellationToken)`, which reads as "cancel my wait" and hides that interruption also cancels; a `ThenOptions` record, too heavy for one flag; a `Task<bool>` "ended" wait, which never throws but cannot join `Task.WhenAll` failure handling or `OperationCanceledException` filters.
+- **The token cancels the wait, not the timer.** Reason: the waiter owns its wait, and the timer belongs to whoever created it.
+- **`ThenOrCancel` takes no callback.** Reason: `Then(callback)` exists for work that must run inside the tick, and this variant is for awaiting; a callback would raise the question of whether it runs on interruption.
+- **An interruption ends the wait for good.** Once canceled, the task stays canceled even if the timer is revived, and a new call gives a new task; a paused timer keeps the task pending, so pass a token to bound that wait. Reason: a revived timer is a new run, and pause is not an interruption.
+- **The variant is spelled `ThenOrCancel(CancellationToken cancellationToken = default)`.** Reason: it names Flutter's idiom and sits beside `Then` in completion lists. Rejected: `OrCancel()`, `Finished()`, `Then(ThenOptions)`.
+- **The cancel hook sits on the cancel path.** `DetachTweens`, which every cancel goes through, cancels the pending wait, and `Resolve` completes it. Reason: the render tick stays untouched, and a timer with no pending wait pays one field check.
 - **`Then()` completes asynchronously.** The task is created with `RunContinuationsAsynchronously`, so an `await` never resumes inside the tick, and awaiting a non-UI engine's timer resumes on the thread pool. Reason: not recorded; implied, continuations must not run inside a tick.
 
 ## Non-goals
 
 - No events or multicast subscription beyond the delegate itself (a caller can combine delegates).
-- No cancellation of a pending `Then`, and no variant that throws on interruption (a candidate in BACKLOG).
+- No cancellation of a pending `Then`; `ThenOrCancel` is the cancelable wait.
 
 ## Open items
 
-- Untested: callbacks from inherited defaults, timeline `OnUpdate` before children, muted renders still updating `Began`/`Completed`, multiple `Then` callbacks, asynchronous continuations.
+None.

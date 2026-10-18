@@ -55,7 +55,7 @@ depends:
 - **BRIDGE-TEXTREVEAL-004** — From the trigger until the first split's effect runs, the block shall be held at opacity 0 at `Animation` priority, and released when the pieces start playing.
   - Tests: `TextRevealTests.InitialWordsAnimateEveryWordAndNotTheBlockWhichWaitsHiddenForTheSplit`
 - **BRIDGE-TEXTREVEAL-005** — The pieces shall be the animation's whole target list, so index-based function values and staggers see each piece's index and the piece count rather than the panel's arrival batch.
-  - Tests: untested
+  - Tests: `TextRevealTests.FunctionValuesSeeEachPiecesIndexAndThePieceCountNotThePanelsBatch`
 - **BRIDGE-TEXTREVEAL-006** — When the block re-splits mid-reveal, the animation shall be rebuilt over the new pieces at the time the old one had reached.
   - Tests: `TextRevealTests.AResizeMidRevealResplitsAndKeepsTheTime`
 - **BRIDGE-TEXTREVEAL-036** — When the block's `Text` changes from outside mid-reveal, the reveal shall be rebuilt over the new text's pieces at the time the old one had reached (BRIDGE-TEXT-059), and when it completes the block shall show that text with its binding intact.
@@ -112,27 +112,27 @@ depends:
 - **BRIDGE-TEXTREVEAL-027** — Under `ReduceAll` a hide shall be instant and leave no split; a reduced held hide shall play on the unsplit block.
   - Tests: `PresenceTextExitTests.UnderReduceAllAHideIsInstantAndLeavesNoSplit`, `PresenceTextExitTests.AReducedHeldHidePlaysOnTheUnsplitBlock`
 - **BRIDGE-TEXTREVEAL-028** (inherited) — When a held hide starts while an arrival's split is still in place, that split shall be reverted before the exit splits the block again.
-  - Tests: untested
+  - Tests: `PresenceTextExitTests.AHeldHideMidArrivalRevertsTheArrivalsSplitAndExitsOnAFreshOne`
 
 ### Markup
 
 - **BRIDGE-TEXTREVEAL-029** — A `TextRevealExtension` provided to a property of a `TextBlock` in XAML, `Presence.Exit` included, shall set the block's `Pieces` to its recipe's kind and, for a masked recipe, `Mask` to true, each only when not already set.
   - Tests: `RecipeMarkupTests.TextRevealExtensionsConfigureTheBlockUnlessAlreadySet`
 - **BRIDGE-TEXTREVEAL-030** (inherited) — In a style `Setter` the extension shall configure nothing, so the block has to set `Pieces` itself.
-  - Tests: untested
+  - Tests: `RecipeMarkupTests.ATextRevealExtensionConfiguresNothingFromAStyleSetterOrForAMaskItDoesNotUse`
 - **BRIDGE-TEXTREVEAL-031** — `LineStep` and `PieceStep` shall be passed to the recipe, which uses its own defaults when they are unset; under `Presence.Exit` the extension shall provide the recipe's exit form.
   - Tests: `RecipeMarkupTests.TextRevealExtensionsProvideTheirRecipe`, `RecipeMarkupTests.TextRevealsAreTheirExitFormOnExitAndTheirEntranceOnEnter`
 
 ### Defaults
 
 - **BRIDGE-TEXTREVEAL-032** (inherited) — When `Pieces` is not set, it shall be `None`, so the triggers animate the block itself.
-  - Tests: untested
+  - Tests: `TextRevealTests.TheDefaultsAnimateTheBlockUnsplitAndUnmasked`
 - **BRIDGE-TEXTREVEAL-033** (inherited) — When `Mask` is not set, it shall be false, so pieces are not clipped.
-  - Tests: untested
+  - Tests: `TextRevealTests.TheDefaultsAnimateTheBlockUnsplitAndUnmasked`
 - **BRIDGE-TEXTREVEAL-034** (inherited) — When a `TextRevealExtension` subclass does not pass `mask`, the extension shall not configure `Mask`.
-  - Tests: untested
+  - Tests: `RecipeMarkupTests.ATextRevealExtensionConfiguresNothingFromAStyleSetterOrForAMaskItDoesNotUse`
 - **BRIDGE-TEXTREVEAL-035** (inherited) — When `StaggerByLine`'s `pieceStep` is not set, it shall be 0, so every piece of a line gets the same delay.
-  - Tests: untested
+  - Tests: `TextSplitTests.StaggerByLineWithoutAPieceStepGivesEveryPieceOfALineTheSameDelay`
 
 ## Invariants
 
@@ -185,4 +185,4 @@ depends:
 
 ## Open items
 
-- Untested: piece-level indexing for staggers (005), reverting an arrival's split before a held hide (028), the style-`Setter` case (030).
+None.

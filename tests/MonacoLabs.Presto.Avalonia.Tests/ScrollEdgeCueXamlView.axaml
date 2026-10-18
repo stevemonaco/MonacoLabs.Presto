@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             x:Class="MonacoLabs.Presto.Tests.ScrollEdgeCueXamlView">
+  <UserControl.Styles>
+    <Style Selector="Border.shadow">
+      <Setter Property="Opacity" Value="0.3" />
+      <Setter Property="presto:Scroll.CueEdge" Value="Bottom" />
+    </Style>
+    <Style Selector="ScrollViewer#Scroller">
+      <Setter Property="presto:Scroll.CueRamp" Value="48" />
+      <Setter Property="presto:Scroll.FadeEdges" Value="24" />
+    </Style>
+  </UserControl.Styles>
+  <Panel>
+    <ScrollViewer x:Name="Scroller" Width="200" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top">
+      <Border Height="700" />
+    </ScrollViewer>
+    <Border x:Name="Shadow" Classes="shadow" presto:Scroll.CueFor="{Binding #Scroller}" />
+  </Panel>
+</UserControl>

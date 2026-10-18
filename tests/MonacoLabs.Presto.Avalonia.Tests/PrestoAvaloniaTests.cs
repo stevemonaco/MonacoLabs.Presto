@@ -19,6 +19,19 @@ public sealed class PrestoAvaloniaTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void EnsureInitializedLeavesAnApplicationsOwnEngineOnItsFrameSource()
+    {
+        var frames = new ManualFrameSource();
+        var own = new Engine(frames);
+        PrestoAvalonia.Initialized = false;
+
+        PrestoAvalonia.EnsureInitialized();
+
+        Assert.Same(frames, own.FrameSource);
+        Assert.IsType<AvaloniaFrameSource>(Presto.Engine.FrameSource);
+    }
+
+    [AvaloniaFact]
     public void TimerRunsToCompletionOnTheUiThread()
     {
         var completedOnUiThread = false;

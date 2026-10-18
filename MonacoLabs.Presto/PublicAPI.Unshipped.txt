@@ -1,0 +1,1375 @@
+#nullable enable
+MonacoLabs.Presto.Animatable
+MonacoLabs.Presto.Animatable.Animations.get -> System.Collections.Generic.IReadOnlyDictionary<string!, MonacoLabs.Presto.Animation!>!
+MonacoLabs.Presto.Animatable.Fling(MonacoLabs.Presto.PropertyKey property, double velocity, MonacoLabs.Presto.Inertia? settings = null) -> MonacoLabs.Presto.Animatable!
+MonacoLabs.Presto.Animatable.Fling(MonacoLabs.Presto.PropertyKey property, MonacoLabs.Presto.Inertia? settings = null) -> MonacoLabs.Presto.Animatable!
+MonacoLabs.Presto.Animatable.Get(MonacoLabs.Presto.PropertyKey property) -> double
+MonacoLabs.Presto.Animatable.GetChannels(MonacoLabs.Presto.PropertyKey property) -> double[]!
+MonacoLabs.Presto.Animatable.Revert() -> MonacoLabs.Presto.Animatable!
+MonacoLabs.Presto.Animatable.Set(MonacoLabs.Presto.PropertyKey property, double to, double? duration = null, MonacoLabs.Presto.EaseValue? ease = null) -> MonacoLabs.Presto.Animatable!
+MonacoLabs.Presto.Animatable.Set(MonacoLabs.Presto.PropertyKey property, System.Collections.Generic.IReadOnlyList<double>! to, double? duration = null, MonacoLabs.Presto.EaseValue? ease = null) -> MonacoLabs.Presto.Animatable!
+MonacoLabs.Presto.Animatable.Targets.get -> System.Collections.Generic.IReadOnlyList<object!>!
+MonacoLabs.Presto.Animatable.ValueOf(MonacoLabs.Presto.PropertyKey property) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.AnimatableParams
+MonacoLabs.Presto.AnimatableParams.AnimatableParams() -> void
+MonacoLabs.Presto.AnimatableParams.AnimatableParams(MonacoLabs.Presto.AnimatableParams! original) -> void
+MonacoLabs.Presto.AnimatableParams.Duration.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.AnimatableParams.Duration.init -> void
+MonacoLabs.Presto.AnimatableParams.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.AnimatableParams.Ease.init -> void
+MonacoLabs.Presto.AnimatableParams.FrameRate.get -> double?
+MonacoLabs.Presto.AnimatableParams.FrameRate.init -> void
+MonacoLabs.Presto.AnimatableParams.Modifier.get -> System.Func<double, double>?
+MonacoLabs.Presto.AnimatableParams.Modifier.init -> void
+MonacoLabs.Presto.AnimatableParams.OnBegin.get -> System.Action<MonacoLabs.Presto.Animatable!>?
+MonacoLabs.Presto.AnimatableParams.OnBegin.init -> void
+MonacoLabs.Presto.AnimatableParams.OnComplete.get -> System.Action<MonacoLabs.Presto.Animatable!>?
+MonacoLabs.Presto.AnimatableParams.OnComplete.init -> void
+MonacoLabs.Presto.AnimatableParams.OnUpdate.get -> System.Action<MonacoLabs.Presto.Animatable!>?
+MonacoLabs.Presto.AnimatableParams.OnUpdate.init -> void
+MonacoLabs.Presto.AnimatableParams.PlaybackRate.get -> double?
+MonacoLabs.Presto.AnimatableParams.PlaybackRate.init -> void
+MonacoLabs.Presto.AnimatableParams.PreserveVelocity.get -> bool?
+MonacoLabs.Presto.AnimatableParams.PreserveVelocity.init -> void
+MonacoLabs.Presto.AnimatableParams.this[MonacoLabs.Presto.PropertyKey property].get -> MonacoLabs.Presto.AnimatableProperty!
+MonacoLabs.Presto.AnimatableParams.this[MonacoLabs.Presto.PropertyKey property].init -> void
+MonacoLabs.Presto.AnimatableProperty
+MonacoLabs.Presto.AnimatableProperty.<Clone>$() -> MonacoLabs.Presto.AnimatableProperty!
+MonacoLabs.Presto.AnimatableProperty.AnimatableProperty() -> void
+MonacoLabs.Presto.AnimatableProperty.Composition.get -> MonacoLabs.Presto.Composition?
+MonacoLabs.Presto.AnimatableProperty.Composition.init -> void
+MonacoLabs.Presto.AnimatableProperty.Duration.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.AnimatableProperty.Duration.init -> void
+MonacoLabs.Presto.AnimatableProperty.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.AnimatableProperty.Ease.init -> void
+MonacoLabs.Presto.AnimatableProperty.Equals(MonacoLabs.Presto.AnimatableProperty? other) -> bool
+MonacoLabs.Presto.AnimatableProperty.Modifier.get -> System.Func<double, double>?
+MonacoLabs.Presto.AnimatableProperty.Modifier.init -> void
+MonacoLabs.Presto.AnimatableProperty.PreserveVelocity.get -> bool?
+MonacoLabs.Presto.AnimatableProperty.PreserveVelocity.init -> void
+MonacoLabs.Presto.AnimatableProperty.Unit.get -> string?
+MonacoLabs.Presto.AnimatableProperty.Unit.init -> void
+MonacoLabs.Presto.Animation
+MonacoLabs.Presto.Animation.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<MonacoLabs.Presto.Animation!>
+MonacoLabs.Presto.Animation.Refresh() -> MonacoLabs.Presto.Animation!
+MonacoLabs.Presto.Animation.Targets.get -> System.Collections.Generic.IReadOnlyList<object!>!
+MonacoLabs.Presto.Animation.Then(System.Action<MonacoLabs.Presto.Animation!>? callback = null) -> System.Threading.Tasks.Task<MonacoLabs.Presto.Animation!>!
+MonacoLabs.Presto.Animation.ThenOrCancel(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<MonacoLabs.Presto.Animation!>!
+MonacoLabs.Presto.AnimationBuilder
+MonacoLabs.Presto.AnimationBuilder.Alternate(bool alternate = true) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Animate(object? targets) -> MonacoLabs.Presto.Animation!
+MonacoLabs.Presto.AnimationBuilder.AnimationBuilder() -> void
+MonacoLabs.Presto.AnimationBuilder.Autoplay(bool autoplay) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Clone() -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Composition(MonacoLabs.Presto.Composition composition) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Delay(MonacoLabs.Presto.TweenValue delay) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Duration(MonacoLabs.Presto.TweenValue duration) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Ease(MonacoLabs.Presto.EaseValue ease) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.FrameRate(double fps) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Id(string! id) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Keyframes(System.Action<MonacoLabs.Presto.KeyframesBuilder!>! keyframes) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Loop() -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Loop(MonacoLabs.Presto.LoopCount loop) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.LoopDelay(double ms) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Modifier(System.Func<double, double>! modifier) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.OnBeforeUpdate(System.Action<MonacoLabs.Presto.Timer!>! callback) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.OnBegin(System.Action<MonacoLabs.Presto.Timer!>! callback) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.OnComplete(System.Action<MonacoLabs.Presto.Timer!>! callback) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.OnLoop(System.Action<MonacoLabs.Presto.Timer!>! callback) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.OnPause(System.Action<MonacoLabs.Presto.Timer!>! callback) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.OnRender(System.Action<MonacoLabs.Presto.Timer!>! callback) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.OnUpdate(System.Action<MonacoLabs.Presto.Timer!>! callback) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.PlaybackEase(MonacoLabs.Presto.EaseValue ease) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.PlaybackRate(double rate) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Priority(int priority) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Reversed(bool reversed = true) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.Set(object? targets) -> MonacoLabs.Presto.Animation!
+MonacoLabs.Presto.AnimationBuilder.ToParams() -> MonacoLabs.Presto.AnimationParams!
+MonacoLabs.Presto.AnimationBuilder.WhenReduced(System.Action<MonacoLabs.Presto.AnimationBuilder!>! reduced) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationBuilder.With(System.Action<MonacoLabs.Presto.AnimationBuilder!>! change) -> MonacoLabs.Presto.AnimationBuilder!
+MonacoLabs.Presto.AnimationParams
+MonacoLabs.Presto.AnimationParams.AnimationParams() -> void
+MonacoLabs.Presto.AnimationParams.AnimationParams(MonacoLabs.Presto.AnimationParams! original) -> void
+MonacoLabs.Presto.AnimationParams.Composition.get -> MonacoLabs.Presto.Composition?
+MonacoLabs.Presto.AnimationParams.Composition.init -> void
+MonacoLabs.Presto.AnimationParams.Delay.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.AnimationParams.Delay.init -> void
+MonacoLabs.Presto.AnimationParams.Duration.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.AnimationParams.Duration.init -> void
+MonacoLabs.Presto.AnimationParams.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.AnimationParams.Ease.init -> void
+MonacoLabs.Presto.AnimationParams.Keyframes.get -> MonacoLabs.Presto.Keyframes?
+MonacoLabs.Presto.AnimationParams.Keyframes.init -> void
+MonacoLabs.Presto.AnimationParams.Modifier.get -> System.Func<double, double>?
+MonacoLabs.Presto.AnimationParams.Modifier.init -> void
+MonacoLabs.Presto.AnimationParams.OnRender.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.AnimationParams.OnRender.init -> void
+MonacoLabs.Presto.AnimationParams.PlaybackEase.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.AnimationParams.PlaybackEase.init -> void
+MonacoLabs.Presto.AnimationParams.this[MonacoLabs.Presto.PropertyKey property].get -> MonacoLabs.Presto.TweenValue
+MonacoLabs.Presto.AnimationParams.this[MonacoLabs.Presto.PropertyKey property].init -> void
+MonacoLabs.Presto.AnimationParams.WhenReduced.get -> MonacoLabs.Presto.AnimationParams?
+MonacoLabs.Presto.AnimationParams.WhenReduced.init -> void
+MonacoLabs.Presto.ChainedFunctionValue
+MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.ChainedUtil() -> void
+MonacoLabs.Presto.ChainedUtil.Clamp(double min, double max) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.Damp(double start, double end, double deltaTime) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.DegToRad() -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.Invoke(double v) -> double
+MonacoLabs.Presto.ChainedUtil.Lerp(double start, double end) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.MapRange(double inLow, double inHigh, double outLow, double outHigh) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.RadToDeg() -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.Round(int decimals) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.RoundPad(int decimals) -> System.Func<double, string!>!
+MonacoLabs.Presto.ChainedUtil.Snap(double increment) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.Snap(double[]! points) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.ChainedUtil.Wrap(double min, double max) -> MonacoLabs.Presto.ChainedUtil
+MonacoLabs.Presto.Composition
+MonacoLabs.Presto.Composition.Additive = 2 -> MonacoLabs.Presto.Composition
+MonacoLabs.Presto.Composition.Overlap = 1 -> MonacoLabs.Presto.Composition
+MonacoLabs.Presto.Composition.Replace = 0 -> MonacoLabs.Presto.Composition
+MonacoLabs.Presto.Core.Clock
+MonacoLabs.Presto.Core.Clock.Clock(double initTime = 0) -> void
+MonacoLabs.Presto.Core.Clock.DeltaTime.get -> double
+MonacoLabs.Presto.Core.Clock.Fps.get -> double
+MonacoLabs.Presto.Core.Clock.Fps.set -> void
+MonacoLabs.Presto.Cue
+MonacoLabs.Presto.Cue.Cue() -> void
+MonacoLabs.Presto.Cue.Raise() -> void
+MonacoLabs.Presto.Cue.Subscribe(System.IObserver<object?>! observer) -> System.IDisposable!
+MonacoLabs.Presto.Cue<T>
+MonacoLabs.Presto.Cue<T>.Cue() -> void
+MonacoLabs.Presto.Cue<T>.Raise(T value) -> void
+MonacoLabs.Presto.Cue<T>.Subscribe(System.IObserver<T>! observer) -> System.IDisposable!
+MonacoLabs.Presto.DefaultsParams
+MonacoLabs.Presto.DefaultsParams.Alternate.get -> bool?
+MonacoLabs.Presto.DefaultsParams.Alternate.init -> void
+MonacoLabs.Presto.DefaultsParams.Autoplay.get -> bool?
+MonacoLabs.Presto.DefaultsParams.Autoplay.init -> void
+MonacoLabs.Presto.DefaultsParams.Composition.get -> MonacoLabs.Presto.Composition?
+MonacoLabs.Presto.DefaultsParams.Composition.init -> void
+MonacoLabs.Presto.DefaultsParams.DefaultsParams() -> void
+MonacoLabs.Presto.DefaultsParams.Delay.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.DefaultsParams.Delay.init -> void
+MonacoLabs.Presto.DefaultsParams.Duration.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.DefaultsParams.Duration.init -> void
+MonacoLabs.Presto.DefaultsParams.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.DefaultsParams.Ease.init -> void
+MonacoLabs.Presto.DefaultsParams.FrameRate.get -> double?
+MonacoLabs.Presto.DefaultsParams.FrameRate.init -> void
+MonacoLabs.Presto.DefaultsParams.Loop.get -> MonacoLabs.Presto.LoopCount?
+MonacoLabs.Presto.DefaultsParams.Loop.init -> void
+MonacoLabs.Presto.DefaultsParams.LoopDelay.get -> double?
+MonacoLabs.Presto.DefaultsParams.LoopDelay.init -> void
+MonacoLabs.Presto.DefaultsParams.Modifier.get -> System.Func<double, double>?
+MonacoLabs.Presto.DefaultsParams.Modifier.init -> void
+MonacoLabs.Presto.DefaultsParams.OnBeforeUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.DefaultsParams.OnBeforeUpdate.init -> void
+MonacoLabs.Presto.DefaultsParams.OnBegin.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.DefaultsParams.OnBegin.init -> void
+MonacoLabs.Presto.DefaultsParams.OnComplete.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.DefaultsParams.OnComplete.init -> void
+MonacoLabs.Presto.DefaultsParams.OnLoop.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.DefaultsParams.OnLoop.init -> void
+MonacoLabs.Presto.DefaultsParams.OnPause.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.DefaultsParams.OnPause.init -> void
+MonacoLabs.Presto.DefaultsParams.OnRender.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.DefaultsParams.OnRender.init -> void
+MonacoLabs.Presto.DefaultsParams.OnUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.DefaultsParams.OnUpdate.init -> void
+MonacoLabs.Presto.DefaultsParams.PlaybackEase.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.DefaultsParams.PlaybackEase.init -> void
+MonacoLabs.Presto.DefaultsParams.PlaybackRate.get -> double?
+MonacoLabs.Presto.DefaultsParams.PlaybackRate.init -> void
+MonacoLabs.Presto.DefaultsParams.Reversed.get -> bool?
+MonacoLabs.Presto.DefaultsParams.Reversed.init -> void
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.ActiveValues.get -> System.Collections.Generic.IReadOnlyList<MonacoLabs.Presto.MotionValue!>!
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.Animatables.get -> System.Collections.Generic.IReadOnlyList<MonacoLabs.Presto.Animatable!>!
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.Enabled.get -> bool
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.Enabled.set -> void
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.LastFrame.get -> MonacoLabs.Presto.Diagnostics.FrameStats
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.RecentlyEnded.get -> System.Collections.Generic.IReadOnlyList<MonacoLabs.Presto.Timer!>!
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.Roots.get -> System.Collections.Generic.IReadOnlyList<MonacoLabs.Presto.Timer!>!
+MonacoLabs.Presto.Diagnostics.EngineDiagnostics.TimerCreated -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.Diagnostics.FrameStats
+MonacoLabs.Presto.Diagnostics.FrameStats.Deconstruct(out double EngineTime, out double Delta, out System.TimeSpan UpdateDuration, out int RootsTicked, out int TweensRendered, out int ValuesStepped, out int SinksFlushed) -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.Delta.get -> double
+MonacoLabs.Presto.Diagnostics.FrameStats.Delta.init -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.EngineTime.get -> double
+MonacoLabs.Presto.Diagnostics.FrameStats.EngineTime.init -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.Equals(MonacoLabs.Presto.Diagnostics.FrameStats other) -> bool
+MonacoLabs.Presto.Diagnostics.FrameStats.FrameStats() -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.FrameStats(double EngineTime, double Delta, System.TimeSpan UpdateDuration, int RootsTicked, int TweensRendered, int ValuesStepped, int SinksFlushed) -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.RootsTicked.get -> int
+MonacoLabs.Presto.Diagnostics.FrameStats.RootsTicked.init -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.SinksFlushed.get -> int
+MonacoLabs.Presto.Diagnostics.FrameStats.SinksFlushed.init -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.TweensRendered.get -> int
+MonacoLabs.Presto.Diagnostics.FrameStats.TweensRendered.init -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.UpdateDuration.get -> System.TimeSpan
+MonacoLabs.Presto.Diagnostics.FrameStats.UpdateDuration.init -> void
+MonacoLabs.Presto.Diagnostics.FrameStats.ValuesStepped.get -> int
+MonacoLabs.Presto.Diagnostics.FrameStats.ValuesStepped.init -> void
+MonacoLabs.Presto.Diagnostics.OriginScope
+MonacoLabs.Presto.Diagnostics.OriginScope.Dispose() -> void
+MonacoLabs.Presto.Diagnostics.OriginScope.OriginScope() -> void
+MonacoLabs.Presto.Diagnostics.PrestoDiagnostics
+MonacoLabs.Presto.DiscreteRule
+MonacoLabs.Presto.DiscreteRule.AtEnd = 2 -> MonacoLabs.Presto.DiscreteRule
+MonacoLabs.Presto.DiscreteRule.AtStart = 1 -> MonacoLabs.Presto.DiscreteRule
+MonacoLabs.Presto.DiscreteRule.FalseThroughout = 4 -> MonacoLabs.Presto.DiscreteRule
+MonacoLabs.Presto.DiscreteRule.Midpoint = 0 -> MonacoLabs.Presto.DiscreteRule
+MonacoLabs.Presto.DiscreteRule.TrueThroughout = 3 -> MonacoLabs.Presto.DiscreteRule
+MonacoLabs.Presto.Ease
+MonacoLabs.Presto.EaseParser
+MonacoLabs.Presto.Eases
+MonacoLabs.Presto.EaseValue
+MonacoLabs.Presto.EaseValue.EaseValue() -> void
+MonacoLabs.Presto.EmitterParams
+MonacoLabs.Presto.EmitterParams.<Clone>$() -> MonacoLabs.Presto.EmitterParams!
+MonacoLabs.Presto.EmitterParams.Angle.get -> double
+MonacoLabs.Presto.EmitterParams.Angle.init -> void
+MonacoLabs.Presto.EmitterParams.Area.get -> (double Width, double Height)
+MonacoLabs.Presto.EmitterParams.Area.init -> void
+MonacoLabs.Presto.EmitterParams.Burst.get -> int
+MonacoLabs.Presto.EmitterParams.Burst.init -> void
+MonacoLabs.Presto.EmitterParams.ColorMix.get -> MonacoLabs.Presto.ParticleCurve?
+MonacoLabs.Presto.EmitterParams.ColorMix.init -> void
+MonacoLabs.Presto.EmitterParams.Colors.get -> System.Collections.Generic.IReadOnlyList<MonacoLabs.Presto.Values.PrestoColor>!
+MonacoLabs.Presto.EmitterParams.Colors.init -> void
+MonacoLabs.Presto.EmitterParams.Drag.get -> double
+MonacoLabs.Presto.EmitterParams.Drag.init -> void
+MonacoLabs.Presto.EmitterParams.Duration.get -> double
+MonacoLabs.Presto.EmitterParams.Duration.init -> void
+MonacoLabs.Presto.EmitterParams.EmitterParams() -> void
+MonacoLabs.Presto.EmitterParams.EndColor.get -> MonacoLabs.Presto.Values.PrestoColor?
+MonacoLabs.Presto.EmitterParams.EndColor.init -> void
+MonacoLabs.Presto.EmitterParams.Equals(MonacoLabs.Presto.EmitterParams? other) -> bool
+MonacoLabs.Presto.EmitterParams.Flutter.get -> double
+MonacoLabs.Presto.EmitterParams.Flutter.init -> void
+MonacoLabs.Presto.EmitterParams.Gravity.get -> double
+MonacoLabs.Presto.EmitterParams.Gravity.init -> void
+MonacoLabs.Presto.EmitterParams.Lifetime.get -> (double Min, double Max)
+MonacoLabs.Presto.EmitterParams.Lifetime.init -> void
+MonacoLabs.Presto.EmitterParams.MaxParticles.get -> int
+MonacoLabs.Presto.EmitterParams.MaxParticles.init -> void
+MonacoLabs.Presto.EmitterParams.Opacity.get -> MonacoLabs.Presto.ParticleCurve!
+MonacoLabs.Presto.EmitterParams.Opacity.init -> void
+MonacoLabs.Presto.EmitterParams.Rate.get -> double
+MonacoLabs.Presto.EmitterParams.Rate.init -> void
+MonacoLabs.Presto.EmitterParams.Seed.get -> int?
+MonacoLabs.Presto.EmitterParams.Seed.init -> void
+MonacoLabs.Presto.EmitterParams.Shape.get -> object?
+MonacoLabs.Presto.EmitterParams.Shape.init -> void
+MonacoLabs.Presto.EmitterParams.Size.get -> MonacoLabs.Presto.ParticleCurve!
+MonacoLabs.Presto.EmitterParams.Size.init -> void
+MonacoLabs.Presto.EmitterParams.Speed.get -> (double Min, double Max)
+MonacoLabs.Presto.EmitterParams.Speed.init -> void
+MonacoLabs.Presto.EmitterParams.Spin.get -> (double Min, double Max)
+MonacoLabs.Presto.EmitterParams.Spin.init -> void
+MonacoLabs.Presto.EmitterParams.Spread.get -> double
+MonacoLabs.Presto.EmitterParams.Spread.init -> void
+MonacoLabs.Presto.Engine
+MonacoLabs.Presto.Engine.Defaults.get -> MonacoLabs.Presto.PrestoDefaults!
+MonacoLabs.Presto.Engine.Diagnostics.get -> MonacoLabs.Presto.Diagnostics.EngineDiagnostics!
+MonacoLabs.Presto.Engine.Engine(MonacoLabs.Presto.IFrameSource! frameSource) -> void
+MonacoLabs.Presto.Engine.FrameSource.get -> MonacoLabs.Presto.IFrameSource!
+MonacoLabs.Presto.Engine.FrameSource.set -> void
+MonacoLabs.Presto.Engine.Freeze() -> MonacoLabs.Presto.Engine!
+MonacoLabs.Presto.Engine.Frozen.get -> bool
+MonacoLabs.Presto.Engine.Hidden.get -> bool
+MonacoLabs.Presto.Engine.Hidden.set -> void
+MonacoLabs.Presto.Engine.IsRunning.get -> bool
+MonacoLabs.Presto.Engine.MakeCurrent() -> MonacoLabs.Presto.EngineScope
+MonacoLabs.Presto.Engine.Now.get -> double
+MonacoLabs.Presto.Engine.Pause() -> MonacoLabs.Presto.Engine!
+MonacoLabs.Presto.Engine.Paused.get -> bool
+MonacoLabs.Presto.Engine.PauseOnHidden.get -> bool
+MonacoLabs.Presto.Engine.PauseOnHidden.set -> void
+MonacoLabs.Presto.Engine.Precision.get -> int
+MonacoLabs.Presto.Engine.Precision.set -> void
+MonacoLabs.Presto.Engine.ReducedMotionChanged -> System.Action<MonacoLabs.Presto.Engine!>?
+MonacoLabs.Presto.Engine.Resume() -> MonacoLabs.Presto.Engine!
+MonacoLabs.Presto.Engine.Step(double milliseconds = 16.666666666666668) -> void
+MonacoLabs.Presto.Engine.Thaw() -> MonacoLabs.Presto.Engine!
+MonacoLabs.Presto.Engine.TimeDilation.get -> double
+MonacoLabs.Presto.Engine.TimeDilation.set -> void
+MonacoLabs.Presto.Engine.TimeUnit.get -> MonacoLabs.Presto.TimeUnit
+MonacoLabs.Presto.Engine.TimeUnit.set -> void
+MonacoLabs.Presto.Engine.Update() -> void
+MonacoLabs.Presto.Engine.UseDefaultMainLoop.get -> bool
+MonacoLabs.Presto.Engine.UseDefaultMainLoop.set -> void
+MonacoLabs.Presto.Engine.Wake() -> MonacoLabs.Presto.Engine!
+MonacoLabs.Presto.EngineScope
+MonacoLabs.Presto.EngineScope.Dispose() -> void
+MonacoLabs.Presto.EngineScope.EngineScope() -> void
+MonacoLabs.Presto.FilteredView<T>
+MonacoLabs.Presto.FilteredView<T>.CollectionChanged -> System.Collections.Specialized.NotifyCollectionChangedEventHandler?
+MonacoLabs.Presto.FilteredView<T>.Contains(T item) -> bool
+MonacoLabs.Presto.FilteredView<T>.Count.get -> int
+MonacoLabs.Presto.FilteredView<T>.Dispose() -> void
+MonacoLabs.Presto.FilteredView<T>.Filter.get -> System.Func<T, bool>?
+MonacoLabs.Presto.FilteredView<T>.Filter.set -> void
+MonacoLabs.Presto.FilteredView<T>.FilteredView(System.Collections.ObjectModel.ObservableCollection<T>! source, System.Func<T, bool>? filter = null, System.Collections.Generic.IEnumerable<string!>? refreshOn = null) -> void
+MonacoLabs.Presto.FilteredView<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<T>!
+MonacoLabs.Presto.FilteredView<T>.IndexOf(T item) -> int
+MonacoLabs.Presto.FilteredView<T>.Move(int oldIndex, int newIndex) -> void
+MonacoLabs.Presto.FilteredView<T>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+MonacoLabs.Presto.FilteredView<T>.Refresh() -> void
+MonacoLabs.Presto.FilteredView<T>.Refresh(T item) -> void
+MonacoLabs.Presto.FilteredView<T>.this[int index].get -> T
+MonacoLabs.Presto.FunctionValue
+MonacoLabs.Presto.IFrameSource
+MonacoLabs.Presto.IFrameSource.Now.get -> double
+MonacoLabs.Presto.IFrameSource.Start(System.Action! onFrame) -> void
+MonacoLabs.Presto.IFrameSource.Stop() -> void
+MonacoLabs.Presto.Inertia
+MonacoLabs.Presto.Inertia.<Clone>$() -> MonacoLabs.Presto.Inertia!
+MonacoLabs.Presto.Inertia.BounceDamping.get -> double
+MonacoLabs.Presto.Inertia.BounceDamping.init -> void
+MonacoLabs.Presto.Inertia.BounceStiffness.get -> double
+MonacoLabs.Presto.Inertia.BounceStiffness.init -> void
+MonacoLabs.Presto.Inertia.Equals(MonacoLabs.Presto.Inertia? other) -> bool
+MonacoLabs.Presto.Inertia.Inertia() -> void
+MonacoLabs.Presto.Inertia.Inertia(double velocity) -> void
+MonacoLabs.Presto.Inertia.Max.get -> double?
+MonacoLabs.Presto.Inertia.Max.init -> void
+MonacoLabs.Presto.Inertia.Min.get -> double?
+MonacoLabs.Presto.Inertia.Min.init -> void
+MonacoLabs.Presto.Inertia.ModifyTarget.get -> System.Func<double, double>?
+MonacoLabs.Presto.Inertia.ModifyTarget.init -> void
+MonacoLabs.Presto.Inertia.Power.get -> double
+MonacoLabs.Presto.Inertia.Power.init -> void
+MonacoLabs.Presto.Inertia.RestDelta.get -> double
+MonacoLabs.Presto.Inertia.RestDelta.init -> void
+MonacoLabs.Presto.Inertia.TimeConstant.get -> double
+MonacoLabs.Presto.Inertia.TimeConstant.init -> void
+MonacoLabs.Presto.Inertia.Velocity.get -> double
+MonacoLabs.Presto.Inertia.Velocity.init -> void
+MonacoLabs.Presto.IRevertible
+MonacoLabs.Presto.IRevertible.Revert() -> void
+MonacoLabs.Presto.Keyframe
+MonacoLabs.Presto.Keyframe.Composition.get -> MonacoLabs.Presto.Composition?
+MonacoLabs.Presto.Keyframe.Composition.init -> void
+MonacoLabs.Presto.Keyframe.Delay.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.Keyframe.Delay.init -> void
+MonacoLabs.Presto.Keyframe.Duration.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.Keyframe.Duration.init -> void
+MonacoLabs.Presto.Keyframe.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.Keyframe.Ease.init -> void
+MonacoLabs.Presto.Keyframe.Keyframe() -> void
+MonacoLabs.Presto.Keyframe.Modifier.get -> System.Func<double, double>?
+MonacoLabs.Presto.Keyframe.Modifier.init -> void
+MonacoLabs.Presto.Keyframe.this[MonacoLabs.Presto.PropertyKey property].get -> MonacoLabs.Presto.TweenValue
+MonacoLabs.Presto.Keyframe.this[MonacoLabs.Presto.PropertyKey property].init -> void
+MonacoLabs.Presto.KeyframeBuilder
+MonacoLabs.Presto.KeyframeBuilder.Composition(MonacoLabs.Presto.Composition composition) -> MonacoLabs.Presto.KeyframeBuilder!
+MonacoLabs.Presto.KeyframeBuilder.Delay(MonacoLabs.Presto.TweenValue delay) -> MonacoLabs.Presto.KeyframeBuilder!
+MonacoLabs.Presto.KeyframeBuilder.Duration(MonacoLabs.Presto.TweenValue duration) -> MonacoLabs.Presto.KeyframeBuilder!
+MonacoLabs.Presto.KeyframeBuilder.Ease(MonacoLabs.Presto.EaseValue ease) -> MonacoLabs.Presto.KeyframeBuilder!
+MonacoLabs.Presto.KeyframeBuilder.Modifier(System.Func<double, double>! modifier) -> MonacoLabs.Presto.KeyframeBuilder!
+MonacoLabs.Presto.Keyframes
+MonacoLabs.Presto.KeyframesBuilder
+MonacoLabs.Presto.KeyframesBuilder.At(double percent, System.Action<MonacoLabs.Presto.KeyframeBuilder!>! frame) -> MonacoLabs.Presto.KeyframesBuilder!
+MonacoLabs.Presto.KeyframesBuilder.Frame(System.Action<MonacoLabs.Presto.KeyframeBuilder!>! frame) -> MonacoLabs.Presto.KeyframesBuilder!
+MonacoLabs.Presto.LinearStop
+MonacoLabs.Presto.LinearStop.Deconstruct(out double Value, out double? Position) -> void
+MonacoLabs.Presto.LinearStop.Equals(MonacoLabs.Presto.LinearStop other) -> bool
+MonacoLabs.Presto.LinearStop.LinearStop() -> void
+MonacoLabs.Presto.LinearStop.LinearStop(double Value, double? Position = null) -> void
+MonacoLabs.Presto.LinearStop.Position.get -> double?
+MonacoLabs.Presto.LinearStop.Position.init -> void
+MonacoLabs.Presto.LinearStop.Value.get -> double
+MonacoLabs.Presto.LinearStop.Value.init -> void
+MonacoLabs.Presto.LoopCount
+MonacoLabs.Presto.LoopCount.IsInfinite.get -> bool
+MonacoLabs.Presto.LoopCount.LoopCount() -> void
+MonacoLabs.Presto.LoopCount.Value.get -> double
+MonacoLabs.Presto.ManualFrameSource
+MonacoLabs.Presto.ManualFrameSource.Advance(double ms) -> void
+MonacoLabs.Presto.ManualFrameSource.Advance(double ms, double step) -> void
+MonacoLabs.Presto.ManualFrameSource.IsRunning.get -> bool
+MonacoLabs.Presto.ManualFrameSource.ManualFrameSource() -> void
+MonacoLabs.Presto.ManualFrameSource.Now.get -> double
+MonacoLabs.Presto.ManualFrameSource.Start(System.Action! onFrame) -> void
+MonacoLabs.Presto.ManualFrameSource.Stop() -> void
+MonacoLabs.Presto.MotionObjectValue
+MonacoLabs.Presto.MotionObjectValue.Changed -> System.Action<MonacoLabs.Presto.MotionObjectValue!>?
+MonacoLabs.Presto.MotionObjectValue.Value.get -> object!
+MonacoLabs.Presto.MotionPath
+MonacoLabs.Presto.MotionPath.BezierPoints.get -> System.Collections.Generic.IReadOnlyList<(double X, double Y)>!
+MonacoLabs.Presto.MotionPath.Length.get -> double
+MonacoLabs.Presto.MotionPath.Sample(double distance, out double x, out double y, out double angle) -> void
+MonacoLabs.Presto.MotionPath.Tweens(double offset = 0, double rotateOffset = 0) -> (MonacoLabs.Presto.TweenParams! X, MonacoLabs.Presto.TweenParams! Y, MonacoLabs.Presto.TweenParams! Rotate)
+MonacoLabs.Presto.MotionPreference
+MonacoLabs.Presto.MotionPreference.Full = 1 -> MonacoLabs.Presto.MotionPreference
+MonacoLabs.Presto.MotionPreference.Reduced = 2 -> MonacoLabs.Presto.MotionPreference
+MonacoLabs.Presto.MotionPreference.System = 0 -> MonacoLabs.Presto.MotionPreference
+MonacoLabs.Presto.MotionValue
+MonacoLabs.Presto.MotionValue.Changed -> System.Action<MonacoLabs.Presto.MotionValue!>?
+MonacoLabs.Presto.MotionValue.FollowSpring.get -> MonacoLabs.Presto.Spring?
+MonacoLabs.Presto.MotionValue.IsAnimating.get -> bool
+MonacoLabs.Presto.MotionValue.Lag(double delay) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.MotionValue.Map(double[]! input, double[]! output, MonacoLabs.Presto.EaseValue? ease = null, bool clamp = true) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.MotionValue.Map(double[]! input, object![]! outputs, MonacoLabs.Presto.EaseValue? ease = null, bool clamp = true) -> MonacoLabs.Presto.MotionObjectValue!
+MonacoLabs.Presto.MotionValue.Map(System.Func<double, double>! transform) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.MotionValue.Resist(double min, double max, double friction = 0.8) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.MotionValue.Set(double value) -> void
+MonacoLabs.Presto.MotionValue.Snap(double increment) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.MotionValue.Snap(double[]! points) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.MotionValue.Spring(MonacoLabs.Presto.Spring! spring) -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.MotionValue.SpringTarget.get -> double?
+MonacoLabs.Presto.MotionValue.Trail(int count, double delay) -> MonacoLabs.Presto.MotionValue![]!
+MonacoLabs.Presto.MotionValue.Trail(int count, MonacoLabs.Presto.Spring! spring) -> MonacoLabs.Presto.MotionValue![]!
+MonacoLabs.Presto.MotionValue.Value.get -> double
+MonacoLabs.Presto.MotionValue.Velocity.get -> double
+MonacoLabs.Presto.MotionValue.VelocityOf() -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.ParticleCurve
+MonacoLabs.Presto.ParticleCurve.<Clone>$() -> MonacoLabs.Presto.ParticleCurve!
+MonacoLabs.Presto.ParticleCurve.At(double age) -> double
+MonacoLabs.Presto.ParticleCurve.Ease.get -> MonacoLabs.Presto.EaseValue
+MonacoLabs.Presto.ParticleCurve.Ease.init -> void
+MonacoLabs.Presto.ParticleCurve.Equals(MonacoLabs.Presto.ParticleCurve? other) -> bool
+MonacoLabs.Presto.ParticleCurve.From.get -> double
+MonacoLabs.Presto.ParticleCurve.From.init -> void
+MonacoLabs.Presto.ParticleCurve.ParticleCurve(double from, double to, MonacoLabs.Presto.EaseValue ease = default(MonacoLabs.Presto.EaseValue)) -> void
+MonacoLabs.Presto.ParticleCurve.To.get -> double
+MonacoLabs.Presto.ParticleCurve.To.init -> void
+MonacoLabs.Presto.ParticleState
+MonacoLabs.Presto.ParticleState.Age.get -> double
+MonacoLabs.Presto.ParticleState.BaseColor.get -> MonacoLabs.Presto.Values.PrestoColor
+MonacoLabs.Presto.ParticleState.Color.get -> MonacoLabs.Presto.Values.PrestoColor
+MonacoLabs.Presto.ParticleState.FlutterPhase.get -> double
+MonacoLabs.Presto.ParticleState.Lifetime.get -> double
+MonacoLabs.Presto.ParticleState.Opacity.get -> double
+MonacoLabs.Presto.ParticleState.ParticleState() -> void
+MonacoLabs.Presto.ParticleState.Rotation.get -> double
+MonacoLabs.Presto.ParticleState.Size.get -> double
+MonacoLabs.Presto.ParticleState.Spin.get -> double
+MonacoLabs.Presto.ParticleState.VelocityX.get -> double
+MonacoLabs.Presto.ParticleState.VelocityY.get -> double
+MonacoLabs.Presto.ParticleState.X.get -> double
+MonacoLabs.Presto.ParticleState.Y.get -> double
+MonacoLabs.Presto.ParticleSystem
+MonacoLabs.Presto.ParticleSystem.Clear() -> void
+MonacoLabs.Presto.ParticleSystem.IsFinished.get -> bool
+MonacoLabs.Presto.ParticleSystem.Live.get -> int
+MonacoLabs.Presto.ParticleSystem.Params.get -> MonacoLabs.Presto.EmitterParams!
+MonacoLabs.Presto.ParticleSystem.Particles.get -> System.ReadOnlySpan<MonacoLabs.Presto.ParticleState>
+MonacoLabs.Presto.ParticleSystem.ParticleSystem(MonacoLabs.Presto.EmitterParams! parameters, double x = 0, double y = 0) -> void
+MonacoLabs.Presto.ParticleSystem.Start() -> void
+MonacoLabs.Presto.ParticleSystem.Step(double dt) -> void
+MonacoLabs.Presto.ParticleSystem.Stop() -> void
+MonacoLabs.Presto.ParticleSystem.X.get -> double
+MonacoLabs.Presto.ParticleSystem.X.set -> void
+MonacoLabs.Presto.ParticleSystem.Y.get -> double
+MonacoLabs.Presto.ParticleSystem.Y.set -> void
+MonacoLabs.Presto.Presto
+MonacoLabs.Presto.PrestoDefaults
+MonacoLabs.Presto.PrestoDefaults.<Clone>$() -> MonacoLabs.Presto.PrestoDefaults!
+MonacoLabs.Presto.PrestoDefaults.Alternate.get -> bool
+MonacoLabs.Presto.PrestoDefaults.Alternate.set -> void
+MonacoLabs.Presto.PrestoDefaults.Autoplay.get -> bool
+MonacoLabs.Presto.PrestoDefaults.Autoplay.set -> void
+MonacoLabs.Presto.PrestoDefaults.Composition.get -> MonacoLabs.Presto.Composition
+MonacoLabs.Presto.PrestoDefaults.Composition.set -> void
+MonacoLabs.Presto.PrestoDefaults.Delay.get -> MonacoLabs.Presto.TweenValue
+MonacoLabs.Presto.PrestoDefaults.Delay.set -> void
+MonacoLabs.Presto.PrestoDefaults.Duration.get -> MonacoLabs.Presto.TweenValue
+MonacoLabs.Presto.PrestoDefaults.Duration.set -> void
+MonacoLabs.Presto.PrestoDefaults.Ease.get -> MonacoLabs.Presto.EaseValue
+MonacoLabs.Presto.PrestoDefaults.Ease.set -> void
+MonacoLabs.Presto.PrestoDefaults.Equals(MonacoLabs.Presto.PrestoDefaults? other) -> bool
+MonacoLabs.Presto.PrestoDefaults.FrameRate.get -> double
+MonacoLabs.Presto.PrestoDefaults.FrameRate.set -> void
+MonacoLabs.Presto.PrestoDefaults.Loop.get -> MonacoLabs.Presto.LoopCount
+MonacoLabs.Presto.PrestoDefaults.Loop.set -> void
+MonacoLabs.Presto.PrestoDefaults.LoopDelay.get -> double
+MonacoLabs.Presto.PrestoDefaults.LoopDelay.set -> void
+MonacoLabs.Presto.PrestoDefaults.Modifier.get -> System.Func<double, double>!
+MonacoLabs.Presto.PrestoDefaults.Modifier.set -> void
+MonacoLabs.Presto.PrestoDefaults.OnBeforeUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.PrestoDefaults.OnBeforeUpdate.set -> void
+MonacoLabs.Presto.PrestoDefaults.OnBegin.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.PrestoDefaults.OnBegin.set -> void
+MonacoLabs.Presto.PrestoDefaults.OnComplete.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.PrestoDefaults.OnComplete.set -> void
+MonacoLabs.Presto.PrestoDefaults.OnLoop.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.PrestoDefaults.OnLoop.set -> void
+MonacoLabs.Presto.PrestoDefaults.OnPause.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.PrestoDefaults.OnPause.set -> void
+MonacoLabs.Presto.PrestoDefaults.OnRender.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.PrestoDefaults.OnRender.set -> void
+MonacoLabs.Presto.PrestoDefaults.OnUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.PrestoDefaults.OnUpdate.set -> void
+MonacoLabs.Presto.PrestoDefaults.PlaybackEase.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.PrestoDefaults.PlaybackEase.set -> void
+MonacoLabs.Presto.PrestoDefaults.PlaybackRate.get -> double
+MonacoLabs.Presto.PrestoDefaults.PlaybackRate.set -> void
+MonacoLabs.Presto.PrestoDefaults.PrestoDefaults() -> void
+MonacoLabs.Presto.PrestoDefaults.ReduceAll.get -> bool
+MonacoLabs.Presto.PrestoDefaults.ReduceAll.set -> void
+MonacoLabs.Presto.PrestoDefaults.ReducedMotion.get -> bool
+MonacoLabs.Presto.PrestoDefaults.ReducedMotion.set -> void
+MonacoLabs.Presto.PrestoDefaults.Reversed.get -> bool
+MonacoLabs.Presto.PrestoDefaults.Reversed.set -> void
+MonacoLabs.Presto.Projectile
+MonacoLabs.Presto.Projectile.<Clone>$() -> MonacoLabs.Presto.Projectile!
+MonacoLabs.Presto.Projectile.Acceleration.get -> double
+MonacoLabs.Presto.Projectile.Acceleration.init -> void
+MonacoLabs.Presto.Projectile.Duration.get -> double?
+MonacoLabs.Presto.Projectile.Duration.init -> void
+MonacoLabs.Presto.Projectile.Equals(MonacoLabs.Presto.Projectile? other) -> bool
+MonacoLabs.Presto.Projectile.Friction.get -> double
+MonacoLabs.Presto.Projectile.Friction.init -> void
+MonacoLabs.Presto.Projectile.Projectile(double velocity) -> void
+MonacoLabs.Presto.Projectile.Velocity.get -> double
+MonacoLabs.Presto.Projectile.Velocity.init -> void
+MonacoLabs.Presto.PropertyBuilder<TSelf>
+MonacoLabs.Presto.PropertyBuilder<TSelf>.Property(MonacoLabs.Presto.PropertyKey name, MonacoLabs.Presto.FunctionValue! to) -> TSelf!
+MonacoLabs.Presto.PropertyBuilder<TSelf>.Property(MonacoLabs.Presto.PropertyKey name, MonacoLabs.Presto.TweenValue to) -> TSelf!
+MonacoLabs.Presto.PropertyBuilder<TSelf>.Property(MonacoLabs.Presto.PropertyKey name, MonacoLabs.Presto.TweenValue? to = null, MonacoLabs.Presto.TweenValue? from = null, MonacoLabs.Presto.TweenValue? duration = null, MonacoLabs.Presto.TweenValue? delay = null, MonacoLabs.Presto.EaseValue? ease = null, MonacoLabs.Presto.Composition? composition = null, System.Func<double, double>? modifier = null, System.Func<double, string!>? textModifier = null) -> TSelf!
+MonacoLabs.Presto.PropertyBuilder<TSelf>.Property(MonacoLabs.Presto.PropertyKey name, System.Action<MonacoLabs.Presto.TweenKeyframesBuilder!>! keyframes) -> TSelf!
+MonacoLabs.Presto.PropertyKey
+MonacoLabs.Presto.PropertyKey.Equals(MonacoLabs.Presto.PropertyKey other) -> bool
+MonacoLabs.Presto.PropertyKey.Name.get -> string!
+MonacoLabs.Presto.PropertyKey.PropertyKey() -> void
+MonacoLabs.Presto.PropertyKey.PropertyKey(string! name) -> void
+MonacoLabs.Presto.RandomGenerator
+MonacoLabs.Presto.RoughTaper
+MonacoLabs.Presto.RoughTaper.Both = 3 -> MonacoLabs.Presto.RoughTaper
+MonacoLabs.Presto.RoughTaper.In = 1 -> MonacoLabs.Presto.RoughTaper
+MonacoLabs.Presto.RoughTaper.None = 0 -> MonacoLabs.Presto.RoughTaper
+MonacoLabs.Presto.RoughTaper.Out = 2 -> MonacoLabs.Presto.RoughTaper
+MonacoLabs.Presto.Scope
+MonacoLabs.Presto.Scope.Add(string! name, System.Action! method) -> MonacoLabs.Presto.Scope!
+MonacoLabs.Presto.Scope.Add(System.Action<MonacoLabs.Presto.Scope!>! constructor) -> MonacoLabs.Presto.Scope!
+MonacoLabs.Presto.Scope.Add(System.Func<MonacoLabs.Presto.Scope!, System.Action?>! constructor) -> MonacoLabs.Presto.Scope!
+MonacoLabs.Presto.Scope.AddOnce(System.Action<MonacoLabs.Presto.Scope!>! constructor) -> MonacoLabs.Presto.Scope!
+MonacoLabs.Presto.Scope.AddOnce(System.Func<MonacoLabs.Presto.Scope!, System.Action?>! constructor) -> MonacoLabs.Presto.Scope!
+MonacoLabs.Presto.Scope.Data.get -> System.Collections.Generic.IDictionary<string!, object?>!
+MonacoLabs.Presto.Scope.Defaults.get -> MonacoLabs.Presto.PrestoDefaults!
+MonacoLabs.Presto.Scope.Execute(System.Action<MonacoLabs.Presto.Scope!>! callback) -> void
+MonacoLabs.Presto.Scope.Execute<T>(System.Func<MonacoLabs.Presto.Scope!, T>! callback) -> T
+MonacoLabs.Presto.Scope.KeepTime(System.Func<MonacoLabs.Presto.Scope!, MonacoLabs.Presto.Timer!>! constructor) -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Scope.Methods.get -> System.Collections.Generic.IDictionary<string!, System.Action!>!
+MonacoLabs.Presto.Scope.Refresh() -> MonacoLabs.Presto.Scope!
+MonacoLabs.Presto.Scope.Register(MonacoLabs.Presto.IRevertible! revertible) -> void
+MonacoLabs.Presto.Scope.Root.get -> object?
+MonacoLabs.Presto.Scope.Scope(MonacoLabs.Presto.ScopeParams? parameters = null) -> void
+MonacoLabs.Presto.ScopeParams
+MonacoLabs.Presto.ScopeParams.Defaults.get -> System.Action<MonacoLabs.Presto.PrestoDefaults!>?
+MonacoLabs.Presto.ScopeParams.Defaults.init -> void
+MonacoLabs.Presto.ScopeParams.Root.get -> object?
+MonacoLabs.Presto.ScopeParams.Root.init -> void
+MonacoLabs.Presto.ScopeParams.ScopeParams() -> void
+MonacoLabs.Presto.ScopeParams.ScopeParams(MonacoLabs.Presto.ScopeParams! original) -> void
+MonacoLabs.Presto.ScrambleFrom
+MonacoLabs.Presto.ScrambleFrom.Auto = 0 -> MonacoLabs.Presto.ScrambleFrom
+MonacoLabs.Presto.ScrambleFrom.Center = 3 -> MonacoLabs.Presto.ScrambleFrom
+MonacoLabs.Presto.ScrambleFrom.Left = 1 -> MonacoLabs.Presto.ScrambleFrom
+MonacoLabs.Presto.ScrambleFrom.Random = 4 -> MonacoLabs.Presto.ScrambleFrom
+MonacoLabs.Presto.ScrambleFrom.Right = 2 -> MonacoLabs.Presto.ScrambleFrom
+MonacoLabs.Presto.ScrambleTextParams
+MonacoLabs.Presto.ScrambleTextParams.<Clone>$() -> MonacoLabs.Presto.ScrambleTextParams!
+MonacoLabs.Presto.ScrambleTextParams.Chars.get -> string!
+MonacoLabs.Presto.ScrambleTextParams.Chars.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Cursor.get -> string?
+MonacoLabs.Presto.ScrambleTextParams.Cursor.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Delay.get -> double
+MonacoLabs.Presto.ScrambleTextParams.Delay.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Duration.get -> double?
+MonacoLabs.Presto.ScrambleTextParams.Duration.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.ScrambleTextParams.Ease.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Equals(MonacoLabs.Presto.ScrambleTextParams? other) -> bool
+MonacoLabs.Presto.ScrambleTextParams.From.get -> MonacoLabs.Presto.ScrambleFrom
+MonacoLabs.Presto.ScrambleTextParams.From.init -> void
+MonacoLabs.Presto.ScrambleTextParams.FromIndex.get -> int?
+MonacoLabs.Presto.ScrambleTextParams.FromIndex.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Override.get -> bool
+MonacoLabs.Presto.ScrambleTextParams.Override.init -> void
+MonacoLabs.Presto.ScrambleTextParams.OverrideChars.get -> string?
+MonacoLabs.Presto.ScrambleTextParams.OverrideChars.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Perturbation.get -> double
+MonacoLabs.Presto.ScrambleTextParams.Perturbation.init -> void
+MonacoLabs.Presto.ScrambleTextParams.RevealDelay.get -> double
+MonacoLabs.Presto.ScrambleTextParams.RevealDelay.init -> void
+MonacoLabs.Presto.ScrambleTextParams.RevealRate.get -> double
+MonacoLabs.Presto.ScrambleTextParams.RevealRate.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Reversed.get -> bool
+MonacoLabs.Presto.ScrambleTextParams.Reversed.init -> void
+MonacoLabs.Presto.ScrambleTextParams.ScrambleTextParams() -> void
+MonacoLabs.Presto.ScrambleTextParams.Seed.get -> int?
+MonacoLabs.Presto.ScrambleTextParams.Seed.init -> void
+MonacoLabs.Presto.ScrambleTextParams.SettleDuration.get -> double?
+MonacoLabs.Presto.ScrambleTextParams.SettleDuration.init -> void
+MonacoLabs.Presto.ScrambleTextParams.SettleRate.get -> double
+MonacoLabs.Presto.ScrambleTextParams.SettleRate.init -> void
+MonacoLabs.Presto.ScrambleTextParams.Text.get -> string?
+MonacoLabs.Presto.ScrambleTextParams.Text.init -> void
+MonacoLabs.Presto.SettleParams
+MonacoLabs.Presto.SettleParams.<Clone>$() -> MonacoLabs.Presto.SettleParams!
+MonacoLabs.Presto.SettleParams.Equals(MonacoLabs.Presto.SettleParams? other) -> bool
+MonacoLabs.Presto.SettleParams.FlickVelocity.get -> double?
+MonacoLabs.Presto.SettleParams.FlickVelocity.init -> void
+MonacoLabs.Presto.SettleParams.Labels.get -> bool
+MonacoLabs.Presto.SettleParams.Labels.init -> void
+MonacoLabs.Presto.SettleParams.Points.get -> double[]?
+MonacoLabs.Presto.SettleParams.Points.init -> void
+MonacoLabs.Presto.SettleParams.Projection.get -> double
+MonacoLabs.Presto.SettleParams.Projection.init -> void
+MonacoLabs.Presto.SettleParams.SettleParams() -> void
+MonacoLabs.Presto.SettleParams.Spring.get -> MonacoLabs.Presto.Spring?
+MonacoLabs.Presto.SettleParams.Spring.init -> void
+MonacoLabs.Presto.SettleParams.Velocity.get -> double?
+MonacoLabs.Presto.SettleParams.Velocity.init -> void
+MonacoLabs.Presto.Spring
+MonacoLabs.Presto.Spring.Bounce.get -> double
+MonacoLabs.Presto.Spring.Bounce.set -> void
+MonacoLabs.Presto.Spring.Completed.get -> bool
+MonacoLabs.Presto.Spring.Damping.get -> double
+MonacoLabs.Presto.Spring.Damping.set -> void
+MonacoLabs.Presto.Spring.DampingRatio.get -> double
+MonacoLabs.Presto.Spring.Duration.get -> double
+MonacoLabs.Presto.Spring.Duration.set -> void
+MonacoLabs.Presto.Spring.Ease.get -> MonacoLabs.Presto.Ease!
+MonacoLabs.Presto.Spring.Mass.get -> double
+MonacoLabs.Presto.Spring.Mass.set -> void
+MonacoLabs.Presto.Spring.OnComplete.get -> System.Action<MonacoLabs.Presto.Timer?>?
+MonacoLabs.Presto.Spring.OnComplete.set -> void
+MonacoLabs.Presto.Spring.Parent.get -> MonacoLabs.Presto.Timer?
+MonacoLabs.Presto.Spring.PureEase.get -> MonacoLabs.Presto.Ease!
+MonacoLabs.Presto.Spring.SettlingDuration.get -> double
+MonacoLabs.Presto.Spring.SolverDuration.get -> double
+MonacoLabs.Presto.Spring.Spring(double? mass = null, double? stiffness = null, double? damping = null, double? velocity = null, double? bounce = null, double? duration = null, System.Action<MonacoLabs.Presto.Timer?>? onComplete = null) -> void
+MonacoLabs.Presto.Spring.Stiffness.get -> double
+MonacoLabs.Presto.Spring.Stiffness.set -> void
+MonacoLabs.Presto.Spring.Velocity.get -> double
+MonacoLabs.Presto.Spring.Velocity.set -> void
+MonacoLabs.Presto.Springs
+MonacoLabs.Presto.Stagger
+MonacoLabs.Presto.StaggerAxis
+MonacoLabs.Presto.StaggerAxis.X = 0 -> MonacoLabs.Presto.StaggerAxis
+MonacoLabs.Presto.StaggerAxis.Y = 1 -> MonacoLabs.Presto.StaggerAxis
+MonacoLabs.Presto.StaggerAxis.Z = 2 -> MonacoLabs.Presto.StaggerAxis
+MonacoLabs.Presto.StaggerFrom
+MonacoLabs.Presto.StaggerFrom.StaggerFrom() -> void
+MonacoLabs.Presto.StaggerParams
+MonacoLabs.Presto.StaggerParams.<Clone>$() -> MonacoLabs.Presto.StaggerParams!
+MonacoLabs.Presto.StaggerParams.AutoGrid.get -> bool
+MonacoLabs.Presto.StaggerParams.AutoGrid.init -> void
+MonacoLabs.Presto.StaggerParams.Axis.get -> MonacoLabs.Presto.StaggerAxis?
+MonacoLabs.Presto.StaggerParams.Axis.init -> void
+MonacoLabs.Presto.StaggerParams.Coordinates.get -> System.Func<object!, double[]?>?
+MonacoLabs.Presto.StaggerParams.Coordinates.init -> void
+MonacoLabs.Presto.StaggerParams.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.StaggerParams.Ease.init -> void
+MonacoLabs.Presto.StaggerParams.Equals(MonacoLabs.Presto.StaggerParams? other) -> bool
+MonacoLabs.Presto.StaggerParams.From.get -> MonacoLabs.Presto.StaggerFrom
+MonacoLabs.Presto.StaggerParams.From.init -> void
+MonacoLabs.Presto.StaggerParams.Grid.get -> int[]?
+MonacoLabs.Presto.StaggerParams.Grid.init -> void
+MonacoLabs.Presto.StaggerParams.Jitter.get -> double[]?
+MonacoLabs.Presto.StaggerParams.Jitter.init -> void
+MonacoLabs.Presto.StaggerParams.Modifier.get -> System.Func<double, double>?
+MonacoLabs.Presto.StaggerParams.Modifier.init -> void
+MonacoLabs.Presto.StaggerParams.Reversed.get -> bool
+MonacoLabs.Presto.StaggerParams.Reversed.init -> void
+MonacoLabs.Presto.StaggerParams.Seed.get -> int?
+MonacoLabs.Presto.StaggerParams.Seed.init -> void
+MonacoLabs.Presto.StaggerParams.StaggerParams() -> void
+MonacoLabs.Presto.StaggerParams.Start.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.StaggerParams.Start.init -> void
+MonacoLabs.Presto.StaggerParams.Total.get -> int?
+MonacoLabs.Presto.StaggerParams.Total.init -> void
+MonacoLabs.Presto.StaggerParams.Use.get -> System.Func<object!, int, int, double>?
+MonacoLabs.Presto.StaggerParams.Use.init -> void
+MonacoLabs.Presto.StaggerParams.UseProperty.get -> string?
+MonacoLabs.Presto.StaggerParams.UseProperty.init -> void
+MonacoLabs.Presto.StopwatchFrameSource
+MonacoLabs.Presto.StopwatchFrameSource.Now.get -> double
+MonacoLabs.Presto.StopwatchFrameSource.Start(System.Action! onFrame) -> void
+MonacoLabs.Presto.StopwatchFrameSource.Stop() -> void
+MonacoLabs.Presto.StopwatchFrameSource.StopwatchFrameSource() -> void
+MonacoLabs.Presto.StopwatchFrameSource.StopwatchFrameSource(System.TimeProvider! timeProvider) -> void
+MonacoLabs.Presto.Targets.IPropertyAccessor
+MonacoLabs.Presto.Targets.IPropertyAccessor.Codec.get -> MonacoLabs.Presto.Targets.IValueCodec?
+MonacoLabs.Presto.Targets.IPropertyAccessor.GetValue(object! target) -> object?
+MonacoLabs.Presto.Targets.IPropertyAccessor.Revert(object! target, object? originalValue) -> void
+MonacoLabs.Presto.Targets.IPropertyAccessor.SetValue(object! target, double number, MonacoLabs.Presto.Tween! tween) -> void
+MonacoLabs.Presto.Targets.IReconcilingValueCodec
+MonacoLabs.Presto.Targets.IReconcilingValueCodec.Reconcile(MonacoLabs.Presto.Values.DecomposedValue! from, MonacoLabs.Presto.Values.DecomposedValue! to) -> void
+MonacoLabs.Presto.Targets.IReconcilingValueCodec.TryParse(string! text, MonacoLabs.Presto.Values.DecomposedValue! into) -> bool
+MonacoLabs.Presto.Targets.ITargetAdapter
+MonacoLabs.Presto.Targets.ITargetAdapter.Canonicalize(object! target, string! property) -> string?
+MonacoLabs.Presto.Targets.ITargetAdapter.Removed(System.Collections.Generic.IReadOnlyList<object!>! targets, string? property) -> void
+MonacoLabs.Presto.Targets.ITargetAdapter.Resolve(object! target, string! property) -> MonacoLabs.Presto.Targets.IPropertyAccessor?
+MonacoLabs.Presto.Targets.IValueCodec
+MonacoLabs.Presto.Targets.IValueCodec.Encode(double number, MonacoLabs.Presto.Tween! tween) -> object!
+MonacoLabs.Presto.Targets.IValueCodec.TryDecode(object! value, MonacoLabs.Presto.Values.DecomposedValue! into) -> bool
+MonacoLabs.Presto.Targets.ObjectTargetAdapter
+MonacoLabs.Presto.Targets.ObjectTargetAdapter.ObjectTargetAdapter() -> void
+MonacoLabs.Presto.Targets.ObjectTargetAdapter.Resolve(object! target, string! property) -> MonacoLabs.Presto.Targets.IPropertyAccessor!
+MonacoLabs.Presto.Targets.TargetParser
+MonacoLabs.Presto.Timeline
+MonacoLabs.Presto.Timeline.Add(MonacoLabs.Presto.TimerParams! parameters, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Add(object? targets, MonacoLabs.Presto.AnimationBuilder! builder, MonacoLabs.Presto.Stagger! position) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Add(object? targets, MonacoLabs.Presto.AnimationBuilder! builder, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Add(object? targets, MonacoLabs.Presto.AnimationParams! parameters, MonacoLabs.Presto.Stagger! position) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Add(object? targets, MonacoLabs.Presto.AnimationParams! parameters, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Add(object? targets, System.Action<MonacoLabs.Presto.AnimationBuilder!>! build, MonacoLabs.Presto.Stagger! position) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Add(object? targets, System.Action<MonacoLabs.Presto.AnimationBuilder!>! build, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Call(System.Action<MonacoLabs.Presto.Timeline!>! callback, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Composition.get -> bool
+MonacoLabs.Presto.Timeline.Label(MonacoLabs.Presto.TimelineLabel! label, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Label(string! name, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Label(string! name, out MonacoLabs.Presto.TimelineLabel! label, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Labels.get -> System.Collections.Generic.Dictionary<string!, double>!
+MonacoLabs.Presto.Timeline.Refresh() -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Remove(object? targets, MonacoLabs.Presto.PropertyKey? property = null) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Seek(MonacoLabs.Presto.TimelineLabel! label, bool muteCallbacks = false) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Set(object? targets, MonacoLabs.Presto.AnimationBuilder! builder, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Set(object? targets, MonacoLabs.Presto.AnimationParams! parameters, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Set(object? targets, System.Action<MonacoLabs.Presto.AnimationBuilder!>! build, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.Timeline.Sync(MonacoLabs.Presto.Timer! synced, MonacoLabs.Presto.TimelinePosition position = default(MonacoLabs.Presto.TimelinePosition)) -> MonacoLabs.Presto.Timeline!
+MonacoLabs.Presto.TimelineLabel
+MonacoLabs.Presto.TimelineLabel.Name.get -> string!
+MonacoLabs.Presto.TimelineLabel.TimelineLabel(string! name) -> void
+MonacoLabs.Presto.TimelineParams
+MonacoLabs.Presto.TimelineParams.Composition.get -> bool?
+MonacoLabs.Presto.TimelineParams.Composition.init -> void
+MonacoLabs.Presto.TimelineParams.Defaults.get -> MonacoLabs.Presto.DefaultsParams?
+MonacoLabs.Presto.TimelineParams.Defaults.init -> void
+MonacoLabs.Presto.TimelineParams.OnRender.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.TimelineParams.OnRender.init -> void
+MonacoLabs.Presto.TimelineParams.PlaybackEase.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.TimelineParams.PlaybackEase.init -> void
+MonacoLabs.Presto.TimelineParams.TimelineParams() -> void
+MonacoLabs.Presto.TimelineParams.TimelineParams(MonacoLabs.Presto.TimelineParams! original) -> void
+MonacoLabs.Presto.TimelinePosition
+MonacoLabs.Presto.TimelinePosition.TimelinePosition() -> void
+MonacoLabs.Presto.Timer
+MonacoLabs.Presto.Timer.Alternate() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Backwards.get -> bool
+MonacoLabs.Presto.Timer.Began.get -> bool
+MonacoLabs.Presto.Timer.Cancel() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Canceled.get -> bool
+MonacoLabs.Presto.Timer.Canceled.set -> void
+MonacoLabs.Presto.Timer.Children.get -> MonacoLabs.Presto.TimerChildren
+MonacoLabs.Presto.Timer.Complete(bool muteCallbacks = false) -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Completed.get -> bool
+MonacoLabs.Presto.Timer.CreationTrace.get -> System.Diagnostics.StackTrace?
+MonacoLabs.Presto.Timer.CurrentIteration.get -> int
+MonacoLabs.Presto.Timer.CurrentIteration.set -> void
+MonacoLabs.Presto.Timer.CurrentTime.get -> double
+MonacoLabs.Presto.Timer.CurrentTime.set -> void
+MonacoLabs.Presto.Timer.Delay.get -> double
+MonacoLabs.Presto.Timer.Duration.get -> double
+MonacoLabs.Presto.Timer.Engine.get -> MonacoLabs.Presto.Engine!
+MonacoLabs.Presto.Timer.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<MonacoLabs.Presto.Timer!>
+MonacoLabs.Presto.Timer.Id.get -> string!
+MonacoLabs.Presto.Timer.IsAlternating.get -> bool
+MonacoLabs.Presto.Timer.IsScheduled.get -> bool
+MonacoLabs.Presto.Timer.IterationCount.get -> double
+MonacoLabs.Presto.Timer.IterationCurrentTime.get -> double
+MonacoLabs.Presto.Timer.IterationCurrentTime.set -> void
+MonacoLabs.Presto.Timer.IterationDuration.get -> double
+MonacoLabs.Presto.Timer.IterationProgress.get -> double
+MonacoLabs.Presto.Timer.IterationProgress.set -> void
+MonacoLabs.Presto.Timer.IterationTime.get -> double
+MonacoLabs.Presto.Timer.Loop.get -> MonacoLabs.Presto.LoopCount
+MonacoLabs.Presto.Timer.Loop.set -> void
+MonacoLabs.Presto.Timer.LoopDelay.get -> double
+MonacoLabs.Presto.Timer.Offset.get -> double
+MonacoLabs.Presto.Timer.OnBeforeUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.Timer.OnBeforeUpdate.set -> void
+MonacoLabs.Presto.Timer.OnBegin.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.Timer.OnBegin.set -> void
+MonacoLabs.Presto.Timer.OnComplete.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.Timer.OnComplete.set -> void
+MonacoLabs.Presto.Timer.OnLoop.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.Timer.OnLoop.set -> void
+MonacoLabs.Presto.Timer.OnPause.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.Timer.OnPause.set -> void
+MonacoLabs.Presto.Timer.OnUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.Timer.OnUpdate.set -> void
+MonacoLabs.Presto.Timer.Origin.get -> string?
+MonacoLabs.Presto.Timer.Parent.get -> MonacoLabs.Presto.Timer?
+MonacoLabs.Presto.Timer.Pause() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Paused.get -> bool
+MonacoLabs.Presto.Timer.Play() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.PlaybackEase.get -> MonacoLabs.Presto.Ease?
+MonacoLabs.Presto.Timer.Priority.get -> int
+MonacoLabs.Presto.Timer.Progress.get -> double
+MonacoLabs.Presto.Timer.Progress.set -> void
+MonacoLabs.Presto.Timer.ProgressValue.get -> MonacoLabs.Presto.MotionValue!
+MonacoLabs.Presto.Timer.Reset(bool softReset = false) -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.ResetTime() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Restart() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Resume() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Reverse() -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Reversed.get -> bool
+MonacoLabs.Presto.Timer.Reversed.set -> void
+MonacoLabs.Presto.Timer.Scope.get -> MonacoLabs.Presto.Scope?
+MonacoLabs.Presto.Timer.Scrub(MonacoLabs.Presto.MotionValue? progress, bool relative = false) -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Seek(double time, bool muteCallbacks = false, bool internalRender = false) -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Timer.Settle(MonacoLabs.Presto.SettleParams? settings = null) -> System.Threading.Tasks.Task<double>!
+MonacoLabs.Presto.Timer.Then(System.Action<MonacoLabs.Presto.Timer!>? callback = null) -> System.Threading.Tasks.Task<MonacoLabs.Presto.Timer!>!
+MonacoLabs.Presto.Timer.ThenOrCancel(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<MonacoLabs.Presto.Timer!>!
+MonacoLabs.Presto.Timer.Tweens.get -> MonacoLabs.Presto.TimerTweens
+MonacoLabs.Presto.TimerChildren
+MonacoLabs.Presto.TimerChildren.Enumerator
+MonacoLabs.Presto.TimerChildren.Enumerator.Current.get -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.TimerChildren.Enumerator.Enumerator() -> void
+MonacoLabs.Presto.TimerChildren.Enumerator.Enumerator(MonacoLabs.Presto.Timer? head) -> void
+MonacoLabs.Presto.TimerChildren.Enumerator.MoveNext() -> bool
+MonacoLabs.Presto.TimerChildren.GetEnumerator() -> MonacoLabs.Presto.TimerChildren.Enumerator
+MonacoLabs.Presto.TimerChildren.TimerChildren() -> void
+MonacoLabs.Presto.TimerChildren.TimerChildren(MonacoLabs.Presto.Timer! timer) -> void
+MonacoLabs.Presto.TimerParams
+MonacoLabs.Presto.TimerParams.Alternate.get -> bool?
+MonacoLabs.Presto.TimerParams.Alternate.init -> void
+MonacoLabs.Presto.TimerParams.Autoplay.get -> bool?
+MonacoLabs.Presto.TimerParams.Autoplay.init -> void
+MonacoLabs.Presto.TimerParams.Delay.get -> double?
+MonacoLabs.Presto.TimerParams.Delay.init -> void
+MonacoLabs.Presto.TimerParams.Duration.get -> double?
+MonacoLabs.Presto.TimerParams.Duration.init -> void
+MonacoLabs.Presto.TimerParams.FrameRate.get -> double?
+MonacoLabs.Presto.TimerParams.FrameRate.init -> void
+MonacoLabs.Presto.TimerParams.Id.get -> string?
+MonacoLabs.Presto.TimerParams.Id.init -> void
+MonacoLabs.Presto.TimerParams.Loop.get -> MonacoLabs.Presto.LoopCount?
+MonacoLabs.Presto.TimerParams.Loop.init -> void
+MonacoLabs.Presto.TimerParams.LoopDelay.get -> double?
+MonacoLabs.Presto.TimerParams.LoopDelay.init -> void
+MonacoLabs.Presto.TimerParams.OnBeforeUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.TimerParams.OnBeforeUpdate.init -> void
+MonacoLabs.Presto.TimerParams.OnBegin.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.TimerParams.OnBegin.init -> void
+MonacoLabs.Presto.TimerParams.OnComplete.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.TimerParams.OnComplete.init -> void
+MonacoLabs.Presto.TimerParams.OnLoop.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.TimerParams.OnLoop.init -> void
+MonacoLabs.Presto.TimerParams.OnPause.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.TimerParams.OnPause.init -> void
+MonacoLabs.Presto.TimerParams.OnUpdate.get -> System.Action<MonacoLabs.Presto.Timer!>?
+MonacoLabs.Presto.TimerParams.OnUpdate.init -> void
+MonacoLabs.Presto.TimerParams.PlaybackRate.get -> double?
+MonacoLabs.Presto.TimerParams.PlaybackRate.init -> void
+MonacoLabs.Presto.TimerParams.Priority.get -> int
+MonacoLabs.Presto.TimerParams.Priority.init -> void
+MonacoLabs.Presto.TimerParams.Reversed.get -> bool?
+MonacoLabs.Presto.TimerParams.Reversed.init -> void
+MonacoLabs.Presto.TimerParams.TimerParams() -> void
+MonacoLabs.Presto.TimerParams.TimerParams(MonacoLabs.Presto.TimerParams! original) -> void
+MonacoLabs.Presto.TimerTweens
+MonacoLabs.Presto.TimerTweens.Enumerator
+MonacoLabs.Presto.TimerTweens.Enumerator.Current.get -> MonacoLabs.Presto.Tween!
+MonacoLabs.Presto.TimerTweens.Enumerator.Enumerator() -> void
+MonacoLabs.Presto.TimerTweens.Enumerator.Enumerator(MonacoLabs.Presto.Tween? head) -> void
+MonacoLabs.Presto.TimerTweens.Enumerator.MoveNext() -> bool
+MonacoLabs.Presto.TimerTweens.GetEnumerator() -> MonacoLabs.Presto.TimerTweens.Enumerator
+MonacoLabs.Presto.TimerTweens.TimerTweens() -> void
+MonacoLabs.Presto.TimerTweens.TimerTweens(MonacoLabs.Presto.Timer! timer) -> void
+MonacoLabs.Presto.TimeUnit
+MonacoLabs.Presto.TimeUnit.Milliseconds = 0 -> MonacoLabs.Presto.TimeUnit
+MonacoLabs.Presto.TimeUnit.Seconds = 1 -> MonacoLabs.Presto.TimeUnit
+MonacoLabs.Presto.Tween
+MonacoLabs.Presto.Tween.AbsoluteEnd.get -> double
+MonacoLabs.Presto.Tween.AbsoluteStart.get -> double
+MonacoLabs.Presto.Tween.Accessor.get -> MonacoLabs.Presto.Targets.IPropertyAccessor!
+MonacoLabs.Presto.Tween.Composition.get -> MonacoLabs.Presto.Composition
+MonacoLabs.Presto.Tween.Delay.get -> double
+MonacoLabs.Presto.Tween.Duration.get -> double
+MonacoLabs.Presto.Tween.Ease.get -> MonacoLabs.Presto.Ease!
+MonacoLabs.Presto.Tween.GetCurrent() -> MonacoLabs.Presto.TweenSnapshot
+MonacoLabs.Presto.Tween.GetFrom() -> MonacoLabs.Presto.TweenSnapshot
+MonacoLabs.Presto.Tween.GetTo() -> MonacoLabs.Presto.TweenSnapshot
+MonacoLabs.Presto.Tween.Id.get -> int
+MonacoLabs.Presto.Tween.IsOverlapped.get -> bool
+MonacoLabs.Presto.Tween.IsOverridden.get -> bool
+MonacoLabs.Presto.Tween.Parent.get -> MonacoLabs.Presto.Timer!
+MonacoLabs.Presto.Tween.Property.get -> string!
+MonacoLabs.Presto.Tween.StartTime.get -> double
+MonacoLabs.Presto.Tween.Target.get -> object!
+MonacoLabs.Presto.Tween.Unit.get -> string?
+MonacoLabs.Presto.Tween.ValueKind.get -> MonacoLabs.Presto.Values.ValueKind
+MonacoLabs.Presto.TweenKeyframesBuilder
+MonacoLabs.Presto.TweenKeyframesBuilder.Color(MonacoLabs.Presto.TweenValue from, MonacoLabs.Presto.TweenValue to, MonacoLabs.Presto.Values.ColorSpace space = MonacoLabs.Presto.Values.ColorSpace.Oklab, MonacoLabs.Presto.Values.HueInterpolation hue = MonacoLabs.Presto.Values.HueInterpolation.Shorter, MonacoLabs.Presto.TweenValue? duration = null, MonacoLabs.Presto.TweenValue? delay = null, MonacoLabs.Presto.EaseValue? ease = null, int? segments = null) -> MonacoLabs.Presto.TweenKeyframesBuilder!
+MonacoLabs.Presto.TweenKeyframesBuilder.Color(MonacoLabs.Presto.TweenValue to, MonacoLabs.Presto.Values.ColorSpace space = MonacoLabs.Presto.Values.ColorSpace.Oklab, MonacoLabs.Presto.Values.HueInterpolation hue = MonacoLabs.Presto.Values.HueInterpolation.Shorter, MonacoLabs.Presto.TweenValue? duration = null, MonacoLabs.Presto.TweenValue? delay = null, MonacoLabs.Presto.EaseValue? ease = null, int? segments = null) -> MonacoLabs.Presto.TweenKeyframesBuilder!
+MonacoLabs.Presto.TweenKeyframesBuilder.To(MonacoLabs.Presto.TweenValue to, MonacoLabs.Presto.TweenValue? duration = null, MonacoLabs.Presto.TweenValue? delay = null, MonacoLabs.Presto.EaseValue? ease = null) -> MonacoLabs.Presto.TweenKeyframesBuilder!
+MonacoLabs.Presto.TweenParams
+MonacoLabs.Presto.TweenParams.Composition.get -> MonacoLabs.Presto.Composition?
+MonacoLabs.Presto.TweenParams.Composition.init -> void
+MonacoLabs.Presto.TweenParams.Delay.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.TweenParams.Delay.init -> void
+MonacoLabs.Presto.TweenParams.Discrete.get -> MonacoLabs.Presto.DiscreteRule?
+MonacoLabs.Presto.TweenParams.Discrete.init -> void
+MonacoLabs.Presto.TweenParams.Duration.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.TweenParams.Duration.init -> void
+MonacoLabs.Presto.TweenParams.Ease.get -> MonacoLabs.Presto.EaseValue?
+MonacoLabs.Presto.TweenParams.Ease.init -> void
+MonacoLabs.Presto.TweenParams.From.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.TweenParams.From.init -> void
+MonacoLabs.Presto.TweenParams.Modifier.get -> System.Func<double, double>?
+MonacoLabs.Presto.TweenParams.Modifier.init -> void
+MonacoLabs.Presto.TweenParams.TextModifier.get -> System.Func<double, string!>?
+MonacoLabs.Presto.TweenParams.TextModifier.init -> void
+MonacoLabs.Presto.TweenParams.To.get -> MonacoLabs.Presto.TweenValue?
+MonacoLabs.Presto.TweenParams.To.init -> void
+MonacoLabs.Presto.TweenParams.TweenParams() -> void
+MonacoLabs.Presto.TweenSnapshot
+MonacoLabs.Presto.TweenSnapshot.Channels.get -> double[]!
+MonacoLabs.Presto.TweenSnapshot.Channels.init -> void
+MonacoLabs.Presto.TweenSnapshot.Deconstruct(out double Number, out double[]! Channels, out string! Text) -> void
+MonacoLabs.Presto.TweenSnapshot.Equals(MonacoLabs.Presto.TweenSnapshot other) -> bool
+MonacoLabs.Presto.TweenSnapshot.Number.get -> double
+MonacoLabs.Presto.TweenSnapshot.Number.init -> void
+MonacoLabs.Presto.TweenSnapshot.Text.get -> string!
+MonacoLabs.Presto.TweenSnapshot.Text.init -> void
+MonacoLabs.Presto.TweenSnapshot.TweenSnapshot() -> void
+MonacoLabs.Presto.TweenSnapshot.TweenSnapshot(double Number, double[]! Channels, string! Text) -> void
+MonacoLabs.Presto.TweenValue
+MonacoLabs.Presto.TweenValue.TweenValue() -> void
+MonacoLabs.Presto.Utils
+MonacoLabs.Presto.Values.ColorSpace
+MonacoLabs.Presto.Values.ColorSpace.LinearSrgb = 1 -> MonacoLabs.Presto.Values.ColorSpace
+MonacoLabs.Presto.Values.ColorSpace.Oklab = 2 -> MonacoLabs.Presto.Values.ColorSpace
+MonacoLabs.Presto.Values.ColorSpace.Oklch = 3 -> MonacoLabs.Presto.Values.ColorSpace
+MonacoLabs.Presto.Values.ColorSpace.Srgb = 0 -> MonacoLabs.Presto.Values.ColorSpace
+MonacoLabs.Presto.Values.DecomposedValue
+MonacoLabs.Presto.Values.DecomposedValue.DecomposedValue() -> void
+MonacoLabs.Presto.Values.DecomposedValue.Discrete.get -> object?
+MonacoLabs.Presto.Values.DecomposedValue.Discrete.set -> void
+MonacoLabs.Presto.Values.DecomposedValue.Kind.get -> MonacoLabs.Presto.Values.ValueKind
+MonacoLabs.Presto.Values.DecomposedValue.Kind.set -> void
+MonacoLabs.Presto.Values.DecomposedValue.Number.get -> double
+MonacoLabs.Presto.Values.DecomposedValue.Number.set -> void
+MonacoLabs.Presto.Values.DecomposedValue.Numbers.get -> double[]?
+MonacoLabs.Presto.Values.DecomposedValue.Numbers.set -> void
+MonacoLabs.Presto.Values.DecomposedValue.Operator.get -> char
+MonacoLabs.Presto.Values.DecomposedValue.Operator.set -> void
+MonacoLabs.Presto.Values.DecomposedValue.Reset() -> void
+MonacoLabs.Presto.Values.DecomposedValue.Strings.get -> string![]?
+MonacoLabs.Presto.Values.DecomposedValue.Strings.set -> void
+MonacoLabs.Presto.Values.DecomposedValue.Unit.get -> string?
+MonacoLabs.Presto.Values.DecomposedValue.Unit.set -> void
+MonacoLabs.Presto.Values.DiscreteCodec
+MonacoLabs.Presto.Values.DiscreteCodec.DiscreteCodec(System.Type! type, MonacoLabs.Presto.DiscreteRule rule = MonacoLabs.Presto.DiscreteRule.Midpoint) -> void
+MonacoLabs.Presto.Values.DiscreteCodec.Encode(double number, MonacoLabs.Presto.Tween! tween) -> object!
+MonacoLabs.Presto.Values.DiscreteCodec.Rule.get -> MonacoLabs.Presto.DiscreteRule
+MonacoLabs.Presto.Values.DiscreteCodec.TryDecode(object! value, MonacoLabs.Presto.Values.DecomposedValue! into) -> bool
+MonacoLabs.Presto.Values.HueInterpolation
+MonacoLabs.Presto.Values.HueInterpolation.Decreasing = 3 -> MonacoLabs.Presto.Values.HueInterpolation
+MonacoLabs.Presto.Values.HueInterpolation.Increasing = 2 -> MonacoLabs.Presto.Values.HueInterpolation
+MonacoLabs.Presto.Values.HueInterpolation.Longer = 1 -> MonacoLabs.Presto.Values.HueInterpolation
+MonacoLabs.Presto.Values.HueInterpolation.Shorter = 0 -> MonacoLabs.Presto.Values.HueInterpolation
+MonacoLabs.Presto.Values.OklabColor
+MonacoLabs.Presto.Values.OklabColor.A.get -> double
+MonacoLabs.Presto.Values.OklabColor.A.init -> void
+MonacoLabs.Presto.Values.OklabColor.Alpha.get -> double
+MonacoLabs.Presto.Values.OklabColor.Alpha.init -> void
+MonacoLabs.Presto.Values.OklabColor.B.get -> double
+MonacoLabs.Presto.Values.OklabColor.B.init -> void
+MonacoLabs.Presto.Values.OklabColor.Deconstruct(out double L, out double A, out double B, out double Alpha) -> void
+MonacoLabs.Presto.Values.OklabColor.Equals(MonacoLabs.Presto.Values.OklabColor other) -> bool
+MonacoLabs.Presto.Values.OklabColor.L.get -> double
+MonacoLabs.Presto.Values.OklabColor.L.init -> void
+MonacoLabs.Presto.Values.OklabColor.OklabColor() -> void
+MonacoLabs.Presto.Values.OklabColor.OklabColor(double L, double A, double B, double Alpha = 1) -> void
+MonacoLabs.Presto.Values.OklchColor
+MonacoLabs.Presto.Values.OklchColor.A.get -> double
+MonacoLabs.Presto.Values.OklchColor.A.init -> void
+MonacoLabs.Presto.Values.OklchColor.C.get -> double
+MonacoLabs.Presto.Values.OklchColor.C.init -> void
+MonacoLabs.Presto.Values.OklchColor.Deconstruct(out double L, out double C, out double H, out double A) -> void
+MonacoLabs.Presto.Values.OklchColor.Equals(MonacoLabs.Presto.Values.OklchColor other) -> bool
+MonacoLabs.Presto.Values.OklchColor.H.get -> double
+MonacoLabs.Presto.Values.OklchColor.H.init -> void
+MonacoLabs.Presto.Values.OklchColor.L.get -> double
+MonacoLabs.Presto.Values.OklchColor.L.init -> void
+MonacoLabs.Presto.Values.OklchColor.OklchColor() -> void
+MonacoLabs.Presto.Values.OklchColor.OklchColor(double L, double C, double H, double A = 1) -> void
+MonacoLabs.Presto.Values.PrestoColor
+MonacoLabs.Presto.Values.PrestoColor.A.get -> double
+MonacoLabs.Presto.Values.PrestoColor.A.init -> void
+MonacoLabs.Presto.Values.PrestoColor.B.get -> double
+MonacoLabs.Presto.Values.PrestoColor.B.init -> void
+MonacoLabs.Presto.Values.PrestoColor.Deconstruct(out double R, out double G, out double B, out double A) -> void
+MonacoLabs.Presto.Values.PrestoColor.Equals(MonacoLabs.Presto.Values.PrestoColor other) -> bool
+MonacoLabs.Presto.Values.PrestoColor.G.get -> double
+MonacoLabs.Presto.Values.PrestoColor.G.init -> void
+MonacoLabs.Presto.Values.PrestoColor.PrestoColor() -> void
+MonacoLabs.Presto.Values.PrestoColor.PrestoColor(double R, double G, double B, double A = 1) -> void
+MonacoLabs.Presto.Values.PrestoColor.R.get -> double
+MonacoLabs.Presto.Values.PrestoColor.R.init -> void
+MonacoLabs.Presto.Values.PrestoColor.ShiftOklch(double dl = 0, double dc = 0, double dh = 0) -> MonacoLabs.Presto.Values.PrestoColor
+MonacoLabs.Presto.Values.PrestoColor.ToChannels() -> double[]!
+MonacoLabs.Presto.Values.PrestoColor.ToOklab() -> MonacoLabs.Presto.Values.OklabColor
+MonacoLabs.Presto.Values.PrestoColor.ToOklch() -> MonacoLabs.Presto.Values.OklchColor
+MonacoLabs.Presto.Values.PrestoColor.WithOklch(double? l = null, double? c = null, double? h = null) -> MonacoLabs.Presto.Values.PrestoColor
+MonacoLabs.Presto.Values.StructCodec<T>
+MonacoLabs.Presto.Values.StructCodec<T>.Encode(double number, MonacoLabs.Presto.Tween! tween) -> object!
+MonacoLabs.Presto.Values.StructCodec<T>.StructCodec(System.Func<T, double[]!>! decompose, System.Func<double[]!, T>! compose) -> void
+MonacoLabs.Presto.Values.StructCodec<T>.TryDecode(object! value, MonacoLabs.Presto.Values.DecomposedValue! into) -> bool
+MonacoLabs.Presto.Values.UnitConverter
+MonacoLabs.Presto.Values.ValueKind
+MonacoLabs.Presto.Values.ValueKind.Color = 2 -> MonacoLabs.Presto.Values.ValueKind
+MonacoLabs.Presto.Values.ValueKind.Complex = 3 -> MonacoLabs.Presto.Values.ValueKind
+MonacoLabs.Presto.Values.ValueKind.Number = 0 -> MonacoLabs.Presto.Values.ValueKind
+MonacoLabs.Presto.Values.ValueKind.Unit = 1 -> MonacoLabs.Presto.Values.ValueKind
+MonacoLabs.Presto.Values.ValueParser
+MonacoLabs.Presto.VelocityTracker
+MonacoLabs.Presto.VelocityTracker.Add(double value, double time) -> void
+MonacoLabs.Presto.VelocityTracker.Reset() -> void
+MonacoLabs.Presto.VelocityTracker.Velocity.get -> double
+MonacoLabs.Presto.VelocityTracker.VelocityTracker(double interval = 17, int samples = 3) -> void
+MonacoLabs.Presto.WiggleType
+MonacoLabs.Presto.WiggleType.Anticipate = 2 -> MonacoLabs.Presto.WiggleType
+MonacoLabs.Presto.WiggleType.EaseInOut = 1 -> MonacoLabs.Presto.WiggleType
+MonacoLabs.Presto.WiggleType.EaseOut = 0 -> MonacoLabs.Presto.WiggleType
+MonacoLabs.Presto.WiggleType.Random = 4 -> MonacoLabs.Presto.WiggleType
+MonacoLabs.Presto.WiggleType.Uniform = 3 -> MonacoLabs.Presto.WiggleType
+override MonacoLabs.Presto.AnimatableParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.AnimatableParams.GetHashCode() -> int
+override MonacoLabs.Presto.AnimatableParams.ToString() -> string!
+override MonacoLabs.Presto.AnimatableProperty.Equals(object? obj) -> bool
+override MonacoLabs.Presto.AnimatableProperty.GetHashCode() -> int
+override MonacoLabs.Presto.AnimatableProperty.ToString() -> string!
+override MonacoLabs.Presto.Animation.Revert() -> MonacoLabs.Presto.Animation!
+override MonacoLabs.Presto.Animation.Stretch(double newDuration) -> MonacoLabs.Presto.Animation!
+override MonacoLabs.Presto.AnimationParams.<Clone>$() -> MonacoLabs.Presto.AnimationParams!
+override MonacoLabs.Presto.AnimationParams.EqualityContract.get -> System.Type!
+override MonacoLabs.Presto.AnimationParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.AnimationParams.GetHashCode() -> int
+override MonacoLabs.Presto.AnimationParams.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override MonacoLabs.Presto.AnimationParams.ToString() -> string!
+override MonacoLabs.Presto.Diagnostics.FrameStats.GetHashCode() -> int
+override MonacoLabs.Presto.EmitterParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.EmitterParams.GetHashCode() -> int
+override MonacoLabs.Presto.EmitterParams.ToString() -> string!
+override MonacoLabs.Presto.Engine.Speed.get -> double
+override MonacoLabs.Presto.Engine.Speed.set -> void
+override MonacoLabs.Presto.Inertia.Equals(object? obj) -> bool
+override MonacoLabs.Presto.Inertia.GetHashCode() -> int
+override MonacoLabs.Presto.Inertia.ToString() -> string!
+override MonacoLabs.Presto.LinearStop.GetHashCode() -> int
+override MonacoLabs.Presto.ParticleCurve.Equals(object? obj) -> bool
+override MonacoLabs.Presto.ParticleCurve.GetHashCode() -> int
+override MonacoLabs.Presto.ParticleCurve.ToString() -> string!
+override MonacoLabs.Presto.PrestoDefaults.Equals(object? obj) -> bool
+override MonacoLabs.Presto.PrestoDefaults.GetHashCode() -> int
+override MonacoLabs.Presto.PrestoDefaults.ToString() -> string!
+override MonacoLabs.Presto.Projectile.Equals(object? obj) -> bool
+override MonacoLabs.Presto.Projectile.GetHashCode() -> int
+override MonacoLabs.Presto.Projectile.ToString() -> string!
+override MonacoLabs.Presto.PropertyKey.GetHashCode() -> int
+override MonacoLabs.Presto.PropertyKey.ToString() -> string!
+override MonacoLabs.Presto.ScopeParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.ScopeParams.GetHashCode() -> int
+override MonacoLabs.Presto.ScopeParams.ToString() -> string!
+override MonacoLabs.Presto.ScrambleTextParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.ScrambleTextParams.GetHashCode() -> int
+override MonacoLabs.Presto.ScrambleTextParams.ToString() -> string!
+override MonacoLabs.Presto.SettleParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.SettleParams.GetHashCode() -> int
+override MonacoLabs.Presto.SettleParams.ToString() -> string!
+override MonacoLabs.Presto.StaggerParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.StaggerParams.GetHashCode() -> int
+override MonacoLabs.Presto.StaggerParams.ToString() -> string!
+override MonacoLabs.Presto.Timeline.Init(bool internalRender = false) -> MonacoLabs.Presto.Timeline!
+override MonacoLabs.Presto.Timeline.Revert() -> MonacoLabs.Presto.Timeline!
+override MonacoLabs.Presto.Timeline.Stretch(double newDuration) -> MonacoLabs.Presto.Timeline!
+override MonacoLabs.Presto.TimelineParams.<Clone>$() -> MonacoLabs.Presto.TimelineParams!
+override MonacoLabs.Presto.TimelineParams.EqualityContract.get -> System.Type!
+override MonacoLabs.Presto.TimelineParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.TimelineParams.GetHashCode() -> int
+override MonacoLabs.Presto.TimelineParams.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override MonacoLabs.Presto.TimelineParams.ToString() -> string!
+override MonacoLabs.Presto.Timer.Speed.set -> void
+override MonacoLabs.Presto.TimerParams.Equals(object? obj) -> bool
+override MonacoLabs.Presto.TimerParams.GetHashCode() -> int
+override MonacoLabs.Presto.TimerParams.ToString() -> string!
+override MonacoLabs.Presto.TweenSnapshot.GetHashCode() -> int
+override MonacoLabs.Presto.Values.OklabColor.GetHashCode() -> int
+override MonacoLabs.Presto.Values.OklchColor.GetHashCode() -> int
+override MonacoLabs.Presto.Values.PrestoColor.GetHashCode() -> int
+override MonacoLabs.Presto.Values.PrestoColor.ToString() -> string!
+override sealed MonacoLabs.Presto.AnimationParams.Equals(MonacoLabs.Presto.TimerParams? other) -> bool
+override sealed MonacoLabs.Presto.TimelineParams.Equals(MonacoLabs.Presto.TimerParams? other) -> bool
+static MonacoLabs.Presto.AnimatableParams.operator !=(MonacoLabs.Presto.AnimatableParams? left, MonacoLabs.Presto.AnimatableParams? right) -> bool
+static MonacoLabs.Presto.AnimatableParams.operator ==(MonacoLabs.Presto.AnimatableParams? left, MonacoLabs.Presto.AnimatableParams? right) -> bool
+static MonacoLabs.Presto.AnimatableProperty.implicit operator MonacoLabs.Presto.AnimatableProperty!(double duration) -> MonacoLabs.Presto.AnimatableProperty!
+static MonacoLabs.Presto.AnimatableProperty.implicit operator MonacoLabs.Presto.AnimatableProperty!(int duration) -> MonacoLabs.Presto.AnimatableProperty!
+static MonacoLabs.Presto.AnimatableProperty.operator !=(MonacoLabs.Presto.AnimatableProperty? left, MonacoLabs.Presto.AnimatableProperty? right) -> bool
+static MonacoLabs.Presto.AnimatableProperty.operator ==(MonacoLabs.Presto.AnimatableProperty? left, MonacoLabs.Presto.AnimatableProperty? right) -> bool
+static MonacoLabs.Presto.AnimationParams.operator !=(MonacoLabs.Presto.AnimationParams? left, MonacoLabs.Presto.AnimationParams? right) -> bool
+static MonacoLabs.Presto.AnimationParams.operator ==(MonacoLabs.Presto.AnimationParams? left, MonacoLabs.Presto.AnimationParams? right) -> bool
+static MonacoLabs.Presto.ChainedUtil.implicit operator System.Func<double, double>!(MonacoLabs.Presto.ChainedUtil chain) -> System.Func<double, double>!
+static MonacoLabs.Presto.Diagnostics.FrameStats.operator !=(MonacoLabs.Presto.Diagnostics.FrameStats left, MonacoLabs.Presto.Diagnostics.FrameStats right) -> bool
+static MonacoLabs.Presto.Diagnostics.FrameStats.operator ==(MonacoLabs.Presto.Diagnostics.FrameStats left, MonacoLabs.Presto.Diagnostics.FrameStats right) -> bool
+static MonacoLabs.Presto.Diagnostics.PrestoDiagnostics.Active.get -> bool
+static MonacoLabs.Presto.Diagnostics.PrestoDiagnostics.CaptureCreationTrace.get -> bool
+static MonacoLabs.Presto.Diagnostics.PrestoDiagnostics.CaptureCreationTrace.set -> void
+static MonacoLabs.Presto.Diagnostics.PrestoDiagnostics.Origin(string! origin) -> MonacoLabs.Presto.Diagnostics.OriginScope
+static MonacoLabs.Presto.EaseParser.Parse(string! ease) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.EaseParser.TryParse(string! ease, out MonacoLabs.Presto.Ease? result) -> bool
+static MonacoLabs.Presto.Eases.CubicBezier(double x1 = 0.5, double y1 = 0, double x2 = 0.5, double y2 = 1) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.ExpoScale(double startScale, double endScale, MonacoLabs.Presto.Ease? ease = null) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.FromPath(string! pathData) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.In(double power = 1.68) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.In(MonacoLabs.Presto.Ease! easeIn) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InBack(double overshoot = 1.7) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InBounce.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InCirc.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InCubic.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InElastic(double amplitude = 1, double period = 0.3) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InExpo.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOut(double power = 1.68) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOut(MonacoLabs.Presto.Ease! easeIn) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutBack(double overshoot = 1.7) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutBounce.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutCirc.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutCubic.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutElastic(double amplitude = 1, double period = 0.3) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutExpo.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutQuad.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutQuart.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutQuint.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InOutSine.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InQuad.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InQuart.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InQuint.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.InSine.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.Irregular(int length = 10, double randomness = 1, System.Random? random = null) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.Linear(params MonacoLabs.Presto.LinearStop[]! stops) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.None.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.Out(double power = 1.68) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.Out(MonacoLabs.Presto.Ease! easeIn) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutBack(double overshoot = 1.7) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutBounce.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutCirc.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutCubic.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutElastic(double amplitude = 1, double period = 0.3) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutExpo.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutIn(double power = 1.68) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutIn(MonacoLabs.Presto.Ease! easeIn) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInBack(double overshoot = 1.7) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInBounce.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInCirc.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInCubic.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInElastic(double amplitude = 1, double period = 0.3) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInExpo.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInQuad.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInQuart.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInQuint.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutInSine.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutQuad.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutQuart.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutQuint.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.OutSine.get -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.Rough(int points = 20, double strength = 1, bool clamp = false, MonacoLabs.Presto.RoughTaper taper = MonacoLabs.Presto.RoughTaper.None, bool randomize = true, MonacoLabs.Presto.Ease? template = null, System.Random? random = null) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.SlowMo(double linearRatio = 0.7, double power = 0.7, bool yoyoMode = false) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.Spring(double? mass = null, double? stiffness = null, double? damping = null, double? velocity = null, double? bounce = null, double? duration = null, System.Action<MonacoLabs.Presto.Timer?>? onComplete = null) -> MonacoLabs.Presto.Spring!
+static MonacoLabs.Presto.Eases.Steps(int steps = 10, bool fromStart = false) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Eases.TryGetName(MonacoLabs.Presto.Ease! ease, out string! name) -> bool
+static MonacoLabs.Presto.Eases.Wiggle(int wiggles = 10, MonacoLabs.Presto.WiggleType type = MonacoLabs.Presto.WiggleType.EaseOut, System.Random? random = null) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.EaseValue.implicit operator MonacoLabs.Presto.EaseValue(MonacoLabs.Presto.Ease! ease) -> MonacoLabs.Presto.EaseValue
+static MonacoLabs.Presto.EaseValue.implicit operator MonacoLabs.Presto.EaseValue(MonacoLabs.Presto.FunctionValue! function) -> MonacoLabs.Presto.EaseValue
+static MonacoLabs.Presto.EaseValue.implicit operator MonacoLabs.Presto.EaseValue(MonacoLabs.Presto.Spring! spring) -> MonacoLabs.Presto.EaseValue
+static MonacoLabs.Presto.EaseValue.implicit operator MonacoLabs.Presto.EaseValue(string! name) -> MonacoLabs.Presto.EaseValue
+static MonacoLabs.Presto.EmitterParams.operator !=(MonacoLabs.Presto.EmitterParams? left, MonacoLabs.Presto.EmitterParams? right) -> bool
+static MonacoLabs.Presto.EmitterParams.operator ==(MonacoLabs.Presto.EmitterParams? left, MonacoLabs.Presto.EmitterParams? right) -> bool
+static MonacoLabs.Presto.Engine.Current.get -> MonacoLabs.Presto.Engine!
+static MonacoLabs.Presto.Inertia.operator !=(MonacoLabs.Presto.Inertia? left, MonacoLabs.Presto.Inertia? right) -> bool
+static MonacoLabs.Presto.Inertia.operator ==(MonacoLabs.Presto.Inertia? left, MonacoLabs.Presto.Inertia? right) -> bool
+static MonacoLabs.Presto.Keyframes.implicit operator MonacoLabs.Presto.Keyframes!(MonacoLabs.Presto.Keyframe![]! frames) -> MonacoLabs.Presto.Keyframes!
+static MonacoLabs.Presto.Keyframes.implicit operator MonacoLabs.Presto.Keyframes!(System.Collections.Generic.Dictionary<string!, MonacoLabs.Presto.Keyframe!>! frames) -> MonacoLabs.Presto.Keyframes!
+static MonacoLabs.Presto.LinearStop.implicit operator MonacoLabs.Presto.LinearStop(double value) -> MonacoLabs.Presto.LinearStop
+static MonacoLabs.Presto.LinearStop.implicit operator MonacoLabs.Presto.LinearStop(string! s) -> MonacoLabs.Presto.LinearStop
+static MonacoLabs.Presto.LinearStop.operator !=(MonacoLabs.Presto.LinearStop left, MonacoLabs.Presto.LinearStop right) -> bool
+static MonacoLabs.Presto.LinearStop.operator ==(MonacoLabs.Presto.LinearStop left, MonacoLabs.Presto.LinearStop right) -> bool
+static MonacoLabs.Presto.LoopCount.implicit operator MonacoLabs.Presto.LoopCount(bool infinite) -> MonacoLabs.Presto.LoopCount
+static MonacoLabs.Presto.LoopCount.implicit operator MonacoLabs.Presto.LoopCount(int count) -> MonacoLabs.Presto.LoopCount
+static MonacoLabs.Presto.LoopCount.Infinite.get -> MonacoLabs.Presto.LoopCount
+static MonacoLabs.Presto.MotionPath.Through(System.Collections.Generic.IReadOnlyList<(double X, double Y)>! points, double curviness = 1, bool closed = false) -> MonacoLabs.Presto.MotionPath!
+static MonacoLabs.Presto.MotionValue.Combine(MonacoLabs.Presto.MotionValue! a, MonacoLabs.Presto.MotionValue! b, System.Func<double, double, double>! combine) -> MonacoLabs.Presto.MotionValue!
+static MonacoLabs.Presto.MotionValue.Combine(MonacoLabs.Presto.MotionValue![]! values, System.Func<double[]!, double>! combine) -> MonacoLabs.Presto.MotionValue!
+static MonacoLabs.Presto.ParticleCurve.operator !=(MonacoLabs.Presto.ParticleCurve? left, MonacoLabs.Presto.ParticleCurve? right) -> bool
+static MonacoLabs.Presto.ParticleCurve.operator ==(MonacoLabs.Presto.ParticleCurve? left, MonacoLabs.Presto.ParticleCurve? right) -> bool
+static MonacoLabs.Presto.Presto.Adapters.get -> System.Collections.Generic.IList<MonacoLabs.Presto.Targets.ITargetAdapter!>!
+static MonacoLabs.Presto.Presto.Animate(object? targets, MonacoLabs.Presto.AnimationParams! parameters) -> MonacoLabs.Presto.Animation!
+static MonacoLabs.Presto.Presto.Animate(object? targets, System.Action<MonacoLabs.Presto.AnimationBuilder!>! build) -> MonacoLabs.Presto.Animation!
+static MonacoLabs.Presto.Presto.Build() -> MonacoLabs.Presto.AnimationBuilder!
+static MonacoLabs.Presto.Presto.Codecs.get -> System.Collections.Generic.IDictionary<System.Type!, MonacoLabs.Presto.Targets.IValueCodec!>!
+static MonacoLabs.Presto.Presto.CreateAnimatable(object? targets, MonacoLabs.Presto.AnimatableParams! parameters) -> MonacoLabs.Presto.Animatable!
+static MonacoLabs.Presto.Presto.CreateMotionValue(double initial = 0) -> MonacoLabs.Presto.MotionValue!
+static MonacoLabs.Presto.Presto.CreateScope(MonacoLabs.Presto.ScopeParams? parameters = null) -> MonacoLabs.Presto.Scope!
+static MonacoLabs.Presto.Presto.CreateTimeline(MonacoLabs.Presto.TimelineParams? parameters = null) -> MonacoLabs.Presto.Timeline!
+static MonacoLabs.Presto.Presto.CreateTimer(MonacoLabs.Presto.TimerParams? parameters = null) -> MonacoLabs.Presto.Timer!
+static MonacoLabs.Presto.Presto.Defaults.get -> MonacoLabs.Presto.PrestoDefaults!
+static MonacoLabs.Presto.Presto.Delay(double duration, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static MonacoLabs.Presto.Presto.Engine.get -> MonacoLabs.Presto.Engine!
+static MonacoLabs.Presto.Presto.Get(object? targets, MonacoLabs.Presto.PropertyKey property) -> object?
+static MonacoLabs.Presto.Presto.Get(object? targets, MonacoLabs.Presto.PropertyKey property, bool withUnit) -> object?
+static MonacoLabs.Presto.Presto.Get(object? targets, MonacoLabs.Presto.PropertyKey property, string! unit) -> string?
+static MonacoLabs.Presto.Presto.GetAnimations(object! target, MonacoLabs.Presto.PropertyKey? property = null) -> System.Collections.Generic.IReadOnlyList<MonacoLabs.Presto.Animation!>!
+static MonacoLabs.Presto.Presto.RegisterTarget<T>() -> void
+static MonacoLabs.Presto.Presto.Remove(object? targets, MonacoLabs.Presto.Timer? renderable = null, MonacoLabs.Presto.PropertyKey? property = null) -> System.Collections.Generic.IReadOnlyList<object!>!
+static MonacoLabs.Presto.Presto.ScrambleText(MonacoLabs.Presto.ScrambleTextParams? parameters = null) -> MonacoLabs.Presto.ChainedFunctionValue!
+static MonacoLabs.Presto.Presto.Set(object? targets, MonacoLabs.Presto.AnimationParams! parameters) -> MonacoLabs.Presto.Animation!
+static MonacoLabs.Presto.Presto.Set(object? targets, System.Action<MonacoLabs.Presto.AnimationBuilder!>! build) -> MonacoLabs.Presto.Animation!
+static MonacoLabs.Presto.Presto.Stagger(MonacoLabs.Presto.TweenValue value, MonacoLabs.Presto.StaggerParams? parameters = null) -> MonacoLabs.Presto.Stagger!
+static MonacoLabs.Presto.PrestoDefaults.operator !=(MonacoLabs.Presto.PrestoDefaults? left, MonacoLabs.Presto.PrestoDefaults? right) -> bool
+static MonacoLabs.Presto.PrestoDefaults.operator ==(MonacoLabs.Presto.PrestoDefaults? left, MonacoLabs.Presto.PrestoDefaults? right) -> bool
+static MonacoLabs.Presto.Projectile.Launch(double speed, double angleDegrees, double gravity, double friction = 0) -> (MonacoLabs.Presto.Projectile! X, MonacoLabs.Presto.Projectile! Y)
+static MonacoLabs.Presto.Projectile.operator !=(MonacoLabs.Presto.Projectile? left, MonacoLabs.Presto.Projectile? right) -> bool
+static MonacoLabs.Presto.Projectile.operator ==(MonacoLabs.Presto.Projectile? left, MonacoLabs.Presto.Projectile? right) -> bool
+static MonacoLabs.Presto.PropertyKey.implicit operator MonacoLabs.Presto.PropertyKey(string! name) -> MonacoLabs.Presto.PropertyKey
+static MonacoLabs.Presto.PropertyKey.operator !=(MonacoLabs.Presto.PropertyKey left, MonacoLabs.Presto.PropertyKey right) -> bool
+static MonacoLabs.Presto.PropertyKey.operator ==(MonacoLabs.Presto.PropertyKey left, MonacoLabs.Presto.PropertyKey right) -> bool
+static MonacoLabs.Presto.ScopeParams.operator !=(MonacoLabs.Presto.ScopeParams? left, MonacoLabs.Presto.ScopeParams? right) -> bool
+static MonacoLabs.Presto.ScopeParams.operator ==(MonacoLabs.Presto.ScopeParams? left, MonacoLabs.Presto.ScopeParams? right) -> bool
+static MonacoLabs.Presto.ScrambleTextParams.operator !=(MonacoLabs.Presto.ScrambleTextParams? left, MonacoLabs.Presto.ScrambleTextParams? right) -> bool
+static MonacoLabs.Presto.ScrambleTextParams.operator ==(MonacoLabs.Presto.ScrambleTextParams? left, MonacoLabs.Presto.ScrambleTextParams? right) -> bool
+static MonacoLabs.Presto.SettleParams.operator !=(MonacoLabs.Presto.SettleParams? left, MonacoLabs.Presto.SettleParams? right) -> bool
+static MonacoLabs.Presto.SettleParams.operator ==(MonacoLabs.Presto.SettleParams? left, MonacoLabs.Presto.SettleParams? right) -> bool
+static MonacoLabs.Presto.Spring.implicit operator MonacoLabs.Presto.Ease!(MonacoLabs.Presto.Spring! spring) -> MonacoLabs.Presto.Ease!
+static MonacoLabs.Presto.Springs.Bouncy.get -> MonacoLabs.Presto.Spring!
+static MonacoLabs.Presto.Springs.Gentle.get -> MonacoLabs.Presto.Spring!
+static MonacoLabs.Presto.Springs.Snappy.get -> MonacoLabs.Presto.Spring!
+static MonacoLabs.Presto.Springs.Stiff.get -> MonacoLabs.Presto.Spring!
+static MonacoLabs.Presto.StaggerFrom.At(double x, double y, double? z = null) -> MonacoLabs.Presto.StaggerFrom
+static MonacoLabs.Presto.StaggerFrom.Center.get -> MonacoLabs.Presto.StaggerFrom
+static MonacoLabs.Presto.StaggerFrom.First.get -> MonacoLabs.Presto.StaggerFrom
+static MonacoLabs.Presto.StaggerFrom.implicit operator MonacoLabs.Presto.StaggerFrom(int index) -> MonacoLabs.Presto.StaggerFrom
+static MonacoLabs.Presto.StaggerFrom.Last.get -> MonacoLabs.Presto.StaggerFrom
+static MonacoLabs.Presto.StaggerFrom.Random.get -> MonacoLabs.Presto.StaggerFrom
+static MonacoLabs.Presto.StaggerParams.operator !=(MonacoLabs.Presto.StaggerParams? left, MonacoLabs.Presto.StaggerParams? right) -> bool
+static MonacoLabs.Presto.StaggerParams.operator ==(MonacoLabs.Presto.StaggerParams? left, MonacoLabs.Presto.StaggerParams? right) -> bool
+static MonacoLabs.Presto.Targets.TargetParser.Parse(object? targets) -> System.Collections.Generic.IReadOnlyList<object!>!
+static MonacoLabs.Presto.TimelineLabel.implicit operator MonacoLabs.Presto.TimelinePosition(MonacoLabs.Presto.TimelineLabel! label) -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelineLabel.operator +(MonacoLabs.Presto.TimelineLabel! label, double offset) -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelineLabel.operator -(MonacoLabs.Presto.TimelineLabel! label, double offset) -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelineParams.operator !=(MonacoLabs.Presto.TimelineParams? left, MonacoLabs.Presto.TimelineParams? right) -> bool
+static MonacoLabs.Presto.TimelineParams.operator ==(MonacoLabs.Presto.TimelineParams? left, MonacoLabs.Presto.TimelineParams? right) -> bool
+static MonacoLabs.Presto.TimelinePosition.End.get -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelinePosition.implicit operator MonacoLabs.Presto.TimelinePosition(double value) -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelinePosition.implicit operator MonacoLabs.Presto.TimelinePosition(string! value) -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelinePosition.operator +(MonacoLabs.Presto.TimelinePosition position, double offset) -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelinePosition.operator -(MonacoLabs.Presto.TimelinePosition position, double offset) -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelinePosition.PreviousEnd.get -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimelinePosition.PreviousStart.get -> MonacoLabs.Presto.TimelinePosition
+static MonacoLabs.Presto.TimerParams.operator !=(MonacoLabs.Presto.TimerParams? left, MonacoLabs.Presto.TimerParams? right) -> bool
+static MonacoLabs.Presto.TimerParams.operator ==(MonacoLabs.Presto.TimerParams? left, MonacoLabs.Presto.TimerParams? right) -> bool
+static MonacoLabs.Presto.TweenSnapshot.operator !=(MonacoLabs.Presto.TweenSnapshot left, MonacoLabs.Presto.TweenSnapshot right) -> bool
+static MonacoLabs.Presto.TweenSnapshot.operator ==(MonacoLabs.Presto.TweenSnapshot left, MonacoLabs.Presto.TweenSnapshot right) -> bool
+static MonacoLabs.Presto.TweenValue.FromTo(MonacoLabs.Presto.TweenValue from, MonacoLabs.Presto.TweenValue to) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(double value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(double[]! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(float value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(int value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(int[]! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(long value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.ChainedFunctionValue! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.Ease! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.FunctionValue! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.Inertia! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.Projectile! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.Spring! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.Stagger! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.TweenParams! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.TweenParams![]! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.TweenValue[]! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(MonacoLabs.Presto.Values.PrestoColor value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(string! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.implicit operator MonacoLabs.Presto.TweenValue(string![]! value) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.Keyframes(params MonacoLabs.Presto.TweenValue[]! frames) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.TweenValue.Of(object? typed) -> MonacoLabs.Presto.TweenValue
+static MonacoLabs.Presto.Utils.Clamp(double min, double max) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.Clamp(double v, double min, double max) -> double
+static MonacoLabs.Presto.Utils.CreateSeededRandom(int? seed = null) -> MonacoLabs.Presto.RandomGenerator!
+static MonacoLabs.Presto.Utils.Damp(double start, double end, double deltaTime) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.Damp(double start, double end, double deltaTime, double factor) -> double
+static MonacoLabs.Presto.Utils.DegToRad() -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.DegToRad(double degrees) -> double
+static MonacoLabs.Presto.Utils.KeepTime<TArg, TTimer>(System.Func<TArg, TTimer!>! constructor) -> System.Func<TArg, TTimer!>!
+static MonacoLabs.Presto.Utils.Lerp(double start, double end) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.Lerp(double start, double end, double factor) -> double
+static MonacoLabs.Presto.Utils.MapRange(double inLow, double inHigh, double outLow, double outHigh) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.MapRange(double value, double inLow, double inHigh, double outLow, double outHigh) -> double
+static MonacoLabs.Presto.Utils.RadToDeg() -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.RadToDeg(double radians) -> double
+static MonacoLabs.Presto.Utils.Random(double min = 0, double max = 1, int decimals = 0) -> double
+static MonacoLabs.Presto.Utils.RandomPick<T>(System.Collections.Generic.IReadOnlyList<T>! items) -> T
+static MonacoLabs.Presto.Utils.Round(double v, int decimals) -> double
+static MonacoLabs.Presto.Utils.Round(int decimals) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.RoundPad(double v, int decimals) -> string!
+static MonacoLabs.Presto.Utils.Shuffle<T>(System.Collections.Generic.IList<T>! items, MonacoLabs.Presto.RandomGenerator? rnd = null) -> System.Collections.Generic.IList<T>!
+static MonacoLabs.Presto.Utils.Snap(double increment) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.Snap(double v, double increment) -> double
+static MonacoLabs.Presto.Utils.Snap(double v, double[]! points) -> double
+static MonacoLabs.Presto.Utils.Snap(double[]! points) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.Sync(System.Action<MonacoLabs.Presto.Timer!>? callback = null) -> MonacoLabs.Presto.Timer!
+static MonacoLabs.Presto.Utils.Wrap(double min, double max) -> MonacoLabs.Presto.ChainedUtil
+static MonacoLabs.Presto.Utils.Wrap(double v, double min, double max) -> double
+static MonacoLabs.Presto.Values.OklabColor.operator !=(MonacoLabs.Presto.Values.OklabColor left, MonacoLabs.Presto.Values.OklabColor right) -> bool
+static MonacoLabs.Presto.Values.OklabColor.operator ==(MonacoLabs.Presto.Values.OklabColor left, MonacoLabs.Presto.Values.OklabColor right) -> bool
+static MonacoLabs.Presto.Values.OklchColor.operator !=(MonacoLabs.Presto.Values.OklchColor left, MonacoLabs.Presto.Values.OklchColor right) -> bool
+static MonacoLabs.Presto.Values.OklchColor.operator ==(MonacoLabs.Presto.Values.OklchColor left, MonacoLabs.Presto.Values.OklchColor right) -> bool
+static MonacoLabs.Presto.Values.PrestoColor.FormatRgba(System.ReadOnlySpan<double> channels) -> string!
+static MonacoLabs.Presto.Values.PrestoColor.FromChannels(System.ReadOnlySpan<double> channels) -> MonacoLabs.Presto.Values.PrestoColor
+static MonacoLabs.Presto.Values.PrestoColor.FromOklab(double l, double a, double b, double alpha = 1) -> MonacoLabs.Presto.Values.PrestoColor
+static MonacoLabs.Presto.Values.PrestoColor.FromOklch(double l, double c, double h, double alpha = 1) -> MonacoLabs.Presto.Values.PrestoColor
+static MonacoLabs.Presto.Values.PrestoColor.Mix(MonacoLabs.Presto.Values.PrestoColor from, MonacoLabs.Presto.Values.PrestoColor to, double t, MonacoLabs.Presto.Values.ColorSpace space = MonacoLabs.Presto.Values.ColorSpace.Oklab, MonacoLabs.Presto.Values.HueInterpolation hue = MonacoLabs.Presto.Values.HueInterpolation.Shorter) -> MonacoLabs.Presto.Values.PrestoColor
+static MonacoLabs.Presto.Values.PrestoColor.operator !=(MonacoLabs.Presto.Values.PrestoColor left, MonacoLabs.Presto.Values.PrestoColor right) -> bool
+static MonacoLabs.Presto.Values.PrestoColor.operator ==(MonacoLabs.Presto.Values.PrestoColor left, MonacoLabs.Presto.Values.PrestoColor right) -> bool
+static MonacoLabs.Presto.Values.PrestoColor.Parse(string! s) -> MonacoLabs.Presto.Values.PrestoColor
+static MonacoLabs.Presto.Values.PrestoColor.TryParse(string! s, out MonacoLabs.Presto.Values.PrestoColor color) -> bool
+static MonacoLabs.Presto.Values.UnitConverter.Convert(MonacoLabs.Presto.Values.DecomposedValue! value, string! unit) -> void
+static MonacoLabs.Presto.Values.ValueParser.Decompose(object? raw, MonacoLabs.Presto.Values.DecomposedValue! into, MonacoLabs.Presto.Targets.IValueCodec? codec = null) -> void
+static MonacoLabs.Presto.Values.ValueParser.DecomposeTween(MonacoLabs.Presto.Tween! tween, MonacoLabs.Presto.Values.DecomposedValue! into) -> void
+static MonacoLabs.Presto.Values.ValueParser.GetRelativeValue(double x, double y, char op) -> double
+static MonacoLabs.Presto.Values.ValueParser.IndexOfRelativeOperator(string! text) -> int
+static MonacoLabs.Presto.Values.ValueParser.IsColor(string! s) -> bool
+static MonacoLabs.Presto.Values.ValueParser.TryParseUnit(string! s, out double number, out string? unit) -> bool
+virtual MonacoLabs.Presto.AnimatableParams.<Clone>$() -> MonacoLabs.Presto.AnimatableParams!
+virtual MonacoLabs.Presto.AnimatableParams.EqualityContract.get -> System.Type!
+virtual MonacoLabs.Presto.AnimatableParams.Equals(MonacoLabs.Presto.AnimatableParams? other) -> bool
+virtual MonacoLabs.Presto.AnimatableParams.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual MonacoLabs.Presto.AnimationParams.Equals(MonacoLabs.Presto.AnimationParams? other) -> bool
+virtual MonacoLabs.Presto.ChainedFunctionValue.Invoke(object! target, int index, int total, MonacoLabs.Presto.Tween? previous) -> MonacoLabs.Presto.TweenValue
+virtual MonacoLabs.Presto.Core.Clock.Speed.get -> double
+virtual MonacoLabs.Presto.Core.Clock.Speed.set -> void
+virtual MonacoLabs.Presto.Ease.Invoke(double t) -> double
+virtual MonacoLabs.Presto.FunctionValue.Invoke(object! target, int index, int total) -> MonacoLabs.Presto.TweenValue
+virtual MonacoLabs.Presto.RandomGenerator.Invoke(double min = 0, double max = 1, int decimals = 0) -> double
+virtual MonacoLabs.Presto.Scope.Revert() -> MonacoLabs.Presto.Scope!
+virtual MonacoLabs.Presto.ScopeParams.<Clone>$() -> MonacoLabs.Presto.ScopeParams!
+virtual MonacoLabs.Presto.ScopeParams.EqualityContract.get -> System.Type!
+virtual MonacoLabs.Presto.ScopeParams.Equals(MonacoLabs.Presto.ScopeParams? other) -> bool
+virtual MonacoLabs.Presto.ScopeParams.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual MonacoLabs.Presto.TimelineParams.Equals(MonacoLabs.Presto.TimelineParams? other) -> bool
+virtual MonacoLabs.Presto.Timer.Init(bool internalRender = false) -> MonacoLabs.Presto.Timer!
+virtual MonacoLabs.Presto.Timer.Revert() -> MonacoLabs.Presto.Timer!
+virtual MonacoLabs.Presto.Timer.Stretch(double newDuration) -> MonacoLabs.Presto.Timer!
+virtual MonacoLabs.Presto.TimerParams.<Clone>$() -> MonacoLabs.Presto.TimerParams!
+virtual MonacoLabs.Presto.TimerParams.EqualityContract.get -> System.Type!
+virtual MonacoLabs.Presto.TimerParams.Equals(MonacoLabs.Presto.TimerParams? other) -> bool
+virtual MonacoLabs.Presto.TimerParams.PrintMembers(System.Text.StringBuilder! builder) -> bool
+~override MonacoLabs.Presto.Diagnostics.FrameStats.Equals(object obj) -> bool
+~override MonacoLabs.Presto.Diagnostics.FrameStats.ToString() -> string
+~override MonacoLabs.Presto.LinearStop.Equals(object obj) -> bool
+~override MonacoLabs.Presto.LinearStop.ToString() -> string
+~override MonacoLabs.Presto.PropertyKey.Equals(object obj) -> bool
+~override MonacoLabs.Presto.TweenSnapshot.Equals(object obj) -> bool
+~override MonacoLabs.Presto.TweenSnapshot.ToString() -> string
+~override MonacoLabs.Presto.Values.OklabColor.Equals(object obj) -> bool
+~override MonacoLabs.Presto.Values.OklabColor.ToString() -> string
+~override MonacoLabs.Presto.Values.OklchColor.Equals(object obj) -> bool
+~override MonacoLabs.Presto.Values.OklchColor.ToString() -> string
+~override MonacoLabs.Presto.Values.PrestoColor.Equals(object obj) -> bool

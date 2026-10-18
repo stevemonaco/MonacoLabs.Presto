@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -12,8 +13,9 @@ namespace MonacoLabs.Presto.Events;
 /// offset, velocity and direction — sampled by tickers that only run while the scroller is moving.
 /// </summary>
 /// <remarks>
-/// One container exists per scroller for as long as an observer, a <see cref="PrestoAvalonia.ScrollValue"/> or a
-/// <see cref="Scroll.SpeedProperty"/> element watches it, and reverts with the last of them.
+/// One container exists per scroller for as long as an observer, a <see cref="PrestoAvalonia.ScrollValue"/>, a
+/// <see cref="PrestoAvalonia.ScrollRemainingValue"/>, a <see cref="Scroll.SpeedProperty"/> element, a <see cref="Scroll.CueForProperty"/>
+/// element or a <see cref="Scroll.FadeEdgesProperty"/> control watches it, and reverts with the last of them.
 /// The data timer is paused with the scroll ticker when the wake window closes — a deliberate divergence from anime.js,
 /// where it runs on forever — so the engine runs out of children and can sleep while an idle observer is alive.
 /// </remarks>
@@ -24,11 +26,12 @@ public sealed class ScrollContainer
     private const double WakeDuration = 500;
     private const RoutingStrategies PointerRoutes = RoutingStrategies.Tunnel | RoutingStrategies.Bubble;
 
-    internal static readonly Dictionary<ScrollViewer, ScrollContainer> Containers = [];
+    internal static readonly ConditionalWeakTable<ScrollViewer, ScrollContainer> Containers = new();
 
     private readonly List<ScrollObserver> _observers = [];
-    private readonly List<(MotionValue Value, bool Horizontal, bool Progress)> _values = [];
+    private readonly List<(MotionValue Value, bool Horizontal, ScrollMeasure Measure)> _values = [];
     private readonly List<Scroll.Parallax> _parallaxes = [];
+    private readonly List<ScrollCue> _cues = [];
     private readonly Timer _scrollTicker;
     private readonly Timer _dataTimer;
     private double _prevScrollX;
@@ -128,12 +131,21 @@ public sealed class ScrollContainer
         return container;
     }
 
-    internal static MotionValue AddValue(ScrollViewer scroller, ScrollAxis axis, bool progress)
+    internal static ScrollContainer Register(ScrollViewer scroller, ScrollCue cue)
+    {
+        var container = Get(scroller);
+        container._cues.Add(cue);
+        return container;
+    }
+
+    internal enum ScrollMeasure { Offset, Progress, Remaining }
+
+    internal static MotionValue AddValue(ScrollViewer scroller, ScrollAxis axis, ScrollMeasure measure)
     {
         var container = Get(scroller);
         var horizontal = axis == ScrollAxis.Horizontal;
-        var value = new MotionValue(Engine.Current, [], container.Read(horizontal, progress));
-        container._values.Add((value, horizontal, progress));
+        var value = new MotionValue(Engine.Current, [], container.Read(horizontal, measure));
+        container._values.Add((value, horizontal, measure));
         return value;
     }
 
@@ -149,21 +161,23 @@ public sealed class ScrollContainer
         RevertIfUnused();
     }
 
+    internal void Remove(ScrollCue cue)
+    {
+        _cues.Remove(cue);
+        RevertIfUnused();
+    }
+
     internal void RemoveValue(MotionValue value)
     {
         _values.RemoveAt(_values.FindIndex(entry => entry.Value == value));
         RevertIfUnused();
     }
 
-    private static ScrollContainer Get(ScrollViewer scroller)
-    {
-        if (!Containers.TryGetValue(scroller, out var container)) Containers[scroller] = container = new ScrollContainer(scroller);
-        return container;
-    }
+    private static ScrollContainer Get(ScrollViewer scroller) => Containers.GetValue(scroller, static scroller => new ScrollContainer(scroller));
 
     private void RevertIfUnused()
     {
-        if (_observers.Count > 0 || _values.Count > 0 || _parallaxes.Count > 0) return;
+        if (_observers.Count > 0 || _values.Count > 0 || _parallaxes.Count > 0 || _cues.Count > 0) return;
         Scroller.PropertyChanged -= HandlePropertyChanged;
         Scroller.RemoveHandler(InputElement.PointerPressedEvent, HandlePointerPressed);
         Scroller.RemoveHandler(InputElement.PointerReleasedEvent, HandlePointerReleased);
@@ -205,9 +219,10 @@ public sealed class ScrollContainer
         if (e.Property == ScrollViewer.OffsetProperty)
         {
             HandleScroll();
-            // Pins and parallax move in this notification rather than on the next tick, so they never trail the scroll by a frame.
+            // Pins, parallax and cues move in this notification rather than on the next tick, so they never trail the scroll by a frame.
             ForEachObserver(static observer => observer.HandleOffsetChanged());
             foreach (var parallax in _parallaxes) parallax.Update();
+            UpdateCues();
         }
         else if (e.Property == ScrollViewer.ViewportProperty || e.Property == ScrollViewer.ExtentProperty)
         {
@@ -215,7 +230,13 @@ public sealed class ScrollContainer
             UpdateValues();
             // Unlike observers, parallax elements are visible before the debounced refresh, so they measure the viewport they get now.
             foreach (var parallax in _parallaxes) parallax.Measure();
+            UpdateCues();
         }
+    }
+
+    internal void UpdateCues()
+    {
+        foreach (var cue in _cues) cue.Update();
     }
 
     private void HandlePointerPressed(object? sender, PointerPressedEventArgs e) => PointerDown = true;
@@ -239,14 +260,15 @@ public sealed class ScrollContainer
 
     private void UpdateValues()
     {
-        foreach (var (value, horizontal, progress) in _values) value.Assign(Read(horizontal, progress));
+        foreach (var (value, horizontal, measure) in _values) value.Assign(Read(horizontal, measure));
     }
 
-    private double Read(bool horizontal, bool progress)
+    private double Read(bool horizontal, ScrollMeasure measure)
     {
         var scroll = horizontal ? ScrollX : ScrollY;
-        if (!progress) return scroll;
+        if (measure == ScrollMeasure.Offset) return scroll;
         var range = horizontal ? Scroller.Extent.Width - Scroller.Viewport.Width : Scroller.Extent.Height - Scroller.Viewport.Height;
+        if (measure == ScrollMeasure.Remaining) return Math.Max(0, Utils.Round(range - scroll, 0));
         return range > 0 ? Utils.Clamp(scroll / range, 0, 1) : 0;
     }
 

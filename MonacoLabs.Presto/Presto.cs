@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 using MonacoLabs.Presto.Targets;
@@ -26,6 +27,12 @@ public static class Presto
     /// <remarks>Read from every engine's thread, so populate it before any animation starts — the Avalonia bridge registers its codecs from <c>PrestoAvalonia.EnsureInitialized</c>.</remarks>
     public static IDictionary<Type, IValueCodec> Codecs { get; } = new Dictionary<Type, IValueCodec>();
 
+    /// <summary>Keeps <typeparamref name="T"/>'s public properties and fields in a trimmed or NativeAOT app, so the built-in adapter can animate them by name.</summary>
+    /// <remarks>The <see cref="DynamicallyAccessedMembersAttribute"/> on <typeparamref name="T"/> is the whole contract: the call records nothing at run time and may be made from any thread.</remarks>
+    public static void RegisterTarget<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>()
+    {
+    }
+
     /// <summary>Creates a timer that fires callbacks over time without animating anything.</summary>
     public static Timer CreateTimer(TimerParams? parameters = null) => Created(new Timer(parameters ?? new(), null, 0).Init());
 
@@ -33,28 +40,22 @@ public static class Presto
     /// Waits <paramref name="duration"/> of the current engine's time, so unlike <see cref="Task.Delay(int)"/> the wait
     /// follows <see cref="Engine.Speed"/> and a manually advanced frame source.
     /// </summary>
-    /// <remarks>Cancel <paramref name="cancellationToken"/> on the engine's thread, as with every other control.</remarks>
+    /// <remarks>
+    /// Cancel <paramref name="cancellationToken"/> on the engine's thread, as with every other control. The task is also canceled when
+    /// its timer is, as when the scope it was created in reverts.
+    /// </remarks>
     public static Task Delay(double duration, CancellationToken cancellationToken = default)
     {
         if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
         if (duration <= 0) return Task.CompletedTask;
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        CancellationTokenRegistration registration = default;
-        var timer = CreateTimer(new()
+        var timer = CreateTimer(new() { Duration = duration });
+        var wait = timer.ThenOrCancel();
+        if (cancellationToken.CanBeCanceled)
         {
-            Duration = duration,
-            OnComplete = _ =>
-            {
-                registration.Dispose();
-                completion.TrySetResult();
-            },
-        });
-        registration = cancellationToken.Register(() =>
-        {
-            timer.Cancel();
-            completion.TrySetCanceled(cancellationToken);
-        });
-        return completion.Task;
+            var registration = cancellationToken.Register(static timer => ((Timer)timer!).Cancel(), timer);
+            wait.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
+        }
+        return wait;
     }
 
     /// <summary>Creates a source <see cref="MotionValue"/> that derived values follow (Motion's <c>motionValue()</c>).</summary>
@@ -209,7 +210,7 @@ public static class Presto
         return false;
     }
 
-    private static DecomposedValue? Decompose(object? targets, string property)
+    internal static DecomposedValue? Decompose(object? targets, string property)
     {
         var parsed = TargetParser.Parse(targets);
         if (parsed.Count == 0) return null;

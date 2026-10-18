@@ -97,6 +97,33 @@ public sealed class ConnectedTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void AKeyThatNeverReturnsDoesNotAccumulate()
+    {
+        const string gone = nameof(AKeyThatNeverReturnsDoesNotAccumulate) + "-gone";
+        const string fresh = nameof(AKeyThatNeverReturnsDoesNotAccumulate) + "-fresh";
+        const string next = nameof(AKeyThatNeverReturnsDoesNotAccumulate) + "-next";
+        var drawn = new Rect(10, 20, 30, 40);
+        var time = new FakeTimeProvider();
+        LayoutTransition.TimeProvider = time;
+        try
+        {
+            LayoutTransition.Prepare(gone, drawn);
+            time.Advance(TimeSpan.FromMilliseconds(2000));
+            LayoutTransition.Prepare(fresh, drawn);
+            time.Advance(TimeSpan.FromMilliseconds(1001));
+            LayoutTransition.Prepare(next, drawn);
+
+            Assert.False(LayoutTransition.IsPrepared(gone));
+            Assert.Equal(drawn, LayoutTransition.TakePrepared(fresh));
+            Assert.Equal(drawn, LayoutTransition.TakePrepared(next));
+        }
+        finally
+        {
+            LayoutTransition.TimeProvider = TimeProvider.System;
+        }
+    }
+
+    [AvaloniaFact]
     public void AFirstLoadWithNothingPreparedAnimatesNothing()
     {
         var arriving = Keyed(nameof(AFirstLoadWithNothingPreparedAnimatesNothing), Brushes.Red, ConnectedRecipes.Held);
@@ -381,6 +408,70 @@ public sealed class ConnectedTests : CompositorTestBase
         GC.Collect();
 
         Assert.False(flown.TryGetTarget(out _), "the registry kept the flight's control alive");
+    }
+
+    [AvaloniaFact]
+    public void AKeyedElementDetachedBeforeItsFirstLayoutPassPreparesNothing()
+    {
+        const string key = nameof(AKeyedElementDetachedBeforeItsFirstLayoutPassPreparesNothing);
+        var root = ShowRoot();
+        var view = View(Keyed(key, Brushes.Blue), 0, 50);
+
+        root.Children.Add(view);
+        root.Children.Remove(view);
+
+        Assert.Null(LayoutTransition.TakePrepared(key));
+    }
+
+    [AvaloniaFact]
+    public void FlightsAndEntrancesRegisterWithTheAmbientScope()
+    {
+        const string key = nameof(FlightsAndEntrancesRegisterWithTheAmbientScope);
+        var host = ShowHost(View(Keyed(key, Brushes.Blue), 0, 50));
+        var arriving = Keyed(key, Brushes.Red, ConnectedRecipes.Held);
+        var anchored = Anchored(key, Presto.Build().Y(from: 24, to: 0).Duration(600000).Ease(Eases.None));
+        var scope = new Scope();
+        scope.Execute(_ => host.Content = new Panel { Children = { View(arriving, 80, 130), anchored } });
+        Tick();
+        Assert.NotEqual(SlotOf(arriving), Box(arriving));
+        Assert.NotEqual(SlotOf(anchored), Extent(host, Colors.Lime));
+
+        scope.Revert();
+        Tick();
+
+        Assert.Equal(SlotOf(arriving), Box(arriving));
+        Assert.Equal(SlotOf(anchored), Extent(host, Colors.Lime));
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetDefaultMotionLasts500MsWithOutQuint()
+    {
+        var border = new Border();
+        var animation = Presto.Animate(border, Connected.DefaultMotion.X(100).ToParams() with { Autoplay = false });
+
+        animation.Seek(150);
+
+        Assert.Equal(500, animation.Duration);
+        Assert.Equal(0, animation._delay);
+        Assert.Equal(100 * Eases.OutQuint(.3), X(border), 1e-6);
+    }
+
+    [AvaloniaFact]
+    public void AnUnsetDefaultAnchorMotionRisesAndFadesInAfterADelayWithOutQuart()
+    {
+        var border = new Border();
+        var animation = Presto.Animate(border, Connected.DefaultAnchorMotion.ToParams() with { Autoplay = false });
+
+        animation.Seek(0);
+        Assert.Equal(24d, PrestoAvalonia.Get(border, "Y"));
+        Assert.Equal(0, border.Opacity);
+
+        animation.Seek(200);
+
+        Assert.Equal(400, animation.Duration);
+        Assert.Equal(150, animation._delay);
+        Assert.Equal(24 * (1 - Eases.OutQuart(.5)), (double)PrestoAvalonia.Get(border, "Y")!, 1e-6);
+        Assert.Equal(Eases.OutQuart(.5), border.Opacity, 1e-6);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

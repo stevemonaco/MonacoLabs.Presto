@@ -190,6 +190,29 @@ public sealed class TypographyPageTests
     }
 
     [AvaloniaFact]
+    public void LeavingThePageMidSwapRevertsTheRotatorsWords()
+    {
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 100);
+        var slot = page.GetControl<Border>("Slot");
+        var outgoing = slot.Child;
+        for (var frame = 0; frame < 160 && (GhostHosts(window).Length == 0 || slot.Child == outgoing); frame++) TestFrames.Tick();
+        var incoming = (TextBlock)slot.Child!;
+        TestFrames.Tick(3);
+        Assert.NotEmpty(GhostHosts(window));
+        Assert.Equal(0, incoming.Opacity);
+
+        window.Content = null;
+        TestFrames.Tick();
+
+        Assert.Empty(GhostHosts(window));
+        Assert.Empty(Pieces(incoming));
+        Assert.Null(incoming.Inlines);
+        Assert.Equal(1, incoming.Opacity);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void TheRotatorHostEasesItsWidthBetweenTheTwoWordsRatherThanSnapping()
     {
         var page = new TypographyPage();

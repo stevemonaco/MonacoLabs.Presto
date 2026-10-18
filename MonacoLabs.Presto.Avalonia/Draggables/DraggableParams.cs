@@ -85,6 +85,27 @@ public sealed record DraggableParams
     /// <summary>Applies to both axes, unless the axis brings a <see cref="DraggableAxisParams.Modifier"/> of its own.</summary>
     public Func<double, double>? Modifier { get; init; }
 
+    /// <summary>The <see cref="Drop.GroupProperty"/> of the zones the target is dropped on; null drops nowhere.</summary>
+    public string? DropGroup { get; init; }
+
+    /// <summary>How the zone the target is over is picked, <see cref="Draggables.DropHit.Center"/> by default.</summary>
+    public DropHit DropHit { get; init; }
+
+    /// <summary>Whether the target may be dropped on a zone; a zone it returns false for never becomes <see cref="Draggable.Zone"/>.</summary>
+    public Func<Draggable, Control, bool>? CanDrop { get; init; }
+
+    /// <summary>What the target does when its release settles over no zone, <see cref="Draggables.DropMiss.Stay"/> by default.</summary>
+    public DropMiss DropMiss { get; init; }
+
+    /// <summary>Runs whenever <see cref="Draggable.Zone"/> changes while the target is over the zones, but not when a drop or a miss clears it.</summary>
+    public Action<Draggable>? OnZoneChange { get; init; }
+
+    /// <summary>Runs once, after <see cref="OnSettle"/>, when the release settles over a zone, which <see cref="Draggable.Zone"/> still names.</summary>
+    public Action<Draggable>? OnDrop { get; init; }
+
+    /// <summary>Runs once when the release settles over no zone, or Escape cancels the drag; any return home has already started.</summary>
+    public Action<Draggable>? OnDropMiss { get; init; }
+
     /// <summary>Runs when the pointer takes hold of the trigger, before it has moved.</summary>
     public Action<Draggable>? OnGrab { get; init; }
 

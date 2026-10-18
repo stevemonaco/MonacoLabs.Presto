@@ -86,8 +86,8 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 
 - **BRIDGE-HELPERS-011** — Each named builder method shall add the property under the same key the string indexer uses, each one whose key `PrestoKeys` holds shall write that `PrestoKeys` key, and every overload of one name shall write that one key.
   - Tests: `AnimationBuilderBridgeTests.TypedMethodsWriteTheIndexerKeys`, `AnimationBuilderBridgeTests.EveryOverloadWritesTheSameKey`, `AnimationBuilderBridgeTests.EffectAndRevealOverloadsWriteTheSameKey`, `AnimationBuilderBridgeTests.ImageFilterOverloadsWriteTheSameKey`
-- **BRIDGE-HELPERS-012** — The typed value overloads shall wrap their value as the indexer would (`TweenValue.Of`), `Background`/`Foreground(Color)` as an immutable solid brush and `Draw(start, end)` as the invariant-culture string `"start end"`.
-  - Tests: `AnimationBuilderBridgeTests.TypedValuesAreWrappedAsTheIndexerWouldWrapThem`, `AnimationBuilderBridgeTests.TypedEffectValuesAreWrappedAsTheIndexerWouldWrapThem`, `AnimationBuilderBridgeTests.BackgroundAnimatesToAColor`
+- **BRIDGE-HELPERS-012** — The typed value overloads shall wrap their value as the indexer would (`TweenValue.Of`), `Background`/`Foreground`/`Fill`/`Stroke(Color)` as an immutable solid brush and `Draw(start, end)` as the invariant-culture string `"start end"`.
+  - Tests: `AnimationBuilderBridgeTests.TypedValuesAreWrappedAsTheIndexerWouldWrapThem`, `AnimationBuilderBridgeTests.TypedEffectValuesAreWrappedAsTheIndexerWouldWrapThem`, `AnimationBuilderBridgeTests.BackgroundAnimatesToAColor`, `AnimationBuilderBridgeTests.FillAndStrokeAnimateAShapeAndTheRingsFill`
 - **BRIDGE-HELPERS-013** — The image filter methods shall write the keys of the matching `PrestoImageBase` properties (BRIDGE-IMAGE).
   - Tests: `AnimationBuilderBridgeTests.ImageFilterMethodsWriteTheIndexerKeysAndValues`, `AnimationBuilderBridgeTests.AFilterMethodAnimatesEveryImageOnTheBase`
 - **BRIDGE-HELPERS-014** — `Property(AvaloniaProperty, …)` shall write the property's encoded key, so it replaces a string-keyed tween of the same property.
@@ -105,6 +105,8 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
   - Tests: `PrestoKeysTests.EachShorthandKeyResolvesOnItsTargetAndCanonicalizesToItsOwnName`, `PrestoKeysTests.TextAndDataResolveOnATextBlockAndAPath`
 - **BRIDGE-HELPERS-036** — `PrestoKeys.Of(property)` shall return the key BRIDGE-TARGETS-007 encodes, and reading any `PrestoKeys` member shall not install the bridge.
   - Tests: `PrestoKeysTests.OfReturnsTheEncodedName`, `PrestoKeysTests.AccessingTheKeysDoesNotInstallTheBridge`
+- **BRIDGE-HELPERS-037** — Every `PrestoKeys` key except the warp shorthands shall have a typed builder method of the same name writing that key (see The key-to-method check is a reflection test).
+  - Tests: `PrestoKeysTests.EveryKeyButTheWarpShorthandsHasATypedBuilderMethod`
 
 ### Stagger
 
@@ -147,7 +149,7 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 - **BRIDGE-HELPERS-032** — Presence, Motion, page transitions and layout transitions shall manage their own lifetime and not be paused by the tracker (see Features that manage their own lifetimes pass `WhenDetached.Continue`).
   - Tests: `WhenDetachedTests.AnExitGhostRunsToCompletionWhenItsWindowCloses`, `WhenDetachedTests.APresenceEnterOnADetachingControlIsRevertedByPresenceNotHeldPaused`, `WhenDetachedTests.AMotionStateAnimationIsLeftToMotion`, `WhenDetachedTests.APageTransitionFinishesWhenItsPagesDetach`, `WhenDetachedTests.ALayoutTransitionFinishesWhenItsControlDetaches`
 - **BRIDGE-HELPERS-033** (inherited) — An animation already completed when created (a `Set`) shall not be tracked.
-  - Tests: untested
+  - Tests: `WhenDetachedTests.ASetIsNotTracked`
 
 ## Invariants
 
@@ -188,7 +190,8 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 - **Features that manage their own lifetimes pass `WhenDetached.Continue`.** Presence (ghosts included), Motion and page transitions pass it themselves; Connected and the compositor mirrors animate a plain scratch object, which the tracker never pauses. Reason: those features already decide when their animations end.
 - **`ControlScope` reverts on detach, not `Unloaded`.** `PrestoAvalonia.CreateScope(control)` reverts when the root detaches from the visual tree, with no `AutoRevert` parameter. Reason: `Unloaded` never fires for a root detached before its `Loaded` job runs. Rejected: reverting on `Unloaded`.
 - **Bridge builder extensions self-initialize.** Every typed builder method and `control.Animate(builder)` calls `PrestoAvalonia.EnsureInitialized()`, as `AvaloniaAnimationParams`' constructor does. Reason: a builder naming a shorthand, or using only core `Property(PropertyKey, …)`, must work on a control without `UsePresto()`. `PrestoKeys` access does not install the bridge: a key is only a name, and the API it is passed to installs it.
-- **Typed methods cover the most-used properties.** They cover the eight transform shorthands, `Opacity`, `Width`, `Height`, `Background`, `Foreground`, `CornerRadius`, `BorderThickness`, `Margin`, `Padding` and the `Draw`/`Text`/`Data` pseudo-properties; everything else is `Property(SomeControl.SomeProperty, …)`. Reason: chosen by string-key frequency across the samples; the typed `AvaloniaProperty` overload is refactor-safe, so the list need not grow to cover every control.
+- **Typed methods cover the most-used properties.** They cover the eight transform shorthands, `Opacity`, `Width`, `Height`, `Background`, `Foreground`, `Fill`, `Stroke`, `CornerRadius`, `BorderThickness`, `Margin`, `Padding` and the `Draw`/`Text`/`Data` pseudo-properties; everything else is `Property(SomeControl.SomeProperty, …)`. Reason: chosen by string-key frequency across the samples; the typed `AvaloniaProperty` overload is refactor-safe, so the list need not grow to cover every control. `Fill` and `Stroke` take `Background`'s overloads and write the plain names, which resolve on every `Shape` and on `ProgressRing.Fill`. Reason: they are the shape paints, used by name about as often in the samples as `Foreground`, and a typed `AvaloniaProperty` overload would bind to one owner type and miss the ring. Rejected: `Track` or other control-specific brushes (use `Property(ProgressRing.TrackProperty, …)`).
+- **The key-to-method check is a reflection test.** For each `PrestoKeys` field, `PropertyBuilderExtensions` must declare a method of that name whose `TweenValue` overload writes that key; the warp shorthands are an explicit exemption, citing BRIDGE-WARP's non-goal. Reason: a new shorthand fails it until it gets a method or a reasoned exemption. Rejected: a source generator for the methods (too heavy for about 40 names); checking method names only (a misspelled key would pass).
 - **Builder methods write the typed property key.** The image filter methods write the `PrestoImageBase.*Property` key rather than a name, and `TintColor`, `DuotoneShadow` and `DuotoneHighlight` also take a `Color`. Reason: the key resolves on every subclass, as the `AvaloniaAnimationParams` indexer does; the `Color` overloads mirror `ShadowColor`. Rejected: resolving to the `FilteredImage` properties by name.
 - **`PrestoKeys` names shorthands and pseudo-properties.** It holds the shorthands, `Text` and `Data`, and no names for real properties such as `Opacity`, `Background` or the image filters. Reason: real properties are already typed and refactor-safe through their `AvaloniaProperty` fields (`PrestoKeys.Of` where a key value is needed), so mirroring them would add a second typed spelling. Rejected: `PrestoKeys.Opacity` and friends.
 - **Text and Data keys resolve by name.** `PrestoKeys.Text` and `PrestoKeys.Data` are the plain names the builder's `Text` and `Data` methods write, which resolve through the registry on a `TextBlock` or `Path` and canonicalize to the encoded property, not to their own name. Reason: the keys must stay byte-identical to what the builder already writes, so swapping a method for its key changes nothing.
@@ -206,5 +209,4 @@ The everyday C# surface of the bridge: `control.Animate(...)` and the other `Ani
 
 ## Open items
 
-- Phase 71 asked for a test that fails when a shorthand is added without a typed builder method; resolved in part by `PrestoKeysTests.HoldsOneKeyPerShorthandAndPseudoPropertyAndNothingElse` (a shorthand without a key fails); a shorthand without a builder method is still unchecked.
-- BRIDGE-HELPERS-033 is untested.
+None.

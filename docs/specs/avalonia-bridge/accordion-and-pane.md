@@ -48,31 +48,33 @@ depends:
 - **BRIDGE-ACCORDION-003** — When enabled, the body part shall get `Presence.EnterOnShow`, so the entrances inside it replay each time it shows.
   - Tests: `AccordionTests.TheBodysChildrenEnterEachTimeItShows`, `NavMotionTests.ExpandingRestoresTheBodyAndStaggersItsPagesBackIn`
 - **BRIDGE-ACCORDION-004** (inherited) — When the item's template, or its `ExpanderHeader` toggle's template, is applied again, the accordion shall release the parts it marked and find them again in the new template.
-  - Tests: untested
-- **BRIDGE-ACCORDION-005** (inherited) — When `Accordion.Enabled` becomes false, the accordion shall clear the item's `Animate.ContentSize`, the body's `Presence.Exit` and `EnterOnShow`, the chevron mark and the chevron path's render transform, and stop listening for template changes.
-  - Tests: untested
+  - Tests: `AccordionTests.ANewTemplateGetsItsPartsMarkedAndTheOldOnesReleased`, `AccordionTests.ANewHeaderTemplateGetsItsChevronMarked`
+- **BRIDGE-ACCORDION-005** (inherited) — When `Accordion.Enabled` becomes false, the accordion shall clear the item's `Animate.ContentSize`, the body's `Presence.Exit` and `EnterOnShow`, the chevron mark, the chevron's transition lift and the chevron path's render transform, and stop listening for template changes.
+  - Tests: `AccordionTests.DisablingReleasesEverythingItSet`
 - **BRIDGE-ACCORDION-006** (inherited) — While in design mode, setting `Enabled` or `Chevron` shall do nothing.
-  - Tests: untested
+  - Tests: `AccordionTests.DoesNothingInDesignMode`
 
 ### Chevron
 
-- **BRIDGE-ACCORDION-007** — When enabled on an item whose `ExpanderHeader` toggle holds `ExpandCollapseChevronBorder` and `ExpandCollapseChevron`, the accordion shall set `Chevron = 180` on the border and give the path an identity `TransformOperations` render transform, so Fluent's own flip of its `RotateTransform` does not apply.
-  - Tests: `AccordionTests.TheChevronSpringsRoundInPlaceOfFluentsFlip`
+- **BRIDGE-ACCORDION-007** — When enabled on an item whose `ExpanderHeader` toggle holds `ExpandCollapseChevronBorder` and `ExpandCollapseChevron` (Fluent), the accordion shall set `Chevron = 180` on the border and give the path an identity `TransformOperations` render transform, so Fluent's own flip of its `RotateTransform` does not apply; otherwise, when the item's or the toggle's template holds an element named `PART_PathIcon` (Semi), it shall set `Chevron = 180` on it. A part that already has a `Chevron` value shall keep it.
+  - Tests: `AccordionTests.TheChevronSpringsRoundInPlaceOfFluentsFlip`, `AccordionTests.TheChevronIsFoundOnASemiShapedTemplate`, `AccordionTests.AnAppSetChevronIsKept`
 - **BRIDGE-ACCORDION-008** — When an element with `Chevron` set is attached to a visual tree, it shall link to the first `Expander` or `TreeViewItem` up its templated-parent chain, at any depth of nested templates, and set its `Rotate` at once to `Chevron` degrees if that item is expanded, 0 otherwise.
   - Tests: `AccordionTests.TheChevronSpringsRoundInPlaceOfFluentsFlip`, `NavMotionTests.TheChevronLandsOnItsRotation`
 - **BRIDGE-ACCORDION-009** — When the linked item's `IsExpanded` changes, the chevron shall animate `Rotate` to `Chevron` degrees (expanded) or 0 (collapsed) with `Springs.Snappy`.
   - Tests: `AccordionTests.TheChevronSpringsRoundInPlaceOfFluentsFlip`
 - **BRIDGE-ACCORDION-010** (inherited) — When the chevron is detached, or `Chevron` is set to null, the link shall be dropped; when `Chevron` changes to another value while attached, the chevron shall relink and land on the new angle at once.
-  - Tests: untested
+  - Tests: `AccordionTests.AChevronSetWhileAttachedLandsAtOnceAndRelinksOnAChange`, `AccordionTests.AChevronSetToNullNoLongerFollowsItsItem`, `AccordionTests.ADetachedChevronIsUnlinkedAndLandsOnItsAngleWhenReattached`
 - **BRIDGE-ACCORDION-011** (inherited) — A chevron with no `Expander` or `TreeViewItem` in its templated-parent chain shall not move.
-  - Tests: untested
+  - Tests: `AccordionTests.AChevronOutsideAnItemsTemplateDoesNotMove`
+- **BRIDGE-ACCORDION-031** — While a chevron is linked, its `Transitions` shall be lifted: set at `Animation` priority to its base list without the `RenderTransform` transitions, re-read from the base at each turn; the lift shall be disposed when the chevron unlinks.
+  - Tests: `AccordionTests.ALinkedChevronLiftsItsRenderTransformTransitionsAndUnlinkRestoresThem`
 
 ### Group
 
 - **BRIDGE-ACCORDION-012** — When an `Expander` expands, every other `Expander` among the logical descendants of its nearest logical ancestor with `Accordion.Group` true, whose own nearest group is that same ancestor, shall collapse.
   - Tests: `AccordionTests.ExpandingOneCollapsesItsSibling`
 - **BRIDGE-ACCORDION-013** — The group shall apply to `Expander`s only, whether or not they have `Enabled`; `TreeViewItem`s are not single-opened.
-  - Tests: untested
+  - Tests: `AccordionTests.TheGroupCollapsesExpandersWithoutEnabled`, `AccordionTests.TheGroupDoesNotSingleOpenTreeViewItems`
 
 ### Accordion reduced motion
 
@@ -109,28 +111,29 @@ depends:
 - **BRIDGE-ACCORDION-026** — While `ReducedMotion` is set, a `Pane` call shall land the width at once (duration 0) and still run its completion, restoring `MinWidth` after an expand.
   - Tests: `CollapsiblePaneTests.UnderReducedMotionTheWidthJumps`, `NavPaneTests.UnderReducedMotionTheCollapseLandsOnTheFirstFrame`
 - **BRIDGE-ACCORDION-027** — A `Pane` call on a column whose `Width` is a star or auto length shall throw `ArgumentException` from the `GridLength` codec.
-  - Tests: untested
+  - Tests: `CollapsiblePaneTests.AStarOrAutoColumnThrows`
 
 ### Defaults
 
 - **BRIDGE-ACCORDION-028** (inherited) — When `Accordion.Enabled` is not set, the item shall get no accordion motion: no `Animate.ContentSize`, body marks or chevron.
-  - Tests: untested
+  - Tests: `AccordionTests.WithoutEnabledTheItemGetsNoAccordionMotion`
 - **BRIDGE-ACCORDION-029** (inherited) — When `Accordion.Group` is not set on any logical ancestor, expanding an `Expander` shall collapse no other `Expander`.
-  - Tests: untested
+  - Tests: `AccordionTests.WithoutAGroupExpandingCollapsesNoOtherExpander`
 - **BRIDGE-ACCORDION-030** (inherited) — When `Accordion.Chevron` is not set on an element, the element shall not be linked to an item and shall not rotate.
-  - Tests: untested
+  - Tests: `AccordionTests.WithoutChevronAnElementInTheHeaderDoesNotRotate`
 
 ## Invariants
 
 - An enabled accordion item has exactly one set of marked parts, those of its current templates.
 - A chevron is linked to at most one item at a time.
+- An unlinked chevron has no lifted `Transitions` value.
 - `Pane` keeps one state per column, held weakly; a column's `MinWidth` is 0 exactly while a `Pane` animation runs or after a collapse.
 
 ## Edge cases
 
 - `Enabled` on a `TemplatedControl` other than `Expander` or `TreeViewItem` gets `Animate.ContentSize` and the `PART_ItemsPresenter` marks, but no chevron link.
 - Disabling `Enabled` clears an `Animate.ContentSize` the user set on the item.
-- An item without the Fluent header parts gets no automatic chevron; `Chevron` can still be set on a template element.
+- An item without the Fluent or Semi parts gets no automatic chevron; `Chevron` can still be set on a template element.
 - `Pane.Toggle` mid-run reverses from the current width; the expanded width is not re-recorded, since a `Pane` animation is in flight.
 
 ## Threading and lifetime
@@ -154,6 +157,8 @@ depends:
 - **Accordion is an attached form, not a style.** `Accordion.Enabled`, `Group` and `Chevron` attach to an `Expander` or `TreeViewItem`: `Animate.ContentSize` goes on the item itself, the body fades under a held hide before folding and replays its entrances through `EnterOnShow`, the chevron's path gets a `TransformOperations` render transform and springs, and `Group`'s single-open covers `Expander`s only. Reason: the bridge ships no themes; the item's template root never hides; Avalonia's `TransformAnimator` skips `TransformOperations`, so Fluent's own 62 ms flip does not add to the spring; the nav needs no single-open. Rejected: an `Expander` style or a templated control.
 - **The `GridLength` codec is pixel-only.** A pixel `GridLength` tweens as its pixel count, a value below 0 (a spring's overshoot) writes 0, and a star or auto length at either end throws `ArgumentException`. Reason: a column jumping between star and pixels mid-tween would reflow its whole grid. Rejected: switching discretely between star or auto and pixels.
 - **`Pane` works on `Grid` columns only and ends on a local width.** `Pane.Collapse`, `Expand` and `Toggle` keep per-column state in a weak table, lift `MinWidth` for the run, clip the content below its minimum through a negative right margin, and end on a local pixel width with the animation reverted; the width to expand back to is recorded whenever the column is expanded and its last `Pane` animation is no longer in flight. Reason: a `SplitView` already animates its own pane; clipping avoids reflowing the content below its minimum; a held animation value would mask a `GridSplitter`'s writes; the run's own state, unlike `MinWidth`, marks rest for a column without a minimum.
+- **Known theme chevrons are found by name, and others are marked with `Chevron`.** Fluent's (`ExpandCollapseChevronBorder` in the header's template) and Semi's (`PART_PathIcon` in the item's or the header's template) are looked up in that order, and a part that already has a `Chevron` value keeps it. Reason: Fluent and Semi are the two themes the samples run on, and a name lookup per template apply is cheap. Rejected: a heuristic such as "the first `PathIcon` in the header", which would match icons in user header content.
+- **A linked chevron lifts its `RenderTransform` transitions.** The mechanism of BRIDGE-POPOVER-008: `Transitions` is set at `Animation` priority to the base list without `RenderTransform` entries, re-read from the base before each turn so a re-applied theme is followed, and disposed on unlink. Reason: the spring writes `RenderTransform` every frame, and a theme transition on it (Semi's 250 ms one) eases each write, double-easing the chevron. Rejected: lifting transitions on every property Presto animates on any control, a cross-cutting change to BRIDGE-TARGETS with a cost on every write.
 
 ## Non-goals
 
@@ -164,4 +169,4 @@ depends:
 
 ## Open items
 
-- Untested: re-found parts after a template change, `Enabled` false releasing everything, design-mode no-op, chevron relink and unlink, the `Expander`-only group, and `Pane` on a star column throwing.
+None.

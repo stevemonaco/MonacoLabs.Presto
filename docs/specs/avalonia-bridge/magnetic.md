@@ -47,7 +47,7 @@ depends:
 ### Defaults
 
 - **BRIDGE-MAGNETIC-007** — When `Magnetic.Enabled` is not set, the control shall not be pulled.
-  - Tests: untested
+  - Tests: `MagneticTests.ANeverEnabledElementIsNotPulled`
 - **BRIDGE-MAGNETIC-008** — When `Magnetic.Strength` is not set, it shall be 0.35, when `Magnetic.Radius` is not set, it shall be 48 DIPs, and when `Magnetic.Spring` is not set, the pull shall follow `Springs.Snappy`.
   - Tests: `MagneticTests.ThePullGrowsAsThePointerNearsAndIsCappedByTheStrength`
 

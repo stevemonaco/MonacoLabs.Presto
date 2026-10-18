@@ -16,18 +16,29 @@ internal static class GlyphOutlines
     /// The outline of <paramref name="text"/> shaped as a <see cref="TextLayout"/> shapes it, with its origin at the top left
     /// of the first line box. Missing glyphs and glyphs of color or bitmap fonts add nothing.
     /// </summary>
-    internal static SKPath Path(string text, Typeface typeface, double fontSize, double letterSpacing = 0)
+    internal static SKPath Path(string text, Typeface typeface, double fontSize, double letterSpacing = 0, FontFeatureCollection? fontFeatures = null)
+    {
+        using var layout = new TextLayout(text, typeface, fontSize, null, letterSpacing: letterSpacing, fontFeatures: fontFeatures);
+        return Path(layout, 0, text.Length);
+    }
+
+    /// <summary>The outline of the glyphs <paramref name="layout"/> shaped for the text from <paramref name="start"/>, in the layout's coordinates.</summary>
+    internal static SKPath Path(TextLayout layout, int start, int length)
     {
         var path = new SKPath();
-        using var layout = new TextLayout(text, typeface, fontSize, null, letterSpacing: letterSpacing);
         var top = 0d;
         foreach (var line in layout.TextLines)
         {
             var x = line.Start;
+            var index = line.FirstTextSourceIndex;
             foreach (var run in line.TextRuns)
             {
                 if (run is ShapedTextRun { GlyphRun: var glyphs } && Face(glyphs.GlyphTypeface) is { } face)
                 {
+                    // Clusters count from the run's shaping, not the layout's text, and RTL runs list them in reverse.
+                    var firstCluster = int.MaxValue;
+                    foreach (var glyph in glyphs.GlyphInfos) firstCluster = Math.Min(firstCluster, glyph.GlyphCluster);
+                    var from = start - index + firstCluster;
                     var simulations = glyphs.GlyphTypeface.FontSimulations;
                     // As Avalonia.Skia simulates bold and oblique.
                     using var font = new SKFont(face, (float)glyphs.FontRenderingEmSize)
@@ -38,7 +49,7 @@ internal static class GlyphOutlines
                     var advance = x;
                     foreach (var glyph in glyphs.GlyphInfos)
                     {
-                        if (glyph.GlyphIndex != 0 && font.GetGlyphPath(glyph.GlyphIndex) is { } outline)
+                        if (glyph.GlyphCluster >= from && glyph.GlyphCluster < from + length && glyph.GlyphIndex != 0 && font.GetGlyphPath(glyph.GlyphIndex) is { } outline)
                         {
                             using (outline) path.AddPath(outline, (float)(advance + glyph.GlyphOffset.X), (float)(top + line.Baseline + glyph.GlyphOffset.Y));
                         }
@@ -46,20 +57,21 @@ internal static class GlyphOutlines
                     }
                 }
                 if (run is DrawableTextRun drawable) x += drawable.Size.Width;
+                index += run.Length;
             }
             top += line.Height;
         }
         return path;
     }
 
-    /// <summary><see cref="Path(string, Typeface, double, double)"/> in <paramref name="block"/>'s font, size and letter spacing.</summary>
+    /// <summary><see cref="Path(string, Typeface, double, double, FontFeatureCollection)"/> in <paramref name="block"/>'s font, size, letter spacing and font features.</summary>
     internal static SKPath Path(string text, TextBlock block) =>
-        Path(text, new Typeface(block.FontFamily, block.FontStyle, block.FontWeight, block.FontStretch), block.FontSize, block.LetterSpacing);
+        Path(text, new Typeface(block.FontFamily, block.FontStyle, block.FontWeight, block.FontStretch), block.FontSize, block.LetterSpacing, block.FontFeatures);
 
-    /// <summary><see cref="Path(string, Typeface, double, double)"/> as a geometry with the font's nonzero fill rule, curves kept.</summary>
-    internal static Geometry Geometry(string text, Typeface typeface, double fontSize, double letterSpacing = 0)
+    /// <summary><see cref="Path(string, Typeface, double, double, FontFeatureCollection)"/> as a geometry with the font's nonzero fill rule, curves kept.</summary>
+    internal static Geometry Geometry(string text, Typeface typeface, double fontSize, double letterSpacing = 0, FontFeatureCollection? fontFeatures = null)
     {
-        using var path = Path(text, typeface, fontSize, letterSpacing);
+        using var path = Path(text, typeface, fontSize, letterSpacing, fontFeatures);
         return Geometry(path);
     }
 

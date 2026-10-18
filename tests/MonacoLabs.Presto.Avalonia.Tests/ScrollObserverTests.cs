@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -335,7 +337,7 @@ public sealed class ScrollObserverTests : BridgeTestBase
 
         ScrollTo(scroller, 450);
         Assert.True(observer.Reverted);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
     }
 
     [AvaloniaFact]
@@ -464,12 +466,39 @@ public sealed class ScrollObserverTests : BridgeTestBase
         var animation = target.Animate(new() { ["Rotate"] = 360, Autoplay = false });
         var observer = Observe(new ScrollObserverParams { Target = target }).Link(animation);
 
-        Assert.True(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.True(ScrollContainer.Containers.TryGetValue(scroller, out _));
 
         animation.Revert();
 
         Assert.True(observer.Reverted);
-        Assert.False(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
+    }
+
+    [AvaloniaFact]
+    public void AScrollerDroppedWithAnUnrevertedObserverIsCollectable()
+    {
+        var (window, scroller) = ObserveAndRemove();
+        Frames.Advance(WakeWindow * 2, 16);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(scroller.IsAlive, "the scroll registry kept the scroller alive");
+        GC.KeepAlive(window);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private (Window Window, WeakReference Scroller) ObserveAndRemove()
+    {
+        var (window, scroller, target) = Show();
+        Observe(new ScrollObserverParams { Target = target });
+        ScrollTo(scroller, 250);
+        window.Content = null;
+        Dispatcher.UIThread.RunJobs();
+        // The window's composition tree lets go of the scroller's visual only on its next render.
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        return (window, new WeakReference(scroller));
     }
 
     /// <summary>The data timer pauses with the wake window, unlike upstream's, which is what lets the engine idle.</summary>
@@ -486,7 +515,7 @@ public sealed class ScrollObserverTests : BridgeTestBase
 
         Assert.False(Presto.Engine.IsRunning);
         Assert.False(observer.Reverted);
-        Assert.True(ScrollContainer.Containers.ContainsKey(scroller));
+        Assert.True(ScrollContainer.Containers.TryGetValue(scroller, out _));
         Assert.Equal(0d, observer.Velocity);
 
         ScrollTo(scroller, 300);
@@ -495,6 +524,190 @@ public sealed class ScrollObserverTests : BridgeTestBase
         Assert.True(Presto.Engine.IsRunning);
         Assert.True(observer.Backward);
         Assert.True(observer.Velocity > 0);
+    }
+
+    [AvaloniaFact]
+    public void AnObserverCreatedInsideAScopeRevertsWithIt()
+    {
+        var (_, scroller, target) = Show();
+        var scope = Presto.CreateScope();
+        ScrollObserver? observer = null;
+        scope.Add(_ => observer = PrestoAvalonia.OnScroll(new ScrollObserverParams { Target = target }));
+        Frames.Advance(16);
+        Assert.True(observer!.Ready);
+
+        scope.Revert();
+
+        Assert.True(observer.Reverted);
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
+    }
+
+    [AvaloniaFact]
+    public void LinkingAgainAfterResolutionSwitchesToTheNewLinkedControlAndRemeasures()
+    {
+        var (_, scroller, target) = Show();
+        var trail = (Border)((StackPanel)scroller.Content!).Children[2];
+        var observer = PrestoAvalonia.OnScroll().Link(target.Animate(new() { ["X"] = 100, Autoplay = false }));
+        Frames.Advance(16);
+        Assert.Equal(100d, observer.OffsetStart);
+
+        observer.Link(trail.Animate(new() { ["X"] = 100, Autoplay = false }));
+
+        Assert.Same(trail, observer.Target);
+        Assert.Equal(Lead + TargetSize, observer.Offset);
+        Assert.Equal(200d, observer.OffsetStart);
+    }
+
+    [AvaloniaFact]
+    public void MeasuringHoldsTheLinkedAnimationAtItsStartWithoutCallbacksAndRestoresItsTime()
+    {
+        var (_, _, target) = Show();
+        var updates = 0;
+        var animation = target.Animate(new()
+        {
+            ["Y"] = TweenValue.FromTo(0, 100),
+            Duration = 1000,
+            Ease = Eases.None,
+            Autoplay = false,
+            OnUpdate = _ => updates++,
+        });
+        var observer = Observe(new ScrollObserverParams { Target = target }).Link(animation);
+        animation.Seek(500);
+        Assert.Equal(50d, PrestoAvalonia.Get(target, "Y"));
+        var before = updates;
+
+        observer.Refresh();
+
+        Assert.Equal(100d, observer.OffsetStart);
+        Assert.Equal(500d, animation.CurrentTime);
+        Assert.Equal(50d, PrestoAvalonia.Get(target, "Y"));
+        Assert.Equal(before, updates);
+    }
+
+    [AvaloniaFact]
+    public void ObserversAreEvaluatedInReverseOrderWhileScrollingBackward()
+    {
+        var (_, scroller, target) = Show();
+        var log = new List<string>();
+        Observe(new ScrollObserverParams { Target = target, Id = "first", OnEnter = self => log.Add(self.Id) });
+        Observe(new ScrollObserverParams { Target = target, Id = "second", OnEnter = self => log.Add(self.Id) });
+
+        ScrollTo(scroller, 250);
+        Assert.Equal(["first", "second"], log);
+
+        ScrollTo(scroller, 450);
+        ScrollTo(scroller, 430);
+        ScrollTo(scroller, 250);
+
+        Assert.Equal(["first", "second", "second", "first"], log);
+    }
+
+    [AvaloniaFact]
+    public void LandingExactlyOnAThresholdBeforeEverEnteringRunsTheEnterCallbacksOnceWithoutBeingInView()
+    {
+        var (_, scroller, target) = Show();
+        var log = new List<string>();
+        var observer = Observe(new ScrollObserverParams
+        {
+            Target = target,
+            OnEnter = _ => log.Add("enter"),
+            OnEnterForward = _ => log.Add("enterForward"),
+        });
+
+        ScrollTo(scroller, 100);
+
+        Assert.Equal(["enter", "enterForward"], log);
+        Assert.False(observer.IsInView);
+
+        ScrollTo(scroller, 150);
+
+        Assert.Equal(["enter", "enterForward"], log);
+        Assert.True(observer.IsInView);
+    }
+
+    [AvaloniaFact]
+    public void AnEvaluationRunsTheEnterCallbacksThenUpdateThenTheLeaveCallbacksThenTheCompletion()
+    {
+        var (_, scroller, target) = Show();
+        var log = new List<string>();
+        Observe(new ScrollObserverParams
+        {
+            Target = target,
+            OnEnter = _ => log.Add("enter"),
+            OnEnterForward = _ => log.Add("enterForward"),
+            OnUpdate = _ => log.Add("update"),
+            OnLeave = _ => log.Add("leave"),
+            OnLeaveForward = _ => log.Add("leaveForward"),
+            OnSyncComplete = _ => log.Add("complete"),
+        });
+
+        ScrollTo(scroller, 250);
+        Assert.Equal(["enter", "enterForward", "update"], log[..3]);
+        log.Clear();
+
+        ScrollTo(scroller, 450);
+        Assert.Equal(["update", "leave", "leaveForward", "complete"], log);
+    }
+
+    [AvaloniaFact]
+    public void ASeekingSyncSeeksTheLinkedAnimationBeforeOnUpdate()
+    {
+        var (_, scroller, target) = Show();
+        var seen = new List<double>();
+        var animation = target.Animate(new() { ["Opacity"] = TweenValue.FromTo(0, 1), Duration = 1000, Ease = Eases.None, Autoplay = false });
+        Observe(new ScrollObserverParams { Target = target, Sync = true, OnUpdate = _ => seen.Add(animation.CurrentTime) }).Link(animation);
+
+        ScrollTo(scroller, 250);
+
+        Assert.Equal(500d, seen[0]);
+    }
+
+    [AvaloniaFact]
+    public void SyncFalseNeverDrivesTheLinkedObject()
+    {
+        var (_, scroller, target) = Show();
+        var animation = target.Animate(new() { ["X"] = 100, Duration = 1000, Autoplay = false });
+        var observer = Observe(new ScrollObserverParams { Target = target, Sync = false }).Link(animation);
+
+        Assert.False(observer.Sync);
+
+        ScrollTo(scroller, 250);
+        Frames.Advance(200, 20);
+        ScrollTo(scroller, 450);
+
+        Assert.True(animation.Paused);
+        Assert.Equal(0d, animation.CurrentTime);
+    }
+
+    [AvaloniaFact]
+    public void RevertLeavesTheLinkedAnimationAsItIs()
+    {
+        var (_, _, target) = Show();
+        var animation = target.Animate(new() { ["X"] = 100, Duration = 1000, Ease = Eases.None, Autoplay = false });
+        var observer = Observe(new ScrollObserverParams { Target = target }).Link(animation);
+        animation.Seek(300);
+
+        observer.Revert();
+
+        Assert.False(animation.Canceled);
+        Assert.True(animation.Paused);
+        Assert.Equal(300d, animation.CurrentTime);
+        Assert.Equal(30d, PrestoAvalonia.Get(target, "X"));
+    }
+
+    [AvaloniaFact]
+    public void WithoutPinOrSnapTheObserverLeavesTheTargetAndTheOffsetAlone()
+    {
+        var (_, scroller, target) = Show();
+        var margin = target.Margin;
+        Observe(new ScrollObserverParams { Target = target });
+
+        ScrollTo(scroller, 237);
+        Frames.Advance(2000, 20);
+
+        Assert.Null(target.RenderTransform);
+        Assert.Equal(margin, target.Margin);
+        Assert.Equal(237d, scroller.Offset.Y);
     }
 
     [AvaloniaFact]

@@ -34,11 +34,11 @@ depends:
 - **CORE-EASEPARSER-002** — `Parse` shall cache its result by the trimmed input, so the same string returns the same instance while it stays cached.
   - Tests: `EaseParserTests.SameStringReturnsSameInstance`
 - **CORE-EASEPARSER-003** (inherited) — The cache shall be process-wide and safe for concurrent callers.
-  - Tests: untested
+  - Tests: `EaseParserTests.ConcurrentCallersAllGetTheParsedEase`
 - **CORE-EASEPARSER-036** — When the cache holds 256 entries, `Parse` shall clear it before caching a new result, and a string parsed again after a clear shall give an equivalent ease (see "The ease parser cache is bounded").
   - Tests: `EaseParserTests.TheCacheIsClearedWhenFullAndReparsesAfterwards`
 - **CORE-EASEPARSER-004** (inherited) — When parsing throws, `Parse` shall cache nothing, so the same string throws again.
-  - Tests: untested
+  - Tests: `EaseParserTests.AFailedParseCachesNothing`
 
 ### Names
 
@@ -53,7 +53,7 @@ depends:
 - **CORE-EASEPARSER-009** (inherited) — When a fixed ease is given a non-empty argument list, `Parse` shall throw `FormatException`.
   - Tests: `EaseParserTests.MalformedStringsThrow`
 - **CORE-EASEPARSER-010** (inherited) — When a fixed ease is given empty parentheses, `Parse` shall return that ease.
-  - Tests: untested
+  - Tests: `EaseParserTests.EmptyParenthesesOnAFixedEaseReturnIt`
 - **CORE-EASEPARSER-011** — When the name is neither fixed nor parameterized, `Parse` shall throw `FormatException` naming it.
   - Tests: `EaseParserTests.UnknownNamesAndCodeOnlyFormsThrow`
 
@@ -68,7 +68,7 @@ depends:
 - **CORE-EASEPARSER-015** (inherited) — `Parse` shall read numeric arguments as invariant-culture doubles, and throw `FormatException` for a token that is not a number.
   - Tests: `EaseParserTests.ParsesArgumentsCultureInvariantly`, `EaseParserTests.MalformedStringsThrow`
 - **CORE-EASEPARSER-016** — `Parse` shall ignore arguments past the ones the factory reads, without parsing them.
-  - Tests: untested
+  - Tests: `EaseParserTests.ArgumentsPastTheOnesReadAreIgnored`
 
 ### Parameterized forms
 
@@ -77,7 +77,7 @@ depends:
 - **CORE-EASEPARSER-018** — `fromPath(…)` shall pass the trimmed raw text between the parentheses, commas included, to `Eases.FromPath`.
   - Tests: `EaseParserTests.FromPathTakesTheRawPath`
 - **CORE-EASEPARSER-019** (inherited) — `fromPath` shall let `FromPath`'s `ArgumentException` and `FormatException` propagate.
-  - Tests: untested
+  - Tests: `EaseParserTests.FromPathErrorsPropagate`
 - **CORE-EASEPARSER-020** — `wiggle` shall take an optional count, truncated to an integer, and an optional `WiggleType` name matched case-insensitively.
   - Tests: `EaseParserTests.ParsesToMatchingEase`
 - **CORE-EASEPARSER-021** — When the `wiggle` type is not a defined `WiggleType`, `Parse` shall throw `FormatException`.
@@ -95,7 +95,7 @@ depends:
 - **CORE-EASEPARSER-027** — When `expoScale` has fewer than two arguments, `Parse` shall throw `FormatException`.
   - Tests: `EaseParserTests.MalformedStringsThrow`
 - **CORE-EASEPARSER-028** (inherited) — Apart from `steps` (034), `Parse` shall let a factory's `ArgumentOutOfRangeException` propagate, as for `wiggle(0)`, `rough(0)` or `expoScale(1, 1)`.
-  - Tests: untested
+  - Tests: `EaseParserTests.FactoryRangeErrorsPropagate`
 - **CORE-EASEPARSER-029** — `steps` shall take an optional count, truncated to an integer, and an optional from-start flag; `cubicBezier` shall take exactly four numbers, and throw `FormatException` otherwise. `Parse` shall have no form for `Spring`, `Linear` stops or `Irregular`.
   - Tests: `EaseParserTests.StepsAndCubicBezierParseToTheirFactories`, `EaseParserTests.UnknownNamesAndCodeOnlyFormsThrow`
 - **CORE-EASEPARSER-034** — When the `steps` count is below 1 after truncation, `Parse` shall throw `FormatException`, so `TryParse` returns false (see Decisions).
@@ -173,4 +173,4 @@ depends:
 
 ## Open items
 
-- Untested: concurrent use and no-cache-on-throw (003, 004), empty parentheses on a fixed ease (010), ignored extra arguments (016), `fromPath` error propagation (019), factory range errors (028).
+None.

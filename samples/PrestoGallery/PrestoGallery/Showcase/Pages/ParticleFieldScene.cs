@@ -37,6 +37,8 @@ public sealed class ParticleFieldScene : CompositorScene
     private double _windowStart;
     private string _fps = "scene 0 fps";
 
+    static ParticleFieldScene() => Presto.RegisterTarget<Particle>();
+
     /// <summary>Called on the UI thread once per measuring window with the render thread's frame rate.</summary>
     public Action<double>? FpsChanged { get; set; }
 

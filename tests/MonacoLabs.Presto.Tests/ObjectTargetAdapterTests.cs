@@ -172,7 +172,34 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
     }
 
     [Fact]
-    public void UnknownMemberThrows() => Assert.Throws<ArgumentException>(() => Presto.ResolveAccessor(_target, "Nope"));
+    public void UnknownMemberThrows()
+    {
+        var thrown = Assert.Throws<ArgumentException>(() => Presto.ResolveAccessor(_target, "Nope"));
+
+        Assert.Contains("trimmed or NativeAOT", thrown.Message);
+        Assert.Contains("Presto.RegisterTarget<T>()", thrown.Message);
+    }
+
+    [Fact]
+    public void RegisteringATargetChangesNoResolution()
+    {
+        var before = Presto.ResolveAccessor(_target, "Opacity");
+
+        Presto.RegisterTarget<Poco>();
+
+        Assert.Same(before, Presto.ResolveAccessor(_target, "Opacity"));
+        Assert.Throws<ArgumentException>(() => Presto.ResolveAccessor(_target, "Nope"));
+    }
+
+#if DEBUG
+    [Fact]
+    public void ReflectingOnALibraryTypeFailsInDebug()
+    {
+        var thrown = Assert.Throws<InvalidOperationException>(() => Presto.ResolveAccessor(new TimerParams(), nameof(TimerParams.Duration)));
+
+        Assert.Contains(nameof(IMemberTarget), thrown.Message);
+    }
+#endif
 
     [Fact]
     public void MemberTypeWithoutCodecIsDiscrete() => Assert.IsType<DiscreteCodec>(Presto.ResolveAccessor(_target, "Elapsed").Codec);
@@ -240,6 +267,86 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
         }
     }
 
+    [Fact]
+    public void TypedMembersWriteLikeReflectedOnes()
+    {
+        Presto.Codecs[typeof(Meters)] = new MetersCodec();
+        try
+        {
+            _target.Size = "10px";
+            var typed = new TypedPoco { Size = "10px" };
+
+            AnimatesAlike(typed, "Opacity", 1);
+            AnimatesAlike(typed, "Count", 7.5);
+            AnimatesAlike(typed, "Size", "40px");
+            AnimatesAlike(typed, "Tint", "#ff0000");
+            AnimatesAlike(typed, "Value", 10);
+            AnimatesAlike(typed, "Distance", TweenValue.Of(new Meters(10)));
+            AnimatesAlike(typed, "Elapsed", TweenValue.Of(TimeSpan.FromSeconds(1)));
+        }
+        finally
+        {
+            Presto.Codecs.Remove(typeof(Meters));
+        }
+    }
+
+    [Fact]
+    public void ACodecRegisteredAfterAMemberTableIsBuiltAppliesToItsEntries()
+    {
+        var typed = new TypedPoco();
+        Assert.IsType<DiscreteCodec>(Presto.ResolveAccessor(typed, "Height").Codec);
+        var codec = new StructCodec<Feet>(feet => [feet.Value], channels => new Feet(channels[0]));
+        Presto.Codecs[typeof(Feet)] = codec;
+        try
+        {
+            Assert.Same(codec, Presto.ResolveAccessor(typed, "Height").Codec);
+        }
+        finally
+        {
+            Presto.Codecs.Remove(typeof(Feet));
+        }
+    }
+
+    [Theory]
+    [InlineData("CurrentTime", 50, 50)]
+    [InlineData("IterationCurrentTime", 25, 25)]
+    [InlineData("Progress", .75, 150)]
+    [InlineData("IterationProgress", .5, 50)]
+    [InlineData("CurrentIteration", 1.4, 100)]
+    public void TimerMembersResolveWithoutReflection(string member, double value, double currentTime)
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 100, Loop = 1, Autoplay = false });
+        var accessor = Presto.ResolveAccessor(timer, member);
+
+        accessor.SetValue(timer, value, new Tween(_parent, member, timer, accessor));
+
+        Assert.Equal(currentTime, timer.CurrentTime);
+    }
+
+    [Fact]
+    public void UnknownTimerMemberThrows()
+    {
+        var timer = Presto.CreateTimer(new() { Autoplay = false });
+
+        Assert.Throws<ArgumentException>(() => Presto.ResolveAccessor(timer, "Reversed"));
+    }
+
+    private void AnimatesAlike(TypedPoco typed, string property, TweenValue to)
+    {
+        var reflected = Animate(_target, property, to);
+        var tabled = Animate(typed, property, to);
+
+        reflected.Seek(60);
+        tabled.Seek(60);
+        Assert.Equal(Presto.ResolveAccessor(_target, property).GetValue(_target), Presto.ResolveAccessor(typed, property).GetValue(typed));
+
+        reflected.Revert();
+        tabled.Revert();
+        Assert.Equal(Presto.ResolveAccessor(_target, property).GetValue(_target), Presto.ResolveAccessor(typed, property).GetValue(typed));
+    }
+
+    private static Animation Animate(object target, string property, TweenValue to) =>
+        Presto.Animate(target, new() { [property] = to, Duration = 100, Ease = Eases.Linear(), Autoplay = false });
     private Tween CreateTween(string property, ValueKind kind = ValueKind.Number, object? target = null)
     {
         target ??= _target;
@@ -262,6 +369,31 @@ public sealed class ObjectTargetAdapterTests : EngineTestBase
         public Feet Height { get; set; }
     }
 
+    private sealed class TypedPoco : IMemberTarget
+    {
+        private static readonly Dictionary<string, IPropertyAccessor> s_members = new()
+        {
+            ["Opacity"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, double>(t => t.Opacity, (t, v) => t.Opacity = v),
+            ["Count"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, int>(t => t.Count, (t, v) => t.Count = v),
+            ["Size"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, string>(t => t.Size, (t, v) => t.Size = v),
+            ["Tint"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, PrestoColor>(t => t.Tint, (t, v) => t.Tint = v),
+            ["Value"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, object?>(t => t.Value, (t, v) => t.Value = v),
+            ["Elapsed"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, TimeSpan>(t => t.Elapsed, (t, v) => t.Elapsed = v),
+            ["Distance"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, Meters>(t => t.Distance, (t, v) => t.Distance = v),
+            ["Height"] = ObjectTargetAdapter.MemberAccessor.Of<TypedPoco, Feet>(t => t.Height, (t, v) => t.Height = v),
+        };
+
+        public double Opacity { get; set; }
+        public int Count { get; set; }
+        public string Size { get; set; } = "";
+        public PrestoColor Tint { get; set; }
+        public object? Value { get; set; }
+        public TimeSpan Elapsed { get; set; }
+        public Meters Distance { get; set; }
+        public Feet Height { get; set; }
+
+        IReadOnlyDictionary<string, IPropertyAccessor> IMemberTarget.Members => s_members;
+    }
     private readonly record struct Meters(double Value);
 
     private readonly record struct Feet(double Value);

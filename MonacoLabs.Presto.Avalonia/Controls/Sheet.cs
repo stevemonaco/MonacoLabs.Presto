@@ -32,6 +32,17 @@ namespace MonacoLabs.Presto.Controls;
 /// Under <see cref="PrestoDefaults.ReducedMotion"/>, read at each release or change of <see cref="DetentIndex"/>, the
 /// sheet lands on its detent at once and the scrim fades to match over <see cref="MotionTokens.Short"/>.
 /// </para>
+/// <para>
+/// The sheet carries one of the pseudo-classes <c>:left</c>, <c>:top</c>, <c>:right</c> or <c>:bottom</c>, matching its
+/// <see cref="Edge"/>, so its content's chrome can follow the edge, as in <c>presto|Sheet:bottom Border.grab</c>.
+/// </para>
+/// <para>
+/// With <see cref="Presentation"/> set to <see cref="SheetPresentation.Anchored"/> and a visible <see cref="Anchor"/>, opening
+/// the sheet moves its content into <see cref="Flyout"/> at the anchor instead; closing the flyout closes the sheet, and the
+/// content returns once the flyout has closed. A style can switch <see cref="Edge"/>, <see cref="Detents"/>,
+/// <see cref="EdgeSwipe"/> and <see cref="Presentation"/> across an app's breakpoints, and an open sheet stays open and lands
+/// on its new edge or flyout at once.
+/// </para>
 /// </remarks>
 public class Sheet : Control, IGestureMember
 {
@@ -68,6 +79,22 @@ public class Sheet : Control, IGestureMember
     public static readonly StyledProperty<double> TimeConstantProperty =
         AvaloniaProperty.Register<Sheet, double>(nameof(TimeConstant), 350);
 
+    /// <summary>How deep a strip along the edge, in DIPs, takes presses to start a drag while the sheet is closed and hidden. Defaults to 0.</summary>
+    public static readonly StyledProperty<double> EdgeSwipeProperty =
+        AvaloniaProperty.Register<Sheet, double>(nameof(EdgeSwipe));
+
+    /// <summary>The element the sheet opens at while <see cref="Presentation"/> is <see cref="SheetPresentation.Anchored"/>.</summary>
+    public static readonly StyledProperty<Control?> AnchorProperty =
+        AvaloniaProperty.Register<Sheet, Control?>(nameof(Anchor));
+
+    /// <summary>The flyout an anchored sheet opens in, carrying its placement and presenter classes; null uses a plain <see cref="Avalonia.Controls.Flyout"/>.</summary>
+    public static readonly StyledProperty<Flyout?> FlyoutProperty =
+        AvaloniaProperty.Register<Sheet, Flyout?>(nameof(Flyout));
+
+    /// <summary>Whether the sheet opens at its edge or in its flyout at <see cref="Anchor"/>. Defaults to <see cref="SheetPresentation.Edge"/>.</summary>
+    public static readonly StyledProperty<SheetPresentation> PresentationProperty =
+        AvaloniaProperty.Register<Sheet, SheetPresentation>(nameof(Presentation));
+
     private readonly Border _scrim = new() { IsHitTestVisible = false, Opacity = 0 };
     private readonly Decorator _panel = new();
     private readonly Border _edge = new() { Background = Brushes.Transparent, IsVisible = false };
@@ -82,10 +109,15 @@ public class Sheet : Control, IGestureMember
     // The raw drag extent the rubber-banded one came from, so a grab picks up where the friction left off.
     private double _grabbedAt;
     private bool _settling;
+    private Flyout? _defaultFlyout;
+    // The flyout holding the content while the sheet presents anchored, until it has closed.
+    private Flyout? _held;
+    private Control? _heldAt;
+    private bool _hiding;
 
     static Sheet()
     {
-        AffectsArrange<Sheet>(EdgeProperty, DetentsProperty);
+        AffectsArrange<Sheet>(EdgeProperty, DetentsProperty, EdgeSwipeProperty);
         ClipToBoundsProperty.OverrideDefaultValue<Sheet>(true);
     }
 
@@ -94,7 +126,7 @@ public class Sheet : Control, IGestureMember
     {
         _scrim.Bind(Border.BackgroundProperty, this.GetObservable(ScrimProperty));
         _scrim.Tapped += (_, _) => IsOpen = false;
-        Dismissal.Attach(this, IsOpenProperty);
+        Dismissal.Attach(this, IsOpenProperty, () => _held is null);
         var progress = _position.Map(p => _stops.Length > 1 && _stops[^1] > _stops[0] ? Math.Clamp((p - _stops[0]) / (_stops[^1] - _stops[0]), 0, 1) : 0);
         Follow.Bind(_scrim, OpacityProperty, progress, new FollowParams { Duration = 0, AnimateInitial = true, WhenReduced = Presto.Build().Duration(Recipes.Tokens.Short).Ease(Eases.None) });
         Presence.SetEnterOnShow(_panel, true);
@@ -106,6 +138,7 @@ public class Sheet : Control, IGestureMember
         AddHandler(PointerMovedEvent, HandleMoved, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, HandleReleased, handledEventsToo: true);
         PointerCaptureLost += HandleCaptureLost;
+        SetEdgeClasses();
     }
 
     /// <inheritdoc cref="ContentProperty"/>
@@ -158,6 +191,34 @@ public class Sheet : Control, IGestureMember
         set => SetValue(TimeConstantProperty, value);
     }
 
+    /// <inheritdoc cref="EdgeSwipeProperty"/>
+    public double EdgeSwipe
+    {
+        get => GetValue(EdgeSwipeProperty);
+        set => SetValue(EdgeSwipeProperty, value);
+    }
+
+    /// <inheritdoc cref="AnchorProperty"/>
+    public Control? Anchor
+    {
+        get => GetValue(AnchorProperty);
+        set => SetValue(AnchorProperty, value);
+    }
+
+    /// <inheritdoc cref="FlyoutProperty"/>
+    public Flyout? Flyout
+    {
+        get => GetValue(FlyoutProperty);
+        set => SetValue(FlyoutProperty, value);
+    }
+
+    /// <inheritdoc cref="PresentationProperty"/>
+    public SheetPresentation Presentation
+    {
+        get => GetValue(PresentationProperty);
+        set => SetValue(PresentationProperty, value);
+    }
+
     /// <summary>How far the sheet stands out from its edge, in DIPs, as it renders; link content to it with <see cref="MotionValue.Map(Func{double, double})"/> or read its <see cref="MotionValue.Velocity"/>.</summary>
     public MotionValue Position => _position;
 
@@ -165,8 +226,7 @@ public class Sheet : Control, IGestureMember
 
     IInputElement IGestureMember.CaptureTarget => this;
 
-    /// <summary>How wide a strip along the edge starts a drag while the sheet is closed and hidden.</summary>
-    private protected virtual double EdgeSwipe => 0;
+    private bool Anchored => Presentation == SheetPresentation.Anchored && Anchor is { IsEffectivelyVisible: true } anchor && TopLevel.GetTopLevel(anchor) is not null;
 
     private bool Horizontal => Edge is Edge.Left or Edge.Right;
 
@@ -184,26 +244,38 @@ public class Sheet : Control, IGestureMember
         if (change.Property == DetentIndexProperty)
         {
             IsOpen = DetentIndex > 0;
-            if (!_settling) MoveTo(DetentIndex, 0);
+            if (_held is not null || (IsOpen && Anchored)) Present();
+            else if (!_settling) MoveTo(DetentIndex, 0);
         }
         else if (change.Property == IsOpenProperty)
         {
             if (IsOpen != DetentIndex > 0) DetentIndex = IsOpen ? 1 : 0;
             // A single detent coerces the index back to 0 without a change, so nothing else closes the sheet.
             if (IsOpen && DetentIndex == 0) IsOpen = false;
-            _scrim.IsHitTestVisible = IsOpen;
+            _scrim.IsHitTestVisible = IsOpen && _held is null;
         }
         else if (change.Property == DetentsProperty)
         {
+            if (_dragging) Drop();
+            // Cleared so the coerced index does not glide and the next arrange lands on it at once.
+            _stops = [];
             CoerceValue(DetentIndexProperty);
         }
         else if (change.Property == ContentProperty)
         {
-            _panel.Child = Content;
+            if (_held is not null) _held.Content = Content;
+            else _panel.Child = Content;
         }
-        else if (change.Property == EdgeProperty && _animate is not null)
+        else if (change.Property == PresentationProperty || change.Property == AnchorProperty)
         {
-            _animate.Revert();
+            Show(_panel.IsVisible);
+            if (IsOpen) Present();
+        }
+        else if (change.Property == EdgeProperty)
+        {
+            if (_dragging) Drop();
+            SetEdgeClasses();
+            _animate?.Revert();
             _animate = null;
             _stops = [];
         }
@@ -215,8 +287,8 @@ public class Sheet : Control, IGestureMember
         _scrim.Measure(availableSize);
         _panel.Measure(availableSize);
         // Measured even while the panel is hidden, for an Auto detent.
-        Content?.Measure(availableSize);
-        var content = Content?.DesiredSize ?? default;
+        _panel.Child?.Measure(availableSize);
+        var content = _panel.Child?.DesiredSize ?? default;
         return new Size(
             double.IsInfinity(availableSize.Width) ? content.Width : availableSize.Width,
             double.IsInfinity(availableSize.Height) ? content.Height : availableSize.Height);
@@ -227,7 +299,7 @@ public class Sheet : Control, IGestureMember
     {
         var (width, height) = (finalSize.Width, finalSize.Height);
         var length = Horizontal ? width : height;
-        var content = Horizontal ? Content?.DesiredSize.Width ?? 0 : Content?.DesiredSize.Height ?? 0;
+        var content = Horizontal ? _panel.Child?.DesiredSize.Width ?? 0 : _panel.Child?.DesiredSize.Height ?? 0;
         var stops = Detents.Select(d => Math.Clamp(d.IsStar ? d.Value * length : d.IsAuto ? content : d.Value, 0, length)).DefaultIfEmpty(0).ToArray();
         var deepest = stops[^1];
         var edge = EdgeSwipe;
@@ -250,7 +322,7 @@ public class Sheet : Control, IGestureMember
         if (!stops.AsSpan().SequenceEqual(_stops))
         {
             _stops = stops;
-            if (!_dragging) Place();
+            if (!_dragging && _held is null) Place();
         }
         return finalSize;
     }
@@ -337,11 +409,7 @@ public class Sheet : Control, IGestureMember
 
     private void Lift()
     {
-        // Cleared first: dropping the capture raises PointerCaptureLost, which lands back here.
-        var pointer = _pointer!;
-        _pointer = null;
-        _dragging = false;
-        if (ReferenceEquals(pointer.Captured, this)) pointer.Capture(null);
+        Drop();
         var extent = Extent;
         var rest = Math.Clamp(extent < _stops[0] || extent > _stops[^1] ? extent : extent + _velocity.Velocity * TimeConstant, _stops[0], _stops[^1]);
         var nearest = 0;
@@ -353,6 +421,15 @@ public class Sheet : Control, IGestureMember
         DetentIndex = nearest;
         _settling = false;
         MoveTo(nearest, _velocity.Velocity);
+    }
+
+    // Cleared first: dropping the capture raises PointerCaptureLost, which would lift again.
+    private void Drop()
+    {
+        var pointer = _pointer!;
+        _pointer = null;
+        _dragging = false;
+        if (ReferenceEquals(pointer.Captured, this)) pointer.Capture(null);
     }
 
     private static int CoerceDetentIndex(AvaloniaObject sheet, int index) =>
@@ -389,9 +466,75 @@ public class Sheet : Control, IGestureMember
         Animator().Set(Axis, Direction * target, 0);
     }
 
+    // Moves an open sheet into its flyout, or out of it once the flyout has closed; Avalonia cannot show a flyout mid-close.
+    private void Present()
+    {
+        var anchored = IsOpen && Anchored;
+        if (_held is { } held)
+        {
+            if (!anchored && !_hiding)
+            {
+                _hiding = true;
+                held.Hide();
+            }
+            return;
+        }
+        if (!anchored) return;
+        if (DetentIndex > 1)
+        {
+            DetentIndex = 1;
+            return;
+        }
+        if (_dragging) Drop();
+        _animate?.Set(Axis, 0, 0);
+        Show(false);
+        _scrim.IsHitTestVisible = false;
+        _panel.Child = null;
+        _held = Flyout ?? (_defaultFlyout ??= new Flyout());
+        _held.Content = Content;
+        _held.Closed += HandleFlyoutClosed;
+        // Avalonia leaves a flyout open at a hidden target, so a hidden anchor falls back to the edge here.
+        _heldAt = Anchor!;
+        Animate.AddVisibilityHandler(_heldAt, HandleAnchorVisibility);
+        _held.ShowAt(_heldAt);
+    }
+
+    private void HandleFlyoutClosed(object? sender, EventArgs e)
+    {
+        var (held, hiding) = (_held!, _hiding);
+        held.Closed -= HandleFlyoutClosed;
+        Animate.RemoveVisibilityHandler(_heldAt!, HandleAnchorVisibility);
+        _heldAt = null;
+        held.Content = null;
+        _held = null;
+        _hiding = false;
+        _panel.Child = Content;
+        if (!hiding) IsOpen = false;
+        _scrim.IsHitTestVisible = IsOpen;
+        if (!IsOpen) return;
+        if (Anchored)
+        {
+            Present();
+            return;
+        }
+        // Cleared so the next arrange lands the panel open at once.
+        _stops = [];
+        InvalidateMeasure();
+    }
+
+    private void HandleAnchorVisibility(object? sender, EventArgs e) => Present();
+
+    private void SetEdgeClasses()
+    {
+        PseudoClasses.Set(":left", Edge == Edge.Left);
+        PseudoClasses.Set(":top", Edge == Edge.Top);
+        PseudoClasses.Set(":right", Edge == Edge.Right);
+        PseudoClasses.Set(":bottom", Edge == Edge.Bottom);
+    }
+
     private void Show(bool shown)
     {
         _panel.IsVisible = shown;
-        _edge.IsVisible = !shown;
+        _edge.IsVisible = !shown && !Anchored;
     }
 }

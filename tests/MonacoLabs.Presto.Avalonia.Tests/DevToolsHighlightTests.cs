@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using MonacoLabs.Presto.DevTools;
 
@@ -102,6 +103,41 @@ public sealed class DevToolsHighlightTests : BridgeTestBase, IDisposable
         Assert.Equal("spring", texts[0]);
         Assert.Equal("100", texts[2]);
         Assert.True(follower.IsAnimating);
+    }
+
+    [AvaloniaFact]
+    public void TargetsThatDoNotResolveToAVisualGetNoOutline()
+    {
+        var brush = new SolidColorBrush(Colors.Red);
+        var timeline = Presto.CreateTimeline(new TimelineParams())
+            .Add(brush, new AvaloniaAnimationParams { ["Opacity"] = 0, Duration = 100 })
+            .Add(_box, new AvaloniaAnimationParams { ["Opacity"] = 0, Duration = 100 });
+        _window.UpdateLayout();
+        List.Refresh();
+        List.Rows.SelectedItem = RowOf(timeline);
+
+        _overlay.Highlighter.Update(_window, null, List.SelectedRow);
+
+        Assert.Equal(new Rect(0, 0, 50, 50), Assert.Single(_overlay.Highlighter.Outlines));
+    }
+
+    [AvaloniaFact]
+    public void TheSpringsPanelDropsSettledRowsAndHidesWhenEmpty()
+    {
+        var source = Presto.CreateMotionValue();
+        var follower = source.Spring(new Spring(stiffness: 100, damping: 10));
+        source.Set(100);
+        Frames.Advance(16);
+        _overlay.Springs.Refresh();
+        Assert.Single(_overlay.Springs.Children);
+        Assert.True(_overlay.Springs.IsVisible);
+
+        RunUntil(() => !follower.IsAnimating, max: 20000);
+        _overlay.Springs.Refresh();
+
+        Assert.False(follower.IsAnimating);
+        Assert.Empty(_overlay.Springs.Children);
+        Assert.False(_overlay.Springs.IsVisible);
     }
 
     private TickableRow RowOf(Timer timer) => Assert.Single(List.Items, r => r.Timer == timer);

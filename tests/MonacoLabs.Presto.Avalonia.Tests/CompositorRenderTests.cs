@@ -20,6 +20,17 @@ public sealed class CompositorRenderTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void ABrushWithoutAnOpacityIsFullyOpaque()
+    {
+        var scene = new PixelScene(animate: false);
+
+        var brush = scene.DefaultBrushFor(Colors.Lime);
+
+        Assert.Equal(1, ((ISolidColorBrush)brush).Opacity);
+        Assert.Same(scene.BrushFor(Colors.Lime, 1), brush);
+    }
+
+    [AvaloniaFact]
     public void AnAnimatingSceneRedrawsItselfEveryFrame()
     {
         var scene = new PixelScene(animate: true);
@@ -83,6 +94,8 @@ public sealed class CompositorRenderTests : CompositorTestBase
         public double X => _mover.X;
 
         public IImmutableBrush BrushFor(Color color, double opacity) => Brush(color, opacity);
+
+        public IImmutableBrush DefaultBrushFor(Color color) => Brush(color);
 
         protected override void OnAttached()
         {

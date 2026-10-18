@@ -58,7 +58,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 - **BRIDGE-RECIPES-MEDIA-006** — `Confetti` shall launch two systems from the anchor's center: three quarters of `count` as spinning, fluttering rectangles and one quarter as streaks, in `colors` (default a six-color accent palette), aimed upward with a 35° spread, falling under gravity over 1.8–2.6 s.
   - Tests: `ParticleRecipeTests.ConfettiLaunchesFromTheAnchorsCenterInTopLevelCoordinates`
 - **BRIDGE-RECIPES-MEDIA-007** — When `from` is given, `Confetti` shall launch from the middle of that window edge, spread along its whole length, aimed into the window, with a 20° spread.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.ConfettiFromAnEdgeLaunchesAlongItAndIntoTheWindow`
 - **BRIDGE-RECIPES-MEDIA-008** — `Sparkles` shall emit `rate` small circles a second in `color` (default gold) over the anchor's bounds, each living `Medium` to `Long` and fading, until the effect is stopped.
   - Tests: `ParticleRecipeTests.SparklesRunUntilStopped`
 - **BRIDGE-RECIPES-MEDIA-009** — `Burst` shall emit `count` circles in `color` (default the first accent) out of the anchor's center in a full ring that slows and fades over `Medium` to `Long`.
@@ -66,7 +66,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 - **BRIDGE-RECIPES-MEDIA-010** — While `ReducedMotion` is set, a particle recipe shall emit nothing, play `reduced` (default `Recipes.Pulse()`, itself reduced to a blink) on the anchor, and return an effect that is already complete; this check runs before the window check, so it holds for an anchor outside a window too.
   - Tests: `ParticleRecipeTests.UnderReducedMotionNothingSpawnsAndTheReducedFormPlays`, `BuilderRecipePagesTests.SubmitFlowThrowsConfettiOnSuccessUnlessMotionIsReduced`
 - **BRIDGE-RECIPES-MEDIA-011** — When `ReducedMotion` is clear and the anchor is not in a window, a particle recipe shall emit nothing, play nothing on the anchor, and return an effect that is already complete.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.AnAnchorOutsideAWindowEmitsAndPlaysNothing`
 - **BRIDGE-RECIPES-MEDIA-012** — Canceling a particle effect shall clear its particles and complete it at once.
   - Tests: `ParticleRecipeTests.CancelClearsAndCompletesAtOnce`
 
@@ -81,23 +81,23 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 
 ### Tints
 
-- **BRIDGE-RECIPES-MEDIA-016** — `Recolor` shall animate `property` (`Background` when null) from each element's current color, read when the animation starts, to `to`, along the `PrestoColor.Mix` path in `space ?? Tokens.ColorSpace` with `hue ?? Tokens.Hue`, expanded by `TweenKeyframesBuilder.Color` over `Medium` with `Ease`, ending exactly on `to`.
+- **BRIDGE-RECIPES-MEDIA-016** — `Recolor` shall animate `property` (`Background` when null) from each element's current color, read when the animation is built, to `to`, along the `PrestoColor.Mix` path in `space ?? Tokens.ColorSpace` with `hue ?? Tokens.Hue`, expanded by `TweenKeyframesBuilder.Color` over `Medium` with `Ease`, ending exactly on `to`.
   - Tests: `RecipeTests.RecolorFollowsTheTokensSpaceFromTheCurrentBackgroundAndEndsExactly`, `RecipeTests.RecolorAnimatesBackgroundWithoutAPropertyAndAnExplicitKeyOtherwise`
-- **BRIDGE-RECIPES-MEDIA-017** (inherited) — When resolving the start color, `Recolor` shall use a solid brush's color with its alpha multiplied by the brush opacity, a `Color` property's value, and transparent for anything else.
+- **BRIDGE-RECIPES-MEDIA-017** — When resolving the start color, `Recolor` shall read it as `TweenKeyframesBuilder.Color` without `from` reads it (CORE-KEYFRAMES): a solid brush's color with its alpha multiplied by the brush opacity, a `Color` property's value, and transparent for anything else.
   - Tests: `RecipeTests.RecolorStartsEachElementFromItsOwnColorAndStaggers`
-- **BRIDGE-RECIPES-MEDIA-018** — `Recolor` shall be the same while `ReducedMotion` is set, since a color change is not motion.
-  - Tests: `RecipeTests.RecolorIsTheSameUnderReducedMotionAndFromXaml`
+- **BRIDGE-RECIPES-MEDIA-018** — `Recolor` shall carry itself as its reduced form, so it is the same while `ReducedMotion` is set and `ReduceAll` leaves it alone, since a color change is not motion.
+  - Tests: `RecipeTests.RecolorIsTheSameUnderReducedMotionAndFromXaml`, `RecipeTests.RecolorIsLeftAloneByReduceAll`
 
 ### Defaults
 
 - **BRIDGE-RECIPES-MEDIA-019** — When `count` is not given, `Confetti` shall launch 120 pieces.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-RECIPES-MEDIA-020** — When `rate` is not given, `Sparkles` shall emit 30 circles a second.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-RECIPES-MEDIA-021** — When `count` is not given, `Burst` shall emit 24 circles.
-  - Tests: untested
+  - Tests: `ParticleRecipeTests.TheRecipesDefaultToOneHundredTwentyConfettiThirtySparklesASecondAndTwentyFourBurstCircles`
 - **BRIDGE-RECIPES-MEDIA-022** — When `fps` is not given, `PlayFrames` shall play 24 frames a second.
-  - Tests: untested
+  - Tests: `RecipeTests.PlayFramesDelaysOnlyWhenGivenADelayAndDefaultsToTwentyFourFramesASecond`
 
 ## Invariants
 
@@ -107,6 +107,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 ## Edge cases
 
 - `Recolor` on a gradient or null brush starts from transparent.
+- As a `Motion` state, a recolor follows its path into the state from wherever the property stands, and the return to rest is a straight tween to the base value (BRIDGE-MOTION-012).
 - `PlayFrames` on a target that is neither sprite control plays one frame.
 - `Confetti(count: 3)` launches 3 rectangles and no streaks (`count / 4` is 0).
 
@@ -116,7 +117,7 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 
 ## Reduced motion
 
-- Draws land at once; particles emit nothing and play `reduced` on the anchor; sprites hold frame 0 (deliberately unlike Lottie's end frame; see Reduced playback holds frame 0); tints are unchanged.
+- Draws land at once; particles emit nothing and play `reduced` on the anchor; sprites hold frame 0 (deliberately unlike Lottie's end frame; see Reduced playback holds frame 0); tints are unchanged, and `ReduceAll` leaves them alone.
 
 ## Allocation
 
@@ -130,14 +131,14 @@ The recipe families that drive a medium rather than a transform: stroke drawing 
 
 - **`ColorSpace` and `Hue` are trailing optional parameters.** See BRIDGE-TOKENS.
 - **`Recolor` takes a nullable key, null meaning `Background`.** Its `property` is a `PropertyKey?` defaulting to null, and `RecolorExtension` keeps its string `Property`, which converts. Reason: a struct parameter cannot default to a string constant, and a key parameter takes `PrestoKeys.Of(...)` as well as a name.
+- **`Recolor` carries itself as its reduced form.** Reason: a recolor is the same under reduced motion because a color change is not motion, and without a reduced form `ReduceAll` snaps it, which made Tempo restate its accents. Rejected: leaving `ReduceAll` to snap recolors; an app that wants recolors snapped sets `Duration(0)` in its own reduced form.
 - **`Play` and `PlayFrames` are thin wrappers.** See BRIDGE-FRAMES.
 - **Reduced playback holds frame 0.** See BRIDGE-FRAMES.
 
 ## Non-goals
 
 - Glyph or bitmap particle recipes; arbitrary marks beyond `Check` and `Cross`.
-- `Recolor` as a `Motion` state: it is a one-shot builder whose start is the current color.
 
 ## Open items
 
-- `Confetti` from an edge, and an anchor outside a window, have no tests.
+None.

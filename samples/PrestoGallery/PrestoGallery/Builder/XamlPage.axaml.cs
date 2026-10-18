@@ -6,7 +6,7 @@ namespace PrestoGallery.Builder;
 
 /// <summary>
 /// Animations attached from XAML: entrances on <c>Presence.Arrive</c> from a static recipe and a markup extension, and a
-/// looping emphasis on <c>Animate.OnAttached</c> from a binding.
+/// looping emphasis on <c>Animate.OnAttached</c> from a binding, and view-model cues on <c>Animate.Cue</c>.
 /// </summary>
 public partial class XamlPage : ShowcasePage
 {

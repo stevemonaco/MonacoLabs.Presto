@@ -25,7 +25,7 @@ namespace MonacoLabs.Presto.Text;
 /// anime.js leaves a visually hidden copy. While split, the block's <see cref="Visual.ClipToBounds"/> is off so pieces
 /// animated past its edges stay visible.
 /// </remarks>
-public sealed class TextSplitter : IRevertible
+public sealed class TextSplitter : IRevertible, IReleasable
 {
     private const double ResizeDebounce = 150;
     private const string Nbsp = " ";
@@ -46,6 +46,7 @@ public sealed class TextSplitter : IRevertible
     private double _splitWidth;
     private bool _ready;
     private bool _writing;
+    private bool _reverted;
 
     internal TextSplitter(TextBlock host, SplitTextParams parameters)
     {
@@ -206,10 +207,13 @@ public sealed class TextSplitter : IRevertible
         _unclip = null;
         _width = 0;
         _ready = false;
+        _reverted = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _reverted;
 
     private void HandleSizeChanged(object? sender, SizeChangedEventArgs e)
     {
@@ -239,6 +243,7 @@ public sealed class TextSplitter : IRevertible
 
     private void Split()
     {
+        _reverted = false;
         RunCleanups(false);
         _lines.Clear();
         _words.Clear();
@@ -314,6 +319,7 @@ public sealed class TextSplitter : IRevertible
         FontWeight = _host.FontWeight,
         FontStretch = _host.FontStretch,
         LetterSpacing = _host.LetterSpacing,
+        FontFeatures = _host.FontFeatures,
         UseLayoutRounding = false,
     };
 
@@ -347,7 +353,7 @@ public sealed class TextSplitter : IRevertible
         if (_parameters.Chars is { } charParams)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
-            var graphemes = Graphemes(text);
+            var graphemes = CharsOf(text).ToList();
             for (var i = 0; i < graphemes.Count; i++)
             {
                 var grapheme = i == graphemes.Count - 1 ? graphemes[i] + trailing : graphemes[i];
@@ -410,14 +416,21 @@ public sealed class TextSplitter : IRevertible
     }
 
     /// <summary>The graphemes a character split of <paramref name="text"/> makes pieces of, in reading order.</summary>
-    internal static IEnumerable<string> CharsOf(string text) => Tokenize(text).Where(token => !char.IsWhiteSpace(token[0])).SelectMany(Graphemes);
+    internal static IEnumerable<string> CharsOf(string text) => CharRangesOf(text).Select(c => text.Substring(c.Start, c.Length));
 
-    private static List<string> Graphemes(string text)
+    /// <summary>Where each of <see cref="CharsOf"/> sits in <paramref name="text"/>.</summary>
+    internal static IEnumerable<(int Start, int Length)> CharRangesOf(string text)
     {
-        var graphemes = new List<string>();
-        var enumerator = StringInfo.GetTextElementEnumerator(text);
-        while (enumerator.MoveNext()) graphemes.Add((string)enumerator.Current);
-        return graphemes;
+        var start = 0;
+        foreach (var token in Tokenize(text))
+        {
+            if (!char.IsWhiteSpace(token[0]))
+            {
+                var enumerator = StringInfo.GetTextElementEnumerator(token);
+                while (enumerator.MoveNext()) yield return (start + enumerator.ElementIndex, ((string)enumerator.Current).Length);
+            }
+            start += token.Length;
+        }
     }
 
     private void RunCleanups(bool reverting)

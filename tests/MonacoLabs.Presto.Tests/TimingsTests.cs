@@ -314,4 +314,145 @@ public sealed class TimingsTests : EngineTestBase
         Assert.Equal(seek, animation.CurrentTime);
         Assert.Equal(expected, animation.IterationTime);
     }
+
+    [Fact]
+    public void NullParametersComeFromTheEngineDefaultsOnceAtConstruction()
+    {
+        var defaults = Presto.Defaults;
+        defaults.Delay = 50;
+        defaults.LoopDelay = 10;
+        defaults.Loop = 2;
+        defaults.Alternate = true;
+        defaults.Reversed = true;
+        defaults.PlaybackRate = 2;
+        defaults.FrameRate = 30;
+
+        var timer = Presto.CreateTimer(new() { Duration = 100, Autoplay = false });
+        var overridden = Presto.CreateTimer(new() { Duration = 100, Delay = 5, Loop = 0, Autoplay = false });
+        defaults.Delay = 0;
+        defaults.LoopDelay = 0;
+        defaults.Loop = 0;
+        defaults.Alternate = false;
+        defaults.Reversed = false;
+        defaults.PlaybackRate = 1;
+
+        Assert.Equal(50, timer.Delay);
+        Assert.Equal(10, timer.LoopDelay);
+        Assert.Equal(2, timer.Loop.Value);
+        Assert.True(timer.IsAlternating);
+        Assert.True(timer.Reversed);
+        Assert.Equal(2, timer.Speed);
+        Assert.Equal(30, timer.Fps);
+        Assert.Equal(5, overridden.Delay);
+        Assert.Equal(0, overridden.Loop.Value);
+    }
+
+    [Fact]
+    public void ATimelineChildTakesNullParametersFromTheTimelinesChildDefaults()
+    {
+        Presto.Defaults.Delay = 50;
+        Presto.Defaults.Loop = 3;
+        var tl = Presto.CreateTimeline(new() { Autoplay = false, Defaults = new() { Delay = 20, LoopDelay = 5 } })
+            .Add(new TimerParams { Duration = 100 });
+
+        var child = TestHelpers.GetChildAtIndex(tl, 0)!;
+
+        Assert.Equal(20, child.Delay);
+        Assert.Equal(5, child.LoopDelay);
+        Assert.Equal(3, child.Loop.Value);
+    }
+
+    [Fact]
+    public void ANullDurationIsInfiniteIgnoresTheDefaultAndNeverCompletes()
+    {
+        Presto.Defaults.Duration = 500;
+        var completed = 0;
+        var timer = Presto.CreateTimer(new() { OnComplete = _ => completed++ });
+
+        Assert.Equal(double.PositiveInfinity, timer.IterationDuration);
+        Assert.Equal(1e12, timer.Duration);
+
+        Frames.Advance(10000, 16);
+        Assert.True(timer.CurrentTime > 9000);
+        Assert.False(timer.Completed);
+
+        timer.Seek(1e12 - 1);
+        Assert.False(timer.Completed);
+        Assert.Equal(0, completed);
+    }
+
+    [Fact]
+    public void AFunctionBasedDefaultDelayGivesAPlainTimerNoDelay()
+    {
+        Presto.Defaults.Delay = new FunctionValue((_, _, _) => 200);
+
+        var timer = Presto.CreateTimer(new() { Duration = 100 });
+
+        Assert.Equal(0, timer.Delay);
+    }
+
+    [Fact]
+    public void TimersWithoutAnIdGetConsecutiveCounterIds()
+    {
+        var first = Presto.CreateTimer(new() { Duration = 100, Autoplay = false });
+        var named = Presto.CreateTimer(new() { Duration = 100, Autoplay = false, Id = "named" });
+        var third = Presto.CreateTimer(new() { Duration = 100, Autoplay = false });
+
+        Assert.Equal("named", named.Id);
+        Assert.Equal(int.Parse(first.Id) + 2, int.Parse(third.Id));
+    }
+
+    [Fact]
+    public void SettingLoopOnATimelineChildGrowsTheTimelineButNeverShrinksIt()
+    {
+        var tl = Presto.CreateTimeline(new() { Autoplay = false })
+            .Add(new TimerParams { Duration = 100 })
+            .Add(new TimerParams { Duration = 50 }, 0);
+        var shorter = TestHelpers.GetChildAtIndex(tl, 1)!;
+        Assert.Equal(100, tl.Duration);
+
+        shorter.Loop = 3;
+        Assert.Equal(200, tl.Duration);
+
+        shorter.Loop = 0;
+        Assert.Equal(200, tl.Duration);
+    }
+
+    [Fact]
+    public void SeekWithMutedCallbacksFiresNothingForTheIterationsItSkips()
+    {
+        var fired = 0;
+        var timer = Presto.CreateTimer(new()
+        {
+            Duration = 100,
+            Loop = 3,
+            Autoplay = false,
+            OnBegin = _ => fired++,
+            OnBeforeUpdate = _ => fired++,
+            OnUpdate = _ => fired++,
+            OnLoop = _ => fired++,
+            OnComplete = _ => fired++,
+        });
+
+        timer.Seek(250, muteCallbacks: true);
+        Assert.Equal(2, timer.CurrentIteration);
+        timer.Seek(400, muteCallbacks: true);
+
+        Assert.True(timer.Completed);
+        Assert.Equal(0, fired);
+    }
+
+    [Fact]
+    public void SeekWithInternalRenderMovesThePlayheadWithoutWritingTargets()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new() { ["X"] = 100, Duration = 100, Ease = "linear", Autoplay = false });
+
+        animation.Seek(50, internalRender: true);
+        Assert.Equal(50, animation.CurrentTime);
+        Assert.Equal(0, target.X);
+
+        animation.Seek(60);
+        Assert.Equal(60, target.X);
+    }
 }

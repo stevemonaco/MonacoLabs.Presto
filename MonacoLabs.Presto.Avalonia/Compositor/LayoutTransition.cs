@@ -18,7 +18,7 @@ namespace MonacoLabs.Presto.Compositor;
 /// <see cref="Animation"/> over a scratch object times the move, which is what lets an interrupted one invert from where
 /// the control is drawn rather than from the slot it has left, and what <see cref="Then"/> resolves on.
 /// </remarks>
-public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
+public sealed class LayoutTransition : IRevertible, IReleasable, ICompositorTrackOwner
 {
     // Matches the Toolkit's ConnectedAnimationService, which discards a prepared animation not started within about three seconds.
     private static readonly TimeSpan s_preparedLifetime = TimeSpan.FromSeconds(3);
@@ -43,6 +43,7 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     private bool _translating;
     private bool _scaling;
     private List<(Visual Child, CompositionVisual Element)>? _corrected;
+    private bool _reverted;
 
     // An on-screen first is moved into this control's layout frame at its first pass, once its own scroll offset is known.
     // With recordFirst and no first, that pass only records; unscoped is for a transition whose owner reverts it.
@@ -95,10 +96,24 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         Disarm();
         _control.LayoutUpdated -= OnLayoutUpdated;
         if (s_live.TryGetValue(_control, out var live) && live == this) s_live.Remove(_control);
+        _reverted = true;
         return this;
     }
 
     void IRevertible.Revert() => Revert();
+
+    bool IReleasable.IsReleased => _reverted && !Displaced;
+
+    /// <summary>Set while a draggable's flight has reverted this transition and will <see cref="Rearm"/> it on landing.</summary>
+    internal bool Displaced { get; set; }
+
+    internal void Rearm()
+    {
+        _reverted = Displaced = false;
+        s_live.AddOrUpdate(_control, this);
+        _control.LayoutUpdated += OnLayoutUpdated;
+        Record(Measure(_control));
+    }
 
     private void Disarm()
     {
@@ -114,6 +129,9 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     /// anchoring compensates, moves the container in one frame.
     /// </summary>
     internal ItemChanges? List { get; init; }
+
+    /// <summary>Asked once, at the first layout pass, whether the move should play; when it answers false the transition reverts.</summary>
+    internal Func<bool>? Confirm { get; set; }
 
     /// <inheritdoc cref="Animation.Then"/>
     /// <remarks>A one-shot awaited before its first layout pass waits for that pass, and then for the move it starts.</remarks>
@@ -172,8 +190,17 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
         return true;
     }
 
-    /// <summary>Records <paramref name="drawn"/> under <paramref name="key"/>, replacing any earlier entry.</summary>
-    internal static void Prepare(string key, Rect drawn) => s_prepared[key] = (drawn, TimeProvider.GetTimestamp());
+    /// <summary>Records <paramref name="drawn"/> under <paramref name="key"/>, replacing any earlier entry and dropping expired ones.</summary>
+    internal static void Prepare(string key, Rect drawn)
+    {
+        foreach (var (other, prepared) in s_prepared)
+        {
+            if (TimeProvider.GetElapsedTime(prepared.At) > s_preparedLifetime) s_prepared.Remove(other);
+        }
+        s_prepared[key] = (drawn, TimeProvider.GetTimestamp());
+    }
+
+    internal static bool IsPrepared(string key) => s_prepared.ContainsKey(key);
 
     /// <summary>Removes and returns the rect prepared under <paramref name="key"/>, unless there is none or it has expired.</summary>
     internal static Rect? TakePrepared(string key)
@@ -244,6 +271,15 @@ public sealed class LayoutTransition : IRevertible, ICompositorTrackOwner
     {
         // A transition reverted by an earlier handler of this pass still runs from the event's snapshot.
         if (Live(_control) != this || Measure(_control) is not { } window) return;
+        if (Confirm is { } confirm)
+        {
+            Confirm = null;
+            if (!confirm())
+            {
+                Revert();
+                return;
+            }
+        }
         var first = _first;
         var last = window;
         // Adding this control's own scroll offsets moves an on-screen source into its layout frame.

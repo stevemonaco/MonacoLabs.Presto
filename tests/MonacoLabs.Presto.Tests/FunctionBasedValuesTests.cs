@@ -142,6 +142,37 @@ public sealed class FunctionBasedValuesTests : EngineTestBase
     }
 
     [Fact]
+    public void ChainedFunctionValuesReceiveTheIndexAndTotalLikeFunctionValues()
+    {
+        var chained = new List<(object, int, int)>();
+        var plain = new List<(object, int, int)>();
+        var targets = CreateTargets();
+        Presto.Animate(targets, new()
+        {
+            ["TranslateX"] = new ChainedFunctionValue((target, i, total, _) =>
+            {
+                chained.Add((target, i, total));
+                return i * 10 + total;
+            }),
+            Duration = 100,
+            Autoplay = false,
+        });
+        Presto.Animate(targets, new()
+        {
+            ["TranslateX"] = new FunctionValue((target, i, total) =>
+            {
+                plain.Add((target, i, total));
+                return 0;
+            }),
+            Duration = 100,
+            Autoplay = false,
+        });
+
+        Assert.Equal([(targets[0], 0, 4), (targets[1], 1, 4), (targets[2], 2, 4), (targets[3], 3, 4)], chained);
+        Assert.Equal(plain, chained);
+    }
+
+    [Fact]
     public void ChainedFunctionValuesOnTimelineChildrenReadThePreviousChildEndValue()
     {
         var target = new TestObject();
@@ -226,5 +257,27 @@ public sealed class FunctionBasedValuesTests : EngineTestBase
 
         Assert.Equal("5", counters[0].Text);
         Assert.Equal("5.00", counters[1].Text);
+    }
+
+    [Fact]
+    public void AFunctionReturningTweenParamsGivesEachTargetItsOwnTween()
+    {
+        var targets = CreateTargets();
+        var animation = Presto.Animate(targets, new()
+        {
+            ["TranslateX"] = new FunctionValue((target, _, _) => new TweenParams { To = IndexOf(target) * 100, Duration = (IndexOf(target) + 1) * 100, Ease = "linear" }),
+            Autoplay = false,
+        });
+
+        for (var i = 0; i < 4; i++)
+        {
+            var tween = TestHelpers.GetTweenAtIndex(animation, i)!;
+            Assert.Equal(i * 100, tween._toNumber);
+            Assert.Equal((i + 1) * 100, tween._changeDuration);
+        }
+
+        animation.Seek(200);
+
+        Assert.Equal(["0px", "100px", "133.3333px", "150px"], targets.Select(t => t.TranslateX));
     }
 }

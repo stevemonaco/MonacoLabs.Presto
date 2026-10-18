@@ -25,6 +25,9 @@ tests:
   - ActivityFeedPageTests
   - BuilderRecipePagesTests
   - PresenceVisibilityTests
+  - ScopePruningTests
+  - PresenceExitBatchTests
+  - ItemTransferTests
 upstream: []
 depends:
   - BRIDGE-PRESENCE
@@ -36,6 +39,7 @@ depends:
   - CORE-ANIMATION
   - CORE-REDUCED
   - CORE-DIAGNOSTICS
+  - CORE-SCOPE
 ---
 
 # Presence exits and ghosts
@@ -60,14 +64,16 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
   - Tests: `PresencePageTransitionTests.AnElementLeavingAParentThatIsNotOnScreenLeavesNoGhost`, `PresencePageTransitionTests.AnElementLeavingAVisibleLoadedParentStillLeavesAGhost`, `PresencePageTransitionTests.APageRootsExitLeavesNoGhostAfterACrossFade`
 - **BRIDGE-PRESENCE-EXIT-006** — When the element or any visual up to the removed root has opacity 0 (such as content still held by a `Wait`), the departure shall play nothing.
   - Tests: `PresenceModeTests.AThirdContentWaitsForTheFirstExitAndTheHeldSecondLeavesNoGhost`
-- **BRIDGE-PRESENCE-EXIT-007** — When the element is an item container of a watched list, or the content of one, it shall exit only when its item was just removed or the list just reset; a row recycled or moved by the list shall play nothing.
-  - Tests: `PresenceTests.AnItemRemovedFromItsCollectionLeavesAGhost`, `PresenceLifecycleTests.APageRemovedFromATreeViewSectionExits`, `PresenceLifecycleTests.ClearingAListExitsEveryRow`, `PresenceLifecycleTests.ScrollingAVirtualizedListPlaysNothingAndLeavesNoGhosts`, `PresenceLifecycleTests.AVirtualizedListStillEntersAddedItemsAndExitsRemovedOnes`, `ReorderContainerTests.AMovePlaysNeitherTheEnterNorTheExitOfTheMovedRow`
+- **BRIDGE-PRESENCE-EXIT-007** — When the element is an item container of a watched list, or the content of one, it shall exit only when its item was just removed or the list just reset; a row recycled, moved or transferred by the list shall play nothing.
+  - Tests: `PresenceTests.AnItemRemovedFromItsCollectionLeavesAGhost`, `PresenceLifecycleTests.APageRemovedFromATreeViewSectionExits`, `PresenceLifecycleTests.ClearingAListExitsEveryRow`, `PresenceLifecycleTests.ScrollingAVirtualizedListPlaysNothingAndLeavesNoGhosts`, `PresenceLifecycleTests.AVirtualizedListStillEntersAddedItemsAndExitsRemovedOnes`, `ReorderContainerTests.AMovePlaysNeitherTheEnterNorTheExitOfTheMovedRow`, `ItemTransferTests.ARowMovedToAnotherListFliesWithoutExitOrEntranceAndItsArmResumesAfterLanding`, `ItemTransferTests.ListsWithoutASharedGroupDoNotFlyAndExitAndEnter`, `ItemTransferTests.AnAddBeforeItsRemovalDoesNotFlyAndExitsAndEnters`
+- **BRIDGE-PRESENCE-EXIT-046** — When a transfer is confirmed after the leaving row's ghost was created, `Presence` shall dismiss the ghost in the same layout pass, before it is drawn; a transfer that is declined leaves the ghost to play its exit.
+  - Tests: `ItemTransferTests.ARowMovedToAnotherListFliesWithoutExitOrEntranceAndItsArmResumesAfterLanding`, `ItemTransferTests.RemovingAndReinsertingAnItemInOneGroupedListFliesWithoutExitOrEntrance`, `ItemTransferTests.ACollapsedDestinationLetsTheLeavingContainerExitAndTheArrivingOneEnter`
 - **BRIDGE-PRESENCE-EXIT-008** — When the element's base `IsVisible` is false at the detach, the departure shall play nothing.
   - Tests: `PresenceVisibilityTests.DetachingMidHoldReleasesTheHoldAndCancelsTheExit`
 - **BRIDGE-PRESENCE-EXIT-009** — When an element exits, `Presence` shall snapshot it before reverting its arrival, so the ghost shows it as drawn mid-entrance and the element itself returns to its base values.
   - Tests: `PresenceLifecycleTests.ALeavingElementIsGhostedAsDrawnMidEntranceAndThenReverted`
-- **BRIDGE-PRESENCE-EXIT-010** — When an element attaches again while its ghost is still exiting, `Presence` shall cancel the ghost's animation, removing the ghost, and classify the new arrival.
-  - Tests: `PresenceLifecycleTests.AnElementAddedBackWhileItsGhostExitsDismissesTheGhostAndEnters`
+- **BRIDGE-PRESENCE-EXIT-010** — When an element attaches again while its ghost is still exiting, or before its batch has started, `Presence` shall cancel the ghost's animation or dismiss the waiting ghost, removing it, and classify the new arrival.
+  - Tests: `PresenceLifecycleTests.AnElementAddedBackWhileItsGhostExitsDismissesTheGhostAndEnters`, `PresenceExitBatchTests.AnElementRemovedAndInsertedAgainInOneJobLeavesNoGhostAndTheOthersKeepTheirIndices`
 
 ### The ghost
 
@@ -86,17 +92,38 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **BRIDGE-PRESENCE-EXIT-017** — The ghost shall be clipped to the intersection of the top level's bounds and the boxes of the clipping ancestors (`ClipToBounds`, or a `ContentSize` host) from the attachment point up, starting above the item container when the attachment point is one.
   - Tests: `PresenceTests.AGhostLeavingAScrolledListIsClippedToTheViewport`, `ContentSizePresenceTests.ASwapMidResizeRetargetsFromTheCurrentSizeAndClipsItsGhostThere`, `ContentSizePresenceTests.ASwapGhostsTheOldContentEntersTheNewAndResizesBetween`
 - **BRIDGE-PRESENCE-EXIT-018** (inherited) — Each clipping box shall keep the size it had when the exit started, so a list or host shrinking as the element leaves does not cut off its ghost.
-  - Tests: untested
+  - Tests: `PresenceTests.AClippingAncestorShrinkingAsTheElementLeavesKeepsItsExitStartSizeForTheGhost`
 - **BRIDGE-PRESENCE-EXIT-019** — When the attachment point and its clipping ancestors move during the exit (a scroll), `Presence` shall re-place the ghost and recompute its clip on each layout pass of the ghost's host, so the ghost follows its anchor and never draws outside the clip.
   - Tests: `PresenceGhostScrollTests.ScrollingMidExitMovesTheGhostWithItsAnchorAndReclipsIt`
 - **BRIDGE-PRESENCE-EXIT-020** — When the exit completes or is canceled, `Presence` shall remove the ghost's host from the overlay and dispose every ghost bitmap exactly once; an exit that completes inside its creation (as under `ReduceAll`) shall do so in the same call.
   - Tests: `PresenceTests.ARemovedPanelChildLeavesAGhostInItsSlotUntilItsExitEnds`, `PresenceTests.CancelingTheExitRemovesTheGhost`, `PresenceTextExitTests.TheHostIsDismissedWhenTheLastGhostEnds`, `PresenceTextExitTests.ReduceAllLeavesNoGhost`
 - **BRIDGE-PRESENCE-EXIT-021** — A ghost's exit shall use `WhenDetached.Continue`, so it runs to completion even when its window closes.
   - Tests: `WhenDetachedTests.AnExitGhostRunsToCompletionWhenItsWindowCloses`
+- **BRIDGE-PRESENCE-EXIT-037** — Once an exit's ghosts are dismissed, its ghost animation shall count as released to the scope it registered with (CORE-SCOPE).
+  - Tests: `ScopePruningTests.TextSwapsWithPresenceInsideAScopeStayBounded`, `ScopePruningTests.SwappedOutBlocksAreCollectableWhileTheScopeLives`
 - **BRIDGE-PRESENCE-EXIT-022** (inherited) — When the element has a zero width or height, or its top level has no overlay layer, no ghost shall be created and nothing shall play.
-  - Tests: untested
+  - Tests: `PresenceTests.AZeroSizedElementLeavesNoGhost`
 - **BRIDGE-PRESENCE-EXIT-023** — The exit animation shall carry the diagnostics origin `"Presence"`.
-  - Tests: untested
+  - Tests: `PresenceTests.TheExitCarriesThePresenceOrigin`
+
+### Batches
+
+- **BRIDGE-PRESENCE-EXIT-038** — Departures that start a ghost under the same nearest ancestor `Panel` of their attachment point (else its top level) in one dispatcher turn shall form an exit batch.
+  - Tests: `PresenceExitBatchTests.ClearingAListBottomUpStaggersTheGhostsTopRowFirst`, `PresenceExitBatchTests.TwoListsClearedInOneJobStaggerIndependently`
+- **BRIDGE-PRESENCE-EXIT-039** — An exit batch shall start its members' exits in one job posted at `DispatcherPriority.Send` by its first departure, so they start before the next layout pass and render.
+  - Tests: `PresenceExitBatchTests.AGhostStandsInTheOverlayUntilTheJobStartsItsExitBeforeAnyLayoutPass`
+- **BRIDGE-PRESENCE-EXIT-040** — Each member's exit shall resolve function values and `Presto.Stagger` with its index in the batch ordered by ghost position (top to bottom, then in the attachment point's `FlowDirection`, ties in departure order) and the batch's ghosts as its targets.
+  - Tests: `PresenceExitBatchTests.ClearingAListBottomUpStaggersTheGhostsTopRowFirst`, `PresenceExitBatchTests.AStaggerFromLastDelaysTheTopGhostMost`, `PresenceExitBatchTests.AGridStaggerOverAClearedUniformGridDelaysByCellDistance`, `PresenceExitBatchTests.ASingleRemovalPlaysAtIndexZeroOfOne`
+- **BRIDGE-PRESENCE-EXIT-041** — Until its batch starts, a ghost shall stand in the overlay as its element was drawn.
+  - Tests: `PresenceExitBatchTests.AGhostStandsInTheOverlayUntilTheJobStartsItsExitBeforeAnyLayoutPass`
+- **BRIDGE-PRESENCE-EXIT-042** — When an element attaches again before its batch starts, `Presence` shall dismiss its ghost with no exit, end the wait it started, and leave the other members' order unchanged.
+  - Tests: `PresenceExitBatchTests.AnElementRemovedAndInsertedAgainInOneJobLeavesNoGhostAndTheOthersKeepTheirIndices`
+- **BRIDGE-PRESENCE-EXIT-043** — A ghost's `DataContext` shall be the leaving element's `DataContext`.
+  - Tests: `PresenceExitBatchTests.AnElementRemovedAndInsertedAgainInOneJobLeavesNoGhostAndTheOthersKeepTheirIndices`
+- **BRIDGE-PRESENCE-EXIT-044** — Under `ReduceAll`, a departure whose exit `ReduceAll` makes instant (not a `WhenReduced` form) shall start at the departure, outside any batch.
+  - Tests: `PresenceExitBatchTests.UnderReduceAllAClearLeavesNoGhostInTheSameCall`, `PresenceTextExitTests.ReduceAllLeavesNoGhost`
+- **BRIDGE-PRESENCE-EXIT-045** — A split `TextBlock`'s piece ghosts shall be their own batch (BRIDGE-PRESENCE-EXIT-024), started at the departure, and `AnimateExit` and hides shall start at once and join no batch.
+  - Tests: `PresenceTextExitTests.AnIndexStaggerStartsTheGhostsInReadingOrder`, `PresenceTests.AnimateExitGhostsAnAttachedControlThatIsThenRemoved`, `PresenceVisibilityTests.GhostModeClosesTheSlotAtOnceWhileAGhostExits`
 
 ### Text ghosts
 
@@ -126,16 +153,16 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **BRIDGE-PRESENCE-EXIT-034** — When the control is not effectively visible (it or an ancestor is hidden), or it or any ancestor has opacity 0, `AnimateExit` shall return `null` and draw no ghost, as a departure does (BRIDGE-PRESENCE-EXIT-005/006).
   - Tests: `PresenceTests.AnimateExitGhostsNothingHiddenOrAtOpacityZeroItselfOrThroughAnAncestor`
 - **BRIDGE-PRESENCE-EXIT-036** (inherited) — `AnimateExit` shall apply none of the other departure rules (loaded parent, page hosts, lists, single-child branch) and start no `Wait`.
-  - Tests: untested
+  - Tests: `PresenceTests.AnimateExitGhostsAPageAPrestoTransitionHosts`, `PresenceModeTests.AHeldHideAndAnImperativeExitStartNoWait`
 
 ### Defaults
 
 - **BRIDGE-PRESENCE-EXIT-035** (inherited) — When `Exit` is not set, and no style setter withdrew one in the same departure (BRIDGE-PRESENCE-031), a departure shall create no ghost and play nothing.
-  - Tests: untested
+  - Tests: `PresenceTests.WithoutAnExitADepartureLeavesNoGhost`
 
 ## Invariants
 
-- A ghost exists only while its exit animation runs; its host is in the overlay exactly from the exit's start to its completion or cancellation.
+- A ghost exists only while its exit waits for its batch or runs; its host is in the overlay exactly from the departure to the exit's completion or cancellation, or to its dismissal by a re-attach before its batch starts or by a confirmed transfer.
 - The leaving element is never animated by its exit and is left at its base values.
 
 ## Edge cases
@@ -147,6 +174,7 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 ## Threading and lifetime
 
 - UI thread only. The ghost host's `LayoutUpdated` handler lives as long as the host and leaves with it.
+- Open exit batches are a static, process-wide map keyed by visual, emptied by the job that starts them.
 - Exits run with `WhenDetached.Continue` on the current engine; the bitmaps are disposed on dismissal.
 
 ## Reduced motion
@@ -172,6 +200,19 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **Exit builders animate only what an `Image` has.** An exit animates transform shorthands, `Opacity`, effects and other `Image` properties; a property only the original control has (such as `Background`) throws as on any other target, as the docs on `Exit` say. Reason: a consequence of the ghost being an `Image`.
 - **A ghost's clip is not inflated for blur.** Effect shorthands apply to the ghost directly. Reason: the clip box is the set of ancestor clips that would have cut the live element's blur too.
 - **`AnimateExit` ghosts only what is drawn.** A control hidden or at opacity 0, itself or through an ancestor, gets no ghost and `null`, by the same on-screen test a departure uses. Reason: a snapshot of an undrawn control would pop into view as it exits; before, `AnimateExit` ghosted it anyway, unlike a departure.
+- **Exit ghost animations stay registered and become released once dismissed.** A ghost's exit registers with the scope current at the departure, and counts as released (CORE-SCOPE) once its ghosts are dismissed. Reason: a scope's revert mid-exit still cancels the exit and dismisses the ghosts, and once dismissed nothing the exit changed is on screen, so a long-lived scope that swaps content does not grow by one exit per swap. Rejected: creating them outside the current scope, as `PieceGhosts` does for its split, which would let ghosts keep playing over the next page after a navigation.
+- **Exit batches close at the end of the dispatcher turn, not after the next layout pass.** Reason: a collection change detaches its containers synchronously, within the job that changed the collection (`Clear`, a run of `RemoveAt`, an `ItemsSource` swap), so a job posted at `DispatcherPriority.Send` from the first departure runs after every departure of the change, and before layout and render. One job drains every batch open in the turn. Rejected: closing on `ItemChanges.AfterLayout` as arrivals do, which runs after a render, so every ghost would draw a frame at rest and the stagger would start a frame late.
+- **Ghosts stand still until their batch starts.** A ghost added to the overlay at its detach shows the element as drawn until the batch's job starts its exit. Reason: no frame is drawn in between, and if one were, the ghost would look as the element did. Accepted: an exit with explicit `from` values would show its element's look for that frame.
+- **Exit batches are keyed by the nearest `Panel` at or above the attachment point, else its top level.** Reason: this mirrors the arrival key, so a list's rows form one batch and two lists cleared together form two, each with its own index. Rejected: one batch per turn, which would stagger the second list on from the first list's last row.
+- **Members are ordered by their ghosts' positions, not by departure order.** Top to bottom, then left to right, or right to left when the attachment point's `FlowDirection` is `RightToLeft`; ties keep departure order. Reason: removal order is whatever the view model did, while where a ghost stands is what the reader sees. Rejected: the items' former indices, which a `Reset` does not report and a non-list panel does not have.
+- **A ghost carries its element's `DataContext`.** Reason: function values on an exit receive the ghost (an `Image`), so without it a per-item exit could not read its item. The ghost has no bindings, so pinning the context has no other effect.
+- **One `Exit` per element, no batch-only exit.** A delete and a clear use the same builder, and a lone delete is index 0 of 1. Reason: a stagger already does nothing for one element, and function values see the total, so a builder can tell a clear from a delete if it must. Rejected: a `Presence.BatchExit`, which would double every exit rule (pieces, reduced forms, `Wait`).
+- **No ordering between batches.** Two batches that close in one turn start together. Reason: `Wait` already orders the step that matters, and an order between unrelated lists would need a shared host and an order key nothing else uses. Rejected: a `Presence.ExitOrder`, and an awaitable `Presence.WhenExited(host)`.
+- **`ReduceAll` exits do not batch**, except a `WhenReduced` form, which `ReduceAll` leaves alone and is not instant. Reason: they complete inside their creation and land everything at once, so there is no stagger to honor, and deferring them would break the same-call guarantees of BRIDGE-PRESENCE-030/-044/-055 and BRIDGE-PRESENCE-EXIT-020.
+- **Split text starts its piece ghosts at the departure.** A leaving split `TextBlock` is its own batch of pieces in reading order, never merged with sibling rows. Reason: its targets and order are complete at the departure, as its arrival plays on its pieces, so deferring it would change nothing a reader sees.
+- **An element attaching again before its batch starts leaves the batch.** Its ghost is dismissed with no exit played, the `Wait` it started ends, and the other members keep their order. Reason: a remove-then-insert in one turn is not a departure, as BRIDGE-PRESENCE-EXIT-010 says for a ghost that has started.
+- **A confirmed transfer dismisses the leaver's ghost; the ghost is still made.** A row leaving a grouped list is ghosted at its detach as any removed row is, and the transfer's confirmation, in the arriving container's first layout pass, dismisses the ghost the way an element attaching again does (BRIDGE-PRESENCE-EXIT-010, -042). Reason: the removal detaches the row before the matching add is known, and confirmation needs the arriving container laid out, after the batch job has already started the exit; layout comes before render, so the ghost is never drawn, and a declined transfer keeps it, so a row never vanishes without motion. Rejected: deferring a grouped list's ghosts to its next layout pass, which would leave every ordinary removal in a grouped list a frame late.
+- **Batched exits register with the scope of their departure.** The job makes the scope current at each departure current while it creates that exit. Reason: the job runs outside the code that removed the element, and BRIDGE-PRESENCE-EXIT-037 ties an exit to that scope.
 - **A leaving block exits as one ghost per piece.** See BRIDGE-TEXTREVEAL.
 - **One overlay host per text exit.** See BRIDGE-TEXTREVEAL.
 - **Hiding split text follows `HideMode`.** See BRIDGE-TEXTREVEAL.
@@ -191,4 +232,4 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 
 ## Open items
 
-- BRIDGE-PRESENCE-EXIT-018 (clip boxes keep their exit-start size), -022, -023 and -036 have no test.
+- BRIDGE-PRESENCE-EXIT-022: only the zero-size half is pinned; a top level without an overlay layer is not built headlessly.

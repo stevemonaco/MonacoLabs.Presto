@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto;
+using MonacoLabs.Presto.Controls;
 using PrestoGallery.Builder;
 using PrestoGallery.Showcase;
 
@@ -147,6 +148,58 @@ public sealed class BuilderPagesTests
         Assert.Single(Presto.GetAnimations(bound, "X"));
         Assert.Empty(Presto.GetAnimations(bound, "Y"));
         SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void XamlPageCuesShakeAnInvalidSaveAndToastAValidOne()
+    {
+        var page = new XamlPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        var email = page.GetControl<TextBox>("CueEmail");
+        var toasts = page.GetControl<ToastHost>("CueToasts");
+        var save = page.GetControl<Button>("CueSave");
+        var code = page.GetControl<CodeTabs>("CuesCode");
+        Assert.Equal(Snippets.XamlCues, code.Xaml);
+        Assert.Equal(Snippets.XamlCuesViewModel, code.CSharp);
+
+        save.Command!.Execute(null);
+        TestFrames.Tick();
+
+        Assert.Single(Presto.GetAnimations(email, "X"));
+        Assert.Empty(toasts.Items);
+
+        email.Text = "ada@example.com";
+        save.Command!.Execute(null);
+        TestFrames.Tick();
+
+        Assert.Equal("Saved ada@example.com", Assert.Single(toasts.Items));
+        toasts.GetVisualDescendants().OfType<Button>().Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        TestFrames.Tick();
+
+        Assert.Empty(toasts.Items);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    public void XamlPageCheerBurstsUnlessMotionIsReduced(bool reduced, int overlays)
+    {
+        var page = new XamlPage();
+        var window = SceneHarness.Show(page, 1280, 900);
+        Presto.Defaults.ReducedMotion = reduced;
+        try
+        {
+            page.GetControl<Button>("CueCheer").Command!.Execute(null);
+            TestFrames.Tick(9);
+
+            Assert.Equal(overlays, SceneHarness.ParticleOverlays(page).Length);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+            SceneHarness.Close(window);
+        }
     }
 
     [AvaloniaTheory]

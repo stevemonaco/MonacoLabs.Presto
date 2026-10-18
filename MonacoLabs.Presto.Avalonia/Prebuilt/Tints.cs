@@ -1,13 +1,11 @@
-using Avalonia;
 using Avalonia.Media;
-using MonacoLabs.Presto.Targets;
 using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto.Prebuilt;
 
 /// <summary>
 /// Color recipes: a color property follows the <see cref="PrestoColor.Mix"/> path in <see cref="MotionTokens.ColorSpace"/>
-/// with <see cref="MotionTokens.Hue"/>, expanded by <see cref="TweenKeyframesBuilder.Color"/>. A color change is not
+/// with <see cref="MotionTokens.Hue"/>, expanded by <see cref="TweenKeyframesBuilder.Color(TweenValue, TweenValue, ColorSpace, HueInterpolation, TweenValue?, TweenValue?, EaseValue?, int?)"/>. A color change is not
 /// motion, so <see cref="PrestoDefaults.ReducedMotion"/> leaves them as they are.
 /// </summary>
 /// <remarks>
@@ -20,7 +18,8 @@ public static class Tints
 {
     /// <summary>
     /// Recolors <paramref name="property"/> (<c>Background</c> when null) from each element's current color, read when the
-    /// animation starts, to <paramref name="to"/>. A solid brush or a <see cref="Color"/> property starts from its color; anything else from transparent.
+    /// animation is built, to <paramref name="to"/>. A solid brush or a <see cref="Color"/> property starts from its color; anything else from transparent.
+    /// Reduced: the same recolor, which <see cref="PrestoDefaults.ReduceAll"/> leaves alone.
     /// </summary>
     public static AnimationBuilder Recolor(Color to, PropertyKey? property = null, ColorSpace? space = null, HueInterpolation? hue = null,
                                            double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false)
@@ -29,21 +28,8 @@ public static class Tints
         var tokens = Recipes.Tokens;
         var ms = duration ?? tokens.Medium;
         var easeValue = ease ?? tokens.Ease;
-        return Recipes.Start(tokens, ms, delay, easeValue, stagger)
-            .Property(name, k => k.Color((FunctionValue)((target, _, _) => Current(target, name)), to.ToPresto(),
-                space ?? tokens.ColorSpace, hue ?? tokens.Hue, ms, ease: easeValue));
-    }
-
-    private static TweenValue Current(object target, string property)
-    {
-        var value = target is AvaloniaObject element && AvaloniaObjectTargetAdapter.ResolveProperty(element.GetType(), property) is { } resolved
-            ? element.GetValue(resolved)
-            : null;
-        return value switch
-        {
-            ISolidColorBrush brush => brush.Color.ToPresto() with { A = brush.Color.A / 255d * brush.Opacity },
-            Color color => color.ToPresto(),
-            _ => Colors.Transparent.ToPresto(),
-        };
+        AnimationBuilder Tint(AnimationBuilder b) =>
+            b.Property(name, k => k.Color(to.ToPresto(), space ?? tokens.ColorSpace, hue ?? tokens.Hue, ms, ease: easeValue));
+        return Tint(Recipes.Start(tokens, ms, delay, easeValue, stagger)).WhenReduced(reduced => Tint(reduced));
     }
 }

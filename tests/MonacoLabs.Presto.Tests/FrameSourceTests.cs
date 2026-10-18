@@ -147,4 +147,57 @@ public sealed class FrameSourceTests
         context.RunUntil(() => false, TimeSpan.FromMilliseconds(50));
         Assert.Equal(framesAtStop, frames);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-16)]
+    public void ManualSteppedAdvanceRejectsANonPositiveStep(double step)
+    {
+        var source = new ManualFrameSource();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => source.Advance(100, step));
+        Assert.Equal(0, source.Now);
+    }
+
+    [Fact]
+    public void StopwatchStopAndStartFromInsideTheCallbackRetiresTheOldPump()
+    {
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(null);
+        try
+        {
+            var source = new StopwatchFrameSource();
+            int oldFrames = 0, newFrames = 0;
+            source.Start(() =>
+            {
+                if (Interlocked.Increment(ref oldFrames) != 1) return;
+                source.Stop();
+                source.Start(() => Interlocked.Increment(ref newFrames));
+            });
+
+            var elapsed = Stopwatch.StartNew();
+            while (Volatile.Read(ref newFrames) < 3 && elapsed.ElapsedMilliseconds < 250) Thread.Sleep(1);
+            Thread.Sleep(20);
+            source.Stop();
+
+            Assert.True(Volatile.Read(ref newFrames) >= 3, $"Expected at least 3 frames from the new pump within 250 ms, got {newFrames}.");
+            Assert.Equal(1, Volatile.Read(ref oldFrames));
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    [Fact]
+    public void StopwatchWithoutATimeProviderReadsTheSystemClock()
+    {
+        var before = TimeProvider.System.GetTimestamp();
+        var source = new StopwatchFrameSource();
+
+        Thread.Sleep(30);
+        var now = source.Now;
+
+        Assert.InRange(now, 25, TimeProvider.System.GetElapsedTime(before).TotalMilliseconds);
+    }
 }

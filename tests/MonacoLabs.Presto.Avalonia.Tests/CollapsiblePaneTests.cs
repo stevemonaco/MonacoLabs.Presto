@@ -105,6 +105,18 @@ public sealed class CollapsiblePaneTests : CompositorTestBase
         Assert.Equal(MinWidth, column.MinWidth);
     }
 
+    [AvaloniaTheory]
+    [InlineData(GridUnitType.Star)]
+    [InlineData(GridUnitType.Auto)]
+    public void AStarOrAutoColumnThrows(GridUnitType unit)
+    {
+        var (column, content) = Stage();
+        column.Width = new GridLength(1, unit);
+        Tick();
+
+        Assert.Throws<ArgumentException>(() => Pane.Collapse(column, content));
+    }
+
     private static (ColumnDefinition Column, Border Content) Stage(double minWidth = MinWidth)
     {
         var content = new Border { Background = Brushes.Red };

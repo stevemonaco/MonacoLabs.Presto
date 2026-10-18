@@ -4,11 +4,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Gestures;
 
@@ -125,6 +127,84 @@ public sealed class SwipeTests : CompositorTestBase
 
         Assert.Equal(new object?[] { Edge.Left }, command.Runs);
         Assert.Equal(0, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void EachSideRunsItsOwnCommandWithTheParameter()
+    {
+        var (leading, trailing, fallback) = (new Recorder(), new Recorder(), new Recorder());
+        var (window, rows) = Stage(row =>
+        {
+            Swipe.SetLeadingCommand(row, leading);
+            Swipe.SetTrailingCommand(row, trailing);
+            Swipe.SetCommand(row, fallback);
+            Swipe.SetCommandParameter(row, "item");
+        });
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(130, 0));
+        Frames.Advance(3000, 20);
+        new Touch(window).Drag(Frames, Center(rows[1], window), new Vector(-130, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(new object?[] { "item" }, leading.Runs);
+        Assert.Equal(new object?[] { "item" }, trailing.Runs);
+        Assert.Empty(fallback.Runs);
+    }
+
+    [AvaloniaFact]
+    public void ASideWithoutItsOwnCommandFallsBackToCommandWithTheEdge()
+    {
+        var (leading, fallback) = (new Recorder(), new Recorder());
+        var (window, rows) = Stage(row =>
+        {
+            Swipe.SetLeadingCommand(row, leading);
+            Swipe.SetCommand(row, fallback);
+            Swipe.SetCommandParameter(row, "item");
+        });
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-130, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(new object?[] { Edge.Left }, fallback.Runs);
+        Assert.Empty(leading.Runs);
+    }
+
+    [AvaloniaFact]
+    public void ASideWhoseCommandCannotExecuteSpringsBackInsteadOfCommitting()
+    {
+        var trailing = new Recorder();
+        var (window, rows) = Stage(row => Swipe.SetTrailingCommand(row, trailing));
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+
+        touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, from + new Vector(-12, 0));
+        touch.Move(1, from + new Vector(-130, 0));
+        Assert.Equal(-130, X(rows[0]), 3);
+        trailing.CanRun = false;
+        touch.Up(1, from + new Vector(-130, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Empty(trailing.Runs);
+        Assert.Equal(-Open, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void ASideWithNoCommandStopsAtItsActionsWidth()
+    {
+        var (window, rows) = Stage(row => Swipe.SetLeadingCommand(row, new Recorder()));
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+
+        touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, from + new Vector(-12, 0));
+        touch.Move(1, from + new Vector(-130, 0));
+        Assert.Equal(-Open - 70 * .35, X(rows[0]), 3);
+        touch.Move(1, from + new Vector(130, 0));
+        Assert.Equal(130, X(rows[0]), 3);
+        touch.Up(1, from + new Vector(130, 0));
     }
 
     [AvaloniaFact]
@@ -340,6 +420,249 @@ public sealed class SwipeTests : CompositorTestBase
         Assert.False(rows[1].IsVisible);
     }
 
+    [AvaloniaFact]
+    public void ClearingEveryActionStopsTheSwipeDropsTheLayersAndRevertsX()
+    {
+        var (window, rows) = Stage();
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
+        Frames.Advance(3000, 20);
+        Assert.NotEmpty(rows[0].GetVisualChildren());
+
+        Swipe.SetLeading(rows[0], null);
+        Swipe.SetTrailing(rows[0], null);
+
+        Assert.Empty(rows[0].GetVisualChildren());
+        Assert.Equal(0, X(rows[0]), 3);
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
+        Frames.Advance(3000, 20);
+        Assert.Equal(0, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void SettingTheActionsInDesignModeDoesNothing()
+    {
+        var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!;
+        var row = new Border { Height = 40, Background = Brushes.Red };
+        var window = ShowWindow(Stack([row]));
+        isDesignMode.SetValue(null, true);
+        try
+        {
+            Swipe.SetTrailing(row, new Button { Width = Open });
+        }
+        finally
+        {
+            isDesignMode.SetValue(null, false);
+        }
+
+        new Touch(window).Drag(Frames, Center(row, window), new Vector(-40, 0));
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(0, X(row), 3);
+        Assert.Empty(row.GetVisualChildren());
+    }
+
+    [AvaloniaTheory]
+    [InlineData("draggable")]
+    [InlineData("transformable")]
+    public void MakingAGestureDrivenElementSwipeableThrows(string owner)
+    {
+        var row = new Border { Height = 40, Background = Brushes.Red };
+        ShowWindow(Stack([row]));
+        if (owner == "draggable") PrestoAvalonia.CreateDraggable(row);
+        else PrestoAvalonia.CreateTransformable(row);
+
+        Assert.Throws<InvalidOperationException>(() => Swipe.SetTrailing(row, new Button { Width = Open }));
+    }
+
+    [AvaloniaFact]
+    public void TheActionsAreHostedInsideTheRowOnFirstUseAndAfterAReTemplate()
+    {
+        var action = new Button { Width = Open };
+        var row = new ContentControl { Height = 40, Template = Plain(Brushes.Red) };
+        Swipe.SetTrailing(row, action);
+        var window = ShowWindow(new StackPanel { Children = { row } });
+        Assert.Null(action.GetVisualParent());
+
+        row.RaiseEvent(new ContextRequestedEventArgs());
+        var layer = (Control)action.GetVisualParent()!;
+        Assert.Same(row, layer.GetVisualParent());
+        Assert.Same(row, layer.Parent);
+        Frames.Advance(3000, 20);
+
+        row.Template = Plain(Brushes.Blue);
+        Tick();
+        Assert.Null(layer.GetVisualParent());
+        row.RaiseEvent(new ContextRequestedEventArgs());
+        Frames.Advance(3000, 20);
+        row.RaiseEvent(new ContextRequestedEventArgs());
+        Frames.Advance(3000, 20);
+        Tick();
+
+        Assert.Same(row, layer.GetVisualParent());
+        Assert.Same(row, layer.Parent);
+        Assert.Equal(200 - Open, action.TranslatePoint(default, window)!.Value.X, 3);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("actions", -100, -74)]
+    [InlineData("command", -100, -100)]
+    [InlineData("command", -250, -217.5)]
+    [InlineData("trailing only", 40, 14)]
+    [InlineData("dismiss without actions", 40, 40)]
+    [InlineData("dismiss without actions", -40, -40)]
+    public void ADragRubberBandsPastItsRange(string setup, double dx, double expected)
+    {
+        var command = new Recorder();
+        var (window, rows) = Stage(row =>
+        {
+            if (setup == "command") Swipe.SetCommand(row, command);
+            if (setup == "trailing only") Swipe.SetLeading(row, null);
+            if (setup != "dismiss without actions") return;
+            Swipe.SetDismiss(row, true);
+            Swipe.SetLeading(row, null);
+            Swipe.SetTrailing(row, null);
+        });
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+
+        touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, from + new Vector(Math.Sign(dx) * 12, 0));
+        touch.Move(1, from + new Vector(dx, 0));
+
+        Assert.Equal(expected, X(rows[0]), 6);
+        touch.Up(1, from + new Vector(dx, 0));
+    }
+
+    [AvaloniaFact]
+    public void AReleasePastTheOpenWidthLandsOnIt()
+    {
+        var (window, rows) = Stage();
+
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-100, 0));
+        Assert.True(X(rows[0]) < -Open);
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(-Open, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void LosingTheCaptureMidDragSettlesAsAReleaseDoes()
+    {
+        var (window, rows) = Stage();
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+        var pointer = touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, from + new Vector(-12, 0));
+        for (var i = 0; i < 4; i++)
+        {
+            Frames.Advance(20);
+            touch.Move(1, from + new Vector(-40, 0));
+        }
+        Assert.Same(rows[0], pointer.Captured);
+
+        pointer.Capture(null);
+        Frames.Advance(3000, 20);
+
+        Assert.Equal(-Open, X(rows[0]), 3);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TheReleaseIsHandledOnlyAfterADrag(bool drags)
+    {
+        var (window, rows) = Stage();
+        var touch = new Touch(window);
+        var from = Center(rows[0], window);
+        var to = from + new Vector(drags ? -40 : 0, 0);
+
+        touch.Press(1, from);
+        Frames.Advance(20);
+        touch.Move(1, to);
+
+        Assert.Equal(drags, touch.Up(1, to).Handled);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("context menu")]
+    [InlineData("context flyout")]
+    [InlineData("no actions")]
+    public void AContextRequestIsLeftAloneWithItsOwnMenuOrNoActions(string how)
+    {
+        var (_, rows) = Stage(row =>
+        {
+            if (how == "context menu") row.ContextMenu = new ContextMenu();
+            else if (how == "context flyout") row.ContextFlyout = new MenuFlyout();
+            else
+            {
+                Swipe.SetDismiss(row, true);
+                Swipe.SetLeading(row, null);
+                Swipe.SetTrailing(row, null);
+            }
+        });
+        var request = new ContextRequestedEventArgs();
+
+        rows[0].RaiseEvent(request);
+        Frames.Advance(3000, 20);
+
+        if (how == "no actions") Assert.False(request.Handled);
+        Assert.Empty(rows[0].GetVisualChildren());
+        Assert.Equal(0, X(rows[0]), 3);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("reattached", 0)]
+    [InlineData("data context", 0)]
+    [InlineData("shown again", 0)]
+    [InlineData("shown by an animation", -Open)]
+    public void AttachingRecyclingOrReShowingSnapsClosedAtOnce(string how, double expected)
+    {
+        var (window, rows) = Stage();
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
+        Frames.Advance(3000, 20);
+        var panel = (Panel)rows[0].Parent!;
+
+        switch (how)
+        {
+            case "reattached":
+                panel.Children.Remove(rows[0]);
+                panel.Children.Insert(0, rows[0]);
+                break;
+            case "data context":
+                rows[0].DataContext = "recycled";
+                break;
+            case "shown again":
+                rows[0].IsVisible = false;
+                rows[0].IsVisible = true;
+                break;
+            default:
+                rows[0].IsVisible = false;
+                rows[0].SetValue(Visual.IsVisibleProperty, true, BindingPriority.Animation);
+                break;
+        }
+
+        Assert.Equal(expected, X(rows[0]), 3);
+    }
+
+    [AvaloniaFact]
+    public void AResizedRowRePlacesItsActions()
+    {
+        var (window, rows) = Stage();
+        new Touch(window).Drag(Frames, Center(rows[0], window), new Vector(-40, 0));
+        Frames.Advance(3000, 20);
+        var action = (Button)Swipe.GetTrailing(rows[0])!;
+
+        rows[0].HorizontalAlignment = HorizontalAlignment.Left;
+        rows[0].Width = 150;
+        Tick();
+
+        Assert.Equal(150 - Open, action.TranslatePoint(default, window)!.Value.X, 3);
+    }
+
+    private static FuncControlTemplate Plain(IBrush background) => new((_, _) => new Border { Background = background });
+
     private static Border SwipeRow()
     {
         var row = new Border { Height = 40, Background = Brushes.Red };
@@ -382,7 +705,9 @@ public sealed class SwipeTests : CompositorTestBase
             remove { }
         }
 
-        public bool CanExecute(object? parameter) => true;
+        public bool CanRun { get; set; } = true;
+
+        public bool CanExecute(object? parameter) => CanRun;
 
         public void Execute(object? parameter)
         {

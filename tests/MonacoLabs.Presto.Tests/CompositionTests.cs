@@ -293,4 +293,53 @@ public sealed class CompositionTests : EngineTestBase
         Assert.Same(later, tween._nextRep);
         Assert.Same(tween, Composer.GetTweenSiblings(target, "x", Presto.Engine)._head);
     }
+
+    [Fact]
+    public void SetAndAnimationsOfAThousandTargetsDefaultToOverlap()
+    {
+        static StyleTarget[] Targets(int count) => Enumerable.Range(0, count).Select(_ => new StyleTarget()).ToArray();
+
+        var set = Presto.Set(new StyleTarget(), new() { ["X"] = 1 });
+        var thousand = Presto.Animate(Targets(1000), new() { ["X"] = 1, Autoplay = false });
+        var fewer = Presto.Animate(Targets(999), new() { ["X"] = 1, Autoplay = false });
+        var chosen = Presto.Animate(Targets(1000), new() { ["X"] = 1, Composition = Composition.Replace, Autoplay = false });
+
+        Assert.Equal(Composition.Overlap, set._headTween!._composition);
+        Assert.Equal(Composition.Overlap, thousand._headTween!._composition);
+        Assert.Equal(Composition.Replace, fewer._headTween!._composition);
+        Assert.Equal(Composition.Replace, chosen._headTween!._composition);
+    }
+
+    [Fact]
+    public void TheAdditivePassOverwritesAReplaceTweenWritingTheSameFrame()
+    {
+        var target = new StyleTarget();
+        var replace = Presto.Animate(target, new() { ["X"] = 1000, Duration = 200, Ease = "linear" });
+        Presto.Animate(target, new() { ["X"] = 100, Duration = 100, Ease = "linear", Composition = Composition.Additive });
+
+        Frames.Advance(50, 10);
+
+        Assert.False(replace.Canceled);
+        Assert.InRange(target.X, 30, 70);
+
+        Frames.Advance(100, 10);
+
+        Assert.InRange(target.X, 600, 900);
+    }
+
+    [Fact]
+    public void AnAdditiveTweenOverridesTheReplaceSiblingsAtOrAfterItsStart()
+    {
+        var target = CreateTarget();
+        var firstAnimation = CreateAnimation();
+        var first = AddTween(firstAnimation, target, "x", 0, 1000);
+        AddTween(firstAnimation, target, "y", 0, 1000);
+        var later = AddTween(CreateAnimation(), target, "x", 500, 200);
+        Assert.False(later._isOverridden);
+
+        Presto.Animate(target, new() { ["x"] = 10, Duration = 100, Delay = 100, Composition = Composition.Additive, Autoplay = false });
+
+        Assert.True(later._isOverridden);
+        Assert.False(first._isOverridden);
+    }
 }

@@ -165,4 +165,62 @@ public sealed class EasePackTests
         Assert.True(sum != 0);
         Assert.Equal(0, bytes);
     }
+
+    private static void AssertSameCurve(Ease expected, Ease actual)
+    {
+        for (var i = 0; i <= 200; i++)
+        {
+            Assert.Equal(expected(i / 200d), actual(i / 200d));
+        }
+    }
+
+    [Theory]
+    [InlineData(0, WiggleType.EaseOut)]
+    [InlineData(-3, WiggleType.EaseOut)]
+    [InlineData(4, (WiggleType)99)]
+    public void WiggleRejectsInvalidArguments(int wiggles, WiggleType type)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => Eases.Wiggle(wiggles, type));
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RoughRejectsFewerThanOnePoint(int points) => Assert.Throws<ArgumentOutOfRangeException>(() => Eases.Rough(points));
+
+    [Theory]
+    [InlineData(RoughTaper.None)]
+    [InlineData(RoughTaper.In)]
+    [InlineData(RoughTaper.Out)]
+    [InlineData(RoughTaper.Both)]
+    public void RoughTaperScalesTheJitter(RoughTaper taper)
+    {
+        var ease = Eases.Rough(10, strength: 1, taper: taper, randomize: false);
+
+        for (var i = 1; i < 10; i++)
+        {
+            var x = i / 10d;
+            var edge = Math.Min(x, 1 - x) * 2;
+            var scale = taper switch
+            {
+                RoughTaper.In => x * x,
+                RoughTaper.Out => (1 - x) * (1 - x),
+                RoughTaper.Both => edge * edge * .5,
+                _ => 1,
+            };
+            Assert.Equal(.2 * scale, Math.Abs(ease(x) - x), 9);
+        }
+    }
+
+    [Fact]
+    public void SlowMoClampsItsRatioAndIgnoresPowerAtOne()
+    {
+        AssertSameCurve(Eases.SlowMo(1, .2), Eases.SlowMo(1.5, .2));
+        AssertSameCurve(Eases.None, Eases.SlowMo(1, .9));
+    }
+
+    [Fact]
+    public void RoughDefaultsToGsapOptions()
+        => AssertSameCurve(Eases.Rough(20, 1, false, RoughTaper.None, true, Eases.None, new Random(11)), Eases.Rough(random: new Random(11)));
+
+    [Fact]
+    public void SlowMoDefaultsToGsapOptions() => AssertSameCurve(Eases.SlowMo(.7, .7, false), Eases.SlowMo());
 }

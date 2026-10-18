@@ -148,4 +148,34 @@ public sealed class EngineTimeTests : EngineTestBase
 
         Assert.Equal(before + .5, timer.CurrentTime, 1e-9);
     }
+
+    [Fact]
+    public void DilationSetWhileFrozenTakesEffectAtThaw()
+    {
+        var timer = Presto.CreateTimer(new() { Duration = 1000 });
+        Frames.Advance(100, 16);
+        var before = timer.CurrentTime;
+
+        Presto.Engine.Freeze();
+        var now = Presto.Engine.Now;
+        Presto.Engine.TimeDilation = .5;
+        Frames.Advance(100);
+        Assert.Equal(now, Presto.Engine.Now);
+
+        Presto.Engine.Thaw();
+        Frames.Advance(160, 16);
+
+        Assert.Equal(before + 80, timer.CurrentTime);
+    }
+
+    [Fact]
+    public void StepWithoutAnArgumentAdvancesOne60FpsFrame()
+    {
+        Presto.Engine.Freeze();
+        var now = Presto.Engine.Now;
+
+        Presto.Engine.Step();
+
+        Assert.Equal(now + 1000.0 / 60, Presto.Engine.Now, 1e-9);
+    }
 }

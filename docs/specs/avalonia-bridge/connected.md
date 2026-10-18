@@ -54,7 +54,7 @@ Three attached properties give MVVM navigation connected animations with no code
 - **BRIDGE-CONNECTED-010** — When another attached element still holds the key, a detaching keyed element shall prepare nothing.
   - Tests: `ConnectedTests.CoexistingViewsFlyFromTheLiveElementAndLeaveNothingPrepared`
 - **BRIDGE-CONNECTED-011** (inherited) — When a keyed element detaches before it was ever laid out, it shall prepare nothing.
-  - Tests: untested
+  - Tests: `ConnectedTests.AKeyedElementDetachedBeforeItsFirstLayoutPassPreparesNothing`
 - **BRIDGE-CONNECTED-012** — Clearing `Key` shall unregister the element and stop recording and preparing.
   - Tests: `ConnectedTests.ClearingTheKeyStopsPreparing`
 
@@ -89,9 +89,9 @@ Three attached properties give MVVM navigation connected animations with no code
 ### Defaults
 
 - **BRIDGE-CONNECTED-023** — When `DefaultMotion` is not set, a flight shall last 500 ms with `OutQuint`.
-  - Tests: untested
+  - Tests: `ConnectedTests.AnUnsetDefaultMotionLasts500MsWithOutQuint`
 - **BRIDGE-CONNECTED-024** — When `DefaultAnchorMotion` is not set, an entrance shall rise from `Y` 24 and fade in from `Opacity` 0 over 400 ms after a 150 ms delay with `OutQuart`.
-  - Tests: untested
+  - Tests: `ConnectedTests.AnUnsetDefaultAnchorMotionRisesAndFadesInAfterADelayWithOutQuart`
 
 ## Invariants
 
@@ -147,4 +147,4 @@ Three attached properties give MVVM navigation connected animations with no code
 
 ## Open items
 
-- Untested: a keyed element detaching before its first layout pass (011), scope registration and the diagnostics origin (022).
+- BRIDGE-CONNECTED-022 disagrees with the code on the origin: an entrance's timers carry `"Connected"`, but a flight's mirror animation has no origin, since `LayoutTransition` creates it on its first layout pass, after `Arrive`'s `PrestoDiagnostics.Origin("Connected")` scope has ended. Scope registration holds (`ConnectedTests.FlightsAndEntrancesRegisterWithTheAmbientScope`); 022 stays untested until the origin is decided.

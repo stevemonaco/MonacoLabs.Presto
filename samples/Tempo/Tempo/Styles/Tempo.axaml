@@ -166,6 +166,11 @@
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="WindowDecorationProperties.ElementRole" Value="TitleBar" />
+    </Style>
+    <!-- A caption hit-tests as non-client, so its moves never reach the fullscreen popover's top-edge trigger. -->
+    <Style Selector="Window[WindowState=FullScreen] Border.titlebar">
+        <Setter Property="WindowDecorationProperties.ElementRole" Value="User" />
     </Style>
     <!-- The drawn decorations' own title would sit under the wordmark. -->
     <Style Selector="WindowDrawnDecorations:not(:fullscreen) /template/ Panel#PART_TitleTextPanel">
@@ -282,7 +287,7 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="ClipToBounds" Value="False" />
     </Style>
-    <Style Selector="StackPanel.digits > TextBlock">
+    <Style Selector="TextBlock.remaining">
         <Setter Property="FontSize" Value="56" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TempoInk}" />
@@ -293,11 +298,6 @@
     <!-- Tight enough for the "Start focus" pill on one line at 320. -->
     <Style Selector="v|ShellView.compact StackPanel.controls">
         <Setter Property="Spacing" Value="8" />
-    </Style>
-    <!-- Inter's figures are proportional: a fixed slot keeps a changing digit from shifting its neighbors. -->
-    <Style Selector="StackPanel.digits > TextBlock.digit">
-        <Setter Property="Width" Value="36" />
-        <Setter Property="TextAlignment" Value="Center" />
     </Style>
     <!-- From a class, so only the last ten seconds' changes pulse. -->
     <Style Selector="presto|ProgressRing.final">
@@ -390,9 +390,6 @@
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Foreground" Value="{DynamicResource TempoInkDim}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
-    </Style>
-    <!-- From a class rather than on the element, so the loop runs only during a break. -->
-    <Style Selector="TextBlock.breathe.breathing">
         <Setter Property="presto:Animate.OnAttached" Value="{x:Static m:TempoMotion.Breathe}" />
     </Style>
 
@@ -400,26 +397,29 @@
         <Setter Property="Padding" Value="10,8" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="presto:Swipe.Command" Value="{Binding SwipeCommand}" />
+        <Setter Property="presto:Swipe.LeadingCommand" Value="{Binding CompleteCommand}" />
+        <Setter Property="presto:Swipe.TrailingCommand" Value="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).DeleteTaskCommand}" />
+        <Setter Property="presto:Swipe.CommandParameter" Value="{Binding}" />
         <Setter Property="presto:Swipe.Dismiss" Value="True" />
         <!-- A short swipe springs back rather than pinning the actions open; a full one completes or deletes. -->
         <Setter Property="presto:Swipe.Reveal" Value="False" />
         <Setter Property="presto:Swipe.Leading">
             <DataTemplate x:DataType="vm:TaskItemViewModel">
-                <Button Classes="swipe-action complete" Command="{Binding SwipeCommand}" CommandParameter="{x:Static presto:Edge.Right}">
+                <Button Classes="swipe-action complete" Command="{Binding CompleteCommand}">
                     <PathIcon Data="{x:Static m:TempoMotion.CheckIcon}" />
                 </Button>
             </DataTemplate>
         </Setter>
         <Setter Property="presto:Swipe.Trailing">
             <DataTemplate x:DataType="vm:TaskItemViewModel">
-                <Button Classes="swipe-action delete" Content="Delete" Command="{Binding SwipeCommand}" CommandParameter="{x:Static presto:Edge.Left}" />
+                <Button Classes="swipe-action delete" Content="Delete" Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).DeleteTaskCommand}" CommandParameter="{Binding}" />
             </DataTemplate>
         </Setter>
     </Style>
     <!-- A done task can only be deleted, and its list does not reorder. -->
     <Style Selector="Expander.done Border.task-row">
         <Setter Property="presto:Swipe.Leading" Value="{x:Null}" />
+        <Setter Property="presto:Swipe.LeadingCommand" Value="{x:Null}" />
     </Style>
     <Style Selector="ListBoxItem:pointerover Border.task-row">
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground2}" />
@@ -463,9 +463,6 @@
     <Style Selector="Border.selection-pill">
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
-    </Style>
-    <Style Selector="Expander.done /template/ PathIcon#PART_PathIcon">
-        <Setter Property="presto:Accordion.Chevron" Value="180" />
     </Style>
 
     <Style Selector="ListBox.segmented">
@@ -578,7 +575,8 @@
     <!-- Swiped or wheeled rather than dragged by a bar; the faded ends show there is more. -->
     <Style Selector="v|ShellView.compact ListBox.chips">
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
-        <Setter Property="v:ScrollEdge.FadeSides" Value="True" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="presto:Scroll.FadeEdges" Value="24" />
         <Setter Property="ItemsPanel">
             <ItemsPanelTemplate>
                 <StackPanel Orientation="Horizontal" />
@@ -777,36 +775,52 @@
         <Setter Property="Fill" Value="{DynamicResource FocusAccentBrush}" />
     </Style>
 
-    <Style Selector="Border.drawer">
-        <Setter Property="Width" Value="340" />
-        <Setter Property="Padding" Value="20" />
-        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
-        <Setter Property="BorderThickness" Value="1,0,0,0" />
+    <!-- Styled, not local, so the compact style can override them. -->
+    <Style Selector="presto|Sheet#DetailSheet">
+        <Setter Property="Edge" Value="Right" />
+        <Setter Property="EdgeSwipe" Value="20" />
     </Style>
-    <!-- Its edge strip would open an empty drawer while the detail is in the bottom sheet. -->
-    <Style Selector="v|ShellView.compact presto|Drawer">
-        <Setter Property="IsVisible" Value="False" />
+    <Style Selector="v|ShellView.compact presto|Sheet#DetailSheet">
+        <Setter Property="Edge" Value="Bottom" />
+        <Setter Property="EdgeSwipe" Value="0" />
+        <Setter Property="Detents" Value="0,0.5,1" />
+        <Setter Property="Grid.RowSpan" Value="2" />
     </Style>
     <Style Selector="Border.sheet">
-        <Setter Property="Padding" Value="20,0,20,20" />
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+    </Style>
+    <Style Selector="presto|Sheet:right Border.sheet">
+        <Setter Property="Width" Value="340" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="BorderThickness" Value="1,0,0,0" />
+    </Style>
+    <Style Selector="presto|Sheet:bottom Border.sheet">
+        <Setter Property="Padding" Value="20,0,20,20" />
         <Setter Property="BorderThickness" Value="1,1,1,0" />
         <Setter Property="CornerRadius" Value="16,16,0,0" />
     </Style>
-    <Style Selector="Border.sheet Border.drawer">
-        <Setter Property="Width" Value="NaN" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
     <Style Selector="Border.grab">
+        <Setter Property="IsVisible" Value="False" />
         <Setter Property="Width" Value="36" />
         <Setter Property="Height" Value="4" />
         <Setter Property="Margin" Value="0,10,0,14" />
         <Setter Property="CornerRadius" Value="2" />
         <Setter Property="Background" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="presto|Sheet:bottom Border.grab">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="presto|Sheet#SettingsSheet">
+        <Setter Property="Presentation" Value="Anchored" />
+    </Style>
+    <Style Selector="v|ShellView.compact presto|Sheet#SettingsSheet">
+        <Setter Property="Presentation" Value="Edge" />
+        <Setter Property="Grid.RowSpan" Value="2" />
+    </Style>
+    <!-- In the popover the glass presenter is the chrome; the edge rules never reach it, only the base background does. -->
+    <Style Selector="FlyoutPresenter.glass Border.sheet">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="Border.dialog">
         <Setter Property="Background" Value="#F21A1C22" />
@@ -853,12 +867,6 @@
     <Style Selector="Ellipse.dot.filled">
         <Setter Property="Fill" Value="{DynamicResource FocusAccentBrush}" />
         <Setter Property="StrokeThickness" Value="0" />
-    </Style>
-
-    <!-- Semi audit (12.1.0.1): Button, ListBoxItem, ToggleButton, CheckBox, FlyoutPresenter and TextBox set no Transitions;
-         Expander's chevron sets one on RenderTransform in its template, which only a selector with an activator outranks. -->
-    <Style Selector="Expander /template/ PathIcon#PART_PathIcon:not(.semi-transitions)">
-        <Setter Property="Transitions" Value="{x:Null}" />
     </Style>
 
     <!-- The mode accents: descendants follow the root's Motion.State (FocusMode), staggered by its StaggerChildren. -->

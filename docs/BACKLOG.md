@@ -6,11 +6,12 @@ When an item is closed, its line is deleted.
 
 ## Likely bugs
 
-None open.
+- [BRIDGE-HELPERS] A detached control with a paused `Composition.Additive` animation is not collectable: `Additive.Lookups` holds the target strongly until cancel, and the tracker only pauses, so BRIDGE-HELPERS-031 fails for additive composition.
+- [BRIDGE-SCROLLOBSERVER] An observer whose target detaches stays in its container and is evaluated every scroll frame until reverted; decide between reverting it and suspending it on detach.
 
 ## Manual and platform checks
 
-- [BRIDGE-RECIPES] On Windows, with Tempo's `Stepper` step gate (`_stepping`) disabled, move the settings between the popover and the sheet across the breakpoint and confirm no stepper value is left split or blank in the native popup (BRIDGE-RECIPES-096, -098).
+- [BRIDGE-RECIPES] On Windows, move Tempo's settings between the popover and the sheet across the breakpoint and confirm the `Stepper` values, now shown through `Animate.DoOnChanged` with `{presto:MorphGlyphs}`, are set at once by the null-`DataContext` rebind rule and none is left split or blank in the native popup (BRIDGE-ATTACH, BRIDGE-RECIPES-096, -098).
 - [DEVTOOLS-OVERLAY] On Desktop, drive by hand the Ctrl+Shift+F12 gesture, hover outlines, drag-scrubbing the track, and freeze/dilation during a `Draggable` or `Transformable` drag (DevTools MCP sends no modifier chords, hover or drags).
 - [BRIDGE-RIPPLE] Measure the per-host render-thread ripple visual on Browser and Android, where a single-threaded Browser build may have no render thread.
 - [BRIDGE-SWIPE] Hand-check the swipe-action, `Sheet` and drawer drags on Desktop.
@@ -36,8 +37,24 @@ None open.
 - [BRIDGE-PARTICLES] Measure the default `ParticleScene.MaxLive` of 1 000, and the Particle type and Liquid type frame rates, on Browser, Android and iOS (only desktop's 4 000 was measured).
 - [PLATFORM] Run iOS on a simulator (needs a macOS build host; only compiles for `iossimulator-x64`).
 - [PLATFORM] Check the Browser and Android heads against the showcase pages and update the README Platforms table with what is true.
-- [SAMPLE] By hand on Desktop: the Board drag and insertion gap, the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`), Warp studio's Magnifier, Jelly and Follow pointer, and the Liquid type heading's hover glitch.
+- [PLATFORM] In Chrome, on the trimmed Release Browser publish, step through the Animatable, Carousel, Compositor, Follow, Typography, Distort (child redraws update, not stale) and text-morph pages and confirm they behave as on Desktop.
+- [PLATFORM] In a Windows x64 NativeAOT publish of Tempo, double-click a task and confirm the details drawer opens (startup with and without `--skip-intro` is verified; the drawer needs a real double-click).
+- [PLATFORM] Push and confirm the CI `aot` job goes green, and red on a branch without `CallbacksTarget`'s member table, then restore the README Desktop row's "in CI on every push" wording.
+- [PROJECT] Push and confirm the CI `build-test-pack` job goes green on a branch push and on a PR, `dotnet --info` shows the SDK `global.json` pins, and the `packages` artifact holds four `.nupkg` and four `.snupkg` files versioned `0.1.0-preview.1.ci.<run>`.
+- [PROJECT] Create the `nuget` GitHub environment with a required reviewer, the nuget.org Trusted Publishing policy (repo `stevemonaco/MonacoLabs.Presto`, workflow `release.yml`) and the `MonacoLabs` package-id prefix reservation, then run a `workflow_dispatch` dry run of `release.yml` and confirm it packs, passes the tag/version and exact-pin checks, and stops before the push.
+- [PROJECT] Open each package in NuGet Package Explorer and confirm its README renders with working links.
+- [PROJECT] Release 0.1.0-preview.1: move each library's `PublicAPI.Unshipped.txt` lines into `PublicAPI.Shipped.txt`, date the CHANGELOG entry, tag `v0.1.0-preview.1` and approve the run; confirm the four packages and their READMEs on nuget.org, and that a fresh `dotnet new avalonia.app` adding `MonacoLabs.Presto.Avalonia` from nuget.org animates a control.
+- [PROJECT] After 0.1.0-preview.1 is on nuget.org, bump `VersionSuffix` to `preview.2` and set `PackageValidationBaselineVersion` to `0.1.0-preview.1`.
+- [PROJECT] Give the packages a real icon before the first non-preview release.
+- [SAMPLE] By hand on Desktop: the Board drag and insertion gap (since its move to drop zones: the `:dragover` lane highlight, a fling landing from where it was let go, the bin spin, and Escape springing the card home with no lane left highlighted), the Interruption lab hover tiles and the Typography pointer-driven wordmark (today they rest on their `*PageTests`), Warp studio's Magnifier, Jelly and Follow pointer, and the Liquid type heading's hover glitch.
 - [SAMPLE] By hand on Desktop: the Carousel pointer drag.
+- [BRIDGE-RECIPES] `Recipes.ThemeReveal` has no gallery demo, so a reveal interrupted by a second reveal or by navigating away (full and reduced motion) rests on `PageBloomTests` alone; add a demo and check it by hand on Desktop.
+- [BRIDGE-REDUCED] By hand on Windows, under `--motion system` in the Gallery (`--page xaml`) and Motion = System in Tempo: toggle Animation effects, activate the window, and confirm the looping attached animations and Tempo's backdrop drift switch form (only headless tests cover the live follow).
+- [BRIDGE-REDUCED] The core `MotionPreference` enum has no `presto:` XAML prefix (the bridge's `XmlnsDefinition` maps only bridge-assembly namespaces, AVLN2000), so Tempo writes `xmlns:core="using:MonacoLabs.Presto"`; done when core types used from XAML resolve under the `presto:` prefix or the gap is documented in the README.
+- [BRIDGE-MOTION] When a looping state replays on a reduced-motion change, its tracker also re-reads other held states read under the old setting, so a finite state held on the same element can move early; done when only the looping state replays or the edge case is stated in the spec.
+- [BRIDGE-PULL] A `PullToRefresh` detached mid-refresh stays registered for the reduced-motion signal until its refresh task ends; unregister on detach.
+- [SAMPLE] By hand on Desktop: leave the Typography page mid word-swap and confirm the rotator, now inside the page scope, reverts cleanly (DevTools cannot time the click).
+- [BRIDGE-MARQUEE] By hand on the Desktop Marquee page, in both motion modes: the seam stays invisible through a window resize, hovering and tabbing into the logo wall ease it to a stop and back (DevTools sends no hover and its Tab did not move focus), and the fade edges read right (BRIDGE-MARQUEE-033–035).
 - [SAMPLE] By hand on Desktop with a real mouse: the Type lab elastic-letter drag (neighbors follow, springs home with overshoot, no jitter at rest) and Bézier control-point drag (text stays on the path); DevTools sends no drags.
 - [SAMPLE] By hand on Desktop: Connected and Connected navigation (open a card on `PointerPressed`) and the Gestures page drags, plus on a touch screen its curtain and bottom sheet between detents (handed off from the curtain's list at its top) and the pull-to-refresh list pulled at its top and scrolled away (BRIDGE-GESTURES).
 - [SAMPLE] Run the Activity feed live for ten minutes and confirm the reveal memory stays bounded (today it rests on `ActivityFeedPageTests`).
@@ -50,17 +67,19 @@ None open.
 
 ## Candidate features
 
-- [CORE-CALLBACKS] An opt-in `Then` variant whose task is canceled when the timer is canceled or reverted (Flutter's `TickerFuture.orCancel`), for code that must not hang on an interrupted animation; done when a spelling is chosen and built.
 - [CORE-COLORS] HSL, HWB and CIE Lab/LCH interpolation spaces beside OKLCH, for CSS completeness, once something asks.
 - [CORE-COMPOSITION] A relative/delta `To` for additive tweens ("add this much") that does not move the additive group's base, so a layered effect need not know the animation beneath it; done when a spelling is chosen and built.
 - [CORE-TIMELINE] A `Timeline.Set` overload that takes a stagger for its position, as upstream allows; add if a sample needs it.
 - [CORE-STAGGER] A stagger "from element or point" (a pixel position or a target element rather than a normalized grid cell), so Connected and ConnectedNav can scatter siblings from the selected item.
 - [CORE-BUILDER] `AnimationBuilder.Freeze()`, if users report a shared builder being mutated under them.
 - [CORE-PARTICLES] A spin-rate over-life curve; spin is a constant per-particle rate today.
-- [CORE-SCOPE] `Scope.Register` prunes only superseded animations, so timelines created repeatedly inside a scope (the Typography word rotator is kept outside its scope for this reason) grow its revertible list until `Revert`; done when finished or superseded timelines are pruned too, or the limit is stated in the spec.
+- [CORE-SCOPE] Completed animations on targets gone for good are held by the scope until `Revert` (the stated limit); a bridge-side weak hold for completed animations on visuals would lift it.
 - [CORE-INERTIA] Inertia-driven `ScrollViewer` flinging in place of `ScrollGestureRecognizer`'s own inertia (`IsScrollInertiaEnabled`) is unbuilt and would be a control-level change; done when built because a sample needs it, or recorded as a CORE-INERTIA non-goal.
 - [BRIDGE-DRAGGABLE] Let a Draggable join the gesture arena (BRIDGE-GESTURES) and claim after its threshold instead of capturing on press, so a touch on a Draggable inside a ScrollViewer can still scroll; done when a vertical touch drag on a horizontal-only Draggable in a ScrollViewer scrolls it.
 - [BRIDGE-MOTION] Play transform/opacity-only `Motion.*` states through the compositor, if a sample shows the need for smoothness under load.
+- [BRIDGE-MOTION] Looping `Motion` states keep running while their element is hidden.
+- [CORE-SCOPE] A bridge revertible (`CompositorAnimation`, `TextSplitter` via `Refresh`) restarted after its own `Revert` and a prune escapes its scope's `Revert`, since bridge revertibles do not re-register when revived (core timers do); only `LayoutTransition.Rearm` is handled.
+- [BRIDGE-*] `ThenOrCancel` for the bridge handles (`ThreadedAnimation`, `LayoutTransition`, `ContentSizeTransition`, `CompositorAnimation`, `ParticleEffect`).
 - [BRIDGE-PRESENCE] Total-aware staggers (`From = Center`/`Last`, grids) in initial-load batches, which would need deferring a batch to the first tick plus a spike on rest-frame flashes.
 - [BRIDGE-SCROLL] A `Scroll.Progress` convenience for a scroll progress bar.
 - [BRIDGE-RECIPES] A one-line `Recipes.ArcFlight` to replace the sample's `Showcase/PhotoFlight.cs`.
@@ -91,6 +110,8 @@ None open.
 - [SAMPLE] Cover the orchestration sample's `Order`, `From` and Presence mode pickers with a sample test.
 - [SAMPLE] Cover the Shapes page's spline (motion path through points) demo with a sample test; only `ShapesTests` covers the API.
 - [PROJECT] The sample test suite runs about 92 s against a 60 s target; reaching it needs a framebuffer retained between frames, which requires a change in Avalonia's headless platform.
+- [PROJECT] A Linux/macOS CI leg; first pin Inter in the test app builders so the headless text metrics no longer depend on the system default font.
+- [PROJECT] A scheduled workflow that builds the Browser and Android heads with their workloads (`wasm-tools`, `android` plus a JDK), which `build-test-pack` skips.
 - [PROJECT] Run the test suites in parallel via per-test engines (`AsyncLocal` or a per-session `Presto.Engine`); touches every static entry point.
 - [PROJECT] File an Avalonia issue asking for a `TimeProvider` on `CompositionOptions` / `AvaloniaHeadlessPlatformOptions`, so headless tests can drive the compositor clock without reflection.
 - [BRIDGE-LAYOUT] File an Avalonia issue: implicit `Offset` composition animations interpolate under the headless render timer but snap on the Win32 backend (12.1.2).
@@ -100,51 +121,38 @@ None open.
 
 Friction found while building the Tempo sample (`samples/Tempo/Tempo/`): first the calls that have no XAML spelling, then what Semi.Avalonia's templates exposed that Fluent's do not, then the rest. Its bugs are under Likely bugs.
 
-- [BRIDGE-PARTICLES] `Recipes.Burst` is code-only: no XAML trigger fires on a view-model event, so Tempo's `FocusView` bursts from the ring on `FocusViewModel.SessionCompleted` in code.
-- [BRIDGE-TOAST] Showing a toast is code-only: Tempo's `ShellView` code-behind handles `MainViewModel.TaskDeleted` and calls `ToastHost.Show`, and its Undo button needs a `Click` handler to reach `ToastHost.GetToast(…).Dismiss()`, since nothing in XAML binds a view-model event or command to a toast.
-- [BRIDGE-REDUCED] The reduced-motion flag (`Presto.Defaults.ReducedMotion`, `PrestoAvalonia.FollowSystemReducedMotion`) has no XAML spelling, and an app setting of System / Full / Reduced is the same hand-written switch in every app (dispose the follower handle, then follow again or write the flag); Tempo's `App.ApplyMotionSetting` repeats the Gallery's `MainViewModel.Motion` setter line for line.
 - [CORE-TIMELINE] A timeline has no XAML spelling, so Tempo's intro (`Motion/TempoIntro.cs`) lays out its `TempoMotion` steps on a `Timeline` in code and `IntroView` starts it from `OnAttachedToVisualTree`.
-- [BRIDGE-POPOVER] A flyout has no `IsOpen` to bind, so opening it from a view-model command (Tempo's Ctrl+, `KeyBinding` and the settings button share `OpenSettingsCommand`) needs code-behind calling `FlyoutBase.ShowAttachedFlyout`, and a state that should hold while it is open (Tempo's settings button keeping its quarter turn) needs code-behind setting a class from `Opened`/`Closed`.
 - [BRIDGE-THREAD] A compositor animation has no XAML spelling (XAML entry points stay on the UI thread by design), so Tempo's ambient backdrop drift is an `AnimateOnCompositor` call in `ShellView` code-behind, started on load and reverted on unload by hand; nothing like `Animate.OnAttached` takes a thread.
-- [BRIDGE-REDUCED] Nothing signals a change of `PrestoDefaults.ReducedMotion`, so an animation that resolves its `WhenReduced` form once at start keeps it: Tempo's `ShellView` restarts the compositor backdrop drift on the view model's `Motion` change (under System, an OS setting change while the app runs never reaches it), and `SettingsFlyout` replays the `Animate.OnAttached` motion preview by clearing and resetting `OnAttached`, which only works because `App.ApplyMotionSetting` subscribed first and has already written the flag.
-- [BRIDGE-RECIPES] `Recipes.MorphGlyphs` is code-only: no XAML trigger morphs a block on a binding change, so Tempo's `FocusView` watches `FocusViewModel.RemainingText` and `StartPauseLabel` while loaded and calls it on each change. The start/pause label also needs a code-side rule a trigger would have to spell: morph only a word into a word, and set an appearing or hiding label at once. The settings `Stepper` repeats the pattern for its `Value`, completing a running morph on unload (the detach bug under Likely bugs).
 - [BRIDGE-POPOVER] A popover's content cannot leave in a reversed stagger: `Close` plays only on the presenter, and the content unloads with the popup, so its `Presence.Exit` never plays. Tempo's settings rows arrive in turn but leave with the presenter's `PopoverOut`; a `Close` that ran the content's exits (or a reversed arrival batch) before closing would mirror the Popups-style entrance.
-- [BRIDGE-MODAL] Opening a modal from an element is code-only: `Open(from)` is a method and a bound `IsOpen` opens without an origin, so Tempo's `ShellView` handles `MainViewModel.ConfirmRequested` and calls `Open`. And `Open(from)` finds no origin for an element under another visual root (BRIDGE-MODAL-004), as a button in a desktop flyout is, so Tempo converts the button's center through `PointToScreen`/`PointToClient` and calls `Open(Point)`; it also closes the flyout first, since the popup window draws above the scrim.
 - [BRIDGE-MODAL] Nothing lets a modal veto or redirect a dismissal: Escape, back and a scrim tap always close it (BRIDGE-MODAL-019–020). Tempo's confirm dialog shakes on Escape once its hold has been pressed by handling `KeyDown` in the dialog before `Dismissal`'s top-level handler, which works only because focus is inside the panel; the shake itself is a code-behind `Animate` (`ConfirmDialog.OnKeyDown`).
+- [BRIDGE-MODAL] A modal opened while a light-dismiss flyout is open draws under the flyout's popup window, so Tempo's `ShowConfirm` closes the flyout first. `Modal` cannot close a top level's open flyouts because Avalonia exposes no list of open popups.
 - [BRIDGE-PRESENCE] A list removal cannot be choreographed: each removed row plays its own `Presence.Exit` in the removal's pass, so a staggered exit that must finish before the next step (Tempo's clear: rows scatter, then the bars collapse, then the empty line) is an `Animate` over the live rows from code (`ShellView.PlayClear`), awaited before the view model clears. The scatter must be reverted after the clear, or the recycled containers keep its end values and a restored row arrives at opacity 0; nothing ties an animation on an item's element to the item's lifetime.
-- [BRIDGE-SUBMIT] `ProgressRing` raises `Confirmed` but has no `Command`, so a hold-to-abandon ring needs a code-behind handler to reach the view model's command. Nor does it raise anything when a hold ends short of confirming, so Tempo's shake on an early release handles the ring's `PointerCaptureLost` and Space/Enter `KeyUp` and tracks whether `Confirmed` came first; nor when a hold starts, so Tempo's confirm dialog treats any `Value` above 0 as pressed through `PropertyChanged`.
-- [BRIDGE-ACCORDION] On Semi's `Expander`, `Accordion.Enabled` finds only Fluent's chevron parts (`ExpandCollapseChevronBorder`/`ExpandCollapseChevron`, BRIDGE-ACCORDION-007), so the app must point `Accordion.Chevron` at `PART_PathIcon` from a `/template/` style (Tempo's `Expander.done`) and clear the theme's `Template`-priority 250 ms `RenderTransform` transition on it with a selector that has an activator (`:not(.x)`), or the chevron double-eases. Unlike `Popover` (BRIDGE-POPOVER-008), nothing lifts theme transitions on the properties Presto animates.
 - [BRIDGE-MOTION] An app folder named `Motion` (the proposal's `Motion/TempoMotion.cs`) makes a `Tempo.Motion` namespace that shadows `MonacoLabs.Presto.Motion` in C# anywhere under `Tempo.*`, so code-behind and tests need an alias for `Motion.SetState`/`SetStates`.
 - [BRIDGE-MOTION] `Motion.State` takes one value, so states that depend on two view-model properties (Tempo's mode and whether the clock runs) need a combined token string from the view model (`FocusViewModel.MotionState`) or a converter; nothing composes tokens from several bindings.
 - [BRIDGE-MOTION] `Motion.States` is one property, so a style's states (the ring's mode `Fill`) and a local state (`Running` breathe) cannot both sit on one element; Tempo moves the breathe onto a wrapper `Panel`.
-- [CORE-KEYFRAMES] `TweenKeyframesBuilder.Color` needs an explicit `from`, so a state that recolors in OKLCH from wherever the property stands needs a hand-written `FunctionValue` reading the target (Tempo's `TempoMotion.Accent`); `Tints.Recolor` has that reader but keeps it private, and the recipe has no `WhenReduced` to restate.
-- [BRIDGE-HELPERS] There is no typed `Fill` (or `Stroke`) builder method, so the `ProgressRing.Fill` mode accent is `Property("Fill", k => k.Color(…, ColorSpace.Oklch))` by name; it does recolor the `IBrush` through OKLCH as a `MotionState`.
 - [BRIDGE-CONTENTSIZE] A content size host lays its sole child out at the final size and only clips it, so a `Button` whose theme draws its background on the template's presenter (Semi's) shows the new width's fill at once while the host eases; Tempo's start/pause pill moves the accent onto a `Border` host around a transparent button. Nothing says which part of a control eases.
 - [BRIDGE-SELECTION] `Selection.Indicator` draws behind the items but leaves the theme's own `:pointerover`/`:selected` item backgrounds, so on Semi (as on Fluent) the app clears them itself (Tempo's `TaskRow`, `Segment` and `Chip` themes).
-- [BRIDGE-SWIPE] `Swipe.Command` gets only the `Edge`, not the row's item, and there is one command per element, so a row whose sides do different things needs an edge-mapping command on the item's view model (`TaskItemViewModel.SwipeCommand`) plus an event back to the list owner to delete.
 - [BRIDGE-DECLLAYOUT] `Animate.ItemLayout` and `Presence` follow the `ItemsSource`'s change events, so filtering a list with motion needs a hand-kept filtered `ObservableCollection` that inserts and removes row by row (Tempo's `MainViewModel.VisibleTasks`), and a `Reorder` on it moves the copy, which the app must replay in its source; nothing filters a source while keeping per-row changes.
 - [BRIDGE-ATTACH] A session beyond a task's estimate adds a dot that is already filled, and `Animate.Watch` treats a binding's first value as seen (BRIDGE-ATTACH-015), so Tempo's `DotPop` on the dot's `IsFilled` pops only dots filled in place, not that new one; nothing plays `OnChanged` for an element's first value.
 - [BRIDGE-DECLLAYOUT] A row that moves to another list (open → Done) is a removal from one `ItemsControl` and an add to another, so it exits and re-enters instead of moving, and a `Follow` on it never shows its change because the new row's first value snaps (BRIDGE-FOLLOW-008). Tempo holds the move for `MainViewModel.DoneMoveDelay` so the strike line draws first.
 - [BRIDGE-SPLITFLAP] A `SplitFlap` steps only forward through `Charset` (a non-goal), so a countdown on the default charset wraps each falling digit through the letters (9 to 8 is 36 steps, over 2 s at 60 ms, longer than the second it shows); Tempo's countdown needed `Charset="9876543210"` (which leaves ':' outside the charset to take one step) until it moved to `MorphGlyphs`.
-- [BRIDGE-RECIPES] The text splits and glyph outlines ignore `FontFeatures` (`TextSplitter` copies family, size, style, weight, stretch and letter spacing; `GlyphOutlines` shapes with none), so a block with tabular figures (`+tnum`) would morph on proportional slots and jump when it unsplits. Inter's figures are proportional, so Tempo's countdown puts each digit in its own fixed-width, centered block instead.
-- [BRIDGE-RECIPES] `MorphGlyphs` once a second for a whole session (Tempo's countdown, per changed digit block) accumulates nothing: each call completes the last morph, which drops its `Morphs` entry, reverts the split, releases the width hold and dismisses its overlay host, and between morphs nothing ticks. Each call still splits the block twice, reads an outline for every old and new character and adds an overlay host `Canvas` even when no character needs a ghost; skipping the empty host would make a per-second clock cheaper.
-- [BRIDGE-RECIPES] `MorphGlyphs` re-renders pairs whose characters are equal, reshaping them onto themselves as unhinted outlines, so a whole-block clock moves its unchanged glyphs and its colon every second. Tempo's countdown is one `TextBlock` per character (`FocusView.ShowRemaining`) and morphs only the blocks that changed; a morph that left equal pairs as text would let one block do.
-- [BRIDGE-RECIPES] Reduced, `MorphGlyphs` crossfades the whole block, which suits a label that changes now and then but makes a ticking counter flicker every second. Tempo writes `Text` directly under `Presto.Defaults.ReducedMotion` for the countdown, the start/pause label and the settings `Stepper`; nothing chooses an instant reduced form.
-- [BRIDGE-ATTACH] `Animate.OnAttached` keeps a loop running while its element is hidden, so a guide shown only during breaks would loop all session; Tempo sets it from a class style bound to `IsBreak`, so the loop starts and is reverted with the class.
+- [BRIDGE-RECIPES] `MorphGlyphs`' pieces live in the block's adorner layer, so they draw over in-tree overlays that cover the block: Tempo's compact Settings `Sheet` over a running countdown flashes the changed digits every second. While an ancestor's entrance motion is not yet reflected in adorner coordinates the pieces sit off the block, as a `Stepper` morph does (about 87 DIP) during the `Sheet` slide-in.
 - [BRIDGE-PRESENCE] Content that arrives with a page under a Presto transition classifies as `Initial` (BRIDGE-PRESENCE-009), so the proposal's `Presence.Enter` on the stats bars would never play; Tempo uses `Arrive`. Arrivals batch under their nearest `Panel` (BRIDGE-PRESENCE-020), so a bar's item template must hold no `Panel` of its own or every bar staggers at index 0, and the day labels go in a second `ItemsControl`.
 - [BRIDGE-PRESENCE] An arrival batch supports order staggers only (BRIDGE-PRESENCE-022: the total is the arrivals so far), so `Presto.Stagger` with `Grid` and `From = Last` cannot reveal a grid outward from its last cell: every arrival is the last so far. Tempo's heatmap computes each cell's distance from today in `StatsViewModel` and delays by it with a `FunctionValue` reading the cell's `DataContext`.
 - [BRIDGE-FOLLOW] There is no XAML spelling for a shape slice that eases between two start–end pairs: `Follow.Draw` follows only `0 p`, and `Animate.OnChanged` reverts its `Draw` tween on completion, which restores the full stroke. Tempo's time-by-tag donut stacks full circles, each following its cumulative share from the top under the ones after it.
 - [BRIDGE-PAGES] A `Carousel` hides the pages it is not showing instead of detaching them, so nothing inside a page is classified again on return and its `Presence` arrivals never replay; Tempo swaps Focus and Stats in a `TransitioningContentControl` over a view-model `CurrentPage`, which rebuilds each view per swap.
 - [BRIDGE-PAGES] A page host builds every page from a template, so a page that must reuse a live control (Tempo's compact Tasks page and the wide column share one `TasksView`, so the list's state is never doubled) needs a code-only `FuncDataTemplate` that adopts the control, and a move back to its column posted after the outgoing page detaches, since the exit still holds it (`ShellView.TasksPage`); nothing hosts an existing element as a page.
-- [BRIDGE-SHEET] An adaptive side-or-bottom surface is hand-built: a `Drawer` wide and a bottom `Sheet` compact bound to one `IsOpen` would open together, so Tempo's `ShellView.PlaceSurfaces` rebinds `IsDetailOpen` to the live surface and moves the one `TaskDetail` between them on each breakpoint flip, and hides the drawer in compact, or its edge strip still opens it empty; the settings move between the flyout's `Content` and a sheet the same way, and `ShowSettings`/`ShowConfirm` branch on the arrangement. Nothing picks a sheet's edge and detents by width.
+- [BRIDGE-SHEET] An adaptive side-or-bottom surface is hand-built: a `Drawer` wide and a bottom `Sheet` compact bound to one `IsOpen` would open together, so Tempo's `ShellView.PlaceSurfaces` rebinds `IsDetailOpen` to the live surface and moves the one `TaskDetail` between them on each breakpoint flip, and hides the drawer in compact, or its edge strip still opens it empty; the settings move between the flyout's `Content` and a sheet the same way, and `ShowSettings` branches on the arrangement. Nothing picks a sheet's edge and detents by width.
 - [BRIDGE-PARTICLES] A `ParticleEffect` cannot be a timeline child, so `Recipes.Assemble` starts from a `Timeline.Call` at its position and does not follow the timeline's seek or `Complete()`. A skip has to `Cancel()` it separately, and `Cancel()` leaves the text block at `Opacity` 0, so Tempo's skip writes `Opacity` 1 itself (`TempoMotion.IntroWordmarkLand`) to land the wordmark drawn. Nothing completes an effect *to* its end state.
 - [BRIDGE-SHAPES] `CreateMotionPath(Shape)` reads the shape's rendered geometry, so a builder that rides a path cannot be a `static readonly` value or come from XAML; Tempo's tick dot uses a `TempoMotion.IntroTick(Shape)` method that the intro timeline calls once the view is attached.
 - [BRIDGE-CONNECTED] A handoff that should fade everything except the flying elements cannot use one `Presence.Enter` fade on the arriving view, because an ancestor's opacity fades the flight with it. Tempo marks each non-flying part with a `handoff` class (`Connected.Anchor="ring"` plus `HandoffFade`), and a key set for a one-time handoff stays live: every later swap that rebuilds the Focus view flew the ring from its last slot and replayed those anchors' fades, so Tempo binds the ring's key to `FocusViewModel.RingKey` and clears it on the first page swap. Nothing scopes a key to one arrival.
 - [BRIDGE-CONNECTED] `Connected.Motion` is read only from the arriving element (BRIDGE-CONNECTED-004), so the intro cannot own its flight's motion. `IntroFlight` sits on the Focus ring and the title-bar wordmark, and so it also applies to every later arrival of those keys.
-- [BRIDGE-SCROLL] Nothing cues that a scroller has more past an edge: `ScrollValue` gives the offset but not the distance left, so Tempo's `Views/ScrollEdge.cs` hand-rolls edge shadows (opacity ramped by the distance left, from `ScrollChanged`) and a sideways opacity-mask fade for its chip row. A bridge `Scroll.EdgeCue` (or a "remaining" scroll value) would replace it.
-- [BRIDGE-SCROLL] Bringing a newly added item into view is code-only: Tempo raises `MainViewModel.TaskAdded` and `TasksView` calls `PrestoAvalonia.ScrollToIndex` with `Nearest`; nothing in XAML scrolls to an item on its arrival.
 - [BRIDGE-MAGNETIC] A magnet and a hover lift cannot share an element: the lift's `"Y"` overrides the followed pull (BRIDGE-FOLLOW-038), so a hover at the pull's edge moved the button out from under the pointer and looped. Tempo's start pill first got a wrapper, then lost its magnet; the magnetic spec now states the edge case.
 - [BRIDGE-SWIPE] Where a touch or pen long press's context request comes from on Windows (Avalonia's holding gesture or the OS press-and-hold) was not pinned down: raising `Holding` alone raises no request in a headless test. Swipe now leaves any context request during or just after a touch alone (BRIDGE-SWIPE), which cured Tempo's rows opening on their actions when held, but the source is still unverified.
+- [BRIDGE-SWIPE] A side commits when its command can execute *or* `Dismiss` is set, so with `Dismiss` on and a command that cannot execute, the row still slides out and hides while nothing runs. The consumer-api-gaps proposal's reason for the gate argued against exactly that; the rule was implemented as written and the case recorded as an edge case. Decide whether `Dismiss` should also require the command to be able to execute.
+- [BRIDGE-SWIPE] Check Tempo's task-row swipes by hand on Desktop, both wide and at `--size 360x780` (DevTools cannot drag): a full leading swipe completes, a full trailing swipe deletes with Undo, a short swipe springs back, and a done row swipes only to delete.
+- [BRIDGE-ACCORDION] Check Tempo's Settings accordion by hand: the Semi chevron springs once with no lag or double ease, and under Reduced motion the sections open and close at once.
+- [SAMPLE] Tempo's Long break accent `Recolor` was not checked visually; it is only reached after `SessionsBeforeLongBreak` completed focus sessions.
 - [SAMPLE] Tempo's page host is unclipped so the page scrollbars can sit in the window gutter (`edge-scroll`), which lets the page swap's slide draw a few DIPs past the card edges mid-transition; clipping to the card plus the right gutter would keep the edge scrollbar without it.
 - [SAMPLE] In a short compact window the Focus page keeps the summary row's 64 DIP below the controls even when no session has finished, so the dial is smaller than it needs to be; the summary could float over the bottom instead.
 
@@ -152,86 +160,45 @@ Friction found while building the Tempo sample (`samples/Tempo/Tempo/`): first t
 
 Each spec's Open items section lists its untested requirements and other loose ends; these specs have some.
 
-- [BRIDGE-ACCORDION](specs/avalonia-bridge/accordion-and-pane.md): 10 untested requirements.
-- [BRIDGE-THREAD](specs/avalonia-bridge/animation-thread.md): 11 untested requirements.
-- [BRIDGE-SCENES](specs/avalonia-bridge/compositor-scenes.md): 7 untested requirements.
-- [BRIDGE-CONNECTED](specs/avalonia-bridge/connected.md): 4 untested requirements.
-- [BRIDGE-CONTENTSIZE](specs/avalonia-bridge/content-size.md): 8 untested requirements.
-- [BRIDGE-HELPERS](specs/avalonia-bridge/control-helpers.md): 1 untested requirement, plus no test that every shorthand has a typed builder method.
-- [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 7 untested requirements.
-- [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 6 untested requirements, plus a brush changed in place in the child not reaching an active effect's snapshot, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
-- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 20 untested requirements, plus the manual Desktop fling-and-re-grab check and whether touch gets its own `DragThreshold`.
-- [BRIDGE-EASES](specs/avalonia-bridge/eases-and-springs.md): 1 untested requirement.
+- [BRIDGE-THREAD](specs/avalonia-bridge/animation-thread.md): 0 untested requirements, plus a compositor animation reading as finished before its first start.
+- [BRIDGE-CONNECTED](specs/avalonia-bridge/connected.md): 1 untested requirement (022, a flight's mirror animation carrying no `"Connected"` origin).
+- [BRIDGE-CONTENTSIZE](specs/avalonia-bridge/content-size.md): 0 untested requirements, plus a height change landing at once when it shares a layout pass with a stretched-axis change.
+- [BRIDGE-DECLLAYOUT](specs/avalonia-bridge/declarative-layout.md): 0 untested requirements, plus three cases of 031 without a test.
+- [BRIDGE-DISTORT](specs/avalonia-bridge/distort.md): 0 untested requirements, plus a brush changed in place in the child not reaching an active effect's snapshot, `Turbulence` fraying display text, and the manual Liquid type hover and Browser frame-rate check.
+- [BRIDGE-DRAGGABLE](specs/avalonia-bridge/draggable.md): 0 untested requirements, plus the release's reduced-motion behavior, the manual Desktop fling-and-re-grab check and whether touch gets its own `DragThreshold`.
 - [BRIDGE-GESTURES](specs/avalonia-bridge/gesture-arbitration.md): the by-hand touch and pen checks on Tempo and the Gestures page.
-- [BRIDGE-EFFECTS](specs/avalonia-bridge/effects.md): 7 untested requirements.
-- [BRIDGE-FLIP](specs/avalonia-bridge/flip-card.md): 3 untested requirements.
-- [BRIDGE-FOLLOW](specs/avalonia-bridge/follow.md): 7 untested requirements.
-- [BRIDGE-GLYPHS](specs/avalonia-bridge/glyph-outlines.md): 1 untested requirement, plus the missing-glyph case of BRIDGE-GLYPHS-004.
-- [BRIDGE-IMAGE](specs/avalonia-bridge/image-effects.md): 18 untested requirements, plus the resize-at-start question and Browser/Android smoke runs.
-- [BRIDGE-INIT](specs/avalonia-bridge/initialization.md): 3 untested requirements.
-- [BRIDGE-LAYOUT](specs/avalonia-bridge/layout-transitions.md): 6 untested requirements.
-- [BRIDGE-MAGNETIC](specs/avalonia-bridge/magnetic.md): 1 untested requirement.
-- [BRIDGE-MARKUP](specs/avalonia-bridge/markup-extensions.md): 5 untested requirements, plus no XAML way to set `Lift`'s distance or `Glow`'s color.
-- [BRIDGE-MODAL](specs/avalonia-bridge/modal.md): 8 untested requirements.
-- [BRIDGE-MOTION](specs/avalonia-bridge/motion-states.md): 10 untested requirements.
-- [BRIDGE-TOKENS](specs/avalonia-bridge/motion-tokens.md): 2 untested requirements.
-- [BRIDGE-PAGES](specs/avalonia-bridge/page-transitions.md): 4 untested requirements.
-- [BRIDGE-PAGER](specs/avalonia-bridge/pager.md): 19 untested requirements.
-- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 14 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, single-color formations, and the manual Particle type Browser frame-rate check.
-- [BRIDGE-POPOVER](specs/avalonia-bridge/popovers.md): 5 untested requirements.
-- [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 5 untested requirements.
-- [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 5 untested requirements, plus the manual Activity feed check.
-- [BRIDGE-PRESENCE](specs/avalonia-bridge/presence.md): 10 untested requirements.
-- [BRIDGE-RIPPLE](specs/avalonia-bridge/press-ripple.md): 6 untested requirements, plus the Browser/Android measurement.
-- [BRIDGE-SUBMIT](specs/avalonia-bridge/progress-and-submit.md): 15 untested requirements, plus no guard against overlapping `Run` calls.
-- [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 3 untested requirements.
-- [BRIDGE-PULL](specs/avalonia-bridge/pull-to-refresh.md): 12 untested requirements.
-- [BRIDGE-RECIPES-MEDIA](specs/avalonia-bridge/recipes-media.md): 6 untested requirements.
-- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 5 untested requirements, plus dark specks from `MorphGlyphs` at body size, `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, and `WriteIn`/`Shatter` not re-seekable in a timeline.
+- [BRIDGE-GLYPHS](specs/avalonia-bridge/glyph-outlines.md): 0 untested requirements, plus the missing-glyph case of BRIDGE-GLYPHS-004.
+- [BRIDGE-IMAGE](specs/avalonia-bridge/image-effects.md): 0 untested requirements, plus `Seed` 0 and 1 drawing the same dissolve (BRIDGE-IMAGE-027), the resize-at-start question and Browser/Android smoke runs.
+- [BRIDGE-INIT](specs/avalonia-bridge/initialization.md): 0 untested requirements, plus `UsePresto` (009) and the lifetime-based `TopLevel` choice (012), which the headless platform cannot reach.
+- [BRIDGE-MARKUP](specs/avalonia-bridge/markup-extensions.md): 0 untested requirements, plus no XAML way to set `Lift`'s distance or `Glow`'s color.
+- [BRIDGE-MOTION](specs/avalonia-bridge/motion-states.md): 0 untested requirements, plus half of 026 (hover listened for only while a `When` names `:pointerover`).
+- [BRIDGE-PARTICLES](specs/avalonia-bridge/particles.md): 0 untested requirements, plus the unmeasured 1 000 cap on Browser, Android and iOS, single-color formations, and the manual Particle type Browser frame-rate check.
+- [BRIDGE-PRESENCE-EXIT](specs/avalonia-bridge/presence-exit.md): 0 untested requirements, plus the no-overlay-layer half of 022.
+- [BRIDGE-REVEAL](specs/avalonia-bridge/presence-reveal.md): 0 untested requirements, plus the manual Activity feed check.
+- [BRIDGE-PRESENCE](specs/avalonia-bridge/presence.md): 0 untested requirements, plus the initialize-first half of 019.
+- [BRIDGE-RIPPLE](specs/avalonia-bridge/press-ripple.md): 0 untested requirements, plus a truly missing accent resource (023) and the Browser/Android measurement.
+- [BRIDGE-SUBMIT](specs/avalonia-bridge/progress-and-submit.md): 1 untested requirement (027, which no public path reaches).
+- [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 1 untested requirement (027, the params constructors initializing the bridge), plus 014's masked write under a completed animation.
+- [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 0 untested requirements, plus `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, `WriteIn`/`Shatter` not re-seekable in a timeline, and `PageSharedAxis`'s exit travel without a direct test.
 - [BRIDGE-REDUCED](specs/avalonia-bridge/reduced-motion.md): 0 untested requirements, plus the window-activation and browser-change refreshes, checked only by hand.
-- [BRIDGE-REORDER](specs/avalonia-bridge/reorder.md): 11 untested requirements.
-- [BRIDGE-SCROLLOBSERVER](specs/avalonia-bridge/scroll-observer.md): 10 untested requirements.
-- [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 10 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
-- [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 16 untested requirements.
-- [BRIDGE-SHAPES](specs/avalonia-bridge/shapes.md): 9 untested requirements.
-- [BRIDGE-SHEET](specs/avalonia-bridge/sheet.md): 9 untested requirements.
-- [BRIDGE-SPLITFLAP](specs/avalonia-bridge/split-flap.md): 1 untested requirement, plus the drawn halves checked only by eye.
-- [BRIDGE-FRAMES](specs/avalonia-bridge/sprite-frames.md): 8 untested requirements.
-- [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 12 untested requirements.
-- [BRIDGE-TEXTREVEAL](specs/avalonia-bridge/text-reveal.md): 7 untested requirements.
-- [BRIDGE-WARP](specs/avalonia-bridge/text-warp.md): 1 untested requirement, plus the per-block field, no per-letter stagger, and the manual pointer warps.
-- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 5 untested requirements.
-- [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 6 untested requirements.
-- [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 17 untested requirements, plus the macOS, Android and Browser hardware checks.
-- [BRIDGE-TRANSFORMS](specs/avalonia-bridge/transforms.md): 1 untested requirement.
-- [BRIDGE-CODECS](specs/avalonia-bridge/value-codecs.md): 4 untested requirements.
-- [BRIDGE-ATTACH](specs/avalonia-bridge/xaml-attach.md): 7 untested requirements.
-- [CORE-ANIMATABLE](specs/core/animatable.md): 7 untested requirements.
-- [CORE-BUILDER](specs/core/animation-builder.md): 0 untested requirements.
-- [CORE-ANIMATION](specs/core/animation.md): 8 untested requirements.
-- [CORE-CALLBACKS](specs/core/callbacks.md): 9 untested requirements.
-- [CORE-COLORS](specs/core/colors.md): 5 untested requirements.
-- [CORE-COMPOSITION](specs/core/composition.md): 3 untested requirements.
-- [CORE-DIAGNOSTICS](specs/core/diagnostics.md): 4 untested requirements.
-- [CORE-EASEPARSER](specs/core/ease-parser.md): 6 untested requirements.
-- [CORE-EASES](specs/core/eases.md): 17 untested requirements.
-- [CORE-ENGINE](specs/core/engine.md): 21 untested requirements.
-- [CORE-INERTIA](specs/core/inertia.md): 6 untested requirements.
-- [CORE-KEYFRAMES](specs/core/keyframes.md): 6 untested requirements.
-- [CORE-MOTIONPATH](specs/core/motion-path.md): 5 untested requirements.
-- [CORE-MOTIONVALUE](specs/core/motion-values.md): 6 untested requirements.
-- [CORE-PARTICLES](specs/core/particles.md): 15 untested requirements.
-- [CORE-PRESTO](specs/core/presto.md): 11 untested requirements.
-- [CORE-REDUCED](specs/core/reduced-motion.md): 8 untested requirements.
-- [CORE-SCOPE](specs/core/scope-and-defaults.md): 21 untested requirements.
-- [CORE-SCRAMBLE](specs/core/scramble.md): 18 untested requirements.
-- [CORE-SPRING](specs/core/spring.md): 5 untested requirements.
-- [CORE-STAGGER](specs/core/stagger.md): 1 untested requirement.
-- [CORE-TARGETS](specs/core/targets.md): 2 untested requirements.
-- [CORE-THREADING](specs/core/threading.md): 13 untested requirements.
-- [CORE-TIMELINE](specs/core/timeline.md): 4 untested requirements.
-- [CORE-TIMER](specs/core/timer.md): 17 untested requirements.
-- [CORE-UTILS](specs/core/utils.md): 16 untested requirements.
-- [CORE-VALUES](specs/core/values.md): 5 untested requirements.
-- [DEVTOOLS-OVERLAY](specs/devtools/overlay.md): 20 untested requirements, plus the manual Desktop checks.
-- [LOTTIE-PLAYBACK](specs/lottie/lottie.md): 12 untested requirements, plus reduced-motion and DevTools coverage of render-thread playback, and a Browser run.
+- [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 0 untested requirements, plus two manual checks (non-Windows head, XAML previewer).
+- [BRIDGE-SELECTION](specs/avalonia-bridge/selection-indicator.md): 0 untested requirements, plus 004's wording on where the indicator sits.
+- [BRIDGE-SPLITFLAP](specs/avalonia-bridge/split-flap.md): 0 untested requirements, plus the drawn halves checked only by eye.
+- [BRIDGE-SWIPE](specs/avalonia-bridge/swipe-actions.md): 1 untested requirement (003: rebuilding a side throws when the other side is a `Control`).
+- [BRIDGE-WARP](specs/avalonia-bridge/text-warp.md): 0 untested requirements, plus the per-block field, no per-letter stagger, and the manual pointer warps.
+- [BRIDGE-TEXT](specs/avalonia-bridge/text.md): 2 untested requirements (014, word and line panels not `Raw`; 016, `Inlines` content splitting into nothing).
+- [BRIDGE-TOAST](specs/avalonia-bridge/toast-host.md): 0 untested requirements, plus 010 tested only through focus, since a still pointer is not hovered until a re-hit-test.
+- [BRIDGE-TRANSFORMABLE](specs/avalonia-bridge/transformable.md): 1 untested requirement (005, the settle timing reading `Engine.Current`), plus `Trigger`, `Container`, `ModifyTarget`, `PanBounds.Inside`, capture loss and half of 049 without tests, and the macOS, Android and Browser hardware checks.
+- [CORE-ANIMATABLE](specs/core/animatable.md): 0 untested requirements, plus no core test for canonical-name lookup.
+- [CORE-COLORS](specs/core/colors.md): 0 untested requirements, plus 027 not holding in `Oklch`.
+- [CORE-COMPOSITION](specs/core/composition.md): 0 untested requirements, plus a delayed `Replace` animation truncating its sibling when created rather than when its delay ends.
+- [CORE-INERTIA](specs/core/inertia.md): 0 untested requirements, plus the object form `TweenParams { To = new Inertia(…) }`.
+- [CORE-MOTIONVALUE](specs/core/motion-values.md): 0 untested requirements, plus no core test for `FollowSpring`/`SpringTarget` or `Set` throwing on `ProgressValue`/`ValueOf`.
+- [CORE-PRESTO](specs/core/presto.md): 2 untested requirements (016, `Set` throwing on a bare `TweenParams` value; 047, unobservable in-process).
+- [CORE-SCRAMBLE](specs/core/scramble.md): 1 untested requirement (015: an unseeded scramble takes the seed counter, not the shared generator).
+- [CORE-SPRING](specs/core/spring.md): 1 untested requirement (014, a clamp the parameter clamps keep out of reach).
+- [CORE-STAGGER](specs/core/stagger.md): 0 untested requirements, plus a fractional `Use` index.
+- [CORE-TARGETS](specs/core/targets.md): 0 untested requirements, plus no core test for `IReconcilingValueCodec`.
+- [CORE-THREADING](specs/core/threading.md): 1 untested requirement (027, Release-only).
+- [DEVTOOLS-OVERLAY](specs/devtools/overlay.md): 1 untested requirement (008, `UsePrestoDevTools`), plus the manual Desktop checks.
+- [LOTTIE-PLAYBACK](specs/lottie/lottie.md): 2 untested requirements (056, private state; 071, AOT probe only), plus reduced-motion and DevTools coverage of render-thread playback, and a Browser run.

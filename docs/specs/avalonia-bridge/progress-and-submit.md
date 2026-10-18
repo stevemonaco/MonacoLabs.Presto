@@ -32,7 +32,7 @@ depends:
 
 ## Purpose
 
-Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or segmented, that draws its `Value` as it is and doubles as a hold-to-confirm control; easing a value onto it is `Follow`'s job (`{presto:Follow}`, `Follow.Bind`, or `Follow.Draw` on a bare shape, all in BRIDGE-FOLLOW). `SubmitButton` is an attached recipe on any `Button` that collapses it to a spinner while work runs, draws a check or cross with `Recipes.DrawIn` (BRIDGE-RECIPES), and springs back to its own values.
+Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or segmented, that draws its `Value` as it is and doubles as a hold-to-confirm control that raises `HoldStarted`, `HoldCanceled` and `Confirmed` and executes its `Command` when full; easing a value onto it is `Follow`'s job (`{presto:Follow}`, `Follow.Bind`, or `Follow.Draw` on a bare shape, all in BRIDGE-FOLLOW). `SubmitButton` is an attached recipe on any `Button` that collapses it to a spinner while work runs, draws a check or cross with `Recipes.DrawIn` (BRIDGE-RECIPES), and springs back to its own values.
 
 ## Requirements
 
@@ -49,11 +49,11 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - **BRIDGE-SUBMIT-005** — When `Value` changes, the ring shall redraw at once with no easing of its own.
   - Tests: `ProgressRingTests.AHoldFillsTheRingAndConfirmsAtOneThenRewindsOnRelease`
 - **BRIDGE-SUBMIT-006** (inherited) — When `Segments`, `Fill` or `Track` changes, the ring shall rebuild its arcs; when `Gap` or `Thickness` changes, it shall reshape them on the next arrange.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ChangingSegmentsOrBrushesRebuildsTheArcsAndGapOrThicknessReshapesThemOnTheNextArrange`
 - **BRIDGE-SUBMIT-007** (inherited) — When `Segments` is set to 0 or less, the setter shall throw `ArgumentException`.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ANonPositiveSegmentCountThrows`
 - **BRIDGE-SUBMIT-008** (inherited) — The ring shall measure to zero and take the size it is arranged at.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ItMeasuresToZeroAndTakesTheSizeItIsArrangedAt`
 - **BRIDGE-SUBMIT-009** (inherited) — The ring shall be hit anywhere in its bounds, its hole included.
   - Tests: `ProgressRingTests.AHoldFillsTheRingAndConfirmsAtOneThenRewindsOnRelease`
 
@@ -75,13 +75,21 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
   - Tests: `ProgressRingTests.ReleasingBeforeOneRewindsWithoutConfirming`
 - **BRIDGE-SUBMIT-017** — While `Presto.Defaults.ReducedMotion` is true, a hold shall still fill over its full time, and the rewind shall land at once.
   - Tests: `ProgressRingTests.ReleasingBeforeOneRewindsWithoutConfirming`
+- **BRIDGE-SUBMIT-043** — When a hold starts, the ring shall raise `HoldStarted` once, before `Value` begins to move.
+  - Tests: `ProgressRingTests.AHoldRaisesHoldStartedOnceByPointerAndByKey`
+- **BRIDGE-SUBMIT-044** — When a hold stops before `Value` reaches 1, the ring shall raise `HoldCanceled` once as its rewind starts; a hold that raised `Confirmed` shall raise no `HoldCanceled` when let go.
+  - Tests: `ProgressRingTests.ReleasingShortRaisesHoldCanceledOnceAndAConfirmedReleaseRaisesNone`
+- **BRIDGE-SUBMIT-045** — When a hold reaches 1, the ring shall raise `Confirmed` and then, if `Command.CanExecute(CommandParameter)` is true, execute `Command` with `CommandParameter`.
+  - Tests: `ProgressRingTests.AConfirmedHoldExecutesTheCommandAfterConfirmed`
+- **BRIDGE-SUBMIT-046** — While `Command` is set and `CanExecute(CommandParameter)` is false, the ring shall be disabled and take no holds; it shall query again on `CanExecuteChanged` and when `Command` or `CommandParameter` changes.
+  - Tests: `ProgressRingTests.ACommandThatCannotExecuteDisablesTheRingAndFollowsCanExecuteChanged`
 
 ### Submit button: state
 
 - **BRIDGE-SUBMIT-018** — When `State` first changes on a button, the button shall get a layer holding a spinner (a three-quarter arc) and a mark, both 20 × 20, stroked 2.5 DIPs with round caps and joins in the button's `Foreground`, centered and not hit-testable.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
 - **BRIDGE-SUBMIT-019** — The layer shall be appended as a visual and logical child of the button, re-appended at each collapse if a re-template dropped it, and arranged at the button's bounds whenever they change.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.TheLayerIsAChildOfTheButtonArrangedAtItsBoundsAndReHostedAfterARetemplate`
 - **BRIDGE-SUBMIT-020** — When the state becomes `Busy`, `Succeeded` or `Failed` while the button is not collapsed, the button shall record its width, corner radius and background, animate `Width` from its width to its height and `CornerRadius` to half its height over `Tokens.Medium` on `Tokens.Ease`, and fade its presenter's content to 0 over the shorter of that and `Tokens.Short`.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`
 - **BRIDGE-SUBMIT-021** — When the state becomes `Busy`, the mark shall be erased, the spinner shall fade in over `Tokens.Short` and spin with `Recipes.Spinner()` unless it already spins.
@@ -99,7 +107,7 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - **BRIDGE-SUBMIT-027** (inherited) — When the state becomes `Idle` while not collapsed, the button shall not change size.
   - Tests: untested
 - **BRIDGE-SUBMIT-028** (inherited) — When the state moves between `Succeeded` and `Failed`, or from either back to `Busy`, the button shall stay collapsed and swap the mark or spinner without re-collapsing.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.MovingBetweenOutcomesAndBackToBusyStaysCollapsedAndSwapsTheMark`
 
 ### Submit button: Run
 
@@ -109,6 +117,8 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`, `SubmitButtonTests.AFaultedRunFailsWithoutThrowing`
 - **BRIDGE-SUBMIT-031** — `Run` shall hold the outcome for `Tokens.Medium + Tokens.Long` of engine time with `Presto.Delay`, then set `Idle` and return whether the work succeeded.
   - Tests: `SubmitButtonTests.RunShowsBusyThenTheOutcomeThenSpringsBack`, `SubmitButtonTests.AFaultedRunFailsWithoutThrowing`
+- **BRIDGE-SUBMIT-047** — When `Run` is called on a button while an earlier `Run` on it is in progress, the earlier run shall stop writing `State`, and still await its work, hold and return its own outcome.
+  - Tests: `SubmitButtonTests.ASecondRunTakesTheButtonOverAndTheFirstStillReturnsItsOutcome`
 
 ### Submit button: reduced motion
 
@@ -120,23 +130,25 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 ### Defaults
 
 - **BRIDGE-SUBMIT-034** (inherited) — When `Value` is not set, the ring shall draw no fill.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-035** (inherited) — When `Segments` is not set, the ring shall draw one whole arc.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-036** (inherited) — When `Gap` is not set, the gap between segments shall be 6°.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-037** (inherited) — When `Thickness` is not set, the arcs shall be stroked 4 DIPs wide.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-038** (inherited) — When `Fill` is not set, the fill arcs shall be opaque white.
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-039** (inherited) — When `Track` is not set, the track arcs shall be white at 40 % opacity (`#66FFFFFF`).
-  - Tests: untested
+  - Tests: `ProgressRingTests.ByDefaultItDrawsNoFillOverOneWholeFaintTrackFourDipsWide`
 - **BRIDGE-SUBMIT-040** (inherited) — When `HoldDuration` is not set, it shall be 0 and the ring shall take no holds.
-  - Tests: untested
+  - Tests: `ProgressRingTests.WithoutAHoldDurationItTakesNoHolds`
+- **BRIDGE-SUBMIT-048** — When `Command` and `CommandParameter` are not set, they shall be null and the ring shall take holds as it did without them.
+  - Tests: `ProgressRingTests.WithoutACommandTheRingIsEnabledAndAHoldConfirms`
 - **BRIDGE-SUBMIT-041** (inherited) — When `SubmitButton.State` is not set, the button shall be `Idle`.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.AnUnsetStateIsIdleAndLeavesTheButtonAlone`
 - **BRIDGE-SUBMIT-042** (inherited) — When a binding to `SubmitButton.State` names no mode, it shall bind two-way.
-  - Tests: untested
+  - Tests: `SubmitButtonTests.ABindingWithNoModeWritesTheStateBack`
 
 ## Invariants
 
@@ -149,13 +161,12 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - `Value` outside 0–1 is not clamped as a property; each segment's share is.
 - A hold started at `Value` 1 or above takes 0 ms and confirms at once.
 - A key-up of Space or Enter with no hold running does nothing; a pointer press during a key hold starts a new hold from the current value.
-- `Run` called again while a run is in progress overlaps the two: the later state changes win as they arrive.
 - The width a collapse records is the button's rendered width, so a button mid-layout-animation expands back towards that frame's width before reverting.
 - A faulted `work` passed to `Run` stays unobserved unless the caller observes it.
 
 ## Threading and lifetime
 
-- UI thread only. The ring's hold and rewind are bridge animations on the ring's `Value`; the submit button's parts live in a private attached property on the button for its lifetime. `Run`'s continuations resume on the caller's synchronization context.
+- UI thread only. The ring's hold and rewind are bridge animations on the ring's `Value`; the ring subscribes to its `Command`'s `CanExecuteChanged` only while attached to the visual tree; the submit button's parts and its latest run's token live in private attached properties on the button for its lifetime. `Run`'s continuations resume on the caller's synchronization context.
 
 ## Reduced motion
 
@@ -177,8 +188,13 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 - **The submit button is an attached form.** `SubmitButton.State` (Idle/Busy/Succeeded/Failed) on any `Button`, set by a view model or by `SubmitButton.Run(button, work)`, with the spinner and mark in a layer appended to the button's visual and logical children and arranged at its bounds. Reason: a view model binds the state, a handler awaits `Run`, and the button keeps its own template and content, so no content needs a part. Rejected: a templated control or a builder chain.
 - **The outcome is drawn in, not morphed.** A check or a cross is drawn with `Recipes.DrawIn` after the spinner fades. Reason: the spinner's arc stops at whatever angle the wait left it, and a cross is two strokes. Rejected: a `MorphTo` of the spinner's arc.
 - **The expand reverts when it lands.** Collapsing and expanding animate `Width`, `CornerRadius` and, with a success or failure brush, `Background`, and the expand's animations are reverted on landing. Reason: the button ends on its own local or styled values.
-- **The expand does not overshoot.** It lands on `Springs.Gentle`. Reason: `Width` is a layout property, so an overshooting spring re-centers the content each frame through layout rounding and the label visibly wobbles by a pixel as the spring settles. Rejected: `Springs.Bouncy`, and keeping the bounce with layout rounding turned off during the expand.
+- **The expand does not overshoot.** It lands on `Springs.Gentle`. Reason: a matter of taste; a submit button that settles without a bounce reads as calm. An overshoot would no longer wobble the label, since animated sizes snap to four device pixels (BRIDGE-TARGETS-033). Rejected: `Springs.Bouncy`.
 - **Run reports success unless the work failed.** The outcome is success unless the task faulted, was canceled or returned false, and it is shown for `Tokens.Medium + Tokens.Long`. Reason: not recorded.
+- **The ring executes `Command` after raising `Confirmed`.** Same order as `Button`, which raises `Click` before its command. Reason: a handler that animates the confirm runs before the view model reacts to it. Rejected: a command that replaces the event.
+- **A command that cannot execute disables the ring.** While `Command.CanExecute(CommandParameter)` is false, the ring's `IsEffectivelyEnabled` is false, so it takes no presses, keys or focus; it re-queries on `CanExecuteChanged`, subscribed only while attached. Reason: Avalonia's `Button` behaves this way, and a hold that fills to a confirmation that does nothing reads as broken. Rejected: holding normally and skipping the command at 1.
+- **`HoldStarted` and `HoldCanceled` are plain CLR events, like `Confirmed`.** Reason: all three describe one control's hold and are handled on that control; a routed event would bubble to ancestors that have no reason to handle it. Rejected: routed events, and an `IsHolding` property (a "was pressed since it opened" check is a latch over an event, not a state).
+- **`HoldCanceled` fires only for a hold that ends short.** It is raised as the rewind starts, before `Value` moves back. Reason: an early release is the moment to react, and a release after `Confirmed` is not a cancel. Rejected: a `HoldEnded` with a confirmed flag, which every handler would have to filter.
+- **The latest `Run` owns the button.** Each run takes a token, and a run whose token is stale writes no `State`; it still awaits its work, holds for its outcome and returns its own result. Reason: the work has already started when `Run` is called, so refusing the second run would lose its outcome, and with no guard the first run's late `Idle` collapses the second's spinner. Rejected: throwing `InvalidOperationException` (the caller's task is already running); queueing the second run (the button would show a stale outcome first).
 - **The outcome hold runs on engine time.** `Run` waits with `Presto.Delay`, while `work` keeps whatever clock the caller gave it. Reason: the hold is a beat between the mark drawing in and the expand, so it scales with the animations around it under the engine's speed or a DevTools slow-motion. Rejected: `Task.Delay`, which would leave the hold at full length while the animations slow.
 
 ## Non-goals
@@ -189,5 +205,4 @@ Two value-and-state prebuilts. `ProgressRing` is a determinate ring, whole or se
 
 ## Open items
 
-- Rebuild and reshape on `Segments`/`Fill`/`Track`/`Gap`/`Thickness` changes (006), the `Segments` validation throw (007), zero measure (008), layer re-hosting (019), idle while not collapsed (027) and state moves without re-collapse (028) have no tests.
-- `Run` does not guard against overlapping runs on the same button; nothing documents what a second call does.
+- Idle while not collapsed (027) has no test, and no public path reaches it: `State` starts `Idle`, every other state collapses, and setting `Idle` on an `Idle` button raises no change.
