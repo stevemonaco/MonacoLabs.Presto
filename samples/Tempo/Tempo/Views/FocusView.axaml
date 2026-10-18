@@ -11,24 +11,25 @@
                                      PageTransition="{presto:PageSharedAxis Axis=Y}" HorizontalContentAlignment="Center" />
 
         <Panel x:Name="Dial" Grid.Row="1" Width="300" Height="300">
-            <Panel>
-                <presto:Motion.States>
+            <presto:ProgressRing x:Name="Ring" Classes="accent" Classes.final="{Binding IsFinalCountdown}" Thickness="10" Track="{DynamicResource TempoLine}"
+                                 presto:Animate.Watch="{Binding RemainingText}"
+                                 presto:Animate.Cue="{Binding FocusCompleted}" presto:Animate.DoOnCue="{presto:Burst Color={x:Static m:TempoMotion.FocusAccent}}"
+                                 Value="{presto:Follow {Binding Progress}, Duration=250, Ease=linear}"
+                                 presto:Connected.Key="{Binding RingKey}" presto:Connected.Motion="{x:Static m:TempoMotion.IntroFlight}">
+                <presto:Motion.LocalStates>
                     <presto:MotionStates>
-                        <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.RingBreathe}" />
+                        <presto:MotionState When="IsRunning" Motion="{x:Static m:TempoMotion.RingBreathe}" />
                     </presto:MotionStates>
-                </presto:Motion.States>
-                <presto:ProgressRing x:Name="Ring" Classes="accent" Classes.final="{Binding IsFinalCountdown}" Thickness="10" Track="{DynamicResource TempoLine}"
-                                     presto:Animate.Watch="{Binding RemainingText}"
-                                     Value="{presto:Follow {Binding Progress}, Duration=250, Ease=linear}"
-                                     presto:Connected.Key="{Binding RingKey}" presto:Connected.Motion="{x:Static m:TempoMotion.IntroFlight}" />
-            </Panel>
+                </presto:Motion.LocalStates>
+            </presto:ProgressRing>
             <!-- Laid out at the full 300 and scaled with the dial, so the digits keep their place in the ring. -->
             <Viewbox>
                 <Panel Width="300" Height="300">
                     <!-- The digits hold the ring's center, with or without a task. Centered under a top margin, the title sits half that margin lower: 10 below the 68 DIP digits. -->
                     <Panel Classes="handoff">
                         <!-- TextAlignment, not HorizontalAlignment: a rounded block width would shift the text a pixel. -->
-                        <TextBlock x:Name="Remaining" Classes="remaining" FontFeatures="+tnum" TextAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock x:Name="Remaining" Classes="remaining" FontFeatures="+tnum" TextAlignment="Center" VerticalAlignment="Center"
+                                   presto:Animate.Watch="{Binding RemainingText}" presto:Animate.DoOnChanged="{presto:MorphGlyphs Reduced=Instant}" />
                         <TextBlock Classes="caption" Text="{Binding ActiveTask.Title, FallbackValue=''}" MaxWidth="200"
                                    TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,103,0,0" />
                     </Panel>
@@ -46,11 +47,11 @@
                 </Button>
             </Panel>
             <Panel VerticalAlignment="Center">
-                <!-- The halo pings while Running enters; its rest is invisible, so leaving shows nothing. Sized with the pill. -->
+                <!-- The halo pings while IsRunning enters; its rest is invisible, so leaving shows nothing. Sized with the pill. -->
                 <Panel x:Name="StartHalo" Opacity="0" IsHitTestVisible="False">
                     <presto:Motion.States>
                         <presto:MotionStates>
-                            <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.StartPing}" />
+                            <presto:MotionState When="IsRunning" Motion="{x:Static m:TempoMotion.StartPing}" />
                         </presto:MotionStates>
                     </presto:Motion.States>
                     <Border Classes="halo accent-bg" />
@@ -63,11 +64,13 @@
                             <Path x:Name="PlayPause" Classes="play" Data="{StaticResource PlayIcon}">
                                 <presto:Motion.States>
                                     <presto:MotionStates>
-                                        <presto:MotionState When="Running" Motion="{x:Static m:TempoMotion.IconToPause}" />
+                                        <presto:MotionState When="IsRunning" Motion="{x:Static m:TempoMotion.IconToPause}" />
                                     </presto:MotionStates>
                                 </presto:Motion.States>
                             </Path>
-                            <TextBlock x:Name="StartLabel" Classes="start-label" IsVisible="{Binding StartPauseLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            <!-- The label hides while running, so only a word replacing a word morphs. -->
+                            <TextBlock x:Name="StartLabel" Classes="start-label" IsVisible="{Binding StartPauseLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                       presto:Animate.Watch="{Binding StartPauseLabel}" presto:Animate.DoOnChanged="{presto:MorphGlyphs Reduced=Instant, MorphBlank=False}" />
                         </StackPanel>
                     </Button>
                 </Border>
@@ -82,7 +85,7 @@
         </StackPanel>
 
         <StackPanel Grid.Row="3" Classes="handoff" Spacing="12" MinHeight="64" HorizontalAlignment="Center">
-            <ContentControl x:Name="Summary">
+            <ContentControl x:Name="Summary" Content="{Binding Summary}">
                 <ContentControl.ContentTemplate>
                     <DataTemplate x:DataType="x:String">
                         <TextBlock Classes="summary" Text="{Binding}" presto:Presence.Enter="{presto:LineRise}" />

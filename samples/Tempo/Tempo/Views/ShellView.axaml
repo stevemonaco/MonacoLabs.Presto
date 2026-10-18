@@ -6,7 +6,7 @@
              xmlns:vm="using:Tempo.ViewModels"
              x:Class="Tempo.Views.ShellView"
              x:DataType="vm:MainViewModel"
-             presto:Motion.State="{Binding Focus.MotionState}"
+             presto:Motion.State="{presto:StateTokens {Binding Focus.Mode}, {Binding Focus.IsRunning}}"
              presto:Motion.StaggerChildren="40">
     <Grid Classes="shell" RowDefinitions="Auto,*,Auto">
         <Border Grid.RowSpan="3" Classes="backdrop accent-bg handoff" />
@@ -40,7 +40,8 @@
                     <x:Static Member="vm:AppView.Focus" />
                     <x:Static Member="vm:AppView.Stats" />
                 </ListBox>
-                <Button x:Name="SettingsButton" Grid.Column="3" Classes="icon handoff" Command="{Binding OpenSettingsCommand}"
+                <Button x:Name="SettingsButton" Grid.Column="3" Classes="icon handoff" Classes.open="{Binding #SettingsSheet.IsOpen}"
+                        Command="{Binding OpenSettingsCommand}"
                         WindowDecorationProperties.ElementRole="User" ToolTip.Tip="Settings (Ctrl+,)"
                         presto:Motion.Hover="{x:Static m:TempoMotion.GearSpin}"
                         presto:Magnetic.Enabled="True" presto:Magnetic.Strength="0.3" presto:Magnetic.Radius="28">
@@ -50,12 +51,6 @@
                         </presto:MotionStates>
                     </presto:Motion.States>
                     <PathIcon Data="{StaticResource SettingsIcon}" />
-                    <FlyoutBase.AttachedFlyout>
-                        <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterClasses="glass" Opened="SettingsToggled" Closed="SettingsToggled"
-                                presto:Popover.Open="{x:Static m:TempoMotion.FlyoutOpen}" presto:Popover.Close="{x:Static m:TempoMotion.FlyoutClose}">
-                            <v:SettingsFlyout x:Name="Settings" />
-                        </Flyout>
-                    </FlyoutBase.AttachedFlyout>
                 </Button>
             </Grid>
         </Border>
@@ -89,7 +84,8 @@
                     <x:Static Member="vm:AppView.Focus" />
                     <x:Static Member="vm:AppView.Stats" />
                 </ListBox>
-                <Button x:Name="NavSettings" Grid.Column="1" Classes="nav-settings" Command="{Binding OpenSettingsCommand}">
+                <Button x:Name="NavSettings" Grid.Column="1" Classes="nav-settings" Classes.open="{Binding #SettingsSheet.IsOpen}"
+                        Command="{Binding OpenSettingsCommand}">
                     <StackPanel Spacing="3">
                         <PathIcon Classes="nav-icon" Data="{StaticResource SettingsIcon}">
                             <presto:Motion.States>
@@ -104,7 +100,8 @@
             </Grid>
         </Border>
 
-        <presto:ToastHost x:Name="Toasts" Grid.Row="1" MaxCount="1" MaxWidth="320" Margin="16,0,16,24" VerticalAlignment="Bottom">
+        <presto:ToastHost x:Name="Toasts" Grid.Row="1" MaxCount="1" MaxWidth="320" Margin="16,0,16,24" VerticalAlignment="Bottom"
+                          presto:Animate.Cue="{Binding TaskDeleted}" presto:Animate.DoOnCue="{presto:ShowToast Duration=5000}">
             <presto:ToastHost.ItemTemplate>
                 <DataTemplate x:DataType="vm:TaskItemViewModel">
                     <Border Classes="toast"
@@ -115,7 +112,8 @@
                                 <Run Text="Deleted" Foreground="{DynamicResource TempoInkDim}" />
                                 <Run Text="{Binding Title}" />
                             </TextBlock>
-                            <Button Grid.Column="1" Content="Undo" Margin="6" Click="Undo" />
+                            <Button Grid.Column="1" Content="Undo" Margin="6" presto:ToastHost.DismissOnClick="True"
+                                    Command="{Binding $parent[presto:ToastHost].((vm:MainViewModel)DataContext).UndoDeleteCommand}" />
                             <Border Grid.Row="1" Grid.ColumnSpan="2" Classes="countdown accent-bg" presto:ToastHost.Countdown="ScaleX" />
                         </Grid>
                     </Border>
@@ -123,23 +121,24 @@
             </presto:ToastHost.ItemTemplate>
         </presto:ToastHost>
 
-        <!-- Compact moves the detail and the settings into the bottom sheets, over the bar too. -->
-        <presto:Drawer x:Name="DetailDrawer" Grid.Row="1" Edge="Right" TimeConstant="150">
-            <v:TaskDetail x:Name="Detail" DataContext="{Binding SelectedTask}" />
-        </presto:Drawer>
-        <presto:Sheet x:Name="DetailSheet" Grid.Row="1" Grid.RowSpan="2" Detents="0,0.5,1" TimeConstant="150">
+        <!-- Compact turns the detail and the settings popover into bottom sheets, over the bar too. -->
+        <presto:Sheet x:Name="DetailSheet" Grid.Row="1" TimeConstant="150" IsOpen="{Binding IsDetailOpen}">
             <Border Classes="sheet">
                 <DockPanel>
                     <Border Classes="grab" DockPanel.Dock="Top" />
-                    <Decorator x:Name="DetailSlot" />
+                    <v:TaskDetail x:Name="Detail" DataContext="{Binding SelectedTask}" />
                 </DockPanel>
             </Border>
         </presto:Sheet>
-        <presto:Sheet x:Name="SettingsSheet" Grid.Row="1" Grid.RowSpan="2" TimeConstant="150">
+        <presto:Sheet x:Name="SettingsSheet" Grid.Row="1" Anchor="{Binding #SettingsButton}" TimeConstant="150" IsOpen="{Binding IsSettingsOpen}">
+            <presto:Sheet.Flyout>
+                <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterClasses="glass"
+                        presto:Popover.Open="{x:Static m:TempoMotion.FlyoutOpen}" presto:Popover.Close="{x:Static m:TempoMotion.FlyoutClose}" />
+            </presto:Sheet.Flyout>
             <Border Classes="sheet">
                 <DockPanel>
                     <Border Classes="grab" DockPanel.Dock="Top" />
-                    <Decorator x:Name="SettingsSlot" />
+                    <v:SettingsFlyout x:Name="Settings" />
                 </DockPanel>
             </Border>
         </presto:Sheet>

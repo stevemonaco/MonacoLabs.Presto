@@ -50,7 +50,7 @@ depends:
 
 ## Purpose
 
-Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control crossing enter and leave thresholds of its `ScrollViewer`, reports the crossings through callbacks and drives a `Link`ed timer, animation or timeline by playback methods or by seeking it to the scroll progress. On top of that it adds GSAP ScrollTrigger's pin (with spacing) and snap. The observers of one scroller share a `ScrollContainer`, which `Scroll.Speed` parallax and `PrestoAvalonia.ScrollValue` also use (BRIDGE-SCROLL, BRIDGE-FOLLOW). Also specifies `PrestoAvalonia.OnScroll` and `PrestoAvalonia.RefreshScroll`.
+Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control crossing enter and leave thresholds of its `ScrollViewer`, reports the crossings through callbacks and drives a `Link`ed timer, animation or timeline by playback methods or by seeking it to the scroll progress. On top of that it adds GSAP ScrollTrigger's pin (with spacing) and snap. The observers of one scroller share a `ScrollContainer`, which `Scroll.Speed` parallax, the `Scroll` edge cues, `PrestoAvalonia.ScrollValue` and `PrestoAvalonia.ScrollRemainingValue` also use (BRIDGE-SCROLL, BRIDGE-FOLLOW). Also specifies `PrestoAvalonia.OnScroll` and `PrestoAvalonia.RefreshScroll`.
 
 ## Requirements
 

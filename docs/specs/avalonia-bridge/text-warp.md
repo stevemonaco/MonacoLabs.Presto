@@ -105,7 +105,7 @@ With `a` the `Warp` amount, `R` the `WarpRadius`, `o` the `WarpOrigin`, `W` × `
 
 ## Allocation
 
-- A warp frame allocates each warped piece's new `StreamGeometry` (with its context and Skia path) and the `Data` change it raises, nothing else: about 640 bytes per character (`BridgeAllocationTests.ATextWarpFrameAllocatesOnlyItsGeometries`). Jelly's spring buffers are allocated when the composer takes up a split's pieces.
+- A warp frame allocates each warped piece's new `StreamGeometry` (with its context and Skia path) and the `Data` change it raises, nothing else: about 710 bytes per character on Avalonia 12.1.4 (`BridgeAllocationTests.ATextWarpFrameAllocatesOnlyItsGeometries`). Jelly's spring buffers are allocated when the composer takes up a split's pieces.
 
 ## Provenance
 

@@ -7,6 +7,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Controls;
 using Tempo.Model;
@@ -36,6 +37,48 @@ public sealed class TasksViewTests : TempoTestBase
             Assert.InRange(scroll.Offset.Y, .01, 49);
         TestFrames.Tick(30);
         Assert.Equal(50, scroll.Offset.Y, 1);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheTaskListShadowsCueTheEdgesWithRowsPastThem(bool reduced)
+    {
+        var (window, vm) = await ShowSeededAsync(reduced, new Size(1100, 560));
+        TestFrames.Tick(30);
+        var list = Find<ListBox>(window, "TaskList");
+        var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().First();
+        var shadows = ((Panel)list.Parent!).Children.OfType<Border>().Where(b => b.Classes.Contains("scroll-shadow")).ToList();
+        var (top, bottom) = (shadows.Single(b => b.Classes.Contains("top")), shadows.Single(b => b.Classes.Contains("bottom")));
+        Assert.True(scroll.Extent.Height - scroll.Viewport.Height >= 24);
+
+        Assert.Equal(0, top.Opacity);
+        Assert.Equal(1, bottom.Opacity);
+
+        scroll.Offset = new Vector(0, scroll.Extent.Height - scroll.Viewport.Height);
+        TestFrames.Tick();
+        Assert.Equal(1, top.Opacity);
+        Assert.Equal(0, bottom.Opacity);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task TheCompactChipRowFadesItsTrailingEndWhileChipsRemainToTheRight()
+    {
+        var (window, vm) = await ShowSeededAsync(reduced: true, new Size(360, 780));
+        vm.CurrentView = AppView.Tasks;
+        TestFrames.Tick(30);
+        var chips = Find<ListBox>(window, "TagChips");
+        var scroll = chips.GetVisualDescendants().OfType<ScrollViewer>().First();
+        Assert.True(scroll.Extent.Width > scroll.Viewport.Width);
+
+        var mask = Assert.IsType<LinearGradientBrush>(chips.OpacityMask);
+        Assert.Equal(new RelativePoint(1, 0, RelativeUnit.Relative), mask.EndPoint);
+        Assert.Equal(255, mask.GradientStops[0].Color.A);
+        Assert.True(mask.GradientStops[^1].Color.A < 255);
         window.Close();
         await vm.FlushAsync();
     }
@@ -205,7 +248,7 @@ public sealed class TasksViewTests : TempoTestBase
 
         var toasts = Find<ToastHost>(window, "Toasts");
         var undo = Assert.Single(toasts.GetVisualDescendants().OfType<Button>());
-        undo.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        ((IInvokeProvider)ControlAutomationPeer.CreatePeerForElement(undo)).Invoke();
         TestFrames.Tick(30);
 
         Assert.Equal(["A", "B", "C"], vm.Tasks.Select(t => t.Title));
@@ -236,6 +279,36 @@ public sealed class TasksViewTests : TempoTestBase
         Assert.Equal([a], vm.DoneTasks);
         Assert.Contains(done.GetVisualDescendants().OfType<Border>(), r => r.Classes.Contains("task-row") && r.DataContext == a);
         Assert.DoesNotContain(Rows(window), r => r.DataContext == a);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ACompletedRowFliesIntoDoneWithNoExitGhostOrEntrance(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced, "A", "B");
+        var a = vm.Tasks[0];
+        var done = window.GetVisualDescendants().OfType<Expander>().Single();
+        done.IsExpanded = true;
+        TestFrames.Tick(30);
+        var leaving = Assert.Single(Rows(window), r => r.DataContext == a);
+        var from = leaving.TranslatePoint(default, window)!.Value.Y;
+
+        leaving.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked = true;
+        TestFrames.Tick(10);
+        Time.Advance(MainViewModel.DoneMoveDelay);
+        TestFrames.Tick(1);
+
+        Assert.Empty(Ghosts(window));
+        var arrived = done.GetVisualDescendants().OfType<Border>().Single(r => r.Classes.Contains("task-row") && r.DataContext == a);
+        Assert.Equal(1, arrived.Opacity);
+        TestFrames.Tick(60);
+        var to = arrived.TranslatePoint(default, window)!.Value.Y;
+        Assert.True(to > from + 20);
+        Assert.Empty(Ghosts(window));
+        Assert.Equal(1, arrived.Opacity);
         window.Close();
         await vm.FlushAsync();
     }

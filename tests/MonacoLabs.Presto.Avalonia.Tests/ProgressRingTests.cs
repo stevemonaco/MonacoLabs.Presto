@@ -4,7 +4,6 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.VisualTree;
-using System.Windows.Input;
 using MonacoLabs.Presto.Controls;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -110,7 +109,7 @@ public sealed class ProgressRingTests : BridgeTestBase
         ring.HoldDuration = 200;
         var order = new List<object?>();
         ring.Confirmed += (_, _) => order.Add("confirmed");
-        ring.Command = new Command(order.Add);
+        ring.Command = new TestCommand(order.Add);
         ring.CommandParameter = "abandon";
         var window = Show(ring);
         var center = Center(ring, window);
@@ -127,7 +126,7 @@ public sealed class ProgressRingTests : BridgeTestBase
     {
         var ring = Ring();
         ring.HoldDuration = 200;
-        var command = new Command(_ => { }) { Enabled = false };
+        var command = new TestCommand(_ => { }) { Enabled = false };
         ring.Command = command;
         var window = Show(ring);
         var center = Center(ring, window);
@@ -145,7 +144,7 @@ public sealed class ProgressRingTests : BridgeTestBase
         Assert.InRange(ring.Value, .3, .7);
         window.MouseUp(center, MouseButton.Left);
 
-        ring.Command = new Command(_ => { }) { Enabled = false };
+        ring.Command = new TestCommand(_ => { }) { Enabled = false };
         Assert.False(ring.IsEffectivelyEnabled);
         ring.Command = null;
         Assert.True(ring.IsEffectivelyEnabled);
@@ -199,24 +198,5 @@ public sealed class ProgressRingTests : BridgeTestBase
         window.MouseUp(center, MouseButton.Left);
         Frames.Advance(Recipes.Tokens.Short + 32, 16);
         Assert.Single(canceled);
-    }
-
-    private sealed class Command(Action<object?> execute) : ICommand
-    {
-        public bool Enabled
-        {
-            get;
-            set
-            {
-                field = value;
-                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-            }
-        } = true;
-
-        public event EventHandler? CanExecuteChanged;
-
-        public bool CanExecute(object? parameter) => Enabled;
-
-        public void Execute(object? parameter) => execute(parameter);
     }
 }

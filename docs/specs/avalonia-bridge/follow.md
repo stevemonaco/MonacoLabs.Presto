@@ -49,7 +49,7 @@ depends:
 
 ## Purpose
 
-Makes a bound property ease to each new value instead of jumping to it (≈ Compose `animate*AsState`, Flutter `AnimatedContainer`): `{presto:Follow {Binding …}}` in XAML, `Follow.Bind` in code, and `Follow.*` attached shorthands for the render transform, blur and a shape's drawn stroke. It also carries the core `MotionValue` graph (CORE-MOTIONVALUE) to and from controls: bridge sources (scroll, pointer, pointer proximity, property, draggable, observer) feed values in, and the `Follow` sinks write them out; a core `Trail` reaches controls through those same sinks (`Follow.Bind`, `Follow.X`/`Follow.Y`), one per element. Also specifies `PrestoAvalonia.ScrollValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` and `ValueOf`, `ScrollObserver.ProgressValue` and `Draggable.XValue`/`YValue`.
+Makes a bound property ease to each new value instead of jumping to it (≈ Compose `animate*AsState`, Flutter `AnimatedContainer`): `{presto:Follow {Binding …}}` in XAML, `Follow.Bind` in code, and `Follow.*` attached shorthands for the render transform, blur and a shape's drawn stroke. It also carries the core `MotionValue` graph (CORE-MOTIONVALUE) to and from controls: bridge sources (scroll, pointer, pointer proximity, property, draggable, observer) feed values in, and the `Follow` sinks write them out; a core `Trail` reaches controls through those same sinks (`Follow.Bind`, `Follow.X`/`Follow.Y`), one per element. Also specifies `PrestoAvalonia.ScrollValue`, `ScrollRemainingValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` and `ValueOf`, `ScrollObserver.ProgressValue` and `Draggable.XValue`/`YValue`.
 
 ## Requirements
 
@@ -172,8 +172,10 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 
 - **BRIDGE-FOLLOW-047** — `PrestoAvalonia.ScrollValue` shall hold the scroller's offset on the axis, rounded to whole pixels, or with `progress`, offset ÷ (extent − viewport) clamped to 0–1 (0 when nothing scrolls).
   - Tests: `MotionValueSourceTests.ScrollValuesFollowTheOffsetOnBothAxes`
-- **BRIDGE-FOLLOW-048** — A `ScrollValue` shall refresh when the scroller's extent or viewport changes, and each call shall make its own value fed from the scroller's shared `ScrollContainer`, which stays alive while any value uses it.
-  - Tests: `MotionValueSourceTests.ScrollProgressIsRefreshedWhenTheExtentChanges`
+- **BRIDGE-FOLLOW-048** — A `ScrollValue` or `ScrollRemainingValue` shall refresh when the scroller's extent or viewport changes, and each call shall make its own value fed from the scroller's shared `ScrollContainer`, which stays alive while any value uses it.
+  - Tests: `MotionValueSourceTests.ScrollProgressIsRefreshedWhenTheExtentChanges`, `MotionValueSourceTests.ScrollRemainingIsRefreshedWhenTheExtentChanges`
+- **BRIDGE-FOLLOW-075** — `PrestoAvalonia.ScrollRemainingValue` shall hold max(0, extent − viewport − offset) on the axis, rounded to whole pixels (0 when the content fits the viewport), updated in the scroller's offset notification.
+  - Tests: `MotionValueSourceTests.ScrollRemainingValuesHoldTheDistanceLeftOnBothAxes`, `MotionValueSourceTests.ScrollRemainingIsZeroWhenTheContentFits`
 - **BRIDGE-FOLLOW-049** — Several scroll changes within one frame shall reach a `Changed` handler on a derived scroll value once, with the last value.
   - Tests: `MotionValueSourceTests.ASinkSeesOneChangePerFrameWhileScrollingSeveralNotches`
 - **BRIDGE-FOLLOW-050** — `PrestoAvalonia.PointerValue` shall start at 0 and hold the pointer position over the control on the axis, in DIPs from its top left, or with `relativeToBounds` as a fraction of its size (0 when the size is 0), updated on `PointerEntered` and `PointerMoved`.
@@ -182,7 +184,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: `MotionValueSourceTests.ValueOfFollowsSetValue`
 - **BRIDGE-FOLLOW-052** (inherited) — When a `ValueOf` property value does not convert to `double`, `ValueOf` shall throw the `Convert.ToDouble` exception (at creation, or from the change that carries it).
   - Tests: untested
-- **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` or `ValueOf` shall stop at its last value and not revive on reattach; a `PointerProximityValue` or `PointerOffsetValue` shall also stop when its tracking surface leaves the visual tree, and when given `over` shall stop with that surface instead of its control; a non-`Visual` `ValueOf` target stops only with its scope.
+- **BRIDGE-FOLLOW-053** — When its control leaves the visual tree, or the scope that was current at creation reverts, a `ScrollValue`, `ScrollRemainingValue`, `PointerValue`, `PointerProximityValue`, `PointerOffsetValue` or `ValueOf` shall stop at its last value and not revive on reattach; a `PointerProximityValue` or `PointerOffsetValue` shall also stop when its tracking surface leaves the visual tree, and when given `over` shall stop with that surface instead of its control; a non-`Visual` `ValueOf` target stops only with its scope.
   - Tests: `MotionValueSourceTests.ScrollAndPropertyValuesStopWhenTheirControlDetaches`, `MotionValueSourceTests.PointerValueStopsWhenItsScopeReverts`, `PointerProximityValueTests.DetachAndScopeRevertStopTheValueForGood`, `PointerProximityValueTests.RemovingTheSurfaceStopsItsValues`, `PointerProximityValueTests.OverASurfaceTheValueOutlivesItsControlBeingReHosted`
 - **BRIDGE-FOLLOW-074** — Once such a value has stopped, its registration shall count as released to the scope that was current at creation (CORE-SCOPE).
   - Tests: `ScopePruningTests.RevertedBridgeRevertiblesArePrunedFromTheirScope`
@@ -219,6 +221,8 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
   - Tests: untested
 - **BRIDGE-FOLLOW-057** — When `ScrollValue`'s axis is not given, the value shall follow the vertical offset.
   - Tests: `MotionValueSourceTests.ScrollValuesFollowTheOffsetOnBothAxes`
+- **BRIDGE-FOLLOW-077** — When `ScrollRemainingValue`'s axis is not given, the value shall measure the vertical axis.
+  - Tests: `MotionValueSourceTests.ScrollRemainingValuesHoldTheDistanceLeftOnBothAxes`
 
 ## Invariants
 
@@ -292,6 +296,7 @@ Makes a bound property ease to each new value instead of jumping to it (≈ Comp
 - **An absent pointer reads 0 on both values.** Reason: 0 is rest for every intended use (no pull, no swell), and returning to rest is the effect's leave behavior. Rejected: holding the last value, which would leave a magnet stuck when the pointer leaves the window.
 - **Touch counts only while the contact is down; mouse and pen count while hovering; the last-moved pointer wins.** Reason: touch has no hover, and a lifted finger would otherwise freeze a pull in place; following one pointer keeps every value over a surface consistent.
 - **Edge distance by default, `fromCenter` as an opt-in `bool`.** Reason: for a wide button, edge distance makes the whole perimeter equally sensitive, while center distance suits small dots and letters; a `bool` matches `ScrollValue`'s `progress` and `PointerValue`'s `relativeToBounds`.
+- **`ScrollRemainingValue` is a new method, not a third mode on `ScrollValue`.** Its requirements live here beside `ScrollValue`'s (BRIDGE-FOLLOW-047/048/053/057), not with the edge cues in BRIDGE-SCROLL, which consume it. Reason: `ScrollValue`'s `bool progress` cannot take a third mode without a breaking change or an awkward pair of flags, and the scroll values share their tests and lifetime. Rejected: a `ScrollMeasure` enum overload (more surface for one case); leaving remaining distance out (code cues would recompute it from extent, viewport and offset by hand).
 - **Pointer proximity keeps tracking a pointer captured elsewhere.** A `Draggable` drag elsewhere still drives the values, since its moves still tunnel through the surface; relaxing them during another element's drag is not built.
 
 ## Non-goals

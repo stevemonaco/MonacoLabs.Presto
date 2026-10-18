@@ -639,16 +639,226 @@ public sealed class AnimateAttachedTests : BridgeTestBase
         var isDesignMode = typeof(Design).GetProperty(nameof(Design.IsDesignMode))!; // The setter is internal.
         var border = AddBorder(ShowPanel());
         isDesignMode.SetValue(null, true);
+        var cue = new Cue();
+        var action = new RecordingAction();
         try
         {
             Animate.SetOnAttached(border, SlideX(100));
+            Animate.SetCue(border, cue);
+            Animate.SetOnCue(border, SlideX(100));
+            Animate.SetDoOnCue(border, action);
+            Animate.SetDoOnChanged(border, action);
+            Animate.SetWatch(border, 1);
         }
         finally
         {
             isDesignMode.SetValue(null, false);
         }
+        cue.Raise();
 
         Assert.Empty(Presto.GetAnimations(border));
+        Assert.Empty(action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void OnCuePlaysOnEachRaiseRestartingAndRevertsWhenItCompletes()
+    {
+        var border = AddBorder(ShowPanel());
+        var cue = new Cue();
+        Animate.SetCue(border, cue);
+        Animate.SetOnCue(border, SlideX(100));
+        Assert.Empty(Presto.GetAnimations(border));
+
+        cue.Raise();
+        var first = Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(50, 10);
+
+        cue.Raise();
+        Assert.True(first.Canceled);
+        Assert.Single(Presto.GetAnimations(border));
+        Frames.Advance(200, 16);
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Equal(0d, X(border));
+    }
+
+    [AvaloniaFact]
+    public void ARaiseWhileDetachedPlaysAndInvokesNothing()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var cue = new Cue<int>();
+        var action = new RecordingAction();
+        Animate.SetCue(border, cue);
+        Animate.SetOnCue(border, SlideX(100));
+        Animate.SetDoOnCue(border, action);
+        panel.Children.Remove(border);
+
+        cue.Raise(1);
+
+        Assert.Empty(Presto.GetAnimations(border));
+        Assert.Empty(action.Calls);
+        panel.Children.Add(border);
+        Assert.Empty(action.Calls);
+        cue.Raise(2);
+        Assert.Equal([(2, false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void DetachingUnsubscribesFromTheCueAndAttachingSubscribesAgain()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var source = new CountingObservable();
+        Animate.SetCue(border, source);
+        Assert.Equal(1, source.Count);
+
+        panel.Children.Remove(border);
+        Assert.Equal(0, source.Count);
+
+        panel.Children.Add(border);
+        Assert.Equal(1, source.Count);
+    }
+
+    [AvaloniaFact]
+    public void ChangingOrClearingTheCueUnsubscribesFromTheOldOne()
+    {
+        var border = AddBorder(ShowPanel());
+        var first = new CountingObservable();
+        var second = new CountingObservable();
+        Animate.SetCue(border, first);
+
+        Animate.SetCue(border, second);
+        Assert.Equal(0, first.Count);
+        Assert.Equal(1, second.Count);
+
+        Animate.SetCue(border, null);
+        Assert.Equal(0, second.Count);
+    }
+
+    [AvaloniaFact]
+    public void AnObservableSourceDrivesOnCueAndDoOnCue()
+    {
+        var border = AddBorder(ShowPanel());
+        var source = new CountingObservable();
+        var action = new RecordingAction();
+        Animate.SetCue(border, source);
+        Animate.SetOnCue(border, SlideX(100));
+        Animate.SetDoOnCue(border, action);
+
+        source.Raise("saved");
+
+        Assert.Single(Presto.GetAnimations(border));
+        Assert.Equal([("saved", false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void ACueThatIsNeitherACueNorAnObservableThrows()
+    {
+        var border = AddBorder(ShowPanel());
+
+        Assert.Throws<ArgumentException>(() => Animate.SetCue(border, "not a cue"));
+    }
+
+    [AvaloniaFact]
+    public void DoOnCueGetsTheRaisedValueAsNotFirst()
+    {
+        var border = AddBorder(ShowPanel());
+        var cue = new Cue<string>();
+        var action = new RecordingAction();
+        Animate.SetCue(border, cue);
+        Animate.SetDoOnCue(border, action);
+
+        cue.Raise("a");
+        cue.Raise("b");
+
+        Assert.Equal([("a", false), ("b", false)], action.Calls);
+        Assert.All(action.Targets, target => Assert.Same(border, target));
+    }
+
+    [AvaloniaFact]
+    public void DoOnChangedSeesTheFirstValueAsFirstAndLaterValuesAsNot()
+    {
+        var border = AddBorder(ShowPanel());
+        var action = new RecordingAction();
+        Animate.SetDoOnChanged(border, action);
+        Animate.SetWatch(border, 1);
+        Animate.SetWatch(border, 2);
+
+        Assert.Equal([(null, true), (1, false), (2, false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void DoOnChangedCatchesUpOnAValueThatChangedWhileDetached()
+    {
+        var panel = ShowPanel();
+        var border = new Border();
+        var action = new RecordingAction();
+        Animate.SetWatch(border, 1);
+        Animate.SetDoOnChanged(border, action);
+        Assert.Empty(action.Calls);
+
+        panel.Children.Add(border);
+        panel.Children.Remove(border);
+        Animate.SetWatch(border, 2);
+        panel.Children.Add(border);
+        panel.Children.Remove(border);
+        panel.Children.Add(border);
+
+        Assert.Equal([(1, true), (2, false)], action.Calls);
+    }
+
+    [AvaloniaFact]
+    public void ADataContextDropAndRestoreInvokesDoOnChangedAsFirst()
+    {
+        var panel = ShowPanel();
+        var border = AddBorder(panel);
+        var model = new CountModel { Count = 1 };
+        var action = new RecordingAction();
+        border.Bind(Animate.WatchProperty, new Binding(nameof(CountModel.Count)));
+        panel.DataContext = model;
+        Animate.SetDoOnChanged(border, action);
+
+        panel.DataContext = null;
+        panel.DataContext = model;
+        model.Count = 2;
+
+        Assert.Equal([(1, true), (null, true), (1, true), (2, false)], action.Calls);
+    }
+
+    private sealed class RecordingAction : CueAction
+    {
+        public List<(object? Value, bool First)> Calls { get; } = [];
+
+        public List<Visual> Targets { get; } = [];
+
+        protected internal override void Invoke(Visual target, object? value, bool first)
+        {
+            Targets.Add(target);
+            Calls.Add((value, first));
+        }
+    }
+
+    private sealed class CountingObservable : IObservable<object?>
+    {
+        private readonly List<IObserver<object?>> _observers = [];
+
+        public int Count => _observers.Count;
+
+        public void Raise(object? value)
+        {
+            foreach (var observer in _observers.ToArray()) observer.OnNext(value);
+        }
+
+        public IDisposable Subscribe(IObserver<object?> observer)
+        {
+            _observers.Add(observer);
+            return new Unsubscriber(() => _observers.Remove(observer));
+        }
+
+        private sealed class Unsubscriber(Action dispose) : IDisposable
+        {
+            public void Dispose() => dispose();
+        }
     }
 
     private sealed class CountModel : INotifyPropertyChanged

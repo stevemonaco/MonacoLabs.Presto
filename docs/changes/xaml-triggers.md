@@ -57,7 +57,7 @@ What does not change:
 
 ## Decisions
 
-- **A cue is a core object exposed as a property, not a CLR event bound by name.** Reason: a binding already reaches a view-model property in compiled XAML, while subscribing to an event by name needs reflection. That reflection is trim- and AOT-hostile (see `trim-and-aot.md`), and a misspelled name only fails at run time. The core is the home because a core-only view model must be able to raise one, just as BRIDGE-ATTACH lets it pick a builder. Rejected:
+- **A cue is a core object exposed as a property, not a CLR event bound by name.** Reason: a binding already reaches a view-model property in compiled XAML, while subscribing to an event by name needs reflection. That reflection is trim- and AOT-hostile (CORE-TARGETS, ARCHITECTURE §3), and a misspelled name only fails at run time. The core is the home because a core-only view model must be able to raise one, just as BRIDGE-ATTACH lets it pick a builder. Rejected:
   - an `EventName` attached property (reflection);
   - a `bool` or counter property the view model toggles (it has to be reset, and two raises in one frame collapse into one);
   - an `ICommand` the view sets on the view model (it inverts ownership and is still code).
@@ -75,6 +75,7 @@ What does not change:
   - the focused element as origin (a flyout's button has focus in the popup's top level, not the modal's);
   - an `Origin` property on `Modal` (an element binding would not cross Tempo's `SettingsFlyout` boundary).
 - **`Open(from)` under another visual root maps through screen coordinates.** Reason: it is exactly Tempo's workaround and is correct for popups on every desktop head. A root with no screen mapping still gives no origin.
+- **`DoOnChanged` treats a change made while the `DataContext` is null as a rebind and sets the value at once.** Reason: a surface move drops and restores the `DataContext` while loaded, which a `Watch` would otherwise see as a change to 0 and back and morph twice; with this, Tempo's settings `Stepper` leaves code-behind. Rejected: leaving the Stepper in code-behind and the finding in the backlog.
 
 ## Spec changes
 
@@ -171,6 +172,6 @@ What does not change:
 
 ## Open questions
 
-- **Stepper morph.** Tempo's settings `Stepper` stays in code-behind. It morphs only on a step: a surface move drops and restores the `DataContext` while loaded, which a `Watch` would see as a change to 0 and back. Should `DoOnChanged` treat a change made while the `DataContext` is null as a rebind and set the value at once? If not, the Stepper part of the BRIDGE-RECIPES finding goes back to the backlog.
-- **Popups above the scrim.** A modal opened while a light-dismiss flyout is open draws under the flyout, so `ShowConfirm` still hides the flyout itself. Should `Modal` close its top level's open flyouts on open? Avalonia exposes no list of open popups. If not, this goes back to the backlog under BRIDGE-MODAL.
+None. Out of scope here:
+- **Popups above the scrim.** A modal opened while a light-dismiss flyout is open draws under the flyout, so `ShowConfirm` still hides the flyout itself. Avalonia exposes no list of open popups, so `Modal` does not close them; it goes back to the backlog under BRIDGE-MODAL.
 - **First value of `OnChanged` (out of scope here).** A new dot that is already filled does not pop: BRIDGE-ATTACH-015 skips first values, and the Tempo finding is about that rule rather than a missing trigger. A `Presence.Enter` on a filled-dot style may already cover it. It stays in the backlog.

@@ -7,7 +7,7 @@ namespace MonacoLabs.Presto;
 /// <summary>
 /// State motion: while a condition holds on an element, the properties its builder names go to its values, and when it stops
 /// holding they return to the next state's values or to rest. Later states win the properties they share, in the order
-/// <see cref="HoverProperty"/>, <see cref="FocusProperty"/>, <see cref="PressProperty"/>, then <see cref="StatesProperty"/>.
+/// <see cref="HoverProperty"/>, <see cref="FocusProperty"/>, <see cref="PressProperty"/>, <see cref="StatesProperty"/>, then <see cref="LocalStatesProperty"/>.
 /// </summary>
 /// <remarks>
 /// A state that already holds when the element attaches is applied instantly rather than played, and detaching reverts
@@ -36,6 +36,13 @@ public static class Motion
     /// <summary>The element's conditional states, after the hover, focus and press sugar and in declaration order.</summary>
     public static readonly AttachedProperty<MotionStates?> StatesProperty =
         AvaloniaProperty.RegisterAttached<Control, MotionStates?>("States", typeof(Motion));
+
+    /// <summary>
+    /// More conditional states, added after <see cref="StatesProperty"/>, so a style's list and an element's own list both
+    /// apply; where both name a property, the one here wins.
+    /// </summary>
+    public static readonly AttachedProperty<MotionStates?> LocalStatesProperty =
+        AvaloniaProperty.RegisterAttached<Control, MotionStates?>("LocalStates", typeof(Motion));
 
     /// <summary>
     /// Named conditions: the whitespace- or comma-separated tokens of the value's <see cref="object.ToString"/>, so an enum
@@ -80,6 +87,7 @@ public static class Motion
         PressProperty.Changed.AddClassHandler<Control>(HandleChanged);
         FocusProperty.Changed.AddClassHandler<Control>(HandleChanged);
         StatesProperty.Changed.AddClassHandler<Control>(HandleChanged);
+        LocalStatesProperty.Changed.AddClassHandler<Control>(HandleChanged);
         StateProperty.Changed.AddClassHandler<Control>(HandleStateChanged);
         PreferenceProperty.Changed.AddClassHandler<AvaloniaObject>(static (_, e) =>
         {
@@ -110,6 +118,12 @@ public static class Motion
 
     /// <summary>Sets the conditional states of <paramref name="control"/>.</summary>
     public static void SetStates(Control control, MotionStates? value) => control.SetValue(StatesProperty, value);
+
+    /// <summary>Gets the conditional states of <paramref name="control"/> added after its <see cref="StatesProperty"/>.</summary>
+    public static MotionStates? GetLocalStates(Control control) => control.GetValue(LocalStatesProperty);
+
+    /// <summary>Sets the conditional states of <paramref name="control"/> added after its <see cref="StatesProperty"/>.</summary>
+    public static void SetLocalStates(Control control, MotionStates? value) => control.SetValue(LocalStatesProperty, value);
 
     /// <summary>Gets the value whose tokens name the conditions that hold on <paramref name="control"/>.</summary>
     public static object? GetState(Control control) => control.GetValue(StateProperty);
@@ -209,7 +223,7 @@ public static class Motion
         if (Design.IsDesignMode) return;
         var tracker = control.GetValue(TrackerProperty);
         if (GetHover(control) is null && GetPress(control) is null && GetFocus(control) is null && GetStates(control) is null
-            && tracker?.HasAdded != true)
+            && GetLocalStates(control) is null && tracker?.HasAdded != true)
         {
             tracker?.Release();
             control.ClearValue(TrackerProperty);

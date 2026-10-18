@@ -267,6 +267,39 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 2, $"{bytes:0.##} bytes per tick");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RaisingACueWithNoneOrOneSubscriberAllocatesNothing(bool subscribed)
+    {
+        var cue = new Cue();
+        var typed = new Cue<int>();
+        if (subscribed)
+        {
+            cue.Subscribe(new NoOpObserver<object?>());
+            typed.Subscribe(new NoOpObserver<int>());
+        }
+        cue.Raise();
+        typed.Raise(0);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 1; i < 100; i++)
+        {
+            cue.Raise();
+            typed.Raise(i);
+        }
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, bytes);
+    }
+
+    private sealed class NoOpObserver<T> : IObserver<T>
+    {
+        public void OnNext(T value) { }
+        public void OnCompleted() { }
+        public void OnError(Exception error) { }
+    }
+
     private sealed class ToggleTarget
     {
         public bool On { get; set; }

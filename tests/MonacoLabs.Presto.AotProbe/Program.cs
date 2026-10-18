@@ -10,7 +10,7 @@ namespace MonacoLabs.Presto.AotProbe;
 
 /// <summary>
 /// Drives each path that trimming or NativeAOT can break, in a NativeAOT publish, and exits with the number of cases that
-/// failed (docs/changes/trim-and-aot.md, Regression guard).
+/// failed (docs/ARCHITECTURE.md §3, Trimming and NativeAOT).
 /// </summary>
 internal static partial class Program
 {
@@ -40,6 +40,7 @@ internal static partial class Program
         Case("distort-redraw", DistortRedraw);
         Case("glyph-shards", GlyphShardsOf);
         Case("reorder-move", ReorderMove);
+        Case("reorder-filtered", ReorderFiltered);
         Case("dot-lottie", DotLottie);
         Case("devtools-row", DevToolsRow);
         Case("registered-target", RegisteredTarget);

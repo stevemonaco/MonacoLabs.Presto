@@ -62,6 +62,7 @@ What does not change: `Motion.States` keeps its meaning and its replace-by-prece
 4. **Tempo.** In `ShellView.axaml`, bind `Motion.State` with `{presto:StateTokens {Binding Focus.Mode}, {Binding Focus.IsRunning}}`. Delete `FocusViewModel.MotionState` and its two `NotifyPropertyChangedFor` entries. Rename `When="Running"` to `When="IsRunning"` in `FocusView.axaml` (ring, halo, play icon) and in `TempoMotionTests`, and change `FocusViewTests`' `Running` assertion to `IsRunning`. Move `RingBreathe` from the wrapper `Panel` onto the `ProgressRing` as `presto:Motion.LocalStates`, delete the wrapper, and point `TempoMotionTests.EveryStateValidatesInBothMotionModes` at `ProgressRing`. Update ARCHITECTURE §5's "The mode is the root's `Motion.State`" decision.
    - Tests: `Tempo.Tests` green; a `FocusViewTests` case that starting the clock breathes the ring while the mode's `Fill` holds.
 5. **Visual check** on `dotnet run --project samples/Tempo/Tempo`, DevTools screenshots: start, pause and skip across modes, so the ring recolors and breathes together, the halo pings, the play icon turns, and the accents still stagger across the window. The intro's ring flight lands with no pop now that the breathe's `Scale` sits on the flying ring itself. Repeat under Reduced motion.
+   - **Outstanding:** the Reduced-motion pass and the intro ring landing were not checked. Run Tempo with System/Reduced motion and capture the intro landing (launch with the intro enabled and attach DevTools before the flight). Keep this change open until done.
 
 ## Open questions
 

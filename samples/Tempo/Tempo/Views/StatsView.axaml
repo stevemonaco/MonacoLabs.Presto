@@ -50,13 +50,14 @@
                         <StackPanel Spacing="12">
                             <TextBlock Classes="caption" Text="Last 7 days" />
                             <!-- No Panel inside a bar's template, so the bars share the grid's arrival batch and stagger. -->
-                            <ItemsControl x:Name="Bars" ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}">
+                            <ItemsControl ItemsSource="{Binding Days}" ItemsPanel="{StaticResource WeekPanel}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:StatsDay">
                                         <Border Height="{x:Static v:StatsView.ChartHeight}" Background="Transparent"
                                                 ToolTip.Tip="{Binding Minutes, StringFormat='{}{0} min'}">
                                             <Border Classes="bar accent-bg" Height="{Binding Height, Converter={x:Static v:StatsView.BarHeight}}"
-                                                    presto:Presence.Arrive="{x:Static m:TempoMotion.BarGrow}" />
+                                                    presto:Presence.Arrive="{x:Static m:TempoMotion.BarGrow}"
+                                                    presto:Presence.Exit="{x:Static m:TempoMotion.BarCollapse}" />
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -152,7 +153,7 @@
                 </Border>
             </Grid>
         </ScrollViewer>
-        <Border Classes="scroll-shadow top" v:ScrollEdge.ShadowTop="{Binding #Scroll}" />
-        <Border Classes="scroll-shadow bottom" v:ScrollEdge.ShadowBottom="{Binding #Scroll}" />
+        <Border Classes="scroll-shadow top" presto:Scroll.CueFor="{Binding #Scroll}" />
+        <Border Classes="scroll-shadow bottom" presto:Scroll.CueFor="{Binding #Scroll}" presto:Scroll.CueEdge="Bottom" />
     </Panel>
 </UserControl>

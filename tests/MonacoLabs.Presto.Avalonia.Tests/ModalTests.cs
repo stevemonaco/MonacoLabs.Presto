@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Controls;
 
@@ -171,6 +172,73 @@ public sealed class ModalTests : CompositorTestBase
         Tick();
         Assert.False(Panel(modal).IsVisible);
         Assert.True(Scrim(modal).IsVisible, "the scrim did not fade out");
+    }
+
+    [AvaloniaFact]
+    public void AnIsOpenSetByAnIsOriginButtonsCommandRevealsFromTheButton()
+    {
+        var (window, modal, opener) = Stage();
+        Modal.SetIsOrigin(opener, true);
+        opener.Command = new TestCommand(_ => modal.IsOpen = true);
+
+        Press(window, new Point(20, 20));
+        Tick();
+        Frames.Advance(100, 20);
+
+        Assert.True(modal.IsOpen);
+        Assert.Equal(new Point(20, 20), Assert.IsType<EllipseGeometry>(Panel(modal).Clip).Rect.Center);
+    }
+
+    [AvaloniaFact]
+    public void AnOriginLessOpenInALaterJobShowsAtOnce()
+    {
+        var (window, modal, opener) = Stage();
+        Modal.SetIsOrigin(opener, true);
+
+        Press(window, new Point(20, 20));
+        Dispatcher.UIThread.RunJobs();
+        modal.Open();
+        Tick();
+        Frames.Advance(100, 20);
+
+        Assert.True(Panel(modal).IsEffectivelyVisible);
+        Assert.Null(Panel(modal).Clip);
+    }
+
+    [AvaloniaFact]
+    public void AnIsOriginElementsTapIsTheOrigin()
+    {
+        var (window, modal, _) = Stage();
+        var tile = new Border { Width = 40, Height = 40, Background = Brushes.Blue, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom };
+        Modal.SetIsOrigin(tile, true);
+        tile.Tapped += (_, _) => modal.Open();
+        ((Panel)window.Content!).Children.Insert(1, tile);
+        Tick();
+
+        Press(window, new Point(180, 180));
+        Tick();
+        Frames.Advance(100, 20);
+
+        Assert.Equal(new Point(180, 180), Assert.IsType<EllipseGeometry>(Panel(modal).Clip).Rect.Center);
+    }
+
+    [AvaloniaFact]
+    public void OpeningFromAnElementUnderAnotherVisualRootMapsThroughTheScreen()
+    {
+        var (window, modal, _) = Stage();
+        var inside = new Button { Width = 30, Height = 20, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        var other = new Window { Content = inside, Width = 100, Height = 100 };
+        window.Position = new PixelPoint(100, 50);
+        other.Show();
+        other.Position = new PixelPoint(130, 120);
+        Tick();
+        Assert.Null(inside.TranslatePoint(new Point(15, 10), modal));
+
+        modal.Open(inside);
+        Tick();
+        Frames.Advance(100, 20);
+
+        Assert.Equal(new Point(45, 80), Assert.IsType<EllipseGeometry>(Panel(modal).Clip).Rect.Center);
     }
 
     private static Border Scrim(Modal modal) => modal.GetVisualChildren().OfType<Border>().First();

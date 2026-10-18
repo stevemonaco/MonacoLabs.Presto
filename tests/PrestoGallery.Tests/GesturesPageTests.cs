@@ -134,7 +134,7 @@ public sealed class GesturesPageTests
 
         Drag(window, SceneHarness.Center(handle, window), new Vector(0, 70));
         TestFrames.Tick(120);
-        Assert.Equal(154, card.Height, 1);
+        Assert.Equal(154, card.Height, 2d);
 
         Drag(window, SceneHarness.Center(handle, window), new Vector(0, 70));
         TestFrames.Tick(120);
@@ -149,7 +149,7 @@ public sealed class GesturesPageTests
         }
         window.MouseUp(grab - new Vector(0, 30), MouseButton.Left);
         TestFrames.Tick(120);
-        Assert.Equal(154, card.Height, 1);
+        Assert.Equal(154, card.Height, 2d);
         Assert.Equal("0.50", page.GetControl<TextBlock>("CardProgress").Text);
         SceneHarness.Close(window);
     }

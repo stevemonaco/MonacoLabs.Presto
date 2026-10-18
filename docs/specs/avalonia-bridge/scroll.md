@@ -1,12 +1,15 @@
 ---
 id: BRIDGE-SCROLL
-title: Scrolling (parallax, smooth wheel, animated scrolling)
+title: Scrolling (parallax, smooth wheel, animated scrolling, edge cues)
 package: MonacoLabs.Presto.Avalonia
 namespaces:
   - MonacoLabs.Presto
 sources:
   - MonacoLabs.Presto.Avalonia/Scroll.cs
   - MonacoLabs.Presto.Avalonia/ScrollAlignment.cs
+  - MonacoLabs.Presto.Avalonia/ScrollEdge.cs
+  - MonacoLabs.Presto.Avalonia/ScrollToItemExtension.cs
+  - MonacoLabs.Presto.Avalonia/Events/ScrollCue.cs
   - MonacoLabs.Presto.Avalonia/Targets/ScrollOffsetAccessor.cs
   - MonacoLabs.Presto.Avalonia/Events/ScrollWriter.cs
   - MonacoLabs.Presto.Avalonia/Events/ScrollMotion.cs
@@ -17,6 +20,8 @@ sources:
 types:
   - Scroll
   - ScrollAlignment
+  - ScrollEdge
+  - ScrollToItemExtension
 tests:
   - ScrollParallaxTests
   - ScrollSmoothTests
@@ -26,6 +31,7 @@ tests:
   - ScrollIntoViewTests
   - ScrollToIndexTests
   - ScrollStickToEndTests
+  - ScrollEdgeCueTests
   - PropertyNamingTests
   - BridgeAllocationTests
   - ScrollStoryPageTests
@@ -46,7 +52,7 @@ depends:
 
 ## Purpose
 
-Everything that moves a `ScrollViewer`'s content apart from observing it: `Scroll.Speed` parallax, `Scroll.Smooth` wheel easing (Win32), the `"ScrollX"`/`"ScrollY"` tween shorthands, `PrestoAvalonia.ScrollTo`/`ScrollIntoView`/`ScrollToIndex` and `Scroll.StickToEnd`. All offset writes use `SetCurrentValue` through one per-scroller `ScrollWriter`, so user input keeps working and each writer can tell its own writes from everyone else's. Parallax shares the `ScrollContainer` of BRIDGE-SCROLLOBSERVER. Also specifies `PrestoAvalonia.ScrollTo`, `ScrollIntoView` and `ScrollToIndex`, and `PropertyBuilderExtensions.ScrollX` and `ScrollY`.
+Everything that moves a `ScrollViewer`'s content apart from observing it: `Scroll.Speed` parallax, `Scroll.Smooth` wheel easing (Win32), the `"ScrollX"`/`"ScrollY"` tween shorthands, `PrestoAvalonia.ScrollTo`/`ScrollIntoView`/`ScrollToIndex`, `Scroll.StickToEnd`, and the edge cues that show content lies past an edge: `Scroll.CueFor` shadows and the `Scroll.FadeEdges` mask. All offset writes use `SetCurrentValue` through one per-scroller `ScrollWriter`, so user input keeps working and each writer can tell its own writes from everyone else's. Parallax and the edge cues share the `ScrollContainer` of BRIDGE-SCROLLOBSERVER. Also specifies `PrestoAvalonia.ScrollTo`, `ScrollIntoView` and `ScrollToIndex`, `PropertyBuilderExtensions.ScrollX` and `ScrollY`, and `{presto:ScrollToItem}`, a `CueAction` (BRIDGE-ATTACH) that scrolls the list it sits on to a raised item.
 
 ## Requirements
 
@@ -183,6 +189,8 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
   - Tests: `ScrollToIndexTests.ReducedMotionLandsAlignedAndTheEngineIdles`
 - **BRIDGE-SCROLL-057** (inherited) — When the item is already aligned, `ScrollToIndex` shall return an animation that has already completed.
   - Tests: untested
+- **BRIDGE-SCROLL-084** — `{presto:ScrollToItem}` shall provide a `CueAction` that, for a value that is not first, calls `ScrollToIndex` on its `ItemsControl` target with the value's index in `Items` and `Alignment` (default `Nearest`). It shall do nothing for a first value, a value not in `Items` or a list whose `ItemsPanelRoot` is null, and throw `InvalidOperationException` for a target that is not an `ItemsControl`.
+  - Tests: `ScrollToIndexTests.ScrollToItemOnACueBringsAnAddedLastItemIntoViewIgnoresAValueThatIsNotAnItemAndThrowsOffAList`
 
 ### `Scroll.StickToEnd`
 
@@ -200,8 +208,33 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
   - Tests: `ScrollStickToEndTests.TurningItOffMidEaseStopsWhereItIsAndFollowsNoMore`
 - **BRIDGE-SCROLL-064** — Under `ReducedMotion` the follow shall jump to the new end and let the engine idle.
   - Tests: `ScrollStickToEndTests.ReducedMotionJumpsToTheNewEndAndTheEngineIdles`
-- **BRIDGE-SCROLL-065** — In design mode, `Speed` and `StickToEnd` shall do nothing.
+- **BRIDGE-SCROLL-065** — In design mode, `Speed`, `StickToEnd`, `CueFor` and `FadeEdges` shall do nothing.
   - Tests: manual — open a view using them in the XAML previewer; nothing moves and no container is created.
+
+### Edge cues (`Scroll.CueFor`, `Scroll.FadeEdges`)
+
+- **BRIDGE-SCROLL-072** — While `CueFor` is set on an element attached to the visual tree, the bridge shall write the element's `Opacity` with `SetCurrentValue` as `clamp(distance past CueEdge ÷ CueRamp, 0, 1)` of the scroller `CueFor` names, where the distance past `Top` is the offset, past `Bottom` is extent − viewport − offset, and `Left`/`Right` likewise on the horizontal axis.
+  - Tests: `ScrollEdgeCueTests.ABottomCueIsFullAtTheTopAndRampsOutOverTheLast24Units`, `ScrollEdgeCueTests.ATopCueMirrorsIt`, `ScrollEdgeCueTests.LeftAndRightCuesFollowAHorizontalScroller`
+- **BRIDGE-SCROLL-073** — When `CueFor` names a control that is not a `ScrollViewer`, the scroller shall be the `ScrollViewer` whose `TemplatedParent` is that control, found once its template is applied; scrollers nested in its content shall be ignored.
+  - Tests: `ScrollEdgeCueTests.AListBoxCueFollowsItsTemplatedScrollerAndIgnoresOneInsideAnItem`
+- **BRIDGE-SCROLL-074** — `CueRamp` shall be read from the control `CueFor` names, and a cue shall be written again at once when its `CueEdge` or that control's `CueRamp` changes.
+  - Tests: `ScrollEdgeCueTests.AListBoxCueFollowsItsTemplatedScrollerAndIgnoresOneInsideAnItem`, `ScrollEdgeCueTests.ChangingTheEdgeAppliesAtOnce`
+- **BRIDGE-SCROLL-075** — Cues and masks shall be written inside the scroller's offset, extent and viewport notifications, never trailing the content by a frame.
+  - Tests: `ScrollEdgeCueTests.ABottomCueIsFullAtTheTopAndRampsOutOverTheLast24Units`, `ScrollEdgeCueTests.EachEndOfTheMaskFadesByTheDistancePastIt`
+- **BRIDGE-SCROLL-076** — When `CueFor` is cleared or changed, or the element detaches, the bridge shall drop the written `Opacity`, restoring the element's local value when it had one and its style or default value otherwise, and release the scroller's container.
+  - Tests: `ScrollEdgeCueTests.ClearingCueForRestoresTheLocalOpacityAndReleasesTheContainer`, `ScrollEdgeCueTests.DetachingClearsTheOpacityAndReleasesTheContainer`, `ScrollEdgeCueTests.TheCueCanBeSetInXamlAndStyles`
+- **BRIDGE-SCROLL-077** — A cue shall apply the same while `ReducedMotion` is set.
+  - Tests: `ScrollEdgeCueTests.UnderReducedMotionTheCueStillFollows`
+- **BRIDGE-SCROLL-078** — `FadeEdges`, `CueFor`, `CueEdge` and `CueRamp` shall be settable from XAML and from styles.
+  - Tests: `ScrollEdgeCueTests.TheCueCanBeSetInXamlAndStyles`
+- **BRIDGE-SCROLL-080** — While `FadeEdges` is above 0 on a `ScrollViewer` or a control templating one, the bridge shall set the control's `OpacityMask` to a linear gradient along the scroll axis (vertical, or horizontal when only that scrolls) whose ends ramp from transparent to opaque over `FadeEdges` DIPs, capped at half the control's length on that axis.
+  - Tests: `ScrollEdgeCueTests.TheMaskRunsDownAVerticalScrollerAndAcrossOneThatOnlyScrollsSideways`, `ScrollEdgeCueTests.EachEndOfTheMaskFadesByTheDistancePastIt`, `ScrollEdgeCueTests.AListBoxMaskFollowsItsTemplatedScroller`, `ScrollEdgeCueTests.TheFadeIsCappedAtHalfTheLengthAndFollowsItsChanges`
+- **BRIDGE-SCROLL-081** — Each end's transparency shall be `clamp(distance past that end ÷ CueRamp, 0, 1)`, so an end with nothing past it is fully opaque.
+  - Tests: `ScrollEdgeCueTests.EachEndOfTheMaskFadesByTheDistancePastIt`, `ScrollEdgeCueTests.AListBoxMaskFollowsItsTemplatedScroller`, `ScrollEdgeCueTests.TheMaskRunsDownAVerticalScrollerAndAcrossOneThatOnlyScrollsSideways`
+- **BRIDGE-SCROLL-082** — The mask shall be one brush, changed in place at each notification and when the control's length, its `FadeEdges` or its `CueRamp` changes, and each change shall be drawn without waiting for a scroll.
+  - Tests: `ScrollEdgeCueTests.TheFadeIsCappedAtHalfTheLengthAndFollowsItsChanges`, `ScrollEdgeCueTests.AMaskMutatedInPlaceRendersWithoutAScroll`
+- **BRIDGE-SCROLL-083** — When `FadeEdges` returns to 0 or the control detaches, the bridge shall clear the control's `OpacityMask` and release the scroller's container.
+  - Tests: `ScrollEdgeCueTests.TheMaskReplacesTheControlsOwnAndReturningToZeroClearsItAndReleasesTheContainer`, `ScrollEdgeCueTests.DetachingClearsTheMaskAndReleasesTheContainer`
 
 ### Defaults
 
@@ -215,6 +248,8 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
   - Tests: `ScrollIntoViewTests.EachAlignmentLandsTheTargetWhereItSays`
 - **BRIDGE-SCROLL-070** (inherited) — When `alignment` is not given, `ScrollToIndex` shall align the item with `Start`.
   - Tests: `ScrollToIndexTests.ANearIndexAnimatesTheWholeWayWithoutAJump`
+- **BRIDGE-SCROLL-079** — When not set, `FadeEdges` shall be 0 (no mask), `CueEdge` `Top` and `CueRamp` 24 DIPs.
+  - Tests: `ScrollEdgeCueTests.ABottomCueIsFullAtTheTopAndRampsOutOverTheLast24Units`, `ScrollEdgeCueTests.ClearingCueForRestoresTheLocalOpacityAndReleasesTheContainer`, `ScrollEdgeCueTests.EachEndOfTheMaskFadesByTheDistancePastIt`
 
 ## Invariants
 
@@ -228,12 +263,14 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - `ScrollTo(scroller, default)` is ambiguous between the `Vector` and `double` overloads; back to top is `ScrollTo(scroller, 0)`.
 - A tween stopped by `Cancel()` never reaches the accessor; the writer drops its stale hold the next time a snap asks.
 - During a smooth-wheel scroll with pacing on, a frame callback that runs late is paced as several intervals (BRIDGE-INIT pacing), so that frame moves two to five times as far; handling the wheel does not cause it.
+- Content no longer than the viewport cues nothing (`ScrollEdgeCueTests.ContentNoLongerThanTheViewportCuesNothing`).
+- A `FadeEdges` mask replaces any `OpacityMask` on the control and fades a visible scrollbar with the content (`ScrollEdgeCueTests.TheMaskReplacesTheControlsOwnAndReturningToZeroClearsItAndReleasesTheContainer`).
 - `ScrollViewer` handles neither `Home` nor `End` (`ScrollSpikeTests.TheScrollViewerHandlesNeitherEndNorHomeButAListBoxEndAndHomeScrollToItsEnds`).
 
 ## Threading and lifetime
 
 - UI thread only. Parallax and the shorthands' input detection run in the scroller's `Offset` notification; eases run on the engine.
-- A parallax control holds the scroller's `ScrollContainer` until it detaches or its speed returns to 1. `Smooth` and `StickToEnd` hold handlers on the scroller until set back to false.
+- A parallax control holds the scroller's `ScrollContainer` until it detaches or its speed returns to 1. `Smooth` and `StickToEnd` hold handlers on the scroller until set back to false. An edge cue holds the container while its element is attached and `CueFor` is set, and a mask while its control is attached and `FadeEdges` is above 0.
 - `StickToEnd` calls `PrestoAvalonia.EnsureInitialized` when set.
 
 ## Reduced motion
@@ -241,10 +278,12 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - Parallax keeps every element at its layout position while the flag is set, read per offset notification.
 - `ScrollTo`, `ScrollIntoView`, `ScrollToIndex` and `StickToEnd` land on the first frame, reading the flag at the call; a builder's `WhenReduced` form plays instead.
 - `Smooth` leaves each notch its native step while the flag is set, read per notch (BRIDGE-SCROLL-071).
+- Edge cues follow the scroll position and apply unchanged (BRIDGE-SCROLL-077).
 
 ## Allocation
 
 - A `"ScrollY"` tween ticks within the allocation budget (`BridgeAllocationTests.AScrollYTweenTicksWithinBudget`). Parallax updates allocate nothing per notification.
+- An edge-cue update allocates nothing per notification beyond the property changes it raises (`BridgeAllocationTests.EdgeCuesAddOnlyTheirPropertyChangesToAnOffsetWrite`).
 
 ## Provenance
 
@@ -258,9 +297,19 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **Scroll tweens and snaps never overlap.** A tween's first write cancels the observers' running snaps, no snap starts while a tween holds the axis, and the shorthand restarts every snap's wait when it lets go; a hold left by `Cancel()` is detected through `Presto.GetAnimations`. Reason: a tween stopped by `Cancel()` never reaches the accessor; otherwise not recorded.
 - **`ScrollIntoView` scrolls every ancestor scroller at once.** Innermost first, each outer one aiming at the element's rect at the inner's final offset cut to the inner viewport; rects come from summed layout slots; one `Animation` drives them; nothing to move returns a completed animation. Reason: browser `scrollIntoView` and Flutter `ensureVisible` behave so.
 - **`ScrollToIndex` jumps close, then animates a measured last stretch.** On a `VirtualizingStackPanel`, beyond 2 viewports it jumps to 1 viewport short of `index × mean size` (up to 3 layout passes), then eases the rest re-aimed every frame and writes the measured offset until it holds; it tracks the item, not the index; other panels scroll the container into view. Reason: Compose's `animateScrollToItem` does so; the item is not realized yet, the panel's extent estimate is stale and private, and the panel places a jump clear of its realized items.
+- **`{presto:ScrollToItem}` skips a first watched value and a value it cannot place.** Reason: a scroll to an item marks a moment, like `{presto:Burst}` (BRIDGE-PARTICLES), and a cue raised for an item that is not in the list, or before the list has a panel, has nothing to scroll to, so it is not an error in XAML. Rejected: throwing `ScrollToIndex`'s `ArgumentOutOfRangeException` for a missing item.
 - **The parallax entry is clamped at 0 and measured at once.** `Speed` translates by `(1 − speed) × max(0, scroll − entry)`, written in the same `Offset` notification, and re-measured immediately on layout, viewport or extent changes, not after the observers' debounce. Reason: without the clamp an element in view at load was pushed off its layout position before any scroll; the element is visible meanwhile, so the re-measure cannot wait.
 - **Smoothed wheel is opt-in and Win32 only.** `Smooth` smooths whole notches on Windows only, accumulating into one target, and passes fractional deltas, touch, scrollbar, keyboard and end-of-range notches through; a touchpad delta that is an exact multiple of 120 is accepted as a known caveat. Reason: wheel events carry only `Delta`, and only Win32 makes a notch distinguishable; the Browser head divides DOM deltas by 50 ignoring `deltaMode` and macOS passes already-smoothed deltas. Passing end-of-range notches keeps scroll chaining; they are held back only while an ease is running, where the presenter would jump the rest of the way and cancel it. Each notch rebases the ease's start to the notch itself, because `Resume` adds a one-frame head start that jumped the scroll ahead at every notch of a long scroll. A notch during a running ease rebases instead to the last frame's time, because the ease restarts from the offset that frame rendered, so that frame is its matching origin and the next frame advances a whole interval rather than only the time since the notch; a notch at rest keeps `Engine.Now`, because the last frame can be arbitrarily old and backdating to it would jump ahead. Rejected: keeping `Engine.Now` and lowering the start offset by the expected movement (it guesses the speed); seeking the ease forward by the time since the last frame (it renders between frames); making `AvaloniaFrameSource.Now` return the last frame's time between frames (every input handler would read a frozen time, breaking pointer velocity tracking); a public `Engine.FrameTime` (no other caller needs it).
 - **`StickToEnd` arms by position and never acts on the same change as `ScrollAnchor`.** It is armed within 1 DIP of `ScrollBarMaximum`, judged on every offset change; while armed a maximum change eases to the end, retargeting one running ease; a change short of the end not written by that ease releases it; `ItemChanges` records no anchor while armed. Reason: at the end it follows growth and scrolled up the anchor holds the row, so one change is never handled twice.
+- **The edge cue drives an app-supplied element's opacity rather than drawing a shadow.** Reason: a shadow's color, height, margins and corner treatment are theme work (Tempo's differ inside the Done expander), and an opacity on the app's element keeps all of that in XAML styles. Rejected: `Scroll.EdgeShadows="True"` adorning bridge-drawn shadows (would need a styling surface of its own); a templated `ScrollEdgeHost` control (forces a wrapper on every list).
+- **Edge cues follow scroll position, not time, so reduced motion leaves them on.** Reason: they are a static reading of where the content is, and they move only as fast as the user scrolls, like a scrollbar thumb. Rejected: suppressing them under `ReducedMotion` (removes information, not motion).
+- **`CueFor` names a scroller or a control that templates one, and only that scroller counts.** The templated scroller is the `ScrollViewer` whose `TemplatedParent` is the control, looked up on attach and on each `TemplateApplied`. Reason: binding `#TaskList` (a `ListBox`) is how XAML reaches it, and a scroller inside an item template is never picked; the cue reads only that scroller's notifications, so a nested scroller's `ScrollChanged` never reaches it.
+- **The cue writes `Opacity` with `SetCurrentValue` and drops it when `CueFor` is cleared or changed or the element detaches.** A local value is recorded on attach and set back, because `SetCurrentValue` overwrites a local value in place and `ClearValue` removes it; with none, `ClearValue` lets the style or default show again. Reason: the element's XAML or style value is its look before the first scroll reading, and `SetCurrentValue` overrides it without changing its priority, as scroll offset writes do. Rejected: a Presto tween per notification (the value already moves only with the scroll; easing it would lag the content).
+- **`CueRamp` is read from the scroller or templating control and is a separate length from the mask fade.** Reason: one is how far the content must go past the edge, the other how wide a fade is drawn; Tempo uses 24 for both, which become the defaults, but a wide fade on short content wants a short ramp. Rejected: one length for both.
+- **The mask fade is named `FadeEdges`, as on `Marquee`.** Reason: same meaning (a ramp length in DIPs at both ends of the axis, 0 = off), so one name to learn; the only difference is that the scroller's ends fade only while content lies past them.
+- **One mask axis, picked as `StickToEnd` and parallax pick it.** Reason: a control has one `OpacityMask`, and a single linear gradient cannot fade two axes; the "vertical, or horizontal when only that scrolls" rule is already in BRIDGE-SCROLL-003 and -058. Rejected: a radial or composed mask for both axes (no use case; a two-axis scroller can take shadow cues on all four edges).
+- **The mask lives on the scroller or templating control, and replaces any `OpacityMask` there.** Reason: on the control it stays put while the content scrolls, and its relative stops change only with the control's length, `FadeEdges` or the distance past each end. Accepted: a visible scrollbar inside the control fades with it, so the mask suits scrollers whose bars are hidden.
+- **The mask is one brush with four stops, changed in place, and the scroller's presenter is invalidated after each change.** Reason: a new brush per notification would allocate on every scroll; the renderer repaints a mask changed in place only where something under it is invalidated, and the scroller itself draws nothing, so invalidating the control left the old mask on screen until the next scroll. Rejected: invalidating the control (its render is empty); re-setting `OpacityMask` (two property changes per notification).
 - **Pin, spacing and snap follow GSAP ScrollTrigger, layered on the ported observer.** See BRIDGE-SCROLLOBSERVER.
 - **The signal is an event on `Engine`, not on `PrestoDefaults`.** See CORE-REDUCED.
 

@@ -65,7 +65,7 @@ public sealed class DevToolsInspectorTests : BridgeTestBase, IDisposable
     {
         var timeline = Presto.CreateTimeline(new TimelineParams())
             .Add(_box, new AvaloniaAnimationParams { ["Opacity"] = 0, Duration = 100 })
-            .Add(_box, new AvaloniaAnimationParams { ["Width"] = 100, Duration = 100, Ease = Eases.None });
+            .Add(_box, new AvaloniaAnimationParams { ["Width"] = 98, Duration = 100, Ease = Eases.None });
         Timer second = null!;
         foreach (var child in timeline.Children) second = child;
         _inspector.Refresh(second, null);
@@ -79,7 +79,7 @@ public sealed class DevToolsInspectorTests : BridgeTestBase, IDisposable
 
         Assert.Equal(150, timeline.CurrentTime);
         Assert.Equal(50, second.CurrentTime);
-        Assert.Equal(75, _box.Width, 3);
+        Assert.Equal(74, _box.Width);
     }
 
     [AvaloniaFact]

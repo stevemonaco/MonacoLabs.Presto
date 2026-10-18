@@ -82,6 +82,33 @@ public sealed class ParticleRecipeTests : CompositorTestBase
         Assert.Equal(0.5, anchor.Opacity);
     }
 
+    [AvaloniaFact]
+    public void BurstOnACueEmitsFromItsTarget()
+    {
+        var anchor = ShowAnchor();
+        var cue = new Cue();
+        Animate.SetCue(anchor, cue);
+        Animate.SetDoOnCue(anchor, (CueAction)new BurstExtension { Count = 4 }.ProvideValue(null!));
+
+        cue.Raise();
+        Tick();
+
+        Assert.Single(Overlays(anchor));
+    }
+
+    [AvaloniaFact]
+    public void BurstSkipsAFirstValueAndThrowsOffAControl()
+    {
+        var anchor = ShowAnchor();
+        var action = (CueAction)new BurstExtension().ProvideValue(null!);
+
+        action.Invoke(anchor, 1, first: true);
+        Tick();
+
+        Assert.Empty(Overlays(anchor));
+        Assert.Throws<InvalidOperationException>(() => action.Invoke(new Visual(), 1, first: false));
+    }
+
     private static Border ShowAnchor()
     {
         var anchor = new Border { Width = 40, Height = 20 };

@@ -21,7 +21,7 @@ namespace MonacoLabs.Presto;
 /// </summary>
 internal sealed class MotionTracker
 {
-    private static readonly char[] s_separators = [' ', ',', '\t', '\r', '\n'];
+    internal static readonly char[] Separators = [' ', ',', '\t', '\r', '\n'];
 
     private readonly Control _control;
     private readonly List<Entry> _entries = [];
@@ -34,6 +34,7 @@ internal sealed class MotionTracker
     private Dictionary<Entry, List<string>>? _entering;
     private Dictionary<Entry, List<string>>? _leaving;
     private MotionStates? _states;
+    private MotionStates? _localStates;
     private bool _listening;
     private bool _pressed;
     private bool _hoverable;
@@ -63,13 +64,14 @@ internal sealed class MotionTracker
         _control.AttachedToVisualTree -= HandleAttached;
         _control.DetachedFromVisualTree -= HandleDetached;
         if (_states != null) _states.CollectionChanged -= HandleStatesChanged;
+        if (_localStates != null) _localStates.CollectionChanged -= HandleStatesChanged;
         Listen(false);
         ListenForHover(false);
         Stop();
         Source = null;
     }
 
-    /// <summary>Re-reads the sugar properties and <see cref="Motion.StatesProperty"/> into the ordered state list.</summary>
+    /// <summary>Re-reads the sugar properties, <see cref="Motion.StatesProperty"/> and <see cref="Motion.LocalStatesProperty"/> into the ordered state list.</summary>
     public void Rebuild()
     {
         foreach (var entry in _entries) entry.Active = false;
@@ -77,17 +79,22 @@ internal sealed class MotionTracker
         AddSugar(":pointerover", Motion.GetHover(_control));
         AddSugar(":focus-visible", Motion.GetFocus(_control));
         AddSugar(":pressed", Motion.GetPress(_control));
-        var states = Motion.GetStates(_control);
-        if (states != _states)
-        {
-            if (_states != null) _states.CollectionChanged -= HandleStatesChanged;
-            if (states != null) states.CollectionChanged += HandleStatesChanged;
-            _states = states;
-        }
-        if (states != null) foreach (var state in states) _entries.Add(Create(state));
+        AddList(ref _states, Motion.GetStates(_control));
+        AddList(ref _localStates, Motion.GetLocalStates(_control));
         _entries.AddRange(_added);
         ListenIfPressable();
         Evaluate();
+    }
+
+    private void AddList(ref MotionStates? field, MotionStates? list)
+    {
+        if (list != field)
+        {
+            if (field != null) field.CollectionChanged -= HandleStatesChanged;
+            if (list != null) list.CollectionChanged += HandleStatesChanged;
+            field = list;
+        }
+        if (list != null) foreach (var state in list) _entries.Add(Create(state));
     }
 
     /// <summary>The ancestor whose <c>Motion.State</c> this element follows, if any.</summary>
@@ -203,7 +210,7 @@ internal sealed class MotionTracker
     private void ReadTokens()
     {
         _tokens.Clear();
-        if (Motion.GetState(Source ?? _control)?.ToString() is { } text) _tokens.UnionWith(text.Split(s_separators, StringSplitOptions.RemoveEmptyEntries));
+        if (Motion.GetState(Source ?? _control)?.ToString() is { } text) _tokens.UnionWith(text.Split(Separators, StringSplitOptions.RemoveEmptyEntries));
     }
 
     public void ResolveSource()

@@ -502,6 +502,7 @@ public sealed class MotionStateTests : BridgeTestBase
         try
         {
             Motion.SetHover(box, Linear().Scale(1.2));
+            Motion.SetLocalStates(box, States(":pointerover", Linear().X(10)));
             handle = box.WhileHover(Linear().Opacity(0.5));
         }
         finally
@@ -706,6 +707,114 @@ public sealed class MotionStateTests : BridgeTestBase
         Assert.Equal(1, first.Opacity, 6);
         Assert.Equal(0.4, second.Opacity, 6);
         Assert.Equal(1, third.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void LocalStatesAddToAStylesStatesAndWinSharedProperties()
+    {
+        var view = new MotionXamlView();
+        Show(view);
+        var tile = view.FindControl<Border>("First")!;
+        Motion.SetLocalStates(tile, [
+            new MotionState { When = ".selected", Motion = Linear().Scale(1.2) },
+            new MotionState { When = ".hot", Motion = Linear().Opacity(0.7) },
+        ]);
+        Assert.NotNull(Motion.GetStates(tile));
+
+        tile.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.4, tile.Opacity, 6);
+        Assert.Equal(1.2, Get(tile, "Scale"), 6);
+
+        tile.Classes.Add("hot");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.7, tile.Opacity, 6);
+
+        tile.Classes.Remove("hot");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.4, tile.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void ACodeStateWinsOverStatesAndLocalStates()
+    {
+        var box = Box();
+        Show(box);
+        box.While(".selected", Linear().Opacity(0.9));
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        Motion.SetLocalStates(box, States(".selected", Linear().Opacity(0.7)));
+
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Equal(0.9, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void ClearingLocalStatesReturnsItsPropertiesToRestWhileStatesHold()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        Motion.SetLocalStates(box, States(".selected", Linear().Scale(1.2)));
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+
+        Motion.SetLocalStates(box, null);
+        Frames.Advance(200, 10);
+        Assert.Equal(1, Get(box, "Scale"), 6);
+        Assert.Equal(0.4, box.Opacity, 6);
+    }
+
+    [AvaloniaFact]
+    public void ClearingEveryStatePropertyReleasesTheTrackerAndRevertsAtOnce()
+    {
+        var box = Box();
+        Show(box);
+        Motion.SetHover(box, Linear().X(10));
+        Motion.SetPress(box, Linear().Y(10));
+        Motion.SetFocus(box, Linear().Rotate(10));
+        Motion.SetStates(box, States(".selected", Linear().Opacity(0.4)));
+        Motion.SetLocalStates(box, States(".selected", Linear().Scale(1.2)));
+        box.Classes.Add("selected");
+        Frames.Advance(50, 10);
+
+        Motion.SetHover(box, null);
+        Motion.SetPress(box, null);
+        Motion.SetFocus(box, null);
+        Motion.SetStates(box, null);
+        Motion.SetLocalStates(box, null);
+        Assert.Empty(Presto.GetAnimations(box));
+        Assert.Equal(1, box.Opacity, 6);
+        Assert.Null(box.RenderTransform);
+
+        box.Classes.Remove("selected");
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+        Assert.Empty(Presto.GetAnimations(box));
+    }
+
+    [AvaloniaFact]
+    public void AStatesListChangeRebuildsAndAnimatesToTheNewWinners()
+    {
+        var box = Box();
+        Show(box);
+        var states = States(".selected", Linear().Opacity(0.4));
+        var localStates = States(".selected", Linear().Scale(1.2));
+        Motion.SetStates(box, states);
+        Motion.SetLocalStates(box, localStates);
+        box.Classes.Add("selected");
+        Frames.Advance(200, 10);
+
+        localStates.Add(new MotionState { When = ".selected", Motion = Linear().Scale(0.8) });
+        Frames.Advance(50, 10);
+        Assert.InRange(Get(box, "Scale"), 0.9, 1.1);
+        Frames.Advance(150, 10);
+        Assert.Equal(0.8, Get(box, "Scale"), 6);
+
+        states.Clear();
+        Frames.Advance(200, 10);
+        Assert.Equal(1, box.Opacity, 6);
+        Assert.Equal(0.8, Get(box, "Scale"), 6);
     }
 
     [AvaloniaFact]

@@ -6,8 +6,10 @@ namespaces:
   - MonacoLabs.Presto
 sources:
   - MonacoLabs.Presto.Avalonia/Animate.cs
+  - MonacoLabs.Presto.Avalonia/CueAction.cs
 types:
   - Animate
+  - CueAction
 tests:
   - AnimateAttachedTests
   - TextRevealTests
@@ -26,13 +28,14 @@ depends:
   - CORE-ANIMATION
   - CORE-SCOPE
   - CORE-DIAGNOSTICS
+  - CORE-CUE
 ---
 
 # XAML attach triggers (Animate.*)
 
 ## Purpose
 
-`Animate` is the static class of attached properties that play an `AnimationBuilder` on a visual from XAML or code without code-behind: `OnAttached` (the "while attached" trigger for loops and timers tied to being on screen), `OnTapped`, and `OnChanged` with its `Watch` value. Each property is typed `AnimationBuilder?`, so `x:Static`, a markup extension or a binding can supply it. The class also hosts the declarative layout members (`Layout`, `LayoutMode`, `ItemLayout`), specified by BRIDGE-DECLLAYOUT, and `ContentSize`, specified by BRIDGE-CONTENTSIZE. Classified entrances and exits belong to `Presence` (BRIDGE-PRESENCE), not to these triggers.
+`Animate` is the static class of attached properties that play an `AnimationBuilder` on a visual from XAML or code without code-behind: `OnAttached` (the "while attached" trigger for loops and timers tied to being on screen), `OnTapped`, `OnChanged` with its `Watch` value, and `OnCue` with its `Cue` (a view-model cue, CORE-CUE). Each builder property is typed `AnimationBuilder?`, so `x:Static`, a markup extension or a binding can supply it. `DoOnChanged` and `DoOnCue` invoke a `CueAction` instead, for effects that are not builders (a burst, a toast, a scroll, a glyph morph); the bridge's actions are markup extensions specified by the features they drive. The class also hosts the declarative layout members (`Layout`, `LayoutMode`, `ItemLayout`), specified by BRIDGE-DECLLAYOUT, and `ContentSize`, specified by BRIDGE-CONTENTSIZE. Classified entrances and exits belong to `Presence` (BRIDGE-PRESENCE), not to these triggers.
 
 ## Requirements
 
@@ -98,6 +101,23 @@ depends:
   - Tests: `AnimateAttachedTests.ClearingOnChangedStopsListening`
 - **BRIDGE-ATTACH-021** (inherited) — `Watch` alone, without `OnChanged`, shall play nothing.
   - Tests: untested
+- **BRIDGE-ATTACH-043** — `DoOnChanged` shall be invoked with each `Watch` value while the visual is attached, with `first` true for the first value it is invoked with.
+  - Tests: `AnimateAttachedTests.DoOnChangedSeesTheFirstValueAsFirstAndLaterValuesAsNot`
+- **BRIDGE-ATTACH-044** — When `DoOnChanged` is set on an attached visual, or the visual attaches, with a `Watch` value that `DoOnChanged` has not been invoked with, `DoOnChanged` shall be invoked with that value, with `first` true if it was never invoked.
+  - Tests: `AnimateAttachedTests.DoOnChangedCatchesUpOnAValueThatChangedWhileDetached`
+- **BRIDGE-ATTACH-045** — A `Watch` change made while the visual's `DataContext` is null after it had one, and the next change once it is back, shall invoke `DoOnChanged` with `first` true.
+  - Tests: `AnimateAttachedTests.ADataContextDropAndRestoreInvokesDoOnChangedAsFirst`
+
+### Cue
+
+- **BRIDGE-ATTACH-039** — While a visual with `Cue` set is attached, `Animate` shall subscribe to the cue. It shall unsubscribe on detach, when `Cue` changes and when `Cue` is set to `null`.
+  - Tests: `AnimateAttachedTests.DetachingUnsubscribesFromTheCueAndAttachingSubscribesAgain`, `AnimateAttachedTests.ChangingOrClearingTheCueUnsubscribesFromTheOldOne`
+- **BRIDGE-ATTACH-040** — `Cue` shall accept a `Cue`, a `Cue<T>` or an `IObservable<object?>`; any other non-null value shall throw `ArgumentException`.
+  - Tests: `AnimateAttachedTests.AnObservableSourceDrivesOnCueAndDoOnCue`, `AnimateAttachedTests.ACueThatIsNeitherACueNorAnObservableThrows`
+- **BRIDGE-ATTACH-041** — On each raise, `Animate` shall play `OnCue` under the rules of `OnChanged` (-017, -018, -020, -022, -023, -038) and invoke `DoOnCue` with the raised value and `first` false.
+  - Tests: `AnimateAttachedTests.OnCuePlaysOnEachRaiseRestartingAndRevertsWhenItCompletes`, `AnimateAttachedTests.DoOnCueGetsTheRaisedValueAsNotFirst`, `AnimateAttachedTests.AnObservableSourceDrivesOnCueAndDoOnCue`, `BuilderPagesTests.XamlPageCuesShakeAnInvalidSaveAndToastAValidOne`
+- **BRIDGE-ATTACH-042** — A raise while the visual is detached shall play and invoke nothing.
+  - Tests: `AnimateAttachedTests.ARaiseWhileDetachedPlaysAndInvokesNothing`
 
 ### Shared trigger rules
 
@@ -109,9 +129,9 @@ depends:
   - Tests: `AnimateAttachedTests.ARunningLoopingTapAnimationFollowsTheFlag`
 - **BRIDGE-ATTACH-024** — When the target is a `TextBlock` whose `TextReveal.Pieces` is not `None` and the builder is not a reduced form, `OnAttached` and `OnTapped` shall play the builder on the block's split pieces as a text reveal (BRIDGE-TEXTREVEAL) instead of on the block, and a tap mid-reveal shall restart it.
   - Tests: `TextRevealTests.OnTappedRevealsThePiecesAndATapMidRevealRestartsIt`, `TextRevealTests.DetachingRevertsTheSplit`, `TextRevealTests.DetachingBeforeTheSplitReleasesTheHold`
-- **BRIDGE-ATTACH-025** — `OnChanged` shall always animate the visual itself, never its text pieces.
+- **BRIDGE-ATTACH-025** — `OnChanged` and `OnCue` shall always animate the visual itself, never its text pieces.
   - Tests: untested
-- **BRIDGE-ATTACH-026** — While `Design.IsDesignMode` is true, setting any trigger property shall create no trigger and play nothing.
+- **BRIDGE-ATTACH-026** — While `Design.IsDesignMode` is true, setting any trigger property (`OnAttached`, `OnTapped`, `OnChanged`, `OnCue`, `Cue`, `DoOnChanged`, `DoOnCue`) shall create no trigger or subscription, play nothing and invoke nothing.
   - Tests: `AnimateAttachedTests.DoesNothingInDesignMode`
 - **BRIDGE-ATTACH-027** — Before playing, a trigger shall initialize the bridge (`PrestoAvalonia.EnsureInitialized`), so XAML use needs no explicit setup.
   - Tests: untested
@@ -127,7 +147,7 @@ depends:
 
 ### Defaults
 
-- **BRIDGE-ATTACH-031** (inherited) — When `OnAttached`, `OnTapped`, `OnChanged` or `Watch` is not set, it shall be null, so the visual has no trigger and nothing plays.
+- **BRIDGE-ATTACH-031** (inherited) — When `OnAttached`, `OnTapped`, `OnChanged`, `Watch`, `Cue`, `OnCue`, `DoOnCue` or `DoOnChanged` is not set, it shall be null, so the visual has no trigger and nothing plays or is invoked.
   - Tests: untested
 
 ## Invariants
@@ -135,6 +155,7 @@ depends:
 - A visual has at most one live animation per trigger property; playing again always reverts the previous one first.
 - After a detach, no trigger animation of the visual is left running or holding values.
 - Clearing a trigger property to `null` removes every event subscription that trigger made.
+- A visual holds a subscription to its `Cue` only while it is attached, so a cue that outlives its view does not keep a detached view alive.
 
 ## Edge cases
 
@@ -148,6 +169,7 @@ depends:
 - UI thread only, like the rest of the bridge. Animations run on the current engine (CORE-SCOPE).
 - The trigger object lives in a private attached property on the visual and holds the visual's events; it is released when the property becomes `null`. A visual that is collected takes its trigger with it.
 - Each `OnAttached` trigger adds one `IsEffectivelyVisibleChanged` handler to its visual, removed with the trigger; following visibility costs nothing per frame.
+- Cues are raised on the UI thread, like the rest of the core (CORE-CUE); `Animate` does not marshal a raise from another thread. The cue listener lives in a private attached property and holds the cue subscription only while the visual is attached.
 
 ## Reduced motion
 
@@ -170,7 +192,7 @@ depends:
 - **The trigger is visual-tree attachment, not `Loaded`.** Reason: `Unloaded` never fires for a root detached before its `Loaded` job runs.
 - **`OnAttached` lifetime is predictable over seamless.** Setting it on an attached visual (or attaching with a value) plays the builder; a detach reverts the animation so a re-attached visual starts clean; a new value reverts the previous animation, then plays; `null` reverts and unsubscribes; design mode does nothing. Reason: a mid-flight swap restarts from the visual's own values, and the previewer must not animate the design surface. Rejected: a seamless mid-flight handover on a value change.
 - **`OnAttached` is the "while attached" trigger.** It plays on every attach with no classification and is meant for loops and timers tied to being on screen (shimmer, countdown); entrances and exits live on `Presence`, states on `Motion`. Reason: it plays on every attach, including a virtualizing panel's recycling, which `Presence` deliberately ignores; triggers are separated by meaning.
-- **One-shot triggers stay on `Animate`, separate from states.** `OnTapped` plays and restarts on each tap; `OnChanged` with `Watch` plays on each change of the watched value but not on its first value; both revert when they complete. Reason: `Animate` is the raw-trigger class, and skipping the first value is what pulsing counters and bumping badges need.
+- **One-shot triggers stay on `Animate`, separate from states.** `OnTapped` plays and restarts on each tap; `OnChanged` with `Watch` plays on each change of the watched value but not on its first value; `OnCue` plays on each raise of its `Cue`; all three revert when they complete. Reason: `Animate` is the raw-trigger class, and skipping the first value is what pulsing counters and bumping badges need.
 - **A one-shot trigger's builder swap replays only a running animation.** Changing `OnTapped` or `OnChanged` reverts a running animation and plays the new builder, as an `OnAttached` change does; with nothing running it plays nothing until the next tap or change. Reason: a running animation stands for a trigger that already fired, so it follows the latest builder; playing with nothing running would fire a trigger nobody raised. Rejected: leaving the running animation alone until the next trigger, which kept showing the replaced builder.
 - **`OnTapped` on a visual that is not an `InputElement` throws `InvalidOperationException`.** Reason: such a visual raises no `Tapped`, so the trigger was silently inert; the builder is valid and the host is not, as with two layout arms on one container.
 - **No timelines or keyframes in XAML.** Reason: builders and recipes already reach XAML as values, multi-step sequences usually need code-side targets and state, and XAML elements would add verbosity without capability.
@@ -180,6 +202,14 @@ depends:
 - **Resume only what the trigger paused.** Reason: a pause from elsewhere (DevTools freeze, a detach-paused root) must survive a show.
 - **Pause-while-hidden is always on, with no opt-out property.** Reason: no case for a loop running unseen has come up, and an `Animate.PauseWhenHidden` property can be added later without a break.
 - **The piece trigger handle is an `IRevertible`, not an `Animation`.** See BRIDGE-TEXTREVEAL.
+- **A cue is a core object exposed as a property, not a CLR event bound by name.** See CORE-CUE. Reason: a compiled binding reaches a view-model property, while subscribing to an event by name needs reflection (trim- and AOT-hostile) and fails only at run time. Rejected: an `EventName` attached property; a `bool` or counter the view model toggles; an `ICommand` the view sets on the view model.
+- **`Cue` also accepts `IObservable<object?>`.** Reason: ReactiveUI view models already expose observables, and accepting them costs one type check; covariance covers reference payloads, and a value-type payload uses `Cue<T>`, read through the core's object sink. Rejected: `Cue` only.
+- **Subscribe while attached, not while the property is set.** Reason: a view model often outlives its view, so a subscription made at set time would keep a detached view alive through the cue; raises while detached do nothing, as `Watch` changes do (-019). Rejected: weak subscriptions, which add a weak-reference type to the core for what attachment already bounds.
+- **One action type with markup extensions, not a property per feature.** `DoOnCue` and `DoOnChanged` take a public abstract `CueAction`; the bridge's actions are markup extensions and apps derive their own. Reason: one source and one action slot serve every effect, where per-feature properties would be several spellings of one idea. Rejected: a dependency on Avalonia.Xaml.Behaviors (see The XAML attach ships in the bridge as attached properties); `AvaloniaObject` actions with bindable settings.
+- **An action acts on the element it sits on.** Reason: markup extension settings cannot hold element bindings and `#name` lookup does not cross a `UserControl`, so the cue goes on the element the effect needs. An action on the wrong target type throws `InvalidOperationException` when invoked, as `OnTapped` does (-014).
+- **Builders and actions take separate properties (`OnCue`/`DoOnCue`, `OnChanged`/`DoOnChanged`).** Reason: one element can pulse on a watched value and burst on a cue, which a shared action slot fed by both would confuse; typed properties keep `OnChanged` an `AnimationBuilder?`, so existing bindings are unaffected. Rejected: retyping `OnChanged` to `object?`.
+- **`DoOnChanged` runs on the first value; `OnChanged` still does not.** Reason: an action that owns the property it writes, as a morph owns `Text`, must set the initial value, and actions that only make a moment skip it through `first`. Rejected: changing -015, which pulsing counters rely on.
+- **`DoOnChanged` treats a change while the `DataContext` is dropped, and the change that restores it, as a rebind.** Both pass `first` true, so an action that owns its property sets it at once. Reason: a surface move drops and restores the `DataContext` while loaded, which a `Watch` would otherwise see as a change to the default and back. A drop counts only once the visual has had a `DataContext`, read at each change, so a `Watch` set from code on a visual that never has one keeps `first` false after its first value. Rejected: treating every change under a null `DataContext` as a rebind, which made every code-set value first.
 - **Persistent motion follows a flag change; finite motion finishes in its form.** See BRIDGE-REDUCED.
 - **The thread is an argument on bridge entry points.** See BRIDGE-THREAD.
 

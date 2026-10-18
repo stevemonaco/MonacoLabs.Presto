@@ -40,13 +40,15 @@ A head (gallery Desktop, Tempo) publishes with NativeAOT through `-p:PublishAot=
 
 The Desktop head takes launch options after `--`, e.g. `dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --page carousel --motion reduced --size 1400x1000`: `--page` takes a slug or title, `--motion` is `full|reduced|system`, `--frame-pacing on|off` sets `AvaloniaFrameSource.Paced` for A/B checks, and `--list-pages` prints the slugs. Its output shows under `dotnet run`, though it is a WinExe, so launched directly its output appears only when redirected; bad arguments exit with code 2. Use these to start DevTools checks on a page instead of navigating the sidebar.
 
+CI (`.github/workflows/ci.yml`, Windows) runs the `aot` job and `build-test-pack`, which builds by project name, runs the four suites and uploads the CI-versioned `.nupkg`/`.snupkg` files as each run's `packages` artifact; `release.yml` publishes to nuget.org on a `v*` tag once approved in the `nuget` environment.
+
 Tests use xunit v3 on Microsoft.Testing.Platform (`UseMicrosoftTestingPlatformRunner`), which the .NET 10 SDK requires; test projects are `Exe` and can also be run directly.
 
 Android/iOS/Browser heads exist but are not part of the day-to-day loop; build them only when asked. Hot reload does not support WebAssembly.
 
 **Specs:** before changing a feature's behavior, read its spec in `docs/specs/` (and the specs in its `depends`), and update its requirements and `Tests:` lines in the same change; a change that diverges from its spec without updating it is incomplete. Every design decision, with its reason, lives in the Decisions section of the spec it governs; a requirement marked `(inherited)` records behavior nobody decided. New work starts as a change proposal in `docs/changes/`, and a new feature as a draft spec (requirements before code). Every public type is owned by exactly one spec's `types`. `SpecTests` (core tests) and `SpecCoverageTests` (bridge tests) enforce the format, the cited tests and paths, and type ownership.
 
-**Implementation workflow:** `.claude/workflows/implement-plan.js` implements a change end to end (decompose against the specs → implement item by item, updating specs, with a concision review after each → whole-diff review → full test run with fix rounds → delete the change proposal and the backlog lines it resolved). Run it with `Workflow({ name: "implement-plan", args: "docs/changes/<name>.md" })` (or a backlog item, or plan text) once a change is agreed; it never commits.
+**Implementation workflow:** `.claude/workflows/implement-plan.js` implements a change end to end (decompose against the specs → implement item by item, updating specs, with a concision review after each → whole-diff review → full test run with fix rounds → delete the change proposal and the backlog lines it resolved). Run it with `Workflow({ name: "implement-plan", args: "docs/changes/<name>.md" })` (or a backlog item, or plan text) once a change is agreed; it never commits. `.claude/workflows/implement-changes.js` chains it over several proposals in order (`args: ["docs/changes/a.md", "docs/changes/b.md"]`), stopping at the first red one, then publishes and runs the AOT probe.
 
 ## Dev loop: DevTools and Hot Reload
 
@@ -91,6 +93,7 @@ The DevTools MCP server separately reads `AVALONIA_TOOLS_LICENSE_KEY`. Never com
 - File-scoped namespaces; folder structure equals namespace; one public type per file.
 - Types are `sealed` unless designed for inheritance. Internal plumbing is `internal` and exposed to tests via `InternalsVisibleTo`.
 - Hot-path code (tick, tween render) avoids allocations and LINQ; keep the upstream linked-list approach.
-- Libraries stay trim- and AOT-clean: no new reflection. A library type animated by name implements `IMemberTarget`. Reach Avalonia internals with `[UnsafeAccessor]`.
+- Libraries and samples stay trim- and AOT-clean: no new reflection, string-path or reflection bindings, `MakeGenericType` or reflection JSON, and no IL2xxx/IL3xxx suppressions. A library type animated by name implements `IMemberTarget`; a sample's plain-object target calls `Presto.RegisterTarget<T>()`. Reach Avalonia internals with `[UnsafeAccessor]`.
+- A public API change updates the project's `PublicAPI.Unshipped.txt` (the RS0016 code fix writes it).
 - Test names describe behavior and, when porting, cite the upstream suite in the class name (e.g. `TimingsTests` ↔ `timings.test.js`).
 - After changes to the core, the tests are the verification step. After changes to the bridge or sample, verify visually via the Desktop sample (DevTools screenshots are fine).

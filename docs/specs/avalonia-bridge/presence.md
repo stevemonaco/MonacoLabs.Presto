@@ -24,6 +24,7 @@ tests:
   - PresenceTextExitTests
   - WhenDetachedTests
   - ReorderContainerTests
+  - ItemTransferTests
   - PopupSpikeTests
   - TextRevealTests
   - ReferencePagesTests
@@ -83,7 +84,11 @@ depends:
 - **BRIDGE-PRESENCE-011** — When the list realizes a row for an item it already had (as it does while scrolling), the arrival shall classify as a realization, which plays no `Initial`, `Enter` or `Arrive` (only `Reveal`, BRIDGE-REVEAL).
   - Tests: `PresenceLifecycleTests.ScrollingAVirtualizedListPlaysNothingAndLeavesNoGhosts`
 - **BRIDGE-PRESENCE-012** — When the list hosts a row for an item it has just moved, the arrival shall play nothing.
-  - Tests: `ReorderContainerTests.AMovePlaysNeitherTheEnterNorTheExitOfTheMovedRow`
+  - Tests: `ReorderContainerTests.AMovePlaysNeitherTheEnterNorTheExitOfTheMovedRow`, `ItemTransferTests.AMoveInAGroupedListIsNoTransferAndPlaysNothing`
+- **BRIDGE-PRESENCE-059** — When the list hosts a row for an item it has just received through a transfer (BRIDGE-DECLLAYOUT), the arrival shall play nothing.
+  - Tests: `ItemTransferTests.ARowMovedToAnotherListFliesWithoutExitOrEntranceAndItsArmResumesAfterLanding`, `ItemTransferTests.RemovingAndReinsertingAnItemInOneGroupedListFliesWithoutExitOrEntrance`, `ItemTransferTests.AnAddBeforeItsRemovalDoesNotFlyAndExitsAndEnters`, `ItemTransferTests.ListsWithoutASharedGroupDoNotFlyAndExitAndEnter`
+- **BRIDGE-PRESENCE-060** — When that transfer is declined at the arriving container's first layout pass (BRIDGE-DECLLAYOUT), `Presence` shall then play the arrival the row would have played without the group, laid out.
+  - Tests: `ItemTransferTests.ACollapsedDestinationLetsTheLeavingContainerExitAndTheArrivingOneEnter`
 - **BRIDGE-PRESENCE-013** (inherited) — When the list has just reset, a row it realizes shall classify as `Initial`.
   - Tests: untested
 
@@ -117,8 +122,8 @@ depends:
   - Tests: `PresenceModeTests.UnderSyncTheEnterPlaysWhileTheGhostExits`
 - **BRIDGE-PRESENCE-024** — When an exit ghost of something leaving a host in `Wait` starts, the host shall wait until every exit ghost started under it has ended.
   - Tests: `PresenceModeTests.AWaitingListHoldsAnAddedRowUntilTheRemovedRowsGhostEnds`, `ReferencePagesTests.TheWaitingWizardHoldsTheNextStepUntilTheOldStepsGhostEnds`
-- **BRIDGE-PRESENCE-025** — While a host waits, every `Initial` or `Enter` arrival under it shall be held at opacity 0 at `Animation` priority with its entrance not started.
-  - Tests: `PresenceModeTests.UnderWaitTheNewContentEntersOnlyOnceTheExitEnds`
+- **BRIDGE-PRESENCE-025** — While a host waits, every `Initial` or `Enter` arrival and every show under it shall be held at opacity 0 at `Animation` priority with its entrance not started.
+  - Tests: `PresenceModeTests.UnderWaitTheNewContentEntersOnlyOnceTheExitEnds`, `PresenceModeTests.AShowWhileAWaitRunsIsHeldAndReleasedWithTheArrivals`
 - **BRIDGE-PRESENCE-026** — While a content host (its exit anchor a `ContentPresenter` or `Decorator`) waits, its new content root shall be held at opacity 0 even when it has no lifecycle builder.
   - Tests: `PresenceModeTests.NewContentWithoutABuilderAppearsWhenTheExitEnds`
 - **BRIDGE-PRESENCE-027** — When the last exit under a waiting host ends, `Presence` shall lift every hold first and then play the held entrances, laid out.
@@ -132,9 +137,11 @@ depends:
 - **BRIDGE-PRESENCE-031** — An `Exit` set by a style setter, which leaving the logical tree withdraws before the visual detach, shall still play on that detach and start the wait.
   - Tests: `PresenceModeTests.AnExitFromAStyleSetterGhostsTheSwappedContentAndStartsTheWait`
 - **BRIDGE-PRESENCE-032** — A held hide (`HideMode = Hold`) and `PrestoAvalonia.AnimateExit` shall start no wait.
-  - Tests: untested
+  - Tests: `PresenceModeTests.AHeldHideUnderAWaitHostStartsNoWait`
 - **BRIDGE-PRESENCE-055** — When an exit under a `Wait` host completes inside its creation (as under `ReduceAll`), the content that replaces it shall not be held: it shows at full opacity and no ghost is left.
   - Tests: `PresenceModeTests.UnderReduceAllTheWaitEndsWithTheInstantExit`
+- **BRIDGE-PRESENCE-058** — When an element under a host in `Wait` with no exit in flight is shown, its entrance shall play from the end of the dispatcher turn (the exit batch job), held when an exit under the host started by then.
+  - Tests: `PresenceModeTests.AnEmptyLineShownByCountFadesInOnlyOnceTheLastRowsGhostEnds`, `PresenceModeTests.AShowUnderAWaitHostWithNothingExitingPlaysInTheSameTurnBeforeAFrame`, `ReferencePagesTests.ClearRowsStaggersTheGhostsTopFirstAndTheEmptyLineFadesInAfterTheLast`
 
 ### IsVisible show and hide
 
@@ -161,7 +168,7 @@ depends:
 - **BRIDGE-PRESENCE-043** — When a split `TextBlock` is hidden under `Hold`, the exit shall play on its live pieces with no ghost and the block shall be whole again once hidden; its reduced form plays on the unsplit block.
   - Tests: `PresenceTextExitTests.AHeldHidePlaysOnTheLiveCharsAndHidesWholeOnceItEnds`, `PresenceTextExitTests.AReducedHeldHidePlaysOnTheUnsplitBlock`
 - **BRIDGE-PRESENCE-044** — When an exit completes inside its creation, as under `ReduceAll`, the hide shall end in the same call, and a show shall land at once.
-  - Tests: `PresenceVisibilityTests.UnderReduceAllAHideAndAShowAreInstant`, `PresenceTextExitTests.UnderReduceAllAHideIsInstantAndLeavesNoSplit`
+  - Tests: `PresenceVisibilityTests.UnderReduceAllAHideAndAShowAreInstant`, `PresenceTextExitTests.UnderReduceAllAHideIsInstantAndLeavesNoSplit`, `PresenceModeTests.UnderReduceAllAShowUnderAWaitHostLandsInTheSameCall`
 - **BRIDGE-PRESENCE-056** (inherited) — When the element's base `IsVisible` changes while it is detached, `Presence` shall record the new value and play nothing.
   - Tests: untested
 
@@ -231,14 +238,16 @@ depends:
 - **Classification happens at attach, never at `Loaded`.** An arrival into a loaded host (`Control.IsLoaded`) is an Enter, anything else Initial. Reason: `Loaded` runs after the first render, so an animation started there shows one frame at rest; `IsLoaded` is set after first layout and render and cleared by `Unloaded`, so a re-shown cached view counts as Initial.
 - **One tracker per element; a detach snapshots the exit before reverting the arrival.** The tracker owns every `Presence` property; a re-attach while its own ghost exits dismisses the ghost, and every attach is classified afresh. Reason: with independent handlers the order depended on XAML attribute order, so a ghost of a row removed mid-entrance started from either look, and a recycled control must be left clean.
 - **Arrivals stop at panels.** The walk passes non-panel, single-child, not-yet-loaded ancestors and stops at the first panel, multi-child or loaded one. Reason: an `ItemsControl` realizing its first item holds one child for a moment, so a "wraps only it" walk passed the panel, misclassifying a view's only row or splitting one list into several batches.
-- **Batches are keyed by the nearest `Panel` and support order staggers only.** Each animation is created at its own attach with its ordinal, and the total is the arrivals so far. Reason: creating it at attach lets the first frame show from-values, and the total is unknown while the batch arrives; keying by the deciding ancestor split a list once its containers had loaded. Rejected: deferring a batch to the first engine tick so the total is known, since that tick runs before layout and realized rows would render a frame at rest.
+- **Arrival batches are keyed by the nearest `Panel` and support order staggers only.** Exit batches, which know their total, are BRIDGE-PRESENCE-EXIT's. Each animation is created at its own attach with its ordinal, and the total is the arrivals so far. Reason: creating it at attach lets the first frame show from-values, and the total is unknown while the batch arrives; keying by the deciding ancestor split a list once its containers had loaded. Rejected: deferring a batch to the first engine tick so the total is known, since that tick runs before layout and realized rows would render a frame at rest.
 - **The item-change window and a batch end after the next layout pass.** They close on `LayoutUpdated` plus a posted job, not at `DispatcherPriority.Loaded`. Reason: on Desktop layout runs on the next render tick, so `Loaded` ran before the pass that realized an added row, which then read as a scroll realization.
-- **Lists decide for their items; realization and recycling play nothing.** An item container's content enters only if its item was just added and exits only if it was removed or the list reset, and so does a container itself; the owner list is the `ItemsControl` hosting the items panel. Reason: a virtualizing panel detaches content when it recycles a container, so scrolled rows exited and entered, and a recycled container has lost the logical parent `ItemsControlFromItemContainer` reads. A container's parent is the panel itself, whose templated parent is the list above a nested `TreeView` section, so the panel resolves to its hosting list first; before, a page added to or removed from a section played nothing. Rejected: accepting that scrolled-in rows enter (as Framer does), a `Presence.IsInitialScope`, and treating a virtualizing panel's realizations as Initial (the panel does not say why it realized).
+- **Lists decide for their items; realization and recycling play nothing.** An item container's content enters only if its item was just added and exits only if it was removed or the list reset, and so does a container itself; a realization, a move and a transfer (BRIDGE-DECLLAYOUT) are the three kinds of non-arrival; the owner list is the `ItemsControl` hosting the items panel. Reason: a virtualizing panel detaches content when it recycles a container, so scrolled rows exited and entered, and a recycled container has lost the logical parent `ItemsControlFromItemContainer` reads. A container's parent is the panel itself, whose templated parent is the list above a nested `TreeView` section, so the panel resolves to its hosting list first; before, a page added to or removed from a section played nothing. Rejected: accepting that scrolled-in rows enter (as Framer does), a `Presence.IsInitialScope`, and treating a virtualizing panel's realizations as Initial (the panel does not say why it realized).
 - **A `Move` is tracked as a move.** The list records moved items, the arrival classifies as Move and the departure as a recycle, so Enter, Exit and Reveal play nothing. Reason: a move used to play the moved row's exit on a ghost and its enter on the new row.
+- **A transfer candidate is a non-arrival at attach; a decline plays the arrival late.** A row whose item matches a pending transfer classifies as Move when it attaches, and if the transfer is declined at the arriving container's first layout pass, the rows inside that container still classified Move play the arrival they would have played without the group, laid out. Reason: the arrival is classified at attach (BRIDGE-PRESENCE-005) and the transfer is confirmed only later, so the entrance must be withheld first; a decline happens only when the container is not effectively visible, where an arrival a pass late shows nothing different. Rejected: holding every attach in a grouped list until its first layout pass, which would delay ordinary entrances a frame and change BRIDGE-PRESENCE-015.
 - **The first-appearance moment is named `Initial`.** Reason: it reads as first appearance (Framer Motion's term). Rejected: `Load`, since Avalonia's `Loaded` also fires for items added later; `Appear`.
 - **`Arrive` is a real attached property and the fallback for both arrivals.** Initial plays `Initial ?? Arrive`, Enter plays `Enter ?? Arrive`; Realize, Recycle and Exit are unaffected. Reason: only a real property works from style setters and bindings, and setting Initial and Enter to one builder was duplication that pushed the sample back to `OnAttached`, which wrongly plays on recycling.
 - **A Presto page transition counts as navigation.** Content under a host whose `PageTransition` is a `PrestoPageTransition` arrives as Initial and departs as Unload, so rows keep their Initial stagger under the transition. Reason: a page host nulls the old page's content while it is still visible at opacity 0, and its `Exit` ghosted and popped back into view.
-- **`Presence.Mode` is `Sync` or `Wait`; there is no `popLayout`.** `Wait` holds incoming arrivals, and a content host's new root even without a builder, at opacity 0 until the last exit ghost ends; `Sync` is the default. Reason: it matches Motion's `AnimatePresence mode="wait"`, with hold-until-measured as precedent. Rejected: `popLayout`, since a ghost never holds layout, so it would equal `Sync`.
+- **`Presence.Mode` is `Sync` or `Wait`; there is no `popLayout`.** `Wait` holds incoming arrivals and shows, and a content host's new root even without a builder, at opacity 0 until the last exit ghost ends; `Sync` is the default. Reason: it matches Motion's `AnimatePresence mode="wait"`, with hold-until-measured as precedent. Rejected: `popLayout`, since a ghost never holds layout, so it would equal `Sync`.
+- **Under `Wait`, a show is held like an attach, decided at the end of the turn.** A show under a `Wait` host with no exit in flight plays its entrance from the exit batch job (BRIDGE-PRESENCE-EXIT), held if an exit under the host started by then. Reason: an empty-state line, the usual element that appears when a list empties, is shown through `IsVisible`, not attached, and `ObservableCollection` raises `Count` before `CollectionChanged`, so the show can come before the last removal in the same turn. The job runs at `Send` priority, before layout and render, so BRIDGE-PRESENCE-015 still holds.
 - **An element's own `IsVisible` flip is a lifecycle moment, played on the live element.** A show plays its arrival and a hide its `Exit`. Reason: most apps and Fluent templates show and hide through `IsVisible`, and a fade-out otherwise needed a `Motion` state plus code.
 - **`HideMode` defaults to `Hold`.** The exit plays on the live element under a `VisibilityHold` taken in the `IsVisible` notification, keeping its slot; `Ghost` (layout collapses at once, the snapshot taken under a momentary hold) is opt-in and the one exception to "an element leaving invisible is never ghosted". Reason: the spike found the live path workable, and a snapshot of an invisible element draws nothing. Rejected: `Ghost` as the default.
 - **Base flips are told from Presto's writes by base value plus priority.** The tracker records `GetBaseValue(IsVisible)`, skips changes at `Animation` priority, acts only when the base differs, and re-reads the base each frame while holding its own exit. Reason: neither test works alone (a hold's release carries the uncovered value's priority, and a hold pushed inside a template-priority flip still reads the old base), and nothing reports a base change under a hold.
@@ -260,4 +269,4 @@ depends:
 
 ## Open items
 
-- BRIDGE-PRESENCE-003, -004, -013, -019, -021, -032, -049, -050, -054 and -056 have no test.
+- BRIDGE-PRESENCE-003, -004, -013, -019, -021, -049, -050, -054 and -056 have no test.

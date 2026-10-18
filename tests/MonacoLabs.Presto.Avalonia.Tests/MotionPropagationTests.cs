@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 
@@ -161,5 +162,38 @@ public sealed class MotionPropagationTests : BridgeTestBase
         Frames.Advance(200, 10);
         Assert.Equal(0.4, child.Opacity, 6);
         Assert.Equal(10, Get(child, "X"), 6);
+    }
+
+    [AvaloniaFact]
+    public void FollowersOfAStateTokensSourceStaggerAsFromAPlainValue()
+    {
+        var (first, second) = Staggered(tokens: true);
+
+        Assert.Equal(Staggered(tokens: false), (first, second));
+        Assert.Equal(0.4, first);
+        Assert.InRange(second, 0.5, 0.8);
+    }
+
+    private (double First, double Second) Staggered(bool tokens)
+    {
+        var first = Box();
+        var second = Box();
+        Motion.SetStates(first, [new MotionState { When = "IsRunning", Motion = Linear().Opacity(0.4) }]);
+        Motion.SetStates(second, [new MotionState { When = "IsRunning", Motion = Linear().Opacity(0.4) }]);
+        var model = new TokensViewModel { Mode = TokenMode.Break };
+        var parent = new StackPanel { DataContext = model, Children = { first, second } };
+        Motion.SetStaggerChildren(parent, 50);
+        Show(parent);
+        if (tokens)
+        {
+            var extension = new StateTokensExtension(new Binding(nameof(TokensViewModel.Mode)), new Binding(nameof(TokensViewModel.IsRunning)));
+            parent.Bind(Motion.StateProperty, (BindingBase)extension.ProvideValue(new ProvidedTarget(parent, Motion.StateProperty)));
+        }
+
+        if (tokens) model.IsRunning = true;
+        else Motion.SetState(parent, "Break IsRunning");
+        Frames.Advance(100, 10);
+
+        return (Math.Round(first.Opacity, 1), Math.Round(second.Opacity, 1));
     }
 }

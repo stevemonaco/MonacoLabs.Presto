@@ -79,6 +79,47 @@ public sealed class MotionValueSourceTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void ScrollRemainingValuesHoldTheDistanceLeftOnBothAxes()
+    {
+        var vertical = ScrollStage.Show();
+        var horizontal = ScrollStage.Show(Orientation.Horizontal);
+        var down = PrestoAvalonia.ScrollRemainingValue(vertical.Scroller);
+        var across = PrestoAvalonia.ScrollRemainingValue(horizontal.Scroller, ScrollAxis.Horizontal);
+
+        Assert.Equal(500d, down.Value);
+        Assert.Equal(500d, across.Value);
+
+        vertical.Scroller.Offset = new Vector(0, 120.4);
+        horizontal.Scroller.Offset = new Vector(500, 0);
+
+        Assert.Equal(380d, down.Value);
+        Assert.Equal(0d, across.Value);
+    }
+
+    [AvaloniaFact]
+    public void ScrollRemainingIsRefreshedWhenTheExtentChanges()
+    {
+        var stage = ScrollStage.Show();
+        var remaining = PrestoAvalonia.ScrollRemainingValue(stage.Scroller);
+        ScrollStage.ScrollTo(stage.Scroller, 100);
+
+        stage.Trail.Height = 500;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(600d, remaining.Value);
+    }
+
+    [AvaloniaFact]
+    public void ScrollRemainingIsZeroWhenTheContentFits()
+    {
+        var stage = ScrollStage.Show(trail: 0);
+        stage.Panel.Children.RemoveAt(0);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(0d, PrestoAvalonia.ScrollRemainingValue(stage.Scroller).Value);
+    }
+
+    [AvaloniaFact]
     public void ProgressValueMatchesTheObserverAcrossItsThresholds()
     {
         var (_, scroller, target) = ShowScroller();

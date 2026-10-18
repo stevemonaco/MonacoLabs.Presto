@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,8 +11,9 @@ using MonacoLabs.Presto.Diagnostics;
 namespace MonacoLabs.Presto;
 
 /// <summary>
-/// Attached properties that play an <see cref="AnimationBuilder"/> on a visual from XAML when it attaches, is tapped or its
-/// watched value changes, or that ease a control's layout moves or size while it is attached.
+/// Attached properties that play an <see cref="AnimationBuilder"/> or invoke a <see cref="CueAction"/> on a visual from XAML
+/// when it attaches, is tapped, its watched value changes or a view-model cue is raised, or that ease a control's layout
+/// moves or size while it is attached.
 /// </summary>
 public static class Animate
 {
@@ -51,6 +53,40 @@ public static class Animate
         AvaloniaProperty.RegisterAttached<Visual, object?>("Watch", typeof(Animate));
 
     /// <summary>
+    /// Invokes the action with every <see cref="WatchProperty"/> value while the visual is attached, telling it which value
+    /// is the first, and on attach with a value it has not seen. A change made while the <see cref="StyledElement.DataContext"/>
+    /// is dropped, and the one that restores it, count as first again.
+    /// </summary>
+    public static readonly AttachedProperty<CueAction?> DoOnChangedProperty =
+        AvaloniaProperty.RegisterAttached<Visual, CueAction?>("DoOnChanged", typeof(Animate));
+
+    private static readonly AttachedProperty<ChangedAction?> ChangedActionProperty =
+        AvaloniaProperty.RegisterAttached<Visual, ChangedAction?>("ChangedAction", typeof(Animate));
+
+    /// <summary>
+    /// The cue whose raises play <see cref="OnCueProperty"/> and invoke <see cref="DoOnCueProperty"/>, usually bound to a
+    /// view-model <see cref="Cue"/>. It is subscribed only while the visual is attached, so raises while detached do nothing.
+    /// </summary>
+    /// <remarks>Takes a <see cref="Cue"/>, a <see cref="Cue{T}"/> or an <see cref="IObservable{T}"/> of <see cref="object"/>; any other value throws <see cref="ArgumentException"/>.</remarks>
+    public static readonly AttachedProperty<object?> CueProperty =
+        AvaloniaProperty.RegisterAttached<Visual, object?>("Cue", typeof(Animate));
+
+    private static readonly AttachedProperty<CueListener?> CueListenerProperty =
+        AvaloniaProperty.RegisterAttached<Visual, CueListener?>("CueListener", typeof(Animate));
+
+    /// <summary>
+    /// Plays the builder each time <see cref="CueProperty"/> is raised, restarting it on every raise, and reverts it when it
+    /// completes or the visual detaches; changing the value while it plays reverts it and plays the new builder, and
+    /// <see langword="null"/> stops playing.
+    /// </summary>
+    public static readonly AttachedProperty<AnimationBuilder?> OnCueProperty =
+        AvaloniaProperty.RegisterAttached<Visual, AnimationBuilder?>("OnCue", typeof(Animate));
+
+    /// <summary>Invokes the action on the visual with the raised value each time <see cref="CueProperty"/> is raised.</summary>
+    public static readonly AttachedProperty<CueAction?> DoOnCueProperty =
+        AvaloniaProperty.RegisterAttached<Visual, CueAction?>("DoOnCue", typeof(Animate));
+
+    /// <summary>
     /// Eases every move layout gives the control while it is attached, as <see cref="PrestoAvalonia.AnimateLayout(Control, AnimationBuilder, LayoutAnimateMode)"/>
     /// does, taking only the builder's timing and eases. Attaching records where the control is without easing its arrival,
     /// detaching reverts, changing the value re-arms, and <see langword="null"/> stops listening. A keyed flight wins its move
@@ -81,6 +117,10 @@ public static class Animate
     /// </remarks>
     public static readonly AttachedProperty<AnimationBuilder?> ItemLayoutProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, AnimationBuilder?>("ItemLayout", typeof(Animate));
+
+    /// <summary>Names the lists with <see cref="ItemLayoutProperty"/> whose items fly from one to another when moved between them.</summary>
+    public static readonly AttachedProperty<string?> ItemGroupProperty =
+        AvaloniaProperty.RegisterAttached<ItemsControl, string?>("ItemGroup", typeof(Animate));
 
     private static readonly AttachedProperty<ItemArms?> ItemArmsProperty =
         AvaloniaProperty.RegisterAttached<ItemsControl, ItemArms?>("ItemArms", typeof(Animate));
@@ -116,12 +156,18 @@ public static class Animate
     private static readonly AttachedProperty<Trigger?> ChangedTriggerProperty =
         AvaloniaProperty.RegisterAttached<Visual, Trigger?>("ChangedTrigger", typeof(Animate));
 
+    private static readonly AttachedProperty<Trigger?> CueTriggerProperty =
+        AvaloniaProperty.RegisterAttached<Visual, Trigger?>("CueTrigger", typeof(Animate));
+
     static Animate()
     {
         OnAttachedProperty.Changed.AddClassHandler<Visual>(HandleOnAttachedChanged);
         OnTappedProperty.Changed.AddClassHandler<Visual>(HandleTriggerChanged);
         OnChangedProperty.Changed.AddClassHandler<Visual>(HandleTriggerChanged);
+        OnCueProperty.Changed.AddClassHandler<Visual>(HandleTriggerChanged);
         WatchProperty.Changed.AddClassHandler<Visual>(HandleWatchChanged);
+        DoOnChangedProperty.Changed.AddClassHandler<Visual>(HandleDoOnChangedChanged);
+        CueProperty.Changed.AddClassHandler<Visual>(HandleCueChanged);
         LayoutProperty.Changed.AddClassHandler<Control>(HandleLayoutChanged);
         LayoutModeProperty.Changed.AddClassHandler<Control>(HandleLayoutChanged);
         ContentSizeProperty.Changed.AddClassHandler<Control>(HandleContentSizeChanged);
@@ -153,6 +199,30 @@ public static class Animate
     /// <summary>Sets the value whose changes play the <see cref="OnChangedProperty"/> builder.</summary>
     public static void SetWatch(Visual visual, object? value) => visual.SetValue(WatchProperty, value);
 
+    /// <summary>Gets the action invoked with each watched value of <paramref name="visual"/>.</summary>
+    public static CueAction? GetDoOnChanged(Visual visual) => visual.GetValue(DoOnChangedProperty);
+
+    /// <summary>Sets the action invoked with each watched value of <paramref name="visual"/>.</summary>
+    public static void SetDoOnChanged(Visual visual, CueAction? value) => visual.SetValue(DoOnChangedProperty, value);
+
+    /// <summary>Gets the cue whose raises play <see cref="OnCueProperty"/> and invoke <see cref="DoOnCueProperty"/>.</summary>
+    public static object? GetCue(Visual visual) => visual.GetValue(CueProperty);
+
+    /// <summary>Sets the cue whose raises play <see cref="OnCueProperty"/> and invoke <see cref="DoOnCueProperty"/>.</summary>
+    public static void SetCue(Visual visual, object? value) => visual.SetValue(CueProperty, value);
+
+    /// <summary>Gets the builder played when the cue of <paramref name="visual"/> is raised.</summary>
+    public static AnimationBuilder? GetOnCue(Visual visual) => visual.GetValue(OnCueProperty);
+
+    /// <summary>Sets the builder played when the cue of <paramref name="visual"/> is raised.</summary>
+    public static void SetOnCue(Visual visual, AnimationBuilder? value) => visual.SetValue(OnCueProperty, value);
+
+    /// <summary>Gets the action invoked when the cue of <paramref name="visual"/> is raised.</summary>
+    public static CueAction? GetDoOnCue(Visual visual) => visual.GetValue(DoOnCueProperty);
+
+    /// <summary>Sets the action invoked when the cue of <paramref name="visual"/> is raised.</summary>
+    public static void SetDoOnCue(Visual visual, CueAction? value) => visual.SetValue(DoOnCueProperty, value);
+
     /// <summary>Gets the builder that eases the layout moves of <paramref name="control"/>.</summary>
     public static AnimationBuilder? GetLayout(Control control) => control.GetValue(LayoutProperty);
 
@@ -176,6 +246,12 @@ public static class Animate
 
     /// <summary>Sets the builder that eases the layout moves of the item containers of <paramref name="list"/>.</summary>
     public static void SetItemLayout(ItemsControl list, AnimationBuilder? value) => list.SetValue(ItemLayoutProperty, value);
+
+    /// <summary>Gets the group of lists whose items fly between them.</summary>
+    public static string? GetItemGroup(ItemsControl list) => list.GetValue(ItemGroupProperty);
+
+    /// <summary>Sets the group of lists whose items fly between them.</summary>
+    public static void SetItemGroup(ItemsControl list, string? value) => list.SetValue(ItemGroupProperty, value);
 
     /// <summary>The arm <see cref="ItemLayoutProperty"/> keeps on an item container, or null when its list sets none.</summary>
     internal static LayoutArm? ItemArmOf(Control container) => container.GetValue(ItemArmProperty);
@@ -250,7 +326,9 @@ public static class Animate
         if (Design.IsDesignMode) return;
         if (e.Property == OnTappedProperty && e.NewValue is not null && visual is not InputElement)
             throw new InvalidOperationException($"Animate.OnTapped listens for Tapped, which a {visual.GetType().Name} does not raise; set it on an InputElement.");
-        var holder = e.Property == OnTappedProperty ? TappedTriggerProperty : ChangedTriggerProperty;
+        var holder = e.Property == OnTappedProperty ? TappedTriggerProperty
+            : e.Property == OnChangedProperty ? ChangedTriggerProperty
+            : CueTriggerProperty;
         var trigger = visual.GetValue(holder);
         if (e.NewValue is null)
         {
@@ -269,9 +347,126 @@ public static class Animate
 
     private static void HandleWatchChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
     {
-        if (visual.GetValue(ChangedTriggerProperty) is not { } trigger) return;
-        if (trigger.Seen) trigger.Play();
-        trigger.Seen = true;
+        if (visual.GetValue(ChangedTriggerProperty) is { } trigger)
+        {
+            if (trigger.Seen) trigger.Play();
+            trigger.Seen = true;
+        }
+        visual.GetValue(ChangedActionProperty)?.Changed(e.NewValue);
+    }
+
+    private static void HandleDoOnChangedChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (Design.IsDesignMode) return;
+        visual.GetValue(ChangedActionProperty)?.Release();
+        if (e.NewValue is null)
+        {
+            visual.ClearValue(ChangedActionProperty);
+            return;
+        }
+        var action = new ChangedAction(visual);
+        visual.SetValue(ChangedActionProperty, action);
+        if (visual.IsAttachedToVisualTree()) action.CatchUp();
+    }
+
+    private static void HandleCueChanged(Visual visual, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (Design.IsDesignMode) return;
+        visual.GetValue(CueListenerProperty)?.Release();
+        visual.ClearValue(CueListenerProperty);
+        if (e.NewValue is null) return;
+        if (e.NewValue is not (ICueSource or IObservable<object?>))
+            throw new ArgumentException($"Animate.Cue takes a Cue, a Cue<T> or an IObservable<object?>, not a {e.NewValue.GetType().Name}.", "value");
+        visual.SetValue(CueListenerProperty, new CueListener(visual, e.NewValue));
+    }
+
+    private sealed class CueListener : IObserver<object?>
+    {
+        private readonly Visual _visual;
+        private readonly object _source;
+        private IDisposable? _subscription;
+
+        public CueListener(Visual visual, object source)
+        {
+            _visual = visual;
+            _source = source;
+            visual.AttachedToVisualTree += HandleAttached;
+            visual.DetachedFromVisualTree += HandleDetached;
+            if (visual.IsAttachedToVisualTree()) Subscribe();
+        }
+
+        public void Release()
+        {
+            _visual.AttachedToVisualTree -= HandleAttached;
+            _visual.DetachedFromVisualTree -= HandleDetached;
+            Unsubscribe();
+        }
+
+        public void OnNext(object? value)
+        {
+            _visual.GetValue(CueTriggerProperty)?.Play();
+            GetDoOnCue(_visual)?.Invoke(_visual, value, first: false);
+        }
+
+        public void OnCompleted() { }
+
+        public void OnError(Exception error) { }
+
+        private void Subscribe() =>
+            _subscription = _source is ICueSource cue ? cue.Subscribe(OnNext) : ((IObservable<object?>)_source).Subscribe(this);
+
+        private void Unsubscribe()
+        {
+            _subscription?.Dispose();
+            _subscription = null;
+        }
+
+        private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e) => Subscribe();
+
+        private void HandleDetached(object? sender, VisualTreeAttachmentEventArgs e) => Unsubscribe();
+    }
+
+    private sealed class ChangedAction
+    {
+        private readonly Visual _visual;
+        private object? _last;
+        private bool _invoked;
+        private bool _hadContext;
+        private bool _dropped;
+
+        public ChangedAction(Visual visual)
+        {
+            _visual = visual;
+            _hadContext = visual.DataContext is not null;
+            visual.AttachedToVisualTree += HandleAttached;
+        }
+
+        public void Release() => _visual.AttachedToVisualTree -= HandleAttached;
+
+        // A drop (null after a context) and the change that follows it are rebinds, so a surface move sets rather than morphs.
+        public void Changed(object? value)
+        {
+            var context = _visual.DataContext is not null;
+            var rebind = context ? _dropped : _hadContext;
+            _dropped = !context && _hadContext;
+            _hadContext |= context;
+            if (_visual.IsAttachedToVisualTree()) Invoke(value, !_invoked || rebind);
+        }
+
+        public void CatchUp()
+        {
+            var value = GetWatch(_visual);
+            if (!_invoked || !Equals(value, _last)) Invoke(value, !_invoked);
+        }
+
+        private void Invoke(object? value, bool first)
+        {
+            _invoked = true;
+            _last = value;
+            GetDoOnChanged(_visual)?.Invoke(_visual, value, first);
+        }
+
+        private void HandleAttached(object? sender, VisualTreeAttachmentEventArgs e) => CatchUp();
     }
 
     private sealed class ItemArms
@@ -283,6 +478,7 @@ public static class Animate
             _list = list;
             list.ContainerPrepared += HandlePrepared;
             list.ContainerClearing += HandleClearing;
+            list.Items.CollectionChanged += HandleItemsChanged;
         }
 
         public void Arm()
@@ -294,6 +490,7 @@ public static class Animate
         {
             _list.ContainerPrepared -= HandlePrepared;
             _list.ContainerClearing -= HandleClearing;
+            _list.Items.CollectionChanged -= HandleItemsChanged;
             foreach (var container in _list.GetRealizedContainers()) Disarm(container);
         }
 
@@ -315,17 +512,23 @@ public static class Animate
         }
 
         // Arming as if attaching makes a recycled container record its new slot instead of flying there from its old one.
-        private void HandlePrepared(object? sender, ContainerPreparedEventArgs e) => Arm(e.Container, attaching: true);
+        private void HandlePrepared(object? sender, ContainerPreparedEventArgs e)
+        {
+            ItemTransfers.Arrive(_list, e.Container, _list.Items[e.Index]);
+            Arm(e.Container, attaching: true);
+        }
 
         private void HandleClearing(object? sender, ContainerClearingEventArgs e) => Disarm(e.Container);
+
+        private void HandleItemsChanged(object? sender, NotifyCollectionChangedEventArgs e) => ItemTransfers.OnItemsChanged(_list, e);
     }
 
     // Avalonia raises IsEffectivelyVisibleChanged from the visibility walk it already does, but keeps the event internal.
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "add_IsEffectivelyVisibleChanged")]
-    private static extern void AddVisibilityHandler(Visual visual, EventHandler handler);
+    internal static extern void AddVisibilityHandler(Visual visual, EventHandler handler);
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "remove_IsEffectivelyVisibleChanged")]
-    private static extern void RemoveVisibilityHandler(Visual visual, EventHandler handler);
+    internal static extern void RemoveVisibilityHandler(Visual visual, EventHandler handler);
 
     private sealed class Trigger
     {
@@ -375,7 +578,7 @@ public static class Animate
                 };
             }
             using var origin = PrestoDiagnostics.Origin("Animate");
-            _animation = _builder != OnChangedProperty && PieceTargets.Play(_visual, parameters) is { } reveal
+            _animation = (_builder == OnAttachedProperty || _builder == OnTappedProperty) && PieceTargets.Play(_visual, parameters) is { } reveal
                 ? reveal
                 : Presto.Animate(_visual, parameters);
             _engine = ReducedMotionFollowers.Add(_follow);

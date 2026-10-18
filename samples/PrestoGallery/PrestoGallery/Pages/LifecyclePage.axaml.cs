@@ -15,7 +15,7 @@ namespace PrestoGallery.Pages;
 /// <summary>
 /// Presence's lifecycle side by side: three views, the last a virtualized list, whose rows carry Initial, Enter and Exit,
 /// and a log written by each builder's OnBegin, so it records what Presence classified rather than what the page intended.
-/// Below, a crossfading swapper and a wizard whose host's <c>Presence.Mode</c> makes each step wait for the last to leave.
+/// Below, a filtered list whose rows fly to a second list in the same <c>Animate.ItemGroup</c>, a crossfading swapper and a wizard whose host's <c>Presence.Mode</c> makes each step wait for the last to leave.
 /// </summary>
 public partial class LifecyclePage : UserControl
 {
@@ -23,9 +23,12 @@ public partial class LifecyclePage : UserControl
     private static readonly IBrush EnterTint = Brush.Parse("#86efac");
     private static readonly IBrush ExitTint = Brush.Parse("#fca5a5");
     private static readonly IBrush UnloadTint = Brush.Parse("#cbd5e1");
+    private static readonly IBrush TodoTint = Brush.Parse("#7dd3fc");
+    private static readonly IBrush DoneTint = Brush.Parse("#cbd5e1");
     private static readonly string[] Steps = ["AccountStep", "PlanStep", "DoneStep"];
 
     private readonly (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View)[] _views;
+    private readonly FilteredView<Chore> _shown;
     private readonly Control[] _panels = [Panel("Inbox", "#7dd3fc"), Panel("Archive", "#fca5a5")];
     private int _view;
     private int _panel;
@@ -37,11 +40,14 @@ public partial class LifecyclePage : UserControl
         InitializeComponent();
         var (initial, initialCode) = Snippet.Of(Recipes.FadeUp(distance: 18, duration: 460, ease: Eases.OutQuart).Delay(Presto.Stagger(70)));
         var (enter, enterCode) = Snippet.Of(Recipes.SlideIn(Edge.Left, distance: 40, duration: 380, ease: Eases.OutBack(1.4)));
-        var (exit, exitCode) = Snippet.Of(Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad));
+        var (exit, exitCode) = Snippet.Of(Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad).Delay(Presto.Stagger(40)));
+        var (empty, emptyCode) = Snippet.Of(Recipes.Fade(duration: 360));
         RowCode.Code = $"""
             Presence.SetInitial(row, {initialCode});
             Presence.SetEnter(row, {enterCode});
             Presence.SetExit(row, {exitCode});
+            Presence.SetMode(listAndEmptyLine, PresenceMode.Wait);
+            Presence.SetArrive(emptyLine, {emptyCode});
             """;
         initial.OnBegin(timer => Moments.Record("Initial", InitialTint, RowOf(timer)));
         enter.OnBegin(timer => Moments.Record("Enter", EnterTint, RowOf(timer)));
@@ -49,14 +55,16 @@ public partial class LifecyclePage : UserControl
 
         _views =
         [
-            View("Inbox", ["Reply to Grace", "Review the pull request", "Book the venue", "Pay the invoice"], initial, enter, exit),
-            View("Projects", ["Presto 0.2", "Gallery restyle", "Docs pass"], initial, enter, exit),
-            View("Archive · 300 rows, virtualized", [.. Enumerable.Range(1, 300).Select(i => $"Archived task #{i}")], initial, enter, exit, virtualized: true),
+            View("Inbox", ["Reply to Grace", "Review the pull request", "Book the venue", "Pay the invoice"], initial, enter, exit, empty),
+            View("Projects", ["Presto 0.2", "Gallery restyle", "Docs pass"], initial, enter, exit, empty),
+            View("Archive · 300 rows, virtualized", [.. Enumerable.Range(1, 300).Select(i => $"Archived task #{i}")], initial, enter, exit, empty, virtualized: true),
         ];
         Host.Content = _views[0].View;
         Swapper.Content = _panels[0];
         WizardCode.Code = $"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}";
         SwapCode.Code = Snippets.LifecycleSwap;
+        _shown = ShowTransferLists();
+        TransferCode.Code = Snippets.LifecycleTransfer;
         ModePicker.SelectedIndex = (int)Presence.GetMode(Wizard);
         ShowStep(0);
     }
@@ -65,7 +73,7 @@ public partial class LifecyclePage : UserControl
 
     /// <remarks>A <see cref="ListBox"/> virtualizes its rows, so scrolling realizes and recycles them, which plays nothing.</remarks>
     private static (string, ObservableCollection<string>, ItemsControl, Control) View(
-        string title, string[] rows, AnimationBuilder initial, AnimationBuilder enter, AnimationBuilder exit, bool virtualized = false)
+        string title, string[] rows, AnimationBuilder initial, AnimationBuilder enter, AnimationBuilder exit, AnimationBuilder empty, bool virtualized = false)
     {
         var items = new ObservableCollection<string>(rows);
         // Bound rather than set once, because a virtualized list recycles a row's controls for another item.
@@ -80,10 +88,15 @@ public partial class LifecyclePage : UserControl
         ItemsControl list = virtualized
             ? new ListBox { Classes = { "archive" }, Height = 260, ItemsSource = items, ItemTemplate = template }
             : new ItemsControl { ClipToBounds = false, ItemsSource = items, ItemTemplate = template };
+        var emptyLine = new TextBlock { Classes = { "empty" }, Text = "No rows", IsVisible = false };
+        Presence.SetArrive(emptyLine, empty);
+        items.CollectionChanged += (_, _) => emptyLine.IsVisible = items.Count == 0;
+        var listAndEmptyLine = new Panel { Children = { list, emptyLine } };
+        Presence.SetMode(listAndEmptyLine, PresenceMode.Wait);
         var view = new Border
         {
             Classes = { "view" },
-            Child = new StackPanel { Children = { new TextBlock { Classes = { "title" }, Text = title }, list } },
+            Child = new StackPanel { Children = { new TextBlock { Classes = { "title" }, Text = title }, listAndEmptyLine } },
         };
         return (title, items, list, view);
     }
@@ -138,12 +151,66 @@ public partial class LifecyclePage : UserControl
     }
     #endregion
 
+    #region snippet LifecycleTransfer
+    private sealed record Chore(string Title, string Tag);
+
+    private readonly ObservableCollection<Chore> _open =
+    [
+        new("Water the plants", "Home"), new("Send the report", "Work"), new("Pick up the parcel", "Errand"),
+        new("Fix the shelf", "Home"), new("Plan the sprint", "Work"), new("Buy coffee beans", "Errand"),
+    ];
+    private readonly ObservableCollection<Chore> _done = [];
+
+    private FilteredView<Chore> ShowTransferLists()
+    {
+        var shown = new FilteredView<Chore>(_open);
+        OpenList.ItemsSource = shown;
+        DoneList.ItemsSource = _done;
+        foreach (var (list, tint) in new[] { (OpenList, TodoTint), (DoneList, DoneTint) })
+        {
+            Animate.SetItemLayout(list, Recipes.Reflow());
+            Animate.SetItemGroup(list, "lifecycle");
+            list.ItemTemplate = new FuncDataTemplate<Chore>((chore, _) => ChoreRow(chore, tint));
+        }
+        return shown;
+    }
+
+    private Border ChoreRow(Chore chore, IBrush tint)
+    {
+        var row = new Border
+        {
+            Classes = { "row" },
+            Background = tint,
+            Child = new DockPanel { Children = { new TextBlock { [DockPanel.DockProperty] = Dock.Right, Text = chore.Tag, Opacity = 0.6 }, new TextBlock { Text = chore.Title } } },
+        };
+        Presence.SetEnter(row, Recipes.FadeUp(distance: 12, duration: 320, ease: Eases.OutQuart));
+        Presence.SetExit(row, Recipes.FadeOutUp(distance: 12, duration: 260, ease: Eases.InQuad));
+        row.Tapped += (_, _) => Transfer(chore);
+        return row;
+    }
+
+    private void Transfer(Chore chore)
+    {
+        var (from, to) = _done.Contains(chore) ? (_done, _open) : (_open, _done);
+        from.Remove(chore);
+        to.Add(chore);
+    }
+
+    private void TagChanged(object? sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton { IsChecked: true, Content: string tag })
+            _shown.Filter = tag == "All" ? null : chore => chore.Tag == tag;
+    }
+    #endregion
+
     private void AddRow(object? sender, RoutedEventArgs e)
     {
         // A virtualizing panel keeps its first realized row anchored, so an item inserted at its index lands above the viewport.
         var index = ShownRange() is { } shown ? Random.Shared.Next(shown.First, shown.Last) + 1 : 0;
         Current.Rows.Insert(index, $"New task #{++_next}");
     }
+
+    private void ClearRows(object? sender, RoutedEventArgs e) => Current.Rows.Clear();
 
     private void RemoveRow(object? sender, RoutedEventArgs e)
     {

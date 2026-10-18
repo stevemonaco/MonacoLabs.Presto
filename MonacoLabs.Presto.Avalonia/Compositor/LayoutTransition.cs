@@ -130,6 +130,9 @@ public sealed class LayoutTransition : IRevertible, IReleasable, ICompositorTrac
     /// </summary>
     internal ItemChanges? List { get; init; }
 
+    /// <summary>Asked once, at the first layout pass, whether the move should play; when it answers false the transition reverts.</summary>
+    internal Func<bool>? Confirm { get; set; }
+
     /// <inheritdoc cref="Animation.Then"/>
     /// <remarks>A one-shot awaited before its first layout pass waits for that pass, and then for the move it starts.</remarks>
     public async Task<LayoutTransition> Then(Action<LayoutTransition>? callback = null)
@@ -268,6 +271,15 @@ public sealed class LayoutTransition : IRevertible, IReleasable, ICompositorTrac
     {
         // A transition reverted by an earlier handler of this pass still runs from the event's snapshot.
         if (Live(_control) != this || Measure(_control) is not { } window) return;
+        if (Confirm is { } confirm)
+        {
+            Confirm = null;
+            if (!confirm())
+            {
+                Revert();
+                return;
+            }
+        }
         var first = _first;
         var last = window;
         // Adding this control's own scroll offsets moves an on-screen source into its layout frame.

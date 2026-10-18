@@ -451,6 +451,84 @@ public sealed class GlyphRecipeTests : BridgeTestBase
         Assert.Equal("12:32", block.Text);
     }
 
+    [AvaloniaFact]
+    public void MorphGlyphsOnAWatchSetsTheFirstValueAtOnceAndMorphsALaterOne()
+    {
+        var block = Shown("");
+        Watched(block, new MorphGlyphsExtension(), "12");
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "12");
+
+        Animate.SetWatch(block, "19");
+
+        Assert.NotEmpty(Pieces(block));
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOnAWatchSetsAValueAtOnceWhileTheBlockIsNotLoaded()
+    {
+        var parent = new Border();
+        Show(parent);
+        var block = new TextBlock { FontSize = 40 };
+        Watched(block, new MorphGlyphsExtension(), "12");
+
+        parent.Child = block;
+        Animate.SetWatch(block, "19");
+
+        Assert.False(block.IsLoaded);
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "19");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsWithoutMorphBlankSetsAChangeToOrFromEmptyAtOnceAndStillMorphsWordToWord()
+    {
+        var block = Shown("");
+        Watched(block, new MorphGlyphsExtension { MorphBlank = false }, "Start");
+
+        Animate.SetWatch(block, "");
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "");
+
+        Animate.SetWatch(block, "Pause");
+        Assert.Empty(Pieces(block));
+        AssertPlain(block, "Pause");
+
+        Animate.SetWatch(block, "Start");
+        Assert.NotEmpty(Pieces(block));
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOnAWatchCompletesWhenTheBlockDetachesMidMorph()
+    {
+        var block = Shown("");
+        var window = (Window)TopLevel.GetTopLevel(block)!;
+        var adorners = AdornerLayer.GetAdornerLayer(block)!;
+        Watched(block, new MorphGlyphsExtension(), "12");
+        Animate.SetWatch(block, "9");
+        Assert.NotEmpty(Pieces(block));
+        Frames.Advance(100, 10);
+
+        window.Content = null;
+
+        Assert.DoesNotContain(adorners.Children, c => AdornerLayer.GetAdornedElement(c) == block);
+        AssertPlain(block, "9");
+    }
+
+    [AvaloniaFact]
+    public void MorphGlyphsOffATextBlockThrows()
+    {
+        var action = (CueAction)new MorphGlyphsExtension().ProvideValue(null!);
+
+        Assert.Throws<InvalidOperationException>(() => action.Invoke(new Border(), "a", first: true));
+    }
+
+    private static void Watched(TextBlock block, MorphGlyphsExtension extension, string value)
+    {
+        Animate.SetWatch(block, value);
+        Animate.SetDoOnChanged(block, (CueAction)extension.ProvideValue(null!));
+    }
+
     private static TextBlock Shown(string text)
     {
         var block = new TextBlock { Text = text, FontSize = 40 };

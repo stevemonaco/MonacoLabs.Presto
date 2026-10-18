@@ -20,12 +20,19 @@ public partial class ScrollPage : ShowcasePage
         #region snippet ScrollReveal
         Presence.SetReveal(RevealCard, Presto.Build().Y(from: 60, to: 0).Opacity(from: 0, to: 1).Duration(700).Ease(Eases.OutQuad));
         #endregion
+        EdgeRows.ItemsSource = Enumerable.Range(1, 20).Select(i => $"Row {i}").ToArray();
+        EdgeChips.ItemsSource = new[] { "linear", "inQuad", "outQuad", "inOutQuad", "outCubic", "outQuint", "outExpo", "outCirc", "outBack", "outElastic", "outBounce", "spring", "steps(4)" };
     }
 
     protected override void OnAttached()
     {
         _idle = ThresholdCard.Background;
 
+        #region snippet ScrollRemaining
+        var remaining = PrestoAvalonia.ScrollRemainingValue(EdgeList);
+        remaining.Changed += value => RemainingText.Text = $"{value.Value:0} px";
+        #endregion
+        RemainingText.Text = $"{remaining.Value:0} px";
 
         #region snippet ScrollThreshold
         PrestoAvalonia.OnScroll(new()

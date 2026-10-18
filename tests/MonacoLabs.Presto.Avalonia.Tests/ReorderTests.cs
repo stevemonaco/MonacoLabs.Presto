@@ -484,6 +484,72 @@ public sealed class ReorderTests : CompositorTestBase
         Assert.True(container.RenderTransform is null or { Value.IsIdentity: true });
     }
 
+    [AvaloniaFact]
+    public void DraggingOverAFilteredViewMovesTheSourceAndKeepsTheRowUnderThePointer()
+    {
+        var (list, source) = ShowFiltered();
+        var window = WindowOf(list);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 5));
+        Frames.Advance(1000);
+        Tick();
+        var start = Top(list);
+
+        for (var dy = 10; dy <= 60; dy += 5)
+        {
+            window.MouseMove(OnRed + new Point(0, dy));
+            Tick();
+            Assert.Equal(start + dy - 5, Top(list));
+        }
+
+        Assert.Equal(["a", "x1", "green", "x2", "d", "red", "e"], source);
+        Assert.Equal(["a", "green", "d", "red", "e"], (FilteredView<string>)list.ItemsSource!);
+    }
+
+    [AvaloniaFact]
+    public void EscapeOverAFilteredViewWalksTheSourceBackToItsOriginalOrder()
+    {
+        var (list, source) = ShowFiltered();
+        var window = WindowOf(list);
+        window.MouseDown(OnRed, MouseButton.Left);
+        window.MouseMove(OnRed + new Point(0, 50));
+        Assert.Equal(["a", "x1", "green", "x2", "d", "red", "e"], source);
+
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        window.MouseUp(OnRed + new Point(0, 50), MouseButton.Left);
+        Land();
+
+        Assert.Equal(["a", "x1", "red", "green", "x2", "d", "e"], source);
+    }
+
+    [AvaloniaFact]
+    public void AltArrowsMoveThroughAFilteredViewAndLeaveTheHiddenItemsInPlace()
+    {
+        var (list, source) = ShowFiltered();
+        var window = WindowOf(list);
+        list.ContainerFromItem("red")!.Focus();
+
+        void Press(Key key, PhysicalKey physical) => window.KeyPress(key, RawInputModifiers.Alt, physical, null);
+        Press(Key.Down, PhysicalKey.ArrowDown);
+        Assert.Equal(["a", "x1", "green", "x2", "red", "d", "e"], source);
+
+        Press(Key.Up, PhysicalKey.ArrowUp);
+        Press(Key.Up, PhysicalKey.ArrowUp);
+
+        Assert.Equal(["red", "a", "x1", "green", "x2", "d", "e"], source);
+        Assert.True(list.ContainerFromItem("red")!.IsFocused);
+    }
+
+    // The view shows "a", "red", "green", "d", "e", the rows of ReorderList, over a source with "x1" and "x2" hidden.
+    private static (ItemsControl List, ObservableCollection<string> Source) ShowFiltered()
+    {
+        ObservableCollection<string> source = ["a", "x1", "red", "green", "x2", "d", "e"];
+        var list = VirtualizedList([]);
+        list.ItemsSource = new FilteredView<string>(source, item => !item.StartsWith('x'));
+        Reorder.SetEnabled(list, true);
+        return (ShowInWindow(list), source);
+    }
+
     // A single frame after a long settle still shows where the drag left the item; the next one draws the landing.
     private void Land()
     {

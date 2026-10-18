@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sys="using:System"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:local="using:MonacoLabs.Presto.Tests"
+             x:Class="MonacoLabs.Presto.Tests.StateTokensXamlView"
+             x:DataType="local:TokensViewModel">
+  <UserControl.Resources>
+    <presto:MotionStates x:Key="States">
+      <presto:MotionState When="Focus" Motion="{x:Static local:StateTokensXamlView.Dim}" />
+      <presto:MotionState When="IsRunning" Motion="{x:Static local:StateTokensXamlView.Nudge}" />
+      <presto:MotionState When="True" Motion="{x:Static local:StateTokensXamlView.Dim}" />
+    </presto:MotionStates>
+  </UserControl.Resources>
+  <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+    <Border x:Name="Compiled" Width="50" Height="20" Background="Red" presto:Motion.States="{StaticResource States}"
+            presto:Motion.State="{presto:StateTokens {Binding Mode}, {Binding Inner.IsRunning}, {Binding Label}}" />
+    <Border x:Name="Reflected" Width="50" Height="20" Background="Red" presto:Motion.States="{StaticResource States}"
+            presto:Motion.State="{presto:StateTokens {ReflectionBinding Mode}, {ReflectionBinding Inner.IsRunning}}" />
+    <Border DataContext="{Binding IsRunning}">
+      <Border x:Name="Flag" x:DataType="sys:Boolean" Width="50" Height="20" Background="Red" presto:Motion.States="{StaticResource States}"
+              presto:Motion.State="{presto:StateTokens {Binding}, {Binding}}" />
+    </Border>
+  </StackPanel>
+</UserControl>

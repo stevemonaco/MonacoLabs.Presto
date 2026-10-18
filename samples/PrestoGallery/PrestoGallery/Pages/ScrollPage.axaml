@@ -3,6 +3,7 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
                        x:Class="PrestoGallery.Pages.ScrollPage">
     <showcase:ShowcasePage.Styles>
@@ -21,6 +22,42 @@
         <Style Selector="TextBlock.value">
             <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
             <Setter Property="FontSize" Value="15" />
+        </Style>
+
+        <Style Selector="ItemsControl.rows > ContentPresenter">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="BorderBrush" Value="#40808080" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+
+        <Style Selector="ItemsControl.chips > ContentPresenter">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.AccentDeep}" />
+        </Style>
+
+        <Style Selector="Border.shadow">
+            <Setter Property="Height" Value="18" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <Style Selector="Border.shadow.top">
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Offset="0" Color="#CC0B0E14" />
+                    <GradientStop Offset="1" Color="#000B0E14" />
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+        <Style Selector="Border.shadow.bottom">
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,100%" EndPoint="0%,0%">
+                    <GradientStop Offset="0" Color="#CC0B0E14" />
+                    <GradientStop Offset="1" Color="#000B0E14" />
+                </LinearGradientBrush>
+            </Setter>
         </Style>
     </showcase:ShowcasePage.Styles>
 
@@ -41,6 +78,7 @@
                 <Button Content="Default thresholds" Tag="{Binding #RevealCard}" Click="JumpTo" />
                 <Button Content="Named thresholds" Tag="{Binding #ThresholdCard}" Click="JumpTo" />
                 <Button Content="Scrubbed timeline" Tag="{Binding #SyncCard}" Click="JumpTo" />
+                <Button Content="Edge cues" Tag="{Binding #EdgeCard}" Click="JumpTo" />
             </WrapPanel>
             <showcase:CodePanel Header="Jumps" IsExpanded="False" Code="{x:Static showcase:Snippets.ScrollJumps}" />
         </StackPanel>
@@ -81,6 +119,41 @@
                         <Canvas Height="44" ClipToBounds="True">
                             <Border x:Name="Rider" Width="32" Height="32" CornerRadius="6" Background="#f5c542" Canvas.Top="6" />
                         </Canvas>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="spacer" />
+
+                <Border x:Name="EdgeCard" Classes="card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Edge cues" FontSize="18" />
+                        <TextBlock Classes="caption" TextWrapping="Wrap"
+                                   Text="Scroll.CueFor fades each shadow in as content passes its edge of the list, and Scroll.FadeEdges masks the chip row's ends only while more chips lie past them." />
+                        <!-- snippet: ScrollEdgeCues -->
+                        <Panel Height="200">
+                            <ScrollViewer x:Name="EdgeList">
+                                <ItemsControl x:Name="EdgeRows" Classes="rows" />
+                            </ScrollViewer>
+                            <Border Classes="shadow top" presto:Scroll.CueFor="{Binding #EdgeList}" />
+                            <Border Classes="shadow bottom" presto:Scroll.CueFor="{Binding #EdgeList}" presto:Scroll.CueEdge="Bottom" />
+                        </Panel>
+                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                      presto:Scroll.FadeEdges="24">
+                            <ItemsControl x:Name="EdgeChips" Classes="chips">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <!-- /snippet -->
+                        <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.ScrollEdgeCues}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="mono" Text="Remaining" />
+                            <TextBlock x:Name="RemainingText" Classes="value" Text="—" />
+                        </StackPanel>
+                        <showcase:CodePanel Code="{x:Static showcase:Snippets.ScrollRemaining}" />
                     </StackPanel>
                 </Border>
 

@@ -132,6 +132,7 @@ depends:
 ## Edge cases
 
 - A flyout cannot be reopened mid-close on the same target: Avalonia's `ShowAt` returns early while open and `Hide()` raises a `Closing`, so both read as a repeated close.
+- A flyout owned by a `Sheet`'s anchored presentation is handled like any flyout; the sheet moves its content out, or shows the flyout again, only after `Closed` (BRIDGE-SHEET-042, BRIDGE-SHEET-043).
 - Only the Fluent `ToolTip` animates its own open with an `Opacity` transition; its fade comes back once the tooltip has closed (`PopupSpikeTests.OnlyTheFluentToolTipAnimatesItsOwnOpenWithAnOpacityTransition`).
 - The polling timer is internal and replaceable for tests (`PopoverRun.StartPolling`).
 

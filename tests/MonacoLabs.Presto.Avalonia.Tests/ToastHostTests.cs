@@ -2,10 +2,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Controls;
@@ -175,6 +178,62 @@ public sealed class ToastHostTests : CompositorTestBase
         Assert.InRange(bar.Opacity, .4, .99);
 
         Run(20);
+        Assert.Empty(host.Items);
+    }
+
+    [AvaloniaFact]
+    public void ShowToastShowsTheRaisedValueOrItsContent()
+    {
+        var (_, host) = Stage();
+        var cue = new Cue<string>();
+        Animate.SetCue(host, cue);
+        Animate.SetDoOnCue(host, (CueAction)new ShowToastExtension().ProvideValue(null!));
+
+        cue.Raise("a");
+        Assert.Equal(["a"], host.Items.Cast<string>());
+
+        Animate.SetDoOnCue(host, (CueAction)new ShowToastExtension { Content = "b" }.ProvideValue(null!));
+        cue.Raise("a");
+        Assert.Equal(["a", "b"], host.Items.Cast<string>());
+    }
+
+    [AvaloniaFact]
+    public void ShowToastSkipsAFirstValueAndThrowsOffAHostOrWithNothingToShow()
+    {
+        var (_, host) = Stage();
+        var action = (CueAction)new ShowToastExtension().ProvideValue(null!);
+
+        action.Invoke(host, "a", first: true);
+        Assert.Empty(host.Items);
+
+        Assert.Throws<InvalidOperationException>(() => action.Invoke(new Border(), "a", first: false));
+        Assert.Throws<InvalidOperationException>(() => action.Invoke(host, null, first: false));
+    }
+
+    [AvaloniaFact]
+    public void DismissOnClickDismissesTheToastAndTheButtonsCommandStillRuns()
+    {
+        var (window, host) = Stage();
+        object? undone = null;
+        host.DataContext = new TestCommand(parameter => undone = parameter);
+        host.ItemTemplate = new FuncDataTemplate<string>((_, _) =>
+        {
+            var button = new Button { Height = 30 };
+            ToastHost.SetDismissOnClick(button, true);
+            button.Bind(Button.CommandProperty, new Binding("DataContext") { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(ToastHost) } });
+            button.Bind(Button.CommandParameterProperty, new Binding());
+            return button;
+        });
+        host.Show("a");
+        Run(12);
+
+        var button = host.ContainerFromIndex(0)!.GetVisualDescendants().OfType<Button>().Single();
+        var center = Center(button, window);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
+
+        Assert.Equal("a", undone);
+        Dispatcher.UIThread.RunJobs();
         Assert.Empty(host.Items);
     }
 

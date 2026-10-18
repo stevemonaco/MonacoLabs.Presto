@@ -33,6 +33,7 @@ depends:
   - CORE-ANIMATION
   - CORE-EASES
   - CORE-DIAGNOSTICS
+  - CORE-FILTERVIEW
 ---
 
 # Drag-to-reorder lists
@@ -74,7 +75,7 @@ depends:
   - Tests: `ReorderTests.ALiftSetOnTheListPlaysInPlaceOfTheDefaultAndIsRevertedOnRelease`, `ReorderTests.ReleaseSpringsTheItemIntoItsSlotAndLeavesNothingBehind`
 - **BRIDGE-REORDER-010** (inherited) — When a drag starts while the previous release is still settling, the previous drag shall be finished at once (settle canceled, lift reverted, transform cleared) before the new one begins.
   - Tests: untested
-- **BRIDGE-REORDER-011** — When a drag starts with no `Reorder.Command` and an `ItemsSource` that is not an `ObservableCollection<T>`, the list shall log an Avalonia warning (area `Control`) naming the list type, and the drag shall still lift, follow and spring back.
+- **BRIDGE-REORDER-011** — When a drag starts with no `Reorder.Command` and an `ItemsSource` that is neither an `ObservableCollection<T>` nor a `FilteredView<T>`, the list shall log an Avalonia warning (area `Control`) naming the list type, and the drag shall still lift, follow and spring back.
   - Tests: untested
 
 ### Following the pointer
@@ -102,8 +103,8 @@ depends:
   - Tests: `ReorderTests.ACommandReceivesEachStepAndOwnsTheMove`
 - **BRIDGE-REORDER-020** (inherited) — When the command does not change the item's index, the step shall end the current run of crossings, and the drag shall continue.
   - Tests: `ReorderTests.ACommandReceivesEachStepAndOwnsTheMove`
-- **BRIDGE-REORDER-021** — When no command is set and `ItemsSource` is (or derives from) an `ObservableCollection<T>`, each uncanceled step shall call that collection's `Move(old, new)`, found once per runtime type; any other items source refuses the step.
-  - Tests: `ReorderTests.DraggingAcrossSeveralRowsMovesOneStepPerRowInOrderDownAndUp`
+- **BRIDGE-REORDER-021** — When no command is set and `ItemsSource` is (or derives from) an `ObservableCollection<T>`, or is a `FilteredView<T>`, each uncanceled step shall call its `Move(old, new)`; any other items source refuses the step.
+  - Tests: `ReorderTests.DraggingAcrossSeveralRowsMovesOneStepPerRowInOrderDownAndUp`, `ReorderTests.DraggingOverAFilteredViewMovesTheSourceAndKeepsTheRowUnderThePointer`, `ReorderTests.EscapeOverAFilteredViewWalksTheSourceBackToItsOriginalOrder`, `ReorderTests.AltArrowsMoveThroughAFilteredViewAndLeaveTheHiddenItemsInPlace`
 - **BRIDGE-REORDER-022** (inherited) — When the list is a `SelectingItemsControl` whose `SelectedItem` is the moved item, the list shall restore `SelectedItem` after the move.
   - Tests: `ReorderTests.AMovedItemStaysSelected`
 - **BRIDGE-REORDER-023** — After each move the list shall run a synchronous layout pass, so the next crossing reads the new slots and the translation rebase lands before the frame renders.
@@ -171,7 +172,8 @@ depends:
 
 - A canceled `Moving` (or a refused/no-op command) is raised once per crossing (045); Escape's walk back stops at the first one.
 - A non-focusable container can be recycled in a virtualized drag far past the viewport; the drag then drops without settling (BRIDGE-REORDER-014).
-- An `IList` that is not an `ObservableCollection<T>` without a command: every step is refused, the drag lifts and springs back.
+- An `IList` that is neither an `ObservableCollection<T>` nor a `FilteredView<T>`, without a command: every step is refused, the drag lifts and springs back.
+- A step in a filtered list moves the source item next to its visible neighbor, so hidden items between them stay put (CORE-FILTERVIEW).
 - Only `SelectedItem` is restored after a move; other entries of a multi-selection are not.
 - Crossings are only detected against realized neighbors.
 
@@ -195,7 +197,7 @@ depends:
 
 ## Decisions
 
-- **Reorder moves one step at a time, through `Command` or `ObservableCollection.Move`.** Each midpoint crossing is a one-step move (`NewIndex − OldIndex` = ±1): it raises the cancellable, bubbling `Reorder.Moving`, then runs `Reorder.Command` when set (the view model owns the change), else calls `Move(old, new)` on an `ObservableCollection<T>` `ItemsSource`, invoking the closed `ObservableCollection<T>`'s own `Move`, found once per type and kept by `[DynamicDependency]` (NativeAOT cannot `MakeGenericMethod` for an uncompiled `T`; rejected: a private generic mover); any other `IList` needs the command, and without one the drag only lifts and springs back with a logged warning. Reason: Presence and scroll anchoring would read a remove-and-insert as a removal and an insert; routing the event lets XAML attach it. Rejected: `RemoveAt` plus `Insert`.
+- **Reorder moves one step at a time, through `Command` or `ObservableCollection.Move`.** Each midpoint crossing is a one-step move (`NewIndex − OldIndex` = ±1): it raises the cancellable, bubbling `Reorder.Moving`, then runs `Reorder.Command` when set (the view model owns the change), else calls `Move(old, new)` on an `ObservableCollection<T>` `ItemsSource`, invoking the closed `ObservableCollection<T>`'s own `Move`, found once per type and kept by `[DynamicDependency]` (NativeAOT cannot `MakeGenericMethod` for an uncompiled `T`; rejected: a private generic mover); a `FilteredView<T>` is recognized through the core's internal `IMovableItems`, with no reflection (rejected: a public interface only Reorder would read); any other `IList` needs the command, and without one the drag only lifts and springs back with a logged warning. Reason: Presence and scroll anchoring would read a remove-and-insert as a removal and an insert; routing the event lets XAML attach it. Rejected: `RemoveAt` plus `Insert`.
 - **Reorder owns the pointer.** It handles `PointerPressed` on the list in the tunnel phase, joins the gesture arena, which captures the list when it wins, and tracks the dragged item, re-finding its container with `ContainerFromItem` after every move; it shares only the arena's gate and `Draggable`'s edge-scroll formula. Reason: a `Draggable` releases when its capture is lost, and a `Move` takes capture from the moved container (or replaces the container outright in an `ItemsControl`); tunnel handling stops a `ListBoxItem` swallowing the press. Rejected: a `Draggable` per container, as first sketched.
 - **A touch hold is opt-in, and for touch and pen.** `Reorder.TouchHold` makes a touch or pen press hold still before it lifts, the mobile convention, so a whole-row drag target leaves vertical touch scrolling and horizontal swipe actions to the list; a touch that moves first is dropped rather than handled. Reason: without a handle, a 3 DIP threshold along the axis took every vertical touch scroll as a drag (Tempo's task rows); a mouse has no scroll gesture to protect, so it keeps dragging at once, while a pen pans scrollers as touch does and, at first limited to touch, never reached `HoldCommand` on a drawing tablet. Rejected: a hold for every pointer, which slows mouse reordering for nothing, and a handle, which on a phone sits beside the checkbox and invites misses.
 - **A crosswise start gives the press away.** The same-axis gate decides on the first travel past its slop, and a crosswise start drops Reorder out of the arena; the numbers and the arbitration are BRIDGE-GESTURES's. Reason: with movement across the axis ignored, a swipe on a whole-row reorder target (Tempo's task rows) turned into a reorder at the first few DIPs of vertical drift and lost its pointer.
@@ -206,7 +208,7 @@ depends:
 - **Release, Escape and keyboard share the step path.** Release springs the shorthand to 0 with `Eases.Spring()`, reverses the lift and resumes the `LayoutArm` as if attaching; Escape walks the item back one step at a time, and Alt+arrows move one step, both through `Moving`/`Command`/`Move`. The default lift has no translation. Reason: a view model sees every step; resuming as attaching records the slot rather than flying there; the drag owns `X`/`Y`.
 - **A `Move` is tracked as a move.** See BRIDGE-PRESENCE.
 - **A refused step is raised once per crossing.** A canceled, refused or no-op step is not raised again while the center stays past that midpoint, only after it falls back and crosses again. Reason: re-raising it on every pointer move and auto-scroll frame flooded handlers with the same step they had already refused.
-- **A non-movable items source logs a warning at each grab.** Without `Command`, an `ItemsSource` that is not an `ObservableCollection<T>` logs one Avalonia `Logger` warning (area `Control`) per grab, and the drag still lifts and springs back. Reason: the drag looks like it works but cannot move anything, and a warning per grab shows up where the developer tries it without throwing from an input handler. Rejected: a `Trace` warning, as first designed, outside the sinks an Avalonia app configures.
+- **A non-movable items source logs a warning at each grab.** Without `Command`, an `ItemsSource` that is neither an `ObservableCollection<T>` nor a `FilteredView<T>` logs one Avalonia `Logger` warning (area `Control`) per grab, and the drag still lifts and springs back. Reason: the drag looks like it works but cannot move anything, and a warning per grab shows up where the developer tries it without throwing from an input handler. Rejected: a `Trace` warning, as first designed, outside the sinks an Avalonia app configures.
 
 ## Non-goals
 

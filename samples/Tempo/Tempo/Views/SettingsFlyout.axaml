@@ -52,8 +52,8 @@
 
         <TextBlock Classes="section" Text="Data" />
         <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button x:Name="RestoreButton" Content="Restore sample data" Command="{Binding RequestRestoreCommand}" />
-            <Button x:Name="ClearButton" Content="Clear all data…" Command="{Binding RequestClearCommand}" />
+            <Button x:Name="RestoreButton" presto:Modal.IsOrigin="True" Content="Restore sample data" Command="{Binding RequestRestoreCommand}" />
+            <Button x:Name="ClearButton" presto:Modal.IsOrigin="True" Content="Clear all data…" Command="{Binding RequestClearCommand}" />
         </StackPanel>
     </StackPanel>
 </UserControl>

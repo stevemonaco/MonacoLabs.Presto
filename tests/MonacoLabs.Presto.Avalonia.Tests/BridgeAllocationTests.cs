@@ -40,6 +40,20 @@ public sealed class BridgeAllocationTests : CompositorTestBase
     }
 
     [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ASnappedWidthTweenTicksWithinBudget(bool diagnostics)
+    {
+        Presto.Engine.Diagnostics.Enabled = diagnostics;
+        var border = new Border { Width = 168, UseLayoutRounding = true };
+        border.Animate(new() { ["Width"] = 44, Duration = 400, Loop = true, Alternate = true });
+
+        var bytes = BytesPerTick();
+
+        Assert.True(bytes <= 96, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaTheory]
     [InlineData("HorizontalAlignment", false)]
     [InlineData("HorizontalAlignment", true)]
     [InlineData("IsVisible", false)]
@@ -176,8 +190,8 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         var bytes = BytesPerTick();
 
-        // measured 3840, 640 per character: its new StreamGeometry with the context and Skia path behind it, and the Data change.
-        Assert.True(bytes <= 4096, $"{bytes:0.##} bytes per tick");
+        // measured 4272 on Avalonia 12.1.4, 712 per character: its new StreamGeometry with the context and Skia path behind it, and the Data change.
+        Assert.True(bytes <= 4608, $"{bytes:0.##} bytes per tick");
     }
 
     [AvaloniaTheory]
@@ -302,6 +316,23 @@ public sealed class BridgeAllocationTests : CompositorTestBase
 
         // measured 800, as much as a timer writing the offset with SetCurrentValue itself: all of it is the ScrollViewer reacting to the change.
         Assert.True(bytes <= 896, $"{bytes:0.##} bytes per tick");
+    }
+
+    [AvaloniaFact]
+    public void EdgeCuesAddOnlyTheirPropertyChangesToAnOffsetWrite()
+    {
+        var bare = BytesPerOffsetWrite(ScrollStage.Show().Scroller);
+        var stage = ScrollStage.Show();
+        var shadow = new Border();
+        Scroll.SetCueEdge(shadow, ScrollEdge.Bottom);
+        Scroll.SetCueFor(shadow, stage.Scroller);
+        stage.Panel.Children.Add(shadow);
+        Scroll.SetFadeEdges(stage.Scroller, 24);
+
+        var cued = BytesPerOffsetWrite(stage.Scroller);
+
+        // measured 200 more: 80 for the shadow's opacity change and 120 for the stop's, whose brush tracks it through INotifyPropertyChanged.
+        Assert.True(cued - bare <= 224, $"{cued:0.##} bytes per offset write with the cues, {bare:0.##} without");
     }
 
     [AvaloniaTheory]
@@ -472,6 +503,18 @@ public sealed class BridgeAllocationTests : CompositorTestBase
         var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.True(bytes == 0, $"{bytes} bytes over 1000 frames");
+    }
+
+    private static double BytesPerOffsetWrite(ScrollViewer scroller)
+    {
+        const int measured = 200;
+        var before = 0L;
+        for (var i = 0; i < 20 + measured; i++)
+        {
+            if (i == 20) before = GC.GetAllocatedBytesForCurrentThread();
+            scroller.Offset = new Vector(0, 500 - Math.Abs((i % 46) - 23)); // sweeps the 24 units before the end of 500, inside the fade
+        }
+        return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)measured;
     }
 
     // The target is held still, but the drag's update still runs every frame.

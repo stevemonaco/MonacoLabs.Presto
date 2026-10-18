@@ -37,8 +37,8 @@ public sealed class TempoMotionTests : TempoTestBase
         // A state is checked against the type it lands on, since its properties need a rest there.
         List<(Type Target, MotionStates States)> lists = [.. StyleStates(Application.Current!.Styles)];
         Assert.NotEmpty(lists);
-        lists.Add((typeof(Avalonia.Controls.Shapes.Path), [new MotionState { When = "Running", Motion = TempoMotion.IconToPause }]));
-        lists.Add((typeof(Panel), [new MotionState { When = "Running", Motion = TempoMotion.RingBreathe }]));
+        lists.Add((typeof(Avalonia.Controls.Shapes.Path), [new MotionState { When = "IsRunning", Motion = TempoMotion.IconToPause }]));
+        lists.Add((typeof(ProgressRing), [new MotionState { When = "IsRunning", Motion = TempoMotion.RingBreathe }]));
 
         foreach (var (target, states) in lists)
             PrestoMotion.SetStates((Control)Activator.CreateInstance(target)!, states);
@@ -83,12 +83,12 @@ public sealed class TempoMotionTests : TempoTestBase
         using var motion = reduced ? ReducedMotion.On() : null;
         Assert.True(Application.Current!.TryGetResource("PlayIcon", null, out var play));
         var path = new Avalonia.Controls.Shapes.Path { Data = (Geometry)play! };
-        PrestoMotion.SetStates(path, [new MotionState { When = "Running", Motion = TempoMotion.IconToPause }]);
+        PrestoMotion.SetStates(path, [new MotionState { When = "IsRunning", Motion = TempoMotion.IconToPause }]);
         var window = new Window { Content = path };
         window.Show();
         TestFrames.Tick();
 
-        PrestoMotion.SetState(path, "Running");
+        PrestoMotion.SetState(path, "IsRunning");
         TestFrames.Tick(30);
         var paused = path.Data!.Bounds;
         PrestoMotion.SetState(path, null);

@@ -33,10 +33,9 @@ public sealed partial class MainViewModel : ObservableObject
             (item.IsDone ? DoneTasks : Tasks).Add(Track(new TaskItemViewModel(item)));
         Focus = new FocusViewModel(new FocusClock(time, data.Settings), Sessions, ticks);
         Stats = new StatsViewModel(Sessions, time, id => Tasks.Concat(DoneTasks).FirstOrDefault(t => t.Id == id)?.Tag);
-        SyncVisible();
+        VisibleTasks = new(Tasks, t => TagFilter is not { } tag || t.Tag == tag, refreshOn: [nameof(TaskItemViewModel.Tag)]);
 
         Tasks.CollectionChanged += OnListChanged;
-        Tasks.CollectionChanged += (_, _) => SyncVisible();
         Tasks.CollectionChanged += (_, _) => Stats.RefreshTags();
         VisibleTasks.CollectionChanged += OnVisibleTasksChanged;
         DoneTasks.CollectionChanged += OnListChanged;
@@ -55,29 +54,21 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Raised when a task is deleted; <see cref="UndoDeleteCommand"/> restores it.</summary>
-    public event EventHandler<TaskItemViewModel>? TaskDeleted;
+    public Cue<TaskItemViewModel> TaskDeleted { get; } = new();
 
     public event EventHandler? AddBoxFocusRequested;
 
     /// <summary>Raised after the add box adds a task, so the view can bring its row into view.</summary>
-    public event EventHandler<TaskItemViewModel>? TaskAdded;
+    public Cue<TaskItemViewModel> TaskAdded { get; } = new();
 
-    public event EventHandler? SettingsRequested;
-
-    /// <summary>Raised when Restore or Clear asks to be confirmed; the view opens the dialog, which sets <see cref="IsConfirmOpen"/>.</summary>
+    /// <summary>Raised when Restore or Clear asks to be confirmed, just before <see cref="IsConfirmOpen"/> opens the dialog.</summary>
     public event EventHandler? ConfirmRequested;
-
-    /// <summary>The view's exit for a confirmed clear, which calls <see cref="ClearAll"/> once the exit has played; without one the clear applies at once.</summary>
-    public Func<Task>? PlayClear { get; set; }
 
     /// <summary>Open tasks in list order; reordering is a move in this collection.</summary>
     public ObservableCollection<TaskItemViewModel> Tasks { get; } = [];
 
-    /// <summary>
-    /// The open tasks <see cref="TagFilter"/> shows, in list order. Kept in step with <see cref="Tasks"/> by inserting and
-    /// removing only the rows whose visibility changes; a move here (a reorder) is made in <see cref="Tasks"/>.
-    /// </summary>
-    public ObservableCollection<TaskItemViewModel> VisibleTasks { get; } = [];
+    /// <summary>The open tasks <see cref="TagFilter"/> shows, in list order; a move here (a reorder) is made in <see cref="Tasks"/>.</summary>
+    public FilteredView<TaskItemViewModel> VisibleTasks { get; }
 
     /// <summary>The filter chips: All, then each tag, in <see cref="TagFilterIndex"/> order.</summary>
     public static IReadOnlyList<object> TagFilters { get; } = ["All", .. Enum.GetValues<TaskTag>().Cast<object>()];
@@ -117,6 +108,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool IsDetailOpen { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsSettingsOpen { get; set; }
 
     [ObservableProperty]
     public partial bool IsConfirmOpen { get; set; }
@@ -214,7 +208,7 @@ public sealed partial class MainViewModel : ObservableObject
         var task = Track(new TaskItemViewModel(new TaskItem { Title = title, Created = _time.GetUtcNow(), Tag = TagFilter }));
         Tasks.Add(task);
         NewTaskTitle = "";
-        TaskAdded?.Invoke(this, task);
+        TaskAdded.Raise(task);
     }
 
     [RelayCommand]
@@ -228,7 +222,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (SelectedTask == task)
             SelectedTask = null;
         list.RemoveAt(index);
-        TaskDeleted?.Invoke(this, task);
+        TaskDeleted.Raise(task);
     }
 
     [RelayCommand]
@@ -255,7 +249,7 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenSettings() => SettingsRequested?.Invoke(this, EventArgs.Empty);
+    private void OpenSettings() => IsSettingsOpen = true;
 
     [RelayCommand]
     private void FocusAddBox() => AddBoxFocusRequested?.Invoke(this, EventArgs.Empty);
@@ -269,15 +263,13 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void CancelConfirm() => IsConfirmOpen = false;
 
-    /// <summary>Closes the dialog and applies <see cref="ConfirmAction"/>, a clear after <see cref="PlayClear"/>.</summary>
+    /// <summary>Closes the dialog and applies <see cref="ConfirmAction"/>.</summary>
     [RelayCommand]
-    private async Task Confirm()
+    private void Confirm()
     {
         IsConfirmOpen = false;
         if (ConfirmAction == DataAction.Restore)
             RestoreSampleData();
-        else if (PlayClear is { } play)
-            await play();
         else
             ClearAll();
     }
@@ -285,7 +277,10 @@ public sealed partial class MainViewModel : ObservableObject
     private void RequestConfirm(DataAction action)
     {
         ConfirmAction = action;
+        // A modal does not close popups (BACKLOG, BRIDGE-MODAL), and the settings popup draws above it.
+        IsSettingsOpen = false;
         ConfirmRequested?.Invoke(this, EventArgs.Empty);
+        IsConfirmOpen = true;
     }
 
     partial void OnSelectedTaskChanged(TaskItemViewModel? value) => Focus.SelectedTask = value;
@@ -305,7 +300,7 @@ public sealed partial class MainViewModel : ObservableObject
             CurrentView = AppView.Focus;
     }
 
-    partial void OnTagFilterChanged(TaskTag? value) => SyncVisible();
+    partial void OnTagFilterChanged(TaskTag? value) => VisibleTasks.Refresh();
 
     /// <summary>Saves the window's restored size and position; a maximized window keeps the last ones it had.</summary>
     public void SaveWindowPlacement(double width, double height, int x, int y, bool isMaximized)
@@ -350,10 +345,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (e.PropertyName == nameof(TaskItemViewModel.IsDone))
                 _ = MoveForDoneAsync(task);
             else if (e.PropertyName == nameof(TaskItemViewModel.Tag))
-            {
-                SyncVisible();
                 Stats.RefreshTags();
-            }
             Persist();
         };
         return task;
@@ -373,56 +365,10 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void OnListChanged(object? sender, NotifyCollectionChangedEventArgs e) => Persist();
 
-    private bool Shows(TaskItemViewModel task) => TagFilter is not { } tag || task.Tag == tag;
-
-    private void SyncVisible()
-    {
-        for (var i = VisibleTasks.Count - 1; i >= 0; i--)
-        {
-            var task = VisibleTasks[i];
-            if (Tasks.Contains(task) && Shows(task))
-                continue;
-            if (SelectedTask == task)
-                SelectedTask = null;
-            VisibleTasks.RemoveAt(i);
-        }
-        var at = 0;
-        foreach (var task in Tasks)
-        {
-            if (!Shows(task))
-                continue;
-            if (at < VisibleTasks.Count && VisibleTasks[at] == task)
-            {
-                at++;
-                continue;
-            }
-            // Only a move made in Tasks directly leaves the task further down.
-            VisibleTasks.Remove(task);
-            VisibleTasks.Insert(at++, task);
-        }
-    }
-
-    /// <summary>Places a reordered row in <see cref="Tasks"/> just before its new visible successor, or after its predecessor when last.</summary>
     private void OnVisibleTasksChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action != NotifyCollectionChangedAction.Move || e.OldStartingIndex == e.NewStartingIndex)
-            return;
-        var index = e.NewStartingIndex;
-        var from = Tasks.IndexOf(VisibleTasks[index]);
-        int to;
-        if (index + 1 < VisibleTasks.Count)
-        {
-            to = Tasks.IndexOf(VisibleTasks[index + 1]);
-            if (from < to)
-                to--;
-        }
-        else
-        {
-            to = Tasks.IndexOf(VisibleTasks[index - 1]);
-            if (from > to)
-                to++;
-        }
-        Tasks.Move(from, to);
+        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems![0] == SelectedTask)
+            SelectedTask = null;
     }
 
     private void Persist()

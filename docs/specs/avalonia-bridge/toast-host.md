@@ -3,13 +3,16 @@ id: BRIDGE-TOAST
 title: Toast host
 package: MonacoLabs.Presto.Avalonia
 namespaces:
+  - MonacoLabs.Presto
   - MonacoLabs.Presto.Controls
 sources:
   - MonacoLabs.Presto.Avalonia/Controls/ToastHost.cs
   - MonacoLabs.Presto.Avalonia/Controls/Toast.cs
+  - MonacoLabs.Presto.Avalonia/ShowToastExtension.cs
 types:
   - Toast
   - ToastHost
+  - ShowToastExtension
 tests:
   - ToastHostTests
   - BuilderRecipePagesTests
@@ -20,6 +23,7 @@ depends:
   - BRIDGE-SWIPE
   - BRIDGE-DECLLAYOUT
   - BRIDGE-HELPERS
+  - BRIDGE-ATTACH
   - CORE-TIMER
   - CORE-ANIMATION
   - CORE-REDUCED
@@ -29,7 +33,7 @@ depends:
 
 ## Purpose
 
-`ToastHost` is an `ItemsControl` that owns its items and shows a capped stack of toasts: `Show` adds one, which counts down and dismisses itself, holds while hovered or focused, and leaves on a horizontal swipe. The motion is the item template's (`Presence.Arrive`/`Exit`, BRIDGE-PRESENCE) and the host's `Animate.ItemLayout` restack (BRIDGE-DECLLAYOUT); the host adds the countdown, the cap and the swipe (BRIDGE-SWIPE). `Toast` is the handle `Show` returns.
+`ToastHost` is an `ItemsControl` that owns its items and shows a capped stack of toasts: `Show` adds one, which counts down and dismisses itself, holds while hovered or focused, and leaves on a horizontal swipe. The motion is the item template's (`Presence.Arrive`/`Exit`, BRIDGE-PRESENCE) and the host's `Animate.ItemLayout` restack (BRIDGE-DECLLAYOUT); the host adds the countdown, the cap and the swipe (BRIDGE-SWIPE). `Toast` is the handle `Show` returns. `{presto:ShowToast}` is a `CueAction` (BRIDGE-ATTACH) that shows a toast from XAML, and `ToastHost.DismissOnClick` lets a button in a toast dismiss it.
 
 ## Requirements
 
@@ -49,6 +53,8 @@ depends:
   - Tests: `ToastHostTests.ChangingItemsOrSettingItemsSourceThrows`
 - **BRIDGE-TOAST-021** — When a toast's container is cleared, the toast shall drop its handlers on it; when a toast is prepared into a container, it shall first drop those on its previous one, so only its latest container holds and loads it.
   - Tests: `ToastHostTests.ARepreparedToastFollowsItsNewContainer`
+- **BRIDGE-TOAST-022** — `{presto:ShowToast}` shall provide a `CueAction` that, for a value that is not first, calls `Show(Content ?? value, Duration)` on its `ToastHost` target, with `Duration` 4000 when unset, and does nothing for a first value. It shall throw `InvalidOperationException` for a target that is not a `ToastHost`, or when both `Content` and the value are null.
+  - Tests: `ToastHostTests.ShowToastShowsTheRaisedValueOrItsContent`, `ToastHostTests.ShowToastSkipsAFirstValueAndThrowsOffAHostOrWithNothingToShow`
 
 ### Countdown
 
@@ -75,6 +81,8 @@ depends:
   - Tests: `ToastHostTests.ASwipeSlidesTheToastOutAndDismissesItWithoutItsExit`, `MicroInteractionsPageTests.SwipingAToastPastHalfItsWidthSlidesItOutTowardsTheSwipeAndDismissesIt`
 - **BRIDGE-TOAST-015** — When a swipe commits, the toast shall set its container's opacity to 0 and dismiss itself, so it leaves without playing its exit from its slot.
   - Tests: `ToastHostTests.ASwipeSlidesTheToastOutAndDismissesItWithoutItsExit`
+- **BRIDGE-TOAST-023** — When a `Button` with `ToastHost.DismissOnClick` true raises `Click` inside a toast's container, the host shall dismiss that toast in the dispatcher's next job, leaving the click unhandled so the button's command runs first.
+  - Tests: `ToastHostTests.DismissOnClickDismissesTheToastAndTheButtonsCommandStillRuns`
 
 ### Reduced motion
 
@@ -123,6 +131,8 @@ depends:
 - **`ToastHost` owns its items and trims instead of queueing.** It is an `ItemsControl` filled only through `Show`, which dismisses the oldest toasts past `MaxCount` before adding; the motion is the item template's `Presence` and the host's `Animate.ItemLayout`, and the swipe is `Swipe` on the container. Reason: a cap trimmed inside the collection's own `CollectionChanged` cannot change it there, so the host must add the items itself; no page waits for a toast, so trimming is enough. Rejected: a queue; a host over a view-model collection.
 - **Changes the host did not make throw.** Changing `Items` directly or setting `ItemsSource` throws `InvalidOperationException`, and a re-prepared container's toast drops its handlers on the old container before attaching to the new one. Reason: item `i` must belong to toast `i`, and a change the host did not make desyncs the two silently, so preparing a container indexes past the toast list; a toast attached twice would double its handlers. Rejected: ignoring outside changes; supporting `ItemsSource`.
 - **`GetAnimations` omitting paused animations is documented, not fixed.** See BRIDGE-HELPERS.
+- **`{presto:ShowToast}` skips a first watched value.** Reason: a toast marks a moment, and a first value under `DoOnChanged` is the state the view starts in, not a change. A cue never passes a first value.
+- **`DismissOnClick` is a class handler on `Button.Click` that leaves the click unhandled.** Reason: an Undo button needs both the dismiss and its bound command, and `Button` runs its command only when `Click` stays unhandled; a class handler needs no per-button subscription and no reflection. The dismiss is posted to the dispatcher because `Button` reads its `Command` and `CommandParameter` after raising `Click`, and removing the container first unbinds a command bound through the toast's ancestors, so it never runs. Rejected: a `Toast.DismissCommand` the template binds, which takes the button's only command slot.
 
 ## Non-goals
 

@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -195,6 +196,7 @@ public sealed class PresenceTests : CompositorTestBase
         var (window, panel) = Show(item);
 
         panel.Children.Remove(item);
+        Dispatcher.UIThread.RunJobs();
         Frames.Advance(100, 16);
         Tick();
 

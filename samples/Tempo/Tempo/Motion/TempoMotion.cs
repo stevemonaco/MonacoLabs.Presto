@@ -60,7 +60,8 @@ public static class TempoMotion
         .X(-24)
         .Duration(220)
         .Ease(Eases.InCubic)
-        .WhenReduced(reduced => reduced.Opacity(0).Duration(160));
+        .Delay(Presto.Stagger(30))
+        .WhenReduced(reduced => reduced.Opacity(0).Duration(160).Delay(0));
 
     public static readonly AnimationBuilder RowLift = Recipes.ReorderLift(duration: 180);
 
@@ -175,9 +176,6 @@ public static class TempoMotion
     /// <summary>The confirm dialog on Escape once its hold has been pressed. Reduced: an opacity blink.</summary>
     public static readonly AnimationBuilder DialogShake = Recipes.Shake();
 
-    /// <summary>The task rows flying apart, top row first, before a confirmed clear empties them. Reduced: a fade.</summary>
-    public static readonly AnimationBuilder ClearScatter = Recipes.Scatter(seed: 7, stagger: true);
-
     public static readonly AnimationBuilder RingBreathe = Presto.Build()
         .Scale(1.015)
         .Duration(2400)
@@ -212,12 +210,12 @@ public static class TempoMotion
         .Delay(Presto.Stagger(50, new() { Start = 120 }))
         .WhenReduced(reduced => reduced.Opacity(from: 0).Duration(300).Delay(0));
 
-    /// <summary>The chart bars dropping to their baseline in turn during a clear, after <see cref="ClearScatter"/>. Reduced: a fade, all at once.</summary>
+    /// <summary>A replaced chart bar's ghost dropping to its baseline in turn, a clear's rows leaving first. Reduced: a fade, all at once.</summary>
     public static readonly AnimationBuilder BarCollapse = Presto.Build()
         .ScaleY(0)
         .Duration(320)
         .Ease(Eases.InCubic)
-        .Delay(Presto.Stagger(30))
+        .Delay(Presto.Stagger(30, new() { Start = 300 }))
         .WhenReduced(reduced => reduced.Opacity(0).Duration(200).Delay(0));
 
     /// <summary>A heatmap day popping in, each farther from today's cell a little later. Reduced: a fade, all at once.</summary>

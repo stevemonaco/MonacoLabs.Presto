@@ -25,10 +25,13 @@ internal static class Dismissal
         TopLevel.BackRequestedEvent.AddClassHandler<TopLevel>(Dismiss);
     }
 
-    /// <summary>Makes <paramref name="owner"/> dismissible, clearing <paramref name="isOpen"/> when it is the newest open overlay on its top level.</summary>
-    internal static void Attach(Control owner, StyledProperty<bool> isOpen)
+    /// <summary>
+    /// Makes <paramref name="owner"/> dismissible, clearing <paramref name="isOpen"/> when it is the newest open overlay on its
+    /// top level; while <paramref name="dismissible"/> returns false, the events pass it by, left to whatever it presents in.
+    /// </summary>
+    internal static void Attach(Control owner, StyledProperty<bool> isOpen, Func<bool>? dismissible = null)
     {
-        var overlay = new Overlay(owner, isOpen);
+        var overlay = new Overlay(owner, isOpen, dismissible);
         owner.AttachedToVisualTree += (_, _) => overlay.Track();
         owner.DetachedFromVisualTree += (_, _) => overlay.Track();
         owner.PropertyChanged += (_, e) =>
@@ -40,14 +43,16 @@ internal static class Dismissal
 
     private static void Dismiss(TopLevel root, RoutedEventArgs e)
     {
-        if (!s_open.TryGetValue(root, out var open) || open.Count == 0) return;
+        if (!s_open.TryGetValue(root, out var open) || open.Count == 0 || !open[^1].Dismissible) return;
         e.Handled = true;
         open[^1].Close();
     }
 
-    private sealed class Overlay(Control owner, StyledProperty<bool> isOpen)
+    private sealed class Overlay(Control owner, StyledProperty<bool> isOpen, Func<bool>? dismissible)
     {
         private TopLevel? _root;
+
+        public bool Dismissible => dismissible?.Invoke() ?? true;
 
         // Re-adding moves a reopened overlay to the end, so the list stays in opening order.
         public void Track()

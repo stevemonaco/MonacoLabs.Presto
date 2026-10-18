@@ -258,6 +258,27 @@ internal static partial class Program
         Check(items.SequenceEqual([0, 2, 1, 3, 4]), $"the items are {string.Join(", ", items)}");
     }
 
+    private static void ReorderFiltered()
+    {
+        ObservableCollection<int> source = [0, -1, 1, 2, 3, 4];
+        using var view = new FilteredView<int>(source, n => n >= 0);
+        var list = new ItemsControl
+        {
+            ItemsSource = view,
+            ItemTemplate = new FuncDataTemplate<int>((_, _) => new Border { Width = 40, Height = 20, Background = Brushes.Blue, HorizontalAlignment = HorizontalAlignment.Left }),
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        Reorder.SetEnabled(list, true);
+        var window = Show(list, 100, 200);
+
+        window.MouseDown(new Point(10, 30), MouseButton.Left);
+        window.MouseMove(new Point(10, 65));
+        window.MouseUp(new Point(10, 65), MouseButton.Left);
+        Advance(1000);
+
+        Check(source.SequenceEqual([0, -1, 2, 1, 3, 4]), $"the source is {string.Join(", ", source)}");
+    }
+
     private static void DotLottie()
     {
         using var archive = typeof(Program).Assembly.GetManifestResourceStream("badge.lottie")!;

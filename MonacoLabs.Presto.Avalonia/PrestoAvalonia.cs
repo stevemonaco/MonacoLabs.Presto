@@ -428,6 +428,7 @@ public static class PrestoAvalonia
     /// <summary>
     /// Plays <paramref name="exit"/> on a ghost of <paramref name="control"/> drawn where the control is now, so code that
     /// removes the control itself can do so in the same frame: <see cref="Presence.ExitProperty"/> for imperative removal.
+    /// The exit starts at once and joins no batch.
     /// </summary>
     /// <returns>The ghost's animation, whose completion or cancellation removes the ghost; <c>null</c> when <paramref name="control"/> is not on screen, as when it or an ancestor is hidden or at opacity 0.</returns>
     public static Animation? AnimateExit(Control control, AnimationBuilder exit)
@@ -771,10 +772,21 @@ public static class PrestoAvalonia
     /// when its extent or viewport changes. It stops at its last value once the scroller leaves the visual tree or the ambient
     /// scope reverts, and reattaching does not revive it, so make another.
     /// </remarks>
-    public static MotionValue ScrollValue(ScrollViewer scroller, ScrollAxis axis = ScrollAxis.Vertical, bool progress = false)
+    public static MotionValue ScrollValue(ScrollViewer scroller, ScrollAxis axis = ScrollAxis.Vertical, bool progress = false) =>
+        ScrollMeasureValue(scroller, axis, progress ? ScrollContainer.ScrollMeasure.Progress : ScrollContainer.ScrollMeasure.Offset);
+
+    /// <summary>
+    /// A <see cref="MotionValue"/> holding how far <paramref name="scroller"/> can still scroll towards the end of
+    /// <paramref name="axis"/> (extent − viewport − offset, never below 0), rounded to whole pixels.
+    /// </summary>
+    /// <remarks>Refreshed when the offset, extent or viewport changes; it stops and is not revived as <see cref="ScrollValue"/> describes.</remarks>
+    public static MotionValue ScrollRemainingValue(ScrollViewer scroller, ScrollAxis axis = ScrollAxis.Vertical) =>
+        ScrollMeasureValue(scroller, axis, ScrollContainer.ScrollMeasure.Remaining);
+
+    private static MotionValue ScrollMeasureValue(ScrollViewer scroller, ScrollAxis axis, ScrollContainer.ScrollMeasure measure)
     {
         EnsureInitialized();
-        var value = ScrollContainer.AddValue(scroller, axis, progress);
+        var value = ScrollContainer.AddValue(scroller, axis, measure);
         return MotionValueSource.Listen(scroller, value, () =>
         {
             if (ScrollContainer.Containers.TryGetValue(scroller, out var container)) container.RemoveValue(value);

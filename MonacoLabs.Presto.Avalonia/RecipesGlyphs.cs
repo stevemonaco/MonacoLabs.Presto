@@ -382,10 +382,12 @@ public static partial class Recipes
         return morph;
     }
 
-    private static void CompleteMorph(object? sender, VisualTreeAttachmentEventArgs e)
+    internal static void CompleteTextMorph(TextBlock textBlock)
     {
-        if (Morphs.TryGetValue((TextBlock)sender!, out var running)) running.Complete();
+        if (Morphs.TryGetValue(textBlock, out var running)) running.Complete();
     }
+
+    private static void CompleteMorph(object? sender, VisualTreeAttachmentEventArgs e) => CompleteTextMorph((TextBlock)sender!);
 
     private static Timeline Crossfade(TextBlock textBlock, string text, MotionTokens tokens)
     {

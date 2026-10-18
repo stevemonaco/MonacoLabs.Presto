@@ -79,6 +79,7 @@ internal sealed class ReorderList : IGestureMember
     private static Action<object, int, int>? MoverOf(object? items)
     {
         if (items is null) return null;
+        if (items is IMovableItems) return static (list, from, to) => ((IMovableItems)list).Move(from, to);
         var type = items.GetType();
         if (s_movers.TryGetValue(type, out var move)) return move;
         for (var t = type; t is not null && move is null; t = t.BaseType)
@@ -221,7 +222,7 @@ internal sealed class ReorderList : IGestureMember
         {
             Logger.TryGet(LogEventLevel.Warning, LogArea.Control)?.Log(
                 _list,
-                "Reorder cannot move the items of this {Type}: its ItemsSource is not an ObservableCollection<T>, so set Reorder.Command to move them.",
+                "Reorder cannot move the items of this {Type}: its ItemsSource is neither an ObservableCollection<T> nor a FilteredView<T>, so set Reorder.Command to move them.",
                 _list.GetType().Name);
         }
         _list.LayoutUpdated += HandleLayoutUpdated;

@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -134,6 +135,26 @@ public sealed class ScrollToIndexTests : BridgeTestBase
 
         Assert.Throws<ArgumentOutOfRangeException>(() => PrestoAvalonia.ScrollToIndex(stage.List, -1));
         Assert.Throws<ArgumentOutOfRangeException>(() => PrestoAvalonia.ScrollToIndex(stage.List, VirtualListStage.Count));
+    }
+
+    [AvaloniaFact]
+    public void ScrollToItemOnACueBringsAnAddedLastItemIntoViewIgnoresAValueThatIsNotAnItemAndThrowsOffAList()
+    {
+        var stage = VirtualListStage.Show(Varied);
+        var cue = new Cue<int>();
+        var action = (CueAction)new ScrollToItemExtension().ProvideValue(null!);
+        Animate.SetCue(stage.List, cue);
+        Animate.SetDoOnCue(stage.List, action);
+        Assert.Throws<InvalidOperationException>(() => action.Invoke(new Border(), 0, first: false));
+
+        cue.Raise(-1);
+        Run();
+        Assert.Equal(0, stage.Scroller.Offset.Y);
+
+        stage.Items.Add(VirtualListStage.Count);
+        cue.Raise(VirtualListStage.Count);
+        Run();
+        Assert.Equal(Viewport - Varied(VirtualListStage.Count), stage.Top(VirtualListStage.Count));
     }
 
     private static double Varied(int index) => 20 + (index % 5 * 10);

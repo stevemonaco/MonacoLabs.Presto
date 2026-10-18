@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using MonacoLabs.Presto;
 using MonacoLabs.Presto.Controls;
 using Tempo.ViewModels;
 using Tempo.Views;
@@ -21,9 +22,9 @@ public sealed class SurfaceTests : TempoTestBase
         vm.OpenDetailCommand.Execute(vm.Tasks[0]);
         TestFrames.Tick(80);
         Assert.True(detail.IsOpen);
+        Assert.Equal(Edge.Bottom, detail.Edge);
         Assert.Equal(0.5 * detail.Bounds.Height, detail.Position.Value, 1);
         Assert.Same(detail, Find<TaskDetail>(window, "Detail").FindAncestorOfType<Sheet>());
-        Assert.False(Find<Drawer>(window, "DetailDrawer").IsOpen);
         vm.IsDetailOpen = false;
         TestFrames.Tick(30);
         Assert.False(detail.IsOpen);
@@ -33,6 +34,7 @@ public sealed class SurfaceTests : TempoTestBase
         var settings = Find<Sheet>(window, "SettingsSheet");
         var rows = settings.GetVisualDescendants().OfType<StackPanel>().First(p => p.Classes.Contains("settings")).Children;
         Assert.True(settings.IsOpen);
+        Assert.Equal((SheetPresentation.Edge, Edge.Bottom), (settings.Presentation, settings.Edge));
         Assert.Contains("open", Find<Button>(window, "NavSettings").Classes);
         Assert.Empty(window.GetVisualDescendants().OfType<FlyoutPresenter>());
         Assert.All(rows, row => Assert.True(row.Opacity < 1));
@@ -52,36 +54,56 @@ public sealed class SurfaceTests : TempoTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task CrossingTheBreakpointMovesOpenDetailsAndClosesSettings(bool reduced)
+    public async Task CrossingTheBreakpointMovesOpenDetailsAndSettings(bool reduced)
     {
         var (window, vm) = await ShowAsync(reduced, new Size(360, 780), "Write");
+        var detail = Find<Sheet>(window, "DetailSheet");
         vm.OpenDetailCommand.Execute(vm.Tasks[0]);
         TestFrames.Tick(30);
+        Assert.Equal(Edge.Bottom, detail.Edge);
 
         window.Width = 1100;
         TestFrames.Tick(30);
         Assert.True(vm.IsDetailOpen);
-        Assert.True(Find<Drawer>(window, "DetailDrawer").IsOpen);
-        Assert.False(Find<Sheet>(window, "DetailSheet").IsOpen);
-        Assert.Same(Find<Drawer>(window, "DetailDrawer"), Find<TaskDetail>(window, "Detail").FindAncestorOfType<Drawer>());
+        Assert.True(detail.IsOpen);
+        Assert.Equal(Edge.Right, detail.Edge);
+        Assert.Same(detail, Find<TaskDetail>(window, "Detail").FindAncestorOfType<Sheet>());
 
         window.Width = 360;
         TestFrames.Tick(30);
-        Assert.True(Find<Sheet>(window, "DetailSheet").IsOpen);
-        Assert.False(Find<Drawer>(window, "DetailDrawer").IsOpen);
+        Assert.True(detail.IsOpen);
+        Assert.Equal(Edge.Bottom, detail.Edge);
         vm.IsDetailOpen = false;
         vm.OpenSettingsCommand.Execute(null);
         TestFrames.Tick(30);
 
+        var settings = Find<Sheet>(window, "SettingsSheet");
+        Assert.Single(settings.GetVisualDescendants().OfType<SettingsFlyout>());
+
         window.Width = 1100;
         TestFrames.Tick(30);
-        Assert.False(Find<Sheet>(window, "SettingsSheet").IsOpen);
+        AssertSettingsOpen(window, vm, settings);
+        var presenter = Assert.Single(window.GetVisualDescendants().OfType<FlyoutPresenter>());
+        Assert.Single(presenter.GetVisualDescendants().OfType<SettingsFlyout>());
+        Assert.Empty(settings.GetVisualDescendants().OfType<SettingsFlyout>());
+
+        window.Width = 360;
+        TestFrames.Tick(30);
+        AssertSettingsOpen(window, vm, settings);
         Assert.Empty(window.GetVisualDescendants().OfType<FlyoutPresenter>());
-        Assert.DoesNotContain("open", Find<Button>(window, "SettingsButton").Classes);
-        Assert.DoesNotContain("open", Find<Button>(window, "NavSettings").Classes);
+        Assert.Single(settings.GetVisualDescendants().OfType<SettingsFlyout>());
+        Assert.Equal((SheetPresentation.Edge, Edge.Bottom), (settings.Presentation, settings.Edge));
 
         window.Close();
         await vm.FlushAsync();
+    }
+
+    private static void AssertSettingsOpen(Window window, MainViewModel vm, Sheet settings)
+    {
+        Assert.True(vm.IsSettingsOpen);
+        Assert.True(settings.IsOpen);
+        Assert.Contains("open", Find<Button>(window, "SettingsButton").Classes);
+        Assert.Contains("open", Find<Button>(window, "NavSettings").Classes);
     }
 
     [AvaloniaTheory]

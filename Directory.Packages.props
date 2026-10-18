@@ -24,6 +24,8 @@
     <!-- Sample-only snippet generator; must be no newer than the SDK's compiler. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
+    <!-- No 5.9.0 release exists; newest stable no newer than the SDK's compiler. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0.3" />
     <!-- Must match the Xamarin.AndroidX.Core that SplashScreen pulls in, or R8 sees core/core-ktx classes twice. -->
     <PackageVersion Include="Xamarin.AndroidX.Core.Core.Ktx" Version="1.19.0.1" />

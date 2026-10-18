@@ -38,7 +38,7 @@ public sealed class FocusViewTests : TempoTestBase
         Assert.Same(vm.Focus, view.DataContext);
         Assert.Equal("20:00", ClockText(window));
         Assert.Equal(.2, ring.Value, 3);
-        Assert.Contains("Running", PrestoMotion.GetState(window.GetVisualDescendants().OfType<ShellView>().Single())!.ToString());
+        Assert.Contains("IsRunning", PrestoMotion.GetState(window.GetVisualDescendants().OfType<ShellView>().Single())!.ToString());
         window.Close();
         await vm.FlushAsync();
     }
@@ -82,6 +82,26 @@ public sealed class FocusViewTests : TempoTestBase
         var tasks = window.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("break-dim"));
         Assert.Equal(.45, tasks.Opacity, 2);
         Assert.True(guide.IsVisible);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StartingTheClockBreathesTheRingAtFullMotionWhileTheModeKeepsItsFill(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced);
+        var ring = Ring(window);
+        vm.Focus.SkipCommand.Execute(null);
+        TestFrames.Tick(60);
+        Assert.Equal(1, Convert.ToDouble(Presto.Get(ring, "Scale", withUnit: false)), 3);
+
+        vm.Focus.StartPauseCommand.Execute(null);
+        TestFrames.Tick(60);
+
+        Assert.Equal(!reduced, Convert.ToDouble(Presto.Get(ring, "Scale", withUnit: false)) > 1.001);
+        Assert.Equal(TempoMotion.ShortBreakAccent, Assert.IsAssignableFrom<ISolidColorBrush>(ring.Fill).Color);
         window.Close();
         await vm.FlushAsync();
     }

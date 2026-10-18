@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Data;
+using Avalonia.Layout;
 using Avalonia.Media;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Effects;
@@ -25,7 +26,9 @@ namespace MonacoLabs.Presto.Targets;
 /// property had underneath. A direct property binding ignores the priority and writes through the setter, so the value the
 /// property held before the first frame is captured and written back on revert instead. A <see cref="double"/> property is
 /// bound typed, so a frame pushes it unboxed and what is left per frame is the property-changed args Avalonia raises.
-/// <see cref="Visual.OpacityProperty"/> is clamped to 0-1, so an overshooting ease holds at the ends. A property type with no
+/// <see cref="Visual.OpacityProperty"/> is clamped to 0-1, so an overshooting ease holds at the ends. On a layout-rounded element,
+/// <see cref="Layoutable.WidthProperty"/> and <see cref="Layoutable.HeightProperty"/> move from their start in four-device-pixel steps
+/// until the last frame, so a centered element's edges move together. A property type with no
 /// codec is discrete (<see cref="DiscreteCodec"/>), switching at the midpoint except <see cref="Visual.IsVisibleProperty"/>,
 /// which stays true throughout.
 /// </remarks>
@@ -246,6 +249,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         private readonly Func<double, object>? _number;
         private readonly bool _isDouble;
         private readonly bool _isOpacity;
+        private readonly bool _isSize;
         private readonly bool _isString;
         private readonly ConditionalWeakTable<AvaloniaObject, IDisposable> _animated;
         private readonly ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>? _original;
@@ -258,6 +262,7 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
             // A direct property's write returns no disposable, so its pre-animation value has to be kept for Revert.
             if (property.IsDirect) _original = previous?._original ?? new ConditionalWeakTable<AvaloniaObject, StrongBox<object?>>();
             _isOpacity = property == Visual.OpacityProperty;
+            _isSize = property == Layoutable.WidthProperty || property == Layoutable.HeightProperty;
             var type = property.PropertyType;
             if (type == typeof(double)) _isDouble = true;
             else if (type == typeof(float)) _number = static n => (float)n;
@@ -278,8 +283,15 @@ public sealed class AvaloniaObjectTargetAdapter : ITargetAdapter
         {
             var animated = (AvaloniaObject)target;
             if (_original != null && !_original.TryGetValue(animated, out _)) _original.Add(animated, new StrongBox<object?>(animated.GetValue(_property)));
-            if (_isDouble) Animated<double>(animated).Push(_isOpacity ? Math.Clamp(number, 0, 1) : number);
+            if (_isDouble) Animated<double>(animated).Push(_isOpacity ? Math.Clamp(number, 0, 1) : _isSize ? Snapped(animated, number, tween) : number);
             else Animated<object?>(animated).Push(_isString ? tween.ComposeString(number) : _number != null ? _number(number) : Codec!.Encode(number, tween));
+        }
+
+        private static double Snapped(AvaloniaObject target, double number, Tween tween)
+        {
+            if (target is not Layoutable { UseLayoutRounding: true } layoutable || tween._currentTime >= tween._changeDuration) return number;
+            var scale = LayoutHelper.GetLayoutScale(layoutable);
+            return tween._fromNumber + Helpers.Round((number - tween._fromNumber) * scale / 4, 0) * 4 / scale;
         }
 
         private AnimatedValue<T> Animated<T>(AvaloniaObject target)

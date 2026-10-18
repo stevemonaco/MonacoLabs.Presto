@@ -56,6 +56,8 @@ What does not change: a `Sheet` whose `Presentation` is never set behaves as tod
 - **The content returns to the panel only after the flyout has closed.** Reason: `Popover.Close` plays on the live presenter (BRIDGE-POPOVER-010), so moving the content earlier empties the flyout mid-close. Rejected: moving it on `Closing` (blank close).
 - **Anchored falls back to the edge when `Anchor` is null or not effectively visible.** Reason: a style may hide the anchor at the same breakpoint (Tempo hides the gear in compact), and opening a flyout on a hidden element fails or places it at the origin. Rejected: throwing or staying closed.
 - **Anchored, the sheet does not register with `Dismissal`.** Reason: the flyout already closes on Escape and light dismiss, and a second handler would close the sheet ahead of a flyout opened above it. Rejected: handling Escape in both (double close).
+- **An anchored sheet needs two detents, like an edge sheet.** A single-detent sheet stays closed when anchored too (BRIDGE-SHEET-038), and the docs say so; the default `"0,Auto"` already has two. Reason: it keeps BRIDGE-SHEET-010's coercion whole for every presentation. Rejected: ignoring the detent count when anchored and setting `DetentIndex` to 1 past the coercion, which breaks BRIDGE-SHEET-010 for one state.
+- **`Sheet.Flyout` is a `Flyout`, not any `PopupFlyoutBase`.** Reason: the sheet moves its content into the flyout's `Content`, which only `Flyout` has. Rejected: `PopupFlyoutBase`, whose subtypes build their presenter differently.
 
 ## Spec changes
 
@@ -76,7 +78,7 @@ What does not change: a `Sheet` whose `Presentation` is never set behaves as tod
 - Add: "While presented anchored, the sheet shall not take Escape or back through `Dismissal`; its flyout's own dismissal closes it."
 - Add (Defaults): "When `Presentation` is not set, it shall be `Edge`."
 - Invariants: "`IsOpen == (DetentIndex > 0)`" holds in both presentations; the edge strip is visible exactly while the panel is hidden *and* the sheet presents at its edge.
-- Edge cases: an anchored sheet with a single detent (see Open questions); a style that hides `Anchor` while the anchored flyout is open (the flyout closes as BRIDGE-POPOVER-013, and the sheet reads closed).
+- Edge cases: an anchored sheet with a single detent stays closed, as at an edge (BRIDGE-SHEET-038); a style that hides `Anchor` while the anchored flyout is open (the flyout closes as BRIDGE-POPOVER-013, and the sheet reads closed).
 - Decisions: the eight decisions above.
 - Open items: drop "the `Edge` change rebuild" and "the `Drawer` default edge" from the untested list.
 
@@ -104,6 +106,4 @@ What does not change: a `Sheet` whose `Presentation` is never set behaves as tod
 
 ## Open questions
 
-- Should an anchored sheet with only one detent open? The flyout has no detents, but BRIDGE-SHEET-038 keeps a single-detent sheet closed. Proposed: anchored opening ignores the detent count and sets `DetentIndex` to 1 past the coercion only for the anchored state, which breaks BRIDGE-SHEET-010's coercion; the alternative is to require two detents (the default `"0,Auto"` already has them) and document it.
-- Does `Sheet.Flyout` accept any `PopupFlyoutBase`, or only `Flyout` (which has `Content`)? Proposed: `Flyout` only.
-- The BRIDGE-PAGES finding (hosting a live element as a page, Tempo's `ShellView.TasksPage`) has the same content-move problem but a different owner (a `TransitioningContentControl`'s template) and is not solved here; it stays in the backlog.
+None. The BRIDGE-PAGES finding (hosting a live element as a page, Tempo's `ShellView.TasksPage`) has the same content-move problem but a different owner (a `TransitioningContentControl`'s template) and is not solved here; it stays in the backlog.

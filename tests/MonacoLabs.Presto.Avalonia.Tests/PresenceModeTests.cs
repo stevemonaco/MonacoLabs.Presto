@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -6,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -155,6 +157,20 @@ public sealed class PresenceModeTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void UnderReduceAllAShowUnderAWaitHostLandsInTheSameCall()
+    {
+        Presto.Defaults.ReduceAll = true;
+        var shown = Content();
+        shown.IsVisible = false;
+        WaitPanel(shown);
+
+        shown.IsVisible = true;
+
+        Assert.Equal(1, shown.Opacity);
+        Assert.Equal(0d, X(shown));
+    }
+
+    [AvaloniaFact]
     public void AnExitFromAStyleSetterGhostsTheSwappedContentAndStartsTheWait()
     {
         var step = new FuncDataTemplate<object?>((_, _) => new Border { Width = 40, Height = 20, Background = Brushes.Red, Classes = { "step" } });
@@ -173,6 +189,111 @@ public sealed class PresenceModeTests : CompositorTestBase
 
         Assert.Single(Ghosts(host));
         Assert.Equal(0, incoming.Opacity);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AnEmptyLineShownByCountFadesInOnlyOnceTheLastRowsGhostEnds(bool countFirst)
+    {
+        var items = new ObservableCollection<string> { "a", "b" };
+        var began = 0;
+        var empty = new TextBlock { Text = "Nothing", IsVisible = false };
+        Presence.SetEnter(empty, Presto.Build().Opacity(from: 0, to: 1).Duration(200).Ease("linear").OnBegin(_ => began++));
+        if (countFirst)
+        {
+            ((INotifyPropertyChanged)items).PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(items.Count)) empty.IsVisible = items.Count == 0;
+            };
+        }
+        var host = WaitPanel(new ItemsControl { ItemsSource = items, ItemTemplate = new FuncDataTemplate<string>((_, _) => Content()) }, empty);
+
+        items.Clear();
+        if (!countFirst) empty.IsVisible = true;
+        Tick();
+        Frames.Advance(150, 16);
+        Assert.Equal(2, Ghosts(host).Count);
+        Assert.Equal(0, began);
+        Assert.Equal(0, empty.Opacity);
+
+        RunUntil(() => Ghosts(host).Count == 0);
+        Frames.Advance(100, 16);
+
+        Assert.Equal(1, began);
+        Assert.InRange(empty.Opacity, .1, .9);
+    }
+
+    [AvaloniaFact]
+    public void AShowUnderAWaitHostWithNothingExitingPlaysInTheSameTurnBeforeAFrame()
+    {
+        var shown = Content();
+        shown.IsVisible = false;
+        WaitPanel(shown);
+
+        shown.IsVisible = true;
+        Assert.Empty(Presto.GetAnimations(shown));
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(Presto.GetAnimations(shown));
+        Assert.Equal(0, shown.Opacity);
+        Assert.Equal(30d, X(shown));
+    }
+
+    [AvaloniaFact]
+    public void AShowWhileAWaitRunsIsHeldAndReleasedWithTheArrivals()
+    {
+        var items = new ObservableCollection<string> { "a", "b" };
+        var rows = new Dictionary<string, Border>();
+        var shownBegan = 0;
+        var shown = Content(() => shownBegan++);
+        shown.IsVisible = false;
+        var host = WaitPanel(new ItemsControl { ItemsSource = items, ItemTemplate = new FuncDataTemplate<string>((item, _) => rows[item] = Content()) }, shown);
+
+        items.Remove("b");
+        Tick();
+        Frames.Advance(50, 16);
+        items.Add("c");
+        shown.IsVisible = true;
+        Tick();
+        Frames.Advance(50, 16);
+        Assert.Equal(0, shownBegan);
+        Assert.Equal(0, shown.Opacity);
+        Assert.Equal(0, rows["c"].Opacity);
+
+        RunUntil(() => Ghosts(host).Count == 0);
+        Frames.Advance(100, 16);
+
+        Assert.Equal(1, shownBegan);
+        Assert.InRange(shown.Opacity, .1, .9);
+        Assert.InRange(rows["c"].Opacity, .1, .9);
+    }
+
+    [AvaloniaFact]
+    public void AHeldHideUnderAWaitHostStartsNoWait()
+    {
+        var hidden = Content();
+        var host = WaitPanel(hidden);
+
+        hidden.IsVisible = false;
+        Tick();
+        var incoming = Content();
+        host.Children.Add(incoming);
+        Tick();
+        Frames.Advance(100, 16);
+
+        Assert.Empty(Ghosts(host));
+        Assert.True(hidden.IsVisible);
+        Assert.InRange(incoming.Opacity, .1, .9);
+    }
+
+    private static StackPanel WaitPanel(params Control[] children)
+    {
+        var host = new StackPanel();
+        host.Children.AddRange(children);
+        Presence.SetMode(host, PresenceMode.Wait);
+        ShowWhite(host);
+        return host;
     }
 
     private static Border Content(Action? began = null)

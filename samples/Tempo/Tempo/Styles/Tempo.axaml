@@ -575,7 +575,8 @@
     <!-- Swiped or wheeled rather than dragged by a bar; the faded ends show there is more. -->
     <Style Selector="v|ShellView.compact ListBox.chips">
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
-        <Setter Property="v:ScrollEdge.FadeSides" Value="True" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="presto:Scroll.FadeEdges" Value="24" />
         <Setter Property="ItemsPanel">
             <ItemsPanelTemplate>
                 <StackPanel Orientation="Horizontal" />
@@ -774,36 +775,52 @@
         <Setter Property="Fill" Value="{DynamicResource FocusAccentBrush}" />
     </Style>
 
-    <Style Selector="Border.drawer">
-        <Setter Property="Width" Value="340" />
-        <Setter Property="Padding" Value="20" />
-        <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
-        <Setter Property="BorderThickness" Value="1,0,0,0" />
+    <!-- Styled, not local, so the compact style can override them. -->
+    <Style Selector="presto|Sheet#DetailSheet">
+        <Setter Property="Edge" Value="Right" />
+        <Setter Property="EdgeSwipe" Value="20" />
     </Style>
-    <!-- Its edge strip would open an empty drawer while the detail is in the bottom sheet. -->
-    <Style Selector="v|ShellView.compact presto|Drawer">
-        <Setter Property="IsVisible" Value="False" />
+    <Style Selector="v|ShellView.compact presto|Sheet#DetailSheet">
+        <Setter Property="Edge" Value="Bottom" />
+        <Setter Property="EdgeSwipe" Value="0" />
+        <Setter Property="Detents" Value="0,0.5,1" />
+        <Setter Property="Grid.RowSpan" Value="2" />
     </Style>
     <Style Selector="Border.sheet">
-        <Setter Property="Padding" Value="20,0,20,20" />
         <Setter Property="Background" Value="{DynamicResource SemiColorBackground1}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
+    </Style>
+    <Style Selector="presto|Sheet:right Border.sheet">
+        <Setter Property="Width" Value="340" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="BorderThickness" Value="1,0,0,0" />
+    </Style>
+    <Style Selector="presto|Sheet:bottom Border.sheet">
+        <Setter Property="Padding" Value="20,0,20,20" />
         <Setter Property="BorderThickness" Value="1,1,1,0" />
         <Setter Property="CornerRadius" Value="16,16,0,0" />
     </Style>
-    <Style Selector="Border.sheet Border.drawer">
-        <Setter Property="Width" Value="NaN" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
     <Style Selector="Border.grab">
+        <Setter Property="IsVisible" Value="False" />
         <Setter Property="Width" Value="36" />
         <Setter Property="Height" Value="4" />
         <Setter Property="Margin" Value="0,10,0,14" />
         <Setter Property="CornerRadius" Value="2" />
         <Setter Property="Background" Value="{DynamicResource TempoInkDim}" />
+    </Style>
+    <Style Selector="presto|Sheet:bottom Border.grab">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="presto|Sheet#SettingsSheet">
+        <Setter Property="Presentation" Value="Anchored" />
+    </Style>
+    <Style Selector="v|ShellView.compact presto|Sheet#SettingsSheet">
+        <Setter Property="Presentation" Value="Edge" />
+        <Setter Property="Grid.RowSpan" Value="2" />
+    </Style>
+    <!-- In the popover the glass presenter is the chrome; the edge rules never reach it, only the base background does. -->
+    <Style Selector="FlyoutPresenter.glass Border.sheet">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="Border.dialog">
         <Setter Property="Background" Value="#F21A1C22" />

@@ -22,6 +22,7 @@ sources:
   - MonacoLabs.Presto.Avalonia/Edge.cs
   - MonacoLabs.Presto.Avalonia/FadeDirection.cs
   - MonacoLabs.Presto.Avalonia/ReducedMorph.cs
+  - MonacoLabs.Presto.Avalonia/MorphGlyphsExtension.cs
 types:
   - Recipes
   - Attention
@@ -38,6 +39,7 @@ types:
   - Edge
   - FadeDirection
   - ReducedMorph
+  - MorphGlyphsExtension
 tests:
   - RecipeTests
   - PageTransitionTests
@@ -78,7 +80,7 @@ depends:
 
 ## Purpose
 
-Named, parameterized motion: each recipe is a factory that returns a new `AnimationBuilder` (or, for pages, a `PrestoPageTransition`) whose defaults come from `Recipes.Tokens` (BRIDGE-TOKENS) and which carries its own reduced form (CORE-REDUCED). The families live in `Prebuilt`; the `Recipes` facade forwards to them so one `using MonacoLabs.Presto;` is enough. This spec covers the facade, the rules every recipe shares and the motion families; the media families (`Draws`, `Particles`, `Sprites`, `Tints`) are in BRIDGE-RECIPES-MEDIA and the XAML forms in BRIDGE-MARKUP.
+Named, parameterized motion: each recipe is a factory that returns a new `AnimationBuilder` (or, for pages, a `PrestoPageTransition`) whose defaults come from `Recipes.Tokens` (BRIDGE-TOKENS) and which carries its own reduced form (CORE-REDUCED). The families live in `Prebuilt`; the `Recipes` facade forwards to them so one `using MonacoLabs.Presto;` is enough. This spec covers the facade, the rules every recipe shares and the motion families; the media families (`Draws`, `Particles`, `Sprites`, `Tints`) are in BRIDGE-RECIPES-MEDIA and the XAML forms in BRIDGE-MARKUP. It also specifies `{presto:MorphGlyphs}`, a `CueAction` (BRIDGE-ATTACH) that morphs the text block it sits on to each watched value.
 
 ## Requirements
 
@@ -302,6 +304,8 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `TextRevealTests.MorphTextKeepsTheBlocksBinding`
 - **BRIDGE-RECIPES-090** — When `ReducedMotion` is set as `WriteIn` is called, it shall not split the block and shall fade its `Opacity` from 0 over `Tokens.Short` after `delay`. As `MorphGlyphs` is called with `reduced` `Crossfade`, it shall crossfade as -080. With `Instant`, it shall set `Text` to `text`, leave `Opacity` alone and return a completed `Timeline`.
   - Tests: `GlyphRecipeTests.ReducedWriteInFadesTheBlockInWithoutSplitting`, `GlyphRecipeTests.ReducedMorphGlyphsCrossfadesWithoutSplitting`, `GlyphRecipeTests.ReducedInstantSetsTheTextAtOnce`
+- **BRIDGE-RECIPES-105** — `{presto:MorphGlyphs}` shall provide a `CueAction` on a `TextBlock` target that first completes the block's running text morph, then sets `Text` with `SetCurrentValue` to the value's text (`ToString()`, empty for null) for a first value, for any value while the block is not loaded, and, with `MorphBlank` false, for a change to or from empty text; otherwise it shall call `MorphGlyphs` with that text and `Reduced` (default `Crossfade`). `MorphBlank` shall default to true. It shall throw `InvalidOperationException` for a target that is not a `TextBlock`. A morph it started completes when the block detaches, as -096.
+  - Tests: `GlyphRecipeTests.MorphGlyphsOnAWatchSetsTheFirstValueAtOnceAndMorphsALaterOne`, `GlyphRecipeTests.MorphGlyphsOnAWatchSetsAValueAtOnceWhileTheBlockIsNotLoaded`, `GlyphRecipeTests.MorphGlyphsWithoutMorphBlankSetsAChangeToOrFromEmptyAtOnceAndStillMorphsWordToWord`, `GlyphRecipeTests.MorphGlyphsOnAWatchCompletesWhenTheBlockDetachesMidMorph`, `GlyphRecipeTests.MorphGlyphsOffATextBlockThrows`
 - **BRIDGE-RECIPES-091** — `Shatter` shall cut each character's outline into `GlyphShards.Of(outline, count ?? 8, (seed ?? 0) + index)` (BRIDGE-GLYPHS) and put each shard, as a `Path` filled with the block's `Foreground` turning about its bounds center, at its character's slot in a canvas at the block's origin in the window's overlay layer; a character without an outline shall leave as a snapshot there, as -076.
   - Tests: `ShatterTests.ShardsCoverTheLettersOnTheOverlayInTheBlocksForeground`
 - **BRIDGE-RECIPES-092** — `Shatter` shall return a playing timeline that fades the block's `Opacity` to 0 over 1 ms and plays `Scatter(distance, spin, seed)` (-070) on the shards and snapshots, both at 0; when it completes, in either direction, the shards and snapshots shall leave the overlay layer with the snapshots' bitmaps disposed, so played forward the block ends at `Opacity` 0 and reversed mid-play the shards end on their slots and the block at its own opacity.
@@ -393,6 +397,8 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 - **`WriteIn` traces outline fonts only.** Reason: outline tracing then filling is a recognized style on its own; a single-line font can come later through `TextOutline` with open contours.
 - **`MorphGlyphs` pairs by position, from the end for numbers and numerals.** Both texts pair from the end when both parse as numbers in the current culture, or both consist only of decimal digits, white space and punctuation with at least one digit. Reason: it is the digit-clock and label-to-icon morph, where position is the meaning, and aligning numbers on the end keeps a counter's units column in place as it gains a digit. Characters without a partner grow from or collapse into their slot's center, and pairs without an outline (emoji, color glyphs) crossfade, so one such character never breaks the effect. A clock string (`120:00` → `99:59`, `9:59` → `10:00`) is a number in meaning but not to `double.TryParse`, and from the start it would pair `1` with `9` and `:` with `5` and morph every character. Rejected: `MorphText`'s grapheme pairing, which would fly the digits of a counter sideways; `TimeSpan` parsing (`120:00` fails as hours); a caller-supplied alignment parameter, since the rule covers clocks, counters and scores without one.
 - **The reduced form of `MorphGlyphs` is a per-call choice, `ReducedMorph`, defaulting to `Crossfade`.** Reason: on one page a counter wants `Instant` and a button label wants the crossfade, so it belongs to the call, not to `Tokens` or `Defaults`. An enum reads at the call site (`reduced: ReducedMorph.Instant`) and leaves room for another form. Rejected: a bool `instant` (reads as the full form being instant); detecting ticking from call frequency (magic, and the first tick still flickers); making `Instant` the default (a label swap with no transition loses the change cue the crossfade gives).
+- **`{presto:MorphGlyphs}`' `MorphBlank` is an option, on by default.** Reason: growing glyphs out of empty text is a legitimate effect. Tempo's start label hides while it is empty, so a morph into or out of nothing is wasted there, and that is a property of the label, not of the morph.
+- **`{presto:MorphGlyphs}` sets rather than morphs a first value and any value while the block is not loaded.** Reason: the first value is the text the view starts with, and an unloaded block has no layout to read slots from, so a morph would only flash. It keeps no state of its own: it completes the running morph through the recipe's per-block table, which also completes it on detach (-096), so one action instance shared by a style serves every block. Rejected: a per-target table and detach handler in the action (duplicates the recipe's).
 - **`MorphText` keeps its crossfade.** It is a title effect, not a ticking one, and nothing has asked for an instant form. Adding the same parameter later is additive.
 - **`MorphGlyphs` hides a character in the block with a transparent `Run`.** The block's text is laid out as `Inlines`, each hidden grapheme a `Run` whose `Foreground` is transparent, and restored by clearing `Inlines` and writing `Text` with `SetCurrentValue`. Reason: `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout` pins that Avalonia shapes runs differing only in brush together, so Inter's `12:30` with its `3` hidden keeps every glyph, position and the raised `colon.case` of the plain text (BRIDGE-GLYPHS-017). Rejected: an `OpacityMask` with transparent rectangles over the moving slots, the fallback had the runs broken shaping, which would also clip ink a neighbor overhangs into a hidden slot.
 - **`MorphText(shape: true)` pairs leftovers by nearest slot.** Matched letters keep their grapheme pairing (-074); only the letters it leaves over morph, each new one into the nearest old one. Reason: grapheme pairing already decides who flies; nearest-first among the rest keeps morphs short, and the counts are small. Without `shape` nothing changes, so existing callers keep the ghosts.

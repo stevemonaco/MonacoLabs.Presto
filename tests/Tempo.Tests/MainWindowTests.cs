@@ -73,7 +73,7 @@ public sealed class MainWindowTests : TempoTestBase
         Assert.Equal(FocusMode.ShortBreak, vm.Focus.Mode);
         var accent = window.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("accent-bg"));
         Assert.Equal(TempoMotion.ShortBreakAccent, Assert.IsAssignableFrom<ISolidColorBrush>(accent.Background).Color);
-        var detail = Find<Sheet>(window, vm.IsCompact ? "DetailSheet" : "DetailDrawer");
+        var detail = Find<Sheet>(window, "DetailSheet");
         Assert.False(detail.IsOpen);
         Assert.Equal(0, detail.Position.Value);
 
