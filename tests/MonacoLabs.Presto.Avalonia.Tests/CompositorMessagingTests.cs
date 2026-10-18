@@ -105,14 +105,18 @@ public sealed class CompositorMessagingTests : CompositorTestBase
     {
         var (_, canvas) = ShowScene(new ProbeScene(4000));
         bool? onUIThread = null;
+        bool? ranInline = null;
 
-        canvas.Invoke<ProbeScene>(s => s.RelayToUI(() => onUIThread = Dispatcher.UIThread.CheckAccess()));
+        // Checked inside the render pass: the headless render timer may also render within RunJobs, which then drains the post.
+        canvas.Invoke<ProbeScene>(s =>
+        {
+            s.RelayToUI(() => onUIThread = Dispatcher.UIThread.CheckAccess());
+            ranInline = onUIThread is not null;
+        });
         Tick();
-
-        Assert.Null(onUIThread);
-
         Dispatcher.UIThread.RunJobs();
 
+        Assert.False(ranInline);
         Assert.True(onUIThread);
     }
 

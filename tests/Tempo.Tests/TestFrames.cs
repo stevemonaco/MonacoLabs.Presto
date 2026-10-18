@@ -19,13 +19,15 @@ internal static class TestFrames
 
     /// <summary>
     /// Points the engine at the test source, as <see cref="PrestoAvalonia.EnsureInitialized"/> installs the Avalonia one, which
-    /// no test can step, and freezes this test's compositor clock so that only <see cref="Tick()"/> moves it.
+    /// no test can step, freezes this test's compositor clock so that only <see cref="Tick()"/> moves it, and stops its windows
+    /// drawing, which no test reads.
     /// </summary>
     public static void Install()
     {
         PrestoAvalonia.EnsureInitialized();
         Presto.Engine.FrameSource = Source;
         CompositorClock.Install();
+        HeadlessDrawing.Suspend();
         if (ReferenceEquals(s_session, Application.Current)) return;
         s_session = Application.Current;
         // A loop an earlier test left running would keep the engine busy into this one.

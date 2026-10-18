@@ -92,7 +92,7 @@ public sealed class StressBenchPageTests
         Assert.True(readout.Text!.Contains("fps"), "the worker never reported");
 
         toggle.IsChecked = false;
-        Assert.True(await SceneHarness.Pump(() => !worker.IsRunning), "the worker kept running once switched off");
+        Assert.True(SceneHarness.WaitFor(() => !worker.IsRunning), "the worker kept running once switched off");
         Assert.Empty(page.Workload.OfType<Engine>());
         SceneHarness.Close(window);
     }

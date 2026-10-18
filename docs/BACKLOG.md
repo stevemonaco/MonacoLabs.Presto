@@ -109,7 +109,6 @@ When an item is closed, its line is deleted.
 
 - [SAMPLE] Cover the orchestration sample's `Order`, `From` and Presence mode pickers with a sample test.
 - [SAMPLE] Cover the Shapes page's spline (motion path through points) demo with a sample test; only `ShapesTests` covers the API.
-- [PROJECT] The sample test suite runs about 92 s against a 60 s target; reaching it needs a framebuffer retained between frames, which requires a change in Avalonia's headless platform.
 - [PROJECT] A Linux/macOS CI leg; first pin Inter in the test app builders so the headless text metrics no longer depend on the system default font.
 - [PROJECT] A scheduled workflow that builds the Browser and Android heads with their workloads (`wasm-tools`, `android` plus a JDK), which `build-test-pack` skips.
 - [PROJECT] Run the test suites in parallel via per-test engines (`AsyncLocal` or a per-session `Presto.Engine`); touches every static entry point.

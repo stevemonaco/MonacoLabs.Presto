@@ -114,6 +114,7 @@ internal static class SceneHarness
     public static (byte[] Pixels, int Stride) Capture(Visual visual)
     {
         var window = TopLevel.GetTopLevel(visual)!;
+        if (HeadlessDrawing.Resume()) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         using var frame = window.GetLastRenderedFrame() ?? throw new InvalidOperationException("The window has not rendered yet.");
         using var locked = frame.Lock();
         var pixels = new byte[locked.RowBytes * locked.Size.Height];
