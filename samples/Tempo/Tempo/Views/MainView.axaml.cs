@@ -58,6 +58,8 @@ public partial class MainView : UserControl
             return;
         insets.DisplayEdgeToEdgePreference = true;
         insets.SafeAreaChanged += HandleSafeAreaChanged;
+        // Android divides the insets by RenderScaling, which is still 1 at attach, and raises no SafeAreaChanged once it is set.
+        _top.ScalingChanged += HandleScalingChanged;
         Shell.SafeArea = insets.SafeAreaPadding;
     }
 
@@ -75,10 +77,17 @@ public partial class MainView : UserControl
         _top.RemoveHandler(TopLevel.BackRequestedEvent, HandleBackRequest);
         if (_top.InsetsManager is { } insets)
             insets.SafeAreaChanged -= HandleSafeAreaChanged;
+        _top.ScalingChanged -= HandleScalingChanged;
         _top = null;
     }
 
     private void HandleSafeAreaChanged(object? sender, SafeAreaChangedArgs e) => Shell.SafeArea = e.SafeAreaPadding;
+
+    private void HandleScalingChanged(object? sender, EventArgs e)
+    {
+        if (_top?.InsetsManager is { } insets)
+            Shell.SafeArea = insets.SafeAreaPadding;
+    }
 
     // Not called once Dismissal's class handler has closed a sheet or modal; left unhandled on Focus, so the platform backgrounds the app.
     private void HandleBackRequest(object? sender, RoutedEventArgs e)
