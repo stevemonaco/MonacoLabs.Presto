@@ -106,6 +106,7 @@ When an item is closed, its line is deleted.
 - [SAMPLE] Audit the pages at 400 DIP in the compact layout and list the ones that clip or overflow, with a fix or a minimum-width note per page; Eases, Playground and Springs are known to clip.
 - [SAMPLE] The compact Page bar's back button is a 36 DIP touch target, below the 44 DIP of the nav rows, and its About toggle stays open when another page opens; done when the button is 44 DIP and About closes on a page change.
 - [SAMPLE] Add a README showcase section with captures of the showcase pages.
+- [SAMPLE] Give the Gallery and Tempo Android and iOS heads (and Tempo's web head, which has no favicon) their own launcher icons in place of Avalonia's; done when no head ships an Avalonia icon.
 - [SAMPLE] At 127 px a Card gallery grid card's `#06 · C. Lindqvist 711` line runs into its right border; done when it fits or trims.
 - [SAMPLE] Swipe-to-dismiss on the Activity feed's recycled rows (`SwipeActions` or `Draggable`) beside the dismiss button; done when a swiped row collapses out through `Presence.Exit` and a recycled row carries no stale swipe offset.
 - [SAMPLE] The Gestures page trail and resist stages share the panel's background, so their edges are hard to see; done when the stages read as distinct.

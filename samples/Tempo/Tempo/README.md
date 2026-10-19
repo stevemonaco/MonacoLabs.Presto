@@ -24,7 +24,7 @@ dotnet build -t:Run -f net10.0-android samples/Tempo/Tempo.Android
 dotnet test --project tests/Tempo.Tests
 ```
 
-`samples/Tempo/Tempo/` is the shared project; each head beside it (`Tempo.Desktop`, `Tempo.Browser`, `Tempo.Android`, `Tempo.iOS`) only starts it. The Browser and Android heads need their workloads (`wasm-tools`, `android`), and `Tempo.iOS` only compiles here: it runs on a macOS host. The launch options below are Desktop's; the other heads start with the defaults.
+`samples/Tempo/Tempo/` is the shared project; each head beside it (`Tempo.Desktop`, `Tempo.Browser`, `Tempo.Android`, `Tempo.iOS`) only starts it. The Browser and Android heads need their workloads (`wasm-tools`, `android`), and `Tempo.iOS` only compiles here: it runs on a macOS host. Their launch screens hand off to the intro: plain `#121318` on Android and iOS, and on the web the intro's track ring, filled as the app downloads. The launch options below are Desktop's; the other heads start with the defaults.
 
 `--size WxH` sets the window size in DIPs for that run only: it wins over the saved size and the maximized state, and the saved placement is left as it was. An unknown argument or a malformed size exits with code 2. In Debug, F12 opens the Avalonia developer tools and the Presto DevTools overlay is attached.
 

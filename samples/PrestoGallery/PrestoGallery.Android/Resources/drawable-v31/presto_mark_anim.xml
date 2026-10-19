@@ -1,0 +1,61 @@
+<animated-vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="288dp"
+            android:height="288dp"
+            android:viewportWidth="256"
+            android:viewportHeight="256">
+            <path android:pathData="M94,64 H162 A30,30 0 0 1 192,94 V162 A30,30 0 0 1 162,192 H94 A30,30 0 0 1 64,162 V94 A30,30 0 0 1 94,64 Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:type="linear"
+                        android:startX="64"
+                        android:startY="192"
+                        android:endX="192"
+                        android:endY="64"
+                        android:startColor="#2B579F"
+                        android:endColor="#4C8DFF" />
+                </aapt:attr>
+            </path>
+            <path
+                android:name="lines"
+                android:strokeColor="#C3DBFF"
+                android:strokeAlpha="0"
+                android:strokeWidth="8"
+                android:strokeLineCap="round"
+                android:pathData="M93.83,110 L109.83,110 M96.43,126 L106.43,126" />
+            <path
+                android:name="p"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="14"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round"
+                android:trimPathEnd="0"
+                android:pathData="M114.77,162 L129.23,94 L149.23,94 C160.82,94 168.23,103.4 165.76,115 C163.3,126.6 151.9,136 140.3,136 L120.3,136" />
+        </vector>
+    </aapt:attr>
+    <target android:name="p">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:duration="550"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:valueType="floatType"
+                android:interpolator="@android:interpolator/decelerate_cubic" />
+        </aapt:attr>
+    </target>
+    <target android:name="lines">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="strokeAlpha"
+                android:startOffset="450"
+                android:duration="350"
+                android:valueFrom="0"
+                android:valueTo="0.75"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+</animated-vector>
