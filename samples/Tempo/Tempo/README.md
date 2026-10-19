@@ -1,6 +1,6 @@
 # Tempo
 
-A desktop focus timer with a task list (Pomodoro style), built on Presto the way an outside app would be: one `using MonacoLabs.Presto;`, the controls in XAML, and every animation defined once as a builder and assigned from XAML. It runs on [Semi.Avalonia](https://github.com/irihitech/Semi.Avalonia) (Dark) rather than Fluent, so features that lean on Fluent's templates show up. It references only the library, never the gallery.
+A focus timer for desktop, browser and phone, with a task list (Pomodoro style), built on Presto the way an outside app would be: one `using MonacoLabs.Presto;`, the controls in XAML, and every animation defined once as a builder and assigned from XAML. It runs on [Semi.Avalonia](https://github.com/irihitech/Semi.Avalonia) (Dark) rather than Fluent, so features that lean on Fluent's templates show up. It references only the library, never the gallery.
 
 - **Tasks** (left): add with Enter, drag a row to reorder (on touch or pen, press and hold, then drag; let go without moving to open its details), swipe fully from the leading edge to complete or the trailing edge to delete (Del also deletes, with an Undo toast), double-click (or tap ⋯ in the compact layout) for a details drawer with notes, an estimate and a tag. Each row shows its tag as a colored chip, and the chips above the list (All, Writing, Code, Design, Admin, Personal) filter it; a task added under a filter takes its tag. Completed tasks fly into a collapsible Done group, and back to the end of the list when unchecked.
 - **Focus** (right): a countdown ring whose one block of tabular digits morphs into each second, only the changed digits moving (the ring's glow pulses through the last ten), the mode (Focus, Short break, Long break), the active task, and start/pause (a pill reading Start focus, Start break or Resume that shrinks to a circle while running), skip and hold-to-abandon (let go early and it shakes). Breaks show a breathing guide. A finished session adds a dot to its task.
@@ -16,17 +16,21 @@ Space starts and pauses, N focuses the add box.
 ## Running
 
 ```powershell
-dotnet run --project samples/Tempo/Tempo
-dotnet run --project samples/Tempo/Tempo -- --skip-intro     # start on the main view
-dotnet run --project samples/Tempo/Tempo -- --size 360x780   # the compact layout
+dotnet run --project samples/Tempo/Tempo.Desktop
+dotnet run --project samples/Tempo/Tempo.Desktop -- --skip-intro     # start on the main view
+dotnet run --project samples/Tempo/Tempo.Desktop -- --size 360x780   # the compact layout
+dotnet run --project samples/Tempo/Tempo.Browser
+dotnet build -t:Run -f net10.0-android samples/Tempo/Tempo.Android
 dotnet test --project tests/Tempo.Tests
 ```
+
+`samples/Tempo/Tempo/` is the shared project; each head beside it (`Tempo.Desktop`, `Tempo.Browser`, `Tempo.Android`, `Tempo.iOS`) only starts it. The Browser and Android heads need their workloads (`wasm-tools`, `android`), and `Tempo.iOS` only compiles here: it runs on a macOS host. The launch options below are Desktop's; the other heads start with the defaults.
 
 `--size WxH` sets the window size in DIPs for that run only: it wins over the saved size and the maximized state, and the saved placement is left as it was. An unknown argument or a malformed size exits with code 2. In Debug, F12 opens the Avalonia developer tools and the Presto DevTools overlay is attached.
 
 ## Data
 
-Tasks, settings, the session log and the window placement are saved to one file, `%LocalAppData%/Tempo/tempo.json`, after every change. The first run, with no file yet, is populated with sample data: sixteen tagged tasks and eight weeks of session history, the same every time and dated back from today. A corrupt file starts empty and is kept as `tempo.json.bak`. Settings has **Clear all data** and **Restore sample data**, each behind a hold-to-confirm dialog: clearing empties everything but the settings: the task rows leave in turn from the top, the Stats bars drop to zero after them if Stats is showing, and the empty list's line fades in last; restoring brings the sample back with the rows arriving in turn. Deleting the file also starts over from the sample.
+Tasks, settings, the session log and the window placement are saved after every change: on Windows to one file, `%LocalAppData%/Tempo/tempo.json`; on Android and iOS to `Tempo/tempo.json` in the app sandbox's local application data; in the browser to the `tempo` key of `localStorage`. The first run, with no file yet, is populated with sample data: sixteen tagged tasks and eight weeks of session history, the same every time and dated back from today. A corrupt file starts empty and is kept as `tempo.json.bak` (in the browser, the `tempo.bak` key). Settings has **Clear all data** and **Restore sample data**, each behind a hold-to-confirm dialog: clearing empties everything but the settings: the task rows leave in turn from the top, the Stats bars drop to zero after them if Stats is showing, and the empty list's line fades in last; restoring brings the sample back with the rows arriving in turn. Deleting the file also starts over from the sample.
 
 ## Where the motion is
 
@@ -49,6 +53,6 @@ Every animation is a `public static readonly AnimationBuilder` in [Motion/TempoM
 | Stepper values morphing (`Animate.DoOnChanged` with `{presto:MorphGlyphs}`), set at once under reduced motion (`ReducedMorph.Instant`) | `Views/Stepper.axaml` |
 | The intro and its handoff (the ring and wordmark fly into the app) | `Motion/TempoIntro.cs`, `Views/IntroView.axaml` |
 
-A few calls have no XAML spelling and are made from code-behind: the skip's fast-forward and sweep, and the abandon ring's shake on an early release and its cross on confirm (`FocusView`), the intro's timeline and particle wordmark (`TempoIntro`), the backdrop drift on the compositor and the blobs' swell, the compact arrangement from the window width and moving the task list between the two arrangements (`ShellView`), the dialog's Escape shake (`ConfirmDialog`), and Space as the timer's key wherever focus is (`MainWindow`). Wall-clock time drives the timer (`Model/FocusClock.cs` over a `TimeProvider`); Presto only presents it, so the countdown keeps going while the window is minimized.
+A few calls have no XAML spelling and are made from code-behind: the skip's fast-forward and sweep, and the abandon ring's shake on an early release and its cross on confirm (`FocusView`), the intro's timeline and particle wordmark (`TempoIntro`), the backdrop drift on the compositor and the blobs' swell, the compact arrangement from the window width and moving the task list between the two arrangements (`ShellView`), the dialog's Escape shake (`ConfirmDialog`), and Space as the timer's key wherever focus is, with the other shortcuts installed on the top level (`MainView`). Wall-clock time drives the timer (`Model/FocusClock.cs` over a `TimeProvider`); Presto only presents it, so the countdown keeps going while the window is minimized.
 
 The design decisions are in [ARCHITECTURE §5](../../../docs/ARCHITECTURE.md), and the friction found while building it under "Tempo findings" in [BACKLOG.md](../../../docs/BACKLOG.md).

@@ -26,6 +26,7 @@ jobs:
         run: |
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet build samples/PrestoGallery/PrestoGallery.Desktop
+          dotnet build samples/Tempo/Tempo.Desktop
           dotnet build tests/MonacoLabs.Presto.Tests
           dotnet build tests/MonacoLabs.Presto.Avalonia.Tests
           dotnet build tests/PrestoGallery.Tests

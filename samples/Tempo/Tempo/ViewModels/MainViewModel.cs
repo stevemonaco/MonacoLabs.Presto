@@ -21,6 +21,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly TimeProvider _time;
     private Task _saving = Task.CompletedTask;
     private TempoData? _latest;
+    private bool _goingBack;
     private (TaskItemViewModel Task, ObservableCollection<TaskItemViewModel> List, int Index)? _deleted;
 
     private MainViewModel(TempoStore store, TempoData data, TimeProvider time, ITickSource ticks)
@@ -140,7 +141,10 @@ public sealed partial class MainViewModel : ObservableObject
         _ => Focus,
     };
 
-    /// <summary>Whether the last change of <see cref="CurrentView"/> went back in the bottom bar's order: Tasks, Focus, Stats.</summary>
+    /// <summary>
+    /// Whether the last change of <see cref="CurrentView"/> went back in the bottom bar's order (Tasks, Focus, Stats) or
+    /// came from <see cref="GoBack"/>.
+    /// </summary>
     [ObservableProperty]
     public partial bool IsBack { get; private set; }
 
@@ -192,6 +196,17 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Completes once every change made so far is on disk.</summary>
     public Task FlushAsync() => _saving;
+
+    /// <summary>Goes back to Focus, the home page, with the back transition; false when Focus already shows.</summary>
+    public bool GoBack()
+    {
+        if (CurrentView == AppView.Focus)
+            return false;
+        _goingBack = true;
+        CurrentView = AppView.Focus;
+        _goingBack = false;
+        return true;
+    }
 
     /// <summary>Replaces the tasks and the session log with a fresh copy of the sample data; settings stay.</summary>
     public void RestoreSampleData() => Replace(SampleData.Create(_time));
@@ -289,7 +304,7 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnCurrentViewChanging(AppView oldValue, AppView newValue)
     {
         Focus.RingKey = null;
-        IsBack = Order(newValue) < Order(oldValue);
+        IsBack = _goingBack || Order(newValue) < Order(oldValue);
     }
 
     private static int Order(AppView view) => view == AppView.Tasks ? -1 : (int)view;

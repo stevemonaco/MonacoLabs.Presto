@@ -12,7 +12,7 @@ The architecture and the anime.js → Presto provenance map live in [docs/ARCHIT
 | `MonacoLabs.Presto.Avalonia/` | **Avalonia adapter.** Frame pump, `AvaloniaObject`/`AvaloniaProperty` targets, render-transform composition, color/brush/thickness interpolation, control helpers. Custom controls (`Pager`, `Sheet`, `ToastHost`, the image controls…) live in `Controls/` (`MonacoLabs.Presto.Controls`). Root namespace `MonacoLabs.Presto`, shared with the core: namespaces never carry an `Avalonia` segment (it would shadow the `Avalonia.*` namespaces), and folders map onto the root namespace. |
 | `samples/PrestoGallery/PrestoGallery*/` | Gallery app (shared project + Desktop/Browser/Android/iOS heads). `Pages/` hold the Reference section, one page per feature; `Builder/` holds fluent-builder pages that print their own code, plus the XAML attach demo; `Showcase/` holds the shared kit (`ShowcasePage`, `CodePanel`, `Snippet`) and `Showcase/Pages/` the multi-feature demos. Desktop is the primary dev target. |
 | `samples/PrestoGallery/PrestoGallery.SnippetGenerator/` | Sample-only source generator: `<!-- snippet: Name -->` (XAML) and `#region snippet Name` (C#) regions become `PrestoGallery.Showcase.Snippets` consts. |
-| `samples/Tempo/Tempo/` | Standalone focus-timer app (Desktop, Semi.Avalonia Dark) that dogfoods Presto as an outside consumer would; all its motion is in `Motion/TempoMotion.cs`. Headless tests in `tests/Tempo.Tests/`; decisions in ARCHITECTURE §5. |
+| `samples/Tempo/Tempo*/` | Standalone focus-timer app (Semi.Avalonia Dark) that dogfoods Presto as an outside consumer would: shared project `Tempo/` plus heads `Tempo.*/`, Desktop the primary. All its motion is in `Motion/TempoMotion.cs`. Headless tests in `tests/Tempo.Tests/`; decisions in ARCHITECTURE §5. |
 | `tests/MonacoLabs.Presto.Tests/` | xunit v3 tests for the core. Bridge tests (Avalonia.Headless) live in `tests/MonacoLabs.Presto.Avalonia.Tests/`. |
 | `tests/MonacoLabs.Presto.AotProbe/` | NativeAOT console app on Avalonia.Headless: one `PASS`/`FAIL` line per trim/AOT hazard, exit code = failures. Run by the CI `aot` job. |
 | `docs/` | `ARCHITECTURE.md` (goals, architecture, testing strategy, project-wide decisions, samples, provenance appendix), `BACKLOG.md` (open work), `changes/` (change proposals for work in progress). |
@@ -29,14 +29,14 @@ dotnet test --solution MonacoLabs.Presto.slnx
 tests/PrestoGallery.Tests/bin/Debug/net10.0/PrestoGallery.Tests.exe --report-xunit --results-directory <dir>   # per-test times (after a build)
 dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop
 dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop      # hot reload (see below)
-dotnet run --project samples/Tempo/Tempo                       # the Tempo app; -- --skip-intro starts on the main view
+dotnet run --project samples/Tempo/Tempo.Desktop               # the Tempo app; -- --skip-intro starts on the main view
 dotnet publish tests/MonacoLabs.Presto.AotProbe -c Release -r win-x64 -o artifacts/aot-probe -p:TrimmerSingleWarn=false
 artifacts/aot-probe/MonacoLabs.Presto.AotProbe.exe            # exit code = failing cases
 dotnet publish samples/PrestoGallery/PrestoGallery.Desktop -c Release -r win-x64 -p:PublishAot=true -o artifacts/gallery
 samples/PrestoGallery/aot-smoke.ps1 artifacts/gallery/PrestoGallery.Desktop.exe   # every page for 6 s
 ```
 
-A head (gallery Desktop, Tempo) publishes with NativeAOT through `-p:PublishAot=true`; the probe sets it in its csproj. When ILC finds no platform linker, point `PATH` and `LIB` at an installed MSVC toolset and Windows SDK and pass `-p:IlcUseEnvironmentalTools=true`.
+A head (gallery Desktop, Tempo.Desktop) publishes with NativeAOT through `-p:PublishAot=true`; the probe sets it in its csproj. When ILC finds no platform linker, point `PATH` and `LIB` at an installed MSVC toolset and Windows SDK and pass `-p:IlcUseEnvironmentalTools=true`.
 
 The Desktop head takes launch options after `--`, e.g. `dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --page carousel --motion reduced --size 1400x1000`: `--page` takes a slug or title, `--motion` is `full|reduced|system`, `--frame-pacing on|off` sets `AvaloniaFrameSource.Paced` for A/B checks, and `--list-pages` prints the slugs. Its output shows under `dotnet run`, though it is a WinExe, so launched directly its output appears only when redirected; bad arguments exit with code 2. Use these to start DevTools checks on a page instead of navigating the sidebar.
 

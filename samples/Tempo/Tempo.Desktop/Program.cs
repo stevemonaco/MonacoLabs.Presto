@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Logging;
 using MonacoLabs.Presto;
 
-namespace Tempo;
+namespace Tempo.Desktop;
 
 sealed class Program
 {

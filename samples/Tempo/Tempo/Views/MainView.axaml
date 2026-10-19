@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+             xmlns:v="using:Tempo.Views"
+             xmlns:vm="using:Tempo.ViewModels"
+             x:Class="Tempo.Views.MainView"
+             x:DataType="vm:MainViewModel"
+             presto:Motion.Preference="{Binding Motion}"
+             TopLevel.AutoSafeAreaPadding="False">
+    <!-- Moved to the top level at attach, so they work while nothing has focus. Space is handled in code-behind. -->
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="N" Command="{Binding FocusAddBoxCommand}" />
+        <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}" />
+        <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding OpenSettingsCommand}" />
+    </UserControl.KeyBindings>
+    <!-- Off a window, the code-behind pads the shell's bars by the insets instead, so the backdrop runs under the system bars. -->
+    <v:ShellView x:Name="Shell" />
+</UserControl>

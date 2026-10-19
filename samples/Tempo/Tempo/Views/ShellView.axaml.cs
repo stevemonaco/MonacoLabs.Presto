@@ -14,6 +14,8 @@ public partial class ShellView : UserControl
 {
     private const double CompactBreakpoint = 720;
 
+    public static readonly StyledProperty<Thickness> SafeAreaProperty = AvaloniaProperty.Register<ShellView, Thickness>(nameof(SafeArea));
+
     private MainViewModel? _viewModel;
     private CompositorAnimation? _drift;
     private ControlScope? _swell;
@@ -25,6 +27,20 @@ public partial class ShellView : UserControl
         // Code-only: the Tasks page adopts the one TasksPane, so the column and the page never hold two lists' state.
         // Not on null: the template reaches nested presenters, and a typed FuncDataTemplate matches null content.
         PageHost.DataTemplates.Add(new FuncDataTemplate<MainViewModel>(vm => vm is not null, (_, _) => TasksPage()));
+    }
+
+    /// <summary>The system bars' insets, which pad the bars, the panels, the toasts and the bottom sheets while the backdrop runs edge to edge.</summary>
+    public Thickness SafeArea
+    {
+        get => GetValue(SafeAreaProperty);
+        set => SetValue(SafeAreaProperty, value);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == SafeAreaProperty)
+            PadForSafeArea();
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -50,6 +66,8 @@ public partial class ShellView : UserControl
             Classes.Set("compact", compact);
             if (!compact)
                 Move(TasksPane, TasksColumn);
+            if (SafeArea != default)
+                PadForSafeArea();
         }
         return base.MeasureOverride(availableSize);
     }
@@ -68,6 +86,20 @@ public partial class ShellView : UserControl
         Presto.Engine.ReducedMotionChanged -= Redrift;
         _drift?.Revert();
         _drift = null;
+    }
+
+    // The base spacing is the styles' and the XAML's. Compact's bottom bar takes the bottom inset; wide, the panels and toasts do.
+    private void PadForSafeArea()
+    {
+        var (left, top, right, bottom) = (SafeArea.Left, SafeArea.Top, SafeArea.Right, SafeArea.Bottom);
+        var compact = _compact == true;
+        var below = compact ? 0 : bottom;
+        TitleBar.Height = 44 + top;
+        TitleBar.Padding = new Thickness(left, top, right, 0);
+        BottomBar.Padding = new Thickness(8 + left, 6, 8 + right, 6 + bottom);
+        Panels.Margin = new Thickness(16 + left, 16, 16 + right, 16 + below);
+        Toasts.Margin = new Thickness(16 + left, 0, 16 + right, 24 + below);
+        DetailBody.Margin = SettingsBody.Margin = new Thickness(0, 0, 0, compact ? bottom : 0);
     }
 
     // Back in its column once the page leaves, after the detach, so a hidden column holds it between visits.

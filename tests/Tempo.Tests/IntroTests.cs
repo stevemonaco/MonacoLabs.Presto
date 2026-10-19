@@ -20,7 +20,7 @@ public sealed class IntroTests : TempoTestBase
     public async Task TheIntroHandsOffAfterItsLengthWithParticlesOnlyAtFullMotion(bool reduced)
     {
         var (window, vm) = await ShowIntroAsync(Task.CompletedTask, reduced);
-        Assert.IsType<IntroView>(window.Content);
+        Assert.IsType<IntroView>(window.View.Content);
 
         var particles = false;
         var elapsed = TickUntilShell(window, 4000, () => particles |= OverlayLayer.GetOverlayLayer(window)!.Children.OfType<CompositorCanvas>().Any());
@@ -42,7 +42,7 @@ public sealed class IntroTests : TempoTestBase
         var (window, vm) = await ShowIntroAsync(load.Task);
 
         TestFrames.Tick(3500 / FrameTime);
-        Assert.IsType<IntroView>(window.Content);
+        Assert.IsType<IntroView>(window.View.Content);
 
         load.SetResult();
         Assert.InRange(TickUntilShell(window, 100), 0, 2 * FrameTime);
@@ -95,11 +95,11 @@ public sealed class IntroTests : TempoTestBase
         vm.PlayIntro = playIntro;
         var window = new MainWindow { DataContext = vm };
 
-        window.Start(Task.CompletedTask, skipIntro);
+        window.View.Start(Task.CompletedTask, skipIntro);
         window.Show();
         TestFrames.Tick();
 
-        Assert.IsType<ShellView>(window.Content);
+        Assert.IsType<ShellView>(window.View.Content);
         Assert.Empty(window.GetVisualDescendants().OfType<IntroView>());
         window.Close();
         await vm.FlushAsync();

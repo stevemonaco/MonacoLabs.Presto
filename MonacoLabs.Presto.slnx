@@ -9,6 +9,10 @@
     <Project Path="samples/PrestoGallery/PrestoGallery/PrestoGallery.csproj" />
   </Folder>
   <Folder Name="/samples/Tempo/">
+    <Project Path="samples/Tempo/Tempo.Android/Tempo.Android.csproj" />
+    <Project Path="samples/Tempo/Tempo.Browser/Tempo.Browser.csproj" />
+    <Project Path="samples/Tempo/Tempo.Desktop/Tempo.Desktop.csproj" />
+    <Project Path="samples/Tempo/Tempo.iOS/Tempo.iOS.csproj" />
     <Project Path="samples/Tempo/Tempo/Tempo.csproj" />
   </Folder>
   <Folder Name="/tests/">

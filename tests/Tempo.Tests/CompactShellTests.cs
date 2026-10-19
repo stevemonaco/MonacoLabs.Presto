@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using MonacoLabs.Presto.Controls;
 using Tempo.ViewModels;
 using Tempo.Views;
 
@@ -81,5 +83,65 @@ public sealed class CompactShellTests : TempoTestBase
 
         window.Close();
         await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(AppView.Tasks)]
+    [InlineData(AppView.Stats)]
+    public async Task GoBackLandsOnFocusWithTheBackTransition(AppView from)
+    {
+        var (window, vm) = await ShowAsync(reduced: true, new Size(360, 780));
+        var host = Find<TransitioningContentControl>(window, "PageHost");
+        vm.CurrentView = from;
+        TestFrames.Tick(30);
+
+        Assert.True(vm.GoBack());
+
+        Assert.Equal(AppView.Focus, vm.CurrentView);
+        Assert.True(vm.IsBack);
+        Assert.True(host.IsTransitionReversed);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task ABackRequestGoesToFocusAndIsLeftUnhandledThere()
+    {
+        var (window, vm) = await ShowAsync(reduced: true, new Size(360, 780));
+        vm.CurrentView = AppView.Stats;
+        TestFrames.Tick(30);
+
+        Assert.True(RequestBack(window));
+        Assert.Equal(AppView.Focus, vm.CurrentView);
+        TestFrames.Tick(30);
+        Assert.False(RequestBack(window));
+        Assert.Equal(AppView.Focus, vm.CurrentView);
+
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task ABackRequestClosesTheSettingsSheetAndLeavesThePage()
+    {
+        var (window, vm) = await ShowAsync(reduced: true, new Size(360, 780));
+        vm.CurrentView = AppView.Stats;
+        vm.IsSettingsOpen = true;
+        TestFrames.Tick(30);
+
+        Assert.True(RequestBack(window));
+
+        Assert.False(Find<Sheet>(window, "SettingsSheet").IsOpen);
+        Assert.False(vm.IsSettingsOpen);
+        Assert.Equal(AppView.Stats, vm.CurrentView);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    private static bool RequestBack(Window window)
+    {
+        var request = new RoutedEventArgs(TopLevel.BackRequestedEvent);
+        window.RaiseEvent(request);
+        return request.Handled;
     }
 }
