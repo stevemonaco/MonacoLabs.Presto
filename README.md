@@ -81,6 +81,8 @@ Square.Animate(b => b                          // or Presto.Build()…Animate(Sq
 ```
 
 Values are written at `BindingPriority.Animation`, so `Revert()` puts the control's own values back exactly.
+An animated `Width` or `Height` on a layout-rounded control moves in whole device-pixel steps from where it started, so a
+centered control's two edges move together; `UseLayoutRounding="False"` opts out.
 
 ### The builder and parameter objects
 

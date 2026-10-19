@@ -89,7 +89,9 @@ internal sealed class PopoverRun
     private void HandleClosing(object? sender, CancelEventArgs e)
     {
         // A detaching target still reads as attached inside its detach handlers, so the cut is found through its parents.
-        if (_releasing || e.Cancel || _popup.PlacementTarget?.FindAncestorOfType<TopLevel>(includeSelf: true) is null) return;
+        // A presenter already detached, as a native popup is when its window closes first, has nothing left to animate.
+        if (_releasing || e.Cancel || _popup.PlacementTarget?.FindAncestorOfType<TopLevel>(includeSelf: true) is null ||
+            !_presenter.IsAttachedToVisualTree()) return;
         if (_closing)
         {
             e.Cancel = true;

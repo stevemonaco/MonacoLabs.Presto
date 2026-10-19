@@ -111,7 +111,7 @@ depends:
 - **BRIDGE-DECLLAYOUT-030** — A transfer's flight shall win its move, and the container's arm shall resume as BRIDGE-DECLLAYOUT-021 says.
   - Tests: `ItemTransferTests.ARowMovedToAnotherListFliesWithoutExitOrEntranceAndItsArmResumesAfterLanding`
 - **BRIDGE-DECLLAYOUT-031** — An item added before its removal, a removal and an add under different top levels or groups, a list without `ItemLayout`, or an `ObservableCollection.Move` shall not transfer.
-  - Tests: `ItemTransferTests.AnAddBeforeItsRemovalDoesNotFlyAndExitsAndEnters`, `ItemTransferTests.ListsWithoutASharedGroupDoNotFlyAndExitAndEnter`
+  - Tests: `ItemTransferTests.AnAddBeforeItsRemovalDoesNotFlyAndExitsAndEnters`, `ItemTransferTests.ListsWithoutASharedGroupDoNotFlyAndExitAndEnter`, `ItemTransferTests.AGroupedListWithoutItemLayoutDoesNotFlyAndExitsAndEnters`, `ItemTransferTests.ListsUnderDifferentTopLevelsDoNotFlyAndExitAndEnter`, `ItemTransferTests.AMoveInAGroupedListIsNoTransferAndPlaysNothing`
 - **BRIDGE-DECLLAYOUT-032** — When the arriving container is not effectively visible after its first layout pass, there shall be no transfer: the leaving row exits and the arriving row arrives as without a group.
   - Tests: `ItemTransferTests.ACollapsedDestinationDeclinesTheTransfer`
 - **BRIDGE-DECLLAYOUT-033** — Removing and re-adding an item in the same grouped list within one layout pass shall be a transfer.
@@ -137,7 +137,7 @@ depends:
 ## Edge cases
 
 - An item moved by `ObservableCollection.Move` that the list rebuilds a container for records in its new container and does not ease.
-- A host with `Animate.ContentSize` eases only its position here, and controls beside a resizing host land in one frame (BRIDGE-CONTENTSIZE).
+- A host with `Animate.ContentSize` eases only its position here, and controls beside a resizing host land in one frame (BRIDGE-CONTENTSIZE), except a transfer's flight, which plays (BRIDGE-CONTENTSIZE-016).
 - Layout and a `Presence` entrance on the same element compete for `Translation`/`Scale`; the later owner wins and the other freezes. The documented pattern is layout on the container, `Presence` on the content.
 
 ## Threading and lifetime
@@ -189,4 +189,4 @@ depends:
 
 ## Open items
 
-- Untested: in 031, a list without `ItemLayout`, different top levels and an `ObservableCollection.Move`.
+None.

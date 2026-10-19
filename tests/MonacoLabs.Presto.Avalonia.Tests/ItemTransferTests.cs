@@ -83,6 +83,20 @@ public sealed class ItemTransferTests : CompositorTestBase
     public void ListsWithoutASharedGroupDoNotFlyAndExitAndEnter(string? openGroup, string? doneGroup, bool reduced) =>
         AssertNoTransfer(openGroup, doneGroup, reduced, addFirst: false);
 
+    [AvaloniaTheory]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    public void AGroupedListWithoutItemLayoutDoesNotFlyAndExitsAndEnters(bool openLayout, bool doneLayout, bool reduced) =>
+        AssertNoTransfer("tasks", "tasks", reduced, addFirst: false, openLayout, doneLayout);
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ListsUnderDifferentTopLevelsDoNotFlyAndExitAndEnter(bool reduced) =>
+        AssertNoTransfer("tasks", "tasks", reduced, addFirst: false, twoWindows: true);
+
     [AvaloniaFact]
     public void ACollapsedDestinationDeclinesTheTransfer()
     {
@@ -153,10 +167,27 @@ public sealed class ItemTransferTests : CompositorTestBase
         Assert.Equal((0, 0), (_entered, _exited));
     }
 
-    private void AssertNoTransfer(string? openGroup, string? doneGroup, bool reduced, bool addFirst)
+    [AvaloniaFact]
+    public void AFlightBesideAResizingContentSizeHostStillFlies()
+    {
+        var (open, done, openItems, doneItems) = Lists("tasks", "tasks");
+        Animate.SetContentSize((Control)open.Parent!, HeldMove);
+        Tick();
+
+        openItems.Remove("red");
+        doneItems.Add("red");
+        Tick();
+        Frames.Advance(200, 16);
+        Tick();
+
+        Assert.NotEqual(SlotOf(Row(done, Brushes.Red)), Box(open));
+    }
+
+    private void AssertNoTransfer(
+        string? openGroup, string? doneGroup, bool reduced, bool addFirst, bool openLayout = true, bool doneLayout = true, bool twoWindows = false)
     {
         Presto.Defaults.ReducedMotion = reduced;
-        var (open, done, openItems, doneItems) = Lists(openGroup, doneGroup, decorate: Lifecycle);
+        var (open, done, openItems, doneItems) = Lists(openGroup, doneGroup, null, Lifecycle, openLayout, doneLayout, twoWindows);
 
         if (addFirst) doneItems.Add("red");
         openItems.Remove("red");
@@ -167,7 +198,7 @@ public sealed class ItemTransferTests : CompositorTestBase
         Frames.Advance(200, 16);
         Tick();
 
-        Assert.Equal(SlotOf(Row(done, Brushes.Red)), Box(open));
+        Assert.Equal(SlotOf(Row(done, Brushes.Red)), Box(done));
         Assert.Equal((1, 1), (_entered, _exited));
     }
 
@@ -183,20 +214,29 @@ public sealed class ItemTransferTests : CompositorTestBase
 
     /// <summary>Shows an open list of "a", "red", "c" above a done list of "d", "e", each in its own border, with the given groups.</summary>
     private static (ItemsControl Open, ItemsControl Done, ObservableCollection<string> OpenItems, ObservableCollection<string> DoneItems) Lists(
-        string? openGroup, string? doneGroup, AnimationBuilder? layout = null, Action<Border>? decorate = null)
+        string? openGroup, string? doneGroup, AnimationBuilder? layout = null, Action<Border>? decorate = null,
+        bool openLayout = true, bool doneLayout = true, bool twoWindows = false)
     {
         ObservableCollection<string> openItems = ["a", "red", "c"];
         ObservableCollection<string> doneItems = ["d", "e"];
-        var open = List(openItems, openGroup, layout, decorate);
-        var done = List(doneItems, doneGroup, layout, decorate);
-        ShowInWindow(new StackPanel { Children = { new Border { Child = open }, new Border { Child = done } } });
+        var open = List(openItems, openGroup, openLayout ? layout ?? HeldMove : null, decorate);
+        var done = List(doneItems, doneGroup, doneLayout ? layout ?? HeldMove : null, decorate);
+        if (twoWindows)
+        {
+            ShowInWindow(new Border { Child = open });
+            ShowInWindow(new Border { Child = done });
+        }
+        else
+        {
+            ShowInWindow(new StackPanel { Children = { new Border { Child = open }, new Border { Child = done } } });
+        }
         return (open, done, openItems, doneItems);
     }
 
     private static ItemsControl List(ObservableCollection<string> items, string? group, AnimationBuilder? layout, Action<Border>? decorate)
     {
         var list = new ItemsControl { ItemsSource = items, ItemTemplate = Rows(decorate: decorate), VerticalAlignment = VerticalAlignment.Top, ClipToBounds = false };
-        Animate.SetItemLayout(list, layout ?? HeldMove);
+        Animate.SetItemLayout(list, layout);
         Animate.SetItemGroup(list, group);
         return list;
     }

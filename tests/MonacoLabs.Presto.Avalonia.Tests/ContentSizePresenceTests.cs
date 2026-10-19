@@ -224,6 +224,31 @@ public sealed class ContentSizePresenceTests : CompositorTestBase
         Assert.Equal(Large, Top(list));
     }
 
+    [AvaloniaFact]
+    public void ASharedElementFlightBesideAResizingHostStillFlies()
+    {
+        var inner = new Border { Height = Small };
+        var host = new Border { Child = inner, VerticalAlignment = VerticalAlignment.Top };
+        Animate.SetContentSize(host, Linear);
+        var bar = new Border { Height = 10, Width = 40, HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Red };
+        var left = new StackPanel { Width = 100, Children = { bar } };
+        var right = new StackPanel { Width = 100 };
+        ShowWhite(new StackPanel { Children = { host, new StackPanel { Orientation = Orientation.Horizontal, Children = { left, right } } } });
+        Tick();
+
+        inner.Height = Large;
+        Tick();
+        var transition = PrestoAvalonia.AnimateSharedElement(bar, bar, HeldMove);
+        left.Children.Remove(bar);
+        right.Children.Add(bar);
+        Tick();
+        Frames.Advance(200, 16);
+        Tick();
+
+        Assert.False(transition.Completed);
+        Assert.NotEqual(SlotOf(bar), Box(bar));
+    }
+
     private static Border Bar(double height)
     {
         var bar = new Border { Height = height, Width = 100, HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Red };

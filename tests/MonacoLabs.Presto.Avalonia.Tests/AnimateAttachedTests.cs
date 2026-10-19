@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -841,6 +842,33 @@ public sealed class AnimateAttachedTests : BridgeTestBase
 
         panel.Children.Add(border);
         Assert.Equal(1, source.Count);
+    }
+
+    [AvaloniaFact]
+    public void ACollectedViewIsNotKeptAliveByItsCue()
+    {
+        var cue = new Cue();
+        var view = AttachToCueAndDetach(ShowPanel(), cue);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(view.IsAlive);
+        GC.KeepAlive(cue);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference AttachToCueAndDetach(StackPanel panel, Cue cue)
+    {
+        var border = AddBorder(panel);
+        Animate.SetCue(border, cue);
+        Animate.SetOnCue(border, SlideX(100));
+        panel.Children.Remove(border);
+        // The compositor holds a removed visual until a render releases it.
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        return new WeakReference(border);
     }
 
     [AvaloniaFact]

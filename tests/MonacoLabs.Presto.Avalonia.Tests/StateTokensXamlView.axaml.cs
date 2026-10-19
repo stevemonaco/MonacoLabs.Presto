@@ -48,5 +48,7 @@ public sealed class TokensViewModel : INotifyPropertyChanged
 
     public string? Label => null;
 
+    public bool Focus => true;
+
     public TokensViewModel Inner => this;
 }

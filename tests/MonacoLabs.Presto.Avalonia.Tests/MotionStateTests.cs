@@ -419,6 +419,28 @@ public sealed class MotionStateTests : BridgeTestBase
         Assert.NotEqual(x, Get(box, "X"), 3);
     }
 
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AHeldLoopWhoseReducedFormIsEmptyLoopsOnceTheFlagClears(bool enteredReduced)
+    {
+        var box = Box();
+        if (enteredReduced) Presto.Defaults.ReducedMotion = true;
+        Show(box);
+        Motion.SetStates(box, States(".busy", Linear().Loop().Alternate().X(20).WhenReduced(reduced => reduced.Loop(false).Alternate(false))));
+        box.Classes.Add("busy");
+        Frames.Advance(50, 10);
+
+        Presto.Defaults.ReducedMotion = true;
+        Frames.Advance(200, 10);
+        Assert.Equal(0, Get(box, "X"), 6);
+
+        Presto.Defaults.ReducedMotion = false;
+        Frames.Advance(50, 10);
+
+        Assert.InRange(Get(box, "X"), 1, 19);
+    }
+
     [AvaloniaFact]
     public void AHeldFiniteStateKeepsItsValuesUntilLeft()
     {

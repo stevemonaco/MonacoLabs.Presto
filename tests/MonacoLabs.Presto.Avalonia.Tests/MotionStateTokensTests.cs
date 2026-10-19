@@ -67,6 +67,17 @@ public sealed class MotionStateTokensTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AFlagAndAnEnumValueWithTheSameNameGiveOneToken()
+    {
+        var border = new Border { DataContext = new TokensViewModel() };
+        var extension = new StateTokensExtension(new Binding("Mode"), new Binding("Focus"));
+
+        border.Bind(Motion.StateProperty, (BindingBase)extension.ProvideValue(new ProvidedTarget(border, Motion.StateProperty)));
+
+        Assert.Equal("Focus", Motion.GetState(border));
+    }
+
+    [AvaloniaFact]
     public void SettingItOnAnotherPropertyThrowsNamingMotionState()
     {
         var border = new Border();

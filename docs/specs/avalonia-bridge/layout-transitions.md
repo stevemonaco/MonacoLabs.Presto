@@ -185,7 +185,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - Passing the same control as `source` and `target` flies it from where it is drawn now into its next slot (a reparent).
 - After `Presto.Remove`, the transition stays armed and keeps the frozen offset in its mirror, so the next move starts from where the control is drawn.
 - A control whose new size is zero in either axis never scales; it only moves.
-- A ContentSize host never scales, whatever the mode (see BRIDGE-CONTENTSIZE), and moves beside a resizing host land in one frame.
+- A ContentSize host never scales, whatever the mode (see BRIDGE-CONTENTSIZE), and moves beside a resizing host land in one frame, except a flight from an on-screen source (BRIDGE-CONTENTSIZE-016).
 
 ## Threading and lifetime
 
