@@ -34,7 +34,7 @@
     </showcase:ShowcasePage.Styles>
 
     <StackPanel Spacing="12">
-        <TextBlock Classes="title" Text="What happens when an animation is interrupted mid-flight." />
+        <TextBlock Classes="title" TextWrapping="Wrap" Text="What happens when an animation is interrupted mid-flight." />
 
         <TextBlock Classes="eyebrow showcase" Text="RETARGET · THREE WAYS TO CHANGE YOUR MIND" />
         <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">

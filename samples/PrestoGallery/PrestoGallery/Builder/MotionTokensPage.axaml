@@ -39,7 +39,7 @@
         </WrapPanel>
 
         <Border Classes="stage">
-            <Grid ColumnDefinitions="*,220" ColumnSpacing="20">
+            <showcase:SplitPanel Widths="*,220" Spacing="20" Breakpoint="560">
                 <StackPanel x:Name="Rows" Spacing="8">
                     <Border Classes="row"><TextBlock Text="Quarterly report is ready" /></Border>
                     <Border Classes="row"><TextBlock Text="Ada commented on your draft" /></Border>
@@ -52,14 +52,14 @@
                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
                     <PathIcon Data="{StaticResource StarIcon}" />
                 </Button>
-                <Border x:Name="Panel" Grid.Column="1" Classes="specimen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <Border x:Name="Panel" Classes="specimen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <StackPanel Spacing="8">
                         <TextBlock Text="Details" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
                         <TextBlock Text="Every motion on this stage is a library recipe reading Recipes.Tokens. Pick a preset and the same three recipes replay with its durations, eases and distances; turn on Reduced motion in the sidebar and each plays its reduced form instead."
                                    TextWrapping="Wrap" Foreground="{x:Static showcase:Palette.InkDim}" />
                     </StackPanel>
                 </Border>
-            </Grid>
+            </showcase:SplitPanel>
         </Border>
 
         <TextBlock Classes="caption" Text="Color states: hover, press or mute the card; its shades derive from one accent and blend in the tokens' color space" />

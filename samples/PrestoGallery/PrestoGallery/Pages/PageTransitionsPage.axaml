@@ -9,9 +9,9 @@
     <StackPanel Spacing="12">
         <TextBlock Classes="caption" Text="A TransitioningContentControl under the picked transition; Back sets IsTransitionReversed" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+            <showcase:SplitPanel Widths="*,Auto" Spacing="24" Breakpoint="560">
                 <TransitioningContentControl x:Name="Host" Height="200" ClipToBounds="True" />
-                <StackPanel Grid.Column="1" Spacing="8" Width="200">
+                <StackPanel Spacing="8" Width="200">
                     <ComboBox x:Name="RecipePicker" HorizontalAlignment="Stretch" SelectionChanged="RecipeChanged">
                         <ComboBoxItem Content="PageFade" />
                         <ComboBoxItem Content="PageFadeThrough" />
@@ -32,7 +32,7 @@
                     </Button>
                     <ProgressBar IsIndeterminate="True" />
                 </StackPanel>
-            </Grid>
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodeTabs x:Name="HostCode" />
 

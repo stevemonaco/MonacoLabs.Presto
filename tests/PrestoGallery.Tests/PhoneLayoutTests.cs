@@ -4,6 +4,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 using PrestoGallery.ViewModels;
@@ -39,6 +40,34 @@ public sealed class PhoneLayoutTests
         var first = page.GetVisualChildren().Select(child => Overflowing(child, scroller)).FirstOrDefault(found => found != null);
         Assert.True(first == null, $"{title}: {Describe(first)} runs {Over(first, scroller):0} DIP past the right edge, in {Ancestry(first)}");
     }, width: 360, height: 740);
+
+    [AvaloniaTheory]
+    [MemberData(nameof(Titles))]
+    public void NoTextIsCutOffAndNoColumnIsSqueezedOnAPhone(string title) => With((window, gallery, _) =>
+    {
+        TestFrames.Install();
+        Open(window, gallery, title);
+        TestFrames.Tick(150);
+        var page = (Visual)Named<TransitioningContentControl>(window, "PageHost").Content!;
+        var problem = page.GetVisualChildren().Select(Cramped).FirstOrDefault(found => found != null);
+        Assert.True(problem == null, $"{title}: {problem}");
+    }, width: 360, height: 740);
+
+    // A one-line text wider than its box, or a star column a fixed column has left under 60 DIP.
+    private static string? Cramped(Visual visual)
+    {
+        if (!visual.IsVisible || visual is Viewbox || visual.GetType().Name is "Marquee" or "Pager"
+            || visual is StyledElement { Classes: var classes } && classes.Contains("bleed")
+            || visual is ScrollContentPresenter { TemplatedParent: ScrollViewer { HorizontalScrollBarVisibility: not ScrollBarVisibility.Disabled } })
+            return null;
+        if (visual is TextBlock { TextWrapping: TextWrapping.NoWrap, TextTrimming: var trimming } text && trimming == TextTrimming.None
+            && text.TextLayout.WidthIncludingTrailingWhitespace > text.Bounds.Width - text.Padding.Left - text.Padding.Right + 1)
+            return $"\"{text.Text}\" is cut off at {text.Bounds.Width:0} DIP, in {Ancestry(text)}";
+        if (visual is Grid grid && grid.ColumnDefinitions.Any(column => column.Width.IsAbsolute && column.Width.Value >= 150)
+            && grid.ColumnDefinitions.FirstOrDefault(column => column.Width.IsStar && column.ActualWidth < 60) is { } squeezed)
+            return $"a star column of {Describe(grid)} is squeezed to {squeezed.ActualWidth:0} DIP, in {Ancestry(grid)}";
+        return visual.GetVisualChildren().Select(Cramped).FirstOrDefault(found => found != null);
+    }
 
     // The outermost visual laid out past the edge, clipped or not: a stage that clips its content still hides it. Render
     // transforms are left out, so a mid-flight animation does not count, and so are scaling boxes, horizontal scrollers, marquee

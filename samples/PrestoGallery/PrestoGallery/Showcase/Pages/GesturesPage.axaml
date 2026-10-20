@@ -51,94 +51,112 @@
         <Style Selector="Button.delete /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{x:Static showcase:Palette.Coral}" />
         </Style>
+        <Style Selector="UniformGrid#Tiles">
+            <Setter Property="Columns" Value="4" />
+        </Style>
+        <Style Selector="UniformGrid#Tiles > Border">
+            <Setter Property="Height" Value="420" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:639">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="2" />
+            </Style>
+        </ContainerQuery>
+        <ContainerQuery Name="page" Query="max-width:399">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="1" />
+            </Style>
+        </ContainerQuery>
     </showcase:ShowcasePage.Styles>
 
-    <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="420,320,220,Auto" ColumnSpacing="12" RowSpacing="12">
-        <Border Grid.Column="0" Classes="panel showcase">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="PullVelocity" Classes="mono" Text="0.00" />
-                    <TextBlock Classes="eyebrow showcase" Text="PULL TO REFRESH" />
+    <StackPanel Container.Name="page" Container.Sizing="Width" Spacing="12">
+        <UniformGrid x:Name="Tiles" ColumnSpacing="12" RowSpacing="12">
+            <Border Classes="panel showcase">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" x:Name="PullVelocity" Classes="mono" Text="0.00" />
+                        <TextBlock Classes="eyebrow showcase" Text="PULL TO REFRESH" />
+                    </DockPanel>
+                    <Border Background="{x:Static showcase:Palette.Surface}">
+                        <!-- snippet: GesturesPull -->
+                        <presto:PullToRefresh x:Name="Puller" Foreground="{x:Static showcase:Palette.AccentBright}">
+                            <StackPanel x:Name="Feed" Spacing="4" Background="{x:Static showcase:Palette.Surface}" />
+                        </presto:PullToRefresh>
+                        <!-- /snippet -->
+                    </Border>
                 </DockPanel>
-                <Border Background="{x:Static showcase:Palette.Surface}">
-                    <!-- snippet: GesturesPull -->
-                    <presto:PullToRefresh x:Name="Puller" Foreground="{x:Static showcase:Palette.AccentBright}">
-                        <StackPanel x:Name="Feed" Spacing="4" Background="{x:Static showcase:Palette.Surface}" />
-                    </presto:PullToRefresh>
-                    <!-- /snippet -->
-                </Border>
-            </DockPanel>
-        </Border>
+            </Border>
 
-        <Border Grid.Column="1" Classes="panel showcase">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" Classes="eyebrow showcase" Text="SWIPE TO DISMISS" />
-                <Button DockPanel.Dock="Bottom" x:Name="UndoButton" Classes="specimen" Content="Undo"
-                        IsEnabled="False" Click="UndoClicked" />
-                <ItemsControl x:Name="Inbox" ClipToBounds="True" />
-            </DockPanel>
-        </Border>
-
-        <Border Grid.Column="2" Classes="panel showcase">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="CurtainVelocity" Classes="mono" Text="0.00" />
-                    <TextBlock Classes="eyebrow showcase" Text="CURTAIN" />
+            <Border Classes="panel showcase">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" Classes="eyebrow showcase" Text="SWIPE TO DISMISS" />
+                    <Button DockPanel.Dock="Bottom" x:Name="UndoButton" Classes="specimen" Content="Undo"
+                            IsEnabled="False" Click="UndoClicked" />
+                    <ItemsControl x:Name="Inbox" ClipToBounds="True" />
                 </DockPanel>
-                <Panel x:Name="CurtainStage" ClipToBounds="True">
-                    <StackPanel x:Name="Home" Spacing="4" Margin="0,36,0,0">
-                        <TextBlock Text="09:41" FontSize="40" FontWeight="Light" HorizontalAlignment="Center"
-                                   Foreground="{x:Static showcase:Palette.Ink}" />
-                    </StackPanel>
-                    <!-- snippet: GesturesCurtainSheet -->
-                    <presto:Sheet x:Name="Curtain" Edge="Top" Detents="28,0.5,1" Scrim="#990B0E14">
-                        <Border Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="0,0,10,10"
-                                Margin="0,-40,0,0">
-                            <DockPanel>
-                                <Border x:Name="Handle" DockPanel.Dock="Bottom" Height="28" Background="Transparent"
-                                        Cursor="Hand">
-                                    <Border Width="36" Height="4" CornerRadius="2"
-                                            Background="{x:Static showcase:Palette.AccentBright}" />
-                                </Border>
-                                <StackPanel x:Name="Notifications" Spacing="4" Margin="8,0" VerticalAlignment="Bottom">
-                                    <TextBlock Classes="eyebrow showcase" Text="NOTIFICATIONS" />
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-                    </presto:Sheet>
-                    <!-- /snippet -->
-                </Panel>
-            </DockPanel>
-        </Border>
+            </Border>
 
-        <Border Grid.Column="3" Classes="panel showcase">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <TextBlock DockPanel.Dock="Right" x:Name="SheetVelocity" Classes="mono" Text="0.00" />
-                    <TextBlock Classes="eyebrow showcase" Text="BOTTOM SHEET" />
+            <Border Classes="panel showcase">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" x:Name="CurtainVelocity" Classes="mono" Text="0.00" />
+                        <TextBlock Classes="eyebrow showcase" Text="CURTAIN" />
+                    </DockPanel>
+                    <Panel x:Name="CurtainStage" ClipToBounds="True">
+                        <StackPanel x:Name="Home" Spacing="4" Margin="0,36,0,0">
+                            <TextBlock Text="09:41" FontSize="40" FontWeight="Light" HorizontalAlignment="Center"
+                                       Foreground="{x:Static showcase:Palette.Ink}" />
+                        </StackPanel>
+                        <!-- snippet: GesturesCurtainSheet -->
+                        <presto:Sheet x:Name="Curtain" Edge="Top" Detents="28,0.5,1" Scrim="#990B0E14">
+                            <Border Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="0,0,10,10"
+                                    Margin="0,-40,0,0">
+                                <DockPanel>
+                                    <Border x:Name="Handle" DockPanel.Dock="Bottom" Height="28" Background="Transparent"
+                                            Cursor="Hand">
+                                        <Border Width="36" Height="4" CornerRadius="2"
+                                                Background="{x:Static showcase:Palette.AccentBright}" />
+                                    </Border>
+                                    <StackPanel x:Name="Notifications" Spacing="4" Margin="8,0" VerticalAlignment="Bottom">
+                                        <TextBlock Classes="eyebrow showcase" Text="NOTIFICATIONS" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </presto:Sheet>
+                        <!-- /snippet -->
+                    </Panel>
                 </DockPanel>
-                <Panel ClipToBounds="True">
-                    <TextBlock Text="Flick it" FontSize="28" FontWeight="Light" Margin="0,36,0,0"
-                               HorizontalAlignment="Center" Foreground="{x:Static showcase:Palette.InkDim}" />
-                    <presto:Sheet x:Name="QueueSheet" Detents="52,1">
-                        <Border Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="10,10,0,0"
-                                Margin="0,24,0,0">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Height="28" Background="Transparent" Cursor="Hand">
-                                    <Border Width="36" Height="4" CornerRadius="2"
-                                            Background="{x:Static showcase:Palette.AccentBright}" />
-                                </Border>
-                                <StackPanel x:Name="Queue" Spacing="4" Margin="8,0">
-                                    <TextBlock Classes="eyebrow showcase" Text="UP NEXT" />
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-                    </presto:Sheet>
-                </Panel>
-            </DockPanel>
-        </Border>
+            </Border>
 
-        <Border Grid.Row="1" Grid.ColumnSpan="4" Classes="panel showcase">
+            <Border Classes="panel showcase">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" x:Name="SheetVelocity" Classes="mono" Text="0.00" />
+                        <TextBlock Classes="eyebrow showcase" Text="BOTTOM SHEET" />
+                    </DockPanel>
+                    <Panel ClipToBounds="True">
+                        <TextBlock Text="Flick it" FontSize="28" FontWeight="Light" Margin="0,36,0,0"
+                                   HorizontalAlignment="Center" Foreground="{x:Static showcase:Palette.InkDim}" />
+                        <presto:Sheet x:Name="QueueSheet" Detents="52,1">
+                            <Border Background="{x:Static showcase:Palette.AccentDeep}" CornerRadius="10,10,0,0"
+                                    Margin="0,24,0,0">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Top" Height="28" Background="Transparent" Cursor="Hand">
+                                        <Border Width="36" Height="4" CornerRadius="2"
+                                                Background="{x:Static showcase:Palette.AccentBright}" />
+                                    </Border>
+                                    <StackPanel x:Name="Queue" Spacing="4" Margin="8,0">
+                                        <TextBlock Classes="eyebrow showcase" Text="UP NEXT" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </presto:Sheet>
+                    </Panel>
+                </DockPanel>
+            </Border>
+        </UniformGrid>
+
+        <Border Height="320" Classes="panel showcase">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                     <TextBlock DockPanel.Dock="Right" x:Name="CardProgress" Classes="mono" Text="0.00" />
@@ -160,22 +178,22 @@
             </DockPanel>
         </Border>
 
-        <Border Grid.Row="2" Grid.ColumnSpan="4" Classes="panel showcase">
+        <Border MinHeight="220" Classes="panel showcase">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" Classes="eyebrow showcase" Text="TRAILS" />
-                <Grid ColumnDefinitions="*,280" ColumnSpacing="12">
+                <showcase:SplitPanel Widths="*,280" Spacing="12" Breakpoint="560">
                     <Canvas x:Name="TrailStage" ClipToBounds="True" Background="{x:Static showcase:Palette.Surface}" />
-                    <Grid Grid.Column="1" x:Name="ResistStage" RowDefinitions="*,*" Background="{x:Static showcase:Palette.Surface}">
+                    <Grid x:Name="ResistStage" RowDefinitions="*,*" Background="{x:Static showcase:Palette.Surface}">
                         <Border x:Name="Knob" Width="24" Height="24" CornerRadius="12" BorderThickness="2" Cursor="Hand"
                                 BorderBrush="{x:Static showcase:Palette.AccentBright}" Background="Transparent" />
                         <Border Grid.Row="1" Width="184" Height="4" CornerRadius="2" Background="{x:Static showcase:Palette.SurfaceHigh}" />
                         <Border Grid.Row="1" x:Name="Indicator" Width="24" Height="24" CornerRadius="12"
                                 Background="{x:Static showcase:Palette.AccentBright}" />
                     </Grid>
-                </Grid>
+                </showcase:SplitPanel>
             </DockPanel>
         </Border>
 
-        <showcase:CodePanel Grid.Row="3" Grid.ColumnSpan="4" x:Name="HowCode" Header="How it's built" IsExpanded="False" />
-    </Grid>
+        <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+    </StackPanel>
 </showcase:ShowcasePage>

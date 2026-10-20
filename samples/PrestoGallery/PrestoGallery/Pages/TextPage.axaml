@@ -36,7 +36,7 @@
         <showcase:CodePanel x:Name="ScrambleCode" Code="{x:Static showcase:Snippets.TextScramble}" />
 
         <Border Classes="stage" MinHeight="0">
-            <TextBlock x:Name="Transmission" FontSize="26" FontFamily="Consolas, Menlo, Courier New"
+            <TextBlock x:Name="Transmission" FontSize="26" FontFamily="Consolas, Menlo, Courier New" TextWrapping="Wrap"
                        Text="Decoding the transmission" />
         </Border>
 

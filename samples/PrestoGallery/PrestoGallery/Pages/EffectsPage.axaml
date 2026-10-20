@@ -89,11 +89,11 @@
 
         <TextBlock Classes="caption" Text="A drop shadow driven live by the five Shadow shorthands" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,280" ColumnSpacing="24">
+            <showcase:SplitPanel Widths="*,280" Spacing="24" Breakpoint="600">
                 <Border x:Name="ShadowCard" Classes="card" Margin="0,24">
                     <TextBlock Text="DropShadowEffect" />
                 </Border>
-                <StackPanel Grid.Column="1" Spacing="2">
+                <StackPanel Spacing="2">
                     <TextBlock Classes="caption" Text="{Binding #ShadowXSlider.Value, StringFormat='ShadowX {0:0}'}" />
                     <Slider x:Name="ShadowXSlider" Minimum="-40" Maximum="40" Value="8" ValueChanged="ShadowChanged" />
                     <TextBlock Classes="caption" Text="{Binding #ShadowYSlider.Value, StringFormat='ShadowY {0:0}'}" />
@@ -105,7 +105,7 @@
                     <TextBlock Classes="caption" Text="{Binding #ShadowOpacitySlider.Value, StringFormat='ShadowOpacity {0:0.00}'}" />
                     <Slider x:Name="ShadowOpacitySlider" Minimum="0" Maximum="1" Value="0.8" ValueChanged="ShadowChanged" />
                 </StackPanel>
-            </Grid>
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodePanel x:Name="ShadowCode" />
 

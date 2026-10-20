@@ -5,7 +5,18 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
                        x:Class="PrestoGallery.Showcase.Pages.GlyphLabPage">
-    <StackPanel Spacing="12">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="TextBlock#ShatterWord">
+            <Setter Property="FontSize" Value="110" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:479">
+            <Style Selector="TextBlock#ShatterWord">
+                <Setter Property="FontSize" Value="56" />
+            </Style>
+        </ContainerQuery>
+    </showcase:ShowcasePage.Styles>
+
+    <StackPanel Container.Name="page" Container.Sizing="Width" Spacing="12">
         <Border Classes="stage">
             <StackPanel Spacing="12">
                 <WrapPanel ItemSpacing="12" LineSpacing="8">
@@ -65,7 +76,7 @@
                 </Grid>
                 <Border Background="Transparent" Cursor="Hand" Height="160" Tapped="Shatter">
                     <TextBlock x:Name="ShatterWord" Text="SHARDS" FontFamily="{StaticResource SerifDisplayFont}"
-                               FontSize="110" FontWeight="Bold" Foreground="{x:Static showcase:Palette.Amber}"
+                               FontWeight="Bold" Foreground="{x:Static showcase:Palette.Amber}"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
             </StackPanel>

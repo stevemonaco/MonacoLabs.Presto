@@ -36,9 +36,9 @@
         <TextBlock Classes="caption" TextWrapping="Wrap"
                    Text="Play(loop: true) at the speed and in the direction picked; the scrub slider is bound two-way to Progress and pauses playback while dragged, and the filters are inherited from PrestoImageBase" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,280" ColumnSpacing="24">
+            <showcase:SplitPanel Widths="*,280" Spacing="24" Breakpoint="600">
                 <presto:LottieView x:Name="Player" Composition="avares://PrestoGallery/Assets/Lottie/spinner.json" Height="240" />
-                <StackPanel Grid.Column="1" Spacing="2">
+                <StackPanel Spacing="2">
                     <!-- snippet: LottieScrub -->
                     <TextBlock Classes="caption" Text="{Binding #Player.Frame, StringFormat='Frame {0:0.00} of 60'}" />
                     <Slider x:Name="Scrub" Minimum="0" Maximum="1" Value="{Binding #Player.Progress, Mode=TwoWay}" />
@@ -54,7 +54,7 @@
                     <Slider Minimum="0" Maximum="1" Value="{Binding #Player.Grayscale, Mode=TwoWay}" />
                     <!-- /snippet -->
                 </StackPanel>
-            </Grid>
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodeTabs x:Name="PlayerCode" SelectedLanguage="CSharp" Xaml="{x:Static showcase:Snippets.LottieScrub}" />
         <showcase:CodeTabs x:Name="FilterCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.LottieFilters}" />

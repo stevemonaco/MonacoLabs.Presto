@@ -167,6 +167,7 @@
     <Style Selector="TextBlock.caption">
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Foreground" Value="{x:Static showcase:Palette.InkDim}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
     <Style Selector="TextBlock.mono">
@@ -400,6 +401,7 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="LetterSpacing" Value="1.4" />
         <Setter Property="Foreground" Value="{x:Static showcase:Palette.Accent}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
     <Style Selector="TreeView.nav.showcase">

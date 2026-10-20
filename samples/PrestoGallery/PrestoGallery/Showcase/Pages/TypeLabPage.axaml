@@ -38,7 +38,7 @@
         </Style>
         <ContainerQuery Name="page" Query="max-width:479">
             <Style Selector="TextBlock#ShatterWord">
-                <Setter Property="FontSize" Value="56" />
+                <Setter Property="FontSize" Value="44" />
             </Style>
             <Style Selector="TextBlock#ElasticWord">
                 <Setter Property="FontSize" Value="60" />

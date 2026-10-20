@@ -31,14 +31,27 @@
             <Setter Property="FontSize" Value="36" />
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
         </Style>
+        <Style Selector="UniformGrid#Tiles">
+            <Setter Property="Columns" Value="4" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:599">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="2" />
+            </Style>
+        </ContainerQuery>
+        <ContainerQuery Name="page" Query="max-width:479">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="1" />
+            </Style>
+        </ContainerQuery>
     </showcase:ShowcasePage.Styles>
 
-    <StackPanel Spacing="16">
+    <StackPanel Container.Name="page" Container.Sizing="Width" Spacing="16">
         <Button Content="New data" Click="Refresh" HorizontalAlignment="Left" />
 
         <TextBlock Classes="caption" Text="A Text tween per tile, formatted by its textModifier and counted on from the value it shows" />
         <Border Classes="stage" MinHeight="0">
-            <UniformGrid x:Name="Tiles" Columns="4" />
+            <UniformGrid x:Name="Tiles" />
         </Border>
         <showcase:CodePanel x:Name="CountersCode" />
 

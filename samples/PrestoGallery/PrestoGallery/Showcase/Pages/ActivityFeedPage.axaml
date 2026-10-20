@@ -54,6 +54,7 @@
         <Style Selector="Border.event TextBlock.title">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.Ink}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <Style Selector="Border.unread">
             <Setter Property="Width" Value="8" />

@@ -60,7 +60,7 @@ internal sealed class ImageEffectDrawOperation : ICustomDrawOperation
         SKImageFilter? filter = null;
         if (!effect.Matrix.IsIdentity)
         {
-            using var matrix = SKColorFilter.CreateColorMatrix(effect.Matrix);
+            using var matrix = SKColorFilter.CreateColorMatrix(effect.Matrix.AsSpan());
             filter = SKImageFilter.CreateColorFilter(matrix);
         }
         if (effect.Ripple != 0) filter = Then(filter, Ripple(effect, filter, bounds));

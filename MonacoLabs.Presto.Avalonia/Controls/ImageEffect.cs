@@ -24,7 +24,7 @@ internal readonly struct ImageEffect(in ColorMatrix matrix, double ripple, doubl
     public bool IsIdentity => Matrix.IsIdentity && Ripple == 0 && Pixelate <= 1 && Dissolve <= 0 && Wipe >= 1;
 
     public bool Equals(in ImageEffect other) =>
-        ((ReadOnlySpan<float>)Matrix).SequenceEqual(other.Matrix) && Ripple == other.Ripple && RippleScale == other.RippleScale
+        Matrix.AsSpan().SequenceEqual(other.Matrix.AsSpan()) && Ripple == other.Ripple && RippleScale == other.RippleScale
         && Pixelate == other.Pixelate && Dissolve == other.Dissolve && DissolveScale == other.DissolveScale
         && DissolveSoftness == other.DissolveSoftness && Seed == other.Seed
         && Wipe == other.Wipe && WipeAngle == other.WipeAngle && WipeFeather == other.WipeFeather;

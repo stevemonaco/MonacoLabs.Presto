@@ -42,12 +42,12 @@
         </Border>
 
         <Border Grid.Row="2" Classes="rail showcase">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+            <WrapPanel ItemSpacing="12" LineSpacing="8">
                 <TextBlock x:Name="Caption" Text="Dust to dust" FontFamily="{StaticResource DisplayFont}" FontWeight="Black" FontSize="44"
                            Foreground="{x:Static showcase:Palette.Amber}" VerticalAlignment="Center" />
-                <Button Grid.Column="1" x:Name="DisintegrateButton" Content="Disintegrate" Click="Disintegrate" />
-                <Button Grid.Column="2" x:Name="AssembleButton" Classes="accent" Content="Assemble" Click="Assemble" />
-            </Grid>
+                <Button x:Name="DisintegrateButton" Content="Disintegrate" Click="Disintegrate" />
+                <Button x:Name="AssembleButton" Classes="accent" Content="Assemble" Click="Assemble" />
+            </WrapPanel>
         </Border>
 
         <showcase:CodePanel Grid.Row="3" x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />

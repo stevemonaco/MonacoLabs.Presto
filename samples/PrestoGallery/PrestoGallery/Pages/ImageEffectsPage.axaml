@@ -24,12 +24,12 @@
     <StackPanel Spacing="12">
         <TextBlock Classes="caption" Text="A slider per filter, bound two-way to the photo, and the XAML and builder its values amount to" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,280" ColumnSpacing="24">
+            <showcase:SplitPanel Widths="*,280" Spacing="24" Breakpoint="600">
                 <Border Classes="frame" VerticalAlignment="Top">
                     <presto:FilteredImage x:Name="Photo" Source="/Assets/Photos/mongolia.jpg" Height="420"
                                           DuotoneShadow="#1e1b4b" DuotoneHighlight="#fbbf24" />
                 </Border>
-                <StackPanel Grid.Column="1" Spacing="2">
+                <StackPanel Spacing="2">
                     <TextBlock Classes="caption" Text="{Binding #Photo.Brightness, StringFormat='Brightness {0:0.00}'}" />
                     <Slider Minimum="0" Maximum="2" Value="{Binding #Photo.Brightness, Mode=TwoWay}" />
                     <TextBlock Classes="caption" Text="{Binding #Photo.Contrast, StringFormat='Contrast {0:0.00}'}" />
@@ -52,7 +52,7 @@
                     <Slider Minimum="0" Maximum="1" Value="{Binding #Photo.Duotone, Mode=TwoWay}" />
                     <Button Content="Reset" Click="ResetClicked" Margin="0,8,0,0" />
                 </StackPanel>
-            </Grid>
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodeTabs x:Name="FilterCode" SelectedLanguage="Xaml" />
 
@@ -79,22 +79,22 @@
 
         <TextBlock Classes="caption" Text="A photo that develops in on Presence.Initial: sepia, brightness and blur settle as it fades in" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,Auto">
+            <showcase:SplitPanel Widths="*,Auto" Spacing="0" Breakpoint="560">
                 <Border Classes="frame" HorizontalAlignment="Left">
                     <!-- snippet: ImageEffectsDevelop -->
                     <presto:FilteredImage x:Name="Developed" Classes="thumb" Source="/Assets/Photos/port-blanc.jpg"
                                           presto:Presence.Initial="{x:Static local:ImageEffectsPage.Develop}" />
                     <!-- /snippet -->
                 </Border>
-                <Button Grid.Column="1" Content="Replay" Click="ReplayClicked" VerticalAlignment="Center" />
-            </Grid>
+                <Button Content="Replay" Click="ReplayClicked" VerticalAlignment="Center" />
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodeTabs x:Name="DevelopCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsDevelop}" />
 
         <TextBlock Classes="caption" TextWrapping="Wrap"
                    Text="A duotone card whose shadow and highlight colors animate whenever its theme variant changes; the switch puts the card in a light ThemeVariantScope" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,Auto">
+            <showcase:SplitPanel Widths="*,Auto" Spacing="0" Breakpoint="560">
                 <ThemeVariantScope x:Name="DuotoneScope" HorizontalAlignment="Left">
                     <Border CornerRadius="12" Padding="12" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
                         <StackPanel Spacing="8">
@@ -105,9 +105,9 @@
                         </StackPanel>
                     </Border>
                 </ThemeVariantScope>
-                <ToggleSwitch x:Name="LightToggle" Grid.Column="1" OffContent="App theme" OnContent="Light"
+                <ToggleSwitch x:Name="LightToggle" OffContent="App theme" OnContent="Light"
                               VerticalAlignment="Center" IsCheckedChanged="LightChanged" />
-            </Grid>
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodePanel x:Name="DuotoneCode" />
 
@@ -125,12 +125,12 @@
         <TextBlock Classes="caption" TextWrapping="Wrap"
                    Text="A slideshow whose SourceTransition plays on every Source change; click quickly and each swap starts from the composite on screen" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,280" ColumnSpacing="24">
+            <showcase:SplitPanel Widths="*,280" Spacing="24" Breakpoint="600">
                 <Border Classes="frame" VerticalAlignment="Top">
                     <presto:FilteredImage x:Name="Slideshow" Source="/Assets/Photos/mongolia.jpg" Height="360"
                                           SourceTransition="Dissolve 600" />
                 </Border>
-                <StackPanel Grid.Column="1" Spacing="2">
+                <StackPanel Spacing="2">
                     <ComboBox x:Name="KindBox" HorizontalAlignment="Stretch" Margin="0,0,0,8" />
                     <TextBlock Classes="caption" Text="{Binding #DurationSlider.Value, StringFormat='Duration {0:0} ms'}" />
                     <Slider x:Name="DurationSlider" Minimum="200" Maximum="2000" Value="600" SmallChange="100" TickFrequency="100" IsSnapToTickEnabled="True" />
@@ -143,22 +143,22 @@
                         <Button Content="Next" Click="NextClicked" />
                     </WrapPanel>
                 </StackPanel>
-            </Grid>
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodePanel x:Name="SlideshowCode" />
 
         <TextBlock Classes="caption" TextWrapping="Wrap"
                    Text="A card that dissolves in on Presence.Enter; an exit ghost is a snapshot, so Hide pixelates the live card, awaits Then() and only then removes it" />
         <Border Classes="stage" MinHeight="0">
-            <Grid ColumnDefinitions="*,Auto">
+            <showcase:SplitPanel Widths="*,Auto" Spacing="0" Breakpoint="560">
                 <Border x:Name="CardFrame" Classes="frame" HorizontalAlignment="Left" Width="200" Height="130">
                     <!-- snippet: ImageEffectsCard -->
                     <presto:FilteredImage x:Name="Card" Classes="thumb" Source="/Assets/Photos/margarita-sunset.jpg"
                                           presto:Presence.Enter="{x:Static local:ImageEffectsPage.DissolveIn}" />
                     <!-- /snippet -->
                 </Border>
-                <Button x:Name="CardButton" Grid.Column="1" Content="Hide" Click="CardClicked" VerticalAlignment="Center" />
-            </Grid>
+                <Button x:Name="CardButton" Content="Hide" Click="CardClicked" VerticalAlignment="Center" />
+            </showcase:SplitPanel>
         </Border>
         <showcase:CodeTabs x:Name="CardCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ImageEffectsCard}" />
     </StackPanel>

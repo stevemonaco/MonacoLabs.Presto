@@ -76,133 +76,148 @@
             <Setter Property="presto:Ripple.Color" Value="#47FFFFFF" />
         </Style>
         <!-- /snippet -->
+        <Style Selector="UniformGrid#Tiles">
+            <Setter Property="Columns" Value="3" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:719">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="2" />
+            </Style>
+        </ContainerQuery>
+        <ContainerQuery Name="page" Query="max-width:479">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="1" />
+            </Style>
+        </ContainerQuery>
     </showcase:ShowcasePage.Styles>
 
-    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
-        <StackPanel Spacing="8">
-            <TextBlock Classes="eyebrow showcase" Text="SUBMIT" />
-            <Border Classes="stage">
-                <StackPanel Spacing="40" VerticalAlignment="Center">
-                    <!-- snippet: MicroInteractionsSubmitButton -->
-                    <Button x:Name="Submit" Classes="specimen" Width="168" Height="44" Padding="0"
-                            HorizontalAlignment="Center" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Click="SubmitClicked"
-                            presto:SubmitButton.SuccessBrush="{x:Static showcase:Palette.Aqua}">
-                        <TextBlock x:Name="SubmitLabel" Text="Place order" />
+    <StackPanel Container.Name="page" Container.Sizing="Width" Spacing="16">
+        <UniformGrid x:Name="Tiles" ColumnSpacing="12" RowSpacing="16">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="SUBMIT" />
+                <Border Classes="stage">
+                    <StackPanel Spacing="40" VerticalAlignment="Center">
+                        <!-- snippet: MicroInteractionsSubmitButton -->
+                        <Button x:Name="Submit" Classes="specimen" Width="168" Height="44" Padding="0"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Click="SubmitClicked"
+                                presto:SubmitButton.SuccessBrush="{x:Static showcase:Palette.Aqua}">
+                            <TextBlock x:Name="SubmitLabel" Text="Place order" />
+                        </Button>
+                        <!-- /snippet -->
+                        <!-- snippet: MicroInteractionsSaveButton -->
+                        <Button x:Name="Save" Classes="specimen" Width="168" Height="44" Padding="0"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Click="SaveClicked">
+                            <TextBlock x:Name="SaveLabel" Text="Save" />
+                        </Button>
+                        <!-- /snippet -->
+                    </StackPanel>
+                </Border>
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="Place order's width animates in whole device-pixel steps measured from where it started, so both edges move together and the label does not shake." />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="LIKE" />
+                <Border Classes="stage">
+                    <!-- snippet: MicroInteractionsLike -->
+                    <Button x:Name="Like" Classes="specimen" Background="{x:Static showcase:Palette.SurfaceHigh}"
+                            BorderBrush="{x:Static showcase:Palette.Border}" Padding="16,10"
+                            HorizontalAlignment="Center" Click="LikeClicked"
+                            presto:Motion.Press="{x:Static local:MicroInteractionsPage.PressIn}"
+                            presto:Animate.OnTapped="{x:Static local:MicroInteractionsPage.Pop}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon x:Name="Heart" Data="{StaticResource HeartIcon}" Width="22" Height="22"
+                                      Foreground="{x:Static showcase:Palette.InkDim}" />
+                            <TextBlock x:Name="LikeCount" VerticalAlignment="Center" FontSize="16" />
+                        </StackPanel>
                     </Button>
                     <!-- /snippet -->
-                    <!-- snippet: MicroInteractionsSaveButton -->
-                    <Button x:Name="Save" Classes="specimen" Width="168" Height="44" Padding="0"
-                            HorizontalAlignment="Center" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Click="SaveClicked">
-                        <TextBlock x:Name="SaveLabel" Text="Save" />
-                    </Button>
-                    <!-- /snippet -->
-                </StackPanel>
-            </Border>
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Place order's width animates in whole device-pixel steps measured from where it started, so both edges move together and the label does not shake." />
-        </StackPanel>
+                </Border>
+            </StackPanel>
 
-        <StackPanel Grid.Column="1" Spacing="8">
-            <TextBlock Classes="eyebrow showcase" Text="LIKE" />
-            <Border Classes="stage">
-                <!-- snippet: MicroInteractionsLike -->
-                <Button x:Name="Like" Classes="specimen" Background="{x:Static showcase:Palette.SurfaceHigh}"
-                        BorderBrush="{x:Static showcase:Palette.Border}" Padding="16,10"
-                        HorizontalAlignment="Center" Click="LikeClicked"
-                        presto:Motion.Press="{x:Static local:MicroInteractionsPage.PressIn}"
-                        presto:Animate.OnTapped="{x:Static local:MicroInteractionsPage.Pop}">
-                    <WrapPanel ItemSpacing="10" LineSpacing="6">
-                        <PathIcon x:Name="Heart" Data="{StaticResource HeartIcon}" Width="22" Height="22"
-                                  Foreground="{x:Static showcase:Palette.InkDim}" />
-                        <TextBlock x:Name="LikeCount" VerticalAlignment="Center" FontSize="16" />
-                    </WrapPanel>
-                </Button>
-                <!-- /snippet -->
-            </Border>
-        </StackPanel>
+            <StackPanel Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="TAB INDICATOR" />
+                <Border Classes="stage">
+                    <StackPanel VerticalAlignment="Center">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <TabStrip x:Name="Tabs" SelectedIndex="0">
+                                <TabStrip.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </TabStrip.ItemsPanel>
+                                <TabStripItem Content="Overview" />
+                                <TabStripItem Content="Activity" />
+                                <TabStripItem Content="Settings" />
+                                <TabStripItem Content="Billing" />
+                            </TabStrip>
+                        </ScrollViewer>
+                        <Border Height="1" Background="{x:Static showcase:Palette.Border}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
-        <StackPanel Grid.Column="2" Spacing="8">
-            <TextBlock Classes="eyebrow showcase" Text="TAB INDICATOR" />
-            <Border Classes="stage">
-                <StackPanel VerticalAlignment="Center">
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                        <TabStrip x:Name="Tabs" SelectedIndex="0">
-                            <TabStrip.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </TabStrip.ItemsPanel>
-                            <TabStripItem Content="Overview" />
-                            <TabStripItem Content="Activity" />
-                            <TabStripItem Content="Settings" />
-                            <TabStripItem Content="Billing" />
-                        </TabStrip>
-                    </ScrollViewer>
-                    <Border Height="1" Background="{x:Static showcase:Palette.Border}" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
+            <StackPanel Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="ACCORDION" />
+                <Border Classes="stage">
+                    <StackPanel x:Name="Accordion" Spacing="6">
+                        <Expander Header="Shipping" HorizontalAlignment="Stretch">
+                            <TextBlock TextWrapping="Wrap" Text="Orders leave the warehouse within one working day and arrive in two to four." />
+                        </Expander>
+                        <Expander Header="Returns" HorizontalAlignment="Stretch">
+                            <TextBlock TextWrapping="Wrap" Text="Send anything back within 30 days, unworn and in its box, for a full refund." />
+                        </Expander>
+                        <Expander Header="Warranty" HorizontalAlignment="Stretch">
+                            <TextBlock TextWrapping="Wrap" Text="Two years on parts and labor, extendable to five when you register the product." />
+                        </Expander>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
-        <StackPanel Grid.Row="1" Spacing="8">
-            <TextBlock Classes="eyebrow showcase" Text="ACCORDION" />
-            <Border Classes="stage">
-                <StackPanel x:Name="Accordion" Spacing="6">
-                    <Expander Header="Shipping" HorizontalAlignment="Stretch">
-                        <TextBlock TextWrapping="Wrap" Text="Orders leave the warehouse within one working day and arrive in two to four." />
-                    </Expander>
-                    <Expander Header="Returns" HorizontalAlignment="Stretch">
-                        <TextBlock TextWrapping="Wrap" Text="Send anything back within 30 days, unworn and in its box, for a full refund." />
-                    </Expander>
-                    <Expander Header="Warranty" HorizontalAlignment="Stretch">
-                        <TextBlock TextWrapping="Wrap" Text="Two years on parts and labor, extendable to five when you register the product." />
-                    </Expander>
-                </StackPanel>
-            </Border>
-        </StackPanel>
-
-        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
-            <TextBlock Classes="eyebrow showcase" Text="TOASTS" />
-            <Border Classes="stage">
-                <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-                        <Button x:Name="Notify" Classes="specimen" Content="Notify" Margin="0,0,12,0" Click="NotifyClicked" />
-                        <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" Text="Hover to hold one, swipe it away" />
+            <StackPanel Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="TOASTS" />
+                <Border Classes="stage">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <Button x:Name="Notify" Classes="specimen" Content="Notify" Margin="0,0,12,0" Click="NotifyClicked" />
+                            <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" Text="Hover to hold one, swipe it away" />
+                        </DockPanel>
+                        <!-- snippet: MicroInteractionsToasts -->
+                        <presto:ToastHost x:Name="Toasts" presto:Animate.ItemLayout="{presto:Reflow 380, Ease=outQuint}">
+                            <presto:ToastHost.ItemTemplate>
+                                <DataTemplate x:DataType="builder:Notice">
+                                    <!-- The host's swipe moves the item container and the entrance this root, so the two never fight over X. -->
+                                    <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=320, Duration=420, Ease=outQuint}"
+                                            presto:Presence.Exit="{presto:Slide Edge=Right, Distance=320, Duration=260, Ease=inQuad}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="title" Text="{Binding Title}" />
+                                            <TextBlock Classes="caption" Text="{Binding Message}" TextWrapping="Wrap" />
+                                            <ProgressBar Maximum="1" Foreground="{Binding Accent}" presto:ToastHost.Countdown="Value" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </presto:ToastHost.ItemTemplate>
+                        </presto:ToastHost>
+                        <!-- /snippet -->
                     </DockPanel>
-                    <!-- snippet: MicroInteractionsToasts -->
-                    <presto:ToastHost x:Name="Toasts" presto:Animate.ItemLayout="{presto:Reflow 380, Ease=outQuint}">
-                        <presto:ToastHost.ItemTemplate>
-                            <DataTemplate x:DataType="builder:Notice">
-                                <!-- The host's swipe moves the item container and the entrance this root, so the two never fight over X. -->
-                                <Border Classes="toast" presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=320, Duration=420, Ease=outQuint}"
-                                        presto:Presence.Exit="{presto:Slide Edge=Right, Distance=320, Duration=260, Ease=inQuad}">
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Classes="title" Text="{Binding Title}" />
-                                        <TextBlock Classes="caption" Text="{Binding Message}" TextWrapping="Wrap" />
-                                        <ProgressBar Maximum="1" Foreground="{Binding Accent}" presto:ToastHost.Countdown="Value" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </presto:ToastHost.ItemTemplate>
-                    </presto:ToastHost>
-                    <!-- /snippet -->
-                </DockPanel>
-            </Border>
-        </StackPanel>
+                </Border>
+            </StackPanel>
 
-        <StackPanel Grid.Row="1" Grid.Column="2" Spacing="8">
-            <TextBlock Classes="eyebrow showcase" Text="VALIDATION" />
-            <Border Classes="stage">
-                <StackPanel Spacing="10" VerticalAlignment="Center">
-                    <TextBox x:Name="Email" PlaceholderText="you@example.com" TextChanged="EmailChanged" />
-                    <Button Classes="specimen" Content="Subscribe" Click="SubscribeClicked" />
-                    <TextBlock x:Name="Hint" Classes="caption" Text="Try it without an @." />
-                </StackPanel>
-            </Border>
-        </StackPanel>
+            <StackPanel Spacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="VALIDATION" />
+                <Border Classes="stage">
+                    <StackPanel Spacing="10" VerticalAlignment="Center">
+                        <TextBox x:Name="Email" PlaceholderText="you@example.com" TextChanged="EmailChanged" />
+                        <Button Classes="specimen" Content="Subscribe" Click="SubscribeClicked" />
+                        <TextBlock x:Name="Hint" Classes="caption" Text="Try it without an @." />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </UniformGrid>
 
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Spacing="8">
+        <StackPanel Spacing="8">
             <TextBlock Classes="eyebrow showcase" Text="MAGNETIC" />
             <Border Classes="stage" Height="160">
                 <!-- snippet: MicroInteractionsMagnetic -->
@@ -217,6 +232,6 @@
             </Border>
         </StackPanel>
 
-        <showcase:CodeTabs x:Name="Code" Grid.Row="3" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
-    </Grid>
+        <showcase:CodeTabs x:Name="Code" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
+    </StackPanel>
 </showcase:ShowcasePage>
