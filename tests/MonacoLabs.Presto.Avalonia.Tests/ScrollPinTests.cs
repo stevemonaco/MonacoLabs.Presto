@@ -160,6 +160,29 @@ public sealed class ScrollPinTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void DetachingRestoresTheTransformAndMarginAndReturningPinsAgain()
+    {
+        var translate = new TranslateTransform(0, 7);
+        var target = new Border { Margin = new Thickness(5), RenderTransform = translate };
+        var stage = ScrollStage.Show(target: target);
+        Pin(target);
+        ScrollStage.ScrollTo(stage.Scroller, 400);
+
+        stage.Panel.Children.Remove(target);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Same(translate, target.RenderTransform);
+        Assert.Equal(new Thickness(5), target.Margin);
+
+        stage.Panel.Children.Insert(1, target);
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(16);
+
+        Assert.NotSame(translate, target.RenderTransform);
+        Assert.Equal(new Thickness(5, 5, 5, 5 + Distance), target.Margin);
+    }
+
+    [AvaloniaFact]
     public void RevertingTheLinkedAnimationReleasesThePin()
     {
         var child = new Border();

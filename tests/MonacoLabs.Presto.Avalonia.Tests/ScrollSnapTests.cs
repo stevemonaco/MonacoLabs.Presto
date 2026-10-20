@@ -161,4 +161,22 @@ public sealed class ScrollSnapTests : BridgeTestBase
         Assert.Equal(offset, scroller.Offset.Y);
         Assert.NotEqual(100, offset);
     }
+
+    [AvaloniaFact]
+    public void DetachingTheTargetMidSnapStopsIt()
+    {
+        var stage = ScrollStage.Show();
+        var observer = Observe(new ScrollObserverParams { Target = stage.Target, Snap = .25 });
+        ScrollStage.ScrollTo(stage.Scroller, 130);
+        Frames.Advance(350, 16);
+
+        stage.Panel.Children.Remove(stage.Target);
+        Dispatcher.UIThread.RunJobs();
+        var offset = stage.Scroller.Offset.Y;
+        Frames.Advance(SettleAndSnap, 16);
+
+        Assert.Equal(offset, stage.Scroller.Offset.Y);
+        Assert.NotEqual(100, offset);
+        Assert.False(ScrollWriter.Of(stage.Scroller).Owns(observer, false));
+    }
 }

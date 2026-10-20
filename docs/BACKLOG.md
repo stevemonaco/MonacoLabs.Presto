@@ -4,13 +4,9 @@ The single list of work not done in MonacoLabs.Presto: known bugs, gaps, checks,
 Small items are taken straight from here and fixed with their spec updated; larger ones become a change proposal in `docs/changes/` first (see [docs/changes/README.md](changes/README.md)).
 When an item is closed, its line is deleted.
 
-## Likely bugs
-
-- [BRIDGE-HELPERS] A detached control with a paused `Composition.Additive` animation is not collectable: `Additive.Lookups` holds the target strongly until cancel, and the tracker only pauses, so BRIDGE-HELPERS-031 fails for additive composition.
-- [BRIDGE-SCROLLOBSERVER] An observer whose target detaches stays in its container and is evaluated every scroll frame until reverted; decide between reverting it and suspending it on detach.
-- [BRIDGE-SCROLL] `Smooth` takes the wheel on the tunnel pass, so an outer smoothed scroller scrolls before an inner scroller under the pointer that could still scroll: on Windows, a notch over a gallery `CodePanel` or a page's list moves the whole page until it reaches its end. It yields only to Ctrl/Cmd (BRIDGE-SCROLL-085) and at its own end (BRIDGE-SCROLL-016).
-
 ## Manual and platform checks
+
+- [BRIDGE-SCROLL] On the Windows Desktop gallery, wheel over a `CodePanel` and over a page's inner list: each scrolls first and the page takes over at its end (BRIDGE-SCROLL-086; DevTools sends no wheel).
 
 - [BRIDGE-RECIPES] On Windows, move Tempo's settings between the popover and the sheet across the breakpoint and confirm the `Stepper` values, now shown through `Animate.DoOnChanged` with `{presto:MorphGlyphs}`, are set at once by the null-`DataContext` rebind rule and none is left split or blank in the native popup (BRIDGE-ATTACH, BRIDGE-RECIPES-096, -098).
 - [SAMPLE] By hand in Tempo (DevTools caught none of these): a 1-minute focus session bursting from the ring at 00:00 (BRIDGE-ATTACH); the confirm dialog growing from Clear all data in the wide settings popover, whose native popup DevTools cannot reach (`Modal.IsOrigin`, BRIDGE-MODAL); a task added while a deleted row is still leaving (BRIDGE-PRESENCE-EXIT). In the gallery's XAML page, the cue toast's ✕ dismissing it (`ToastHost.DismissOnClick`).

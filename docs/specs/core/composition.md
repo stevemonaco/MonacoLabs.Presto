@@ -126,6 +126,10 @@ Composition decides what happens when a new tween animates a target property tha
   - Tests: `EnginesTests.AdditiveTweensAreInvisibleToAnotherEngine`
 - **CORE-COMPOSITION-028** — A `Additive` tween shall still override the replace siblings registered at or after its start, as CORE-COMPOSITION-003 describes.
   - Tests: `CompositionTests.AnAdditiveTweenOverridesTheReplaceSiblingsAtOrAfterItsStart`
+- **CORE-COMPOSITION-042** — Parking a root shall move the additive entry of each target it animates additively, when every additive tween of that entry belongs to a paused root, out of the rendered lookups into a table held weakly by target, and unlink its lookup tweens from the additive animation, so the additive pass neither writes nor holds the target; unparking the root, or composing a new additive tween on the target, shall restore the entry and relink its lookup tweens; removing a tween from a parked entry shall remove it in place, as CORE-COMPOSITION-026 and -041 describe, and drop the emptied entry.
+  - Tests: `CompositionTests.ParkingAPausedAdditiveAnimationTakesItsTargetsOutOfTheRenderedLookups`, `CompositionTests.UnparkingRestoresTheEntryAndResumeContinuesFromTheSameProgress`, `CompositionTests.ComposingAnAdditiveTweenOnAParkedTargetUnparksItAndSums`, `CompositionTests.CancelingOrRevertingAParkedAnimationRemovesItsTweensInPlace`, `CompositionTests.AnEntryWithATweenOfAPlayingRootIsNotParked`, `CompositionTests.AParkedTargetIsCollectableOnceNothingHoldsItsAnimation`
+- **CORE-COMPOSITION-043** — When a timer that completed while its additive entries were parked detaches its tweens, it shall first unpark them and run the additive pass, so the target shows the final composed value.
+  - Tests: `CompositionTests.ATimerCompletedWhileParkedWritesItsFinalSumAsItsTweensDetach`
 - **CORE-COMPOSITION-029** — When a discrete property is given `Additive`, the animation constructor shall throw `ArgumentException`.
   - Tests: `DiscreteValuesTests.AdditiveThrows`
 
@@ -155,17 +159,19 @@ Composition decides what happens when a new tween animates a target property tha
 - Each tween is in at most one replace list and at most one additive list, and every list is acyclic with its head's previous and its tail's next link null.
 - A lookup tween is the head of its additive list, and a list holding only its lookup tween does not exist.
 - A canceled timer's tweens are in no sibling list.
+- A target's additive entry is either in the rendered lookups, with its lookup tweens in the additive animation, or parked, with them in no timer, never both.
 
 ## Edge cases
 
 - A tween inserted before every registered sibling overrides none of them; the later siblings keep rendering in their own windows.
 - A plain timer or `Call` child has no tweens, so it counts as fully overlapped when composition decides whether to cancel its timeline.
 - Restarting a canceled `Additive` animation recomposes it against the current base, so its from value can differ from its first run.
+- A timer completing while parked unparks the whole entry of each of its targets (CORE-COMPOSITION-043), so the remaining tweens of another paused root on that target are rendered and held strongly again until that root's next park.
 
 ## Threading and lifetime
 
 - All composition runs on the owner engine's thread; there are no locks.
-- Each engine keeps its replace lists in a `ConditionalWeakTable` keyed by target, so composition never keeps a target alive. The additive lookups hold their targets strongly until the last additive tween leaves.
+- Each engine keeps its replace lists in a `ConditionalWeakTable` keyed by target, so composition never keeps a target alive. The additive lookups hold their targets strongly until the last additive tween leaves or the entry is parked (CORE-COMPOSITION-042); a parked entry is held weakly by target, and its tweens are reachable only through their paused roots.
 
 ## Reduced motion
 
@@ -188,6 +194,7 @@ Composition decides what happens when a new tween animates a target property tha
 - A child past its end yields to a later sibling created before it by the timeline's playhead, where upstream gates on the child's clamped time and lets a later-added `.set` at 0 overwrite a later fade on a forward jump (see "A forward jump does not depend on the path").
 - A seek runs the additive pass itself, where upstream runs it only in the engine update, which a paused timer has left (see "A seek shows additive values").
 - An additive tween recomposes from its own values and starts its delta at its from value, where upstream recomposes from the delta and starts it at 0 (see "A revived additive tween recomposes from its own values").
+- Parking additive entries has no upstream counterpart; upstream's lookups are one global strong map, so a paused animation holds its targets for good (see "Additive entries are parked by the detach tracker, not on every pause").
 - Additive color tweens keep straight alpha while other color tweens are premultiplied; the premultiplied-alpha decision exempts `Additive` without a recorded reason (see CORE-COLORS, "Colors interpolate with premultiplied alpha").
 
 ## Decisions
@@ -199,6 +206,7 @@ Composition decides what happens when a new tween animates a target property tha
 - **A backward exit from an explicit from hands the value back.** Leaving an explicit-from tween backwards into the gap after a sibling of another child writes that sibling's value at its truncated end, once. Reason: upstream's gate keeps an explicit from from writing before its own start, and the sibling's timer is past its end so it never renders again, which left the tween's last frame on the target (the Title sequence cards played in reverse held at 0.4–4% opacity until time 0); the forward pass shows the sibling's hold in that gap, so the backward pass now matches it.
 - **A seek shows additive values.** `Seek` runs the engine's additive pass after it renders (CORE-COMPOSITION-040). Reason: a paused timer leaves the engine, so upstream's only additive pass, in the engine update, never ran for it; a paused, scrubbed timeline with additive children (the Title sequence dot ripple) showed the values of the last frame it played. Rejected: waking the engine for a frame after each seek, which shows the seek one frame late.
 - **A revived additive tween recomposes from its own values.** An `Additive` tween keeps its own from and to when composing turns them into a delta, takes them back when it leaves its list, and starts its delta at its from value instead of 0 (CORE-COMPOSITION-041). Reason: the engine cancels a timeline once it completes, and a seek back revives and recomposes it; upstream composes the delta again, so the recreated lookup took a delta as its base, and its keyframes that had not rendered since added nothing, which left the Title sequence dots at Scale −1.2 to 0 through the ripple after one play. Rejected: keeping additive tweens in their lists across the engine's cancel, which CORE-COMPOSITION-015 and the idempotent removal rely on.
+- **Additive entries are parked by the detach tracker, not on every pause.** The core parks an entry only when every one of its additive tweens belongs to a paused root (CORE-COMPOSITION-042), and only the bridge's detach tracker asks it to. Reason: for a user-paused animation on an attached control the lookup tween goes on rendering the composed value, as upstream does, and dropping it could change what is drawn; a detached control draws nothing, so only the tracker's pause is safe to park on. Rejected: a `ConditionalWeakTable` for all of the lookups (the additive pass would enumerate it, allocating each frame, and the lookup tweens linked into the additive animation would still hold the target); reverting additive animations on detach (loses progress, which is what `Pause` exists to keep). A timer that completes while parked (a user `Resume` or `Complete` while detached) unparks and runs the additive pass as its tweens detach (CORE-COMPOSITION-043). Reason: the pass skips parked entries and the detach drops the emptied entry, so the target, once reattached, kept the value it had when parked. Rejected: rendering only on a completion while parked inside the renderer (the hot path, and `Complete` reaches the detach anyway).
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
 - **Defaults, scope and composition state are per engine; a few statics are process-wide and documented, not locked.** See CORE-THREADING.
 - **Discrete values reject relative values and `Additive`.** See CORE-TARGETS.

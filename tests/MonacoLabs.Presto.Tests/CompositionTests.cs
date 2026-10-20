@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using MonacoLabs.Presto.Core;
 
 namespace MonacoLabs.Presto.Tests;
@@ -341,5 +342,165 @@ public sealed class CompositionTests : EngineTestBase
 
         Assert.True(later._isOverridden);
         Assert.False(first._isOverridden);
+    }
+
+    private static Animation PausedAdditive(StyleTarget target, double to = 100)
+    {
+        var animation = Presto.Animate(target, new() { ["X"] = to, Duration = 200, Ease = "linear", Composition = Composition.Additive, Autoplay = false });
+        animation.Seek(100);
+        return animation;
+    }
+
+    private static bool InAdditiveAnimation(Tween lookupTween)
+    {
+        for (var tween = Presto.Engine.Additive.Animation!._headTween; tween != null; tween = tween._next)
+        {
+            if (tween == lookupTween) return true;
+        }
+        return false;
+    }
+
+    [Fact]
+    public void ParkingAPausedAdditiveAnimationTakesItsTargetsOutOfTheRenderedLookups()
+    {
+        var target = new StyleTarget();
+        var animation = PausedAdditive(target);
+        var additive = Presto.Engine.Additive;
+        var lookupTween = Composer.GetTweenSiblings(target, "X", additive)._head!;
+
+        additive.Park(animation);
+
+        Assert.False(additive.Lookups.ContainsKey(target));
+        Assert.True(additive.Parked.TryGetValue(target, out _));
+        Assert.False(InAdditiveAnimation(lookupTween));
+        target.X = -1;
+        additive.Update();
+        Assert.Equal(-1, target.X);
+    }
+
+    [Fact]
+    public void UnparkingRestoresTheEntryAndResumeContinuesFromTheSameProgress()
+    {
+        var target = new StyleTarget();
+        var animation = PausedAdditive(target);
+        var additive = Presto.Engine.Additive;
+        additive.Park(animation);
+        target.X = -1;
+
+        additive.Unpark(animation);
+
+        Assert.True(additive.Lookups.TryGetValue(target, out var properties));
+        Assert.False(additive.Parked.TryGetValue(target, out _));
+        Assert.True(InAdditiveAnimation(properties["X"]._head!));
+        additive.Update();
+        Assert.Equal(50, target.X, 6);
+
+        animation.Resume();
+        Frames.Advance(50, 10);
+        Assert.InRange(target.X, 60, 90);
+    }
+
+    [Fact]
+    public void ComposingAnAdditiveTweenOnAParkedTargetUnparksItAndSums()
+    {
+        var target = new StyleTarget();
+        var first = PausedAdditive(target);
+        var additive = Presto.Engine.Additive;
+        additive.Park(first);
+
+        var second = Presto.Animate(target, new() { ["X"] = 50, Duration = 100, Ease = "linear", Composition = Composition.Additive, Autoplay = false });
+
+        Assert.True(additive.Lookups.TryGetValue(target, out var properties));
+        Assert.False(additive.Parked.TryGetValue(target, out _));
+        var siblings = properties["X"];
+        Assert.True(InAdditiveAnimation(siblings._head!));
+        Assert.Same(second._headTween, siblings._tail);
+        Assert.Same(first._headTween, second._headTween!._prevAdd);
+        second.Seek(100);
+        Assert.Equal(siblings._head!._fromNumber + first._headTween!._number, target.X, 6);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CancelingOrRevertingAParkedAnimationRemovesItsTweensInPlace(bool revert)
+    {
+        var target = new StyleTarget();
+        var first = PausedAdditive(target);
+        var second = PausedAdditive(target, 50);
+        var additive = Presto.Engine.Additive;
+        additive.Park(first);
+        Assert.True(additive.Parked.TryGetValue(target, out var properties));
+        var siblings = properties["X"];
+
+        if (revert) first.Revert(); else first.Cancel();
+
+        Assert.True(additive.Parked.TryGetValue(target, out _));
+        Assert.Same(second._headTween, siblings._tail);
+        Assert.Same(siblings._head, second._headTween!._prevAdd);
+        TweenList.CheckIntact(siblings);
+
+        if (revert) second.Revert(); else second.Cancel();
+
+        Assert.False(additive.Parked.TryGetValue(target, out _));
+        Assert.False(additive.Lookups.ContainsKey(target));
+        Assert.Null(siblings._head);
+        TweenList.CheckIntact(siblings);
+        TweenList.CheckIntact(additive.Animation!);
+    }
+
+    [Fact]
+    public void ATimerCompletedWhileParkedWritesItsFinalSumAsItsTweensDetach()
+    {
+        var target = new StyleTarget();
+        var animation = PausedAdditive(target);
+        var additive = Presto.Engine.Additive;
+        additive.Park(animation);
+
+        animation.Complete();
+
+        Assert.Equal(100, target.X, 6);
+        Assert.False(additive.Parked.TryGetValue(target, out _));
+        Assert.False(additive.Lookups.ContainsKey(target));
+    }
+
+    [Fact]
+    public void AnEntryWithATweenOfAPlayingRootIsNotParked()
+    {
+        var target = new StyleTarget();
+        var paused = PausedAdditive(target);
+        Presto.Animate(target, new() { ["X"] = 50, Duration = 200, Composition = Composition.Additive });
+        var additive = Presto.Engine.Additive;
+
+        additive.Park(paused);
+
+        Assert.True(additive.Lookups.ContainsKey(target));
+        Assert.False(additive.Parked.TryGetValue(target, out _));
+    }
+
+    [Fact]
+    public async Task AParkedTargetIsCollectableOnceNothingHoldsItsAnimation()
+    {
+        var target = ParkPausedAdditive();
+        Frames.Advance(50, 10);
+
+        for (var i = 0; i < 20 && target.IsAlive; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Assert.False(target.IsAlive);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference ParkPausedAdditive()
+    {
+        var target = new StyleTarget();
+        var animation = Presto.Animate(target, new() { ["X"] = 100, Duration = 200, Composition = Composition.Additive, Loop = true });
+        animation.Pause();
+        Presto.Engine.Additive.Park(animation);
+        return new WeakReference(target);
     }
 }

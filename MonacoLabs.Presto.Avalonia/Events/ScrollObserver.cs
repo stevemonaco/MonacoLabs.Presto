@@ -63,6 +63,7 @@ public sealed class ScrollObserver : IRevertible, IReleasable
     private TransformShorthand? _pin;
     private AnimatedValue<Thickness>? _spacer;
     private Thickness _margin;
+    private Control? _detachWatched;
     private double _snapFrom;
     private double _snapTo;
 
@@ -123,7 +124,10 @@ public sealed class ScrollObserver : IRevertible, IReleasable
     /// <summary>The observer's name, taken from the parameters or from the number of observers created before it.</summary>
     public string Id { get; }
 
-    /// <summary>The state shared with the other observers of the same scroller; null until the observer has resolved.</summary>
+    /// <summary>
+    /// The state shared with the other observers of the same scroller; null until the observer has resolved and while its
+    /// target is detached.
+    /// </summary>
     public ScrollContainer? Container { get; private set; }
 
     /// <summary>The watched control, taken from <see cref="Linked"/> when the parameters name none.</summary>
@@ -147,7 +151,7 @@ public sealed class ScrollObserver : IRevertible, IReleasable
     /// <summary>How closely the linked object follows the scroll position, 1 being exactly; null unless the sync mode is a smooth one.</summary>
     public double? SyncSmooth { get; }
 
-    /// <summary>Whether the target and container have been resolved and the bounds measured.</summary>
+    /// <summary>Whether the target and container have been resolved and the bounds measured; false while the target is detached.</summary>
     public bool Ready { get; private set; }
 
     /// <summary>Whether <see cref="Revert"/> has detached the observer from its container.</summary>
@@ -220,6 +224,12 @@ public sealed class ScrollObserver : IRevertible, IReleasable
     {
         // Upstream's flag: HandleScroll does nothing until a refresh has measured the bounds it reads.
         Ready = true;
+        if (_detachWatched != Target)
+        {
+            UnwatchDetach();
+            _detachWatched = Target!;
+            _detachWatched.DetachedFromVisualTree += HandleTargetDetached;
+        }
         Repeat = _parameters.Repeat ?? true;
         Horizontal = (_parameters.Axis ?? ScrollAxis.Vertical) == ScrollAxis.Horizontal;
         _enter = _parameters.Enter ?? "end start";
@@ -240,12 +250,8 @@ public sealed class ScrollObserver : IRevertible, IReleasable
         if (Reverted) return this;
         if (Linked is { } linked) linked._onRevert -= HandleLinkedRevert;
         if (Target is { } target) target.Loaded -= HandleTargetLoaded;
-        Unpin();
-        _snapWait?.Cancel();
-        _snapTween?.Cancel();
-        Container?.Remove(this);
+        Leave();
         Reverted = true;
-        Ready = false;
         return this;
     }
 
@@ -433,7 +439,7 @@ public sealed class ScrollObserver : IRevertible, IReleasable
             pending.Loaded += HandleTargetLoaded;
             return;
         }
-        if (Container == null && Target?.FindAncestorOfType<ScrollViewer>() is { } scroller)
+        if (Container == null && (_parameters.Container ?? Target?.FindAncestorOfType<ScrollViewer>()) is { } scroller)
         {
             Container = ScrollContainer.Register(scroller, this);
         }
@@ -549,8 +555,37 @@ public sealed class ScrollObserver : IRevertible, IReleasable
 
     private void HandleTargetLoaded(object? sender, RoutedEventArgs e)
     {
-        Target!.Loaded -= HandleTargetLoaded;
+        ((Control)sender!).Loaded -= HandleTargetLoaded;
         Resolve();
+    }
+
+    private void HandleTargetDetached(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        // An earlier handler of the same detach can have reverted the observer.
+        if (!Ready) return;
+        Leave();
+        Container = null;
+        Target!.Loaded += HandleTargetLoaded;
+    }
+
+    private void Leave()
+    {
+        UnwatchDetach();
+        Unpin();
+        _snapWait?.Cancel();
+        _snapTween?.Cancel();
+        if (Container is { } container)
+        {
+            ScrollWriter.Of(container.Scroller).Release(this);
+            container.Remove(this);
+        }
+        Ready = false;
+    }
+
+    private void UnwatchDetach()
+    {
+        if (_detachWatched != null) _detachWatched.DetachedFromVisualTree -= HandleTargetDetached;
+        _detachWatched = null;
     }
 
     private void HandleLinkedRevert(Timer linked) => Revert();

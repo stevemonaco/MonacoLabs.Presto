@@ -38,6 +38,24 @@ public sealed class AllocationTests : EngineTestBase
         Assert.True(bytes <= 0, $"{bytes:0.##} bytes per tick");
     }
 
+    [Fact]
+    public void AdditivePassOfNumberTweensAllocatesNothing()
+    {
+        var targets = new StyleTarget[10];
+        for (var i = 0; i < targets.Length; i++) targets[i] = new StyleTarget();
+        Presto.Animate(targets, new() { ["X"] = 100, Duration = 400, Loop = true, Alternate = true, Composition = Composition.Additive });
+        Presto.Animate(targets, new() { ["Y"] = 50, Duration = 300, Loop = true, Composition = Composition.Additive });
+        Frames.Advance(160, 16);
+
+        var additive = Presto.Engine.Additive;
+        additive.Update();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 200; i++) additive.Update();
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(bytes <= 0, $"{bytes} bytes over 200 additive passes");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

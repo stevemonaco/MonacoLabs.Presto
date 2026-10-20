@@ -50,9 +50,52 @@ public sealed class WhenDetachedTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void AControlDetachedForGoodIsCollectedWithItsAnimation()
+    public void ReattachingResumesTheAdditiveValueAtTheSameProgress()
     {
-        var (box, animation) = AnimateAndRemove();
+        var box = Attached();
+        var animation = Loop(box, composition: Composition.Additive);
+        Frames.Advance(200, 16);
+        Detach(box);
+        var stopped = animation.CurrentTime;
+        Assert.True(Presto.Engine.Additive.Parked.TryGetValue(box, out _));
+
+        _panel.Children.Add(box);
+        Frames.Advance(500, 16);
+        Assert.False(animation.Paused);
+        Assert.InRange(animation.CurrentTime, stopped + 480, stopped + 530);
+        Assert.Equal(1 - animation.CurrentTime % 1000 / 1000, box.Opacity, 3);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnAdditiveAnimationCompletedWhileDetachedShowsItsFinalValueOnReattach(bool complete)
+    {
+        var box = Attached();
+        var animation = Presto.Animate(box, new AvaloniaAnimationParams { [Visual.OpacityProperty] = 0, Duration = 1000, Ease = "linear", Composition = Composition.Additive });
+        Frames.Advance(200, 16);
+        Detach(box);
+
+        if (complete) animation.Complete();
+        else
+        {
+            animation.Resume();
+            Frames.Advance(1000, 16);
+        }
+        Assert.True(animation.Completed);
+        Attach(box);
+        Frames.Advance(32, 16);
+
+        Assert.Equal(0, box.Opacity, 6);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(Composition.Replace, false)]
+    [InlineData(Composition.Additive, false)]
+    [InlineData(Composition.Additive, true)]
+    public void AControlDetachedForGoodIsCollectedWithItsAnimation(Composition composition, bool inTimeline)
+    {
+        var (box, animation) = AnimateAndRemove(composition, inTimeline);
 
         GC.Collect();
         GC.WaitForPendingFinalizers();
@@ -375,10 +418,12 @@ public sealed class WhenDetachedTests : BridgeTestBase
             .Add(second, new AnimationParams { ["Opacity"] = 0, Duration = 1000, Ease = "linear" }, 0);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private (WeakReference Box, WeakReference Animation) AnimateAndRemove()
+    private (WeakReference Box, WeakReference Animation) AnimateAndRemove(Composition composition, bool inTimeline)
     {
         var box = Attached();
-        var animation = Loop(box);
+        Timer animation = inTimeline
+            ? Presto.CreateTimeline(new TimelineParams { Loop = true }).Add(box, new AnimationParams { ["Opacity"] = 0, Duration = 1000, Composition = composition })
+            : Loop(box, composition: composition);
         Frames.Advance(200, 16);
         Detach(box);
         return (new WeakReference(box), new WeakReference(animation));
@@ -408,7 +453,7 @@ public sealed class WhenDetachedTests : BridgeTestBase
         Frames.Advance(16);
     }
 
-    private static Animation Loop(Border box, WhenDetached? whenDetached = null, AvaloniaAnimationParams? whenReduced = null) =>
+    private static Animation Loop(Border box, WhenDetached? whenDetached = null, AvaloniaAnimationParams? whenReduced = null, Composition? composition = null) =>
         Presto.Animate(box, new AvaloniaAnimationParams
         {
             [Visual.OpacityProperty] = 0,
@@ -417,6 +462,7 @@ public sealed class WhenDetachedTests : BridgeTestBase
             Ease = "linear",
             WhenDetached = whenDetached,
             WhenReduced = whenReduced,
+            Composition = composition,
         });
 
     private sealed class Plain

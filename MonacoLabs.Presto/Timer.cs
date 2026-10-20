@@ -517,7 +517,13 @@ public class Timer : Clock, IRevertible, IReleasable, IMemberTarget
         }
         if (_hasChildren) Helpers.ForEachChildren(this, static child => child.Cancel(), true);
         // Unlike upstream, a repeat cancel leaves composition alone: the tweens already left their sibling lists.
-        else if (!_canceled) TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
+        else if (!_canceled)
+        {
+            // A parked entry is not rendered, so a timer that completed while parked shows its final value only through this pass.
+            var additive = OwnerEngine.Additive;
+            if (Completed && additive.Unpark(this)) additive.Update();
+            TweenList.ForEachChildren(this, Composer.RemoveTweenSiblings);
+        }
         _canceled = true;
         return PauseTimer();
     }
