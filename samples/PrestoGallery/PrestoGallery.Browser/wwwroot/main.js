@@ -23,6 +23,14 @@ function onUnhandledError(error) {
     location.reload();
 }
 
+// Avalonia's screen probe queries 'window-management' without a catch, and Firefox rejects names it doesn't know.
+const queryPermission = navigator.permissions?.query.bind(navigator.permissions);
+if (queryPermission)
+    navigator.permissions.query = async descriptor => {
+        try { return await queryPermission(descriptor); }
+        catch (error) { if (error instanceof TypeError) return { state: 'denied' }; throw error; }
+    };
+
 window.addEventListener('error', e => onUnhandledError(e.error ?? e.message));
 window.addEventListener('unhandledrejection', e => onUnhandledError(e.reason));
 
